@@ -2,9 +2,9 @@
 @inject IJSRuntime JS
 @using Ethereum.MetaMask.Blazor;
 @using Microsoft.AspNetCore.Components
-@using NFT_JOGO
-@using NFT_JOGO.Data
-@using NFT_JOGO.EntityModel
+@using EthicAI
+@using EthicAI.Data
+@using EthicAI.EntityModel
 <PageTitle>Counter</PageTitle>
 @inject IMetaMaskService MetaMaskService
 @inject IMetaMaskService MetaMaskService
@@ -31,20 +31,20 @@
 
         CarteiraUsuario = accounts;
 
-        UsuarioService objService = new UsuarioService(Configuration);
+        UserService objService = new UserService(Configuration);
 
-        var User = await objService.GetUsuarioByWallet(CarteiraUsuario);
+        var User = await objService.GetUserByWallet(CarteiraUsuario);
 
         if(User == null)
         {
             //  =====  Usuário não cadastrado.
-            var objUser = new Usuario();
+            var objUser = new User();
 
-            objUser.CarteiraEndereco = CarteiraUsuario;
-            objUser.DataAtualizacao = DateTime.Now;
-            objUser.NomeJogador = "GigaDigito@Teste";
+            objUser.Wallet = CarteiraUsuario;
+            objUser.DtUpdate = DateTime.Now;
+            objUser.Name = "GigaDigito@Teste";
 
-            var Result = await objService.AddUsuario(objUser);
+            var Result = await objService.AddUser(objUser);
 
             if (Result == "OK")
             {

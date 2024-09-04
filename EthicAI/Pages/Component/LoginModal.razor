@@ -1,9 +1,9 @@
 ﻿@inject IJSRuntime JS
 @using Ethereum.MetaMask.Blazor;
 @using Microsoft.AspNetCore.Components
-@using NFT_JOGO
-@using NFT_JOGO.Data
-@using NFT_JOGO.EntityModel
+@using EthicAI
+@using EthicAI.Data
+@using EthicAI.EntityModel
 
 @inject IMetaMaskService MetaMaskService
 @inject IMetaMaskService MetaMaskService
@@ -14,7 +14,7 @@
         <div class="modal-content">
             <div class="modal-body">
 
-                @if (String.IsNullOrEmpty(CarteiraUsuario))
+                @if (String.IsNullOrEmpty(CarteiraUser))
                 {
 
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -70,18 +70,18 @@
                         <span class="ion-android-close"></span>
                     </button>
 
-                    <h4 class="mb-0"><span class="text-main-1">Bem-vindo </span> @NomeUsuario</h4>
+                    <h4 class="mb-0"><span class="text-main-1">Bem-vindo </span> @NomeUser</h4>
 
                     <h5 class="mb-0" style="margin-top:5px">Obrigado por nos ajudar na luta contra as maquinas IA! </h5>
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
                             <div class="col-md-6">
                                 
-                                @if (String.IsNullOrEmpty(NomeUsuario))
+                                @if (String.IsNullOrEmpty(NomeUser))
                                 {
                                     <div class="nk-gap">Informe seu nome de usuário</div>
                                     <div class="nk-gap"></div>
-                                    <input type="text" @bind="NomeUsuario" name="user" class=" form-control" placeholder="Nome de usuário / apelido">
+                                    <input type="text" @bind="NomeUser" name="user" class=" form-control" placeholder="Nome de usuário / apelido">
                                 }
 
                                 @*   Use email and password:
@@ -93,7 +93,7 @@
                             <div class="col-md-12">
                                    Seu Saldo em ETCAI: 0,00000.00000
 
-                                 <div class="nk-gap">@CarteiraUsuario</div>
+                                 <div class="nk-gap">@CarteiraUser</div>
 
                                   @* <ul class="nk-social-links-2">
                                 <li><a class="nk-social-facebook" href="#"><span class="fab fa-facebook"></span></a></li>
@@ -111,8 +111,8 @@
 
 @code {
 
-    public string CarteiraUsuario { get; set; }
-    public string NomeUsuario { get; set; }
+    public string CarteiraUser { get; set; }
+    public string NomeUser { get; set; }
 
     private async Task RequestAuthorization()
     {
@@ -121,22 +121,22 @@
 
         // Faça algo com os endereços de conta, se necessário
 
-        CarteiraUsuario = accounts;
+        CarteiraUser = accounts;
 
-        UsuarioService objService = new UsuarioService(Configuration);
+       UserService objService = new UserService(Configuration);
 
-        var User = await objService.GetUsuarioByWallet(CarteiraUsuario);
+        var User = await objService.GetUserByWallet(CarteiraUser);
 
         if (User == null)
         {
             //  =====  Usuário não cadastrado.
-            var objUser = new Usuario();
+            var objUser = new User();
 
-            objUser.CarteiraEndereco = CarteiraUsuario;
-            objUser.DataAtualizacao = DateTime.Now;
-            objUser.NomeJogador = "GigaDigito@Teste";
+            objUser.Wallet = CarteiraUser;
+            objUser.DtUpdate = DateTime.Now;
+            objUser.Name = "GigaDigito@Teste";
 
-            var Result = await objService.AddUsuario(objUser);
+            var Result = await objService.AddUser(objUser);
 
             if (Result == "OK")
             {
@@ -148,9 +148,9 @@
         {
             //loga o usuário.
 
-            await sessionStorage.SetItemAsync("Usuario", User);
+            await sessionStorage.SetItemAsync("User", User);
 
-            var objUsurio = await sessionStorage.GetItemAsync<Usuario>("Usuario");
+            var objUsurio = await sessionStorage.GetItemAsync<User>("User");
         }
 
     }
@@ -158,14 +158,14 @@
     {
         // load the Categories (example)
 
-        var objUsurio = await sessionStorage.GetItemAsync<Usuario>("Usuario");
+        var objUsurio = await sessionStorage.GetItemAsync<User>("User");
 
         if(objUsurio != null)
         {
-            CarteiraUsuario = objUsurio.CarteiraEndereco;
-            NomeUsuario = objUsurio.NomeJogador;
+            // Wallet = objUsurio.Wallet;
+            // Name = objUsurio.Name;
 
-            StateHasChanged();
+            // StateHasChanged();
         }
     }
 }

@@ -1,4 +1,4 @@
-namespace NFT_JOGO.Data
+namespace EthicAI.Data
 {
     public class WeatherForecastService
     {

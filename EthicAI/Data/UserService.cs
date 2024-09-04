@@ -1,50 +1,50 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using NFT_JOGO.EntityModel;
+using EthicAI.EntityModel;
 using System.Threading.Tasks;
 
-namespace NFT_JOGO.Data
+namespace EthicAI.Data
 {
-    public class UsuarioService
+    public class UserService
     {
         private readonly IConfiguration _configuration;
 
-        public UsuarioService(IConfiguration configuration) { 
+        public UserService(IConfiguration configuration) { 
             _configuration = configuration;
         }
 
-        public Task<Usuario> GetUsuarioByWallet(string guid)
+        public Task<User> GetUserByWallet(string guid)
         {
-            var Usuario = new Usuario();    
+            var Usuario = new User();    
            
             using (ApplicationDbContext db = new ApplicationDbContext(_configuration))
             {
-                Usuario =  db.Usuario.Where(x=>x.CarteiraEndereco == guid).FirstOrDefault();
+                Usuario =  db.User.Where(x=>x.Wallet == guid).FirstOrDefault();
 
                 return Task.FromResult(Usuario);
             }
             return null;  
         }
 
-        public Task<string> AddUsuario(Usuario Usuario)
+        public Task<string> AddUser(User Usuario)
         {
             String Result = "";
           
             using (ApplicationDbContext db = new ApplicationDbContext(_configuration))
             {
-                if (String.IsNullOrEmpty(Usuario.CarteiraEndereco))
+                if (String.IsNullOrEmpty(Usuario.Wallet))
                 {
                     Result = "Carteira Inválida";
                 };
 
 
-                if (db.Usuario.Where(x => x.CarteiraEndereco == Usuario.CarteiraEndereco).Any())
+                if (db.User.Where(x => x.Wallet == Usuario.Wallet).Any())
                 {
                     Result = "Usuário já existe";
                 };
                
-                if (db.Usuario.Where(x => x.NomeJogador == Usuario.CarteiraEndereco).Any())
+                if (db.User.Where(x => x.Name == Usuario.Wallet).Any())
                 {
                     Result = "Nome do jogador deve ser unica";
                 };

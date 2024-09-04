@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>NFT_JOGO</RootNamespace>
+    <RootNamespace>EthicAI</RootNamespace>
     <UserSecretsId>76a0bed6-8e3b-4d5b-be8e-14a4784f7fdb</UserSecretsId>
   </PropertyGroup>
 

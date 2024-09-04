@@ -93,8 +93,8 @@
  -------------------------------------------------------------------*/
 body {
     position: relative;
-    color: #7f8b92;
-    background-color: #171e22;
+    /*color: #7f8b92;
+    background-color: #171e22;*/
 }
 
 .nk-main {
@@ -5558,7 +5558,7 @@ img.rounded {
 }
 
 .nk-btn-color-dark-1 {
-    background-color: #171e22;
+    /**/background-color: #171e22;
     border-color: black;
     border-style: solid;
 }
