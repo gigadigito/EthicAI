@@ -10,61 +10,83 @@ namespace EthicAI.Data
     {
         private readonly IConfiguration _configuration;
 
-        public UserService(IConfiguration configuration) { 
+        public UserService(IConfiguration configuration)
+        {
             _configuration = configuration;
         }
 
-        public Task<User> GetUserByWallet(string guid)
+        // Método assíncrono para buscar usuário por carteira
+        public async Task<User> GetUserByWallet(string wallet)
         {
-            var Usuario = new User();    
-           
-            using (ApplicationDbContext db = new ApplicationDbContext(_configuration))
+            try
             {
-                Usuario =  db.User.Where(x=>x.Wallet == guid).FirstOrDefault();
-
-                return Task.FromResult(Usuario);
-            }
-            return null;  
-        }
-
-        public Task<string> AddUser(User Usuario)
-        {
-            String Result = "";
-          
-            using (ApplicationDbContext db = new ApplicationDbContext(_configuration))
-            {
-                if (String.IsNullOrEmpty(Usuario.Wallet))
+                using (var db = new ApplicationDbContext(_configuration))
                 {
-                    Result = "Carteira Inválida";
-                };
+                    var usuario = await db.User
+                        .Where(x => x.Wallet == wallet)
+                        .FirstOrDefaultAsync();
 
-
-                if (db.User.Where(x => x.Wallet == Usuario.Wallet).Any())
-                {
-                    Result = "Usuário já existe";
-                };
-               
-                if (db.User.Where(x => x.Name == Usuario.Wallet).Any())
-                {
-                    Result = "Nome do jogador deve ser unica";
-                };
-
-                if (String.IsNullOrEmpty(Result))
-                {
-                    
-                    db.Add(Usuario);
-
-                    db.SaveChanges();
-
-                    Result = "OK";
+                    return usuario;
                 }
- 
             }
-
-            return Task.FromResult(Result);
-
+            catch (DbUpdateException dbEx)
+            {
+                // Log do erro e tratamento de erro específico do banco de dados
+                Console.WriteLine($"Erro de banco de dados: {dbEx.Message}");
+                throw new Exception("Ocorreu um erro ao acessar o banco de dados ao buscar o usuário.");
+            }
+            catch (Exception ex)
+            {
+                // Captura de outros erros gerais
+                Console.WriteLine($"Erro geral: {ex.Message}");
+                throw new Exception("Ocorreu um erro ao buscar o usuário.");
+            }
         }
 
+        // Método assíncrono para adicionar um usuário
+        public async Task<string> AddUser(User usuario)
+        {
+            if (string.IsNullOrEmpty(usuario.Wallet))
+            {
+                return "Carteira Inválida";
+            }
 
+            try
+            {
+                using (var db = new ApplicationDbContext(_configuration))
+                {
+                    // Verifica se o usuário já existe pela carteira
+                    if (await db.User.AnyAsync(x => x.Wallet == usuario.Wallet))
+                    {
+                        return "Usuário já existe";
+                    }
+
+                    // Verifica se o nome do jogador já existe
+                    if (await db.User.AnyAsync(x => x.Name == usuario.Name))
+                    {
+                        return "Nome do jogador deve ser único";
+                    }
+
+                    // Se não houver erros, salva o novo usuário
+                    db.Add(usuario);
+                    await db.SaveChangesAsync();
+
+                    return "OK";
+                }
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Tratamento de erro relacionado ao banco de dados
+                Console.WriteLine($"Erro de banco de dados: {dbEx.Message}");
+                return "Erro ao adicionar o usuário ao banco de dados.";
+            }
+            catch (Exception ex)
+            {
+                // Tratamento de outros erros não relacionados ao banco de dados
+                Console.WriteLine($"Erro geral: {ex.Message}");
+                return "Erro desconhecido ao adicionar o usuário.";
+            }
+        }
     }
 }
+

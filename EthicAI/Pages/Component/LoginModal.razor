@@ -1,12 +1,9 @@
 ﻿@inject IJSRuntime JS
-@using Ethereum.MetaMask.Blazor;
 @using Microsoft.AspNetCore.Components
 @using EthicAI
 @using EthicAI.Data
 @using EthicAI.EntityModel
 
-@inject IMetaMaskService MetaMaskService
-@inject IMetaMaskService MetaMaskService
 @inject IConfiguration Configuration
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 <div class="nk-modal modal fade" id="modalLogin" tabindex="-1" role="dialog" aria-hidden="true">
@@ -21,45 +18,19 @@
                         <span class="ion-android-close"></span>
                     </button>
 
-                    <h4 class="mb-0"><span class="text-main-1">Conectar</span> Carteira</h4>
+                    <h4 class="mb-0"><span class="text-main-1">Conectar</span> Carteira Solana</h4>
 
                     <div class="nk-gap-1"></div>
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
-                            <div class="col-md-6">
-                                @*   Use email and password:
-
-                            <div class="nk-gap"></div>
-                            <input type="email" value="" name="email" class=" form-control" placeholder="Email">
-
-                            <div class="nk-gap"></div>
-                            <input type="password" value="" name="password" class="required form-control" placeholder="Password"> *@
-                            </div>
-                            <div class="col-md-6">
-                                @*   Or social account:
-
-                            <div class="nk-gap"></div>
-
-                            <ul class="nk-social-links-2">
-                            <li><a class="nk-social-facebook" href="#"><span class="fab fa-facebook"></span></a></li>
-                            <li><a class="nk-social-google-plus" href="#"><span class="fab fa-google-plus"></span></a></li>
-                            <li><a class="nk-social-twitter" href="#"><span class="fab fa-twitter"></span></a></li>
-                            </ul> *@
-                            </div>
+                            <div class="col-md-6"></div>
+                            <div class="col-md-6"></div>
                         </div>
 
                         <div class="nk-gap-1"></div>
                         <div class="row vertical-gap">
                             <div class="col-md-6">
-                                <a href="#" @onclick="RequestAuthorization" class="nk-btn nk-btn-rounded nk-btn-color-white nk-btn-block">Conectar Metamask</a>
-                            </div>
-                            <div class="col-md-6">
-                                @*  <div class="mnt-5">
-                            <small><a href="#">Forgot your password?</a></small>
-                            </div>
-                            <div class="mnt-5">
-                            <small><a href="#">Not a member? Sign up</a></small>
-                            </div> *@
+                                <a href="#" @onclick="RequestAuthorization" class="nk-btn nk-btn-rounded nk-btn-color-white nk-btn-block">Conectar Phantom</a>
                             </div>
                         </div>
                     </form>
@@ -72,100 +43,110 @@
 
                     <h4 class="mb-0"><span class="text-main-1">Bem-vindo </span> @NomeUser</h4>
 
-                    <h5 class="mb-0" style="margin-top:5px">Obrigado por nos ajudar na luta contra as maquinas IA! </h5>
+                    <h5 class="mb-0" style="margin-top:5px">Obrigado por nos ajudar na luta contra as máquinas IA! </h5>
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
                             <div class="col-md-6">
-                                
                                 @if (String.IsNullOrEmpty(NomeUser))
                                 {
                                     <div class="nk-gap">Informe seu nome de usuário</div>
                                     <div class="nk-gap"></div>
-                                    <input type="text" @bind="NomeUser" name="user" class=" form-control" placeholder="Nome de usuário / apelido">
+                                    <input type="text" @bind="NomeUser" name="user" class="form-control" placeholder="Nome de usuário / apelido">
                                 }
-
-                                @*   Use email and password:
-
-                            <div class="nk-gap"></div>
-                            <input type="password" value="" name="password" class="required form-control" placeholder="Password"> *@
-
                             </div>
                             <div class="col-md-12">
-                                   Seu Saldo em ETCAI: 0,00000.00000
-
-                                 <div class="nk-gap">@CarteiraUser</div>
-
-                                  @* <ul class="nk-social-links-2">
-                                <li><a class="nk-social-facebook" href="#"><span class="fab fa-facebook"></span></a></li>
-                                <li><a class="nk-social-google-plus" href="#"><span class="fab fa-google-plus"></span></a></li>
-                                <li><a class="nk-social-twitter" href="#"><span class="fab fa-twitter"></span></a></li>
-                                </ul> *@
+                                Seu Saldo em ETCAI: 0,00000.00000
+                                <div class="nk-gap">@CarteiraUser</div>
                             </div>
                         </div>
-                   </form>
+                    </form>
                 }
             </div>
         </div>
     </div>
 </div>
 
-@code {
+@inject IJSRuntime JS
 
+@code {
     public string CarteiraUser { get; set; }
+  
     public string NomeUser { get; set; }
 
     private async Task RequestAuthorization()
     {
-
-        var accounts = await MetaMaskService.ConnectAsync();
-
-        // Faça algo com os endereços de conta, se necessário
-
-        CarteiraUser = accounts;
-
-       UserService objService = new UserService(Configuration);
-
-        var User = await objService.GetUserByWallet(CarteiraUser);
-
-        if (User == null)
+        try
         {
-            //  =====  Usuário não cadastrado.
-            var objUser = new User();
+            // Chamar o JavaScript para conectar à carteira Solana (Phantom)
+            var result = await JS.InvokeAsync<SolanaLoginResult>("solanaLogin");
 
-            objUser.Wallet = CarteiraUser;
-            objUser.DtUpdate = DateTime.Now;
-            objUser.Name = "GigaDigito@Teste";
-
-            var Result = await objService.AddUser(objUser);
-
-            if (Result == "OK")
+            if (result != null && !string.IsNullOrEmpty(result.PublicKey))
             {
-                var teste = 1;
+                CarteiraUser = result.PublicKey;
+
+                // Log no console do navegador
+                await LogMessageToBrowserConsole($"Carteira conectada: {CarteiraUser}");
+
+                // Lógica para verificar se o usuário já existe no sistema
+                UserService objService = new UserService(Configuration);
+
+                var user = await objService.GetUserByWallet(CarteiraUser);
+
+                if (user == null)
+                {
+                    // Usuário não cadastrado, criar novo usuário
+                    var newUser = new User
+                        {
+                            Wallet = CarteiraUser,
+                            DtUpdate = DateTime.Now,
+                            Name = NomeUser ?? "Novo Usuário Solana"
+                        };
+
+                    var resultAdd = await objService.AddUser(newUser);
+
+                    if (resultAdd == "OK")
+                    {
+                        await LogMessageToBrowserConsole("Usuário criado com sucesso!");
+                    }
+                    else
+                    {
+                        await LogMessageToBrowserConsole($"Erro ao adicionar o usuário: {resultAdd}");
+                    }
+                }
+                else
+                {
+                    // Logar o usuário
+                    await sessionStorage.SetItemAsync("User", user);
+                    var storedUser = await sessionStorage.GetItemAsync<User>("User");
+                    await LogMessageToBrowserConsole("Usuário logado com sucesso.");
+                }
             }
-
+            else
+            {
+                await LogMessageToBrowserConsole("Erro ao conectar à carteira Solana. Verifique se a Phantom Wallet está instalada e conectada.");
+            }
         }
-        else
+         catch (JSException jsEx)
         {
-            //loga o usuário.
-
-            await sessionStorage.SetItemAsync("User", User);
-
-            var objUsurio = await sessionStorage.GetItemAsync<User>("User");
+            // Tratamento de erros de JavaScript
+            await LogMessageToBrowserConsole($"Erro ao conectar com o JavaScript: {jsEx.Message}");
         }
-
+        catch (Exception ex)
+        {
+            // Captura e exibição de qualquer outro erro
+            await LogMessageToBrowserConsole($"Erro inesperado: {ex.Message}");
+        }
     }
-    protected override async Task OnAfterRenderAsync(bool teste)
+
+    // Função para logar mensagens no console do navegador
+    private async Task LogMessageToBrowserConsole(string message)
     {
-        // load the Categories (example)
+        await JS.InvokeVoidAsync("logToConsole", message);
+    }
 
-        var objUsurio = await sessionStorage.GetItemAsync<User>("User");
-
-        if(objUsurio != null)
-        {
-            // Wallet = objUsurio.Wallet;
-            // Name = objUsurio.Name;
-
-            // StateHasChanged();
-        }
+    public class SolanaLoginResult
+    {
+        public string PublicKey { get; set; }
     }
 }
+

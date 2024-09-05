@@ -1,0 +1,84 @@
+﻿@inject IJSRuntime JS
+
+
+
+@*     <li>
+        <a href="#" data-toggle="modal" data-target="#modalLogin">
+            <!-- Ícone de Carteira em SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
+                <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3zm3.5 2.5A.5.5 0 0 0 3 6v1a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0-.5-.5zM1 12V3a1 1 0 0 1 1-1v10a1 1 0 0 1-1-1zm13 1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3v10h11z" />
+            </svg>
+        </a>
+    </li> *@
+
+
+<li>
+@*     @if (!String.IsNullOrEmpty(WalletAddress))
+    { *@
+
+        <span class="nk-cart-toggle">
+            <!-- Ícone de Carteira em SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
+            <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3zm3.5 2.5A.5.5 0 0 0 3 6v1a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 0-1h-9a.5.5 0 0 0-.5-.5zM1 12V3a1 1 0 0 1 1-1v10a1 1 0 0 1-1-1zm13 1a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H3v10h11z" />
+        </svg>
+      
+    </span>
+   @*  } *@
+    <div class="nk-cart-dropdown">
+
+        <div class="nk-widget-post">
+            <h3 class="nk-post-title">
+                <a href="#s" class="nk-wallet-remove-item" @onclick="DisconnectWallet"><span class="ion-android-close"></span></a>
+                <a href="#s">Wallet Address: @WalletAddress</a>
+            </h3>
+            <div class="nk-gap-1"></div>
+            <div class="nk-product-price">Status: @WalletStatus</div>
+        </div>
+
+        <div class="nk-gap-2"></div>
+        <div class="text-center">
+            <button type="button" class=" nk-btn-hover-color-white" @onclick="LoginWithSolana">
+                @ButtonLabel
+            </button>
+        </div>
+
+        
+    </div>
+</li>
+
+
+@code {
+    private string WalletAddress = "";
+    private string WalletStatus = "Disconnected";
+    private string ButtonLabel = "Connect Wallet";
+
+    private async Task LoginWithSolana()
+    {
+        var result = await JS.InvokeAsync<LoginResult>("solanaLogin");
+
+        if (result != null)
+        {
+            WalletAddress = result.PublicKey;
+            WalletStatus = "Connected";
+            ButtonLabel = "Logout";
+        }
+        else
+        {
+            WalletStatus = "Login failed or user rejected the request.";
+        }
+    }
+
+    private async Task DisconnectWallet()
+    {
+        await JS.InvokeVoidAsync("solanaDisconnect");
+        WalletAddress = "Not Connected";
+        WalletStatus = "Disconnected";
+        ButtonLabel = "Connect Wallet";
+    }
+
+    public class LoginResult
+    {
+        public string PublicKey { get; set; }
+        public string Signature { get; set; }
+    }
+}

@@ -19,9 +19,14 @@ namespace EthicAI.EntityModel
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.UserID);
+               
                 entity.ToTable("user");
 
                 entity.Property(e => e.UserID).HasColumnName("cd_user");
+
+                entity.Property(e => e.Email)
+                   .HasMaxLength(50)
+                   .HasColumnName("tx_email");
 
                 entity.Property(e => e.Wallet)
                     .IsRequired()
@@ -33,6 +38,7 @@ namespace EthicAI.EntityModel
                     .HasColumnName("nm_name");
 
                 entity.Property(e => e.DtUpdate).HasColumnType("datetime")
+
                 .HasColumnName("dt_update");
             });
 
