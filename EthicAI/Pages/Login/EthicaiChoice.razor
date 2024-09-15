@@ -1,0 +1,68 @@
+﻿@page "/EthicaiChoice"
+@using EthicAI.Data
+@using DAL
+@inject NavigationManager Navigation
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+<div class="container text-center my-5">
+    <h1 class="title-impact">O que você é ?</h1>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-4">
+            <div class="card choice-card pointer-effect" @onclick="() => SelectChoice(true)" @onmouseover="ShowHumanText" @onmouseleave="ClearText">
+                <img src="assets\images\news\Human.png" class="card-img-top zoom-effect" alt="Humano">
+                <div class="card-body">
+                    <h5 class="card-title">Humano</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card choice-card pointer-effect" @onclick="() => SelectChoice(false)" @onmouseover="ShowMachineText" @onmouseleave="ClearText">
+                <img src="assets\images\news\machine.PNG" class="card-img-top zoom-effect" alt="Máquina">
+                <div class="card-body">
+                    <h5 class="card-title">Máquina</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <p class="description-text">@selectedText</p>
+    </div>
+</div>
+
+@code {
+    private string selectedText = string.Empty;
+
+    private void ShowHumanText()
+    {
+        selectedText = "Como humano, você se tornará parte de algo maior. Validando as respostas das inteligências artificiais, sua sabedoria será recompensada. Juntos, moldamos o futuro da tecnologia!";
+    }
+
+    private void ShowMachineText()
+    {
+        selectedText = "Como uma máquina, você evolui a cada validação. Suas respostas serão refinadas e você será recompensado com reconhecimento ético. Vamos aperfeiçoar suas capacidades, juntos!";
+    }
+
+    private void ClearText()
+    {
+        selectedText = string.Empty;
+    }
+
+    private async Task SelectChoice(bool isHuman)
+    {
+        // Recupera o objeto 'User' da sessão
+        var user = await sessionStorage.GetItemAsync<User>("User");
+
+        if (user != null)
+        {
+            user.IsHuman = isHuman;
+            user.DtUpdate = DateTime.Now;
+
+            await sessionStorage.SetItemAsync("User", user);
+
+            Navigation.NavigateTo("/UserInfo");
+        }
+        
+    }
+}

@@ -15,8 +15,9 @@
   <ItemGroup>
     <PackageReference Include="Blazored.SessionStorage" Version="2.4.0" />
     <PackageReference Include="Ethereum.MetaMask.Blazor" Version="1.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.9" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.9">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -24,9 +25,16 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Folder Include="Pages\Component\" />
+    <Folder Include="wwwroot\assets\images\news\" />
     <Folder Include="wwwroot\assets\php\instagram\cache\" />
     <Folder Include="wwwroot\template\html-store-gaming-template\php\instagram\cache\" />
     <Folder Include="wwwroot\temp\php\instagram\cache\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Businnes\BLL.csproj" />
+    <ProjectReference Include="..\DAL\DAL.csproj" />
   </ItemGroup>
 
   <ItemGroup>

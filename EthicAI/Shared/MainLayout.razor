@@ -51,23 +51,31 @@
             <div class="nk-contacts-right">
                 <ul class="nk-contacts-icons">
 
-                    <li>
+                @*  <li>
                         <a href="#" data-toggle="modal" data-target="#modalSearch">
                             <span class="fa fa-search"></span>
                         </a>
-                    </li>
+                    </li> *@
                     <li>
                         <a href="#" data-toggle="modal" data-target="#modalLogin">
-                            <span class="fa fa-wallet"></span>
+
+                            <button type="button" class="btn btn-dark">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
+                                    <path d="M0 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H2a2 2 0 0 1-2-2V3zm2-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2zm1 2a1 1 0 0 1 1-1h7a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1z" />
+                                </svg>
+                                Login in
+                            </button>
+
+
                         </a>
                     </li>
 
 
                     <li>
-                        <span class="nk-cart-toggle">
+                     @*    <span class="nk-cart-toggle">
                             <span class="fa fa-shopping-cart"></span>
                             <span class="nk-badge">27</span>
-                        </span>
+                        </span> 
                         <div class="nk-cart-dropdown">
 
                             <div class="nk-widget-post">
@@ -98,7 +106,7 @@
                             <div class="text-center">
                                 <a href="store-checkout.html" class="nk-btn nk-btn-rounded nk-btn-color-main-1 nk-btn-hover-color-white">Proceed to Checkout</a>
                             </div>
-                        </div>
+                        </div>*@
                     </li>
 
                 </ul>
@@ -382,7 +390,7 @@
         <div class="container">
             <div class="nk-gap-3"></div>
             <div class="row vertical-gap">
-                <div class="col-md-6">
+ @*                <div class="col-md-6">
                     <div class="nk-widget">
                         <h4 class="nk-widget-title"><span class="text-main-1">Contact</span> With Us</h4>
                         <div class="nk-widget-content">
@@ -407,8 +415,8 @@
                             </form>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-6">
+                </div> *@
+         @*        <div class="col-md-6">
                     <div class="nk-widget">
                         <h4 class="nk-widget-title"><span class="text-main-1">Latest</span> Posts</h4>
                         <div class="nk-widget-content">
@@ -449,7 +457,7 @@
                             <div class="nk-twitter-list" data-twitter-count="1"></div>
                         </div>
                     </div>
-                </div>
+                </div> *@
             </div>
             <div class="nk-gap-3"></div>
         </div>
@@ -508,8 +516,8 @@
 
 <!-- START: Page Background -->
 
-<img class="nk-page-background-top" src="assets/images/bg-top.png" alt="">
-<img class="nk-page-background-bottom" src="assets/images/bg-bottom.png" alt="">
+@* <img class="nk-page-background-top" src="assets/images/bg-top.png" alt="">
+<img class="nk-page-background-bottom" src="assets/images/bg-bottom.png" alt=""> *@
 
 <!-- END: Page Background -->
 <!-- START: Search Modal -->
@@ -533,7 +541,7 @@
 </div>
 <!-- END: Search Modal -->
 <!-- START: Login Modal -->
-<EthicAI.Pages.Component.LoginModal></EthicAI.Pages.Component.LoginModal>
+<EthicAI.Pages.Login.LoginModal></EthicAI.Pages.Login.LoginModal>
 <!-- END: Login Modal -->
 @code{
 

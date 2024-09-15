@@ -1,1 +1,68 @@
 /* PLACE YOU CUSTOM STYLES IN THIS FILE */
+
+
+
+footer {
+    background-color: #f8f9fa; /* Cor de fundo opcional para o rodapé */
+    padding: 20px 0; /* Espaçamento opcional */
+    text-align: center; /* Centralizar conteúdo */
+    position: relative;
+    bottom: -64%!important;
+    width: 100%;
+}
+
+/* Título mais impactante */
+.title-impact {
+    font-family: 'Roboto', sans-serif;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333
+}
+
+/* Efeito de zoom ao passar o mouse */
+.zoom-effect {
+    transition: transform 0.3s ease-in-out;
+}
+
+    .zoom-effect:hover {
+        transform: scale(1.1);
+    }
+
+/* Mudar ponteiro para "mãozinha" */
+.pointer-effect {
+    cursor: pointer;
+}
+
+/* Texto descritivo mais impactante */
+.description-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.2rem;
+    color: #555 !important;
+    line-height: 1.5;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* Texto embaixo da imagem no mobile */
+.description-text-mobile {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    color: #555 !important;
+    line-height: 1.5;
+    font-weight: 500;
+    margin-top: 15px;
+}
+
+/* Estilos para o texto do card */
+.card-title {
+    font-size: 1.5rem;
+    color: #000!important;
+    font-weight: bold;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .description-text {
+        display: none;
+    }
+}

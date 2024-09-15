@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using DAL;
 using System.Threading.Tasks;
 using EthicAI.EntityModel;
 
-namespace EthicAI.Data
+namespace BLL
 {
     public class UserService
     {
@@ -67,7 +68,7 @@ namespace EthicAI.Data
                     {
                         return "Nome do jogador deve ser único";
                     }
-                    
+
                     usuario.DtCreate = DateTime.Now;
                     usuario.DtUpdate = DateTime.Now;
 
@@ -94,4 +95,3 @@ namespace EthicAI.Data
         }
     }
 }
-

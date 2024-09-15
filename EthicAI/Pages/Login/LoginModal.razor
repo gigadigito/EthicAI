@@ -3,7 +3,8 @@
 @using EthicAI
 @using EthicAI.Data
 @using EthicAI.EntityModel
-
+@using DAL
+@inject NavigationManager Navigation
 @inject IConfiguration Configuration
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 <div class="nk-modal modal fade" id="modalLogin" tabindex="-1" role="dialog" aria-hidden="true">
@@ -70,8 +71,23 @@
 
 @code {
     public string CarteiraUser { get; set; }
-  
+
     public string NomeUser { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+            if (storedUser != null)
+            {
+                CarteiraUser = storedUser.Wallet;
+                NomeUser = storedUser.Name;
+
+            }
+        }
+    }
 
     private async Task RequestAuthorization()
     {
@@ -99,7 +115,7 @@
                         {
                             Wallet = CarteiraUser,
                             DtUpdate = DateTime.Now,
-                            Name = NomeUser ?? "Novo Usuário Solana"
+                            Name = NomeUser ?? ""
                         };
 
                     var resultAdd = await objService.AddUser(newUser);
@@ -107,6 +123,12 @@
                     if (resultAdd == "OK")
                     {
                         await LogMessageToBrowserConsole("Usuário criado com sucesso!");
+
+                        // Logar o usuário
+                        await sessionStorage.SetItemAsync("User", user);
+                        var storedUser = await sessionStorage.GetItemAsync<User>("User");
+                        Navigation.NavigateTo("/EthicaiChoice");
+
                     }
                     else
                     {
@@ -117,6 +139,12 @@
                 {
                     // Logar o usuário
                     await sessionStorage.SetItemAsync("User", user);
+
+                    if (user.IsHuman == null)
+                    {
+                        Navigation.NavigateTo("/EthicaiChoice");
+                    }
+             
                     var storedUser = await sessionStorage.GetItemAsync<User>("User");
                     await LogMessageToBrowserConsole("Usuário logado com sucesso.");
                 }

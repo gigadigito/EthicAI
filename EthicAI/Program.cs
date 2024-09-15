@@ -22,7 +22,7 @@ builder.Services.AddBlazoredSessionStorage();
 builder.Configuration.AddJsonFile("appsettings.json");
 
 // Configuração do DbContext com SQL Server
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddDbContext<EthicAIDbContext>(options =>
           options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
@@ -31,7 +31,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
+    var context = services.GetRequiredService<EthicAIDbContext>();
     context.Database.Migrate(); // Aplica as migrações pendentes
 }
 

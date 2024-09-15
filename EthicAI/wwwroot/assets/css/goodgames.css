@@ -484,6 +484,8 @@ pre[class*="language-"] {
  -------------------------------------------------------------------*/
 html {
     font-size: 14px;
+    height: 100%;
+    margin: 0;
 }
 
 body {
@@ -525,7 +527,7 @@ h6,
     margin-bottom: 1.5rem;
     font-family: "Montserrat", sans-serif;
     font-weight: 600;
-    color: #fff;
+    color: #000;
     text-transform: uppercase;
 }
 
@@ -3752,28 +3754,8 @@ img.rounded {
     will-change: color;
 }
 
-.nk-search .nk-search-field input {
-    width: 93%;
-    width: calc(100% - 70px);
-    padding: 1rem 1rem;
-    margin-left: 70px;
-    font-size: 5rem;
-    color: inherit;
-    background-color: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 0;
-    -webkit-transition: .3s border, .3s box-shadow;
-    -o-transition: .3s border, .3s box-shadow;
-    transition: .3s border, .3s box-shadow;
-    will-change: border, box-shadow;
-}
 
-.nk-search .nk-search-field input:focus, .nk-search .nk-search-field input.focus {
-    border-bottom-color: rgba(255, 255, 255, 0.8);
-    -webkit-box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.8);
-            box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.8);
-}
+
 
 @media (max-width: 767px) {
     .nk-search .nk-search-field {
@@ -3785,11 +3767,7 @@ img.rounded {
         font-size: 3rem;
         line-height: 106px;
     }
-    .nk-search .nk-search-field input {
-        width: calc(100% - 50px);
-        margin-left: 50px;
-        font-size: 4rem;
-    }
+
 }
 
 @media (max-width: 575px) {
@@ -3798,11 +3776,7 @@ img.rounded {
         font-size: 2rem;
         line-height: 68px;
     }
-    .nk-search .nk-search-field input {
-        width: calc(100% - 40px);
-        margin-left: 40px;
-        font-size: 2rem;
-    }
+
 }
 
 .nk-search.nk-search-light {
@@ -3813,15 +3787,8 @@ img.rounded {
     background: linear-gradient(to bottom, #fff 0%, #fff 100px, rgba(255, 255, 255, 0) 100%);
 }
 
-.nk-search.nk-search-light .nk-search-field input {
-    border-bottom: 1px solid rgba(23, 30, 34, 0.3);
-}
 
-.nk-search.nk-search-light .nk-search-field input:focus, .nk-search.nk-search-light .nk-search-field input.focus {
-    border-bottom-color: rgba(23, 30, 34, 0.8);
-    -webkit-box-shadow: 0 1px 0 0 rgba(23, 30, 34, 0.8);
-            box-shadow: 0 1px 0 0 rgba(23, 30, 34, 0.8);
-}
+
 
 /*------------------------------------------------------------------
 
@@ -3892,13 +3859,13 @@ img.rounded {
   Footer
 
  -------------------------------------------------------------------*/
-.nk-footer {
+/*.nk-footer {
     position: relative;
     overflow: hidden;
     color: #eee;
     background-color: rgba(17, 22, 25, 0.8);
     z-index: 1;
-}
+}*/
 
 .nk-footer-logo {
     text-align: center;
@@ -5077,7 +5044,7 @@ img.rounded {
 }
 
 .nk-contacts-icons > li > a {
-    color: inherit;
+    color: black;
     text-decoration: none;
     -webkit-transition: .15s color;
     -o-transition: .15s color;
@@ -7068,26 +7035,7 @@ img.rounded {
   Element Forms
  ----------------------------*/
 /* Placeholders */
-::-webkit-input-placeholder,
-.form-control::-webkit-input-placeholder {
-    color: inherit;
-    opacity: .5;
-}
-:-ms-input-placeholder,
-.form-control:-ms-input-placeholder {
-    color: inherit;
-    opacity: .5;
-}
-::-ms-input-placeholder,
-.form-control::-ms-input-placeholder {
-    color: inherit;
-    opacity: .5;
-}
-::placeholder,
-.form-control::placeholder {
-    color: inherit;
-    opacity: .5;
-}
+
 
 /* Remove outline from focused buttons */
 button:focus {
@@ -7103,17 +7051,6 @@ button:focus {
     color: #dd163b;
 }
 
-.nk-rating input {
-    display: none;
-}
-
-.nk-rating input:checked ~ label span:first-child {
-    display: none;
-}
-
-.nk-rating input:checked ~ label span:last-child {
-    display: block;
-}
 
 .nk-rating label {
     position: relative;
@@ -7150,62 +7087,13 @@ button:focus {
     display: block;
 }
 
-/* From Style 1 */
-.form-control {
-    padding: 6.5px 10px;
-    font-size: 1em;
-    font-weight: 400;
-    color: #fff;
-    background-color: transparent;
-    border: 1px solid #303e47;
-    border-radius: 0;
-    -webkit-transition: .15s border-color;
-    -o-transition: .15s border-color;
-    transition: .15s border-color;
-}
 
-.form-control:focus, .form-control.focus {
-    color: #fff;
-    background-color: transparent;
-    border-color: #dd163b;
-    -webkit-box-shadow: none;
-            box-shadow: none;
-}
 
-select.form-control:not([size]):not([multiple]) {
-    height: 32px;
-}
 
-select.form-control option {
-    color: #000;
-}
 
-@-moz-document url-prefix("") {
-    select.form-control option {
-        color: inherit;
-    }
-}
 
-select.form-control[multiple] option {
-    color: inherit;
-}
 
-/* fix for select on iOs devices */
-select.form-control {
-    background-color: rgba(0, 0, 0, 0.01);
-}
 
-/* From Style 2 */
-.nk-form-style-1 .form-control {
-    color: #171e22;
-    background-color: #fff;
-    border-color: #fff;
-}
-
-.nk-form-style-1 .form-control:focus, .nk-form-style-1 .form-control.focus {
-    background-color: #fff;
-    border-color: #dd163b;
-}
 
 /* Validation */
 div.nk-error {
@@ -7218,11 +7106,7 @@ div.nk-error {
     z-index: 1;
 }
 
-.form-control.nk-error,
-.nk-form-style-1 .form-control.nk-error {
-    background-color: rgba(226, 54, 31, 0.4);
-    border-color: #e2361f;
-}
+
 
 .nk-form-response-success {
     display: none;
@@ -8609,14 +8493,7 @@ div.nk-error {
     font-size: 2rem;
 }
 
-.nk-store-product .nk-product-addtocart input {
-    max-width: 80px;
-    margin-right: 1rem;
-}
 
-.nk-store-product .nk-product-addtocart .input-group {
-    width: 220px;
-}
 
 .nk-store-product .nk-product-rating {
     font-size: 1.2rem;
@@ -9746,9 +9623,3 @@ div.nk-error {
     margin-bottom: 10px;
 }
 
-.link-dialog .custom-checkbox input {
-    top: 6px;
-    left: 0;
-    opacity: 1;
-    z-index: 1;
-}
