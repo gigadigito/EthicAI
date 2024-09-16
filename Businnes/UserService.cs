@@ -1,20 +1,18 @@
-﻿
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using DAL;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using EthicAI.EntityModel;
+using DAL;
 
-namespace BLL
+namespace EthicAI.Data
 {
     public class UserService
     {
-        private readonly IConfiguration _configuration;
+        private readonly EthicAIDbContext _dbContext;
 
-        public UserService(IConfiguration configuration)
+        // Injetando o EthicAIDbContext via construtor
+        public UserService(EthicAIDbContext dbContext)
         {
-            _configuration = configuration;
+            _dbContext = dbContext;
         }
 
         // Método assíncrono para buscar usuário por carteira
@@ -22,14 +20,11 @@ namespace BLL
         {
             try
             {
-                using (var db = new EthicAIDbContext(_configuration))
-                {
-                    var usuario = await db.User
-                        .Where(x => x.Wallet == wallet)
-                        .FirstOrDefaultAsync();
+                var usuario = await _dbContext.User
+                    .Where(x => x.Wallet == wallet)
+                    .FirstOrDefaultAsync();
 
-                    return usuario;
-                }
+                return usuario;
             }
             catch (DbUpdateException dbEx)
             {
@@ -55,30 +50,27 @@ namespace BLL
 
             try
             {
-                using (var db = new EthicAIDbContext(_configuration))
+                // Verifica se o usuário já existe pela carteira
+                if (await _dbContext.User.AnyAsync(x => x.Wallet == usuario.Wallet))
                 {
-                    // Verifica se o usuário já existe pela carteira
-                    if (await db.User.AnyAsync(x => x.Wallet == usuario.Wallet))
-                    {
-                        return "Usuário já existe";
-                    }
-
-                    // Verifica se o nome do jogador já existe
-                    if (await db.User.AnyAsync(x => x.Name == usuario.Name))
-                    {
-                        return "Nome do jogador deve ser único";
-                    }
-
-                    usuario.DtCreate = DateTime.Now;
-                    usuario.DtUpdate = DateTime.Now;
-
-                    // Se não houver erros, salva o novo usuário
-                    db.Add(usuario);
-
-                    await db.SaveChangesAsync();
-
-                    return "OK";
+                    return "Usuário já existe";
                 }
+
+                // Verifica se o nome do jogador já existe
+                if (await _dbContext.User.AnyAsync(x => x.Name == usuario.Name))
+                {
+                    return "Nome do jogador deve ser único";
+                }
+
+                usuario.DtCreate = DateTime.Now;
+                usuario.DtUpdate = DateTime.Now;
+
+                // Se não houver erros, salva o novo usuário
+                _dbContext.Add(usuario);
+
+                await _dbContext.SaveChangesAsync();
+
+                return "OK";
             }
             catch (DbUpdateException dbEx)
             {

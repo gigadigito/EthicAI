@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    [Migration("20240915002810_EthicAIMigration")]
+    [Migration("20240915012028_EthicAIMigration")]
     partial class EthicAIMigration
     {
         /// <inheritdoc />

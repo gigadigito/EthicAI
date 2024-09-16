@@ -25,6 +25,10 @@ builder.Configuration.AddJsonFile("appsettings.json");
 builder.Services.AddDbContext<EthicAIDbContext>(options =>
           options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+
+// Adiciona o serviço UserService
+builder.Services.AddScoped<UserService>();
+
 var app = builder.Build();
 
 // Aplicar automaticamente as migrações pendentes ao iniciar a aplicação

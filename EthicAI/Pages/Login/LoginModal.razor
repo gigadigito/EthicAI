@@ -1,12 +1,10 @@
-﻿@inject IJSRuntime JS
-@using Microsoft.AspNetCore.Components
-@using EthicAI
+﻿@using DAL
 @using EthicAI.Data
-@using EthicAI.EntityModel
-@using DAL
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
-@inject IConfiguration Configuration
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject UserService userService
+
 <div class="nk-modal modal fade" id="modalLogin" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
@@ -14,7 +12,6 @@
 
                 @if (String.IsNullOrEmpty(CarteiraUser))
                 {
-
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span class="ion-android-close"></span>
                     </button>
@@ -67,11 +64,8 @@
     </div>
 </div>
 
-@inject IJSRuntime JS
-
 @code {
     public string CarteiraUser { get; set; }
-
     public string NomeUser { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -84,7 +78,6 @@
             {
                 CarteiraUser = storedUser.Wallet;
                 NomeUser = storedUser.Name;
-
             }
         }
     }
@@ -103,10 +96,8 @@
                 // Log no console do navegador
                 await LogMessageToBrowserConsole($"Carteira conectada: {CarteiraUser}");
 
-                // Lógica para verificar se o usuário já existe no sistema
-                UserService objService = new UserService(Configuration);
-
-                var user = await objService.GetUserByWallet(CarteiraUser);
+                // Verificar se o usuário já existe no sistema usando o UserService injetado
+                var user = await userService.GetUserByWallet(CarteiraUser);
 
                 if (user == null)
                 {
@@ -118,17 +109,15 @@
                             Name = NomeUser ?? ""
                         };
 
-                    var resultAdd = await objService.AddUser(newUser);
+                    var resultAdd = await userService.AddUser(newUser);
 
                     if (resultAdd == "OK")
                     {
                         await LogMessageToBrowserConsole("Usuário criado com sucesso!");
 
                         // Logar o usuário
-                        await sessionStorage.SetItemAsync("User", user);
-                        var storedUser = await sessionStorage.GetItemAsync<User>("User");
+                        await sessionStorage.SetItemAsync("User", newUser);
                         Navigation.NavigateTo("/EthicaiChoice");
-
                     }
                     else
                     {
@@ -144,8 +133,7 @@
                     {
                         Navigation.NavigateTo("/EthicaiChoice");
                     }
-             
-                    var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
                     await LogMessageToBrowserConsole("Usuário logado com sucesso.");
                 }
             }
@@ -154,7 +142,7 @@
                 await LogMessageToBrowserConsole("Erro ao conectar à carteira Solana. Verifique se a Phantom Wallet está instalada e conectada.");
             }
         }
-         catch (JSException jsEx)
+        catch (JSException jsEx)
         {
             // Tratamento de erros de JavaScript
             await LogMessageToBrowserConsole($"Erro ao conectar com o JavaScript: {jsEx.Message}");
@@ -177,4 +165,3 @@
         public string PublicKey { get; set; }
     }
 }
-
