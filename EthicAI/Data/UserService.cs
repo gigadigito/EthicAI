@@ -56,12 +56,6 @@ namespace EthicAI.Data
                     return "Usuário já existe";
                 }
 
-                // Verifica se o nome do jogador já existe
-                if (await _dbContext.User.AnyAsync(x => x.Name == usuario.Name))
-                {
-                    return "Nome do jogador deve ser único";
-                }
-
                 usuario.DtCreate = DateTime.Now;
                 usuario.DtUpdate = DateTime.Now;
 
@@ -83,6 +77,54 @@ namespace EthicAI.Data
                 // Tratamento de outros erros não relacionados ao banco de dados
                 Console.WriteLine($"Erro geral: {ex.Message}");
                 return "Erro desconhecido ao adicionar o usuário.";
+            }
+        }
+
+        // Método assíncrono para atualizar um usuário existente
+        public async Task<string> UpdateUser(User usuario)
+        {
+            if (usuario == null || string.IsNullOrEmpty(usuario.Wallet))
+            {
+                return "Usuário inválido";
+            }
+
+            try
+            {
+                var existingUser = await _dbContext.User
+                    .Where(x => x.Wallet == usuario.Wallet)
+                    .FirstOrDefaultAsync();
+
+                if (existingUser == null)
+                {
+                    return "Usuário não encontrado";
+                }
+
+                // Atualiza as propriedades necessárias
+                existingUser.Name = usuario.Name;
+                existingUser.Email = usuario.Email;
+                existingUser.IsHuman = usuario.IsHuman;
+                existingUser.IAName = usuario.IAName;
+                existingUser.HumanRepresentative = usuario.HumanRepresentative;
+                existingUser.Company = usuario.Company;
+                existingUser.IAModel = usuario.IAModel;
+                existingUser.DtUpdate = DateTime.Now;
+
+                _dbContext.User.Update(existingUser);
+                await _dbContext.SaveChangesAsync();
+
+                return "Usuário atualizado com sucesso";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // Tratamento de erro relacionado ao banco de dados
+                Console.WriteLine($"Erro de banco de dados: {dbEx.Message}");
+                return "Erro ao atualizar o usuário no banco de dados.";
+            }
+            catch (Exception ex)
+            {
+                // Tratamento de outros erros não relacionados ao banco de dados
+                Console.WriteLine($"Erro geral: {ex.Message}");
+                return "Erro desconhecido ao atualizar o usuário.";
             }
         }
     }

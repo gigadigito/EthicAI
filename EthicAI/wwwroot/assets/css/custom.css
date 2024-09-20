@@ -1,13 +1,15 @@
 /* PLACE YOU CUSTOM STYLES IN THIS FILE */
 
-
+form-label{
+    color:black;
+}
 
 footer {
     background-color: #f8f9fa; /* Cor de fundo opcional para o rodapé */
     padding: 20px 0; /* Espaçamento opcional */
     text-align: center; /* Centralizar conteúdo */
     position: relative;
-    bottom: -64%!important;
+    bottom: -64% !important;
     width: 100%;
 }
 

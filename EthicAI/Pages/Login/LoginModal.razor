@@ -16,7 +16,7 @@
                         <span class="ion-android-close"></span>
                     </button>
 
-                    <h4 class="mb-0"><span class="text-main-1">Conectar</span> Carteira Solana</h4>
+                    <h4 class="mb-0 text-white"><span class="text-main-1">Conect</span> Wallet Solana</h4>
 
                     <div class="nk-gap-1"></div>
                     <form action="#" class="nk-form text-white">
@@ -28,7 +28,7 @@
                         <div class="nk-gap-1"></div>
                         <div class="row vertical-gap">
                             <div class="col-md-6">
-                                <a href="#" @onclick="RequestAuthorization" class="nk-btn nk-btn-rounded nk-btn-color-white nk-btn-block">Conectar Phantom</a>
+                                <a href="#" @onclick="RequestAuthorization" class="nk-btn nk-btn-rounded nk-btn-color-white nk-btn-block">Connect Phantom</a>
                             </div>
                         </div>
                     </form>
@@ -39,21 +39,22 @@
                         <span class="ion-android-close"></span>
                     </button>
 
-                    <h4 class="mb-0"><span class="text-main-1">Bem-vindo </span> @NomeUser</h4>
+                    <h4 class="mb-0"><span class="text-main-1">Welcome </span> @NomeUser</h4>
 
-                    <h5 class="mb-0" style="margin-top:5px">Obrigado por nos ajudar na luta contra as máquinas IA! </h5>
+                    <h5 class="mb-0 text-white" style="margin-top:5px">Thank you for helping us in the fight against AI machines!</h5>
+
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
                             <div class="col-md-6">
-                                @if (String.IsNullOrEmpty(NomeUser))
-                                {
-                                    <div class="nk-gap">Informe seu nome de usuário</div>
-                                    <div class="nk-gap"></div>
-                                    <input type="text" @bind="NomeUser" name="user" class="form-control" placeholder="Nome de usuário / apelido">
-                                }
+                                @* @if (String.IsNullOrEmpty(NomeUser))
+                            {
+                            <div class="nk-gap">Please enter your username</div>
+                            <div class="nk-gap"></div>
+                            <input type="text" @bind="NomeUser" name="user" class="form-control" placeholder="Username / nickname">
+                            } *@
                             </div>
                             <div class="col-md-12">
-                                Seu Saldo em ETCAI: 0,00000.00000
+                                Your ETCAI Balance: 0,00000.00000
                                 <div class="nk-gap">@CarteiraUser</div>
                             </div>
                         </div>
@@ -68,18 +69,30 @@
     public string CarteiraUser { get; set; }
     public string NomeUser { get; set; }
 
+    [Parameter]
+    public EventCallback OnLogin { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        try
         {
-            var storedUser = await sessionStorage.GetItemAsync<User>("User");
-
-            if (storedUser != null)
+            if (firstRender)
             {
-                CarteiraUser = storedUser.Wallet;
-                NomeUser = storedUser.Name;
+                var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+                if (storedUser != null)
+                {
+                    CarteiraUser = storedUser.Wallet;
+                    NomeUser = storedUser.Name;
+                }
             }
         }
+        catch (Exception)
+        {
+
+
+        }
+
     }
 
     private async Task RequestAuthorization()
@@ -133,6 +146,8 @@
                     {
                         Navigation.NavigateTo("/EthicaiChoice");
                     }
+                    
+                    await OnLogin.InvokeAsync();
 
                     await LogMessageToBrowserConsole("Usuário logado com sucesso.");
                 }

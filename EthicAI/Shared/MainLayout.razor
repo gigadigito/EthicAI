@@ -1,6 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@using DAL
+@inherits LayoutComponentBase
 @inject IJSRuntime JSRuntime
-
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 <!--
     Additional Classes:
         .nk-header-opaque
@@ -59,14 +60,17 @@
                     <li>
                         <a href="#" data-toggle="modal" data-target="#modalLogin">
 
-                            <button type="button" class="btn btn-dark">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
-                                    <path d="M0 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H2a2 2 0 0 1-2-2V3zm2-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2zm1 2a1 1 0 0 1 1-1h7a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1z" />
-                                </svg>
-                                Login in
-                            </button>
-
-
+                            @if (String.IsNullOrEmpty(NmUser))
+                            {
+                                <button type="button" class="btn btn-dark">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
+                                        <path d="M0 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H2a2 2 0 0 1-2-2V3zm2-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2zm1 2a1 1 0 0 1 1-1h7a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1z" />
+                                    </svg>
+                                    Login in
+                                </button>
+                            }else{
+                                <span>Hello @NmUser</span>
+                            }
                         </a>
                     </li>
 
@@ -521,6 +525,7 @@
 
 <!-- END: Page Background -->
 <!-- START: Search Modal -->
+
 <div class="nk-modal modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
@@ -541,12 +546,84 @@
 </div>
 <!-- END: Search Modal -->
 <!-- START: Login Modal -->
-<EthicAI.Pages.Login.LoginModal></EthicAI.Pages.Login.LoginModal>
+<EthicAI.Pages.Login.LoginModal OnLogin="@HandleUpdateMainLayout"></EthicAI.Pages.Login.LoginModal>
 <!-- END: Login Modal -->
 @code{
 
+    private bool isUserHasName = false;
+    private bool isUserChouseRace = false;
+    private string NmUser = "";
+    private string Wallet = "";
+    private async Task HandleUpdateMainLayout()
+    {
+        try
+        {
+            var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+            if (storedUser != null)
+            {
+                isUserChouseRace = (storedUser.IsHuman != null);
+                isUserHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name));
+                NmUser = storedUser.Name;
+                Wallet = storedUser.Wallet;
+
+            }
+        }
+        catch (Exception)
+        {
+
+
+        }
+
+        StateHasChanged(); 
+    }
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        try
+        {
+        var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+        if (storedUser != null)
+        {
+            isUserChouseRace = (storedUser.IsHuman != null);
+            isUserHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name));
+            NmUser = storedUser.Name;
+            Wallet = storedUser.Wallet;
+           
+        }
+        }
+        catch (Exception)
+        {
+
+
+        }
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        try
+        {
+            // if (firstRender)
+            // {
+            //     var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+            //     if (storedUser != null)
+            //     {
+            //         isUserChouseRace = (storedUser.IsHuman != null);
+            //         isUserHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name));
+            //         NmUser = storedUser.Name;
+            //         Wallet = storedUser.Wallet;
+            //         StateHasChanged();
+            //     }
+            // }
+        }
+        catch (Exception)
+        {
+
+
+        }
+
         await JSRuntime.InvokeVoidAsync("carregarScripts");
     }
    

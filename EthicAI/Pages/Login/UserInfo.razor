@@ -1,119 +1,133 @@
 ﻿@page "/UserInfo"
+@using EthicAI.Data
 @using EthicAI.EntityModel
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject NavigationManager Navigation
+@inject UserService userService
 @using DAL
-<h3>Informações do Usuário</h3>
 
+<div class="container-lg mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Informações do Usuário</h3>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="Name" class="form-label">Nome:</label>
+                                <input type="text" id="Name" class="form-control @(string.IsNullOrEmpty(user.Name) ? "is-invalid" : "is-valid")" @bind="user.Name" />
+                                <div class="invalid-feedback">O nome é obrigatório.</div>
+                            </div>
 
+                            @if (user != null && user.IsHuman == true)
+                            {
+                                <div class="col-md-6">
+                                    <label for="Email" class="form-label">Email:</label>
+                                    <input type="email" id="Email" class="form-control @(string.IsNullOrEmpty(user.Email) ? "is-invalid" : "is-valid")" @bind="user.Email" />
+                                    <div class="invalid-feedback">O email é obrigatório.</div>
+                                </div>
+                            }
+                        </div>
 
-<form>
-    <div class="form-group">
-        <label for="exampleFormControlInput1">Endereço de email</label>
-        <input type="email" class="form-control" id="exampleFormControlInput1" placeholder="nome@exemplo.com">
-    </div>
-    <div class="form-group">
-        <label for="exampleFormControlSelect1">Select de exemplo</label>
-        <select class="form-control" id="exampleFormControlSelect1">
-            <option>1</option>
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="exampleFormControlSelect2">Exemplo de select múltiplo</label>
-        <select multiple class="form-control" id="exampleFormControlSelect2">
-            <option>1</option>
-            <option>2</option>
-            <option>3</option>
-            <option>4</option>
-            <option>5</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="exampleFormControlTextarea1">Exemplo de textarea</label>
-        <textarea class="form-control" id="exampleFormControlTextarea1" rows="3"></textarea>
-    </div>
-</form>
+                        @if (user != null && user.IsHuman == false)
+                        {
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="IAName" class="form-label">Nome da IA:</label>
+                                    <input type="text" id="IAName" class="form-control @(string.IsNullOrEmpty(user.IAName) ? "is-invalid" : "is-valid")" @bind="user.IAName" />
+                                    <div class="invalid-feedback">O nome da IA é obrigatório.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="HumanRepresentative" class="form-label">Representante Humano:</label>
+                                    <input type="text" id="HumanRepresentative" class="form-control @(string.IsNullOrEmpty(user.HumanRepresentative) ? "is-invalid" : "is-valid")" @bind="user.HumanRepresentative" />
+                                    <div class="invalid-feedback">O nome do representante humano é obrigatório.</div>
+                                </div>
+                            </div>
 
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="Company" class="form-label">Empresa (opcional):</label>
+                                    <input type="text" id="Company" class="form-control" @bind="user.Company" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="IAModel" class="form-label">Modelo da IA (opcional):</label>
+                                    <input type="text" id="IAModel" class="form-control" @bind="user.IAModel" />
+                                </div>
+                            </div>
+                        }
 
-
-<EditForm Model="@user" OnValidSubmit="HandleSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div>
-        <label for="Name">Nome:</label>
-        <InputText id="Name" @bind-Value="user.Name" class="form-control" />
-    </div>
-
-    @if (user != null && user.IsHuman != null && (bool)user.IsHuman)
-    {
-        <div>
-            <label for="Email">Email (opcional):</label>
-            <InputText id="Email" @bind-Value="user.Email" class="form-control" />
+                        <div class="mt-4 text-center">
+                            <button type="button" class="btn btn-primary btn-lg" @onclick="HandleSubmit">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-
-        <div>
-            <label for="HumanCaptcha">CAPTCHA (validação humana):</label>
-            <InputText id="HumanCaptcha" @bind-Value="user.HumanCaptcha" class="form-control" />
-        </div>
-    }
-    else
-    {
-        <div>
-            <label for="IAName">Nome da IA:</label>
-            <InputText id="IAName" @bind-Value="user.IAName" class="form-control" />
-        </div>
-
-        <div>
-            <label for="HumanRepresentative">Representante Humano:</label>
-            <InputText id="HumanRepresentative" @bind-Value="user.HumanRepresentative" class="form-control" />
-        </div>
-
-        <div>
-            <label for="Company">Empresa (opcional):</label>
-            <InputText id="Company" @bind-Value="user.Company" class="form-control" />
-        </div>
-
-        <div>
-            <label for="IAModel">Modelo da IA (opcional):</label>
-            <InputText id="IAModel" @bind-Value="user.IAModel" class="form-control" />
-        </div>
-    }
-
-    <div class="mt-3">
-        <button type="submit" class="btn btn-primary">Salvar</button>
     </div>
-</EditForm>
+</div>
 
 @code {
-    
     private User user = new User();
 
     protected override async Task OnInitializedAsync()
     {
-        // Recupera o objeto 'User' da sessão
-        user = await sessionStorage.GetItemAsync<User>("user");
-
-        // Caso o usuário não tenha sido selecionado anteriormente, redireciona para a escolha
-        if (user == null)
+        try
         {
-            Navigation.NavigateTo("/EthicaiChoice");
+            // Recupera o objeto 'User' da sessão
+            user = await sessionStorage.GetItemAsync<User>("User");
+
+            // Caso o usuário não tenha sido selecionado anteriormente, redireciona para a escolha
+            if (user == null)
+            {
+                Navigation.NavigateTo("/EthicaiChoice");
+            }
+        }
+        catch (Exception)
+        {
+            // Tratar exceções
         }
     }
 
     private async Task HandleSubmit()
     {
-        // Aqui você pode processar o restante das informações, por exemplo, enviar para o servidor
+        // Validação manual dos campos obrigatórios
+        if (string.IsNullOrEmpty(user.Name) ||
+            (user.IsHuman == true && string.IsNullOrEmpty(user.Email)) ||
+            (user.IsHuman == false && (string.IsNullOrEmpty(user.IAName) || string.IsNullOrEmpty(user.HumanRepresentative))))
+        {
+            // Se os campos obrigatórios estiverem vazios, a função não prossegue
+            return;
+        }
+
+        // Processa o restante das informações
         user.DtUpdate = DateTime.Now;
 
-        // Armazenar as informações atualizadas na sessão
-        await sessionStorage.SetItemAsync("User", user);
+        try
+        {
+            // Atualizar o usuário no banco de dados
+            var result = await userService.UpdateUser(user);
 
-        // Redirecionar para uma outra página ou exibir uma mensagem de sucesso
-        Navigation.NavigateTo("/success-page");
+            if (result == "Usuário atualizado com sucesso")
+            {
+                // Armazenar as informações atualizadas na sessão
+                await sessionStorage.SetItemAsync("User", user);
+
+                // Redirecionar para uma outra página ou exibir uma mensagem de sucesso
+                Navigation.NavigateTo("/success-page");
+            }
+            else
+            {
+                // Exibir uma mensagem de erro
+                Console.WriteLine(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Tratar erros gerais
+            Console.WriteLine($"Erro ao atualizar o usuário: {ex.Message}");
+        }
     }
 }

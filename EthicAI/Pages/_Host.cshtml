@@ -70,6 +70,10 @@
     <script src="assets/vendor/jquery/dist/jquery.min.js"></script>
 
 
+    
+  
+
+    
 </head>
 <body>
     <component type="typeof(App)" render-mode="ServerPrerendered" />
@@ -86,28 +90,11 @@
     </div>
 
     <script src="_framework/blazor.server.js"></script>
-    <script src="~/js/wallet.js"></script>
-    <script>
-
-        function alerta(a){
-        
-            //alert(a);
-
-            ethereum.request({ method: 'eth_requestAccounts' })
-                .then(accounts => {
-                    const userAddress = accounts[0];
-                    console.log('Endereço do usuário:', userAddress);
-                    // Continue com suas operações após a conexão
-                })
-                .catch(error => {
-                    console.error(error);
-                });
-
-          
-
-        
-        }
-        </script>
+ 
+    
+    <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit"
+            async defer>
+    </script>
 
     <!-- START: Scripts -->
     <!-- Object Fit Polyfill -->
@@ -171,9 +158,14 @@
     <script src="assets/js/goodgames-init.js"></script>
     <!-- END: Scripts -->
 
-    <script src="~/js/wallet.js"></script>
+
     <script src="~/js/msg.js"></script>
     <script src="~/js/solanawallet.js"></script>
+    <script type="text/javascript">
+        var onloadCallback = function () {
+            console.log("grecaptcha is ready!");
+        };
+    </script>
 
     <script>
         function carregarScripts() {
@@ -204,7 +196,7 @@
                 'plugins/nk-share/nk-share.js',
                 'js/goodgames.min.js',
                 'js/goodgames-init.js',
-                'js/wallet.js'
+               
             ];
 
             scripts.forEach(function (script) {
@@ -223,7 +215,33 @@
 
         carregarScripts();
     </script>
+    <script>
+        var recaptchaWidgetId;
 
+    var recaptchaWidgetId = null;
+
+    // Função para renderizar o reCAPTCHA com sua chave do site
+    function renderRecaptcha() {
+        if (typeof grecaptcha !== 'undefined') {
+            recaptchaWidgetId = grecaptcha.render('recaptcha-container', {
+                'sitekey': '6Lf-wUkqAAAAAHZ7VrkD3gesvGQI910fKmaeOYPN' // Sua chave do site
+            });
+        } else {
+            console.error('reCAPTCHA não foi carregado corretamente.');
+        }
+    }
+
+    // Função para obter o token do reCAPTCHA
+    function getRecaptchaResponse() {
+        if (typeof grecaptcha !== 'undefined' && recaptchaWidgetId !== null) {
+            return grecaptcha.getResponse(recaptchaWidgetId);
+        } else {
+            console.error('reCAPTCHA não foi carregado corretamente.');
+            return '';
+        }
+    }
+</script>
+   
 
 </body>
 </html>

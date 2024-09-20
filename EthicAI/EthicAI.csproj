@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="Pages\Login\Login.razor" />
     <Content Remove="wwwroot\js\msg.razor" />
   </ItemGroup>
 
