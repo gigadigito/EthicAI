@@ -4,63 +4,56 @@
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject NavigationManager Navigation
 @inject UserService userService
+@inject IJSRuntime JS
 @using DAL
 
 <div class="container-lg mt-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="card-title mb-0">Informações do Usuário</h3>
+                <div class="card-header text-white">
+                    <h3 class="card-title mb-0">User Information</h3>
                 </div>
                 <div class="card-body">
+                    <!-- Display status and wallet address -->
+                    <div class="mb-4">
+                        <p><strong>Status:</strong> @((bool)IsHuman ? "Human" : "Machine")</p>
+                        <p><strong>Wallet Address:</strong> @user.Wallet</p>
+                    </div>
+
                     <form>
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="Name" class="form-label">Nome:</label>
-                                <input type="text" id="Name" class="form-control @(string.IsNullOrEmpty(user.Name) ? "is-invalid" : "is-valid")" @bind="user.Name" />
-                                <div class="invalid-feedback">O nome é obrigatório.</div>
-                            </div>
-
-                            @if (user != null && user.IsHuman == true)
+                            @if (user != null && (bool)IsHuman)
                             {
+                                <div class="col-md-6">
+                                    <label for="Name" class="form-label">Name:</label>
+                                    <input type="text" id="Name" class="form-control @(string.IsNullOrEmpty(user.Name) ? "is-invalid" : "is-valid")" @bind="user.Name" />
+                                    <div class="invalid-feedback">Name is required.</div>
+                                </div>
+
                                 <div class="col-md-6">
                                     <label for="Email" class="form-label">Email:</label>
                                     <input type="email" id="Email" class="form-control @(string.IsNullOrEmpty(user.Email) ? "is-invalid" : "is-valid")" @bind="user.Email" />
-                                    <div class="invalid-feedback">O email é obrigatório.</div>
+                                    <div class="invalid-feedback">Email is required.</div>
+                                </div>
+                            }
+                            else if (user != null && !(bool)IsHuman)
+                            {
+                                <div class="col-md-6">
+                                    <label for="IAName" class="form-label">AI Name:</label>
+                                    <input type="text" id="IAName" class="form-control @(string.IsNullOrEmpty(user.IAName) ? "is-invalid" : "is-valid")" @bind="user.IAName" />
+                                    <div class="invalid-feedback">AI Name is required.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="HumanRepresentative" class="form-label">Human Representative:</label>
+                                    <input type="text" id="HumanRepresentative" class="form-control @(string.IsNullOrEmpty(user.HumanRepresentative) ? "is-invalid" : "is-valid")" @bind="user.HumanRepresentative" />
+                                    <div class="invalid-feedback">Human representative name is required.</div>
                                 </div>
                             }
                         </div>
 
-                        @if (user != null && user.IsHuman == false)
-                        {
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="IAName" class="form-label">Nome da IA:</label>
-                                    <input type="text" id="IAName" class="form-control @(string.IsNullOrEmpty(user.IAName) ? "is-invalid" : "is-valid")" @bind="user.IAName" />
-                                    <div class="invalid-feedback">O nome da IA é obrigatório.</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="HumanRepresentative" class="form-label">Representante Humano:</label>
-                                    <input type="text" id="HumanRepresentative" class="form-control @(string.IsNullOrEmpty(user.HumanRepresentative) ? "is-invalid" : "is-valid")" @bind="user.HumanRepresentative" />
-                                    <div class="invalid-feedback">O nome do representante humano é obrigatório.</div>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="Company" class="form-label">Empresa (opcional):</label>
-                                    <input type="text" id="Company" class="form-control" @bind="user.Company" />
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="IAModel" class="form-label">Modelo da IA (opcional):</label>
-                                    <input type="text" id="IAModel" class="form-control" @bind="user.IAModel" />
-                                </div>
-                            </div>
-                        }
-
                         <div class="mt-4 text-center">
-                            <button type="button" class="btn btn-primary btn-lg" @onclick="HandleSubmit">Salvar</button>
+                            <button type="button" class="btn btn-primary btn-lg" @onclick="HandleSubmit">Save</button>
                         </div>
                     </form>
                 </div>
@@ -71,63 +64,96 @@
 
 @code {
     private User user = new User();
-
+    private bool IsHuman = false;
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Recupera o objeto 'User' da sessão
             user = await sessionStorage.GetItemAsync<User>("User");
 
-            // Caso o usuário não tenha sido selecionado anteriormente, redireciona para a escolha
             if (user == null)
             {
-                Navigation.NavigateTo("/EthicaiChoice");
+                Navigation.NavigateTo("/");
+                return; // Retorna imediatamente após a navegação
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Tratar exceções
+            await LogMessageToBrowserConsole($"Erro no OnInitializedAsync: {ex.Message}");
         }
+    }
+
+    // Função para logar mensagens no console do navegador
+    private async Task LogMessageToBrowserConsole(string message)
+    {
+        await JS.InvokeVoidAsync("console.log", message);
     }
 
     private async Task HandleSubmit()
     {
-        // Validação manual dos campos obrigatórios
-        if (string.IsNullOrEmpty(user.Name) ||
-            (user.IsHuman == true && string.IsNullOrEmpty(user.Email)) ||
-            (user.IsHuman == false && (string.IsNullOrEmpty(user.IAName) || string.IsNullOrEmpty(user.HumanRepresentative))))
+        // Validation of required fields
+        bool isValid = true;
+
+        if ((bool)user.IsHuman)
         {
-            // Se os campos obrigatórios estiverem vazios, a função não prossegue
+            if (string.IsNullOrEmpty(user.Name))
+            {
+                isValid = false;
+            }
+            if (string.IsNullOrEmpty(user.Email))
+            {
+                isValid = false;
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(user.IAName))
+            {
+                isValid = false;
+            }
+            if (string.IsNullOrEmpty(user.HumanRepresentative))
+            {
+                isValid = false;
+            }
+        }
+
+        if (string.IsNullOrEmpty(user.Wallet))
+        {
+            isValid = false;
+        }
+
+        if (!isValid)
+        {
+            // If required fields are empty, do not proceed
             return;
         }
 
-        // Processa o restante das informações
+        // Process the rest of the information
         user.DtUpdate = DateTime.Now;
 
         try
         {
-            // Atualizar o usuário no banco de dados
+            // Update the user in the database
             var result = await userService.UpdateUser(user);
 
-            if (result == "Usuário atualizado com sucesso")
+            if (result == "User updated successfully")
             {
-                // Armazenar as informações atualizadas na sessão
+                // Store updated information in session
                 await sessionStorage.SetItemAsync("User", user);
 
-                // Redirecionar para uma outra página ou exibir uma mensagem de sucesso
+                // Redirect to another page or display a success message
                 Navigation.NavigateTo("/success-page");
             }
             else
             {
-                // Exibir uma mensagem de erro
+                // Display error message
                 Console.WriteLine(result);
             }
         }
         catch (Exception ex)
         {
-            // Tratar erros gerais
-            Console.WriteLine($"Erro ao atualizar o usuário: {ex.Message}");
+            // Handle general errors
+            Console.WriteLine($"Error updating user: {ex.Message}");
         }
     }
 }

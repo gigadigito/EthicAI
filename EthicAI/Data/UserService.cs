@@ -9,58 +9,58 @@ namespace EthicAI.Data
     {
         private readonly EthicAIDbContext _dbContext;
 
-        // Injetando o EthicAIDbContext via construtor
+        // Injecting the EthicAIDbContext via constructor
         public UserService(EthicAIDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
-        // Método assíncrono para buscar usuário por carteira
+        // Asynchronous method to fetch a user by wallet
         public async Task<User> GetUserByWallet(string wallet)
         {
             try
             {
-                var usuario = await _dbContext.User
+                var user = await _dbContext.User
                     .Where(x => x.Wallet == wallet)
                     .FirstOrDefaultAsync();
 
-                return usuario;
+                return user;
             }
             catch (DbUpdateException dbEx)
             {
-                // Log do erro e tratamento de erro específico do banco de dados
-                Console.WriteLine($"Erro de banco de dados: {dbEx.Message}");
-                throw new Exception("Ocorreu um erro ao acessar o banco de dados ao buscar o usuário.");
+                // Log the error and handle specific database-related error
+                Console.WriteLine($"Database error: {dbEx.Message}");
+                throw new Exception("An error occurred while accessing the database to fetch the user.");
             }
             catch (Exception ex)
             {
-                // Captura de outros erros gerais
-                Console.WriteLine($"Erro geral: {ex.Message}");
-                throw new Exception("Ocorreu um erro ao buscar o usuário.");
+                // Capture other general errors
+                Console.WriteLine($"General error: {ex.Message}");
+                throw new Exception("An error occurred while fetching the user.");
             }
         }
 
-        // Método assíncrono para adicionar um usuário
-        public async Task<string> AddUser(User usuario)
+        // Asynchronous method to add a new user
+        public async Task<string> AddUser(User user)
         {
-            if (string.IsNullOrEmpty(usuario.Wallet))
+            if (string.IsNullOrEmpty(user.Wallet))
             {
-                return "Carteira Inválida";
+                return "Invalid wallet";
             }
 
             try
             {
-                // Verifica se o usuário já existe pela carteira
-                if (await _dbContext.User.AnyAsync(x => x.Wallet == usuario.Wallet))
+                // Check if the user already exists by wallet
+                if (await _dbContext.User.AnyAsync(x => x.Wallet == user.Wallet))
                 {
-                    return "Usuário já existe";
+                    return "User already exists";
                 }
 
-                usuario.DtCreate = DateTime.Now;
-                usuario.DtUpdate = DateTime.Now;
+                user.DtCreate = DateTime.Now;
+                user.DtUpdate = DateTime.Now;
 
-                // Se não houver erros, salva o novo usuário
-                _dbContext.Add(usuario);
+                // If no errors, save the new user
+                _dbContext.Add(user);
 
                 await _dbContext.SaveChangesAsync();
 
@@ -68,63 +68,63 @@ namespace EthicAI.Data
             }
             catch (DbUpdateException dbEx)
             {
-                // Tratamento de erro relacionado ao banco de dados
-                Console.WriteLine($"Erro de banco de dados: {dbEx.Message}");
-                return "Erro ao adicionar o usuário ao banco de dados.";
+                // Handle database-related error
+                Console.WriteLine($"Database error: {dbEx.Message}");
+                return "Error adding the user to the database.";
             }
             catch (Exception ex)
             {
-                // Tratamento de outros erros não relacionados ao banco de dados
-                Console.WriteLine($"Erro geral: {ex.Message}");
-                return "Erro desconhecido ao adicionar o usuário.";
+                // Handle other non-database-related errors
+                Console.WriteLine($"General error: {ex.Message}");
+                return "Unknown error while adding the user.";
             }
         }
 
-        // Método assíncrono para atualizar um usuário existente
-        public async Task<string> UpdateUser(User usuario)
+        // Asynchronous method to update an existing user
+        public async Task<string> UpdateUser(User user)
         {
-            if (usuario == null || string.IsNullOrEmpty(usuario.Wallet))
+            if (user == null || string.IsNullOrEmpty(user.Wallet))
             {
-                return "Usuário inválido";
+                return "Invalid user";
             }
 
             try
             {
                 var existingUser = await _dbContext.User
-                    .Where(x => x.Wallet == usuario.Wallet)
+                    .Where(x => x.Wallet == user.Wallet)
                     .FirstOrDefaultAsync();
 
                 if (existingUser == null)
                 {
-                    return "Usuário não encontrado";
+                    return "User not found";
                 }
 
-                // Atualiza as propriedades necessárias
-                existingUser.Name = usuario.Name;
-                existingUser.Email = usuario.Email;
-                existingUser.IsHuman = usuario.IsHuman;
-                existingUser.IAName = usuario.IAName;
-                existingUser.HumanRepresentative = usuario.HumanRepresentative;
-                existingUser.Company = usuario.Company;
-                existingUser.IAModel = usuario.IAModel;
+                // Update necessary properties
+                existingUser.Name = user.Name;
+                existingUser.Email = user.Email;
+                existingUser.IsHuman = user.IsHuman;
+                existingUser.IAName = user.IAName;
+                existingUser.HumanRepresentative = user.HumanRepresentative;
+                existingUser.Company = user.Company;
+                existingUser.IAModel = user.IAModel;
                 existingUser.DtUpdate = DateTime.Now;
 
                 _dbContext.User.Update(existingUser);
                 await _dbContext.SaveChangesAsync();
 
-                return "Usuário atualizado com sucesso";
+                return "User successfully updated";
             }
             catch (DbUpdateException dbEx)
             {
-                // Tratamento de erro relacionado ao banco de dados
-                Console.WriteLine($"Erro de banco de dados: {dbEx.Message}");
-                return "Erro ao atualizar o usuário no banco de dados.";
+                // Handle database-related error
+                Console.WriteLine($"Database error: {dbEx.Message}");
+                return "Error updating the user in the database.";
             }
             catch (Exception ex)
             {
-                // Tratamento de outros erros não relacionados ao banco de dados
-                Console.WriteLine($"Erro geral: {ex.Message}");
-                return "Erro desconhecido ao atualizar o usuário.";
+                // Handle other non-database-related errors
+                Console.WriteLine($"General error: {ex.Message}");
+                return "Unknown error while updating the user.";
             }
         }
     }

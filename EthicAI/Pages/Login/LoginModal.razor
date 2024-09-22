@@ -10,7 +10,7 @@
         <div class="modal-content">
             <div class="modal-body">
 
-                @if (String.IsNullOrEmpty(CarteiraUser))
+                @if (String.IsNullOrEmpty(user?.Wallet))
                 {
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span class="ion-android-close"></span>
@@ -39,7 +39,7 @@
                         <span class="ion-android-close"></span>
                     </button>
 
-                    <h4 class="mb-0"><span class="text-main-1">Welcome </span> @NomeUser</h4>
+                    <h4 class="mb-0"><span class="text-main-1">Welcome </span> @_Name</h4>
 
                     <h5 class="mb-0 text-white" style="margin-top:5px">Thank you for helping us in the fight against AI machines!</h5>
 
@@ -55,7 +55,7 @@
                             </div>
                             <div class="col-md-12">
                                 Your ETCAI Balance: 0,00000.00000
-                                <div class="nk-gap">@CarteiraUser</div>
+                                <div class="nk-gap">@_Wallet</div>
                             </div>
                         </div>
                     </form>
@@ -66,11 +66,30 @@
 </div>
 
 @code {
-    public string CarteiraUser { get; set; }
-    public string NomeUser { get; set; }
+    public string _Wallet { get; set; }
+    public string _Name { get; set; }
 
     [Parameter]
     public EventCallback OnLogin { get; set; }
+    private User user = new User();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            user = await sessionStorage.GetItemAsync<User>("User");
+
+            if (user != null)
+            {
+                _Wallet = user.Wallet;
+                _Name = user.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+           // await LogMessageToBrowserConsole($"Erro no OnInitializedAsync: {ex.Message}");
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -82,8 +101,8 @@
 
                 if (storedUser != null)
                 {
-                    CarteiraUser = storedUser.Wallet;
-                    NomeUser = storedUser.Name;
+                    _Wallet = user.Wallet;
+                    _Name = user.Name;
                 }
             }
         }
@@ -104,22 +123,22 @@
 
             if (result != null && !string.IsNullOrEmpty(result.PublicKey))
             {
-                CarteiraUser = result.PublicKey;
+                _Wallet = result.PublicKey;
 
                 // Log no console do navegador
-                await LogMessageToBrowserConsole($"Carteira conectada: {CarteiraUser}");
+                await LogMessageToBrowserConsole($"Carteira conectada: {_Wallet}");
 
                 // Verificar se o usuário já existe no sistema usando o UserService injetado
-                var user = await userService.GetUserByWallet(CarteiraUser);
+                var user = await userService.GetUserByWallet(_Wallet);
 
                 if (user == null)
                 {
                     // Usuário não cadastrado, criar novo usuário
                     var newUser = new User
                         {
-                            Wallet = CarteiraUser,
+                            Wallet = _Wallet,
                             DtUpdate = DateTime.Now,
-                            Name = NomeUser ?? ""
+                            Name = _Name ?? ""
                         };
 
                     var resultAdd = await userService.AddUser(newUser);
@@ -149,12 +168,12 @@
                     
                     await OnLogin.InvokeAsync();
 
-                    await LogMessageToBrowserConsole("Usuário logado com sucesso.");
+                    await LogMessageToUser("Usuário logado com sucesso.");
                 }
             }
             else
             {
-                await LogMessageToBrowserConsole("Erro ao conectar à carteira Solana. Verifique se a Phantom Wallet está instalada e conectada.");
+                await LogMessageToUser("Erro ao conectar à carteira Solana. Verifique se a Phantom Wallet está instalada e conectada.");
             }
         }
         catch (JSException jsEx)
@@ -173,6 +192,12 @@
     private async Task LogMessageToBrowserConsole(string message)
     {
         await JS.InvokeVoidAsync("logToConsole", message);
+    }
+
+    // Função para logar mensagens no console do navegador
+    private async Task LogMessageToUser(string message)
+    {
+        await JS.InvokeVoidAsync("AlertToUser", message);
     }
 
     public class SolanaLoginResult

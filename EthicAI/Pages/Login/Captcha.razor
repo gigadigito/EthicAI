@@ -4,99 +4,146 @@
 @inject NavigationManager Navigation
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject IJSRuntime JS
+@inject BLL.SecretManager secretManager
 
 <div class="container text-center my-5">
-    <h1 class="title-impact">Are you Human?</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="title-impact">Are you Human?</h1>
 
-        <div class="captcha-container">
-            <div class="alert alert-info mt-4">Por favor, resolva o CAPTCHA para continuar.</div>
-            <div id="recaptcha-container"></div> <!-- Onde o reCAPTCHA será renderizado -->
-            <button class="btn btn-primary mt-3" @onclick="VerifyCaptcha">Enviar CAPTCHA</button>
+            <div class="captcha-container">
+                <div class="alert alert-info mt-4">Please solve the CAPTCHA to continue.</div>
+                <div id="recaptcha-container" class="d-flex justify-content-center"></div> <!-- Where reCAPTCHA will be rendered -->
+                <button class="btn btn-primary mt-3">Submit CAPTCHA</button>
+            </div>
         </div>
-    
+    </div>
 </div>
 
+
 @code {
+   
     private string selectedText = string.Empty;
     private bool showCaptcha = false;
     private bool isHumanChoice = false;
     private bool recaptchaRendered = false;
+    private User objuser { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            objuser = await sessionStorage.GetItemAsync<User>("User");
+
+            if (objuser == null)
+            {
+                Navigation.NavigateTo("/");
+                return; // Return immediately after navigation
+            }
+        }
+        catch (Exception ex)
+        {
+           // await LogMessageToBrowserConsole($"Error in OnInitializedAsync: {ex.Message}");
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-
-        // Renderizar o CAPTCHA quando showCaptcha for true e ainda não foi renderizado
-        await JS.InvokeVoidAsync("renderRecaptcha");
-        recaptchaRendered = true;
-       await VerifyCaptcha();
+        if (firstRender)
+        {
+            try
+            {
+                // Render CAPTCHA on the first render
+                await JS.InvokeVoidAsync("renderRecaptcha");
+                recaptchaRendered = true;
+            }
+            catch (Exception ex)
+            {
+                await LogMessageToBrowserConsole($"Error in OnAfterRenderAsync: {ex.Message}");
+            }
+        }
     }
 
-
-    private void SelectChoice(bool isHuman)
+    // Log messages to browser console
+    private async Task LogMessageToBrowserConsole(string message)
     {
-        isHumanChoice = isHuman;
-        if (isHuman)
-        {
-            showCaptcha = true;
-            recaptchaRendered = false; // Reinicia recaptchaRendered para poder renderizar novamente
-            StateHasChanged(); // Atualiza a UI para mostrar o CAPTCHA
-        }
-        else
-        {
-            CompleteChoice();
-        }
+        await JS.InvokeVoidAsync("console.log", message);
     }
 
     private async Task VerifyCaptcha()
     {
         try
         {
-            // Chama a função personalizada do JavaScript para obter o token do reCAPTCHA
+            // Call custom JavaScript function to get the reCAPTCHA token
             var captchaToken = await JS.InvokeAsync<string>("getRecaptchaResponse");
 
             if (!string.IsNullOrEmpty(captchaToken))
             {
                 var captchaValid = await VerifyCaptchaToken(captchaToken);
+                
                 if (captchaValid)
                 {
-                    CompleteChoice();
+                    await CompleteChoice();
                 }
                 else
                 {
-                    selectedText = "Falha na verificação do CAPTCHA. Por favor, tente novamente.";
+                    selectedText = "CAPTCHA verification failed. Please try again.";
                 }
             }
             else
             {
-                selectedText = "Por favor, complete o CAPTCHA.";
+                selectedText = "Please complete the CAPTCHA.";
             }
         }
         catch (Exception ex)
         {
-            selectedText = $"Erro: {ex.Message}";
+            selectedText = $"Error: {ex.Message}";
+            await LogMessageToBrowserConsole($"Error in VerifyCaptcha: {ex.Message}");
         }
     }
 
     private async Task<bool> VerifyCaptchaToken(string token)
     {
-        var client = new HttpClient();
-        var secretKey = "6Lf-wUkqAAAAAC6bx4LTzAFI7KaXtBoCsyxzBx_8";  // Sua chave secreta do reCAPTCHA
-        var response = await client.PostAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}", null);
-        var result = await response.Content.ReadAsStringAsync();
-        return result.Contains("\"success\": true");
+        try
+        {
+            var client = new HttpClient();
+
+            // Retrieve the secret key using SecretManager
+            var secretKey = secretManager.GetSecret("ReCaptchaSecretKey");
+
+            var response = await client.PostAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={token}", null);
+            var result = await response.Content.ReadAsStringAsync();
+            return result.Contains("\"success\": true");
+        }
+        catch (Exception ex)
+        {
+            await LogMessageToBrowserConsole($"Error in VerifyCaptchaToken: {ex.Message}");
+            return false;
+        }
     }
 
-    private async void CompleteChoice()
+    private async Task CompleteChoice()
     {
-        var user = await sessionStorage.GetItemAsync<User>("User");
-
-        if (user != null)
+        try
         {
-            user.IsHuman = isHumanChoice;
-            user.DtUpdate = DateTime.Now;
+            if (objuser != null)
+            {
+                objuser.IsHuman = true;
+                objuser.DtUpdate = DateTime.Now;
+                objuser.DtHumanValidation = DateTime.Now;
 
-            await sessionStorage.SetItemAsync("User", user);
-            Navigation.NavigateTo("/UserInfo");
+                await sessionStorage.SetItemAsync("User", objuser);
+
+                Navigation.NavigateTo("/UserInfo");
+            }
+            else
+            {
+                await LogMessageToBrowserConsole("objuser is null in CompleteChoice.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await LogMessageToBrowserConsole($"Error in CompleteChoice: {ex.Message}");
         }
     }
 }

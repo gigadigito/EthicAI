@@ -46,15 +46,46 @@
     private bool showCaptcha = false;
     private bool isHumanChoice = false;
     private bool recaptchaRendered = false;
+    private User objuser { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        try
+        {
+            if (firstRender)
+            {
+                objuser = await sessionStorage.GetItemAsync<User>("User");
+
+                if (objuser == null)
+                {
+                    Navigation.NavigateTo("/");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await LogMessageToBrowserConsole(ex.Message);
+
+        }
+
+
         if (showCaptcha && !recaptchaRendered)
         {
             // Renderizar o CAPTCHA quando showCaptcha for true e ainda não foi renderizado
             await JS.InvokeVoidAsync("renderRecaptcha");
             recaptchaRendered = true;
         }
+    }
+    // Função para logar mensagens no console do navegador
+    private async Task LogMessageToBrowserConsole(string message)
+    {
+        await JS.InvokeVoidAsync("logToConsole", message);
+    }
+
+    // Função para logar mensagens no console do navegador
+    private async Task LogMessageToUser(string message)
+    {
+        await JS.InvokeVoidAsync("AlertToUser", message);
     }
 
     private void ShowHumanText()
@@ -75,15 +106,7 @@
     private void SelectChoice(bool isHuman)
     {
         isHumanChoice = isHuman;
-        if (isHuman)
-        {
-            CompleteChoice();
-
-        }
-        else
-        {
-            CompleteChoice();
-        }
+        CompleteChoice();
     }
 
     private async Task VerifyCaptcha()
@@ -102,17 +125,17 @@
                 }
                 else
                 {
-                    selectedText = "Falha na verificação do CAPTCHA. Por favor, tente novamente.";
+                   await LogMessageToUser("Falha na verificação do CAPTCHA. Por favor, tente novamente.");
                 }
             }
             else
             {
-                selectedText = "Por favor, complete o CAPTCHA.";
+                  await LogMessageToUser("Por favor, complete o CAPTCHA.");
             }
         }
         catch (Exception ex)
         {
-            selectedText = $"Erro: {ex.Message}";
+           await LogMessageToBrowserConsole($"Erro: {ex.Message}");
         }
     }
 
@@ -127,7 +150,7 @@
 
     private async void CompleteChoice()
     {
-        var user = await sessionStorage.GetItemAsync<User>("User");
+        var user = objuser;
 
         if (user != null)
         {

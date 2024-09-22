@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using EthicAI.Data;
 using EthicAI.EntityModel;
+using BLL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,7 @@ builder.Services.AddDbContext<EthicAIDbContext>(options =>
 
 // Adiciona o serviço UserService
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<SecretManager>();
 
 var app = builder.Build();
 
