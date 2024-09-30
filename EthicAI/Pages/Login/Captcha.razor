@@ -5,7 +5,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject IJSRuntime JS
 @inject BLL.SecretManager secretManager
-
+@inject UserService userService
 <div class="container text-center my-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
@@ -14,7 +14,8 @@
             <div class="captcha-container">
                 <div class="alert alert-info mt-4">Please solve the CAPTCHA to continue.</div>
                 <div id="recaptcha-container" class="d-flex justify-content-center"></div> <!-- Where reCAPTCHA will be rendered -->
-                <button class="btn btn-primary mt-3">Submit CAPTCHA</button>
+                <button class="btn btn-primary mt-3" @onclick="VerifyCaptcha">Submit CAPTCHA</button>
+
             </div>
         </div>
     </div>
@@ -131,9 +132,8 @@
                 objuser.IsHuman = true;
                 objuser.DtUpdate = DateTime.Now;
                 objuser.DtHumanValidation = DateTime.Now;
-
+                await userService.UpdateUser(objuser);
                 await sessionStorage.SetItemAsync("User", objuser);
-
                 Navigation.NavigateTo("/UserInfo");
             }
             else

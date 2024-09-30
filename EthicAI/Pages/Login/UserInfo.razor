@@ -76,6 +76,12 @@
                 Navigation.NavigateTo("/");
                 return; // Retorna imediatamente após a navegação
             }
+            var _IsHuman = user.IsHuman;
+
+            if (_IsHuman == true)
+            {
+                IsHuman = true;
+            }
         }
         catch (Exception ex)
         {
@@ -136,7 +142,7 @@
             // Update the user in the database
             var result = await userService.UpdateUser(user);
 
-            if (result == "User updated successfully")
+            if (result == "User updated successfully" || result == "User successfully updated")
             {
                 // Store updated information in session
                 await sessionStorage.SetItemAsync("User", user);

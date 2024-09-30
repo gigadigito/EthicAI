@@ -10,7 +10,7 @@
         <div class="modal-content">
             <div class="modal-body">
 
-                @if (String.IsNullOrEmpty(user?.Wallet))
+                @if (String.IsNullOrEmpty(_Wallet))
                 {
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span class="ion-android-close"></span>
@@ -72,7 +72,7 @@
     [Parameter]
     public EventCallback OnLogin { get; set; }
     private User user = new User();
-    
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -87,7 +87,7 @@
         }
         catch (Exception ex)
         {
-           // await LogMessageToBrowserConsole($"Erro no OnInitializedAsync: {ex.Message}");
+            // await LogMessageToBrowserConsole($"Erro no OnInitializedAsync: {ex.Message}");
         }
     }
 
@@ -165,8 +165,13 @@
                     {
                         Navigation.NavigateTo("/EthicaiChoice");
                     }
-                    
+
                     await OnLogin.InvokeAsync();
+                    user.DtUpdate = DateTime.Now;
+                    user.LastLogin = DateTime.Now;
+
+                    await userService.UpdateUser(user);
+
 
                     await LogMessageToUser("Usuário logado com sucesso.");
                 }
