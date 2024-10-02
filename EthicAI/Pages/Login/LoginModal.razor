@@ -46,6 +46,7 @@
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
                             <div class="col-md-6">
+                                <!-- You can uncomment this part if username input is needed -->
                                 @* @if (String.IsNullOrEmpty(NomeUser))
                             {
                             <div class="nk-gap">Please enter your username</div>
@@ -53,9 +54,11 @@
                             <input type="text" @bind="NomeUser" name="user" class="form-control" placeholder="Username / nickname">
                             } *@
                             </div>
-                            <div class="col-md-12">
-                                Your ETCAI Balance: 0,00000.00000
-                                <div class="nk-gap">@_Wallet</div>
+                            <!-- Admin Panel Button -->
+                            <div class="col-md-12 text-center mt-4">
+                                <a type="button" class="btn btn-primary" onclick="window.location.href='/admin'">
+                                    Go to Admin Panel
+                                </a>
                             </div>
                         </div>
                     </form>
@@ -138,6 +141,7 @@
                         {
                             Wallet = _Wallet,
                             DtUpdate = DateTime.Now,
+                            LastLogin = DateTime.Now,
                             Name = _Name ?? ""
                         };
 

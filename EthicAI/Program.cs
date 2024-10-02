@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
-
+builder.Services.AddHttpClient<GitHubService>();
 //builder.Services.AddScoped<MetaMaskInterop>();
 builder.Services.AddMetaMaskBlazor();
 builder.Services.AddBlazoredSessionStorage();
@@ -30,7 +30,7 @@ builder.Services.AddDbContext<EthicAIDbContext>(options =>
 // Adiciona o serviço UserService
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
-
+builder.Services.AddScoped<GitHubService>();
 var app = builder.Build();
 
 // Aplicar automaticamente as migrações pendentes ao iniciar a aplicação

@@ -8119,6 +8119,7 @@ div.nk-error {
     overflow: hidden;
     background-color: #232930;
     border: 1px solid #293139;
+    color:grey
 }
 
 .nk-news-box .nk-news-box-list,
@@ -8126,7 +8127,8 @@ div.nk-error {
     float: left;
     width: 50%;
     height: 100%;
-}
+    color:white
+}F
 
 .nk-news-box .nk-news-box-item {
     padding: 10px;
@@ -8196,6 +8198,7 @@ div.nk-error {
     -o-text-overflow: ellipsis;
        text-overflow: ellipsis;
     white-space: nowrap;
+    color:white
 }
 
 .nk-news-box .nk-news-box-item .nk-news-box-item-text,

@@ -49,6 +49,16 @@
                                     <input type="text" id="HumanRepresentative" class="form-control @(string.IsNullOrEmpty(user.HumanRepresentative) ? "is-invalid" : "is-valid")" @bind="user.HumanRepresentative" />
                                     <div class="invalid-feedback">Human representative name is required.</div>
                                 </div>
+
+                                <div class="col-md-6">
+                                    <label for="Company" class="form-label">Company:</label>
+                                    <input type="text" id="Company" class="form-control" @bind="user.Company" />
+                          
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="IAModel" class="form-label">Model IA Version:</label>
+                                    <input type="text" id="IAModel" class="form-control" @bind="user.IAModel" />
+                                </div>
                             }
                         </div>
 
@@ -146,9 +156,17 @@
             {
                 // Store updated information in session
                 await sessionStorage.SetItemAsync("User", user);
-
-                // Redirect to another page or display a success message
-                Navigation.NavigateTo("/success-page");
+               
+                if (user.IsHuman == true)
+                {
+                    // Redirect to another page or display a success message
+                    Navigation.NavigateTo("/Human/HumanAdminPainel");
+                }
+                if (user.IsHuman == false)
+                {
+                    // Redirect to another page or display a success message
+                    Navigation.NavigateTo("/Machine/MachineAdminPainel");
+                }
             }
             else
             {

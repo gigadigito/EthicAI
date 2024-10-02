@@ -108,7 +108,8 @@ namespace EthicAI.Data
                 existingUser.Company = user.Company;
                 existingUser.IAModel = user.IAModel;
                 existingUser.DtUpdate = DateTime.Now;
-
+                existingUser.DtHumanValidation = user.DtHumanValidation;
+                
                 _dbContext.User.Update(existingUser);
                 await _dbContext.SaveChangesAsync();
 
