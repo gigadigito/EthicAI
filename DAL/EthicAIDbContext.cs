@@ -1,6 +1,7 @@
 ﻿using DAL;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace EthicAI.EntityModel
 {
     public class EthicAIDbContext : DbContext
@@ -12,6 +13,7 @@ namespace EthicAI.EntityModel
         }
 
         public DbSet<User> User { get; set; }
+        public DbSet<PreSalePurchase> PreSalePurchase { get; set; } // Adiciona o DbSet para PreSalePurchase
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,8 +37,27 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.DtCreate).HasColumnName("dt_create");
             });
 
-            Seed(modelBuilder);
-        }
+            // EntityModel/EthicAIDbContext.cs
+            modelBuilder.Entity<PreSalePurchase>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("pre_sale_purchase");
+                entity.Property(e => e.Id).HasColumnName("id_purchase");
+                entity.Property(e => e.UserId).IsRequired().HasColumnName("user_id");
+                entity.Property(e => e.SolAmount).HasColumnType("decimal(18, 8)").HasColumnName("sol_amount");
+                entity.Property(e => e.EthicAIAmt).HasColumnType("decimal(18, 8)").HasColumnName("ethic_ai_amount");
+                entity.Property(e => e.PurchaseDate).HasColumnType("datetime").HasColumnName("purchase_date");
+                entity.Property(e => e.TransactionHash).HasMaxLength(100).HasColumnName("transaction_hash");
+
+                // Configuração de relacionamento
+                entity.HasOne(e => e.User) // Certifique-se de que o User está mapeado corretamente
+                      .WithMany(u => u.PreSalePurchases)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+
+            Seed(modelBuilder);        }
 
         public void Seed(ModelBuilder modelBuilder)
         {

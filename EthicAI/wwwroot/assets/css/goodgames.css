@@ -6230,6 +6230,7 @@ img.rounded {
 .nk-feature-title {
     margin-bottom: .5rem;
     font-size: 1.25rem;
+    color:white;
 }
 
 .nk-feature-title a {
@@ -8128,7 +8129,7 @@ div.nk-error {
     width: 50%;
     height: 100%;
     color:white
-}F
+}
 
 .nk-news-box .nk-news-box-item {
     padding: 10px;
@@ -8200,14 +8201,17 @@ div.nk-error {
     white-space: nowrap;
     color:white
 }
-
-.nk-news-box .nk-news-box-item .nk-news-box-item-text,
-.nk-news-box .nk-news-box-item .nk-news-box-item-text p {
-    overflow: hidden;
-    -o-text-overflow: ellipsis;
-       text-overflow: ellipsis;
-    white-space: nowrap;
+.nk-news-box-item-title {
+    color:white
 }
+
+    .nk-news-box .nk-news-box-item .nk-news-box-item-text,
+    .nk-news-box .nk-news-box-item .nk-news-box-item-text p {
+        overflow: hidden;
+        -o-text-overflow: ellipsis;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 
 .nk-news-box .nk-news-box-item .nk-news-box-item-text {
     max-height: 25px;

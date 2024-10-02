@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    [Migration("20240915012028_EthicAIMigration")]
+    [Migration("20241002201945_EthicAIMigration")]
     partial class EthicAIMigration
     {
         /// <inheritdoc />
@@ -24,6 +24,44 @@ namespace DAL.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("DAL.PreSalePurchase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_purchase");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("EthicAIAmt")
+                        .HasColumnType("decimal(18, 8)")
+                        .HasColumnName("ethic_ai_amount");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("purchase_date");
+
+                    b.Property<decimal>("SolAmount")
+                        .HasColumnType("decimal(18, 8)")
+                        .HasColumnName("sol_amount");
+
+                    b.Property<string>("TransactionHash")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("transaction_hash");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("pre_sale_purchase", (string)null);
+                });
 
             modelBuilder.Entity("DAL.User", b =>
                 {
@@ -98,6 +136,22 @@ namespace DAL.Migrations
                     b.HasKey("UserID");
 
                     b.ToTable("user", (string)null);
+                });
+
+            modelBuilder.Entity("DAL.PreSalePurchase", b =>
+                {
+                    b.HasOne("DAL.User", "User")
+                        .WithMany("PreSalePurchases")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DAL.User", b =>
+                {
+                    b.Navigation("PreSalePurchases");
                 });
 #pragma warning restore 612, 618
         }

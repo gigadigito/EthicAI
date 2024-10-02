@@ -2,6 +2,11 @@
 {
     public class User
     {
+        public User()
+        {
+            PreSalePurchases = new HashSet<PreSalePurchase>();
+        }
+
         // Primary key for the User entity
         public int UserID { get; set; }
 
@@ -40,5 +45,7 @@
 
         // Model name of the AI (optional, only for machine users)
         public string? IAModel { get; set; }
+
+        public ICollection<PreSalePurchase> PreSalePurchases { get; set; } // Propriedade de navegação
     }
 }

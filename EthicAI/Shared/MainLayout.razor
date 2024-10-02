@@ -58,23 +58,6 @@
                             <span class="fa fa-search"></span>
                         </a>
                     </li> *@
-                    <li>
-                        <a href="#" data-toggle="modal" data-target="#modalLogin">
-
-                            @if (String.IsNullOrEmpty(NmUser))
-                            {
-                                <button type="button" class="btn btn-dark">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
-                                        <path d="M0 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H2a2 2 0 0 1-2-2V3zm2-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2zm1 2a1 1 0 0 1 1-1h7a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1z" />
-                                    </svg>
-                                    Login in
-                                </button>
-                            }else{
-                                <span>Hello @NmUser</span>
-                            }
-                        </a>
-                    </li>
-
 
                     <li>
                      @*    <span class="nk-cart-toggle">
@@ -115,6 +98,24 @@
                     </li>
 
                 </ul>
+                <div>
+                    <a href="#" data-toggle="modal" data-target="#modalLogin">
+
+                        @if (String.IsNullOrEmpty(NmUser))
+                        {
+                            <button type="button" class="btn btn-dark">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wallet" viewBox="0 0 16 16">
+                                    <path d="M0 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H2a2 2 0 0 1-2-2V3zm2-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2zm1 2a1 1 0 0 1 1-1h7a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1z" />
+                                </svg>
+                                Login in
+                            </button>
+                        }
+                        else
+                        {
+                            <span>Hello @NmUser</span>
+                        }
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -564,9 +565,20 @@
             if (storedUser != null)
             {
                 isUserChouseRace = (storedUser.IsHuman != null);
-                isUserHumanHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name));
-                var isUserMachineHasName = (storedUser.IAName != null && !String.IsNullOrEmpty(storedUser.IAName));
-                NmUser = storedUser.Name;
+                isUserHumanHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name)) && storedUser.IsHuman == true;
+                var isUserMachineHasName = (storedUser.IAName != null && !String.IsNullOrEmpty(storedUser.IAName)) && storedUser.IsHuman == false;
+
+                if (isUserHumanHasName)
+                {
+                    NmUser = storedUser.Name;
+                }
+
+                if (isUserMachineHasName)
+                {
+                    NmUser = storedUser.IAName;
+                }
+                
+                
                 Wallet = storedUser.Wallet;
 
                 if(storedUser.IsHuman == null)

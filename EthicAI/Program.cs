@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using EthicAI.Data;
 using EthicAI.EntityModel;
 using BLL;
+using EthicAI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,9 @@ builder.Services.AddDbContext<EthicAIDbContext>(options =>
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
 builder.Services.AddScoped<GitHubService>();
+builder.Services.AddScoped<PreSaleService>();
+
+
 var app = builder.Build();
 
 // Aplicar automaticamente as migrações pendentes ao iniciar a aplicação

@@ -35,11 +35,42 @@ namespace DAL.Migrations
                 {
                     table.PrimaryKey("PK_user", x => x.cd_user);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "pre_sale_purchase",
+                columns: table => new
+                {
+                    id_purchase = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    user_id = table.Column<int>(type: "int", nullable: false),
+                    sol_amount = table.Column<decimal>(type: "decimal(18,8)", nullable: false),
+                    ethic_ai_amount = table.Column<decimal>(type: "decimal(18,8)", nullable: false),
+                    purchase_date = table.Column<DateTime>(type: "datetime", nullable: false),
+                    transaction_hash = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_pre_sale_purchase", x => x.id_purchase);
+                    table.ForeignKey(
+                        name: "FK_pre_sale_purchase_user_user_id",
+                        column: x => x.user_id,
+                        principalTable: "user",
+                        principalColumn: "cd_user",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_pre_sale_purchase_user_id",
+                table: "pre_sale_purchase",
+                column: "user_id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "pre_sale_purchase");
+
             migrationBuilder.DropTable(
                 name: "user");
         }
