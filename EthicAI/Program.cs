@@ -8,6 +8,7 @@ using EthicAI.Data;
 using EthicAI.EntityModel;
 using BLL;
 using EthicAI.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,8 +33,10 @@ builder.Services.AddDbContext<EthicAIDbContext>(options =>
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
 builder.Services.AddScoped<GitHubService>();
-builder.Services.AddScoped<PreSaleService>();
+builder.Services.AddScoped<IPreSaleService, PreSaleService>();
 
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 
 var app = builder.Build();
 

@@ -69,10 +69,6 @@
     <!-- jQuery -->
     <script src="assets/vendor/jquery/dist/jquery.min.js"></script>
 
-
-    
-  
-
     
 </head>
 <body>
@@ -160,7 +156,25 @@
 
 
     <script src="~/js/msg.js"></script>
-    <script src="~/js/solanawallet.js"></script>
+       <!-- Include the latest version of Solana Web3.js -->
+    <!-- Importando buffer antes de solanaweb3.js -->
+    <script src="js/solana-web3-bundle.js"></script>
+
+
+    
+
+
+<script>
+    console.log("Buffer:", Buffer);
+console.log("Buffer.from exists:", typeof Buffer.from === "function");
+
+
+</script>
+
+
+    <script src="~/js/solanawallet.js?a=@Guid.NewGuid().ToString()"></script>
+    <script src="~/js/solana-transactions.js?a=@Guid.NewGuid().ToString()"></script>
+   
     <script type="text/javascript">
         var onloadCallback = function () {
             console.log("grecaptcha is ready!");
@@ -205,7 +219,7 @@
 
                 // Adiciona um evento onload para garantir que o código seja executado quando o script for carregado
                 scriptElement.onload = function () {
-                    console.log(script + ' carregado com sucesso!');
+                    //console.log(script + ' carregado com sucesso!');
                     // Adicione aqui qualquer código que você deseja executar após o carregamento do script
                 };
 

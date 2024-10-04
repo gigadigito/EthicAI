@@ -1,0 +1,26 @@
+{
+  "name": "ethicai",
+  "version": "1.0.0",
+  "description": "Esta é uma empresa comprometida com o aprimoramento contínuo da interação entre humanos e máquinas",
+  "main": "index.js",
+  "scripts": {
+    "build:js": "browserify node_modules/@solana/web3.js/lib/index.iife.js -o wwwroot/js/solana-web3-bundle.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@solana/web3.js": "^1.95.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.7",
+    "@babel/preset-env": "^7.25.7",
+    "babel-loader": "^9.2.1",
+    "browserify": "^17.0.0",
+    "buffer": "^6.0.3",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

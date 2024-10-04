@@ -173,10 +173,7 @@
                     await OnLogin.InvokeAsync();
                     user.DtUpdate = DateTime.Now;
                     user.LastLogin = DateTime.Now;
-
                     await userService.UpdateUser(user);
-
-
                     await LogMessageToUser("Usuário logado com sucesso.");
                 }
             }
@@ -206,7 +203,7 @@
     // Função para logar mensagens no console do navegador
     private async Task LogMessageToUser(string message)
     {
-        await JS.InvokeVoidAsync("AlertToUser", message);
+        await JS.InvokeVoidAsync("alertToUser", message);
     }
 
     public class SolanaLoginResult
