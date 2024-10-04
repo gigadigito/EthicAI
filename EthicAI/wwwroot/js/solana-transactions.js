@@ -9,7 +9,8 @@
             LAMPORTS_PER_SOL
         } = window.solanaWeb3;
 
-        const connection = new Connection(clusterApiUrl('devnet'));
+        const connection = new Connection(clusterApiUrl('testnet'));
+        const connection = new Connection(clusterApiUrl('testnet'));
         const wallet = window.solana;
 
         // Solicita conexão com a carteira se não estiver conectada

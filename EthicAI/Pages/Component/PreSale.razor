@@ -31,12 +31,12 @@
 
             <div class="mb-3">
                 <label for="solAmount" class="form-label">Quantidade em Solana (SOL)</label>
-                <input type="number" class="form-control" id="solAmount" @bind="solAmount" @oninput="CalculateEthicAI" min="0" step="0.01" placeholder="Insira a quantidade de SOL">
+                <input type="number" class="form-control" id="solAmount" @bind="solAmount" @oninput="CalculateEthicAI" min="0.01" step="0.01" placeholder="Insira a quantidade de SOL">
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Quantidade Equivalente em EthicAI</label>
-                <input type="text" class="form-control" value="@ethicAIAmt" readonly />
+                <input type="text" class="form-control" value="@ethicAIAmt.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)" readonly />
             </div>
 
             <div class="mb-3">
@@ -100,11 +100,20 @@
 
     private void CalculateEthicAI(ChangeEventArgs e)
     {
-        if (decimal.TryParse(e.Value?.ToString(), out decimal sol))
+        // Verificar se o valor pode ser convertido em decimal
+        string input = e.Value?.ToString().Replace(",", "."); // Garantir que o separador seja o ponto
+        if (decimal.TryParse(input, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal sol))
         {
+            // Calcular a quantidade equivalente em EthicAI
             ethicAIAmt = sol * conversionRate;
         }
+        else
+        {
+            // Se houver erro na conversão, exibir uma mensagem ou tratar conforme necessário
+            ethicAIAmt = 0;
+        }
     }
+
 
     private async Task ProcessPurchase()
     {
