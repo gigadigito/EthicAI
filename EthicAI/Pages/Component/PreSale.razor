@@ -4,54 +4,61 @@
 @using EthicAI.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using System.Text.Json
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject UserService userService
 @inject IPreSaleService PreSaleService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Configuration
+@inject Blazored.Toast.Services.IToastService ToastService
 
 <div class="container py-5">
-    <h2 class="text-center mb-4">Pré-Venda da Moeda EthicAI</h2>
+    <h2 class="text-center mb-4">EthicAI Token Pre-Sale</h2>
 
     <div class="card p-4">
         @if (string.IsNullOrEmpty(_Wallet))
         {
             <div class="text-center">
-                <h4 class="mb-3">Conecte sua Carteira Solana</h4>
+                <h4 class="mb-3">Connect your Solana Wallet</h4>
                 <button class="btn btn-primary" @onclick="RequestAuthorization">Connect Phantom</button>
             </div>
         }
         else
         {
             <div class="mb-3">
-                <p>Carteira Conectada: <strong>@_Wallet</strong></p>
-                <p>Bem-vindo, <strong>@_Name</strong>!</p>
+                <p>Connected Wallet: <strong>@_Wallet</strong></p>
+                <p>Welcome, <strong>@_Name</strong>!</p>
             </div>
 
             <div class="mb-3">
-                <label for="solAmount" class="form-label">Quantidade em Solana (SOL)</label>
-                <input type="number" class="form-control" id="solAmount" @bind="solAmount" @oninput="CalculateEthicAI" min="0.01" step="0.01" placeholder="Insira a quantidade de SOL">
+                <label for="solAmount" class="form-label">Amount in Solana (SOL)</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="solAmount" @bind="solAmount" @oninput="CalculateEthicAI" min="0.01" step="0.01" placeholder="Enter SOL amount">
+                    <span class="input-group-text">USD</span>
+                    <input type="text" class="form-control" value="@solAmountInUSD.ToString("C2", System.Globalization.CultureInfo.InvariantCulture)" disabled placeholder="Equivalent in USD" />
+                </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Quantidade Equivalente em EthicAI</label>
+                <label class="form-label">Equivalent in EthicAI</label>
                 <input type="text" class="form-control" value="@ethicAIAmt.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)" readonly />
             </div>
 
             <div class="mb-3">
-                <p>Taxa de Conversão: <strong>1 SOL = @conversionRate EthicAI</strong></p>
+                <p>Conversion Rate: <strong>1 SOL = @conversionRate EthicAI</strong></p>
             </div>
 
             <button class="btn btn-success w-100" @onclick="ProcessPurchase" disabled="@isPurchasing">
                 @if (isPurchasing)
                 {
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    <span>&nbsp;Processando...</span>
+                    <span>&nbsp;Processing...</span>
                 }
                 else
                 {
-                    <span>Comprar EthicAI</span>
+                    <span>Purchase EthicAI</span>
                 }
             </button>
 
@@ -63,6 +70,32 @@
             }
         }
     </div>
+
+    @if (purchases?.Any() == true)
+    {
+        <h5 class="mt-5 m-5 pt-10">Purchase History</h5>
+        <table class="table table-bordered table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Purchase Amount in EthicAI</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var purchase in purchases)
+                {
+                    <tr>
+                        <td>@purchase.PurchaseDate.ToString("MM/dd/yyyy HH:mm")</td>
+                        <td>@purchase.EthicAIAmt.ToString("F6")</td>
+                    </tr>
+                }
+                <tr>
+                    <td><strong>Total</strong></td>
+                    <td><strong>@purchases.Sum(p => p.EthicAIAmt).ToString("F6")</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
@@ -71,72 +104,86 @@
     private decimal solAmount;
     private decimal ethicAIAmt;
     private decimal conversionRate;
+    private decimal solToUSD;
+    private decimal solAmountInUSD;
     private bool isPurchasing = false;
     private string message;
     private string messageClass;
     private string transactionHash;
-
-    private string destinationWallet = "DZoxEoYNaBGEgTpXmP3stg9U3Lmp1koFXYqLuWiZxN9"; // Sua carteira do projeto
+    private List<PreSalePurchase> purchases = new();
+    private string destinationWallet;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            destinationWallet = Configuration["PreSale:DestinationWallet"];
+
             var storedUser = await sessionStorage.GetItemAsync<User>("User");
 
             if (storedUser != null)
             {
                 _Wallet = storedUser.Wallet;
                 _Name = storedUser.Name;
+
+                purchases = await PreSaleService.GetPurchasesByWalletAsync(_Wallet);
             }
 
             conversionRate = PreSaleService.GetConversionRate();
+            solToUSD = await GetSolanaPriceInUSD();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Erro no OnInitializedAsync: {ex.Message}");
+            Console.WriteLine($"Error on OnInitializedAsync: {ex.Message}");
+        }
+    }
+
+    private async Task<decimal> GetSolanaPriceInUSD()
+    {
+        try
+        {
+            var response = await new HttpClient().GetAsync("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+            return result.GetProperty("solana").GetProperty("usd").GetDecimal();
+        }
+        catch
+        {
+            return 0;
         }
     }
 
     private void CalculateEthicAI(ChangeEventArgs e)
     {
-        // Verificar se o valor pode ser convertido em decimal
-        string input = e.Value?.ToString().Replace(",", "."); // Garantir que o separador seja o ponto
+        string input = e.Value?.ToString().Replace(",", ".");
         if (decimal.TryParse(input, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal sol))
         {
-            // Calcular a quantidade equivalente em EthicAI
             ethicAIAmt = sol * conversionRate;
+            solAmountInUSD = sol * solToUSD;
         }
         else
         {
-            // Se houver erro na conversão, exibir uma mensagem ou tratar conforme necessário
             ethicAIAmt = 0;
+            solAmountInUSD = 0;
         }
     }
-
 
     private async Task ProcessPurchase()
     {
         if (solAmount <= 0)
         {
-            ShowMessage("Por favor, insira uma quantidade válida de SOL.", "alert-danger");
+            ShowMessage("Please enter a valid amount of SOL.", "alert-warning");
             return;
         }
 
         isPurchasing = true;
-        message = string.Empty;
 
         try
         {
-            // Enviar transação para a rede Solana (testnet) usando a API da Phantom Wallet
             transactionHash = await JS.InvokeAsync<string>("sendSolTransaction", destinationWallet, solAmount);
 
-            // Confirmar a transação
             if (!string.IsNullOrEmpty(transactionHash))
             {
-                Console.WriteLine($"Transação realizada com sucesso. Hash: {transactionHash}");
-
-                // Gravar a transação na tabela PreSale
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 var user = authState.User;
 
@@ -148,22 +195,23 @@
 
                     if (success)
                     {
-                        ShowMessage("Compra realizada com sucesso!", "alert-success");
+                        ShowMessage("Purchase completed successfully!", "alert-success");
+                        purchases = await PreSaleService.GetPurchasesByWalletAsync(_Wallet);
                     }
                     else
                     {
-                        ShowMessage("Falha ao registrar a compra. Tente novamente.", "alert-danger");
+                        ShowMessage("Failed to register purchase. Please try again.", "alert-danger");
                     }
                 }
             }
             else
             {
-                ShowMessage("Erro ao processar a transação na blockchain.", "alert-danger");
+                ShowMessage("Error processing transaction on the blockchain.", "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowMessage($"Erro ao processar a compra: {ex.Message}", "alert-danger");
+            ShowMessage($"Error processing purchase: {ex.Message}", "alert-danger");
         }
         finally
         {
@@ -175,7 +223,6 @@
     {
         try
         {
-            // Chamar o JavaScript para conectar à carteira Solana (Phantom)
             var result = await JS.InvokeAsync<SolanaLoginResult>("solanaLogin");
 
             if (result != null && !string.IsNullOrEmpty(result.PublicKey))
@@ -187,45 +234,61 @@
                 if (existingUser == null)
                 {
                     var newUser = new User
-                    {
-                        Wallet = _Wallet,
-                        DtUpdate = DateTime.Now,
-                        LastLogin = DateTime.Now,
-                        Name = _Name ?? ""
-                    };
+                        {
+                            Wallet = _Wallet,
+                            DtUpdate = DateTime.Now,
+                            LastLogin = DateTime.Now,
+                            Name = _Name ?? ""
+                        };
 
                     var resultAdd = await userService.AddUser(newUser);
 
                     if (resultAdd == "OK")
                     {
                         await sessionStorage.SetItemAsync("User", newUser);
-                        ShowMessage("Usuário criado com sucesso!", "alert-success");
+                        ShowMessage("User created successfully!", "alert-success");
                         Navigation.NavigateTo("/EthicaiChoice");
                     }
                     else
                     {
-                        ShowMessage($"Erro ao adicionar o usuário: {resultAdd}", "alert-danger");
+                        ShowMessage($"Error adding user: {resultAdd}", "alert-danger");
                     }
                 }
                 else
                 {
                     await sessionStorage.SetItemAsync("User", existingUser);
-                    ShowMessage("Usuário logado com sucesso.", "alert-success");
+                    ShowMessage("User logged in successfully.", "alert-success");
+                    purchases = await PreSaleService.GetPurchasesByWalletAsync(_Wallet);
                 }
             }
             else
             {
-                ShowMessage("Erro ao conectar à carteira Solana.", "alert-danger");
+                ShowMessage("Error connecting to Solana wallet.", "alert-danger");
             }
         }
         catch (Exception ex)
         {
-            ShowMessage($"Erro ao conectar à carteira: {ex.Message}", "alert-danger");
+            ShowMessage($"Error connecting to wallet: {ex.Message}", "alert-danger");
         }
     }
 
     private void ShowMessage(string msg, string cssClass)
     {
+        // Exibe a mensagem usando o ToastService
+        if (cssClass.Contains("alert-success"))
+        {
+            ToastService.ShowSuccess(msg);
+        }
+        else if (cssClass.Contains("alert-warning"))
+        {
+            ToastService.ShowWarning(msg);
+        }
+        else
+        {
+            ToastService.ShowError(msg);
+        }
+
+        // Exibe a mensagem na interface
         message = msg;
         messageClass = cssClass;
     }

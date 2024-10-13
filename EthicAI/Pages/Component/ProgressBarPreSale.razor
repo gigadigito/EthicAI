@@ -1,0 +1,33 @@
+﻿@using EthicAI.Services
+@inject IConfiguration Configuration
+@inject IPreSaleService PreSaleService
+
+<div class="progress-bar-container">
+    <h4>Pre-Sale Fundraiser for EthicAI's Liquidity Pool</h4>
+    <p>All funds raised during the pre-sale will go towards building the liquidity pool for EthicAI's operational token.</p>
+
+    <div class="progress" style="height: 25px;">
+        <div class="progress-bar" role="progressbar"
+             style="width: @ProgressPercentage%;"
+             aria-valuenow="@AmountRaisedUSD"
+             aria-valuemin="0"
+             aria-valuemax="@TargetAmountUSD">
+            $@AmountRaisedUSD / $@TargetAmountUSD
+        </div>
+    </div>
+</div>
+
+@code {
+    private decimal TargetAmountUSD;
+    private decimal AmountRaisedUSD;
+    private decimal ProgressPercentage => TargetAmountUSD > 0 ? (AmountRaisedUSD / TargetAmountUSD) * 100 : 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Pega o valor alvo do appsettings.json
+        TargetAmountUSD = Configuration.GetValue<decimal>("PreSale:TargetAmountUSD");
+
+        // Obtém o total arrecadado da tabela de pre-sale (em USD)
+        AmountRaisedUSD = await PreSaleService.GetTotalRaisedUSDAsync();
+    }
+}

@@ -9,6 +9,7 @@ using EthicAI.EntityModel;
 using BLL;
 using EthicAI.Services;
 using Microsoft.AspNetCore.Components.Authorization;
+using Blazored.Toast;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,7 @@ builder.Services.AddHttpClient<GitHubService>();
 //builder.Services.AddScoped<MetaMaskInterop>();
 builder.Services.AddMetaMaskBlazor();
 builder.Services.AddBlazoredSessionStorage();
+builder.Services.AddBlazoredToast();
 
 // Adicione o serviço de configuração
 builder.Configuration.AddJsonFile("appsettings.json");

@@ -1,11 +1,12 @@
-﻿// Services/PreSaleService.cs
-using System;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading.Tasks;
 using DAL;
-using EthicAI.Data;
 using EthicAI.EntityModel;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-
 
 namespace EthicAI.Services
 {
@@ -15,10 +16,11 @@ namespace EthicAI.Services
         decimal GetCorrectionValue();
         Task<decimal> CalculateEthicAIAmountAsync(decimal solAmount);
         Task<bool> ProcessPurchaseAsync(int userId, decimal solAmount, string transactionHash);
+        Task<List<PreSalePurchase>> GetPurchasesByWalletAsync(string wallet);
+
+        Task<decimal> GetTotalRaisedUSDAsync(); // Adicione esta linha
     }
-}
-namespace EthicAI.Services
-{
+
     public class PreSaleService : IPreSaleService
     {
         private readonly EthicAIDbContext _context;
@@ -30,31 +32,45 @@ namespace EthicAI.Services
             _configuration = configuration;
         }
 
-        // Obtém a taxa de conversão a partir das configurações
         public decimal GetConversionRate()
         {
-            var rate = _configuration.GetValue<decimal>("PreSale:ConversionRate");
-            return rate;
+            return _configuration.GetValue<decimal>("PreSale:ConversionRate");
         }
 
-        // Obtém o valor de correção a partir das configurações
         public decimal GetCorrectionValue()
         {
-            var correction = _configuration.GetValue<decimal>("PreSale:CorrectionValue");
-            return correction;
+            return _configuration.GetValue<decimal>("PreSale:CorrectionValue");
         }
 
         public async Task<decimal> CalculateEthicAIAmountAsync(decimal solAmount)
         {
             decimal conversionRate = GetConversionRate();
-           
             decimal correctionValue = GetCorrectionValue();
+            return (solAmount * conversionRate) + correctionValue;
+        }
+        public async Task<decimal> GetSolanaPriceInUSD()
+        {
+            try
+            {
+                using var httpClient = new HttpClient();
+                var response = await httpClient.GetAsync("https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd");
+                response.EnsureSuccessStatusCode();
+                var result = await response.Content.ReadFromJsonAsync<JsonElement>();
 
-            // Exemplo de cálculo: EthicAI = SOL * taxa de conversão + correção
-            decimal ethicAIAmt = (solAmount * conversionRate) + correctionValue;
+                return result.GetProperty("solana").GetProperty("usd").GetDecimal();
+            }
+            catch
+            {
+                // Retornar 0 caso a API falhe (pode adicionar logging para monitorar esses casos)
+                return 0;
+            }
+        }
 
-            // Aqui você pode adicionar lógica adicional, como verificar limites, etc.
-            return ethicAIAmt;
+        public async Task<decimal> GetTotalRaisedUSDAsync()
+        {
+            var totalSolRaised = await _context.PreSalePurchase.SumAsync(p => p.SolAmount);
+            var solToUSD = await GetSolanaPriceInUSD(); // Pega o preço atual do SOL em USD
+            return totalSolRaised * solToUSD;
         }
 
         public async Task<bool> ProcessPurchaseAsync(int userId, decimal solAmount, string transactionHash)
@@ -74,10 +90,21 @@ namespace EthicAI.Services
             };
 
             _context.PreSalePurchase.Add(purchase);
-           
-            var result = await _context.SaveChangesAsync();
+            return await _context.SaveChangesAsync() > 0;
+        }
 
-            return result > 0;
+        // Novo método para listar compras com base na carteira do usuário
+        public async Task<List<PreSalePurchase>> GetPurchasesByWalletAsync(string wallet)
+        {
+            var user = await _context.User.FirstOrDefaultAsync(u => u.Wallet == wallet);
+
+            if (user == null)
+                return new List<PreSalePurchase>();
+
+            return await _context.PreSalePurchase
+                .Where(p => p.UserId == user.UserID)
+                .OrderByDescending(p => p.PurchaseDate)
+                .ToListAsync();
         }
     }
 }
