@@ -1,0 +1,161 @@
+﻿@using DAL
+@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager Navigation
+
+<HeadContent>
+    <base href="~/" />
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+
+    <title>EthicAI | Control Painel</title>
+
+    <meta name="description" content="" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/admin/assets/img/favicon/favicon.ico" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap"
+          rel="stylesheet" />
+
+    <!-- Icons. Uncomment required icon fonts -->
+    <link rel="stylesheet" href="/admin/assets/vendor/fonts/boxicons.css" />
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="/admin/assets/vendor/css/core.css" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="/admin/assets/vendor/css/theme-default.css" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="/admin/assets/css/demo.css" />
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet" href="/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
+
+    <link rel="stylesheet" href="/admin/assets/vendor/libs/apex-charts/apex-charts.css" />
+
+    <!-- Page CSS -->
+    <!-- Helpers -->
+    <script src="/admin/assets/vendor/js/helpers.js"></script>
+
+    <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
+    <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
+    <script src="/admin/assets/js/config.js"></script>
+    <link href="/admin/assets/css/demo.css" rel="stylesheet" />
+</HeadContent>
+
+ @Body
+
+<!-- Core JS -->
+<!-- build:js assets/vendor/js/core.js -->
+<script src="/admin/assets/vendor/libs/jquery/jquery.js"></script>
+<script src="/admin/assets/vendor/libs/popper/popper.js"></script>
+<script src="/admin/assets/vendor/js/bootstrap.js"></script>
+<script src="/admin/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+
+<script src="/admin/assets/vendor/js/menu.js"></script>
+<!-- endbuild -->
+<!-- Vendors JS -->
+<script src="/admin/assets/vendor/libs/apex-charts/apexcharts.js"></script>
+
+<!-- Main JS -->
+<script src="/admin/assets/js/main.js"></script>
+
+<!-- Page JS -->
+<script src="/admin/assets/js/dashboards-analytics.js"></script>
+
+<!-- Place this tag in your head or just before your close body tag. -->
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+@code{
+
+    private bool isUserHumanHasName = false;
+    private bool isUserChouseRace = false;
+    private string NmUser = "";
+    private string Wallet = "";
+    private async Task HandleUpdateMainLayout()
+    {
+        try
+        {
+            var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+            if (storedUser != null)
+            {
+                isUserChouseRace = (storedUser.IsHuman != null);
+                isUserHumanHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name)) && storedUser.IsHuman == true;
+                var isUserMachineHasName = (storedUser.IAName != null && !String.IsNullOrEmpty(storedUser.IAName)) && storedUser.IsHuman == false;
+
+                if (isUserHumanHasName)
+                {
+                    NmUser = storedUser.Name;
+                }
+
+                if (isUserMachineHasName)
+                {
+                    NmUser = storedUser.IAName;
+                }
+                
+                
+                Wallet = storedUser.Wallet;
+
+                if(storedUser.IsHuman == null)
+                {
+                    Navigation.NavigateTo("/Capcha");
+                }
+                if (!isUserHumanHasName && storedUser.IsHuman == true)
+                {
+                    Navigation.NavigateTo("/UserInfo");
+                }
+                if (!isUserMachineHasName && storedUser.IsHuman == false)
+                {
+                    Navigation.NavigateTo("/UserInfo");
+                }
+
+                if(storedUser.IsHuman == true)
+                {
+                    Navigation.NavigateTo("/Human/HumanAdminPainel");
+                }
+
+                if (storedUser.IsHuman == false)
+                {
+                    Navigation.NavigateTo("/Machine/MachineAdminPainel");
+                }
+
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+
+
+        }
+
+
+    }
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        try
+        {
+        var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+        if (storedUser != null)
+        {
+            isUserChouseRace = (storedUser.IsHuman != null);
+            isUserHumanHasName = (storedUser.Name != null && !String.IsNullOrEmpty(storedUser.Name));
+            NmUser = storedUser.Name;
+            Wallet = storedUser.Wallet;
+           
+        }
+        }
+        catch (Exception)
+        {
+
+
+        }
+    }
+   
+   
+}
