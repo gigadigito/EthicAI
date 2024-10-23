@@ -3,24 +3,29 @@
 @inject IPreSaleService PreSaleService
 
 <div class="progress-bar-container">
-    <h4>Pre-Sale Fundraiser for EthicAI's Liquidity Pool</h4>
-    <p>All funds raised during the pre-sale will go towards building the liquidity pool for EthicAI's operational token.</p>
+    <h4 class="text-white text-center mb-3">Pre-Sale Fundraiser for EthicAI's Liquidity Pool</h4>
 
-    <div class="progress" style="height: 25px;">
+    <div class="progress" style="height: 30px; background-color: #e9ecef; position: relative; border-radius: 5px;">
         <div class="progress-bar" role="progressbar"
-             style="width: @ProgressPercentage%;"
-             aria-valuenow="@AmountRaisedUSD"
-             aria-valuemin="0"
-             aria-valuemax="@TargetAmountUSD">
-            $@AmountRaisedUSD / $@TargetAmountUSD
+             style="width: @ProgressPercentage.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)%; height: 100%; background-color: #28a745; border-radius: 5px; transition: width 0.6s ease;">
+            <span class="text-dark fw-bold" style="position: absolute; width: 100%; text-align: center;">
+                @ProgressPercentage.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)%
+            </span>
         </div>
     </div>
+
+    <div class="d-flex justify-content-between mt-2">
+        <span class="fw-bold text-white">$@AmountRaisedUSD.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)</span>
+        <span class="fw-bold text-white">$@TargetAmountUSD.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)</span>
+    </div>
+
+    <p class="mt-3 text-center text-white">All funds raised during the pre-sale will go towards building the liquidity pool for EthicAI's operational token.</p>
 </div>
 
 @code {
     private decimal TargetAmountUSD;
     private decimal AmountRaisedUSD;
-    private decimal ProgressPercentage => TargetAmountUSD > 0 ? (AmountRaisedUSD / TargetAmountUSD) * 100 : 0;
+    private decimal ProgressPercentage => TargetAmountUSD > 0 ? Math.Round((AmountRaisedUSD / TargetAmountUSD) * 100, 2) : 0;
 
     protected override async Task OnInitializedAsync()
     {

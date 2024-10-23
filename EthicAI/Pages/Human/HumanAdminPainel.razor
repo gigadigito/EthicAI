@@ -1,21 +1,28 @@
 ﻿@layout MainLayoutAdmin
 @page "/Human/HumanAdminPainel"
 @inject IJSRuntime JS
+@using DAL
+@using EthicAI.Data
+@using EthicAI.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+@inject NavigationManager Navigation
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject UserService userService
+@inject IPreSaleService PreSaleService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Configuration
+@inject Blazored.Toast.Services.IToastService ToastService
 <!-- Layout wrapper -->
-<div class="layout-wrapper layout-content-navbar">
-    <div class="layout-container">
-        <!-- Menu -->
 
-        <div class="layout-page">
-            <!-- Navbar -->
 
-         
 
             <!-- / Navbar -->
             <!-- Content wrapper -->
             <div class="content-wrapper">
                 <!-- Content -->
-
+       
                 <div class="container-xxl flex-grow-1 container-p-y">
                     <div class="row">
                         <div class="col-lg-8 mb-4 order-0">
@@ -23,20 +30,19 @@
                                 <div class="d-flex align-items-end row">
                                     <div class="col-sm-7">
                                         <div class="card-body">
-                                            <h5 class="card-title text-primary">Congratulations John! 🎉</h5>
+                                            <h5 class="card-title text-primary">Bem-vindo, @userName! 🎉</h5>
                                             <p class="mb-4">
-                                                You have done <span class="fw-bold">72%</span> more sales today. Check your new badge in
-                                                your profile.
+                                                Você completou <span class="fw-bold">72%</span> de suas metas hoje. Verifique suas novas conquistas no seu perfil.
                                             </p>
 
-                                            <a href="javascript:;" class="btn btn-sm btn-outline-primary">View Badges</a>
+                                            <a href="javascript:;" class="btn btn-sm btn-outline-primary">Ver Conquistas</a>
                                         </div>
                                     </div>
                                     <div class="col-sm-5 text-center text-sm-left">
                                         <div class="card-body pb-0 px-0 px-md-4">
                                             <img src="/admin/assets/img/illustrations/man-with-laptop-light.png"
                                                  height="140"
-                                                 alt="View Badge User"
+                                                 alt="Ver Conquistas"
                                                  data-app-dark-img="illustrations/man-with-laptop-dark.png"
                                                  data-app-light-img="illustrations/man-with-laptop-light.png" />
                                         </div>
@@ -44,6 +50,7 @@
                                 </div>
                             </div>
                         </div>
+                      
                         <div class="col-lg-4 col-md-4 order-1">
                             <div class="row">
                                 <div class="col-lg-6 col-md-12 col-6 mb-4">
@@ -523,12 +530,96 @@
                         <!--/ Transactions -->
                     </div>
                 </div>
+                <div class="container-xxl flex-grow-1 container-p-y">
+                    <div class="row">
+                        <!-- Purchase History Summary -->
+                        <div class="col-lg-12 mb-4">
+                            <div class="card">
+                                <div class="d-flex align-items-center justify-content-between p-4">
+                                    <h5 class="card-title">Purchase History Overview</h5>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            Filter by Year
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#">2024</a></li>
+                                            <li><a class="dropdown-item" href="#">2023</a></li>
+                                            <li><a class="dropdown-item" href="#">2022</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="row p-4">
+                                    <div class="col-md-4">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-label-primary p-2"><i class="bx bx-wallet text-primary"></i></span>
+                                            <div>
+                                                <h6 class="mb-0">Total Purchases</h6>
+                                                <small>@totalPurchases Count</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-label-success p-2"><i class="bx bx-dollar-circle text-success"></i></span>
+                                            <div>
+                                                <h6 class="mb-0">Total Amount (EthicAI)</h6>
+                                                <small>@totalAmountInEthicAI EthicAI</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-label-info p-2"><i class="bx bx-time text-info"></i></span>
+                                            <div>
+                                                <h6 class="mb-0">Latest Purchase</h6>
+                                                <small>@latestPurchaseDate</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Purchase History Details -->
+                        <div class="col-lg-12 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>All Purchases</h5>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-striped mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Wallet</th>
+                                                <th>Purchase Amount (EthicAI)</th>
+                                                <th>Transaction ID</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var purchase in purchases)
+                                            {
+                                                <tr>
+                                                    <td>@purchase.PurchaseDate.ToString("MM/dd/yyyy HH:mm")</td>
+                                                    <td>@purchase.User.Wallet</td>
+                                                    <td>@purchase.SolAmount.ToString("F6")</td>
+                                                    <td>@purchase.TransactionHash</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- / Content -->
                 <!-- Footer -->
                 <footer class="content-footer footer bg-footer-theme">
                     <div class="container-xxl d-flex flex-wrap justify-content-between py-2 flex-md-row flex-column">
                         <div class="mb-2 mb-md-0">
-                            @DateTime.Now.Year
+                            ©
+                           
                             , made with ❤️ by
                             <a href="https://themeselection.com" target="_blank" class="footer-link fw-bolder">ThemeSelection</a>
                         </div>
@@ -551,16 +642,7 @@
                 <div class="content-backdrop fade"></div>
             </div>
             <!-- Content wrapper -->
-        </div>
-        <!-- / Layout page -->
-    </div>
-
-    <!-- Overlay -->
-    <div class="layout-overlay layout-menu-toggle"></div>
-</div>
-<!-- / Layout wrapper -->
-
-
+        
 
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -569,6 +651,41 @@
         {
             //await JS.InvokeVoidAsync("solicitarwallet");
             await JS.InvokeVoidAsync("closeallmodal");
+        }
+    }
+    
+}
+@code {
+    private List<PreSalePurchase> purchases = new();
+    private int totalPurchases;
+    private decimal totalAmountInEthicAI;
+    private string latestPurchaseDate;
+    private string userWallet;
+    private string userName;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obtém o usuário da sessão e sua carteira
+            var user = await sessionStorage.GetItemAsync<User>("User");
+            if (user != null)
+            {
+                userWallet = user.Wallet;
+                userName = user.Name;
+                // Busca o histórico de compras pela carteira
+                purchases = await PreSaleService.GetPurchasesByWalletAsync(userWallet);
+                totalPurchases = purchases.Count;
+                totalAmountInEthicAI = purchases.Sum(p => p.EthicAIAmt);
+                latestPurchaseDate = purchases.Max(p => p.PurchaseDate).ToString("MM/dd/yyyy HH:mm");
+            }
+            else
+            {
+                ToastService.ShowWarning("No user wallet found. Please log in.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Error loading purchase history: {ex.Message}");
         }
     }
 }

@@ -32,6 +32,9 @@
             <div class="nk-news-box-item-date">
                 <span class="fa fa-calendar"></span> @commit.Commit.Author.Date.ToString("MMM dd, yyyy")
             </div>
+            <div class="nk-news-box-item-date">
+                <span class="fa fa-autor"></span> @commit.Commit.Author.Name 
+            </div>
         </div>
     }
 }
@@ -189,6 +192,6 @@ else
         string owner = "gigadigito";
         string repo = "EthicAI";
         var token = secretManager.GetSecret("GitHubToken");
-        commits = await GitHubService.GetCommitsAsync(owner, repo, token);
+        commits = await GitHubService.GetCommitsFromAllBranchesAsync(owner, repo, token);
     }
 }
