@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    [Migration("20241002201945_EthicAIMigration")]
+    [Migration("20241030013036_EthicAIMigration")]
     partial class EthicAIMigration
     {
         /// <inheritdoc />
@@ -24,6 +24,88 @@ namespace DAL.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("DAL.Post", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("tx_content");
+
+                    b.Property<byte[]>("Image")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)")
+                        .HasColumnName("aq_image");
+
+                    b.Property<int>("PostCategoryId")
+                        .HasColumnType("int")
+                        .HasColumnName("post_category_id");
+
+                    b.Property<DateTime>("PostDate")
+                        .HasColumnType("datetime")
+                        .HasColumnName("dt_post");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("tx_title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostCategoryId");
+
+                    b.ToTable("post", (string)null);
+                });
+
+            modelBuilder.Entity("DAL.PostCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("tx_name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("post_category", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Technology"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Science"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Health"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Education"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Name = "Business"
+                        });
+                });
 
             modelBuilder.Entity("DAL.PreSalePurchase", b =>
                 {
@@ -138,6 +220,17 @@ namespace DAL.Migrations
                     b.ToTable("user", (string)null);
                 });
 
+            modelBuilder.Entity("DAL.Post", b =>
+                {
+                    b.HasOne("DAL.PostCategory", "PostCategory")
+                        .WithMany("Posts")
+                        .HasForeignKey("PostCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PostCategory");
+                });
+
             modelBuilder.Entity("DAL.PreSalePurchase", b =>
                 {
                     b.HasOne("DAL.User", "User")
@@ -147,6 +240,11 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DAL.PostCategory", b =>
+                {
+                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("DAL.User", b =>

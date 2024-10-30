@@ -67,7 +67,27 @@ public class GitHubService
 
         return allCommits;
     }
+    public async Task<GitHubUser> GetAuthenticatedUserAsync(string token)
+    {
+        // Adiciona o token ao cabeçalho de autorização
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
+        // Faz a solicitação para o endpoint /user
+        var response = await _httpClient.GetAsync("https://api.github.com/user");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            };
+            var user = JsonSerializer.Deserialize<GitHubUser>(content, options);
+            return user;
+        }
+
+        return null;
+    }
 
     public async Task<List<GitHubBranch>> GetBranchesAsync(string owner, string repo, string token)
     {

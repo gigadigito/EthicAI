@@ -125,7 +125,28 @@ console.log("Buffer.from exists:", typeof Buffer.from === "function");
         }
     }
 </script>
-   
+
+    <script>
+        function scrollToElement(elementId) {
+            var element = document.getElementById(elementId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+    <script>
+        function scrollToElementInContainer(containerId, elementId) {
+            var container = document.getElementById(containerId);
+            var element = document.getElementById(elementId);
+
+            if (container && element) {
+                container.scrollTo({
+                    top: element.offsetTop - container.offsetTop, // Calcula a posição do elemento
+                    behavior: 'smooth'
+                });
+            }
+        }
+    </script>
 
 </body>
 </html>

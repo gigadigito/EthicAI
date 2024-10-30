@@ -1,0 +1,128 @@
+﻿@layout MainLayoutAdmin
+@page "/Admin/PostEditor"
+@using System.IO
+@using BLL
+@using DAL
+@using Microsoft.AspNetCore.Components.Forms
+@inject PostService PostService
+@inject IJSRuntime JS
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-lg-12 mb-4 order-0">
+            <div class="card" style="padding:5px">
+                
+
+                <h3>Create New Post</h3>
+
+                <div class="form-group">
+                    <label>Title</label>
+                    <InputText @bind-Value="PostTitle" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <select @bind="SelectedCategoryId" class="form-control">
+                        <option value="">Select Category</option>
+                        @foreach (var category in Categories)
+                        {
+                            <option value="@category.Id">@category.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Upload Image</label>
+                    <InputFile OnChange="HandleImageUpload" />
+                    @if (UploadedImageData != null)
+                    {
+                        <img src="data:image;base64,@Convert.ToBase64String(UploadedImageData)" alt="Post Image" style="width: 150px; margin-top: 10px;" />
+                    }
+                </div>
+
+                <div class="form-group">
+                    <label>Content</label>
+                    <div id="editor" style="height: 200px; background: #fff; border: 1px solid #ddd; padding: 10px;"></div>
+                </div>
+
+                <button @onclick="SubmitPost" class="btn btn-primary mt-3">Publish Post</button>
+            </div>
+            </div>
+      
+    </div>
+</div>
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger mt-3">
+        @ErrorMessage
+    </div>
+}
+
+@code {
+    private string PostTitle { get; set; }
+    private int SelectedCategoryId { get; set; }
+    private string PostContent { get; set; }
+    private byte[] UploadedImageData { get; set; }
+    private string ErrorMessage { get; set; } = string.Empty;
+    private List<PostCategory> Categories { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Categories = await PostService.GetCategoriesAsync();
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var imageFile = e.File;
+
+            // Verifica se o arquivo é uma imagem
+            if (imageFile.ContentType.StartsWith("image/"))
+            {
+                using var memoryStream = new MemoryStream();
+                await imageFile.OpenReadStream().CopyToAsync(memoryStream);
+                UploadedImageData = memoryStream.ToArray(); // Armazena os dados da imagem como array de bytes
+            }
+            else
+            {
+                ErrorMessage = "O arquivo enviado não é uma imagem válida.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao carregar a imagem: {ex.Message}";
+        }
+    }
+
+    private async Task SubmitPost()
+    {
+        try
+        {
+            // Obtém o conteúdo do editor Quill
+            PostContent = await JS.InvokeAsync<string>("getQuillContent");
+
+            // Chama o serviço para criar o post com a imagem como array de bytes
+            await PostService.CreatePostAsync(PostTitle, PostContent, UploadedImageData, SelectedCategoryId);
+
+            // Limpa o formulário após publicação
+            PostTitle = string.Empty;
+            UploadedImageData = null;
+            SelectedCategoryId = 0;
+            ErrorMessage = string.Empty; // Limpa mensagens de erro após sucesso
+            await JS.InvokeVoidAsync("clearQuillContent");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao criar o post: {ex.Message}";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Inicializa o Quill editor quando o componente é montado
+            await JS.InvokeVoidAsync("initializeQuillEditor");
+        }
+    }
+}

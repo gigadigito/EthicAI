@@ -15,6 +15,10 @@ namespace EthicAI.EntityModel
         public DbSet<User> User { get; set; }
         public DbSet<PreSalePurchase> PreSalePurchase { get; set; } // Adiciona o DbSet para PreSalePurchase
 
+        public DbSet<Post> Post { get; set; }
+
+        public DbSet<PostCategory> PostCategory { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>(entity =>
@@ -56,12 +60,44 @@ namespace EthicAI.EntityModel
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<Post>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("post");
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(100).HasColumnName("tx_title");
+                entity.Property(e => e.Content).IsRequired().HasColumnName("tx_content");
+                entity.Property(e => e.PostDate).HasColumnType("datetime").HasColumnName("dt_post");
+                entity.Property(e => e.Image)
+               .HasColumnType("varbinary(max)")
+               .HasColumnName("aq_image");
+                entity.Property(e => e.PostCategoryId).HasColumnName("post_category_id");
+
+                entity.HasOne(e => e.PostCategory)
+                      .WithMany(c => c.Posts)
+                      .HasForeignKey(e => e.PostCategoryId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PostCategory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).ValueGeneratedNever(); // Desativa o auto-incremento
+                entity.ToTable("post_category");
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
+            });
+
 
             Seed(modelBuilder);        }
 
         public void Seed(ModelBuilder modelBuilder)
         {
-            // Lógica de seeding (se necessário)
+            modelBuilder.Entity<PostCategory>().HasData(
+          new PostCategory { Id = 1, Name = "Technology" },
+          new PostCategory { Id = 2, Name = "Science" },
+          new PostCategory { Id = 3, Name = "Health" },
+          new PostCategory { Id = 4, Name = "Education" },
+          new PostCategory { Id = 5, Name = "Business" }
+      );
         }
     }
 }
