@@ -54,6 +54,12 @@ namespace DAL.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("tx_title");
 
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("tx_url");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PostCategoryId");

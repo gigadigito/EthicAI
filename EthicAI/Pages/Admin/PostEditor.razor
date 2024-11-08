@@ -6,50 +6,104 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject PostService PostService
 @inject IJSRuntime JS
+
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row">
         <div class="col-lg-12 mb-4 order-0">
-            <div class="card" style="padding:5px">
-                
-
+            <div class="card p-4">
                 <h3>Create New Post</h3>
 
-                <div class="form-group">
-                    <label>Title</label>
-                    <InputText @bind-Value="PostTitle" class="form-control" />
+                <!-- Formulário de Criação de Postagem -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Title</label>
+                            <InputText @bind-Value="_post.Title" class="@TitleCssClass" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select @bind="_post.PostCategoryId" class="@CategoryCssClass">
+                                <option value="">Select Category</option>
+                                @foreach (var category in Categories)
+                                {
+                                    <option value="@category.Id">@category.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Url</label>
+                            <InputText @bind-Value="_post.Url" class="@UrlCssClass" />
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Category</label>
-                    <select @bind="SelectedCategoryId" class="form-control">
-                        <option value="">Select Category</option>
-                        @foreach (var category in Categories)
-                        {
-                            <option value="@category.Id">@category.Name</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="form-group">
+                <div class="form-group mt-3">
                     <label>Upload Image</label>
                     <InputFile OnChange="HandleImageUpload" />
-                    @if (UploadedImageData != null)
+                    @if (_post.Image != null)
                     {
-                        <img src="data:image;base64,@Convert.ToBase64String(UploadedImageData)" alt="Post Image" style="width: 150px; margin-top: 10px;" />
+                        <img src="data:image;base64,@Convert.ToBase64String(_post.Image)" alt="Post Image" style="width: 150px; margin-top: 10px;" />
+                    }
+                    @if (!IsImageValid)
+                    {
+                        <div class="invalid-feedback">An image is required.</div>
                     }
                 </div>
 
-                <div class="form-group">
+                <div class="form-group mt-3">
                     <label>Content</label>
-                    <div id="editor" style="height: 200px; background: #fff; border: 1px solid #ddd; padding: 10px;"></div>
+                    <div id="editor" class="@(IsContentValid ? "is-valid" : "is-invalid")" style="height: 200px; background: #fff; border: 1px solid #ddd; padding: 10px;"></div>
+                    @if (!IsContentValid)
+                    {
+                        <div class="invalid-feedback">Content is required.</div>
+                    }
                 </div>
 
                 <button @onclick="SubmitPost" class="btn btn-primary mt-3">Publish Post</button>
+                <button @onclick="GenerateSeedScript" class="btn btn-secondary">Download Seed Script</button>
             </div>
-            </div>
-      
+        </div>
+    </div>
+
+    <h3>Post List</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Post Date</th>
+                    <th>Image</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var post in Posts)
+                {
+                    <tr>
+                        <td>@post.Title</td>
+                        <td>@post.PostCategory?.Name</td>
+                        <td>@post.PostDate.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (post.Image != null)
+                            {
+                                <img src="data:image;base64,@Convert.ToBase64String(post.Image)" style="width: 50px; height: auto;" />
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeletePost(post.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
+
 @if (!string.IsNullOrEmpty(ErrorMessage))
 {
     <div class="alert alert-danger mt-3">
@@ -58,16 +112,32 @@
 }
 
 @code {
-    private string PostTitle { get; set; }
-    private int SelectedCategoryId { get; set; }
-    private string PostContent { get; set; }
-    private byte[] UploadedImageData { get; set; }
+    private Post _post = new Post();
+    private List<Post> Posts { get; set; } = new List<Post>();
+
     private string ErrorMessage { get; set; } = string.Empty;
     private List<PostCategory> Categories { get; set; } = new();
+
+    // Variáveis de classe CSS para validação
+    private string TitleCssClass => IsTitleValid ? "form-control is-valid" : "form-control is-invalid";
+    private string CategoryCssClass => IsCategoryValid ? "form-control is-valid" : "form-control is-invalid";
+    private string UrlCssClass => IsUrlValid ? "form-control is-valid" : "form-control is-invalid";
+
+    private bool IsTitleValid => !string.IsNullOrWhiteSpace(_post.Title);
+    private bool IsCategoryValid => _post.PostCategoryId > 0;
+    private bool IsUrlValid => !string.IsNullOrWhiteSpace(_post.Url);
+    private bool IsImageValid => _post.Image != null;
+    private bool IsContentValid => !string.IsNullOrWhiteSpace(_post.Content);
 
     protected override async Task OnInitializedAsync()
     {
         Categories = await PostService.GetCategoriesAsync();
+        await LoadPosts(); // Carrega as postagens ao iniciar
+    }
+
+    private async Task LoadPosts()
+    {
+        Posts = await PostService.GetPostsAsync();
     }
 
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
@@ -81,7 +151,7 @@
             {
                 using var memoryStream = new MemoryStream();
                 await imageFile.OpenReadStream().CopyToAsync(memoryStream);
-                UploadedImageData = memoryStream.ToArray(); // Armazena os dados da imagem como array de bytes
+                _post.Image = memoryStream.ToArray(); // Armazena os dados da imagem como array de bytes
             }
             else
             {
@@ -98,22 +168,74 @@
     {
         try
         {
+            // Validação dos campos obrigatórios
+            if (!IsTitleValid || !IsCategoryValid || !IsUrlValid || !IsImageValid)
+            {
+                ErrorMessage = "Por favor, preencha todos os campos obrigatórios.";
+                return;
+            }
+
             // Obtém o conteúdo do editor Quill
-            PostContent = await JS.InvokeAsync<string>("getQuillContent");
+            _post.Content = await JS.InvokeAsync<string>("getQuillContent");
+            if (string.IsNullOrWhiteSpace(_post.Content))
+            {
+                ErrorMessage = "Conteúdo é obrigatório.";
+                return;
+            }
 
             // Chama o serviço para criar o post com a imagem como array de bytes
-            await PostService.CreatePostAsync(PostTitle, PostContent, UploadedImageData, SelectedCategoryId);
+            await PostService.CreatePostAsync(_post.Title, _post.Content, _post.Url, _post.Image, _post.PostCategoryId);
 
             // Limpa o formulário após publicação
-            PostTitle = string.Empty;
-            UploadedImageData = null;
-            SelectedCategoryId = 0;
+            _post = new Post();
+
             ErrorMessage = string.Empty; // Limpa mensagens de erro após sucesso
+
             await JS.InvokeVoidAsync("clearQuillContent");
+
+            // Recarrega as postagens após publicar uma nova
+            await LoadPosts();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Erro ao criar o post: {ex.Message}";
+        }
+    }
+
+    private async Task GenerateSeedScript()
+    {
+        try
+        {
+            // Gera o script de seed e retorna como byte array
+            var seedBytes = await PostService.GenerateSeedClassAsync();
+
+            // Converte para Base64
+            var base64String = Convert.ToBase64String(seedBytes);
+
+            // Nome do arquivo e tipo de conteúdo
+            var fileName = "Post.cs";
+            var contentType = "application/cs";
+
+            // Chama o método JS para fazer download do arquivo
+            await JS.InvokeVoidAsync("downloadFile", fileName, contentType, base64String);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao gerar o script de seed: {ex.Message}";
+        }
+    }
+
+
+    private async Task DeletePost(int postId)
+    {
+        try
+        {
+            await PostService.DeletePostAsync(postId);
+            await LoadPosts(); // Recarrega a lista de posts após a exclusão
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Erro ao excluir o post: {ex.Message}";
         }
     }
 

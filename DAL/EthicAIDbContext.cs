@@ -1,4 +1,5 @@
 ﻿using DAL;
+using DAL.Seed;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -66,6 +67,7 @@ namespace EthicAI.EntityModel
                 entity.ToTable("post");
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(100).HasColumnName("tx_title");
                 entity.Property(e => e.Content).IsRequired().HasColumnName("tx_content");
+                entity.Property(e => e.Url).IsRequired().HasMaxLength(100).HasColumnName("tx_url");
                 entity.Property(e => e.PostDate).HasColumnType("datetime").HasColumnName("dt_post");
                 entity.Property(e => e.Image)
                .HasColumnType("varbinary(max)")
@@ -91,13 +93,33 @@ namespace EthicAI.EntityModel
 
         public void Seed(ModelBuilder modelBuilder)
         {
+
+
             modelBuilder.Entity<PostCategory>().HasData(
-          new PostCategory { Id = 1, Name = "Technology" },
-          new PostCategory { Id = 2, Name = "Science" },
-          new PostCategory { Id = 3, Name = "Health" },
-          new PostCategory { Id = 4, Name = "Education" },
-          new PostCategory { Id = 5, Name = "Business" }
-      );
+                      new PostCategory { Id = 1, Name = "Technology" },
+                      new PostCategory { Id = 2, Name = "Science" },
+                      new PostCategory { Id = 3, Name = "Health" },
+                      new PostCategory { Id = 4, Name = "Education" },
+                      new PostCategory { Id = 5, Name = "Business" }
+            );
+
+
+            // Adiciona posts gerados do PostSeedData
+            var posts = PostSeedDatax.GetPosts();
+            foreach (var post in posts)
+            {
+                modelBuilder.Entity<Post>().HasData(new
+                {
+                    post.Id,
+                    post.Title,
+                    post.Content,
+                    post.PostDate,
+                    post.PostCategoryId
+                });
+                
+            }
+
         }
+
     }
 }

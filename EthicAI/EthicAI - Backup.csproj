@@ -11,13 +11,14 @@
   <ItemGroup>
     <Content Remove="Pages\Login\Login.razor" />
     <Content Remove="wwwroot\js\msg.razor" />
-
+ <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Blazored.SessionStorage" Version="2.4.0" />
     <PackageReference Include="Blazored.Toast" Version="4.2.1" />
     <PackageReference Include="Ethereum.MetaMask.Blazor" Version="1.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.8">
@@ -35,6 +36,7 @@
     <Folder Include="Pages\NovaPasta\" />
     <Folder Include="wwwroot\assets\images\news\" />
     <Folder Include="wwwroot\assets\php\instagram\cache\" />
+    <Folder Include="wwwroot\seed\" />
     <Folder Include="wwwroot\template\html-store-gaming-template\php\instagram\cache\" />
     <Folder Include="wwwroot\temp\php\instagram\cache\" />
   </ItemGroup>

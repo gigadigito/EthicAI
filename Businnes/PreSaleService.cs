@@ -34,6 +34,8 @@ namespace EthicAI.Services
 
         public decimal GetConversionRate()
         {
+         
+
             return _configuration.GetValue<decimal>("PreSale:ConversionRate");
         }
 

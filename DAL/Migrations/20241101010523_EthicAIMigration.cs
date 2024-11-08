@@ -57,6 +57,7 @@ namespace DAL.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     tx_title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    tx_url = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     tx_content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     dt_post = table.Column<DateTime>(type: "datetime", nullable: false),
                     aq_image = table.Column<byte[]>(type: "varbinary(max)", nullable: false),

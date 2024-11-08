@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    [Migration("20241030013036_EthicAIMigration")]
+    [Migration("20241101010523_EthicAIMigration")]
     partial class EthicAIMigration
     {
         /// <inheritdoc />
@@ -56,6 +56,12 @@ namespace DAL.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("tx_title");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("tx_url");
 
                     b.HasKey("Id");
 
