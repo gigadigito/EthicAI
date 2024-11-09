@@ -7856,24 +7856,26 @@ div.nk-error {
     position: relative;
     display: block;
     overflow: hidden;
+    height: 200px; /* Define a altura do corte */
     -webkit-transition: opacity .15s ease-in-out;
     -o-transition: opacity .15s ease-in-out;
     transition: opacity .15s ease-in-out;
 }
 
-.nk-post-img img {
-    width: 100%;
-    height: auto;
-    -webkit-transition: -webkit-transform .15s ease-in-out;
-    transition: -webkit-transform .15s ease-in-out;
-    -o-transition: transform .15s ease-in-out;
-    transition: transform .15s ease-in-out;
-    transition: transform .15s ease-in-out, -webkit-transform .15s ease-in-out;
-    -webkit-transform: scale(1);
+    .nk-post-img img {
+        width: 100%;
+        height: 100%; /* Define a altura da imagem para preencher o contêiner */
+        object-fit: cover; /* Ajusta a imagem para cobrir o contêiner mantendo o corte */
+        -webkit-transition: -webkit-transform .15s ease-in-out;
+        transition: -webkit-transform .15s ease-in-out;
+        -o-transition: transform .15s ease-in-out;
+        transition: transform .15s ease-in-out;
+        transition: transform .15s ease-in-out, -webkit-transform .15s ease-in-out;
+        -webkit-transform: scale(1);
         -ms-transform: scale(1);
-            transform: scale(1);
-    will-change: transform;
-}
+        transform: scale(1);
+        will-change: transform;
+    }
 
 .nk-blog-post:not(.nk-blog-post-single):hover .nk-post-img img {
     -webkit-transform: scale(1.05);

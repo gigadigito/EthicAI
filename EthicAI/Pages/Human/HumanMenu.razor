@@ -1,17 +1,32 @@
-﻿<ul class="menu-inner py-1">
+﻿@using EthicAI.Data
+@using DAL
+@inject NavigationManager Navigation
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IJSRuntime JS
+@inject BLL.SecretManager secretManager
+@inject UserService userService
+@inject IConfiguration Configuration
+
+<ul class="menu-inner py-1">
     <!-- Dashboard -->
     <li class="menu-item active">
-        <a href="index.html" class="menu-link">
+        <a href="/Human/HumanAdminPainel" class="menu-link">
             <i class="menu-icon tf-icons bx bx-home-circle"></i>
             <div data-i18n="Analytics">Dashboard</div>
         </a>
     </li>
-    <li class="menu-item active">
-        <a href="/Admin/PostEditor" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-home-circle"></i>
-            <div data-i18n="Analytics">Post Menu</div>
-        </a>
-    </li>
+
+    @if (_user.Wallet == _admin_wallet && !String.IsNullOrEmpty(_user.Wallet) && !String.IsNullOrEmpty(_user.Wallet))
+    {
+        <li class="menu-item active">
+            <a href="/Admin/PostEditor" class="menu-link">
+                <i class="menu-icon tf-icons bx bx-ho
+            me-circle"></i>
+                <div data-i18n="Analytics">Post Menu</div>
+            </a>
+        </li>
+    }
+  
 @* 
     <!-- Layouts -->
     <li class="menu-item">
@@ -324,5 +339,25 @@
 </ul>
 
 @code {
+    private User _user = new User();
+    private string _admin_wallet;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                // Obtém o usuário da sessão e sua carteira
+                _user = await sessionStorage.GetItemAsync<User>("User");
+                _admin_wallet = Configuration["Admin:Wallet"];
 
+                StateHasChanged();
+
+            }
+        }
+        catch (Exception ex)
+        {
+          
+        }
+    }
 }

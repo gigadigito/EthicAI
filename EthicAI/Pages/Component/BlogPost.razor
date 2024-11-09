@@ -1,0 +1,173 @@
+﻿
+@using BLL
+@using DAL
+
+
+@inject IServiceScopeFactory ServiceScopeFactory
+ <div class="nk-blog-grid">
+        <div class="row">
+<div class="nk-blog-grid">
+    <div class="row">
+        @if (posts == null)
+        {
+            <p>Loading posts...</p>
+        }
+        else if (!posts.Any())
+        {
+            <p>No posts available.</p>
+        }
+        else
+        {
+            @foreach (var post in posts)
+            {
+                <div class="col-md-6 col-lg-3">
+                    <!-- START: Post -->
+                    <div class="nk-blog-post">
+                        <a href="@post.Url" class="nk-post-img">
+                              <img class="image-thumb-container" src="data:image/jpeg;base64,@Convert.ToBase64String(post.Image)" alt="@post.Title">
+                            <span class="nk-post-comments-count">0</span>
+
+                            <span class="nk-post-categories">
+                                <span class="bg-main-5">@post.PostCategory?.Name</span>
+                            </span>
+                        </a>
+                        <div class="nk-gap"></div>
+                        <h2 class="nk-post-title h4">
+                            <a href="@post.Url">@post.Title</a>
+                        </h2>
+                        <div class="nk-post-text">
+                                    <p>@((MarkupString)(post.Content.Length > 100 ? post.Content.Substring(0, 100) + "..." : post.Content))</p>
+
+                        </div>
+                        <div class="nk-gap"></div>
+                                <a href="/p/@post.Url" class="nk-btn nk-btn-rounded nk-btn-color-dark-3 nk-btn-hover-color-main-1">Read More</a>
+                        <div class="nk-post-date float-right">
+                            <span class="fa fa-calendar"></span> @post.PostDate.ToString("MMM dd, yyyy")
+                        </div>
+                    </div>
+                    <!-- END: Post -->
+                </div>
+            }
+
+                    <div class="col-md-6 col-lg-3">
+                        <!-- START: Post -->
+                        <div class="nk-blog-post">
+                            <a href="blog-article.html" class="nk-post-img">
+                                <img src="/assets/images/post-5-mid.jpg" alt="He made his passenger captain of one">
+                                <span class="nk-post-comments-count">13</span>
+
+                                <span class="nk-post-categories">
+                                    <span class="bg-main-5">Indie</span>
+                                </span>
+
+                            </a>
+                            <div class="nk-gap"></div>
+                            <h2 class="nk-post-title h4"><a href="blog-article.html">He made his passenger captain of one</a></h2>
+                            <div class="nk-post-text">
+                                <p>Just then her head struck against the roof of the hall: in fact she was now more than nine feet high, and she at once took up the little golden key and hurried off to the garden door...</p>
+                            </div>
+                            <div class="nk-gap"></div>
+                            <a href="blog-article.html" class="nk-btn nk-btn-rounded nk-btn-color-dark-3 nk-btn-hover-color-main-1">Read More</a>
+                            <div class="nk-post-date float-right"><span class="fa fa-calendar"></span> Jul 23, 2018</div>
+                        </div>
+                        <!-- END: Post -->
+                    </div>
+
+
+                    <div class="col-md-6 col-lg-3">
+                        <!-- START: Post -->
+                        <div class="nk-blog-post">
+                            <a href="blog-article.html" class="nk-post-img">
+                                <img src="/assets/images/post-6-mid.jpg" alt="At first, for some time, I was not able to answer">
+                                <span class="nk-post-comments-count">0</span>
+
+                                <span class="nk-post-categories">
+                                    <span class="bg-main-5">Racing</span>
+                                </span>
+
+                            </a>
+                            <div class="nk-gap"></div>
+                            <h2 class="nk-post-title h4"><a href="blog-article.html">At first, for some time, I was not able to answer</a></h2>
+                            <div class="nk-post-text">
+                                <p>This little wandering journey, without settled place of abode, had been so unpleasant to me, that my own house, as I called it to myself, was a perfect settlement to me compared to that...</p>
+                            </div>
+                            <div class="nk-gap"></div>
+                            <a href="blog-article.html" class="nk-btn nk-btn-rounded nk-btn-color-dark-3 nk-btn-hover-color-main-1">Read More</a>
+                            <div class="nk-post-date float-right"><span class="fa fa-calendar"></span> Jul 3, 2018</div>
+                        </div>
+                        <!-- END: Post -->
+                    </div>
+
+
+                    <div class="col-md-6 col-lg-3">
+                        <!-- START: Post -->
+                        <div class="nk-blog-post">
+                            <a href="blog-article.html" class="nk-post-img">
+                                <img src="/assets/images/post-7-mid.jpg" alt="At length one of them called out in a clear">
+                                <span class="nk-post-comments-count">0</span>
+
+                                <span class="nk-post-categories">
+                                    <span class="bg-main-6">MOBA</span>
+                                </span>
+
+                            </a>
+                            <div class="nk-gap"></div>
+                            <h2 class="nk-post-title h4"><a href="blog-article.html">At length one of them called out in a clear</a></h2>
+                            <div class="nk-post-text">
+                                <p>TJust then her head struck against the roof of the hall: in fact she was now more than nine feet high, and she at once took up the little golden key and hurried off to the garden door...</p>
+                            </div>
+                            <div class="nk-gap"></div>
+                            <a href="blog-article.html" class="nk-btn nk-btn-rounded nk-btn-color-dark-3 nk-btn-hover-color-main-1">Read More</a>
+                            <div class="nk-post-date float-right"><span class="fa fa-calendar"></span> Jul 3, 2018</div>
+                        </div>
+                        <!-- END: Post -->
+                    </div>
+                    @* 
+                    <div class="col-md-6 col-lg-3">
+                        <!-- START: Post -->
+                        <div class="nk-blog-post">
+                            <a href="blog-article.html" class="nk-post-img">
+                                <img src="/assets/images/post-8-mid.jpg" alt="For good, too though, in consequence">
+                                <span class="nk-post-comments-count">0</span>
+
+                                <span class="nk-post-categories">
+                                    <span class="bg-main-2">Adventure</span>
+                                </span>
+
+                            </a>
+                            <div class="nk-gap"></div>
+                            <h2 class="nk-post-title h4"><a href="blog-article.html">For good, too though, in consequence</a></h2>
+                            <div class="nk-post-text">
+                                <p>This little wandering journey, without settled place of abode, had been so unpleasant to me, that my own house, as I called it to myself, was a perfect settlement to me compared to that...</p>
+                            </div>
+                            <div class="nk-gap"></div>
+                            <a href="blog-article.html" class="nk-btn nk-btn-rounded nk-btn-color-dark-3 nk-btn-hover-color-main-1">Read More</a>
+                            <div class="nk-post-date float-right"><span class="fa fa-calendar"></span> Jul 3, 2018</div>
+                        </div>
+                        <!-- END: Post -->
+                    </div> *@
+
+
+        }
+    </div>
+</div>
+    </div>
+</div>
+
+
+
+
+
+@code {
+    private List<Post> posts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using (var scope = ServiceScopeFactory.CreateScope())
+        {
+            var postService = scope.ServiceProvider.GetRequiredService<PostService>();
+           
+            posts = await postService.GetPostsAsync();
+        }
+    }
+}

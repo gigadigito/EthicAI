@@ -28,7 +28,10 @@ builder.Configuration.AddJsonFile("appsettings.json");
 
 // Configuração do DbContext com SQL Server
 builder.Services.AddDbContext<EthicAIDbContext>(options =>
-          options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Altere de AddTransient para AddScoped
+builder.Services.AddScoped<EthicAIDbContext>();
 
 
 // Adiciona o serviço UserService

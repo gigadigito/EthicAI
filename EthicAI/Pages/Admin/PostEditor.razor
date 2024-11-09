@@ -3,6 +3,7 @@
 @using System.IO
 @using BLL
 @using DAL
+@using EthicAI.Helpers
 @using Microsoft.AspNetCore.Components.Forms
 @inject PostService PostService
 @inject IJSRuntime JS
@@ -18,7 +19,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Title</label>
-                            <InputText @bind-Value="_post.Title" class="@TitleCssClass" />
+                            <InputText @bind-Value="_post.Title" class="@TitleCssClass" @oninput="UpdateUrl" />
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -36,7 +37,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Url</label>
-                            <InputText @bind-Value="_post.Url" class="@UrlCssClass" />
+                            <InputText @bind-Value="_post.Url" class="@UrlCssClass" disabled />
                         </div>
                     </div>
                 </div>
@@ -129,6 +130,12 @@
     private bool IsImageValid => _post.Image != null;
     private bool IsContentValid => !string.IsNullOrWhiteSpace(_post.Content);
 
+
+    private void UpdateUrl(ChangeEventArgs e)
+    {
+        _post.Url = URL.GenerateUrlFriendlyTitle(_post.Title);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         Categories = await PostService.GetCategoriesAsync();
@@ -140,13 +147,18 @@
         Posts = await PostService.GetPostsAsync();
     }
 
+    // private void TitleChanged(ChangeEventArgs e)
+    // {
+    //     _post.Title = e.Value?.ToString() ?? string.Empty;
+    //     _post.Url = GenerateUrlFriendlyTitle(_post.Title, 50); // Ajusta o comprimento máximo, se necessário
+    // }
+
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
     {
         try
         {
             var imageFile = e.File;
 
-            // Verifica se o arquivo é uma imagem
             if (imageFile.ContentType.StartsWith("image/"))
             {
                 using var memoryStream = new MemoryStream();
@@ -168,14 +180,12 @@
     {
         try
         {
-            // Validação dos campos obrigatórios
             if (!IsTitleValid || !IsCategoryValid || !IsUrlValid || !IsImageValid)
             {
                 ErrorMessage = "Por favor, preencha todos os campos obrigatórios.";
                 return;
             }
 
-            // Obtém o conteúdo do editor Quill
             _post.Content = await JS.InvokeAsync<string>("getQuillContent");
             if (string.IsNullOrWhiteSpace(_post.Content))
             {
@@ -183,17 +193,11 @@
                 return;
             }
 
-            // Chama o serviço para criar o post com a imagem como array de bytes
             await PostService.CreatePostAsync(_post.Title, _post.Content, _post.Url, _post.Image, _post.PostCategoryId);
 
-            // Limpa o formulário após publicação
             _post = new Post();
-
-            ErrorMessage = string.Empty; // Limpa mensagens de erro após sucesso
-
+            ErrorMessage = string.Empty;
             await JS.InvokeVoidAsync("clearQuillContent");
-
-            // Recarrega as postagens após publicar uma nova
             await LoadPosts();
         }
         catch (Exception ex)
@@ -206,17 +210,11 @@
     {
         try
         {
-            // Gera o script de seed e retorna como byte array
             var seedBytes = await PostService.GenerateSeedClassAsync();
-
-            // Converte para Base64
             var base64String = Convert.ToBase64String(seedBytes);
-
-            // Nome do arquivo e tipo de conteúdo
             var fileName = "Post.cs";
             var contentType = "application/cs";
 
-            // Chama o método JS para fazer download do arquivo
             await JS.InvokeVoidAsync("downloadFile", fileName, contentType, base64String);
         }
         catch (Exception ex)
@@ -225,13 +223,12 @@
         }
     }
 
-
     private async Task DeletePost(int postId)
     {
         try
         {
             await PostService.DeletePostAsync(postId);
-            await LoadPosts(); // Recarrega a lista de posts após a exclusão
+            await LoadPosts();
         }
         catch (Exception ex)
         {
@@ -243,8 +240,43 @@
     {
         if (firstRender)
         {
-            // Inicializa o Quill editor quando o componente é montado
             await JS.InvokeVoidAsync("initializeQuillEditor");
         }
     }
+
+    // private string GenerateUrlFriendlyTitle(string title, int maxLength)
+    // {
+    //     // Simplified version of your GenerateUrlFriendlyTitle method with character limit
+    //     string urlFriendlyTitle = title
+    //         .ToLowerInvariant()
+    //         .Replace(" ", "-")
+    //         .Replace("ç", "c")
+    //         .Replace("á", "a")
+    //         .Replace("é", "e")
+    //         .Replace("í", "i")
+    //         .Replace("ó", "o")
+    //         .Replace("ú", "u")
+    //         .Replace("ã", "a")
+    //         .Replace("õ", "o")
+    //         .Replace("ê", "e")
+    //         .Replace("â", "a")
+    //         .Replace("ô", "o")
+    //         .Replace("ü", "u")
+    //         .Replace("!", "")
+    //         .Replace("?", "")
+    //         .Replace(".", "")
+    //         .Replace(",", "")
+    //         .Replace("/", "")
+    //         .Replace("\\", "")
+    //         .Replace(":", "")
+    //         .Replace(";", "")
+    //         .Replace("'", "")
+    //         .Replace("\"", "")
+    //         .Replace("&", "and");
+
+    //     if (urlFriendlyTitle.Length > maxLength)
+    //         urlFriendlyTitle = urlFriendlyTitle.Substring(0, maxLength);
+
+    //     return urlFriendlyTitle.TrimEnd('-');
+    // }
 }

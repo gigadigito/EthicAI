@@ -1,0 +1,72 @@
+﻿@page "/p/{url}"
+@inject BLL.PostService PostService
+@using System.Web
+@using DAL
+
+@code {
+    [Parameter]
+    public string Url { get; set; }
+
+    private Post post;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(Url))
+        {
+            // Obtém o post pelo URL amigável
+            post = await PostService.GetPostByUrlAsync(Url);
+        }
+    }
+}
+
+@if (post == null)
+{
+    <p>Post not found.</p>
+}
+else
+{
+    <div class="container">
+        <div class="container-xxl flex-grow-1 container-p-y">
+            <div class="nk-blog-post">
+                <h1 class="post-title">@post.Title</h1>
+                <div class="nk-post-by">
+                    <span>Category: <strong>@post.PostCategory?.Name</strong></span> |
+                    <span>Date: <strong>@post.PostDate.ToString("MMM dd, yyyy")</strong></span>
+                </div>
+                <img class="post-full-image img-fluid" src="data:image/jpeg;base64,@Convert.ToBase64String(post.Image)" alt="@post.Title">
+                <div class="nk-post-content mt-3">
+                    @((MarkupString)post.Content)
+                </div>
+            </div>
+        </div>
+    </div>
+}
+<div class="nk-gap-2"></div>
+<h3 class="nk-decorated-h-2"><span><span class="text-main-1">Other</span> Posts</span></h3>
+
+
+<LastBlogPost />
+<style>
+    /* Ajusta o título para responsividade */
+    .post-title {
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    @@media (max-width: 576px) {
+        .post-title {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* Ajuste da imagem para respeitar o container e ser responsiva */
+    .post-full-image {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto; /* Centraliza a imagem */
+        border-radius: 10px; /* Ajusta o arredondamento da imagem */
+    }
+</style>

@@ -1,0 +1,71 @@
+﻿@using BLL
+@using DAL
+
+            <div class="nk-blog-grid">
+                <div class="row">
+@inject IServiceScopeFactory ServiceScopeFactory
+
+                @if (posts == null)
+                {
+                    <p>Loading posts...</p>
+                }
+                else if (!posts.Any())
+                {
+                    <p>No posts available.</p>
+                }
+                else
+                {
+                    @foreach (var post in posts)
+                    {
+                        <div class="col-md-6">
+                            <!-- START: Post -->
+                            <div class="nk-blog-post">
+                                <a href="@post.Url" class="nk-post-img">
+                                    <img class="image-thumb-container" src="data:image/jpeg;base64,@Convert.ToBase64String(post.Image)" alt="@post.Title">
+                                    <span class="nk-post-comments-count">0</span>
+
+                                    <span class="nk-post-categories">
+                                        <span class="bg-main-5">@post.PostCategory?.Name</span>
+                                    </span>
+                                </a>
+                                <div class="nk-gap"></div>
+                                <h2 class="nk-post-title h4">
+                                    <a href="@post.Url">@post.Title</a>
+                                </h2>
+                                <div class="nk-post-text">
+                            <p>@((MarkupString)(post.Content.Length > 100 ? post.Content.Substring(0, 100) + "..." : post.Content))</p>
+                                </div>
+                                <div class="nk-gap"></div>
+                                <a href="/p/@post.Url" class="nk-btn nk-btn-rounded nk-btn-color-dark-3 nk-btn-hover-color-main-1">Read More</a>
+                                <div class="nk-post-date float-right">
+                                    <span class="fa fa-calendar"></span> @post.PostDate.ToString("MMM dd, yyyy")
+                                </div>
+                            </div>
+                            <!-- END: Post -->
+                        </div>
+                    }
+
+                   
+
+
+                }
+
+
+</div>
+</div>
+
+
+
+@code {
+    private List<Post> posts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using (var scope = ServiceScopeFactory.CreateScope())
+        {
+            var postService = scope.ServiceProvider.GetRequiredService<PostService>();
+
+            posts = await postService.GetPostsAsync();
+        }
+    }
+}

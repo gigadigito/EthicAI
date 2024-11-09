@@ -61,6 +61,15 @@ namespace BLL
                 throw new Exception("An unexpected error occurred. Please try again later.", ex);
             }
         }
+
+        public async Task<Post> GetPostByUrlAsync(string url)
+        {
+            return await _context.Post
+                .Include(p => p.PostCategory)
+                .FirstOrDefaultAsync(p => p.Url == url);
+        }
+
+
         public async Task<string> SaveImageToSeedFolderAsync(byte[] imageBytes, string fileName)
         {
             // Diretório base da aplicação
@@ -162,10 +171,12 @@ namespace BLL
         public async Task<List<Post>> GetPostsAsync()
         {
             return await _context.Post
-                .Include(p => p.PostCategory) // Inclui a categoria relacionada
-                .OrderByDescending(p => p.PostDate) // Ordena pela data de postagem (mais recentes primeiro)
+                .Include(p => p.PostCategory) // Includes related category
+                .OrderByDescending(p => p.PostDate)
                 .ToListAsync();
+                //.ConfigureAwait(false);
         }
+
         // Método para listar todas as categorias
         public async Task<List<PostCategory>> GetCategoriesAsync()
         {

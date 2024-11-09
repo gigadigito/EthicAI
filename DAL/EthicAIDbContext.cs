@@ -105,19 +105,19 @@ namespace EthicAI.EntityModel
 
 
             // Adiciona posts gerados do PostSeedData
-            var posts = PostSeedDatax.GetPosts();
-            foreach (var post in posts)
-            {
-                modelBuilder.Entity<Post>().HasData(new
-                {
-                    post.Id,
-                    post.Title,
-                    post.Content,
-                    post.PostDate,
-                    post.PostCategoryId
-                });
+            //var posts = PostSeedDatax.GetPosts();
+            //foreach (var post in posts)
+            //{
+            //    modelBuilder.Entity<Post>().HasData(new
+            //    {
+            //        post.Id,
+            //        post.Title,
+            //        post.Content,
+            //        post.PostDate,
+            //        post.PostCategoryId
+            //    });
                 
-            }
+            //}
 
         }
 

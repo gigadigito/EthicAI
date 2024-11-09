@@ -46,20 +46,24 @@
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
                             <div class="col-md-6">
-                                <!-- You can uncomment this part if username input is needed -->
-                                @* @if (String.IsNullOrEmpty(NomeUser))
-                            {
-                            <div class="nk-gap">Please enter your username</div>
-                            <div class="nk-gap"></div>
-                            <input type="text" @bind="NomeUser" name="user" class="form-control" placeholder="Username / nickname">
-                            } *@
+                 
                             </div>
-                            <!-- Admin Panel Button -->
-                            <div class="col-md-12 text-center mt-4">
-                                <a type="button" class="btn btn-primary" onclick="window.location.href='/Human/HumanAdminPainel'">
-                                    Go to Admin Panel
-                                </a>
-                            </div>
+
+                            @(String.IsNullOrEmpty(_Wallet) == false && String.IsNullOrEmpty(_Name) == false){
+                                    
+                                    @if (_IsHuman == true)
+                                    {
+                                        <!-- Admin Panel Button -->
+                                        <div class="col-md-12 text-center mt-4">
+                                            <a  class="btn btn-primary" onclick="window.location.href='/Human/HumanAdminPainel'">
+                                                Go to Admin Panel
+                                            </a>
+                                        </div>
+
+                                    }
+                            }
+                        
+
                         </div>
                     </form>
                 }
@@ -71,6 +75,8 @@
 @code {
     public string _Wallet { get; set; }
     public string _Name { get; set; }
+    public bool _IsHuman { get; set; }
+
 
     [Parameter]
     public EventCallback OnLogin { get; set; }
@@ -86,6 +92,7 @@
             {
                 _Wallet = user.Wallet;
                 _Name = user.Name;
+                _IsHuman = Convert.ToBoolean(user.IsHuman != null ? user.IsHuman : false);
             }
         }
         catch (Exception ex)
