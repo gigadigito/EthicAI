@@ -39,6 +39,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
 builder.Services.AddScoped<PostService>();
 
+
 builder.Services.AddScoped<GitHubService>();
 builder.Services.AddScoped<IPreSaleService, PreSaleService>();
 

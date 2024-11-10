@@ -1,0 +1,18 @@
+﻿@code {
+    [Parameter]
+    public string WalletHash { get; set; }
+
+    [Parameter]
+    public int ImageSize { get; set; } = 150; // Tamanho padrão de 150px
+
+    private string ImageUrl => $"https://robohash.org/{WalletHash}?set=set1";
+}
+
+@if (!string.IsNullOrEmpty(WalletHash))
+{
+    <img src="@ImageUrl" alt="User Avatar" class="robohash-avatar" style="width:@(ImageSize)px; height:@(ImageSize)px;" />
+}
+else
+{
+    <p>Wallet hash not provided.</p>
+}

@@ -192,7 +192,8 @@
                 ErrorMessage = "Conteúdo é obrigatório.";
                 return;
             }
-
+            _post.Url = URL.GenerateUrlFriendlyTitle(_post.Title);
+            
             await PostService.CreatePostAsync(_post.Title, _post.Content, _post.Url, _post.Image, _post.PostCategoryId);
 
             _post = new Post();

@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject UserService userService
+@inject NavigationManager NavigationManager
 
 <div class="nk-modal modal fade" id="modalLogin" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-sm" role="document">
@@ -46,26 +47,33 @@
                     <form action="#" class="nk-form text-white">
                         <div class="row vertical-gap">
                             <div class="col-md-6">
-                 
+                                <!-- Additional content can go here -->
                             </div>
 
-                            @(String.IsNullOrEmpty(_Wallet) == false && String.IsNullOrEmpty(_Name) == false){
-                                    
-                                    @if (_IsHuman == true)
-                                    {
-                                        <!-- Admin Panel Button -->
-                                        <div class="col-md-12 text-center mt-4">
-                                            <a  class="btn btn-primary" onclick="window.location.href='/Human/HumanAdminPainel'">
-                                                Go to Admin Panel
-                                            </a>
-                                        </div>
-
-                                    }
+                            @if (!string.IsNullOrEmpty(_Wallet) && !string.IsNullOrEmpty(_Name))
+                            {
+                                if (_IsHuman == true)
+                                {
+                                    // Admin Panel Button
+                                    <div class="col-md-12 text-center mt-4">
+                                        <a class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/Human/HumanAdminPainel")'>
+                                            Go to Admin Panel
+                                        </a>
+                                    </div>
+                                }else
+                                {
+                                    // Admin Panel Button
+                                    <div class="col-md-12 text-center mt-4">
+                                        <a class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/Machine/MachineAdminPainel")'>
+                                            Go to Admin Panel
+                                        </a>
+                                    </div>
+                                }
                             }
-                        
 
                         </div>
                     </form>
+
                 }
             </div>
         </div>

@@ -20,7 +20,7 @@
                         <p><strong>Status:</strong> @((bool)IsHuman ? "Human" : "Machine")</p>
                         <p><strong>Wallet Address:</strong> @user.Wallet</p>
                     </div>
-
+                    
                     <form>
                         <div class="row mb-3">
                             @if (user != null && (bool)IsHuman)
@@ -152,7 +152,7 @@
             // Update the user in the database
             var result = await userService.UpdateUser(user);
 
-            if (result == "User updated successfully" || result == "User successfully updated")
+            if (result == "1")
             {
                 // Store updated information in session
                 await sessionStorage.SetItemAsync("User", user);

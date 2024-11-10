@@ -1,0 +1,21 @@
+﻿@code {
+    [Parameter]
+    public string WalletHash { get; set; } // Identificador do usuário, como hash ou nome.
+
+    [Parameter]
+    public int ImageSize { get; set; } = 90; // Tamanho padrão da imagem em pixels.
+
+
+    private string ImageUrl => $"https://api.dicebear.com/9.x/personas/svg?seed={WalletHash}&size={ImageSize}";
+}
+
+<div class="human-avatar">
+    <img src="@ImageUrl" alt="Human Avatar" style="width:@(ImageSize)px; height:@(ImageSize)px;" class="human-avatar-image" />
+</div>
+
+<style>
+    .human-avatar-image {
+        border-radius: 50%;
+        overflow: hidden;
+    }
+</style>

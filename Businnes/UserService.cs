@@ -112,7 +112,7 @@ namespace EthicAI.Data
                 _dbContext.User.Update(existingUser);
                 await _dbContext.SaveChangesAsync();
 
-                return "Usuário atualizado com sucesso";
+                return "1";
             }
             catch (DbUpdateException dbEx)
             {
