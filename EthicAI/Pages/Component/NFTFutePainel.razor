@@ -1,0 +1,119 @@
+﻿@page "/nftfutepainel"
+@using BLL.NFTFutebol
+@using DAL.NftFutebol
+@inject MatchService MatchService
+
+<h3>NEXT NFT CRIPTO FUT GAMES</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (matches == null)
+{
+    <p>Carregando jogos...</p>
+}
+else if (matches.Count == 0)
+{
+    <p>Nenhum jogo foi encontrado.</p>
+}
+else
+{
+    @foreach (var match in matches)
+    {
+        <!-- Link para redirecionar o usuário ao clicar no card -->
+        <a href="/criptofut/match/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", ""))-vs-@(match.TeamB.Currency.Symbol.ToLower().Replace("usdt", ""))-game" class="nk-match-link">
+            <div class="nk-match">
+                <div class="nk-match-team nk-match-team-left">
+                    <span class="nk-match-team-logo">
+                        <img width="60" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
+                    </span>
+                    <span class="nk-match-team-name">
+                        @match.TeamA.Currency.Name
+                    </span>
+                </div>
+
+                <div class="nk-match-status">
+                    <span class="nk-match-status-vs">VS</span>
+                    <span class="nk-match-status-date">@match.StartTime.ToString("MMM dd, yyyy h:mm tt")</span>
+                    <span class="nk-match-score @(match.Status == MatchStatus.Pending ? "" : (match.ScoreA > match.ScoreB ? "bg-success" : "bg-danger"))">
+                        @(match.Status == MatchStatus.Pending ? "0 : 0" : $"{match.ScoreA} : {match.ScoreB}")
+                    </span>
+                </div>
+
+                <div class="nk-match-team nk-match-team-right">
+                    <span class="nk-match-team-name">
+                        @match.TeamB.Currency.Name
+                    </span>
+                    <span class="nk-match-team-logo">
+                        <img width="60" src="/assets/images/crypto_images/@(match.TeamB.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamB.Currency.Name">
+                    </span>
+                </div>
+            </div>
+        </a>
+
+    }
+}
+<style>
+    .nk-match {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        margin: 10px 0;
+        text-decoration: none; /* Remover o sublinhado no link */
+        color: inherit; /* Herda a cor do link */
+    }
+
+    .nk-match-team {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .nk-match-team-left {
+        text-align: left;
+        align-items: flex-start;
+    }
+
+    .nk-match-team-right {
+        text-align: right;
+        align-items: flex-end;
+    }
+
+    .nk-match-status {
+        text-align: center;
+        margin: 0 20px;
+    }
+
+    .nk-match-status-vs {
+        font-size: 24px;
+        font-weight: bold;
+        display: block;
+    }
+
+    .nk-match-score {
+        font-size: 18px;
+        margin-top: 5px;
+    }
+
+</style>
+@code {
+    private List<Match> matches;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Obter as próximas 3 partidas pendentes
+            matches = await MatchService.GetUpcomingPendingMatchesAsync(3);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar os jogos: {ex.Message}";
+        }
+    }
+}

@@ -1,4 +1,5 @@
 ﻿using DAL;
+using DAL.NftFutebol;
 using DAL.Seed;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,12 +14,15 @@ namespace EthicAI.EntityModel
         {
         }
 
-        public DbSet<User> User { get; set; }
-        public DbSet<PreSalePurchase> PreSalePurchase { get; set; } // Adiciona o DbSet para PreSalePurchase
-
-        public DbSet<Post> Post { get; set; }
-
-        public DbSet<PostCategory> PostCategory { get; set; }
+       public DbSet<User> User { get; set; }
+       public DbSet<PreSalePurchase> PreSalePurchase { get; set; } // Adiciona o DbSet para PreSalePurchase
+       public DbSet<Post> Post { get; set; }
+       public DbSet<PostCategory> PostCategory { get; set; }
+        public DbSet<Match> Match { get; set; }
+        public DbSet<Team> Team { get; set; }
+        public DbSet<Currency> Currency { get; set; }
+        public DbSet<Bet> Bet { get; set; }
+        public DbSet<Player> Player { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -87,6 +91,114 @@ namespace EthicAI.EntityModel
                 entity.ToTable("post_category");
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
             });
+
+            modelBuilder.Entity<Match>(entity =>
+            {
+                entity.HasKey(e => e.MatchId);
+                entity.ToTable("match");
+
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.StartTime).HasColumnType("datetime").HasColumnName("dt_start_time");
+                entity.Property(e => e.EndTime).HasColumnType("datetime").HasColumnName("dt_end_time");
+
+                entity.Property(e => e.TeamAId).HasColumnName("cd_team_a");
+                entity.Property(e => e.TeamBId).HasColumnName("cd_team_b");
+
+                entity.Property(e => e.ScoreA).HasColumnName("nr_score_a");
+                entity.Property(e => e.ScoreB).HasColumnName("nr_score_b");
+
+                entity.Property(e => e.Status)
+                      .HasConversion<string>()
+                      .HasColumnName("in_status");
+
+                entity.HasOne(e => e.TeamA)
+                      .WithMany(t => t.MatchesAsTeamA)
+                      .HasForeignKey(e => e.TeamAId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.TeamB)
+                      .WithMany(t => t.MatchesAsTeamB)
+                      .HasForeignKey(e => e.TeamBId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(e => e.Bets)
+                      .WithOne(b => b.Match)
+                      .HasForeignKey(b => b.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Team>(entity =>
+            {
+                entity.HasKey(e => e.TeamId);
+                entity.ToTable("team");
+
+                entity.Property(e => e.TeamId).HasColumnName("cd_team");
+                entity.Property(e => e.CurrencyId).HasColumnName("cd_currency");
+
+                entity.HasOne(e => e.Currency)
+                      .WithMany(c => c.Teams)
+                      .HasForeignKey(e => e.CurrencyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.Bets)
+                      .WithOne(b => b.Team)
+                      .HasForeignKey(b => b.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Currency>(entity =>
+            {
+                entity.HasKey(e => e.CurrencyId);
+                entity.ToTable("currency");
+
+                entity.Property(e => e.CurrencyId).HasColumnName("cd_currency");
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
+                entity.Property(e => e.Symbol).IsRequired().HasMaxLength(50).HasColumnName("tx_symbol");
+                entity.Property(e => e.PercentageChange).HasColumnType("decimal(5, 2)").HasColumnName("nr_percentage_change");
+                entity.Property(e => e.LastUpdated).HasColumnType("datetime").HasColumnName("dt_last_updated");
+            });
+
+
+            modelBuilder.Entity<Bet>(entity =>
+            {
+                entity.HasKey(e => e.BetId);
+                entity.ToTable("bet");
+
+                entity.Property(e => e.BetId).HasColumnName("cd_bet");
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.TeamId).HasColumnName("cd_team");
+                entity.Property(e => e.PlayerId).HasColumnName("cd_player");
+
+                entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)").HasColumnName("nr_amount");
+                entity.Property(e => e.BetTime).HasColumnType("datetime").HasColumnName("dt_bet_time");
+
+                entity.HasOne(e => e.Match)
+                      .WithMany(m => m.Bets)
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Team)
+                      .WithMany(t => t.Bets)
+                      .HasForeignKey(e => e.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Player)
+                      .WithMany(p => p.Bets)
+                      .HasForeignKey(e => e.PlayerId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Player>(entity =>
+            {
+                entity.HasKey(e => e.PlayerId);
+                entity.ToTable("player");
+
+                entity.Property(e => e.PlayerId).HasColumnName("cd_player");
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("tx_name");
+            });
+
+
+
 
 
             Seed(modelBuilder);        }

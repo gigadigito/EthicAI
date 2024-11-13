@@ -22,6 +22,165 @@ namespace DAL.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("DAL.NftFutebol.Bet", b =>
+                {
+                    b.Property<int>("BetId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("cd_bet");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BetId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18, 2)")
+                        .HasColumnName("nr_amount");
+
+                    b.Property<DateTime>("BetTime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("dt_bet_time");
+
+                    b.Property<int>("MatchId")
+                        .HasColumnType("int")
+                        .HasColumnName("cd_match");
+
+                    b.Property<string>("PlayerId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("cd_player");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int")
+                        .HasColumnName("cd_team");
+
+                    b.HasKey("BetId");
+
+                    b.HasIndex("MatchId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("bet", (string)null);
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Currency", b =>
+                {
+                    b.Property<int>("CurrencyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("cd_currency");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CurrencyId"));
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime")
+                        .HasColumnName("dt_last_updated");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("tx_name");
+
+                    b.Property<decimal>("PercentageChange")
+                        .HasColumnType("decimal(5, 2)")
+                        .HasColumnName("nr_percentage_change");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("tx_symbol");
+
+                    b.HasKey("CurrencyId");
+
+                    b.ToTable("currency", (string)null);
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Match", b =>
+                {
+                    b.Property<int>("MatchId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("cd_match");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MatchId"));
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("dt_end_time");
+
+                    b.Property<int>("ScoreA")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_score_a");
+
+                    b.Property<int>("ScoreB")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_score_b");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime")
+                        .HasColumnName("dt_start_time");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("in_status");
+
+                    b.Property<int>("TeamAId")
+                        .HasColumnType("int")
+                        .HasColumnName("cd_team_a");
+
+                    b.Property<int>("TeamBId")
+                        .HasColumnType("int")
+                        .HasColumnName("cd_team_b");
+
+                    b.HasKey("MatchId");
+
+                    b.HasIndex("TeamAId");
+
+                    b.HasIndex("TeamBId");
+
+                    b.ToTable("match", (string)null);
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Player", b =>
+                {
+                    b.Property<string>("PlayerId")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("cd_player");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("tx_name");
+
+                    b.HasKey("PlayerId");
+
+                    b.ToTable("player", (string)null);
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Team", b =>
+                {
+                    b.Property<int>("TeamId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("cd_team");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TeamId"));
+
+                    b.Property<int>("CurrencyId")
+                        .HasColumnType("int")
+                        .HasColumnName("cd_currency");
+
+                    b.HasKey("TeamId");
+
+                    b.HasIndex("CurrencyId");
+
+                    b.ToTable("team", (string)null);
+                });
+
             modelBuilder.Entity("DAL.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -223,6 +382,63 @@ namespace DAL.Migrations
                     b.ToTable("user", (string)null);
                 });
 
+            modelBuilder.Entity("DAL.NftFutebol.Bet", b =>
+                {
+                    b.HasOne("DAL.NftFutebol.Match", "Match")
+                        .WithMany("Bets")
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DAL.NftFutebol.Player", "Player")
+                        .WithMany("Bets")
+                        .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DAL.NftFutebol.Team", "Team")
+                        .WithMany("Bets")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Match");
+
+                    b.Navigation("Player");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Match", b =>
+                {
+                    b.HasOne("DAL.NftFutebol.Team", "TeamA")
+                        .WithMany("MatchesAsTeamA")
+                        .HasForeignKey("TeamAId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DAL.NftFutebol.Team", "TeamB")
+                        .WithMany("MatchesAsTeamB")
+                        .HasForeignKey("TeamBId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("TeamA");
+
+                    b.Navigation("TeamB");
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Team", b =>
+                {
+                    b.HasOne("DAL.NftFutebol.Currency", "Currency")
+                        .WithMany("Teams")
+                        .HasForeignKey("CurrencyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Currency");
+                });
+
             modelBuilder.Entity("DAL.Post", b =>
                 {
                     b.HasOne("DAL.PostCategory", "PostCategory")
@@ -243,6 +459,30 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Currency", b =>
+                {
+                    b.Navigation("Teams");
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Match", b =>
+                {
+                    b.Navigation("Bets");
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Player", b =>
+                {
+                    b.Navigation("Bets");
+                });
+
+            modelBuilder.Entity("DAL.NftFutebol.Team", b =>
+                {
+                    b.Navigation("Bets");
+
+                    b.Navigation("MatchesAsTeamA");
+
+                    b.Navigation("MatchesAsTeamB");
                 });
 
             modelBuilder.Entity("DAL.PostCategory", b =>

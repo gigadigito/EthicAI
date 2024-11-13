@@ -1,0 +1,100 @@
+﻿@page "/make-game"
+@using static BLL.BinanceService
+@inject HttpClient Http
+@using System.Globalization
+@using BLL.NFTFutebol
+@using DAL.NftFutebol
+@inject MatchService MatchService
+
+<h3>Jogos Criados com Base nos Top Gainers da Binance</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (matches == null)
+{
+    <p>Carregando jogos...</p>
+}
+else if (matches.Count == 0)
+{
+    <p>Nenhum jogo foi encontrado.</p>
+}
+else
+{
+    @foreach (var match in matches)
+    {
+        <div class="nk-match">
+            <div class="nk-match-team-left">
+                <a href="#">
+                    <span class="nk-match-team-logo">
+                        <img width="60" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
+                    </span>
+                    <span class="nk-match-team-name">
+                        @match.TeamA.Currency.Name
+                    </span>
+                </a>
+            </div>
+          
+            <div class="nk-match-status">
+                <a href="#">
+                    <span class="nk-match-status-vs">VS</span>
+                    <span class="nk-match-status-date">@match.StartTime.ToString("MMM dd, yyyy h:mm tt")</span>
+                    <span class="nk-match-score @(match.ScoreA > match.ScoreB ? "bg-success" : "bg-danger")">
+                        @match.ScoreA : @match.ScoreB
+                    </span>
+                </a>
+            </div>
+
+            <div class="nk-match-team-right">
+                <a href="#">
+                    <span class="nk-match-team-name">
+                        @match.TeamB.Currency.Name
+                    </span>
+                    <span class="nk-match-team-logo">
+                        <img width="60" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamB.Currency.Name">
+                    </span>
+                </a>
+            </div>
+        </div>
+    }
+}
+
+
+
+
+@code {
+    private List<Match> matches;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Passo 1: Obter os top gainers da Binance
+            var response = await Http.GetFromJsonAsync<List<Crypto>>("https://api.binance.com/api/v3/ticker/24hr");
+
+            if (response == null || !response.Any())
+            {
+                errorMessage = "Não foi possível obter os dados da Binance.";
+                return;
+            }
+
+            var topGainers = response
+               .Where(c => c.Symbol.EndsWith("USDT"))
+               .OrderByDescending(c => decimal.TryParse(c.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent) ? percent : 0)
+               .Take(6)
+               .ToList();
+
+            // Passo 2: Criar e salvar moedas
+            var currencies = await MatchService.SaveCurrenciesAsync(topGainers);
+
+            // Passo 3: Criar as partidas com as moedas atualizadas do banco de dados
+            matches = await MatchService.CreateMatchesAsync(currencies);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar os jogos: {ex.Message}";
+        }
+    }
+}

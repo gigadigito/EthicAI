@@ -1,0 +1,139 @@
+﻿@page "/criptofut/match/{matchParameter}"
+@using BLL.NFTFutebol
+@using DAL.NftFutebol
+@inject MatchService MatchService
+
+<h3>Aposte no Seu Time Favorito</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (match == null)
+{
+    <p>Carregando dados do jogo...</p>
+}
+else
+{
+    <div class="nk-match">
+        <div class="nk-match-team">
+            <span class="nk-match-team-logo">
+                <img width="60" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
+            </span>
+            <span class="nk-match-team-name">
+                @match.TeamA.Currency.Name
+            </span>
+            <button @onclick="() => PlaceBet(match.TeamAId)">Apostar no @match.TeamA.Currency.Name</button>
+        </div>
+        <div class="nk-match-vs">
+            <span>VS</span>
+        </div>
+        <div class="nk-match-team">
+            <span class="nk-match-team-logo">
+                <img width="60" src="/assets/images/crypto_images/@(match.TeamB.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamB.Currency.Name">
+            </span>
+            <span class="nk-match-team-name">
+                @match.TeamB.Currency.Name
+            </span>
+            <button @onclick="() => PlaceBet(match.TeamBId)">Apostar no @match.TeamB.Currency.Name</button>
+        </div>
+    </div>
+
+    <div>
+        <label>Quantia em Solana:</label>
+        <input type="number" @bind="betAmount" step="0.01" min="0" placeholder="Digite a quantia em SOL" />
+    </div>
+    <style>
+        .nk-match {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .nk-match-team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .nk-match-team-left {
+            text-align: left;
+            align-items: flex-start;
+        }
+
+        .nk-match-team-right {
+            text-align: right;
+            align-items: flex-end;
+        }
+
+        .nk-match-vs {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 20px;
+        }
+
+    </style>
+    <p>@betStatusMessage</p>
+}
+
+@code {
+    [Parameter]
+    public string matchParameter { get; set; }
+
+    private Match match;
+    private decimal betAmount;
+    private string betStatusMessage;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Separar o parâmetro para obter os times
+            var teams = matchParameter.Replace("-game", "").Split("-vs-");
+            if (teams.Length == 2)
+            {
+                // Adicionar "USDT" ao final de cada símbolo para a consulta
+                var teamASymbol = teams[0] + "usdt";
+                var teamBSymbol = teams[1] + "usdt";
+
+                // Buscar o jogo com os times especificados
+                match = await MatchService.GetMatchByTeamsAsync(teamASymbol, teamBSymbol);
+
+                if (match == null)
+                {
+                    errorMessage = "Nenhuma partida encontrada para os times especificados.";
+                }
+            }
+            else
+            {
+                errorMessage = "Parâmetro de URL inválido.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao carregar o jogo: {ex.Message}";
+        }
+    }
+
+    private async Task PlaceBet(int teamId)
+    {
+        if (betAmount <= 0)
+        {
+            betStatusMessage = "Por favor, insira um valor válido para aposta.";
+            return;
+        }
+
+        var success = await MatchService.PlaceBetAsync(match.MatchId, teamId, betAmount);
+
+        if (success)
+        {
+            betStatusMessage = $"Aposta de {betAmount} SOL feita com sucesso!";
+        }
+        else
+        {
+            betStatusMessage = "Erro ao fazer a aposta. Tente novamente.";
+        }
+    }
+}

@@ -10,6 +10,7 @@ using BLL;
 using EthicAI.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Blazored.Toast;
+using BLL.NFTFutebol;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,8 +40,11 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
 builder.Services.AddScoped<PostService>();
 
-
+builder.Services.AddScoped<BinanceService>();
 builder.Services.AddScoped<GitHubService>();
+builder.Services.AddScoped<MatchService>();
+
+
 builder.Services.AddScoped<IPreSaleService, PreSaleService>();
 
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
