@@ -1,9 +1,19 @@
 ﻿@page "/criptofut/match/{matchParameter}"
+@using BLL
 @using BLL.NFTFutebol
+@using DAL
 @using DAL.NftFutebol
+@using EthicAI.Data
+@using System.Globalization
+@using static EthicAI.Pages.Component.PreSale
 @inject MatchService MatchService
+@inject BinanceService BinanceService
+@inject Blazored.Toast.Services.IToastService ToastService
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject IJSRuntime JS
+@inject UserService userService
 
-<h3>Aposte no Seu Time Favorito</h3>
+<h2 class="title">⚽ NFT CriptoFut - Arena Binance</h2>
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
@@ -11,99 +21,577 @@
 }
 else if (match == null)
 {
-    <p>Carregando dados do jogo...</p>
+    <div class="loading-message">Carregando dados do jogo...</div>
 }
 else
 {
-    <div class="nk-match">
-        <div class="nk-match-team">
-            <span class="nk-match-team-logo">
-                <img width="60" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
-            </span>
-            <span class="nk-match-team-name">
-                @match.TeamA.Currency.Name
-            </span>
-            <button @onclick="() => PlaceBet(match.TeamAId)">Apostar no @match.TeamA.Currency.Name</button>
+    <div class="game-container container">
+        <div class="scoreboard">
+            <div class="team-section">
+                <img class="team-logo" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
+                <div class="team-info">
+                    <span class="team-name">@match.TeamA.Currency.Name ($@teamACurrentValue.ToString("F5", new CultureInfo("en-US")))</span>
+                    <span class="stamina">Stamina: @match.TeamA.Currency.PercentageChange.ToString("F2", new CultureInfo("en-US"))%</span>
+                </div>
+                <div class="seats">
+                    <span class="bet-count">@teamABets torcedores</span><br />
+                    @for (int i = 0; i < Math.Min(teamABets, 50); i++) // Limita a 50 cadeirinhas
+                    {
+                        <img src="/assets/images/chair-icon.png" alt="Cadeirinha" class="chair-icon">
+                    }
+                </div>
+                @if (isCanBet)
+                {
+                    <button class="btn-bet" @onclick="() => OpenBetModalAsync(match.TeamAId)">Join</button>
+                }
+            </div>
+
+            <div class="vs-section">
+                <span class="timer">@timeRemaining</span><br />
+                <div class="vs-text">VS</div>
+                <div class="score">
+                    <span class="score-value">@teamAScore</span>
+                    <span class="score-divider">x</span>
+                    <span class="score-value">@teamBScore</span>
+                </div>
+                <span class="total-bets"> @((teamABetsTotal + teamBBetsTotal).ToString("F2", new CultureInfo("en-US"))) SOL</span>
+            </div>
+
+            <div class="team-section">
+                <img class="team-logo" src="/assets/images/crypto_images/@(match.TeamB.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamB.Currency.Name">
+                <div class="team-info">
+                    <span class="team-name">@match.TeamB.Currency.Name ($@teamBCurrentValue.ToString("F5", new CultureInfo("en-US")))</span>
+                    <span class="stamina">Stamina: @match.TeamB.Currency.PercentageChange.ToString("F2", new CultureInfo("en-US"))%</span>
+                </div>
+                <div class="seats">
+                    <span class="bet-count">@teamBBets torcedores</span><br />
+                    @for (int i = 0; i < Math.Min(teamBBets, 50); i++) // Limita a 50 cadeirinhas
+                    {
+                        <img src="/assets/images/chair-icon.png" alt="Cadeirinha" class="chair-icon">
+                    }
+                </div>
+                @if (isCanBet)
+                {
+                    <button class="btn-bet" @onclick="() => OpenBetModalAsync(match.TeamBId)">Join</button>
+                }
+            </div>
         </div>
-        <div class="nk-match-vs">
-            <span>VS</span>
-        </div>
-        <div class="nk-match-team">
-            <span class="nk-match-team-logo">
-                <img width="60" src="/assets/images/crypto_images/@(match.TeamB.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamB.Currency.Name">
-            </span>
-            <span class="nk-match-team-name">
-                @match.TeamB.Currency.Name
-            </span>
-            <button @onclick="() => PlaceBet(match.TeamBId)">Apostar no @match.TeamB.Currency.Name</button>
-        </div>
+        @if (isCanBet)
+        {
+            <!-- Modal de Aposta -->
+            @if (showModal)
+            {
+                <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5);">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title ">Definir Valor da Aposta</h5>
+                                <button type="button" class="close" @onclick="CloseBetModal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <label>Escolha sua aposta:</label>
+                                <div class="bet-buttons">
+                                    <button class="btn-bet-option" @onclick="() => SetBetAmount(0.01m)">0.01 SOL</button>
+                                    <button class="btn-bet-option" @onclick="() => SetBetAmount(0.1m)">0.1 SOL</button>
+                                    <button class="btn-bet-option" @onclick="() => SetBetAmount(0.5m)">0.5 SOL</button>
+                                    <button class="btn-bet-option" @onclick="() => SetBetAmount(1m)">1 SOL</button>
+                                </div>
+                                <div class="custom-bet">
+                                    <label for="customBetInput">Ou insira um valor:</label>
+                                    <input id="customBetInput"
+                                           type="text"
+                                           class="custom-bet-input"
+                                           value="@betAmountString"
+                                           @oninput="OnBetAmountInput" />
+                                </div>
+                                <div class="bet-value-display">
+                                    Quantia selecionada: @betAmount SOL
+                                </div>
+                                <p class="bet-status">@betStatusMessage</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" @onclick="CloseBetModal">Cancelar</button>
+                                <button class="btn btn-primary" @onclick="ConfirmBet">Confirmar Aposta</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
     </div>
+    @if (isMatchEnded)
+    {
+        <h3>Sua(s) Aposta(s) na Partida Encerrada</h3>
 
-    <div>
-        <label>Quantia em Solana:</label>
-        <input type="number" @bind="betAmount" step="0.01" min="0" placeholder="Digite a quantia em SOL" />
-    </div>
-    <style>
-        .nk-match {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 20px 0;
+        @if (userBets != null && userBets.Count > 0)
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Time Apostado</th>
+                        <th>Valor Apostado (SOL)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bet in userBets)
+                    {
+                        <tr>
+                            <td>@(bet.TeamId == match.TeamAId ? match.TeamA.Currency.Name : match.TeamB.Currency.Name)</td>
+                            <td>@bet.Amount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                            <td>
+                                <button class="btn btn-primary" @onclick="() => ClaimBet(bet.BetId)">Claim</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         }
-
-        .nk-match-team {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        else
+        {
+            <p>Você não fez nenhuma aposta nessa partida.</p>
         }
+    }
 
-        .nk-match-team-left {
-            text-align: left;
-            align-items: flex-start;
-        }
-
-        .nk-match-team-right {
-            text-align: right;
-            align-items: flex-end;
-        }
-
-        .nk-match-vs {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 0 20px;
-        }
-
-    </style>
-    <p>@betStatusMessage</p>
 }
 
+<style>
+
+</style>
+
 @code {
-    [Parameter]
-    public string matchParameter { get; set; }
+    private bool isMatchEnded = false;
+    <!-- 4. Métodos para abrir e fechar a modal, e confirmar a aposta -->
+    private async void OpenBetModalAsync(int teamId)
+    {
+        await GetUserWallet();
 
-    private Match match;
-    private decimal betAmount;
-    private string betStatusMessage;
-    private string errorMessage;
 
-    protected override async Task OnInitializedAsync()
+        if (storedUser != null || !string.IsNullOrEmpty(wallet_user))
+        {
+            selectedTeamId = teamId;
+            showModal = true;
+        }
+        else
+        {
+            betStatusMessage = "Usuário não logado ou carteira não conectada.";
+        }
+    }
+    private async Task ClaimBet(int betId)
     {
         try
         {
-            // Separar o parâmetro para obter os times
+            var result = await MatchService.ClaimBetAsync(betId, storedUser.UserID);
+            if (result)
+            {
+                ToastService.ShowSuccess("Claim realizado com sucesso!");
+                // Atualize a lista de apostas
+                await LoadUserBets();
+            }
+            else
+            {
+                ToastService.ShowError("Não foi possível realizar o claim. Verifique se a aposta já foi reivindicada ou se você tem direito aos fundos.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Erro ao fazer claim: {ex.Message}");
+        }
+    }
+    private async Task LoadUserBets()
+    {
+        if (storedUser == null)
+        {
+            storedUser = await sessionStorage.GetItemAsync<User>("User");
+        }
+
+        if (storedUser != null)
+        {
+            // Supondo que seu MatchService tenha algo como "GetUserBetsAsync"
+            userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
+        }
+    }
+    private void CloseBetModal()
+    {
+        showModal = false;
+    }
+    private async Task ConfirmBet()
+    {
+        try
+        {
+            if (betAmount <= 0)
+            {
+                betStatusMessage = "Por favor, insira um valor válido para aposta.";
+                return;
+            }
+
+            // Garantir que storedUser ou wallet_user esteja configurado
+            if (storedUser == null && string.IsNullOrEmpty(wallet_user))
+            {
+                betStatusMessage = "Usuário não logado ou carteira não conectada.";
+                return;
+            }
+
+            int userId;
+            if (storedUser != null)
+            {
+                userId = storedUser.UserID;
+            }
+            else
+            {
+                // Se somente carteira conectada sem usuário?
+                // Isso deve ter sido tratado ao conectar a carteira,
+                // criando o usuário.
+                var existingUser = await userService.GetUserByWallet(wallet_user);
+                if (existingUser == null)
+                {
+                    betStatusMessage = "Erro ao identificar o usuário.";
+                    return;
+                }
+                userId = existingUser.UserID;
+            }
+
+            var success = await MatchService.PlaceBetAsync(match.MatchId, selectedTeamId, betAmount, userId);
+
+            if (success)
+            {
+                if (selectedTeamId == match.TeamAId) teamABets++;
+                if (selectedTeamId == match.TeamBId) teamBBets++;
+
+                betStatusMessage = $"Aposta de {betAmount} SOL feita com sucesso!";
+                CloseBetModal();
+            }
+            else
+            {
+                betStatusMessage = "Erro ao fazer a aposta. Tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            betStatusMessage = $"Erro ao processar a aposta: {ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    [Parameter]
+    public string matchParameter { get; set; }
+    private CultureInfo[] cultures = { new CultureInfo("en-US") };
+    private Match match;
+    private string errorMessage;
+    private string timeRemaining;
+    private Timer gameTimer;
+    private decimal betAmount;
+    private string betStatusMessage;
+    private decimal teamAInitialValue;
+    private decimal teamBInitialValue;
+    private decimal teamACurrentValue;
+    private decimal teamBCurrentValue;
+    private decimal teamAPercentage;
+    private decimal teamBPercentage;
+    private int teamABets = 0;
+    private int teamBBets = 0;
+    private string wallet_user;
+    private bool isCanBet = true;
+    private int teamAScore = 0;
+    private int teamBScore = 0;
+    private decimal teamABetsTotal = 0;
+    private decimal teamBBetsTotal = 0;
+    private int selectedTeamId = 0;
+    private bool showModal = false;
+    private User storedUser;
+    private List<Bet> userBets; // Caso você precise listar as apostas
+    private string betAmountString = "0.01";
+
+    private void SetBetAmount(decimal amount)
+    {
+        betAmount = amount;
+        betAmountString = amount.ToString("F2", new CultureInfo("en-US"));
+        betStatusMessage = $"Aposta de {betAmountString} SOL selecionada!";
+    }
+
+    private void OnBetAmountInput(ChangeEventArgs e)
+    {
+        string inputValue = e.Value.ToString().Replace(",", "."); // Substituir "," por "."
+        if (decimal.TryParse(inputValue, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out decimal parsedValue))
+        {
+            betAmount = parsedValue;
+            betAmountString = parsedValue.ToString("F2", CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            betStatusMessage = "Valor inválido. Insira um número válido.";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        if (storedUser == null)
+        {
+            storedUser = await sessionStorage.GetItemAsync<User>("User");
+        }
+
+        betAmount = 0.01m;
+        await LoadMatchData();
+
+        if (match?.Status == MatchStatus.Ongoing)
+        {
+            await InitializeCoinValues();
+            LoadInitialScores();
+            StartGameTimer();
+        }
+    }
+
+
+
+    private async Task UpdateScoreboardAsync()
+    {
+        double staminaA = match.TeamA.Currency.PercentageChange;
+        double staminaB = match.TeamB.Currency.PercentageChange;
+
+        int teamAScore, teamBScore;
+
+        double valA = Math.Log(Math.Abs(staminaA) + 1);
+        double valB = Math.Log(Math.Abs(staminaB) + 1);
+
+        if (staminaA < 0 && staminaB < 0)
+        {
+            // Novo cálculo usando pesos exponenciais inversos
+            double weightA = Math.Exp(-valA);
+            double weightB = Math.Exp(-valB);
+            double sumWeights = weightA + weightB;
+
+            if (sumWeights > 0)
+            {
+                double ratioA = weightA / sumWeights;
+                double ratioB = weightB / sumWeights;
+
+                teamAScore = (int)Math.Round(ratioA * 10);
+                teamBScore = (int)Math.Round(ratioB * 10);
+            }
+            else
+            {
+                // Caso muito improvável, mas de segurança.
+                teamAScore = 0;
+                teamBScore = 0;
+            }
+        }
+        else
+        {
+            // Caso em que não são ambos negativos:
+            // Positivos: quanto maior melhor
+            // Negativos: quanto menor (mais próximo de zero) melhor
+            double scaledStaminaA = staminaA > 0
+                ? Math.Log(Math.Abs(staminaA) + 1)
+                : -Math.Log(Math.Abs(staminaA) + 1);
+
+            double scaledStaminaB = staminaB > 0
+                ? Math.Log(Math.Abs(staminaB) + 1)
+                : -Math.Log(Math.Abs(staminaB) + 1);
+
+            double totalStamina = Math.Abs(scaledStaminaA) + Math.Abs(scaledStaminaB);
+
+            if (totalStamina > 0)
+            {
+                teamAScore = (int)Math.Round(
+                    Math.Max(0, Math.Min(10, (scaledStaminaA / totalStamina) * 10))
+                );
+                teamBScore = (int)Math.Round(
+                    Math.Max(0, Math.Min(10, (scaledStaminaB / totalStamina) * 10))
+                );
+            }
+            else
+            {
+                teamAScore = 0;
+                teamBScore = 0;
+            }
+        }
+        // Atribua agora os valores locais para as variáveis de instância da classe:
+        this.teamAScore = teamAScore;
+        this.teamBScore = teamBScore;
+     
+    }
+
+
+
+
+    private async Task GetUserWallet()
+    {
+        // Verifica se o usuário já existe na sessão
+        if (storedUser != null)
+        {
+            wallet_user = storedUser.Wallet;
+            return; // Se o usuário já estiver na sessão, não realiza novas ações
+        }
+
+        // Obtém o usuário da sessão, se não estiver carregado
+        storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+        if (storedUser != null)
+        {
+            wallet_user = storedUser.Wallet;
+            return; // Se o usuário foi encontrado na sessão, finaliza a execução
+        }
+
+        // Caso o usuário não esteja na sessão, tenta conectar com a carteira Solana
+        var result = await JS.InvokeAsync<SolanaLoginResult>("solanaLogin");
+
+        if (result == null || string.IsNullOrEmpty(result.PublicKey))
+        {
+            betStatusMessage = "Erro ao conectar à carteira Solana.";
+            return;
+        }
+
+        wallet_user = result.PublicKey;
+
+        // Verifica se o usuário existe no banco
+        var existingUser = await userService.GetUserByWallet(wallet_user);
+
+        if (existingUser == null)
+        {
+            // Cria um novo usuário
+            var newUser = new User
+                {
+                    Wallet = wallet_user,
+                    DtUpdate = DateTime.UtcNow,
+                    LastLogin = DateTime.UtcNow,
+                    Name = ""
+                };
+
+            var resultAdd = await userService.AddUser(newUser);
+
+            if (resultAdd == "OK")
+            {
+                await sessionStorage.SetItemAsync("User", newUser);
+                storedUser = newUser;
+                ShowMessage("Usuário criado com sucesso!", "alert-success");
+            }
+            else
+            {
+                betStatusMessage = $"Erro ao criar o usuário: {resultAdd}";
+                return;
+            }
+        }
+        else
+        {
+            // Adiciona o usuário existente à sessão
+            await sessionStorage.SetItemAsync("User", existingUser);
+            storedUser = existingUser;
+            ShowMessage("Usuário logado com sucesso.", "alert-success");
+        }
+    }
+
+
+    private async Task PlaceBet(int teamId)
+    {
+        selectedTeamId = teamId;
+        betStatusMessage = $"Você selecionou o time {(teamId == match.TeamAId ? match.TeamA.Currency.Name : match.TeamB.Currency.Name)}.";
+
+        try
+        {
+            if (betAmount <= 0)
+            {
+                betStatusMessage = "Por favor, insira um valor válido para aposta.";
+                return;
+            }
+
+            var storedUser = await sessionStorage.GetItemAsync<User>("User");
+
+            if (storedUser != null)
+            {
+                wallet_user = storedUser.Wallet;
+            }
+            else
+            {
+                var result = await JS.InvokeAsync<SolanaLoginResult>("solanaLogin");
+
+                if (result == null || string.IsNullOrEmpty(result.PublicKey))
+                {
+                    betStatusMessage = "Erro ao conectar à carteira Solana.";
+                    return;
+                }
+
+                wallet_user = result.PublicKey;
+            }
+
+            var existingUser = await userService.GetUserByWallet(wallet_user);
+            int userId;
+
+            if (existingUser == null)
+            {
+                var newUser = new User
+                    {
+                        Wallet = wallet_user,
+                        DtUpdate = DateTime.UtcNow,
+                        LastLogin = DateTime.UtcNow,
+                        Name = ""
+                    };
+
+                var resultAdd = await userService.AddUser(newUser);
+
+                if (resultAdd == "OK")
+                {
+                    userId = newUser.UserID;
+                    await sessionStorage.SetItemAsync("User", newUser);
+                    ShowMessage("Usuário criado com sucesso!", "alert-success");
+                }
+                else
+                {
+                    betStatusMessage = $"Erro ao criar o usuário: {resultAdd}";
+                    return;
+                }
+            }
+            else
+            {
+                userId = existingUser.UserID;
+                await sessionStorage.SetItemAsync("User", existingUser);
+                ShowMessage("Usuário logado com sucesso.", "alert-success");
+            }
+
+            var success = await MatchService.PlaceBetAsync(match.MatchId, teamId, betAmount, userId);
+
+            if (success)
+            {
+                if (teamId == match.TeamAId) teamABets++;
+                if (teamId == match.TeamBId) teamBBets++;
+
+                betStatusMessage = $"Aposta de {betAmount} SOL feita com sucesso!";
+            }
+            else
+            {
+                betStatusMessage = "Erro ao fazer a aposta. Tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            betStatusMessage = $"Erro ao processar a aposta: {ex.Message}";
+        }
+    }
+
+    private async Task LoadMatchData()
+    {
+        try
+        {
             var teams = matchParameter.Replace("-game", "").Split("-vs-");
             if (teams.Length == 2)
             {
-                // Adicionar "USDT" ao final de cada símbolo para a consulta
-                var teamASymbol = teams[0] + "usdt";
-                var teamBSymbol = teams[1] + "usdt";
-
-                // Buscar o jogo com os times especificados
-                match = await MatchService.GetMatchByTeamsAsync(teamASymbol, teamBSymbol);
-
+                match = await MatchService.GetMatchByTeamsAsync(teams[0] + "usdt", teams[1] + "usdt");
                 if (match == null)
                 {
-                    errorMessage = "Nenhuma partida encontrada para os times especificados.";
+                    errorMessage = "Nenhuma partida encontrada.";
+                }
+                else
+                {
+                    teamABets = await MatchService.GetBetCountByTeamAsync(match.TeamAId);
+                    teamBBets = await MatchService.GetBetCountByTeamAsync(match.TeamBId);
+
+                    teamABetsTotal = await MatchService.GetTotalBetAmountByTeamAsync(match.TeamAId);
+                    teamBBetsTotal = await MatchService.GetTotalBetAmountByTeamAsync(match.TeamBId);
                 }
             }
             else
@@ -117,23 +605,193 @@ else
         }
     }
 
-    private async Task PlaceBet(int teamId)
+    private async Task InitializeCoinValues()
     {
-        if (betAmount <= 0)
+        try
         {
-            betStatusMessage = "Por favor, insira um valor válido para aposta.";
+            var tickerData = await BinanceService.Get24HrTickerDataAsync();
+            var teamACrypto = tickerData.FirstOrDefault(c => c.Symbol.Equals(match.TeamA.Currency.Symbol, StringComparison.OrdinalIgnoreCase));
+            var teamBCrypto = tickerData.FirstOrDefault(c => c.Symbol.Equals(match.TeamB.Currency.Symbol, StringComparison.OrdinalIgnoreCase));
+
+            if (teamACrypto != null && teamBCrypto != null)
+            {
+                teamAInitialValue = Convert.ToDecimal(teamACrypto.LastPrice, new System.Globalization.CultureInfo("en-US"));
+                teamBInitialValue = Convert.ToDecimal(teamBCrypto.LastPrice, new System.Globalization.CultureInfo("en-US"));
+                teamACurrentValue = teamAInitialValue;
+                teamBCurrentValue = teamBInitialValue;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao inicializar valores das moedas: {ex.Message}";
+        }
+    }
+
+    private void LoadInitialScores()
+    {
+        teamAPercentage = CalculatePercentage(teamAInitialValue, teamACurrentValue);
+        teamBPercentage = CalculatePercentage(teamBInitialValue, teamBCurrentValue);
+    }
+
+    private async void StartGameTimer()
+    {
+        if (match.StartTime == null || match.EndTime == null)
+        {
+            isCanBet = false;
+            timeRemaining = "Horários inválidos. Verifique os dados da partida.";
+            StateHasChanged();
             return;
         }
 
-        var success = await MatchService.PlaceBetAsync(match.MatchId, teamId, betAmount);
+        var matchStartTime = match.StartTime.Value;
+        var matchEndTime = match.EndTime.Value;
 
-        if (success)
+        if (DateTime.UtcNow >= matchEndTime)
         {
-            betStatusMessage = $"Aposta de {betAmount} SOL feita com sucesso!";
+            isCanBet = false;
+            timeRemaining = "Partida encerrada.";
+            isMatchEnded = true;
+
+            // Carrega o placar final do banco de dados
+            var finalMatch = await MatchService.GetMatchByIdAsync(match.MatchId);
+            if (finalMatch != null && finalMatch.TeamA != null && finalMatch.TeamB != null)
+            {
+                // Supondo que o MatchService.GetMatchByIdAsync retorne o objeto com scores atualizados
+                this.teamAScore = finalMatch.ScoreA;
+                this.teamBScore = finalMatch.ScoreB;
+            }
+            // Carregar as apostas do usuário logado
+            if (storedUser != null)
+            {
+                userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
+            }
+            InvokeAsync(StateHasChanged);
+            gameTimer?.Dispose();
+            return;
+        }
+
+
+        gameTimer = new Timer(async _ =>
+        {
+            var remaining = matchEndTime - DateTime.UtcNow;
+
+            if (remaining.TotalSeconds <= 0)
+            {
+                timeRemaining = "Partida encerrada.";
+                gameTimer?.Dispose();
+                InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                timeRemaining = $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+                await UpdateCoinValues();
+                await UpdateScoreboardAsync();
+                InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+@*  private async Task ClaimBet(int betId)
+    {
+        try
+        {
+            // Chama o serviço para realizar o claim da aposta
+            var result = await MatchService.ClaimBetAsync(betId, storedUser.UserID);
+            if (result)
+            {
+                ToastService.ShowSuccess("Claim realizado com sucesso!");
+                // Atualize a lista de apostas para remover a aposta já reivindicada se necessário
+                userBets = await MatchService.Ge(match.MatchId, storedUser.UserID);
+            }
+            else
+            {
+                ToastService.ShowError("Não foi possível realizar o claim. Verifique se a aposta já foi reivindicada ou se você tem direito aos fundos.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Erro ao fazer claim: {ex.Message}");
+        }
+    } *@
+
+    private async Task UpdateCoinValues()
+    {
+        try
+        {
+            // Obter dados atualizados da Binance
+            var tickerData = await BinanceService.Get24HrTickerDataAsync();
+            var teamACrypto = tickerData.FirstOrDefault(c => c.Symbol.Equals(match.TeamA.Currency.Symbol, StringComparison.OrdinalIgnoreCase));
+            var teamBCrypto = tickerData.FirstOrDefault(c => c.Symbol.Equals(match.TeamB.Currency.Symbol, StringComparison.OrdinalIgnoreCase));
+
+            // Atualizar valores atuais na tela
+            if (teamACrypto != null)
+            {
+                teamACurrentValue = decimal.Parse(teamACrypto.LastPrice, new CultureInfo("en-US"));
+
+                // Atualizar moeda no banco
+                var currencyA = await MatchService.GetCurrencyBySymbolAsync(match.TeamA.Currency.Symbol);
+                if (currencyA != null)
+                {
+                    currencyA.PercentageChange = double.Parse(teamACrypto.PriceChangePercent, new CultureInfo("en-US"));
+                    currencyA.LastUpdated = DateTime.UtcNow;
+                    await MatchService.UpdateCurrencyAsync(currencyA);
+                }
+            }
+
+            if (teamBCrypto != null)
+            {
+                teamBCurrentValue = decimal.Parse(teamBCrypto.LastPrice, new CultureInfo("en-US"));
+
+                // Atualizar moeda no banco
+                var currencyB = await MatchService.GetCurrencyBySymbolAsync(match.TeamB.Currency.Symbol);
+                if (currencyB != null)
+                {
+                    currencyB.PercentageChange = double.Parse(teamBCrypto.PriceChangePercent, new CultureInfo("en-US"));
+                    currencyB.LastUpdated = DateTime.UtcNow;
+                    await MatchService.UpdateCurrencyAsync(currencyB);
+                }
+            }
+
+            // Atualiza o placar localmente com base nas novas porcentagens (staminas)
+            await UpdateScoreboardAsync();
+
+            // Agora atualiza o placar no banco de dados
+            await MatchService.UpdateMatchScoreAsync(match.MatchId, teamAScore, teamBScore);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao atualizar valores: {ex.Message}";
+        }
+    }
+
+
+
+
+
+
+    private decimal CalculatePercentage(decimal initialValue, decimal currentValue)
+    {
+        return ((currentValue - initialValue) / initialValue) * 100;
+    }
+
+    private void ShowMessage(string msg, string cssClass)
+    {
+        if (cssClass.Contains("alert-success"))
+        {
+            ToastService.ShowSuccess(msg);
+        }
+        else if (cssClass.Contains("alert-warning"))
+        {
+            ToastService.ShowWarning(msg);
         }
         else
         {
-            betStatusMessage = "Erro ao fazer a aposta. Tente novamente.";
+            ToastService.ShowError(msg);
         }
+    }
+
+    public void Dispose()
+    {
+        gameTimer?.Dispose();
     }
 }

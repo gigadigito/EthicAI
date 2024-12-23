@@ -25,10 +25,24 @@ namespace BLL
         }
         public async Task<List<Crypto>> Get24HrTickerDataAsync()
         {
-            string endpoint = "https://api.binance.com/api/v3/ticker/24hr";
-            string responseContent = await _httpClient.GetStringAsync(endpoint);
-            return JsonSerializer.Deserialize<List<Crypto>>(responseContent);
+            try
+            {
+                string endpoint = "https://api.binance.com/api/v3/ticker/24hr";
+                string responseContent = await _httpClient.GetStringAsync(endpoint);
+
+                // Logar a resposta para depuração
+                Console.WriteLine("Resposta da Binance:");
+                Console.WriteLine(responseContent);
+
+                return JsonSerializer.Deserialize<List<Crypto>>(responseContent);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao obter dados da Binance: {ex.Message}");
+                return new List<Crypto>();
+            }
         }
+
 
         public async Task<string> GetAccountInfoAsync()
         {
@@ -62,12 +76,16 @@ namespace BLL
         // Model class for response data
         public class Crypto
         {
+            [JsonPropertyName("symbol")]
             public string Symbol { get; set; }
 
-            // Defina LastPrice e PriceChangePercent como strings para evitar problemas de conversão
+            [JsonPropertyName("lastPrice")]
             public string LastPrice { get; set; }
+
+            [JsonPropertyName("priceChangePercent")]
             public string PriceChangePercent { get; set; }
         }
+
 
     }
 }

@@ -9,7 +9,7 @@ namespace DAL.NftFutebol
     public class Match
     {
         public int MatchId { get; set; }
-        public DateTime StartTime { get; set; }
+        public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public int TeamAId { get; set; }
         public int TeamBId { get; set; }

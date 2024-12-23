@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    [Migration("20241113000122_EthicAIMigration")]
+    [Migration("20241223135214_EthicAIMigration")]
     partial class EthicAIMigration
     {
         /// <inheritdoc />
@@ -42,26 +42,35 @@ namespace DAL.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("dt_bet_time");
 
+                    b.Property<bool>("Claimed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_claimed");
+
+                    b.Property<DateTime?>("ClaimedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("dt_claimed_at");
+
                     b.Property<int>("MatchId")
                         .HasColumnType("int")
                         .HasColumnName("cd_match");
-
-                    b.Property<string>("PlayerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("cd_player");
 
                     b.Property<int>("TeamId")
                         .HasColumnType("int")
                         .HasColumnName("cd_team");
 
+                    b.Property<int>("UserId")
+                        .HasColumnType("int")
+                        .HasColumnName("cd_user");
+
                     b.HasKey("BetId");
 
                     b.HasIndex("MatchId");
 
-                    b.HasIndex("PlayerId");
-
                     b.HasIndex("TeamId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("bet", (string)null);
                 });
@@ -121,7 +130,7 @@ namespace DAL.Migrations
                         .HasColumnType("int")
                         .HasColumnName("nr_score_b");
 
-                    b.Property<DateTime>("StartTime")
+                    b.Property<DateTime?>("StartTime")
                         .HasColumnType("datetime")
                         .HasColumnName("dt_start_time");
 
@@ -145,23 +154,6 @@ namespace DAL.Migrations
                     b.HasIndex("TeamBId");
 
                     b.ToTable("match", (string)null);
-                });
-
-            modelBuilder.Entity("DAL.NftFutebol.Player", b =>
-                {
-                    b.Property<string>("PlayerId")
-                        .HasColumnType("nvarchar(450)")
-                        .HasColumnName("cd_player");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("tx_name");
-
-                    b.HasKey("PlayerId");
-
-                    b.ToTable("player", (string)null);
                 });
 
             modelBuilder.Entity("DAL.NftFutebol.Team", b =>
@@ -319,6 +311,12 @@ namespace DAL.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserID"));
 
+                    b.Property<decimal>("Balance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18, 2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("nr_balance");
+
                     b.Property<string>("Company")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)")
@@ -393,23 +391,23 @@ namespace DAL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DAL.NftFutebol.Player", "Player")
-                        .WithMany("Bets")
-                        .HasForeignKey("PlayerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("DAL.NftFutebol.Team", "Team")
                         .WithMany("Bets")
                         .HasForeignKey("TeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DAL.User", "User")
+                        .WithMany("Bets")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Match");
 
-                    b.Navigation("Player");
-
                     b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DAL.NftFutebol.Match", b =>
@@ -474,11 +472,6 @@ namespace DAL.Migrations
                     b.Navigation("Bets");
                 });
 
-            modelBuilder.Entity("DAL.NftFutebol.Player", b =>
-                {
-                    b.Navigation("Bets");
-                });
-
             modelBuilder.Entity("DAL.NftFutebol.Team", b =>
                 {
                     b.Navigation("Bets");
@@ -495,6 +488,8 @@ namespace DAL.Migrations
 
             modelBuilder.Entity("DAL.User", b =>
                 {
+                    b.Navigation("Bets");
+
                     b.Navigation("PreSalePurchases");
                 });
 #pragma warning restore 612, 618

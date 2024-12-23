@@ -22,7 +22,7 @@ namespace EthicAI.EntityModel
         public DbSet<Team> Team { get; set; }
         public DbSet<Currency> Currency { get; set; }
         public DbSet<Bet> Bet { get; set; }
-        public DbSet<Player> Player { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,6 +44,12 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Company).HasMaxLength(100).HasColumnName("nm_company");
                 entity.Property(e => e.IAModel).HasMaxLength(100).HasColumnName("nm_ia_model");
                 entity.Property(e => e.DtCreate).HasColumnName("dt_create");
+
+                // Novo campo Balance
+                entity.Property(e => e.Balance)
+                      .HasColumnType("decimal(18, 2)")
+                      .HasColumnName("nr_balance")
+                      .HasDefaultValue(0); // se desejar um valor padrão
             });
 
             // EntityModel/EthicAIDbContext.cs
@@ -167,38 +173,35 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.BetId).HasColumnName("cd_bet");
                 entity.Property(e => e.MatchId).HasColumnName("cd_match");
                 entity.Property(e => e.TeamId).HasColumnName("cd_team");
-                entity.Property(e => e.PlayerId).HasColumnName("cd_player");
-
+                entity.Property(e => e.UserId).HasColumnName("cd_user");
                 entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)").HasColumnName("nr_amount");
                 entity.Property(e => e.BetTime).HasColumnType("datetime").HasColumnName("dt_bet_time");
 
+                // Novos campos: Claimed e ClaimedAt
+                entity.Property(e => e.Claimed)
+                      .HasColumnName("is_claimed")
+                      .HasDefaultValue(false);
+
+                entity.Property(e => e.ClaimedAt)
+                 .HasColumnName("dt_claimed_at")
+                 .HasColumnType("datetime2")
+                 .IsRequired(false);
+
                 entity.HasOne(e => e.Match)
                       .WithMany(m => m.Bets)
-                      .HasForeignKey(e => e.MatchId)
+                      .HasForeignKey(b => b.MatchId)
                       .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(e => e.Team)
                       .WithMany(t => t.Bets)
-                      .HasForeignKey(e => e.TeamId)
+                      .HasForeignKey(b => b.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(e => e.Player)
-                      .WithMany(p => p.Bets)
-                      .HasForeignKey(e => e.PlayerId)
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.Bets)
+                      .HasForeignKey(b => b.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
-
-            modelBuilder.Entity<Player>(entity =>
-            {
-                entity.HasKey(e => e.PlayerId);
-                entity.ToTable("player");
-
-                entity.Property(e => e.PlayerId).HasColumnName("cd_player");
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100).HasColumnName("tx_name");
-            });
-
-
-
 
 
             Seed(modelBuilder);        }

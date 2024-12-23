@@ -1,4 +1,6 @@
-﻿namespace DAL
+﻿using DAL.NftFutebol;
+
+namespace DAL
 {
     public class User
     {
@@ -47,5 +49,8 @@
         public string? IAModel { get; set; }
 
         public ICollection<PreSalePurchase> PreSalePurchases { get; set; } // Propriedade de navegação
+
+        public virtual ICollection<Bet> Bets { get; set; } // Relacionamento com Bet
+        public decimal Balance { get; set; }
     }
 }

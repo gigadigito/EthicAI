@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Soccer - Jogo de Botão</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background: #4CAF50; /* Campo verde */
+            border: 3px solid #000;
+        }
+
+        .scoreboard {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="scoreboard">
+        <span id="teamAScore">0</span> - <span id="teamBScore">0</span>
+        <div id="turnIndicator">Turno: Time A</div>
+    </div>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configurações do campo
+        const field = {
+            width: 800,
+            height: 500,
+            goalWidth: 100,
+            goalHeight: 150
+        };
+
+        // Bola
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 15,
+            color: "white",
+            dx: 2,
+            dy: 2
+        };
+
+        // Times
+        const teamA = {
+            symbol: "btc", // Representa Bitcoin
+            color: "gold",
+            players: [
+                { x: 200, y: 150, radius: 30, isDragging: false },
+                { x: 200, y: 350, radius: 30, isDragging: false },
+                { x: 100, y: 250, radius: 30, isDragging: false } // Goleiro
+            ]
+        };
+
+        const teamB = {
+            symbol: "eth", // Representa Ethereum
+            color: "blue",
+            players: [
+                { x: 600, y: 150, radius: 30, isDragging: false },
+                { x: 600, y: 350, radius: 30, isDragging: false },
+                { x: 700, y: 250, radius: 30, isDragging: false } // Goleiro
+            ]
+        };
+
+        let currentTurn = "A"; // Controla o turno do jogo (A ou B)
+        let draggingPlayer = null;
+
+        // Placar
+        let teamAScore = 0;
+        let teamBScore = 0;
+
+        // Precarregar imagens dos times
+        const teamALogo = new Image();
+        teamALogo.src = `./crypto_images/${teamA.symbol}.png`;
+
+        const teamBLogo = new Image();
+        teamBLogo.src = `./crypto_images/${teamB.symbol}.png`;
+
+        // Atualizar indicador de turno
+        function updateTurnIndicator() {
+            document.getElementById("turnIndicator").textContent = `Turno: Time ${currentTurn}`;
+        }
+
+        // Desenhar jogador
+        function drawPlayer(player, logo, color) {
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.closePath();
+
+            ctx.drawImage(
+                logo,
+                player.x - player.radius / 2,
+                player.y - player.radius / 2,
+                player.radius,
+                player.radius
+            );
+        }
+
+        // Desenhar bola
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Atualizar tela
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar campo e elementos
+            ctx.fillStyle = "#4CAF50";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Gols
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, canvas.height / 2 - field.goalHeight / 2, 10, field.goalHeight);
+            ctx.fillRect(canvas.width - 10, canvas.height / 2 - field.goalHeight / 2, 10, field.goalHeight);
+
+            drawBall();
+
+            teamA.players.forEach(player => drawPlayer(player, teamALogo, teamA.color));
+            teamB.players.forEach(player => drawPlayer(player, teamBLogo, teamB.color));
+        }
+
+        // Gerenciar arrasto
+        canvas.addEventListener("mousedown", (event) => {
+            const { offsetX: mouseX, offsetY: mouseY } = event;
+
+            // Verificar qual jogador está sendo arrastado
+            const currentTeam = currentTurn === "A" ? teamA.players : teamB.players;
+            for (const player of currentTeam) {
+                const dx = mouseX - player.x;
+                const dy = mouseY - player.y;
+                if (Math.sqrt(dx * dx + dy * dy) < player.radius) {
+                    player.isDragging = true;
+                    draggingPlayer = player;
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener("mousemove", (event) => {
+            if (!draggingPlayer) return;
+
+            const { offsetX: mouseX, offsetY: mouseY } = event;
+            draggingPlayer.x = Math.max(draggingPlayer.radius, Math.min(field.width - draggingPlayer.radius, mouseX));
+            draggingPlayer.y = Math.max(draggingPlayer.radius, Math.min(field.height - draggingPlayer.radius, mouseY));
+        });
+
+        canvas.addEventListener("mouseup", () => {
+            if (draggingPlayer) {
+                draggingPlayer.isDragging = false;
+                draggingPlayer = null;
+
+                // Troca o turno ao soltar o jogador
+                currentTurn = currentTurn === "A" ? "B" : "A";
+                updateTurnIndicator();
+            }
+        });
+
+        // Loop do jogo
+        function gameLoop() {
+            update();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Iniciar após carregar imagens
+        teamALogo.onload = () => {
+            teamBLogo.onload = () => {
+                updateTurnIndicator();
+                gameLoop();
+            };
+        };
+    </script>
+</body>
+</html>

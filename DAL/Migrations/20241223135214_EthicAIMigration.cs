@@ -30,18 +30,6 @@ namespace DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "player",
-                columns: table => new
-                {
-                    cd_player = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    tx_name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_player", x => x.cd_player);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "post_category",
                 columns: table => new
                 {
@@ -71,7 +59,8 @@ namespace DAL.Migrations
                     nm_ia = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     nm_human_representative = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     nm_company = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    nm_ia_model = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                    nm_ia_model = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    nr_balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m)
                 },
                 constraints: table =>
                 {
@@ -150,7 +139,7 @@ namespace DAL.Migrations
                 {
                     cd_match = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    dt_start_time = table.Column<DateTime>(type: "datetime", nullable: false),
+                    dt_start_time = table.Column<DateTime>(type: "datetime", nullable: true),
                     dt_end_time = table.Column<DateTime>(type: "datetime", nullable: true),
                     cd_team_a = table.Column<int>(type: "int", nullable: false),
                     cd_team_b = table.Column<int>(type: "int", nullable: false),
@@ -183,9 +172,11 @@ namespace DAL.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     cd_match = table.Column<int>(type: "int", nullable: false),
                     cd_team = table.Column<int>(type: "int", nullable: false),
-                    cd_player = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    cd_user = table.Column<int>(type: "int", nullable: false),
                     nr_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    dt_bet_time = table.Column<DateTime>(type: "datetime", nullable: false)
+                    dt_bet_time = table.Column<DateTime>(type: "datetime", nullable: false),
+                    is_claimed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    dt_claimed_at = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -197,16 +188,16 @@ namespace DAL.Migrations
                         principalColumn: "cd_match",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_bet_player_cd_player",
-                        column: x => x.cd_player,
-                        principalTable: "player",
-                        principalColumn: "cd_player",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_bet_team_cd_team",
                         column: x => x.cd_team,
                         principalTable: "team",
                         principalColumn: "cd_team",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_bet_user_cd_user",
+                        column: x => x.cd_user,
+                        principalTable: "user",
+                        principalColumn: "cd_user",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -228,14 +219,14 @@ namespace DAL.Migrations
                 column: "cd_match");
 
             migrationBuilder.CreateIndex(
-                name: "IX_bet_cd_player",
-                table: "bet",
-                column: "cd_player");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_bet_cd_team",
                 table: "bet",
                 column: "cd_team");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_bet_cd_user",
+                table: "bet",
+                column: "cd_user");
 
             migrationBuilder.CreateIndex(
                 name: "IX_match_cd_team_a",
@@ -277,9 +268,6 @@ namespace DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "match");
-
-            migrationBuilder.DropTable(
-                name: "player");
 
             migrationBuilder.DropTable(
                 name: "post_category");

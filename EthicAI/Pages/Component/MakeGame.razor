@@ -39,7 +39,7 @@ else
             <div class="nk-match-status">
                 <a href="#">
                     <span class="nk-match-status-vs">VS</span>
-                    <span class="nk-match-status-date">@match.StartTime.ToString("MMM dd, yyyy h:mm tt")</span>
+                    <span class="nk-match-status-date">@match.StartTime?.ToString("MMM dd, yyyy h:mm tt")</span>
                     <span class="nk-match-score @(match.ScoreA > match.ScoreB ? "bg-success" : "bg-danger")">
                         @match.ScoreA : @match.ScoreB
                     </span>

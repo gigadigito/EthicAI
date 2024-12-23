@@ -11,13 +11,17 @@ namespace DAL.NftFutebol
     {
         public int BetId { get; set; }
         public int MatchId { get; set; }
-        public Match Match { get; set; }
-        public int TeamId { get; set; } // ID do time apostado
-        public Team Team { get; set; }
-        public string PlayerId { get; set; } // ID do jogador
-        public Player Player { get; set; }
+        public int TeamId { get; set; }
+        public int UserId { get; set; } // Atualizado de PlayerId para UserId
         public decimal Amount { get; set; }
         public DateTime BetTime { get; set; }
+
+        public virtual Match Match { get; set; }
+        public virtual Team Team { get; set; }
+        public virtual User User { get; set; } // Relacionamento com User
+        public bool Claimed { get; set; }
+        public DateTime? ClaimedAt { get; set; }
     }
+
 
 }

@@ -44,7 +44,7 @@ namespace BLL.NFTFutebol
                 {
                     TeamAId = teamA.TeamId,
                     TeamBId = teamB.TeamId,
-                    StartTime = DateTime.UtcNow,
+                    StartTime = null,
                     Status = MatchStatus.Pending,
                     ScoreA = scoreA,
                     ScoreB = scoreB
@@ -77,7 +77,7 @@ namespace BLL.NFTFutebol
         }
 
         // Método para registrar a aposta
-        public async Task<bool> PlaceBetAsync(int matchId, int teamId, decimal amount)
+        public async Task<bool> PlaceBetAsync(int matchId, int teamId, decimal amount, int userid)
         {
             try
             {
@@ -85,14 +85,17 @@ namespace BLL.NFTFutebol
                 {
                     MatchId = matchId,
                     TeamId = teamId,
+                    UserId = userid,
                     Amount = amount,
+                    Claimed = false,
+                    ClaimedAt = null,
                     BetTime = DateTime.UtcNow
                 };
                 _context.Bet.Add(bet);
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch(Exception ex)
             {
                 return false;
             }
@@ -110,6 +113,7 @@ namespace BLL.NFTFutebol
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .ToListAsync();
         }
+
         // Método para buscar as três partidas mais recentes
         public async Task<List<Match>> GetRecentMatchesAsync(int count)
         {
@@ -120,6 +124,13 @@ namespace BLL.NFTFutebol
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .ToListAsync();
         }
+        public async Task<decimal> GetTotalBetAmountByTeamAsync(int teamId)
+        {
+            return await _context.Bet
+                .Where(b => b.TeamId == teamId)
+                .SumAsync(b => b.Amount);
+        }
+
         // Método para salvar ou atualizar moedas e retornar instâncias com IDs válidos
         public async Task<List<Currency>> SaveCurrenciesAsync(List<Crypto> topGainers)
         {
@@ -188,6 +199,91 @@ namespace BLL.NFTFutebol
         {
             return await _context.Currency.FirstOrDefaultAsync(c => c.Symbol == symbol);
         }
+        // No MatchService, crie algo assim:
+        public async Task<Match> GetMatchByIdAsync(int matchId)
+        {
+            // Implemente aqui a lógica para obter a partida pelo ID do banco de dados.
+            // Por exemplo:
+            return await _context.Match
+                                 .Include(m => m.TeamA)
+                                 .Include(m => m.TeamB)
+                                 .FirstOrDefaultAsync(m => m.MatchId == matchId);
+        }
+        public async Task<List<Bet>> GetUserBetsByMatchAsync(int matchId, int userId)
+        {
+            return await _context.Bet
+                .Where(b => b.MatchId == matchId && b.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<bool> ClaimBetAsync(int betId, int userId)
+        {
+            // Carrega a aposta junto com o match, times e usuário
+            var bet = await _context.Bet
+                .Include(b => b.Match)
+                    .ThenInclude(m => m.TeamA)
+                .Include(b => b.Match)
+                    .ThenInclude(m => m.TeamB)
+                .Include(b => b.User)
+                .FirstOrDefaultAsync(b => b.BetId == betId);
+
+            if (bet == null)
+                return false;
+
+            // Verifica se a aposta pertence ao usuário que solicita o claim
+            if (bet.UserId != userId)
+                return false;
+
+            // Verifica se a partida está encerrada
+            // Supondo que o campo 'Status' da Match indica o estado (Ended, Ongoing, etc.)
+            if (bet.Match.Status != MatchStatus.Completed)
+                return false;
+
+            // Determina o time vencedor
+            int? winningTeamId = null;
+            if (bet.Match.ScoreA > bet.Match.ScoreB)
+            {
+                winningTeamId = bet.Match.TeamAId;
+            }
+            else if (bet.Match.ScoreB > bet.Match.ScoreA)
+            {
+                winningTeamId = bet.Match.TeamBId;
+            }
+            else
+            {
+                // Empate - Defina a sua política para empates
+                // Por exemplo, não pagar nada.
+                return false;
+            }
+
+            // Verifica se a aposta já foi reivindicada
+            // (Supondo que você adicionou campos Claimed e ClaimedAt na tabela Bet)
+            if (bet.Claimed)
+                return false;
+
+            // Se o usuário apostou no time vencedor, calcula o payout
+            if (bet.TeamId == winningTeamId)
+            {
+                // Ajuste a lógica do payout conforme suas regras
+                // Aqui, apenas dobrando o valor apostado
+                var payout = bet.Amount * 2;
+
+                // Atualiza o saldo do usuário
+                // Supondo que a classe User possua um campo Balance (decimal)
+                bet.User.Balance += payout;
+
+                // Marca a aposta como reivindicada
+                bet.Claimed = true;
+                bet.ClaimedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            // Caso o usuário não tenha apostado no time vencedor, não há payout
+            return false;
+        }
+
 
         // Atualizar moeda
         public async Task UpdateCurrencyAsync(Currency currency)
@@ -204,6 +300,18 @@ namespace BLL.NFTFutebol
 
             match.Status = MatchStatus.Ongoing;
             await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateMatchScoreAsync(int matchId, int scoreA, int scoreB)
+        {
+            
+            var m = await _context.Match.FindAsync(matchId);
+            if (m != null)
+            {
+                m.ScoreA = scoreA;
+                m.ScoreB = scoreB;
+                await _context.SaveChangesAsync();
+            }
         }
 
         // Método para finalizar uma partida
@@ -263,7 +371,7 @@ namespace BLL.NFTFutebol
                 foreach (var bet in match.Bets)
                 {
                     // Retorna o valor apostado ao jogador
-                    Console.WriteLine($"Devolvendo {bet.Amount} ao jogador {bet.PlayerId}");
+                    Console.WriteLine($"Devolvendo {bet.Amount} ao jogador {bet.UserId}");
                     // Implementar lógica de devolução
                 }
             }
@@ -277,7 +385,7 @@ namespace BLL.NFTFutebol
                     var payout = (bet.Amount / totalWinningBets) * payoutPool;
 
                     // Simulação de pagamento ao apostador
-                    Console.WriteLine($"Pagando {payout} ao jogador {bet.PlayerId}");
+                    Console.WriteLine($"Pagando {payout} ao jogador {bet.UserId}");
                     // Implementar lógica de pagamento
                 }
             }
@@ -297,6 +405,55 @@ namespace BLL.NFTFutebol
             _context.Currency.Update(currency);
             await _context.SaveChangesAsync();
         }
+        // Método para atualizar o status e o horário de início de uma partida
+        public async Task<bool> UpdateMatchStatusAndStartTimeAsync(int matchId, MatchStatus newStatus, DateTime startTime)
+        {
+            try
+            {
+                var match = await _context.Match.FindAsync(matchId);
+                if (match == null)
+                {
+                    throw new Exception("Match not found.");
+                }
+
+                match.Status = newStatus;
+                match.StartTime = startTime;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating match status and start time: {ex.Message}");
+                return false;
+            }
+        }
+        // Método para contar as apostas por time
+        public async Task<int> GetBetCountByTeamAsync(int teamId)
+        {
+            return await _context.Bet.CountAsync(b => b.TeamId == teamId);
+        }
+        // Método para atualizar o status de uma partida
+        public async Task<bool> UpdateMatchStatusAsync(int matchId, MatchStatus newStatus)
+        {
+            try
+            {
+                var match = await _context.Match.FindAsync(matchId);
+                if (match == null)
+                {
+                    throw new Exception("Match not found.");
+                }
+
+                match.Status = newStatus;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating match status: {ex.Message}");
+                return false;
+            }
+        }
+
 
         // Método para obter partidas em andamento
         public async Task<List<Match>> GetOngoingMatchesAsync()

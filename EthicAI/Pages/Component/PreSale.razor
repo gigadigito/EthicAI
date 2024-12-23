@@ -127,7 +127,6 @@
             {
                 _Wallet = storedUser.Wallet;
                 _Name = storedUser.Name;
-
                 purchases = await PreSaleService.GetPurchasesByWalletAsync(_Wallet);
             }
 
