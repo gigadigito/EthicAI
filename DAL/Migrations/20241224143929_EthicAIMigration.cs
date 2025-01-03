@@ -173,6 +173,7 @@ namespace DAL.Migrations
                     cd_match = table.Column<int>(type: "int", nullable: false),
                     cd_team = table.Column<int>(type: "int", nullable: false),
                     cd_user = table.Column<int>(type: "int", nullable: false),
+                    nr_position = table.Column<int>(type: "int", nullable: false),
                     nr_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     dt_bet_time = table.Column<DateTime>(type: "datetime", nullable: false),
                     is_claimed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),

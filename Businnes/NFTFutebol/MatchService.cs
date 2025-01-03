@@ -106,7 +106,7 @@ namespace BLL.NFTFutebol
         public async Task<List<Match>> GetUpcomingPendingMatchesAsync(int count)
         {
             return await _context.Match
-                .Where(m => m.Status == MatchStatus.Pending)
+                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
                 .OrderBy(m => m.StartTime) // Ordena pela data de início mais próxima
                 .Take(count)
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
@@ -199,6 +199,7 @@ namespace BLL.NFTFutebol
         {
             return await _context.Currency.FirstOrDefaultAsync(c => c.Symbol == symbol);
         }
+
         // No MatchService, crie algo assim:
         public async Task<Match> GetMatchByIdAsync(int matchId)
         {
@@ -211,8 +212,15 @@ namespace BLL.NFTFutebol
         }
         public async Task<List<Bet>> GetUserBetsByMatchAsync(int matchId, int userId)
         {
-            return await _context.Bet
+            return await _context.Bet.Include(x=>x.User)
                 .Where(b => b.MatchId == matchId && b.UserId == userId)
+                .ToListAsync();
+        }
+
+        public async Task<List<Bet>> GetBetsByMatchAsync(int matchId)
+        {
+            return await _context.Bet
+                .Where(b => b.MatchId == matchId)
                 .ToListAsync();
         }
 

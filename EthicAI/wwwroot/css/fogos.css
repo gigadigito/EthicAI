@@ -1,0 +1,140 @@
+﻿@keyframes fogos {
+  0% { transform: translate(var(--x), var(--initialY)); width: var(--initialSize); opacity: 1; }
+  50% { width: 0.5vmin; opacity: 1; }
+  100% { width: var(--finalSize); opacity: 0; }
+}
+
+/* @keyframes fogosPseudo {
+  0% { transform: translate(-50%, -50%); width: var(--initialSize); opacity: 1; }
+  50% { width: 0.5vmin; opacity: 1; }
+  100% { width: var(--finalSize); opacity: 0; }
+}
+
+
+ */
+
+.team-section {
+    position: relative; /* Para tornar o contêiner pai do fogos */
+    overflow: hidden; /* Para garantir que os fogos fiquem dentro do contêiner */
+}
+
+.fogos,
+.fogos::before,
+.fogos::after {
+    --initialSize: 0.5vmin;
+    --finalSize: 22vmin; /* Ajuste do tamanho final para caber no contêiner */
+    --particleSize: 0.2vmin;
+    --color1: #FFFFE0;
+    --color2: #FAEBD7;
+    --color3: #D2B48C;
+    --color4: #FFFACD;
+    --color5: #7B68EE;
+    --color6: #B0E0E6;
+    --y: -30vmin;
+    --x: -50%;
+    --initialY: 60vmin;
+    content: "";
+    animation: fogos 4s infinite;
+    position: absolute;
+    top: 50%; /* Ajuste para centralizar */
+    left: 50%;
+    transform: translate(-50%, var(--y));
+    width: var(--initialSize);
+    aspect-ratio: 1;
+    background:
+    /*
+    radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 0% 0%,
+    radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 100% 0%,
+    radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 100% 100%,
+    radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 0% 100%,
+    */
+    radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 50% 0%, radial-gradient(circle, var(--color2) var(--particleSize), #0000 0) 100% 50%, radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 50% 100%, radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 0% 50%,
+    /* bottom right */
+    radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 80% 90%, radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 95% 90%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 90% 70%, radial-gradient(circle, var(--color2) var(--particleSize), #0000 0) 100% 60%, radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 55% 80%, radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 70% 77%,
+    /* bottom left */
+    radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 22% 90%, radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 45% 90%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 33% 70%, radial-gradient(circle, var(--color2) var(--particleSize), #0000 0) 10% 60%, radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 31% 80%, radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 28% 77%, radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 13% 72%,
+    /* top left */
+    radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 80% 10%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 95% 14%, radial-gradient(circle, var(--color2) var(--particleSize), #0000 0) 90% 23%, radial-gradient(circle, var(--color3) var(--particleSize), #0000 0) 100% 43%, radial-gradient(circle, var(--color4) var(--particleSize), #0000 0) 85% 27%, radial-gradient(circle, var(--color5) var(--particleSize), #0000 0) 77% 37%, radial-gradient(circle, var(--color6) var(--particleSize), #0000 0) 60% 7%,
+    /* top right */
+    radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 22% 14%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 45% 20%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 33% 34%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 10% 29%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 31% 37%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 28% 7%, radial-gradient(circle, var(--color1) var(--particleSize), #0000 0) 13% 42%;
+    background-size: var(--initialSize) var(--initialSize);
+    background-repeat: no-repeat;
+}
+
+.fogos::before {
+  --x: -50%;
+  --y: -50%;
+  --initialY: -50%;
+/*   transform: translate(-20vmin, -2vmin) rotate(40deg) scale(1.3) rotateY(40deg); */
+  transform: translate(-50%, -50%) rotate(40deg) scale(2) rotateY(40deg);
+   animation: fogosPseudo 20s infinite; 
+}
+
+.fogos::after {
+  --x: -50%;
+  --y: -50%;
+  --initialY: -50%;
+ /*  transform: translate(44vmin, -50%) rotate(170deg) scale(1.15) rotateY(-30deg); */
+  transform: translate(-50%, -50%) rotate(170deg) scale(.9) rotateY(-30deg); 
+   animation: fogosPseudo 20s infinite; 
+}
+
+.fogos:nth-child(2) {
+  --x: 30vmin;
+}
+
+.fogos:nth-child(2),
+.fogos:nth-child(2)::before,
+.fogos:nth-child(2)::after {
+  --color1: pink;
+  --color2: violet;
+  --color3: fuchsia;
+  --color4: orchid;
+  --color5: plum;
+  --color6: lavender;  
+  --finalSize: 40vmin;
+  left: 30%;
+  top: 60%;
+  animation-delay: -2s;
+}
+
+.fogos:nth-child(3) {
+  --x: -5vmin;
+  --y: -10vmin;
+}
+
+.fogos:nth-child(3),
+.fogos:nth-child(3)::before,
+.fogos:nth-child(3)::after {
+  --color1: #AFEEEE;
+  --color2: #40E0D0;
+  --color3: #87CEFA;
+  --color4: #708090;
+  --color5: #E0FFFF;
+  --color6: #E6E6FA;
+  --finalSize: 35vmin;
+  left: 70%;
+  top: 60%;
+  animation-delay: -10s;
+}
+
+
+.fogos:nth-child(4) {
+  --x: -5vmin;
+  --y: -2vmin;
+}
+
+.fogos:nth-child(4),
+.fogos:nth-child(4)::before,
+.fogos:nth-child(4)::after {
+  --color1: #fff;
+  --color2: #bbb;
+  --color3: #ccc;
+  --color4: #ccc;
+  --color5: #bbb;
+  --color6: #fff;
+  --finalSize: 100vmin;
+  left: 20%;
+  top: 20%;
+  animation-delay: -10s;
+}

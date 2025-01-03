@@ -27,7 +27,7 @@ else
 {
     <div class="game-container container">
         <div class="scoreboard">
-            <div class="team-section">
+            <div class="team-section @(isMatchEnded && teamAScore > teamBScore ? "winner" : "")">
                 <img class="team-logo" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
                 <div class="team-info">
                     <span class="team-name">@match.TeamA.Currency.Name ($@teamACurrentValue.ToString("F5", new CultureInfo("en-US")))</span>
@@ -44,6 +44,15 @@ else
                 {
                     <button class="btn-bet" @onclick="() => OpenBetModalAsync(match.TeamAId)">Join</button>
                 }
+
+                @if (isMatchEnded && teamAScore > teamBScore)
+                {
+                    <div class="fogos"></div>
+                    <div class="fogos"></div>
+                    <div class="fogos"></div>
+                    <div class="fogos"></div>
+                }
+
             </div>
 
             <div class="vs-section">
@@ -57,7 +66,7 @@ else
                 <span class="total-bets"> @((teamABetsTotal + teamBBetsTotal).ToString("F2", new CultureInfo("en-US"))) SOL</span>
             </div>
 
-            <div class="team-section">
+            <div class="team-section @(isMatchEnded && teamBScore > teamAScore ? "winner" : "")">
                 <img class="team-logo" src="/assets/images/crypto_images/@(match.TeamB.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamB.Currency.Name">
                 <div class="team-info">
                     <span class="team-name">@match.TeamB.Currency.Name ($@teamBCurrentValue.ToString("F5", new CultureInfo("en-US")))</span>
@@ -73,6 +82,13 @@ else
                 @if (isCanBet)
                 {
                     <button class="btn-bet" @onclick="() => OpenBetModalAsync(match.TeamBId)">Join</button>
+                }
+                @if (isMatchEnded && teamBScore > teamAScore)
+                {
+                    <div class="fogos"></div>
+                    <div class="fogos"></div>
+                    <div class="fogos"></div>
+                    <div class="fogos"></div>
                 }
             </div>
         </div>
@@ -124,22 +140,22 @@ else
     </div>
     @if (isMatchEnded)
     {
-        <h3>Sua(s) Aposta(s) na Partida Encerrada</h3>
-
         @if (userBets != null && userBets.Count > 0)
         {
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Time Apostado</th>
-                        <th>Valor Apostado (SOL)</th>
-                        <th>Ações</th>
+                        <th>Wallet</th>
+                        <th>Team bet</th>
+                        <th>bet (SOL)</th>
+                        <th> - </th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var bet in userBets)
                     {
                         <tr>
+                            <td>@bet.User?.Wallet</td>
                             <td>@(bet.TeamId == match.TeamAId ? match.TeamA.Currency.Name : match.TeamB.Currency.Name)</td>
                             <td>@bet.Amount.ToString("F2", CultureInfo.InvariantCulture)</td>
                             <td>
@@ -304,7 +320,8 @@ else
     private int selectedTeamId = 0;
     private bool showModal = false;
     private User storedUser;
-    private List<Bet> userBets; // Caso você precise listar as apostas
+    private List<Bet> userBets; 
+    private List<Bet> matchBets; 
     private string betAmountString = "0.01";
 
     private void SetBetAmount(decimal amount)
@@ -327,14 +344,16 @@ else
             betStatusMessage = "Valor inválido. Insira um número válido.";
         }
     }
-
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool first)
     {
-
         if (storedUser == null)
         {
             storedUser = await sessionStorage.GetItemAsync<User>("User");
         }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
 
         betAmount = 0.01m;
         await LoadMatchData();
@@ -343,8 +362,9 @@ else
         {
             await InitializeCoinValues();
             LoadInitialScores();
-            StartGameTimer();
+             StartGameTimer();
         }
+       
     }
 
 
@@ -414,7 +434,7 @@ else
         // Atribua agora os valores locais para as variáveis de instância da classe:
         this.teamAScore = teamAScore;
         this.teamBScore = teamBScore;
-     
+
     }
 
 
@@ -635,6 +655,13 @@ else
 
     private async void StartGameTimer()
     {
+        if (storedUser != null)
+        {
+            userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
+        }
+
+        matchBets = await MatchService.GetBetsByMatchAsync(match.MatchId);
+
         if (match.StartTime == null || match.EndTime == null)
         {
             isCanBet = false;
@@ -665,8 +692,13 @@ else
             {
                 userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
             }
-            InvokeAsync(StateHasChanged);
+
+           
+
+            await InvokeAsync(StateHasChanged);
+            
             gameTimer?.Dispose();
+            
             return;
         }
 
@@ -790,8 +822,8 @@ else
         }
     }
 
-    public void Dispose()
+   @*  public void Dispose()
     {
         gameTimer?.Dispose();
-    }
+    } *@
 }

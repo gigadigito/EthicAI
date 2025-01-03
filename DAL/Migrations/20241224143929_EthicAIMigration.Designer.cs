@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    [Migration("20241223135214_EthicAIMigration")]
+    [Migration("20241224143929_EthicAIMigration")]
     partial class EthicAIMigration
     {
         /// <inheritdoc />
@@ -21,7 +21,8 @@ namespace DAL.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.8")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 128)
+                .HasAnnotation("TriggerCreation", "\r\n                CREATE OR ALTER TRIGGER trg_UpdateBetPosition\r\n                ON [dbo].[bet]\r\n                AFTER INSERT\r\n                AS\r\n                BEGIN\r\n                    WITH RankedBets AS (\r\n                        SELECT\r\n                            cd_bet,\r\n                            ROW_NUMBER() OVER (\r\n                                PARTITION BY cd_match, cd_team\r\n                                ORDER BY dt_bet_time\r\n                            ) AS Position\r\n                        FROM [dbo].[bet]\r\n                    )\r\n                    UPDATE b\r\n                    SET nr_position = rb.Position\r\n                    FROM [dbo].[bet] b\r\n                    INNER JOIN RankedBets rb\r\n                    ON b.cd_bet = rb.cd_bet\r\n                    WHERE b.nr_position IS NULL;\r\n                END\r\n            ");
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
@@ -55,6 +56,10 @@ namespace DAL.Migrations
                     b.Property<int>("MatchId")
                         .HasColumnType("int")
                         .HasColumnName("cd_match");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int")
+                        .HasColumnName("nr_position");
 
                     b.Property<int>("TeamId")
                         .HasColumnType("int")

@@ -82,7 +82,7 @@ else
 
             var topGainers = response
                .Where(c => c.Symbol.EndsWith("USDT"))
-               .OrderByDescending(c => decimal.TryParse(c.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent) ? percent : 0)
+               .OrderByDescending(c => c.PriceChangePercent)
                .Take(6)
                .ToList();
 

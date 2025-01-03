@@ -177,6 +177,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)").HasColumnName("nr_amount");
                 entity.Property(e => e.BetTime).HasColumnType("datetime").HasColumnName("dt_bet_time");
 
+                entity.Property(e => e.Position).HasColumnName("nr_position"); // Nova coluna
                 // Novos campos: Claimed e ClaimedAt
                 entity.Property(e => e.Claimed)
                       .HasColumnName("is_claimed")
@@ -218,6 +219,7 @@ namespace EthicAI.EntityModel
                       new PostCategory { Id = 5, Name = "Business" }
             );
 
+           // SeedTriggers();
 
             // Adiciona posts gerados do PostSeedData
             //var posts = PostSeedDatax.GetPosts();
@@ -231,10 +233,43 @@ namespace EthicAI.EntityModel
             //        post.PostDate,
             //        post.PostCategoryId
             //    });
-                
+
             //}
 
         }
+        //private void SeedTriggers()
+        //{
+        //    using (var connection = Database.GetDbConnection())
+        //    {
+        //        connection.Open(); // Certifique-se de que a conexão está aberta
+        //        using (var command = connection.CreateCommand())
+        //        {
+        //            command.CommandText = @"
+        //        CREATE OR ALTER TRIGGER trg_UpdateBetPosition
+        //        ON [dbo].[bet]
+        //        AFTER INSERT
+        //        AS
+        //        BEGIN
+        //            WITH RankedBets AS (
+        //                SELECT
+        //                    cd_bet,
+        //                    ROW_NUMBER() OVER (
+        //                        PARTITION BY cd_match, cd_team
+        //                        ORDER BY dt_bet_time
+        //                    ) AS Position
+        //                FROM [dbo].[bet]
+        //            )
+        //            UPDATE b
+        //            SET nr_position = rb.Position
+        //            FROM [dbo].[bet] b
+        //            INNER JOIN RankedBets rb
+        //            ON b.cd_bet = rb.cd_bet
+        //            WHERE b.nr_position IS NULL;
+        //        END";
+        //            command.ExecuteNonQuery();
+        //        }
+        //    }
+        //}
 
     }
 }
