@@ -24,6 +24,7 @@ builder.Services.AddMetaMaskBlazor();
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddBlazoredToast();
 
+
 // Adicione o serviço de configuração
 builder.Configuration.AddJsonFile("appsettings.json");
 

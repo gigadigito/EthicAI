@@ -12,7 +12,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject IJSRuntime JS
 @inject UserService userService
-
+@using Blazored.Toast.Configuration
 <h2 class="title">⚽ NFT CriptoFut - Arena Binance</h2>
 
 @if (!string.IsNullOrEmpty(errorMessage))
@@ -137,17 +137,18 @@ else
             }
         }
 
-    </div>
+    
     @if (isMatchEnded)
     {
         @if (userBets != null && userBets.Count > 0)
         {
-            <table class="table">
-                <thead>
+                <table class="table table-dark table-striped">
+                <thead class="table-dark">
                     <tr>
                         <th>Wallet</th>
                         <th>Team bet</th>
                         <th>bet (SOL)</th>
+                        <th>Result</th>
                         <th> - </th>
                     </tr>
                 </thead>
@@ -158,8 +159,30 @@ else
                             <td>@bet.User?.Wallet</td>
                             <td>@(bet.TeamId == match.TeamAId ? match.TeamA.Currency.Name : match.TeamB.Currency.Name)</td>
                             <td>@bet.Amount.ToString("F2", CultureInfo.InvariantCulture)</td>
+                                <td>
+                                    @{
+                                        var scoreA = bet.Match.ScoreA;
+                                        var scoreB = bet.Match.ScoreB;
+                                        var teamAId = bet.Match.TeamAId;
+                                        var teamBId = bet.Match.TeamBId;
+                                        var betTeamId = bet.TeamId;
+                                        string result;
+
+                                        if (scoreA == scoreB)
+                                        {
+                                            result = "Draw game";
+                                        }
+                                        else
+                                        {
+                                            var winningTeamId = scoreA > scoreB ? teamAId : teamBId;
+                                            result = (betTeamId == winningTeamId) ? "You won!" : "You lost!";
+                                        }
+                                    }
+                                    <b>@result</b>
+                                </td>
+
                             <td>
-                                <button class="btn btn-primary" @onclick="() => ClaimBet(bet.BetId)">Claim</button>
+                                <button class="btn btn-primary" type="button" @onclick="() => ClaimBet(bet.BetId)">Claim</button>
                             </td>
                         </tr>
                     }
@@ -171,14 +194,28 @@ else
             <p>Você não fez nenhuma aposta nessa partida.</p>
         }
     }
-
+    </div>
 }
-
+<Blazored.Toast.BlazoredToast ToastId="@Guid.NewGuid()" Settings="toastSettings" />
 <style>
 
 </style>
 
 @code {
+
+    private ToastSettings toastSettings = new ToastSettings(
+    additionalClasses: "",
+    iconType: null,
+    icon: "",
+    showProgressBar: true,
+    showCloseButton: false, // <- Desativa o botão
+    onClick: null,
+    timeout: 5000,
+    disableTimeout: false,
+    pauseProgressOnHover: true,
+    extendedTimeout: 1000,
+    toastPosition: ToastPosition.TopRight
+    );
     private bool isMatchEnded = false;
     <!-- 4. Métodos para abrir e fechar a modal, e confirmar a aposta -->
     private async void OpenBetModalAsync(int teamId)
@@ -196,6 +233,11 @@ else
             betStatusMessage = "Usuário não logado ou carteira não conectada.";
         }
     }
+    private async Task ShowToast(string message, string type)
+    {
+        await JS.InvokeVoidAsync("html5Toast.show", message, type, 4000);
+    }
+
     private async Task ClaimBet(int betId)
     {
         try
@@ -203,20 +245,20 @@ else
             var result = await MatchService.ClaimBetAsync(betId, storedUser.UserID);
             if (result)
             {
-                ToastService.ShowSuccess("Claim realizado com sucesso!");
-                // Atualize a lista de apostas
+                await JS.InvokeVoidAsync("html5Toast.show", "Claim realizado com sucesso!", "success", 4000);
                 await LoadUserBets();
             }
             else
             {
-                ToastService.ShowError("Não foi possível realizar o claim. Verifique se a aposta já foi reivindicada ou se você tem direito aos fundos.");
+                await JS.InvokeVoidAsync("html5Toast.show", "Não foi possível realizar o claim. Verifique se a aposta já foi reivindicada ou se você tem direito aos fundos.", "error", 4000);
             }
         }
         catch (Exception ex)
         {
-            ToastService.ShowError($"Erro ao fazer claim: {ex.Message}");
+            await JS.InvokeVoidAsync("html5Toast.show", $"Erro ao fazer claim: {ex.Message}", "error", 4000);
         }
     }
+
     private async Task LoadUserBets()
     {
         if (storedUser == null)

@@ -210,7 +210,7 @@ namespace BLL.NFTFutebol
                                  .Include(m => m.TeamB)
                                  .FirstOrDefaultAsync(m => m.MatchId == matchId);
         }
-        public async Task<List<Bet>> GetUserBetsByMatchAsync(int matchId, int userId)
+       public async Task<List<Bet>> GetUserBetsByMatchAsync(int matchId, int userId)
         {
             return await _context.Bet.Include(x=>x.User)
                 .Where(b => b.MatchId == matchId && b.UserId == userId)
@@ -244,42 +244,35 @@ namespace BLL.NFTFutebol
 
             // Verifica se a partida está encerrada
             // Supondo que o campo 'Status' da Match indica o estado (Ended, Ongoing, etc.)
-            if (bet.Match.Status != MatchStatus.Completed)
-                return false;
 
-            // Determina o time vencedor
-            int? winningTeamId = null;
-            if (bet.Match.ScoreA > bet.Match.ScoreB)
-            {
-                winningTeamId = bet.Match.TeamAId;
-            }
-            else if (bet.Match.ScoreB > bet.Match.ScoreA)
-            {
-                winningTeamId = bet.Match.TeamBId;
-            }
-            else
-            {
-                // Empate - Defina a sua política para empates
-                // Por exemplo, não pagar nada.
-                return false;
-            }
+            //TODO : Partida encerrada não esta setando o status Completed.
+            //if (bet.Match.Status != MatchStatus.Completed)
+            //    return false;
+
+            //// Determina o time vencedor
+            //int? winningTeamId = null;
+            //if (bet.Match.ScoreA > bet.Match.ScoreB)
+            //{
+            //    winningTeamId = bet.Match.TeamAId;
+            //}
+            //else if (bet.Match.ScoreB > bet.Match.ScoreA)
+            //{
+            //    winningTeamId = bet.Match.TeamBId;
+            //}
+            //else
+            //{
+            //    // Empate - Defina a sua política para empates
+            //    // Por exemplo, não pagar nada.
+            //    return false;
+            //}
 
             // Verifica se a aposta já foi reivindicada
             // (Supondo que você adicionou campos Claimed e ClaimedAt na tabela Bet)
+            
             if (bet.Claimed)
                 return false;
 
-            // Se o usuário apostou no time vencedor, calcula o payout
-            if (bet.TeamId == winningTeamId)
-            {
-                // Ajuste a lógica do payout conforme suas regras
-                // Aqui, apenas dobrando o valor apostado
-                var payout = bet.Amount * 2;
-
-                // Atualiza o saldo do usuário
-                // Supondo que a classe User possua um campo Balance (decimal)
-                bet.User.Balance += payout;
-
+               
                 // Marca a aposta como reivindicada
                 bet.Claimed = true;
                 bet.ClaimedAt = DateTime.UtcNow;
@@ -288,9 +281,8 @@ namespace BLL.NFTFutebol
                 return true;
             }
 
-            // Caso o usuário não tenha apostado no time vencedor, não há payout
-            return false;
-        }
+           
+        
 
 
         // Atualizar moeda

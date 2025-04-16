@@ -62,7 +62,57 @@
     <link href="/css/crypito-fut.css" rel="stylesheet" />
 
     <link href="/css/fogos.css" rel="stylesheet" />
+    <style>
 
+        @@keyframes slide-in {
+          from {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 0.95;
+          }
+        }
+
+        @@keyframes slide-out {
+          from {
+            transform: translateX(0);
+            opacity: 0.95;
+          }
+          to {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+        }
+        .toast-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 200px;
+            max-width: 300px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            z-index: 9999;
+            opacity: 0.95;
+            box-shadow: 0 0 12px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .toast-success {
+            background-color: #28a745;
+        }
+
+        .toast-error {
+            background-color: #dc3545;
+        }
+
+        .toast-info {
+            background-color: #17a2b8;
+        }
+    </style>
     <!-- END: Styles -->
     <!-- jQuery -->
     <script src="/assets/vendor/jquery/dist/jquery.min.js"></script>
@@ -452,7 +502,9 @@
 
     @Body
 
-
+    <div id="html5-toast" class="toast-message" style="display:none;">
+        <span id="html5-toast-text"></span>
+    </div>
 
     <!-- START: Footer -->
     <footer class="nk-footer">
