@@ -15,5 +15,6 @@ solicitar_wallet = function (a) {
 
  }
 
-//alert("carregou Wallet");
+
+
 

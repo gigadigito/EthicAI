@@ -13,7 +13,7 @@
 @inject IJSRuntime JS
 @inject UserService userService
 @using Blazored.Toast.Configuration
-<h2 class="title">⚽ NFT CriptoFut - Arena Binance</h2>
+
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
@@ -26,6 +26,7 @@ else if (match == null)
 else
 {
     <div class="game-container container">
+        <h2 class="title bg-white">⚽ NFT CriptoFut - Arena Binance</h2>
         <div class="scoreboard">
             <div class="team-section @(isMatchEnded && teamAScore > teamBScore ? "winner" : "")">
                 <img class="team-logo" src="/assets/images/crypto_images/@(match.TeamA.Currency.Symbol.ToLower().Replace("usdt", "")).png" alt="@match.TeamA.Currency.Name">
@@ -191,33 +192,21 @@ else
         }
         else
         {
-            <p>Você não fez nenhuma aposta nessa partida.</p>
+            <p>Não há apostas para esta partida.</p>
         }
     }
     </div>
 }
-<Blazored.Toast.BlazoredToast ToastId="@Guid.NewGuid()" Settings="toastSettings" />
+<button class="btn btn-primary" @onclick="ClaimOnChain">Claim via Solana</button>
+
 <style>
 
 </style>
 
 @code {
 
-    private ToastSettings toastSettings = new ToastSettings(
-    additionalClasses: "",
-    iconType: null,
-    icon: "",
-    showProgressBar: true,
-    showCloseButton: false, // <- Desativa o botão
-    onClick: null,
-    timeout: 5000,
-    disableTimeout: false,
-    pauseProgressOnHover: true,
-    extendedTimeout: 1000,
-    toastPosition: ToastPosition.TopRight
-    );
     private bool isMatchEnded = false;
-    <!-- 4. Métodos para abrir e fechar a modal, e confirmar a aposta -->
+  
     private async void OpenBetModalAsync(int teamId)
     {
         await GetUserWallet();
@@ -233,16 +222,69 @@ else
             betStatusMessage = "Usuário não logado ou carteira não conectada.";
         }
     }
+
     private async Task ShowToast(string message, string type)
     {
         await JS.InvokeVoidAsync("html5Toast.show", message, type, 4000);
     }
+    public class SolanaSignedMessage
+    {
+        public string PublicKey { get; set; } = "";
+        public string Signature { get; set; } = "";
+    }
 
+    private async Task ClaimOnChain()
+    {
+        try
+        {
+            var tx = await JS.InvokeAsync<string>("ethicaiClaim");
+            await JS.InvokeVoidAsync("html5Toast.show", $"Claim enviado! Tx: {tx}", "success", 5000);
+        }
+        catch (JSException jsEx)
+        {
+            if (jsEx.Message.Contains("does not exist") || jsEx.Message.Contains("not found"))
+            {
+                await JS.InvokeVoidAsync("html5Toast.show", "Você ainda não realizou uma aposta (place_bet).", "warning", 5000);
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("html5Toast.show", $"Erro: {jsEx.Message}", "error", 5000);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("html5Toast.show", $"Erro inesperado: {ex.Message}", "error", 5000);
+        }
+    }
+
+    
     private async Task ClaimBet(int betId)
     {
         try
         {
+            var message = $"Claim - Confirme que a carteira é sua para a aposta #{betId} - ID:  {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+
+
+            var signed = await JS.InvokeAsync<SolanaSignedMessage>("signMessageWithSolana", message);
+
+            if (string.IsNullOrEmpty(signed.PublicKey) || string.IsNullOrEmpty(signed.Signature))
+            {
+                await JS.InvokeVoidAsync("html5Toast.show", "Assinatura inválida ou cancelada.", "error", 4000);
+                return;
+            }
+
+            // Valida se a carteira usada é a mesma do usuário
+            if (!string.Equals(signed.PublicKey, storedUser.Wallet, StringComparison.OrdinalIgnoreCase))
+            {
+                await JS.InvokeVoidAsync("html5Toast.show", "Essa carteira não corresponde à aposta registrada.", "error", 4000);
+                return;
+            }
+
+            // Aqui você pode opcionalmente verificar a assinatura no backend no futuro
+
+            // Se passou, chama o Claim
             var result = await MatchService.ClaimBetAsync(betId, storedUser.UserID);
+
             if (result)
             {
                 await JS.InvokeVoidAsync("html5Toast.show", "Claim realizado com sucesso!", "success", 4000);
@@ -250,27 +292,21 @@ else
             }
             else
             {
-                await JS.InvokeVoidAsync("html5Toast.show", "Não foi possível realizar o claim. Verifique se a aposta já foi reivindicada ou se você tem direito aos fundos.", "error", 4000);
+                await JS.InvokeVoidAsync("html5Toast.show", "Claim falhou. Talvez já tenha sido reivindicado.", "error", 4000);
             }
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("html5Toast.show", $"Erro ao fazer claim: {ex.Message}", "error", 4000);
+            await JS.InvokeVoidAsync("html5Toast.show", $"Erro ao processar o claim: {ex.Message}", "error", 4000);
         }
     }
 
+
     private async Task LoadUserBets()
     {
-        if (storedUser == null)
-        {
-            storedUser = await sessionStorage.GetItemAsync<User>("User");
-        }
-
-        if (storedUser != null)
-        {
-            // Supondo que seu MatchService tenha algo como "GetUserBetsAsync"
-            userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
-        }
+        // Supondo que seu MatchService tenha algo como "GetUserBetsAsync"
+        userBets = await MatchService.GetBetsByMatchAsync(match.MatchId);
+       
     }
     private void CloseBetModal()
     {
@@ -697,10 +733,9 @@ else
 
     private async void StartGameTimer()
     {
-        if (storedUser != null)
-        {
-            userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
-        }
+     
+         userBets = await MatchService.GetBetsByMatchAsync(match.MatchId);
+        
 
         matchBets = await MatchService.GetBetsByMatchAsync(match.MatchId);
 
@@ -729,10 +764,11 @@ else
                 this.teamAScore = finalMatch.ScoreA;
                 this.teamBScore = finalMatch.ScoreB;
             }
+
             // Carregar as apostas do usuário logado
             if (storedUser != null)
             {
-                userBets = await MatchService.GetUserBetsByMatchAsync(match.MatchId, storedUser.UserID);
+                userBets = await MatchService.GetBetsByMatchAsync(match.MatchId);
             }
 
            
@@ -765,28 +801,7 @@ else
         }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
     }
 
-@*  private async Task ClaimBet(int betId)
-    {
-        try
-        {
-            // Chama o serviço para realizar o claim da aposta
-            var result = await MatchService.ClaimBetAsync(betId, storedUser.UserID);
-            if (result)
-            {
-                ToastService.ShowSuccess("Claim realizado com sucesso!");
-                // Atualize a lista de apostas para remover a aposta já reivindicada se necessário
-                userBets = await MatchService.Ge(match.MatchId, storedUser.UserID);
-            }
-            else
-            {
-                ToastService.ShowError("Não foi possível realizar o claim. Verifique se a aposta já foi reivindicada ou se você tem direito aos fundos.");
-            }
-        }
-        catch (Exception ex)
-        {
-            ToastService.ShowError($"Erro ao fazer claim: {ex.Message}");
-        }
-    } *@
+
 
     private async Task UpdateCoinValues()
     {

@@ -216,10 +216,10 @@ namespace BLL.NFTFutebol
                 .Where(b => b.MatchId == matchId && b.UserId == userId)
                 .ToListAsync();
         }
-
+ 
         public async Task<List<Bet>> GetBetsByMatchAsync(int matchId)
         {
-            return await _context.Bet
+            return await _context.Bet.Include(x=>x.User)
                 .Where(b => b.MatchId == matchId)
                 .ToListAsync();
         }

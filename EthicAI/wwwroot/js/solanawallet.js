@@ -34,3 +34,16 @@
         return null;
     }
 };
+window.signMessageWithSolana = async function (message) {
+    try {
+        const encodedMessage = new TextEncoder().encode(message);
+        const signed = await window.solana.signMessage(encodedMessage, "utf8");
+        return {
+            PublicKey: window.solana.publicKey.toString(),
+            Signature: btoa(String.fromCharCode(...signed.signature))
+        };
+    } catch (e) {
+        console.error("SignMessage error", e);
+        return { PublicKey: "", Signature: "" };
+    }
+};
