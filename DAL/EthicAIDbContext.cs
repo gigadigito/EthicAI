@@ -34,11 +34,11 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Name).HasMaxLength(50).HasColumnName("nm_name");
                 entity.Property(e => e.Email).HasMaxLength(254).HasColumnName("tx_email");
                 entity.Property(e => e.Wallet).IsRequired().HasMaxLength(50).HasColumnName("tx_wallet");
-                entity.Property(e => e.DtUpdate).HasColumnType("datetime").HasColumnName("dt_update");
+                entity.Property(e => e.DtUpdate).HasColumnType("timestamp").HasColumnName("dt_update");
                 entity.Property(e => e.IsHuman).HasColumnName("is_human");
                 entity.Property(e => e.HumanCaptcha).HasMaxLength(100).HasColumnName("tx_human_captcha");
-                entity.Property(e => e.DtHumanValidation).HasColumnType("datetime").HasColumnName("dt_human_validation");
-                entity.Property(e => e.LastLogin).HasColumnType("datetime").HasColumnName("dt_last_login");
+                entity.Property(e => e.DtHumanValidation).HasColumnType("timestamp").HasColumnName("dt_human_validation");
+                entity.Property(e => e.LastLogin).HasColumnType("timestamp").HasColumnName("dt_last_login");
                 entity.Property(e => e.IAName).HasMaxLength(100).HasColumnName("nm_ia");
                 entity.Property(e => e.HumanRepresentative).HasMaxLength(100).HasColumnName("nm_human_representative");
                 entity.Property(e => e.Company).HasMaxLength(100).HasColumnName("nm_company");
@@ -61,7 +61,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.UserId).IsRequired().HasColumnName("user_id");
                 entity.Property(e => e.SolAmount).HasColumnType("decimal(18, 8)").HasColumnName("sol_amount");
                 entity.Property(e => e.EthicAIAmt).HasColumnType("decimal(18, 8)").HasColumnName("ethic_ai_amount");
-                entity.Property(e => e.PurchaseDate).HasColumnType("datetime").HasColumnName("purchase_date");
+                entity.Property(e => e.PurchaseDate).HasColumnType("timestamp").HasColumnName("purchase_date");
                 entity.Property(e => e.TransactionHash).HasMaxLength(100).HasColumnName("transaction_hash");
 
                 // Configuração de relacionamento
@@ -78,9 +78,9 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(100).HasColumnName("tx_title");
                 entity.Property(e => e.Content).IsRequired().HasColumnName("tx_content");
                 entity.Property(e => e.Url).IsRequired().HasMaxLength(100).HasColumnName("tx_url");
-                entity.Property(e => e.PostDate).HasColumnType("datetime").HasColumnName("dt_post");
+                entity.Property(e => e.PostDate).HasColumnType("timestamp").HasColumnName("dt_post");
                 entity.Property(e => e.Image)
-               .HasColumnType("varbinary(max)")
+               .HasColumnType("bytea")
                .HasColumnName("aq_image");
                 entity.Property(e => e.PostCategoryId).HasColumnName("post_category_id");
 
@@ -104,8 +104,8 @@ namespace EthicAI.EntityModel
                 entity.ToTable("match");
 
                 entity.Property(e => e.MatchId).HasColumnName("cd_match");
-                entity.Property(e => e.StartTime).HasColumnType("datetime").HasColumnName("dt_start_time");
-                entity.Property(e => e.EndTime).HasColumnType("datetime").HasColumnName("dt_end_time");
+                entity.Property(e => e.StartTime).HasColumnType("timestamp").HasColumnName("dt_start_time");
+                entity.Property(e => e.EndTime).HasColumnType("timestamp").HasColumnName("dt_end_time");
 
                 entity.Property(e => e.TeamAId).HasColumnName("cd_team_a");
                 entity.Property(e => e.TeamBId).HasColumnName("cd_team_b");
@@ -161,7 +161,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
                 entity.Property(e => e.Symbol).IsRequired().HasMaxLength(50).HasColumnName("tx_symbol");
                 entity.Property(e => e.PercentageChange).HasColumnType("decimal(5, 2)").HasColumnName("nr_percentage_change");
-                entity.Property(e => e.LastUpdated).HasColumnType("datetime").HasColumnName("dt_last_updated");
+                entity.Property(e => e.LastUpdated).HasColumnType("timestamp").HasColumnName("dt_last_updated");
             });
 
 
@@ -175,7 +175,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.TeamId).HasColumnName("cd_team");
                 entity.Property(e => e.UserId).HasColumnName("cd_user");
                 entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)").HasColumnName("nr_amount");
-                entity.Property(e => e.BetTime).HasColumnType("datetime").HasColumnName("dt_bet_time");
+                entity.Property(e => e.BetTime).HasColumnType("timestamp").HasColumnName("dt_bet_time");
 
                 entity.Property(e => e.Position).HasColumnName("nr_position"); // Nova coluna
                 // Novos campos: Claimed e ClaimedAt
@@ -185,7 +185,7 @@ namespace EthicAI.EntityModel
 
                 entity.Property(e => e.ClaimedAt)
                  .HasColumnName("dt_claimed_at")
-                 .HasColumnType("datetime2")
+                 .HasColumnType("timestamp")
                  .IsRequired(false);
 
                 entity.HasOne(e => e.Match)

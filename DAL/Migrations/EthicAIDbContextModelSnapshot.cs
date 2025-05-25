@@ -3,8 +3,8 @@ using System;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -18,51 +18,51 @@ namespace DAL.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "8.0.8")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("DAL.NftFutebol.Bet", b =>
                 {
                     b.Property<int>("BetId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_bet");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BetId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BetId"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18, 2)")
                         .HasColumnName("nr_amount");
 
                     b.Property<DateTime>("BetTime")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_bet_time");
 
                     b.Property<bool>("Claimed")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_claimed");
 
                     b.Property<DateTime?>("ClaimedAt")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_claimed_at");
 
                     b.Property<int>("MatchId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_match");
 
                     b.Property<int>("Position")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nr_position");
 
                     b.Property<int>("TeamId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_team");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_user");
 
                     b.HasKey("BetId");
@@ -80,29 +80,29 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("CurrencyId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_currency");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CurrencyId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CurrencyId"));
 
                     b.Property<DateTime>("LastUpdated")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_last_updated");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("tx_name");
 
-                    b.Property<decimal>("PercentageChange")
+                    b.Property<double>("PercentageChange")
                         .HasColumnType("decimal(5, 2)")
                         .HasColumnName("nr_percentage_change");
 
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("tx_symbol");
 
                     b.HasKey("CurrencyId");
@@ -114,38 +114,38 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("MatchId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_match");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MatchId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MatchId"));
 
                     b.Property<DateTime?>("EndTime")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_end_time");
 
                     b.Property<int>("ScoreA")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nr_score_a");
 
                     b.Property<int>("ScoreB")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("nr_score_b");
 
                     b.Property<DateTime?>("StartTime")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_start_time");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("in_status");
 
                     b.Property<int>("TeamAId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_team_a");
 
                     b.Property<int>("TeamBId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_team_b");
 
                     b.HasKey("MatchId");
@@ -161,13 +161,13 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("TeamId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_team");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TeamId"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TeamId"));
 
                     b.Property<int>("CurrencyId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_currency");
 
                     b.HasKey("TeamId");
@@ -181,38 +181,38 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)")
+                        .HasColumnType("text")
                         .HasColumnName("tx_content");
 
                     b.Property<byte[]>("Image")
                         .IsRequired()
-                        .HasColumnType("varbinary(max)")
+                        .HasColumnType("bytea")
                         .HasColumnName("aq_image");
 
                     b.Property<int>("PostCategoryId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("post_category_id");
 
                     b.Property<DateTime>("PostDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_post");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("tx_title");
 
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("tx_url");
 
                     b.HasKey("Id");
@@ -225,12 +225,12 @@ namespace DAL.Migrations
             modelBuilder.Entity("DAL.PostCategory", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("tx_name");
 
                     b.HasKey("Id");
@@ -269,17 +269,17 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("id_purchase");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("EthicAIAmt")
                         .HasColumnType("decimal(18, 8)")
                         .HasColumnName("ethic_ai_amount");
 
                     b.Property<DateTime>("PurchaseDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("purchase_date");
 
                     b.Property<decimal>("SolAmount")
@@ -289,11 +289,11 @@ namespace DAL.Migrations
                     b.Property<string>("TransactionHash")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("transaction_hash");
 
                     b.Property<int>("UserId")
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
@@ -307,10 +307,10 @@ namespace DAL.Migrations
                 {
                     b.Property<int>("UserID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasColumnName("cd_user");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserID"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("UserID"));
 
                     b.Property<decimal>("Balance")
                         .ValueGeneratedOnAdd()
@@ -320,63 +320,63 @@ namespace DAL.Migrations
 
                     b.Property<string>("Company")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("nm_company");
 
                     b.Property<DateTime>("DtCreate")
-                        .HasColumnType("datetime2")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_create");
 
                     b.Property<DateTime?>("DtHumanValidation")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_human_validation");
 
                     b.Property<DateTime>("DtUpdate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_update");
 
                     b.Property<string>("Email")
                         .HasMaxLength(254)
-                        .HasColumnType("nvarchar(254)")
+                        .HasColumnType("character varying(254)")
                         .HasColumnName("tx_email");
 
                     b.Property<string>("HumanCaptcha")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("tx_human_captcha");
 
                     b.Property<string>("HumanRepresentative")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("nm_human_representative");
 
                     b.Property<string>("IAModel")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("nm_ia_model");
 
                     b.Property<string>("IAName")
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("nm_ia");
 
                     b.Property<bool?>("IsHuman")
-                        .HasColumnType("bit")
+                        .HasColumnType("boolean")
                         .HasColumnName("is_human");
 
                     b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp")
                         .HasColumnName("dt_last_login");
 
                     b.Property<string>("Name")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("nm_name");
 
                     b.Property<string>("Wallet")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("tx_wallet");
 
                     b.HasKey("UserID");

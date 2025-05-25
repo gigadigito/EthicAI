@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -17,12 +18,12 @@ namespace DAL.Migrations
                 name: "currency",
                 columns: table => new
                 {
-                    cd_currency = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    tx_name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    tx_symbol = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    nr_percentage_change = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    dt_last_updated = table.Column<DateTime>(type: "datetime", nullable: false)
+                    cd_currency = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    tx_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    tx_symbol = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    nr_percentage_change = table.Column<double>(type: "numeric(5,2)", nullable: false),
+                    dt_last_updated = table.Column<DateTime>(type: "timestamp", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -33,8 +34,8 @@ namespace DAL.Migrations
                 name: "post_category",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    tx_name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false),
+                    tx_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -45,22 +46,22 @@ namespace DAL.Migrations
                 name: "user",
                 columns: table => new
                 {
-                    cd_user = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    tx_wallet = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    nm_name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    tx_email = table.Column<string>(type: "nvarchar(254)", maxLength: 254, nullable: true),
-                    dt_update = table.Column<DateTime>(type: "datetime", nullable: false),
-                    is_human = table.Column<bool>(type: "bit", nullable: true),
-                    tx_human_captcha = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    dt_human_validation = table.Column<DateTime>(type: "datetime", nullable: true),
-                    dt_create = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    dt_last_login = table.Column<DateTime>(type: "datetime", nullable: true),
-                    nm_ia = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    nm_human_representative = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    nm_company = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    nm_ia_model = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    nr_balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m)
+                    cd_user = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    tx_wallet = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    nm_name = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    tx_email = table.Column<string>(type: "character varying(254)", maxLength: 254, nullable: true),
+                    dt_update = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    is_human = table.Column<bool>(type: "boolean", nullable: true),
+                    tx_human_captcha = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    dt_human_validation = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    dt_create = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    dt_last_login = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    nm_ia = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    nm_human_representative = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    nm_company = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    nm_ia_model = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    nr_balance = table.Column<decimal>(type: "numeric(18,2)", nullable: false, defaultValue: 0m)
                 },
                 constraints: table =>
                 {
@@ -71,9 +72,9 @@ namespace DAL.Migrations
                 name: "team",
                 columns: table => new
                 {
-                    cd_team = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    cd_currency = table.Column<int>(type: "int", nullable: false)
+                    cd_team = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    cd_currency = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -90,14 +91,14 @@ namespace DAL.Migrations
                 name: "post",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    tx_title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    tx_url = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    tx_content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    dt_post = table.Column<DateTime>(type: "datetime", nullable: false),
-                    aq_image = table.Column<byte[]>(type: "varbinary(max)", nullable: false),
-                    post_category_id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    tx_title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    tx_url = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    tx_content = table.Column<string>(type: "text", nullable: false),
+                    dt_post = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    aq_image = table.Column<byte[]>(type: "bytea", nullable: false),
+                    post_category_id = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -114,13 +115,13 @@ namespace DAL.Migrations
                 name: "pre_sale_purchase",
                 columns: table => new
                 {
-                    id_purchase = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    user_id = table.Column<int>(type: "int", nullable: false),
-                    sol_amount = table.Column<decimal>(type: "decimal(18,8)", nullable: false),
-                    ethic_ai_amount = table.Column<decimal>(type: "decimal(18,8)", nullable: false),
-                    purchase_date = table.Column<DateTime>(type: "datetime", nullable: false),
-                    transaction_hash = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    id_purchase = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    user_id = table.Column<int>(type: "integer", nullable: false),
+                    sol_amount = table.Column<decimal>(type: "numeric(18,8)", nullable: false),
+                    ethic_ai_amount = table.Column<decimal>(type: "numeric(18,8)", nullable: false),
+                    purchase_date = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    transaction_hash = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -137,15 +138,15 @@ namespace DAL.Migrations
                 name: "match",
                 columns: table => new
                 {
-                    cd_match = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    dt_start_time = table.Column<DateTime>(type: "datetime", nullable: true),
-                    dt_end_time = table.Column<DateTime>(type: "datetime", nullable: true),
-                    cd_team_a = table.Column<int>(type: "int", nullable: false),
-                    cd_team_b = table.Column<int>(type: "int", nullable: false),
-                    nr_score_a = table.Column<int>(type: "int", nullable: false),
-                    nr_score_b = table.Column<int>(type: "int", nullable: false),
-                    in_status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    cd_match = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    dt_start_time = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    dt_end_time = table.Column<DateTime>(type: "timestamp", nullable: true),
+                    cd_team_a = table.Column<int>(type: "integer", nullable: false),
+                    cd_team_b = table.Column<int>(type: "integer", nullable: false),
+                    nr_score_a = table.Column<int>(type: "integer", nullable: false),
+                    nr_score_b = table.Column<int>(type: "integer", nullable: false),
+                    in_status = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -168,16 +169,16 @@ namespace DAL.Migrations
                 name: "bet",
                 columns: table => new
                 {
-                    cd_bet = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    cd_match = table.Column<int>(type: "int", nullable: false),
-                    cd_team = table.Column<int>(type: "int", nullable: false),
-                    cd_user = table.Column<int>(type: "int", nullable: false),
-                    nr_position = table.Column<int>(type: "int", nullable: false),
-                    nr_amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    dt_bet_time = table.Column<DateTime>(type: "datetime", nullable: false),
-                    is_claimed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    dt_claimed_at = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    cd_bet = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    cd_match = table.Column<int>(type: "integer", nullable: false),
+                    cd_team = table.Column<int>(type: "integer", nullable: false),
+                    cd_user = table.Column<int>(type: "integer", nullable: false),
+                    nr_position = table.Column<int>(type: "integer", nullable: false),
+                    nr_amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    dt_bet_time = table.Column<DateTime>(type: "timestamp", nullable: false),
+                    is_claimed = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    dt_claimed_at = table.Column<DateTime>(type: "timestamp", nullable: true)
                 },
                 constraints: table =>
                 {

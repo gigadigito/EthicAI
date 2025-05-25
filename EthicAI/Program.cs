@@ -24,13 +24,18 @@ builder.Services.AddMetaMaskBlazor();
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddBlazoredToast();
 
-
+builder.Services.AddDbContext<EthicAIDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 // Adicione o serviço de configuração
-builder.Configuration.AddJsonFile("appsettings.json");
+
 
 // Configuração do DbContext com SQL Server
-builder.Services.AddDbContext<EthicAIDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 
 // Altere de AddTransient para AddScoped
 builder.Services.AddScoped<EthicAIDbContext>();

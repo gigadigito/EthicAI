@@ -18,7 +18,7 @@ public class EthicAIDbContextFactory : IDesignTimeDbContextFactory<EthicAIDbCont
 
         // Use the connection string from the configuration
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        optionsBuilder.UseSqlServer(connectionString);
+        optionsBuilder.UseNpgsql(connectionString);
 
         // Use the correct constructor that accepts DbContextOptions
         return new EthicAIDbContext(optionsBuilder.Options);
