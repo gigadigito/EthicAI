@@ -7,14 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Seed\PostSeed.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Seed\PostSeed.cs">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
+    <Compile Remove="Seed\**" />
+    <EmbeddedResource Remove="Seed\**" />
+    <None Remove="Seed\**" />
   </ItemGroup>
 
   <ItemGroup>
