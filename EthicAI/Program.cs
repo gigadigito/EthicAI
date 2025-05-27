@@ -26,18 +26,23 @@ builder.Services.AddBlazoredToast();
 
 
 
-// Configuração do DbContext com SQL Server
+// ✅ 1. Carrega as configurações ANTES dos serviços
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
+// 🧪 Log para ver qual ambiente está rodando
+Console.WriteLine($"🌱 ASPNETCORE_ENVIRONMENT: {builder.Environment.EnvironmentName}");
 
+// 🧪 Log para ver a string de conexão final
+Console.WriteLine("📡 Connection: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+
+// ✅ 2. Registra o DbContext após carregar as configurações
 builder.Services.AddDbContext<EthicAIDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-Console.WriteLine("📡 Connection: " + builder.Configuration.GetConnectionString("DefaultConnection"));
 // Adicione o serviço de configuração
 // Altere de AddTransient para AddScoped
 builder.Services.AddScoped<EthicAIDbContext>();
