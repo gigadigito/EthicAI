@@ -1,4 +1,4 @@
-using Blazored.SessionStorage;
+ï»¿using Blazored.SessionStorage;
 using Ethereum.MetaMask.Blazor;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -24,12 +24,9 @@ builder.Services.AddMetaMaskBlazor();
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddBlazoredToast();
 
-builder.Services.AddDbContext<EthicAIDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-// Adicione o serviço de configuração
 
 
-// Configuração do DbContext com SQL Server
+// ConfiguraÃ§Ã£o do DbContext com SQL Server
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -37,11 +34,16 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 
+builder.Services.AddDbContext<EthicAIDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+Console.WriteLine("ðŸ“¡ Connection: " + builder.Configuration.GetConnectionString("DefaultConnection"));
+// Adicione o serviÃ§o de configuraÃ§Ã£o
 // Altere de AddTransient para AddScoped
 builder.Services.AddScoped<EthicAIDbContext>();
 
 
-// Adiciona o serviço UserService
+// Adiciona o serviÃ§o UserService
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
 builder.Services.AddScoped<PostService>();
@@ -58,12 +60,12 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 
 var app = builder.Build();
 
-// Aplicar automaticamente as migrações pendentes ao iniciar a aplicação
+// Aplicar automaticamente as migraÃ§Ãµes pendentes ao iniciar a aplicaÃ§Ã£o
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<EthicAIDbContext>();
-    context.Database.Migrate(); // Aplica as migrações pendentes
+    context.Database.Migrate(); // Aplica as migraÃ§Ãµes pendentes
 }
 
 // Configure the HTTP request pipeline.
