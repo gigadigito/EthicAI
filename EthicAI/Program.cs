@@ -29,7 +29,6 @@ builder.Services.AddBlazoredToast();
 // ✅ 1. Carrega as configurações ANTES dos serviços
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
