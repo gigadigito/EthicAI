@@ -43,6 +43,13 @@ Console.WriteLine("📡 Connection: " + builder.Configuration.GetConnectionStrin
 builder.Services.AddDbContext<EthicAIDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+foreach (var kvp in builder.Configuration.AsEnumerable())
+{
+    if (kvp.Key.Contains("ConnectionStrings"))
+        Console.WriteLine($"🔍 Config: {kvp.Key} = {kvp.Value}");
+}
+
+
 // Adicione o serviço de configuração
 // Altere de AddTransient para AddScoped
 builder.Services.AddScoped<EthicAIDbContext>();
