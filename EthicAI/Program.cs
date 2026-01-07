@@ -14,56 +14,36 @@ using BLL.NFTFutebol;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 🔧 Configurações primeiro
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddUserSecrets<Program>(optional: true) // 🔑 ISSO É O QUE FALTAVA
+    .AddEnvironmentVariables();
+
+
+// 🧪 Log do ambiente
+Console.WriteLine($"🌱 ASPNETCORE_ENVIRONMENT: {builder.Environment.EnvironmentName}");
+
+// Serviços
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddSingleton<WeatherForecastService>();
-builder.Services.AddHttpClient<GitHubService>();
-//builder.Services.AddScoped<MetaMaskInterop>();
+
 builder.Services.AddMetaMaskBlazor();
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddBlazoredToast();
 
+builder.Services.AddHttpClient<GitHubService>();
 
-
-// ✅ 1. Carrega as configurações ANTES dos serviços
-builder.Configuration
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables();
-
-// 🧪 Log para ver qual ambiente está rodando
-Console.WriteLine($"🌱 ASPNETCORE_ENVIRONMENT: {builder.Environment.EnvironmentName}");
-
-// 🧪 Log para ver a string de conexão final
-Console.WriteLine("📡 Connection: " + builder.Configuration.GetConnectionString("DefaultConnection"));
-
-// ✅ 2. Registra o DbContext após carregar as configurações
 builder.Services.AddDbContext<EthicAIDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
-foreach (var kvp in builder.Configuration.AsEnumerable())
-{
-    if (kvp.Key.Contains("ConnectionStrings"))
-        Console.WriteLine($"🔍 Config: {kvp.Key} = {kvp.Value}");
-}
-
-
-// Adicione o serviço de configuração
-// Altere de AddTransient para AddScoped
-builder.Services.AddScoped<EthicAIDbContext>();
-
-
-// Adiciona o serviço UserService
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<SecretManager>();
 builder.Services.AddScoped<PostService>();
-
 builder.Services.AddScoped<BinanceService>();
-builder.Services.AddScoped<GitHubService>();
 builder.Services.AddScoped<MatchService>();
-
-
 builder.Services.AddScoped<IPreSaleService, PreSaleService>();
 
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
@@ -71,19 +51,17 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 
 var app = builder.Build();
 
-// Aplicar automaticamente as migrações pendentes ao iniciar a aplicação
+// 🚀 Migrações automáticas
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<EthicAIDbContext>();
-    context.Database.Migrate(); // Aplica as migrações pendentes
+    var context = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+    context.Database.Migrate();
 }
 
-// Configure the HTTP request pipeline.
+// Pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -95,3 +73,4 @@ app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+
