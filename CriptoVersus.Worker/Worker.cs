@@ -27,32 +27,47 @@ public sealed class Worker : BackgroundService
         _scopeFactory = scopeFactory;
         _httpClientFactory = httpClientFactory;
     }
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("🟢 CriptoVersus Worker iniciado");
+        _logger.LogInformation("✅ CriptoVersus Worker started.");
+
+        // pequeno atraso inicial para garantir rede/DNS ok
+        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 await RunCycleAsync(stoppingToken);
+
+                // ciclo normal (não rode colado)
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Erro no ciclo do Worker");
 
-                // Backoff maior quando for erro de rede/DNS
-                var wait = ex is System.Net.Sockets.SocketException
-                           || ex.InnerException is System.Net.Sockets.SocketException
-                           ? TimeSpan.FromSeconds(30)
-                           : TimeSpan.FromSeconds(10);
+                // backoff maior para falha de DNS/rede
+                var wait = IsDnsOrNetworkTransient(ex)
+                    ? TimeSpan.FromSeconds(45)
+                    : TimeSpan.FromSeconds(15);
 
+                _logger.LogWarning("⏳ Aguardando {wait}s antes de tentar novamente...", wait.TotalSeconds);
                 await Task.Delay(wait, stoppingToken);
             }
-
-            await Task.Delay(TimeSpan.FromSeconds(INTERVAL_SECONDS), stoppingToken);
         }
+    }
+
+    private static bool IsDnsOrNetworkTransient(Exception ex)
+    {
+        // pega a chain inteira
+        for (var e = ex; e != null; e = e.InnerException)
+        {
+            if (e is System.Net.Sockets.SocketException) return true;
+
+            if (e.GetType().FullName?.Contains("NpgsqlException") == true) return true;
+        }
+        return false;
     }
 
     private async Task RunCycleAsync(CancellationToken ct)
