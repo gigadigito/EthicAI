@@ -17,6 +17,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens
 		Dockerfile = Dockerfile
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CriptoVersus", "CriptoVersus\CriptoVersus.csproj", "{F357F1FE-B6BB-496D-BCBF-391BC75AD835}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CriptoVersus.Worker", "CriptoVersus.Worker\CriptoVersus.Worker.csproj", "{BBD9F5F8-1D03-429A-B3D4-1901793C9518}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{3BAEF8B1-AE95-49C2-8398-9AAA0123D817}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BAEF8B1-AE95-49C2-8398-9AAA0123D817}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BAEF8B1-AE95-49C2-8398-9AAA0123D817}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F357F1FE-B6BB-496D-BCBF-391BC75AD835}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F357F1FE-B6BB-496D-BCBF-391BC75AD835}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F357F1FE-B6BB-496D-BCBF-391BC75AD835}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F357F1FE-B6BB-496D-BCBF-391BC75AD835}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

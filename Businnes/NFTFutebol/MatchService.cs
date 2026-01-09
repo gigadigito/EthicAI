@@ -18,6 +18,131 @@ namespace BLL.NFTFutebol
         {
             _context = context;
         }
+
+        public async Task AutoEndOldOngoingMatchesAsync(TimeSpan duration)
+        {
+            var cutoff = DateTime.UtcNow.Subtract(duration);
+
+            var matches = await _context.Match
+                .Where(m => m.Status == MatchStatus.Ongoing && m.StartTime != null && m.StartTime <= cutoff)
+                .Select(m => m.MatchId)
+                .ToListAsync();
+
+            foreach (var id in matches)
+            {
+                await EndMatchAsync(id); // usa seu método que calcula/paga e marca Completed
+            }
+        }
+        public async Task UpdateOngoingMatchesScoresAsync()
+        {
+            var matches = await _context.Match
+                .Where(m => m.Status == MatchStatus.Ongoing)
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync();
+
+            foreach (var m in matches)
+            {
+                var a = m.TeamA?.Currency;
+                var b = m.TeamB?.Currency;
+                if (a == null || b == null) continue;
+
+                // Recalcula placar simples pela diferença (ajuste a regra como quiser)
+                var scoreA = a.PercentageChange > b.PercentageChange ? Math.Max(0, (int)((a.PercentageChange - b.PercentageChange) / 10)) : 0;
+                var scoreB = b.PercentageChange > a.PercentageChange ? Math.Max(0, (int)((b.PercentageChange - a.PercentageChange) / 10)) : 0;
+
+                m.ScoreA = scoreA;
+                m.ScoreB = scoreB;
+            }
+
+            await _context.SaveChangesAsync();
+        }
+        public async Task<int> EnsurePendingOrOngoingMatchesAsync(int desiredCount, List<Currency> currencies)
+        {
+            if (desiredCount <= 0) return 0;
+            if (currencies == null || currencies.Count < 2) return 0;
+
+            // Carrega partidas pendentes/andamento
+            var existing = await _context.Match
+                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync();
+
+            var currentCount = existing.Count;
+            var missing = desiredCount - currentCount;
+            if (missing <= 0) return 0;
+
+            // Monta set de pares já existentes para evitar repetir o mesmo confronto
+            var existingPairs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var m in existing)
+            {
+                var a = m.TeamA?.Currency?.Symbol;
+                var b = m.TeamB?.Currency?.Symbol;
+                if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b)) continue;
+
+                existingPairs.Add(NormalizePairKey(a, b));
+            }
+
+            // Gera candidatos a partidas (A,B) a partir das currencies
+            // Ex.: pega pares (0,1), (2,3), (4,5) ... e pula os já existentes
+            var created = 0;
+
+            for (int i = 0; i + 1 < currencies.Count && created < missing; i += 2)
+            {
+                var a = currencies[i];
+                var b = currencies[i + 1];
+
+                if (a.CurrencyId == 0 || b.CurrencyId == 0) continue;
+
+                var key = NormalizePairKey(a.Symbol, b.Symbol);
+                if (existingPairs.Contains(key)) continue;
+
+                await CreateMatchWithTeamsAsync(a, b);
+                existingPairs.Add(key);
+                created++;
+            }
+
+            return created;
+        }
+
+        private static string NormalizePairKey(string a, string b)
+        {
+            // A|B ordenado para A vs B = B vs A
+            return string.Compare(a, b, StringComparison.OrdinalIgnoreCase) <= 0
+                ? $"{a}|{b}"
+                : $"{b}|{a}";
+        }
+
+        private async Task CreateMatchWithTeamsAsync(Currency currencyA, Currency currencyB)
+        {
+            var teamA = new Team { CurrencyId = currencyA.CurrencyId };
+            var teamB = new Team { CurrencyId = currencyB.CurrencyId };
+
+            await _context.Team.AddRangeAsync(teamA, teamB);
+            await _context.SaveChangesAsync();
+
+            // placar inicial baseado na variação (com clamp p/ não ficar negativo)
+            var scoreA = Math.Max(0, (int)Math.Floor(currencyA.PercentageChange / 10));
+            var scoreB = Math.Max(0, (int)Math.Floor(currencyB.PercentageChange / 10));
+
+            var match = new Match
+            {
+                TeamAId = teamA.TeamId,
+                TeamBId = teamB.TeamId,
+                StartTime = DateTime.UtcNow,      // melhor que null pro worker
+                Status = MatchStatus.Pending,
+                ScoreA = scoreA,
+                ScoreB = scoreB
+            };
+
+            await _context.Match.AddAsync(match);
+            await _context.SaveChangesAsync();
+
+            // (Opcional) carregar navs se você usa em seguida
+            await _context.Entry(teamA).Reference(t => t.Currency).LoadAsync();
+            await _context.Entry(teamB).Reference(t => t.Currency).LoadAsync();
+        }
         // Método para criar 3 partidas com as moedas salvas no banco de dados
         public async Task<List<Match>> CreateMatchesAsync(List<Currency> currencies)
         {

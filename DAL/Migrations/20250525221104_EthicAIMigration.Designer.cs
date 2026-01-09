@@ -39,7 +39,7 @@ namespace DAL.Migrations
                         .HasColumnName("nr_amount");
 
                     b.Property<DateTime>("BetTime")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_bet_time");
 
                     b.Property<bool>("Claimed")
@@ -49,7 +49,7 @@ namespace DAL.Migrations
                         .HasColumnName("is_claimed");
 
                     b.Property<DateTime?>("ClaimedAt")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_claimed_at");
 
                     b.Property<int>("MatchId")
@@ -89,7 +89,7 @@ namespace DAL.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CurrencyId"));
 
                     b.Property<DateTime>("LastUpdated")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_last_updated");
 
                     b.Property<string>("Name")
@@ -123,7 +123,7 @@ namespace DAL.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MatchId"));
 
                     b.Property<DateTime?>("EndTime")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_end_time");
 
                     b.Property<int>("ScoreA")
@@ -135,7 +135,7 @@ namespace DAL.Migrations
                         .HasColumnName("nr_score_b");
 
                     b.Property<DateTime?>("StartTime")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_start_time");
 
                     b.Property<string>("Status")
@@ -203,7 +203,7 @@ namespace DAL.Migrations
                         .HasColumnName("post_category_id");
 
                     b.Property<DateTime>("PostDate")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_post");
 
                     b.Property<string>("Title")
@@ -282,7 +282,7 @@ namespace DAL.Migrations
                         .HasColumnName("ethic_ai_amount");
 
                     b.Property<DateTime>("PurchaseDate")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("purchase_date");
 
                     b.Property<decimal>("SolAmount")
@@ -331,11 +331,11 @@ namespace DAL.Migrations
                         .HasColumnName("dt_create");
 
                     b.Property<DateTime?>("DtHumanValidation")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_human_validation");
 
                     b.Property<DateTime>("DtUpdate")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_update");
 
                     b.Property<string>("Email")
@@ -368,7 +368,7 @@ namespace DAL.Migrations
                         .HasColumnName("is_human");
 
                     b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_last_login");
 
                     b.Property<string>("Name")
