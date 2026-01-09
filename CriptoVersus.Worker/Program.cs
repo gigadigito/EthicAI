@@ -28,11 +28,4 @@ builder.Services.AddHostedService<Worker>();
 
 var app = builder.Build();
 
-// opcional: migrate
-using (var scope = app.Services.CreateScope())
-{
-    var ctx = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
-    ctx.Database.Migrate();
-}
-
 await app.RunAsync();
