@@ -41,6 +41,14 @@ public sealed class Worker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Erro no ciclo do Worker");
+
+                // Backoff maior quando for erro de rede/DNS
+                var wait = ex is System.Net.Sockets.SocketException
+                           || ex.InnerException is System.Net.Sockets.SocketException
+                           ? TimeSpan.FromSeconds(30)
+                           : TimeSpan.FromSeconds(10);
+
+                await Task.Delay(wait, stoppingToken);
             }
 
             await Task.Delay(TimeSpan.FromSeconds(INTERVAL_SECONDS), stoppingToken);
