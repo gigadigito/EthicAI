@@ -18,7 +18,18 @@ builder.Services.AddHttpClient();
 
 // ✅ DbContext
 builder.Services.AddDbContext<EthicAIDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("Default"),
+        npgsql =>
+        {
+            // tenta de novo em falhas transitórias (rede/DNS/timeout)
+            npgsql.EnableRetryOnFailure(
+                maxRetryCount: 8,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorCodesToAdd: null
+            );
+        }));
+
 
 // ✅ Registra o MatchService (BLL)
 builder.Services.AddScoped<MatchService>();
