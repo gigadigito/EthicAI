@@ -23,9 +23,48 @@ namespace EthicAI.EntityModel
         public DbSet<Currency> Currency { get; set; }
         public DbSet<Bet> Bet { get; set; }
 
-
+        public DbSet<WorkerStatus> WorkerStatus { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<WorkerStatus>(entity =>
+            {
+                entity.HasKey(e => e.WorkerName);
+                entity.ToTable("worker_status");
+
+                entity.Property(e => e.WorkerName)
+                      .HasMaxLength(50)
+                      .HasColumnName("tx_worker_name");
+
+                entity.Property(e => e.LastHeartbeat)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_heartbeat");
+
+                entity.Property(e => e.LastCycleStart)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_cycle_start");
+
+                entity.Property(e => e.LastCycleEnd)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_cycle_end");
+
+                entity.Property(e => e.LastSuccess)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_success");
+
+                entity.Property(e => e.LastError)
+                      .HasColumnName("tx_last_error");
+
+                entity.Property(e => e.Status)
+                      .HasMaxLength(20)
+                      .HasColumnName("in_status");
+
+                entity.Property(e => e.UpdatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_updated_at");
+            });
+
+
+
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.UserID);

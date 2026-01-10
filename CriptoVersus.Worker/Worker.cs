@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using static BLL.BinanceService;
 using Microsoft.EntityFrameworkCore;
 using DAL.NftFutebol;
+
 namespace CriptoVersus.Worker
 {
     public class Worker : BackgroundService
@@ -24,25 +25,101 @@ namespace CriptoVersus.Worker
             _httpClientFactory = httpClientFactory;
         }
 
+        private const string WorkerName = "CriptoVersus.Worker";
+        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+
+        private async Task EnsureWorkerStatusTableAsync(CancellationToken ct)
+        {
+            using var scope = _sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+
+            var sql = @"
+CREATE TABLE IF NOT EXISTS worker_status (
+  worker_name      text PRIMARY KEY,
+  status           text NOT NULL,
+  last_heartbeat   timestamptz NOT NULL,
+  last_success     timestamptz NULL,
+  last_error       timestamptz NULL,
+  last_error_msg   text NULL,
+  details          jsonb NULL
+);";
+
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+        }
+
+        private async Task UpsertWorkerStatusAsync(
+            string status,
+            DateTime utcNow,
+            DateTime? lastSuccessUtc,
+            DateTime? lastErrorUtc,
+            string? lastErrorMsg,
+            string? detailsJson,
+            CancellationToken ct)
+        {
+            using var scope = _sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+
+            var sql = @"
+INSERT INTO worker_status
+  (worker_name, status, last_heartbeat, last_success, last_error, last_error_msg, details)
+VALUES
+  ({0}, {1}, {2}, {3}, {4}, {5}, CASE WHEN {6} IS NULL THEN NULL ELSE CAST({6} AS jsonb) END)
+ON CONFLICT (worker_name) DO UPDATE SET
+  status         = EXCLUDED.status,
+  last_heartbeat = EXCLUDED.last_heartbeat,
+  last_success   = COALESCE(EXCLUDED.last_success, worker_status.last_success),
+  last_error     = COALESCE(EXCLUDED.last_error, worker_status.last_error),
+  last_error_msg = COALESCE(EXCLUDED.last_error_msg, worker_status.last_error_msg),
+  details        = COALESCE(EXCLUDED.details, worker_status.details);";
+
+            await db.Database.ExecuteSqlRawAsync(
+                sql,
+                parameters: new object?[]
+                {
+                    WorkerName,
+                    status,
+                    utcNow,
+                    lastSuccessUtc,
+                    lastErrorUtc,
+                    lastErrorMsg,
+                    detailsJson
+                },
+                cancellationToken: ct
+            );
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("✅ CriptoVersus Worker started.");
 
-            // ✅ Aguarda Postgres ficar acessível (DNS + porta)
             await WaitForPostgresAsync(stoppingToken);
+            await EnsureWorkerStatusTableAsync(stoppingToken);
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
+                    var now = DateTime.UtcNow;
+
+                    // status "Running" + heartbeat
+                    await UpsertWorkerStatusAsync("Running", now, null, null, null, null, stoppingToken);
+
                     await RunCycleAsync(stoppingToken);
 
-                    // não rode colado (evita stress no DNS/pool)
+                    now = DateTime.UtcNow;
+
+                    // status "Ok" + last_success
+                    await UpsertWorkerStatusAsync("Ok", now, now, null, null, null, stoppingToken);
+
                     await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "❌ Erro no ciclo do Worker");
+
+                    // ✅ AQUI estava faltando: gravar Error no banco
+                    var now = DateTime.UtcNow;
+                    await UpsertWorkerStatusAsync("Error", now, null, now, ex.Message, null, stoppingToken);
 
                     var wait = IsDnsOrNetworkTransient(ex)
                         ? TimeSpan.FromSeconds(45)
@@ -99,21 +176,15 @@ namespace CriptoVersus.Worker
             _logger.LogWarning("⚠️ Timeout aguardando Postgres. O worker vai continuar e tentar no ciclo mesmo assim.");
         }
 
-        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
-
         private async Task RunCycleAsync(CancellationToken ct)
         {
             using var scope = _sp.CreateScope();
 
-            var httpFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-            var http = httpFactory.CreateClient();
-
+            var http = _httpClientFactory.CreateClient();
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
 
-            // =========================================================
             // 1) Binance 24hr -> Top 6 gainers (USDT)
-            // =========================================================
             var all = await http.GetFromJsonAsync<List<Crypto>>(
                 "https://api.binance.com/api/v3/ticker/24hr",
                 ct);
@@ -136,14 +207,10 @@ namespace CriptoVersus.Worker
                 return;
             }
 
-            // =========================================================
             // 2) Save/Update currencies
-            // =========================================================
             var currencies = await matchService.SaveCurrenciesAsync(topGainers);
 
-            // =========================================================
             // 3) Garantir 3 jogos (Pending/Ongoing)
-            // =========================================================
             var upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
 
             if (upcoming.Count < 3)
@@ -151,8 +218,6 @@ namespace CriptoVersus.Worker
                 var missing = 3 - upcoming.Count;
                 _logger.LogWarning("⚠️ Faltam {missing} jogos. Criando...", missing);
 
-                // Opção simples e segura: cria mais 3 (pode passar do desejado se alguém criou em paralelo).
-                // Melhor: criar só faltantes (abaixo).
                 await CreateMissingMatchesAsync(matchService, db, currencies, missing, ct);
 
                 upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
@@ -160,32 +225,24 @@ namespace CriptoVersus.Worker
 
             _logger.LogInformation("✅ Jogos suficientes. Total={total}", upcoming.Count);
 
-            // =========================================================
             // 4) Recalcular placar (Ongoing) + 5) Auto-end após 90 min
-            // =========================================================
             var ongoing = await matchService.GetOngoingMatchesAsync();
-
-            if (ongoing.Count == 0)
-                return;
+            if (ongoing.Count == 0) return;
 
             var nowUtc = DateTime.UtcNow;
 
             foreach (var m in ongoing)
             {
-                // garante startTime
                 if (m.StartTime == null)
                 {
-                    // se por algum motivo está Ongoing mas sem StartTime, seta agora
                     await matchService.UpdateMatchStatusAndStartTimeAsync(m.MatchId, MatchStatus.Ongoing, nowUtc);
                     m.StartTime = nowUtc;
                 }
 
-                // Atualiza scores com base no PercentageChange das moedas
-                // (usa os valores salvos no DB no passo 2)
                 var a = m.TeamA?.Currency?.PercentageChange ?? 0;
                 var b = m.TeamB?.Currency?.PercentageChange ?? 0;
 
-                var (scoreA, scoreB) = CalculateScoreFromPercent(a, b);
+                var (scoreA, scoreB) = CalculateScoreFromPercent((double)a, (double)b);
 
                 if (m.ScoreA != scoreA || m.ScoreB != scoreB)
                 {
@@ -193,7 +250,6 @@ namespace CriptoVersus.Worker
                     _logger.LogInformation("📊 Match {id} score atualizado: {a}:{b}", m.MatchId, scoreA, scoreB);
                 }
 
-                // Auto-end após 90 min
                 var startUtc = ToUtcSafe(m.StartTime.Value);
                 if (nowUtc - startUtc >= MatchDuration)
                 {
@@ -202,14 +258,13 @@ namespace CriptoVersus.Worker
                 }
             }
         }
+
         private static double ParsePercent(string? s)
         {
             if (string.IsNullOrWhiteSpace(s)) return 0;
             return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
         }
 
-        // Score por diferença relativa (consistente com a ideia do EndMatchAsync)
-        // Ex: A > B => A marca (A-B)/10, B marca 0.
         private static (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
         {
             if (a > b)
@@ -227,20 +282,19 @@ namespace CriptoVersus.Worker
 
         private static DateTime ToUtcSafe(DateTime dt)
         {
-            // Se vier sem Kind (Unspecified), assume UTC (mais seguro pra backend)
             if (dt.Kind == DateTimeKind.Unspecified)
                 return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 
             return dt.ToUniversalTime();
         }
+
         private async Task CreateMissingMatchesAsync(
-    MatchService matchService,
-    EthicAIDbContext db,
-    List<Currency> currencies,
-    int missing,
-    CancellationToken ct)
+            MatchService matchService,
+            EthicAIDbContext db,
+            List<Currency> currencies,
+            int missing,
+            CancellationToken ct)
         {
-            // Pega os pares existentes em Pending/Ongoing pra evitar duplicar
             var existing = await db.Match
                 .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
@@ -260,7 +314,6 @@ namespace CriptoVersus.Worker
                 .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|"))
             );
 
-            // tenta formar pares a partir das 6 moedas
             var candidatePairs = new List<(Currency A, Currency B)>();
             for (int i = 0; i + 1 < currencies.Count; i += 2)
                 candidatePairs.Add((currencies[i], currencies[i + 1]));
@@ -285,6 +338,5 @@ namespace CriptoVersus.Worker
             if (created < missing)
                 _logger.LogWarning("⚠️ Não consegui criar todos os faltantes. Criados={created}, faltavam={missing}", created, missing);
         }
-
     }
 }

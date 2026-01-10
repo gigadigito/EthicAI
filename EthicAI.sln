@@ -17,9 +17,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens
 		Dockerfile = Dockerfile
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CriptoVersus", "CriptoVersus\CriptoVersus.csproj", "{F357F1FE-B6BB-496D-BCBF-391BC75AD835}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Web", "CriptoVersus\CriptoVersus.Web.csproj", "{F357F1FE-B6BB-496D-BCBF-391BC75AD835}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CriptoVersus.Worker", "CriptoVersus.Worker\CriptoVersus.Worker.csproj", "{BBD9F5F8-1D03-429A-B3D4-1901793C9518}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Worker", "CriptoVersus.Worker\CriptoVersus.Worker.csproj", "{BBD9F5F8-1D03-429A-B3D4-1901793C9518}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CriptoVersus.API", "CriptoVersus.API\CriptoVersus.API.csproj", "{91E2836A-14FE-414B-A922-975B6B7C16D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTOs", "DTOs\DTOs.csproj", "{0569373B-F6E6-4ACE-977F-206591829BEE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +55,14 @@ Global
 		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BBD9F5F8-1D03-429A-B3D4-1901793C9518}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91E2836A-14FE-414B-A922-975B6B7C16D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91E2836A-14FE-414B-A922-975B6B7C16D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91E2836A-14FE-414B-A922-975B6B7C16D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91E2836A-14FE-414B-A922-975B6B7C16D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0569373B-F6E6-4ACE-977F-206591829BEE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0569373B-F6E6-4ACE-977F-206591829BEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0569373B-F6E6-4ACE-977F-206591829BEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0569373B-F6E6-4ACE-977F-206591829BEE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

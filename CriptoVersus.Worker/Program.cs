@@ -90,7 +90,7 @@ builder.Services.AddDbContext<EthicAIDbContext>((sp, options) =>
     {
         npgsql.EnableRetryOnFailure(
             maxRetryCount: 8,
-            maxRetryDelay: TimeSpan.FromSeconds(10),lote
+            maxRetryDelay: TimeSpan.FromSeconds(10),
             errorCodesToAdd: null
         );
     });

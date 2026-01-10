@@ -1,4 +1,6 @@
-using CriptoVersus.Components;
+
+
+using CriptoVersus.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
