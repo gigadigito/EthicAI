@@ -34,59 +34,63 @@ namespace CriptoVersus.Worker
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
 
             var sql = @"
-CREATE TABLE IF NOT EXISTS worker_status (
-  worker_name      text PRIMARY KEY,
-  status           text NOT NULL,
-  last_heartbeat   timestamptz NOT NULL,
-  last_success     timestamptz NULL,
-  last_error       timestamptz NULL,
-  last_error_msg   text NULL,
-  details          jsonb NULL
-);";
+            CREATE TABLE IF NOT EXISTS worker_status (
+              tx_worker_name      varchar(50) PRIMARY KEY,
+              dt_last_heartbeat   timestamptz NOT NULL,
+              dt_last_cycle_start timestamptz NULL,
+              dt_last_cycle_end   timestamptz NULL,
+              dt_last_success     timestamptz NULL,
+              tx_last_error       text NULL,
+              in_status           varchar(20) NOT NULL,
+              dt_updated_at       timestamptz NOT NULL DEFAULT now()
+            );";
 
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }
 
+
         private async Task UpsertWorkerStatusAsync(
-            string status,
-            DateTime utcNow,
-            DateTime? lastSuccessUtc,
-            DateTime? lastErrorUtc,
-            string? lastErrorMsg,
-            string? detailsJson,
-            CancellationToken ct)
+     string status,
+     DateTime utcNow,
+     DateTime? cycleStartUtc,
+     DateTime? cycleEndUtc,
+     DateTime? lastSuccessUtc,
+     string? lastErrorMsg,
+     CancellationToken ct)
         {
             using var scope = _sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
 
             var sql = @"
 INSERT INTO worker_status
-  (worker_name, status, last_heartbeat, last_success, last_error, last_error_msg, details)
+  (tx_worker_name, in_status, dt_last_heartbeat, dt_last_cycle_start, dt_last_cycle_end, dt_last_success, tx_last_error, dt_updated_at)
 VALUES
-  ({0}, {1}, {2}, {3}, {4}, {5}, CASE WHEN {6} IS NULL THEN NULL ELSE CAST({6} AS jsonb) END)
-ON CONFLICT (worker_name) DO UPDATE SET
-  status         = EXCLUDED.status,
-  last_heartbeat = EXCLUDED.last_heartbeat,
-  last_success   = COALESCE(EXCLUDED.last_success, worker_status.last_success),
-  last_error     = COALESCE(EXCLUDED.last_error, worker_status.last_error),
-  last_error_msg = COALESCE(EXCLUDED.last_error_msg, worker_status.last_error_msg),
-  details        = COALESCE(EXCLUDED.details, worker_status.details);";
+  ({0}, {1}, {2}, {3}, {4}, {5}, {6}, now())
+ON CONFLICT (tx_worker_name) DO UPDATE SET
+  in_status           = EXCLUDED.in_status,
+  dt_last_heartbeat   = EXCLUDED.dt_last_heartbeat,
+  dt_last_cycle_start = COALESCE(EXCLUDED.dt_last_cycle_start, worker_status.dt_last_cycle_start),
+  dt_last_cycle_end   = COALESCE(EXCLUDED.dt_last_cycle_end, worker_status.dt_last_cycle_end),
+  dt_last_success     = COALESCE(EXCLUDED.dt_last_success, worker_status.dt_last_success),
+  tx_last_error       = COALESCE(EXCLUDED.tx_last_error, worker_status.tx_last_error),
+  dt_updated_at       = now();";
 
             await db.Database.ExecuteSqlRawAsync(
                 sql,
-                parameters: new object?[]
+                new object?[]
                 {
-                    WorkerName,
-                    status,
-                    utcNow,
-                    lastSuccessUtc,
-                    lastErrorUtc,
-                    lastErrorMsg,
-                    detailsJson
+            WorkerName,
+            status,
+            utcNow,
+            cycleStartUtc,
+            cycleEndUtc,
+            lastSuccessUtc,
+            lastErrorMsg
                 },
-                cancellationToken: ct
+                ct
             );
         }
+
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -97,38 +101,33 @@ ON CONFLICT (worker_name) DO UPDATE SET
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                var cycleStart = DateTime.UtcNow;
+
                 try
                 {
-                    var now = DateTime.UtcNow;
-
-                    // status "Running" + heartbeat
-                    await UpsertWorkerStatusAsync("Running", now, null, null, null, null, stoppingToken);
+                    await UpsertWorkerStatusAsync("Running", cycleStart, cycleStart, null, null, null, stoppingToken);
 
                     await RunCycleAsync(stoppingToken);
 
-                    now = DateTime.UtcNow;
-
-                    // status "Ok" + last_success
-                    await UpsertWorkerStatusAsync("Ok", now, now, null, null, null, stoppingToken);
+                    var cycleEnd = DateTime.UtcNow;
+                    await UpsertWorkerStatusAsync("Ok", cycleEnd, null, cycleEnd, cycleEnd, null, stoppingToken);
 
                     await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
                 }
                 catch (Exception ex)
                 {
+                    var cycleEnd = DateTime.UtcNow;
+                    await UpsertWorkerStatusAsync("Error", cycleEnd, null, cycleEnd, null, ex.Message, stoppingToken);
+
                     _logger.LogError(ex, "❌ Erro no ciclo do Worker");
 
-                    // ✅ AQUI estava faltando: gravar Error no banco
-                    var now = DateTime.UtcNow;
-                    await UpsertWorkerStatusAsync("Error", now, null, now, ex.Message, null, stoppingToken);
-
-                    var wait = IsDnsOrNetworkTransient(ex)
-                        ? TimeSpan.FromSeconds(45)
-                        : TimeSpan.FromSeconds(15);
-
+                    var wait = IsDnsOrNetworkTransient(ex) ? TimeSpan.FromSeconds(45) : TimeSpan.FromSeconds(15);
                     _logger.LogWarning("⏳ Aguardando {sec}s para tentar novamente...", wait.TotalSeconds);
+
                     await Task.Delay(wait, stoppingToken);
                 }
             }
+
         }
 
         private static bool IsDnsOrNetworkTransient(Exception ex)
