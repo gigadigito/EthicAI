@@ -7,7 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static BLL.BinanceService;
-
+using Microsoft.EntityFrameworkCore;
+using DAL.NftFutebol;
 namespace CriptoVersus.Worker
 {
     public class Worker : BackgroundService
@@ -98,100 +99,192 @@ namespace CriptoVersus.Worker
             _logger.LogWarning("⚠️ Timeout aguardando Postgres. O worker vai continuar e tentar no ciclo mesmo assim.");
         }
 
+        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+
         private async Task RunCycleAsync(CancellationToken ct)
         {
-            // ✅ Scope por ciclo (DbContext/MatchService ficam limpos e corretos)
             using var scope = _sp.CreateScope();
+
+            var httpFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+            var http = httpFactory.CreateClient();
+
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
+            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
 
-            // ✅ 1) Buscar Binance 24hr
-            var http = _httpClientFactory.CreateClient();
-            http.Timeout = TimeSpan.FromSeconds(20);
-
-            _logger.LogInformation("📡 Binance: buscando ticker 24hr...");
-            var response = await http.GetFromJsonAsync<List<Crypto>>(
+            // =========================================================
+            // 1) Binance 24hr -> Top 6 gainers (USDT)
+            // =========================================================
+            var all = await http.GetFromJsonAsync<List<Crypto>>(
                 "https://api.binance.com/api/v3/ticker/24hr",
                 ct);
 
-            if (response == null || response.Count == 0)
+            if (all == null || all.Count == 0)
             {
                 _logger.LogWarning("⚠️ Binance retornou vazio.");
                 return;
             }
 
-            // ✅ 2) Top 6 gainers (USDT)
-            var topGainers = response
-                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol) && c.Symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
-                .OrderByDescending(c =>
-                {
-                    // PriceChangePercent vem string
-                    return decimal.TryParse(c.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var p)
-                        ? p
-                        : decimal.MinValue;
-                })
+            var topGainers = all
+                .Where(c => c.Symbol != null && c.Symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
                 .Take(6)
                 .ToList();
 
             if (topGainers.Count < 6)
             {
-                _logger.LogWarning("⚠️ Top gainers < 6 (veio {count}). Abortando ciclo.", topGainers.Count);
+                _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
                 return;
             }
 
-            _logger.LogInformation("🏆 Top gainers: {list}",
-                string.Join(", ", topGainers.Select(x => $"{x.Symbol}({x.PriceChangePercent}%)")));
-
-            // ✅ 3) SaveCurrenciesAsync(topGainers)
-            _logger.LogInformation("💾 Salvando/atualizando moedas...");
+            // =========================================================
+            // 2) Save/Update currencies
+            // =========================================================
             var currencies = await matchService.SaveCurrenciesAsync(topGainers);
 
-            // ✅ 4) Verificar quantos jogos existem pendentes/andamento
+            // =========================================================
+            // 3) Garantir 3 jogos (Pending/Ongoing)
+            // =========================================================
             var upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
-            var missing = Math.Max(0, 3 - (upcoming?.Count ?? 0));
 
-            _logger.LogInformation("🎮 Matches pendentes/andamento: {count}. Faltando: {missing}.",
-                upcoming?.Count ?? 0, missing);
-
-            // ✅ 5) Se tiver menos que 3, criar os que faltam
-            // Estratégia simples e segura: cria 3 com as 6 moedas do momento
-            // (Se já existirem 3, não cria nada.)
-            if (missing > 0)
+            if (upcoming.Count < 3)
             {
-                _logger.LogInformation("➕ Criando partidas (modelo 3 matches) com as 6 moedas atuais...");
-                var created = await matchService.CreateMatchesAsync(currencies);
+                var missing = 3 - upcoming.Count;
+                _logger.LogWarning("⚠️ Faltam {missing} jogos. Criando...", missing);
 
-                _logger.LogInformation("✅ Partidas criadas: {count}", created?.Count ?? 0);
+                // Opção simples e segura: cria mais 3 (pode passar do desejado se alguém criou em paralelo).
+                // Melhor: criar só faltantes (abaixo).
+                await CreateMissingMatchesAsync(matchService, db, currencies, missing, ct);
+
+                upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
             }
 
-            // ✅ 6) (Opcional) Atualizar placar de jogos em andamento (bem básico)
-            // OBS: sua regra final de score/encerramento ainda pode mudar,
-            // então aqui só recalcula score "instantâneo" usando PercentageChange atual.
-            try
+            _logger.LogInformation("✅ Jogos suficientes. Total={total}", upcoming.Count);
+
+            // =========================================================
+            // 4) Recalcular placar (Ongoing) + 5) Auto-end após 90 min
+            // =========================================================
+            var ongoing = await matchService.GetOngoingMatchesAsync();
+
+            if (ongoing.Count == 0)
+                return;
+
+            var nowUtc = DateTime.UtcNow;
+
+            foreach (var m in ongoing)
             {
-                var ongoing = await matchService.GetOngoingMatchesAsync();
-                if (ongoing != null && ongoing.Count > 0)
+                // garante startTime
+                if (m.StartTime == null)
                 {
-                    _logger.LogInformation("⏱️ Atualizando score de {count} partida(s) em andamento...", ongoing.Count);
+                    // se por algum motivo está Ongoing mas sem StartTime, seta agora
+                    await matchService.UpdateMatchStatusAndStartTimeAsync(m.MatchId, MatchStatus.Ongoing, nowUtc);
+                    m.StartTime = nowUtc;
+                }
 
-                    foreach (var m in ongoing)
-                    {
-                        var a = m.TeamA?.Currency?.PercentageChange ?? 0;
-                        var b = m.TeamB?.Currency?.PercentageChange ?? 0;
+                // Atualiza scores com base no PercentageChange das moedas
+                // (usa os valores salvos no DB no passo 2)
+                var a = m.TeamA?.Currency?.PercentageChange ?? 0;
+                var b = m.TeamB?.Currency?.PercentageChange ?? 0;
 
-                        // score simples (mesma ideia do CreateMatchesAsync)
-                        var scoreA = (int)Math.Floor(a / 10);
-                        var scoreB = (int)Math.Floor(b / 10);
+                var (scoreA, scoreB) = CalculateScoreFromPercent(a, b);
 
-                        await matchService.UpdateMatchScoreAsync(m.MatchId, scoreA, scoreB);
-                    }
+                if (m.ScoreA != scoreA || m.ScoreB != scoreB)
+                {
+                    await matchService.UpdateMatchScoreAsync(m.MatchId, scoreA, scoreB);
+                    _logger.LogInformation("📊 Match {id} score atualizado: {a}:{b}", m.MatchId, scoreA, scoreB);
+                }
+
+                // Auto-end após 90 min
+                var startUtc = ToUtcSafe(m.StartTime.Value);
+                if (nowUtc - startUtc >= MatchDuration)
+                {
+                    _logger.LogInformation("⏱️ Match {id} atingiu 90min. Encerrando...", m.MatchId);
+                    await matchService.EndMatchAsync(m.MatchId);
                 }
             }
-            catch (Exception ex)
+        }
+        private static double ParsePercent(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0;
+            return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
+        }
+
+        // Score por diferença relativa (consistente com a ideia do EndMatchAsync)
+        // Ex: A > B => A marca (A-B)/10, B marca 0.
+        private static (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
+        {
+            if (a > b)
             {
-                _logger.LogWarning(ex, "⚠️ Falha ao atualizar scores de partidas em andamento (ignorado).");
+                var diff = a - b;
+                return ((int)Math.Floor(diff / 10), 0);
+            }
+            if (b > a)
+            {
+                var diff = b - a;
+                return (0, (int)Math.Floor(diff / 10));
+            }
+            return (0, 0);
+        }
+
+        private static DateTime ToUtcSafe(DateTime dt)
+        {
+            // Se vier sem Kind (Unspecified), assume UTC (mais seguro pra backend)
+            if (dt.Kind == DateTimeKind.Unspecified)
+                return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+            return dt.ToUniversalTime();
+        }
+        private async Task CreateMissingMatchesAsync(
+    MatchService matchService,
+    EthicAIDbContext db,
+    List<Currency> currencies,
+    int missing,
+    CancellationToken ct)
+        {
+            // Pega os pares existentes em Pending/Ongoing pra evitar duplicar
+            var existing = await db.Match
+                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync(ct);
+
+            static string PairKey(string a, string b)
+                => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
+
+            var existingPairs = new HashSet<string>(
+                existing.Select(m =>
+                {
+                    var sa = m.TeamA?.Currency?.Symbol ?? "";
+                    var sb = m.TeamB?.Currency?.Symbol ?? "";
+                    return PairKey(sa, sb);
+                })
+                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|"))
+            );
+
+            // tenta formar pares a partir das 6 moedas
+            var candidatePairs = new List<(Currency A, Currency B)>();
+            for (int i = 0; i + 1 < currencies.Count; i += 2)
+                candidatePairs.Add((currencies[i], currencies[i + 1]));
+
+            var created = 0;
+
+            foreach (var (A, B) in candidatePairs)
+            {
+                if (created >= missing) break;
+
+                var key = PairKey(A.Symbol, B.Symbol);
+                if (existingPairs.Contains(key))
+                    continue;
+
+                await matchService.CreateMatchAsync(A, B);
+                existingPairs.Add(key);
+                created++;
+
+                _logger.LogInformation("🎮 Criado match faltante: {a} vs {b}", A.Symbol, B.Symbol);
             }
 
-            _logger.LogInformation("✅ Ciclo finalizado.");
+            if (created < missing)
+                _logger.LogWarning("⚠️ Não consegui criar todos os faltantes. Criados={created}, faltavam={missing}", created, missing);
         }
+
     }
 }
