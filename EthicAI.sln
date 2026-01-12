@@ -21,9 +21,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Web", "CriptoV
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Worker", "CriptoVersus.Worker\CriptoVersus.Worker.csproj", "{BBD9F5F8-1D03-429A-B3D4-1901793C9518}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CriptoVersus.API", "CriptoVersus.API\CriptoVersus.API.csproj", "{91E2836A-14FE-414B-A922-975B6B7C16D9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.API", "CriptoVersus.API\CriptoVersus.API.csproj", "{91E2836A-14FE-414B-A922-975B6B7C16D9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DTOs", "DTOs\DTOs.csproj", "{0569373B-F6E6-4ACE-977F-206591829BEE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DTOs", "DTOs\DTOs.csproj", "{0569373B-F6E6-4ACE-977F-206591829BEE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,0 +1,245 @@
+﻿@page "/intranet/dashboard"
+@using DTOs
+@inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+
+<h3 class="mb-3">Dashboard</h3>
+
+@if (_loading)
+{
+    <p>Carregando...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_snapshot is null)
+{
+    <div class="alert alert-warning">Sem dados do snapshot.</div>
+}
+else
+{
+    <!-- Cards: Matches -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Pendentes</div>
+                    <div class="fs-2 fw-bold">@_snapshot.Matches.Pending</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Em andamento</div>
+                    <div class="fs-2 fw-bold">@_snapshot.Matches.Ongoing</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Finalizadas (24h)</div>
+                    <div class="fs-2 fw-bold">@_snapshot.Matches.CompletedLast24h</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Worker -->
+    <div class="card mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div>
+                <strong>@_snapshot.Worker.ServiceName</strong>
+                <span class="badge ms-2 @WorkerBadge">
+                    @(_snapshot.Worker.IsAlive ? "ONLINE" : "OFFLINE")
+                </span>
+            </div>
+
+            <button class="btn btn-sm btn-outline-primary" @onclick="Reload">
+                Atualizar
+            </button>
+        </div>
+
+        <div class="card-body">
+            <div class="text-muted">
+                Server UTC: @_snapshot.ServerTimeUtc.ToString("yyyy-MM-dd HH:mm:ss")
+            </div>
+            <div class="text-muted">
+                Último heartbeat: @FmtUtc(_snapshot.Worker.LastHeartbeatUtc)
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-md-4 text-muted">Intervalo: <strong>@_snapshot.Worker.CycleIntervalSeconds</strong>s</div>
+                <div class="col-md-4 text-muted">Duração match: <strong>@_snapshot.Worker.MatchDurationMinutes</strong> min</div>
+                <div class="col-md-4 text-muted">Alvo próximas: <strong>@_snapshot.Worker.TargetUpcomingMatches</strong></div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-md-6 text-muted">Ciclo início: <strong>@FmtUtc(_snapshot.Worker.LastCycleStartUtc)</strong></div>
+                <div class="col-md-6 text-muted">Ciclo fim: <strong>@FmtUtc(_snapshot.Worker.LastCycleEndUtc)</strong></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_snapshot.Worker.LastError))
+            {
+                <div class="alert alert-warning mt-3 mb-0">
+                    <strong>Último erro:</strong> @_snapshot.Worker.LastError
+                    <div class="text-muted mt-1">Quando: @FmtUtc(_snapshot.Worker.LastErrorUtc)</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Próximas partidas -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><strong>Upcoming</strong></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Times</th>
+                                <th>Status</th>
+                                <th class="text-end">Início</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_snapshot.Matches.Upcoming.Count == 0)
+                            {
+                                <tr><td colspan="4" class="text-muted p-3">Nenhuma partida pendente.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var m in _snapshot.Matches.Upcoming)
+                                {
+                                    <tr>
+                                        <td>@m.MatchId</td>
+                                        <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
+                                        <td>@m.Status</td>
+                                        <td class="text-end">@FmtUtc(m.StartTime)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Partidas em andamento -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><strong>Ongoing</strong></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Times</th>
+                                <th>Placar</th>
+                                <th class="text-end">Tempo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_snapshot.Matches.OngoingList.Count == 0)
+                            {
+                                <tr><td colspan="4" class="text-muted p-3">Nenhuma partida em andamento.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var m in _snapshot.Matches.OngoingList)
+                                {
+                                    <tr>
+                                        <td>@m.MatchId</td>
+                                        <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
+                                        <td><strong>@m.ScoreA</strong> x <strong>@m.ScoreB</strong></td>
+                                        <td class="text-end">
+                                            @m.ElapsedMinutes' <span class="text-muted">(-@m.RemainingMinutes')</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Gainers -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><strong>Top Gainers</strong></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Symbol</th>
+                                <th>Name</th>
+                                <th class="text-end">%</th>
+                                <th class="text-end">Atualizado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_snapshot.TopGainers.Count == 0)
+                            {
+                                <tr><td colspan="5" class="text-muted p-3">Sem dados.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var c in _snapshot.TopGainers)
+                                {
+                                    <tr>
+                                        <td>@c.Rank</td>
+                                        <td><strong>@c.Symbol</strong></td>
+                                        <td>@c.Name</td>
+                                        <td class="text-end text-success fw-bold">+@c.PercentageChange.ToString("0.##")%</td>
+                                        <td class="text-end">@FmtUtc(c.LastUpdatedUtc)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private DashboardSnapshotDto? _snapshot;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+            _snapshot = await Api.GetDashboardSnapshotAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string WorkerBadge => _snapshot?.Worker.IsAlive == true ? "bg-success" : "bg-danger";
+
+    private static string FmtUtc(DateTime? dt)
+        => dt is null ? "-" : dt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+
+    private static string FmtUtc(DateTime dt)
+        => dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+}

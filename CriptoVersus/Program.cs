@@ -1,12 +1,22 @@
 
 
 using CriptoVersus.Web.Components;
+using CriptoVersus.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = cfg["Api:BaseUrl"]?.TrimEnd('/');
+    client.BaseAddress = new Uri(baseUrl + "/");
+});
+
+builder.Services.AddScoped<CriptoVersusApiClient>();
 
 var app = builder.Build();
 
@@ -17,6 +27,10 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+
+
+
 
 app.UseHttpsRedirection();
 
