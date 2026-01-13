@@ -1,6 +1,7 @@
 ﻿@page "/intranet/dashboard"
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@using Microsoft.AspNetCore.SignalR.Client
 
 <h3 class="mb-3">Dashboard</h3>
 
@@ -211,11 +212,43 @@ else
 }
 
 @code {
+
+
+    private HubConnection? _hub;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Reload();
+
+        _hub = new HubConnectionBuilder()
+     .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
+     .WithAutomaticReconnect()
+     .Build();
+
+        _hub.On<string>("dashboard_changed", async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await Reload();
+                StateHasChanged();
+            });
+        });
+
+        await _hub.StartAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub != null)
+            await _hub.DisposeAsync();
+    }
+
+
     private DashboardSnapshotDto? _snapshot;
     private bool _loading = true;
     private string? _error;
 
-    protected override async Task OnInitializedAsync() => await Reload();
+   
 
     private async Task Reload()
     {

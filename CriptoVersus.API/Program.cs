@@ -1,4 +1,6 @@
-﻿using EthicAI.EntityModel;
+﻿using CriptoVersus.API.Hubs;
+using CriptoVersus.API.Services;
+using EthicAI.EntityModel;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<PostgresChangeListener>();
 var connStr = builder.Configuration.GetConnectionString("Default");
 
 if (string.IsNullOrWhiteSpace(connStr))
@@ -32,6 +35,7 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "CriptoVersus API v1");
     c.RoutePrefix = "swagger";
 });
+app.MapHub<DashboardHub>("/hubs/dashboard");
 
 app.UseAuthorization();
 app.MapControllers();
