@@ -222,7 +222,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
             }
 
-            _logger.LogInformation("✅ Jogos pendentes suficientes. Total={total}", upcoming.Count);
+            _logger.LogInformation("✅ Jogos suficientes. Total={total}", upcoming.Count);
 
             // 4) AUTO-START: manter 3 jogos Ongoing sempre, mesmo sem apostas
             const int desiredOngoing = 3;
@@ -233,7 +233,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
             if (needToStart > 0)
             {
-                // pega os próximos pendentes e inicia
+                // Inicia os próximos pendentes (sem depender de aposta)
                 var pendingsToStart = await matchService.GetUpcomingPendingMatchesAsync(needToStart);
 
                 foreach (var p in pendingsToStart)
@@ -242,7 +242,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     await matchService.UpdateMatchStatusAndStartTimeAsync(p.MatchId, MatchStatus.Ongoing, nowUtc);
                 }
 
-                // recarrega a lista ongoing depois de iniciar
+                // Recarrega após iniciar
                 ongoingNow = await matchService.GetOngoingMatchesAsync();
             }
 
@@ -255,7 +255,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             // 5) Recalcular placar (Ongoing) + 6) Auto-end após 90 min
             foreach (var m in ongoingNow)
             {
-                // Segurança: se por algum motivo ficou Ongoing sem StartTime, corrige
+                // Segurança: se ficou Ongoing sem StartTime, corrige
                 if (m.StartTime == null)
                 {
                     await matchService.UpdateMatchStatusAndStartTimeAsync(m.MatchId, MatchStatus.Ongoing, nowUtc);
@@ -282,6 +282,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 }
             }
         }
+
 
 
         private static double ParsePercent(string? s)
