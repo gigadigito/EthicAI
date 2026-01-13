@@ -156,6 +156,30 @@ namespace EthicAI.EntityModel
                       .HasConversion<string>()
                       .HasColumnName("in_status");
 
+                // ✅ NOVOS CAMPOS
+                entity.Property(e => e.TeamAOutCycles)
+                      .HasColumnName("nr_team_a_out_cycles")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.TeamBOutCycles)
+                      .HasColumnName("nr_team_b_out_cycles")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.WinnerTeamId)
+                      .HasColumnName("cd_winner_team")
+                      .IsRequired(false);
+
+                entity.Property(e => e.EndReasonCode)
+                      .HasColumnName("tx_end_reason_code")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.EndReasonDetail)
+                      .HasColumnName("tx_end_reason_detail");
+
+                entity.Property(e => e.RulesetVersion)
+                      .HasColumnName("tx_ruleset_version")
+                      .HasMaxLength(20);
+
                 entity.HasOne(e => e.TeamA)
                       .WithMany(t => t.MatchesAsTeamA)
                       .HasForeignKey(e => e.TeamAId)
@@ -166,11 +190,18 @@ namespace EthicAI.EntityModel
                       .HasForeignKey(e => e.TeamBId)
                       .OnDelete(DeleteBehavior.Restrict);
 
+                // ✅ vencedor (opcional)
+                entity.HasOne(e => e.WinnerTeam)
+                      .WithMany()
+                      .HasForeignKey(e => e.WinnerTeamId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasMany(e => e.Bets)
                       .WithOne(b => b.Match)
                       .HasForeignKey(b => b.MatchId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
 
             modelBuilder.Entity<Team>(entity =>
             {
