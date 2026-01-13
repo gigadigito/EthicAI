@@ -222,16 +222,40 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
             }
 
-            _logger.LogInformation("✅ Jogos suficientes. Total={total}", upcoming.Count);
+            _logger.LogInformation("✅ Jogos pendentes suficientes. Total={total}", upcoming.Count);
 
-            // 4) Recalcular placar (Ongoing) + 5) Auto-end após 90 min
-            var ongoing = await matchService.GetOngoingMatchesAsync();
-            if (ongoing.Count == 0) return;
-
+            // 4) AUTO-START: manter 3 jogos Ongoing sempre, mesmo sem apostas
+            const int desiredOngoing = 3;
             var nowUtc = DateTime.UtcNow;
 
-            foreach (var m in ongoing)
+            var ongoingNow = await matchService.GetOngoingMatchesAsync();
+            var needToStart = desiredOngoing - ongoingNow.Count;
+
+            if (needToStart > 0)
             {
+                // pega os próximos pendentes e inicia
+                var pendingsToStart = await matchService.GetUpcomingPendingMatchesAsync(needToStart);
+
+                foreach (var p in pendingsToStart)
+                {
+                    _logger.LogInformation("🚀 Iniciando match {id} automaticamente (sem aposta).", p.MatchId);
+                    await matchService.UpdateMatchStatusAndStartTimeAsync(p.MatchId, MatchStatus.Ongoing, nowUtc);
+                }
+
+                // recarrega a lista ongoing depois de iniciar
+                ongoingNow = await matchService.GetOngoingMatchesAsync();
+            }
+
+            if (ongoingNow.Count == 0)
+            {
+                _logger.LogWarning("⚠️ Nenhum jogo Ongoing após auto-start. Nada a processar.");
+                return;
+            }
+
+            // 5) Recalcular placar (Ongoing) + 6) Auto-end após 90 min
+            foreach (var m in ongoingNow)
+            {
+                // Segurança: se por algum motivo ficou Ongoing sem StartTime, corrige
                 if (m.StartTime == null)
                 {
                     await matchService.UpdateMatchStatusAndStartTimeAsync(m.MatchId, MatchStatus.Ongoing, nowUtc);
@@ -250,6 +274,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 }
 
                 var startUtc = ToUtcSafe(m.StartTime.Value);
+
                 if (nowUtc - startUtc >= MatchDuration)
                 {
                     _logger.LogInformation("⏱️ Match {id} atingiu 90min. Encerrando...", m.MatchId);
@@ -257,6 +282,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 }
             }
         }
+
 
         private static double ParsePercent(string? s)
         {
