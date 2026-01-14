@@ -1,13 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
-using EthicAI.Data;
-using BLL.NFTFutebol;
-using CriptoVersus.Worker;
-using Npgsql;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using Microsoft.Extensions.Logging;
 using EthicAI.EntityModel;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Npgsql;
+using BLL.NFTFutebol;
 using BLL.GameRules;
+using CriptoVersus.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -65,10 +65,9 @@ static async Task<string> BuildConnectionStringWithResolvedHostAsync(
     if (ip == null)
         throw new Exception($"Não foi possível resolver IP para host '{host}'.");
 
-    // ✅ troca Host=postgres por Host=<ip>
     csb.Host = ip.ToString();
 
-    // (opcional) ajustes bons pra VPS
+    // Ajustes bons pra VPS
     csb.Pooling = true;
     csb.KeepAlive = 30;
     csb.Timeout = 15;
@@ -96,16 +95,25 @@ builder.Services.AddDbContext<EthicAIDbContext>((sp, options) =>
         );
     });
 });
-// Game Rules (DI)
-builder.Services.AddSingleton<IMatchRuleEngine>(_ =>
+
+// ✅ Game Rules (DI) - REGISTRADO DE VERDADE
+builder.Services.AddSingleton<IMatchRuleEngine>(sp =>
     new MatchRuleEngine(
         outOfGainersConfirmCycles: RuleConstants.DefaultOutOfGainersConfirmCycles,
         cancelIfInvalidAtStart: true,
         rulesetVersion: RuleConstants.DefaultRulesetVersion
     ));
 
+// Services do domínio
 builder.Services.AddScoped<MatchService>();
+
+// Worker
 builder.Services.AddHostedService<Worker>();
 
-var app = builder.Build();
-await app.RunAsync();
+var host = builder.Build();
+
+host.Services.GetRequiredService<ILoggerFactory>()
+    .CreateLogger("Startup")
+    .LogInformation("✅ Worker host iniciado. Env={env}", builder.Environment.EnvironmentName);
+
+await host.RunAsync();

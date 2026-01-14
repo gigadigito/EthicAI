@@ -225,14 +225,8 @@ else
      .WithAutomaticReconnect()
      .Build();
 
-        _hub.On<string>("dashboard_changed", async _ =>
-        {
-            await InvokeAsync(async () =>
-            {
-                await Reload();
-                StateHasChanged();
-            });
-        });
+   _hub.On<string>("dashboard_changed", async _ => await Reload());
+
 
         await _hub.StartAsync();
     }
@@ -256,6 +250,10 @@ else
         {
             _loading = true;
             _error = null;
+
+            // já força render do "Carregando..."
+            await InvokeAsync(StateHasChanged);
+
             _snapshot = await Api.GetDashboardSnapshotAsync();
         }
         catch (Exception ex)
@@ -265,8 +263,10 @@ else
         finally
         {
             _loading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
+
 
     private string WorkerBadge => _snapshot?.Worker.IsAlive == true ? "bg-success" : "bg-danger";
 
