@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using EthicAI.EntityModel;
+using BLL.GameRules;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -95,6 +96,13 @@ builder.Services.AddDbContext<EthicAIDbContext>((sp, options) =>
         );
     });
 });
+// Game Rules (DI)
+builder.Services.AddSingleton<IMatchRuleEngine>(_ =>
+    new MatchRuleEngine(
+        outOfGainersConfirmCycles: RuleConstants.DefaultOutOfGainersConfirmCycles,
+        cancelIfInvalidAtStart: true,
+        rulesetVersion: RuleConstants.DefaultRulesetVersion
+    ));
 
 builder.Services.AddScoped<MatchService>();
 builder.Services.AddHostedService<Worker>();
