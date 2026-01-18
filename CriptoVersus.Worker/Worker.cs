@@ -40,6 +40,12 @@ namespace CriptoVersus.Worker
         private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
         private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
 
+        private const decimal MinQuoteVolumeUsdt = 5_000_000m; // 5M
+        private const int MinTradesCount = 200;               // trades mínimos
+        private const int TakeGainers = 20;                   // quantos pega pra montar snapshot
+        private const int LogTop = 15;                        // quantos loga por ciclo
+
+
         // ===== Health DTO simples =====
         public record HealthItem(bool Ok, string Message);
 
@@ -346,25 +352,34 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 => decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
 
             var topGainers = all
-                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
-                .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
-                // filtros de “mercado real” (aproxima o app)
-                .Where(c => c.Count >= 200) // evita pares sem negociação real
-                .Where(c => ParseDec(c.QuoteVolume) >= 200000m) // volume mínimo em USDT (ajuste fino)
-                .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
-                .Take(20) // pega mais pra depurar
-                .ToList();
+     .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
+     .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+     .Where(c => c.Count >= MinTradesCount)                 // trades mínimos
+     .Where(c => ParseDec(c.QuoteVolume) >= MinQuoteVolumeUsdt) // 5M USDT
+     .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
+     .Take(TakeGainers)
+     .ToList();
+
 
             if (topGainers.Count < 6)
             {
                 _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
                 return;
             }
-            foreach (var c in topGainers.Take(15))
+
+            _logger.LogInformation(
+    "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
+    MinTradesCount,
+    MinQuoteVolumeUsdt,
+    topGainers.Count,
+    string.Join(", ", topGainers.Select(x => x.Symbol))
+);
+            foreach (var c in topGainers.Take(LogTop))
             {
                 _logger.LogInformation("Gainer {sym} pct={pct} quoteVol={qv} trades={cnt}",
                     c.Symbol, c.PriceChangePercent, c.QuoteVolume, c.Count);
             }
+
             // Snapshot para o engine (rank 1..N)
             var snapshotUtc = nowUtc;
             var snapshot = topGainers
