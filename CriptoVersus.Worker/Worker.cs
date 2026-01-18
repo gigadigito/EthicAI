@@ -41,7 +41,7 @@ namespace CriptoVersus.Worker
         private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m; // 5M
-        private const int MinTradesCount = 200;               // trades mínimos
+        private const int MinTradesCount = 2000;               // trades mínimos
         private const int TakeGainers = 20;                   // quantos pega pra montar snapshot
         private const int LogTop = 15;                        // quantos loga por ciclo
 
@@ -394,6 +394,42 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             // 3) Save/Update currencies
             var currencies = await matchService.SaveCurrenciesAsync(topGainers);
 
+
+            var allowed = snapshot.Select(x => x.Symbol).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Cancela pendings que não estão no snapshot atual
+            var pendingNow = await db.Match
+                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                .Where(x => x.Status == MatchStatus.Pending)
+                .ToListAsync(ct);
+
+            var cancelled = 0;
+
+            foreach (var m in pendingNow)
+            {
+                var a = m.TeamA?.Currency?.Symbol ?? "";
+                var b = m.TeamB?.Currency?.Symbol ?? "";
+
+                if (!allowed.Contains(a) || !allowed.Contains(b))
+                {
+                    m.Status = MatchStatus.Cancelled;
+                    m.EndTime = nowUtc;
+                    m.EndReasonCode = "FILTERED_OUT";
+                    m.EndReasonDetail = $"Pair not in TopGainers snapshot. A={a} B={b}";
+                    m.WinnerTeamId = null;
+                    cancelled++;
+                }
+            }
+
+            if (cancelled > 0)
+            {
+                await db.SaveChangesAsync(ct);
+                _logger.LogWarning("🧹 Cancelados {n} matches PENDING fora do snapshot atual.", cancelled);
+            }
+
+
+
             // 4) Garantir 3 jogos Pending (candidatos)
             var upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
 
@@ -434,6 +470,10 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
                     var symA = match.TeamA?.Currency?.Symbol ?? "";
                     var symB = match.TeamB?.Currency?.Symbol ?? "";
+
+                    
+
+
 
                     var decision = ruleEngine.EvaluatePending(symA, symB, snapshot, snapshotUtc);
 
@@ -502,6 +542,30 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
                 var a = match.TeamA?.Currency?.PercentageChange ?? 0;
                 var b = match.TeamB?.Currency?.PercentageChange ?? 0;
+
+                // allowed = snapshot symbols (criar uma vez antes do foreach)
+                if (!allowed.Contains(symA) || !allowed.Contains(symB))
+                {
+                    match.Status = MatchStatus.Completed;
+                    match.EndTime = nowUtc;
+
+                    match.WinnerTeamId = null; // WO técnico
+                    match.EndReasonCode = "FILTERED_OUT_ONGOING";
+                    match.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={symA} B={symB}";
+
+                    match.TeamAOutCycles = 0;
+                    match.TeamBOutCycles = 0;
+
+                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+
+                    await db.SaveChangesAsync(ct);
+
+                    _logger.LogWarning("🏁 FORCE END (WO) match {id} ({a} vs {b}) - fora do snapshot.",
+                        match.MatchId, symA, symB);
+
+                    continue;
+                }
+
 
                 var (scoreA, scoreB) = CalculateScoreFromPercent((double)a, (double)b);
 
