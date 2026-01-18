@@ -168,7 +168,16 @@ else
                                     <tr>
                                         <td>@m.MatchId</td>
                                         <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
-                                        <td><strong>@m.ScoreA</strong> x <strong>@m.ScoreB</strong></td>
+                                        <td>
+                                            <div>
+                                                <strong>@m.ScoreA</strong> x <strong>@m.ScoreB</strong>
+                                            </div>
+
+                                            <div class="text-muted small">
+                                                @FmtPct(m.PctA) <span class="text-muted">vs</span> @FmtPct(m.PctB)
+                                            </div>
+                                        </td>
+
                                         <td class="text-end">
                                             @m.ElapsedMinutes' <span class="text-muted">(-@m.RemainingMinutes')</span>
                                         </td>
@@ -227,7 +236,12 @@ else
     private bool _workerJsDirty;
     private bool _interactiveReady;
 
-
+    private static string FmtPct(decimal? v)
+    {
+        if (v is null) return "-";
+        var sign = v.Value >= 0 ? "+" : "";
+        return $"{sign}{v.Value:0.##}%";
+    }
     private HubConnection? _hub;
 
     protected override async Task OnInitializedAsync()

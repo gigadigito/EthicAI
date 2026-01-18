@@ -7,31 +7,36 @@ using System.Threading.Tasks;
 namespace DTOs
 {
 
-        public class MatchDto
-        {
-            public int MatchId { get; set; }
+    public class MatchDto
+    {
+        public int MatchId { get; set; }
 
-            // Times
-            public string TeamA { get; set; } = string.Empty;
-            public string TeamB { get; set; } = string.Empty;
+        // Times
+        public string TeamA { get; set; } = string.Empty;
+        public string TeamB { get; set; } = string.Empty;
 
-            // Placares
-            public int ScoreA { get; set; }
-            public int ScoreB { get; set; }
+        // Placares
+        public int ScoreA { get; set; }
+        public int ScoreB { get; set; }
 
-            // Status
-            public string Status { get; set; } = string.Empty;
+        // Status
+        public string Status { get; set; } = string.Empty;
 
-            // Tempo
-            public DateTime? StartTime { get; set; }
-            public DateTime? EndTime { get; set; }
+        // Tempo
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
 
-            // Auxiliares para UI
-            public int ElapsedMinutes { get; set; }
-            public int RemainingMinutes { get; set; }
-            public bool IsFinished { get; set; }
-        }
-    
+        // Auxiliares para UI
+        public int ElapsedMinutes { get; set; }
+        public int RemainingMinutes { get; set; }
+        public bool IsFinished { get; set; }
+
+
+        // ✅ NOVO: % atual de cada moeda
+        public decimal? PctA { get; set; }
+        public decimal? PctB { get; set; }
+    }
+
 
 
 }

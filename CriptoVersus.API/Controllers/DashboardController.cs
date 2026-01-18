@@ -186,11 +186,13 @@ namespace CriptoVersus.API.Controllers
                 remaining = Math.Max(0, matchDurationMinutes - elapsed);
             }
 
-            if (m.EndTime != null || m.Status == MatchStatus.Completed || m.Status == MatchStatus.Cancelled)
+            if (m.EndTime != null || m.Status == MatchStatus.Completed)
             {
                 isFinished = true;
+
                 if (m.StartTime != null && m.EndTime != null)
                     elapsed = (int)Math.Max(0, Math.Floor((m.EndTime.Value - m.StartTime.Value).TotalMinutes));
+
                 remaining = 0;
             }
 
@@ -206,9 +208,14 @@ namespace CriptoVersus.API.Controllers
                 EndTime = m.EndTime,
                 ElapsedMinutes = elapsed,
                 RemainingMinutes = remaining,
-                IsFinished = isFinished
+                IsFinished = isFinished,
+
+                // ✅ NOVO
+                PctA = (decimal?)a?.PercentageChange,
+                PctB = (decimal?)b?.PercentageChange
             };
         }
+
 
         private int GetInt(string key, int @default)
         {
