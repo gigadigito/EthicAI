@@ -126,10 +126,8 @@ namespace CriptoVersus.API.Controllers
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
-                .Where(m =>
-                    m.Status == MatchStatus.Ongoing ||
-                    (m.StartTime != null && m.StartTime <= now && m.EndTime == null))
-                .OrderBy(m => m.StartTime ?? DateTime.MaxValue)
+                .Where(m => m.Status == MatchStatus.Ongoing)
+                .OrderByDescending(m => m.StartTime ?? DateTime.MaxValue)
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);

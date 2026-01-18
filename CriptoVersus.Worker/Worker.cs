@@ -41,9 +41,17 @@ namespace CriptoVersus.Worker
         private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m; // 5M
-        private const int MinTradesCount = 2000;               // trades mínimos
-        private const int TakeGainers = 20;                   // quantos pega pra montar snapshot
-        private const int LogTop = 15;                        // quantos loga por ciclo
+        private const int MinTradesCount = 20000;              // trades minimos (mais “real”)
+
+        // ✅ snapshot maior pra ter pool suficiente
+        private const int TakeGainers = 40;                    // era 20
+
+        private const int LogTop = 15;
+
+        // ✅ metas do estoque
+        private const int DesiredOngoing = 10;                 // sempre 10 em andamento
+        private const int DesiredPending = 10;                 // estoque de 10 pendentes
+
 
 
         // ===== Health DTO simples =====
@@ -368,12 +376,13 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             }
 
             _logger.LogInformation(
-    "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
-    MinTradesCount,
-    MinQuoteVolumeUsdt,
-    topGainers.Count,
-    string.Join(", ", topGainers.Select(x => x.Symbol))
-);
+                                    "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
+                                    MinTradesCount,
+                                    MinQuoteVolumeUsdt,
+                                    topGainers.Count,
+                                    string.Join(", ", topGainers.Select(x => x.Symbol))
+                                );
+
             foreach (var c in topGainers.Take(LogTop))
             {
                 _logger.LogInformation("Gainer {sym} pct={pct} quoteVol={qv} trades={cnt}",
@@ -392,12 +401,60 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 .ToList();
 
             // 3) Save/Update currencies
+          
             var currencies = await matchService.SaveCurrenciesAsync(topGainers);
 
+            // ✅ lookup por symbol para criar matches com seguranca
+            var currencyBySymbol = currencies
+                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
+                .ToDictionary(c => c.Symbol!, StringComparer.OrdinalIgnoreCase);
 
+            // ✅ allowed symbols (snapshot atual)
             var allowed = snapshot.Select(x => x.Symbol).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // Cancela pendings que não estão no snapshot atual
+            // =============================
+            // A) HIGIENE: cancelar PENDING fora do snapshot
+            // =============================
+            await CancelPendingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
+
+            // =============================
+            // B) HIGIENE: finalizar ONGOING fora do snapshot (agressivo)
+            // =============================
+            await ForceEndOngoingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
+
+            // =============================
+            // C) GARANTIR ESTOQUE DE PENDING (10)
+            // =============================
+            await EnsurePendingPoolAsync(matchService, db, snapshot, currencyBySymbol, DesiredPending, ct);
+
+            // =============================
+            // D) GARANTIR 10 ONGOING (startar a partir dos pending)
+            // =============================
+            await EnsureOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, DesiredOngoing, ct);
+
+
+            var pendingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Pending, ct);
+            var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
+            _logger.LogInformation("📦 Pool status: pending={pending} ongoing={ongoing} (targets p={pTarget} o={oTarget})",
+                pendingCount, ongoingCount, DesiredPending, DesiredOngoing);
+
+
+            // =============================
+            // E) PROCESSAR ONGOING (score, KO/WO, time-limit)
+            // =============================
+            await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, ct);
+
+
+
+           
+            
+        }
+        private static async Task CancelPendingOutsideSnapshotAsync(
+    EthicAIDbContext db,
+    HashSet<string> allowed,
+    DateTime nowUtc,
+    CancellationToken ct)
+        {
             var pendingNow = await db.Match
                 .Include(x => x.TeamA).ThenInclude(t => t.Currency)
                 .Include(x => x.TeamB).ThenInclude(t => t.Currency)
@@ -418,109 +475,33 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     m.EndReasonCode = "FILTERED_OUT";
                     m.EndReasonDetail = $"Pair not in TopGainers snapshot. A={a} B={b}";
                     m.WinnerTeamId = null;
+                    m.TeamAOutCycles = 0;
+                    m.TeamBOutCycles = 0;
                     cancelled++;
                 }
             }
 
             if (cancelled > 0)
-            {
                 await db.SaveChangesAsync(ct);
-                _logger.LogWarning("🧹 Cancelados {n} matches PENDING fora do snapshot atual.", cancelled);
-            }
-
-
-
-            // 4) Garantir 3 jogos Pending (candidatos)
-            var upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
-
-            if (upcoming.Count < 3)
-            {
-                var missing = 3 - upcoming.Count;
-                _logger.LogWarning("⚠️ Faltam {missing} jogos. Criando...", missing);
-
-                await CreateMissingMatchesAsync(matchService, db, currencies, missing, ct);
-                upcoming = await matchService.GetUpcomingPendingMatchesAsync(3);
-            }
-
-            _logger.LogInformation("✅ Pending disponíveis. Total={total}", upcoming.Count);
-
-            // 5) Garantir 3 Ongoing
-            const int desiredOngoing = 3;
-
+        }
+        private async Task ProcessOngoingAsync(
+    MatchService matchService,
+    EthicAIDbContext db,
+    IMatchRuleEngine ruleEngine,
+    List<GainerEntry> snapshot,
+    DateTime snapshotUtc,
+    HashSet<string> allowed,
+    DateTime nowUtc,
+    CancellationToken ct)
+        {
             var ongoingNow = await matchService.GetOngoingMatchesAsync();
-            var needToStart = desiredOngoing - ongoingNow.Count;
-
-            if (needToStart > 0)
-            {
-                var pendingsToConsider = await matchService.GetUpcomingPendingMatchesAsync(needToStart * 3);
-
-                var started = 0;
-
-                foreach (var p in pendingsToConsider)
-                {
-                    if (started >= needToStart) break;
-
-                    var match = await db.Match
-                        .Include(x => x.TeamA).ThenInclude(t => t.Currency)
-                        .Include(x => x.TeamB).ThenInclude(t => t.Currency)
-                        .FirstOrDefaultAsync(x => x.MatchId == p.MatchId, ct);
-
-                    if (match == null) continue;
-                    if (match.Status != MatchStatus.Pending) continue;
-
-                    var symA = match.TeamA?.Currency?.Symbol ?? "";
-                    var symB = match.TeamB?.Currency?.Symbol ?? "";
-
-                    
-
-
-
-                    var decision = ruleEngine.EvaluatePending(symA, symB, snapshot, snapshotUtc);
-
-                    if (decision.Decision == MatchDecisionType.CancelMatch)
-                    {
-                        ApplyCancel(match, decision);
-                        await db.SaveChangesAsync(ct);
-
-                        _logger.LogWarning("🛑 CANCEL match {id} ({a} vs {b}). Reason={code} Detail={detail}",
-                            match.MatchId, symA, symB, decision.ReasonCode, decision.ReasonDetail);
-
-                        continue;
-                    }
-
-                    if (decision.Decision == MatchDecisionType.StartMatch)
-                    {
-                        await matchService.UpdateMatchStatusAndStartTimeAsync(match.MatchId, MatchStatus.Ongoing, nowUtc);
-
-                        match.TeamAOutCycles = 0;
-                        match.TeamBOutCycles = 0;
-                        match.WinnerTeamId = null;
-                        match.EndReasonCode = null;
-                        match.EndReasonDetail = null;
-                        match.RulesetVersion = decision.RulesetVersion;
-
-                        await db.SaveChangesAsync(ct);
-
-                        _logger.LogInformation("🚀 START match {id} ({a} vs {b}). Ruleset={ruleset}",
-                            match.MatchId, symA, symB, decision.RulesetVersion);
-
-                        started++;
-                        continue;
-                    }
-
-                    _logger.LogInformation("⏭️ NoAction match {id} pending. Detail={detail}", match.MatchId, decision.ReasonDetail);
-                }
-
-                ongoingNow = await matchService.GetOngoingMatchesAsync();
-            }
 
             if (ongoingNow.Count == 0)
             {
-                _logger.LogWarning("⚠️ Nenhum jogo Ongoing após auto-start. Nada a processar.");
+                _logger.LogWarning("⚠️ Nenhum jogo Ongoing. Nada a processar.");
                 return;
             }
 
-            // 6) Ongoing: atualizar score + aplicar KO/WO + auto-end 90min
             foreach (var m in ongoingNow)
             {
                 var match = await db.Match
@@ -531,6 +512,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 if (match == null) continue;
                 if (match.Status != MatchStatus.Ongoing) continue;
 
+                // garantia extra: startTime
                 if (match.StartTime == null)
                 {
                     await matchService.UpdateMatchStatusAndStartTimeAsync(match.MatchId, MatchStatus.Ongoing, nowUtc);
@@ -540,16 +522,13 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 var symA = match.TeamA?.Currency?.Symbol ?? "";
                 var symB = match.TeamB?.Currency?.Symbol ?? "";
 
-                var a = match.TeamA?.Currency?.PercentageChange ?? 0;
-                var b = match.TeamB?.Currency?.PercentageChange ?? 0;
-
-                // allowed = snapshot symbols (criar uma vez antes do foreach)
+                // ✅ agressivo: se saiu do snapshot, encerra imediatamente
                 if (!allowed.Contains(symA) || !allowed.Contains(symB))
                 {
                     match.Status = MatchStatus.Completed;
                     match.EndTime = nowUtc;
 
-                    match.WinnerTeamId = null; // WO técnico
+                    match.WinnerTeamId = null; // WO tecnico
                     match.EndReasonCode = "FILTERED_OUT_ONGOING";
                     match.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={symA} B={symB}";
 
@@ -566,6 +545,9 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     continue;
                 }
 
+                // % da moeda (atualizado via SaveCurrenciesAsync no mesmo ciclo)
+                var a = match.TeamA?.Currency?.PercentageChange ?? 0;
+                var b = match.TeamB?.Currency?.PercentageChange ?? 0;
 
                 var (scoreA, scoreB) = CalculateScoreFromPercent((double)a, (double)b);
 
@@ -624,6 +606,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     continue;
                 }
 
+                // time limit
                 var startUtc = ToUtcSafe(match.StartTime.Value);
 
                 if (nowUtc - startUtc >= MatchDuration)
@@ -639,6 +622,212 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     _logger.LogInformation("⏱️ Match {id} atingiu 90min. Encerrado por tempo.", match.MatchId);
                 }
             }
+        }
+
+        private static async Task ForceEndOngoingOutsideSnapshotAsync(
+    EthicAIDbContext db,
+    HashSet<string> allowed,
+    DateTime nowUtc,
+    CancellationToken ct)
+        {
+            var ongoingNow = await db.Match
+                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                .Where(x => x.Status == MatchStatus.Ongoing)
+                .ToListAsync(ct);
+
+            var ended = 0;
+
+            foreach (var m in ongoingNow)
+            {
+                var a = m.TeamA?.Currency?.Symbol ?? "";
+                var b = m.TeamB?.Currency?.Symbol ?? "";
+
+                if (!allowed.Contains(a) || !allowed.Contains(b))
+                {
+                    m.Status = MatchStatus.Completed;
+                    m.EndTime = nowUtc;
+                    m.WinnerTeamId = null; // WO tecnico (sem vencedor)
+                    m.EndReasonCode = "FILTERED_OUT_ONGOING";
+                    m.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={a} B={b}";
+                    m.TeamAOutCycles = 0;
+                    m.TeamBOutCycles = 0;
+                    m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+
+                    ended++;
+                }
+            }
+
+            if (ended > 0)
+                await db.SaveChangesAsync(ct);
+        }
+        private async Task EnsurePendingPoolAsync(
+    MatchService matchService,
+    EthicAIDbContext db,
+    List<GainerEntry> snapshot,
+    Dictionary<string, Currency> currencyBySymbol,
+    int desiredPending,
+    CancellationToken ct)
+        {
+            var pendingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Pending, ct);
+            var missing = desiredPending - pendingCount;
+
+            if (missing <= 0)
+                return;
+
+            // Pares existentes (pending + ongoing) para n%ao duplicar
+            var existing = await db.Match
+                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync(ct);
+
+            static string PairKey(string a, string b)
+                => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
+
+            var existingPairs = new HashSet<string>(
+                existing.Select(m =>
+                {
+                    var sa = m.TeamA?.Currency?.Symbol ?? "";
+                    var sb = m.TeamB?.Currency?.Symbol ?? "";
+                    return PairKey(sa, sb);
+                })
+                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|")),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            // Opcional: evitar o mesmo symbol em 2 partidas ao mesmo tempo (recomendado)
+            var busySymbols = new HashSet<string>(
+                existing.SelectMany(m => new[]
+                {
+            m.TeamA?.Currency?.Symbol ?? "",
+            m.TeamB?.Currency?.Symbol ?? ""
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s)),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            // Snapshot ordenado por rank
+            var ranked = snapshot
+                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+                .OrderBy(x => x.Rank)
+                .Select(x => x.Symbol)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Gera lista de candidatos (pares “proximos” em rank primeiro)
+            var candidates = new List<(string A, string B, int Score)>();
+            for (int i = 0; i < ranked.Count; i++)
+                for (int j = i + 1; j < ranked.Count; j++)
+                {
+                    var a = ranked[i];
+                    var b = ranked[j];
+
+                    // score menor = melhor: pares mais proximos no rank e mais altos
+                    var diff = j - i;                 // proximidade
+                    var sum = i + j;                 // penaliza ranks mais baixos
+                    var score = diff * 1000 + sum;    // diff domina
+
+                    candidates.Add((a, b, score));
+                }
+
+            candidates.Sort((x, y) => x.Score.CompareTo(y.Score));
+
+            var created = 0;
+
+            foreach (var (symA, symB, _) in candidates)
+            {
+                if (created >= missing) break;
+
+                var key = PairKey(symA, symB);
+                if (existingPairs.Contains(key)) continue;
+
+                // Se quiser permitir repeats de symbol em partidas diferentes, remova este bloco
+                if (busySymbols.Contains(symA) || busySymbols.Contains(symB))
+                    continue;
+
+                if (!currencyBySymbol.TryGetValue(symA, out var curA)) continue;
+                if (!currencyBySymbol.TryGetValue(symB, out var curB)) continue;
+
+                await matchService.CreateMatchAsync(curA, curB);
+
+                existingPairs.Add(key);
+                busySymbols.Add(symA);
+                busySymbols.Add(symB);
+                created++;
+            }
+
+            if (created < missing)
+                _logger.LogWarning("⚠️ Pending pool: consegui criar {created} de {missing}. Talvez aumentar TakeGainers.", created, missing);
+            else
+                _logger.LogInformation("✅ Pending pool reposto: criados {created} (meta={desired}).", created, desiredPending);
+        }
+        private async Task EnsureOngoingAsync(
+    MatchService matchService,
+    EthicAIDbContext db,
+    IMatchRuleEngine ruleEngine,
+    List<GainerEntry> snapshot,
+    DateTime snapshotUtc,
+    HashSet<string> allowed,
+    DateTime nowUtc,
+    int desiredOngoing,
+    CancellationToken ct)
+        {
+            var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
+            var needToStart = desiredOngoing - ongoingCount;
+
+            if (needToStart <= 0)
+                return;
+
+            // pega mais pendings pra ter margem de NoAction/Cancel
+            var pendingsToConsider = await matchService.GetUpcomingPendingMatchesAsync(needToStart * 5);
+
+            var started = 0;
+
+            foreach (var p in pendingsToConsider)
+            {
+                if (started >= needToStart) break;
+
+                var match = await db.Match
+                    .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                    .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                    .FirstOrDefaultAsync(x => x.MatchId == p.MatchId, ct);
+
+                if (match == null) continue;
+                if (match.Status != MatchStatus.Pending) continue;
+
+                var symA = match.TeamA?.Currency?.Symbol ?? "";
+                var symB = match.TeamB?.Currency?.Symbol ?? "";
+
+               
+
+                var decision = ruleEngine.EvaluatePending(symA, symB, snapshot, snapshotUtc);
+
+                if (decision.Decision == MatchDecisionType.CancelMatch)
+                {
+                    ApplyCancel(match, decision);
+                    await db.SaveChangesAsync(ct);
+                    continue;
+                }
+
+                if (decision.Decision == MatchDecisionType.StartMatch)
+                {
+                    await matchService.UpdateMatchStatusAndStartTimeAsync(match.MatchId, MatchStatus.Ongoing, nowUtc);
+
+                    match.TeamAOutCycles = 0;
+                    match.TeamBOutCycles = 0;
+                    match.WinnerTeamId = null;
+                    match.EndReasonCode = null;
+                    match.EndReasonDetail = null;
+                    match.RulesetVersion = decision.RulesetVersion;
+
+                    await db.SaveChangesAsync(ct);
+
+                    started++;
+                }
+            }
+
+            _logger.LogInformation("🚀 Ongoing: iniciados {started} (meta={desired}).", started, desiredOngoing);
         }
 
         // ========= Persist helpers =========
