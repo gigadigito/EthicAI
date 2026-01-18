@@ -342,10 +342,17 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             }
 
             // 2) Top gainers (USDT)
+            static decimal ParseDec(string? s)
+                => decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
+
             var topGainers = all
-                .Where(c => c.Symbol != null && c.Symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
+                .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+                // filtros de “mercado real” (aproxima o app)
+                .Where(c => c.Count >= 200) // evita pares sem negociação real
+                .Where(c => ParseDec(c.QuoteVolume) >= 200000m) // volume mínimo em USDT (ajuste fino)
                 .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
-                .Take(6)
+                .Take(20) // pega mais pra depurar
                 .ToList();
 
             if (topGainers.Count < 6)
@@ -353,7 +360,11 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
                 return;
             }
-
+            foreach (var c in topGainers.Take(15))
+            {
+                _logger.LogInformation("Gainer {sym} pct={pct} quoteVol={qv} trades={cnt}",
+                    c.Symbol, c.PriceChangePercent, c.QuoteVolume, c.Count);
+            }
             // Snapshot para o engine (rank 1..N)
             var snapshotUtc = nowUtc;
             var snapshot = topGainers

@@ -84,6 +84,13 @@ namespace BLL
 
             [JsonPropertyName("priceChangePercent")]
             public string PriceChangePercent { get; set; }
+
+            [JsonPropertyName("quoteVolume")]
+            public string? QuoteVolume { get; set; }   // vem como string
+
+            [JsonPropertyName("count")]
+            public long Count { get; set; }            // número de trades
+
         }
 
 
