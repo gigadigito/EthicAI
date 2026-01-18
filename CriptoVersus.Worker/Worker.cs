@@ -41,7 +41,7 @@ namespace CriptoVersus.Worker
         private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m; // 5M
-        private const int MinTradesCount = 20000;              // trades minimos (mais “real”)
+        private const int MinTradesCount = 2000;              // trades minimos (mais “real”)
 
         // ✅ snapshot maior pra ter pool suficiente
         private const int TakeGainers = 40;                    // era 20
