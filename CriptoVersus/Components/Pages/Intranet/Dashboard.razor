@@ -2,7 +2,7 @@
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
 @using Microsoft.AspNetCore.SignalR.Client
-
+@inject IJSRuntime JS
 <h3 class="mb-3">Dashboard</h3>
 
 @if (_loading)
@@ -47,6 +47,17 @@ else
                 </div>
             </div>
         </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Worker</h5>
+                    <div id="worker-status-badge"></div>
+                </div>
+
+                <div class="mt-2" id="worker-health-list"></div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Worker -->
@@ -212,6 +223,9 @@ else
 }
 
 @code {
+    private object? _workerJsPayload;
+    private bool _workerJsDirty;
+    private bool _interactiveReady;
 
 
     private HubConnection? _hub;
@@ -230,6 +244,7 @@ else
 
         await _hub.StartAsync();
     }
+ 
 
     public async ValueTask DisposeAsync()
     {
@@ -237,6 +252,17 @@ else
             await _hub.DisposeAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _interactiveReady = true;
+
+        if (_interactiveReady && _workerJsDirty && _workerJsPayload is not null)
+        {
+            await JS.InvokeVoidAsync("updateWorkerDashboard", _workerJsPayload);
+            _workerJsDirty = false;
+        }
+    }
 
     private DashboardSnapshotDto? _snapshot;
     private bool _loading = true;
@@ -255,6 +281,44 @@ else
             await InvokeAsync(StateHasChanged);
 
             _snapshot = await Api.GetDashboardSnapshotAsync();
+
+
+            if (_snapshot?.Worker is not null)
+            {
+                var secondsSinceHeartbeat =
+                    (int)(DateTime.UtcNow - _snapshot.Worker.LastHeartbeatUtc).TotalSeconds;
+
+                var healthJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    database = new { Ok = _snapshot.Worker.IsAlive, Message = "Heartbeat" },
+                    worker = new
+                    {
+                        Ok = _snapshot.Worker.IsAlive,
+                        Message = secondsSinceHeartbeat <= _snapshot.Worker.CycleIntervalSeconds * 2
+                            ? "Running"
+                            : "Delayed"
+                    }
+                });
+
+                _workerJsPayload = new
+                {
+                    tx_health_json = healthJson,
+                    in_degraded = !_snapshot.Worker.IsAlive,
+                    secondsSinceHeartbeat = secondsSinceHeartbeat,
+                    cycleIntervalSeconds = _snapshot.Worker.CycleIntervalSeconds
+                };
+
+                _workerJsDirty = true;
+
+                // ✅ se já estamos no modo interativo (browser pronto), pode disparar agora
+                if (_interactiveReady)
+                {
+                    await JS.InvokeVoidAsync("updateWorkerDashboard", _workerJsPayload);
+                    _workerJsDirty = false;
+                }
+            }
+
+
         }
         catch (Exception ex)
         {

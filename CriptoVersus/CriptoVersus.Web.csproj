@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\js\dashboard\index.ts" />
+    <Content Remove="wwwroot\js\dashboard\workerHealth.ts" />
+    <Content Remove="wwwroot\js\dashboard\workerStatus.ts" />
+    <Content Remove="wwwroot\js\interob\blazor.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.9" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.1" />
   </ItemGroup>
@@ -15,6 +22,17 @@
     <ProjectReference Include="..\Businnes\BLL.csproj" />
     <ProjectReference Include="..\DAL\DAL.csproj" />
     <ProjectReference Include="..\DTOs\DTOs.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Include="wwwroot\js\dashboard\index.ts" />
+    <TypeScriptCompile Include="wwwroot\js\dashboard\workerHealth.ts" />
+    <TypeScriptCompile Include="wwwroot\js\dashboard\workerStatus.ts" />
+    <TypeScriptCompile Include="wwwroot\js\interob\blazor.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\js\dist\" />
   </ItemGroup>
 
 </Project>

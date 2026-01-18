@@ -100,7 +100,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
   nr_last_cycle_ms    = COALESCE(EXCLUDED.nr_last_cycle_ms, worker_status.nr_last_cycle_ms),
   in_degraded         = EXCLUDED.in_degraded,
   tx_health_json      = COALESCE(EXCLUDED.tx_health_json, worker_status.tx_health_json),
-  tx_last_error       = COALESCE(EXCLUDED.tx_last_error, worker_status.tx_last_error),
+ tx_last_error = EXCLUDED.tx_last_error,
   tx_last_error_stack = COALESCE(EXCLUDED.tx_last_error_stack, worker_status.tx_last_error_stack),
   dt_updated_at       = now();";
 

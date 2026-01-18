@@ -93,16 +93,19 @@ namespace CriptoVersus.API.Controllers
         private async Task<List<CurrencyDto>> GetTopGainersAsync(int top, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
-
+            var minUtc = DateTime.UtcNow.AddMinutes(-10); // ✅ nowUtc é UTC
             var list = await db.Set<Currency>()
-                .AsNoTracking()
-                .OrderByDescending(c => c.PercentageChange)
-                .Take(top)
-                .Select(c => new CurrencyDto
+     .AsNoTracking()
+     .Where(c => c.Symbol != null && EF.Functions.ILike(c.Symbol, "%USDT"))
+     .Where(c => c.LastUpdated >= minUtc)
+     .OrderByDescending(c => c.PercentageChange)
+     .ThenByDescending(c => c.LastUpdated)
+     .Take(top)
+                  .Select(c => new CurrencyDto
                 {
-                    Symbol = c.Symbol,
+                    Symbol = c.Symbol!,
                     Name = c.Name,
-                    PercentageChange = (decimal)c.PercentageChange,
+                    PercentageChange = (decimal)c.PercentageChange, // se já for decimal/numeric, não faz cast
                     LastUpdatedUtc = c.LastUpdated,
                     Rank = 0
                 })
@@ -113,6 +116,7 @@ namespace CriptoVersus.API.Controllers
 
             return list;
         }
+
 
         private async Task<List<MatchDto>> GetOngoingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
         {
