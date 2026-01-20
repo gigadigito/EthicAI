@@ -229,6 +229,18 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                         lastErrorStack: lastStack,
                         ct: stoppingToken
                     );
+                    // ✅ Notifica o Dashboard (SignalR via API)
+                    try
+                    {
+                        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                        using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+
+                        await http.PostAsync("https://criptoversus-api.duckdns.org/api/dashboard/notify", content, stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed (não derruba o ciclo).");
+                    }
                 }
 
                 await Task.Delay(CycleInterval, stoppingToken);
