@@ -249,11 +249,11 @@ else
         await Reload();
 
         _hub = new HubConnectionBuilder()
-     .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
-     .WithAutomaticReconnect()
-     .Build();
+         .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
+         .WithAutomaticReconnect()
+         .Build();
 
-   _hub.On<string>("dashboard_changed", async _ => await Reload());
+       _hub.On<string>("dashboard_changed", async _ => await Reload());
 
 
         await _hub.StartAsync();

@@ -18,6 +18,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using static BLL.BinanceService;
 
@@ -28,12 +29,17 @@ namespace CriptoVersus.Worker
         private readonly ILogger<Worker> _logger;
         private readonly IServiceProvider _sp;
         private readonly IHttpClientFactory _httpClientFactory;
-
-        public Worker(ILogger<Worker> logger, IServiceProvider sp, IHttpClientFactory httpClientFactory)
+        private readonly CriptoVersusWorkerOptions _options;
+        public Worker(
+     ILogger<Worker> logger,
+     IServiceProvider sp,
+     IHttpClientFactory httpClientFactory,
+     IOptions<CriptoVersusWorkerOptions> options)
         {
             _logger = logger;
             _sp = sp;
             _httpClientFactory = httpClientFactory;
+            _options = options.Value;
         }
 
         private const string WorkerName = "CriptoVersus.Worker";
@@ -865,20 +871,28 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
         }
 
-        private static (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
+        private (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
         {
+            var percentPerGoal = _options.Scoring.PercentPerGoal;
+            var maxGoals = _options.Scoring.MaxGoalsPerTeam;
+
             if (a > b)
             {
                 var diff = a - b;
-                return ((int)Math.Floor(diff / 10), 0);
+                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
+                return (goals, 0);
             }
+
             if (b > a)
             {
                 var diff = b - a;
-                return (0, (int)Math.Floor(diff / 10));
+                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
+                return (0, goals);
             }
+
             return (0, 0);
         }
+
 
         private static DateTime ToUtcSafe(DateTime dt)
         {
