@@ -70,20 +70,20 @@ namespace CriptoVersus.Worker
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
 
             var sql = @"
-CREATE TABLE IF NOT EXISTS worker_status (
-  tx_worker_name      varchar(50) PRIMARY KEY,
-  dt_last_heartbeat   timestamptz NOT NULL,
-  dt_last_cycle_start timestamptz NULL,
-  dt_last_cycle_end   timestamptz NULL,
-  dt_last_success     timestamptz NULL,
-  nr_last_cycle_ms    integer NULL,
-  in_degraded         boolean NOT NULL DEFAULT false,
-  tx_health_json      text NULL,
-  tx_last_error       text NULL,
-  tx_last_error_stack text NULL,
-  in_status           varchar(20) NOT NULL,
-  dt_updated_at       timestamptz NOT NULL DEFAULT now()
-);";
+                CREATE TABLE IF NOT EXISTS worker_status (
+                  tx_worker_name      varchar(50) PRIMARY KEY,
+                  dt_last_heartbeat   timestamptz NOT NULL,
+                  dt_last_cycle_start timestamptz NULL,
+                  dt_last_cycle_end   timestamptz NULL,
+                  dt_last_success     timestamptz NULL,
+                  nr_last_cycle_ms    integer NULL,
+                  in_degraded         boolean NOT NULL DEFAULT false,
+                  tx_health_json      text NULL,
+                  tx_last_error       text NULL,
+                  tx_last_error_stack text NULL,
+                  in_status           varchar(20) NOT NULL,
+                  dt_updated_at       timestamptz NOT NULL DEFAULT now()
+                );";
 
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }

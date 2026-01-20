@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @inject IJSRuntime JS
 <h3 class="mb-3">Dashboard</h3>
+@implements IAsyncDisposable
 
 @if (_loading)
 {
@@ -249,15 +250,41 @@ else
         await Reload();
 
         _hub = new HubConnectionBuilder()
-         .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
-         .WithAutomaticReconnect()
-         .Build();
+            .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
+            .WithAutomaticReconnect()
+            .Build();
 
-       _hub.On<string>("dashboard_changed", async _ => await Reload());
+        _hub.On("dashboard_changed", () => InvokeAsync(Reload));
 
+        _hub.Reconnecting += error =>
+        {
+            _error = "Reconectando ao Hub...";
+            return InvokeAsync(StateHasChanged);
+        };
 
-        await _hub.StartAsync();
+        _hub.Reconnected += connectionId =>
+        {
+            _error = null;
+            return InvokeAsync(StateHasChanged);
+        };
+
+        _hub.Closed += error =>
+        {
+            _error = "Conexão do Hub fechada.";
+            return InvokeAsync(StateHasChanged);
+        };
+
+        try
+        {
+            await _hub.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Hub conectado. ConnectionId={_hub.ConnectionId} State={_hub.State}";
+            await InvokeAsync(StateHasChanged);
+        }
     }
+
  
 
     public async ValueTask DisposeAsync()
