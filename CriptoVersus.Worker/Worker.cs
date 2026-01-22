@@ -235,7 +235,8 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
                         using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
 
-                        await http.PostAsync("https://criptoversus-api.duckdns.org/api/dashboard/notify", content, stoppingToken);
+                        await http.PostAsync("http://criptoversus-api:8080/api/dashboard/notify", content, stoppingToken);
+
                     }
                     catch (Exception ex)
                     {
