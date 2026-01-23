@@ -1,7 +1,9 @@
 ﻿@page "/intranet/dashboard"
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@using Microsoft.AspNetCore.Http.Connections
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json
 @inject IJSRuntime JS
 <h3 class="mb-3">Dashboard</h3>
 @implements IAsyncDisposable
@@ -58,7 +60,10 @@ else
                 <div class="mt-2" id="worker-health-list"></div>
             </div>
         </div>
-
+        <div class="text-muted small">
+            HubState: @_hub?.State | ConnId: @_hub?.ConnectionId | Events: @_eventCount
+            | Reloads: @_reloadCount | LastReload: @_lastReloadLocal.ToString("HH:mm:ss")
+        </div>
     </div>
 
     <!-- Worker -->
@@ -187,6 +192,14 @@ else
                             }
                         </tbody>
                     </table>
+                    <div class="text-muted small">
+                        HubState: @_hub?.State | ConnId: @_hub?.ConnectionId | Events: @_eventCount
+                    </div>
+                    @if (!string.IsNullOrEmpty(_lastPayload))
+                    {
+                        <div class="text-muted small">Last: @_lastPayload</div>
+                    }
+
                 </div>
             </div>
         </div>
@@ -236,6 +249,10 @@ else
     private object? _workerJsPayload;
     private bool _workerJsDirty;
     private bool _interactiveReady;
+    private int _eventCount = 0;
+    private string? _lastPayload;
+    private DateTime _lastReloadLocal;
+    private int _reloadCount;
 
     private static string FmtPct(decimal? v)
     {
@@ -247,14 +264,68 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await Reload();
-
         _hub = new HubConnectionBuilder()
-            .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
-            .WithAutomaticReconnect()
-            .Build();
+     .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
+     .WithAutomaticReconnect()
+     .Build();
 
-        _hub.On("dashboard_changed", () => InvokeAsync(Reload));
+
+     
+
+        _hub.ServerTimeout = TimeSpan.FromSeconds(60);
+        _hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+     
+
+        // ...
+
+        _hub.On<object>("dashboard_changed", async obj =>
+        {
+            _eventCount++;
+
+            try
+            {
+                _lastPayload = obj switch
+                {
+                    null => "(null)",
+                    JsonElement je => je.ToString(), // normalmente já vem json aqui
+                    _ => JsonSerializer.Serialize(obj)
+                };
+            }
+            catch
+            {
+                _lastPayload = obj?.ToString();
+            }
+
+            await InvokeAsync(StateHasChanged);
+            await InvokeAsync(Reload);
+        });// 0 argumentos (notify sem payload)
+     
+        
+        _hub.On<string>("dashboard_changed", async payload =>
+     {
+     _eventCount++;
+
+     try
+     {
+         using var doc = JsonDocument.Parse(payload);
+         var reason = doc.RootElement.TryGetProperty("reason", out var r) ? r.GetString() : null;
+         var utc = doc.RootElement.TryGetProperty("utc", out var u) ? u.GetString() : null;
+         _lastPayload = $"reason={reason ?? "?"} utc={utc ?? "?"}";
+     }
+     catch
+     {
+         _lastPayload = payload;
+     }
+
+     await InvokeAsync(StateHasChanged);
+     await InvokeAsync(Reload);
+     });
+
+
+
+
+
+
 
         _hub.Reconnecting += error =>
         {
@@ -268,22 +339,30 @@ else
             return InvokeAsync(StateHasChanged);
         };
 
-        _hub.Closed += error =>
-        {
-            _error = "Conexão do Hub fechada.";
-            return InvokeAsync(StateHasChanged);
-        };
+        _hub.Closed += async error =>
+     {
+     _error = error is null
+         ? "Conexão do Hub fechada (sem erro)."
+         : $"Conexão do Hub fechada: {error.GetType().Name} - {error.Message}";
+     await InvokeAsync(StateHasChanged);
+     };
+
 
         try
         {
             await _hub.StartAsync();
+            _error = null;
         }
         catch (Exception ex)
         {
-            _error = $"Hub conectado. ConnectionId={_hub.ConnectionId} State={_hub.State}";
+            _error = $"Falha ao conectar no Hub: {ex.Message}";
             await InvokeAsync(StateHasChanged);
+            return;
         }
+
+        await Reload(); // ✅ só depois de conectar
     }
+
 
  
 
@@ -315,6 +394,9 @@ else
     {
         try
         {
+
+            _reloadCount++;
+            _lastReloadLocal = DateTime.Now;
             _loading = true;
             _error = null;
 

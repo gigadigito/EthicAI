@@ -1,6 +1,7 @@
 ﻿using CriptoVersus.API.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Text.Json;
 
 [ApiController]
 [Route("api/dashboard")]
@@ -16,7 +17,13 @@ public class DashboardNotifyController : ControllerBase
     [HttpPost("notify")]
     public async Task<IActionResult> Notify()
     {
-        await _hub.Clients.All.SendAsync("dashboard_changed");
+
+        await _hub.Clients.All.SendAsync("dashboard_changed", JsonSerializer.Serialize(new
+        {
+            reason = "pg_notify",
+            utc = DateTime.UtcNow
+        }));
+
         return Ok(new { ok = true });
     }
 }
