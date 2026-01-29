@@ -25,4 +25,17 @@ public class DevController : ControllerBase
 
         return Ok(new { ok = true, sent = "dashboard_changed" });
     }
+
+    [HttpGet("connections")]
+    public IActionResult Connections()
+    {
+        return Ok(new
+        {
+            apiMachine = Environment.MachineName,
+            apiPid = Environment.ProcessId,
+            count = DashboardHub.Connections.Count,
+            ids = DashboardHub.Connections.Keys.Take(10).ToArray()
+        });
+    }
+
 }

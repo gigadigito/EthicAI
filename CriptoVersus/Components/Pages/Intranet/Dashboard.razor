@@ -1,9 +1,12 @@
 ﻿@page "/intranet/dashboard"
+@using CriptoVersus.Web.Services
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
 @using Microsoft.AspNetCore.Http.Connections
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Text.Json
+@inject CriptoVersus.Web.Services.DashboardHubClient HubClient
+
 @inject IJSRuntime JS
 <h3 class="mb-3">Dashboard</h3>
 @implements IAsyncDisposable
@@ -61,8 +64,9 @@ else
             </div>
         </div>
         <div class="text-muted small">
-            HubState: @_hub?.State | ConnId: @_hub?.ConnectionId | Events: @_eventCount
+            HubState: @HubClient.State | ConnId: @HubClient.ConnectionId | Events: @_eventCount
             | Reloads: @_reloadCount | LastReload: @_lastReloadLocal.ToString("HH:mm:ss")
+
         </div>
     </div>
 
@@ -193,7 +197,8 @@ else
                         </tbody>
                     </table>
                     <div class="text-muted small">
-                        HubState: @_hub?.State | ConnId: @_hub?.ConnectionId | Events: @_eventCount
+                        HubState: @HubClient.State | ConnId: @HubClient.ConnectionId
+
                     </div>
                     @if (!string.IsNullOrEmpty(_lastPayload))
                     {
@@ -242,17 +247,383 @@ else
                 </div>
             </div>
         </div>
+        <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Debug</strong>
+
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ToggleDebug">
+                        @(_debugEnabled ? "Pausar" : "Ativar")
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="ClearDebug">
+                        Limpar
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="CopyDebug">
+                        Copiar
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="text-muted small mb-2">
+                    RenderMode: @(OperatingSystem.IsBrowser() ? "WASM" : "Server") |
+                    HubState: @HubClient.State |
+                    ConnId: @HubClient.ConnectionId |
+                    Events: @_eventCount |
+                    Reloads: @_reloadCount |
+                    LastReload: @_lastReloadLocal.ToString("HH:mm:ss")
+                </div>
+
+                <pre style="height:260px; overflow:auto; background:#0b0f14; color:#d1d5db; padding:10px; border-radius:6px; font-size:12px; margin:0;">
+                    @_debugText
+            </pre>
+            </div>
+        </div>
+
     </div>
 }
 
+
 @code {
+    // JS Worker Badge payload
     private object? _workerJsPayload;
     private bool _workerJsDirty;
     private bool _interactiveReady;
-    private int _eventCount = 0;
+
+    // UI counters / debug
+    private int _eventCount;
     private string? _lastPayload;
-    private DateTime _lastReloadLocal;
+    private DateTime _lastReloadLocal = DateTime.Now;
     private int _reloadCount;
+
+    // Data
+    private DashboardSnapshotDto? _snapshot;
+    private bool _loading = true;
+    private string? _error;
+
+    // lifecycle / safety
+    private bool _disposed;
+    private readonly SemaphoreSlim _reloadLock = new(1, 1);
+
+    private CancellationTokenSource? _debounceCts;
+    private CancellationTokenSource? _reloadCts;
+
+    // ===== DEBUG =====
+    private bool _debugEnabled = true;
+    private const int DebugMaxLines = 500;
+    private readonly object _debugLock = new();
+    private readonly Queue<string> _debugLines = new();
+    private string _debugText = "";
+
+    private void D(string message)
+    {
+        if (!_debugEnabled) return;
+
+        var line = $"{DateTime.Now:HH:mm:ss.fff} | {message}";
+
+        lock (_debugLock)
+        {
+            _debugLines.Enqueue(line);
+            while (_debugLines.Count > DebugMaxLines)
+                _debugLines.Dequeue();
+
+            _debugText = string.Join('\n', _debugLines);
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleDebug()
+    {
+        _debugEnabled = !_debugEnabled;
+        // não chama D aqui quando desligar, senão some
+        if (_debugEnabled) D("DEBUG => ON");
+    }
+
+    private void ClearDebug()
+    {
+        lock (_debugLock)
+        {
+            _debugLines.Clear();
+            _debugText = "";
+        }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CopyDebug()
+    {
+        try
+        {
+            string text;
+            lock (_debugLock) text = _debugText;
+
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            D("Debug copiado ✅");
+        }
+        catch (Exception ex)
+        {
+            D($"CopyDebug ERRO: {ex.GetType().Name} - {ex.Message}");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        D("OnInitializedAsync INICIO");
+        D($"RenderMode: {(OperatingSystem.IsBrowser() ? "WASM" : "Server")} Machine={Environment.MachineName}");
+        D($"HubClient instance => {HubClient.InstanceId}");
+
+        HubClient.DashboardChanged += OnDashboardChanged;
+        D("Subscribed HubClient.DashboardChanged");
+
+        try
+        {
+            try
+            {
+                var ips = await System.Net.Dns.GetHostAddressesAsync("criptoversus-api.duckdns.org");
+                D("DNS criptoversus-api.duckdns.org => " + string.Join(", ", ips.Select(i => i.ToString())));
+            }
+            catch (Exception ex)
+            {
+                D("DNS resolve ERRO => " + ex.Message);
+            }
+
+            D("HubClient.EnsureStartedAsync()...");
+            await HubClient.EnsureStartedAsync();
+            D($"Hub started OK | State={HubClient.State} ConnId={HubClient.ConnectionId}");
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Falha ao conectar no Hub: {ex.Message}";
+            D($"ERRO EnsureStartedAsync: {ex}");
+            _loading = false; // não trava a tela em loading
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        D("Primeiro Reload()...");
+        await Reload(); // pode falhar/timeout, mas não pode travar a UI
+        D("OnInitializedAsync FIM");
+    }
+
+    private void OnDashboardChanged(string? payload)
+    {
+        if (_disposed)
+        {
+            D("OnDashboardChanged ignorado (disposed=true)");
+            return;
+        }
+
+        _eventCount++;
+
+        if (string.IsNullOrWhiteSpace(payload))
+            _lastPayload = "(notify sem payload)";
+        else
+            _lastPayload = payload.Length > 200 ? payload[..200] + "..." : payload;
+
+        D($"EVENT dashboard_changed #{_eventCount} | payloadLen={(payload?.Length ?? 0)} | State={HubClient.State} ConnId={HubClient.ConnectionId}");
+
+        // debounce do reload (não bloqueia thread do hub)
+        _ = DebouncedReloadAsync(350);
+    }
+
+    private Task DebouncedReloadAsync(int ms)
+    {
+        if (_disposed)
+        {
+            D("DebouncedReloadAsync ignorado (disposed=true)");
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            _debounceCts?.Cancel();
+            _debounceCts?.Dispose();
+        }
+        catch { /* ignore */ }
+
+        _debounceCts = new CancellationTokenSource();
+        var ct = _debounceCts.Token;
+
+        D($"Debounce agendado: {ms}ms");
+
+        return Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(ms, ct);
+                if (ct.IsCancellationRequested || _disposed)
+                {
+                    D("Debounce cancelado");
+                    return;
+                }
+
+                D("Debounce disparou => Reload()");
+                await InvokeAsync(Reload);
+            }
+            catch (OperationCanceledException)
+            {
+                // esperado
+            }
+            catch (Exception ex)
+            {
+                D($"Debounce ERRO: {ex.GetType().Name} - {ex.Message}");
+            }
+        }, ct);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactiveReady = true;
+            D("OnAfterRender firstRender => interactiveReady=true");
+        }
+
+        if (_disposed) return;
+
+        if (_interactiveReady && _workerJsDirty && _workerJsPayload is not null)
+        {
+            try
+            {
+                D("OnAfterRender => JS updateWorkerDashboard (dirty)");
+                await JS.InvokeVoidAsync("updateWorkerDashboard", _workerJsPayload);
+                _workerJsDirty = false;
+                D("OnAfterRender => JS OK");
+            }
+            catch (Exception ex)
+            {
+                D($"OnAfterRender JS ERRO: {ex.GetType().Name} - {ex.Message}");
+            }
+        }
+    }
+
+    private async Task Reload()
+    {
+        if (_disposed)
+        {
+            D("Reload ignorado (disposed=true)");
+            return;
+        }
+
+        // evita reentrância
+        if (!await _reloadLock.WaitAsync(0))
+        {
+            D("Reload ignorado (lock ocupado)");
+            return;
+        }
+
+        // cancela qualquer reload anterior pendente (caso tenha travado)
+        try
+        {
+            _reloadCts?.Cancel();
+            _reloadCts?.Dispose();
+        }
+        catch { /* ignore */ }
+
+        _reloadCts = new CancellationTokenSource();
+        // timeout explícito pra não ficar eterno em "Carregando..."
+        _reloadCts.CancelAfter(TimeSpan.FromSeconds(12));
+        var ct = _reloadCts.Token;
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        try
+        {
+            _reloadCount++;
+            _lastReloadLocal = DateTime.Now;
+
+            _loading = true;
+            _error = null;
+
+            D($"Reload START #{_reloadCount} | HubState={HubClient.State} ConnId={HubClient.ConnectionId}");
+
+            await InvokeAsync(StateHasChanged);
+
+            // CHAMADA API (com timeout)
+            D("Api.GetDashboardSnapshotAsync()...");
+            var task = Api.GetDashboardSnapshotAsync();
+
+            // não dá pra passar ct se o método não aceita, então fazemos WaitAsync
+            _snapshot = await task.WaitAsync(ct);
+
+            D($"Snapshot OK | serverUtc={_snapshot.ServerTimeUtc:O} | workerAlive={_snapshot.Worker?.IsAlive}");
+
+            if (_snapshot?.Worker is not null)
+            {
+                var secondsSinceHeartbeat =
+                    (int)(DateTime.UtcNow - _snapshot.Worker.LastHeartbeatUtc).TotalSeconds;
+
+                _workerJsPayload = new
+                {
+                    tx_health_json = "(debug)",
+                    in_degraded = !_snapshot.Worker.IsAlive,
+                    secondsSinceHeartbeat,
+                    cycleIntervalSeconds = _snapshot.Worker.CycleIntervalSeconds
+                };
+
+                _workerJsDirty = true;
+
+                D($"Worker payload ready | secondsSinceHeartbeat={secondsSinceHeartbeat} dirty=true interactiveReady={_interactiveReady}");
+
+                if (_interactiveReady)
+                {
+                    try
+                    {
+                        D("JS updateWorkerDashboard()...");
+                        await JS.InvokeVoidAsync("updateWorkerDashboard", _workerJsPayload);
+                        _workerJsDirty = false;
+                        D("JS OK (updateWorkerDashboard)");
+                    }
+                    catch (Exception ex)
+                    {
+                        D($"JS ERRO: {ex.GetType().Name} - {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _error = "Timeout ao buscar snapshot (12s).";
+            D("Reload TIMEOUT/Cancel (12s) ✅");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.ToString();
+            D($"Reload ERRO: {ex}");
+        }
+        finally
+        {
+            sw.Stop();
+            _loading = false;
+
+            try { _reloadLock.Release(); } catch { }
+
+            D($"Reload END (ms={sw.ElapsedMilliseconds})");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+
+        HubClient.DashboardChanged -= OnDashboardChanged;
+
+        try { _debounceCts?.Cancel(); } catch { }
+        _debounceCts?.Dispose();
+        _debounceCts = null;
+
+        try { _reloadCts?.Cancel(); } catch { }
+        _reloadCts?.Dispose();
+        _reloadCts = null;
+
+        _reloadLock.Dispose();
+
+        await Task.CompletedTask;
+    }
+
+    private string WorkerBadge => _snapshot?.Worker.IsAlive == true ? "bg-success" : "bg-danger";
 
     private static string FmtPct(decimal? v)
     {
@@ -260,202 +631,6 @@ else
         var sign = v.Value >= 0 ? "+" : "";
         return $"{sign}{v.Value:0.##}%";
     }
-    private HubConnection? _hub;
-
-    protected override async Task OnInitializedAsync()
-    {
-        _hub = new HubConnectionBuilder()
-     .WithUrl("https://criptoversus-api.duckdns.org/hubs/dashboard")
-     .WithAutomaticReconnect()
-     .Build();
-
-
-     
-
-        _hub.ServerTimeout = TimeSpan.FromSeconds(60);
-        _hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
-     
-
-        // ...
-
-        _hub.On<object>("dashboard_changed", async obj =>
-        {
-            _eventCount++;
-
-            try
-            {
-                _lastPayload = obj switch
-                {
-                    null => "(null)",
-                    JsonElement je => je.ToString(), // normalmente já vem json aqui
-                    _ => JsonSerializer.Serialize(obj)
-                };
-            }
-            catch
-            {
-                _lastPayload = obj?.ToString();
-            }
-
-            await InvokeAsync(StateHasChanged);
-            await InvokeAsync(Reload);
-        });// 0 argumentos (notify sem payload)
-     
-        
-        _hub.On<string>("dashboard_changed", async payload =>
-     {
-     _eventCount++;
-
-     try
-     {
-         using var doc = JsonDocument.Parse(payload);
-         var reason = doc.RootElement.TryGetProperty("reason", out var r) ? r.GetString() : null;
-         var utc = doc.RootElement.TryGetProperty("utc", out var u) ? u.GetString() : null;
-         _lastPayload = $"reason={reason ?? "?"} utc={utc ?? "?"}";
-     }
-     catch
-     {
-         _lastPayload = payload;
-     }
-
-     await InvokeAsync(StateHasChanged);
-     await InvokeAsync(Reload);
-     });
-
-
-
-
-
-
-
-        _hub.Reconnecting += error =>
-        {
-            _error = "Reconectando ao Hub...";
-            return InvokeAsync(StateHasChanged);
-        };
-
-        _hub.Reconnected += connectionId =>
-        {
-            _error = null;
-            return InvokeAsync(StateHasChanged);
-        };
-
-        _hub.Closed += async error =>
-     {
-     _error = error is null
-         ? "Conexão do Hub fechada (sem erro)."
-         : $"Conexão do Hub fechada: {error.GetType().Name} - {error.Message}";
-     await InvokeAsync(StateHasChanged);
-     };
-
-
-        try
-        {
-            await _hub.StartAsync();
-            _error = null;
-        }
-        catch (Exception ex)
-        {
-            _error = $"Falha ao conectar no Hub: {ex.Message}";
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
-        await Reload(); // ✅ só depois de conectar
-    }
-
-
- 
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_hub != null)
-            await _hub.DisposeAsync();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-            _interactiveReady = true;
-
-        if (_interactiveReady && _workerJsDirty && _workerJsPayload is not null)
-        {
-            await JS.InvokeVoidAsync("updateWorkerDashboard", _workerJsPayload);
-            _workerJsDirty = false;
-        }
-    }
-
-    private DashboardSnapshotDto? _snapshot;
-    private bool _loading = true;
-    private string? _error;
-
-   
-
-    private async Task Reload()
-    {
-        try
-        {
-
-            _reloadCount++;
-            _lastReloadLocal = DateTime.Now;
-            _loading = true;
-            _error = null;
-
-            // já força render do "Carregando..."
-            await InvokeAsync(StateHasChanged);
-
-            _snapshot = await Api.GetDashboardSnapshotAsync();
-
-
-            if (_snapshot?.Worker is not null)
-            {
-                var secondsSinceHeartbeat =
-                    (int)(DateTime.UtcNow - _snapshot.Worker.LastHeartbeatUtc).TotalSeconds;
-
-                var healthJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    database = new { Ok = _snapshot.Worker.IsAlive, Message = "Heartbeat" },
-                    worker = new
-                    {
-                        Ok = _snapshot.Worker.IsAlive,
-                        Message = secondsSinceHeartbeat <= _snapshot.Worker.CycleIntervalSeconds * 2
-                            ? "Running"
-                            : "Delayed"
-                    }
-                });
-
-                _workerJsPayload = new
-                {
-                    tx_health_json = healthJson,
-                    in_degraded = !_snapshot.Worker.IsAlive,
-                    secondsSinceHeartbeat = secondsSinceHeartbeat,
-                    cycleIntervalSeconds = _snapshot.Worker.CycleIntervalSeconds
-                };
-
-                _workerJsDirty = true;
-
-                // ✅ se já estamos no modo interativo (browser pronto), pode disparar agora
-                if (_interactiveReady)
-                {
-                    await JS.InvokeVoidAsync("updateWorkerDashboard", _workerJsPayload);
-                    _workerJsDirty = false;
-                }
-            }
-
-
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-        }
-        finally
-        {
-            _loading = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
-
-    private string WorkerBadge => _snapshot?.Worker.IsAlive == true ? "bg-success" : "bg-danger";
 
     private static string FmtUtc(DateTime? dt)
         => dt is null ? "-" : dt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
@@ -463,3 +638,9 @@ else
     private static string FmtUtc(DateTime dt)
         => dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
 }
+
+
+
+
+
+

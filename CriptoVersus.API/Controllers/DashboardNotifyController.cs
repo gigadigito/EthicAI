@@ -17,13 +17,18 @@ public class DashboardNotifyController : ControllerBase
     [HttpPost("notify")]
     public async Task<IActionResult> Notify()
     {
-
-        await _hub.Clients.All.SendAsync("dashboard_changed", JsonSerializer.Serialize(new
+        var instance = new
         {
             reason = "pg_notify",
-            utc = DateTime.UtcNow
-        }));
+            utc = DateTimeOffset.UtcNow.ToString("O"),
+            apiMachine = Environment.MachineName,
+            apiPid = Environment.ProcessId,
+            app = AppDomain.CurrentDomain.FriendlyName
+        };
 
-        return Ok(new { ok = true });
+        await _hub.Clients.All.SendAsync("dashboard_changed", JsonSerializer.Serialize(instance));
+
+        return Ok(new { ok = true, instance });
     }
+
 }

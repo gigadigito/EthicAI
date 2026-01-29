@@ -9,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddSingleton<DashboardHubClient>();
+
 builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
 {
     var cfg = sp.GetRequiredService<IConfiguration>();
