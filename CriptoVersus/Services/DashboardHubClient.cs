@@ -82,8 +82,6 @@ namespace CriptoVersus.Web.Services
 
         private HubConnection BuildConnection()
         {
-            // IMPORTANTÍSSIMO: Blazor Server roda no servidor, então proxy do Windows pode atrapalhar.
-            // UseProxy=false ajuda a evitar proxy corporativo.
             var handler = new HttpClientHandler
             {
                 UseProxy = false,
@@ -94,17 +92,21 @@ namespace CriptoVersus.Web.Services
                 .WithUrl(HubUrl, opt =>
                 {
                     opt.HttpMessageHandlerFactory = _ => handler;
+
+                    // ===== FORÇA WEBSOCKET (se falhar aqui, é proxy/NPM) =====
+                    opt.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                    opt.SkipNegotiation = true; // obrigatório pra forçar WS direto
+
                     // se tiver auth header, configure aqui também
                     // opt.Headers.Add("Authorization", "Bearer ...");
                 })
-                // mantenha AutomaticReconnect, mas Closed pode acontecer mesmo assim
                 .WithAutomaticReconnect(new[]
                 {
-                    TimeSpan.Zero,
-                    TimeSpan.FromSeconds(2),
-                    TimeSpan.FromSeconds(5),
-                    TimeSpan.FromSeconds(10),
-                    TimeSpan.FromSeconds(20)
+            TimeSpan.Zero,
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(20)
                 })
                 .Build();
 
@@ -113,6 +115,7 @@ namespace CriptoVersus.Web.Services
 
             return hub;
         }
+
 
         private void WireHandlersOnce(HubConnection hub)
         {

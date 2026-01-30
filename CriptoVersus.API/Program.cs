@@ -3,12 +3,20 @@ using CriptoVersus.API.Services;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "CriptoVersus API",
+        Version = "v1"
+    });
+});
 builder.Services.AddSignalR();
 
 builder.Services.AddHostedService<PostgresChangeListener>();
