@@ -10,9 +10,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
-builder.Services.AddHostedService<PostgresChangeListener>();
-var connStr = builder.Configuration.GetConnectionString("Default");
 
+builder.Services.AddHostedService<PostgresChangeListener>();
+
+var connStr = builder.Configuration.GetConnectionString("Default");
 if (string.IsNullOrWhiteSpace(connStr))
     throw new InvalidOperationException("ConnectionString não encontrada em ConnectionStrings:Default/EthicAI/Postgres");
 
@@ -20,23 +21,43 @@ builder.Services.AddDbContextFactory<EthicAIDbContext>(opt => opt.UseNpgsql(conn
 
 var app = builder.Build();
 
-/* 🔴 ISSO É ESSENCIAL */
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+/* ✅ ESSENCIAL atrás de proxy (NPM) + Docker */
+var fwdOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders =
         ForwardedHeaders.XForwardedFor |
-        ForwardedHeaders.XForwardedProto
-});
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost,
 
-/* Swagger SEM if de environment */
+    // evita “simetria” quebrar se vier só proto/for etc
+    RequireHeaderSymmetry = false,
+
+    // boa prática: limite de proxies na cadeia
+    ForwardLimit = 2
+};
+
+// ✅ Em Docker, o proxy vem de uma rede 172.x e NÃO é loopback.
+// Se você não limpar isso, o ASP.NET pode ignorar X-Forwarded-*
+fwdOptions.KnownNetworks.Clear();
+fwdOptions.KnownProxies.Clear();
+
+app.UseForwardedHeaders(fwdOptions);
+
+// Se você usa HTTPS só no NPM (terminação TLS), normalmente NÃO precisa
+// app.UseHttpsRedirection();
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "CriptoVersus API v1");
     c.RoutePrefix = "swagger";
 });
-app.MapHub<DashboardHub>("/hubs/dashboard");
+
+app.UseRouting();
 
 app.UseAuthorization();
+
 app.MapControllers();
+app.MapHub<DashboardHub>("/hubs/dashboard");
+
 app.Run();
