@@ -1,0 +1,138 @@
+﻿@page "/match/{SlugA}-vs-{SlugB}"
+@using DTOs
+@inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+
+<h3 class="mb-3">@_title</h3>
+
+@if (_loading)
+{
+    <p>Carregando...</p>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_match is null)
+{
+    <div class="alert alert-warning">Partida não encontrada.</div>
+}
+else
+{
+    <div class="row g-3">
+        <div class="col-12 col-lg-6">
+            <div class="card p-3">
+                <h4 class="mb-1">@_match.TeamA</h4>
+                <div class="d-flex align-items-baseline gap-3">
+                    <div>Score: <strong>@_match.ScoreA</strong></div>
+                    @if (_match.PctA is not null)
+                    {
+                        <div class="text-muted">Variação: @_match.PctA %</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="card p-3">
+                <h4 class="mb-1">@_match.TeamB</h4>
+                <div class="d-flex align-items-baseline gap-3">
+                    <div>Score: <strong>@_match.ScoreB</strong></div>
+                    @if (_match.PctB is not null)
+                    {
+                        <div class="text-muted">Variação: @_match.PctB %</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="card p-3">
+        <div>Status: <strong>@_match.Status</strong></div>
+
+        @if (_match.StartTime is not null)
+        {
+            <div>Início: @_match.StartTime</div>
+        }
+
+        @if (_match.EndTime is not null)
+        {
+            <div>Fim: @_match.EndTime</div>
+        }
+
+        <div class="mt-2">
+            <div>Tempo decorrido: @_match.ElapsedMinutes min</div>
+            <div>Tempo restante: @_match.RemainingMinutes min</div>
+        </div>
+
+        @if (_match.IsFinished)
+        {
+            <div class="mt-2">
+                <span class="badge bg-secondary">Finalizada</span>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? SlugA { get; set; }
+    [Parameter] public string? SlugB { get; set; }
+
+    private bool _loading = true;
+    private string? _error;
+    private string _title = "Match";
+    private MatchDto? _match;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _error = null;
+        _match = null;
+
+        try
+        {
+            var a = NormalizeSlugToSymbol(SlugA);
+            var b = NormalizeSlugToSymbol(SlugB);
+
+            if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
+            {
+                _error = "Par de moedas inválido.";
+                return;
+            }
+
+            // ✅ método novo no ApiClient (abaixo)
+            _match = await Api.GetMatchBySymbolsAsync(a, b);
+
+            if (_match is null)
+            {
+                _error = $"Nenhuma partida encontrada para {a} vs {b}.";
+                return;
+            }
+
+            _title = $"{_match.TeamA} vs {_match.TeamB}";
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string NormalizeSlugToSymbol(string? slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug)) return "";
+
+        // "pendle" / "pen-dle" -> "PENDLE"
+        var s = slug.Trim()
+                    .Replace("-", "")
+                    .Replace("_", "")
+                    .ToUpperInvariant();
+
+        // mantém só letras e números (pra evitar lixo)
+        return new string(s.Where(char.IsLetterOrDigit).ToArray());
+    }
+}

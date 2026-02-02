@@ -16,7 +16,13 @@ public sealed class CriptoVersusApiClient
         return await _http.GetFromJsonAsync<DashboardSnapshotDto>(
             "api/Dashboard/snapshot", ct);
     }
+    public async Task<MatchDto?> GetMatchBySymbolsAsync(string symbolA, string symbolB)
+    {
+        var url =
+            $"api/match/by-symbols?symbolA={Uri.EscapeDataString(symbolA)}&symbolB={Uri.EscapeDataString(symbolB)}";
 
+        return await _http.GetFromJsonAsync<MatchDto>(url);
+    }
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
         => await _http.GetFromJsonAsync<List<MatchDto>>("api/Matches", ct);
 

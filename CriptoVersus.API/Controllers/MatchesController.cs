@@ -50,6 +50,43 @@ namespace CriptoVersus.API.Controllers
 
             return Ok(items);
         }
+        // =========================
+        // GET /api/matches/by-symbols?symbolA=PENDLE&symbolB=DASH
+        // Retorna o match Ongoing do par, senão o mais recente
+        // =========================
+        [HttpGet("by-symbols")]
+        public async Task<ActionResult<MatchDto>> GetBySymbols(
+            [FromQuery] string symbolA,
+            [FromQuery] string symbolB,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(symbolA) || string.IsNullOrWhiteSpace(symbolB))
+                return BadRequest("symbolA e symbolB são obrigatórios.");
+
+            var now = DateTime.UtcNow;
+
+            var a = symbolA.Trim().ToUpperInvariant();
+            var b = symbolB.Trim().ToUpperInvariant();
+
+            var q = _db.Set<Match>()
+                .AsNoTracking()
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Where(m =>
+                    (m.TeamA.Currency.Symbol.ToUpper() == a && m.TeamB.Currency.Symbol.ToUpper() == b) ||
+                    (m.TeamA.Currency.Symbol.ToUpper() == b && m.TeamB.Currency.Symbol.ToUpper() == a));
+
+            // Prioriza Ongoing, depois mais recente
+            var match = await q
+                .OrderBy(m => m.Status == MatchStatus.Ongoing ? 0 : 1)
+                .ThenByDescending(m => m.StartTime ?? DateTime.MinValue)
+                .FirstOrDefaultAsync(ct);
+
+            if (match is null)
+                return NotFound();
+
+            return Ok(ToMatchDto(match, now));
+        }
 
         // =========================
         // GET /api/matches/{id}
@@ -172,9 +209,14 @@ namespace CriptoVersus.API.Controllers
                 EndTime = m.EndTime,
                 ElapsedMinutes = elapsed,
                 RemainingMinutes = Math.Max(0, 90 - elapsed),
-                IsFinished = finished
+                IsFinished = finished,
+
+                // ✅ NOVO: percentuais atuais
+                PctA = (decimal?)a?.PercentageChange,
+                PctB = (decimal?)b?.PercentageChange
             };
         }
+
     }
 
     // =========================

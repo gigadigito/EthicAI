@@ -1,0 +1,270 @@
+﻿@using DTOs
+@using CriptoVersus.Web.Services
+@inject DashboardHubClient HubClient
+
+@if (Snapshot is null)
+{
+    <div class="alert alert-warning">Sem dados do snapshot.</div>
+}
+else
+{
+    <!-- Cards: Matches -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Pendentes</div>
+                    <div class="fs-2 fw-bold">@Snapshot.Matches.Pending</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-muted small">Tick UI: @ReloadCount</div>
+
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Em andamento</div>
+                    <div class="fs-2 fw-bold">@Snapshot.Matches.Ongoing</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="text-muted">Finalizadas (24h)</div>
+                    <div class="fs-2 fw-bold">@Snapshot.Matches.CompletedLast24h</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-muted small">
+            HubState: @HubClient.State | ConnId: @HubClient.ConnectionId | Events: @EventCount
+            | Reloads: @ReloadCount | LastReload: @LastReloadLocal.ToString("HH:mm:ss")
+        </div>
+    </div>
+
+    <!-- Worker -->
+    <div class="card mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div>
+                <strong>@Snapshot.Worker.ServiceName</strong>
+                <span class="badge ms-2 @(Snapshot.Worker.IsAlive ? "bg-success" : "bg-danger")">
+                    @(Snapshot.Worker.IsAlive ? "ONLINE" : "OFFLINE")
+                </span>
+            </div>
+
+            <button class="btn btn-sm btn-outline-primary" @onclick="OnReloadClicked">
+                Atualizar
+            </button>
+        </div>
+
+        <div class="card-body">
+            <div class="text-muted">
+                Server UTC: @Snapshot.ServerTimeUtc.ToString("yyyy-MM-dd HH:mm:ss")
+            </div>
+            <div class="text-muted">
+                Último heartbeat: @FmtUtc(Snapshot.Worker.LastHeartbeatUtc)
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-md-4 text-muted">Intervalo: <strong>@Snapshot.Worker.CycleIntervalSeconds</strong>s</div>
+                <div class="col-md-4 text-muted">Duração match: <strong>@Snapshot.Worker.MatchDurationMinutes</strong> min</div>
+                <div class="col-md-4 text-muted">Alvo próximas: <strong>@Snapshot.Worker.TargetUpcomingMatches</strong></div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-md-6 text-muted">Ciclo início: <strong>@FmtUtc(Snapshot.Worker.LastCycleStartUtc)</strong></div>
+                <div class="col-md-6 text-muted">Ciclo fim: <strong>@FmtUtc(Snapshot.Worker.LastCycleEndUtc)</strong></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Snapshot.Worker.LastError))
+            {
+                <div class="alert alert-warning mt-3 mb-0">
+                    <strong>Último erro:</strong> @Snapshot.Worker.LastError
+                    <div class="text-muted mt-1">Quando: @FmtUtc(Snapshot.Worker.LastErrorUtc)</div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="row g-3">
+        <!-- Próximas partidas -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><strong>Upcoming</strong></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Times</th>
+                                <th>Status</th>
+                                <th class="text-end">Início</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Snapshot.Matches.Upcoming.Count == 0)
+                            {
+                                <tr><td colspan="4" class="text-muted p-3">Nenhuma partida pendente.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var m in Snapshot.Matches.Upcoming)
+                                {
+                                    <tr>
+                                        <td>@m.MatchId</td>
+                                        <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
+                                        <td>@m.Status</td>
+                                        <td class="text-end">@FmtUtc(m.StartTime)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Partidas em andamento -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><strong>Ongoing</strong></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Times</th>
+                                <th>Placar</th>
+                                <th class="text-end">Tempo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Snapshot.Matches.OngoingList.Count == 0)
+                            {
+                                <tr><td colspan="4" class="text-muted p-3">Nenhuma partida em andamento.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var m in Snapshot.Matches.OngoingList)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="@GetMatchUrl(m.TeamA, m.TeamB)">
+                                                @m.MatchId
+                                            </a>
+                                        </td>
+                                        <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
+                                        <td>
+                                            <div>
+                                                <strong>@m.ScoreA</strong> x <strong>@m.ScoreB</strong>
+                                            </div>
+
+                                            <div class="text-muted small">
+                                                @FmtPct(m.PctA) <span class="text-muted">vs</span> @FmtPct(m.PctB)
+                                            </div>
+                                        </td>
+
+                                        <td class="text-end">
+                                            @m.ElapsedMinutes' <span class="text-muted">(-@m.RemainingMinutes')</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Gainers -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header"><strong>Top Gainers</strong></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Symbol</th>
+                                <th>Name</th>
+                                <th class="text-end">%</th>
+                                <th class="text-end">Atualizado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Snapshot.TopGainers.Count == 0)
+                            {
+                                <tr><td colspan="5" class="text-muted p-3">Sem dados.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var c in Snapshot.TopGainers)
+                                {
+                                    <tr>
+                                        <td>@c.Rank</td>
+                                        <td><strong>@c.Symbol</strong></td>
+                                        <td>@c.Name</td>
+                                        <td class="text-end text-success fw-bold">+@c.PercentageChange.ToString("0.##")%</td>
+                                        <td class="text-end">@FmtUtc(c.LastUpdatedUtc)</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- (cole aqui também as tabelas Upcoming/Ongoing/TopGainers/Debug exatamente como estão hoje,
+         só trocando _snapshot por Snapshot e campos de debug por parâmetros) -->
+}
+
+@code {
+
+
+    [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
+
+    // debug/contadores vindos do pai
+    [Parameter] public int EventCount { get; set; }
+    [Parameter] public int ReloadCount { get; set; }
+    [Parameter] public DateTime LastReloadLocal { get; set; }
+    [Parameter] public string? LastPayload { get; set; }
+    [Parameter] public string DebugText { get; set; } = "";
+    [Parameter] public bool DebugEnabled { get; set; }
+
+    // callback pro pai
+    [Parameter] public EventCallback ReloadRequested { get; set; }
+
+    private Task OnReloadClicked() => ReloadRequested.InvokeAsync();
+
+    private static string FmtUtc(DateTime? dt)
+        => dt is null ? "-" : dt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+    private static string FmtPct(decimal? v)
+    {
+        if (v is null) return "-";
+        var sign = v.Value >= 0 ? "+" : "";
+        return $"{sign}{v.Value:0.##}%";
+    }
+
+    private static string GetMatchUrl(string teamA, string teamB)
+    {
+        return $"/match/{Slugify(teamA)}-vs-{Slugify(teamB)}";
+    }
+
+    private static string Slugify(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "";
+        // "ZECUSDT" fica "zecusdt"; se tiver "_" ou espaço, vira "-"
+        var slug = s.Trim().ToLowerInvariant()
+            .Replace(" ", "-")
+            .Replace("_", "-");
+
+        // remove qualquer coisa muito estranha
+        slug = new string(slug.Where(ch => char.IsLetterOrDigit(ch) || ch == '-').ToArray());
+
+        return slug;
+    }
+
+}

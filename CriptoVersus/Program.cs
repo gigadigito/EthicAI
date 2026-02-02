@@ -11,6 +11,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSingleton<DashboardHubClient>();
 
+
+builder.Services.AddServerSideBlazor()
+    .AddCircuitOptions(o => o.DetailedErrors = true);
+
 builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
 {
     var cfg = sp.GetRequiredService<IConfiguration>();
