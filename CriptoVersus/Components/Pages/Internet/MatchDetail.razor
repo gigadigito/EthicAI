@@ -1,79 +1,413 @@
 ﻿@page "/match/{SlugA}-vs-{SlugB}"
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
+<PageTitle>@_title</PageTitle>
 
-<h3 class="mb-3">@_title</h3>
+<div class="container py-3">
 
-@if (_loading)
-{
-    <p>Carregando...</p>
-}
-else if (!string.IsNullOrWhiteSpace(_error))
-{
-    <div class="alert alert-danger">@_error</div>
-}
-else if (_match is null)
-{
-    <div class="alert alert-warning">Partida não encontrada.</div>
-}
-else
-{
-    <div class="row g-3">
-        <div class="col-12 col-lg-6">
-            <div class="card p-3">
-                <h4 class="mb-1">@_match.TeamA</h4>
-                <div class="d-flex align-items-baseline gap-3">
-                    <div>Score: <strong>@_match.ScoreA</strong></div>
-                    @if (_match.PctA is not null)
+    @if (_loading)
+    {
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <span>Carregando partida...</span>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert alert-danger">
+            <strong>Erro:</strong> @_error
+        </div>
+    }
+    else if (_match is null)
+    {
+        <div class="alert alert-warning">
+            Partida não encontrada.
+        </div>
+    }
+    else
+    {
+        <!-- =========================
+             MATCH HERO / ARENA HEADER
+             ========================= -->
+        <section class="match-hero rounded-4 p-3 p-md-4 mb-3 shadow-sm overflow-hidden">
+            <div class="match-hero__bg"></div>
+
+            <div class="position-relative">
+                <div class="row align-items-center g-3">
+
+                    <!-- Team A -->
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="team-badge team-badge--a">
+                                <img class="coin-icon"
+                                     src="@GetCoinIconUrl(_match.TeamA)"
+                                     alt="@_match.TeamA"
+                                     onerror="this.style.display='none'" />
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <div class="team-name">@_match.TeamA</div>
+                                <div class="team-sub">
+                                    <span class="@GetPctClass(_match.PctA)">
+                                        @FormatPct(_match.PctA)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score / Center -->
+                    <div class="col-12 col-md-4 text-center">
+                        <div class="d-inline-flex flex-column align-items-center gap-2">
+
+                            @if (IsOngoing(_match.Status))
+                            {
+                                <div class="match-live">
+                                    <span class="badge rounded-pill bg-danger match-live__pill">
+                                        <span class="match-live__dot"></span>
+                                        AO VIVO
+                                    </span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="match-live">
+                                    <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
+                                        @_match.Status
+                                    </span>
+                                </div>
+                            }
+
+                            <div class="scoreline">
+                                <span class="score">@_match.ScoreA</span>
+                                <span class="score-sep">x</span>
+                                <span class="score">@_match.ScoreB</span>
+                            </div>
+
+                            <div class="timebar text-muted">
+                                <span class="fw-semibold match-clock">@_clockText</span>
+                                <span class="mx-2">•</span>
+                                <span class="text-muted">@_remainingText</span>
+                                @if (IsOngoing(_match.Status))
+                                {
+                                    <span class="clock-blink ms-2"></span>
+                                }
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Team B -->
+                    <div class="col-12 col-md-4">
+                        <div class="d-flex align-items-center gap-3 justify-content-md-end">
+                            <div class="text-md-end">
+                                <div class="team-name">@_match.TeamB</div>
+                                <div class="team-sub">
+                                    <span class="@GetPctClass(_match.PctB)">
+                                        @FormatPct(_match.PctB)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="team-badge team-badge--b">
+                                <img class="coin-icon"
+                                     src="@GetCoinIconUrl(_match.TeamB)"
+                                     alt="@_match.TeamB"
+                                     onerror="this.style.display='none'" />
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Meta row -->
+                <div class="row mt-3 g-2">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-between align-items-center">
+                            <div class="small text-muted">
+                                Match ID: <span class="text-light-emphasis">@_match.MatchId</span>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2">
+                                @if (_match.StartTime is not null)
+                                {
+                                    <span class="badge text-bg-dark border border-secondary-subtle">
+                                        Início: @_match.StartTime.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                }
+                                @if (_match.EndTime is not null)
+                                {
+                                    <span class="badge text-bg-dark border border-secondary-subtle">
+                                        Fim: @_match.EndTime.Value.ToString("dd/MM/yyyy HH:mm")
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- =========================
+             TEAM CARDS + FORCE BARS
+             ========================= -->
+        <div class="row g-3 mb-3">
+
+            <div class="col-12 col-lg-6">
+                <div class="card match-card p-3">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div>
+                            <div class="fw-bold fs-5 text-light-emphasis">@_match.TeamA</div>
+                            <div class="small">
+                                <span class="@GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</span>
+                                <span class="text-muted ms-2">• Score @_match.ScoreA</span>
+                            </div>
+                        </div>
+
+                        <div class="pill pill--a">
+                            @GetTrendIcon(_match.PctA)
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>Força</span>
+                            <span>@GetStrengthA(_match)%</span>
+                        </div>
+                        <div class="progress match-progress">
+                            <div class="progress-bar match-progress__bar" style="width:@GetStrengthA(_match)%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <div class="card match-card p-3">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div>
+                            <div class="fw-bold fs-5 text-light-emphasis">@_match.TeamB</div>
+                            <div class="small">
+                                <span class="@GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</span>
+                                <span class="text-muted ms-2">• Score @_match.ScoreB</span>
+                            </div>
+                        </div>
+
+                        <div class="pill pill--b">
+                            @GetTrendIcon(_match.PctB)
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between small text-muted mb-1">
+                            <span>Força</span>
+                            <span>@GetStrengthB(_match)%</span>
+                        </div>
+                        <div class="progress match-progress">
+                            <div class="progress-bar match-progress__bar" style="width:@GetStrengthB(_match)%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- =========================
+             TECH PANEL + ACTIONS
+             ========================= -->
+        <div class="row g-3">
+            <div class="col-12 col-lg-8">
+                <div class="card match-panel p-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="fw-bold">Painel da Partida</div>
+
+                        <span class="badge @GetStatusBadgeClass(_match.Status)">
+                            @_match.Status
+                        </span>
+                    </div>
+
+                    <div class="row mt-3 g-3 small">
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted">Decorrido</div>
+                            <div class="fw-semibold">@_match.ElapsedMinutes min</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted">Restante</div>
+                            <div class="fw-semibold">@_match.RemainingMinutes min</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted">Placar</div>
+                            <div class="fw-semibold">@_match.ScoreA x @_match.ScoreB</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted">Partida</div>
+                            <div class="fw-semibold">#@_match.MatchId</div>
+                        </div>
+                    </div>
+
+                    @if (_match.IsFinished)
                     {
-                        <div class="text-muted">Variação: @_match.PctA %</div>
+                        <div class="mt-3">
+                            <span class="badge bg-secondary">Finalizada</span>
+                        </div>
                     }
                 </div>
             </div>
-        </div>
 
-        <div class="col-12 col-lg-6">
-            <div class="card p-3">
-                <h4 class="mb-1">@_match.TeamB</h4>
-                <div class="d-flex align-items-baseline gap-3">
-                    <div>Score: <strong>@_match.ScoreB</strong></div>
-                    @if (_match.PctB is not null)
-                    {
-                        <div class="text-muted">Variação: @_match.PctB %</div>
-                    }
+            <div class="col-12 col-lg-4">
+                <div class="card match-panel p-3">
+                    <div class="fw-bold mb-2">Ações</div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-light" @onclick="CopyLink">
+                            🔗 Copiar link
+                        </button>
+
+                        <button class="btn btn-outline-secondary" @onclick="GoBack">
+                            ← Voltar
+                        </button>
+                    </div>
+
+                    <div class="small text-muted mt-3">
+                        Dica: compartilhe o link para abrir a partida direto no “modo arena”.
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
+</div>
 
-    <hr />
+<style>
+    /* =========================
+       MATCH THEME (dark esportivo)
+       ========================= */
 
-    <div class="card p-3">
-        <div>Status: <strong>@_match.Status</strong></div>
+    .match-hero {
+        position: relative;
+        background: radial-gradient(1200px 500px at 20% 0%, rgba(0, 230, 118, .14), transparent 60%),
+                    radial-gradient(1200px 500px at 80% 0%, rgba(255, 82, 82, .14), transparent 60%),
+                    linear-gradient(135deg, #0B1020 0%, #0E1117 55%, #0B1020 100%);
+        border: 1px solid rgba(255,255,255,.08);
+    }
 
-        @if (_match.StartTime is not null)
-        {
-            <div>Início: @_match.StartTime</div>
-        }
+    .match-hero__bg {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+        background-size: 26px 26px;
+        opacity: .18;
+        pointer-events: none;
+    }
 
-        @if (_match.EndTime is not null)
-        {
-            <div>Fim: @_match.EndTime</div>
-        }
+    .team-name {
+        font-weight: 800;
+        letter-spacing: .4px;
+        font-size: clamp(1.05rem, 1.4vw, 1.35rem);
+        color: rgba(255,255,255,.92);
+    }
 
-        <div class="mt-2">
-            <div>Tempo decorrido: @_match.ElapsedMinutes min</div>
-            <div>Tempo restante: @_match.RemainingMinutes min</div>
-        </div>
+    .team-sub { font-size: .95rem; }
 
-        @if (_match.IsFinished)
-        {
-            <div class="mt-2">
-                <span class="badge bg-secondary">Finalizada</span>
-            </div>
-        }
-    </div>
-}
+    .pct { font-weight: 800; letter-spacing: .2px; }
+    .pct--up { color: #00E676; }
+    .pct--down { color: #FF5252; }
+    .pct--neutral { color: rgba(255,255,255,.70); }
+
+    .scoreline { display: inline-flex; align-items: baseline; gap: .6rem; }
+
+    .score {
+        font-weight: 900;
+        font-size: clamp(2.4rem, 4.3vw, 3.4rem);
+        line-height: 1;
+        color: #fff;
+        text-shadow: 0 8px 28px rgba(0,0,0,.35);
+    }
+
+    .score-sep {
+        font-weight: 800;
+        font-size: clamp(1.2rem, 2vw, 1.6rem);
+        color: rgba(255,255,255,.55);
+    }
+
+    .timebar { font-size: .95rem; }
+
+    .team-badge {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        letter-spacing: .5px;
+        color: rgba(255,255,255,.95);
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: 0 14px 30px rgba(0,0,0,.25);
+        backdrop-filter: blur(6px);
+    }
+
+    .team-badge--a {
+        background: linear-gradient(135deg, rgba(0,230,118,.25), rgba(0,230,118,.05));
+    }
+
+    .team-badge--b {
+        background: linear-gradient(135deg, rgba(255,82,82,.25), rgba(255,82,82,.05));
+    }
+
+    .match-live__pill { font-weight: 800; letter-spacing: .25px; padding: .45rem .75rem; }
+
+    .match-live__dot {
+        display: inline-block;
+        width: 8px; height: 8px;
+        margin-right: .45rem;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 0 0 0 rgba(255,82,82,.8);
+        animation: pulseDot 1.2s infinite;
+        vertical-align: middle;
+    }
+
+    @@keyframes pulseDot {
+        0%   { box-shadow: 0 0 0 0 rgba(255,82,82,.65); }
+        70%  { box-shadow: 0 0 0 10px rgba(255,82,82,0); }
+        100% { box-shadow: 0 0 0 0 rgba(255,82,82,0); }
+    }
+
+    .match-card, .match-panel {
+        background: #0E1117;
+        border: 1px solid rgba(255,255,255,.08);
+        color: rgba(255,255,255,.88);
+    }
+
+    .pill {
+        width: 44px; height: 44px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255,255,255,.10);
+        color: rgba(255,255,255,.92);
+        box-shadow: 0 14px 28px rgba(0,0,0,.25);
+    }
+
+    .pill--a { background: linear-gradient(135deg, rgba(0,230,118,.22), rgba(0,230,118,.05)); }
+    .pill--b { background: linear-gradient(135deg, rgba(255,82,82,.22), rgba(255,82,82,.05)); }
+
+    .match-progress {
+        height: 10px;
+        background: rgba(255,255,255,.08);
+        border-radius: 999px;
+    }
+
+    .match-progress__bar {
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(255,193,7,.85), rgba(0,230,118,.85));
+    }
+</style>
 
 @code {
     [Parameter] public string? SlugA { get; set; }
@@ -83,7 +417,28 @@ else
     private string? _error;
     private string _title = "Match";
     private MatchDto? _match;
+    private static string GetBaseSymbol(string pair)
+    {
+        if (string.IsNullOrWhiteSpace(pair)) return "";
 
+        pair = pair.ToUpperInvariant();
+
+        var quotes = new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" };
+
+        foreach (var q in quotes)
+        {
+            if (pair.EndsWith(q) && pair.Length > q.Length)
+                return pair.Substring(0, pair.Length - q.Length);
+        }
+
+        return pair;
+    }
+    private static string GetCoinIconUrl(string pair)
+    {
+        var baseSymbol = GetBaseSymbol(pair).ToLowerInvariant();
+
+        return $"https://bin.bnbstatic.com/static/assets/logos/{baseSymbol.ToUpper()}.png";
+    }
     protected override async Task OnParametersSetAsync()
     {
         _loading = true;
@@ -101,8 +456,19 @@ else
                 return;
             }
 
-            // ✅ método novo no ApiClient (abaixo)
             _match = await Api.GetMatchBySymbolsAsync(a, b);
+            // inicializa textos sempre
+            UpdateClockTexts();
+
+            // só roda cronômetro se estiver ongoing e tiver StartTime
+            if (IsOngoing(_match.Status) && _match.StartTime is not null)
+            {
+                StartClock();
+            }
+            else
+            {
+                StopClock();
+            }
 
             if (_match is null)
             {
@@ -125,14 +491,155 @@ else
     private static string NormalizeSlugToSymbol(string? slug)
     {
         if (string.IsNullOrWhiteSpace(slug)) return "";
-
-        // "pendle" / "pen-dle" -> "PENDLE"
-        var s = slug.Trim()
-                    .Replace("-", "")
-                    .Replace("_", "")
-                    .ToUpperInvariant();
-
-        // mantém só letras e números (pra evitar lixo)
+        var s = slug.Trim().Replace("-", "").Replace("_", "").ToUpperInvariant();
         return new string(s.Where(char.IsLetterOrDigit).ToArray());
     }
+
+    private static string FormatPct(decimal? v)
+        => v is null ? "—" : $"{(v.Value >= 0 ? "+" : "")}{v.Value:0.00}%";
+
+    private static string GetPctClass(decimal? v)
+        => v is null ? "pct pct--neutral"
+           : v.Value > 0 ? "pct pct--up"
+           : v.Value < 0 ? "pct pct--down"
+           : "pct pct--neutral";
+
+    private static string GetInitials(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "??";
+        var clean = new string(s.Where(char.IsLetterOrDigit).ToArray());
+        if (clean.Length <= 3) return clean.ToUpperInvariant();
+        return clean.Substring(0, 3).ToUpperInvariant();
+    }
+
+    private static bool IsOngoing(string? status)
+        => !string.IsNullOrWhiteSpace(status)
+           && status.Trim().Equals("Ongoing", StringComparison.OrdinalIgnoreCase);
+
+    private static string GetStatusBadgeClass(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return "text-bg-dark border border-secondary-subtle";
+
+        var s = status.Trim().ToLowerInvariant();
+        return s switch
+        {
+            "ongoing" => "bg-success",
+            "pending" => "bg-warning text-dark",
+            "completed" => "bg-secondary",
+            "canceled" => "bg-danger",
+            _ => "text-bg-dark border border-secondary-subtle"
+        };
+    }
+
+    // “Força” — heurística simples e estável:
+    // mistura placar + % (sem explodir valores)
+    private static int GetStrengthA(MatchDto m)
+    {
+        var baseScore = Math.Clamp(m.ScoreA * 10, 0, 70);
+        var pct = (double)(m.PctA ?? 0m);
+        var pctScore = Math.Clamp((int)Math.Round(Math.Abs(pct) * 1.2), 0, 30);
+        return Math.Clamp(baseScore + pctScore, 0, 100);
+    }
+
+    private static int GetStrengthB(MatchDto m)
+    {
+        var baseScore = Math.Clamp(m.ScoreB * 10, 0, 70);
+        var pct = (double)(m.PctB ?? 0m);
+        var pctScore = Math.Clamp((int)Math.Round(Math.Abs(pct) * 1.2), 0, 30);
+        return Math.Clamp(baseScore + pctScore, 0, 100);
+    }
+
+    private static string GetTrendIcon(decimal? v)
+        => v is null ? "•"
+           : v.Value > 0 ? "▲"
+           : v.Value < 0 ? "▼"
+           : "•";
+
+    private async Task CopyLink()
+    {
+        var url = Nav.Uri;
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+    }
+
+    private void GoBack()
+    {
+        // volta pra lista (ajuste conforme sua rota real)
+        Nav.NavigateTo("/intranet/dashboard");
+    }
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _tickCts;
+
+    private string _clockText = "00:00";
+    private string _remainingText = "(90:00)";
+
+    private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+
+    protected override void OnInitialized()
+    {
+        // nada aqui por enquanto
+    }
+
+
+
+    private void StartClock()
+    {
+        StopClock();
+
+        _tickCts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (_timer is not null && await _timer.WaitForNextTickAsync(_tickCts.Token))
+                {
+                    UpdateClockTexts();
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (OperationCanceledException) { /* ok */ }
+        });
+    }
+
+    private void StopClock()
+    {
+        try { _tickCts?.Cancel(); } catch { }
+        _tickCts?.Dispose();
+        _tickCts = null;
+
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    private void UpdateClockTexts()
+    {
+        if (_match?.StartTime is null)
+        {
+            _clockText = "00:00";
+            _remainingText = "(90:00)";
+            return;
+        }
+
+        // IMPORTANTE: se StartTime já vier UTC, perfeito.
+        // Se vier Local, ajuste aqui (ideal é API devolver UTC).
+        var startUtc = DateTime.SpecifyKind(_match.StartTime.Value, DateTimeKind.Utc);
+        var elapsed = DateTime.UtcNow - startUtc;
+
+        if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
+
+        // relógio estilo futebol: mm:ss (ex: 44:12)
+        _clockText = $"{(int)elapsed.TotalMinutes:00}:{elapsed.Seconds:00}";
+
+        var remaining = MatchDuration - elapsed;
+        if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
+
+        _remainingText = $"({(int)remaining.TotalMinutes:00}:{remaining.Seconds:00})";
+    }
+
+    public void Dispose()
+    {
+        StopClock();
+    }
+
 }

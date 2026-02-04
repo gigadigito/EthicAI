@@ -19,8 +19,8 @@ public sealed class CriptoVersusApiClient
     public async Task<MatchDto?> GetMatchBySymbolsAsync(string symbolA, string symbolB)
     {
         var url =
-            $"api/match/by-symbols?symbolA={Uri.EscapeDataString(symbolA)}&symbolB={Uri.EscapeDataString(symbolB)}";
-
+            $"api/Matches/by-symbols?symbolA={Uri.EscapeDataString(symbolA)}&symbolB={Uri.EscapeDataString(symbolB)}";
+  
         return await _http.GetFromJsonAsync<MatchDto>(url);
     }
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
