@@ -62,7 +62,7 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseRouting();
-
+app.UseStaticFiles();
 app.UseAuthorization();
 
 app.MapControllers();

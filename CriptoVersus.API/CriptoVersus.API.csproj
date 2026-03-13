@@ -18,4 +18,8 @@
     <ProjectReference Include="..\DTOs\DTOs.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\maps\" />
+  </ItemGroup>
+
 </Project>
