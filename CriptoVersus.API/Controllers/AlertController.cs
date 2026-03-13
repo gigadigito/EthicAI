@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Text;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
+using System.Text;
 
 namespace CriptoVersus.API.Controllers
 {
@@ -8,7 +9,8 @@ namespace CriptoVersus.API.Controllers
     [Route("api/[controller]")]
     public class AlertController : ControllerBase
     {
-        private const string MapUrl = "/maps/mapa.jpeg";
+        private readonly IWebHostEnvironment _environment;
+
         private const int Width = 1500;
         private const int Height = 1060;
 
@@ -28,6 +30,11 @@ namespace CriptoVersus.API.Controllers
             { 13, (1190, 210, "Linha 13-Jade") },
             { 15, (1060, 650, "Linha 15-Prata") }
         };
+
+        public AlertController(IWebHostEnvironment environment)
+        {
+            _environment = environment;
+        }
 
         [HttpGet("mapa-trilhos")]
         public IActionResult GetMapaTrilhos(
@@ -64,24 +71,27 @@ namespace CriptoVersus.API.Controllers
                 { 15, l15 }
             };
 
-            var svg = BuildSvg(statuses, atualizado ?? "tempo real");
+            var mapImageHref = GetEmbeddedMapImageHref();
+            var svg = BuildSvg(statuses, atualizado ?? "tempo real", mapImageHref);
+
             return Content(svg, "image/svg+xml", Encoding.UTF8);
         }
 
-        private static string BuildSvg(Dictionary<int, string?> statuses, string atualizado)
+        private string BuildSvg(Dictionary<int, string?> statuses, string atualizado, string mapImageHref)
         {
             var sb = new StringBuilder();
 
             sb.AppendLine($"""
 <svg xmlns="http://www.w3.org/2000/svg" width="{Width}" height="{Height}" viewBox="0 0 {Width} {Height}">
   <rect width="100%" height="100%" fill="#f5f5f5"/>
-  <image href="{EscapeXml(MapUrl)}" x="0" y="0" width="{Width}" height="{Height}" preserveAspectRatio="xMidYMid meet"/>
+  <image href="{EscapeXml(mapImageHref)}" x="0" y="0" width="{Width}" height="{Height}" preserveAspectRatio="xMidYMid meet"/>
 """);
 
             foreach (var kv in Markers.OrderBy(x => x.Key))
             {
                 var codigo = kv.Key;
                 var marker = kv.Value;
+
                 var situacao = statuses.TryGetValue(codigo, out var s) && !string.IsNullOrWhiteSpace(s)
                     ? s!
                     : "sem info";
@@ -122,6 +132,38 @@ namespace CriptoVersus.API.Controllers
 """);
 
             return sb.ToString();
+        }
+
+        private string GetEmbeddedMapImageHref()
+        {
+            var possibleFiles = new[]
+            {
+                Path.Combine(_environment.WebRootPath ?? string.Empty, "maps", "mapa.jpeg"),
+                Path.Combine(_environment.WebRootPath ?? string.Empty, "maps", "mapa.jpg"),
+                Path.Combine(_environment.WebRootPath ?? string.Empty, "maps", "mapa.png")
+            };
+
+            var filePath = possibleFiles.FirstOrDefault(System.IO.File.Exists);
+
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new FileNotFoundException(
+                    "Mapa base não encontrado. Coloque o arquivo em wwwroot/maps/mapa.jpeg, mapa.jpg ou mapa.png.");
+            }
+
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var mimeType = extension switch
+            {
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+
+            var bytes = System.IO.File.ReadAllBytes(filePath);
+            var base64 = Convert.ToBase64String(bytes);
+
+            return $"data:{mimeType};base64,{base64}";
         }
 
         private static string ColorFromSituacao(string? situacao)
