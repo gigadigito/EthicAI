@@ -13,6 +13,7 @@ namespace CriptoVersus.API.Controllers
 
         private const int Width = 1600;
         private const int Height = 1101;
+
         private static readonly Dictionary<int, (int X, int Y, string Nome)> Markers = new()
         {
             { 1,  (773, 241, "Linha 1-Azul") },
@@ -20,7 +21,7 @@ namespace CriptoVersus.API.Controllers
             { 3,  (1001, 473, "Linha 3-Vermelha") },
             { 4,  (428, 509, "Linha 4-Amarela") },
             { 5,  (556, 784, "Linha 5-Lilás") },
-            { 7,  (652, 300, "Linha 7-Rubi") },   // atualizado
+            { 7,  (652, 300, "Linha 7-Rubi") },
             { 8,  (361, 313, "Linha 8-Diamante") },
             { 9,  (268, 470, "Linha 9-Esmeralda") },
             { 10, (1157, 861, "Linha 10-Turquesa") },
@@ -71,7 +72,12 @@ namespace CriptoVersus.API.Controllers
             };
 
             var mapImageHref = GetEmbeddedMapImageHref();
-            var svg = BuildSvg(statuses, atualizado ?? "monitoramento por mudança de estado", mapImageHref);
+            var svg = BuildSvg(
+                statuses,
+                atualizado ?? "monitoramento por mudança de estado",
+                mapImageHref
+            );
+
             return Content(svg, "image/svg+xml", Encoding.UTF8);
         }
 
@@ -96,14 +102,19 @@ namespace CriptoVersus.API.Controllers
 
                 var color = ColorFromSituacao(situacao);
 
+                var borderColor =
+                    color == "#22c55e" ? "#111827" : // normal
+                    color == "#9ca3af" ? "#111827" : // sem info
+                    "#ef4444";                       // amarelo ou vermelho
+
                 sb.AppendLine($"""
   <circle cx="{marker.X}" cy="{marker.Y}" r="20" fill="white" opacity="0.95"/>
-  <circle cx="{marker.X}" cy="{marker.Y}" r="15" fill="{color}" stroke="#111827" stroke-width="2"/>
+  <circle cx="{marker.X}" cy="{marker.Y}" r="20" fill="{color}" stroke="{borderColor}" stroke-width="2"/>
 """);
             }
 
             sb.AppendLine($"""
-  <rect x="20" y="20" width="360" height="130" rx="18" fill="white" opacity="0.92"/>
+  <rect x="20" y="20" width="420" height="130" rx="18" fill="white" opacity="0.92"/>
   <text x="40" y="55" font-size="28" font-family="Arial, sans-serif" font-weight="700" fill="#111827">
     GeoSampa Alertas
   </text>
@@ -111,17 +122,17 @@ namespace CriptoVersus.API.Controllers
     Mobilidade sobre trilhos
   </text>
   <text x="40" y="115" font-size="18" font-family="Arial, sans-serif" fill="#4b5563">
-    Atualização: {EscapeXml(atualizado)}
+    Mudança detectada pelo GeoSampa 2.0: {EscapeXml(atualizado)}
   </text>
 
   <rect x="20" y="{Height - 130}" width="330" height="92" rx="16" fill="white" opacity="0.92"/>
   <circle cx="45" cy="{Height - 95}" r="15" fill="#22c55e" stroke="#111827" stroke-width="1.5"/>
   <text x="65" y="{Height - 88}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Op. Normal</text>
 
-  <circle cx="45" cy="{Height - 65}" r="15" fill="#facc15" stroke="#111827" stroke-width="1.5"/>
+  <circle cx="45" cy="{Height - 65}" r="15" fill="#facc15" stroke="#ef4444" stroke-width="1.5"/>
   <text x="65" y="{Height - 58}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Atenção</text>
 
-  <circle cx="185" cy="{Height - 95}" r="15" fill="#ef4444" stroke="#111827" stroke-width="1.5"/>
+  <circle cx="185" cy="{Height - 95}" r="15" fill="#ef4444" stroke="#ef4444" stroke-width="1.5"/>
   <text x="205" y="{Height - 88}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Interrompida</text>
 
   <circle cx="185" cy="{Height - 65}" r="15" fill="#9ca3af" stroke="#111827" stroke-width="1.5"/>
