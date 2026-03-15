@@ -11,25 +11,24 @@ namespace CriptoVersus.API.Controllers
     {
         private readonly IWebHostEnvironment _environment;
 
-        private const int Width = 1500;
-        private const int Height = 1060;
-
+        private const int Width = 1600;
+        private const int Height = 1101;
         private static readonly Dictionary<int, (int X, int Y, string Nome)> Markers = new()
-        {
-            { 1,  (820, 470, "Linha 1-Azul") },
-            { 2,  (700, 520, "Linha 2-Verde") },
-            { 3,  (980, 355, "Linha 3-Vermelha") },
-            { 4,  (520, 540, "Linha 4-Amarela") },
-            { 5,  (560, 760, "Linha 5-Lilás") },
-            { 7,  (430, 250, "Linha 7-Rubi") },
-            { 8,  (300, 300, "Linha 8-Diamante") },
-            { 9,  (360, 560, "Linha 9-Esmeralda") },
-            { 10, (900, 520, "Linha 10-Turquesa") },
-            { 11, (1030, 355, "Linha 11-Coral") },
-            { 12, (980, 300, "Linha 12-Safira") },
-            { 13, (1190, 210, "Linha 13-Jade") },
-            { 15, (1060, 650, "Linha 15-Prata") }
-        };
+{
+    { 1,  (773, 241, "Linha 1-Azul") },
+    { 2,  (883, 783, "Linha 2-Verde") },
+    { 3,  (1001, 473, "Linha 3-Vermelha") },
+    { 4,  (428, 509, "Linha 4-Amarela") },
+    { 5,  (556, 784, "Linha 5-Lilás") },
+    { 7,  (652, 300, "Linha 7-Rubi") },   // atualizado
+    { 8,  (361, 313, "Linha 8-Diamante") },
+    { 9,  (268, 470, "Linha 9-Esmeralda") },
+    { 10, (1157, 861, "Linha 10-Turquesa") },
+    { 11, (1334, 437, "Linha 11-Coral") },
+    { 12, (1116, 317, "Linha 12-Safira") },
+    { 13, (1323, 113, "Linha 13-Jade") },
+    { 15, (1281, 708, "Linha 15-Prata") }
+};
 
         public AlertController(IWebHostEnvironment environment)
         {
@@ -72,8 +71,7 @@ namespace CriptoVersus.API.Controllers
             };
 
             var mapImageHref = GetEmbeddedMapImageHref();
-            var svg = BuildSvg(statuses, atualizado ?? "tempo real", mapImageHref);
-
+            var svg = BuildSvg(statuses, atualizado ?? "monitoramento por mudança de estado", mapImageHref);
             return Content(svg, "image/svg+xml", Encoding.UTF8);
         }
 
