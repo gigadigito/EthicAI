@@ -14,21 +14,21 @@ namespace CriptoVersus.API.Controllers
         private const int Width = 1600;
         private const int Height = 1101;
         private static readonly Dictionary<int, (int X, int Y, string Nome)> Markers = new()
-{
-    { 1,  (773, 241, "Linha 1-Azul") },
-    { 2,  (883, 783, "Linha 2-Verde") },
-    { 3,  (1001, 473, "Linha 3-Vermelha") },
-    { 4,  (428, 509, "Linha 4-Amarela") },
-    { 5,  (556, 784, "Linha 5-Lilás") },
-    { 7,  (652, 300, "Linha 7-Rubi") },   // atualizado
-    { 8,  (361, 313, "Linha 8-Diamante") },
-    { 9,  (268, 470, "Linha 9-Esmeralda") },
-    { 10, (1157, 861, "Linha 10-Turquesa") },
-    { 11, (1334, 437, "Linha 11-Coral") },
-    { 12, (1116, 317, "Linha 12-Safira") },
-    { 13, (1323, 113, "Linha 13-Jade") },
-    { 15, (1281, 708, "Linha 15-Prata") }
-};
+        {
+            { 1,  (773, 241, "Linha 1-Azul") },
+            { 2,  (883, 783, "Linha 2-Verde") },
+            { 3,  (1001, 473, "Linha 3-Vermelha") },
+            { 4,  (428, 509, "Linha 4-Amarela") },
+            { 5,  (556, 784, "Linha 5-Lilás") },
+            { 7,  (652, 300, "Linha 7-Rubi") },   // atualizado
+            { 8,  (361, 313, "Linha 8-Diamante") },
+            { 9,  (268, 470, "Linha 9-Esmeralda") },
+            { 10, (1157, 861, "Linha 10-Turquesa") },
+            { 11, (1334, 437, "Linha 11-Coral") },
+            { 12, (1116, 317, "Linha 12-Safira") },
+            { 13, (1323, 113, "Linha 13-Jade") },
+            { 15, (1281, 708, "Linha 15-Prata") }
+        };
 
         public AlertController(IWebHostEnvironment environment)
         {
@@ -97,8 +97,8 @@ namespace CriptoVersus.API.Controllers
                 var color = ColorFromSituacao(situacao);
 
                 sb.AppendLine($"""
-  <circle cx="{marker.X}" cy="{marker.Y}" r="15" fill="white" opacity="0.95"/>
-  <circle cx="{marker.X}" cy="{marker.Y}" r="11" fill="{color}" stroke="#111827" stroke-width="2"/>
+  <circle cx="{marker.X}" cy="{marker.Y}" r="20" fill="white" opacity="0.95"/>
+  <circle cx="{marker.X}" cy="{marker.Y}" r="15" fill="{color}" stroke="#111827" stroke-width="2"/>
 """);
             }
 
@@ -115,16 +115,16 @@ namespace CriptoVersus.API.Controllers
   </text>
 
   <rect x="20" y="{Height - 130}" width="330" height="92" rx="16" fill="white" opacity="0.92"/>
-  <circle cx="45" cy="{Height - 95}" r="10" fill="#22c55e" stroke="#111827" stroke-width="1.5"/>
+  <circle cx="45" cy="{Height - 95}" r="15" fill="#22c55e" stroke="#111827" stroke-width="1.5"/>
   <text x="65" y="{Height - 88}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Op. Normal</text>
 
-  <circle cx="45" cy="{Height - 65}" r="10" fill="#facc15" stroke="#111827" stroke-width="1.5"/>
+  <circle cx="45" cy="{Height - 65}" r="15" fill="#facc15" stroke="#111827" stroke-width="1.5"/>
   <text x="65" y="{Height - 58}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Atenção</text>
 
-  <circle cx="185" cy="{Height - 95}" r="10" fill="#ef4444" stroke="#111827" stroke-width="1.5"/>
+  <circle cx="185" cy="{Height - 95}" r="15" fill="#ef4444" stroke="#111827" stroke-width="1.5"/>
   <text x="205" y="{Height - 88}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Interrompida</text>
 
-  <circle cx="185" cy="{Height - 65}" r="10" fill="#9ca3af" stroke="#111827" stroke-width="1.5"/>
+  <circle cx="185" cy="{Height - 65}" r="15" fill="#9ca3af" stroke="#111827" stroke-width="1.5"/>
   <text x="205" y="{Height - 58}" font-size="18" font-family="Arial, sans-serif" fill="#111827">Sem info.</text>
 </svg>
 """);
