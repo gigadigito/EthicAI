@@ -3,27 +3,25 @@ using DAL.NftFutebol;
 using DAL.Seed;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace EthicAI.EntityModel
 {
     public class EthicAIDbContext : DbContext
     {
-        // Construtor que usa DbContextOptions, utilizado pelo Entity Framework
         public EthicAIDbContext(DbContextOptions<EthicAIDbContext> options)
             : base(options)
         {
         }
 
-       public DbSet<User> User { get; set; }
-       public DbSet<PreSalePurchase> PreSalePurchase { get; set; } // Adiciona o DbSet para PreSalePurchase
-       public DbSet<Post> Post { get; set; }
-       public DbSet<PostCategory> PostCategory { get; set; }
+        public DbSet<User> User { get; set; }
+        public DbSet<PreSalePurchase> PreSalePurchase { get; set; }
+        public DbSet<Post> Post { get; set; }
+        public DbSet<PostCategory> PostCategory { get; set; }
         public DbSet<Match> Match { get; set; }
         public DbSet<Team> Team { get; set; }
         public DbSet<Currency> Currency { get; set; }
         public DbSet<Bet> Bet { get; set; }
-
         public DbSet<WorkerStatus> WorkerStatus { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<WorkerStatus>(entity =>
@@ -63,12 +61,11 @@ namespace EthicAI.EntityModel
                       .HasColumnName("dt_updated_at");
             });
 
-
-
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.UserID);
                 entity.ToTable("user");
+
                 entity.Property(e => e.UserID).HasColumnName("cd_user");
                 entity.Property(e => e.Name).HasMaxLength(50).HasColumnName("nm_name");
                 entity.Property(e => e.Email).HasMaxLength(254).HasColumnName("tx_email");
@@ -84,18 +81,17 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.IAModel).HasMaxLength(100).HasColumnName("nm_ia_model");
                 entity.Property(e => e.DtCreate).HasColumnName("dt_create");
 
-                // Novo campo Balance
                 entity.Property(e => e.Balance)
-                      .HasColumnType("decimal(18, 2)")
+                      .HasColumnType("decimal(18, 8)")
                       .HasColumnName("nr_balance")
-                      .HasDefaultValue(0); // se desejar um valor padrão
+                      .HasDefaultValue(0m);
             });
 
-            // EntityModel/EthicAIDbContext.cs
             modelBuilder.Entity<PreSalePurchase>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.ToTable("pre_sale_purchase");
+
                 entity.Property(e => e.Id).HasColumnName("id_purchase");
                 entity.Property(e => e.UserId).IsRequired().HasColumnName("user_id");
                 entity.Property(e => e.SolAmount).HasColumnType("decimal(18, 8)").HasColumnName("sol_amount");
@@ -103,8 +99,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.PurchaseDate).HasColumnType("timestamp with time zone").HasColumnName("purchase_date");
                 entity.Property(e => e.TransactionHash).HasMaxLength(100).HasColumnName("transaction_hash");
 
-                // Configuração de relacionamento
-                entity.HasOne(e => e.User) // Certifique-se de que o User está mapeado corretamente
+                entity.HasOne(e => e.User)
                       .WithMany(u => u.PreSalePurchases)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
@@ -114,13 +109,13 @@ namespace EthicAI.EntityModel
             {
                 entity.HasKey(e => e.Id);
                 entity.ToTable("post");
+
+                entity.Property(e => e.Id).HasColumnName("id_post");
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(100).HasColumnName("tx_title");
                 entity.Property(e => e.Content).IsRequired().HasColumnName("tx_content");
                 entity.Property(e => e.Url).IsRequired().HasMaxLength(100).HasColumnName("tx_url");
                 entity.Property(e => e.PostDate).HasColumnType("timestamp with time zone").HasColumnName("dt_post");
-                entity.Property(e => e.Image)
-               .HasColumnType("bytea")
-               .HasColumnName("aq_image");
+                entity.Property(e => e.Image).HasColumnType("bytea").HasColumnName("aq_image");
                 entity.Property(e => e.PostCategoryId).HasColumnName("post_category_id");
 
                 entity.HasOne(e => e.PostCategory)
@@ -132,9 +127,16 @@ namespace EthicAI.EntityModel
             modelBuilder.Entity<PostCategory>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Id).ValueGeneratedNever(); // Desativa o auto-incremento
                 entity.ToTable("post_category");
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
+
+                entity.Property(e => e.Id)
+                      .HasColumnName("id_post_category")
+                      .ValueGeneratedNever();
+
+                entity.Property(e => e.Name)
+                      .IsRequired()
+                      .HasMaxLength(50)
+                      .HasColumnName("tx_name");
             });
 
             modelBuilder.Entity<Match>(entity =>
@@ -146,6 +148,11 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.StartTime).HasColumnType("timestamp with time zone").HasColumnName("dt_start_time");
                 entity.Property(e => e.EndTime).HasColumnType("timestamp with time zone").HasColumnName("dt_end_time");
 
+                entity.Property(e => e.BettingCloseTime)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_betting_close")
+                      .IsRequired(false);
+
                 entity.Property(e => e.TeamAId).HasColumnName("cd_team_a");
                 entity.Property(e => e.TeamBId).HasColumnName("cd_team_b");
 
@@ -156,7 +163,6 @@ namespace EthicAI.EntityModel
                       .HasConversion<string>()
                       .HasColumnName("in_status");
 
-                // ✅ NOVOS CAMPOS
                 entity.Property(e => e.TeamAOutCycles)
                       .HasColumnName("nr_team_a_out_cycles")
                       .HasDefaultValue(0);
@@ -190,7 +196,6 @@ namespace EthicAI.EntityModel
                       .HasForeignKey(e => e.TeamBId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                // ✅ vencedor (opcional)
                 entity.HasOne(e => e.WinnerTeam)
                       .WithMany()
                       .HasForeignKey(e => e.WinnerTeamId)
@@ -201,7 +206,6 @@ namespace EthicAI.EntityModel
                       .HasForeignKey(b => b.MatchId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
-
 
             modelBuilder.Entity<Team>(entity =>
             {
@@ -234,7 +238,6 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.LastUpdated).HasColumnType("timestamp with time zone").HasColumnName("dt_last_updated");
             });
 
-
             modelBuilder.Entity<Bet>(entity =>
             {
                 entity.HasKey(e => e.BetId);
@@ -244,19 +247,40 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.MatchId).HasColumnName("cd_match");
                 entity.Property(e => e.TeamId).HasColumnName("cd_team");
                 entity.Property(e => e.UserId).HasColumnName("cd_user");
-                entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)").HasColumnName("nr_amount");
-                entity.Property(e => e.BetTime).HasColumnType("timestamp with time zone").HasColumnName("dt_bet_time");
 
-                entity.Property(e => e.Position).HasColumnName("nr_position"); // Nova coluna
-                // Novos campos: Claimed e ClaimedAt
+                entity.Property(e => e.Amount)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_amount");
+
+                entity.Property(e => e.BetTime)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_bet_time");
+
+                entity.Property(e => e.Position)
+                      .HasColumnName("nr_position");
+
                 entity.Property(e => e.Claimed)
                       .HasColumnName("is_claimed")
                       .HasDefaultValue(false);
 
                 entity.Property(e => e.ClaimedAt)
-                 .HasColumnName("dt_claimed_at")
-                 .HasColumnType("timestamp with time zone")
-                 .IsRequired(false);
+                      .HasColumnName("dt_claimed_at")
+                      .HasColumnType("timestamp with time zone")
+                      .IsRequired(false);
+
+                entity.Property(e => e.IsWinner)
+                      .HasColumnName("is_winner")
+                      .IsRequired(false);
+
+                entity.Property(e => e.PayoutAmount)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_payout_amount")
+                      .IsRequired(false);
+
+                entity.Property(e => e.SettledAt)
+                      .HasColumnName("dt_settled_at")
+                      .HasColumnType("timestamp with time zone")
+                      .IsRequired(false);
 
                 entity.HasOne(e => e.Match)
                       .WithMany(m => m.Bets)
@@ -274,72 +298,31 @@ namespace EthicAI.EntityModel
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-
-            Seed(modelBuilder);        }
+            Seed(modelBuilder);
+        }
 
         public void Seed(ModelBuilder modelBuilder)
         {
-
-
             modelBuilder.Entity<PostCategory>().HasData(
-                      new PostCategory { Id = 1, Name = "Technology" },
-                      new PostCategory { Id = 2, Name = "Science" },
-                      new PostCategory { Id = 3, Name = "Health" },
-                      new PostCategory { Id = 4, Name = "Education" },
-                      new PostCategory { Id = 5, Name = "Business" }
+                new PostCategory { Id = 1, Name = "Technology" },
+                new PostCategory { Id = 2, Name = "Science" },
+                new PostCategory { Id = 3, Name = "Health" },
+                new PostCategory { Id = 4, Name = "Education" },
+                new PostCategory { Id = 5, Name = "Business" }
             );
 
-           // SeedTriggers();
-
-            // Adiciona posts gerados do PostSeedData
-            //var posts = PostSeedDatax.GetPosts();
-            //foreach (var post in posts)
-            //{
-            //    modelBuilder.Entity<Post>().HasData(new
-            //    {
-            //        post.Id,
-            //        post.Title,
-            //        post.Content,
-            //        post.PostDate,
-            //        post.PostCategoryId
-            //    });
-
-            //}
-
+            // var posts = PostSeedDatax.GetPosts();
+            // foreach (var post in posts)
+            // {
+            //     modelBuilder.Entity<Post>().HasData(new
+            //     {
+            //         post.Id,
+            //         post.Title,
+            //         post.Content,
+            //         post.PostDate,
+            //         post.PostCategoryId
+            //     });
+            // }
         }
-        //private void SeedTriggers()
-        //{
-        //    using (var connection = Database.GetDbConnection())
-        //    {
-        //        connection.Open(); // Certifique-se de que a conexão está aberta
-        //        using (var command = connection.CreateCommand())
-        //        {
-        //            command.CommandText = @"
-        //        CREATE OR ALTER TRIGGER trg_UpdateBetPosition
-        //        ON [dbo].[bet]
-        //        AFTER INSERT
-        //        AS
-        //        BEGIN
-        //            WITH RankedBets AS (
-        //                SELECT
-        //                    cd_bet,
-        //                    ROW_NUMBER() OVER (
-        //                        PARTITION BY cd_match, cd_team
-        //                        ORDER BY dt_bet_time
-        //                    ) AS Position
-        //                FROM [dbo].[bet]
-        //            )
-        //            UPDATE b
-        //            SET nr_position = rb.Position
-        //            FROM [dbo].[bet] b
-        //            INNER JOIN RankedBets rb
-        //            ON b.cd_bet = rb.cd_bet
-        //            WHERE b.nr_position IS NULL;
-        //        END";
-        //            command.ExecuteNonQuery();
-        //        }
-        //    }
-        //}
-
     }
 }

@@ -16,7 +16,9 @@ namespace DAL.NftFutebol
         public int Position { get; set; }
         public decimal Amount { get; set; }
         public DateTime BetTime { get; set; }
-
+        public bool? IsWinner { get; set; }
+        public decimal? PayoutAmount { get; set; }
+        public DateTimeOffset? SettledAt { get; set; }
         public virtual Match Match { get; set; }
         public virtual Team Team { get; set; }
         public virtual User User { get; set; } // Relacionamento com User

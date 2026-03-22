@@ -16,6 +16,7 @@
         public int ScoreB { get; set; }
 
         public MatchStatus Status { get; set; }
+        public DateTimeOffset? BettingCloseTime { get; set; }
 
         public ICollection<Bet> Bets { get; set; }
 
