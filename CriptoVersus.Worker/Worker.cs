@@ -44,19 +44,714 @@ namespace CriptoVersus.Worker
         }
 
         private const string WorkerName = "CriptoVersus.Worker";
-        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
         private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
-
-        private const decimal MinQuoteVolumeUsdt = 5_000_000m;
-        private const int MinTradesCount = 2000;
-
-        private const int TakeGainers = 40;
-        private const int LogTop = 15;
+        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
 
         private const int DesiredOngoing = 10;
         private const int DesiredPending = 10;
 
+        // JANELA DE APOSTA
+        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(5);      // partida nasce para começar daqui 5 min
+        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(1);   // aposta fecha 1 min antes do início
+
+        private const decimal MinQuoteVolumeUsdt = 5_000_000m;
+        private const int MinTradesCount = 2000;
+        private const int TakeGainers = 40;
+        private const int LogTop = 15;
+
         public record HealthItem(bool Ok, string Message);
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            await WaitForPostgresAsync(stoppingToken);
+            await EnsureWorkerStatusTableAsync(stoppingToken);
+
+            await UpsertWorkerStatusAsync(
+                status: "starting",
+                utcNow: DateTime.UtcNow,
+                cycleStartUtc: null,
+                cycleEndUtc: null,
+                lastSuccessUtc: null,
+                lastCycleMs: null,
+                degraded: false,
+                healthJson: null,
+                lastErrorMsg: null,
+                lastErrorStack: null,
+                ct: stoppingToken);
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var cycleStartUtc = DateTime.UtcNow;
+                var sw = Stopwatch.StartNew();
+
+                string status = "running";
+                string? lastError = null;
+                string? lastStack = null;
+                DateTime? lastSuccessUtc = null;
+
+                Dictionary<string, HealthItem>? checks = null;
+
+                try
+                {
+                    checks = await BuildHealthChecksAsync(stoppingToken);
+                    await RunCycleAsync(stoppingToken);
+                    lastSuccessUtc = DateTime.UtcNow;
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex.Message;
+                    lastStack = ex.ToString();
+                    status = IsDnsOrNetworkTransient(ex) ? "degraded" : "error";
+                    _logger.LogError(ex, "❌ Erro no ciclo do worker.");
+                }
+                finally
+                {
+                    sw.Stop();
+
+                    checks ??= new Dictionary<string, HealthItem>
+                    {
+                        ["health"] = new HealthItem(false, "Health check failed to build")
+                    };
+
+                    var degraded = status == "degraded" || checks.Values.Any(x => !x.Ok);
+                    var healthJson = JsonSerializer.Serialize(checks);
+
+                    if (status == "running" && degraded)
+                        status = "degraded";
+
+                    await UpsertWorkerStatusAsync(
+                        status: status,
+                        utcNow: DateTime.UtcNow,
+                        cycleStartUtc: cycleStartUtc,
+                        cycleEndUtc: DateTime.UtcNow,
+                        lastSuccessUtc: lastSuccessUtc,
+                        lastCycleMs: (int)sw.ElapsedMilliseconds,
+                        degraded: degraded,
+                        healthJson: healthJson,
+                        lastErrorMsg: lastError,
+                        lastErrorStack: lastStack,
+                        ct: stoppingToken);
+
+                    try
+                    {
+                        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                        using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+                        var resp = await http.PostAsync("http://criptoversus-api:8080/api/dashboard/notify", content, stoppingToken);
+
+                        _logger.LogInformation("📣 Notify dashboard_changed -> HTTP {StatusCode}", (int)resp.StatusCode);
+                    }
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed.");
+                    }
+                }
+
+                await Task.Delay(CycleInterval, stoppingToken);
+            }
+        }
+
+        private async Task RunCycleAsync(CancellationToken ct)
+        {
+            using var scope = _sp.CreateScope();
+
+            var http = _httpClientFactory.CreateClient();
+            var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
+            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+            var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
+
+            var nowUtc = DateTime.UtcNow;
+
+            var all = await http.GetFromJsonAsync<List<Crypto>>(
+                "https://api.binance.com/api/v3/ticker/24hr",
+                ct);
+
+            if (all == null || all.Count == 0)
+            {
+                _logger.LogWarning("⚠️ Binance retornou vazio.");
+                return;
+            }
+
+            static decimal ParseDec(string? s)
+                => decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
+
+            var topGainers = all
+                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
+                .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+                .Where(c => c.Count >= MinTradesCount)
+                .Where(c => ParseDec(c.QuoteVolume) >= MinQuoteVolumeUsdt)
+                .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
+                .Take(TakeGainers)
+                .ToList();
+
+            if (topGainers.Count < 6)
+            {
+                _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
+                return;
+            }
+
+            _logger.LogInformation(
+                "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
+                MinTradesCount,
+                MinQuoteVolumeUsdt,
+                topGainers.Count,
+                string.Join(", ", topGainers.Select(x => x.Symbol))
+            );
+
+            foreach (var c in topGainers.Take(LogTop))
+            {
+                _logger.LogInformation("Gainer {sym} pct={pct} quoteVol={qv} trades={cnt}",
+                    c.Symbol, c.PriceChangePercent, c.QuoteVolume, c.Count);
+            }
+
+            var snapshotUtc = nowUtc;
+            var snapshot = topGainers
+                .Select((c, idx) => new GainerEntry
+                {
+                    Symbol = c.Symbol ?? "",
+                    Rank = idx + 1,
+                    PercentageChange = (decimal?)ParsePercent(c.PriceChangePercent)
+                })
+                .ToList();
+
+            var currencies = await matchService.SaveCurrenciesAsync(topGainers);
+
+            var currencyBySymbol = currencies
+                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
+                .ToDictionary(c => c.Symbol!, StringComparer.OrdinalIgnoreCase);
+
+            var allowed = snapshot
+                .Select(x => x.Symbol)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // 1) Higiene por snapshot
+            await CancelPendingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
+            await ForceEndOngoingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
+
+            // 2) Higiene temporal
+            await ExpireStalePendingAsync(db, nowUtc, ct);
+
+            // 3) Finaliza ongoing vencido
+            await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, ct);
+
+            // 4) Promove pending -> ongoing somente quando chegou a hora
+            await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
+
+            // 5) Garante estoque ongoing mínimo
+            await EnsureOngoingPoolAsync(db, nowUtc, ct);
+
+            // 6) Garante estoque pending futuro
+            await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
+
+            var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
+            var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
+
+            _logger.LogInformation(
+                "📦 Pool status: pendingValid={pending} ongoing={ongoing} (targets p={pTarget} o={oTarget})",
+                pendingCount,
+                ongoingCount,
+                DesiredPending,
+                DesiredOngoing);
+        }
+
+        private async Task EnsurePendingPoolAsync(
+            EthicAIDbContext db,
+            List<GainerEntry> snapshot,
+            Dictionary<string, Currency> currencyBySymbol,
+            int desiredPending,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
+            var missing = desiredPending - pendingCount;
+
+            if (missing <= 0)
+                return;
+
+            var existing = await db.Match
+                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync(ct);
+
+            static string PairKey(string a, string b)
+                => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
+
+            var existingPairs = new HashSet<string>(
+                existing.Select(m =>
+                {
+                    var sa = m.TeamA?.Currency?.Symbol ?? "";
+                    var sb = m.TeamB?.Currency?.Symbol ?? "";
+                    return PairKey(sa, sb);
+                })
+                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|")),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            var busySymbols = new HashSet<string>(
+                existing.SelectMany(m => new[]
+                {
+                    m.TeamA?.Currency?.Symbol ?? "",
+                    m.TeamB?.Currency?.Symbol ?? ""
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s)),
+                StringComparer.OrdinalIgnoreCase
+            );
+
+            var ranked = snapshot
+                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+                .OrderBy(x => x.Rank)
+                .Select(x => x.Symbol)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var candidates = new List<(string A, string B, int Score)>();
+
+            for (int i = 0; i < ranked.Count; i++)
+            {
+                for (int j = i + 1; j < ranked.Count; j++)
+                {
+                    var a = ranked[i];
+                    var b = ranked[j];
+                    var diff = j - i;
+                    var sum = i + j;
+                    var score = diff * 1000 + sum;
+                    candidates.Add((a, b, score));
+                }
+            }
+
+            candidates.Sort((x, y) => x.Score.CompareTo(y.Score));
+
+            var created = 0;
+
+            foreach (var (symA, symB, _) in candidates)
+            {
+                if (created >= missing) break;
+
+                var key = PairKey(symA, symB);
+                if (existingPairs.Contains(key)) continue;
+                if (busySymbols.Contains(symA) || busySymbols.Contains(symB)) continue;
+
+                if (!currencyBySymbol.TryGetValue(symA, out var curA)) continue;
+                if (!currencyBySymbol.TryGetValue(symB, out var curB)) continue;
+
+                await CreatePendingMatchAsync(db, curA, curB, nowUtc, ct);
+
+                existingPairs.Add(key);
+                busySymbols.Add(symA);
+                busySymbols.Add(symB);
+                created++;
+            }
+
+            if (created < missing)
+                _logger.LogWarning("⚠️ Pending pool: consegui criar {created} de {missing}.", created, missing);
+            else
+                _logger.LogInformation("✅ Pending pool reposto: criados {created} (meta={desired}).", created, desiredPending);
+        }
+
+        private async Task CreatePendingMatchAsync(
+            EthicAIDbContext db,
+            Currency curA,
+            Currency curB,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var teamA = await db.Team.FirstOrDefaultAsync(t => t.CurrencyID == curA.CurrencyID, ct);
+            var teamB = await db.Team.FirstOrDefaultAsync(t => t.CurrencyID == curB.CurrencyID, ct);
+
+            if (teamA == null || teamB == null)
+            {
+                _logger.LogWarning("⚠️ Team não encontrado para criar partida pending: {a} vs {b}", curA.Symbol, curB.Symbol);
+                return;
+            }
+
+            var startTime = nowUtc.Add(PendingLeadTime);
+            var bettingCloseTime = startTime.Subtract(BettingCloseOffset);
+
+            var match = new Match
+            {
+                TeamAId = teamA.TeamId,
+                TeamBId = teamB.TeamId,
+                Status = MatchStatus.Pending,
+                StartTime = startTime,
+                BettingCloseTime = bettingCloseTime,
+                ScoreA = 0,
+                ScoreB = 0,
+                WinnerTeamId = null,
+                EndTime = null,
+                EndReasonCode = null,
+                EndReasonDetail = null,
+                TeamAOutCycles = 0,
+                TeamBOutCycles = 0,
+                RulesetVersion = RuleConstants.DefaultRulesetVersion
+            };
+
+            db.Match.Add(match);
+            await db.SaveChangesAsync(ct);
+
+            _logger.LogInformation(
+                "🆕 Pending criada: MatchId={matchId} {a} vs {b} start={start} betClose={close}",
+                match.MatchId, curA.Symbol, curB.Symbol, startTime, bettingCloseTime);
+        }
+
+        private async Task PromoteDuePendingToOngoingAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var duePending = await db.Match
+                .Where(m =>
+                    m.Status == MatchStatus.Pending &&
+                    m.StartTime <= nowUtc)
+                .OrderBy(m => m.StartTime)
+                .ToListAsync(ct);
+
+            if (duePending.Count == 0)
+                return;
+
+            foreach (var match in duePending)
+            {
+                match.Status = MatchStatus.Ongoing;
+
+                // IMPORTANTE:
+                // NÃO sobrescrever StartTime aqui
+                // ele já veio correto quando nasceu como Pending
+                if (!match.BettingCloseTime.HasValue)
+                    match.BettingCloseTime = match.StartTime.AddMinutes(-1);
+            }
+
+            await db.SaveChangesAsync(ct);
+
+            _logger.LogInformation("🚀 Promovidas {count} partidas Pending -> Ongoing", duePending.Count);
+        }
+
+        private async Task EnsureOngoingPoolAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
+
+            if (ongoingCount >= DesiredOngoing)
+                return;
+
+            var missing = DesiredOngoing - ongoingCount;
+
+            var duePending = await db.Match
+                .Where(m =>
+                    m.Status == MatchStatus.Pending &&
+                    m.StartTime <= nowUtc)
+                .OrderBy(m => m.StartTime)
+                .Take(missing)
+                .ToListAsync(ct);
+
+            foreach (var match in duePending)
+            {
+                match.Status = MatchStatus.Ongoing;
+            }
+
+            if (duePending.Count > 0)
+            {
+                await db.SaveChangesAsync(ct);
+                _logger.LogInformation("🚀 Ongoing pool ajustado: iniciadas {count} partidas", duePending.Count);
+            }
+        }
+
+        private async Task<int> CountValidPendingAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            return await db.Match.CountAsync(x =>
+                x.Status == MatchStatus.Pending &&
+                (
+                    (x.BettingCloseTime.HasValue && x.BettingCloseTime.Value > nowUtc) ||
+                    (!x.BettingCloseTime.HasValue && x.StartTime > nowUtc)
+                ), ct);
+        }
+
+        private static async Task CancelPendingOutsideSnapshotAsync(
+            EthicAIDbContext db,
+            HashSet<string> allowed,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var pendingNow = await db.Match
+                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                .Where(x => x.Status == MatchStatus.Pending)
+                .ToListAsync(ct);
+
+            var changed = 0;
+
+            foreach (var m in pendingNow)
+            {
+                var a = m.TeamA?.Currency?.Symbol ?? "";
+                var b = m.TeamB?.Currency?.Symbol ?? "";
+
+                if (!allowed.Contains(a) || !allowed.Contains(b))
+                {
+                    m.Status = MatchStatus.Cancelled;
+                    m.EndTime = nowUtc;
+                    m.EndReasonCode = "FILTERED_OUT";
+                    m.EndReasonDetail = $"Pair not in TopGainers snapshot. A={a} B={b}";
+                    m.WinnerTeamId = null;
+                    m.TeamAOutCycles = 0;
+                    m.TeamBOutCycles = 0;
+                    m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+                    changed++;
+                }
+            }
+
+            if (changed > 0)
+                await db.SaveChangesAsync(ct);
+        }
+
+        private static async Task ForceEndOngoingOutsideSnapshotAsync(
+            EthicAIDbContext db,
+            HashSet<string> allowed,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var ongoingNow = await db.Match
+                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                .Where(x => x.Status == MatchStatus.Ongoing)
+                .ToListAsync(ct);
+
+            var changed = 0;
+
+            foreach (var m in ongoingNow)
+            {
+                var a = m.TeamA?.Currency?.Symbol ?? "";
+                var b = m.TeamB?.Currency?.Symbol ?? "";
+
+                if (!allowed.Contains(a) || !allowed.Contains(b))
+                {
+                    m.Status = MatchStatus.Completed;
+                    m.EndTime = nowUtc;
+                    m.WinnerTeamId = null;
+                    m.EndReasonCode = "FILTERED_OUT_ONGOING";
+                    m.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={a} B={b}";
+                    m.TeamAOutCycles = 0;
+                    m.TeamBOutCycles = 0;
+                    m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+                    changed++;
+                }
+            }
+
+            if (changed > 0)
+                await db.SaveChangesAsync(ct);
+        }
+
+        private static async Task ExpireStalePendingAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var stalePending = await db.Match
+                .Where(m =>
+                    m.Status == MatchStatus.Pending &&
+                    (
+                        (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value <= nowUtc) ||
+                        (!m.BettingCloseTime.HasValue && m.StartTime <= nowUtc)
+                    ))
+                .ToListAsync(ct);
+
+            if (stalePending.Count == 0)
+                return;
+
+            foreach (var m in stalePending)
+            {
+                m.Status = MatchStatus.Cancelled;
+                m.EndTime = nowUtc;
+                m.WinnerTeamId = null;
+                m.EndReasonCode = "PENDING_EXPIRED";
+                m.EndReasonDetail = "Pending venceu a janela de aposta sem ser iniciado.";
+                m.TeamAOutCycles = 0;
+                m.TeamBOutCycles = 0;
+                m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+            }
+
+            await db.SaveChangesAsync(ct);
+        }
+
+        private async Task ProcessOngoingAsync(
+            MatchService matchService,
+            EthicAIDbContext db,
+            IMatchRuleEngine ruleEngine,
+            List<GainerEntry> snapshot,
+            DateTime snapshotUtc,
+            HashSet<string> allowed,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var ongoingNow = await matchService.GetOngoingMatchesAsync();
+
+            if (ongoingNow.Count == 0)
+            {
+                _logger.LogInformation("ℹ️ Nenhum jogo Ongoing para processar.");
+                return;
+            }
+
+            foreach (var m in ongoingNow)
+            {
+                var match = await db.Match
+                    .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                    .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                    .FirstOrDefaultAsync(x => x.MatchId == m.MatchId, ct);
+
+                if (match == null || match.Status != MatchStatus.Ongoing)
+                    continue;
+
+                var symA = match.TeamA?.Currency?.Symbol ?? "";
+                var symB = match.TeamB?.Currency?.Symbol ?? "";
+
+                if (!allowed.Contains(symA) || !allowed.Contains(symB))
+                {
+                    match.Status = MatchStatus.Completed;
+                    match.EndTime = nowUtc;
+                    match.WinnerTeamId = null;
+                    match.EndReasonCode = "FILTERED_OUT_ONGOING";
+                    match.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={symA} B={symB}";
+                    match.TeamAOutCycles = 0;
+                    match.TeamBOutCycles = 0;
+                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+
+                    await db.SaveChangesAsync(ct);
+
+                    _logger.LogWarning("🏁 FORCE END (WO) match {id} ({a} vs {b}) - fora do snapshot.",
+                        match.MatchId, symA, symB);
+
+                    continue;
+                }
+
+                var a = match.TeamA?.Currency?.PercentageChange ?? 0;
+                var b = match.TeamB?.Currency?.PercentageChange ?? 0;
+
+                var (scoreA, scoreB) = CalculateScoreFromPercent((double)a, (double)b);
+
+                if (match.ScoreA != scoreA || match.ScoreB != scoreB)
+                {
+                    await matchService.UpdateMatchScoreAsync(match.MatchId, scoreA, scoreB);
+                    match.ScoreA = scoreA;
+                    match.ScoreB = scoreB;
+
+                    _logger.LogInformation("📊 Match {id} score atualizado: {a}:{b}", match.MatchId, scoreA, scoreB);
+                }
+
+                var decisionOngoing = ruleEngine.EvaluateOngoing(
+                    teamAId: match.TeamAId,
+                    teamBId: match.TeamBId,
+                    teamASymbol: symA,
+                    teamBSymbol: symB,
+                    scoreA: match.ScoreA,
+                    scoreB: match.ScoreB,
+                    teamAOutCycles: match.TeamAOutCycles,
+                    teamBOutCycles: match.TeamBOutCycles,
+                    topGainersSnapshot: snapshot,
+                    snapshotTimeUtc: snapshotUtc
+                );
+
+                if (decisionOngoing.UpdatedTeamAOutCycles.HasValue)
+                    match.TeamAOutCycles = decisionOngoing.UpdatedTeamAOutCycles.Value;
+
+                if (decisionOngoing.UpdatedTeamBOutCycles.HasValue)
+                    match.TeamBOutCycles = decisionOngoing.UpdatedTeamBOutCycles.Value;
+
+                if (decisionOngoing.Decision == MatchDecisionType.FinishWithWinner)
+                {
+                    var winnerId = decisionOngoing.WinnerTeamId
+                        ?? (decisionOngoing.WinnerSide == MatchWinnerSide.A ? match.TeamAId : match.TeamBId);
+
+                    ApplyFinish(match, winnerId, decisionOngoing, nowUtc);
+                    await db.SaveChangesAsync(ct);
+
+                    _logger.LogWarning("🏁 FINISH match {id} WINNER={winner}. Reason={code} Detail={detail}",
+                        match.MatchId, winnerId, decisionOngoing.ReasonCode, decisionOngoing.ReasonDetail);
+
+                    continue;
+                }
+
+                if (decisionOngoing.Decision == MatchDecisionType.FinishWithWO)
+                {
+                    ApplyFinish(match, null, decisionOngoing, nowUtc);
+                    await db.SaveChangesAsync(ct);
+
+                    _logger.LogWarning("🏁 FINISH match {id} WO. Reason={code} Detail={detail}",
+                        match.MatchId, decisionOngoing.ReasonCode, decisionOngoing.ReasonDetail);
+
+                    continue;
+                }
+
+                var startUtc = ToUtcSafe(match.StartTime);
+
+                if (nowUtc - startUtc >= MatchDuration)
+                {
+                    match.Status = MatchStatus.Completed;
+                    match.EndTime = nowUtc;
+                    match.EndReasonCode = "TIME_LIMIT";
+                    match.EndReasonDetail = $"Reached {MatchDuration.TotalMinutes}min time limit";
+                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+
+                    await db.SaveChangesAsync(ct);
+
+                    _logger.LogInformation("⏱️ Match {id} atingiu 90min. Encerrado por tempo.", match.MatchId);
+                }
+                else
+                {
+                    await db.SaveChangesAsync(ct);
+                }
+            }
+        }
+
+        private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)
+        {
+            match.Status = MatchStatus.Completed;
+            match.EndTime = nowUtc;
+            match.WinnerTeamId = winnerTeamId;
+            match.EndReasonCode = decision.ReasonCode;
+            match.EndReasonDetail = decision.ReasonDetail;
+            match.RulesetVersion = decision.RulesetVersion;
+        }
+
+        private (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
+        {
+            var percentPerGoal = _options.Scoring.PercentPerGoal;
+            var maxGoals = _options.Scoring.MaxGoalsPerTeam;
+
+            if (a > b)
+            {
+                var diff = a - b;
+                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
+                return (goals, 0);
+            }
+
+            if (b > a)
+            {
+                var diff = b - a;
+                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
+                return (0, goals);
+            }
+
+            return (0, 0);
+        }
+
+        private static double ParsePercent(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return 0;
+            return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
+        }
+
+        private static DateTime ToUtcSafe(DateTime dt)
+        {
+            if (dt.Kind == DateTimeKind.Unspecified)
+                return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+
+            return dt.ToUniversalTime();
+        }
 
         private async Task EnsureWorkerStatusTableAsync(CancellationToken ct)
         {
@@ -136,100 +831,6 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 },
                 ct
             );
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            await WaitForPostgresAsync(stoppingToken);
-            await EnsureWorkerStatusTableAsync(stoppingToken);
-
-            await UpsertWorkerStatusAsync(
-                status: "starting",
-                utcNow: DateTime.UtcNow,
-                cycleStartUtc: null,
-                cycleEndUtc: null,
-                lastSuccessUtc: null,
-                lastCycleMs: null,
-                degraded: false,
-                healthJson: null,
-                lastErrorMsg: null,
-                lastErrorStack: null,
-                ct: stoppingToken);
-
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                var cycleStartUtc = DateTime.UtcNow;
-                var sw = Stopwatch.StartNew();
-
-                string status = "running";
-                string? lastError = null;
-                string? lastStack = null;
-                DateTime? lastSuccessUtc = null;
-
-                Dictionary<string, HealthItem>? checks = null;
-
-                try
-                {
-                    checks = await BuildHealthChecksAsync(stoppingToken);
-                    await RunCycleAsync(stoppingToken);
-                    lastSuccessUtc = DateTime.UtcNow;
-                }
-                catch (Exception ex)
-                {
-                    lastError = ex.Message;
-                    lastStack = ex.ToString();
-                    status = IsDnsOrNetworkTransient(ex) ? "degraded" : "error";
-                    _logger.LogError(ex, "❌ Erro no ciclo do worker.");
-                }
-                finally
-                {
-                    sw.Stop();
-
-                    checks ??= new Dictionary<string, HealthItem>
-                    {
-                        ["health"] = new HealthItem(false, "Health check failed to build")
-                    };
-
-                    var degraded = status == "degraded" || checks.Values.Any(x => !x.Ok);
-                    var healthJson = JsonSerializer.Serialize(checks);
-
-                    if (status == "running" && degraded)
-                        status = "degraded";
-
-                    await UpsertWorkerStatusAsync(
-                        status: status,
-                        utcNow: DateTime.UtcNow,
-                        cycleStartUtc: cycleStartUtc,
-                        cycleEndUtc: DateTime.UtcNow,
-                        lastSuccessUtc: lastSuccessUtc,
-                        lastCycleMs: (int)sw.ElapsedMilliseconds,
-                        degraded: degraded,
-                        healthJson: healthJson,
-                        lastErrorMsg: lastError,
-                        lastErrorStack: lastStack,
-                        ct: stoppingToken);
-
-                    var url = "http://criptoversus-api:8080/api/dashboard/notify";
-
-                    try
-                    {
-                        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                        using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
-                        var resp = await http.PostAsync(url, content, stoppingToken);
-
-                        _logger.LogInformation("📣 Notify dashboard_changed -> HTTP {StatusCode}", (int)resp.StatusCode);
-                    }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                    {
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed.");
-                    }
-                }
-
-                await Task.Delay(CycleInterval, stoppingToken);
-            }
         }
 
         private async Task<Dictionary<string, HealthItem>> BuildHealthChecksAsync(CancellationToken ct)
@@ -326,664 +927,6 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             }
 
             _logger.LogWarning("⚠️ Timeout aguardando Postgres. O worker vai continuar.");
-        }
-
-        private async Task RunCycleAsync(CancellationToken ct)
-        {
-            using var scope = _sp.CreateScope();
-
-            var http = _httpClientFactory.CreateClient();
-            var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
-            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
-            var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
-
-            var nowUtc = DateTime.UtcNow;
-
-            var all = await http.GetFromJsonAsync<List<Crypto>>(
-                "https://api.binance.com/api/v3/ticker/24hr",
-                ct);
-
-            if (all == null || all.Count == 0)
-            {
-                _logger.LogWarning("⚠️ Binance retornou vazio.");
-                return;
-            }
-
-            static decimal ParseDec(string? s)
-                => decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
-
-            var topGainers = all
-                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
-                .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
-                .Where(c => c.Count >= MinTradesCount)
-                .Where(c => ParseDec(c.QuoteVolume) >= MinQuoteVolumeUsdt)
-                .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
-                .Take(TakeGainers)
-                .ToList();
-
-            if (topGainers.Count < 6)
-            {
-                _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
-                return;
-            }
-
-            _logger.LogInformation(
-                "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
-                MinTradesCount,
-                MinQuoteVolumeUsdt,
-                topGainers.Count,
-                string.Join(", ", topGainers.Select(x => x.Symbol))
-            );
-
-            foreach (var c in topGainers.Take(LogTop))
-            {
-                _logger.LogInformation("Gainer {sym} pct={pct} quoteVol={qv} trades={cnt}",
-                    c.Symbol, c.PriceChangePercent, c.QuoteVolume, c.Count);
-            }
-
-            var snapshotUtc = nowUtc;
-            var snapshot = topGainers
-                .Select((c, idx) => new GainerEntry
-                {
-                    Symbol = c.Symbol ?? "",
-                    Rank = idx + 1,
-                    PercentageChange = (decimal?)ParsePercent(c.PriceChangePercent)
-                })
-                .ToList();
-
-            var currencies = await matchService.SaveCurrenciesAsync(topGainers);
-
-            var currencyBySymbol = currencies
-                .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
-                .ToDictionary(c => c.Symbol!, StringComparer.OrdinalIgnoreCase);
-
-            var allowed = snapshot
-                .Select(x => x.Symbol)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            await CancelPendingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
-            await ForceEndOngoingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
-
-            // NOVO: limpa pending vencido por tempo
-            await ExpireStalePendingAsync(db, nowUtc, ct);
-
-            // NOVO: processa ongoing antes de medir necessidade
-            await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, ct);
-
-            // NOVO: sobe ongoing depois da limpeza/processamento
-            await EnsureOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, DesiredOngoing, ct);
-
-            // NOVO: repõe pending por último, contando só pending válido
-            await EnsurePendingPoolAsync(matchService, db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
-
-            var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
-            var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
-
-            _logger.LogInformation(
-                "📦 Pool status: pendingValid={pending} ongoing={ongoing} (targets p={pTarget} o={oTarget})",
-                pendingCount,
-                ongoingCount,
-                DesiredPending,
-                DesiredOngoing);
-        }
-
-        private static async Task CancelPendingOutsideSnapshotAsync(
-            EthicAIDbContext db,
-            HashSet<string> allowed,
-            DateTime nowUtc,
-            CancellationToken ct)
-        {
-            var pendingNow = await db.Match
-                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
-                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
-                .Where(x => x.Status == MatchStatus.Pending)
-                .ToListAsync(ct);
-
-            var cancelled = 0;
-
-            foreach (var m in pendingNow)
-            {
-                var a = m.TeamA?.Currency?.Symbol ?? "";
-                var b = m.TeamB?.Currency?.Symbol ?? "";
-
-                if (!allowed.Contains(a) || !allowed.Contains(b))
-                {
-                    m.Status = MatchStatus.Cancelled;
-                    m.EndTime = nowUtc;
-                    m.EndReasonCode = "FILTERED_OUT";
-                    m.EndReasonDetail = $"Pair not in TopGainers snapshot. A={a} B={b}";
-                    m.WinnerTeamId = null;
-                    m.TeamAOutCycles = 0;
-                    m.TeamBOutCycles = 0;
-                    m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-                    cancelled++;
-                }
-            }
-
-            if (cancelled > 0)
-                await db.SaveChangesAsync(ct);
-        }
-
-        private static async Task ForceEndOngoingOutsideSnapshotAsync(
-            EthicAIDbContext db,
-            HashSet<string> allowed,
-            DateTime nowUtc,
-            CancellationToken ct)
-        {
-            var ongoingNow = await db.Match
-                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
-                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
-                .Where(x => x.Status == MatchStatus.Ongoing)
-                .ToListAsync(ct);
-
-            var ended = 0;
-
-            foreach (var m in ongoingNow)
-            {
-                var a = m.TeamA?.Currency?.Symbol ?? "";
-                var b = m.TeamB?.Currency?.Symbol ?? "";
-
-                if (!allowed.Contains(a) || !allowed.Contains(b))
-                {
-                    m.Status = MatchStatus.Completed;
-                    m.EndTime = nowUtc;
-                    m.WinnerTeamId = null;
-                    m.EndReasonCode = "FILTERED_OUT_ONGOING";
-                    m.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={a} B={b}";
-                    m.TeamAOutCycles = 0;
-                    m.TeamBOutCycles = 0;
-                    m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-                    ended++;
-                }
-            }
-
-            if (ended > 0)
-                await db.SaveChangesAsync(ct);
-        }
-
-        private static async Task ExpireStalePendingAsync(
-            EthicAIDbContext db,
-            DateTime nowUtc,
-            CancellationToken ct)
-        {
-            var stalePending = await db.Match
-                .Where(m =>
-                    m.Status == MatchStatus.Pending &&
-                    (
-                        (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value <= nowUtc) ||
-                        (!m.BettingCloseTime.HasValue && m.StartTime <= nowUtc)
-                    ))
-                .ToListAsync(ct);
-
-            if (stalePending.Count == 0)
-                return;
-
-            foreach (var m in stalePending)
-            {
-                m.Status = MatchStatus.Cancelled;
-                m.EndTime = nowUtc;
-                m.WinnerTeamId = null;
-                m.EndReasonCode = "PENDING_EXPIRED";
-                m.EndReasonDetail = "Pending venceu a janela de aposta sem ser iniciado.";
-                m.TeamAOutCycles = 0;
-                m.TeamBOutCycles = 0;
-                m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-            }
-
-            await db.SaveChangesAsync(ct);
-        }
-
-        private async Task<int> CountValidPendingAsync(
-            EthicAIDbContext db,
-            DateTime nowUtc,
-            CancellationToken ct)
-        {
-            return await db.Match.CountAsync(x =>
-                x.Status == MatchStatus.Pending &&
-                (
-                    (x.BettingCloseTime.HasValue && x.BettingCloseTime.Value > nowUtc) ||
-                    (!x.BettingCloseTime.HasValue && x.StartTime > nowUtc)
-                ), ct);
-        }
-
-        private async Task ProcessOngoingAsync(
-            MatchService matchService,
-            EthicAIDbContext db,
-            IMatchRuleEngine ruleEngine,
-            List<GainerEntry> snapshot,
-            DateTime snapshotUtc,
-            HashSet<string> allowed,
-            DateTime nowUtc,
-            CancellationToken ct)
-        {
-            var ongoingNow = await matchService.GetOngoingMatchesAsync();
-
-            if (ongoingNow.Count == 0)
-            {
-                _logger.LogInformation("ℹ️ Nenhum jogo Ongoing para processar.");
-                return;
-            }
-
-            foreach (var m in ongoingNow)
-            {
-                var match = await db.Match
-                    .Include(x => x.TeamA).ThenInclude(t => t.Currency)
-                    .Include(x => x.TeamB).ThenInclude(t => t.Currency)
-                    .FirstOrDefaultAsync(x => x.MatchId == m.MatchId, ct);
-
-                if (match == null || match.Status != MatchStatus.Ongoing)
-                    continue;
-
-                if (match.StartTime == null)
-                {
-                    await matchService.UpdateMatchStatusAndStartTimeAsync(match.MatchId, MatchStatus.Ongoing, nowUtc);
-                    match.StartTime = nowUtc;
-                }
-
-                var symA = match.TeamA?.Currency?.Symbol ?? "";
-                var symB = match.TeamB?.Currency?.Symbol ?? "";
-
-                if (!allowed.Contains(symA) || !allowed.Contains(symB))
-                {
-                    match.Status = MatchStatus.Completed;
-                    match.EndTime = nowUtc;
-                    match.WinnerTeamId = null;
-                    match.EndReasonCode = "FILTERED_OUT_ONGOING";
-                    match.EndReasonDetail = $"Forced end: pair not in TopGainers snapshot. A={symA} B={symB}";
-                    match.TeamAOutCycles = 0;
-                    match.TeamBOutCycles = 0;
-                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-
-                    await db.SaveChangesAsync(ct);
-
-                    _logger.LogWarning("🏁 FORCE END (WO) match {id} ({a} vs {b}) - fora do snapshot.",
-                        match.MatchId, symA, symB);
-
-                    continue;
-                }
-
-                var a = match.TeamA?.Currency?.PercentageChange ?? 0;
-                var b = match.TeamB?.Currency?.PercentageChange ?? 0;
-
-                var (scoreA, scoreB) = CalculateScoreFromPercent((double)a, (double)b);
-
-                if (match.ScoreA != scoreA || match.ScoreB != scoreB)
-                {
-                    await matchService.UpdateMatchScoreAsync(match.MatchId, scoreA, scoreB);
-                    match.ScoreA = scoreA;
-                    match.ScoreB = scoreB;
-
-                    _logger.LogInformation("📊 Match {id} score atualizado: {a}:{b}", match.MatchId, scoreA, scoreB);
-                }
-
-                var decisionOngoing = ruleEngine.EvaluateOngoing(
-                    teamAId: match.TeamAId,
-                    teamBId: match.TeamBId,
-                    teamASymbol: symA,
-                    teamBSymbol: symB,
-                    scoreA: match.ScoreA,
-                    scoreB: match.ScoreB,
-                    teamAOutCycles: match.TeamAOutCycles,
-                    teamBOutCycles: match.TeamBOutCycles,
-                    topGainersSnapshot: snapshot,
-                    snapshotTimeUtc: snapshotUtc
-                );
-
-                if (decisionOngoing.UpdatedTeamAOutCycles.HasValue)
-                    match.TeamAOutCycles = decisionOngoing.UpdatedTeamAOutCycles.Value;
-
-                if (decisionOngoing.UpdatedTeamBOutCycles.HasValue)
-                    match.TeamBOutCycles = decisionOngoing.UpdatedTeamBOutCycles.Value;
-
-                if (decisionOngoing.Decision == MatchDecisionType.FinishWithWinner)
-                {
-                    var winnerId = decisionOngoing.WinnerTeamId
-                        ?? (decisionOngoing.WinnerSide == MatchWinnerSide.A ? match.TeamAId : match.TeamBId);
-
-                    ApplyFinish(match, winnerId, decisionOngoing, nowUtc);
-                    await db.SaveChangesAsync(ct);
-
-                    _logger.LogWarning("🏁 FINISH match {id} WINNER={winner}. Reason={code} Detail={detail}",
-                        match.MatchId, winnerId, decisionOngoing.ReasonCode, decisionOngoing.ReasonDetail);
-
-                    continue;
-                }
-
-                if (decisionOngoing.Decision == MatchDecisionType.FinishWithWO)
-                {
-                    ApplyFinish(match, null, decisionOngoing, nowUtc);
-                    await db.SaveChangesAsync(ct);
-
-                    _logger.LogWarning("🏁 FINISH match {id} WO. Reason={code} Detail={detail}",
-                        match.MatchId, decisionOngoing.ReasonCode, decisionOngoing.ReasonDetail);
-
-                    continue;
-                }
-
-                var startUtc = ToUtcSafe(match.StartTime.Value);
-
-                if (nowUtc - startUtc >= MatchDuration)
-                {
-                    match.Status = MatchStatus.Completed;
-                    match.EndTime = nowUtc;
-                    match.EndReasonCode = "TIME_LIMIT";
-                    match.EndReasonDetail = $"Reached {MatchDuration.TotalMinutes}min time limit";
-                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-
-                    await db.SaveChangesAsync(ct);
-
-                    _logger.LogInformation("⏱️ Match {id} atingiu 90min. Encerrado por tempo.", match.MatchId);
-                }
-                else
-                {
-                    await db.SaveChangesAsync(ct);
-                }
-            }
-        }
-
-        private async Task EnsurePendingPoolAsync(
-            MatchService matchService,
-            EthicAIDbContext db,
-            List<GainerEntry> snapshot,
-            Dictionary<string, Currency> currencyBySymbol,
-            int desiredPending,
-            DateTime nowUtc,
-            CancellationToken ct)
-        {
-            var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
-            var missing = desiredPending - pendingCount;
-
-            if (missing <= 0)
-                return;
-
-            var existing = await db.Match
-                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
-                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
-                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
-                .ToListAsync(ct);
-
-            static string PairKey(string a, string b)
-                => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
-
-            var existingPairs = new HashSet<string>(
-                existing.Select(m =>
-                {
-                    var sa = m.TeamA?.Currency?.Symbol ?? "";
-                    var sb = m.TeamB?.Currency?.Symbol ?? "";
-                    return PairKey(sa, sb);
-                })
-                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|")),
-                StringComparer.OrdinalIgnoreCase
-            );
-
-            var busySymbols = new HashSet<string>(
-                existing.SelectMany(m => new[]
-                {
-                    m.TeamA?.Currency?.Symbol ?? "",
-                    m.TeamB?.Currency?.Symbol ?? ""
-                })
-                .Where(s => !string.IsNullOrWhiteSpace(s)),
-                StringComparer.OrdinalIgnoreCase
-            );
-
-            var ranked = snapshot
-                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
-                .OrderBy(x => x.Rank)
-                .Select(x => x.Symbol)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            var candidates = new List<(string A, string B, int Score)>();
-
-            for (int i = 0; i < ranked.Count; i++)
-            {
-                for (int j = i + 1; j < ranked.Count; j++)
-                {
-                    var a = ranked[i];
-                    var b = ranked[j];
-                    var diff = j - i;
-                    var sum = i + j;
-                    var score = diff * 1000 + sum;
-                    candidates.Add((a, b, score));
-                }
-            }
-
-            candidates.Sort((x, y) => x.Score.CompareTo(y.Score));
-
-            var created = 0;
-
-            foreach (var (symA, symB, _) in candidates)
-            {
-                if (created >= missing) break;
-
-                var key = PairKey(symA, symB);
-                if (existingPairs.Contains(key)) continue;
-                if (busySymbols.Contains(symA) || busySymbols.Contains(symB)) continue;
-
-                if (!currencyBySymbol.TryGetValue(symA, out var curA)) continue;
-                if (!currencyBySymbol.TryGetValue(symB, out var curB)) continue;
-
-                await matchService.CreateMatchAsync(curA, curB);
-
-                existingPairs.Add(key);
-                busySymbols.Add(symA);
-                busySymbols.Add(symB);
-                created++;
-            }
-
-            if (created < missing)
-                _logger.LogWarning("⚠️ Pending pool: consegui criar {created} de {missing}.", created, missing);
-            else
-                _logger.LogInformation("✅ Pending pool reposto: criados {created} (meta={desired}).", created, desiredPending);
-        }
-
-        private async Task EnsureOngoingAsync(
-            MatchService matchService,
-            EthicAIDbContext db,
-            IMatchRuleEngine ruleEngine,
-            List<GainerEntry> snapshot,
-            DateTime snapshotUtc,
-            HashSet<string> allowed,
-            DateTime nowUtc,
-            int desiredOngoing,
-            CancellationToken ct)
-        {
-            var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
-            var needToStart = desiredOngoing - ongoingCount;
-
-            if (needToStart <= 0)
-                return;
-
-            var pendingsToConsider = await matchService.GetUpcomingPendingMatchesAsync(needToStart * 5);
-            var started = 0;
-
-            foreach (var p in pendingsToConsider)
-            {
-                if (started >= needToStart) break;
-
-                var match = await db.Match
-                    .Include(x => x.TeamA).ThenInclude(t => t.Currency)
-                    .Include(x => x.TeamB).ThenInclude(t => t.Currency)
-                    .FirstOrDefaultAsync(x => x.MatchId == p.MatchId, ct);
-
-                if (match == null || match.Status != MatchStatus.Pending)
-                    continue;
-
-                // NOVO: proteção extra contra pending vencido
-                var pendingStillOpen =
-                    (match.BettingCloseTime.HasValue && match.BettingCloseTime.Value > nowUtc) ||
-                    (!match.BettingCloseTime.HasValue && match.StartTime > nowUtc);
-
-                if (!pendingStillOpen)
-                {
-                    match.Status = MatchStatus.Cancelled;
-                    match.EndTime = nowUtc;
-                    match.WinnerTeamId = null;
-                    match.EndReasonCode = "PENDING_EXPIRED_DURING_START";
-                    match.EndReasonDetail = "Pending expirou antes de ser iniciado.";
-                    match.TeamAOutCycles = 0;
-                    match.TeamBOutCycles = 0;
-                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-
-                    await db.SaveChangesAsync(ct);
-                    continue;
-                }
-
-                var symA = match.TeamA?.Currency?.Symbol ?? "";
-                var symB = match.TeamB?.Currency?.Symbol ?? "";
-
-                if (!allowed.Contains(symA) || !allowed.Contains(symB))
-                {
-                    match.Status = MatchStatus.Cancelled;
-                    match.EndTime = nowUtc;
-                    match.WinnerTeamId = null;
-                    match.EndReasonCode = "FILTERED_OUT_PENDING";
-                    match.EndReasonDetail = $"Pending fora do snapshot. A={symA} B={symB}";
-                    match.TeamAOutCycles = 0;
-                    match.TeamBOutCycles = 0;
-                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-
-                    await db.SaveChangesAsync(ct);
-                    continue;
-                }
-
-                var decision = ruleEngine.EvaluatePending(symA, symB, snapshot, snapshotUtc);
-
-                if (decision.Decision == MatchDecisionType.CancelMatch)
-                {
-                    ApplyCancel(match, decision, nowUtc);
-                    await db.SaveChangesAsync(ct);
-                    continue;
-                }
-
-                if (decision.Decision == MatchDecisionType.StartMatch)
-                {
-                    await matchService.UpdateMatchStatusAndStartTimeAsync(match.MatchId, MatchStatus.Ongoing, nowUtc);
-
-                    match.Status = MatchStatus.Ongoing;
-                    match.StartTime = nowUtc;
-                    match.TeamAOutCycles = 0;
-                    match.TeamBOutCycles = 0;
-                    match.WinnerTeamId = null;
-                    match.EndReasonCode = null;
-                    match.EndReasonDetail = null;
-                    match.RulesetVersion = decision.RulesetVersion;
-
-                    await db.SaveChangesAsync(ct);
-                    started++;
-                }
-            }
-
-            _logger.LogInformation("🚀 Ongoing: iniciados {started} (meta={desired}).", started, desiredOngoing);
-        }
-
-        private static void ApplyCancel(Match match, MatchDecision decision, DateTime nowUtc)
-        {
-            match.Status = MatchStatus.Cancelled;
-            match.EndTime = nowUtc;
-            match.WinnerTeamId = null;
-            match.EndReasonCode = decision.ReasonCode;
-            match.EndReasonDetail = decision.ReasonDetail;
-            match.RulesetVersion = decision.RulesetVersion;
-            match.TeamAOutCycles = 0;
-            match.TeamBOutCycles = 0;
-        }
-
-        private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)
-        {
-            match.Status = MatchStatus.Completed;
-            match.EndTime = nowUtc;
-            match.WinnerTeamId = winnerTeamId;
-            match.EndReasonCode = decision.ReasonCode;
-            match.EndReasonDetail = decision.ReasonDetail;
-            match.RulesetVersion = decision.RulesetVersion;
-        }
-
-        private static double ParsePercent(string? s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return 0;
-            return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
-        }
-
-        private (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
-        {
-            var percentPerGoal = _options.Scoring.PercentPerGoal;
-            var maxGoals = _options.Scoring.MaxGoalsPerTeam;
-
-            if (a > b)
-            {
-                var diff = a - b;
-                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
-                return (goals, 0);
-            }
-
-            if (b > a)
-            {
-                var diff = b - a;
-                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
-                return (0, goals);
-            }
-
-            return (0, 0);
-        }
-
-        private static DateTime ToUtcSafe(DateTime dt)
-        {
-            if (dt.Kind == DateTimeKind.Unspecified)
-                return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-
-            return dt.ToUniversalTime();
-        }
-
-        private async Task CreateMissingMatchesAsync(
-            MatchService matchService,
-            EthicAIDbContext db,
-            List<Currency> currencies,
-            int missing,
-            CancellationToken ct)
-        {
-            var existing = await db.Match
-                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
-                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
-                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
-                .ToListAsync(ct);
-
-            static string PairKey(string a, string b)
-                => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
-
-            var existingPairs = new HashSet<string>(
-                existing.Select(m =>
-                {
-                    var sa = m.TeamA?.Currency?.Symbol ?? "";
-                    var sb = m.TeamB?.Currency?.Symbol ?? "";
-                    return PairKey(sa, sb);
-                })
-                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|"))
-            );
-
-            var candidatePairs = new List<(Currency A, Currency B)>();
-            for (int i = 0; i + 1 < currencies.Count; i += 2)
-                candidatePairs.Add((currencies[i], currencies[i + 1]));
-
-            var created = 0;
-
-            foreach (var (A, B) in candidatePairs)
-            {
-                if (created >= missing) break;
-
-                var key = PairKey(A.Symbol, B.Symbol);
-                if (existingPairs.Contains(key))
-                    continue;
-
-                await matchService.CreateMatchAsync(A, B);
-                existingPairs.Add(key);
-                created++;
-
-                _logger.LogInformation("🎮 Criado match faltante: {a} vs {b}", A.Symbol, B.Symbol);
-            }
-
-            if (created < missing)
-                _logger.LogWarning("⚠️ Não consegui criar todos os faltantes. Criados={created}, faltavam={missing}", created, missing);
         }
     }
 }
