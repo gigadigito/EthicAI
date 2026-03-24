@@ -51,8 +51,8 @@ namespace CriptoVersus.Worker
         private const int DesiredPending = 10;
 
         // JANELA DE APOSTA
-        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(5);      // partida nasce para começar daqui 5 min
-        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(1);   // aposta fecha 1 min antes do início
+        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(1);
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m;
         private const int MinTradesCount = 2000;
@@ -226,23 +226,17 @@ namespace CriptoVersus.Worker
                 .Select(x => x.Symbol)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // 1) Higiene por snapshot
             await CancelPendingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
             await ForceEndOngoingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
 
-            // 2) Higiene temporal
             await ExpireStalePendingAsync(db, nowUtc, ct);
 
-            // 3) Finaliza ongoing vencido
             await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, ct);
 
-            // 4) Promove pending -> ongoing somente quando chegou a hora
             await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
 
-            // 5) Garante estoque ongoing mínimo
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
 
-            // 6) Garante estoque pending futuro
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
 
             var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
@@ -359,9 +353,11 @@ namespace CriptoVersus.Worker
             CancellationToken ct)
         {
             var teamA = await db.Team
+                .Include(t => t.Currency)
                 .FirstOrDefaultAsync(t => t.Currency != null && t.Currency.Symbol == curA.Symbol, ct);
 
             var teamB = await db.Team
+                .Include(t => t.Currency)
                 .FirstOrDefaultAsync(t => t.Currency != null && t.Currency.Symbol == curB.Symbol, ct);
 
             if (teamA == null || teamB == null)
@@ -407,7 +403,8 @@ namespace CriptoVersus.Worker
             var duePending = await db.Match
                 .Where(m =>
                     m.Status == MatchStatus.Pending &&
-                    m.StartTime <= nowUtc)
+                    m.StartTime.HasValue &&
+                    m.StartTime.Value <= nowUtc)
                 .OrderBy(m => m.StartTime)
                 .ToListAsync(ct);
 
@@ -418,9 +415,6 @@ namespace CriptoVersus.Worker
             {
                 match.Status = MatchStatus.Ongoing;
 
-                // IMPORTANTE:
-                // NÃO sobrescrever StartTime aqui
-                // ele já veio correto quando nasceu como Pending
                 if (!match.BettingCloseTime.HasValue && match.StartTime.HasValue)
                     match.BettingCloseTime = match.StartTime.Value.AddMinutes(-1);
             }
@@ -445,7 +439,8 @@ namespace CriptoVersus.Worker
             var duePending = await db.Match
                 .Where(m =>
                     m.Status == MatchStatus.Pending &&
-                    m.StartTime <= nowUtc)
+                    m.StartTime.HasValue &&
+                    m.StartTime.Value <= nowUtc)
                 .OrderBy(m => m.StartTime)
                 .Take(missing)
                 .ToListAsync(ct);
@@ -471,7 +466,7 @@ namespace CriptoVersus.Worker
                 x.Status == MatchStatus.Pending &&
                 (
                     (x.BettingCloseTime.HasValue && x.BettingCloseTime.Value > nowUtc) ||
-                    (!x.BettingCloseTime.HasValue && x.StartTime > nowUtc)
+                    (!x.BettingCloseTime.HasValue && x.StartTime.HasValue && x.StartTime.Value > nowUtc)
                 ), ct);
         }
 
@@ -559,7 +554,7 @@ namespace CriptoVersus.Worker
                     m.Status == MatchStatus.Pending &&
                     (
                         (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value <= nowUtc) ||
-                        (!m.BettingCloseTime.HasValue && m.StartTime <= nowUtc)
+                        (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value <= nowUtc)
                     ))
                 .ToListAsync(ct);
 
