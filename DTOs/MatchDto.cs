@@ -15,6 +15,9 @@ namespace DTOs
         public string TeamA { get; set; } = string.Empty;
         public string TeamB { get; set; } = string.Empty;
 
+
+        public int TeamAId { get; set; }
+        public int TeamBId { get; set; }
         // Placares
         public int ScoreA { get; set; }
         public int ScoreB { get; set; }

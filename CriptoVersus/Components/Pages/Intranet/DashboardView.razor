@@ -1,6 +1,11 @@
-﻿@using DTOs
+﻿@using System.Net.Http
+@using System.Net.Http.Json
+@using System.Text.Json
+@using DTOs
 @using CriptoVersus.Web.Services
 @inject DashboardHubClient HubClient
+@inject HttpClient Http
+@inject IJSRuntime JS
 
 @if (Snapshot is null)
 {
@@ -18,8 +23,6 @@ else
                 </div>
             </div>
         </div>
-
-        <div class="text-muted small">Tick UI: @ReloadCount</div>
 
         <div class="col-md-4">
             <div class="card text-center">
@@ -39,9 +42,14 @@ else
             </div>
         </div>
 
-        <div class="text-muted small">
-            HubState: @HubClient.State | ConnId: @HubClient.ConnectionId | Events: @EventCount
-            | Reloads: @ReloadCount | LastReload: @LastReloadLocal.ToString("HH:mm:ss")
+        <div class="col-12">
+            <div class="text-muted small">
+                HubState: @HubClient.State |
+                ConnId: @HubClient.ConnectionId |
+                Events: @EventCount |
+                Reloads: @ReloadCount |
+                LastReload: @LastReloadLocal.ToString("HH:mm:ss")
+            </div>
         </div>
     </div>
 
@@ -69,14 +77,24 @@ else
             </div>
 
             <div class="row mt-2">
-                <div class="col-md-4 text-muted">Intervalo: <strong>@Snapshot.Worker.CycleIntervalSeconds</strong>s</div>
-                <div class="col-md-4 text-muted">Duração match: <strong>@Snapshot.Worker.MatchDurationMinutes</strong> min</div>
-                <div class="col-md-4 text-muted">Alvo próximas: <strong>@Snapshot.Worker.TargetUpcomingMatches</strong></div>
+                <div class="col-md-4 text-muted">
+                    Intervalo: <strong>@Snapshot.Worker.CycleIntervalSeconds</strong>s
+                </div>
+                <div class="col-md-4 text-muted">
+                    Duração match: <strong>@Snapshot.Worker.MatchDurationMinutes</strong> min
+                </div>
+                <div class="col-md-4 text-muted">
+                    Alvo próximas: <strong>@Snapshot.Worker.TargetUpcomingMatches</strong>
+                </div>
             </div>
 
             <div class="row mt-2">
-                <div class="col-md-6 text-muted">Ciclo início: <strong>@FmtUtc(Snapshot.Worker.LastCycleStartUtc)</strong></div>
-                <div class="col-md-6 text-muted">Ciclo fim: <strong>@FmtUtc(Snapshot.Worker.LastCycleEndUtc)</strong></div>
+                <div class="col-md-6 text-muted">
+                    Ciclo início: <strong>@FmtUtc(Snapshot.Worker.LastCycleStartUtc)</strong>
+                </div>
+                <div class="col-md-6 text-muted">
+                    Ciclo fim: <strong>@FmtUtc(Snapshot.Worker.LastCycleEndUtc)</strong>
+                </div>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(Snapshot.Worker.LastError))
@@ -88,6 +106,26 @@ else
             }
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(BetStatusMessage))
+    {
+        <div class="alert @(BetRequestOk ? "alert-success" : "alert-danger") mb-3">
+            @BetStatusMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(BetResponseBody))
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Retorno da Aposta</strong>
+            </div>
+            <div class="card-body">
+                <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@BetResponseBody</pre>
+            </div>
+        </div>
+    }
+
     <div class="row g-3">
         <!-- Próximas partidas -->
         <div class="col-lg-6">
@@ -101,22 +139,43 @@ else
                                 <th>Times</th>
                                 <th>Status</th>
                                 <th class="text-end">Início</th>
+                                <th class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if (Snapshot.Matches.Upcoming.Count == 0)
                             {
-                                <tr><td colspan="4" class="text-muted p-3">Nenhuma partida pendente.</td></tr>
+                                <tr>
+                                    <td colspan="5" class="text-muted p-3">Nenhuma partida pendente.</td>
+                                </tr>
                             }
                             else
                             {
                                 @foreach (var m in Snapshot.Matches.Upcoming)
                                 {
+                                    var disabledA = IsSendingBet;
+                                    var disabledB = IsSendingBet;
+
                                     <tr>
                                         <td>@m.MatchId</td>
                                         <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
                                         <td>@m.Status</td>
                                         <td class="text-end">@FmtUtc(m.StartTime)</td>
+                                        <td class="text-center">
+                                            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                                <button class="btn btn-success btn-sm"
+                                                        disabled="@disabledA"
+                                                        @onclick="() => SendBet(m.MatchId, m.MatchId, m.TeamA)">
+                                                    Apostar @m.TeamA
+                                                </button>
+
+                                                <button class="btn btn-primary btn-sm"
+                                                        disabled="@disabledB"
+                                                        @onclick="() => SendBet(m.MatchId, m.TeamBId, m.TeamB)">
+                                                    Apostar @m.TeamB
+                                                </button>
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
                             }
@@ -143,7 +202,9 @@ else
                         <tbody>
                             @if (Snapshot.Matches.OngoingList.Count == 0)
                             {
-                                <tr><td colspan="4" class="text-muted p-3">Nenhuma partida em andamento.</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-muted p-3">Nenhuma partida em andamento.</td>
+                                </tr>
                             }
                             else
                             {
@@ -196,7 +257,9 @@ else
                         <tbody>
                             @if (Snapshot.TopGainers.Count == 0)
                             {
-                                <tr><td colspan="5" class="text-muted p-3">Sem dados.</td></tr>
+                                <tr>
+                                    <td colspan="5" class="text-muted p-3">Sem dados.</td>
+                                </tr>
                             }
                             else
                             {
@@ -206,7 +269,9 @@ else
                                         <td>@c.Rank</td>
                                         <td><strong>@c.Symbol</strong></td>
                                         <td>@c.Name</td>
-                                        <td class="text-end text-success fw-bold">+@c.PercentageChange.ToString("0.##")%</td>
+                                        <td class="text-end text-success fw-bold">
+                                            +@c.PercentageChange.ToString("0.##")%
+                                        </td>
                                         <td class="text-end">@FmtUtc(c.LastUpdatedUtc)</td>
                                     </tr>
                                 }
@@ -217,16 +282,11 @@ else
             </div>
         </div>
     </div>
-    <!-- (cole aqui também as tabelas Upcoming/Ongoing/TopGainers/Debug exatamente como estão hoje,
-         só trocando _snapshot por Snapshot e campos de debug por parâmetros) -->
 }
 
 @code {
-
-
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
 
-    // debug/contadores vindos do pai
     [Parameter] public int EventCount { get; set; }
     [Parameter] public int ReloadCount { get; set; }
     [Parameter] public DateTime LastReloadLocal { get; set; }
@@ -234,13 +294,87 @@ else
     [Parameter] public string DebugText { get; set; } = "";
     [Parameter] public bool DebugEnabled { get; set; }
 
-    // callback pro pai
     [Parameter] public EventCallback ReloadRequested { get; set; }
+
+    private bool IsSendingBet { get; set; }
+    private bool BetRequestOk { get; set; }
+    private string BetStatusMessage { get; set; } = "";
+    private string BetResponseBody { get; set; } = "";
+
+    private const int TestUserId = 1;
+    private const decimal TestAmount = 1m;
 
     private Task OnReloadClicked() => ReloadRequested.InvokeAsync();
 
+    private async Task SendBet(int matchId, int teamId, string teamName)
+    {
+        IsSendingBet = true;
+        BetRequestOk = false;
+        BetStatusMessage = "";
+        BetResponseBody = "";
+
+        try
+        {
+            var payload = new
+            {
+                userId = TestUserId,
+                teamId = teamId,
+                amount = TestAmount
+            };
+
+            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
+
+            using var response = await Http.PostAsJsonAsync(url, payload);
+            var body = await response.Content.ReadAsStringAsync();
+
+            BetResponseBody = PrettyJsonOrRaw(body);
+
+            if (response.IsSuccessStatusCode)
+            {
+                BetRequestOk = true;
+                BetStatusMessage = $"Aposta enviada com sucesso para {teamName}. MatchId={matchId}, TeamId={teamId}.";
+            }
+            else
+            {
+                BetRequestOk = false;
+                BetStatusMessage = $"Falha ao apostar em {teamName}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+            }
+        }
+        catch (Exception ex)
+        {
+            BetRequestOk = false;
+            BetStatusMessage = "Erro ao chamar a API de aposta.";
+            BetResponseBody = ex.ToString();
+        }
+        finally
+        {
+            IsSendingBet = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string PrettyJsonOrRaw(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            return JsonSerializer.Serialize(doc, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+        }
+        catch
+        {
+            return text;
+        }
+    }
+
     private static string FmtUtc(DateTime? dt)
         => dt is null ? "-" : dt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+
     private static string FmtPct(decimal? v)
     {
         if (v is null) return "-";
@@ -256,15 +390,13 @@ else
     private static string Slugify(string s)
     {
         if (string.IsNullOrWhiteSpace(s)) return "";
-        // "ZECUSDT" fica "zecusdt"; se tiver "_" ou espaço, vira "-"
+
         var slug = s.Trim().ToLowerInvariant()
             .Replace(" ", "-")
             .Replace("_", "-");
 
-        // remove qualquer coisa muito estranha
         slug = new string(slug.Where(ch => char.IsLetterOrDigit(ch) || ch == '-').ToArray());
 
         return slug;
     }
-
 }
