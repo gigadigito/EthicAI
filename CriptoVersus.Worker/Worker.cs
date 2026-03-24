@@ -358,8 +358,11 @@ namespace CriptoVersus.Worker
             DateTime nowUtc,
             CancellationToken ct)
         {
-            var teamA = await db.Team.FirstOrDefaultAsync(t => t.CurrencyID == curA.CurrencyID, ct);
-            var teamB = await db.Team.FirstOrDefaultAsync(t => t.CurrencyID == curB.CurrencyID, ct);
+            var teamA = await db.Team
+                .FirstOrDefaultAsync(t => t.Currency != null && t.Currency.Symbol == curA.Symbol, ct);
+
+            var teamB = await db.Team
+                .FirstOrDefaultAsync(t => t.Currency != null && t.Currency.Symbol == curB.Symbol, ct);
 
             if (teamA == null || teamB == null)
             {
@@ -418,8 +421,8 @@ namespace CriptoVersus.Worker
                 // IMPORTANTE:
                 // NÃO sobrescrever StartTime aqui
                 // ele já veio correto quando nasceu como Pending
-                if (!match.BettingCloseTime.HasValue)
-                    match.BettingCloseTime = match.StartTime.AddMinutes(-1);
+                if (!match.BettingCloseTime.HasValue && match.StartTime.HasValue)
+                    match.BettingCloseTime = match.StartTime.Value.AddMinutes(-1);
             }
 
             await db.SaveChangesAsync(ct);
@@ -686,7 +689,13 @@ namespace CriptoVersus.Worker
                     continue;
                 }
 
-                var startUtc = ToUtcSafe(match.StartTime);
+                if (!match.StartTime.HasValue)
+                {
+                    _logger.LogWarning("⚠️ Match {id} sem StartTime. Pulando processamento.", match.MatchId);
+                    continue;
+                }
+
+                var startUtc = ToUtcSafe(match.StartTime.Value);
 
                 if (nowUtc - startUtc >= MatchDuration)
                 {
