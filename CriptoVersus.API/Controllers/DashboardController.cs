@@ -30,7 +30,6 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] int ongoing = 10,
             CancellationToken ct = default)
         {
-            // sane
             top = Math.Clamp(top, 1, 50);
             pending = Math.Clamp(pending, 0, 50);
             ongoing = Math.Clamp(ongoing, 0, 50);
@@ -40,7 +39,7 @@ namespace CriptoVersus.API.Controllers
 
             var cycleIntervalSeconds = GetInt("CriptoVersus:Worker:CycleIntervalSeconds", 60);
             var matchDurationMinutes = GetInt("CriptoVersus:Match:DurationMinutes", 90);
-            var targetPendingMatches = GetInt("CriptoVersus:Match:TargetPendingMatches", 10); // novo (se não existir, cai no default)
+            var targetPendingMatches = GetInt("CriptoVersus:Match:TargetPendingMatches", 10);
 
             var workerTask = ReadWorkerStatusAsync(
                 nowUtc: now,
@@ -76,17 +75,12 @@ namespace CriptoVersus.API.Controllers
                     Pending = pendingCountTask.Result,
                     Ongoing = ongoingCountTask.Result,
                     CompletedLast24h = completedLast24hTask.Result,
-
-                    // compat com web antiga: "Upcoming" agora é lista de Pending
                     Upcoming = pendingListTask.Result,
                     OngoingList = ongoingListTask.Result
                 }
             });
         }
 
-        // ----------------------------
-        // Queries
-        // ----------------------------
         private async Task<List<CurrencyDto>> GetTopGainersAsync(int top, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -131,7 +125,6 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
         }
 
-        // ✅ Pending puro (sem "upcoming" fake)
         private async Task<List<MatchDto>> GetPendingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -141,7 +134,7 @@ namespace CriptoVersus.API.Controllers
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .Where(m => m.Status == MatchStatus.Pending)
-                .OrderByDescending(m => m.MatchId) // ou CreatedAt se tiver
+                .OrderByDescending(m => m.MatchId)
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
@@ -159,7 +152,6 @@ namespace CriptoVersus.API.Controllers
             return await db.Set<Match>().AsNoTracking().CountAsync(m => m.Status == MatchStatus.Ongoing, ct);
         }
 
-        // ✅ só completed nas últimas 24h
         private async Task<int> CountCompletedLast24hAsync(DateTime last24h, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -199,23 +191,30 @@ namespace CriptoVersus.API.Controllers
             return new MatchDto
             {
                 MatchId = m.MatchId,
+
+                TeamAId = m.TeamAId,
+                TeamBId = m.TeamBId,
+
                 TeamA = teamA,
                 TeamB = teamB,
+
                 ScoreA = m.ScoreA,
                 ScoreB = m.ScoreB,
+
                 Status = m.Status.ToString(),
+
                 StartTime = m.StartTime,
                 EndTime = m.EndTime,
+                BettingCloseTime = m.BettingCloseTime,
+
                 ElapsedMinutes = elapsed,
                 RemainingMinutes = remaining,
                 IsFinished = isFinished,
 
-                // ✅ NOVO
                 PctA = (decimal?)a?.PercentageChange,
                 PctB = (decimal?)b?.PercentageChange
             };
         }
-
 
         private int GetInt(string key, int @default)
         {
@@ -234,7 +233,7 @@ namespace CriptoVersus.API.Controllers
             {
                 CycleIntervalSeconds = cycleIntervalSeconds,
                 MatchDurationMinutes = matchDurationMinutes,
-                TargetUpcomingMatches = targetPendingMatches, // mantém DTO sem quebrar
+                TargetUpcomingMatches = targetPendingMatches,
                 LastHeartbeatUtc = DateTime.MinValue,
                 IsAlive = false
             };
@@ -285,17 +284,11 @@ LIMIT 1;";
             dto.LastError = string.IsNullOrWhiteSpace(lastErr) ? null : lastErr;
             dto.LastErrorUtc = null;
 
-            // Alive baseado em heartbeat real
             if (lastHeartbeat != null)
             {
                 var aliveWindow = TimeSpan.FromSeconds(Math.Max(10, cycleIntervalSeconds * 2));
                 dto.IsAlive = (nowUtc - lastHeartbeat.Value) <= aliveWindow;
             }
-
-            // Se você tiver campos no DTO pra isso depois:
-            // dto.InDegraded = degraded;
-            // dto.HealthJson = healthJson;
-            // dto.Status = status;
 
             return dto;
         }

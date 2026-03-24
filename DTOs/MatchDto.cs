@@ -29,6 +29,8 @@ namespace DTOs
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
 
+        public DateTimeOffset? BettingCloseTime { get; set; }
+
         // Auxiliares para UI
         public int ElapsedMinutes { get; set; }
         public int RemainingMinutes { get; set; }
