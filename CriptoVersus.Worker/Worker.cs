@@ -31,6 +31,24 @@ namespace CriptoVersus.Worker
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly CriptoVersusWorkerOptions _options;
 
+        private const string WorkerName = "CriptoVersus.Worker";
+
+        private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+
+        private const int DesiredOngoing = 10;
+        private const int DesiredPending = 10;
+
+        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(1);
+
+        private const decimal MinQuoteVolumeUsdt = 5_000_000m;
+        private const int MinTradesCount = 2000;
+        private const int TakeGainers = 40;
+        private const int LogTop = 15;
+
+        public record HealthItem(bool Ok, string Message);
+
         public Worker(
             ILogger<Worker> logger,
             IServiceProvider sp,
@@ -43,32 +61,13 @@ namespace CriptoVersus.Worker
             _options = options.Value;
         }
 
-        private const string WorkerName = "CriptoVersus.Worker";
-        private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
-        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
-
-        private const int DesiredOngoing = 10;
-        private const int DesiredPending = 10;
-
-        // JANELA DE APOSTA
-        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(1);
-
-        private const decimal MinQuoteVolumeUsdt = 5_000_000m;
-        private const int MinTradesCount = 2000;
-        private const int TakeGainers = 40;
-        private const int LogTop = 15;
-
-        public record HealthItem(bool Ok, string Message);
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             await WaitForPostgresAsync(stoppingToken);
             await EnsureWorkerStatusTableAsync(stoppingToken);
 
-            await UpsertWorkerStatusAsync(
+            await WriteWorkerStatusAsync(
                 status: "starting",
-                utcNow: DateTime.UtcNow,
                 cycleStartUtc: null,
                 cycleEndUtc: null,
                 lastSuccessUtc: null,
@@ -81,75 +80,63 @@ namespace CriptoVersus.Worker
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var cycleStartUtc = DateTime.UtcNow;
-                var sw = Stopwatch.StartNew();
-
-                string status = "running";
-                string? lastError = null;
-                string? lastStack = null;
-                DateTime? lastSuccessUtc = null;
-
-                Dictionary<string, HealthItem>? checks = null;
-
-                try
-                {
-                    checks = await BuildHealthChecksAsync(stoppingToken);
-                    await RunCycleAsync(stoppingToken);
-                    lastSuccessUtc = DateTime.UtcNow;
-                }
-                catch (Exception ex)
-                {
-                    lastError = ex.Message;
-                    lastStack = ex.ToString();
-                    status = IsDnsOrNetworkTransient(ex) ? "degraded" : "error";
-                    _logger.LogError(ex, "❌ Erro no ciclo do worker.");
-                }
-                finally
-                {
-                    sw.Stop();
-
-                    checks ??= new Dictionary<string, HealthItem>
-                    {
-                        ["health"] = new HealthItem(false, "Health check failed to build")
-                    };
-
-                    var degraded = status == "degraded" || checks.Values.Any(x => !x.Ok);
-                    var healthJson = JsonSerializer.Serialize(checks);
-
-                    if (status == "running" && degraded)
-                        status = "degraded";
-
-                    await UpsertWorkerStatusAsync(
-                        status: status,
-                        utcNow: DateTime.UtcNow,
-                        cycleStartUtc: cycleStartUtc,
-                        cycleEndUtc: DateTime.UtcNow,
-                        lastSuccessUtc: lastSuccessUtc,
-                        lastCycleMs: (int)sw.ElapsedMilliseconds,
-                        degraded: degraded,
-                        healthJson: healthJson,
-                        lastErrorMsg: lastError,
-                        lastErrorStack: lastStack,
-                        ct: stoppingToken);
-
-                    try
-                    {
-                        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                        using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
-                        var resp = await http.PostAsync("http://criptoversus-api:8080/api/dashboard/notify", content, stoppingToken);
-
-                        _logger.LogInformation("📣 Notify dashboard_changed -> HTTP {StatusCode}", (int)resp.StatusCode);
-                    }
-                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                    {
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed.");
-                    }
-                }
-
+                await ExecuteCycleWithStatusAsync(stoppingToken);
                 await Task.Delay(CycleInterval, stoppingToken);
+            }
+        }
+
+        private async Task ExecuteCycleWithStatusAsync(CancellationToken ct)
+        {
+            var cycleStartUtc = DateTime.UtcNow;
+            var sw = Stopwatch.StartNew();
+
+            string status = "running";
+            string? lastError = null;
+            string? lastStack = null;
+            DateTime? lastSuccessUtc = null;
+            Dictionary<string, HealthItem>? checks = null;
+
+            try
+            {
+                checks = await BuildHealthChecksAsync(ct);
+                await RunCycleAsync(ct);
+                lastSuccessUtc = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex.Message;
+                lastStack = ex.ToString();
+                status = IsDnsOrNetworkTransient(ex) ? "degraded" : "error";
+                _logger.LogError(ex, "❌ Erro no ciclo do worker.");
+            }
+            finally
+            {
+                sw.Stop();
+
+                checks ??= new Dictionary<string, HealthItem>
+                {
+                    ["health"] = new HealthItem(false, "Health check failed to build")
+                };
+
+                var degraded = status == "degraded" || checks.Values.Any(x => !x.Ok);
+                var healthJson = JsonSerializer.Serialize(checks);
+
+                if (status == "running" && degraded)
+                    status = "degraded";
+
+                await WriteWorkerStatusAsync(
+                    status: status,
+                    cycleStartUtc: cycleStartUtc,
+                    cycleEndUtc: DateTime.UtcNow,
+                    lastSuccessUtc: lastSuccessUtc,
+                    lastCycleMs: (int)sw.ElapsedMilliseconds,
+                    degraded: degraded,
+                    healthJson: healthJson,
+                    lastErrorMsg: lastError,
+                    lastErrorStack: lastStack,
+                    ct: ct);
+
+                await NotifyDashboardChangedAsync(ct);
             }
         }
 
@@ -158,12 +145,41 @@ namespace CriptoVersus.Worker
             using var scope = _sp.CreateScope();
 
             var http = _httpClientFactory.CreateClient();
-            var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+            var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
 
             var nowUtc = DateTime.UtcNow;
 
+            var topGainers = await LoadTopGainersAsync(http, ct);
+            if (topGainers.Count < 6)
+            {
+                _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
+                return;
+            }
+
+            LogTopGainers(topGainers);
+
+            var snapshotUtc = nowUtc;
+            var snapshot = BuildSnapshot(topGainers);
+
+            var currencies = await matchService.SaveCurrenciesAsync(topGainers);
+            var currencyBySymbol = BuildCurrencyMap(currencies);
+            var allowedSymbols = BuildAllowedSet(snapshot);
+
+            await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
+            await ExpireStalePendingAsync(db, nowUtc, ct);
+
+            await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
+            await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
+            await EnsureOngoingPoolAsync(db, nowUtc, ct);
+            await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
+
+            await LogPoolStatusAsync(db, nowUtc, ct);
+        }
+
+        private async Task<List<Crypto>> LoadTopGainersAsync(HttpClient http, CancellationToken ct)
+        {
             var all = await http.GetFromJsonAsync<List<Crypto>>(
                 "https://api.binance.com/api/v3/ticker/24hr",
                 ct);
@@ -171,13 +187,13 @@ namespace CriptoVersus.Worker
             if (all == null || all.Count == 0)
             {
                 _logger.LogWarning("⚠️ Binance retornou vazio.");
-                return;
+                return new List<Crypto>();
             }
 
             static decimal ParseDec(string? s)
                 => decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
 
-            var topGainers = all
+            return all
                 .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
                 .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
                 .Where(c => c.Count >= MinTradesCount)
@@ -185,29 +201,27 @@ namespace CriptoVersus.Worker
                 .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
                 .Take(TakeGainers)
                 .ToList();
+        }
 
-            if (topGainers.Count < 6)
-            {
-                _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
-                return;
-            }
-
+        private void LogTopGainers(List<Crypto> topGainers)
+        {
             _logger.LogInformation(
                 "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
                 MinTradesCount,
                 MinQuoteVolumeUsdt,
                 topGainers.Count,
-                string.Join(", ", topGainers.Select(x => x.Symbol))
-            );
+                string.Join(", ", topGainers.Select(x => x.Symbol)));
 
             foreach (var c in topGainers.Take(LogTop))
             {
                 _logger.LogInformation("Gainer {sym} pct={pct} quoteVol={qv} trades={cnt}",
                     c.Symbol, c.PriceChangePercent, c.QuoteVolume, c.Count);
             }
+        }
 
-            var snapshotUtc = nowUtc;
-            var snapshot = topGainers
+        private static List<GainerEntry> BuildSnapshot(List<Crypto> topGainers)
+        {
+            return topGainers
                 .Select((c, idx) => new GainerEntry
                 {
                     Symbol = c.Symbol ?? "",
@@ -215,30 +229,34 @@ namespace CriptoVersus.Worker
                     PercentageChange = (decimal?)ParsePercent(c.PriceChangePercent)
                 })
                 .ToList();
+        }
 
-            var currencies = await matchService.SaveCurrenciesAsync(topGainers);
-
-            var currencyBySymbol = currencies
+        private static Dictionary<string, Currency> BuildCurrencyMap(List<Currency> currencies)
+        {
+            return currencies
                 .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
                 .ToDictionary(c => c.Symbol!, StringComparer.OrdinalIgnoreCase);
+        }
 
-            var allowed = snapshot
+        private static HashSet<string> BuildAllowedSet(List<GainerEntry> snapshot)
+        {
+            return snapshot
                 .Select(x => x.Symbol)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
 
-            await CancelPendingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
-            await ForceEndOngoingOutsideSnapshotAsync(db, allowed, nowUtc, ct);
+        private async Task CleanupOutOfSnapshotMatchesAsync(
+            EthicAIDbContext db,
+            HashSet<string> allowedSymbols,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            await CancelPendingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, ct);
+            await ForceEndOngoingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, ct);
+        }
 
-            await ExpireStalePendingAsync(db, nowUtc, ct);
-
-            await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowed, nowUtc, ct);
-
-            await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
-
-            await EnsureOngoingPoolAsync(db, nowUtc, ct);
-
-            await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
-
+        private async Task LogPoolStatusAsync(EthicAIDbContext db, DateTime nowUtc, CancellationToken ct)
+        {
             var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
             var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
 
@@ -260,64 +278,20 @@ namespace CriptoVersus.Worker
         {
             var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
             var missing = desiredPending - pendingCount;
+            if (missing <= 0) return;
 
-            if (missing <= 0)
-                return;
+            var existing = await LoadExistingPoolMatchesAsync(db, ct);
 
-            var existing = await db.Match
-                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
-                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
-                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
-                .ToListAsync(ct);
-
-            static string PairKey(string a, string b)
-                => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
-
-            var existingPairs = new HashSet<string>(
-                existing.Select(m =>
-                {
-                    var sa = m.TeamA?.Currency?.Symbol ?? "";
-                    var sb = m.TeamB?.Currency?.Symbol ?? "";
-                    return PairKey(sa, sb);
-                })
-                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|")),
-                StringComparer.OrdinalIgnoreCase
-            );
-
-            var busySymbols = new HashSet<string>(
-                existing.SelectMany(m => new[]
-                {
-                    m.TeamA?.Currency?.Symbol ?? "",
-                    m.TeamB?.Currency?.Symbol ?? ""
-                })
-                .Where(s => !string.IsNullOrWhiteSpace(s)),
-                StringComparer.OrdinalIgnoreCase
-            );
-
-            var ranked = snapshot
+            var existingPairs = BuildExistingPairs(existing);
+            var busySymbols = BuildBusySymbols(existing);
+            var rankedSymbols = snapshot
                 .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
                 .OrderBy(x => x.Rank)
                 .Select(x => x.Symbol)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            var candidates = new List<(string A, string B, int Score)>();
-
-            for (int i = 0; i < ranked.Count; i++)
-            {
-                for (int j = i + 1; j < ranked.Count; j++)
-                {
-                    var a = ranked[i];
-                    var b = ranked[j];
-                    var diff = j - i;
-                    var sum = i + j;
-                    var score = diff * 1000 + sum;
-                    candidates.Add((a, b, score));
-                }
-            }
-
-            candidates.Sort((x, y) => x.Score.CompareTo(y.Score));
-
+            var candidates = BuildCandidatePairs(rankedSymbols);
             var created = 0;
 
             foreach (var (symA, symB, _) in candidates)
@@ -327,7 +301,6 @@ namespace CriptoVersus.Worker
                 var key = PairKey(symA, symB);
                 if (existingPairs.Contains(key)) continue;
                 if (busySymbols.Contains(symA) || busySymbols.Contains(symB)) continue;
-
                 if (!currencyBySymbol.TryGetValue(symA, out var curA)) continue;
                 if (!currencyBySymbol.TryGetValue(symB, out var curB)) continue;
 
@@ -345,6 +318,56 @@ namespace CriptoVersus.Worker
                 _logger.LogInformation("✅ Pending pool reposto: criados {created} (meta={desired}).", created, desiredPending);
         }
 
+        private async Task<List<Match>> LoadExistingPoolMatchesAsync(EthicAIDbContext db, CancellationToken ct)
+        {
+            return await db.Match
+                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync(ct);
+        }
+
+        private static HashSet<string> BuildExistingPairs(List<Match> existing)
+        {
+            return new HashSet<string>(
+                existing.Select(m =>
+                    PairKey(m.TeamA?.Currency?.Symbol ?? "", m.TeamB?.Currency?.Symbol ?? ""))
+                .Where(k => !string.IsNullOrWhiteSpace(k) && !k.StartsWith("|") && !k.EndsWith("|")),
+                StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static HashSet<string> BuildBusySymbols(List<Match> existing)
+        {
+            return new HashSet<string>(
+                existing.SelectMany(m => new[]
+                {
+                    m.TeamA?.Currency?.Symbol ?? "",
+                    m.TeamB?.Currency?.Symbol ?? ""
+                })
+                .Where(s => !string.IsNullOrWhiteSpace(s)),
+                StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static List<(string A, string B, int Score)> BuildCandidatePairs(List<string> rankedSymbols)
+        {
+            var result = new List<(string A, string B, int Score)>();
+
+            for (int i = 0; i < rankedSymbols.Count; i++)
+            {
+                for (int j = i + 1; j < rankedSymbols.Count; j++)
+                {
+                    var a = rankedSymbols[i];
+                    var b = rankedSymbols[j];
+                    var diff = j - i;
+                    var sum = i + j;
+                    result.Add((a, b, diff * 1000 + sum));
+                }
+            }
+
+            result.Sort((x, y) => x.Score.CompareTo(y.Score));
+            return result;
+        }
+
         private async Task CreatePendingMatchAsync(
             EthicAIDbContext db,
             Currency curA,
@@ -354,11 +377,15 @@ namespace CriptoVersus.Worker
         {
             var teamA = await db.Team
                 .Include(t => t.Currency)
-                .FirstOrDefaultAsync(t => t.Currency != null && t.Currency.Symbol == curA.Symbol, ct);
+                .Where(t => t.Currency != null && t.Currency.Symbol == curA.Symbol)
+                .OrderBy(t => t.TeamId)
+                .FirstOrDefaultAsync(ct);
 
             var teamB = await db.Team
                 .Include(t => t.Currency)
-                .FirstOrDefaultAsync(t => t.Currency != null && t.Currency.Symbol == curB.Symbol, ct);
+                .Where(t => t.Currency != null && t.Currency.Symbol == curB.Symbol)
+                .OrderBy(t => t.TeamId)
+                .FirstOrDefaultAsync(ct);
 
             if (teamA == null || teamB == null)
             {
@@ -420,7 +447,6 @@ namespace CriptoVersus.Worker
             }
 
             await db.SaveChangesAsync(ct);
-
             _logger.LogInformation("🚀 Promovidas {count} partidas Pending -> Ongoing", duePending.Count);
         }
 
@@ -430,9 +456,7 @@ namespace CriptoVersus.Worker
             CancellationToken ct)
         {
             var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
-
-            if (ongoingCount >= DesiredOngoing)
-                return;
+            if (ongoingCount >= DesiredOngoing) return;
 
             var missing = DesiredOngoing - ongoingCount;
 
@@ -446,9 +470,7 @@ namespace CriptoVersus.Worker
                 .ToListAsync(ct);
 
             foreach (var match in duePending)
-            {
                 match.Status = MatchStatus.Ongoing;
-            }
 
             if (duePending.Count > 0)
             {
@@ -749,6 +771,9 @@ namespace CriptoVersus.Worker
             return double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0;
         }
 
+        private static string PairKey(string a, string b)
+            => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
+
         private static DateTime ToUtcSafe(DateTime dt)
         {
             if (dt.Kind == DateTimeKind.Unspecified)
@@ -781,9 +806,8 @@ namespace CriptoVersus.Worker
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }
 
-        private async Task UpsertWorkerStatusAsync(
+        private async Task WriteWorkerStatusAsync(
             string status,
-            DateTime utcNow,
             DateTime? cycleStartUtc,
             DateTime? cycleEndUtc,
             DateTime? lastSuccessUtc,
@@ -796,6 +820,8 @@ namespace CriptoVersus.Worker
         {
             using var scope = _sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+
+            var utcNow = DateTime.UtcNow;
 
             var sql = @"
 INSERT INTO worker_status
@@ -833,8 +859,26 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     lastErrorMsg,
                     lastErrorStack
                 },
-                ct
-            );
+                ct);
+        }
+
+        private async Task NotifyDashboardChangedAsync(CancellationToken ct)
+        {
+            try
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+                var resp = await http.PostAsync("http://criptoversus-api:8080/api/dashboard/notify", content, ct);
+
+                _logger.LogInformation("📣 Notify dashboard_changed -> HTTP {StatusCode}", (int)resp.StatusCode);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed.");
+            }
         }
 
         private async Task<Dictionary<string, HealthItem>> BuildHealthChecksAsync(CancellationToken ct)
