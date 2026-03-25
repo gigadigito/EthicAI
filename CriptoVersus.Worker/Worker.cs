@@ -480,15 +480,15 @@ namespace CriptoVersus.Worker
         }
 
         private async Task<int> CountValidPendingAsync(
-            EthicAIDbContext db,
-            DateTime nowUtc,
-            CancellationToken ct)
+    EthicAIDbContext db,
+    DateTime nowUtc,
+    CancellationToken ct)
         {
-            return await db.Match.CountAsync(x =>
-                x.Status == MatchStatus.Pending &&
+            return await db.Match.CountAsync(m =>
+                m.Status == MatchStatus.Pending &&
                 (
-                    (x.BettingCloseTime.HasValue && x.BettingCloseTime.Value > nowUtc) ||
-                    (!x.BettingCloseTime.HasValue && x.StartTime.HasValue && x.StartTime.Value > nowUtc)
+                    (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
+                    (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > nowUtc)
                 ), ct);
         }
 
@@ -567,9 +567,9 @@ namespace CriptoVersus.Worker
         }
 
         private static async Task ExpireStalePendingAsync(
-            EthicAIDbContext db,
-            DateTime nowUtc,
-            CancellationToken ct)
+    EthicAIDbContext db,
+    DateTime nowUtc,
+    CancellationToken ct)
         {
             var stalePending = await db.Match
                 .Where(m =>
@@ -590,9 +590,6 @@ namespace CriptoVersus.Worker
                 m.WinnerTeamId = null;
                 m.EndReasonCode = "PENDING_EXPIRED";
                 m.EndReasonDetail = "Pending venceu a janela de aposta sem ser iniciado.";
-                m.TeamAOutCycles = 0;
-                m.TeamBOutCycles = 0;
-                m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
             }
 
             await db.SaveChangesAsync(ct);
