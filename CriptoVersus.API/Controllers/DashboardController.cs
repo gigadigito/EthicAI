@@ -134,7 +134,10 @@ namespace CriptoVersus.API.Controllers
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .Where(m => m.Status == MatchStatus.Pending)
-                .OrderByDescending(m => m.MatchId)
+                .Where(m =>
+                    (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > now) ||
+                    (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > now))
+                .OrderBy(m => m.StartTime)
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
