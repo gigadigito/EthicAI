@@ -39,8 +39,8 @@ namespace CriptoVersus.Worker
         private const int DesiredOngoing = 10;
         private const int DesiredPending = 10;
 
-        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(1);
+        private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(2);
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m;
         private const int MinTradesCount = 2000;
@@ -480,9 +480,9 @@ namespace CriptoVersus.Worker
         }
 
         private async Task<int> CountValidPendingAsync(
-    EthicAIDbContext db,
-    DateTime nowUtc,
-    CancellationToken ct)
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
         {
             return await db.Match.CountAsync(m =>
                 m.Status == MatchStatus.Pending &&
@@ -567,9 +567,9 @@ namespace CriptoVersus.Worker
         }
 
         private static async Task ExpireStalePendingAsync(
-    EthicAIDbContext db,
-    DateTime nowUtc,
-    CancellationToken ct)
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
         {
             var stalePending = await db.Match
                 .Where(m =>
