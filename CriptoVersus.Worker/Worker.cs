@@ -39,8 +39,14 @@ namespace CriptoVersus.Worker
         private const int DesiredOngoing = 10;
         private const int DesiredPending = 10;
 
+        // Janela:
+        // - partida nasce Pending para começar no futuro
+        // - BettingCloseTime fecha as apostas antes do início
         private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(2);
+
+        // Tolerância para não cancelar partida no mesmo instante em que deveria ter sido promovida
+        private static readonly TimeSpan PendingPromotionGrace = TimeSpan.FromMinutes(3);
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m;
         private const int MinTradesCount = 2000;
@@ -167,12 +173,22 @@ namespace CriptoVersus.Worker
             var currencyBySymbol = BuildCurrencyMap(currencies);
             var allowedSymbols = BuildAllowedSet(snapshot);
 
+            // 1. Higiene do snapshot
             await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
-            await ExpireStalePendingAsync(db, nowUtc, ct);
 
+            // 2. Processa ongoing
             await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
+
+            // 3. Promove pending cujo StartTime chegou
             await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
+
+            // 4. Cancela apenas pending realmente órfão/atrasado
+            await CancelOrphanPendingAsync(db, nowUtc, ct);
+
+            // 5. Garante ongoing
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
+
+            // 6. Garante pending apostável
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
 
             await LogPoolStatusAsync(db, nowUtc, ct);
@@ -257,11 +273,11 @@ namespace CriptoVersus.Worker
 
         private async Task LogPoolStatusAsync(EthicAIDbContext db, DateTime nowUtc, CancellationToken ct)
         {
-            var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
+            var pendingCount = await CountBettablePendingAsync(db, nowUtc, ct);
             var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
 
             _logger.LogInformation(
-                "📦 Pool status: pendingValid={pending} ongoing={ongoing} (targets p={pTarget} o={oTarget})",
+                "📦 Pool status: pendingBettable={pending} ongoing={ongoing} (targets p={pTarget} o={oTarget})",
                 pendingCount,
                 ongoingCount,
                 DesiredPending,
@@ -276,14 +292,17 @@ namespace CriptoVersus.Worker
             DateTime nowUtc,
             CancellationToken ct)
         {
-            var pendingCount = await CountValidPendingAsync(db, nowUtc, ct);
+            var pendingCount = await CountBettablePendingAsync(db, nowUtc, ct);
             var missing = desiredPending - pendingCount;
-            if (missing <= 0) return;
 
-            var existing = await LoadExistingPoolMatchesAsync(db, ct);
+            if (missing <= 0)
+                return;
+
+            var existing = await LoadExistingPoolMatchesAsync(db, nowUtc, ct);
 
             var existingPairs = BuildExistingPairs(existing);
             var busySymbols = BuildBusySymbols(existing);
+
             var rankedSymbols = snapshot
                 .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
                 .OrderBy(x => x.Rank)
@@ -304,7 +323,8 @@ namespace CriptoVersus.Worker
                 if (!currencyBySymbol.TryGetValue(symA, out var curA)) continue;
                 if (!currencyBySymbol.TryGetValue(symB, out var curB)) continue;
 
-                await CreatePendingMatchAsync(db, curA, curB, nowUtc, ct);
+                var createdOk = await CreatePendingMatchAsync(db, curA, curB, nowUtc, ct);
+                if (!createdOk) continue;
 
                 existingPairs.Add(key);
                 busySymbols.Add(symA);
@@ -313,15 +333,30 @@ namespace CriptoVersus.Worker
             }
 
             if (created < missing)
-                _logger.LogWarning("⚠️ Pending pool: consegui criar {created} de {missing}.", created, missing);
+            {
+                _logger.LogWarning(
+                    "⚠️ Pending pool: consegui criar {created} de {missing}. remainingMissing={remaining}",
+                    created, missing, missing - created);
+            }
             else
+            {
                 _logger.LogInformation("✅ Pending pool reposto: criados {created} (meta={desired}).", created, desiredPending);
+            }
         }
 
-        private async Task<List<Match>> LoadExistingPoolMatchesAsync(EthicAIDbContext db, CancellationToken ct)
+        private async Task<List<Match>> LoadExistingPoolMatchesAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
         {
             return await db.Match
-                .Where(m => m.Status == MatchStatus.Pending || m.Status == MatchStatus.Ongoing)
+                .Where(m =>
+                    m.Status == MatchStatus.Ongoing ||
+                    (
+                        m.Status == MatchStatus.Pending &&
+                        m.StartTime.HasValue &&
+                        m.StartTime.Value > nowUtc
+                    ))
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .ToListAsync(ct);
@@ -368,7 +403,7 @@ namespace CriptoVersus.Worker
             return result;
         }
 
-        private async Task CreatePendingMatchAsync(
+        private async Task<bool> CreatePendingMatchAsync(
             EthicAIDbContext db,
             Currency curA,
             Currency curB,
@@ -390,11 +425,21 @@ namespace CriptoVersus.Worker
             if (teamA == null || teamB == null)
             {
                 _logger.LogWarning("⚠️ Team não encontrado para criar partida pending: {a} vs {b}", curA.Symbol, curB.Symbol);
-                return;
+                return false;
             }
 
             var startTime = nowUtc.Add(PendingLeadTime);
             var bettingCloseTime = startTime.Subtract(BettingCloseOffset);
+
+            var alreadyExists = await db.Match.AnyAsync(m =>
+                m.Status == MatchStatus.Pending &&
+                m.TeamAId == teamA.TeamId &&
+                m.TeamBId == teamB.TeamId &&
+                m.StartTime.HasValue &&
+                m.StartTime.Value > nowUtc, ct);
+
+            if (alreadyExists)
+                return false;
 
             var match = new Match
             {
@@ -420,6 +465,8 @@ namespace CriptoVersus.Worker
             _logger.LogInformation(
                 "🆕 Pending criada: MatchId={matchId} {a} vs {b} start={start} betClose={close}",
                 match.MatchId, curA.Symbol, curB.Symbol, startTime, bettingCloseTime);
+
+            return true;
         }
 
         private async Task PromoteDuePendingToOngoingAsync(
@@ -479,7 +526,7 @@ namespace CriptoVersus.Worker
             }
         }
 
-        private async Task<int> CountValidPendingAsync(
+        private async Task<int> CountBettablePendingAsync(
             EthicAIDbContext db,
             DateTime nowUtc,
             CancellationToken ct)
@@ -566,7 +613,7 @@ namespace CriptoVersus.Worker
                 await db.SaveChangesAsync(ct);
         }
 
-        private static async Task ExpireStalePendingAsync(
+        private static async Task CancelOrphanPendingAsync(
             EthicAIDbContext db,
             DateTime nowUtc,
             CancellationToken ct)
@@ -574,10 +621,8 @@ namespace CriptoVersus.Worker
             var stalePending = await db.Match
                 .Where(m =>
                     m.Status == MatchStatus.Pending &&
-                    (
-                        (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value <= nowUtc) ||
-                        (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value <= nowUtc)
-                    ))
+                    m.StartTime.HasValue &&
+                    m.StartTime.Value < nowUtc.Subtract(PendingPromotionGrace))
                 .ToListAsync(ct);
 
             if (stalePending.Count == 0)
@@ -588,11 +633,12 @@ namespace CriptoVersus.Worker
                 m.Status = MatchStatus.Cancelled;
                 m.EndTime = nowUtc;
                 m.WinnerTeamId = null;
-                m.EndReasonCode = "PENDING_EXPIRED";
-                m.EndReasonDetail = "Pending venceu a janela de aposta sem ser iniciado.";
+                m.EndReasonCode = "PENDING_ORPHAN";
+                m.EndReasonDetail = $"Pending não foi promovida até {PendingPromotionGrace.TotalMinutes} minutos após StartTime.";
             }
 
             await db.SaveChangesAsync(ct);
+            db.ChangeTracker.Clear();
         }
 
         private async Task ProcessOngoingAsync(
