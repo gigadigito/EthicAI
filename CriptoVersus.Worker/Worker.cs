@@ -869,6 +869,19 @@ namespace CriptoVersus.Worker
 
                 if (nowUtc - startUtc >= MatchDuration)
                 {
+                    if (match.ScoreA > match.ScoreB)
+                    {
+                        match.WinnerTeamId = match.TeamAId;
+                    }
+                    else if (match.ScoreB > match.ScoreA)
+                    {
+                        match.WinnerTeamId = match.TeamBId;
+                    }
+                    else
+                    {
+                        match.WinnerTeamId = null; // empate
+                    }
+
                     match.Status = MatchStatus.Completed;
                     match.EndTime = nowUtc;
                     match.EndReasonCode = "TIME_LIMIT";
@@ -878,8 +891,11 @@ namespace CriptoVersus.Worker
                     await db.SaveChangesAsync(ct);
 
                     _logger.LogInformation(
-                        "⏱️ Match {id} atingiu 90min. Encerrado por tempo.",
-                        match.MatchId);
+                        "⏱️ Match {id} atingiu 90min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
+                        match.MatchId,
+                        match.WinnerTeamId,
+                        match.ScoreA,
+                        match.ScoreB);
                 }
                 else
                 {
