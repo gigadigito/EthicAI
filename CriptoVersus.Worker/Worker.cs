@@ -911,138 +911,141 @@ namespace CriptoVersus.Worker
                 await ApplySettlementAsync(db, match, nowUtc, ct);
             }
         }
-
         private async Task ApplySettlementAsync(
             EthicAIDbContext db,
             Match match,
             DateTime settledAtUtc,
             CancellationToken ct)
         {
-            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            var strategy = db.Database.CreateExecutionStrategy();
 
-            try
+            await strategy.ExecuteAsync(async () =>
             {
-                var bets = await db.Bet
-                    .Where(b => b.MatchId == match.MatchId && b.SettledAt == null)
-                    .ToListAsync(ct);
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-                if (bets.Count == 0)
+                try
                 {
-                    await tx.CommitAsync(ct);
-                    return;
-                }
+                    var bets = await db.Bet
+                        .Where(b => b.MatchId == match.MatchId && b.SettledAt == null)
+                        .ToListAsync(ct);
 
-                var hasWinner = match.WinnerTeamId.HasValue;
-                var winnerTeamId = match.WinnerTeamId;
-                var loserTeamId = hasWinner
-                    ? (winnerTeamId == match.TeamAId ? match.TeamBId : match.TeamAId)
-                    : (int?)null;
+                    if (bets.Count == 0)
+                    {
+                        await tx.CommitAsync(ct);
+                        return;
+                    }
 
-                if (!hasWinner || !loserTeamId.HasValue)
-                {
-                    foreach (var bet in bets)
+                    var hasWinner = match.WinnerTeamId.HasValue;
+                    var winnerTeamId = match.WinnerTeamId;
+                    var loserTeamId = hasWinner
+                        ? (winnerTeamId == match.TeamAId ? match.TeamBId : match.TeamAId)
+                        : (int?)null;
+
+                    if (!hasWinner || !loserTeamId.HasValue)
+                    {
+                        foreach (var bet in bets)
+                        {
+                            bet.IsWinner = false;
+                            bet.PayoutAmount = 0m;
+                            bet.SettledAt = settledAtUtc;
+                        }
+
+                        await db.SaveChangesAsync(ct);
+                        await tx.CommitAsync(ct);
+
+                        _logger.LogInformation(
+                            "🤝 Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
+                            match.MatchId,
+                            bets.Count);
+
+                        return;
+                    }
+
+                    var winnerBets = bets
+                        .Where(b => b.TeamId == winnerTeamId.Value)
+                        .ToList();
+
+                    var loserBets = bets
+                        .Where(b => b.TeamId == loserTeamId.Value)
+                        .ToList();
+
+                    var totalWinnerStake = winnerBets.Sum(b => SafeMoney(b.Amount));
+                    var totalLoserStake = loserBets.Sum(b => SafeMoney(b.Amount));
+
+                    var platformFee = RoundMoney(totalLoserStake * SettlementFeeRate);
+                    var distributablePool = RoundMoney(totalLoserStake - platformFee);
+
+                    if (winnerBets.Count == 0 || totalWinnerStake <= 0m)
+                    {
+                        foreach (var bet in bets)
+                        {
+                            bet.IsWinner = false;
+                            bet.PayoutAmount = 0m;
+                            bet.SettledAt = settledAtUtc;
+                        }
+
+                        await db.SaveChangesAsync(ct);
+                        await tx.CommitAsync(ct);
+
+                        _logger.LogWarning(
+                            "⚠️ Settlement sem winners válidos. match={matchId} winnerTeamId={winnerTeamId} bets={betsCount}",
+                            match.MatchId,
+                            winnerTeamId,
+                            bets.Count);
+
+                        return;
+                    }
+
+                    foreach (var bet in loserBets)
                     {
                         bet.IsWinner = false;
                         bet.PayoutAmount = 0m;
                         bet.SettledAt = settledAtUtc;
+                    }
+
+                    foreach (var bet in winnerBets)
+                    {
+                        var stake = SafeMoney(bet.Amount);
+                        var share = totalWinnerStake == 0m ? 0m : (stake / totalWinnerStake);
+                        var profit = RoundMoney(share * distributablePool);
+                        var payout = RoundMoney(stake + profit);
+
+                        bet.IsWinner = true;
+                        bet.PayoutAmount = payout;
+                        bet.SettledAt = settledAtUtc;
+
+                        var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
+                        if (user == null)
+                        {
+                            throw new InvalidOperationException(
+                                $"Usuário não encontrado para liquidar bet. UserId={bet.UserId}, BetId={bet.BetId}");
+                        }
+
+                        user.Balance = SafeMoney(user.Balance) + payout;
                     }
 
                     await db.SaveChangesAsync(ct);
                     await tx.CommitAsync(ct);
 
                     _logger.LogInformation(
-                        "🤝 Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
-                        match.MatchId,
-                        bets.Count);
-
-                    return;
-                }
-
-                var winnerBets = bets
-                    .Where(b => b.TeamId == winnerTeamId.Value)
-                    .ToList();
-
-                var loserBets = bets
-                    .Where(b => b.TeamId == loserTeamId.Value)
-                    .ToList();
-
-                var totalWinnerStake = winnerBets.Sum(b => SafeMoney(b.Amount));
-                var totalLoserStake = loserBets.Sum(b => SafeMoney(b.Amount));
-
-                var platformFee = RoundMoney(totalLoserStake * SettlementFeeRate);
-                var distributablePool = RoundMoney(totalLoserStake - platformFee);
-
-                if (winnerBets.Count == 0 || totalWinnerStake <= 0m)
-                {
-                    foreach (var bet in bets)
-                    {
-                        bet.IsWinner = false;
-                        bet.PayoutAmount = 0m;
-                        bet.SettledAt = settledAtUtc;
-                    }
-
-                    await db.SaveChangesAsync(ct);
-                    await tx.CommitAsync(ct);
-
-                    _logger.LogWarning(
-                        "⚠️ Settlement sem winners válidos. match={matchId} winnerTeamId={winnerTeamId} bets={betsCount}",
+                        "💰 Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} distributable={distributable}",
                         match.MatchId,
                         winnerTeamId,
-                        bets.Count);
-
-                    return;
+                        winnerBets.Count,
+                        loserBets.Count,
+                        totalWinnerStake,
+                        totalLoserStake,
+                        platformFee,
+                        distributablePool);
                 }
-
-                foreach (var bet in loserBets)
+                catch (Exception ex)
                 {
-                    bet.IsWinner = false;
-                    bet.PayoutAmount = 0m;
-                    bet.SettledAt = settledAtUtc;
+                    await tx.RollbackAsync(ct);
+                    _logger.LogError(ex, "❌ Erro ao liquidar match {matchId}", match.MatchId);
+                    throw;
                 }
-
-                foreach (var bet in winnerBets)
-                {
-                    var stake = SafeMoney(bet.Amount);
-                    var share = totalWinnerStake == 0m ? 0m : (stake / totalWinnerStake);
-                    var profit = RoundMoney(share * distributablePool);
-                    var payout = RoundMoney(stake + profit);
-
-                    bet.IsWinner = true;
-                    bet.PayoutAmount = payout;
-                    bet.SettledAt = settledAtUtc;
-
-                    var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
-                    if (user == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"Usuário não encontrado para liquidar bet. UserId={bet.UserId}, BetId={bet.BetId}");
-                    }
-
-                    user.Balance = SafeMoney(user.Balance) + payout;
-                }
-
-                await db.SaveChangesAsync(ct);
-                await tx.CommitAsync(ct);
-
-                _logger.LogInformation(
-                    "💰 Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} distributable={distributable}",
-                    match.MatchId,
-                    winnerTeamId,
-                    winnerBets.Count,
-                    loserBets.Count,
-                    totalWinnerStake,
-                    totalLoserStake,
-                    platformFee,
-                    distributablePool);
-            }
-            catch (Exception ex)
-            {
-                await tx.RollbackAsync(ct);
-                _logger.LogError(ex, "❌ Erro ao liquidar match {matchId}", match.MatchId);
-                throw;
-            }
+            });
         }
-
         private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)
         {
             match.Status = MatchStatus.Completed;
