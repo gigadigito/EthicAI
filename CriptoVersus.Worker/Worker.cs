@@ -50,6 +50,10 @@ namespace CriptoVersus.Worker
         private const int TakeGainers = 40;
         private const int LogTop = 15;
 
+        // Settlement
+        private const decimal SettlementFeeRate = 0.05m; // 5%
+        private const int MoneyScale = 8;
+
         public record HealthItem(bool Ok, string Message);
 
         public Worker(
@@ -185,13 +189,16 @@ namespace CriptoVersus.Worker
             // 4. Processa ongoing
             await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
 
-            // 5. Garante ongoing
+            // 5. Liquida partidas já concluídas e bets ainda não liquidadas
+            await ProcessCompletedMatchSettlementsAsync(db, nowUtc, ct);
+
+            // 6. Garante ongoing
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
 
-            // 6. Garante pending apostável
+            // 7. Garante pending apostável
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
 
-            // 7. Corrige novamente o que foi criado neste ciclo
+            // 8. Corrige novamente o que foi criado neste ciclo
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
 
             await LogPoolStatusAsync(db, nowUtc, ct);
@@ -734,7 +741,6 @@ namespace CriptoVersus.Worker
             }
 
             await db.SaveChangesAsync(ct);
-
             db.ChangeTracker.Clear();
         }
 
@@ -882,6 +888,161 @@ namespace CriptoVersus.Worker
             }
         }
 
+        private async Task ProcessCompletedMatchSettlementsAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var matchesToSettle = await db.Match
+                .Include(x => x.TeamA).ThenInclude(t => t.Currency)
+                .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                .Where(m =>
+                    m.Status == MatchStatus.Completed &&
+                    m.EndTime.HasValue &&
+                    db.Bet.Any(b => b.MatchId == m.MatchId && b.SettledAt == null))
+                .OrderBy(m => m.EndTime)
+                .ToListAsync(ct);
+
+            if (matchesToSettle.Count == 0)
+                return;
+
+            foreach (var match in matchesToSettle)
+            {
+                await ApplySettlementAsync(db, match, nowUtc, ct);
+            }
+        }
+
+        private async Task ApplySettlementAsync(
+            EthicAIDbContext db,
+            Match match,
+            DateTime settledAtUtc,
+            CancellationToken ct)
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            try
+            {
+                var bets = await db.Bet
+                    .Where(b => b.MatchId == match.MatchId && b.SettledAt == null)
+                    .ToListAsync(ct);
+
+                if (bets.Count == 0)
+                {
+                    await tx.CommitAsync(ct);
+                    return;
+                }
+
+                var hasWinner = match.WinnerTeamId.HasValue;
+                var winnerTeamId = match.WinnerTeamId;
+                var loserTeamId = hasWinner
+                    ? (winnerTeamId == match.TeamAId ? match.TeamBId : match.TeamAId)
+                    : (int?)null;
+
+                if (!hasWinner || !loserTeamId.HasValue)
+                {
+                    foreach (var bet in bets)
+                    {
+                        bet.IsWinner = false;
+                        bet.PayoutAmount = 0m;
+                        bet.SettledAt = settledAtUtc;
+                    }
+
+                    await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
+
+                    _logger.LogInformation(
+                        "🤝 Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
+                        match.MatchId,
+                        bets.Count);
+
+                    return;
+                }
+
+                var winnerBets = bets
+                    .Where(b => b.TeamId == winnerTeamId.Value)
+                    .ToList();
+
+                var loserBets = bets
+                    .Where(b => b.TeamId == loserTeamId.Value)
+                    .ToList();
+
+                var totalWinnerStake = winnerBets.Sum(b => SafeMoney(b.Amount));
+                var totalLoserStake = loserBets.Sum(b => SafeMoney(b.Amount));
+
+                var platformFee = RoundMoney(totalLoserStake * SettlementFeeRate);
+                var distributablePool = RoundMoney(totalLoserStake - platformFee);
+
+                if (winnerBets.Count == 0 || totalWinnerStake <= 0m)
+                {
+                    foreach (var bet in bets)
+                    {
+                        bet.IsWinner = false;
+                        bet.PayoutAmount = 0m;
+                        bet.SettledAt = settledAtUtc;
+                    }
+
+                    await db.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
+
+                    _logger.LogWarning(
+                        "⚠️ Settlement sem winners válidos. match={matchId} winnerTeamId={winnerTeamId} bets={betsCount}",
+                        match.MatchId,
+                        winnerTeamId,
+                        bets.Count);
+
+                    return;
+                }
+
+                foreach (var bet in loserBets)
+                {
+                    bet.IsWinner = false;
+                    bet.PayoutAmount = 0m;
+                    bet.SettledAt = settledAtUtc;
+                }
+
+                foreach (var bet in winnerBets)
+                {
+                    var stake = SafeMoney(bet.Amount);
+                    var share = totalWinnerStake == 0m ? 0m : (stake / totalWinnerStake);
+                    var profit = RoundMoney(share * distributablePool);
+                    var payout = RoundMoney(stake + profit);
+
+                    bet.IsWinner = true;
+                    bet.PayoutAmount = payout;
+                    bet.SettledAt = settledAtUtc;
+
+                    var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
+                    if (user == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Usuário não encontrado para liquidar bet. UserId={bet.UserId}, BetId={bet.BetId}");
+                    }
+
+                    user.Balance = SafeMoney(user.Balance) + payout;
+                }
+
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+
+                _logger.LogInformation(
+                    "💰 Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} distributable={distributable}",
+                    match.MatchId,
+                    winnerTeamId,
+                    winnerBets.Count,
+                    loserBets.Count,
+                    totalWinnerStake,
+                    totalLoserStake,
+                    platformFee,
+                    distributablePool);
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync(ct);
+                _logger.LogError(ex, "❌ Erro ao liquidar match {matchId}", match.MatchId);
+                throw;
+            }
+        }
+
         private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)
         {
             match.Status = MatchStatus.Completed;
@@ -926,6 +1087,11 @@ namespace CriptoVersus.Worker
                 ? v
                 : 0;
         }
+
+        private static decimal SafeMoney(decimal? value) => value ?? 0m;
+
+        private static decimal RoundMoney(decimal value)
+            => Math.Round(value, MoneyScale, MidpointRounding.ToZero);
 
         private static string PairKey(string a, string b)
             => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";
