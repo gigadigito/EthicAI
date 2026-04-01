@@ -8,6 +8,7 @@ using Npgsql;
 using BLL.NFTFutebol;
 using BLL.GameRules;
 using CriptoVersus.Worker;
+using BLL;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -76,6 +77,7 @@ static async Task<string> BuildConnectionStringWithResolvedHostAsync(
     logger.LogInformation("✅ Resolved {host} -> {ip}. Usando Host=IP para evitar DNS no runtime.", host, csb.Host);
     return csb.ConnectionString;
 }
+builder.Services.AddScoped<ILedgerService, LedgerService>();
 
 builder.Services.AddDbContext<EthicAIDbContext>((sp, options) =>
 {

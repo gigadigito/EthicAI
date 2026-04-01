@@ -19,3 +19,25 @@ cd /home/admin/stacks/criptoversus-worker
 docker compose down
 docker compose up -d --build
 docker compose logs -f --tail 300 criptoversus-worker
+
+
+
+
+insert into "user" (
+    cd_user,
+    tx_wallet,
+    nm_name,
+    tx_email,
+    dt_create,
+    dt_update,
+    nr_balance
+)
+select 
+    gs,
+    'wallet_' || gs,
+    'User ' || gs,
+    'user' || gs || '@test.com',
+    now(),
+    now(),
+    1000.0
+from generate_series(100, 110) as gs;

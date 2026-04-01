@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using BLL;
 using BLL.GameRules;
 using BLL.NFTFutebol;
 using DAL.NftFutebol;
@@ -50,8 +51,7 @@ namespace CriptoVersus.Worker
         private const int TakeGainers = 40;
         private const int LogTop = 15;
 
-        // Settlement
-        private const decimal SettlementFeeRate = 0.05m; // 5%
+        private const decimal SettlementFeeRate = 0.05m;
         private const int MoneyScale = 8;
 
         public record HealthItem(bool Ok, string Message);
@@ -155,6 +155,7 @@ namespace CriptoVersus.Worker
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
+            var ledgerService = scope.ServiceProvider.GetRequiredService<ILedgerService>();
 
             var nowUtc = DateTime.UtcNow;
 
@@ -174,31 +175,14 @@ namespace CriptoVersus.Worker
             var currencyBySymbol = BuildCurrencyMap(currencies);
             var allowedSymbols = BuildAllowedSet(snapshot);
 
-            // 0. Corrige pendências quebradas do banco antes de qualquer decisão
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
-
-            // 1. Promove Pending cujo StartTime chegou
             await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
-
-            // 2. Cancela apenas Pending muito antigo / órfão
             await CancelVeryOldPendingAsync(db, nowUtc, ct);
-
-            // 3. Higiene do snapshot
             await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
-
-            // 4. Processa ongoing
             await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
-
-            // 5. Liquida partidas já concluídas e bets ainda não liquidadas
-            await ProcessCompletedMatchSettlementsAsync(db, nowUtc, ct);
-
-            // 6. Garante ongoing
+            await ProcessCompletedMatchSettlementsAsync(db, ledgerService, nowUtc, ct);
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
-
-            // 7. Garante pending apostável
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
-
-            // 8. Corrige novamente o que foi criado neste ciclo
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
 
             await LogPoolStatusAsync(db, nowUtc, ct);
@@ -870,17 +854,11 @@ namespace CriptoVersus.Worker
                 if (nowUtc - startUtc >= MatchDuration)
                 {
                     if (match.ScoreA > match.ScoreB)
-                    {
                         match.WinnerTeamId = match.TeamAId;
-                    }
                     else if (match.ScoreB > match.ScoreA)
-                    {
                         match.WinnerTeamId = match.TeamBId;
-                    }
                     else
-                    {
-                        match.WinnerTeamId = null; // empate
-                    }
+                        match.WinnerTeamId = null;
 
                     match.Status = MatchStatus.Completed;
                     match.EndTime = nowUtc;
@@ -906,6 +884,7 @@ namespace CriptoVersus.Worker
 
         private async Task ProcessCompletedMatchSettlementsAsync(
             EthicAIDbContext db,
+            ILedgerService ledgerService,
             DateTime nowUtc,
             CancellationToken ct)
         {
@@ -924,11 +903,13 @@ namespace CriptoVersus.Worker
 
             foreach (var match in matchesToSettle)
             {
-                await ApplySettlementAsync(db, match, nowUtc, ct);
+                await ApplySettlementAsync(db, ledgerService, match, nowUtc, ct);
             }
         }
+
         private async Task ApplySettlementAsync(
             EthicAIDbContext db,
+            ILedgerService ledgerService,
             Match match,
             DateTime settledAtUtc,
             CancellationToken ct)
@@ -1037,7 +1018,18 @@ namespace CriptoVersus.Worker
                                 $"Usuário não encontrado para liquidar bet. UserId={bet.UserId}, BetId={bet.BetId}");
                         }
 
-                        user.Balance = SafeMoney(user.Balance) + payout;
+                        var balanceBefore = SafeMoney(user.Balance);
+                        user.Balance = balanceBefore + payout;
+
+                        await ledgerService.AddEntryAsync(
+                            user: user,
+                            type: "WIN",
+                            amount: payout,
+                            balanceBefore: balanceBefore,
+                            balanceAfter: user.Balance,
+                            referenceId: bet.BetId,
+                            description: $"Payout da bet {bet.BetId} no match {bet.MatchId}",
+                            ct: ct);
                     }
 
                     await db.SaveChangesAsync(ct);
@@ -1062,6 +1054,7 @@ namespace CriptoVersus.Worker
                 }
             });
         }
+
         private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)
         {
             match.Status = MatchStatus.Completed;

@@ -15,6 +15,8 @@ namespace EthicAI.EntityModel
         public DbSet<User> User { get; set; }
         public DbSet<PreSalePurchase> PreSalePurchase { get; set; }
         public DbSet<Post> Post { get; set; }
+
+        public DbSet<Ledger> Ledger { get; set; }
         public DbSet<PostCategory> PostCategory { get; set; }
         public DbSet<Match> Match { get; set; }
         public DbSet<Team> Team { get; set; }
