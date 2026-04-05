@@ -125,15 +125,15 @@ namespace CriptoVersus.API.Controllers
 
                     await _context.SaveChangesAsync(cancellationToken);
 
-                    await _ledgerService.AddEntryAsync(
-       user: user,
-       type: "BET",
-       amount: -request.Amount,
-       balanceBefore: balanceBefore,
-       balanceAfter: user.Balance,
-       referenceId: bet.BetId,
-       description: $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
-       ct: cancellationToken);
+       //             await _ledgerService.AddEntryAsync(
+       //user: user,
+       //type: "BET",
+       //amount: -request.Amount,
+       //balanceBefore: balanceBefore,
+       //balanceAfter: user.Balance,
+       //referenceId: bet.BetId,
+       //description: $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
+       //ct: cancellationToken);
 
                     await transaction.CommitAsync(cancellationToken);
 

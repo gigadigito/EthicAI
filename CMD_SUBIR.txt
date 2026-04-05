@@ -6,7 +6,7 @@ git log -1 --oneline
 cd /home/admin/stacks/criptoversus-api
 docker compose down
 docker compose up -d --build
-docker compose logs -f --tail 300 criptoversus-worker
+docker compose logs -f --tail 300 criptoversus-api
 
 
 
