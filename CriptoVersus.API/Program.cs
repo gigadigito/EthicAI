@@ -1,4 +1,5 @@
-﻿using CriptoVersus.API.Hubs;
+﻿using BLL;
+using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddScoped<ILedgerService, LedgerService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
