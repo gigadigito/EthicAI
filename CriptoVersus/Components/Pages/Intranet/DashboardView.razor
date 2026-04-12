@@ -13,6 +13,44 @@
 }
 else
 {
+    <!-- Seleção de usuário para aposta -->
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>Usuário da aposta</strong>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6 col-lg-4">
+                    <label for="betUserSelect" class="form-label">Escolha o usuário</label>
+                    <select id="betUserSelect" class="form-select" @bind="SelectedUserId">
+                        @foreach (var user in BettingUsers)
+                        {
+                            <option value="@user.Id">@user.DisplayName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="text-muted small">
+                        Usuário selecionado:
+                    </div>
+                    <div class="fw-bold">
+                        @SelectedUserDisplay
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="text-muted small">
+                        Valor fixo da aposta:
+                    </div>
+                    <div class="fw-bold">
+                        @TestAmount
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Cards: Matches -->
     <div class="row g-3 mb-3">
         <div class="col-md-4">
@@ -127,10 +165,10 @@ else
     }
 
     <div class="row g-3">
-        <!-- Próximas partidas -->
+        <!-- Partidas com aposta liberada / controlada -->
         <div class="col-lg-6">
             <div class="card h-100">
-                <div class="card-header"><strong>Upcoming</strong></div>
+                <div class="card-header"><strong>Apostas</strong></div>
                 <div class="table-responsive">
                     <table class="table table-sm table-striped mb-0">
                         <thead>
@@ -138,43 +176,70 @@ else
                                 <th>ID</th>
                                 <th>Times</th>
                                 <th>Status</th>
-                                <th class="text-end">Início</th>
+                                <th class="text-end">Tempo / Início</th>
                                 <th class="text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @if (Snapshot.Matches.Upcoming.Count == 0)
+                            @{
+                                var bettableMatches = GetBettableMatches();
+                            }
+
+                            @if (bettableMatches.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="5" class="text-muted p-3">Nenhuma partida pendente.</td>
+                                    <td colspan="5" class="text-muted p-3">Nenhuma partida disponível para aposta.</td>
                                 </tr>
                             }
                             else
                             {
-                                @foreach (var m in Snapshot.Matches.Upcoming)
+                                @foreach (var m in bettableMatches)
                                 {
-                                    var disabledA = IsSendingBet;
-                                    var disabledB = IsSendingBet;
+                                    var canBetLive = CanBet(m.Status, m.ElapsedMinutes);
+                                    var disabledA = IsSendingBet || !canBetLive;
+                                    var disabledB = IsSendingBet || !canBetLive;
 
                                     <tr>
                                         <td>@m.MatchId</td>
                                         <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
-                                        <td>@m.Status</td>
-                                        <td class="text-end">@FmtUtc(m.StartTime)</td>
+                                        <td>
+                                            @m.Status
+                                            @if (m.Status == "Ongoing")
+                                            {
+                                                <div class="small text-muted">@m.ElapsedMinutes' jogados</div>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (m.Status == "Pending")
+                                            {
+                                                @FmtUtc(m.StartTime)
+                                            }
+                                            else
+                                            {
+                                                <span>@m.ElapsedMinutes'</span>
+                                            }
+                                        </td>
                                         <td class="text-center">
-                                            <div class="d-flex gap-2 justify-content-center flex-wrap">
-                                                <button class="btn btn-success btn-sm"
-                                                        disabled="@disabledA"
-                                                        @onclick="() => SendBet(m.MatchId, m.TeamAId, m.TeamA)">
-                                                    Apostar @m.TeamA
-                                                </button>
+                                            @if (!canBetLive)
+                                            {
+                                                <span class="badge bg-secondary">Apostas encerradas</span>
+                                            }
+                                            else
+                                            {
+                                                <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                                    <button class="btn btn-success btn-sm"
+                                                            disabled="@disabledA"
+                                                            @onclick="() => SendBet(m.MatchId, m.TeamAId, m.TeamA)">
+                                                        Apostar @m.TeamA
+                                                    </button>
 
-                                                <button class="btn btn-primary btn-sm"
-                                                        disabled="@disabledB"
-                                                        @onclick="() => SendBet(m.MatchId, m.TeamBId, m.TeamB)">
-                                                    Apostar @m.TeamB
-                                                </button>
-                                            </div>
+                                                    <button class="btn btn-primary btn-sm"
+                                                            disabled="@disabledB"
+                                                            @onclick="() => SendBet(m.MatchId, m.TeamBId, m.TeamB)">
+                                                        Apostar @m.TeamB
+                                                    </button>
+                                                </div>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -301,8 +366,29 @@ else
     private string BetStatusMessage { get; set; } = "";
     private string BetResponseBody { get; set; } = "";
 
-    private const int TestUserId = 1;
     private const decimal TestAmount = 1m;
+    private const int LiveBetMaxMinutes = 45;
+
+    private int SelectedUserId { get; set; } = 1;
+
+    private List<BetUserOption> BettingUsers { get; set; } = new()
+    {
+        new BetUserOption { Id = 1, Wallet = "wallet_teste_001" },
+        new BetUserOption { Id = 106, Wallet = "wallet_106" },
+        new BetUserOption { Id = 107, Wallet = "wallet_107" },
+        new BetUserOption { Id = 108, Wallet = "wallet_108" },
+        new BetUserOption { Id = 109, Wallet = "wallet_109" },
+        new BetUserOption { Id = 110, Wallet = "wallet_110" },
+        new BetUserOption { Id = 100, Wallet = "wallet_100" },
+        new BetUserOption { Id = 101, Wallet = "wallet_101" },
+        new BetUserOption { Id = 102, Wallet = "wallet_102" },
+        new BetUserOption { Id = 103, Wallet = "wallet_103" },
+        new BetUserOption { Id = 104, Wallet = "wallet_104" },
+        new BetUserOption { Id = 105, Wallet = "wallet_105" }
+    };
+
+    private string SelectedUserDisplay
+        => BettingUsers.FirstOrDefault(x => x.Id == SelectedUserId)?.DisplayName ?? "-";
 
     private Task OnReloadClicked() => ReloadRequested.InvokeAsync();
 
@@ -317,7 +403,7 @@ else
         {
             var payload = new
             {
-                userId = TestUserId,
+                userId = SelectedUserId,
                 teamId = teamId,
                 amount = TestAmount
             };
@@ -332,18 +418,18 @@ else
             if (response.IsSuccessStatusCode)
             {
                 BetRequestOk = true;
-                BetStatusMessage = $"Aposta enviada com sucesso para {teamName}. MatchId={matchId}, TeamId={teamId}.";
+                BetStatusMessage = $"Aposta enviada com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
             }
             else
             {
                 BetRequestOk = false;
-                BetStatusMessage = $"Falha ao apostar em {teamName}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                BetStatusMessage = $"Falha ao apostar em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
             }
         }
         catch (Exception ex)
         {
             BetRequestOk = false;
-            BetStatusMessage = "Erro ao chamar a API de aposta.";
+            BetStatusMessage = $"Erro ao chamar a API de aposta. Usuário={SelectedUserDisplay}.";
             BetResponseBody = ex.ToString();
         }
         finally
@@ -351,6 +437,62 @@ else
             IsSendingBet = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private List<BettableMatchViewModel> GetBettableMatches()
+    {
+        var result = new List<BettableMatchViewModel>();
+
+        if (Snapshot is null)
+            return result;
+
+        if (Snapshot.Matches.Upcoming is not null)
+        {
+            result.AddRange(
+                Snapshot.Matches.Upcoming.Select(m => new BettableMatchViewModel
+                    {
+                        MatchId = m.MatchId,
+                        TeamAId = m.TeamAId,
+                        TeamBId = m.TeamBId,
+                        TeamA = m.TeamA,
+                        TeamB = m.TeamB,
+                        Status = m.Status ?? "Pending",
+                        StartTime = m.StartTime,
+                        ElapsedMinutes = 0
+                    }));
+        }
+
+        if (Snapshot.Matches.OngoingList is not null)
+        {
+            result.AddRange(
+                Snapshot.Matches.OngoingList.Select(m => new BettableMatchViewModel
+                    {
+                        MatchId = m.MatchId,
+                        TeamAId = m.TeamAId,
+                        TeamBId = m.TeamBId,
+                        TeamA = m.TeamA,
+                        TeamB = m.TeamB,
+                        Status = "Ongoing",
+                        StartTime = null,
+                        ElapsedMinutes = m.ElapsedMinutes
+                    }));
+        }
+
+        return result
+            .OrderBy(x => x.Status == "Pending" ? 0 : 1)
+            .ThenBy(x => x.MatchId)
+            .ToList();
+    }
+
+    private static bool CanBet(string? status, int elapsedMinutes)
+    {
+        if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (string.Equals(status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            return elapsedMinutes >= 0 && elapsedMinutes < LiveBetMaxMinutes;
+
+        return false;
     }
 
     private static string PrettyJsonOrRaw(string text)
@@ -398,5 +540,24 @@ else
         slug = new string(slug.Where(ch => char.IsLetterOrDigit(ch) || ch == '-').ToArray());
 
         return slug;
+    }
+
+    private sealed class BetUserOption
+    {
+        public int Id { get; set; }
+        public string Wallet { get; set; } = "";
+        public string DisplayName => $"{Id} - {Wallet}";
+    }
+
+    private sealed class BettableMatchViewModel
+    {
+        public int MatchId { get; set; }
+        public int TeamAId { get; set; }
+        public int TeamBId { get; set; }
+        public string TeamA { get; set; } = "";
+        public string TeamB { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime? StartTime { get; set; }
+        public int ElapsedMinutes { get; set; }
     }
 }

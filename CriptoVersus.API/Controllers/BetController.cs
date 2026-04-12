@@ -15,6 +15,8 @@ namespace CriptoVersus.API.Controllers
         private readonly ILogger<BetController> _logger;
         private readonly ILedgerService _ledgerService;
 
+        private const int LiveBetMaxMinutes = 45;
+
         public BetController(
             EthicAIDbContext context,
             ILogger<BetController> logger,
@@ -75,14 +77,18 @@ namespace CriptoVersus.API.Controllers
                     if (!IsValidMatchTeam(match, request.TeamId))
                         throw new BetHttpException(StatusCodes.Status400BadRequest, "O TeamId informado não pertence a esta partida.");
 
-                    if (!IsBettingWindowOpen(match))
+                    var elapsedMinutes = GetElapsedMinutes(match);
+
+                    if (!IsBettingWindowOpen(match, elapsedMinutes))
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
                         {
                             message = "A janela de apostas desta partida está fechada.",
                             bettingCloseTime = match.BettingCloseTime,
                             matchStartTime = match.StartTime,
-                            matchStatus = match.Status.ToString()
+                            matchStatus = match.Status.ToString(),
+                            elapsedMinutes,
+                            liveBetMaxMinutes = LiveBetMaxMinutes
                         });
                     }
 
@@ -126,26 +132,28 @@ namespace CriptoVersus.API.Controllers
                     await _context.SaveChangesAsync(cancellationToken);
 
                     await _ledgerService.AddEntryAsync(
-       user: user,
-       type: "BET",
-       amount: -request.Amount,
-       balanceBefore: balanceBefore,
-       balanceAfter: user.Balance,
-       referenceId: bet.BetId,
-       description: $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
-       ct: cancellationToken);
+                        user: user,
+                        type: "BET",
+                        amount: -request.Amount,
+                        balanceBefore: balanceBefore,
+                        balanceAfter: user.Balance,
+                        referenceId: bet.BetId,
+                        description: $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
+                        ct: cancellationToken);
 
                     await transaction.CommitAsync(cancellationToken);
 
                     _logger.LogInformation(
-                        "Aposta criada com sucesso. BetId={BetId}, MatchId={MatchId}, UserId={UserId}, TeamId={TeamId}, Amount={Amount}, BalanceBefore={BalanceBefore}, BalanceAfter={BalanceAfter}",
+                        "Aposta criada com sucesso. BetId={BetId}, MatchId={MatchId}, UserId={UserId}, TeamId={TeamId}, Amount={Amount}, BalanceBefore={BalanceBefore}, BalanceAfter={BalanceAfter}, MatchStatus={MatchStatus}, ElapsedMinutes={ElapsedMinutes}",
                         bet.BetId,
                         bet.MatchId,
                         bet.UserId,
                         bet.TeamId,
                         bet.Amount,
                         balanceBefore,
-                        user.Balance);
+                        user.Balance,
+                        match.Status,
+                        elapsedMinutes);
 
                     response = new BetCreateResponse
                     {
@@ -198,17 +206,38 @@ namespace CriptoVersus.API.Controllers
             return match.TeamAId == teamId || match.TeamBId == teamId;
         }
 
-        private static bool IsBettingWindowOpen(DAL.NftFutebol.Match match)
+        private static bool IsBettingWindowOpen(DAL.NftFutebol.Match match, int elapsedMinutes)
         {
             var now = DateTimeOffset.UtcNow;
 
-            if (match.Status != MatchStatus.Pending)
-                return false;
+            if (match.Status == MatchStatus.Pending)
+            {
+                if (match.BettingCloseTime.HasValue)
+                    return now <= match.BettingCloseTime.Value;
 
-            if (match.BettingCloseTime.HasValue)
-                return now <= match.BettingCloseTime.Value;
+                return match.StartTime.HasValue && now < match.StartTime.Value;
+            }
 
-            return match.StartTime.HasValue && now < match.StartTime.Value;
+            if (match.Status == MatchStatus.Ongoing)
+            {
+                return elapsedMinutes >= 0 && elapsedMinutes < LiveBetMaxMinutes;
+            }
+
+            return false;
+        }
+
+        private static int GetElapsedMinutes(DAL.NftFutebol.Match match)
+        {
+            if (!match.StartTime.HasValue)
+                return 0;
+
+            var startUtc = match.StartTime.Value.ToUniversalTime();
+            var elapsed = DateTime.UtcNow - startUtc;
+
+            if (elapsed.TotalMinutes < 0)
+                return 0;
+
+            return (int)elapsed.TotalMinutes;
         }
 
         private sealed class BetHttpException : Exception
