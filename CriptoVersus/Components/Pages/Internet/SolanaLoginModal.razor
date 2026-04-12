@@ -1,0 +1,184 @@
+﻿@inject IJSRuntime JS
+
+@if (isOpen)
+{
+    <div class="modal-backdrop fade show"></div>
+
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.35);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Login com Solana</h5>
+                    <button type="button" class="btn-close" @onclick="Close"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    @if (string.IsNullOrEmpty(publicKey))
+                    {
+                        <button class="btn btn-primary w-100 mb-2" @onclick="ConnectAsync">
+                            Conectar Phantom
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success">
+                            Carteira conectada:
+                            <br />
+                            <strong>@publicKey</strong>
+                        </div>
+
+                        <button class="btn btn-warning w-100 mb-2" @onclick="SignLoginAsync">
+                            Assinar Login
+                        </button>
+
+                        <button class="btn btn-outline-danger w-100" @onclick="DisconnectAsync">
+                            Desconectar
+                        </button>
+                    }
+
+                    @if (!string.IsNullOrEmpty(status))
+                    {
+                        <div class="alert alert-info mt-3">
+                            @status
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IJSObjectReference? module;
+    private bool isOpen;
+    private string? publicKey;
+    private string? status;
+
+    public async Task OpenAsync()
+    {
+        isOpen = true;
+        await LoadJsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Close()
+    {
+        isOpen = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadJsAsync()
+    {
+        if (module is null)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWallet.js");
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
+        try
+        {
+            if (module is null)
+                await LoadJsAsync();
+
+            var result = await module!.InvokeAsync<WalletResult>("connect");
+            publicKey = result.publicKey;
+            status = "Conectado com sucesso.";
+        }
+        catch (Exception ex)
+        {
+            status = $"Erro ao conectar: {ex.Message}";
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        try
+        {
+            if (module is not null)
+            {
+                await module.InvokeVoidAsync("disconnect");
+            }
+
+            publicKey = null;
+            status = "Desconectado.";
+        }
+        catch (Exception ex)
+        {
+            status = $"Erro ao desconectar: {ex.Message}";
+        }
+    }
+
+    private async Task SignLoginAsync()
+    {
+        try
+        {
+            if (module is null)
+                await LoadJsAsync();
+
+            var nonce = Guid.NewGuid().ToString("N");
+            var message = $"Login CriptoVersus\nWallet: {publicKey}\nNonce: {nonce}";
+
+            var result = await module!.InvokeAsync<SignedResult>("signMessage", message);
+
+            await EnviarLoginBackend(result, message);
+
+            // depois você manda result para a API
+        }
+        catch (Exception ex)
+        {
+            status = $"Erro ao assinar: {ex.Message}";
+        }
+    }
+    private async Task EnviarLoginBackend(SignedResult result, string message)
+    {
+        try
+        {
+            var http = new HttpClient();
+
+            var payload = new
+            {
+                publicKey = result.publicKey,
+                message = message,
+                signature = result.signature
+            };
+
+            var response = await http.PostAsJsonAsync(
+                 "/api/auth/solana-login",
+                 payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var token = await response.Content.ReadAsStringAsync();
+                status = "Login REAL realizado 🎉";
+
+                // Aqui depois vamos salvar token (localStorage)
+            }
+            else
+            {
+                status = "Falha no login backend";
+            }
+        }
+        catch (Exception ex)
+        {
+            status = $"Erro backend: {ex.Message}";
+        }
+    }
+    private sealed class WalletResult
+    {
+        public string publicKey { get; set; } = string.Empty;
+    }
+
+    private sealed class SignedResult
+    {
+        public string publicKey { get; set; } = string.Empty;
+        public string message { get; set; } = string.Empty;
+        public string signature { get; set; } = string.Empty;
+    }
+}

@@ -20,6 +20,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 builder.Services.AddSignalR();
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddHostedService<PostgresChangeListener>();
 
 var connStr = builder.Configuration.GetConnectionString("Default");
