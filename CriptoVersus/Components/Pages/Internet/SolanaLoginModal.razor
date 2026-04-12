@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JS
+@inject IHttpClientFactory HttpFactory
 
 @if (isOpen)
 {
@@ -115,32 +116,66 @@
         }
     }
 
+    @inject IHttpClientFactory HttpFactory
+
     private async Task SignLoginAsync()
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(publicKey))
+            {
+                status = "Nenhuma carteira conectada.";
+                return;
+            }
+
             if (module is null)
                 await LoadJsAsync();
 
-            var nonce = Guid.NewGuid().ToString("N");
-            var message = $"Login CriptoVersus\nWallet: {publicKey}\nNonce: {nonce}";
+            var http = HttpFactory.CreateClient("CriptoVersusApi");
 
-            var result = await module!.InvokeAsync<SignedResult>("signMessage", message);
+            var nonceResponse = await http.GetFromJsonAsync<NonceResponse>(
+                $"api/Login/solana/nonce?publicKey={Uri.EscapeDataString(publicKey)}");
 
-            await EnviarLoginBackend(result, message);
+            if (nonceResponse is null || string.IsNullOrWhiteSpace(nonceResponse.message))
+            {
+                status = "Não foi possível obter o nonce do backend.";
+                return;
+            }
 
-            // depois você manda result para a API
+            var signed = await module!.InvokeAsync<SignedResult>(
+                "signMessage",
+                nonceResponse.message);
+
+            var payload = new
+            {
+                publicKey = signed.publicKey,
+                message = signed.message,
+                signature = signed.signature
+            };
+
+            var response = await http.PostAsJsonAsync("api/Login/solana", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                status = "Login REAL realizado 🎉";
+            }
+            else
+            {
+                var erro = await response.Content.ReadAsStringAsync();
+                status = $"Erro backend: {erro}";
+            }
         }
         catch (Exception ex)
         {
-            status = $"Erro ao assinar: {ex.Message}";
+            status = $"Erro ao assinar/login: {ex.Message}";
         }
     }
     private async Task EnviarLoginBackend(SignedResult result, string message)
     {
         try
         {
-            var http = new HttpClient();
+            var http = HttpFactory.CreateClient("CriptoVersusApi");
 
             var payload = new
             {
@@ -150,19 +185,18 @@
             };
 
             var response = await http.PostAsJsonAsync(
-                 "/api/auth/solana-login",
-                 payload);
+                "api/Login/solana",
+                payload);
 
             if (response.IsSuccessStatusCode)
             {
-                var token = await response.Content.ReadAsStringAsync();
+                var json = await response.Content.ReadAsStringAsync();
                 status = "Login REAL realizado 🎉";
-
-                // Aqui depois vamos salvar token (localStorage)
             }
             else
             {
-                status = "Falha no login backend";
+                var erro = await response.Content.ReadAsStringAsync();
+                status = $"Erro backend: {erro}";
             }
         }
         catch (Exception ex)
@@ -180,5 +214,12 @@
         public string publicKey { get; set; } = string.Empty;
         public string message { get; set; } = string.Empty;
         public string signature { get; set; } = string.Empty;
+    }
+    private sealed class NonceResponse
+    {
+        public string publicKey { get; set; } = string.Empty;
+        public string nonce { get; set; } = string.Empty;
+        public int expiresInMinutes { get; set; }
+        public string message { get; set; } = string.Empty;
     }
 }
