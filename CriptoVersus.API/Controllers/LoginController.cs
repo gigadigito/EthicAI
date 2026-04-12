@@ -16,101 +16,152 @@ namespace CriptoVersus.API.Controllers
     {
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<LoginController> _logger;
 
-        public LoginController(IMemoryCache cache, IConfiguration configuration)
+        public LoginController(
+            IMemoryCache cache,
+            IConfiguration configuration,
+            ILogger<LoginController> logger)
         {
             _cache = cache;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpGet("solana/nonce")]
         public IActionResult GetSolanaNonce([FromQuery] string publicKey)
         {
-            if (string.IsNullOrWhiteSpace(publicKey))
-                return BadRequest(new { message = "PublicKey é obrigatória." });
-
-            var nonce = Guid.NewGuid().ToString("N");
-            var cacheKey = GetNonceCacheKey(publicKey);
-
-            _cache.Set(cacheKey, nonce, TimeSpan.FromMinutes(5));
-
-            return Ok(new
+            try
             {
-                publicKey,
-                nonce,
-                expiresInMinutes = 5,
-                message = BuildLoginMessage(publicKey, nonce)
-            });
+                if (string.IsNullOrWhiteSpace(publicKey))
+                    return BadRequest(new { message = "PublicKey é obrigatória." });
+
+                var nonce = Guid.NewGuid().ToString("N");
+                var cacheKey = GetNonceCacheKey(publicKey);
+
+                _cache.Set(cacheKey, nonce, TimeSpan.FromMinutes(5));
+
+                var message = BuildLoginMessage(publicKey, nonce);
+
+                _logger.LogInformation("Nonce gerado para wallet {Wallet}", publicKey);
+
+                return Ok(new
+                {
+                    publicKey,
+                    nonce,
+                    expiresInMinutes = 5,
+                    message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao gerar nonce para login Solana.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Erro interno ao gerar nonce.",
+                    detail = ex.Message
+                });
+            }
         }
 
         [HttpPost("solana")]
         public IActionResult SolanaLogin([FromBody] SolanaLoginRequest request)
         {
-            if (request == null)
-                return BadRequest(new { message = "Payload inválido." });
-
-            if (string.IsNullOrWhiteSpace(request.PublicKey) ||
-                string.IsNullOrWhiteSpace(request.Message) ||
-                string.IsNullOrWhiteSpace(request.Signature))
+            try
             {
-                return BadRequest(new { message = "PublicKey, Message e Signature são obrigatórios." });
+                if (request == null)
+                    return BadRequest(new { message = "Payload inválido." });
+
+                if (string.IsNullOrWhiteSpace(request.PublicKey) ||
+                    string.IsNullOrWhiteSpace(request.Message) ||
+                    string.IsNullOrWhiteSpace(request.Signature))
+                {
+                    return BadRequest(new
+                    {
+                        message = "PublicKey, Message e Signature são obrigatórios."
+                    });
+                }
+
+                var extractedWallet = ExtractWalletFromMessage(request.Message);
+                if (string.IsNullOrWhiteSpace(extractedWallet))
+                {
+                    return BadRequest(new
+                    {
+                        message = "A mensagem assinada não contém a wallet."
+                    });
+                }
+
+                if (!string.Equals(extractedWallet, request.PublicKey, StringComparison.Ordinal))
+                {
+                    return BadRequest(new
+                    {
+                        message = "A wallet da mensagem não confere com a PublicKey enviada."
+                    });
+                }
+
+                var extractedNonce = ExtractNonceFromMessage(request.Message);
+                if (string.IsNullOrWhiteSpace(extractedNonce))
+                {
+                    return BadRequest(new
+                    {
+                        message = "A mensagem assinada não contém o nonce."
+                    });
+                }
+
+                var cacheKey = GetNonceCacheKey(request.PublicKey);
+
+                if (!_cache.TryGetValue(cacheKey, out string? expectedNonce) || string.IsNullOrWhiteSpace(expectedNonce))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Nonce expirado ou inexistente."
+                    });
+                }
+
+                if (!string.Equals(expectedNonce, extractedNonce, StringComparison.Ordinal))
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Nonce inválido."
+                    });
+                }
+
+                var signatureIsValid = VerifySolanaSignature(
+                    request.PublicKey,
+                    request.Message,
+                    request.Signature);
+
+                if (!signatureIsValid)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "Assinatura inválida."
+                    });
+                }
+
+                _cache.Remove(cacheKey);
+
+                var token = GenerateJwtToken(request.PublicKey);
+
+                _logger.LogInformation("Login Solana realizado com sucesso para wallet {Wallet}", request.PublicKey);
+
+                return Ok(new SolanaLoginResponse
+                {
+                    Token = token,
+                    PublicKey = request.PublicKey,
+                    ExpiresInMinutes = GetJwtExpirationMinutes()
+                });
             }
-
-            var extractedWallet = ExtractWalletFromMessage(request.Message);
-            if (string.IsNullOrWhiteSpace(extractedWallet))
+            catch (Exception ex)
             {
-                return BadRequest(new { message = "A mensagem assinada não contém a wallet." });
+                _logger.LogError(ex, "Erro interno ao realizar login Solana.");
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Erro interno ao realizar login Solana.",
+                    detail = ex.Message
+                });
             }
-
-            if (!string.Equals(extractedWallet, request.PublicKey, StringComparison.Ordinal))
-            {
-                return BadRequest(new { message = "A wallet da mensagem não confere com a PublicKey enviada." });
-            }
-
-            var extractedNonce = ExtractNonceFromMessage(request.Message);
-            if (string.IsNullOrWhiteSpace(extractedNonce))
-            {
-                return BadRequest(new { message = "A mensagem assinada não contém o nonce." });
-            }
-
-            var cacheKey = GetNonceCacheKey(request.PublicKey);
-
-            if (!_cache.TryGetValue(cacheKey, out string? expectedNonce) || string.IsNullOrWhiteSpace(expectedNonce))
-            {
-                return Unauthorized(new { message = "Nonce expirado ou inexistente." });
-            }
-
-            if (!string.Equals(expectedNonce, extractedNonce, StringComparison.Ordinal))
-            {
-                return Unauthorized(new { message = "Nonce inválido." });
-            }
-
-            var signatureIsValid = VerifySolanaSignature(
-                request.PublicKey,
-                request.Message,
-                request.Signature);
-
-            if (!signatureIsValid)
-            {
-                return Unauthorized(new { message = "Assinatura inválida." });
-            }
-
-            _cache.Remove(cacheKey);
-
-            // Aqui é o ponto ideal para:
-            // 1) procurar usuário pela wallet
-            // 2) criar usuário se não existir
-            // 3) carregar saldo/perfil
-            // Como não tenho sua model aqui, vou emitir o token só com a wallet.
-
-            var token = GenerateJwtToken(request.PublicKey);
-
-            return Ok(new SolanaLoginResponse
-            {
-                Token = token,
-                PublicKey = request.PublicKey,
-                ExpiresInMinutes = GetJwtExpirationMinutes()
-            });
         }
 
         private static string BuildLoginMessage(string publicKey, string nonce)
@@ -130,7 +181,9 @@ namespace CriptoVersus.API.Controllers
                 @"Wallet:\s*(.+)",
                 RegexOptions.IgnoreCase);
 
-            return match.Success ? match.Groups[1].Value.Trim() : null;
+            return match.Success
+                ? match.Groups[1].Value.Trim()
+                : null;
         }
 
         private static string? ExtractNonceFromMessage(string message)
@@ -140,7 +193,9 @@ namespace CriptoVersus.API.Controllers
                 @"Nonce:\s*([A-Za-z0-9]+)",
                 RegexOptions.IgnoreCase);
 
-            return match.Success ? match.Groups[1].Value.Trim() : null;
+            return match.Success
+                ? match.Groups[1].Value.Trim()
+                : null;
         }
 
         private static bool VerifySolanaSignature(
