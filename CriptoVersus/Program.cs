@@ -1,5 +1,6 @@
 
 
+using Blazored.SessionStorage;
 using CriptoVersus.Web.Components;
 using CriptoVersus.Web.Services;
 
@@ -24,6 +25,8 @@ builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
 
 builder.Services.AddScoped<CriptoVersusApiClient>();
 
+
+builder.Services.AddBlazoredSessionStorage();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

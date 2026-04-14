@@ -2,11 +2,15 @@
 using BLL.NFTFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace CriptoVersus.API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/match")]
     public class BetController : ControllerBase
@@ -36,8 +40,9 @@ namespace CriptoVersus.API.Controllers
             if (request == null)
                 return BadRequest("Requisição inválida.");
 
-            if (request.UserId <= 0)
-                return BadRequest("UserId inválido.");
+            var wallet = GetAuthenticatedWallet();
+            if (string.IsNullOrWhiteSpace(wallet))
+                return Unauthorized(new { message = "Token sem wallet válida." });
 
             if (request.TeamId <= 0)
                 return BadRequest("TeamId inválido.");
@@ -69,10 +74,18 @@ namespace CriptoVersus.API.Controllers
                         throw new BetHttpException(StatusCodes.Status404NotFound, $"Partida {matchId} não encontrada.");
 
                     var user = await _context.User
-                        .FirstOrDefaultAsync(u => u.UserID == request.UserId, cancellationToken);
+                        .FirstOrDefaultAsync(u => u.Wallet == wallet, cancellationToken);
 
                     if (user == null)
-                        throw new BetHttpException(StatusCodes.Status404NotFound, $"Usuário {request.UserId} não encontrado.");
+                        throw new BetHttpException(StatusCodes.Status404NotFound, "Usuário autenticado não encontrado.");
+
+                    if (request.UserId > 0 && request.UserId != user.UserID)
+                    {
+                        throw new BetHttpPayloadException(StatusCodes.Status403Forbidden, new
+                        {
+                            message = "O UserId informado não pertence ao usuário autenticado."
+                        });
+                    }
 
                     if (!IsValidMatchTeam(match, request.TeamId))
                         throw new BetHttpException(StatusCodes.Status400BadRequest, "O TeamId informado não pertence a esta partida.");
@@ -116,7 +129,7 @@ namespace CriptoVersus.API.Controllers
                     {
                         MatchId = matchId,
                         TeamId = request.TeamId,
-                        UserId = request.UserId,
+                        UserId = user.UserID,
                         Amount = request.Amount,
                         BetTime = nowUtc,
                         Position = nextPosition,
@@ -204,6 +217,13 @@ namespace CriptoVersus.API.Controllers
         private static bool IsValidMatchTeam(DAL.NftFutebol.Match match, int teamId)
         {
             return match.TeamAId == teamId || match.TeamBId == teamId;
+        }
+
+        private string? GetAuthenticatedWallet()
+        {
+            return User.FindFirstValue("wallet")
+                ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         }
 
         private static bool IsBettingWindowOpen(DAL.NftFutebol.Match match, int elapsedMinutes)

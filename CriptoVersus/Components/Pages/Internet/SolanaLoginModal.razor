@@ -1,6 +1,6 @@
 ﻿@inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
-
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @if (isOpen)
 {
     <div class="modal-backdrop fade show"></div>
@@ -53,6 +53,13 @@
 }
 
 @code {
+
+    private sealed class LoginResponse
+    {
+        public string Token { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
+        public int ExpiresInMinutes { get; set; }
+    }
     private IJSObjectReference? module;
     private bool isOpen;
     private string? publicKey;
@@ -157,8 +164,17 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
-                status = "Login REAL realizado 🎉";
+                var loginResult = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (loginResult is not null && !string.IsNullOrWhiteSpace(loginResult.Token))
+                {
+                    await SessionStorage.SetItemAsync("authToken", loginResult.Token);
+                    status = "Login REAL realizado 🎉";
+                }
+                else
+                {
+                    status = "Login retornou sucesso, mas sem token.";
+                }
             }
             else
             {
