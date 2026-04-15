@@ -49,3 +49,86 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+:root {
+    color-scheme: dark;
+}
+
+html,
+body {
+    background: #0f1115;
+    color: #f3f4f6;
+}
+
+body {
+    min-width: 320px;
+}
+
+a,
+.btn-link {
+    color: #2dd4bf;
+}
+
+a:hover,
+.btn-link:hover {
+    color: #5eead4;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 800;
+}
+
+.btn-primary {
+    background-color: #2dd4bf;
+    border-color: #5eead4;
+    color: #07110c;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: #22c55e;
+    border-color: #34d399;
+    color: #07110c;
+}
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 .2rem rgba(45, 212, 191, .24);
+}
+
+.card {
+    background: #181b21;
+    border: 1px solid #303741;
+    border-radius: 8px;
+    color: #f3f4f6;
+}
+
+.card-header {
+    background: #14171d;
+    border-bottom: 1px solid #303741;
+    color: #f9fafb;
+}
+
+.text-muted {
+    color: #9ca3af !important;
+}
+
+.form-select,
+.form-control {
+    background-color: #111318;
+    border-color: #374151;
+    border-radius: 8px;
+    color: #f3f4f6;
+}
+
+.form-select:focus,
+.form-control:focus {
+    background-color: #111318;
+    border-color: #2dd4bf;
+    color: #f3f4f6;
+}

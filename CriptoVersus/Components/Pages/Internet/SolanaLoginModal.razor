@@ -7,24 +7,30 @@
 
     <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.35);">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content solana-login-modal">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">Login com Solana</h5>
+                    <div>
+                        <div class="modal-kicker">Carteira Solana</div>
+                        <h5 class="modal-title">Login com Solana</h5>
+                    </div>
                     <button type="button" class="btn-close" @onclick="Close"></button>
                 </div>
 
                 <div class="modal-body">
+                    <p class="modal-helper">
+                        Conecte sua carteira para apostar e acompanhar suas posições na CriptoVersus.
+                    </p>
 
                     @if (string.IsNullOrEmpty(publicKey))
                     {
-                        <button class="btn btn-primary w-100 mb-2" @onclick="ConnectAsync">
+                        <button class="btn btn-primary w-100 wallet-connect-button" @onclick="ConnectAsync">
                             Conectar Phantom
                         </button>
                     }
                     else
                     {
-                        <div class="alert alert-success">
+                        <div class="alert wallet-alert wallet-alert-success">
                             Carteira conectada:
                             <br />
                             <strong>@publicKey</strong>
@@ -41,8 +47,19 @@
 
                     @if (!string.IsNullOrEmpty(status))
                     {
-                        <div class="alert alert-info mt-3">
-                            @status
+                        <div class="wallet-alert @GetStatusClass() mt-3">
+                            <strong>@statusTitle</strong>
+                            <div>@status</div>
+
+                            @if (showInstallPhantom)
+                            {
+                                <a class="btn btn-outline-light btn-sm mt-3"
+                                   href="https://phantom.app/download"
+                                   target="_blank"
+                                   rel="noopener noreferrer">
+                                    Instalar Phantom
+                                </a>
+                            }
                         </div>
                     }
 
@@ -58,12 +75,16 @@
     {
         public string Token { get; set; } = string.Empty;
         public string PublicKey { get; set; } = string.Empty;
+        public int UserId { get; set; }
         public int ExpiresInMinutes { get; set; }
     }
     private IJSObjectReference? module;
     private bool isOpen;
     private string? publicKey;
     private string? status;
+    private string statusTitle = "";
+    private string statusKind = "info";
+    private bool showInstallPhantom;
 
     public async Task OpenAsync()
     {
@@ -97,11 +118,25 @@
 
             var result = await module!.InvokeAsync<WalletResult>("connect");
             publicKey = result.publicKey;
-            status = "Conectado com sucesso.";
+            SetStatus("Carteira conectada", "Agora assine a mensagem para finalizar o login.", "success");
         }
         catch (Exception ex)
         {
-            status = $"Erro ao conectar: {ex.Message}";
+            if (IsPhantomMissing(ex))
+            {
+                SetStatus(
+                    "Phantom não encontrada",
+                    "Para entrar com Solana, instale a carteira Phantom no navegador e depois clique em Conectar novamente.",
+                    "warning",
+                    showInstall: true);
+            }
+            else
+            {
+                SetStatus(
+                    "Não foi possível conectar",
+                    "Confira se a carteira está desbloqueada e tente novamente.",
+                    "warning");
+            }
         }
     }
 
@@ -115,11 +150,11 @@
             }
 
             publicKey = null;
-            status = "Desconectado.";
+            SetStatus("Carteira desconectada", "Você pode conectar outra carteira quando quiser.", "info");
         }
         catch (Exception ex)
         {
-            status = $"Erro ao desconectar: {ex.Message}";
+            SetStatus("Não foi possível desconectar", GetFriendlyError(ex), "warning");
         }
     }
 
@@ -131,7 +166,7 @@
         {
             if (string.IsNullOrWhiteSpace(publicKey))
             {
-                status = "Nenhuma carteira conectada.";
+                SetStatus("Conecte sua carteira", "Escolha a Phantom antes de assinar o login.", "warning");
                 return;
             }
 
@@ -145,7 +180,7 @@
 
             if (nonceResponse is null || string.IsNullOrWhiteSpace(nonceResponse.message))
             {
-                status = "Não foi possível obter o nonce do backend.";
+                SetStatus("Login indisponível", "Não conseguimos preparar sua assinatura agora. Tente novamente em instantes.", "warning");
                 return;
             }
 
@@ -169,22 +204,23 @@
                 if (loginResult is not null && !string.IsNullOrWhiteSpace(loginResult.Token))
                 {
                     await SessionStorage.SetItemAsync("authToken", loginResult.Token);
-                    status = "Login REAL realizado 🎉";
+                    await SessionStorage.SetItemAsync("userId", loginResult.UserId);
+                    await SessionStorage.SetItemAsync("walletPublicKey", loginResult.PublicKey);
+                    SetStatus("Login realizado", "Sua carteira foi autenticada com sucesso.", "success");
                 }
                 else
                 {
-                    status = "Login retornou sucesso, mas sem token.";
+                    SetStatus("Login incompleto", "A API confirmou o login, mas não retornou o token de sessão.", "warning");
                 }
             }
             else
             {
-                var erro = await response.Content.ReadAsStringAsync();
-                status = $"Erro backend: {erro}";
+                SetStatus("Login recusado", "Não conseguimos validar sua assinatura. Tente assinar novamente.", "warning");
             }
         }
         catch (Exception ex)
         {
-            status = $"Erro ao assinar/login: {ex.Message}";
+            SetStatus("Não foi possível concluir o login", GetFriendlyError(ex), "warning");
         }
     }
     private async Task EnviarLoginBackend(SignedResult result, string message)
@@ -207,19 +243,47 @@
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                status = "Login REAL realizado 🎉";
+                SetStatus("Login realizado", "Sua carteira foi autenticada com sucesso.", "success");
             }
             else
             {
-                var erro = await response.Content.ReadAsStringAsync();
-                status = $"Erro backend: {erro}";
+                SetStatus("Login recusado", "Não conseguimos validar sua assinatura. Tente assinar novamente.", "warning");
             }
         }
         catch (Exception ex)
         {
-            status = $"Erro backend: {ex.Message}";
+            SetStatus("Login indisponível", GetFriendlyError(ex), "warning");
         }
     }
+
+    private void SetStatus(string title, string message, string kind, bool showInstall = false)
+    {
+        statusTitle = title;
+        status = message;
+        statusKind = kind;
+        showInstallPhantom = showInstall;
+    }
+
+    private string GetStatusClass()
+        => statusKind switch
+        {
+            "success" => "wallet-alert-success",
+            "warning" => "wallet-alert-warning",
+            _ => "wallet-alert-info"
+        };
+
+    private static bool IsPhantomMissing(Exception ex)
+        => ex.ToString().Contains("Phantom", StringComparison.OrdinalIgnoreCase)
+            && ex.ToString().Contains("não encontrado", StringComparison.OrdinalIgnoreCase);
+
+    private static string GetFriendlyError(Exception ex)
+    {
+        if (IsPhantomMissing(ex))
+            return "Instale a carteira Phantom no navegador e tente novamente.";
+
+        return "Algo saiu do esperado. Tente novamente em instantes.";
+    }
+
     private sealed class WalletResult
     {
         public string publicKey { get; set; } = string.Empty;
@@ -239,3 +303,76 @@
         public string message { get; set; } = string.Empty;
     }
 }
+
+<style>
+    .solana-login-modal {
+        background: #111318;
+        border: 1px solid #303741;
+        border-radius: 8px;
+        color: #f3f4f6;
+        overflow: hidden;
+    }
+
+    .solana-login-modal .modal-header {
+        background: #181b21;
+        border-bottom: 1px solid #303741;
+    }
+
+    .solana-login-modal .modal-title {
+        color: #f9fafb;
+        font-weight: 900;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .modal-kicker {
+        color: #2dd4bf;
+        font-size: .73rem;
+        font-weight: 900;
+        letter-spacing: 0;
+        margin-bottom: .15rem;
+        text-transform: uppercase;
+    }
+
+    .modal-helper {
+        color: #cbd5e1;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .solana-login-modal .btn-close {
+        filter: invert(1) grayscale(1);
+        opacity: .8;
+    }
+
+    .wallet-connect-button {
+        min-height: 2.75rem;
+    }
+
+    .wallet-alert {
+        border-radius: 8px;
+        border: 1px solid #374151;
+        color: #f3f4f6;
+        padding: .95rem;
+    }
+
+    .wallet-alert strong {
+        display: block;
+        margin-bottom: .3rem;
+    }
+
+    .wallet-alert-info {
+        background: rgba(45, 212, 191, .12);
+        border-color: rgba(45, 212, 191, .38);
+    }
+
+    .wallet-alert-success {
+        background: rgba(34, 197, 94, .12);
+        border-color: rgba(34, 197, 94, .42);
+    }
+
+    .wallet-alert-warning {
+        background: rgba(250, 204, 21, .12);
+        border-color: rgba(250, 204, 21, .42);
+    }
+</style>

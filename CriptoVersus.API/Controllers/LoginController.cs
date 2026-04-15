@@ -3,8 +3,11 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
 using Chaos.NaCl;
+using DAL;
+using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Solnet.Wallet.Utilities;
@@ -18,15 +21,18 @@ namespace CriptoVersus.API.Controllers
     {
         private readonly IMemoryCache _cache;
         private readonly IConfiguration _configuration;
+        private readonly IDbContextFactory<EthicAIDbContext> _dbContextFactory;
         private readonly ILogger<LoginController> _logger;
 
         public LoginController(
             IMemoryCache cache,
             IConfiguration configuration,
+            IDbContextFactory<EthicAIDbContext> dbContextFactory,
             ILogger<LoginController> logger)
         {
             _cache = cache;
             _configuration = configuration;
+            _dbContextFactory = dbContextFactory;
             _logger = logger;
         }
 
@@ -67,7 +73,9 @@ namespace CriptoVersus.API.Controllers
         }
 
         [HttpPost("solana")]
-        public IActionResult SolanaLogin([FromBody] SolanaLoginRequest request)
+        public async Task<IActionResult> SolanaLogin(
+            [FromBody] SolanaLoginRequest request,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -143,14 +151,19 @@ namespace CriptoVersus.API.Controllers
 
                 _cache.Remove(cacheKey);
 
-                var token = GenerateJwtToken(request.PublicKey);
+                var user = await GetOrCreateUserByWalletAsync(request.PublicKey, cancellationToken);
+                var token = GenerateJwtToken(request.PublicKey, user.UserID);
 
-                _logger.LogInformation("Login Solana realizado com sucesso para wallet {Wallet}", request.PublicKey);
+                _logger.LogInformation(
+                    "Login Solana realizado com sucesso para wallet {Wallet}. UserId={UserId}",
+                    request.PublicKey,
+                    user.UserID);
 
                 return Ok(new SolanaLoginResponse
                 {
                     Token = token,
                     PublicKey = request.PublicKey,
+                    UserId = user.UserID,
                     ExpiresInMinutes = GetJwtExpirationMinutes()
                 });
             }
@@ -164,6 +177,40 @@ namespace CriptoVersus.API.Controllers
                     detail = ex.Message
                 });
             }
+        }
+
+        private async Task<User> GetOrCreateUserByWalletAsync(
+            string publicKey,
+            CancellationToken cancellationToken)
+        {
+            await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+            var now = DateTime.UtcNow;
+            var user = await dbContext.User
+                .FirstOrDefaultAsync(x => x.Wallet == publicKey, cancellationToken);
+
+            if (user is not null)
+            {
+                user.LastLogin = now;
+                user.DtUpdate = now;
+                await dbContext.SaveChangesAsync(cancellationToken);
+
+                return user;
+            }
+
+            user = new User
+            {
+                Wallet = publicKey,
+                DtCreate = now,
+                DtUpdate = now,
+                LastLogin = now,
+                Balance = 0m
+            };
+
+            dbContext.User.Add(user);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return user;
         }
 
         private static string BuildLoginMessage(string publicKey, string nonce)
@@ -219,7 +266,7 @@ namespace CriptoVersus.API.Controllers
             }
         }
 
-        private string GenerateJwtToken(string publicKey)
+        private string GenerateJwtToken(string publicKey, int userId)
         {
             var jwtKey = _configuration["Jwt:Key"];
             var jwtIssuer = _configuration["Jwt:Issuer"];
@@ -234,6 +281,7 @@ namespace CriptoVersus.API.Controllers
                 new(JwtRegisteredClaimNames.Sub, publicKey),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new(ClaimTypes.NameIdentifier, publicKey),
+                new("cd_user", userId.ToString()),
                 new("wallet", publicKey),
                 new("auth_type", "solana")
             };
@@ -272,6 +320,7 @@ namespace CriptoVersus.API.Controllers
     {
         public string Token { get; set; } = string.Empty;
         public string PublicKey { get; set; } = string.Empty;
+        public int UserId { get; set; }
         public int ExpiresInMinutes { get; set; }
     }
 }

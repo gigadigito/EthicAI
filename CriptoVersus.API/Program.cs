@@ -3,6 +3,7 @@ using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -38,7 +39,12 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -126,6 +132,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<DashboardHub>("/hubs/dashboard");
+app.MapHub<DashboardHub>("/hubs/dashboard").AllowAnonymous();
 
 app.Run();

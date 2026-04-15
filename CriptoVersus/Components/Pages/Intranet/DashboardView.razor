@@ -166,190 +166,578 @@ else
         </div>
     }
 
-    <div class="row g-3">
-        <!-- Partidas com aposta liberada / controlada -->
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header"><strong>Apostas</strong></div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Times</th>
-                                <th>Status</th>
-                                <th class="text-end">Tempo / Início</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                var bettableMatches = GetBettableMatches();
-                            }
+    var bettableMatches = GetBettableMatches();
 
-                            @if (bettableMatches.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="5" class="text-muted p-3">Nenhuma partida disponível para aposta.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var m in bettableMatches)
-                                {
-                                    var canBetLive = CanBet(m.Status, m.ElapsedMinutes);
-                                    var disabledA = IsSendingBet || !canBetLive;
-                                    var disabledB = IsSendingBet || !canBetLive;
-
-                                    <tr>
-                                        <td>@m.MatchId</td>
-                                        <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
-                                        <td>
-                                            @m.Status
-                                            @if (m.Status == "Ongoing")
-                                            {
-                                                <div class="small text-muted">@m.ElapsedMinutes' jogados</div>
-                                            }
-                                        </td>
-                                        <td class="text-end">
-                                            @if (m.Status == "Pending")
-                                            {
-                                                @FmtUtc(m.StartTime)
-                                            }
-                                            else
-                                            {
-                                                <span>@m.ElapsedMinutes'</span>
-                                            }
-                                        </td>
-                                        <td class="text-center">
-                                            @if (!canBetLive)
-                                            {
-                                                <span class="badge bg-secondary">Apostas encerradas</span>
-                                            }
-                                            else
-                                            {
-                                                <div class="d-flex gap-2 justify-content-center flex-wrap">
-                                                    <button class="btn btn-success btn-sm"
-                                                            disabled="@disabledA"
-                                                            @onclick="() => SendBet(m.MatchId, m.TeamAId, m.TeamA)">
-                                                        Apostar @m.TeamA
-                                                    </button>
-
-                                                    <button class="btn btn-primary btn-sm"
-                                                            disabled="@disabledB"
-                                                            @onclick="() => SendBet(m.MatchId, m.TeamBId, m.TeamB)">
-                                                        Apostar @m.TeamB
-                                                    </button>
-                                                </div>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
+    <div class="dashboard-listings">
+        <section class="listing-panel">
+            <div class="listing-panel-head">
+                <div>
+                    <div class="listing-eyebrow">Apostas</div>
+                    <h3>Partidas com mercado aberto</h3>
                 </div>
+                <span class="listing-count">@bettableMatches.Count</span>
             </div>
-        </div>
 
-        <!-- Partidas em andamento -->
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header"><strong>Ongoing</strong></div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Times</th>
-                                <th>Placar</th>
-                                <th class="text-end">Tempo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Snapshot.Matches.OngoingList.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="4" class="text-muted p-3">Nenhuma partida em andamento.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var m in Snapshot.Matches.OngoingList)
+            @if (bettableMatches.Count == 0)
+            {
+                <div class="listing-empty">Nenhuma partida disponível para aposta.</div>
+            }
+            else
+            {
+                <div class="match-list-grid">
+                    @foreach (var m in bettableMatches)
+                    {
+                        var canBetLive = CanBet(m.Status, m.ElapsedMinutes);
+                        var disabledA = IsSendingBet || !canBetLive;
+                        var disabledB = IsSendingBet || !canBetLive;
+
+                        <article class="listing-match-card">
+                            <div class="match-card-top">
+                                <span>Match #@m.MatchId</span>
+                                <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
+                            </div>
+
+                            <div class="matchup-row">
+                                <div class="team-cell">
+                                    <span class="team-line">
+                                        <span class="coin-mini" title="@m.TeamA">
+                                            <img src="@GetCoinIconUrl(m.TeamA)"
+                                                 alt="@m.TeamA"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-mini-fallback d-none">@GetInitials(m.TeamA)</span>
+                                        </span>
+                                        <span class="team-symbol">@m.TeamA</span>
+                                    </span>
+                                    <span class="@GetPctClass(m.PctA)">@FmtPct(m.PctA)</span>
+                                </div>
+
+                                <div class="score-cell">
+                                    <span class="score-value">@FmtScore(m.ScoreA, m.ScoreB)</span>
+                                    <span class="score-caption">@GetMatchClock(m)</span>
+                                </div>
+
+                                <div class="team-cell team-cell-right">
+                                    <span class="team-line team-line-right">
+                                        <span class="coin-mini" title="@m.TeamB">
+                                            <img src="@GetCoinIconUrl(m.TeamB)"
+                                                 alt="@m.TeamB"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-mini-fallback d-none">@GetInitials(m.TeamB)</span>
+                                        </span>
+                                        <span class="team-symbol">@m.TeamB</span>
+                                    </span>
+                                    <span class="@GetPctClass(m.PctB)">@FmtPct(m.PctB)</span>
+                                </div>
+                            </div>
+
+                            <div class="match-progress" aria-label="Progresso da partida">
+                                <span style="width: @GetProgressPercent(m.ElapsedMinutes, m.RemainingMinutes)%"></span>
+                            </div>
+
+                            <div class="match-card-footer">
+                                @if (!canBetLive)
                                 {
-                                    <tr>
-                                        <td>
-                                            <a href="@GetMatchUrl(m.TeamA, m.TeamB)">
-                                                @m.MatchId
-                                            </a>
-                                        </td>
-                                        <td>@m.TeamA <span class="text-muted">vs</span> @m.TeamB</td>
-                                        <td>
-                                            <div>
-                                                <strong>@m.ScoreA</strong> x <strong>@m.ScoreB</strong>
-                                            </div>
-
-                                            <div class="text-muted small">
-                                                @FmtPct(m.PctA) <span class="text-muted">vs</span> @FmtPct(m.PctB)
-                                            </div>
-                                        </td>
-
-                                        <td class="text-end">
-                                            @m.ElapsedMinutes' <span class="text-muted">(-@m.RemainingMinutes')</span>
-                                        </td>
-                                    </tr>
+                                    <span class="closed-bet">Apostas encerradas</span>
+                                    <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
                                 }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Gainers -->
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header"><strong>Top Gainers</strong></div>
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Symbol</th>
-                                <th>Name</th>
-                                <th class="text-end">%</th>
-                                <th class="text-end">Atualizado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Snapshot.TopGainers.Count == 0)
-                            {
-                                <tr>
-                                    <td colspan="5" class="text-muted p-3">Sem dados.</td>
-                                </tr>
-                            }
-                            else
-                            {
-                                @foreach (var c in Snapshot.TopGainers)
+                                else
                                 {
-                                    <tr>
-                                        <td>@c.Rank</td>
-                                        <td><strong>@c.Symbol</strong></td>
-                                        <td>@c.Name</td>
-                                        <td class="text-end text-success fw-bold">
-                                            +@c.PercentageChange.ToString("0.##")%
-                                        </td>
-                                        <td class="text-end">@FmtUtc(c.LastUpdatedUtc)</td>
-                                    </tr>
+                                    <button class="btn btn-success btn-sm"
+                                            disabled="@disabledA"
+                                            @onclick="() => SendBet(m.MatchId, m.TeamAId, m.TeamA)">
+                                        Apostar @m.TeamA
+                                    </button>
+
+                                    <button class="btn btn-outline-light btn-sm"
+                                            disabled="@disabledB"
+                                            @onclick="() => SendBet(m.MatchId, m.TeamBId, m.TeamB)">
+                                        Apostar @m.TeamB
+                                    </button>
                                 }
-                            }
-                        </tbody>
-                    </table>
+                            </div>
+                        </article>
+                    }
                 </div>
+            }
+        </section>
+
+        <section class="listing-panel">
+            <div class="listing-panel-head">
+                <div>
+                    <div class="listing-eyebrow">Ao vivo</div>
+                    <h3>Partidas em andamento</h3>
+                </div>
+                <span class="listing-count">@Snapshot.Matches.OngoingList.Count</span>
             </div>
-        </div>
+
+            @if (Snapshot.Matches.OngoingList.Count == 0)
+            {
+                <div class="listing-empty">Nenhuma partida em andamento.</div>
+            }
+            else
+            {
+                <div class="match-list-grid">
+                    @foreach (var m in Snapshot.Matches.OngoingList)
+                    {
+                        <article class="listing-match-card listing-match-card-live">
+                            <div class="match-card-top">
+                                <span>Match #@m.MatchId</span>
+                                <span class="status-pill status-live">AO VIVO</span>
+                            </div>
+
+                            <div class="matchup-row">
+                                <div class="team-cell">
+                                    <span class="team-line">
+                                        <span class="coin-mini" title="@m.TeamA">
+                                            <img src="@GetCoinIconUrl(m.TeamA)"
+                                                 alt="@m.TeamA"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-mini-fallback d-none">@GetInitials(m.TeamA)</span>
+                                        </span>
+                                        <span class="team-symbol">@m.TeamA</span>
+                                    </span>
+                                    <span class="@GetPctClass(m.PctA)">@FmtPct(m.PctA)</span>
+                                </div>
+
+                                <div class="score-cell">
+                                    <span class="score-value">@m.ScoreA x @m.ScoreB</span>
+                                    <span class="score-caption">@m.ElapsedMinutes' jogados · -@m.RemainingMinutes'</span>
+                                </div>
+
+                                <div class="team-cell team-cell-right">
+                                    <span class="team-line team-line-right">
+                                        <span class="coin-mini" title="@m.TeamB">
+                                            <img src="@GetCoinIconUrl(m.TeamB)"
+                                                 alt="@m.TeamB"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-mini-fallback d-none">@GetInitials(m.TeamB)</span>
+                                        </span>
+                                        <span class="team-symbol">@m.TeamB</span>
+                                    </span>
+                                    <span class="@GetPctClass(m.PctB)">@FmtPct(m.PctB)</span>
+                                </div>
+                            </div>
+
+                            <div class="match-progress" aria-label="Progresso da partida">
+                                <span style="width: @GetProgressPercent(m.ElapsedMinutes, m.RemainingMinutes)%"></span>
+                            </div>
+
+                            <div class="match-card-footer">
+                                <span class="match-meta">Mercado acompanha variação em tempo real</span>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="listing-panel listing-panel-wide">
+            <div class="listing-panel-head">
+                <div>
+                    <div class="listing-eyebrow">Mercado</div>
+                    <h3>Top gainers</h3>
+                </div>
+                <span class="listing-count">@Snapshot.TopGainers.Count</span>
+            </div>
+
+            @if (Snapshot.TopGainers.Count == 0)
+            {
+                <div class="listing-empty">Sem dados.</div>
+            }
+            else
+            {
+                <div class="gainer-grid">
+                    @foreach (var c in Snapshot.TopGainers)
+                    {
+                        <article class="gainer-card">
+                            <div class="gainer-rank">#@c.Rank</div>
+                            <span class="coin-mini coin-mini-market" title="@c.Symbol">
+                                <img src="@GetCoinIconUrl(c.Symbol)"
+                                     alt="@c.Symbol"
+                                     loading="lazy"
+                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                <span class="coin-mini-fallback d-none">@GetInitials(c.Symbol)</span>
+                            </span>
+                            <div>
+                                <strong>@c.Symbol</strong>
+                                <span>@c.Name</span>
+                            </div>
+                            <div class="gainer-change">+@c.PercentageChange.ToString("0.##")%</div>
+                            <small>@FmtUtc(c.LastUpdatedUtc)</small>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
     </div>
 }
+
+<style>
+    .dashboard-listings {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .listing-panel {
+        background: #111318;
+        border: 1px solid #2b3138;
+        border-radius: 8px;
+        color: #f3f4f6;
+        min-width: 0;
+        padding: 1rem;
+    }
+
+    .listing-panel-wide {
+        grid-column: 1 / -1;
+    }
+
+    .listing-panel-head {
+        align-items: center;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .listing-panel-head h3 {
+        color: #f9fafb;
+        font-size: 1.05rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin: 0;
+    }
+
+    .listing-eyebrow {
+        color: #2dd4bf;
+        font-size: .73rem;
+        font-weight: 800;
+        letter-spacing: 0;
+        margin-bottom: .2rem;
+        text-transform: uppercase;
+    }
+
+    .listing-count {
+        align-items: center;
+        background: #1f2933;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        color: #e5e7eb;
+        display: inline-flex;
+        font-weight: 800;
+        justify-content: center;
+        min-height: 2.25rem;
+        min-width: 2.25rem;
+        padding: .35rem .65rem;
+    }
+
+    .match-list-grid {
+        display: grid;
+        gap: .85rem;
+    }
+
+    .listing-match-card {
+        background: #181b21;
+        border: 1px solid #303741;
+        border-radius: 8px;
+        min-width: 0;
+        padding: .95rem;
+    }
+
+    .listing-match-card-live {
+        border-color: rgba(34, 197, 94, .55);
+    }
+
+    .match-card-top,
+    .match-card-footer {
+        align-items: center;
+        display: flex;
+        gap: .75rem;
+        justify-content: space-between;
+    }
+
+    .match-card-top {
+        color: #9ca3af;
+        font-size: .78rem;
+        font-weight: 700;
+        margin-bottom: .9rem;
+    }
+
+    .status-pill,
+    .closed-bet {
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: .72rem;
+        font-weight: 800;
+        line-height: 1;
+        padding: .38rem .5rem;
+        white-space: nowrap;
+    }
+
+    .status-pending {
+        background: rgba(250, 204, 21, .16);
+        color: #fde68a;
+    }
+
+    .status-live {
+        background: rgba(34, 197, 94, .16);
+        color: #86efac;
+    }
+
+    .status-closed,
+    .closed-bet {
+        background: rgba(148, 163, 184, .16);
+        color: #cbd5e1;
+    }
+
+    .matchup-row {
+        align-items: center;
+        display: grid;
+        gap: .8rem;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    .team-cell {
+        display: grid;
+        gap: .2rem;
+        min-width: 0;
+    }
+
+    .team-cell-right {
+        text-align: right;
+    }
+
+    .team-line {
+        align-items: center;
+        display: flex;
+        gap: .5rem;
+        min-width: 0;
+    }
+
+    .team-line-right {
+        flex-direction: row-reverse;
+    }
+
+    .coin-mini {
+        align-items: center;
+        background: #111318;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        display: inline-flex;
+        flex: 0 0 2.1rem;
+        height: 2.1rem;
+        justify-content: center;
+        overflow: hidden;
+        width: 2.1rem;
+    }
+
+    .coin-mini img {
+        display: block;
+        height: 1.55rem;
+        object-fit: contain;
+        width: 1.55rem;
+    }
+
+    .coin-mini-fallback {
+        color: #2dd4bf;
+        font-size: .72rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .team-symbol {
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+    }
+
+    .metric-positive {
+        color: #86efac;
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .metric-negative {
+        color: #fca5a5;
+        font-size: .82rem;
+        font-weight: 800;
+    }
+
+    .metric-muted {
+        color: #9ca3af;
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .score-cell {
+        border-left: 1px solid #303741;
+        border-right: 1px solid #303741;
+        display: grid;
+        gap: .12rem;
+        min-width: 6.25rem;
+        padding: 0 .8rem;
+        text-align: center;
+    }
+
+    .score-value {
+        color: #f9fafb;
+        font-size: 1.22rem;
+        font-weight: 900;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+
+    .score-caption,
+    .match-meta {
+        color: #9ca3af;
+        font-size: .78rem;
+        font-weight: 700;
+    }
+
+    .match-progress {
+        background: #252a32;
+        border-radius: 8px;
+        height: .42rem;
+        margin: .9rem 0;
+        overflow: hidden;
+    }
+
+    .match-progress span {
+        background: linear-gradient(90deg, #2dd4bf, #22c55e);
+        border-radius: 8px;
+        display: block;
+        height: 100%;
+        min-width: .45rem;
+    }
+
+    .match-card-footer {
+        min-height: 2rem;
+    }
+
+    .match-card-footer .btn {
+        border-radius: 8px;
+        font-weight: 800;
+        min-height: 2rem;
+    }
+
+    .listing-empty {
+        background: #181b21;
+        border: 1px dashed #374151;
+        border-radius: 8px;
+        color: #9ca3af;
+        padding: 1.25rem;
+    }
+
+    .gainer-grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    }
+
+    .gainer-card {
+        align-items: center;
+        background: #181b21;
+        border: 1px solid #303741;
+        border-radius: 8px;
+        display: grid;
+        gap: .65rem;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        min-height: 5rem;
+        padding: .8rem;
+    }
+
+    .coin-mini-market {
+        flex-basis: 2.35rem;
+        height: 2.35rem;
+        width: 2.35rem;
+    }
+
+    .gainer-card strong,
+    .gainer-card span {
+        display: block;
+        overflow-wrap: anywhere;
+    }
+
+    .gainer-card span,
+    .gainer-card small {
+        color: #9ca3af;
+    }
+
+    .gainer-rank {
+        align-items: center;
+        background: #222831;
+        border-radius: 8px;
+        color: #e5e7eb;
+        display: inline-flex;
+        font-weight: 800;
+        height: 2.4rem;
+        justify-content: center;
+        width: 2.4rem;
+    }
+
+    .gainer-change {
+        color: #86efac;
+        font-weight: 900;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 992px) {
+        .dashboard-listings {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .listing-panel {
+            padding: .85rem;
+        }
+
+        .matchup-row {
+            grid-template-columns: 1fr;
+            text-align: left;
+        }
+
+        .team-cell-right {
+            text-align: left;
+        }
+
+        .score-cell {
+            border-left: 0;
+            border-right: 0;
+            border-top: 1px solid #303741;
+            border-bottom: 1px solid #303741;
+            min-width: 0;
+            padding: .65rem 0;
+            text-align: left;
+        }
+
+        .match-card-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .match-card-footer .btn {
+            width: 100%;
+        }
+
+        .gainer-card {
+            grid-template-columns: auto auto minmax(0, 1fr);
+        }
+
+        .gainer-change,
+        .gainer-card small {
+            grid-column: 1 / -1;
+            text-align: left;
+        }
+    }
+</style>
 
 @code {
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
@@ -474,7 +862,12 @@ else
                         TeamB = m.TeamB,
                         Status = m.Status ?? "Pending",
                         StartTime = m.StartTime,
-                        ElapsedMinutes = 0
+                        ElapsedMinutes = 0,
+                        RemainingMinutes = m.RemainingMinutes,
+                        ScoreA = m.ScoreA,
+                        ScoreB = m.ScoreB,
+                        PctA = m.PctA,
+                        PctB = m.PctB
                     }));
         }
 
@@ -488,9 +881,14 @@ else
                         TeamBId = m.TeamBId,
                         TeamA = m.TeamA,
                         TeamB = m.TeamB,
-                        Status = "Ongoing",
+                        Status = m.Status ?? "Ongoing",
                         StartTime = null,
-                        ElapsedMinutes = m.ElapsedMinutes
+                        ElapsedMinutes = m.ElapsedMinutes,
+                        RemainingMinutes = m.RemainingMinutes,
+                        ScoreA = m.ScoreA,
+                        ScoreB = m.ScoreB,
+                        PctA = m.PctA,
+                        PctB = m.PctB
                     }));
         }
 
@@ -540,6 +938,99 @@ else
         return $"{sign}{v.Value:0.##}%";
     }
 
+    private static string GetBaseSymbol(string pair)
+    {
+        if (string.IsNullOrWhiteSpace(pair))
+            return "";
+
+        pair = pair.Trim().ToUpperInvariant();
+
+        var quotes = new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" };
+
+        foreach (var q in quotes)
+        {
+            if (pair.EndsWith(q, StringComparison.OrdinalIgnoreCase) && pair.Length > q.Length)
+                return pair[..^q.Length];
+        }
+
+        return pair;
+    }
+
+    private static string GetCoinIconUrl(string pair)
+        => $"https://criptoversus-api.duckdns.org/api/icons/binance/{GetBaseSymbol(pair)}";
+
+    private static string GetInitials(string value)
+    {
+        var symbol = GetBaseSymbol(value);
+
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        return symbol.Length <= 3 ? symbol : symbol[..3];
+    }
+
+    private static string FmtScore(int? scoreA, int? scoreB)
+    {
+        if (scoreA is null || scoreB is null)
+            return "vs";
+
+        return $"{scoreA} x {scoreB}";
+    }
+
+    private static string GetMatchClock(BettableMatchViewModel match)
+    {
+        if (string.Equals(match.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            return match.StartTime is null ? "Aguardando inicio" : FmtUtc(match.StartTime);
+
+        if (match.RemainingMinutes > 0)
+            return $"{match.ElapsedMinutes}' jogados · -{match.RemainingMinutes}'";
+
+        return $"{match.ElapsedMinutes}' jogados";
+    }
+
+    private static int GetProgressPercent(int elapsedMinutes, int remainingMinutes)
+    {
+        if (elapsedMinutes <= 0)
+            return 0;
+
+        var total = elapsedMinutes + Math.Max(remainingMinutes, 0);
+
+        if (total <= 0)
+            return 100;
+
+        return Math.Clamp((int)Math.Round(elapsedMinutes * 100m / total), 0, 100);
+    }
+
+    private static string GetPctClass(decimal? value)
+    {
+        if (value is null)
+            return "metric-muted";
+
+        return value.Value >= 0 ? "metric-positive" : "metric-negative";
+    }
+
+    private static string GetStatusLabel(string? status)
+    {
+        if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+            return "ABERTA";
+
+        if (string.Equals(status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            return "AO VIVO";
+
+        return "FECHADA";
+    }
+
+    private static string GetStatusPillClass(string? status)
+    {
+        if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
+            return "status-pending";
+
+        if (string.Equals(status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            return "status-live";
+
+        return "status-closed";
+    }
+
     private static string GetMatchUrl(string teamA, string teamB)
     {
         return $"/match/{Slugify(teamA)}-vs-{Slugify(teamB)}";
@@ -575,5 +1066,10 @@ else
         public string Status { get; set; } = "";
         public DateTime? StartTime { get; set; }
         public int ElapsedMinutes { get; set; }
+        public int RemainingMinutes { get; set; }
+        public int? ScoreA { get; set; }
+        public int? ScoreB { get; set; }
+        public decimal? PctA { get; set; }
+        public decimal? PctB { get; set; }
     }
 }

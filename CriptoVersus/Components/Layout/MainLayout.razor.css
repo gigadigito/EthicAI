@@ -94,3 +94,134 @@ main {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.app-shell {
+    background: #0f1115;
+    color: #f3f4f6;
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.app-sidebar {
+    background: #111318;
+    border-right: 1px solid #2b3138;
+    height: 100vh;
+    min-width: 0;
+    position: sticky;
+    top: 0;
+}
+
+.app-main {
+    background:
+        linear-gradient(180deg, rgba(45, 212, 191, .08), rgba(15, 17, 21, 0) 18rem),
+        #0f1115;
+    min-width: 0;
+}
+
+.app-topbar {
+    align-items: center;
+    background: rgba(15, 17, 21, .94);
+    border-bottom: 1px solid #2b3138;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    min-height: 4.75rem;
+    padding: 1rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.topbar-eyebrow {
+    color: #2dd4bf;
+    display: block;
+    font-size: .74rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    margin-bottom: .15rem;
+    text-transform: uppercase;
+}
+
+.app-topbar h1 {
+    color: #f9fafb;
+    font-size: 1.25rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.wallet-button {
+    background: #22c55e;
+    border: 1px solid #34d399;
+    border-radius: 8px;
+    color: #07110c;
+    font-weight: 900;
+    min-height: 2.5rem;
+    padding: .55rem .9rem;
+    white-space: nowrap;
+}
+
+.wallet-button:hover {
+    background: #2dd4bf;
+    border-color: #5eead4;
+}
+
+.wallet-button:focus-visible {
+    outline: 3px solid rgba(45, 212, 191, .35);
+    outline-offset: 2px;
+}
+
+.app-content {
+    margin: 0 auto;
+    max-width: 88rem;
+    min-width: 0;
+    padding: 1.25rem !important;
+}
+
+#blazor-error-ui {
+    background: #7f1d1d;
+    border-top: 1px solid #fca5a5;
+    color: #fee2e2;
+    padding: .85rem 3rem .85rem 1rem;
+}
+
+#blazor-error-ui .reload {
+    color: #ffffff;
+    font-weight: 800;
+}
+
+#blazor-error-ui .dismiss {
+    color: #ffffff;
+    font-weight: 900;
+    right: 1rem;
+    top: .85rem;
+}
+
+@media (max-width: 900px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .app-sidebar {
+        height: auto;
+        position: relative;
+        top: auto;
+    }
+
+    .app-topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .wallet-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .app-content {
+        padding: .85rem !important;
+    }
+}

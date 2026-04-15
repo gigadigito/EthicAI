@@ -1,9 +1,11 @@
 ﻿using CriptoVersus.API.Hubs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using System.Text.Json;
 
 [ApiController]
+[AllowAnonymous]
 [Route("api/dashboard")]
 public class DashboardNotifyController : ControllerBase
 {
