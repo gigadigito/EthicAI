@@ -1,4 +1,5 @@
 ﻿using DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +24,7 @@ namespace CriptoVersus.API.Controllers
             _config = config;
         }
 
+        [AllowAnonymous]
         [HttpGet("snapshot")]
         public async Task<ActionResult<DashboardSnapshotDto>> GetSnapshot(
             [FromQuery] int top = 10,
