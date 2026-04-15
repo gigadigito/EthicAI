@@ -1,5 +1,6 @@
 ﻿@using CriptoVersus.Web.Components.Pages.Internet
 @inherits LayoutComponentBase
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 
 <div class="app-shell">
     <aside class="app-sidebar">
@@ -13,9 +14,19 @@
                 <h1>Mercado de partidas</h1>
             </div>
 
-            <button class="wallet-button" @onclick="AbrirLoginAsync">
-                Login com Solana
-            </button>
+            @if (IsLoggedIn)
+            {
+                <button class="wallet-identity" title="@walletPublicKey" @onclick="AbrirLoginAsync">
+                    <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
+                    <span class="wallet-address">@walletPublicKey</span>
+                </button>
+            }
+            else
+            {
+                <button class="wallet-button" @onclick="AbrirLoginAsync">
+                    Login com Solana
+                </button>
+            }
         </header>
 
         <article class="app-content">
@@ -24,7 +35,7 @@
     </main>
 </div>
 
-<SolanaLoginModal @ref="loginModal" />
+<SolanaLoginModal @ref="loginModal" OnLoginSucceeded="LoadLoginSessionAsync" />
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
@@ -34,6 +45,21 @@
 
 @code {
     private SolanaLoginModal? loginModal;
+    private string? authToken;
+    private string? walletPublicKey;
+
+    private bool IsLoggedIn
+        => !string.IsNullOrWhiteSpace(authToken)
+            && !string.IsNullOrWhiteSpace(walletPublicKey);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadLoginSessionAsync();
+            StateHasChanged();
+        }
+    }
 
     private async Task AbrirLoginAsync()
     {
@@ -42,4 +68,13 @@
             await loginModal.OpenAsync();
         }
     }
+
+    private async Task LoadLoginSessionAsync()
+    {
+        authToken = await SessionStorage.GetItemAsync<string>("authToken");
+        walletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+    }
+
+    private static string GetWalletAvatarUrl(string wallet)
+        => $"https://api.dicebear.com/9.x/identicon/svg?seed={Uri.EscapeDataString(wallet)}";
 }

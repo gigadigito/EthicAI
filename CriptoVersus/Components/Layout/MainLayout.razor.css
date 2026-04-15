@@ -172,6 +172,49 @@ main {
     outline-offset: 2px;
 }
 
+.wallet-identity {
+    align-items: center;
+    background: #181b21;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    color: #f3f4f6;
+    display: flex;
+    gap: .65rem;
+    max-width: min(31rem, 48vw);
+    min-height: 2.5rem;
+    min-width: 0;
+    padding: .35rem .7rem .35rem .4rem;
+}
+
+.wallet-identity:hover {
+    background: #1f242d;
+    border-color: #2dd4bf;
+}
+
+.wallet-identity:focus-visible {
+    outline: 3px solid rgba(45, 212, 191, .35);
+    outline-offset: 2px;
+}
+
+.wallet-avatar {
+    background: #f3f4f6;
+    border-radius: 8px;
+    flex: 0 0 auto;
+    height: 2rem;
+    width: 2rem;
+}
+
+.wallet-address {
+    color: #f9fafb;
+    display: block;
+    font-size: .85rem;
+    font-weight: 800;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .app-content {
     margin: 0 auto;
     max-width: 88rem;
@@ -216,6 +259,11 @@ main {
     }
 
     .wallet-button {
+        width: 100%;
+    }
+
+    .wallet-identity {
+        max-width: 100%;
         width: 100%;
     }
 }

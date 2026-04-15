@@ -70,6 +70,7 @@
 }
 
 @code {
+    [Parameter] public EventCallback OnLoginSucceeded { get; set; }
 
     private sealed class LoginResponse
     {
@@ -206,6 +207,7 @@
                     await SessionStorage.SetItemAsync("authToken", loginResult.Token);
                     await SessionStorage.SetItemAsync("userId", loginResult.UserId);
                     await SessionStorage.SetItemAsync("walletPublicKey", loginResult.PublicKey);
+                    await OnLoginSucceeded.InvokeAsync();
                     SetStatus("Login realizado", "Sua carteira foi autenticada com sucesso.", "success");
                 }
                 else
