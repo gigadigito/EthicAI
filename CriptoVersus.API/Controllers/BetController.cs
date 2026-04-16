@@ -64,6 +64,16 @@ namespace CriptoVersus.API.Controllers
             if (request.Amount <= 0)
                 return BadRequest("O valor da aposta ficou inválido após o arredondamento.");
 
+            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
+
+            if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature))
+            {
+                return BadRequest(new
+                {
+                    message = "A assinatura da transação Solana é obrigatória para apostas on-chain."
+                });
+            }
+
             var strategy = _context.Database.CreateExecutionStrategy();
 
             BetCreateResponse? response = null;
@@ -124,7 +134,7 @@ namespace CriptoVersus.API.Controllers
                         });
                     }
 
-                    if (user.Balance < request.Amount)
+                    if (!onChainBettingEnabled && user.Balance < request.Amount)
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
                         {
@@ -142,7 +152,8 @@ namespace CriptoVersus.API.Controllers
                     var nowUtc = DateTime.UtcNow;
                     var balanceBefore = user.Balance;
 
-                    user.Balance -= request.Amount;
+                    if (!onChainBettingEnabled)
+                        user.Balance -= request.Amount;
 
                     var bet = new DAL.NftFutebol.Bet
                     {
@@ -165,12 +176,14 @@ namespace CriptoVersus.API.Controllers
 
                     await _ledgerService.AddEntryAsync(
                         user: user,
-                        type: "BET",
-                        amount: -request.Amount,
+                        type: onChainBettingEnabled ? "BET_ONCHAIN" : "BET",
+                        amount: onChainBettingEnabled ? 0m : -request.Amount,
                         balanceBefore: balanceBefore,
                         balanceAfter: user.Balance,
                         referenceId: bet.BetId,
-                        description: $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
+                        description: onChainBettingEnabled
+                            ? $"Aposta on-chain realizada no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}"
+                            : $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
                         ct: cancellationToken);
 
                     await transaction.CommitAsync(cancellationToken);
@@ -202,6 +215,7 @@ namespace CriptoVersus.API.Controllers
                         PayoutAmount = bet.PayoutAmount,
                         SettledAt = bet.SettledAt,
                         BettingCloseTime = match.BettingCloseTime,
+                        OnChainSignature = request.OnChainSignature,
                         Message = "Aposta registrada com sucesso."
                     };
                 });

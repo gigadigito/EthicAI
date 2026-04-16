@@ -21,6 +21,7 @@ namespace DTOs
         public decimal? PayoutAmount { get; set; }
         public DateTimeOffset? SettledAt { get; set; }
         public DateTimeOffset? BettingCloseTime { get; set; }
+        public string? OnChainSignature { get; set; }
         public string Message { get; set; } = string.Empty;
     }
 }

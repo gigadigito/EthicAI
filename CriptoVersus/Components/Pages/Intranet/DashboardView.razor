@@ -8,6 +8,7 @@
 @inject HttpClient Http
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject IJSRuntime JS
+@inject IConfiguration Config
 
 @if (Snapshot is null)
 {
@@ -349,7 +350,7 @@ else
             <div class="listing-panel-head">
                 <div>
                     <div class="listing-eyebrow">Mercado</div>
-                    <h3>Top gainers</h3>
+                    <h3>Top gainers Binance</h3>
                 </div>
                 <span class="listing-count">@Snapshot.TopGainers.Count</span>
             </div>
@@ -372,7 +373,7 @@ else
                                      onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                 <span class="coin-mini-fallback d-none">@GetInitials(c.Symbol)</span>
                             </span>
-                            <div>
+                            <div class="gainer-identity">
                                 <strong>@c.Symbol</strong>
                                 <span>@c.Name</span>
                             </div>
@@ -646,7 +647,7 @@ else
     .gainer-grid {
         display: grid;
         gap: .75rem;
-        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
     }
 
     .gainer-card {
@@ -656,7 +657,7 @@ else
         border-radius: 8px;
         display: grid;
         gap: .65rem;
-        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        grid-template-columns: auto auto minmax(7rem, 1fr) auto;
         min-height: 5rem;
         padding: .8rem;
     }
@@ -667,13 +668,19 @@ else
         width: 2.35rem;
     }
 
-    .gainer-card strong,
-    .gainer-card span {
-        display: block;
-        overflow-wrap: anywhere;
+    .gainer-identity {
+        min-width: 0;
     }
 
-    .gainer-card span,
+    .gainer-identity strong,
+    .gainer-identity span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .gainer-identity span,
     .gainer-card small {
         color: #9ca3af;
     }
@@ -695,6 +702,10 @@ else
         font-weight: 900;
         text-align: right;
         white-space: nowrap;
+    }
+
+    .gainer-card small {
+        grid-column: 3 / -1;
     }
 
     @@media (max-width: 992px) {
@@ -740,9 +751,13 @@ else
             grid-template-columns: auto auto minmax(0, 1fr);
         }
 
-        .gainer-change,
         .gainer-card small {
-            grid-column: 1 / -1;
+            grid-column: 3 / -1;
+            text-align: left;
+        }
+
+        .gainer-change {
+            grid-column: 3 / -1;
             text-align: left;
         }
     }
@@ -765,6 +780,7 @@ else
     private bool BetRequestOk { get; set; }
     private string BetStatusMessage { get; set; } = "";
     private string BetResponseBody { get; set; } = "";
+    private IJSObjectReference? BettingModule { get; set; }
 
     private const decimal TestAmount = 1m;
     private const int LiveBetMaxMinutes = 45;
@@ -822,14 +838,6 @@ else
 
         try
         {
-            var payload = new
-            {
-                userId = SelectedUserId,
-                teamId = teamId,
-                amount = TestAmount
-            };
-
-            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
             var token = await SessionStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrWhiteSpace(token))
@@ -839,6 +847,25 @@ else
                 return;
             }
 
+            string? onChainSignature = null;
+            var onChainBettingEnabled = Config.GetValue<bool>("OnChainBetting:Enabled");
+
+            if (onChainBettingEnabled)
+            {
+                var onChainResult = await PlaceOnChainBetAsync(matchId, teamId, TestAmount);
+                onChainSignature = onChainResult.Signature;
+                BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
+            }
+
+            var payload = new
+            {
+                userId = SelectedUserId,
+                teamId = teamId,
+                amount = TestAmount,
+                onChainSignature
+            };
+
+            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = JsonContent.Create(payload)
@@ -848,7 +875,9 @@ else
             using var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
-            BetResponseBody = PrettyJsonOrRaw(body);
+            BetResponseBody = string.IsNullOrWhiteSpace(BetResponseBody)
+                ? PrettyJsonOrRaw(body)
+                : $"{BetResponseBody}\n\nAPI:\n{PrettyJsonOrRaw(body)}";
 
             if (response.IsSuccessStatusCode)
             {
@@ -872,6 +901,28 @@ else
             IsSendingBet = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task<OnChainBetResult> PlaceOnChainBetAsync(int matchId, int teamId, decimal amountSol)
+    {
+        BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/solanaBetting.js");
+
+        var programId = Config["OnChainBetting:ProgramId"];
+        if (string.IsNullOrWhiteSpace(programId))
+            throw new InvalidOperationException("OnChainBetting:ProgramId não configurado.");
+
+        return await BettingModule.InvokeAsync<OnChainBetResult>(
+            "placeBet",
+            new
+            {
+                programId,
+                cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
+                matchId,
+                teamId,
+                amountSol
+            });
     }
 
     private List<BettableMatchViewModel> GetBettableMatches()
@@ -1085,6 +1136,15 @@ else
         public int Id { get; set; }
         public string Wallet { get; set; } = "";
         public string DisplayName => $"{Id} - {Wallet}";
+    }
+
+    private sealed class OnChainBetResult
+    {
+        public string Signature { get; set; } = "";
+        public string MatchAccount { get; set; } = "";
+        public string BetAccount { get; set; } = "";
+        public string Vault { get; set; } = "";
+        public string AmountLamports { get; set; } = "";
     }
 
     private sealed class BettableMatchViewModel

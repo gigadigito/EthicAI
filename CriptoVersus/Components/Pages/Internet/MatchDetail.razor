@@ -10,6 +10,7 @@
 @inject HttpClient Http
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject CriptoVersus.Web.Services.DashboardHubClient HubClient
+@inject IConfiguration Config
 @rendermode InteractiveServer
 @implements IDisposable
 <PageTitle>@_title</PageTitle>
@@ -796,6 +797,7 @@
     private bool _betRequestOk;
     private string _betStatusMessage = "";
     private string _betResponseBody = "";
+    private IJSObjectReference? _bettingModule;
 
     private const decimal _testAmount = 1m;
     private const int _liveBetMaxMinutes = 45;
@@ -979,14 +981,6 @@
 
         try
         {
-            var payload = new
-            {
-                userId = _selectedUserId,
-                teamId = teamId,
-                amount = _testAmount
-            };
-
-            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
             var token = await SessionStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrWhiteSpace(token))
@@ -996,6 +990,25 @@
                 return;
             }
 
+            string? onChainSignature = null;
+            var onChainBettingEnabled = Config.GetValue<bool>("OnChainBetting:Enabled");
+
+            if (onChainBettingEnabled)
+            {
+                var onChainResult = await PlaceOnChainBetAsync(matchId, teamId, _testAmount);
+                onChainSignature = onChainResult.Signature;
+                _betResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
+            }
+
+            var payload = new
+            {
+                userId = _selectedUserId,
+                teamId = teamId,
+                amount = _testAmount,
+                onChainSignature
+            };
+
+            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = JsonContent.Create(payload)
@@ -1005,7 +1018,9 @@
             using var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
-            _betResponseBody = PrettyJsonOrRaw(body);
+            _betResponseBody = string.IsNullOrWhiteSpace(_betResponseBody)
+                ? PrettyJsonOrRaw(body)
+                : $"{_betResponseBody}\n\nAPI:\n{PrettyJsonOrRaw(body)}";
 
             if (response.IsSuccessStatusCode)
             {
@@ -1030,6 +1045,28 @@
             _isSendingBet = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task<OnChainBetResult> PlaceOnChainBetAsync(int matchId, int teamId, decimal amountSol)
+    {
+        _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/solanaBetting.js");
+
+        var programId = Config["OnChainBetting:ProgramId"];
+        if (string.IsNullOrWhiteSpace(programId))
+            throw new InvalidOperationException("OnChainBetting:ProgramId não configurado.");
+
+        return await _bettingModule.InvokeAsync<OnChainBetResult>(
+            "placeBet",
+            new
+            {
+                programId,
+                cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
+                matchId,
+                teamId,
+                amountSol
+            });
     }
 
     private bool CanBetOnCurrentMatch()
@@ -1437,5 +1474,14 @@
         public int Id { get; set; }
         public string Wallet { get; set; } = "";
         public string DisplayName => $"{Id} - {Wallet}";
+    }
+
+    private sealed class OnChainBetResult
+    {
+        public string Signature { get; set; } = "";
+        public string MatchAccount { get; set; } = "";
+        public string BetAccount { get; set; } = "";
+        public string Vault { get; set; } = "";
+        public string AmountLamports { get; set; } = "";
     }
 }

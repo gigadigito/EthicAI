@@ -12,6 +12,7 @@ namespace DTOs
             public int UserId { get; set; }
             public int TeamId { get; set; }
             public decimal Amount { get; set; }
+            public string? OnChainSignature { get; set; }
         }
     
 }
