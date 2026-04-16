@@ -1,6 +1,9 @@
 ﻿using DTOs;
+using CriptoVersus.API.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using System.Text.Json;
 
 // Ajuste namespaces conforme seu projeto
 using EthicAI.EntityModel;
@@ -13,10 +16,14 @@ namespace CriptoVersus.API.Controllers
     public class MatchesController : ControllerBase
     {
         private readonly EthicAIDbContext _db;
+        private readonly IHubContext<DashboardHub> _hub;
 
-        public MatchesController(EthicAIDbContext db)
+        public MatchesController(
+            EthicAIDbContext db,
+            IHubContext<DashboardHub> hub)
         {
             _db = db;
+            _hub = hub;
         }
 
         // =========================
@@ -139,6 +146,7 @@ namespace CriptoVersus.API.Controllers
 
             _db.Add(match);
             await _db.SaveChangesAsync(ct);
+            await NotifyDashboardChangedAsync("match_created", match.MatchId, ct);
 
             return CreatedAtAction(nameof(GetById), new { id = match.MatchId }, new { match.MatchId });
         }
@@ -160,6 +168,7 @@ namespace CriptoVersus.API.Controllers
             match.StartTime ??= DateTime.UtcNow;
 
             await _db.SaveChangesAsync(ct);
+            await NotifyDashboardChangedAsync("match_started", match.MatchId, ct);
             return Ok();
         }
 
@@ -180,6 +189,7 @@ namespace CriptoVersus.API.Controllers
             match.EndTime = DateTime.UtcNow;
 
             await _db.SaveChangesAsync(ct);
+            await NotifyDashboardChangedAsync("match_completed", match.MatchId, ct);
             return Ok();
         }
 
@@ -215,6 +225,19 @@ namespace CriptoVersus.API.Controllers
                 PctA = (decimal?)a?.PercentageChange,
                 PctB = (decimal?)b?.PercentageChange
             };
+        }
+
+        private Task NotifyDashboardChangedAsync(string reason, int matchId, CancellationToken ct)
+        {
+            return _hub.Clients.All.SendAsync(
+                "dashboard_changed",
+                JsonSerializer.Serialize(new
+                {
+                    reason,
+                    matchId,
+                    utc = DateTimeOffset.UtcNow
+                }),
+                ct);
         }
 
     }

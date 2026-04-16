@@ -16,42 +16,45 @@
 else
 {
     <!-- Seleção de usuário para aposta -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <strong>Usuário da aposta</strong>
-        </div>
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-md-6 col-lg-4">
-                    <label for="betUserSelect" class="form-label">Escolha o usuário</label>
-                    <select id="betUserSelect" class="form-select" @bind="SelectedUserId">
-                        @foreach (var user in BettingUsers)
-                        {
-                            <option value="@user.Id">@user.DisplayName</option>
-                        }
-                    </select>
-                </div>
+    @if (IsPrivilegedWallet)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Usuário da aposta</strong>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6 col-lg-4">
+                        <label for="betUserSelect" class="form-label">Escolha o usuário</label>
+                        <select id="betUserSelect" class="form-select" @bind="SelectedUserId">
+                            @foreach (var user in BettingUsers)
+                            {
+                                <option value="@user.Id">@user.DisplayName</option>
+                            }
+                        </select>
+                    </div>
 
-                <div class="col-md-6 col-lg-4">
-                    <div class="text-muted small">
-                        Usuário selecionado:
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-muted small">
+                            Usuário selecionado:
+                        </div>
+                        <div class="fw-bold">
+                            @SelectedUserDisplay
+                        </div>
                     </div>
-                    <div class="fw-bold">
-                        @SelectedUserDisplay
-                    </div>
-                </div>
 
-                <div class="col-md-6 col-lg-4">
-                    <div class="text-muted small">
-                        Valor fixo da aposta:
-                    </div>
-                    <div class="fw-bold">
-                        @TestAmount
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-muted small">
+                            Valor fixo da aposta:
+                        </div>
+                        <div class="fw-bold">
+                            @TestAmount
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    }
 
     <!-- Cards: Matches -->
     <div class="row g-3 mb-3">
@@ -82,70 +85,76 @@ else
             </div>
         </div>
 
-        <div class="col-12">
-            <div class="text-muted small">
-                HubState: @HubClient.State |
-                ConnId: @HubClient.ConnectionId |
-                Events: @EventCount |
-                Reloads: @ReloadCount |
-                LastReload: @LastReloadLocal.ToString("HH:mm:ss")
+        @if (IsPrivilegedWallet)
+        {
+            <div class="col-12">
+                <div class="text-muted small">
+                    HubState: @HubClient.State |
+                    ConnId: @HubClient.ConnectionId |
+                    Events: @EventCount |
+                    Reloads: @ReloadCount |
+                    LastReload: @LastReloadLocal.ToString("HH:mm:ss")
+                </div>
             </div>
-        </div>
+        }
     </div>
 
     <!-- Worker -->
-    <div class="card mb-3">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <div>
-                <strong>@Snapshot.Worker.ServiceName</strong>
-                <span class="badge ms-2 @(Snapshot.Worker.IsAlive ? "bg-success" : "bg-danger")">
-                    @(Snapshot.Worker.IsAlive ? "ONLINE" : "OFFLINE")
-                </span>
+    @if (IsPrivilegedWallet)
+    {
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <strong>@Snapshot.Worker.ServiceName</strong>
+                    <span class="badge ms-2 @(Snapshot.Worker.IsAlive ? "bg-success" : "bg-danger")">
+                        @(Snapshot.Worker.IsAlive ? "ONLINE" : "OFFLINE")
+                    </span>
+                </div>
+
+                <button class="btn btn-sm btn-outline-primary" @onclick="OnReloadClicked">
+                    Atualizar
+                </button>
             </div>
 
-            <button class="btn btn-sm btn-outline-primary" @onclick="OnReloadClicked">
-                Atualizar
-            </button>
+            <div class="card-body">
+                <div class="text-muted">
+                    Server UTC: @Snapshot.ServerTimeUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                </div>
+                <div class="text-muted">
+                    Último heartbeat: @FmtUtc(Snapshot.Worker.LastHeartbeatUtc)
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-4 text-muted">
+                        Intervalo: <strong>@Snapshot.Worker.CycleIntervalSeconds</strong>s
+                    </div>
+                    <div class="col-md-4 text-muted">
+                        Duração match: <strong>@Snapshot.Worker.MatchDurationMinutes</strong> min
+                    </div>
+                    <div class="col-md-4 text-muted">
+                        Alvo próximas: <strong>@Snapshot.Worker.TargetUpcomingMatches</strong>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-6 text-muted">
+                        Ciclo início: <strong>@FmtUtc(Snapshot.Worker.LastCycleStartUtc)</strong>
+                    </div>
+                    <div class="col-md-6 text-muted">
+                        Ciclo fim: <strong>@FmtUtc(Snapshot.Worker.LastCycleEndUtc)</strong>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Snapshot.Worker.LastError))
+                {
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <strong>Último erro:</strong> @Snapshot.Worker.LastError
+                        <div class="text-muted mt-1">Quando: @FmtUtc(Snapshot.Worker.LastErrorUtc)</div>
+                    </div>
+                }
+            </div>
         </div>
-
-        <div class="card-body">
-            <div class="text-muted">
-                Server UTC: @Snapshot.ServerTimeUtc.ToString("yyyy-MM-dd HH:mm:ss")
-            </div>
-            <div class="text-muted">
-                Último heartbeat: @FmtUtc(Snapshot.Worker.LastHeartbeatUtc)
-            </div>
-
-            <div class="row mt-2">
-                <div class="col-md-4 text-muted">
-                    Intervalo: <strong>@Snapshot.Worker.CycleIntervalSeconds</strong>s
-                </div>
-                <div class="col-md-4 text-muted">
-                    Duração match: <strong>@Snapshot.Worker.MatchDurationMinutes</strong> min
-                </div>
-                <div class="col-md-4 text-muted">
-                    Alvo próximas: <strong>@Snapshot.Worker.TargetUpcomingMatches</strong>
-                </div>
-            </div>
-
-            <div class="row mt-2">
-                <div class="col-md-6 text-muted">
-                    Ciclo início: <strong>@FmtUtc(Snapshot.Worker.LastCycleStartUtc)</strong>
-                </div>
-                <div class="col-md-6 text-muted">
-                    Ciclo fim: <strong>@FmtUtc(Snapshot.Worker.LastCycleEndUtc)</strong>
-                </div>
-            </div>
-
-            @if (!string.IsNullOrWhiteSpace(Snapshot.Worker.LastError))
-            {
-                <div class="alert alert-warning mt-3 mb-0">
-                    <strong>Último erro:</strong> @Snapshot.Worker.LastError
-                    <div class="text-muted mt-1">Quando: @FmtUtc(Snapshot.Worker.LastErrorUtc)</div>
-                </div>
-            }
-        </div>
-    </div>
+    }
 
     @if (!string.IsNullOrWhiteSpace(BetStatusMessage))
     {
@@ -748,6 +757,7 @@ else
     [Parameter] public string? LastPayload { get; set; }
     [Parameter] public string DebugText { get; set; } = "";
     [Parameter] public bool DebugEnabled { get; set; }
+    [Parameter] public bool IsPrivilegedWallet { get; set; }
 
     [Parameter] public EventCallback ReloadRequested { get; set; }
 
@@ -778,7 +788,28 @@ else
     };
 
     private string SelectedUserDisplay
-        => BettingUsers.FirstOrDefault(x => x.Id == SelectedUserId)?.DisplayName ?? "-";
+        => BettingUsers.FirstOrDefault(x => x.Id == SelectedUserId)?.DisplayName
+            ?? (SelectedUserId > 0 ? $"{SelectedUserId} - usuário autenticado" : "-");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadSessionUserAsync();
+        }
+    }
+
+    private async Task LoadSessionUserAsync()
+    {
+        var userId = await SessionStorage.GetItemAsync<int?>("userId");
+        if (userId.GetValueOrDefault() > 0)
+        {
+            if (!IsPrivilegedWallet)
+                SelectedUserId = userId.Value;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     private Task OnReloadClicked() => ReloadRequested.InvokeAsync();
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Net.Http;
 using System.Text.Json;
 
 namespace CriptoVersus.Web.Services
@@ -8,6 +8,7 @@ namespace CriptoVersus.Web.Services
     public sealed class DashboardHubClient : IAsyncDisposable
     {
         private readonly ILogger<DashboardHubClient> _logger;
+        private readonly string _hubUrl;
 
         private readonly Guid _id = Guid.NewGuid();
         public Guid InstanceId => _id;
@@ -29,11 +30,12 @@ namespace CriptoVersus.Web.Services
         public HubConnectionState State => _hub?.State ?? HubConnectionState.Disconnected;
         public string? ConnectionId => _hub?.ConnectionId;
 
-        private const string HubUrl = "https://criptoversus-api.duckdns.org/hubs/dashboard";
-
-        public DashboardHubClient(ILogger<DashboardHubClient> logger)
+        public DashboardHubClient(
+            ILogger<DashboardHubClient> logger,
+            IConfiguration configuration)
         {
             _logger = logger;
+            _hubUrl = ResolveHubUrl(configuration);
             _logger.LogInformation("DashboardHubClient CREATED id={id}", _id);
         }
 
@@ -64,7 +66,7 @@ namespace CriptoVersus.Web.Services
                 if (_hub.State == HubConnectionState.Connected)
                     return;
 
-                _logger.LogInformation("Starting hub... id={id} url={url}", _id, HubUrl);
+                _logger.LogInformation("Starting hub... id={id} url={url}", _id, _hubUrl);
                 await _hub.StartAsync(linked.Token);
                 _logger.LogInformation("Hub started OK id={id} connId={connId} state={state}", _id, _hub.ConnectionId, _hub.State);
             }
@@ -82,31 +84,15 @@ namespace CriptoVersus.Web.Services
 
         private HubConnection BuildConnection()
         {
-            var handler = new HttpClientHandler
-            {
-                UseProxy = false,
-                Proxy = null
-            };
-
             var hub = new HubConnectionBuilder()
-                .WithUrl(HubUrl, opt =>
-                {
-                    opt.HttpMessageHandlerFactory = _ => handler;
-
-                    // ===== FORÇA WEBSOCKET (se falhar aqui, é proxy/NPM) =====
-                    opt.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
-                    opt.SkipNegotiation = true; // obrigatório pra forçar WS direto
-
-                    // se tiver auth header, configure aqui também
-                    // opt.Headers.Add("Authorization", "Bearer ...");
-                })
+                .WithUrl(_hubUrl)
                 .WithAutomaticReconnect(new[]
                 {
-            TimeSpan.Zero,
-            TimeSpan.FromSeconds(2),
-            TimeSpan.FromSeconds(5),
-            TimeSpan.FromSeconds(10),
-            TimeSpan.FromSeconds(20)
+                    TimeSpan.Zero,
+                    TimeSpan.FromSeconds(2),
+                    TimeSpan.FromSeconds(5),
+                    TimeSpan.FromSeconds(10),
+                    TimeSpan.FromSeconds(20)
                 })
                 .Build();
 
@@ -124,7 +110,6 @@ namespace CriptoVersus.Web.Services
 
             _logger.LogInformation("WIRING handlers id={id}", _id);
 
-            // 1) assinatura mais comum (controller/notify manda string)
             hub.On<string>("dashboard_changed", payload =>
             {
                 _logger.LogInformation("EVENT dashboard_changed (string) id={id} len={len} payload={payload}",
@@ -133,7 +118,6 @@ namespace CriptoVersus.Web.Services
                 DashboardChanged?.Invoke(payload);
             });
 
-            // 2) se o server mandar objeto, no .NET costuma chegar como JsonElement
             hub.On<JsonElement>("dashboard_changed", je =>
             {
                 var payload = je.ToString();
@@ -143,27 +127,6 @@ namespace CriptoVersus.Web.Services
                 DashboardChanged?.Invoke(payload);
             });
 
-           
-            // 1) string (SEU controller manda string)
-            hub.On<string>("dashboard_changed", payload =>
-            {
-                _logger.LogInformation("EVENT dashboard_changed (string) id={id} len={len} payload={payload}",
-                    _id, payload?.Length ?? 0, payload);
-
-                DashboardChanged?.Invoke(payload);
-            });
-
-            // 2) JsonElement (se algum lugar mandar objeto)
-            hub.On<JsonElement>("dashboard_changed", je =>
-            {
-                var payload = je.ToString();
-                _logger.LogInformation("EVENT dashboard_changed (JsonElement) id={id} len={len} payload={payload}",
-                    _id, payload?.Length ?? 0, payload);
-
-                DashboardChanged?.Invoke(payload);
-            });
-
-            // 3) fallback (casos aninhados / estranhos)
             hub.On("dashboard_changed", (object?[] args) =>
             {
                 var payload = ExtractPayload(args);
@@ -237,6 +200,19 @@ namespace CriptoVersus.Web.Services
             }
 
             return null;
+        }
+
+        private static string ResolveHubUrl(IConfiguration configuration)
+        {
+            var configuredHubUrl = configuration["Api:HubUrl"];
+            if (!string.IsNullOrWhiteSpace(configuredHubUrl))
+                return configuredHubUrl;
+
+            var baseUrl = configuration["Api:BaseUrl"]?.TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                throw new InvalidOperationException("Api:BaseUrl não configurado para conectar ao DashboardHub.");
+
+            return $"{baseUrl}/hubs/dashboard";
         }
 
         private async Task ReconnectLoopAsync(CancellationToken ct)

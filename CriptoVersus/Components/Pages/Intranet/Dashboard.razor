@@ -9,16 +9,20 @@
 @using System.Text.Json
 @inject IJSRuntime JS
 @inject CriptoVersus.Web.Services.DashboardHubClient HubClient
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject IConfiguration Config
 
-@inject IJSRuntime JS
 <h3 class="mb-3">Dashboard</h3>
 
-<div class="small text-muted">
-    PROVA: renderStamp=@_renderStamp | renderCount=@_renderCount | now=@DateTime.Now.ToString("HH:mm:ss.fff")
-</div>
-<button class="btn btn-sm btn-outline-secondary mb-2" @onclick="ForceRender">
-    ForceRender
-</button>
+@if (_isPrivilegedWallet)
+{
+    <div class="small text-muted">
+        PROVA: renderStamp=@_renderStamp | renderCount=@_renderCount | now=@DateTime.Now.ToString("HH:mm:ss.fff")
+    </div>
+    <button class="btn btn-sm btn-outline-secondary mb-2" @onclick="ForceRender">
+        ForceRender
+    </button>
+}
 <ErrorBoundary @ref="_eb">
     <ChildContent>
         @* seu conteúdo atual *@
@@ -55,6 +59,7 @@ else
                    LastPayload="_lastPayload"
                    DebugText="_debugText"
                    DebugEnabled="_debugEnabled"
+                   IsPrivilegedWallet="_isPrivilegedWallet"
                    ReloadRequested="Reload" />
 }
 
@@ -100,6 +105,9 @@ else
     private int _events;
     private long _renderCount;
     private string _renderStamp = Guid.NewGuid().ToString("N");
+    private string? _adminWallet;
+    private string? _sessionWallet;
+    private bool _isPrivilegedWallet;
 
     private Task ForceRender()
     {
@@ -162,6 +170,7 @@ else
     }
     protected override void OnInitialized()
     {
+        _adminWallet = Config["CriptoVersus:AdminWallet"];
         D("OnInitialized (sync) => render liberado");
 
         HubClient.DashboardChanged += OnDashboardChanged;
@@ -308,12 +317,22 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+        HubClient.DashboardChanged -= OnDashboardChanged;
+
+        try { _debounceCts?.Cancel(); } catch { /* ignore */ }
+        try { _reloadCts?.Cancel(); } catch { /* ignore */ }
+
         try
         {
             await JS.InvokeVoidAsync("DashboardHubWs.stop");
         }
         catch { /* ignore */ }
 
+        _debounceCts?.Dispose();
+        _debounceCts = null;
+        _reloadCts?.Dispose();
+        _reloadCts = null;
         _objRef?.Dispose();
     }
      
@@ -323,6 +342,9 @@ else
 
         if (firstRender)
         {
+            await LoadPrivilegedWalletStateAsync();
+            await InvokeAsync(StateHasChanged);
+
             // só loga 1 vez, sem StateHasChanged
             D($"🔥 OnAfterRenderAsync firstRender={firstRender}");
         }
@@ -353,6 +375,15 @@ else
             try { await JS.InvokeVoidAsync("console.error", "[Blazor] OnAfterRenderAsync ERRO:", ex.ToString()); } catch { }
         }
      
+    }
+
+    private async Task LoadPrivilegedWalletStateAsync()
+    {
+        _sessionWallet = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+        _isPrivilegedWallet =
+            !string.IsNullOrWhiteSpace(_adminWallet)
+            && !string.IsNullOrWhiteSpace(_sessionWallet)
+            && string.Equals(_sessionWallet, _adminWallet, StringComparison.Ordinal);
     }
 
 

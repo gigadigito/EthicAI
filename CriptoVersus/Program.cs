@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<DashboardHubClient>();
+builder.Services.AddScoped<DashboardHubClient>();
 
 
 builder.Services.AddServerSideBlazor()

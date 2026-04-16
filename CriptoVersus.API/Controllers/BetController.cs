@@ -1,12 +1,15 @@
 ﻿using BLL;
 using BLL.NFTFutebol;
+using CriptoVersus.API.Hubs;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace CriptoVersus.API.Controllers
 {
@@ -18,17 +21,20 @@ namespace CriptoVersus.API.Controllers
         private readonly EthicAIDbContext _context;
         private readonly ILogger<BetController> _logger;
         private readonly ILedgerService _ledgerService;
+        private readonly IHubContext<DashboardHub> _hub;
 
         private const int LiveBetMaxMinutes = 45;
 
         public BetController(
             EthicAIDbContext context,
             ILogger<BetController> logger,
-            ILedgerService ledgerService)
+            ILedgerService ledgerService,
+            IHubContext<DashboardHub> hub)
         {
             _context = context;
             _logger = logger;
             _ledgerService = ledgerService;
+            _hub = hub;
         }
 
         [HttpPost("{matchId:int}/bet")]
@@ -187,6 +193,9 @@ namespace CriptoVersus.API.Controllers
                     };
                 });
 
+                if (response is not null)
+                    await NotifyDashboardChangedAsync(response, cancellationToken);
+
                 return Ok(response);
             }
             catch (BetHttpPayloadException ex)
@@ -224,6 +233,21 @@ namespace CriptoVersus.API.Controllers
             return User.FindFirstValue("wallet")
                 ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        }
+
+        private Task NotifyDashboardChangedAsync(BetCreateResponse response, CancellationToken cancellationToken)
+        {
+            return _hub.Clients.All.SendAsync(
+                "dashboard_changed",
+                JsonSerializer.Serialize(new
+                {
+                    reason = "bet_created",
+                    response.MatchId,
+                    response.BetId,
+                    response.UserId,
+                    utc = DateTimeOffset.UtcNow
+                }),
+                cancellationToken);
         }
 
         private static bool IsBettingWindowOpen(DAL.NftFutebol.Match match, int elapsedMinutes)

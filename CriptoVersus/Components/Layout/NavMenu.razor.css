@@ -120,17 +120,13 @@
     color: #ffffff;
 }
 
-.brand-symbol {
-    align-items: center;
-    background: #2dd4bf;
-    border: 1px solid #5eead4;
+.brand-logo {
+    background: #0f1115;
+    border: 1px solid #374151;
     border-radius: 8px;
-    color: #07110c;
-    display: inline-flex;
-    font-size: .9rem;
-    font-weight: 900;
     height: 2.55rem;
-    justify-content: center;
+    object-fit: cover;
+    object-position: center;
     width: 2.55rem;
 }
 
