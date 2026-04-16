@@ -180,7 +180,7 @@ main {
     color: #f3f4f6;
     display: flex;
     gap: .65rem;
-    max-width: min(31rem, 48vw);
+    max-width: min(16rem, 36vw);
     min-height: 2.5rem;
     min-width: 0;
     padding: .35rem .7rem .35rem .4rem;
@@ -209,6 +209,7 @@ main {
     display: block;
     font-size: .85rem;
     font-weight: 800;
+    max-width: 12rem;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;

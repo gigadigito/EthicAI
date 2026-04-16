@@ -1,6 +1,8 @@
 ﻿@using CriptoVersus.Web.Components.Pages.Internet
+@using CriptoVersus.Web.Services
 @inherits LayoutComponentBase
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject WalletSessionState WalletState
 
 <div class="app-shell">
     <aside class="app-sidebar">
@@ -18,7 +20,7 @@
             {
                 <button class="wallet-identity" title="@walletPublicKey" @onclick="AbrirLoginAsync">
                     <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
-                    <span class="wallet-address">@walletPublicKey</span>
+                    <span class="wallet-address">@ShortWallet(walletPublicKey!)</span>
                 </button>
             }
             else
@@ -73,8 +75,21 @@
     {
         authToken = await SessionStorage.GetItemAsync<string>("authToken");
         walletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+        WalletState.SetSession(authToken, walletPublicKey);
+        await InvokeAsync(StateHasChanged);
     }
 
     private static string GetWalletAvatarUrl(string wallet)
         => $"https://api.dicebear.com/9.x/identicon/svg?seed={Uri.EscapeDataString(wallet)}";
+
+    private static string ShortWallet(string wallet)
+    {
+        const int start = 8;
+        const int end = 6;
+
+        if (wallet.Length <= start + end + 3)
+            return wallet;
+
+        return $"{wallet[..start]}...{wallet[^end..]}";
+    }
 }

@@ -22,6 +22,7 @@ namespace CriptoVersus.API.Controllers
         private readonly ILogger<BetController> _logger;
         private readonly ILedgerService _ledgerService;
         private readonly IHubContext<DashboardHub> _hub;
+        private readonly IConfiguration _configuration;
 
         private const int LiveBetMaxMinutes = 45;
 
@@ -29,12 +30,14 @@ namespace CriptoVersus.API.Controllers
             EthicAIDbContext context,
             ILogger<BetController> logger,
             ILedgerService ledgerService,
-            IHubContext<DashboardHub> hub)
+            IHubContext<DashboardHub> hub,
+            IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
             _ledgerService = ledgerService;
             _hub = hub;
+            _configuration = configuration;
         }
 
         [HttpPost("{matchId:int}/bet")]
@@ -79,19 +82,29 @@ namespace CriptoVersus.API.Controllers
                     if (match == null)
                         throw new BetHttpException(StatusCodes.Status404NotFound, $"Partida {matchId} não encontrada.");
 
-                    var user = await _context.User
+                    var authenticatedUser = await _context.User
                         .FirstOrDefaultAsync(u => u.Wallet == wallet, cancellationToken);
 
-                    if (user == null)
+                    if (authenticatedUser == null)
                         throw new BetHttpException(StatusCodes.Status404NotFound, "Usuário autenticado não encontrado.");
 
-                    if (request.UserId > 0 && request.UserId != user.UserID)
+                    var isAdminWallet = IsAdminWallet(wallet);
+                    var targetUserId = request.UserId > 0 ? request.UserId : authenticatedUser.UserID;
+
+                    if (!isAdminWallet && targetUserId != authenticatedUser.UserID)
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status403Forbidden, new
                         {
                             message = "O UserId informado não pertence ao usuário autenticado."
                         });
                     }
+
+                    var user = targetUserId == authenticatedUser.UserID
+                        ? authenticatedUser
+                        : await _context.User.FirstOrDefaultAsync(u => u.UserID == targetUserId, cancellationToken);
+
+                    if (user == null)
+                        throw new BetHttpException(StatusCodes.Status404NotFound, $"Usuário {targetUserId} não encontrado.");
 
                     if (!IsValidMatchTeam(match, request.TeamId))
                         throw new BetHttpException(StatusCodes.Status400BadRequest, "O TeamId informado não pertence a esta partida.");
@@ -233,6 +246,14 @@ namespace CriptoVersus.API.Controllers
             return User.FindFirstValue("wallet")
                 ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        }
+
+        private bool IsAdminWallet(string wallet)
+        {
+            var adminWallet = _configuration["CriptoVersus:AdminWallet"];
+
+            return !string.IsNullOrWhiteSpace(adminWallet)
+                && string.Equals(wallet, adminWallet, StringComparison.Ordinal);
         }
 
         private Task NotifyDashboardChangedAsync(BetCreateResponse response, CancellationToken cancellationToken)

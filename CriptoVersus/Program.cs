@@ -11,6 +11,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<DashboardHubClient>();
+builder.Services.AddScoped<WalletSessionState>();
 
 
 builder.Services.AddServerSideBlazor()

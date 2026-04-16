@@ -11,6 +11,7 @@
 @inject CriptoVersus.Web.Services.DashboardHubClient HubClient
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject IConfiguration Config
+@inject WalletSessionState WalletState
 
 <h3 class="mb-3">Dashboard</h3>
 
@@ -173,6 +174,7 @@ else
         _adminWallet = Config["CriptoVersus:AdminWallet"];
         D("OnInitialized (sync) => render liberado");
 
+        WalletState.Changed += OnWalletSessionChanged;
         HubClient.DashboardChanged += OnDashboardChanged;
 
         // dispara a inicialização sem bloquear o primeiro render
@@ -318,6 +320,7 @@ else
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        WalletState.Changed -= OnWalletSessionChanged;
         HubClient.DashboardChanged -= OnDashboardChanged;
 
         try { _debounceCts?.Cancel(); } catch { /* ignore */ }
@@ -379,7 +382,23 @@ else
 
     private async Task LoadPrivilegedWalletStateAsync()
     {
-        _sessionWallet = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+        _sessionWallet = WalletState.WalletPublicKey;
+
+        if (string.IsNullOrWhiteSpace(_sessionWallet))
+            _sessionWallet = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+
+        ApplyPrivilegedWalletState();
+    }
+
+    private void OnWalletSessionChanged()
+    {
+        _sessionWallet = WalletState.WalletPublicKey;
+        ApplyPrivilegedWalletState();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyPrivilegedWalletState()
+    {
         _isPrivilegedWallet =
             !string.IsNullOrWhiteSpace(_adminWallet)
             && !string.IsNullOrWhiteSpace(_sessionWallet)
