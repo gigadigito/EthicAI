@@ -893,7 +893,7 @@ else
         catch (Exception ex)
         {
             BetRequestOk = false;
-            BetStatusMessage = $"Erro ao chamar a API de aposta. Usuário={SelectedUserDisplay}.";
+            BetStatusMessage = GetBetExceptionMessage(ex, SelectedUserDisplay);
             BetResponseBody = ex.ToString();
         }
         finally
@@ -1008,6 +1008,14 @@ else
         {
             return text;
         }
+    }
+
+    private static string GetBetExceptionMessage(Exception ex, string selectedUserDisplay)
+    {
+        if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
+            return $"Partida ainda não criada on-chain na devnet. Usuário={selectedUserDisplay}.";
+
+        return $"Erro ao chamar a aposta. Usuário={selectedUserDisplay}.";
     }
 
     private static string FmtUtc(DateTime? dt)

@@ -29,3 +29,14 @@ After deploy, copy the generated program id into:
 - `CriptoVersus/appsettings.json` under `OnChainBetting:ProgramId`
 
 Then create the on-chain config and matches with an Anchor script or CLI client.
+
+## Create A Devnet Match In Solana Playground
+
+Copy `create-match-devnet.ts` into the Solana Playground client, adjust:
+
+- `MATCH_ID`
+- `TEAM_A_ID`
+- `TEAM_B_ID`
+
+Use the same wallet that ran `initialize_config`, then run the client. The app can only call
+`place_bet` after the matching on-chain account has been created.

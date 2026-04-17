@@ -89,6 +89,14 @@ export async function placeBet(options) {
         [new TextEncoder().encode("bet"), matchAccount.toBuffer(), provider.publicKey.toBuffer()],
         programId);
 
+    const matchInfo = await connection.getAccountInfo(matchAccount, "confirmed");
+    if (!matchInfo) {
+        throw new Error(
+            `ONCHAIN_MATCH_NOT_INITIALIZED: Match #${options.matchId} ainda nao foi criado na ${cluster}. ` +
+            `Crie primeiro a partida on-chain com createMatch. ` +
+            `Match PDA esperado: ${matchAccount.toBase58()}`);
+    }
+
     const data = concatBytes(
         await discriminator("place_bet"),
         u64Le(matchId),
