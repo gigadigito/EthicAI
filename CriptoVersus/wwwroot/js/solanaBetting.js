@@ -23,6 +23,13 @@ function u64Le(value) {
     return bytes;
 }
 
+function i64Le(value) {
+    const bytes = new Uint8Array(8);
+    const view = new DataView(bytes.buffer);
+    view.setBigInt64(0, BigInt(value), true);
+    return bytes;
+}
+
 async function discriminator(name) {
     const encoded = new TextEncoder().encode(`global:${name}`);
     const hash = await crypto.subtle.digest("SHA-256", encoded);
@@ -46,13 +53,87 @@ function solToLamports(amountSol, lamportsPerSol) {
     const normalized = Number(amountSol);
 
     if (!Number.isFinite(normalized) || normalized <= 0) {
-        throw new Error("Valor da aposta inválido.");
+        throw new Error("Valor do investimento inválido.");
     }
 
     return BigInt(Math.round(normalized * lamportsPerSol));
 }
 
+async function sendAndConfirm(connection, provider, transaction) {
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    transaction.feePayer = provider.publicKey;
+    transaction.recentBlockhash = blockhash;
+
+    const signed = await provider.signTransaction(transaction);
+    const signature = await connection.sendRawTransaction(signed.serialize());
+
+    await connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight
+    }, "confirmed");
+
+    return signature;
+}
+
+async function createMatchIfAllowed(options, context) {
+    const {
+        PublicKey,
+        Transaction,
+        TransactionInstruction,
+        SystemProgram
+    } = context.web3;
+
+    if (!options.autoCreateMatch) {
+        return null;
+    }
+
+    const authorityPublicKey = options.authorityPublicKey || "";
+    if (!authorityPublicKey || context.provider.publicKey.toBase58() !== authorityPublicKey) {
+        return null;
+    }
+
+    const teamAId = Number(options.teamAId);
+    const teamBId = Number(options.teamBId);
+
+    if (!Number.isInteger(teamAId) || !Number.isInteger(teamBId) || teamAId <= 0 || teamBId <= 0) {
+        throw new Error("ONCHAIN_CREATE_MATCH_INVALID_TEAMS: TeamAId/TeamBId inválidos para criar a partida on-chain.");
+    }
+
+    const bettingCloseUnix = BigInt(
+        options.bettingCloseUnix
+            ? Math.floor(Number(options.bettingCloseUnix))
+            : Math.floor(Date.now() / 1000) + (24 * 60 * 60));
+
+    const [config] = PublicKey.findProgramAddressSync(
+        [new TextEncoder().encode("config")],
+        context.programId);
+
+    const data = concatBytes(
+        await discriminator("create_match"),
+        u64Le(context.matchId),
+        new Uint8Array([teamAId]),
+        new Uint8Array([teamBId]),
+        i64Le(bettingCloseUnix));
+
+    const instruction = new TransactionInstruction({
+        programId: context.programId,
+        keys: [
+            { pubkey: config, isSigner: false, isWritable: false },
+            { pubkey: context.matchAccount, isSigner: false, isWritable: true },
+            { pubkey: context.vault, isSigner: false, isWritable: true },
+            { pubkey: context.provider.publicKey, isSigner: true, isWritable: true },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
+        ],
+        data
+    });
+
+    const transaction = new Transaction().add(instruction);
+    return await sendAndConfirm(context.connection, context.provider, transaction);
+}
+
 export async function placeBet(options) {
+    const web3 = getWeb3();
     const {
         Connection,
         PublicKey,
@@ -61,7 +142,7 @@ export async function placeBet(options) {
         SystemProgram,
         clusterApiUrl,
         LAMPORTS_PER_SOL
-    } = getWeb3();
+    } = web3;
 
     const provider = getProvider();
 
@@ -90,11 +171,25 @@ export async function placeBet(options) {
         programId);
 
     const matchInfo = await connection.getAccountInfo(matchAccount, "confirmed");
+    let createMatchSignature = null;
+
     if (!matchInfo) {
-        throw new Error(
-            `ONCHAIN_MATCH_NOT_INITIALIZED: Match #${options.matchId} ainda nao foi criado na ${cluster}. ` +
-            `Crie primeiro a partida on-chain com createMatch. ` +
-            `Match PDA esperado: ${matchAccount.toBase58()}`);
+        createMatchSignature = await createMatchIfAllowed(options, {
+            web3,
+            connection,
+            provider,
+            programId,
+            matchId,
+            matchAccount,
+            vault
+        });
+
+        if (!createMatchSignature) {
+            throw new Error(
+                `ONCHAIN_MATCH_NOT_INITIALIZED: Match #${options.matchId} ainda nao foi criado na ${cluster}. ` +
+                `Conecte a carteira admin para criar a partida on-chain com createMatch. ` +
+                `Match PDA esperado: ${matchAccount.toBase58()}`);
+        }
     }
 
     const data = concatBytes(
@@ -115,23 +210,12 @@ export async function placeBet(options) {
         data
     });
 
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-    const transaction = new Transaction({
-        feePayer: provider.publicKey,
-        recentBlockhash: blockhash
-    }).add(instruction);
-
-    const signed = await provider.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(signed.serialize());
-
-    await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight
-    }, "confirmed");
+    const transaction = new Transaction().add(instruction);
+    const signature = await sendAndConfirm(connection, provider, transaction);
 
     return {
         signature,
+        createMatchSignature,
         matchAccount: matchAccount.toBase58(),
         betAccount: bet.toBase58(),
         vault: vault.toBase58(),

@@ -13,7 +13,7 @@ const MATCH_ID = 1;
 const TEAM_A_ID = 1;
 const TEAM_B_ID = 2;
 
-// Janela de aposta aberta por 24h a partir da execucao deste script.
+// Janela de investimento aberta por 24h a partir da execucao deste script.
 const BETTING_CLOSE_SECONDS_FROM_NOW = 24 * 60 * 60;
 
 const connection = new anchor.web3.Connection(DEVNET_RPC, "confirmed");

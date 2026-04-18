@@ -201,7 +201,7 @@ namespace BLL.NFTFutebol
                                           m.TeamB.Currency.Symbol.ToLower() == teamBSymbol);
         }
 
-        // Método para registrar a aposta
+        // Método para registrar o investimento
         public async Task<bool> PlaceBetAsync(int matchId, int teamId, decimal amount, int userid)
         {
             try
@@ -351,7 +351,7 @@ namespace BLL.NFTFutebol
 
         public async Task<bool> ClaimBetAsync(int betId, int userId)
         {
-            // Carrega a aposta junto com o match, times e usuário
+            // Carrega o investimento junto com o match, times e usuário
             var bet = await _context.Bet
                 .Include(b => b.Match)
                     .ThenInclude(m => m.TeamA)
@@ -363,7 +363,7 @@ namespace BLL.NFTFutebol
             if (bet == null)
                 return false;
 
-            // Verifica se a aposta pertence ao usuário que solicita o claim
+            // Verifica se o investimento pertence ao usuário que solicita o claim
             if (bet.UserId != userId)
                 return false;
 
@@ -391,14 +391,14 @@ namespace BLL.NFTFutebol
             //    return false;
             //}
 
-            // Verifica se a aposta já foi reivindicada
+            // Verifica se o investimento já foi reivindicado
             // (Supondo que você adicionou campos Claimed e ClaimedAt na tabela Bet)
             
             if (bet.Claimed)
                 return false;
 
                
-                // Marca a aposta como reivindicada
+                // Marca o investimento como reivindicado
                 bet.Claimed = true;
                 bet.ClaimedAt = DateTime.UtcNow;
 
@@ -492,10 +492,10 @@ namespace BLL.NFTFutebol
 
             if (winningTeamId == 0)
             {
-                // Em caso de empate, as apostas podem ser retornadas ou tratadas conforme regra
+                // Em caso de empate, os investimentos podem ser retornados ou tratados conforme regra
                 foreach (var bet in match.Bets)
                 {
-                    // Retorna o valor apostado ao jogador
+                    // Retorna o valor investido ao jogador
                     Console.WriteLine($"Devolvendo {bet.Amount} ao jogador {bet.UserId}");
                     // Implementar lógica de devolução
                 }
@@ -509,7 +509,7 @@ namespace BLL.NFTFutebol
                 {
                     var payout = (bet.Amount / totalWinningBets) * payoutPool;
 
-                    // Simulação de pagamento ao apostador
+                    // Simulação de pagamento ao investidor
                     Console.WriteLine($"Pagando {payout} ao jogador {bet.UserId}");
                     // Implementar lógica de pagamento
                 }
@@ -552,7 +552,7 @@ namespace BLL.NFTFutebol
                 return false;
             }
         }
-        // Método para contar as apostas por time
+        // Método para contar os investimentos por time
         public async Task<int> GetBetCountByTeamAsync(int teamId)
         {
             return await _context.Bet.CountAsync(b => b.TeamId == teamId);

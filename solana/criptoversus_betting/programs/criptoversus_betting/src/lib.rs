@@ -331,17 +331,17 @@ pub enum BettingError {
     Unauthorized,
     #[msg("Time inválido para esta partida.")]
     InvalidTeam,
-    #[msg("Valor de aposta inválido.")]
+    #[msg("Valor de investimento inválido.")]
     InvalidAmount,
     #[msg("Partida inválida.")]
     InvalidMatch,
-    #[msg("A janela de apostas está fechada.")]
+    #[msg("A janela de investimentos está fechada.")]
     BettingClosed,
     #[msg("A partida já foi liquidada.")]
     AlreadySettled,
     #[msg("A partida ainda não foi liquidada.")]
     NotSettled,
-    #[msg("Esta aposta já foi reivindicada.")]
+    #[msg("Este investimento já foi reivindicado.")]
     AlreadyClaimed,
     #[msg("Não existe pool vencedor para esta partida.")]
     NoWinningPool,

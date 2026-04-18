@@ -188,7 +188,7 @@
         {
             <div class="card mb-3">
                 <div class="card-header">
-                    <strong>Retorno da Aposta</strong>
+                    <strong>Retorno do Investimento</strong>
                 </div>
                 <div class="card-body">
                     <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@_betResponseBody</pre>
@@ -425,9 +425,9 @@
             <div class="col-12">
                 <div class="card match-panel p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                        <div class="fw-bold">Teste de Aposta</div>
+                        <div class="fw-bold">Teste de Investimento</div>
                         <span class="badge @(CanBetOnCurrentMatch() ? "bg-success" : "bg-secondary")">
-                            @(CanBetOnCurrentMatch() ? "Apostas abertas" : "Apostas encerradas")
+                            @(CanBetOnCurrentMatch() ? "Investimentos abertos" : "Investimentos encerrados")
                         </span>
                     </div>
 
@@ -458,7 +458,7 @@
                     @if (!CanBetOnCurrentMatch())
                     {
                         <div class="alert alert-secondary mb-0">
-                            Apostas indisponíveis para esta partida. Status: <strong>@_match.Status</strong>,
+                            Investimentos indisponíveis para esta partida. Status: <strong>@_match.Status</strong>,
                             tempo decorrido: <strong>@_match.ElapsedMinutes min</strong>.
                         </div>
                     }
@@ -469,7 +469,7 @@
                                 <button class="btn btn-success w-100"
                                         disabled="@_isSendingBet"
                                         @onclick="() => SendBet(_match.MatchId, _match.TeamAId, _match.TeamA)">
-                                    Apostar em @_match.TeamA
+                                    Investir em @_match.TeamA
                                 </button>
                             </div>
 
@@ -477,7 +477,7 @@
                                 <button class="btn btn-primary w-100"
                                         disabled="@_isSendingBet"
                                         @onclick="() => SendBet(_match.MatchId, _match.TeamBId, _match.TeamB)">
-                                    Apostar em @_match.TeamB
+                                    Investir em @_match.TeamB
                                 </button>
                             </div>
                         </div>
@@ -986,7 +986,7 @@
             if (string.IsNullOrWhiteSpace(token))
             {
                 _betRequestOk = false;
-                _betStatusMessage = "Faça login com a carteira Solana antes de apostar.";
+                _betStatusMessage = "Faça login com a carteira Solana antes de investir.";
                 return;
             }
 
@@ -1025,13 +1025,13 @@
             if (response.IsSuccessStatusCode)
             {
                 _betRequestOk = true;
-                _betStatusMessage = $"Aposta enviada com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
+                _betStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
                 await ReloadMatchAsync(CancellationToken.None);
             }
             else
             {
                 _betRequestOk = false;
-                _betStatusMessage = $"Falha ao apostar em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                _betStatusMessage = $"Falha ao investir em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
             }
         }
         catch (Exception ex)
@@ -1107,7 +1107,7 @@
         if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
             return $"Partida ainda não criada on-chain na devnet. Usuário={selectedUserDisplay}.";
 
-        return $"Erro ao chamar a aposta. Usuário={selectedUserDisplay}.";
+        return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
     }
 
     private PeriodicTimer? _timer;

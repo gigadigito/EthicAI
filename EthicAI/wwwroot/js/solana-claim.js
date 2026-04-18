@@ -1,4 +1,4 @@
-﻿window.ethicaiClaim = async function () {
+window.ethicaiClaim = async function () {
     const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("devnet"));
     const wallet = window.solana;
 
@@ -8,7 +8,7 @@
     const programId = new solanaWeb3.PublicKey("BngkhvKSiTTWmwaViXJ1oX8xhNgZKmkxTnmscyBRBZxq");
     const userPubkey = wallet.publicKey;
 
-    // Deriva o endereço da conta de aposta usando seeds
+    // Deriva o endereço da conta de investimento usando seeds
     const [betAccount] = solanaWeb3.PublicKey.findProgramAddressSync(
         [new TextEncoder().encode("bet"), userPubkey.toBuffer()],
         programId
@@ -17,7 +17,7 @@
     // Verifica se a conta existe no Devnet
     const accountInfo = await connection.getAccountInfo(betAccount);
     if (!accountInfo) {
-        throw new Error("A conta de aposta (betAccount) não existe. Você precisa apostar antes de fazer o claim.");
+        throw new Error("A conta de investimento (betAccount) não existe. Você precisa investir antes de fazer o claim.");
     }
 
     // Discriminador correto para a instrução "claim"

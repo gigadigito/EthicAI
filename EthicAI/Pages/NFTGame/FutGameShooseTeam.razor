@@ -1,4 +1,4 @@
-﻿@page "/criptofut/match/{matchParameter}"
+@page "/criptofut/match/{matchParameter}"
 @using BLL
 @using BLL.NFTFutebol
 @using DAL
@@ -95,20 +95,20 @@ else
         </div>
         @if (isCanBet)
         {
-            <!-- Modal de Aposta -->
+            <!-- Modal de Investimento -->
             @if (showModal)
             {
                 <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.5);">
                     <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title ">Definir Valor da Aposta</h5>
+                                <h5 class="modal-title ">Definir Valor do Investimento</h5>
                                 <button type="button" class="close" @onclick="CloseBetModal" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <label>Escolha sua aposta:</label>
+                                <label>Escolha seu investimento:</label>
                                 <div class="bet-buttons">
                                     <button class="btn-bet-option" @onclick="() => SetBetAmount(0.01m)">0.01 SOL</button>
                                     <button class="btn-bet-option" @onclick="() => SetBetAmount(0.1m)">0.1 SOL</button>
@@ -130,7 +130,7 @@ else
                             </div>
                             <div class="modal-footer">
                                 <button class="btn btn-secondary" @onclick="CloseBetModal">Cancelar</button>
-                                <button class="btn btn-primary" @onclick="ConfirmBet">Confirmar Aposta</button>
+                                <button class="btn btn-primary" @onclick="ConfirmBet">Confirmar Investimento</button>
                             </div>
                         </div>
                     </div>
@@ -192,7 +192,7 @@ else
         }
         else
         {
-            <p>Não há apostas para esta partida.</p>
+            <p>Não há investimentos para esta partida.</p>
         }
     }
     </div>
@@ -244,7 +244,7 @@ else
         {
             if (jsEx.Message.Contains("does not exist") || jsEx.Message.Contains("not found"))
             {
-                await JS.InvokeVoidAsync("html5Toast.show", "Você ainda não realizou uma aposta (place_bet).", "warning", 5000);
+                await JS.InvokeVoidAsync("html5Toast.show", "Você ainda não realizou um investimento (place_bet).", "warning", 5000);
             }
             else
             {
@@ -262,7 +262,7 @@ else
     {
         try
         {
-            var message = $"Claim - Confirme que a carteira é sua para a aposta #{betId} - ID:  {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            var message = $"Claim - Confirme que a carteira é sua para o investimento #{betId} - ID:  {DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
 
 
             var signed = await JS.InvokeAsync<SolanaSignedMessage>("signMessageWithSolana", message);
@@ -276,7 +276,7 @@ else
             // Valida se a carteira usada é a mesma do usuário
             if (!string.Equals(signed.PublicKey, storedUser.Wallet, StringComparison.OrdinalIgnoreCase))
             {
-                await JS.InvokeVoidAsync("html5Toast.show", "Essa carteira não corresponde à aposta registrada.", "error", 4000);
+                await JS.InvokeVoidAsync("html5Toast.show", "Essa carteira não corresponde ao investimento registrado.", "error", 4000);
                 return;
             }
 
@@ -318,7 +318,7 @@ else
         {
             if (betAmount <= 0)
             {
-                betStatusMessage = "Por favor, insira um valor válido para aposta.";
+                betStatusMessage = "Por favor, insira um valor válido para investimento.";
                 return;
             }
 
@@ -355,17 +355,17 @@ else
                 if (selectedTeamId == match.TeamAId) teamABets++;
                 if (selectedTeamId == match.TeamBId) teamBBets++;
 
-                betStatusMessage = $"Aposta de {betAmount} SOL feita com sucesso!";
+                betStatusMessage = $"Investimento de {betAmount} SOL feito com sucesso!";
                 CloseBetModal();
             }
             else
             {
-                betStatusMessage = "Erro ao fazer a aposta. Tente novamente.";
+                betStatusMessage = "Erro ao fazer o investimento. Tente novamente.";
             }
         }
         catch (Exception ex)
         {
-            betStatusMessage = $"Erro ao processar a aposta: {ex.Message}";
+            betStatusMessage = $"Erro ao processar o investimento: {ex.Message}";
         }
         finally
         {
@@ -406,7 +406,7 @@ else
     {
         betAmount = amount;
         betAmountString = amount.ToString("F2", new CultureInfo("en-US"));
-        betStatusMessage = $"Aposta de {betAmountString} SOL selecionada!";
+        betStatusMessage = $"Investimento de {betAmountString} SOL selecionado!";
     }
 
     private void OnBetAmountInput(ChangeEventArgs e)
@@ -594,7 +594,7 @@ else
         {
             if (betAmount <= 0)
             {
-                betStatusMessage = "Por favor, insira um valor válido para aposta.";
+                betStatusMessage = "Por favor, insira um valor válido para investimento.";
                 return;
             }
 
@@ -658,16 +658,16 @@ else
                 if (teamId == match.TeamAId) teamABets++;
                 if (teamId == match.TeamBId) teamBBets++;
 
-                betStatusMessage = $"Aposta de {betAmount} SOL feita com sucesso!";
+                betStatusMessage = $"Investimento de {betAmount} SOL feito com sucesso!";
             }
             else
             {
-                betStatusMessage = "Erro ao fazer a aposta. Tente novamente.";
+                betStatusMessage = "Erro ao fazer o investimento. Tente novamente.";
             }
         }
         catch (Exception ex)
         {
-            betStatusMessage = $"Erro ao processar a aposta: {ex.Message}";
+            betStatusMessage = $"Erro ao processar o investimento: {ex.Message}";
         }
     }
 
@@ -765,7 +765,7 @@ else
                 this.teamBScore = finalMatch.ScoreB;
             }
 
-            // Carregar as apostas do usuário logado
+            // Carregar os investimentos do usuário logado
             if (storedUser != null)
             {
                 userBets = await MatchService.GetBetsByMatchAsync(match.MatchId);

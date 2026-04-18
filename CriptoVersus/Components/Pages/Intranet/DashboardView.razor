@@ -16,12 +16,12 @@
 }
 else
 {
-    <!-- Seleção de usuário para aposta -->
+    <!-- Seleção de usuário para investimento -->
     @if (IsPrivilegedWallet)
     {
         <div class="card mb-3">
             <div class="card-header">
-                <strong>Usuário da aposta</strong>
+                <strong>Usuário do investimento</strong>
             </div>
             <div class="card-body">
                 <div class="row g-3 align-items-end">
@@ -46,7 +46,7 @@ else
 
                     <div class="col-md-6 col-lg-4">
                         <div class="text-muted small">
-                            Valor fixo da aposta:
+                            Valor fixo do investimento:
                         </div>
                         <div class="fw-bold">
                             @TestAmount
@@ -168,7 +168,7 @@ else
     {
         <div class="card mb-3">
             <div class="card-header">
-                <strong>Retorno da Aposta</strong>
+                <strong>Retorno do Investimento</strong>
             </div>
             <div class="card-body">
                 <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@BetResponseBody</pre>
@@ -182,7 +182,7 @@ else
         <section class="listing-panel">
             <div class="listing-panel-head">
                 <div>
-                    <div class="listing-eyebrow">Apostas</div>
+                    <div class="listing-eyebrow">Investimentos</div>
                     <h3>Partidas com mercado aberto</h3>
                 </div>
                 <span class="listing-count">@bettableMatches.Count</span>
@@ -190,7 +190,7 @@ else
 
             @if (bettableMatches.Count == 0)
             {
-                <div class="listing-empty">Nenhuma partida disponível para aposta.</div>
+                <div class="listing-empty">Nenhuma partida disponível para investimento.</div>
             }
             else
             {
@@ -249,21 +249,21 @@ else
                             <div class="match-card-footer">
                                 @if (!canBetLive)
                                 {
-                                    <span class="closed-bet">Apostas encerradas</span>
+                                    <span class="closed-bet">Investimentos encerrados</span>
                                     <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
                                 }
                                 else
                                 {
                                     <button class="btn btn-success btn-sm"
                                             disabled="@disabledA"
-                                            @onclick="() => SendBet(m.MatchId, m.TeamAId, m.TeamA)">
-                                        Apostar @m.TeamA
+                                            @onclick="() => SendBet(m, m.TeamAId, m.TeamA)">
+                                        Investir @m.TeamA
                                     </button>
 
                                     <button class="btn btn-outline-light btn-sm"
                                             disabled="@disabledB"
-                                            @onclick="() => SendBet(m.MatchId, m.TeamBId, m.TeamB)">
-                                        Apostar @m.TeamB
+                                            @onclick="() => SendBet(m, m.TeamBId, m.TeamB)">
+                                        Investir @m.TeamB
                                     </button>
                                 }
                             </div>
@@ -829,7 +829,7 @@ else
 
     private Task OnReloadClicked() => ReloadRequested.InvokeAsync();
 
-    private async Task SendBet(int matchId, int teamId, string teamName)
+    private async Task SendBet(BettableMatchViewModel match, int teamId, string teamName)
     {
         IsSendingBet = true;
         BetRequestOk = false;
@@ -843,7 +843,7 @@ else
             if (string.IsNullOrWhiteSpace(token))
             {
                 BetRequestOk = false;
-                BetStatusMessage = "Faça login com a carteira Solana antes de apostar.";
+                BetStatusMessage = "Faça login com a carteira Solana antes de investir.";
                 return;
             }
 
@@ -852,7 +852,7 @@ else
 
             if (onChainBettingEnabled)
             {
-                var onChainResult = await PlaceOnChainBetAsync(matchId, teamId, TestAmount);
+                var onChainResult = await PlaceOnChainBetAsync(match, teamId, TestAmount);
                 onChainSignature = onChainResult.Signature;
                 BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
             }
@@ -865,7 +865,7 @@ else
                 onChainSignature
             };
 
-            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
+            var url = $"https://criptoversus-api.duckdns.org/api/match/{match.MatchId}/bet";
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = JsonContent.Create(payload)
@@ -882,12 +882,12 @@ else
             if (response.IsSuccessStatusCode)
             {
                 BetRequestOk = true;
-                BetStatusMessage = $"Aposta enviada com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
+                BetStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={match.MatchId}, TeamId={teamId}.";
             }
             else
             {
                 BetRequestOk = false;
-                BetStatusMessage = $"Falha ao apostar em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                BetStatusMessage = $"Falha ao investir em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
             }
         }
         catch (Exception ex)
@@ -903,7 +903,7 @@ else
         }
     }
 
-    private async Task<OnChainBetResult> PlaceOnChainBetAsync(int matchId, int teamId, decimal amountSol)
+    private async Task<OnChainBetResult> PlaceOnChainBetAsync(BettableMatchViewModel match, int teamId, decimal amountSol)
     {
         BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
@@ -919,8 +919,13 @@ else
             {
                 programId,
                 cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
-                matchId,
+                matchId = match.MatchId,
                 teamId,
+                teamAId = match.TeamAId,
+                teamBId = match.TeamBId,
+                bettingCloseUnix = match.BettingCloseTime?.ToUnixTimeSeconds(),
+                autoCreateMatch = IsPrivilegedWallet,
+                authorityPublicKey = Config["CriptoVersus:AdminWallet"],
                 amountSol
             });
     }
@@ -944,6 +949,7 @@ else
                         TeamB = m.TeamB,
                         Status = m.Status ?? "Pending",
                         StartTime = m.StartTime,
+                        BettingCloseTime = m.BettingCloseTime,
                         ElapsedMinutes = 0,
                         RemainingMinutes = m.RemainingMinutes,
                         ScoreA = m.ScoreA,
@@ -965,6 +971,7 @@ else
                         TeamB = m.TeamB,
                         Status = m.Status ?? "Ongoing",
                         StartTime = null,
+                        BettingCloseTime = m.BettingCloseTime,
                         ElapsedMinutes = m.ElapsedMinutes,
                         RemainingMinutes = m.RemainingMinutes,
                         ScoreA = m.ScoreA,
@@ -1013,9 +1020,12 @@ else
     private static string GetBetExceptionMessage(Exception ex, string selectedUserDisplay)
     {
         if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
-            return $"Partida ainda não criada on-chain na devnet. Usuário={selectedUserDisplay}.";
+            return $"Partida ainda não criada on-chain na devnet. Conecte a carteira admin para publicar a partida antes de investir. Usuário={selectedUserDisplay}.";
 
-        return $"Erro ao chamar a aposta. Usuário={selectedUserDisplay}.";
+        if (ex.ToString().Contains("Unauthorized", StringComparison.OrdinalIgnoreCase))
+            return $"Carteira conectada não autorizada para criar a partida on-chain. Use a carteira admin configurada. Usuário={selectedUserDisplay}.";
+
+        return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
     }
 
     private static string FmtUtc(DateTime? dt)
@@ -1149,6 +1159,7 @@ else
     private sealed class OnChainBetResult
     {
         public string Signature { get; set; } = "";
+        public string? CreateMatchSignature { get; set; }
         public string MatchAccount { get; set; } = "";
         public string BetAccount { get; set; } = "";
         public string Vault { get; set; } = "";
@@ -1164,6 +1175,7 @@ else
         public string TeamB { get; set; } = "";
         public string Status { get; set; } = "";
         public DateTime? StartTime { get; set; }
+        public DateTimeOffset? BettingCloseTime { get; set; }
         public int ElapsedMinutes { get; set; }
         public int RemainingMinutes { get; set; }
         public int? ScoreA { get; set; }

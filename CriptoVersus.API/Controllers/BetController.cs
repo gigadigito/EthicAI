@@ -57,12 +57,12 @@ namespace CriptoVersus.API.Controllers
                 return BadRequest("TeamId inválido.");
 
             if (request.Amount <= 0)
-                return BadRequest("O valor da aposta deve ser maior que zero.");
+                return BadRequest("O valor do investimento deve ser maior que zero.");
 
             request.Amount = decimal.Round(request.Amount, 8, MidpointRounding.ToZero);
 
             if (request.Amount <= 0)
-                return BadRequest("O valor da aposta ficou inválido após o arredondamento.");
+                return BadRequest("O valor do investimento ficou inválido após o arredondamento.");
 
             var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
 
@@ -70,7 +70,7 @@ namespace CriptoVersus.API.Controllers
             {
                 return BadRequest(new
                 {
-                    message = "A assinatura da transação Solana é obrigatória para apostas on-chain."
+                    message = "A assinatura da transação Solana é obrigatória para investimentos on-chain."
                 });
             }
 
@@ -125,7 +125,7 @@ namespace CriptoVersus.API.Controllers
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
                         {
-                            message = "A janela de apostas desta partida está fechada.",
+                            message = "A janela de investimentos desta partida está fechada.",
                             bettingCloseTime = match.BettingCloseTime,
                             matchStartTime = match.StartTime,
                             matchStatus = match.Status.ToString(),
@@ -138,7 +138,7 @@ namespace CriptoVersus.API.Controllers
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
                         {
-                            message = "Saldo insuficiente para realizar a aposta.",
+                            message = "Saldo insuficiente para realizar o investimento.",
                             currentBalance = user.Balance,
                             requestedAmount = request.Amount
                         });
@@ -182,14 +182,14 @@ namespace CriptoVersus.API.Controllers
                         balanceAfter: user.Balance,
                         referenceId: bet.BetId,
                         description: onChainBettingEnabled
-                            ? $"Aposta on-chain realizada no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}"
-                            : $"Aposta realizada no match {bet.MatchId}, team {bet.TeamId}",
+                            ? $"Investimento on-chain realizado no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}"
+                            : $"Investimento realizado no match {bet.MatchId}, team {bet.TeamId}",
                         ct: cancellationToken);
 
                     await transaction.CommitAsync(cancellationToken);
 
                     _logger.LogInformation(
-                        "Aposta criada com sucesso. BetId={BetId}, MatchId={MatchId}, UserId={UserId}, TeamId={TeamId}, Amount={Amount}, BalanceBefore={BalanceBefore}, BalanceAfter={BalanceAfter}, MatchStatus={MatchStatus}, ElapsedMinutes={ElapsedMinutes}",
+                        "Investimento criado com sucesso. BetId={BetId}, MatchId={MatchId}, UserId={UserId}, TeamId={TeamId}, Amount={Amount}, BalanceBefore={BalanceBefore}, BalanceAfter={BalanceAfter}, MatchStatus={MatchStatus}, ElapsedMinutes={ElapsedMinutes}",
                         bet.BetId,
                         bet.MatchId,
                         bet.UserId,
@@ -216,7 +216,7 @@ namespace CriptoVersus.API.Controllers
                         SettledAt = bet.SettledAt,
                         BettingCloseTime = match.BettingCloseTime,
                         OnChainSignature = request.OnChainSignature,
-                        Message = "Aposta registrada com sucesso."
+                        Message = "Investimento registrado com sucesso."
                     };
                 });
 
@@ -236,7 +236,7 @@ namespace CriptoVersus.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Erro ao criar aposta para MatchId={MatchId}, UserId={UserId}, TeamId={TeamId}, Amount={Amount}",
+                    "Erro ao criar investimento para MatchId={MatchId}, UserId={UserId}, TeamId={TeamId}, Amount={Amount}",
                     matchId,
                     request?.UserId,
                     request?.TeamId,
@@ -244,7 +244,7 @@ namespace CriptoVersus.API.Controllers
 
                 return StatusCode(StatusCodes.Status500InternalServerError, new
                 {
-                    message = "Erro interno ao registrar a aposta.",
+                    message = "Erro interno ao registrar o investimento.",
                     detail = ex.Message
                 });
             }
