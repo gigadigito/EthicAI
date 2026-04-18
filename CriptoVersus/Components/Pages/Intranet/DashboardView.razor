@@ -925,7 +925,7 @@ else
                 teamBId = match.TeamBId,
                 bettingCloseUnix = match.BettingCloseTime?.ToUnixTimeSeconds(),
                 autoCreateMatch = IsPrivilegedWallet,
-                authorityPublicKey = Config["CriptoVersus:AdminWallet"],
+                authorityPublicKey = Config["OnChainBetting:AuthorityWallet"] ?? Config["CriptoVersus:AdminWallet"],
                 amountSol
             });
     }

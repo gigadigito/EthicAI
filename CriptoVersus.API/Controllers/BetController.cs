@@ -265,9 +265,16 @@ namespace CriptoVersus.API.Controllers
         private bool IsAdminWallet(string wallet)
         {
             var adminWallet = _configuration["CriptoVersus:AdminWallet"];
+            var onChainAuthorityWallet = _configuration["OnChainBetting:AuthorityWallet"];
 
-            return !string.IsNullOrWhiteSpace(adminWallet)
-                && string.Equals(wallet, adminWallet, StringComparison.Ordinal);
+            return IsConfiguredWallet(wallet, adminWallet)
+                || IsConfiguredWallet(wallet, onChainAuthorityWallet);
+        }
+
+        private static bool IsConfiguredWallet(string wallet, string? configuredWallet)
+        {
+            return !string.IsNullOrWhiteSpace(configuredWallet)
+                && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
         }
 
         private Task NotifyDashboardChangedAsync(BetCreateResponse response, CancellationToken cancellationToken)

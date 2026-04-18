@@ -107,6 +107,7 @@ else
     private long _renderCount;
     private string _renderStamp = Guid.NewGuid().ToString("N");
     private string? _adminWallet;
+    private string? _onChainAuthorityWallet;
     private string? _sessionWallet;
     private bool _isPrivilegedWallet;
 
@@ -172,6 +173,7 @@ else
     protected override void OnInitialized()
     {
         _adminWallet = Config["CriptoVersus:AdminWallet"];
+        _onChainAuthorityWallet = Config["OnChainBetting:AuthorityWallet"];
         D("OnInitialized (sync) => render liberado");
 
         WalletState.Changed += OnWalletSessionChanged;
@@ -400,9 +402,15 @@ else
     private void ApplyPrivilegedWalletState()
     {
         _isPrivilegedWallet =
-            !string.IsNullOrWhiteSpace(_adminWallet)
-            && !string.IsNullOrWhiteSpace(_sessionWallet)
-            && string.Equals(_sessionWallet, _adminWallet, StringComparison.Ordinal);
+            !string.IsNullOrWhiteSpace(_sessionWallet)
+            && (IsConfiguredWallet(_sessionWallet, _adminWallet)
+                || IsConfiguredWallet(_sessionWallet, _onChainAuthorityWallet));
+    }
+
+    private static bool IsConfiguredWallet(string wallet, string? configuredWallet)
+    {
+        return !string.IsNullOrWhiteSpace(configuredWallet)
+            && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
     }
 
 
