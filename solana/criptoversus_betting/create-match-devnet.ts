@@ -6,7 +6,7 @@ console.log("Rede alvo: DEVNET");
 console.log("======================================");
 
 const DEVNET_RPC = "https://api.devnet.solana.com";
-const PROGRAM_ID = "H2fmJrbGzotGqYMmagerDgqjBWg3DG6iVtNBvSpVgYML";
+const PROGRAM_ID = "4Ck537z1KEw1Azn9EHMvrW6xUhXGCUhDpSBJh6j5xjSX";
 
 // Ajuste estes 3 campos conforme o card/partida do CriptoVersus.
 const MATCH_ID = 1;

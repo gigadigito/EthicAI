@@ -185,9 +185,13 @@ export async function placeBet(options) {
         });
 
         if (!createMatchSignature) {
+            const expectedAuthority = options.authorityPublicKey || "(não configurada)";
+            const connectedWallet = provider.publicKey.toBase58();
+
             throw new Error(
                 `ONCHAIN_MATCH_NOT_INITIALIZED: Match #${options.matchId} ainda nao foi criado na ${cluster}. ` +
-                `Conecte a carteira admin para criar a partida on-chain com createMatch. ` +
+                `Conecte a carteira authority on-chain para criar a partida com createMatch. ` +
+                `Carteira conectada: ${connectedWallet}. Authority esperada: ${expectedAuthority}. ` +
                 `Match PDA esperado: ${matchAccount.toBase58()}`);
         }
     }

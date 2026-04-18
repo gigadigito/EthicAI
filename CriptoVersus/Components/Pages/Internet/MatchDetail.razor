@@ -1051,7 +1051,7 @@
     {
         _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaBetting.js");
+            "./js/solanaBetting.js?v=20260418-authority-autocreate");
 
         var programId = Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))

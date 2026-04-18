@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction};
 
-declare_id!("H2fmJrbGzotGqYMmagerDgqjBWg3DG6iVtNBvSpVgYML");
+declare_id!("4Ck537z1KEw1Azn9EHMvrW6xUhXGCUhDpSBJh6j5xjSX");
 
 #[program]
 pub mod criptoversus_betting {

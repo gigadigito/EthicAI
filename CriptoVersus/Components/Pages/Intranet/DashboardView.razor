@@ -907,7 +907,7 @@ else
     {
         BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaBetting.js");
+            "./js/solanaBetting.js?v=20260418-authority-autocreate");
 
         var programId = Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))
@@ -924,7 +924,7 @@ else
                 teamAId = match.TeamAId,
                 teamBId = match.TeamBId,
                 bettingCloseUnix = match.BettingCloseTime?.ToUnixTimeSeconds(),
-                autoCreateMatch = IsPrivilegedWallet,
+                autoCreateMatch = true,
                 authorityPublicKey = Config["OnChainBetting:AuthorityWallet"] ?? Config["CriptoVersus:AdminWallet"],
                 amountSol
             });
@@ -1020,10 +1020,10 @@ else
     private static string GetBetExceptionMessage(Exception ex, string selectedUserDisplay)
     {
         if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
-            return $"Partida ainda não criada on-chain na devnet. Conecte a carteira admin para publicar a partida antes de investir. Usuário={selectedUserDisplay}.";
+            return $"Partida ainda não criada on-chain na devnet. Conecte a carteira authority on-chain para publicar a partida antes de investir. Usuário={selectedUserDisplay}.";
 
         if (ex.ToString().Contains("Unauthorized", StringComparison.OrdinalIgnoreCase))
-            return $"Carteira conectada não autorizada para criar a partida on-chain. Use a carteira admin configurada. Usuário={selectedUserDisplay}.";
+            return $"Carteira conectada não autorizada para criar a partida on-chain. Use a carteira authority on-chain configurada. Usuário={selectedUserDisplay}.";
 
         return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
     }
