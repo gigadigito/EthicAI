@@ -37,6 +37,9 @@ public sealed class CriptoVersusApiClient
     public async Task<WorkerStatusDto?> GetWorkerStatusAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<WorkerStatusDto>("api/Worker/status", ct);
 
+    public async Task<MyWalletDto?> GetMyWalletAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<MyWalletDto>("api/wallet/me", ct);
+
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,
         CancellationToken ct = default)

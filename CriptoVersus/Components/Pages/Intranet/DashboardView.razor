@@ -157,21 +157,41 @@ else
         </div>
     }
 
-    @if (!string.IsNullOrWhiteSpace(BetStatusMessage))
+    @if (!string.IsNullOrWhiteSpace(BetResponseBody) && CanSeeInvestmentDebug)
     {
-        <div class="alert @(BetRequestOk ? "alert-success" : "alert-danger") mb-3">
-            @BetStatusMessage
+        <div class="accordion mb-3" id="investmentReturnAccordion">
+            <div class="accordion-item bg-dark border-secondary">
+                <h2 class="accordion-header" id="investmentReturnHeading">
+                    <button class="accordion-button @(IsInvestmentReturnOpen ? "" : "collapsed") bg-dark text-light" type="button" @onclick="ToggleInvestmentReturn" aria-expanded="@IsInvestmentReturnOpen" aria-controls="investmentReturnCollapse">
+                        Retorno do Investimento
+                    </button>
+                </h2>
+                <div id="investmentReturnCollapse" class="accordion-collapse collapse @(IsInvestmentReturnOpen ? "show" : "")" aria-labelledby="investmentReturnHeading">
+                    <div class="accordion-body">
+                        <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@BetResponseBody</pre>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 
-    @if (!string.IsNullOrWhiteSpace(BetResponseBody))
+    @if (ShowSimplePopup)
     {
-        <div class="card mb-3">
-            <div class="card-header">
-                <strong>Retorno do Investimento</strong>
-            </div>
-            <div class="card-body">
-                <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@BetResponseBody</pre>
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title">@SimplePopupTitle</h5>
+                        <button type="button" class="btn-close btn-close-white" aria-label="Fechar" @onclick="CloseSimplePopup"></button>
+                    </div>
+                    <div class="modal-body text-light-emphasis">
+                        <p class="mb-0">@SimplePopupMessage</p>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-primary" @onclick="CloseSimplePopup">Entendi</button>
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -780,6 +800,11 @@ else
     private bool BetRequestOk { get; set; }
     private string BetStatusMessage { get; set; } = "";
     private string BetResponseBody { get; set; } = "";
+    private string? CurrentWalletPublicKey { get; set; }
+    private bool IsInvestmentReturnOpen { get; set; }
+    private bool ShowSimplePopup { get; set; }
+    private string SimplePopupTitle { get; set; } = "";
+    private string SimplePopupMessage { get; set; } = "";
     private IJSObjectReference? BettingModule { get; set; }
 
     private const decimal TestAmount = 1m;
@@ -807,6 +832,9 @@ else
         => BettingUsers.FirstOrDefault(x => x.Id == SelectedUserId)?.DisplayName
             ?? (SelectedUserId > 0 ? $"{SelectedUserId} - usuário autenticado" : "-");
 
+    private bool CanSeeInvestmentDebug
+        => IsConfiguredWallet(CurrentWalletPublicKey, Config["CriptoVersus:AdminWallet"]);
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -818,6 +846,7 @@ else
     private async Task LoadSessionUserAsync()
     {
         var userId = await SessionStorage.GetItemAsync<int?>("userId");
+        CurrentWalletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
         if (userId.GetValueOrDefault() > 0)
         {
             if (!IsPrivilegedWallet)
@@ -835,15 +864,20 @@ else
         BetRequestOk = false;
         BetStatusMessage = "";
         BetResponseBody = "";
+        IsInvestmentReturnOpen = false;
+        ShowSimplePopup = false;
 
         try
         {
+            await RefreshCurrentWalletAsync();
+
             var token = await SessionStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrWhiteSpace(token))
             {
                 BetRequestOk = false;
                 BetStatusMessage = "Faça login com a carteira Solana antes de investir.";
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com o investimento.");
                 return;
             }
 
@@ -883,11 +917,13 @@ else
             {
                 BetRequestOk = true;
                 BetStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={match.MatchId}, TeamId={teamId}.";
+                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento em {teamName} foi registrado com sucesso.");
             }
             else
             {
                 BetRequestOk = false;
                 BetStatusMessage = $"Falha ao investir em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                ShowInvestmentPopup("Investimento não concluído", "Não foi possível registrar seu investimento agora. Tente novamente em instantes.");
             }
         }
         catch (Exception ex)
@@ -895,12 +931,42 @@ else
             BetRequestOk = false;
             BetStatusMessage = GetBetExceptionMessage(ex, SelectedUserDisplay);
             BetResponseBody = ex.ToString();
+            ShowInvestmentPopup("Investimento não concluído", GetBetPopupExceptionMessage(ex));
         }
         finally
         {
             IsSendingBet = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task RefreshCurrentWalletAsync()
+    {
+        CurrentWalletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+    }
+
+    private void ShowInvestmentPopup(string title, string message)
+    {
+        SimplePopupTitle = title;
+        SimplePopupMessage = message;
+        ShowSimplePopup = true;
+    }
+
+    private void CloseSimplePopup()
+    {
+        ShowSimplePopup = false;
+    }
+
+    private void ToggleInvestmentReturn()
+    {
+        IsInvestmentReturnOpen = !IsInvestmentReturnOpen;
+    }
+
+    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet)
+    {
+        return !string.IsNullOrWhiteSpace(wallet)
+            && !string.IsNullOrWhiteSpace(configuredWallet)
+            && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
     }
 
     private async Task<OnChainBetResult> PlaceOnChainBetAsync(BettableMatchViewModel match, int teamId, decimal amountSol)
@@ -923,11 +989,23 @@ else
                 teamId,
                 teamAId = match.TeamAId,
                 teamBId = match.TeamBId,
-                bettingCloseUnix = match.BettingCloseTime?.ToUnixTimeSeconds(),
+                bettingCloseUnix = GetOnChainBettingCloseUnix(match),
                 autoCreateMatch = true,
                 authorityPublicKey = Config["OnChainBetting:AuthorityWallet"] ?? Config["CriptoVersus:AdminWallet"],
                 amountSol
             });
+    }
+
+    private static long GetOnChainBettingCloseUnix(BettableMatchViewModel match)
+    {
+        var fallbackClose = DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds();
+        var configuredClose = match.BettingCloseTime?.ToUnixTimeSeconds();
+
+        if (configuredClose is null)
+            return fallbackClose;
+
+        var minimumClose = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        return configuredClose.Value > minimumClose ? configuredClose.Value : fallbackClose;
     }
 
     private List<BettableMatchViewModel> GetBettableMatches()
@@ -1025,7 +1103,24 @@ else
         if (ex.ToString().Contains("Unauthorized", StringComparison.OrdinalIgnoreCase))
             return $"Carteira conectada não autorizada para criar a partida on-chain. Use a carteira authority on-chain configurada. Usuário={selectedUserDisplay}.";
 
+        if (ex.ToString().Contains("BettingClosed", StringComparison.OrdinalIgnoreCase))
+            return $"Janela de investimento on-chain encerrada. Usuário={selectedUserDisplay}.";
+
         return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
+    }
+
+    private static string GetBetPopupExceptionMessage(Exception ex)
+    {
+        if (ex.ToString().Contains("BettingClosed", StringComparison.OrdinalIgnoreCase))
+            return "A janela de investimento desta partida já foi encerrada. Escolha uma partida com mercado aberto.";
+
+        if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
+            return "Esta partida ainda não foi publicada on-chain. Tente novamente em instantes ou acione o administrador.";
+
+        if (ex.ToString().Contains("Unauthorized", StringComparison.OrdinalIgnoreCase))
+            return "A carteira conectada não tem permissão para publicar esta partida on-chain.";
+
+        return "Não conseguimos concluir seu investimento agora. Verifique sua carteira e tente novamente.";
     }
 
     private static string FmtUtc(DateTime? dt)

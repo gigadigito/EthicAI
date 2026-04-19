@@ -3,6 +3,7 @@
 @inherits LayoutComponentBase
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject WalletSessionState WalletState
+@inject NavigationManager Nav
 
 <div class="app-shell">
     <aside class="app-sidebar">
@@ -37,7 +38,7 @@
     </main>
 </div>
 
-<SolanaLoginModal @ref="loginModal" OnLoginSucceeded="LoadLoginSessionAsync" />
+<SolanaLoginModal @ref="loginModal" OnLoginSucceeded="HandleLoginSucceededAsync" />
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
@@ -77,6 +78,12 @@
         walletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
         WalletState.SetSession(authToken, walletPublicKey);
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleLoginSucceededAsync()
+    {
+        await LoadLoginSessionAsync();
+        Nav.NavigateTo("/minha-carteira");
     }
 
     private static string GetWalletAvatarUrl(string wallet)
