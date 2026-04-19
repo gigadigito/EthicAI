@@ -217,8 +217,8 @@ main {
 }
 
 .app-content {
-    margin: 0 auto;
-    max-width: 88rem;
+    margin: 0;
+    max-width: none;
     min-width: 0;
     padding: 1.25rem !important;
 }

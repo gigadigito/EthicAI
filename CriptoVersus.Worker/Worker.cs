@@ -51,7 +51,6 @@ namespace CriptoVersus.Worker
         private const int TakeGainers = 40;
         private const int LogTop = 15;
 
-        private const decimal SettlementFeeRate = 0.05m;
         private const int MoneyScale = 8;
 
         public record HealthItem(bool Ok, string Message);
@@ -932,13 +931,12 @@ namespace CriptoVersus.Worker
                         return;
                     }
 
-                    var hasWinner = match.WinnerTeamId.HasValue;
                     var winnerTeamId = match.WinnerTeamId;
-                    var loserTeamId = hasWinner
+                    var loserTeamId = winnerTeamId.HasValue
                         ? (winnerTeamId == match.TeamAId ? match.TeamBId : match.TeamAId)
                         : (int?)null;
 
-                    if (!hasWinner || !loserTeamId.HasValue)
+                    if (winnerTeamId is not int settledWinnerTeamId || loserTeamId is not int settledLoserTeamId)
                     {
                         foreach (var bet in bets)
                         {
@@ -959,18 +957,21 @@ namespace CriptoVersus.Worker
                     }
 
                     var winnerBets = bets
-                        .Where(b => b.TeamId == winnerTeamId.Value)
+                        .Where(b => b.TeamId == settledWinnerTeamId)
                         .ToList();
 
                     var loserBets = bets
-                        .Where(b => b.TeamId == loserTeamId.Value)
+                        .Where(b => b.TeamId == settledLoserTeamId)
                         .ToList();
 
                     var totalWinnerStake = winnerBets.Sum(b => SafeMoney(b.Amount));
                     var totalLoserStake = loserBets.Sum(b => SafeMoney(b.Amount));
+                    var houseFeeRate = ClampRate(_options.Settlement.HouseFeeRate);
+                    var loserRefundRate = ClampRate(_options.Settlement.LoserRefundRate, max: 1m - houseFeeRate);
 
-                    var platformFee = RoundMoney(totalLoserStake * SettlementFeeRate);
-                    var distributablePool = RoundMoney(totalLoserStake - platformFee);
+                    var platformFee = RoundMoney(totalLoserStake * houseFeeRate);
+                    var loserRefundPool = RoundMoney(totalLoserStake * loserRefundRate);
+                    var distributablePool = RoundMoney(totalLoserStake - platformFee - loserRefundPool);
 
                     if (winnerBets.Count == 0 || totalWinnerStake <= 0m)
                     {
@@ -996,8 +997,36 @@ namespace CriptoVersus.Worker
                     foreach (var bet in loserBets)
                     {
                         bet.IsWinner = false;
-                        bet.PayoutAmount = 0m;
+                        var loserStake = SafeMoney(bet.Amount);
+                        var loserRefund = totalLoserStake == 0m
+                            ? 0m
+                            : RoundMoney((loserStake / totalLoserStake) * loserRefundPool);
+
+                        bet.PayoutAmount = loserRefund;
                         bet.SettledAt = settledAtUtc;
+
+                        if (loserRefund > 0m)
+                        {
+                            var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
+                            if (user == null)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Usuário não encontrado para devolver bet perdedora. UserId={bet.UserId}, BetId={bet.BetId}");
+                            }
+
+                            var balanceBefore = SafeMoney(user.Balance);
+                            user.Balance = balanceBefore + loserRefund;
+
+                            await ledgerService.AddEntryAsync(
+                                user: user,
+                                type: "LOSS_REFUND",
+                                amount: loserRefund,
+                                balanceBefore: balanceBefore,
+                                balanceAfter: user.Balance,
+                                referenceId: bet.BetId,
+                                description: $"Devolucao parcial da bet {bet.BetId} no match {bet.MatchId}",
+                                ct: ct);
+                        }
                     }
 
                     foreach (var bet in winnerBets)
@@ -1036,7 +1065,7 @@ namespace CriptoVersus.Worker
                     await tx.CommitAsync(ct);
 
                     _logger.LogInformation(
-                        "💰 Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} distributable={distributable}",
+                        "💰 Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} loserRefund={loserRefund} distributable={distributable}",
                         match.MatchId,
                         winnerTeamId,
                         winnerBets.Count,
@@ -1044,6 +1073,7 @@ namespace CriptoVersus.Worker
                         totalWinnerStake,
                         totalLoserStake,
                         platformFee,
+                        loserRefundPool,
                         distributablePool);
                 }
                 catch (Exception ex)
@@ -1104,6 +1134,20 @@ namespace CriptoVersus.Worker
 
         private static decimal RoundMoney(decimal value)
             => Math.Round(value, MoneyScale, MidpointRounding.ToZero);
+
+        private static decimal ClampRate(decimal value, decimal max = 1m)
+        {
+            if (value < 0m)
+                return 0m;
+
+            if (max < 0m)
+                return 0m;
+
+            if (value > max)
+                return max;
+
+            return value;
+        }
 
         private static string PairKey(string a, string b)
             => string.CompareOrdinal(a, b) < 0 ? $"{a}|{b}" : $"{b}|{a}";

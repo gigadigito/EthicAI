@@ -46,10 +46,10 @@ else
 
                     <div class="col-md-6 col-lg-4">
                         <div class="text-muted small">
-                            Valor fixo do investimento:
+                            Valor do investimento:
                         </div>
                         <div class="fw-bold">
-                            @TestAmount
+                            Escolhido ao investir
                         </div>
                     </div>
                 </div>
@@ -196,6 +196,72 @@ else
         </div>
     }
 
+    @if (ShowInvestmentAmountModal)
+    {
+        <div class="modal-backdrop fade show"></div>
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light border border-secondary">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title">Escolha o valor em SOL</h5>
+                        <button type="button" class="btn-close btn-close-white" aria-label="Fechar" @onclick="CloseInvestmentAmountModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="amount-modal-team">
+                            <span>Investimento em</span>
+                            <strong>@PendingBetTeamName</strong>
+                        </div>
+
+                        <div class="amount-quick-grid" aria-label="Valores rapidos em SOL">
+                            @foreach (var amount in QuickInvestmentAmounts)
+                            {
+                                <button type="button"
+                                        class="amount-chip @(InvestmentAmount == amount ? "amount-chip-active" : "")"
+                                        @onclick="() => SetInvestmentAmount(amount)">
+                                    @FmtSol(amount)
+                                </button>
+                            }
+                        </div>
+
+                        <label class="form-label mt-3" for="investmentAmountRange">
+                            Ajuste rapido: <strong>@FmtSol(InvestmentAmount)</strong>
+                        </label>
+                        <input id="investmentAmountRange"
+                               class="form-range"
+                               type="range"
+                               min="0"
+                               max="@(QuickInvestmentAmounts.Length - 1)"
+                               step="1"
+                               @bind="InvestmentAmountRangeIndex"
+                               @bind:event="oninput" />
+
+                        <label class="form-label mt-3" for="investmentAmountInput">
+                            Ou digite qualquer valor em SOL
+                        </label>
+                        <input id="investmentAmountInput"
+                               class="form-control"
+                               type="number"
+                               min="0.00000001"
+                               step="0.00000001"
+                               @bind="InvestmentAmount"
+                               @bind:event="oninput" />
+
+                        @if (!string.IsNullOrWhiteSpace(InvestmentAmountError))
+                        {
+                            <div class="text-danger small mt-2">@InvestmentAmountError</div>
+                        }
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-outline-light" @onclick="CloseInvestmentAmountModal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" disabled="@IsSendingBet" @onclick="ConfirmInvestmentAmountAsync">
+                            @(IsSendingBet ? "Enviando..." : $"Investir {FmtSol(InvestmentAmount)}")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     var bettableMatches = GetBettableMatches();
 
     <div class="dashboard-listings">
@@ -276,13 +342,13 @@ else
                                 {
                                     <button class="btn btn-success btn-sm"
                                             disabled="@disabledA"
-                                            @onclick="() => SendBet(m, m.TeamAId, m.TeamA)">
+                                            @onclick="() => OpenInvestmentAmountModal(m, m.TeamAId, m.TeamA)">
                                         Investir @m.TeamA
                                     </button>
 
                                     <button class="btn btn-outline-light btn-sm"
                                             disabled="@disabledB"
-                                            @onclick="() => SendBet(m, m.TeamBId, m.TeamB)">
+                                            @onclick="() => OpenInvestmentAmountModal(m, m.TeamBId, m.TeamB)">
                                         Investir @m.TeamB
                                     </button>
                                 }
@@ -728,6 +794,46 @@ else
         grid-column: 3 / -1;
     }
 
+    .amount-modal-team {
+        display: grid;
+        gap: .25rem;
+        margin-bottom: 1rem;
+    }
+
+    .amount-modal-team span {
+        color: #9ca3af;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .amount-modal-team strong {
+        color: #5eead4;
+        font-size: 1.2rem;
+        font-weight: 900;
+    }
+
+    .amount-quick-grid {
+        display: grid;
+        gap: .5rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .amount-chip {
+        background: #111318;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        color: #f3f4f6;
+        font-weight: 900;
+        min-height: 42px;
+    }
+
+    .amount-chip:hover,
+    .amount-chip-active {
+        background: rgba(45, 212, 191, .14);
+        border-color: #2dd4bf;
+        color: #5eead4;
+    }
+
     @@media (max-width: 992px) {
         .dashboard-listings {
             grid-template-columns: 1fr;
@@ -803,12 +909,31 @@ else
     private string? CurrentWalletPublicKey { get; set; }
     private bool IsInvestmentReturnOpen { get; set; }
     private bool ShowSimplePopup { get; set; }
+    private bool ShowInvestmentAmountModal { get; set; }
     private string SimplePopupTitle { get; set; } = "";
     private string SimplePopupMessage { get; set; } = "";
     private IJSObjectReference? BettingModule { get; set; }
+    private BettableMatchViewModel? PendingBetMatch { get; set; }
+    private int PendingBetTeamId { get; set; }
+    private string PendingBetTeamName { get; set; } = "";
+    private decimal InvestmentAmount { get; set; } = 0.1m;
+    private string InvestmentAmountError { get; set; } = "";
 
-    private const decimal TestAmount = 1m;
     private const int LiveBetMaxMinutes = 45;
+    private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.1m, 0.25m, 0.5m, 1m];
+
+    private int InvestmentAmountRangeIndex
+    {
+        get => GetClosestQuickInvestmentAmountIndex(InvestmentAmount);
+        set
+        {
+            if (value < 0 || value >= QuickInvestmentAmounts.Length)
+                return;
+
+            InvestmentAmount = QuickInvestmentAmounts[value];
+            InvestmentAmountError = "";
+        }
+    }
 
     private int SelectedUserId { get; set; } = 1;
 
@@ -849,16 +974,105 @@ else
         CurrentWalletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
         if (userId.GetValueOrDefault() > 0)
         {
-            if (!IsPrivilegedWallet)
-                SelectedUserId = userId.Value;
+            AddOrUpdateLoggedUserOption(userId.Value, CurrentWalletPublicKey);
+            SelectedUserId = userId.Value;
 
             await InvokeAsync(StateHasChanged);
         }
     }
 
+    private void AddOrUpdateLoggedUserOption(int userId, string? wallet)
+    {
+        var loggedWallet = string.IsNullOrWhiteSpace(wallet)
+            ? "carteira_logada"
+            : wallet;
+
+        var existing = BettingUsers.FirstOrDefault(x => x.Id == userId);
+        if (existing is not null)
+        {
+            existing.Wallet = loggedWallet;
+            existing.IsLoggedUser = true;
+            return;
+        }
+
+        BettingUsers.Insert(0, new BetUserOption
+        {
+            Id = userId,
+            Wallet = loggedWallet,
+            IsLoggedUser = true
+        });
+    }
+
     private Task OnReloadClicked() => ReloadRequested.InvokeAsync();
 
-    private async Task SendBet(BettableMatchViewModel match, int teamId, string teamName)
+    private void OpenInvestmentAmountModal(BettableMatchViewModel match, int teamId, string teamName)
+    {
+        PendingBetMatch = match;
+        PendingBetTeamId = teamId;
+        PendingBetTeamName = teamName;
+        InvestmentAmount = 0.1m;
+        InvestmentAmountError = "";
+        ShowSimplePopup = false;
+        ShowInvestmentAmountModal = true;
+    }
+
+    private void CloseInvestmentAmountModal()
+    {
+        if (IsSendingBet)
+            return;
+
+        ShowInvestmentAmountModal = false;
+        PendingBetMatch = null;
+        PendingBetTeamId = 0;
+        PendingBetTeamName = "";
+        InvestmentAmountError = "";
+    }
+
+    private void SetInvestmentAmount(decimal amount)
+    {
+        InvestmentAmount = amount;
+        InvestmentAmountError = "";
+    }
+
+    private static int GetClosestQuickInvestmentAmountIndex(decimal amount)
+    {
+        var closestIndex = 0;
+        var closestDistance = decimal.MaxValue;
+
+        for (var i = 0; i < QuickInvestmentAmounts.Length; i++)
+        {
+            var distance = Math.Abs(QuickInvestmentAmounts[i] - amount);
+            if (distance >= closestDistance)
+                continue;
+
+            closestIndex = i;
+            closestDistance = distance;
+        }
+
+        return closestIndex;
+    }
+
+    private async Task ConfirmInvestmentAmountAsync()
+    {
+        if (PendingBetMatch is null || PendingBetTeamId <= 0 || string.IsNullOrWhiteSpace(PendingBetTeamName))
+        {
+            InvestmentAmountError = "Escolha uma moeda para investir.";
+            return;
+        }
+
+        InvestmentAmount = decimal.Round(InvestmentAmount, 8, MidpointRounding.ToZero);
+
+        if (InvestmentAmount <= 0)
+        {
+            InvestmentAmountError = "Informe um valor maior que zero.";
+            return;
+        }
+
+        ShowInvestmentAmountModal = false;
+        await SendBet(PendingBetMatch, PendingBetTeamId, PendingBetTeamName, InvestmentAmount);
+    }
+
+    private async Task SendBet(BettableMatchViewModel match, int teamId, string teamName, decimal amountSol)
     {
         IsSendingBet = true;
         BetRequestOk = false;
@@ -886,7 +1100,7 @@ else
 
             if (onChainBettingEnabled)
             {
-                var onChainResult = await PlaceOnChainBetAsync(match, teamId, TestAmount);
+                var onChainResult = await PlaceOnChainBetAsync(match, teamId, amountSol);
                 onChainSignature = onChainResult.Signature;
                 BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
             }
@@ -895,7 +1109,7 @@ else
             {
                 userId = SelectedUserId,
                 teamId = teamId,
-                amount = TestAmount,
+                amount = amountSol,
                 onChainSignature
             };
 
@@ -916,8 +1130,8 @@ else
             if (response.IsSuccessStatusCode)
             {
                 BetRequestOk = true;
-                BetStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={match.MatchId}, TeamId={teamId}.";
-                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento em {teamName} foi registrado com sucesso.");
+                BetStatusMessage = $"Investimento enviado com sucesso para {teamName}. Valor={FmtSol(amountSol)}. Usuário={SelectedUserDisplay}. MatchId={match.MatchId}, TeamId={teamId}.";
+                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento de {FmtSol(amountSol)} em {teamName} foi registrado com sucesso.");
             }
             else
             {
@@ -936,6 +1150,9 @@ else
         finally
         {
             IsSendingBet = false;
+            PendingBetMatch = null;
+            PendingBetTeamId = 0;
+            PendingBetTeamName = "";
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -1133,6 +1350,9 @@ else
         return $"{sign}{v.Value:0.##}%";
     }
 
+    private static string FmtSol(decimal value)
+        => $"{value:0.########} SOL";
+
     private static string GetBaseSymbol(string pair)
     {
         if (string.IsNullOrWhiteSpace(pair))
@@ -1248,7 +1468,19 @@ else
     {
         public int Id { get; set; }
         public string Wallet { get; set; } = "";
-        public string DisplayName => $"{Id} - {Wallet}";
+        public bool IsLoggedUser { get; set; }
+        public string DisplayName => IsLoggedUser ? $"{Id} - {ShortWallet(Wallet)} (logado)" : $"{Id} - {Wallet}";
+
+        private static string ShortWallet(string wallet)
+        {
+            const int start = 8;
+            const int end = 6;
+
+            if (string.IsNullOrWhiteSpace(wallet) || wallet.Length <= start + end + 3)
+                return wallet;
+
+            return $"{wallet[..start]}...{wallet[^end..]}";
+        }
     }
 
     private sealed class OnChainBetResult

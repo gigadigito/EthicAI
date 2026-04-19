@@ -1,3 +1,7 @@
+@using CriptoVersus.Web.Services
+@inject WalletSessionState WalletState
+@implements IDisposable
+
 <div class="brand-block">
     <a class="brand-mark" href="">
         <img class="brand-logo" src="/img/logo.jpg" alt="CriptoVersus" />
@@ -13,11 +17,21 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="app-nav">
         <div class="nav-item">
-            <NavLink class="nav-link" href="minha-carteira">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="nav-icon">H</span>
-                <span>Inicio</span>
+                <span>Home</span>
             </NavLink>
         </div>
+
+        @if (IsLoggedIn)
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="minha-carteira">
+                    <span class="nav-icon">C</span>
+                    <span>Minha Carteira</span>
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
 
@@ -26,3 +40,23 @@
     <span>Ambiente conectado</span>
 </div>
 
+@code {
+    private bool IsLoggedIn
+        => !string.IsNullOrWhiteSpace(WalletState.AuthToken)
+            && !string.IsNullOrWhiteSpace(WalletState.WalletPublicKey);
+
+    protected override void OnInitialized()
+    {
+        WalletState.Changed += OnWalletStateChanged;
+    }
+
+    private void OnWalletStateChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        WalletState.Changed -= OnWalletStateChanged;
+    }
+}

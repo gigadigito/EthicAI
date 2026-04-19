@@ -14,10 +14,17 @@ public class CriptoVersusWorkerOptions
     public bool AutoEndOngoingMatches { get; set; }
     public int MatchDurationMinutes { get; set; }
     public ScoringOptions Scoring { get; set; } = new();
+    public SettlementOptions Settlement { get; set; } = new();
 }
 
 public class ScoringOptions
 {
     public double PercentPerGoal { get; set; } = 2.0;
     public int MaxGoalsPerTeam { get; set; } = 7;
+}
+
+public class SettlementOptions
+{
+    public decimal HouseFeeRate { get; set; } = 0.05m;
+    public decimal LoserRefundRate { get; set; } = 0m;
 }

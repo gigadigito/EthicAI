@@ -20,6 +20,8 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 builder.Services.AddHttpClient();
+builder.Services.Configure<CriptoVersusWorkerOptions>(
+    builder.Configuration.GetSection("CriptoVersusWorker"));
 
 static async Task<string> BuildConnectionStringWithResolvedHostAsync(
     IConfiguration cfg,
