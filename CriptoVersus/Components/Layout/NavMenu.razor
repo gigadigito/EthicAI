@@ -1,5 +1,6 @@
 @using CriptoVersus.Web.Services
 @inject WalletSessionState WalletState
+@inject IConfiguration Config
 @implements IDisposable
 
 <div class="brand-block">
@@ -31,6 +32,16 @@
                     <span>Minha Carteira</span>
                 </NavLink>
             </div>
+
+            @if (IsAdminWallet)
+            {
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="admin-sistema">
+                        <span class="nav-icon">A</span>
+                        <span>Admin</span>
+                    </NavLink>
+                </div>
+            }
         }
     </nav>
 </div>
@@ -44,6 +55,15 @@
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(WalletState.AuthToken)
             && !string.IsNullOrWhiteSpace(WalletState.WalletPublicKey);
+
+    private bool IsAdminWallet
+        => IsConfiguredWallet(WalletState.WalletPublicKey, Config["CriptoVersus:AdminWallet"])
+            || IsConfiguredWallet(WalletState.WalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
+
+    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet)
+        => !string.IsNullOrWhiteSpace(wallet)
+            && !string.IsNullOrWhiteSpace(configuredWallet)
+            && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
 
     protected override void OnInitialized()
     {

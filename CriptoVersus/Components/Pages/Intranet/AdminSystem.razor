@@ -1,0 +1,403 @@
+@rendermode InteractiveServer
+@page "/admin-sistema"
+@using CriptoVersus.Web.Services
+@using DTOs
+@using Microsoft.JSInterop
+@inject CriptoVersusApiClient Api
+@inject WalletSessionState WalletState
+@inject IConfiguration Config
+@inject IJSRuntime JS
+@implements IDisposable
+@implements IAsyncDisposable
+
+<section class="admin-page">
+    <div class="admin-heading">
+        <span>Painel admin</span>
+        <h2>Sistema e contrato</h2>
+        <p>Monitore a operacao, as posicoes indexadas e o estado on-chain do programa.</p>
+    </div>
+
+    @if (!IsAdminWallet)
+    {
+        <div class="admin-denied">
+            Esta area esta disponivel apenas para a carteira admin.
+        </div>
+    }
+    else if (_loading)
+    {
+        <p>Carregando painel...</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="admin-denied">@_error</div>
+    }
+    else if (_system is not null)
+    {
+        <div class="admin-grid">
+            <article class="admin-card">
+                <span>Programa</span>
+                <strong>@ShortAddress(_system.ProgramId)</strong>
+                <small>@_system.OnChainCluster</small>
+            </article>
+            <article class="admin-card">
+                <span>Authority</span>
+                <strong>@ShortAddress(_system.OnChainAuthorityWallet)</strong>
+                <small>Carteira operacional</small>
+            </article>
+            <article class="admin-card">
+                <span>Contas do programa</span>
+                <strong>@(_chain?.OwnedAccounts.ToString() ?? "-")</strong>
+                <small>@FmtSol(_chain?.OwnedAccountsSol) owned pelo programa</small>
+            </article>
+            <article class="admin-card">
+                <span>Saldo ProgramId</span>
+                <strong>@FmtSol(_chain?.ProgramBalanceSol)</strong>
+                <small>Conta executavel</small>
+            </article>
+            <article class="admin-card">
+                <span>Config PDA</span>
+                <strong>@ShortAddress(_chain?.ConfigPda)</strong>
+                <small>@FmtSol(_chain?.ConfigBalanceSol)</small>
+            </article>
+            <article class="admin-card">
+                <span>Capital ativo</span>
+                <strong>@FmtSol(_system.ActivePositionCapital)</strong>
+                <small>@_system.PositionsActive posicoes ativas</small>
+            </article>
+            <article class="admin-card">
+                <span>Total alocado</span>
+                <strong>@FmtSol(_system.PrincipalAllocated)</strong>
+                <small>Historico de posicoes</small>
+            </article>
+            <article class="admin-card">
+                <span>Em partidas abertas</span>
+                <strong>@FmtSol(_system.OpenBetAmount)</strong>
+                <small>@_system.BetsOpen entradas abertas</small>
+            </article>
+        </div>
+
+        <div class="admin-section">
+            <div class="admin-section-title">
+                <h3>Operacao</h3>
+                <button type="button" @onclick="LoadAsync" disabled="@_loading">
+                    Atualizar
+                </button>
+            </div>
+            <div class="admin-strip">
+                <span>Usuarios <strong>@_system.Users</strong></span>
+                <span>Partidas <strong>@_system.MatchesTotal</strong></span>
+                <span>Pendentes <strong>@_system.MatchesPending</strong></span>
+                <span>Ao vivo <strong>@_system.MatchesOngoing</strong></span>
+                <span>Finalizadas <strong>@_system.MatchesCompleted</strong></span>
+                <span>Bets <strong>@_system.BetsTotal</strong></span>
+                <span>Saidas solicitadas <strong>@_system.PositionsClosingRequested</strong></span>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <div class="admin-section-title">
+                <h3>Posicoes recentes</h3>
+                <span>@_system.RecentPositions.Count registros</span>
+            </div>
+
+            @if (_system.RecentPositions.Count == 0)
+            {
+                <p>Nenhuma posicao registrada ainda.</p>
+            }
+            else
+            {
+                <div class="admin-table">
+                    @foreach (var position in _system.RecentPositions)
+                    {
+                        <article class="admin-row">
+                            <div>
+                                <strong>@position.Symbol</strong>
+                                <span>@ShortAddress(position.Wallet)</span>
+                            </div>
+                            <div>
+                                <span>Capital</span>
+                                <strong>@FmtSol(position.CurrentCapital)</strong>
+                            </div>
+                            <div>
+                                <span>Status</span>
+                                <strong>@FmtStatus(position.Status)</strong>
+                            </div>
+                            <div>
+                                <span>Position PDA</span>
+                                <strong title="@position.OnChainPositionAddress">@ShortAddress(position.OnChainPositionAddress)</strong>
+                            </div>
+                            <div>
+                                <span>Vault PDA</span>
+                                <strong title="@position.OnChainVaultAddress">@ShortAddress(position.OnChainVaultAddress)</strong>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private AdminSystemDto? _system;
+    private ChainOverview? _chain;
+    private IJSObjectReference? _adminModule;
+    private bool _loading = true;
+    private string? _error;
+
+    private bool IsAdminWallet
+        => IsConfiguredWallet(WalletState.WalletPublicKey, Config["CriptoVersus:AdminWallet"])
+            || IsConfiguredWallet(WalletState.WalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
+
+    protected override void OnInitialized()
+    {
+        WalletState.Changed += OnWalletStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            if (!IsAdminWallet)
+                return;
+
+            _system = await Api.GetAdminSystemAsync();
+
+            if (!string.IsNullOrWhiteSpace(_system?.ProgramId))
+            {
+                _adminModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                    "import",
+                    "./js/solanaAdmin.js?v=20260420-admin");
+
+                _chain = await _adminModule.InvokeAsync<ChainOverview>(
+                    "getProgramOverview",
+                    new
+                    {
+                        programId = _system.ProgramId,
+                        cluster = _system.OnChainCluster
+                    });
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Nao foi possivel carregar o painel admin: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnWalletStateChanged()
+    {
+        _ = InvokeAsync(async () =>
+        {
+            await LoadAsync();
+            StateHasChanged();
+        });
+    }
+
+    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet)
+        => !string.IsNullOrWhiteSpace(wallet)
+            && !string.IsNullOrWhiteSpace(configuredWallet)
+            && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
+
+    private static string ShortAddress(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "-";
+
+        const int start = 6;
+        const int end = 5;
+
+        return value.Length <= start + end + 3
+            ? value
+            : $"{value[..start]}...{value[^end..]}";
+    }
+
+    private static string FmtSol(decimal value)
+        => $"{value:0.########} SOL";
+
+    private static string FmtSol(double? value)
+        => value.HasValue ? $"{value.Value:0.########} SOL" : "-";
+
+    private static string FmtStatus(string status) => status switch
+    {
+        "Active" => "Ativa",
+        "ClosingRequested" => "Saida solicitada",
+        "Closed" => "Fechada",
+        "Paused" => "Pausada",
+        _ => status
+    };
+
+    public void Dispose()
+    {
+        WalletState.Changed -= OnWalletStateChanged;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_adminModule is not null)
+            await _adminModule.DisposeAsync();
+    }
+
+    private sealed class ChainOverview
+    {
+        public string Cluster { get; set; } = "";
+        public string ProgramId { get; set; } = "";
+        public string ConfigPda { get; set; } = "";
+        public double ProgramBalanceSol { get; set; }
+        public double ConfigBalanceSol { get; set; }
+        public int OwnedAccounts { get; set; }
+        public double OwnedAccountsSol { get; set; }
+    }
+}
+
+<style>
+    .admin-page {
+        display: grid;
+        gap: 1.35rem;
+    }
+
+    .admin-heading span,
+    .admin-card span,
+    .admin-row span,
+    .admin-section-title span {
+        color: #9aa8bd;
+        font-weight: 800;
+        letter-spacing: 0;
+    }
+
+    .admin-heading h2 {
+        margin: .2rem 0;
+        color: #f8fafc;
+        font-size: 2rem;
+    }
+
+    .admin-heading p {
+        color: #dbeafe;
+        margin: 0;
+    }
+
+    .admin-denied,
+    .admin-card,
+    .admin-section {
+        border: 1px solid #283241;
+        background: #11161e;
+        border-radius: 8px;
+    }
+
+    .admin-denied {
+        padding: 1rem;
+        color: #f8fafc;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: .85rem;
+    }
+
+    .admin-card {
+        padding: 1rem;
+        display: grid;
+        gap: .45rem;
+    }
+
+    .admin-card strong {
+        color: #5eead4;
+        font-size: 1.35rem;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-card small {
+        color: #cbd5e1;
+    }
+
+    .admin-section {
+        padding: 1rem;
+    }
+
+    .admin-section-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: .85rem;
+    }
+
+    .admin-section-title h3 {
+        margin: 0;
+        color: #f8fafc;
+    }
+
+    .admin-section-title button {
+        border: 1px solid #5eead4;
+        background: transparent;
+        color: #5eead4;
+        border-radius: 8px;
+        padding: .45rem .75rem;
+        font-weight: 800;
+    }
+
+    .admin-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+    }
+
+    .admin-strip span {
+        border: 1px solid #283241;
+        border-radius: 8px;
+        padding: .6rem .75rem;
+        color: #9aa8bd;
+    }
+
+    .admin-strip strong {
+        color: #f8fafc;
+    }
+
+    .admin-table {
+        display: grid;
+        gap: .65rem;
+    }
+
+    .admin-row {
+        display: grid;
+        grid-template-columns: 1.2fr .8fr .8fr 1fr 1fr;
+        gap: .75rem;
+        align-items: center;
+        border: 1px solid #283241;
+        border-radius: 8px;
+        padding: .85rem;
+        background: #151b24;
+    }
+
+    .admin-row div {
+        min-width: 0;
+        display: grid;
+        gap: .25rem;
+    }
+
+    .admin-row strong {
+        color: #f8fafc;
+        overflow-wrap: anywhere;
+    }
+
+    @@media (max-width: 900px) {
+        .admin-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
