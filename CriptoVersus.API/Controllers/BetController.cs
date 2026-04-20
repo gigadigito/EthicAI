@@ -1,6 +1,7 @@
 ﻿using BLL;
 using BLL.NFTFutebol;
 using CriptoVersus.API.Hubs;
+using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
@@ -144,33 +145,79 @@ namespace CriptoVersus.API.Controllers
                         });
                     }
 
-                    var nextPosition = (await _context.Bet
-                        .Where(b => b.MatchId == matchId)
-                        .Select(b => (int?)b.Position)
-                        .MaxAsync(cancellationToken) ?? 0) + 1;
-
                     var nowUtc = DateTime.UtcNow;
                     var balanceBefore = user.Balance;
 
                     if (!onChainBettingEnabled)
                         user.Balance -= request.Amount;
 
-                    var bet = new DAL.NftFutebol.Bet
-                    {
-                        MatchId = matchId,
-                        TeamId = request.TeamId,
-                        UserId = user.UserID,
-                        Amount = request.Amount,
-                        BetTime = nowUtc,
-                        Position = nextPosition,
-                        Claimed = false,
-                        ClaimedAt = null,
-                        IsWinner = null,
-                        PayoutAmount = null,
-                        SettledAt = null
-                    };
+                    var position = await _context.UserTeamPosition
+                        .FirstOrDefaultAsync(p => p.UserId == user.UserID && p.TeamId == request.TeamId, cancellationToken);
 
-                    _context.Bet.Add(bet);
+                    if (position is null)
+                    {
+                        position = new DAL.NftFutebol.UserTeamPosition
+                        {
+                            UserId = user.UserID,
+                            TeamId = request.TeamId,
+                            PrincipalAllocated = request.Amount,
+                            CurrentCapital = request.Amount,
+                            AutoCompound = true,
+                            Status = TeamPositionStatus.Active,
+                            CreatedAt = nowUtc,
+                            UpdatedAt = nowUtc
+                        };
+
+                        _context.UserTeamPosition.Add(position);
+                    }
+                    else
+                    {
+                        position.PrincipalAllocated = RoundMoney(position.PrincipalAllocated + request.Amount);
+                        position.CurrentCapital = RoundMoney(position.CurrentCapital + request.Amount);
+                        position.Status = TeamPositionStatus.Active;
+                        position.AutoCompound = true;
+                        position.ClosedAt = null;
+                        position.UpdatedAt = nowUtc;
+                    }
+
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    var bet = await _context.Bet
+                        .FirstOrDefaultAsync(b =>
+                            b.MatchId == matchId &&
+                            b.PositionId == position.PositionId &&
+                            b.SettledAt == null,
+                            cancellationToken);
+
+                    if (bet is null)
+                    {
+                        var nextPosition = (await _context.Bet
+                            .Where(b => b.MatchId == matchId)
+                            .Select(b => (int?)b.Position)
+                            .MaxAsync(cancellationToken) ?? 0) + 1;
+
+                        bet = new DAL.NftFutebol.Bet
+                        {
+                            MatchId = matchId,
+                            TeamId = request.TeamId,
+                            UserId = user.UserID,
+                            PositionId = position.PositionId,
+                            Amount = request.Amount,
+                            BetTime = nowUtc,
+                            Position = nextPosition,
+                            Claimed = false,
+                            ClaimedAt = null,
+                            IsWinner = null,
+                            PayoutAmount = null,
+                            SettledAt = null
+                        };
+
+                        _context.Bet.Add(bet);
+                    }
+                    else
+                    {
+                        bet.Amount = RoundMoney(bet.Amount + request.Amount);
+                    }
 
                     await _context.SaveChangesAsync(cancellationToken);
 
@@ -261,6 +308,9 @@ namespace CriptoVersus.API.Controllers
                 ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         }
+
+        private static decimal RoundMoney(decimal value)
+            => Math.Round(value, 8, MidpointRounding.ToZero);
 
         private bool IsAdminWallet(string wallet)
         {

@@ -25,6 +25,8 @@ public class ScoringOptions
 
 public class SettlementOptions
 {
-    public decimal HouseFeeRate { get; set; } = 0.05m;
-    public decimal LoserRefundRate { get; set; } = 0m;
+    public decimal HouseFeeRate { get; set; } = 0.01m;
+    public decimal LoserRefundRate { get; set; } = 0.94m;
+    public bool AutoReenterEnabled { get; set; } = true;
+    public decimal MinPositionCapital { get; set; } = 0.00000001m;
 }

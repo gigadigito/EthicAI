@@ -14,6 +14,7 @@ public sealed class MyWalletDto
     public decimal TotalPayout { get; set; }
     public int OpenInvestments { get; set; }
     public int SettledInvestments { get; set; }
+    public List<TeamPositionDto> ActivePositions { get; set; } = [];
     public List<MyInvestmentDto> Investments { get; set; } = [];
 }
 

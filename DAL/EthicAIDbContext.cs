@@ -22,6 +22,7 @@ namespace EthicAI.EntityModel
         public DbSet<Team> Team { get; set; }
         public DbSet<Currency> Currency { get; set; }
         public DbSet<Bet> Bet { get; set; }
+        public DbSet<UserTeamPosition> UserTeamPosition { get; set; }
         public DbSet<WorkerStatus> WorkerStatus { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -87,6 +88,11 @@ namespace EthicAI.EntityModel
                       .HasColumnType("decimal(18, 8)")
                       .HasColumnName("nr_balance")
                       .HasDefaultValue(0m);
+
+                entity.HasMany(e => e.TeamPositions)
+                      .WithOne(p => p.User)
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<PreSalePurchase>(entity =>
@@ -226,6 +232,11 @@ namespace EthicAI.EntityModel
                       .WithOne(b => b.Team)
                       .HasForeignKey(b => b.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.UserPositions)
+                      .WithOne(p => p.Team)
+                      .HasForeignKey(p => p.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Currency>(entity =>
@@ -249,6 +260,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.MatchId).HasColumnName("cd_match");
                 entity.Property(e => e.TeamId).HasColumnName("cd_team");
                 entity.Property(e => e.UserId).HasColumnName("cd_user");
+                entity.Property(e => e.PositionId).HasColumnName("cd_position");
 
                 entity.Property(e => e.Amount)
                       .HasColumnType("decimal(18, 8)")
@@ -297,6 +309,64 @@ namespace EthicAI.EntityModel
                 entity.HasOne(e => e.User)
                       .WithMany(u => u.Bets)
                       .HasForeignKey(b => b.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.PositionEntry)
+                      .WithMany(p => p.Bets)
+                      .HasForeignKey(b => b.PositionId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<UserTeamPosition>(entity =>
+            {
+                entity.HasKey(e => e.PositionId);
+                entity.ToTable("user_team_position");
+
+                entity.Property(e => e.PositionId).HasColumnName("cd_position");
+                entity.Property(e => e.UserId).HasColumnName("cd_user");
+                entity.Property(e => e.TeamId).HasColumnName("cd_team");
+
+                entity.Property(e => e.PrincipalAllocated)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_principal_allocated");
+
+                entity.Property(e => e.CurrentCapital)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_current_capital");
+
+                entity.Property(e => e.AutoCompound)
+                      .HasColumnName("is_auto_compound")
+                      .HasDefaultValue(true);
+
+                entity.Property(e => e.Status)
+                      .HasConversion<int>()
+                      .HasColumnName("in_status")
+                      .HasDefaultValue(TeamPositionStatus.Active);
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created");
+
+                entity.Property(e => e.UpdatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_updated");
+
+                entity.Property(e => e.ClosedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_closed")
+                      .IsRequired(false);
+
+                entity.HasIndex(e => new { e.UserId, e.TeamId })
+                      .IsUnique();
+
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.TeamPositions)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Team)
+                      .WithMany(t => t.UserPositions)
+                      .HasForeignKey(e => e.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 

@@ -13,6 +13,7 @@ namespace DAL.NftFutebol
         public int MatchId { get; set; }
         public int TeamId { get; set; }
         public int UserId { get; set; } // Atualizado de PlayerId para UserId
+        public int? PositionId { get; set; }
         public int Position { get; set; }
         public decimal Amount { get; set; }
         public DateTime BetTime { get; set; }
@@ -22,6 +23,7 @@ namespace DAL.NftFutebol
         public virtual Match Match { get; set; }
         public virtual Team Team { get; set; }
         public virtual User User { get; set; } // Relacionamento com User
+        public virtual UserTeamPosition? PositionEntry { get; set; }
         public bool Claimed { get; set; }
         public DateTime? ClaimedAt { get; set; }
     }

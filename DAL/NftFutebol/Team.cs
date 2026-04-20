@@ -12,6 +12,7 @@ namespace DAL.NftFutebol
         public int CurrencyId { get; set; }
         public Currency Currency { get; set; }
         public ICollection<Bet> Bets { get; set; }
+        public ICollection<UserTeamPosition> UserPositions { get; set; }
         public ICollection<Match> MatchesAsTeamA { get; set; }
         public ICollection<Match> MatchesAsTeamB { get; set; }
     }

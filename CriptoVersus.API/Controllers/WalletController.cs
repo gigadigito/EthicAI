@@ -44,6 +44,13 @@ public sealed class WalletController : ControllerBase
             .OrderByDescending(b => b.BetTime)
             .ToListAsync(cancellationToken);
 
+        var positions = await _context.UserTeamPosition
+            .AsNoTracking()
+            .Where(p => p.UserId == user.UserID && p.Status != TeamPositionStatus.Closed)
+            .Include(p => p.Team).ThenInclude(t => t.Currency)
+            .OrderByDescending(p => p.UpdatedAt)
+            .ToListAsync(cancellationToken);
+
         var investments = bets
             .Select(ToInvestmentDto)
             .ToList();
@@ -72,6 +79,7 @@ public sealed class WalletController : ControllerBase
             TotalPayout = investments.Sum(i => i.PayoutAmount ?? 0m),
             OpenInvestments = openInvestments.Count,
             SettledInvestments = settledInvestments.Count,
+            ActivePositions = positions.Select(ToPositionDto).ToList(),
             Investments = investments
         });
     }
@@ -109,6 +117,27 @@ public sealed class WalletController : ControllerBase
             PayoutAmount = bet.PayoutAmount,
             SettledAt = bet.SettledAt,
             BettingCloseTime = match.BettingCloseTime
+        };
+    }
+
+    private static TeamPositionDto ToPositionDto(UserTeamPosition position)
+    {
+        var currency = position.Team.Currency;
+
+        return new TeamPositionDto
+        {
+            PositionId = position.PositionId,
+            UserId = position.UserId,
+            TeamId = position.TeamId,
+            Symbol = currency?.Symbol ?? $"Team#{position.TeamId}",
+            CurrencyName = currency?.Name ?? "Moeda",
+            PrincipalAllocated = position.PrincipalAllocated,
+            CurrentCapital = position.CurrentCapital,
+            AutoCompound = position.AutoCompound,
+            Status = position.Status.ToString(),
+            CreatedAt = position.CreatedAt,
+            UpdatedAt = position.UpdatedAt,
+            ClosedAt = position.ClosedAt
         };
     }
 

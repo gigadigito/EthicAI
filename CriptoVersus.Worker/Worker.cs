@@ -183,6 +183,7 @@ namespace CriptoVersus.Worker
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
+            await MaterializeRecurringPositionBetsAsync(db, nowUtc, ct);
 
             await LogPoolStatusAsync(db, nowUtc, ct);
         }
@@ -611,6 +612,105 @@ namespace CriptoVersus.Worker
                 ), ct);
         }
 
+        private async Task MaterializeRecurringPositionBetsAsync(
+            EthicAIDbContext db,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            if (!_options.Settlement.AutoReenterEnabled)
+                return;
+
+            var minCapital = Math.Max(_options.Settlement.MinPositionCapital, 0m);
+
+            var openMatches = await db.Match
+                .Where(m =>
+                    m.Status == MatchStatus.Pending &&
+                    m.StartTime.HasValue &&
+                    m.StartTime.Value > nowUtc &&
+                    (
+                        (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
+                        (!m.BettingCloseTime.HasValue && m.StartTime.Value > nowUtc)
+                    ))
+                .OrderBy(m => m.StartTime)
+                .ToListAsync(ct);
+
+            if (openMatches.Count == 0)
+                return;
+
+            var teamIds = openMatches
+                .SelectMany(m => new[] { m.TeamAId, m.TeamBId })
+                .Distinct()
+                .ToList();
+
+            var positions = await db.UserTeamPosition
+                .Where(p =>
+                    p.Status == TeamPositionStatus.Active &&
+                    p.AutoCompound &&
+                    p.CurrentCapital > minCapital &&
+                    teamIds.Contains(p.TeamId))
+                .ToListAsync(ct);
+
+            if (positions.Count == 0)
+                return;
+
+            var created = 0;
+            var now = DateTime.UtcNow;
+
+            foreach (var match in openMatches)
+            {
+                var matchPositions = positions
+                    .Where(p => p.TeamId == match.TeamAId || p.TeamId == match.TeamBId)
+                    .ToList();
+
+                if (matchPositions.Count == 0)
+                    continue;
+
+                var existingPositionIds = await db.Bet
+                    .Where(b => b.MatchId == match.MatchId && b.PositionId.HasValue)
+                    .Select(b => b.PositionId!.Value)
+                    .ToListAsync(ct);
+
+                var existing = existingPositionIds.ToHashSet();
+                var nextPosition = (await db.Bet
+                    .Where(b => b.MatchId == match.MatchId)
+                    .Select(b => (int?)b.Position)
+                    .MaxAsync(ct) ?? 0) + 1;
+
+                foreach (var position in matchPositions)
+                {
+                    if (existing.Contains(position.PositionId))
+                        continue;
+
+                    db.Bet.Add(new Bet
+                    {
+                        MatchId = match.MatchId,
+                        TeamId = position.TeamId,
+                        UserId = position.UserId,
+                        PositionId = position.PositionId,
+                        Amount = RoundMoney(position.CurrentCapital),
+                        BetTime = now,
+                        Position = nextPosition++,
+                        Claimed = false,
+                        ClaimedAt = null,
+                        IsWinner = null,
+                        PayoutAmount = null,
+                        SettledAt = null
+                    });
+
+                    created++;
+                }
+            }
+
+            if (created == 0)
+                return;
+
+            await db.SaveChangesAsync(ct);
+
+            _logger.LogInformation(
+                "🔁 Recurring positions materializadas: {count} entradas automáticas.",
+                created);
+        }
+
         private async Task<int> CountClosedPendingAsync(
             EthicAIDbContext db,
             DateTime nowUtc,
@@ -1005,6 +1105,9 @@ namespace CriptoVersus.Worker
                         bet.PayoutAmount = loserRefund;
                         bet.SettledAt = settledAtUtc;
 
+                        if (await ApplyPositionCapitalAsync(db, bet, loserRefund, settledAtUtc, ct))
+                            continue;
+
                         if (loserRefund > 0m)
                         {
                             var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
@@ -1039,6 +1142,9 @@ namespace CriptoVersus.Worker
                         bet.IsWinner = true;
                         bet.PayoutAmount = payout;
                         bet.SettledAt = settledAtUtc;
+
+                        if (await ApplyPositionCapitalAsync(db, bet, payout, settledAtUtc, ct))
+                            continue;
 
                         var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
                         if (user == null)
@@ -1083,6 +1189,44 @@ namespace CriptoVersus.Worker
                     throw;
                 }
             });
+        }
+
+        private async Task<bool> ApplyPositionCapitalAsync(
+            EthicAIDbContext db,
+            Bet bet,
+            decimal capital,
+            DateTime settledAtUtc,
+            CancellationToken ct)
+        {
+            if (!bet.PositionId.HasValue)
+                return false;
+
+            var position = await db.UserTeamPosition
+                .FirstOrDefaultAsync(p => p.PositionId == bet.PositionId.Value, ct);
+
+            if (position is null)
+                return false;
+
+            position.CurrentCapital = RoundMoney(capital);
+            position.UpdatedAt = settledAtUtc;
+
+            if (position.Status == TeamPositionStatus.ClosingRequested)
+            {
+                position.Status = TeamPositionStatus.Closed;
+                position.AutoCompound = false;
+                position.ClosedAt = settledAtUtc;
+            }
+            else if (position.CurrentCapital <= Math.Max(_options.Settlement.MinPositionCapital, 0m))
+            {
+                position.Status = TeamPositionStatus.Paused;
+                position.AutoCompound = false;
+            }
+            else
+            {
+                position.Status = TeamPositionStatus.Active;
+            }
+
+            return true;
         }
 
         private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)

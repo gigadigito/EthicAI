@@ -51,6 +51,7 @@ namespace DAL
         public ICollection<PreSalePurchase> PreSalePurchases { get; set; } // Propriedade de navegação
 
         public virtual ICollection<Bet> Bets { get; set; } // Relacionamento com Bet
+        public virtual ICollection<UserTeamPosition> TeamPositions { get; set; }
         public decimal Balance { get; set; }
     }
 }
