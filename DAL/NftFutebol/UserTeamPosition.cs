@@ -17,6 +17,11 @@ namespace DAL.NftFutebol
         public decimal CurrentCapital { get; set; }
         public bool AutoCompound { get; set; } = true;
         public TeamPositionStatus Status { get; set; } = TeamPositionStatus.Active;
+        public string? OnChainPositionAddress { get; set; }
+        public string? OnChainVaultAddress { get; set; }
+        public string? LastOnChainSignature { get; set; }
+        public string? OnChainCluster { get; set; }
+        public long? CurrentLamports { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? ClosedAt { get; set; }

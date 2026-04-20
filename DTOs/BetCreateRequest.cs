@@ -13,6 +13,9 @@ namespace DTOs
             public int TeamId { get; set; }
             public decimal Amount { get; set; }
             public string? OnChainSignature { get; set; }
+            public string? OnChainPositionAccount { get; set; }
+            public string? OnChainPositionVault { get; set; }
+            public string? OnChainAmountLamports { get; set; }
         }
     
 }

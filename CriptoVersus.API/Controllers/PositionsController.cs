@@ -73,6 +73,11 @@ public sealed class PositionsController : ControllerBase
                 CurrentCapital = request.Amount,
                 AutoCompound = request.AutoCompound,
                 Status = TeamPositionStatus.Active,
+                OnChainPositionAddress = NormalizeAddress(request.OnChainPositionAccount),
+                OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault),
+                LastOnChainSignature = NormalizeAddress(request.OnChainSignature),
+                OnChainCluster = "devnet",
+                CurrentLamports = ParseLamports(request.OnChainAmountLamports),
                 CreatedAt = nowUtc,
                 UpdatedAt = nowUtc
             };
@@ -86,6 +91,10 @@ public sealed class PositionsController : ControllerBase
             position.AutoCompound = request.AutoCompound;
             position.Status = TeamPositionStatus.Active;
             position.ClosedAt = null;
+            position.OnChainPositionAddress = NormalizeAddress(request.OnChainPositionAccount) ?? position.OnChainPositionAddress;
+            position.OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault) ?? position.OnChainVaultAddress;
+            position.LastOnChainSignature = NormalizeAddress(request.OnChainSignature) ?? position.LastOnChainSignature;
+            position.CurrentLamports = AddLamports(position.CurrentLamports, ParseLamports(request.OnChainAmountLamports));
             position.UpdatedAt = nowUtc;
         }
 
@@ -184,6 +193,11 @@ public sealed class PositionsController : ControllerBase
             CurrentCapital = position.CurrentCapital,
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
+            OnChainPositionAddress = position.OnChainPositionAddress,
+            OnChainVaultAddress = position.OnChainVaultAddress,
+            LastOnChainSignature = position.LastOnChainSignature,
+            OnChainCluster = position.OnChainCluster,
+            CurrentLamports = position.CurrentLamports,
             CreatedAt = position.CreatedAt,
             UpdatedAt = position.UpdatedAt,
             ClosedAt = position.ClosedAt
@@ -192,4 +206,18 @@ public sealed class PositionsController : ControllerBase
 
     private static decimal RoundMoney(decimal value)
         => Math.Round(value, 8, MidpointRounding.ToZero);
+
+    private static string? NormalizeAddress(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static long? ParseLamports(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        return long.TryParse(value, out var parsed) && parsed >= 0 ? parsed : null;
+    }
+
+    private static long? AddLamports(long? current, long? added)
+        => added.HasValue ? (current ?? 0L) + added.Value : current;
 }

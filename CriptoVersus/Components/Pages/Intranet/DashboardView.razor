@@ -1096,11 +1096,12 @@ else
             }
 
             string? onChainSignature = null;
+            OnChainBetResult? onChainResult = null;
             var onChainBettingEnabled = Config.GetValue<bool>("OnChainBetting:Enabled");
 
             if (onChainBettingEnabled)
             {
-                var onChainResult = await PlaceOnChainBetAsync(match, teamId, amountSol);
+                onChainResult = await PlaceOnChainBetAsync(match, teamId, amountSol);
                 onChainSignature = onChainResult.Signature;
                 BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
             }
@@ -1110,7 +1111,10 @@ else
                 userId = SelectedUserId,
                 teamId = teamId,
                 amount = amountSol,
-                onChainSignature
+                onChainSignature,
+                onChainPositionAccount = onChainResult?.PositionAccount,
+                onChainPositionVault = onChainResult?.PositionVault,
+                onChainAmountLamports = onChainResult?.AmountLamports
             };
 
             var url = $"https://criptoversus-api.duckdns.org/api/match/{match.MatchId}/bet";
@@ -1190,7 +1194,7 @@ else
     {
         BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaBetting.js?v=20260418-authority-autocreate");
+            "./js/solanaBetting.js?v=20260420-position-pda");
 
         var programId = Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))
@@ -1486,10 +1490,13 @@ else
     private sealed class OnChainBetResult
     {
         public string Signature { get; set; } = "";
+        public string Instruction { get; set; } = "";
         public string? CreateMatchSignature { get; set; }
-        public string MatchAccount { get; set; } = "";
-        public string BetAccount { get; set; } = "";
-        public string Vault { get; set; } = "";
+        public string? MatchAccount { get; set; }
+        public string? BetAccount { get; set; }
+        public string? Vault { get; set; }
+        public string? PositionAccount { get; set; }
+        public string? PositionVault { get; set; }
         public string AmountLamports { get; set; } = "";
     }
 

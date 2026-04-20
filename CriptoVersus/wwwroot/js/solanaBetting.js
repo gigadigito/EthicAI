@@ -133,6 +133,81 @@ async function createMatchIfAllowed(options, context) {
 }
 
 export async function placeBet(options) {
+    return await depositPosition(options);
+}
+
+export async function depositPosition(options) {
+    const web3 = getWeb3();
+    const {
+        Connection,
+        PublicKey,
+        Transaction,
+        TransactionInstruction,
+        SystemProgram,
+        clusterApiUrl,
+        LAMPORTS_PER_SOL
+    } = web3;
+
+    const provider = getProvider();
+
+    if (!provider.isConnected) {
+        await provider.connect();
+    }
+
+    const programId = new PublicKey(options.programId);
+    const cluster = options.cluster || "devnet";
+    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+    const teamId = Number(options.teamId);
+    const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
+
+    if (!Number.isInteger(teamId) || teamId <= 0 || teamId > 255) {
+        throw new Error("TeamId invalido para posicao on-chain.");
+    }
+
+    const teamSeed = new Uint8Array([teamId]);
+    const [positionAccount] = PublicKey.findProgramAddressSync(
+        [new TextEncoder().encode("position"), provider.publicKey.toBuffer(), teamSeed],
+        programId);
+
+    const [positionVault] = PublicKey.findProgramAddressSync(
+        [new TextEncoder().encode("position_vault"), positionAccount.toBuffer()],
+        programId);
+
+    const positionInfo = await connection.getAccountInfo(positionAccount, "confirmed");
+    const instructionName = positionInfo ? "deposit_position" : "create_position";
+    const data = positionInfo
+        ? concatBytes(
+            await discriminator("deposit_position"),
+            u64Le(amountLamports))
+        : concatBytes(
+            await discriminator("create_position"),
+            teamSeed,
+            u64Le(amountLamports));
+
+    const instruction = new TransactionInstruction({
+        programId,
+        keys: [
+            { pubkey: positionAccount, isSigner: false, isWritable: true },
+            { pubkey: positionVault, isSigner: false, isWritable: true },
+            { pubkey: provider.publicKey, isSigner: true, isWritable: true },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
+        ],
+        data
+    });
+
+    const transaction = new Transaction().add(instruction);
+    const signature = await sendAndConfirm(connection, provider, transaction);
+
+    return {
+        signature,
+        instruction: instructionName,
+        positionAccount: positionAccount.toBase58(),
+        positionVault: positionVault.toBase58(),
+        amountLamports: amountLamports.toString()
+    };
+}
+
+export async function placeLegacyMatchBet(options) {
     const web3 = getWeb3();
     const {
         Connection,

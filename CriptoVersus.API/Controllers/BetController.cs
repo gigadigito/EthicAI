@@ -164,6 +164,13 @@ namespace CriptoVersus.API.Controllers
                             CurrentCapital = request.Amount,
                             AutoCompound = true,
                             Status = TeamPositionStatus.Active,
+                            OnChainPositionAddress = NormalizeAddress(request.OnChainPositionAccount),
+                            OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault),
+                            LastOnChainSignature = NormalizeAddress(request.OnChainSignature),
+                            OnChainCluster = onChainBettingEnabled
+                                ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
+                                : null,
+                            CurrentLamports = ParseLamports(request.OnChainAmountLamports),
                             CreatedAt = nowUtc,
                             UpdatedAt = nowUtc
                         };
@@ -177,6 +184,15 @@ namespace CriptoVersus.API.Controllers
                         position.Status = TeamPositionStatus.Active;
                         position.AutoCompound = true;
                         position.ClosedAt = null;
+                        position.OnChainPositionAddress = NormalizeAddress(request.OnChainPositionAccount) ?? position.OnChainPositionAddress;
+                        position.OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault) ?? position.OnChainVaultAddress;
+                        position.LastOnChainSignature = NormalizeAddress(request.OnChainSignature) ?? position.LastOnChainSignature;
+                        position.OnChainCluster = onChainBettingEnabled
+                            ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
+                            : position.OnChainCluster;
+                        position.CurrentLamports = AddLamports(
+                            position.CurrentLamports,
+                            ParseLamports(request.OnChainAmountLamports));
                         position.UpdatedAt = nowUtc;
                     }
 
@@ -311,6 +327,20 @@ namespace CriptoVersus.API.Controllers
 
         private static decimal RoundMoney(decimal value)
             => Math.Round(value, 8, MidpointRounding.ToZero);
+
+        private static string? NormalizeAddress(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static long? ParseLamports(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            return long.TryParse(value, out var parsed) && parsed >= 0 ? parsed : null;
+        }
+
+        private static long? AddLamports(long? current, long? added)
+            => added.HasValue ? (current ?? 0L) + added.Value : current;
 
         private bool IsAdminWallet(string wallet)
         {

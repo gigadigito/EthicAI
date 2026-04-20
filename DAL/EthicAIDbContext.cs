@@ -343,6 +343,25 @@ namespace EthicAI.EntityModel
                       .HasColumnName("in_status")
                       .HasDefaultValue(TeamPositionStatus.Active);
 
+                entity.Property(e => e.OnChainPositionAddress)
+                      .HasMaxLength(64)
+                      .HasColumnName("tx_onchain_position");
+
+                entity.Property(e => e.OnChainVaultAddress)
+                      .HasMaxLength(64)
+                      .HasColumnName("tx_onchain_vault");
+
+                entity.Property(e => e.LastOnChainSignature)
+                      .HasMaxLength(128)
+                      .HasColumnName("tx_last_onchain_signature");
+
+                entity.Property(e => e.OnChainCluster)
+                      .HasMaxLength(32)
+                      .HasColumnName("tx_onchain_cluster");
+
+                entity.Property(e => e.CurrentLamports)
+                      .HasColumnName("nr_current_lamports");
+
                 entity.Property(e => e.CreatedAt)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_created");

@@ -135,6 +135,11 @@ public sealed class WalletController : ControllerBase
             CurrentCapital = position.CurrentCapital,
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
+            OnChainPositionAddress = position.OnChainPositionAddress,
+            OnChainVaultAddress = position.OnChainVaultAddress,
+            LastOnChainSignature = position.LastOnChainSignature,
+            OnChainCluster = position.OnChainCluster,
+            CurrentLamports = position.CurrentLamports,
             CreatedAt = position.CreatedAt,
             UpdatedAt = position.UpdatedAt,
             ClosedAt = position.ClosedAt
