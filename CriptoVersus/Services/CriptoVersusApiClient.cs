@@ -43,6 +43,9 @@ public sealed class CriptoVersusApiClient
     public async Task<AdminSystemDto?> GetAdminSystemAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<AdminSystemDto>("api/admin/system", ct);
 
+    public async Task<TokenomicsDto?> GetTokenomicsAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<TokenomicsDto>("api/tokenomics", ct);
+
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,
         CancellationToken ct = default)

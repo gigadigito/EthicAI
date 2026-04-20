@@ -1,0 +1,520 @@
+@rendermode InteractiveServer
+@page "/tokenomics"
+@using DTOs
+@inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+
+<section class="tokenomics-page">
+    <div class="tokenomics-hero">
+        <div class="hero-copy">
+            <span>Tokenomics (Regras)</span>
+            <h2>Pool cíclica de investimento gamificada</h2>
+            <p>
+                Capital alocado por ativo, participação automática em ciclos e liquidação com erosão controlada.
+            </p>
+        </div>
+        <div class="protocol-mark" aria-hidden="true">
+            <img src="/img/logo.jpg" alt="" />
+            <strong>CV</strong>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <p>Carregando regras do protocolo...</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="rule-alert">@_error</div>
+    }
+    else if (_data is not null)
+    {
+        <div class="metrics-band">
+            <article>
+                <span>Capital ativo</span>
+                <strong>@FmtSol(_data.ActiveCapital)</strong>
+                <small>@_data.ActivePositions posicoes ativas</small>
+            </article>
+            <article>
+                <span>Total alocado</span>
+                <strong>@FmtSol(_data.PrincipalAllocated)</strong>
+                <small>@_data.Users usuarios indexados</small>
+            </article>
+            <article>
+                <span>Ciclos em andamento</span>
+                <strong>@_data.OngoingMatches</strong>
+                <small>@_data.PendingMatches pendentes</small>
+            </article>
+            <article>
+                <span>Em partidas abertas</span>
+                <strong>@FmtSol(_data.OpenEntryAmount)</strong>
+                <small>@_data.OpenEntries entradas abertas</small>
+            </article>
+        </div>
+
+        <div class="rule-grid">
+            <section class="rule-panel lead-panel" id="como-funciona">
+                <span>01</span>
+                <h3>Como funciona</h3>
+                <p>
+                    O usuario escolhe um ativo/time e deposita SOL em uma posicao. A posicao acompanha os proximos ciclos
+                    daquele ativo enquanto estiver ativa, sem exigir uma nova entrada manual a cada rodada.
+                </p>
+                <div class="flow-line">
+                    <strong>Depositar</strong>
+                    <strong>Participar</strong>
+                    <strong>Liquidar</strong>
+                    <strong>Continuar</strong>
+                </div>
+            </section>
+
+            <section class="rule-panel" id="posicoes">
+                <span>02</span>
+                <h3>Posicoes</h3>
+                <p>
+                    Cada posicao pertence a uma carteira e a um ativo. O capital atual pode aumentar com vitorias,
+                    sofrer erosao em derrotas ou ficar aguardando retirada quando o usuario solicitar saida.
+                </p>
+                <dl>
+                    <div><dt>Ativas</dt><dd>@_data.ActivePositions</dd></div>
+                    <div><dt>Saida solicitada</dt><dd>@_data.ClosingPositions</dd></div>
+                    <div><dt>Fechadas</dt><dd>@_data.ClosedPositions</dd></div>
+                </dl>
+            </section>
+
+            <section class="rule-panel" id="pontuacao">
+                <span>03</span>
+                <h3>Sistema de Pontuacao</h3>
+                <p>
+                    A pontuacao compara a performance relativa dos ativos no ciclo. A cada @_data.PercentPerGoal.ToString("0.##")%
+                    de vantagem, o ativo pode converter a diferenca em gols, respeitando o limite por time.
+                </p>
+                <dl>
+                    <div><dt>% por gol</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
+                    <div><dt>Limite por time</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
+                </dl>
+            </section>
+
+            <section class="rule-panel" id="ciclos">
+                <span>04</span>
+                <h3>Ciclos</h3>
+                <p>
+                    Cada partida representa um ciclo de mercado. Posicoes recorrentes entram automaticamente quando o ativo
+                    volta a aparecer, desde que a posicao esteja ativa e acima do capital minimo.
+                </p>
+                <dl>
+                    <div><dt>Duracao alvo</dt><dd>@_data.MatchDurationMinutes min</dd></div>
+                    <div><dt>Reentrada automatica</dt><dd>@(_data.AutoReenterEnabled ? "Ativa" : "Pausada")</dd></div>
+                </dl>
+            </section>
+
+            <section class="rule-panel" id="liquidacao">
+                <span>05</span>
+                <h3>Liquidacao</h3>
+                <p>
+                    O lado vencedor recebe ganho proporcional da fatia distribuivel do lado perdedor. O lado perdedor
+                    mantem a maior parte do capital, preservando permanencia no sistema.
+                </p>
+                <div class="allocation-bar">
+                    <i style="width:@PctCss(_data.LoserRefundRate)"></i>
+                    <b style="width:@PctCss(_data.WinnerPoolRate)"></b>
+                    <em style="width:@PctCss(_data.HouseFeeRate)"></em>
+                </div>
+                <div class="legend">
+                    <span>Perdedor recupera @FmtPct(_data.LoserRefundRate)</span>
+                    <span>Vencedores recebem @FmtPct(_data.WinnerPoolRate)</span>
+                    <span>Casa @FmtPct(_data.HouseFeeRate)</span>
+                </div>
+            </section>
+
+            <section class="rule-panel" id="taxas">
+                <span>06</span>
+                <h3>Taxas</h3>
+                <p>
+                    A taxa da casa e pequena para manter o ciclo sustentavel sem transformar a experiencia em eliminacao rapida.
+                </p>
+                <dl>
+                    <div><dt>Taxa da casa</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
+                    <div><dt>Capital minimo</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
+                </dl>
+            </section>
+
+            <section class="rule-panel" id="retirada">
+                <span>07</span>
+                <h3>Retirada</h3>
+                <p>
+                    O usuario pode solicitar saida da posicao. Se houver ciclo ativo, a posicao aguarda liquidacao; depois o
+                    capital remanescente fica apto para encerramento e saque pela carteira.
+                </p>
+            </section>
+
+            <section class="rule-panel" id="riscos">
+                <span>08</span>
+                <h3>Riscos</h3>
+                <p>
+                    O protocolo usa ativos volateis, ciclos automatizados e contratos em rede Solana. Perdas pequenas por ciclo
+                    podem se acumular, e parametros de devnet nao devem ser tratados como promessa de retorno.
+                </p>
+            </section>
+
+            <section class="rule-panel contract-panel" id="contrato">
+                <span>09</span>
+                <h3>Contrato on-chain</h3>
+                <p>
+                    Depositos e posicoes usam o programa configurado na rede @_data.Cluster. O backend atua como indexador e
+                    orquestrador, enquanto a posicao on-chain preserva a rastreabilidade do capital.
+                </p>
+                <dl>
+                    <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
+                    <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
+                    <div><dt>Rede</dt><dd>@_data.Cluster</dd></div>
+                </dl>
+            </section>
+        </div>
+
+        @if (_data.TopPositions.Count > 0)
+        {
+            <section class="positions-band">
+                <div>
+                    <span>Ativos com mais capital</span>
+                    <h3>Distribuicao atual das posicoes</h3>
+                </div>
+                <div class="position-list">
+                    @foreach (var position in _data.TopPositions)
+                    {
+                        <article>
+                            <strong>@position.Symbol</strong>
+                            <span>@FmtSol(position.CurrentCapital)</span>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+    }
+</section>
+
+@code {
+    private TokenomicsDto? _data;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _data = await Api.GetTokenomicsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Nao foi possivel carregar as regras dinamicas: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string FmtSol(decimal value)
+        => $"{value:0.########} SOL";
+
+    private static string FmtPct(decimal value)
+        => $"{value * 100m:0.##}%";
+
+    private static string PctCss(decimal value)
+        => $"{Math.Max(0m, Math.Min(1m, value)) * 100m:0.##}%";
+
+    private static string ShortAddress(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "-";
+
+        const int start = 7;
+        const int end = 6;
+
+        return value.Length <= start + end + 3
+            ? value
+            : $"{value[..start]}...{value[^end..]}";
+    }
+}
+
+<style>
+    .tokenomics-page {
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    .tokenomics-hero {
+        min-height: 280px;
+        border: 1px solid #243041;
+        border-radius: 8px;
+        padding: clamp(1.25rem, 3vw, 2rem);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1.5rem;
+        background:
+            linear-gradient(90deg, rgba(11, 18, 26, .96), rgba(17, 26, 36, .88)),
+            url('/img/logo.jpg') center right / auto 110% no-repeat;
+    }
+
+    .hero-copy {
+        max-width: 760px;
+    }
+
+    .hero-copy span,
+    .rule-panel span,
+    .metrics-band span,
+    .positions-band span {
+        color: #5eead4;
+        font-weight: 900;
+        letter-spacing: 0;
+        text-transform: uppercase;
+    }
+
+    .hero-copy h2 {
+        margin: .4rem 0 .8rem;
+        color: #f8fafc;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1;
+        max-width: 720px;
+    }
+
+    .hero-copy p {
+        color: #dbeafe;
+        font-size: 1.1rem;
+        max-width: 620px;
+        margin: 0;
+    }
+
+    .protocol-mark {
+        width: 132px;
+        aspect-ratio: 1;
+        border: 1px solid #2dd4bf;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: #0d131b;
+        overflow: hidden;
+    }
+
+    .protocol-mark img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: .45;
+        grid-area: 1 / 1;
+    }
+
+    .protocol-mark strong {
+        grid-area: 1 / 1;
+        color: #f8fafc;
+        font-size: 2.2rem;
+    }
+
+    .metrics-band,
+    .rule-panel,
+    .positions-band,
+    .rule-alert {
+        border: 1px solid #283241;
+        border-radius: 8px;
+        background: #11161e;
+    }
+
+    .metrics-band {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1px;
+        overflow: hidden;
+        background: #283241;
+    }
+
+    .metrics-band article {
+        padding: 1rem;
+        background: #11161e;
+        display: grid;
+        gap: .35rem;
+    }
+
+    .metrics-band strong {
+        color: #f8fafc;
+        font-size: 1.55rem;
+    }
+
+    .metrics-band small {
+        color: #a8b3c4;
+    }
+
+    .rule-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: .9rem;
+    }
+
+    .rule-panel {
+        grid-column: span 4;
+        padding: 1.1rem;
+        display: grid;
+        gap: .75rem;
+        align-content: start;
+    }
+
+    .lead-panel,
+    .contract-panel {
+        grid-column: span 8;
+    }
+
+    .rule-panel h3,
+    .positions-band h3 {
+        color: #f8fafc;
+        margin: 0;
+        font-size: 1.45rem;
+    }
+
+    .rule-panel p {
+        color: #dbeafe;
+        margin: 0;
+        line-height: 1.55;
+    }
+
+    .flow-line {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: .5rem;
+    }
+
+    .flow-line strong,
+    .legend span {
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #f8fafc;
+        padding: .65rem;
+        text-align: center;
+    }
+
+    .rule-panel dl {
+        display: grid;
+        gap: .55rem;
+        margin: 0;
+    }
+
+    .rule-panel dl div {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border-top: 1px solid #283241;
+        padding-top: .55rem;
+    }
+
+    .rule-panel dt {
+        color: #9aa8bd;
+        font-weight: 900;
+    }
+
+    .rule-panel dd {
+        color: #f8fafc;
+        margin: 0;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+        text-align: right;
+    }
+
+    .allocation-bar {
+        height: 14px;
+        display: flex;
+        overflow: hidden;
+        border-radius: 8px;
+        background: #0b1118;
+        border: 1px solid #283241;
+    }
+
+    .allocation-bar i,
+    .allocation-bar b,
+    .allocation-bar em {
+        display: block;
+        min-width: 2px;
+    }
+
+    .allocation-bar i {
+        background: #5eead4;
+    }
+
+    .allocation-bar b {
+        background: #93c5fd;
+    }
+
+    .allocation-bar em {
+        background: #f8fafc;
+    }
+
+    .legend {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: .5rem;
+    }
+
+    .positions-band {
+        padding: 1.1rem;
+        display: grid;
+        gap: 1rem;
+    }
+
+    .position-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: .65rem;
+    }
+
+    .position-list article {
+        border: 1px solid #283241;
+        border-radius: 8px;
+        padding: .85rem;
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+        background: #151b24;
+    }
+
+    .position-list strong {
+        color: #f8fafc;
+    }
+
+    .position-list article span {
+        color: #5eead4;
+        text-transform: none;
+    }
+
+    .rule-alert {
+        padding: 1rem;
+        color: #f8fafc;
+    }
+
+    @@media (max-width: 1050px) {
+        .rule-panel,
+        .lead-panel,
+        .contract-panel {
+            grid-column: span 6;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .tokenomics-hero {
+            grid-template-columns: 1fr;
+            background:
+                linear-gradient(90deg, rgba(11, 18, 26, .96), rgba(17, 26, 36, .9)),
+                url('/img/logo.jpg') center / cover no-repeat;
+        }
+
+        .protocol-mark {
+            width: 96px;
+        }
+
+        .rule-panel,
+        .lead-panel,
+        .contract-panel {
+            grid-column: 1 / -1;
+        }
+
+        .flow-line {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
