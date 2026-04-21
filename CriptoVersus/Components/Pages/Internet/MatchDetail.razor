@@ -547,6 +547,10 @@
                             <div class="text-muted">Partida</div>
                             <div class="fw-semibold">#@_match.MatchId</div>
                         </div>
+                        <div class="col-12">
+                            <div class="text-muted">Regra ativa</div>
+                            <div class="fw-semibold">@GetRuleLabel(_match.ScoringRuleType)</div>
+                        </div>
                     </div>
 
                     @if (_match.IsFinished)

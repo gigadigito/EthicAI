@@ -290,7 +290,10 @@ else
                         <article class="listing-match-card">
                             <div class="match-card-top">
                                 <span>Match #@m.MatchId</span>
-                                <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
+                                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                                    <span class="status-pill @GetRulePillClass(m.ScoringRuleType)">@GetScoringRuleLabel(m.ScoringRuleType)</span>
+                                    <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
+                                </div>
                             </div>
 
                             <div class="matchup-row">
@@ -380,7 +383,10 @@ else
                         <article class="listing-match-card listing-match-card-live">
                             <div class="match-card-top">
                                 <span>Match #@m.MatchId</span>
-                                <span class="status-pill status-live">AO VIVO</span>
+                                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                                    <span class="status-pill @GetRulePillClass(m.ScoringRuleType)">@GetScoringRuleLabel(m.ScoringRuleType)</span>
+                                    <span class="status-pill status-live">AO VIVO</span>
+                                </div>
                             </div>
 
                             <div class="matchup-row">
@@ -453,7 +459,10 @@ else
                         <article class="listing-match-card">
                             <div class="match-card-top">
                                 <span>Match #@m.MatchId</span>
-                                <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
+                                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+                                    <span class="status-pill @GetRulePillClass(m.ScoringRuleType)">@GetScoringRuleLabel(m.ScoringRuleType)</span>
+                                    <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
+                                </div>
                             </div>
 
                             <div class="matchup-row">
@@ -660,6 +669,31 @@ else
 
     .status-closed,
     .closed-bet {
+        background: rgba(148, 163, 184, .16);
+        color: #cbd5e1;
+    }
+
+    .status-rule-threshold {
+        background: rgba(59, 130, 246, .16);
+        color: #93c5fd;
+    }
+
+    .status-rule-percent {
+        background: rgba(16, 185, 129, .16);
+        color: #86efac;
+    }
+
+    .status-rule-window {
+        background: rgba(249, 115, 22, .16);
+        color: #fdba74;
+    }
+
+    .status-rule-volume {
+        background: rgba(168, 85, 247, .16);
+        color: #d8b4fe;
+    }
+
+    .status-rule-default {
         background: rgba(148, 163, 184, .16);
         color: #cbd5e1;
     }
@@ -1320,6 +1354,7 @@ else
                         TeamA = m.TeamA,
                         TeamB = m.TeamB,
                         Status = m.Status ?? "Pending",
+                        ScoringRuleType = m.ScoringRuleType,
                         StartTime = m.StartTime,
                         BettingCloseTime = m.BettingCloseTime,
                         ElapsedMinutes = 0,
@@ -1342,6 +1377,7 @@ else
                         TeamA = m.TeamA,
                         TeamB = m.TeamB,
                         Status = m.Status ?? "Ongoing",
+                        ScoringRuleType = m.ScoringRuleType,
                         StartTime = null,
                         BettingCloseTime = m.BettingCloseTime,
                         ElapsedMinutes = m.ElapsedMinutes,
@@ -1512,6 +1548,40 @@ else
         return "FECHADA";
     }
 
+    private static string GetScoringRuleLabel(string? ruleType)
+    {
+        if (string.Equals(ruleType, "PercentThreshold", StringComparison.OrdinalIgnoreCase))
+            return "Threshold %";
+
+        if (string.Equals(ruleType, "PercentageCrossover", StringComparison.OrdinalIgnoreCase))
+            return "Cruzamento %";
+
+        if (string.Equals(ruleType, "VolumeWindow", StringComparison.OrdinalIgnoreCase))
+            return "Janela 15m";
+
+        if (string.Equals(ruleType, "VolumeCrossover", StringComparison.OrdinalIgnoreCase))
+            return "Cruz. volume";
+
+        return "Regra";
+    }
+
+    private static string GetRulePillClass(string? ruleType)
+    {
+        if (string.Equals(ruleType, "PercentThreshold", StringComparison.OrdinalIgnoreCase))
+            return "status-rule-threshold";
+
+        if (string.Equals(ruleType, "PercentageCrossover", StringComparison.OrdinalIgnoreCase))
+            return "status-rule-percent";
+
+        if (string.Equals(ruleType, "VolumeWindow", StringComparison.OrdinalIgnoreCase))
+            return "status-rule-window";
+
+        if (string.Equals(ruleType, "VolumeCrossover", StringComparison.OrdinalIgnoreCase))
+            return "status-rule-volume";
+
+        return "status-rule-default";
+    }
+
     private static string GetStatusPillClass(string? status)
     {
         if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
@@ -1581,6 +1651,7 @@ else
         public string TeamA { get; set; } = "";
         public string TeamB { get; set; } = "";
         public string Status { get; set; } = "";
+        public string ScoringRuleType { get; set; } = "";
         public DateTime? StartTime { get; set; }
         public DateTimeOffset? BettingCloseTime { get; set; }
         public int ElapsedMinutes { get; set; }

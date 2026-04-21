@@ -241,7 +241,10 @@ namespace CriptoVersus.API.Controllers
                 IsFinished = isFinished,
 
                 PctA = (decimal?)a?.PercentageChange,
-                PctB = (decimal?)b?.PercentageChange
+                PctB = (decimal?)b?.PercentageChange,
+                QuoteVolumeA = a?.QuoteVolume,
+                QuoteVolumeB = b?.QuoteVolume,
+                ScoringRuleType = m.ScoringRuleType.ToString()
             };
         }
 
