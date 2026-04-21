@@ -301,6 +301,8 @@ namespace CriptoVersus.API.Controllers
                 MatchId = m.MatchId,
                 TeamA = a?.Symbol ?? $"Team#{m.TeamAId}",
                 TeamB = b?.Symbol ?? $"Team#{m.TeamBId}",
+                TeamAId = m.TeamAId,
+                TeamBId = m.TeamBId,
                 ScoreA = m.ScoreA,
                 ScoreB = m.ScoreB,
                 Status = m.Status.ToString(),

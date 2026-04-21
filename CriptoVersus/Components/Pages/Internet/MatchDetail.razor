@@ -320,85 +320,93 @@
 
         </div>
 
-        @if (_percentageChart.HasData || _volumeChart.HasData)
-        {
-            <div class="row g-3 mb-3">
-                @if (_percentageChart.HasData)
-                {
-                    <div class="col-12 col-xl-6">
-                        <div class="card match-panel p-3 h-100">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <div class="fw-bold">Historico de Percentual</div>
-                                <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
-                            </div>
-
-                            <div class="chart-wrap mt-3">
-                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                    @for (var i = 1; i <= 4; i++)
-                                    {
-                                        var y = i * 64;
-                                        <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
-                                    }
-
-                                    <line x1="0" y1="@_percentageChart.ZeroY" x2="1000" y2="@_percentageChart.ZeroY" class="chart-zero" />
-
-                                    <polyline points="@_percentageChart.PolyA" class="chart-line chart-line-a" />
-                                    <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
-                                </svg>
-                            </div>
-
-                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                                <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatPct(_match.PctA))</div>
-                                <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
-                                <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
-                            </div>
-                        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-xl-6">
+                <div class="card match-panel p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="fw-bold">Historico de Percentual</div>
+                        <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
                     </div>
-                }
 
-                @if (_volumeChart.HasData)
-                {
-                    <div class="col-12 col-xl-6">
-                        <div class="card match-panel p-3 h-100">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <div class="fw-bold">Historico de Volume</div>
-                                <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
-                            </div>
+                    @if (_percentageChart.HasData)
+                    {
+                        <div class="chart-wrap mt-3">
+                            <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                                @for (var i = 1; i <= 4; i++)
+                                {
+                                    var y = i * 64;
+                                    <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
+                                }
 
-                            <div class="chart-wrap mt-3">
-                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                    @for (var i = 1; i <= 4; i++)
-                                    {
-                                        var y = i * 64;
-                                        <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
-                                    }
+                                <line x1="0" y1="@_percentageChart.ZeroY" x2="1000" y2="@_percentageChart.ZeroY" class="chart-zero" />
 
-                                    <line x1="0" y1="@_volumeChart.ZeroY" x2="1000" y2="@_volumeChart.ZeroY" class="chart-zero" />
-
-                                    <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
-                                    <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
-                                </svg>
-                            </div>
-
-                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                                <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatCompactNumber(_match.QuoteVolumeA))</div>
-                                <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatCompactNumber(_match.QuoteVolumeB))</div>
-                                <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
-                            </div>
+                                <polyline points="@_percentageChart.PolyA" class="chart-line chart-line-a" />
+                                <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
+                            </svg>
                         </div>
-                    </div>
-                }
 
-                @if (_metricSnapshots.Count > 0)
-                {
-                    <div class="col-12">
-                        <div class="small text-muted text-center">
-                            Baseado em @_metricSnapshots.Count snapshots persistidos da partida.
+                        <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
+                            <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatPct(_match.PctA))</div>
+                            <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
+                            <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
                         </div>
-                    </div>
-                }
+                    }
+                    else
+                    {
+                        <div class="alert alert-secondary mt-3 mb-0">
+                            @GetChartEmptyMessage()
+                        </div>
+                    }
+                </div>
             </div>
-        }
+
+            <div class="col-12 col-xl-6">
+                <div class="card match-panel p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="fw-bold">Historico de Volume</div>
+                        <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
+                    </div>
+
+                    @if (_volumeChart.HasData)
+                    {
+                        <div class="chart-wrap mt-3">
+                            <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                                @for (var i = 1; i <= 4; i++)
+                                {
+                                    var y = i * 64;
+                                    <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
+                                }
+
+                                <line x1="0" y1="@_volumeChart.ZeroY" x2="1000" y2="@_volumeChart.ZeroY" class="chart-zero" />
+
+                                <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
+                                <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
+                            </svg>
+                        </div>
+
+                        <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
+                            <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatCompactNumber(_match.QuoteVolumeA))</div>
+                            <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatCompactNumber(_match.QuoteVolumeB))</div>
+                            <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-secondary mt-3 mb-0">
+                            @GetChartEmptyMessage()
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="small text-muted text-center">
+                    Baseado em @_metricSnapshots.Count snapshots persistidos da partida.
+                    @_match.TeamA: @GetTeamSnapshotCount(_match.TeamAId).
+                    @_match.TeamB: @GetTeamSnapshotCount(_match.TeamBId).
+                </div>
+            </div>
+        </div>
 
         <!-- =========================
              TECH PANEL + ACTIONS
@@ -1533,6 +1541,23 @@
         var t = (value - yMin) / (yMax - yMin);
         t = Math.Clamp(t, 0, 1);
         return (1 - t) * 320.0;
+    }
+
+    private int GetTeamSnapshotCount(int teamId)
+        => _metricSnapshots.Count(x => x.TeamId == teamId);
+
+    private string GetChartEmptyMessage()
+    {
+        if (_match is null)
+            return "Os graficos serao exibidos quando a partida for carregada.";
+
+        var teamACount = GetTeamSnapshotCount(_match.TeamAId);
+        var teamBCount = GetTeamSnapshotCount(_match.TeamBId);
+
+        if (teamACount == 0 && teamBCount == 0)
+            return "Ainda nao existem snapshots persistidos para esta partida. Depois que o worker rodar e gravar as coletas, os graficos aparecem aqui.";
+
+        return $"Ainda nao ha pontos suficientes para desenhar as linhas. Sao necessarias pelo menos 2 coletas por time. {_match.TeamA}: {teamACount}. {_match.TeamB}: {teamBCount}.";
     }
 
     private sealed class BetUserOption
