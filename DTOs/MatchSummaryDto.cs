@@ -14,5 +14,6 @@ namespace DTOs
 
         public List<MatchDto> Upcoming { get; set; } = [];
         public List<MatchDto> OngoingList { get; set; } = [];
+        public List<MatchDto> CompletedList { get; set; } = [];
     }
 }

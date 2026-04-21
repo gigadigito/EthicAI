@@ -324,22 +324,29 @@
             <div class="col-12 col-xl-6">
                 <div class="card match-panel p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="fw-bold">Historico de Percentual</div>
+                        <div class="fw-bold">@GetPercentageCardTitle()</div>
                         <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
                     </div>
 
                     <div class="d-flex gap-2 mt-3 flex-wrap">
                         <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                            @_match.TeamA: @GetPercentageWins(_match.TeamAId) ganho(s)
+                            @_match.TeamA: @GetPercentageWins(_match.TeamAId) @GetPercentageWinLabel()
                         </span>
                         <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                            @_match.TeamB: @GetPercentageWins(_match.TeamBId) ganho(s)
+                            @_match.TeamB: @GetPercentageWins(_match.TeamBId) @GetPercentageWinLabel()
                         </span>
                     </div>
 
                     @if (_percentageChart.HasData)
                     {
                         <div class="chart-wrap mt-3">
+                            @foreach (var tick in GetPercentageAxisTicks())
+                            {
+                                <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
+                                    @tick.Label
+                                </div>
+                            }
+
                             <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
                                 @for (var i = 1; i <= 4; i++)
                                 {
@@ -359,6 +366,10 @@
                             <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
                             <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
                         </div>
+
+                        <div class="small text-muted mt-2">
+                            @GetPercentageCardDescription()
+                        </div>
                     }
                     else
                     {
@@ -372,7 +383,16 @@
             <div class="col-12 col-xl-6">
                 <div class="card match-panel p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="fw-bold">@GetVolumeCardTitle()</div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="fw-bold">@GetVolumeCardTitle()</div>
+                            @if (ShouldExplainNoVolumeCross())
+                            {
+                                <span class="badge text-bg-dark border border-secondary-subtle"
+                                      title="O placar ficou zerado porque nenhuma linha cruzou a outra de baixo para cima durante a partida.">
+                                    ?
+                                </span>
+                            }
+                        </div>
                         <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
                     </div>
 
@@ -388,6 +408,13 @@
                     @if (_volumeChart.HasData)
                     {
                         <div class="chart-wrap mt-3">
+                            @foreach (var tick in GetVolumeAxisTicks())
+                            {
+                                <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
+                                    @tick.Label
+                                </div>
+                            }
+
                             <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
                                 @for (var i = 1; i <= 4; i++)
                                 {
@@ -411,6 +438,13 @@
                         <div class="small text-muted mt-2">
                             @GetVolumeCardDescription()
                         </div>
+
+                        @if (ShouldExplainNoVolumeCross())
+                        {
+                            <div class="alert alert-secondary mt-3 mb-0">
+                                Nao houve cruzamento entre os graficos de volume durante a partida. Como esta regra so marca ponto quando uma linha cruza a outra de baixo para cima, o resultado ficou 0x0 nesta modalidade.
+                            </div>
+                        }
                     }
                     else
                     {
@@ -850,6 +884,7 @@
     .chart-wrap {
         width: 100%;
         height: 220px;
+        position: relative;
         border-radius: 14px;
         background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(0,0,0,.12));
         border: 1px solid rgba(255,255,255,.08);
@@ -870,6 +905,19 @@
         stroke: rgba(255,255,255,.18);
         stroke-width: 1.2;
         stroke-dasharray: 6 6;
+    }
+
+    .chart-axis-tick {
+        position: absolute;
+        left: 10px;
+        transform: translateY(-50%);
+        color: rgba(255,255,255,.58);
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1;
+        pointer-events: none;
+        text-shadow: 0 1px 2px rgba(0,0,0,.45);
+        z-index: 1;
     }
 
     .chart-line {
@@ -1586,30 +1634,36 @@
             yMax += 1;
         }
 
+        var globalStart = teamASeries.Concat(teamBSeries).Min(x => x.CapturedAtUtc);
+        var globalEnd = teamASeries.Concat(teamBSeries).Max(x => x.CapturedAtUtc);
+
         return new ChartSeriesState
         {
-            PolyA = BuildPolyline(teamASeries, yMin, yMax),
-            PolyB = BuildPolyline(teamBSeries, yMin, yMax),
+            PolyA = BuildPolyline(teamASeries, globalStart, globalEnd, yMin, yMax),
+            PolyB = BuildPolyline(teamBSeries, globalStart, globalEnd, yMin, yMax),
             YMin = yMin,
             YMax = yMax,
             ZeroY = MapY(0, yMin, yMax)
         };
     }
 
-    private static string BuildPolyline(List<(DateTime CapturedAtUtc, double Value)> series, double yMin, double yMax)
+    private static string BuildPolyline(
+        List<(DateTime CapturedAtUtc, double Value)> series,
+        DateTime globalStart,
+        DateTime globalEnd,
+        double yMin,
+        double yMax)
     {
         if (series.Count < 2)
             return "";
 
-        var start = series.First().CapturedAtUtc;
-        var end = series.Last().CapturedAtUtc;
-        var totalMs = Math.Max(1d, (end - start).TotalMilliseconds);
+        var totalMs = Math.Max(1d, (globalEnd - globalStart).TotalMilliseconds);
         var sb = new System.Text.StringBuilder();
 
         for (var i = 0; i < series.Count; i++)
         {
             var point = series[i];
-            var x = ((point.CapturedAtUtc - start).TotalMilliseconds / totalMs) * 1000.0;
+            var x = ((point.CapturedAtUtc - globalStart).TotalMilliseconds / totalMs) * 1000.0;
             var y = MapY(point.Value, yMin, yMax);
 
             sb.Append(x.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
@@ -1634,7 +1688,36 @@
         => _metricSnapshots.Count(x => x.TeamId == teamId);
 
     private int GetPercentageWins(int teamId)
-        => GetWins(teamId, IsPercentageCrossoverRule);
+        => IsPercentThresholdMatch()
+            ? GetWins(teamId, IsPercentThresholdRule)
+            : GetWins(teamId, IsPercentageCrossoverRule);
+
+    private string GetPercentageCardTitle()
+        => IsPercentThresholdMatch()
+            ? "Historico de Percentual (threshold)"
+            : IsPercentageCrossoverMatch()
+                ? "Historico de Percentual (cruzamento)"
+                : "Historico de Percentual";
+
+    private string GetPercentageWinLabel()
+        => IsPercentThresholdMatch() ? "ponto(s) por faixa" : "ganho(s)";
+
+    private string GetPercentageCardDescription()
+    {
+        if (IsPercentThresholdMatch())
+            return "Pontuacao baseada em faixas de diferenca percentual. Cruzar a linha do adversario nao gera ponto por si so; o ponto so aparece quando a diferenca atinge os thresholds configurados.";
+
+        if (IsPercentageCrossoverMatch())
+            return "Pontuacao baseada em cruzamento percentual: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";
+
+        return "Percentual exibido para acompanhamento da partida.";
+    }
+
+    private bool IsPercentThresholdMatch()
+        => _match?.ScoringRuleType?.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase) == true;
+
+    private bool IsPercentageCrossoverMatch()
+        => _match?.ScoringRuleType?.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase) == true;
 
     private int GetVolumeWins(int teamId)
         => IsVolumeWindowMatch()
@@ -1661,6 +1744,13 @@
 
         return "Volume exibido para acompanhamento da partida.";
     }
+
+    private bool ShouldExplainNoVolumeCross()
+        => IsVolumeCrossoverMatch()
+        && _volumeChart.HasData
+        && _match is not null
+        && GetVolumeWins(_match.TeamAId) == 0
+        && GetVolumeWins(_match.TeamBId) == 0;
 
     private bool IsVolumeWindowMatch()
         => _match?.ScoringRuleType?.Equals("VolumeWindow", StringComparison.OrdinalIgnoreCase) == true;
@@ -1700,8 +1790,41 @@
     private static string FormatEventTime(DateTime eventTimeUtc)
         => eventTimeUtc.ToLocalTime().ToString("dd/MM HH:mm:ss");
 
+    private IReadOnlyList<ChartAxisTick> GetPercentageAxisTicks()
+        => BuildAxisTicks(_percentageChart, value => $"{value:0.00}%");
+
+    private IReadOnlyList<ChartAxisTick> GetVolumeAxisTicks()
+        => BuildAxisTicks(_volumeChart, value => FormatCompactNumber((decimal)value));
+
+    private static IReadOnlyList<ChartAxisTick> BuildAxisTicks(
+        ChartSeriesState chart,
+        Func<double, string> formatter)
+    {
+        if (!chart.HasData)
+            return [];
+
+        var ticks = new List<ChartAxisTick>(5);
+
+        for (var i = 0; i <= 4; i++)
+        {
+            var ratio = i / 4d;
+            var y = ratio * 320d;
+            var value = chart.YMax - ((chart.YMax - chart.YMin) * ratio);
+            ticks.Add(new ChartAxisTick
+            {
+                Y = y,
+                Label = formatter(value)
+            });
+        }
+
+        return ticks;
+    }
+
     private static bool IsPercentageCrossoverRule(string ruleType)
         => ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPercentThresholdRule(string ruleType)
+        => ruleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsVolumeCrossoverRule(string ruleType)
         => ruleType.Equals("VolumeCrossover", StringComparison.OrdinalIgnoreCase);
@@ -1740,6 +1863,12 @@
         public double YMax { get; init; }
         public double ZeroY { get; init; } = 160;
         public bool HasData => !string.IsNullOrWhiteSpace(PolyA) && !string.IsNullOrWhiteSpace(PolyB);
+    }
+
+    private sealed class ChartAxisTick
+    {
+        public double Y { get; init; }
+        public string Label { get; init; } = "";
     }
 
     private sealed class OnChainBetResult

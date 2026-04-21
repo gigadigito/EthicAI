@@ -432,6 +432,79 @@ else
             }
         </section>
 
+        <section class="listing-panel">
+            <div class="listing-panel-head">
+                <div>
+                    <div class="listing-eyebrow">Encerradas</div>
+                    <h3>Partidas finalizadas</h3>
+                </div>
+                <span class="listing-count">@Snapshot.Matches.CompletedList.Count</span>
+            </div>
+
+            @if (Snapshot.Matches.CompletedList.Count == 0)
+            {
+                <div class="listing-empty">Nenhuma partida finalizada nas ultimas 24 horas.</div>
+            }
+            else
+            {
+                <div class="match-list-grid">
+                    @foreach (var m in Snapshot.Matches.CompletedList)
+                    {
+                        <article class="listing-match-card">
+                            <div class="match-card-top">
+                                <span>Match #@m.MatchId</span>
+                                <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
+                            </div>
+
+                            <div class="matchup-row">
+                                <div class="team-cell">
+                                    <span class="team-line">
+                                        <span class="coin-mini" title="@m.TeamA">
+                                            <img src="@GetCoinIconUrl(m.TeamA)"
+                                                 alt="@m.TeamA"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-mini-fallback d-none">@GetInitials(m.TeamA)</span>
+                                        </span>
+                                        <span class="team-symbol">@m.TeamA</span>
+                                    </span>
+                                    <span class="@GetPctClass(m.PctA)">@FmtPct(m.PctA)</span>
+                                </div>
+
+                                <div class="score-cell">
+                                    <span class="score-value">@m.ScoreA x @m.ScoreB</span>
+                                    <span class="score-caption">Partida encerrada</span>
+                                </div>
+
+                                <div class="team-cell team-cell-right">
+                                    <span class="team-line team-line-right">
+                                        <span class="coin-mini" title="@m.TeamB">
+                                            <img src="@GetCoinIconUrl(m.TeamB)"
+                                                 alt="@m.TeamB"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-mini-fallback d-none">@GetInitials(m.TeamB)</span>
+                                        </span>
+                                        <span class="team-symbol">@m.TeamB</span>
+                                    </span>
+                                    <span class="@GetPctClass(m.PctB)">@FmtPct(m.PctB)</span>
+                                </div>
+                            </div>
+
+                            <div class="match-progress" aria-label="Progresso da partida">
+                                <span style="width:100%"></span>
+                            </div>
+
+                            <div class="match-card-footer">
+                                <span class="match-meta">Historico e log da partida disponiveis</span>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
         <section class="listing-panel listing-panel-wide">
             <div class="listing-panel-head">
                 <div>

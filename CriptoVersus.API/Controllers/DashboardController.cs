@@ -53,6 +53,7 @@ namespace CriptoVersus.API.Controllers
             var topGainersTask = GetTopGainersAsync(top, ct);
             var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, ct);
             var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, ct);
+            var completedListTask = GetCompletedListAsync(ongoing, now, last24h, matchDurationMinutes, ct);
 
             var pendingCountTask = CountPendingAsync(ct);
             var ongoingCountTask = CountOngoingAsync(ct);
@@ -63,6 +64,7 @@ namespace CriptoVersus.API.Controllers
                 topGainersTask,
                 ongoingListTask,
                 pendingListTask,
+                completedListTask,
                 pendingCountTask,
                 ongoingCountTask,
                 completedLast24hTask);
@@ -78,7 +80,8 @@ namespace CriptoVersus.API.Controllers
                     Ongoing = ongoingCountTask.Result,
                     CompletedLast24h = completedLast24hTask.Result,
                     Upcoming = pendingListTask.Result,
-                    OngoingList = ongoingListTask.Result
+                    OngoingList = ongoingListTask.Result,
+                    CompletedList = completedListTask.Result
                 }
             });
         }
@@ -140,6 +143,27 @@ namespace CriptoVersus.API.Controllers
                     (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > now) ||
                     (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > now))
                 .OrderBy(m => m.StartTime)
+                .Take(take)
+                .Select(m => ToMatchDto(m, now, matchDurationMinutes))
+                .ToListAsync(ct);
+        }
+
+        private async Task<List<MatchDto>> GetCompletedListAsync(
+            int take,
+            DateTime now,
+            DateTime last24h,
+            int matchDurationMinutes,
+            CancellationToken ct)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(ct);
+
+            return await db.Set<Match>()
+                .AsNoTracking()
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Where(m => m.Status == MatchStatus.Completed)
+                .Where(m => m.EndTime != null && m.EndTime >= last24h)
+                .OrderByDescending(m => m.EndTime ?? DateTime.MinValue)
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
