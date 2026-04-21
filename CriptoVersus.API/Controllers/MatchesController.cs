@@ -9,6 +9,7 @@ using System.Text.Json;
 // Ajuste namespaces conforme seu projeto
 using EthicAI.EntityModel;
 using DAL.NftFutebol;
+using CriptoVersus.API.Services;
 
 namespace CriptoVersus.API.Controllers
 {
@@ -18,13 +19,16 @@ namespace CriptoVersus.API.Controllers
     {
         private readonly EthicAIDbContext _db;
         private readonly IHubContext<DashboardHub> _hub;
+        private readonly IMatchScoreRebuildService _matchScoreRebuildService;
 
         public MatchesController(
             EthicAIDbContext db,
-            IHubContext<DashboardHub> hub)
+            IHubContext<DashboardHub> hub,
+            IMatchScoreRebuildService matchScoreRebuildService)
         {
             _db = db;
             _hub = hub;
+            _matchScoreRebuildService = matchScoreRebuildService;
         }
 
         // =========================
@@ -192,6 +196,25 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return Ok(items.OrderBy(x => x.CapturedAtUtc).ToList());
+        }
+
+        [HttpPost("{id:int}/rebuild-score-events")]
+        public async Task<ActionResult<MatchScoreRebuildResult>> RebuildScoreEvents(int id, CancellationToken ct)
+        {
+            try
+            {
+                var result = await _matchScoreRebuildService.RebuildAsync(id, ct);
+                await NotifyDashboardChangedAsync("match_score_rebuilt", id, ct);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("nao encontrada", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         // =========================

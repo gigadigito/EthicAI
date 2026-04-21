@@ -12,6 +12,10 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ILedgerService, LedgerService>();
+builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
+builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
+builder.Services.Configure<MatchScoreRebuildOptions>(
+    builder.Configuration.GetSection("CriptoVersusWorker:Scoring"));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 

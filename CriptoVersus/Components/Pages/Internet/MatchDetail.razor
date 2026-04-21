@@ -361,6 +361,13 @@
                             </svg>
                         </div>
 
+                        <div class="chart-x-axis">
+                            @foreach (var tick in GetPercentageTimeTicks())
+                            {
+                                <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
+                            }
+                        </div>
+
                         <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
                             <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatPct(_match.PctA))</div>
                             <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
@@ -427,6 +434,13 @@
                                 <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
                                 <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
                             </svg>
+                        </div>
+
+                        <div class="chart-x-axis">
+                            @foreach (var tick in GetVolumeTimeTicks())
+                            {
+                                <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
+                            }
                         </div>
 
                         <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
@@ -939,6 +953,23 @@
     .chart-line-b {
         stroke: rgba(255,82,82,.95);
         filter: drop-shadow(0 8px 14px rgba(255,82,82,.15));
+    }
+
+    .chart-x-axis {
+        position: relative;
+        height: 20px;
+        margin-top: .55rem;
+        color: rgba(255,255,255,.52);
+        font-size: 11px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .chart-x-axis span {
+        position: absolute;
+        bottom: 0;
+        transform: translateX(-50%);
+        white-space: nowrap;
     }
 
     .legend {
@@ -1647,7 +1678,9 @@
             PolyB = BuildPolyline(teamBSeries, globalStart, globalEnd, yMin, yMax),
             YMin = yMin,
             YMax = yMax,
-            ZeroY = MapY(0, yMin, yMax)
+            ZeroY = MapY(0, yMin, yMax),
+            StartUtc = globalStart,
+            EndUtc = globalEnd
         };
     }
 
@@ -1693,23 +1726,23 @@
 
     private int GetPercentageWins(int teamId)
         => IsPercentThresholdMatch()
-            ? GetWins(teamId, IsPercentThresholdRule)
+            ? GetWins(teamId, IsPercentThresholdOrCrossoverRule)
             : GetWins(teamId, IsPercentageCrossoverRule);
 
     private string GetPercentageCardTitle()
         => IsPercentThresholdMatch()
-            ? "Historico de Percentual (threshold)"
+            ? "Historico de Percentual (threshold + cruzamento)"
             : IsPercentageCrossoverMatch()
                 ? "Historico de Percentual (cruzamento)"
                 : "Historico de Percentual";
 
     private string GetPercentageWinLabel()
-        => IsPercentThresholdMatch() ? "ponto(s) por faixa" : "ganho(s)";
+        => IsPercentThresholdMatch() ? "ponto(s)" : "ganho(s)";
 
     private string GetPercentageCardDescription()
     {
         if (IsPercentThresholdMatch())
-            return "Pontuacao baseada em faixas de diferenca percentual. Cruzar a linha do adversario nao gera ponto por si so; o ponto so aparece quando a diferenca atinge os thresholds configurados.";
+            return "Pontuacao hibrida: cruzar a linha do adversario para cima gera ponto, e atingir as faixas de diferenca percentual configuradas tambem gera ponto.";
 
         if (IsPercentageCrossoverMatch())
             return "Pontuacao baseada em cruzamento percentual: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";
@@ -1800,6 +1833,12 @@
     private IReadOnlyList<ChartAxisTick> GetVolumeAxisTicks()
         => BuildAxisTicks(_volumeChart, value => FormatCompactNumber((decimal)value));
 
+    private IReadOnlyList<ChartTimeTick> GetPercentageTimeTicks()
+        => BuildTimeTicks(_percentageChart);
+
+    private IReadOnlyList<ChartTimeTick> GetVolumeTimeTicks()
+        => BuildTimeTicks(_volumeChart);
+
     private static IReadOnlyList<ChartAxisTick> BuildAxisTicks(
         ChartSeriesState chart,
         Func<double, string> formatter)
@@ -1824,11 +1863,57 @@
         return ticks;
     }
 
+    private IReadOnlyList<ChartTimeTick> BuildTimeTicks(ChartSeriesState chart)
+    {
+        if (!chart.HasData || chart.EndUtc <= chart.StartUtc)
+            return [];
+
+        var ticks = new List<ChartTimeTick>(5);
+        var startUtc = ResolveMatchStartUtc(chart);
+        var totalSeconds = Math.Max(1d, (chart.EndUtc - chart.StartUtc).TotalSeconds);
+
+        for (var i = 0; i <= 4; i++)
+        {
+            var ratio = i / 4d;
+            var tickUtc = chart.StartUtc.AddSeconds(totalSeconds * ratio);
+
+            ticks.Add(new ChartTimeTick
+            {
+                XPercent = ratio * 100d,
+                Label = FormatMatchTimeTick(startUtc, tickUtc)
+            });
+        }
+
+        return ticks;
+    }
+
+    private DateTime? ResolveMatchStartUtc(ChartSeriesState chart)
+    {
+        if (_match?.StartTime is DateTime startTime)
+            return DateTime.SpecifyKind(startTime, DateTimeKind.Utc);
+
+        return chart.StartUtc;
+    }
+
+    private static string FormatMatchTimeTick(DateTime? startUtc, DateTime tickUtc)
+    {
+        if (startUtc is DateTime matchStartUtc)
+        {
+            var elapsedMinutes = Math.Max(0, (int)Math.Round((tickUtc - matchStartUtc).TotalMinutes));
+            return $"{elapsedMinutes:0}m";
+        }
+
+        return tickUtc.ToLocalTime().ToString("HH:mm");
+    }
+
     private static bool IsPercentageCrossoverRule(string ruleType)
         => ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPercentThresholdRule(string ruleType)
         => ruleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPercentThresholdOrCrossoverRule(string ruleType)
+        => IsPercentThresholdRule(ruleType) || IsPercentageCrossoverRule(ruleType);
 
     private static bool IsVolumeCrossoverRule(string ruleType)
         => ruleType.Equals("VolumeCrossover", StringComparison.OrdinalIgnoreCase);
@@ -1866,12 +1951,20 @@
         public double YMin { get; init; }
         public double YMax { get; init; }
         public double ZeroY { get; init; } = 160;
+        public DateTime StartUtc { get; init; }
+        public DateTime EndUtc { get; init; }
         public bool HasData => !string.IsNullOrWhiteSpace(PolyA) && !string.IsNullOrWhiteSpace(PolyB);
     }
 
     private sealed class ChartAxisTick
     {
         public double Y { get; init; }
+        public string Label { get; init; } = "";
+    }
+
+    private sealed class ChartTimeTick
+    {
+        public double XPercent { get; init; }
         public string Label { get; init; } = "";
     }
 

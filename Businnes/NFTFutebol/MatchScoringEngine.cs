@@ -32,45 +32,51 @@ namespace BLL.NFTFutebol
             var thresholds = context.PercentThresholds.OrderBy(x => x).ToArray();
             var delta = Math.Abs(context.TeamA.PercentageChange - context.TeamB.PercentageChange);
 
-            if (context.TeamA.PercentageChange == context.TeamB.PercentageChange || thresholds.Length == 0)
-                return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
-
-            var teamIsA = context.TeamA.PercentageChange > context.TeamB.PercentageChange;
-            var awardedCount = teamIsA
-                ? context.State.ThresholdsAwardedToTeamA
-                : context.State.ThresholdsAwardedToTeamB;
-
-            while (awardedCount < thresholds.Length && delta >= thresholds[awardedCount])
+            if (context.TeamA.PercentageChange != context.TeamB.PercentageChange && thresholds.Length > 0)
             {
-                var threshold = thresholds[awardedCount];
+                var teamIsA = context.TeamA.PercentageChange > context.TeamB.PercentageChange;
+                var awardedCount = teamIsA
+                    ? context.State.ThresholdsAwardedToTeamA
+                    : context.State.ThresholdsAwardedToTeamB;
 
-                events.Add(new PendingMatchScoreEvent
+                while (awardedCount < thresholds.Length && delta >= thresholds[awardedCount])
                 {
-                    TeamId = teamIsA ? context.TeamA.TeamId : context.TeamB.TeamId,
-                    RuleType = MatchScoringRuleType.PercentThreshold,
-                    EventType = "PERCENT_THRESHOLD_REACHED",
-                    ReasonCode = $"PERCENT_DIFF_GTE_{threshold:0.##}",
-                    Points = 1,
-                    TeamPercentageChange = teamIsA ? context.TeamA.PercentageChange : context.TeamB.PercentageChange,
-                    OpponentPercentageChange = teamIsA ? context.TeamB.PercentageChange : context.TeamA.PercentageChange,
-                    MetricDelta = delta,
-                    EventTimeUtc = context.EvaluatedAtUtc,
-                    Description = $"{(teamIsA ? context.TeamA.Symbol : context.TeamB.Symbol)} marcou 1 ponto ao atingir diferenca de valorizacao igual ou superior a {threshold:0.##}%."
-                });
+                    var threshold = thresholds[awardedCount];
 
-                if (teamIsA)
-                {
-                    teamAScore++;
-                    context.State.ThresholdsAwardedToTeamA++;
+                    events.Add(new PendingMatchScoreEvent
+                    {
+                        TeamId = teamIsA ? context.TeamA.TeamId : context.TeamB.TeamId,
+                        RuleType = MatchScoringRuleType.PercentThreshold,
+                        EventType = "PERCENT_THRESHOLD_REACHED",
+                        ReasonCode = $"PERCENT_DIFF_GTE_{threshold:0.##}",
+                        Points = 1,
+                        TeamPercentageChange = teamIsA ? context.TeamA.PercentageChange : context.TeamB.PercentageChange,
+                        OpponentPercentageChange = teamIsA ? context.TeamB.PercentageChange : context.TeamA.PercentageChange,
+                        MetricDelta = delta,
+                        EventTimeUtc = context.EvaluatedAtUtc,
+                        Description = $"{(teamIsA ? context.TeamA.Symbol : context.TeamB.Symbol)} marcou 1 ponto ao atingir diferenca de valorizacao igual ou superior a {threshold:0.##}%."
+                    });
+
+                    if (teamIsA)
+                    {
+                        teamAScore++;
+                        context.State.ThresholdsAwardedToTeamA++;
+                    }
+                    else
+                    {
+                        teamBScore++;
+                        context.State.ThresholdsAwardedToTeamB++;
+                    }
+
+                    awardedCount++;
                 }
-                else
-                {
-                    teamBScore++;
-                    context.State.ThresholdsAwardedToTeamB++;
-                }
-
-                awardedCount++;
             }
+
+            ApplyPercentageCrossover(
+                context,
+                events,
+                ref teamAScore,
+                ref teamBScore);
 
             return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
         }
@@ -81,6 +87,21 @@ namespace BLL.NFTFutebol
             var teamAScore = context.CurrentScoreA;
             var teamBScore = context.CurrentScoreB;
 
+            ApplyPercentageCrossover(
+                context,
+                events,
+                ref teamAScore,
+                ref teamBScore);
+
+            return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
+        }
+
+        private static void ApplyPercentageCrossover(
+            MatchScoringContext context,
+            List<PendingMatchScoreEvent> events,
+            ref int teamAScore,
+            ref int teamBScore)
+        {
             if (context.PreviousTeamA is null || context.PreviousTeamB is null)
             {
                 context.State.LastPercentageLeaderTeamId = ResolveLeader(
@@ -89,7 +110,7 @@ namespace BLL.NFTFutebol
                     context.TeamB.TeamId,
                     context.TeamB.PercentageChange);
 
-                return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
+                return;
             }
 
             var previousDiff = context.PreviousTeamA.PercentageChange - context.PreviousTeamB.PercentageChange;
@@ -135,8 +156,6 @@ namespace BLL.NFTFutebol
                 context.TeamA.PercentageChange,
                 context.TeamB.TeamId,
                 context.TeamB.PercentageChange);
-
-            return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
         }
 
         private static MatchScoringResult EvaluateVolumeCrossover(MatchScoringContext context)
