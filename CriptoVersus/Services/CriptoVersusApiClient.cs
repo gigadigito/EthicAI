@@ -43,6 +43,15 @@ public sealed class CriptoVersusApiClient
             ct);
     }
 
+    public async Task<List<MatchScoreEventDto>?> GetMatchScoreEventsAsync(
+        int matchId,
+        CancellationToken ct = default)
+    {
+        return await GetFromJsonWithBearerAsync<List<MatchScoreEventDto>>(
+            $"api/Matches/{matchId}/score-events",
+            ct);
+    }
+
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<MatchDto>>("api/Matches", ct);
 

@@ -328,6 +328,15 @@
                         <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
                     </div>
 
+                    <div class="d-flex gap-2 mt-3 flex-wrap">
+                        <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
+                            @_match.TeamA: @GetPercentageWins(_match.TeamAId) ganho(s)
+                        </span>
+                        <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
+                            @_match.TeamB: @GetPercentageWins(_match.TeamBId) ganho(s)
+                        </span>
+                    </div>
+
                     @if (_percentageChart.HasData)
                     {
                         <div class="chart-wrap mt-3">
@@ -365,6 +374,15 @@
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="fw-bold">Historico de Volume</div>
                         <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3 flex-wrap">
+                        <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
+                            @_match.TeamA: @GetVolumeWins(_match.TeamAId) ganho(s)
+                        </span>
+                        <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
+                            @_match.TeamB: @GetVolumeWins(_match.TeamBId) ganho(s)
+                        </span>
                     </div>
 
                     @if (_volumeChart.HasData)
@@ -1422,6 +1440,7 @@
     }
 
     private readonly List<MatchMetricSnapshotDto> _metricSnapshots = new();
+    private readonly List<MatchScoreEventDto> _scoreEvents = new();
     private ChartSeriesState _percentageChart = ChartSeriesState.Empty;
     private ChartSeriesState _volumeChart = ChartSeriesState.Empty;
 
@@ -1430,17 +1449,29 @@
         if (_match is null)
         {
             _metricSnapshots.Clear();
+            _scoreEvents.Clear();
             _percentageChart = ChartSeriesState.Empty;
             _volumeChart = ChartSeriesState.Empty;
             return;
         }
 
-        var snapshots = await Api.GetMatchMetricSnapshotsAsync(_match.MatchId, 500, ct) ?? [];
+        var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(_match.MatchId, 500, ct);
+        var scoreEventsTask = Api.GetMatchScoreEventsAsync(_match.MatchId, ct);
+
+        await Task.WhenAll(snapshotsTask, scoreEventsTask);
+
+        var snapshots = snapshotsTask.Result ?? [];
+        var scoreEvents = scoreEventsTask.Result ?? [];
 
         _metricSnapshots.Clear();
         _metricSnapshots.AddRange(snapshots
             .OrderBy(x => x.CapturedAtUtc)
             .ThenBy(x => x.TeamId));
+
+        _scoreEvents.Clear();
+        _scoreEvents.AddRange(scoreEvents
+            .OrderBy(x => x.EventSequence)
+            .ThenBy(x => x.EventTimeUtc));
 
         _percentageChart = BuildChartState(
             _metricSnapshots,
@@ -1545,6 +1576,25 @@
 
     private int GetTeamSnapshotCount(int teamId)
         => _metricSnapshots.Count(x => x.TeamId == teamId);
+
+    private int GetPercentageWins(int teamId)
+        => GetWins(teamId, IsPercentageRule);
+
+    private int GetVolumeWins(int teamId)
+        => GetWins(teamId, IsVolumeRule);
+
+    private int GetWins(int teamId, Func<string, bool> ruleFilter)
+        => _scoreEvents
+            .Where(x => x.TeamId == teamId && ruleFilter(x.RuleType))
+            .Sum(x => x.Points);
+
+    private static bool IsPercentageRule(string ruleType)
+        => ruleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase)
+        || ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsVolumeRule(string ruleType)
+        => ruleType.Equals("VolumeWindow", StringComparison.OrdinalIgnoreCase)
+        || ruleType.Equals("VolumeCrossover", StringComparison.OrdinalIgnoreCase);
 
     private string GetChartEmptyMessage()
     {
