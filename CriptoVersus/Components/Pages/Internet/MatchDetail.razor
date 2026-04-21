@@ -372,16 +372,16 @@
             <div class="col-12 col-xl-6">
                 <div class="card match-panel p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="fw-bold">Historico de Volume</div>
+                        <div class="fw-bold">@GetVolumeCardTitle()</div>
                         <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
                     </div>
 
                     <div class="d-flex gap-2 mt-3 flex-wrap">
                         <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                            @_match.TeamA: @GetVolumeWins(_match.TeamAId) ganho(s)
+                            @_match.TeamA: @GetVolumeWins(_match.TeamAId) @GetVolumeWinLabel()
                         </span>
                         <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                            @_match.TeamB: @GetVolumeWins(_match.TeamBId) ganho(s)
+                            @_match.TeamB: @GetVolumeWins(_match.TeamBId) @GetVolumeWinLabel()
                         </span>
                     </div>
 
@@ -407,6 +407,10 @@
                             <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatCompactNumber(_match.QuoteVolumeB))</div>
                             <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
                         </div>
+
+                        <div class="small text-muted mt-2">
+                            @GetVolumeCardDescription()
+                        </div>
                     }
                     else
                     {
@@ -422,6 +426,58 @@
                     Baseado em @_metricSnapshots.Count snapshots persistidos da partida.
                     @_match.TeamA: @GetTeamSnapshotCount(_match.TeamAId).
                     @_match.TeamB: @GetTeamSnapshotCount(_match.TeamBId).
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-12">
+                <div class="card match-panel p-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="fw-bold">Log da Pontuacao</div>
+                        <div class="small text-muted">@_scoreEvents.Count evento(s)</div>
+                    </div>
+
+                    @if (_scoreEvents.Count == 0)
+                    {
+                        <div class="alert alert-secondary mt-3 mb-0">
+                            Nenhum ponto foi registrado nesta partida ate o momento.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mt-3 d-flex flex-column gap-2">
+                            @foreach (var scoreEvent in _scoreEvents.OrderByDescending(x => x.EventSequence))
+                            {
+                                <div class="border border-secondary-subtle rounded-4 p-3">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <span class="badge text-bg-dark border border-secondary-subtle">
+                                                #@scoreEvent.EventSequence
+                                            </span>
+                                            <span class="badge @GetTeamEventBadgeClass(scoreEvent.TeamId)">
+                                                @scoreEvent.TeamSymbol
+                                            </span>
+                                            <span class="badge text-bg-dark border border-secondary-subtle">
+                                                @GetRuleLabel(scoreEvent.RuleType)
+                                            </span>
+                                            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                                                +@scoreEvent.Points
+                                            </span>
+                                        </div>
+
+                                        <div class="small text-muted">
+                                            @FormatEventTime(scoreEvent.EventTimeUtc)
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-2">
+                                        @scoreEvent.Description
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -1578,23 +1634,80 @@
         => _metricSnapshots.Count(x => x.TeamId == teamId);
 
     private int GetPercentageWins(int teamId)
-        => GetWins(teamId, IsPercentageRule);
+        => GetWins(teamId, IsPercentageCrossoverRule);
 
     private int GetVolumeWins(int teamId)
-        => GetWins(teamId, IsVolumeRule);
+        => IsVolumeWindowMatch()
+            ? GetWins(teamId, IsVolumeWindowRule)
+            : GetWins(teamId, IsVolumeCrossoverRule);
+
+    private string GetVolumeCardTitle()
+        => IsVolumeWindowMatch()
+            ? "Historico de Volume (janela de 15 min)"
+            : IsVolumeCrossoverMatch()
+                ? "Historico de Volume (cruzamento)"
+                : "Historico de Volume";
+
+    private string GetVolumeWinLabel()
+        => IsVolumeWindowMatch() ? "vitoria(s) na janela" : "ganho(s)";
+
+    private string GetVolumeCardDescription()
+    {
+        if (IsVolumeWindowMatch())
+            return "Comparacao baseada no volume fechado dos ultimos 15 minutos de cada candle. Cada janela fechada pode gerar no maximo 1 ponto.";
+
+        if (IsVolumeCrossoverMatch())
+            return "Comparacao baseada em cruzamento de volume: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";
+
+        return "Volume exibido para acompanhamento da partida.";
+    }
+
+    private bool IsVolumeWindowMatch()
+        => _match?.ScoringRuleType?.Equals("VolumeWindow", StringComparison.OrdinalIgnoreCase) == true;
+
+    private bool IsVolumeCrossoverMatch()
+        => _match?.ScoringRuleType?.Equals("VolumeCrossover", StringComparison.OrdinalIgnoreCase) == true;
 
     private int GetWins(int teamId, Func<string, bool> ruleFilter)
         => _scoreEvents
             .Where(x => x.TeamId == teamId && ruleFilter(x.RuleType))
             .Sum(x => x.Points);
 
-    private static bool IsPercentageRule(string ruleType)
-        => ruleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase)
-        || ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
+    private string GetTeamEventBadgeClass(int teamId)
+    {
+        if (_match is null)
+            return "text-bg-dark border border-secondary-subtle";
 
-    private static bool IsVolumeRule(string ruleType)
-        => ruleType.Equals("VolumeWindow", StringComparison.OrdinalIgnoreCase)
-        || ruleType.Equals("VolumeCrossover", StringComparison.OrdinalIgnoreCase);
+        if (teamId == _match.TeamAId)
+            return "bg-success-subtle text-success-emphasis border border-success-subtle";
+
+        if (teamId == _match.TeamBId)
+            return "bg-danger-subtle text-danger-emphasis border border-danger-subtle";
+
+        return "text-bg-dark border border-secondary-subtle";
+    }
+
+    private static string GetRuleLabel(string ruleType)
+        => ruleType switch
+        {
+            "PercentThreshold" => "Threshold %",
+            "PercentageCrossover" => "Cruzamento %",
+            "VolumeWindow" => "Janela Volume",
+            "VolumeCrossover" => "Cruzamento Volume",
+            _ => ruleType
+        };
+
+    private static string FormatEventTime(DateTime eventTimeUtc)
+        => eventTimeUtc.ToLocalTime().ToString("dd/MM HH:mm:ss");
+
+    private static bool IsPercentageCrossoverRule(string ruleType)
+        => ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsVolumeCrossoverRule(string ruleType)
+        => ruleType.Equals("VolumeCrossover", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsVolumeWindowRule(string ruleType)
+        => ruleType.Equals("VolumeWindow", StringComparison.OrdinalIgnoreCase);
 
     private string GetChartEmptyMessage()
     {
