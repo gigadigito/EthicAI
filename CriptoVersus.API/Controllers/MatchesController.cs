@@ -1,5 +1,6 @@
 ﻿using DTOs;
 using CriptoVersus.API.Hubs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
@@ -29,6 +30,7 @@ namespace CriptoVersus.API.Controllers
         // =========================
         // GET /api/matches
         // =========================
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<List<MatchDto>>> GetAll(
             [FromQuery] MatchStatus? status = null,
@@ -61,6 +63,7 @@ namespace CriptoVersus.API.Controllers
         // GET /api/matches/by-symbols?symbolA=PENDLE&symbolB=DASH
         // Retorna o match Ongoing do par, senão o mais recente
         // =========================
+        [AllowAnonymous]
         [HttpGet("by-symbols")]
         public async Task<ActionResult<MatchDto>> GetBySymbols(
             [FromQuery] string symbolA,
@@ -98,6 +101,7 @@ namespace CriptoVersus.API.Controllers
         // =========================
         // GET /api/matches/{id}
         // =========================
+        [AllowAnonymous]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<MatchDto>> GetById(int id, CancellationToken ct)
         {
@@ -115,6 +119,7 @@ namespace CriptoVersus.API.Controllers
             return Ok(ToMatchDto(match, now));
         }
 
+        [AllowAnonymous]
         [HttpGet("{id:int}/score-events")]
         public async Task<ActionResult<List<MatchScoreEventDto>>> GetScoreEvents(int id, CancellationToken ct)
         {
@@ -153,6 +158,7 @@ namespace CriptoVersus.API.Controllers
             return Ok(items);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id:int}/metric-snapshots")]
         public async Task<ActionResult<List<MatchMetricSnapshotDto>>> GetMetricSnapshots(
             int id,
