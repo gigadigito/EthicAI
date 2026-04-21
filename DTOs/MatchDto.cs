@@ -40,6 +40,9 @@ namespace DTOs
         // ✅ NOVO: % atual de cada moeda
         public decimal? PctA { get; set; }
         public decimal? PctB { get; set; }
+        public decimal? QuoteVolumeA { get; set; }
+        public decimal? QuoteVolumeB { get; set; }
+        public string ScoringRuleType { get; set; } = string.Empty;
     }
 
 

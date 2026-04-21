@@ -133,42 +133,95 @@
         else
         {
             <div class="wallet-investments">
-                @foreach (var item in _wallet.Investments)
+                @foreach (var group in InvestmentGroups)
                 {
-                    <article class="investment-row">
-                        <div class="investment-main">
-                            <span class="coin-symbol" title="@item.Symbol">
-                                <img src="@GetCoinIconUrl(item.Symbol)"
-                                     alt="@item.Symbol"
-                                     loading="lazy"
-                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-                                <span class="coin-symbol-fallback d-none">@GetInitials(item.Symbol)</span>
-                            </span>
-                            <div>
-                                <strong>@item.CurrencyName</strong>
-                                <span>contra @item.OpponentSymbol | Match #@item.MatchId</span>
+                    var isExpanded = IsInvestmentGroupExpanded(group.Symbol);
+
+                    <article class="investment-group">
+                        <button type="button"
+                                class="investment-group-header"
+                                @onclick="() => ToggleInvestmentGroup(group.Symbol)"
+                                aria-expanded="@isExpanded">
+                            <div class="investment-main">
+                                <span class="coin-symbol" title="@group.Symbol">
+                                    <img src="@GetCoinIconUrl(group.Symbol)"
+                                         alt="@group.Symbol"
+                                         loading="lazy"
+                                         onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                    <span class="coin-symbol-fallback d-none">@GetInitials(group.Symbol)</span>
+                                </span>
+                                <div>
+                                    <strong>@group.CurrencyName</strong>
+                                    <span>@group.InvestmentCount investimento@(group.InvestmentCount == 1 ? "" : "s") registrado@(group.InvestmentCount == 1 ? "" : "s")</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="investment-data">
-                            <span>Valor</span>
-                            <strong>@FmtSol(item.Amount)</strong>
-                        </div>
+                            <div class="investment-data">
+                                <span>Total</span>
+                                <strong>@FmtSol(group.TotalAmount)</strong>
+                            </div>
 
-                        <div class="investment-data">
-                            <span>Status</span>
-                            <strong>@item.InvestmentStatus</strong>
-                        </div>
+                            <div class="investment-data">
+                                <span>Em aberto</span>
+                                <strong>@group.OpenCount</strong>
+                            </div>
 
-                        <div class="investment-data">
-                            <span>Data</span>
-                            <strong>@FmtDate(item.BetTime)</strong>
-                        </div>
+                            <div class="investment-data">
+                                <span>Ultima entrada</span>
+                                <strong>@FmtDate(group.LastBetTime)</strong>
+                            </div>
 
-                        <div class="investment-data">
-                            <span>Retorno</span>
-                            <strong>@FmtOptionalSol(item.PayoutAmount)</strong>
-                        </div>
+                            <div class="investment-data">
+                                <span>Retorno</span>
+                                <strong>@FmtSol(group.TotalPayout)</strong>
+                            </div>
+
+                            <span class="investment-toggle">@(isExpanded ? "Ocultar" : "Ver detalhes")</span>
+                        </button>
+
+                        @if (isExpanded)
+                        {
+                            <div class="investment-group-details">
+                                @foreach (var item in group.Items)
+                                {
+                                    <article class="investment-row">
+                                        <div class="investment-main">
+                                            <span class="coin-symbol" title="@item.Symbol">
+                                                <img src="@GetCoinIconUrl(item.Symbol)"
+                                                     alt="@item.Symbol"
+                                                     loading="lazy"
+                                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                                <span class="coin-symbol-fallback d-none">@GetInitials(item.Symbol)</span>
+                                            </span>
+                                            <div>
+                                                <strong>@item.CurrencyName</strong>
+                                                <span>contra @item.OpponentSymbol | Match #@item.MatchId</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="investment-data">
+                                            <span>Valor</span>
+                                            <strong>@FmtSol(item.Amount)</strong>
+                                        </div>
+
+                                        <div class="investment-data">
+                                            <span>Status</span>
+                                            <strong>@item.InvestmentStatus</strong>
+                                        </div>
+
+                                        <div class="investment-data">
+                                            <span>Data</span>
+                                            <strong>@FmtDate(item.BetTime)</strong>
+                                        </div>
+
+                                        <div class="investment-data">
+                                            <span>Retorno</span>
+                                            <strong>@FmtOptionalSol(item.PayoutAmount)</strong>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        }
                     </article>
                 }
             </div>
@@ -218,6 +271,12 @@
     .wallet-metrics,
     .wallet-positions,
     .wallet-investments {
+        display: grid;
+        gap: 12px;
+    }
+
+    .investment-group,
+    .investment-group-details {
         display: grid;
         gap: 12px;
     }
@@ -299,6 +358,44 @@
         background: #181b21;
     }
 
+    .investment-group {
+        padding: 16px;
+        border: 1px solid #303741;
+        border-radius: 8px;
+        background: #181b21;
+    }
+
+    .investment-group-header {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(120px, 1fr)) auto;
+        gap: 14px;
+        align-items: center;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .investment-group-header:hover .investment-toggle {
+        color: #5eead4;
+    }
+
+    .investment-group-details {
+        padding-top: 12px;
+        border-top: 1px solid #303741;
+    }
+
+    .investment-toggle {
+        justify-self: end;
+        color: #9ca3af;
+        font-size: .9rem;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
     .investment-main {
         display: flex;
         min-width: 0;
@@ -361,7 +458,8 @@
         .wallet-profile,
         .wallet-metrics,
         .position-row,
-        .investment-row {
+        .investment-row,
+        .investment-group-header {
             grid-template-columns: 1fr 1fr;
         }
 
@@ -374,7 +472,8 @@
         .wallet-profile,
         .wallet-metrics,
         .position-row,
-        .investment-row {
+        .investment-row,
+        .investment-group-header {
             grid-template-columns: 1fr;
         }
 
@@ -393,6 +492,7 @@
     private double? _onChainBalance;
     private bool _onChainBalanceLoading;
     private string? _onChainBalanceError;
+    private readonly HashSet<string> _expandedInvestmentGroups = new(StringComparer.OrdinalIgnoreCase);
 
     private string DisplayName
         => !string.IsNullOrWhiteSpace(_wallet?.Name)
@@ -415,6 +515,34 @@
         => _onChainBalanceError is not null
             ? _onChainBalanceError
             : $"Saldo real na rede {OnChainCluster}";
+
+    private IReadOnlyList<InvestmentGroupViewModel> InvestmentGroups
+        => _wallet?.Investments
+            .GroupBy(item => item.Symbol, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+            {
+                var orderedItems = group
+                    .OrderByDescending(item => item.BetTime)
+                    .ThenByDescending(item => item.MatchId)
+                    .ToList();
+
+                return new InvestmentGroupViewModel
+                {
+                    Symbol = group.Key,
+                    CurrencyName = orderedItems[0].CurrencyName,
+                    TotalAmount = orderedItems.Sum(item => item.Amount),
+                    TotalPayout = orderedItems.Sum(item => item.PayoutAmount ?? 0m),
+                    OpenCount = orderedItems.Count(IsOpenInvestment),
+                    InvestmentCount = orderedItems.Count,
+                    LastBetTime = orderedItems[0].BetTime,
+                    Items = orderedItems
+                };
+            })
+            .OrderByDescending(group => group.OpenCount)
+            .ThenByDescending(group => group.TotalAmount)
+            .ThenBy(group => group.Symbol, StringComparer.OrdinalIgnoreCase)
+            .ToList()
+            ?? [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -441,6 +569,7 @@
             }
 
             _wallet = await Api.GetMyWalletAsync();
+            SyncExpandedInvestmentGroups();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -461,6 +590,32 @@
             _loading = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private void ToggleInvestmentGroup(string symbol)
+    {
+        if (!_expandedInvestmentGroups.Add(symbol))
+            _expandedInvestmentGroups.Remove(symbol);
+    }
+
+    private bool IsInvestmentGroupExpanded(string symbol)
+        => _expandedInvestmentGroups.Contains(symbol);
+
+    private void SyncExpandedInvestmentGroups()
+    {
+        if (_wallet is null)
+        {
+            _expandedInvestmentGroups.Clear();
+            return;
+        }
+
+        var activeSymbols = _wallet.Investments
+            .Select(item => item.Symbol)
+            .Where(symbol => !string.IsNullOrWhiteSpace(symbol))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        _expandedInvestmentGroups.RemoveWhere(symbol => !activeSymbols.Contains(symbol));
     }
 
     private async Task LoadOnChainBalanceAsync()
@@ -528,6 +683,9 @@
             _ => status
         };
 
+    private static bool IsOpenInvestment(MyInvestmentDto investment)
+        => investment.MatchStatus is "Pending" or "Ongoing";
+
     private static string GetBaseSymbol(string pair)
     {
         if (string.IsNullOrWhiteSpace(pair))
@@ -563,5 +721,17 @@
     {
         if (_walletBalanceModule is not null)
             await _walletBalanceModule.DisposeAsync();
+    }
+
+    private sealed class InvestmentGroupViewModel
+    {
+        public string Symbol { get; init; } = "";
+        public string CurrencyName { get; init; } = "";
+        public decimal TotalAmount { get; init; }
+        public decimal TotalPayout { get; init; }
+        public int OpenCount { get; init; }
+        public int InvestmentCount { get; init; }
+        public DateTime LastBetTime { get; init; }
+        public IReadOnlyList<MyInvestmentDto> Items { get; init; } = [];
     }
 }

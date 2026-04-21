@@ -115,6 +115,79 @@ namespace CriptoVersus.API.Controllers
             return Ok(ToMatchDto(match, now));
         }
 
+        [HttpGet("{id:int}/score-events")]
+        public async Task<ActionResult<List<MatchScoreEventDto>>> GetScoreEvents(int id, CancellationToken ct)
+        {
+            var exists = await _db.Set<Match>().AnyAsync(m => m.MatchId == id, ct);
+            if (!exists)
+                return NotFound();
+
+            var items = await _db.Set<MatchScoreEvent>()
+                .AsNoTracking()
+                .Include(x => x.Team).ThenInclude(t => t.Currency)
+                .Where(x => x.MatchId == id)
+                .OrderBy(x => x.EventSequence)
+                .Select(x => new MatchScoreEventDto
+                {
+                    MatchScoreEventId = x.MatchScoreEventId,
+                    MatchId = x.MatchId,
+                    TeamId = x.TeamId,
+                    TeamSymbol = x.Team.Currency.Symbol,
+                    RuleType = x.RuleType.ToString(),
+                    EventType = x.EventType,
+                    ReasonCode = x.ReasonCode,
+                    Points = x.Points,
+                    EventSequence = x.EventSequence,
+                    TeamPercentageChange = x.TeamPercentageChange,
+                    OpponentPercentageChange = x.OpponentPercentageChange,
+                    TeamQuoteVolume = x.TeamQuoteVolume,
+                    OpponentQuoteVolume = x.OpponentQuoteVolume,
+                    MetricDelta = x.MetricDelta,
+                    WindowStartUtc = x.WindowStartUtc,
+                    WindowEndUtc = x.WindowEndUtc,
+                    Description = x.Description,
+                    EventTimeUtc = x.EventTimeUtc
+                })
+                .ToListAsync(ct);
+
+            return Ok(items);
+        }
+
+        [HttpGet("{id:int}/metric-snapshots")]
+        public async Task<ActionResult<List<MatchMetricSnapshotDto>>> GetMetricSnapshots(
+            int id,
+            [FromQuery] int take = 200,
+            CancellationToken ct = default)
+        {
+            if (take <= 0) take = 200;
+            if (take > 1000) take = 1000;
+
+            var exists = await _db.Set<Match>().AnyAsync(m => m.MatchId == id, ct);
+            if (!exists)
+                return NotFound();
+
+            var items = await _db.Set<MatchMetricSnapshot>()
+                .AsNoTracking()
+                .Include(x => x.Team).ThenInclude(t => t.Currency)
+                .Where(x => x.MatchId == id)
+                .OrderByDescending(x => x.CapturedAtUtc)
+                .Take(take)
+                .Select(x => new MatchMetricSnapshotDto
+                {
+                    MatchMetricSnapshotId = x.MatchMetricSnapshotId,
+                    MatchId = x.MatchId,
+                    TeamId = x.TeamId,
+                    TeamSymbol = x.Team.Currency.Symbol,
+                    CapturedAtUtc = x.CapturedAtUtc,
+                    PercentageChange = x.PercentageChange,
+                    QuoteVolume = x.QuoteVolume,
+                    TradeCount = x.TradeCount
+                })
+                .ToListAsync(ct);
+
+            return Ok(items.OrderBy(x => x.CapturedAtUtc).ToList());
+        }
+
         // =========================
         // POST /api/matches
         // Cria uma nova partida
@@ -141,10 +214,20 @@ namespace CriptoVersus.API.Controllers
                 StartTime = req.StartTimeUtc,
                 EndTime = null,
                 ScoreA = 0,
-                ScoreB = 0
+                ScoreB = 0,
+                ScoringRuleType = req.ScoringRuleType
             };
 
             _db.Add(match);
+            await _db.SaveChangesAsync(ct);
+
+            _db.Add(new MatchScoreState
+            {
+                MatchId = match.MatchId,
+                CreatedAtUtc = DateTime.UtcNow,
+                UpdatedAtUtc = DateTime.UtcNow
+            });
+
             await _db.SaveChangesAsync(ct);
             await NotifyDashboardChangedAsync("match_created", match.MatchId, ct);
 
@@ -223,7 +306,10 @@ namespace CriptoVersus.API.Controllers
 
                 // ✅ NOVO: percentuais atuais
                 PctA = (decimal?)a?.PercentageChange,
-                PctB = (decimal?)b?.PercentageChange
+                PctB = (decimal?)b?.PercentageChange,
+                QuoteVolumeA = a?.QuoteVolume,
+                QuoteVolumeB = b?.QuoteVolume,
+                ScoringRuleType = m.ScoringRuleType.ToString()
             };
         }
 
@@ -250,5 +336,6 @@ namespace CriptoVersus.API.Controllers
         public int TeamAId { get; set; }
         public int TeamBId { get; set; }
         public DateTime? StartTimeUtc { get; set; }
+        public MatchScoringRuleType ScoringRuleType { get; set; } = MatchScoringRuleType.PercentThreshold;
     }
 }

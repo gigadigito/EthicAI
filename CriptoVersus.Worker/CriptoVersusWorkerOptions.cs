@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DAL.NftFutebol;
 
 namespace CriptoVersus.Worker;
 
@@ -21,6 +22,9 @@ public class ScoringOptions
 {
     public double PercentPerGoal { get; set; } = 2.0;
     public int MaxGoalsPerTeam { get; set; } = 7;
+    public MatchScoringRuleType DefaultRuleType { get; set; } = MatchScoringRuleType.PercentThreshold;
+    public int VolumeWindowMinutes { get; set; } = 15;
+    public List<decimal> PercentThresholds { get; set; } = [2m, 8m, 16m];
 }
 
 public class SettlementOptions

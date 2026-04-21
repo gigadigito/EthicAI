@@ -47,4 +47,10 @@ public sealed class GainerEntry
 
     /// <summary>Percentual de variação. Opcional.</summary>
     public decimal? PercentageChange { get; init; }
+
+    /// <summary>Volume negociado em quote asset no ticker 24h.</summary>
+    public decimal? QuoteVolume { get; init; }
+
+    /// <summary>Quantidade de trades.</summary>
+    public long? TradeCount { get; init; }
 }

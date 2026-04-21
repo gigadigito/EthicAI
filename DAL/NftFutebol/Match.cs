@@ -17,8 +17,12 @@
 
         public MatchStatus Status { get; set; }
         public DateTimeOffset? BettingCloseTime { get; set; }
+        public MatchScoringRuleType ScoringRuleType { get; set; } = MatchScoringRuleType.PercentThreshold;
 
-        public ICollection<Bet> Bets { get; set; }
+        public ICollection<Bet> Bets { get; set; } = new List<Bet>();
+        public ICollection<MatchMetricSnapshot> MetricSnapshots { get; set; } = new List<MatchMetricSnapshot>();
+        public ICollection<MatchScoreEvent> ScoreEvents { get; set; } = new List<MatchScoreEvent>();
+        public MatchScoreState? ScoreState { get; set; }
 
         // ✅ NOVOS CAMPOS (persistência correta)
         public int TeamAOutCycles { get; set; }  // anti-flap

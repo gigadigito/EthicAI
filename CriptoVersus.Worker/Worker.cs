@@ -154,6 +154,7 @@ namespace CriptoVersus.Worker
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
+            var scoringEngine = scope.ServiceProvider.GetRequiredService<IMatchScoringEngine>();
             var ledgerService = scope.ServiceProvider.GetRequiredService<ILedgerService>();
 
             var nowUtc = DateTime.UtcNow;
@@ -178,7 +179,7 @@ namespace CriptoVersus.Worker
             await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
             await CancelVeryOldPendingAsync(db, nowUtc, ct);
             await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
-            await ProcessOngoingAsync(matchService, db, ruleEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
+            await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
             await ProcessCompletedMatchSettlementsAsync(db, ledgerService, nowUtc, ct);
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
@@ -237,7 +238,9 @@ namespace CriptoVersus.Worker
                 {
                     Symbol = c.Symbol ?? "",
                     Rank = idx + 1,
-                    PercentageChange = (decimal?)ParsePercent(c.PriceChangePercent)
+                    PercentageChange = (decimal?)ParsePercent(c.PriceChangePercent),
+                    QuoteVolume = ParseDecimal(c.QuoteVolume),
+                    TradeCount = c.Count
                 })
                 .ToList();
         }
@@ -515,15 +518,25 @@ namespace CriptoVersus.Worker
                 EndReasonDetail = null,
                 TeamAOutCycles = 0,
                 TeamBOutCycles = 0,
+                ScoringRuleType = _options.Scoring.DefaultRuleType,
                 RulesetVersion = RuleConstants.DefaultRulesetVersion
             };
 
             db.Match.Add(match);
             await db.SaveChangesAsync(ct);
 
+            db.MatchScoreState.Add(new MatchScoreState
+            {
+                MatchId = match.MatchId,
+                CreatedAtUtc = nowUtc,
+                UpdatedAtUtc = nowUtc
+            });
+
+            await db.SaveChangesAsync(ct);
+
             _logger.LogInformation(
-                "🆕 Pending criada: MatchId={matchId} {a} vs {b} start={start} betClose={close}",
-                match.MatchId, curA.Symbol, curB.Symbol, startTime, bettingCloseTime);
+                "🆕 Pending criada: MatchId={matchId} {a} vs {b} start={start} betClose={close} scoringRule={rule}",
+                match.MatchId, curA.Symbol, curB.Symbol, startTime, bettingCloseTime, match.ScoringRuleType);
 
             return true;
         }
@@ -831,6 +844,7 @@ namespace CriptoVersus.Worker
             MatchService matchService,
             EthicAIDbContext db,
             IMatchRuleEngine ruleEngine,
+            IMatchScoringEngine scoringEngine,
             List<GainerEntry> snapshot,
             DateTime snapshotUtc,
             HashSet<string> allowed,
@@ -850,6 +864,7 @@ namespace CriptoVersus.Worker
                 var match = await db.Match
                     .Include(x => x.TeamA).ThenInclude(t => t.Currency)
                     .Include(x => x.TeamB).ThenInclude(t => t.Currency)
+                    .Include(x => x.ScoreState)
                     .FirstOrDefaultAsync(x => x.MatchId == m.MatchId, ct);
 
                 if (match == null || match.Status != MatchStatus.Ongoing)
@@ -878,20 +893,109 @@ namespace CriptoVersus.Worker
                     continue;
                 }
 
-                var a = match.TeamA?.Currency?.PercentageChange ?? 0;
-                var b = match.TeamB?.Currency?.PercentageChange ?? 0;
+                var scoreState = await EnsureScoreStateAsync(db, match, nowUtc, ct);
+                var previousSnapshots = await LoadPreviousSnapshotsAsync(db, match.MatchId, match.TeamAId, match.TeamBId, ct);
 
-                var (scoreA, scoreB) = CalculateScoreFromPercent((double)a, (double)b);
-
-                if (match.ScoreA != scoreA || match.ScoreB != scoreB)
+                if (match.TeamA is null || match.TeamB is null || match.TeamA.Currency is null || match.TeamB.Currency is null)
                 {
-                    await matchService.UpdateMatchScoreAsync(match.MatchId, scoreA, scoreB);
-                    match.ScoreA = scoreA;
-                    match.ScoreB = scoreB;
+                    _logger.LogWarning(
+                        "⚠️ Match {id} sem times/moedas carregados para pontuacao.",
+                        match.MatchId);
+                    continue;
+                }
+
+                var currentTeamA = BuildTeamMetricPoint(match.TeamA);
+                var currentTeamB = BuildTeamMetricPoint(match.TeamB);
+
+                db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
+                {
+                    MatchId = match.MatchId,
+                    TeamId = match.TeamAId,
+                    CapturedAtUtc = snapshotUtc,
+                    PercentageChange = currentTeamA.PercentageChange,
+                    QuoteVolume = currentTeamA.QuoteVolume,
+                    TradeCount = currentTeamA.TradeCount
+                });
+
+                db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
+                {
+                    MatchId = match.MatchId,
+                    TeamId = match.TeamBId,
+                    CapturedAtUtc = snapshotUtc,
+                    PercentageChange = currentTeamB.PercentageChange,
+                    QuoteVolume = currentTeamB.QuoteVolume,
+                    TradeCount = currentTeamB.TradeCount
+                });
+
+                scoreState.LastSnapshotAtUtc = snapshotUtc;
+
+                var closedWindows = match.ScoringRuleType == MatchScoringRuleType.VolumeWindow && match.StartTime.HasValue
+                    ? await LoadClosedVolumeWindowsAsync(
+                        currentTeamA.Symbol,
+                        currentTeamB.Symbol,
+                        ToUtcSafe(match.StartTime.Value),
+                        nowUtc,
+                        scoreState.LastProcessedVolumeWindowEndUtc,
+                        ct)
+                    : Array.Empty<ClosedVolumeWindow>();
+
+                var scoringResult = scoringEngine.Evaluate(new MatchScoringContext
+                {
+                    RuleType = match.ScoringRuleType,
+                    CurrentScoreA = match.ScoreA,
+                    CurrentScoreB = match.ScoreB,
+                    TeamA = currentTeamA,
+                    TeamB = currentTeamB,
+                    PreviousTeamA = previousSnapshots.TeamA,
+                    PreviousTeamB = previousSnapshots.TeamB,
+                    State = scoreState,
+                    EvaluatedAtUtc = nowUtc,
+                    PercentThresholds = _options.Scoring.PercentThresholds,
+                    ClosedVolumeWindows = closedWindows
+                });
+
+                if (match.ScoreA != scoringResult.ScoreA || match.ScoreB != scoringResult.ScoreB)
+                {
+                    match.ScoreA = scoringResult.ScoreA;
+                    match.ScoreB = scoringResult.ScoreB;
 
                     _logger.LogInformation(
-                        "📊 Match {id} score atualizado: {a}:{b}",
-                        match.MatchId, scoreA, scoreB);
+                        "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
+                        match.MatchId, match.ScoringRuleType, match.ScoreA, match.ScoreB);
+                }
+
+                foreach (var scoreEvent in scoringResult.Events)
+                {
+                    scoreState.LastEventSequence++;
+
+                    db.MatchScoreEvent.Add(new MatchScoreEvent
+                    {
+                        MatchId = match.MatchId,
+                        TeamId = scoreEvent.TeamId,
+                        RuleType = scoreEvent.RuleType,
+                        EventType = scoreEvent.EventType,
+                        ReasonCode = scoreEvent.ReasonCode,
+                        Points = scoreEvent.Points,
+                        EventSequence = scoreState.LastEventSequence,
+                        TeamPercentageChange = scoreEvent.TeamPercentageChange,
+                        OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
+                        TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
+                        OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
+                        MetricDelta = scoreEvent.MetricDelta,
+                        WindowStartUtc = scoreEvent.WindowStartUtc,
+                        WindowEndUtc = scoreEvent.WindowEndUtc,
+                        Description = scoreEvent.Description,
+                        EventTimeUtc = scoreEvent.EventTimeUtc
+                    });
+
+                    _logger.LogInformation(
+                        "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc}",
+                        match.MatchId,
+                        scoreState.LastEventSequence,
+                        scoreEvent.TeamId,
+                        scoreEvent.RuleType,
+                        scoreEvent.EventType,
+                        scoreEvent.Description);
                 }
 
                 var decisionOngoing = ruleEngine.EvaluateOngoing(
@@ -1239,26 +1343,157 @@ namespace CriptoVersus.Worker
             match.RulesetVersion = decision.RulesetVersion;
         }
 
-        private (int scoreA, int scoreB) CalculateScoreFromPercent(double a, double b)
+        private async Task<MatchScoreState> EnsureScoreStateAsync(
+            EthicAIDbContext db,
+            Match match,
+            DateTime nowUtc,
+            CancellationToken ct)
         {
-            var percentPerGoal = _options.Scoring.PercentPerGoal;
-            var maxGoals = _options.Scoring.MaxGoalsPerTeam;
+            if (match.ScoreState != null)
+                return match.ScoreState;
 
-            if (a > b)
+            var scoreState = await db.MatchScoreState.FirstOrDefaultAsync(x => x.MatchId == match.MatchId, ct);
+            if (scoreState != null)
             {
-                var diff = a - b;
-                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
-                return (goals, 0);
+                match.ScoreState = scoreState;
+                return scoreState;
             }
 
-            if (b > a)
+            scoreState = new MatchScoreState
             {
-                var diff = b - a;
-                var goals = Math.Min(maxGoals, (int)Math.Floor(diff / percentPerGoal));
-                return (0, goals);
+                MatchId = match.MatchId,
+                CreatedAtUtc = nowUtc,
+                UpdatedAtUtc = nowUtc
+            };
+
+            db.MatchScoreState.Add(scoreState);
+            match.ScoreState = scoreState;
+            return scoreState;
+        }
+
+        private async Task<(TeamMetricPoint? TeamA, TeamMetricPoint? TeamB)> LoadPreviousSnapshotsAsync(
+            EthicAIDbContext db,
+            int matchId,
+            int teamAId,
+            int teamBId,
+            CancellationToken ct)
+        {
+            var snapshots = await db.MatchMetricSnapshot
+                .Where(x => x.MatchId == matchId)
+                .OrderByDescending(x => x.CapturedAtUtc)
+                .ToListAsync(ct);
+
+            var teamASnapshot = snapshots.FirstOrDefault(x => x.TeamId == teamAId);
+            var teamBSnapshot = snapshots.FirstOrDefault(x => x.TeamId == teamBId);
+
+            return (ToMetricPoint(teamASnapshot), ToMetricPoint(teamBSnapshot));
+        }
+
+        private static TeamMetricPoint BuildTeamMetricPoint(Team team)
+        {
+            return new TeamMetricPoint
+            {
+                TeamId = team.TeamId,
+                Symbol = team.Currency.Symbol,
+                PercentageChange = Convert.ToDecimal(team.Currency.PercentageChange, CultureInfo.InvariantCulture),
+                QuoteVolume = team.Currency.QuoteVolume,
+                TradeCount = team.Currency.TradesCount
+            };
+        }
+
+        private static TeamMetricPoint? ToMetricPoint(MatchMetricSnapshot? snapshot)
+        {
+            if (snapshot is null)
+                return null;
+
+            return new TeamMetricPoint
+            {
+                TeamId = snapshot.TeamId,
+                PercentageChange = snapshot.PercentageChange,
+                QuoteVolume = snapshot.QuoteVolume,
+                TradeCount = snapshot.TradeCount
+            };
+        }
+
+        private async Task<IReadOnlyCollection<ClosedVolumeWindow>> LoadClosedVolumeWindowsAsync(
+            string symbolA,
+            string symbolB,
+            DateTime matchStartUtc,
+            DateTime nowUtc,
+            DateTime? lastProcessedWindowEndUtc,
+            CancellationToken ct)
+        {
+            var windowMinutes = Math.Max(1, _options.Scoring.VolumeWindowMinutes);
+            var firstWindowStart = AlignToNextWindow(matchStartUtc, windowMinutes);
+            var nextWindowStart = lastProcessedWindowEndUtc.HasValue
+                ? lastProcessedWindowEndUtc.Value
+                : firstWindowStart;
+
+            var latestClosedWindowEnd = AlignToWindow(nowUtc, windowMinutes);
+            if (nextWindowStart >= latestClosedWindowEnd)
+                return Array.Empty<ClosedVolumeWindow>();
+
+            var windows = new List<ClosedVolumeWindow>();
+            var client = _httpClientFactory.CreateClient();
+
+            for (var cursor = nextWindowStart; cursor < latestClosedWindowEnd; cursor = cursor.AddMinutes(windowMinutes))
+            {
+                var windowEnd = cursor.AddMinutes(windowMinutes);
+                var teamAKline = await LoadQuoteVolumeKlineAsync(client, symbolA, cursor, windowEnd, windowMinutes, ct);
+                var teamBKline = await LoadQuoteVolumeKlineAsync(client, symbolB, cursor, windowEnd, windowMinutes, ct);
+
+                if (teamAKline is null || teamBKline is null)
+                    continue;
+
+                windows.Add(new ClosedVolumeWindow
+                {
+                    WindowStartUtc = cursor,
+                    WindowEndUtc = windowEnd,
+                    TeamAVolume = teamAKline.Value,
+                    TeamBVolume = teamBKline.Value
+                });
             }
 
-            return (0, 0);
+            return windows;
+        }
+
+        private async Task<decimal?> LoadQuoteVolumeKlineAsync(
+            HttpClient client,
+            string symbol,
+            DateTime windowStartUtc,
+            DateTime windowEndUtc,
+            int windowMinutes,
+            CancellationToken ct)
+        {
+            var startMs = new DateTimeOffset(windowStartUtc).ToUnixTimeMilliseconds();
+            var endMs = new DateTimeOffset(windowEndUtc).ToUnixTimeMilliseconds();
+            var url = $"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={windowMinutes}m&startTime={startMs}&endTime={endMs}&limit=1";
+            using var response = await client.GetAsync(url, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("⚠️ Falha ao carregar kline {symbol} {start}->{end}: HTTP {statusCode}", symbol, windowStartUtc, windowEndUtc, (int)response.StatusCode);
+                return null;
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<List<List<JsonElement>>>(cancellationToken: ct);
+            if (payload is null || payload.Count == 0 || payload[0].Count < 8)
+                return null;
+
+            return ParseDecimal(payload[0][7].GetString());
+        }
+
+        private static DateTime AlignToWindow(DateTime utc, int windowMinutes)
+        {
+            var totalMinutes = utc.Hour * 60 + utc.Minute;
+            var bucketMinutes = totalMinutes - (totalMinutes % windowMinutes);
+            return new DateTime(utc.Year, utc.Month, utc.Day, 0, 0, 0, DateTimeKind.Utc).AddMinutes(bucketMinutes);
+        }
+
+        private static DateTime AlignToNextWindow(DateTime utc, int windowMinutes)
+        {
+            var aligned = AlignToWindow(utc, windowMinutes);
+            return aligned == utc ? aligned : aligned.AddMinutes(windowMinutes);
         }
 
         private static double ParsePercent(string? s)
@@ -1272,6 +1507,16 @@ namespace CriptoVersus.Worker
                 out var v)
                 ? v
                 : 0;
+        }
+
+        private static decimal ParseDecimal(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return 0m;
+
+            return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var value)
+                ? value
+                : 0m;
         }
 
         private static decimal SafeMoney(decimal? value) => value ?? 0m;

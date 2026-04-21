@@ -110,6 +110,7 @@ builder.Services.AddSingleton<IMatchRuleEngine>(sp =>
 
 // Services do domínio
 builder.Services.AddScoped<MatchService>();
+builder.Services.AddSingleton<IMatchScoringEngine, MatchScoringEngine>();
 
 // Worker
 builder.Services.AddHostedService<Worker>();

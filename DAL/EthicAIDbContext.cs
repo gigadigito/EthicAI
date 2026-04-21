@@ -24,6 +24,9 @@ namespace EthicAI.EntityModel
         public DbSet<Bet> Bet { get; set; }
         public DbSet<UserTeamPosition> UserTeamPosition { get; set; }
         public DbSet<WorkerStatus> WorkerStatus { get; set; }
+        public DbSet<MatchMetricSnapshot> MatchMetricSnapshot { get; set; }
+        public DbSet<MatchScoreEvent> MatchScoreEvent { get; set; }
+        public DbSet<MatchScoreState> MatchScoreState { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -161,6 +164,12 @@ namespace EthicAI.EntityModel
                       .HasColumnName("dt_betting_close")
                       .IsRequired(false);
 
+                entity.Property(e => e.ScoringRuleType)
+                      .HasConversion<string>()
+                      .HasColumnName("in_scoring_rule")
+                      .HasMaxLength(40)
+                      .HasDefaultValue(MatchScoringRuleType.PercentThreshold);
+
                 entity.Property(e => e.TeamAId).HasColumnName("cd_team_a");
                 entity.Property(e => e.TeamBId).HasColumnName("cd_team_b");
 
@@ -213,6 +222,21 @@ namespace EthicAI.EntityModel
                       .WithOne(b => b.Match)
                       .HasForeignKey(b => b.MatchId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.ScoreState)
+                      .WithOne(s => s.Match)
+                      .HasForeignKey<MatchScoreState>(s => s.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.MetricSnapshots)
+                      .WithOne(s => s.Match)
+                      .HasForeignKey(s => s.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(e => e.ScoreEvents)
+                      .WithOne(e => e.Match)
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Team>(entity =>
@@ -248,6 +272,16 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
                 entity.Property(e => e.Symbol).IsRequired().HasMaxLength(50).HasColumnName("tx_symbol");
                 entity.Property(e => e.PercentageChange).HasColumnType("decimal(5, 2)").HasColumnName("nr_percentage_change");
+
+                entity.Property(e => e.QuoteVolume)
+                      .HasColumnType("decimal(28, 8)")
+                      .HasColumnName("nr_quote_volume")
+                      .HasDefaultValue(0m);
+
+                entity.Property(e => e.TradesCount)
+                      .HasColumnName("nr_trades_count")
+                      .HasDefaultValue(0L);
+
                 entity.Property(e => e.LastUpdated).HasColumnType("timestamp with time zone").HasColumnName("dt_last_updated");
             });
 
@@ -387,6 +421,170 @@ namespace EthicAI.EntityModel
                       .WithMany(t => t.UserPositions)
                       .HasForeignKey(e => e.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MatchMetricSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.MatchMetricSnapshotId);
+                entity.ToTable("match_metric_snapshot");
+
+                entity.Property(e => e.MatchMetricSnapshotId)
+                      .HasColumnName("cd_match_metric_snapshot")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.TeamId).HasColumnName("cd_team");
+
+                entity.Property(e => e.CapturedAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_captured_at");
+
+                entity.Property(e => e.PercentageChange)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_percentage_change");
+
+                entity.Property(e => e.QuoteVolume)
+                      .HasColumnType("decimal(28, 8)")
+                      .HasColumnName("nr_quote_volume");
+
+                entity.Property(e => e.TradeCount)
+                      .HasColumnName("nr_trade_count");
+
+                entity.HasIndex(e => new { e.MatchId, e.TeamId, e.CapturedAtUtc });
+
+                entity.HasOne(e => e.Match)
+                      .WithMany(m => m.MetricSnapshots)
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Team)
+                      .WithMany(t => t.MetricSnapshots)
+                      .HasForeignKey(e => e.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MatchScoreEvent>(entity =>
+            {
+                entity.HasKey(e => e.MatchScoreEventId);
+                entity.ToTable("match_score_event");
+
+                entity.Property(e => e.MatchScoreEventId)
+                      .HasColumnName("cd_match_score_event")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.TeamId).HasColumnName("cd_team");
+
+                entity.Property(e => e.RuleType)
+                      .HasConversion<string>()
+                      .HasColumnName("in_rule_type")
+                      .HasMaxLength(40);
+
+                entity.Property(e => e.EventType)
+                      .HasColumnName("tx_event_type")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.ReasonCode)
+                      .HasColumnName("tx_reason_code")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.Points).HasColumnName("nr_points");
+                entity.Property(e => e.EventSequence).HasColumnName("nr_event_sequence");
+
+                entity.Property(e => e.TeamPercentageChange)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_team_percentage_change");
+
+                entity.Property(e => e.OpponentPercentageChange)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_opponent_percentage_change");
+
+                entity.Property(e => e.TeamQuoteVolume)
+                      .HasColumnType("decimal(28, 8)")
+                      .HasColumnName("nr_team_quote_volume");
+
+                entity.Property(e => e.OpponentQuoteVolume)
+                      .HasColumnType("decimal(28, 8)")
+                      .HasColumnName("nr_opponent_quote_volume");
+
+                entity.Property(e => e.MetricDelta)
+                      .HasColumnType("decimal(28, 8)")
+                      .HasColumnName("nr_metric_delta");
+
+                entity.Property(e => e.WindowStartUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_window_start");
+
+                entity.Property(e => e.WindowEndUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_window_end");
+
+                entity.Property(e => e.Description)
+                      .HasColumnName("tx_description");
+
+                entity.Property(e => e.EventTimeUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_event_time");
+
+                entity.HasIndex(e => new { e.MatchId, e.EventSequence }).IsUnique();
+
+                entity.HasOne(e => e.Match)
+                      .WithMany(m => m.ScoreEvents)
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Team)
+                      .WithMany(t => t.ScoreEvents)
+                      .HasForeignKey(e => e.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MatchScoreState>(entity =>
+            {
+                entity.HasKey(e => e.MatchId);
+                entity.ToTable("match_score_state");
+
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+
+                entity.Property(e => e.ThresholdsAwardedToTeamA)
+                      .HasColumnName("nr_thresholds_awarded_a")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.ThresholdsAwardedToTeamB)
+                      .HasColumnName("nr_thresholds_awarded_b")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastPercentageLeaderTeamId)
+                      .HasColumnName("cd_last_percentage_leader")
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastVolumeLeaderTeamId)
+                      .HasColumnName("cd_last_volume_leader")
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastProcessedVolumeWindowStartUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_volume_window_start");
+
+                entity.Property(e => e.LastProcessedVolumeWindowEndUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_volume_window_end");
+
+                entity.Property(e => e.LastEventSequence)
+                      .HasColumnName("nr_last_event_sequence")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastSnapshotAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_snapshot_at");
+
+                entity.Property(e => e.CreatedAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created_at");
+
+                entity.Property(e => e.UpdatedAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_updated_at");
             });
 
             Seed(modelBuilder);

@@ -271,6 +271,8 @@ namespace BLL.NFTFutebol
                         Name = crypto.Symbol.Replace("USDT", ""),
                         Symbol = crypto.Symbol,
                         PercentageChange = decimal.TryParse(crypto.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent) ? (double)percent : 0,
+                        QuoteVolume = decimal.TryParse(crypto.QuoteVolume, NumberStyles.Any, CultureInfo.InvariantCulture, out var quoteVolume) ? quoteVolume : 0m,
+                        TradesCount = crypto.Count,
                         LastUpdated = DateTime.UtcNow
                     };
                     _context.Currency.Add(currency);
@@ -278,6 +280,8 @@ namespace BLL.NFTFutebol
                 else
                 {
                     currency.PercentageChange = decimal.TryParse(crypto.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent) ? (double)percent : 0;
+                    currency.QuoteVolume = decimal.TryParse(crypto.QuoteVolume, NumberStyles.Any, CultureInfo.InvariantCulture, out var quoteVolume) ? quoteVolume : 0m;
+                    currency.TradesCount = crypto.Count;
                     currency.LastUpdated = DateTime.UtcNow;
                     _context.Currency.Update(currency);
                 }
