@@ -320,38 +320,83 @@
 
         </div>
 
-        @if (_seriesA.Count > 1 && _seriesB.Count > 1)
+        @if (_percentageChart.HasData || _volumeChart.HasData)
         {
             <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <div class="card match-panel p-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="fw-bold">Variação ao vivo</div>
-                            <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
-                        </div>
+                @if (_percentageChart.HasData)
+                {
+                    <div class="col-12 col-xl-6">
+                        <div class="card match-panel p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="fw-bold">Historico de Percentual</div>
+                                <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
+                            </div>
 
-                        <div class="chart-wrap mt-3">
-                            <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                @for (var i = 1; i <= 4; i++)
-                                {
-                                    var y = i * 64;
-                                    <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
-                                }
+                            <div class="chart-wrap mt-3">
+                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                                    @for (var i = 1; i <= 4; i++)
+                                    {
+                                        var y = i * 64;
+                                        <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
+                                    }
 
-                                <line x1="0" y1="@_zeroY" x2="1000" y2="@_zeroY" class="chart-zero" />
+                                    <line x1="0" y1="@_percentageChart.ZeroY" x2="1000" y2="@_percentageChart.ZeroY" class="chart-zero" />
 
-                                <polyline points="@_polyA" class="chart-line chart-line-a" />
-                                <polyline points="@_polyB" class="chart-line chart-line-b" />
-                            </svg>
-                        </div>
+                                    <polyline points="@_percentageChart.PolyA" class="chart-line chart-line-a" />
+                                    <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
+                                </svg>
+                            </div>
 
-                        <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                            <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatPct(_match.PctA))</div>
-                            <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
-                            <div class="ms-auto">Range: @_yMin:0.00% → @_yMax:0.00%</div>
+                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
+                                <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatPct(_match.PctA))</div>
+                                <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
+                                <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                }
+
+                @if (_volumeChart.HasData)
+                {
+                    <div class="col-12 col-xl-6">
+                        <div class="card match-panel p-3 h-100">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="fw-bold">Historico de Volume</div>
+                                <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
+                            </div>
+
+                            <div class="chart-wrap mt-3">
+                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                                    @for (var i = 1; i <= 4; i++)
+                                    {
+                                        var y = i * 64;
+                                        <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
+                                    }
+
+                                    <line x1="0" y1="@_volumeChart.ZeroY" x2="1000" y2="@_volumeChart.ZeroY" class="chart-zero" />
+
+                                    <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
+                                    <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
+                                </svg>
+                            </div>
+
+                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
+                                <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatCompactNumber(_match.QuoteVolumeA))</div>
+                                <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatCompactNumber(_match.QuoteVolumeB))</div>
+                                <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (_metricSnapshots.Count > 0)
+                {
+                    <div class="col-12">
+                        <div class="small text-muted text-center">
+                            Baseado em @_metricSnapshots.Count snapshots persistidos da partida.
+                        </div>
+                    </div>
+                }
             </div>
         }
 
@@ -865,13 +910,13 @@
 
             _match = await Api.GetMatchBySymbolsAsync(a, b);
 
-            PushChartPointFromMatch();
-
             if (_match is null)
             {
                 _error = $"Nenhuma partida encontrada para {a} vs {b}.";
                 return;
             }
+
+            await LoadMetricChartsAsync(CancellationToken.None);
 
             _title = $"{_match.TeamA} vs {_match.TeamB}";
 
@@ -905,6 +950,21 @@
 
     private static string FormatPct(decimal? v)
         => v is null ? "—" : $"{(v.Value >= 0 ? "+" : "")}{v.Value:0.00}%";
+
+    private static string FormatCompactNumber(decimal? value)
+    {
+        if (value is null)
+            return "—";
+
+        var abs = Math.Abs(value.Value);
+        return abs switch
+        {
+            >= 1_000_000_000m => $"{value.Value / 1_000_000_000m:0.##}B",
+            >= 1_000_000m => $"{value.Value / 1_000_000m:0.##}M",
+            >= 1_000m => $"{value.Value / 1_000m:0.##}K",
+            _ => $"{value.Value:0.##}"
+        };
+    }
 
     private static string GetPctClass(decimal? v)
         => v is null ? "pct pct--neutral"
@@ -1175,7 +1235,7 @@
             {
                 _match = updated;
                 _title = $"{_match.TeamA} vs {_match.TeamB}";
-                PushChartPointFromMatch();
+                await LoadMetricChartsAsync(ct);
 
                 SyncAndStartLocalClock();
                 UpdateClockTexts();
@@ -1276,16 +1336,17 @@
             return;
         }
 
+        var match = _match;
         _startUtc = DateTime.SpecifyKind(_match.StartTime.Value, DateTimeKind.Utc);
 
         UpdateLocalClockTexts(DateTime.UtcNow);
 
-        if (IsOngoing(_match?.Status))
+        if (IsOngoing(match.Status))
             StartClock();
         else
             StopClock();
 
-        if (IsOngoing(_match.Status))
+        if (IsOngoing(match.Status))
             StartLocalClock();
         else
             StopLocalClock();
@@ -1352,129 +1413,126 @@
         return $"{mm:00}:{ss:00}.{ms:000}";
     }
 
-    private readonly List<(DateTime t, decimal v)> _seriesA = new();
-    private readonly List<(DateTime t, decimal v)> _seriesB = new();
+    private readonly List<MatchMetricSnapshotDto> _metricSnapshots = new();
+    private ChartSeriesState _percentageChart = ChartSeriesState.Empty;
+    private ChartSeriesState _volumeChart = ChartSeriesState.Empty;
 
-    private const int _maxPoints = 120;
-
-    private string _polyA = "";
-    private string _polyB = "";
-
-    private double _yMin = -1;
-    private double _yMax = 1;
-
-    private double _zeroY = 160;
-
-    private void PushChartPointFromMatch()
+    private async Task LoadMetricChartsAsync(CancellationToken ct)
     {
-        if (_match is null) return;
-
-        if (_match.PctA is decimal a && _match.PctB is decimal b)
+        if (_match is null)
         {
-            var now = DateTime.UtcNow;
-
-            _seriesA.Add((now, a));
-            _seriesB.Add((now, b));
-
-            TrimSeries(_seriesA);
-            TrimSeries(_seriesB);
-
-            RebuildChartPolylines();
-        }
-    }
-
-    private static void TrimSeries(List<(DateTime t, decimal v)> s)
-    {
-        while (s.Count > _maxPoints) s.RemoveAt(0);
-    }
-
-    private void RebuildChartPolylines()
-    {
-        if (_seriesA.Count < 2 || _seriesB.Count < 2) return;
-
-        var all = _seriesA.Select(x => (double)x.v).Concat(_seriesB.Select(x => (double)x.v)).ToList();
-
-        var min = all.Min();
-        var max = all.Max();
-
-        var pad = Math.Max(0.2, (max - min) * 0.15);
-        _yMin = min - pad;
-        _yMax = max + pad;
-
-        if (Math.Abs(_yMax - _yMin) < 0.0001)
-        {
-            _yMin -= 1;
-            _yMax += 1;
+            _metricSnapshots.Clear();
+            _percentageChart = ChartSeriesState.Empty;
+            _volumeChart = ChartSeriesState.Empty;
+            return;
         }
 
-        _zeroY = MapY(0);
+        var snapshots = await Api.GetMatchMetricSnapshotsAsync(_match.MatchId, 500, ct) ?? [];
 
-        _polyA = BuildPolyline(_seriesA);
-        _polyB = BuildPolyline(_seriesB);
+        _metricSnapshots.Clear();
+        _metricSnapshots.AddRange(snapshots
+            .OrderBy(x => x.CapturedAtUtc)
+            .ThenBy(x => x.TeamId));
+
+        _percentageChart = BuildChartState(
+            _metricSnapshots,
+            x => x.PercentageChange,
+            ensureZeroLine: true,
+            minimumPadding: 0.2);
+
+        _volumeChart = BuildChartState(
+            _metricSnapshots,
+            x => x.QuoteVolume,
+            ensureZeroLine: false,
+            minimumPadding: 1d);
     }
 
-    private string BuildPolyline(List<(DateTime t, decimal v)> s)
+    private ChartSeriesState BuildChartState(
+        IReadOnlyCollection<MatchMetricSnapshotDto> snapshots,
+        Func<MatchMetricSnapshotDto, decimal> selector,
+        bool ensureZeroLine,
+        double minimumPadding)
     {
-        var n = s.Count;
-        if (n < 2) return "";
+        if (_match is null || snapshots.Count == 0)
+            return ChartSeriesState.Empty;
 
+        var teamASeries = snapshots
+            .Where(x => x.TeamId == _match.TeamAId)
+            .OrderBy(x => x.CapturedAtUtc)
+            .Select(x => (x.CapturedAtUtc, Value: (double)selector(x)))
+            .ToList();
+
+        var teamBSeries = snapshots
+            .Where(x => x.TeamId == _match.TeamBId)
+            .OrderBy(x => x.CapturedAtUtc)
+            .Select(x => (x.CapturedAtUtc, Value: (double)selector(x)))
+            .ToList();
+
+        if (teamASeries.Count < 2 || teamBSeries.Count < 2)
+            return ChartSeriesState.Empty;
+
+        var allValues = teamASeries.Select(x => x.Value).Concat(teamBSeries.Select(x => x.Value)).ToList();
+        var min = allValues.Min();
+        var max = allValues.Max();
+        var pad = Math.Max(minimumPadding, (max - min) * 0.15);
+
+        var yMin = min - pad;
+        var yMax = max + pad;
+
+        if (ensureZeroLine)
+        {
+            yMin = Math.Min(yMin, 0);
+            yMax = Math.Max(yMax, 0);
+        }
+
+        if (Math.Abs(yMax - yMin) < 0.0001)
+        {
+            yMin -= 1;
+            yMax += 1;
+        }
+
+        return new ChartSeriesState
+        {
+            PolyA = BuildPolyline(teamASeries, yMin, yMax),
+            PolyB = BuildPolyline(teamBSeries, yMin, yMax),
+            YMin = yMin,
+            YMax = yMax,
+            ZeroY = MapY(0, yMin, yMax)
+        };
+    }
+
+    private static string BuildPolyline(List<(DateTime CapturedAtUtc, double Value)> series, double yMin, double yMax)
+    {
+        if (series.Count < 2)
+            return "";
+
+        var start = series.First().CapturedAtUtc;
+        var end = series.Last().CapturedAtUtc;
+        var totalMs = Math.Max(1d, (end - start).TotalMilliseconds);
         var sb = new System.Text.StringBuilder();
 
-        for (int i = 0; i < n; i++)
+        for (var i = 0; i < series.Count; i++)
         {
-            var x = (i / (double)(n - 1)) * 1000.0;
-            var y = MapY((double)s[i].v);
+            var point = series[i];
+            var x = ((point.CapturedAtUtc - start).TotalMilliseconds / totalMs) * 1000.0;
+            var y = MapY(point.Value, yMin, yMax);
 
             sb.Append(x.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
             sb.Append(',');
             sb.Append(y.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
 
-            if (i < n - 1) sb.Append(' ');
+            if (i < series.Count - 1)
+                sb.Append(' ');
         }
 
         return sb.ToString();
     }
 
-    private double MapY(double value)
+    private static double MapY(double value, double yMin, double yMax)
     {
-        var t = (value - _yMin) / (_yMax - _yMin);
+        var t = (value - yMin) / (yMax - yMin);
         t = Math.Clamp(t, 0, 1);
-        var y = (1 - t) * 320.0;
-        return y;
-    }
-
-    private PeriodicTimer? _chartTimer;
-    private CancellationTokenSource? _chartCts;
-
-    private void StartChartTimer()
-    {
-        if (_chartTimer is not null) return;
-
-        _chartCts = new CancellationTokenSource();
-        _chartTimer = new PeriodicTimer(TimeSpan.FromSeconds(1));
-
-        _ = InvokeAsync(async () =>
-        {
-            try
-            {
-                while (_chartTimer is not null && await _chartTimer.WaitForNextTickAsync(_chartCts.Token))
-                {
-                    PushChartPointFromMatch();
-                    StateHasChanged();
-                }
-            }
-            catch (OperationCanceledException) { }
-        });
-    }
-
-    private void StopChartTimer()
-    {
-        try { _chartCts?.Cancel(); } catch { }
-        _chartCts?.Dispose();
-        _chartCts = null;
-
-        _chartTimer?.Dispose();
-        _chartTimer = null;
+        return (1 - t) * 320.0;
     }
 
     private sealed class BetUserOption
@@ -1482,6 +1540,18 @@
         public int Id { get; set; }
         public string Wallet { get; set; } = "";
         public string DisplayName => $"{Id} - {Wallet}";
+    }
+
+    private sealed class ChartSeriesState
+    {
+        public static ChartSeriesState Empty { get; } = new();
+
+        public string PolyA { get; init; } = "";
+        public string PolyB { get; init; } = "";
+        public double YMin { get; init; }
+        public double YMax { get; init; }
+        public double ZeroY { get; init; } = 160;
+        public bool HasData => !string.IsNullOrWhiteSpace(PolyA) && !string.IsNullOrWhiteSpace(PolyB);
     }
 
     private sealed class OnChainBetResult

@@ -31,6 +31,18 @@ public sealed class CriptoVersusApiClient
   
         return await GetFromJsonWithBearerAsync<MatchDto>(url);
     }
+
+    public async Task<List<MatchMetricSnapshotDto>?> GetMatchMetricSnapshotsAsync(
+        int matchId,
+        int take = 500,
+        CancellationToken ct = default)
+    {
+        var safeTake = Math.Clamp(take, 1, 1000);
+        return await GetFromJsonWithBearerAsync<List<MatchMetricSnapshotDto>>(
+            $"api/Matches/{matchId}/metric-snapshots?take={safeTake}",
+            ct);
+    }
+
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<MatchDto>>("api/Matches", ct);
 
