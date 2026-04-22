@@ -95,7 +95,7 @@
                                 <span class="coin-symbol-fallback d-none">@GetInitials(position.Symbol)</span>
                             </span>
                             <div>
-                                <strong>@position.Symbol</strong>
+                                <strong><MarketPairText Symbol="@position.Symbol" /></strong>
                                 <span>@position.CurrencyName</span>
                             </div>
                         </div>
@@ -195,7 +195,7 @@
                                             </span>
                                             <div>
                                                 <strong>@item.CurrencyName</strong>
-                                                <span>contra @item.OpponentSymbol | Match #@item.MatchId</span>
+                                                <span>contra <MarketPairText Symbol="@item.OpponentSymbol" /> | Match #@item.MatchId</span>
                                             </div>
                                         </div>
 

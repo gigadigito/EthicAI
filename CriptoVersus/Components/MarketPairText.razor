@@ -1,0 +1,78 @@
+@if (TrySplitQuote(Symbol, out var baseSymbol, out var quoteSymbol))
+{
+    <span class="@BuildClass()" title="@Symbol">
+        <span class="market-pair-text__base">@baseSymbol</span>
+        <span class="market-pair-text__separator">-</span>
+        <span class="market-pair-text__quote">@quoteSymbol</span>
+    </span>
+}
+else
+{
+    <span class="@BuildClass()" title="@Symbol">@Symbol</span>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Symbol { get; set; } = string.Empty;
+    [Parameter] public string? Class { get; set; }
+
+    private string BuildClass()
+        => string.IsNullOrWhiteSpace(Class)
+            ? "market-pair-text"
+            : $"market-pair-text {Class}";
+
+    private static bool TrySplitQuote(string? symbol, out string baseSymbol, out string quoteSymbol)
+    {
+        baseSymbol = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        quoteSymbol = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(baseSymbol))
+            return false;
+
+        var quotes = new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" };
+        string? quote = null;
+
+        foreach (var candidate in quotes)
+        {
+            if (!baseSymbol.EndsWith(candidate, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            quote = candidate;
+            break;
+        }
+
+        if (quote is null || baseSymbol.Length <= quote.Length)
+            return false;
+
+        baseSymbol = baseSymbol[..^quote.Length];
+        quoteSymbol = quote;
+        return !string.IsNullOrWhiteSpace(baseSymbol);
+    }
+}
+
+<style>
+    .market-pair-text {
+        align-items: baseline;
+        display: inline-flex;
+        gap: .24rem;
+        max-width: 100%;
+        white-space: nowrap;
+    }
+
+    .market-pair-text__base {
+        overflow-wrap: anywhere;
+    }
+
+    .market-pair-text__separator {
+        color: currentColor;
+        opacity: .55;
+    }
+
+    .market-pair-text__quote {
+        font-size: .72em;
+        font-weight: 700;
+        letter-spacing: .04em;
+        opacity: .8;
+        position: relative;
+        top: .14em;
+    }
+</style>

@@ -303,7 +303,7 @@ else
                                                  onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                             <span class="coin-mini-fallback d-none">@GetInitials(m.TeamA)</span>
                                         </span>
-                                        <span class="team-symbol">@m.TeamA</span>
+                                        <span class="team-symbol"><MarketPairText Symbol="@m.TeamA" /></span>
                                     </span>
                                     <span class="@GetPctClass(m.PctA)">@FmtPct(m.PctA)</span>
                                 </div>
@@ -322,7 +322,7 @@ else
                                                  onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                             <span class="coin-mini-fallback d-none">@GetInitials(m.TeamB)</span>
                                         </span>
-                                        <span class="team-symbol">@m.TeamB</span>
+                                        <span class="team-symbol"><MarketPairText Symbol="@m.TeamB" /></span>
                                     </span>
                                     <span class="@GetPctClass(m.PctB)">@FmtPct(m.PctB)</span>
                                 </div>
@@ -343,13 +343,13 @@ else
                                     <button class="btn btn-success btn-sm"
                                             disabled="@disabledA"
                                             @onclick="() => OpenInvestmentAmountModal(m, m.TeamAId, m.TeamA)">
-                                        Investir @m.TeamA
+                                        Investir <MarketPairText Symbol="@m.TeamA" />
                                     </button>
 
                                     <button class="btn btn-outline-light btn-sm"
                                             disabled="@disabledB"
                                             @onclick="() => OpenInvestmentAmountModal(m, m.TeamBId, m.TeamB)">
-                                        Investir @m.TeamB
+                                        Investir <MarketPairText Symbol="@m.TeamB" />
                                     </button>
                                 }
                             </div>
@@ -393,7 +393,7 @@ else
                                                  onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                             <span class="coin-mini-fallback d-none">@GetInitials(m.TeamA)</span>
                                         </span>
-                                        <span class="team-symbol">@m.TeamA</span>
+                                        <span class="team-symbol"><MarketPairText Symbol="@m.TeamA" /></span>
                                     </span>
                                     <span class="@GetPctClass(m.PctA)">@FmtPct(m.PctA)</span>
                                 </div>
@@ -412,7 +412,7 @@ else
                                                  onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                             <span class="coin-mini-fallback d-none">@GetInitials(m.TeamB)</span>
                                         </span>
-                                        <span class="team-symbol">@m.TeamB</span>
+                                        <span class="team-symbol"><MarketPairText Symbol="@m.TeamB" /></span>
                                     </span>
                                     <span class="@GetPctClass(m.PctB)">@FmtPct(m.PctB)</span>
                                 </div>
@@ -474,7 +474,7 @@ else
                                                  onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                             <span class="coin-mini-fallback d-none">@GetInitials(m.TeamA)</span>
                                         </span>
-                                        <span class="team-symbol">@m.TeamA</span>
+                                        <span class="team-symbol"><MarketPairText Symbol="@m.TeamA" /></span>
                                     </span>
                                     <span class="@GetPctClass(m.PctA)">@FmtPct(m.PctA)</span>
                                 </div>
@@ -493,7 +493,7 @@ else
                                                  onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                             <span class="coin-mini-fallback d-none">@GetInitials(m.TeamB)</span>
                                         </span>
-                                        <span class="team-symbol">@m.TeamB</span>
+                                        <span class="team-symbol"><MarketPairText Symbol="@m.TeamB" /></span>
                                     </span>
                                     <span class="@GetPctClass(m.PctB)">@FmtPct(m.PctB)</span>
                                 </div>
@@ -541,7 +541,7 @@ else
                                 <span class="coin-mini-fallback d-none">@GetInitials(c.Symbol)</span>
                             </span>
                             <div class="gainer-identity">
-                                <strong>@c.Symbol</strong>
+                                <strong><MarketPairText Symbol="@c.Symbol" /></strong>
                                 <span>@c.Name</span>
                             </div>
                             <div class="gainer-change">+@c.PercentageChange.ToString("0.##")%</div>

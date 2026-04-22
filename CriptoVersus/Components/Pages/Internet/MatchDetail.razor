@@ -65,7 +65,7 @@
                             </div>
 
                             <div class="flex-grow-1">
-                                <div class="team-name">@_match.TeamA</div>
+                                <div class="team-name"><MarketPairText Symbol="@_match.TeamA" /></div>
                                 <div class="team-sub">
                                     <span class="@GetPctClass(_match.PctA)">
                                         @FormatPct(_match.PctA)
@@ -120,7 +120,7 @@
                     <div class="col-12 col-md-4">
                         <div class="d-flex align-items-center gap-3 justify-content-md-end">
                             <div class="text-md-end">
-                                <div class="team-name">@_match.TeamB</div>
+                                <div class="team-name"><MarketPairText Symbol="@_match.TeamB" /></div>
                                 <div class="team-sub">
                                     <span class="@GetPctClass(_match.PctB)">
                                         @FormatPct(_match.PctB)
@@ -177,13 +177,6 @@
             </div>
         </section>
 
-        @if (!string.IsNullOrWhiteSpace(_betStatusMessage))
-        {
-            <div class="alert @(_betRequestOk ? "alert-success" : "alert-danger") mb-3">
-                @_betStatusMessage
-            </div>
-        }
-
         @if (!string.IsNullOrWhiteSpace(_betResponseBody))
         {
             <div class="card mb-3">
@@ -220,7 +213,7 @@
                             </div>
 
                             <div>
-                                <div class="fw-bold fs-5 text-light-emphasis">@_match.TeamA</div>
+                                <div class="fw-bold fs-5 text-light-emphasis"><MarketPairText Symbol="@_match.TeamA" /></div>
                                 <div class="small">
                                     <span class="@GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</span>
                                     <span class="text-muted ms-2">• Score @_match.ScoreA</span>
@@ -294,7 +287,7 @@
                             </div>
 
                             <div>
-                                <div class="fw-bold fs-5 text-light-emphasis">@_match.TeamB</div>
+                                <div class="fw-bold fs-5 text-light-emphasis"><MarketPairText Symbol="@_match.TeamB" /></div>
                                 <div class="small">
                                     <span class="@GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</span>
                                     <span class="text-muted ms-2">• Score @_match.ScoreB</span>
@@ -325,15 +318,15 @@
                 <div class="card match-panel p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div class="fw-bold">@GetPercentageCardTitle()</div>
-                        <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
+                        <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
                     </div>
 
                     <div class="d-flex gap-2 mt-3 flex-wrap">
                         <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                            @_match.TeamA: @GetPercentageWins(_match.TeamAId) @GetPercentageWinLabel()
+                            <MarketPairText Symbol="@_match.TeamA" />: @GetPercentageWins(_match.TeamAId) @GetPercentageWinLabel()
                         </span>
                         <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                            @_match.TeamB: @GetPercentageWins(_match.TeamBId) @GetPercentageWinLabel()
+                            <MarketPairText Symbol="@_match.TeamB" />: @GetPercentageWins(_match.TeamBId) @GetPercentageWinLabel()
                         </span>
                     </div>
 
@@ -369,8 +362,8 @@
                         </div>
 
                         <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                            <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatPct(_match.PctA))</div>
-                            <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatPct(_match.PctB))</div>
+                            <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatPct(_match.PctA))</div>
+                            <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatPct(_match.PctB))</div>
                             <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
                         </div>
 
@@ -400,15 +393,15 @@
                                 </span>
                             }
                         </div>
-                        <div class="small text-muted">@_match.TeamA vs @_match.TeamB</div>
+                        <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
                     </div>
 
                     <div class="d-flex gap-2 mt-3 flex-wrap">
                         <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                            @_match.TeamA: @GetVolumeWins(_match.TeamAId) @GetVolumeWinLabel()
+                            <MarketPairText Symbol="@_match.TeamA" />: @GetVolumeWins(_match.TeamAId) @GetVolumeWinLabel()
                         </span>
                         <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                            @_match.TeamB: @GetVolumeWins(_match.TeamBId) @GetVolumeWinLabel()
+                            <MarketPairText Symbol="@_match.TeamB" />: @GetVolumeWins(_match.TeamBId) @GetVolumeWinLabel()
                         </span>
                     </div>
 
@@ -444,8 +437,8 @@
                         </div>
 
                         <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                            <div class="legend"><span class="dot dot-a"></span> @_match.TeamA (@FormatCompactNumber(_match.QuoteVolumeA))</div>
-                            <div class="legend"><span class="dot dot-b"></span> @_match.TeamB (@FormatCompactNumber(_match.QuoteVolumeB))</div>
+                            <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatCompactNumber(_match.QuoteVolumeA))</div>
+                            <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatCompactNumber(_match.QuoteVolumeB))</div>
                             <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
                         </div>
 
@@ -472,8 +465,8 @@
             <div class="col-12">
                 <div class="small text-muted text-center">
                     Baseado em @_metricSnapshots.Count snapshots persistidos da partida.
-                    @_match.TeamA: @GetTeamSnapshotCount(_match.TeamAId).
-                    @_match.TeamB: @GetTeamSnapshotCount(_match.TeamBId).
+                    <MarketPairText Symbol="@_match.TeamA" />: @GetTeamSnapshotCount(_match.TeamAId).
+                    <MarketPairText Symbol="@_match.TeamB" />: @GetTeamSnapshotCount(_match.TeamBId).
                 </div>
             </div>
         </div>
@@ -488,7 +481,7 @@
 
                     @if (_scoreEvents.Count == 0)
                     {
-                        <div class="alert alert-secondary mt-3 mb-0">
+                        <div class="alert match-empty-state mt-3 mb-0">
                             Nenhum ponto foi registrado nesta partida ate o momento.
                         </div>
                     }
@@ -612,23 +605,18 @@
 
                     <div class="row g-3 align-items-end">
                         <div class="col-md-5 col-lg-4">
-                            <label for="betUserSelect" class="form-label">Usuário</label>
-                            <select id="betUserSelect" class="form-select" @bind="_selectedUserId">
-                                @foreach (var user in _bettingUsers)
-                                {
-                                    <option value="@user.Id">@user.DisplayName</option>
-                                }
-                            </select>
+                            <label class="form-label">Usuário</label>
+                            <input class="form-control" value="@LoggedUserDisplay" disabled />
                         </div>
 
                         <div class="col-md-3 col-lg-2">
                             <label class="form-label">Valor</label>
-                            <input class="form-control" value="@_testAmount" disabled />
+                            <input class="form-control" value="Escolhido no modal" disabled />
                         </div>
 
                         <div class="col-md-4 col-lg-6">
-                            <div class="small text-muted">Usuário selecionado</div>
-                            <div class="fw-semibold">@SelectedUserDisplay</div>
+                            <div class="small text-muted">Carteira autenticada</div>
+                            <div class="fw-semibold">@LoggedWalletDisplay</div>
                         </div>
                     </div>
 
@@ -647,16 +635,16 @@
                             <div class="col-md-6">
                                 <button class="btn btn-success w-100"
                                         disabled="@_isSendingBet"
-                                        @onclick="() => SendBet(_match.MatchId, _match.TeamAId, _match.TeamA)">
-                                    Investir em @_match.TeamA
+                                        @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
+                                    Investir em <MarketPairText Symbol="@_match.TeamA" />
                                 </button>
                             </div>
 
                             <div class="col-md-6">
                                 <button class="btn btn-primary w-100"
                                         disabled="@_isSendingBet"
-                                        @onclick="() => SendBet(_match.MatchId, _match.TeamBId, _match.TeamB)">
-                                    Investir em @_match.TeamB
+                                        @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
+                                    Investir em <MarketPairText Symbol="@_match.TeamB" />
                                 </button>
                             </div>
                         </div>
@@ -664,6 +652,93 @@
                 </div>
             </div>
         </div>
+
+        @if (_showInvestmentAmountModal)
+        {
+            <div class="modal-backdrop fade show"></div>
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark text-light border border-secondary">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title">Escolha o valor em SOL</h5>
+                            <button type="button" class="btn-close btn-close-white" aria-label="Fechar" @onclick="CloseInvestmentAmountModal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="amount-modal-team">
+                                <span>Investimento em</span>
+                                <strong><MarketPairText Symbol="@_pendingBetTeamName" /></strong>
+                            </div>
+
+                            <div class="amount-quick-grid" aria-label="Valores rapidos em SOL">
+                                @foreach (var amount in QuickInvestmentAmounts)
+                                {
+                                    <button type="button"
+                                            class="amount-chip @(_investmentAmount == amount ? "amount-chip-active" : "")"
+                                            @onclick="() => SetInvestmentAmount(amount)">
+                                        @FmtSolAmount(amount)
+                                    </button>
+                                }
+                            </div>
+
+                            <label class="form-label mt-3" for="matchInvestmentAmountRange">
+                                Ajuste rapido: <strong>@FmtSolAmount(_investmentAmount)</strong>
+                            </label>
+                            <input id="matchInvestmentAmountRange"
+                                   class="form-range"
+                                   type="range"
+                                   min="0"
+                                   max="@(QuickInvestmentAmounts.Length - 1)"
+                                   step="1"
+                                   @bind="_investmentAmountRangeIndex"
+                                   @bind:event="oninput" />
+
+                            <label class="form-label mt-3" for="matchInvestmentAmountInput">
+                                Ou digite qualquer valor em SOL
+                            </label>
+                            <input id="matchInvestmentAmountInput"
+                                   class="form-control"
+                                   type="number"
+                                   min="0.00000001"
+                                   step="0.00000001"
+                                   @bind="_investmentAmount"
+                                   @bind:event="oninput" />
+
+                            @if (!string.IsNullOrWhiteSpace(_investmentAmountError))
+                            {
+                                <div class="text-danger small mt-2">@_investmentAmountError</div>
+                            }
+                        </div>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-outline-light" @onclick="CloseInvestmentAmountModal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" disabled="@_isSendingBet" @onclick="ConfirmInvestmentAmountAsync">
+                                @(_isSendingBet ? "Enviando..." : $"Investir {FmtSolAmount(_investmentAmount)}")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (_showSimplePopup)
+        {
+            <div class="modal-backdrop fade show"></div>
+            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark text-light border border-secondary">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title">@_simplePopupTitle</h5>
+                            <button type="button" class="btn-close btn-close-white" aria-label="Fechar" @onclick="CloseSimplePopup"></button>
+                        </div>
+                        <div class="modal-body text-light-emphasis">
+                            <p class="mb-0">@_simplePopupMessage</p>
+                        </div>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-primary" @onclick="CloseSimplePopup">Entendi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     }
 </div>
 
@@ -773,6 +848,47 @@
         box-shadow: 0 0 0 0 rgba(255,82,82,.8);
         animation: pulseDot 1.2s infinite;
         vertical-align: middle;
+    }
+
+    .amount-modal-team {
+        display: grid;
+        gap: .25rem;
+        margin-bottom: 1rem;
+    }
+
+    .amount-modal-team span {
+        color: #9ca3af;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+
+    .amount-quick-grid {
+        display: grid;
+        gap: .65rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .amount-chip {
+        background: rgba(255,255,255,.03);
+        border: 1px solid rgba(148, 163, 184, .28);
+        border-radius: 999px;
+        color: #e5e7eb;
+        font-weight: 800;
+        min-height: 2.65rem;
+        padding: 0 .75rem;
+    }
+
+    .amount-chip:hover,
+    .amount-chip-active {
+        background: rgba(45, 212, 191, .14);
+        border-color: #2dd4bf;
+        color: #5eead4;
+    }
+
+    .match-empty-state {
+        background: rgba(255,255,255,.04);
+        border: 1px solid rgba(148, 163, 184, .18);
+        color: rgba(226, 232, 240, .9);
     }
 
     @@keyframes pulseDot {
@@ -1008,30 +1124,41 @@
     private string _betStatusMessage = "";
     private string _betResponseBody = "";
     private IJSObjectReference? _bettingModule;
-
-    private const decimal _testAmount = 1m;
+    private bool _showSimplePopup;
+    private string _simplePopupTitle = "";
+    private string _simplePopupMessage = "";
+    private bool _showInvestmentAmountModal;
+    private int _pendingBetTeamId;
+    private string _pendingBetTeamName = "";
+    private decimal _investmentAmount = 0.1m;
+    private string _investmentAmountError = "";
     private const int _liveBetMaxMinutes = 45;
+    private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.1m, 0.25m, 0.5m, 1m];
+    private int? _loggedUserId;
+    private string? _loggedWalletPublicKey;
 
-    private int _selectedUserId = 1;
+    private string LoggedUserDisplay
+        => _loggedUserId is int userId && userId > 0
+            ? $"Usuario #{userId}"
+            : "Faça login para investir";
 
-    private readonly List<BetUserOption> _bettingUsers = new()
+    private string LoggedWalletDisplay
+        => string.IsNullOrWhiteSpace(_loggedWalletPublicKey)
+            ? "Carteira nao conectada"
+            : _loggedWalletPublicKey;
+
+    private int _investmentAmountRangeIndex
     {
-        new BetUserOption { Id = 1, Wallet = "wallet_teste_001" },
-        new BetUserOption { Id = 106, Wallet = "wallet_106" },
-        new BetUserOption { Id = 107, Wallet = "wallet_107" },
-        new BetUserOption { Id = 108, Wallet = "wallet_108" },
-        new BetUserOption { Id = 109, Wallet = "wallet_109" },
-        new BetUserOption { Id = 110, Wallet = "wallet_110" },
-        new BetUserOption { Id = 100, Wallet = "wallet_100" },
-        new BetUserOption { Id = 101, Wallet = "wallet_101" },
-        new BetUserOption { Id = 102, Wallet = "wallet_102" },
-        new BetUserOption { Id = 103, Wallet = "wallet_103" },
-        new BetUserOption { Id = 104, Wallet = "wallet_104" },
-        new BetUserOption { Id = 105, Wallet = "wallet_105" }
-    };
+        get => GetClosestQuickInvestmentAmountIndex(_investmentAmount);
+        set
+        {
+            if (value < 0 || value >= QuickInvestmentAmounts.Length)
+                return;
 
-    private string SelectedUserDisplay
-        => _bettingUsers.FirstOrDefault(x => x.Id == _selectedUserId)?.DisplayName ?? "-";
+            _investmentAmount = QuickInvestmentAmounts[value];
+            _investmentAmountError = "";
+        }
+    }
 
     private static string GetBaseSymbol(string pair)
     {
@@ -1056,11 +1183,18 @@
         return $"https://criptoversus-api.duckdns.org/api/icons/binance/{baseSymbol}";
     }
 
+    private async Task RefreshAuthenticatedUserAsync()
+    {
+        _loggedUserId = await SessionStorage.GetItemAsync<int?>("userId");
+        _loggedWalletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         _loading = true;
         _error = null;
         _match = null;
+        await RefreshAuthenticatedUserAsync();
 
         try
         {
@@ -1197,21 +1331,103 @@
         Nav.NavigateTo("/intranet/dashboard");
     }
 
-    private async Task SendBet(int matchId, int teamId, string teamName)
+    private void OpenInvestmentAmountModal(int teamId, string teamName)
+    {
+        _pendingBetTeamId = teamId;
+        _pendingBetTeamName = teamName;
+        _investmentAmount = 0.1m;
+        _investmentAmountError = "";
+        _showInvestmentAmountModal = true;
+    }
+
+    private void CloseInvestmentAmountModal()
+    {
+        if (_isSendingBet)
+            return;
+
+        _showInvestmentAmountModal = false;
+        _pendingBetTeamId = 0;
+        _pendingBetTeamName = "";
+        _investmentAmountError = "";
+    }
+
+    private void SetInvestmentAmount(decimal amount)
+    {
+        _investmentAmount = amount;
+        _investmentAmountError = "";
+    }
+
+    private static int GetClosestQuickInvestmentAmountIndex(decimal amount)
+    {
+        var closestIndex = 0;
+        var closestDistance = decimal.MaxValue;
+
+        for (var i = 0; i < QuickInvestmentAmounts.Length; i++)
+        {
+            var distance = Math.Abs(QuickInvestmentAmounts[i] - amount);
+            if (distance >= closestDistance)
+                continue;
+
+            closestIndex = i;
+            closestDistance = distance;
+        }
+
+        return closestIndex;
+    }
+
+    private async Task ConfirmInvestmentAmountAsync()
+    {
+        if (_match is null || _pendingBetTeamId <= 0 || string.IsNullOrWhiteSpace(_pendingBetTeamName))
+        {
+            _investmentAmountError = "Escolha uma moeda para investir.";
+            return;
+        }
+
+        _investmentAmount = decimal.Round(_investmentAmount, 8, MidpointRounding.ToZero);
+
+        if (_investmentAmount <= 0)
+        {
+            _investmentAmountError = "Informe um valor maior que zero.";
+            return;
+        }
+
+        _showInvestmentAmountModal = false;
+        await SendBet(_match.MatchId, _pendingBetTeamId, _pendingBetTeamName, _investmentAmount);
+    }
+
+    private static string FmtSolAmount(decimal value)
+        => $"{value:0.########} SOL";
+
+    private void ShowInvestmentPopup(string title, string message)
+    {
+        _simplePopupTitle = title;
+        _simplePopupMessage = message;
+        _showSimplePopup = true;
+    }
+
+    private void CloseSimplePopup()
+    {
+        _showSimplePopup = false;
+    }
+
+    private async Task SendBet(int matchId, int teamId, string teamName, decimal amountSol)
     {
         _isSendingBet = true;
         _betRequestOk = false;
         _betStatusMessage = "";
         _betResponseBody = "";
+        _showSimplePopup = false;
 
         try
         {
+            await RefreshAuthenticatedUserAsync();
             var token = await SessionStorage.GetItemAsync<string>("authToken");
 
-            if (string.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(token) || !_loggedUserId.HasValue || _loggedUserId.Value <= 0)
             {
                 _betRequestOk = false;
                 _betStatusMessage = "Faça login com a carteira Solana antes de investir.";
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com o investimento.");
                 return;
             }
 
@@ -1220,16 +1436,16 @@
 
             if (onChainBettingEnabled)
             {
-                var onChainResult = await PlaceOnChainBetAsync(matchId, teamId, _testAmount);
+                var onChainResult = await PlaceOnChainBetAsync(matchId, teamId, amountSol);
                 onChainSignature = onChainResult.Signature;
                 _betResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
             }
 
             var payload = new
             {
-                userId = _selectedUserId,
+                userId = _loggedUserId.Value,
                 teamId = teamId,
-                amount = _testAmount,
+                amount = amountSol,
                 onChainSignature
             };
 
@@ -1250,20 +1466,23 @@
             if (response.IsSuccessStatusCode)
             {
                 _betRequestOk = true;
-                _betStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={SelectedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
+                _betStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={LoggedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
+                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento de {FmtSolAmount(amountSol)} em {teamName} foi registrado com sucesso.");
                 await ReloadMatchAsync(CancellationToken.None);
             }
             else
             {
                 _betRequestOk = false;
-                _betStatusMessage = $"Falha ao investir em {teamName}. Usuário={SelectedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                _betStatusMessage = $"Falha ao investir em {teamName}. Usuário={LoggedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                ShowInvestmentPopup("Investimento não concluído", "Não foi possível registrar seu investimento agora. Tente novamente em instantes.");
             }
         }
         catch (Exception ex)
         {
             _betRequestOk = false;
-            _betStatusMessage = GetBetExceptionMessage(ex, SelectedUserDisplay);
+            _betStatusMessage = GetBetExceptionMessage(ex, LoggedUserDisplay);
             _betResponseBody = ex.ToString();
+            ShowInvestmentPopup("Investimento não concluído", GetBetPopupExceptionMessage(ex));
         }
         finally
         {
@@ -1274,9 +1493,12 @@
 
     private async Task<OnChainBetResult> PlaceOnChainBetAsync(int matchId, int teamId, decimal amountSol)
     {
+        if (_match is null)
+            throw new InvalidOperationException("Partida nao carregada para investimento on-chain.");
+
         _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaBetting.js?v=20260418-authority-autocreate");
+            "./js/solanaBetting.js?v=20260420-position-pda");
 
         var programId = Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))
@@ -1290,8 +1512,25 @@
                 cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
                 matchId,
                 teamId,
+                teamAId = _match.TeamAId,
+                teamBId = _match.TeamBId,
+                bettingCloseUnix = GetOnChainBettingCloseUnix(_match),
+                autoCreateMatch = true,
+                authorityPublicKey = Config["OnChainBetting:AuthorityWallet"] ?? Config["CriptoVersus:AdminWallet"],
                 amountSol
             });
+    }
+
+    private static long GetOnChainBettingCloseUnix(MatchDto match)
+    {
+        var fallbackClose = DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds();
+        var configuredClose = match.BettingCloseTime?.ToUnixTimeSeconds();
+
+        if (configuredClose is null)
+            return fallbackClose;
+
+        var minimumClose = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
+        return configuredClose.Value > minimumClose ? configuredClose.Value : fallbackClose;
     }
 
     private bool CanBetOnCurrentMatch()
@@ -1333,6 +1572,17 @@
             return $"Partida ainda não criada on-chain na devnet. Usuário={selectedUserDisplay}.";
 
         return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
+    }
+
+    private static string GetBetPopupExceptionMessage(Exception ex)
+    {
+        if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
+            return "A partida ainda não foi criada on-chain na devnet. Tente novamente em instantes.";
+
+        if (ex.ToString().Contains("TeamId invalido para posicao on-chain.", StringComparison.OrdinalIgnoreCase))
+            return "Nao foi possivel preparar a posicao on-chain dessa moeda agora. Tente novamente em instantes.";
+
+        return "Nao foi possivel concluir o investimento agora. Tente novamente em instantes.";
     }
 
     private PeriodicTimer? _timer;
@@ -1725,9 +1975,10 @@
         => _metricSnapshots.Count(x => x.TeamId == teamId);
 
     private int GetPercentageWins(int teamId)
-        => IsPercentThresholdMatch()
-            ? GetWins(teamId, IsPercentThresholdOrCrossoverRule)
-            : GetWins(teamId, IsPercentageCrossoverRule);
+        => GetWins(teamId, IsPercentageCrossoverRule);
+
+    private int GetPercentageThresholdPoints(int teamId)
+        => GetWins(teamId, IsPercentThresholdRule);
 
     private string GetPercentageCardTitle()
         => IsPercentThresholdMatch()
@@ -1737,12 +1988,12 @@
                 : "Historico de Percentual";
 
     private string GetPercentageWinLabel()
-        => IsPercentThresholdMatch() ? "ponto(s)" : "ganho(s)";
+        => "cruzamento(s)";
 
     private string GetPercentageCardDescription()
     {
         if (IsPercentThresholdMatch())
-            return "Pontuacao hibrida: cruzar a linha do adversario para cima gera ponto, e atingir as faixas de diferenca percentual configuradas tambem gera ponto.";
+            return $"Os selos acima mostram apenas cruzamentos para cima no grafico. Pontos por faixa continuam valendo no placar e no log: {_match?.TeamA} {GetPercentageThresholdPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetPercentageThresholdPoints(_match?.TeamBId ?? 0)}.";
 
         if (IsPercentageCrossoverMatch())
             return "Pontuacao baseada em cruzamento percentual: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";
@@ -1933,13 +2184,6 @@
             return "Ainda nao existem snapshots persistidos para esta partida. Depois que o worker rodar e gravar as coletas, os graficos aparecem aqui.";
 
         return $"Ainda nao ha pontos suficientes para desenhar as linhas. Sao necessarias pelo menos 2 coletas por time. {_match.TeamA}: {teamACount}. {_match.TeamB}: {teamBCount}.";
-    }
-
-    private sealed class BetUserOption
-    {
-        public int Id { get; set; }
-        public string Wallet { get; set; } = "";
-        public string DisplayName => $"{Id} - {Wallet}";
     }
 
     private sealed class ChartSeriesState

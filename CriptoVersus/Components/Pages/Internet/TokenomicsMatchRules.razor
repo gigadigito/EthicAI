@@ -1,0 +1,363 @@
+@page "/tokenomics/regras-das-partidas"
+
+<section class="match-rules-page">
+    <div class="rules-hero">
+        <div class="rules-hero-copy">
+            <span>Tópico de Tokenomics</span>
+            <h1>Regras das partidas e formacao do placar</h1>
+            <p>
+                O CriptoVersus usa snapshots de mercado, eventos de pontuacao auditaveis e modos configuraveis de disputa
+                para transformar variacao percentual e volume em uma leitura clara de jogo.
+            </p>
+        </div>
+        <div class="rules-hero-mark" aria-hidden="true">RX</div>
+    </div>
+
+    <div class="rules-layout">
+        <aside class="rules-index">
+            <span>Navegacao</span>
+            <a href="#visao-geral">Visao geral</a>
+            <a href="#percentual">Percentual</a>
+            <a href="#volume-janela">Volume por janela</a>
+            <a href="#volume-cruzamento">Volume por cruzamento</a>
+            <a href="#auditoria">Auditoria</a>
+            <a href="#motor">Motor de pontuacao</a>
+        </aside>
+
+        <div class="rules-content">
+            <section class="rules-panel rules-panel-lead" id="visao-geral">
+                <span>01</span>
+                <h2>Visao geral</h2>
+                <p>
+                    Cada partida acompanha dois ativos ao longo do tempo. O sistema persiste snapshots ordenados, calcula
+                    eventos de jogo sobre essa linha historica e transforma esses eventos em pontos visiveis no placar.
+                </p>
+                <div class="rules-pill-row">
+                    <strong>Snapshots por time</strong>
+                    <strong>Eventos unitarios</strong>
+                    <strong>Placar auditavel</strong>
+                </div>
+            </section>
+
+            <section class="rules-panel" id="percentual">
+                <span>02</span>
+                <h2>Pontuacao por percentual</h2>
+                <p>
+                    O percentual e a camada mais dramatica da partida. Hoje o sistema suporta cruzamento puro e, nas partidas
+                    em modo threshold, uma leitura hibrida em que faixas de diferenca percentual e cruzamentos para cima podem
+                    gerar ponto.
+                </p>
+                <div class="rule-mode-grid">
+                    <article>
+                        <strong>Threshold + cruzamento</strong>
+                        <p>
+                            Diferencas iguais ou superiores a 2%, 8% e 16% geram pontos cumulativos. Se um ativo cruza a linha
+                            do outro para cima, esse momento tambem pode virar ponto sem apagar gols anteriores.
+                        </p>
+                    </article>
+                    <article>
+                        <strong>Cruzamento percentual</strong>
+                        <p>
+                            Quando a linha de um ativo estava abaixo e passa para igual ou acima no snapshot seguinte, o sistema
+                            registra um evento de cruzamento para cima e soma 1 ponto para aquele lado.
+                        </p>
+                    </article>
+                </div>
+                <div class="threshold-band">
+                    <div><dt>2%</dt><dd>primeira faixa</dd></div>
+                    <div><dt>8%</dt><dd>segunda faixa</dd></div>
+                    <div><dt>16%</dt><dd>terceira faixa</dd></div>
+                </div>
+            </section>
+
+            <section class="rules-panel" id="volume-janela">
+                <span>03</span>
+                <h2>Volume por janela de 15 minutos</h2>
+                <p>
+                    Para evitar a distorcao do volume bruto historico, o modo de janela compara candles fechados de 15 minutos.
+                    Em cada janela, quem negociou mais marca 1 ponto. A janela vale no maximo 1 ponto e a proxima janela abre
+                    uma disputa nova.
+                </p>
+                <ul class="rules-bullet-list">
+                    <li>Comparacao baseada no volume fechado da janela, nao no tamanho historico da moeda.</li>
+                    <li>Empate na janela nao gera ponto.</li>
+                    <li>Essa leitura e mais justa para ativos com perfis de liquidez muito diferentes.</li>
+                </ul>
+            </section>
+
+            <section class="rules-panel" id="volume-cruzamento">
+                <span>04</span>
+                <h2>Volume por cruzamento</h2>
+                <p>
+                    Neste modo, o sistema observa a linha de volume dos dois lados. Sempre que um ativo cruza a linha do outro
+                    de baixo para cima, ele recebe 1 ponto. Ficar acima por si so nao pontua; o evento e o cruzamento.
+                </p>
+                <ul class="rules-bullet-list">
+                    <li>Cruzou para cima: ponto.</li>
+                    <li>Cruzou para baixo: nao pontua.</li>
+                    <li>Se cair e cruzar para cima de novo, conta novamente.</li>
+                </ul>
+            </section>
+
+            <section class="rules-panel" id="auditoria">
+                <span>05</span>
+                <h2>Auditoria da pontuacao</h2>
+                <p>
+                    Cada ponto gerado vira um evento em log. Isso permite explicar o placar, reconstruir a partida depois de
+                    encerrada e abrir caminho para narracao automatica baseada em fatos reais do jogo.
+                </p>
+                <div class="audit-grid">
+                    <article>
+                        <strong>Snapshots</strong>
+                        <p>Guardam o historico temporal de percentual, volume e trades por partida e por time.</p>
+                    </article>
+                    <article>
+                        <strong>Score events</strong>
+                        <p>Registram regra, motivo, valores do momento, descricao textual, timestamp e ordem do evento.</p>
+                    </article>
+                    <article>
+                        <strong>Replay confiavel</strong>
+                        <p>O usuario consegue entender por que o placar chegou naquele resultado sem depender de memoria do worker.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="rules-panel" id="motor">
+                <span>06</span>
+                <h2>Motor configuravel de pontuacao</h2>
+                <p>
+                    A partida escolhe qual modo usar, e o backend aplica a regra sobre dados ordenados por tempo. Isso permite
+                    evoluir as disputas sem trocar toda a estrutura do worker ou perder a consistencia historica.
+                </p>
+                <div class="engine-strip">
+                    <strong>Modo da partida</strong>
+                    <strong>Historico ordenado</strong>
+                    <strong>Sem duplicidade</strong>
+                    <strong>Placar reconstruivel</strong>
+                </div>
+            </section>
+        </div>
+    </div>
+</section>
+
+<style>
+    .match-rules-page {
+        scroll-behavior: smooth;
+    }
+
+    .match-rules-page {
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    .rules-hero {
+        align-items: center;
+        background:
+            radial-gradient(circle at top left, rgba(45, 212, 191, .18), transparent 36%),
+            linear-gradient(135deg, rgba(9, 14, 20, .98), rgba(17, 26, 36, .92));
+        border: 1px solid #243041;
+        border-radius: 10px;
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 280px;
+        padding: clamp(1.25rem, 3vw, 2rem);
+    }
+
+    .rules-hero-copy span,
+    .rules-index span,
+    .rules-panel span {
+        color: #5eead4;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .rules-hero-copy h1 {
+        color: #f8fafc;
+        font-size: clamp(2rem, 4vw, 3.6rem);
+        line-height: 1.02;
+        margin: .45rem 0 .8rem;
+        max-width: 840px;
+    }
+
+    .rules-hero-copy p {
+        color: #dbeafe;
+        font-size: 1.08rem;
+        margin: 0;
+        max-width: 720px;
+    }
+
+    .rules-hero-mark {
+        align-items: center;
+        aspect-ratio: 1;
+        background: linear-gradient(135deg, rgba(15, 23, 42, .96), rgba(10, 15, 23, .96));
+        border: 1px solid rgba(94, 234, 212, .55);
+        border-radius: 12px;
+        color: #f8fafc;
+        display: inline-flex;
+        font-size: 2.2rem;
+        font-weight: 900;
+        justify-content: center;
+        width: 138px;
+    }
+
+    .rules-layout {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .rules-index,
+    .rules-panel {
+        background: #111318;
+        border: 1px solid #2b3138;
+        border-radius: 10px;
+    }
+
+    .rules-index {
+        align-self: start;
+        display: grid;
+        gap: .7rem;
+        padding: 1rem;
+        position: sticky;
+        top: 1rem;
+    }
+
+    .rules-index a {
+        border: 1px solid #303741;
+        border-radius: 8px;
+        color: #dbeafe;
+        font-weight: 700;
+        padding: .7rem .8rem;
+        text-decoration: none;
+    }
+
+    .rules-index a:hover {
+        background: rgba(45, 212, 191, .08);
+        border-color: rgba(45, 212, 191, .45);
+    }
+
+    .rules-content {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .rules-panel {
+        padding: 1.15rem;
+        scroll-margin-top: 96px;
+    }
+
+    .rules-panel-lead {
+        background:
+            radial-gradient(circle at top right, rgba(45, 212, 191, .1), transparent 28%),
+            #111318;
+    }
+
+    .rules-panel h2 {
+        color: #f8fafc;
+        font-size: 1.55rem;
+        margin: .45rem 0 .7rem;
+    }
+
+    .rules-panel p,
+    .rules-panel li,
+    .rules-panel dd {
+        color: #cbd5e1;
+        line-height: 1.65;
+    }
+
+    .rules-pill-row,
+    .engine-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+        margin-top: 1rem;
+    }
+
+    .rules-pill-row strong,
+    .engine-strip strong {
+        background: rgba(45, 212, 191, .08);
+        border: 1px solid rgba(45, 212, 191, .24);
+        border-radius: 999px;
+        color: #ecfeff;
+        font-size: .82rem;
+        padding: .55rem .8rem;
+    }
+
+    .rule-mode-grid,
+    .audit-grid {
+        display: grid;
+        gap: .8rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 1rem;
+    }
+
+    .rule-mode-grid article,
+    .audit-grid article {
+        background: #171b22;
+        border: 1px solid #303741;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+
+    .rule-mode-grid strong,
+    .audit-grid strong {
+        color: #f8fafc;
+        display: block;
+        font-size: .98rem;
+        margin-bottom: .4rem;
+    }
+
+    .threshold-band {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 1rem;
+    }
+
+    .threshold-band div {
+        background: linear-gradient(180deg, rgba(45, 212, 191, .08), rgba(17, 24, 39, .75));
+        border: 1px solid rgba(45, 212, 191, .25);
+        border-radius: 10px;
+        padding: .95rem;
+    }
+
+    .threshold-band dt {
+        color: #f8fafc;
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+
+    .threshold-band dd {
+        margin: .25rem 0 0;
+    }
+
+    .rules-bullet-list {
+        display: grid;
+        gap: .45rem;
+        margin: .9rem 0 0;
+        padding-left: 1.1rem;
+    }
+
+    @@media (max-width: 992px) {
+        .rules-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .rules-index {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 700px) {
+        .rules-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .rule-mode-grid,
+        .audit-grid,
+        .threshold-band {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

@@ -52,6 +52,18 @@
             </article>
         </div>
 
+        <section class="topic-callout">
+            <div>
+                <span>Tópico especial</span>
+                <h3>Regras das partidas e formacao do placar</h3>
+                <p>
+                    Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log
+                    auditavel que reconstrói cada ponto da partida.
+                </p>
+            </div>
+            <a class="topic-link" href="/tokenomics/regras-das-partidas">Abrir tópico completo</a>
+        </section>
+
         <div class="rule-grid">
             <section class="rule-panel lead-panel" id="como-funciona">
                 <span>01</span>
@@ -192,7 +204,7 @@
                     @foreach (var position in _data.TopPositions)
                     {
                         <article>
-                            <strong>@position.Symbol</strong>
+                            <strong><MarketPairText Symbol="@position.Symbol" /></strong>
                             <span>@FmtSol(position.CurrentCapital)</span>
                         </article>
                     }
@@ -351,6 +363,49 @@
 
     .metrics-band small {
         color: #a8b3c4;
+    }
+
+    .topic-callout {
+        align-items: center;
+        background:
+            radial-gradient(circle at top left, rgba(45, 212, 191, .15), transparent 35%),
+            linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(18, 27, 38, .92));
+        border: 1px solid rgba(45, 212, 191, .28);
+        border-radius: 8px;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 1.1rem 1.2rem;
+    }
+
+    .topic-callout h3 {
+        color: #f8fafc;
+        margin: .35rem 0 .45rem;
+    }
+
+    .topic-callout p {
+        color: #cbd5e1;
+        line-height: 1.55;
+        margin: 0;
+        max-width: 780px;
+    }
+
+    .topic-link {
+        align-items: center;
+        background: #f8fafc;
+        border-radius: 999px;
+        color: #08111b;
+        display: inline-flex;
+        font-weight: 900;
+        min-height: 2.75rem;
+        padding: 0 1rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .topic-link:hover {
+        background: #ccfbf1;
+        color: #08111b;
     }
 
     .rule-grid {
@@ -525,6 +580,10 @@
 
         .flow-line {
             grid-template-columns: 1fr 1fr;
+        }
+
+        .topic-callout {
+            grid-template-columns: 1fr;
         }
     }
 </style>
