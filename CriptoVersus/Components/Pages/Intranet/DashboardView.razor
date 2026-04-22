@@ -422,9 +422,17 @@ else
                                 <span style="width: @GetProgressPercent(m.ElapsedMinutes, m.RemainingMinutes)%"></span>
                             </div>
 
+                            <a class="live-watch-cta" href="@GetMatchUrl(m.TeamA, m.TeamB)">
+                                <span class="live-watch-copy">
+                                    <span class="live-watch-kicker">Acompanhamento ao vivo</span>
+                                    <span class="live-watch-title">Abrir painel da partida</span>
+                                </span>
+                                <span class="live-watch-badge">AO VIVO</span>
+                            </a>
+
                             <div class="match-card-footer">
                                 <span class="match-meta">Mercado acompanha variação em tempo real</span>
-                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Detalhes</a>
                             </div>
                         </article>
                     }
@@ -795,6 +803,66 @@ else
         min-height: 2rem;
     }
 
+    .live-watch-cta {
+        align-items: center;
+        background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, .18), transparent 42%),
+            linear-gradient(135deg, rgba(15, 23, 42, .95), rgba(22, 28, 36, .95));
+        border: 1px solid rgba(34, 197, 94, .38);
+        border-radius: 10px;
+        color: #f8fafc;
+        display: flex;
+        gap: .9rem;
+        justify-content: space-between;
+        margin-bottom: .85rem;
+        min-height: 4rem;
+        padding: .85rem 1rem;
+        text-decoration: none;
+        transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .live-watch-cta:hover {
+        border-color: rgba(45, 212, 191, .72);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .live-watch-copy {
+        display: grid;
+        gap: .2rem;
+        min-width: 0;
+    }
+
+    .live-watch-kicker {
+        color: #86efac;
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .live-watch-title {
+        color: #f8fafc;
+        font-size: .98rem;
+        font-weight: 900;
+        line-height: 1.15;
+    }
+
+    .live-watch-badge {
+        align-items: center;
+        align-self: center;
+        background: rgba(34, 197, 94, .16);
+        border: 1px solid rgba(134, 239, 172, .3);
+        border-radius: 999px;
+        color: #bbf7d0;
+        display: inline-flex;
+        font-size: .74rem;
+        font-weight: 900;
+        padding: .45rem .7rem;
+        white-space: nowrap;
+    }
+
     .listing-empty {
         background: #181b21;
         border: 1px dashed #374151;
@@ -944,6 +1012,11 @@ else
 
         .match-card-footer .btn {
             width: 100%;
+        }
+
+        .live-watch-cta {
+            align-items: flex-start;
+            flex-direction: column;
         }
 
         .gainer-card {
