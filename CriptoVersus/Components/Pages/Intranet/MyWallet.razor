@@ -180,8 +180,8 @@
                             </div>
 
                             <div class="investment-data">
-                                <span>Resultado liquido</span>
-                                <strong class="@GetPayoutClass(group.TotalNetResult)">@FmtSignedSol(group.TotalNetResult)</strong>
+                                <span>Retorno</span>
+                                <strong class="@GetPayoutClass(group.TotalPayout)">@FmtSignedSol(group.TotalPayout)</strong>
                             </div>
 
                             <span class="investment-toggle">@(isExpanded ? "Ocultar" : "Ver detalhes")</span>
@@ -236,15 +236,8 @@
                                         </div>
 
                                         <div class="investment-data">
-                                            <span>Resultado liquido</span>
-                                            <strong class="@GetPayoutClass(item.NetResult)">@FmtSignedSol(item.NetResult)</strong>
-                                            <small class="investment-result-note">
-                                                Recebido: @FmtOptionalSol(item.PayoutAmount)
-                                                @if (item.LossAmount > 0m)
-                                                {
-                                                    <span> | Perda: @FmtLossSol(item.LossAmount)</span>
-                                                }
-                                            </small>
+                                            <span>Retorno</span>
+                                            <strong class="@GetPayoutClass(item.PayoutAmount)">@FmtOptionalSignedSol(item.PayoutAmount)</strong>
                                         </div>
                                     </article>
                                 }
@@ -518,12 +511,6 @@
         color: #94a3b8;
     }
 
-    .investment-result-note {
-        color: #94a3b8;
-        font-size: .8rem;
-        font-weight: 700;
-    }
-
     .coin-symbol {
         display: inline-grid;
         place-items: center;
@@ -643,7 +630,6 @@
                     CurrencyName = orderedItems[0].CurrencyName,
                     TotalAmount = orderedItems.Sum(item => item.Amount),
                     TotalPayout = orderedItems.Sum(item => item.PayoutAmount ?? 0m),
-                    TotalNetResult = orderedItems.Sum(item => item.NetResult),
                     OpenCount = orderedItems.Count(IsOpenInvestment),
                     InvestmentCount = orderedItems.Count,
                     LastBetTime = orderedItems[0].BetTime,
@@ -864,7 +850,6 @@
         public string CurrencyName { get; init; } = "";
         public decimal TotalAmount { get; init; }
         public decimal TotalPayout { get; init; }
-        public decimal TotalNetResult { get; init; }
         public int OpenCount { get; init; }
         public int InvestmentCount { get; init; }
         public DateTime LastBetTime { get; init; }

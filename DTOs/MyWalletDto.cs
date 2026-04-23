@@ -35,8 +35,6 @@ public sealed class MyInvestmentDto
     public bool Claimed { get; set; }
     public bool? IsWinner { get; set; }
     public decimal? PayoutAmount { get; set; }
-    public decimal LossAmount { get; set; }
-    public decimal NetResult { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
     public DateTimeOffset? BettingCloseTime { get; set; }
 }

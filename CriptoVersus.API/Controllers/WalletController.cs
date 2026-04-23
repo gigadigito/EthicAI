@@ -120,8 +120,6 @@ public sealed class WalletController : ControllerBase
             Claimed = bet.Claimed,
             IsWinner = bet.IsWinner,
             PayoutAmount = bet.PayoutAmount,
-            LossAmount = GetLossAmount(bet.Amount, bet.PayoutAmount),
-            NetResult = GetNetResult(bet.Amount, bet.PayoutAmount),
             SettledAt = bet.SettledAt,
             BettingCloseTime = match.BettingCloseTime
         };
@@ -171,23 +169,13 @@ public sealed class WalletController : ControllerBase
 
     private static decimal GetLossAmount(MyInvestmentDto investment)
     {
-        return GetLossAmount(investment.Amount, investment.PayoutAmount);
+        var payout = investment.PayoutAmount ?? 0m;
+        return payout < investment.Amount ? investment.Amount - payout : 0m;
     }
 
     private static decimal GetNetResult(MyInvestmentDto investment)
     {
-        return GetNetResult(investment.Amount, investment.PayoutAmount);
-    }
-
-    private static decimal GetLossAmount(decimal amount, decimal? payoutAmount)
-    {
-        var payout = payoutAmount ?? 0m;
-        return payout < amount ? amount - payout : 0m;
-    }
-
-    private static decimal GetNetResult(decimal amount, decimal? payoutAmount)
-    {
-        var payout = payoutAmount ?? 0m;
-        return payout - amount;
+        var payout = investment.PayoutAmount ?? 0m;
+        return payout - investment.Amount;
     }
 }
