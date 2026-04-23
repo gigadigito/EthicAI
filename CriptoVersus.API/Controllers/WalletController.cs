@@ -220,9 +220,12 @@ public sealed class WalletController : ControllerBase
                 var teamBSymbol = teamB?.Currency?.Symbol ?? $"Team#{match.TeamBId}";
                 var opponentSymbol = bet.TeamId == match.TeamAId ? teamBSymbol : teamASymbol;
                 var receivedAmount = bet.PayoutAmount ?? 0m;
-                var netResult = match.Status == MatchStatus.Completed || match.Status == MatchStatus.Cancelled
-                    ? receivedAmount - bet.Amount
-                    : 0m;
+                var netResult = match.Status switch
+                {
+                    MatchStatus.Completed => receivedAmount - bet.Amount,
+                    MatchStatus.Cancelled => 0m,
+                    _ => 0m
+                };
                 var totalBetOnTeamA = matchPoolMap.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamAId)?.TotalAmount ?? 0m;
                 var totalBetOnTeamB = matchPoolMap.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamBId)?.TotalAmount ?? 0m;
                 var totalDistributed = matchPoolMap.Where(x => x.MatchId == match.MatchId).Sum(x => x.TotalDistributed);
@@ -232,7 +235,13 @@ public sealed class WalletController : ControllerBase
                 var scoreSummary = $"{teamASymbol} {match.ScoreA} x {match.ScoreB} {teamBSymbol}";
                 var winnerSymbol = winner?.Currency?.Symbol
                     ?? (match.WinnerTeamId == match.TeamAId ? teamASymbol : match.WinnerTeamId == match.TeamBId ? teamBSymbol : null);
-                var settlementSteps = BuildSettlementSteps(result, bet.Amount, receivedAmount, netResult, houseFeeAmount, totalPool, totalDistributed);
+                var refundAmount = result.Code switch
+                {
+                    "refunded" or "partial-loss" => receivedAmount,
+                    "cancelled" => bet.Amount,
+                    _ => 0m
+                };
+                var settlementSteps = BuildSettlementSteps(result, bet.Amount, receivedAmount, refundAmount, netResult, houseFeeAmount, totalPool, totalDistributed);
 
                 return new UserMatchHistoryItemDto
                 {
@@ -252,7 +261,7 @@ public sealed class WalletController : ControllerBase
                     BetAmount = bet.Amount,
                     ReceivedAmount = receivedAmount,
                     PayoutAmount = receivedAmount,
-                    RefundAmount = result.IsRefunded || result.IsPartialLoss ? receivedAmount : 0m,
+                    RefundAmount = refundAmount,
                     HouseFeeAmount = houseFeeAmount,
                     NetResult = netResult,
                     BetTime = bet.BetTime,
@@ -264,8 +273,8 @@ public sealed class WalletController : ControllerBase
                     UserResult = result.Code,
                     UserResultLabel = result.Label,
                     MatchResultSummary = scoreSummary,
-                    HumanSummary = BuildHumanSummary(result, userTeamSymbol, opponentSymbol, bet.Amount, receivedAmount, netResult, winnerSymbol),
-                    SettlementSummary = BuildSettlementSummary(result, bet.Amount, receivedAmount, netResult),
+                    HumanSummary = BuildHumanSummary(result, userTeamSymbol, opponentSymbol, bet.Amount, receivedAmount, refundAmount, netResult, winnerSymbol),
+                    SettlementSummary = BuildSettlementSummary(result, bet.Amount, receivedAmount, refundAmount, netResult),
                     Claimed = bet.Claimed,
                     IsWinner = bet.IsWinner,
                     IsLoser = result.IsLoser,
@@ -439,6 +448,7 @@ public sealed class WalletController : ControllerBase
         string opponentSymbol,
         decimal betAmount,
         decimal receivedAmount,
+        decimal refundAmount,
         decimal netResult,
         string? winnerSymbol)
     {
@@ -448,7 +458,7 @@ public sealed class WalletController : ControllerBase
             "lost" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. O vencedor foi {winnerSymbol ?? opponentSymbol}. Resultado: perdeu {FmtSol(betAmount)}.",
             "partial-loss" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. Houve devolucao parcial de {FmtSol(receivedAmount)}. Resultado liquido: {FmtSignedSol(netResult)}.",
             "refunded" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. A partida foi reembolsada. Voce recebeu {FmtSol(receivedAmount)} de volta.",
-            "cancelled" => $"Sua aposta em {userTeamSymbol} foi cancelada. Consulte o detalhe da partida para verificar a liquidacao.",
+            "cancelled" => $"Sua aposta em {userTeamSymbol} foi cancelada. Nenhum prejuizo foi realizado. Reembolso previsto: {FmtSol(refundAmount)}.",
             "draw" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. A partida terminou empatada. Consulte a regra aplicada no detalhe da partida.",
             _ => "Sua posicao esta ativa. O resultado sera calculado quando a partida finalizar."
         };
@@ -458,6 +468,7 @@ public sealed class WalletController : ControllerBase
         WalletResultClassification result,
         decimal betAmount,
         decimal receivedAmount,
+        decimal refundAmount,
         decimal netResult)
     {
         return result.Code switch
@@ -467,6 +478,7 @@ public sealed class WalletController : ControllerBase
             "lost" => $"Apostado: {FmtSol(betAmount)}. Recebido: {FmtSol(receivedAmount)}. Resultado liquido: {FmtSignedSol(netResult)}.",
             "partial-loss" => $"Apostado: {FmtSol(betAmount)}. Recebido parcialmente: {FmtSol(receivedAmount)}. Resultado liquido: {FmtSignedSol(netResult)}.",
             "refunded" => $"Apostado: {FmtSol(betAmount)}. Reembolso: {FmtSol(receivedAmount)}.",
+            "cancelled" => $"Apostado: {FmtSol(betAmount)}. Partida cancelada. Reembolso previsto: {FmtSol(refundAmount)}. Resultado liquido: 0 SOL.",
             _ => $"Apostado: {FmtSol(betAmount)}. Recebido: {FmtSol(receivedAmount)}."
         };
     }
@@ -475,6 +487,7 @@ public sealed class WalletController : ControllerBase
         WalletResultClassification result,
         decimal betAmount,
         decimal receivedAmount,
+        decimal refundAmount,
         decimal netResult,
         decimal houseFeeAmount,
         decimal totalPool,
@@ -499,7 +512,7 @@ public sealed class WalletController : ControllerBase
             "lost" => "Aposta perdedora. Nao houve retorno.",
             "partial-loss" => $"Aposta com devolucao parcial. Recebimento: {FmtSol(receivedAmount)}.",
             "refunded" => $"Aposta reembolsada. Recebimento: {FmtSol(receivedAmount)}.",
-            "cancelled" => "Partida cancelada.",
+            "cancelled" => $"Partida cancelada. Reembolso previsto ao usuario: {FmtSol(refundAmount)}.",
             _ => "Regra especial aplicada na liquidacao."
         });
 
