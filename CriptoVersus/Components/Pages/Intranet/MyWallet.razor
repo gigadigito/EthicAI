@@ -69,11 +69,11 @@
             </div>
             <div class="wallet-metric">
                 <span>Perda realizada</span>
-                <strong class="payout-negative">@FmtLossSol(_wallet.RealizedLoss)</strong>
+                <strong class="payout-negative">@FmtSol(_wallet.RealizedLoss)</strong>
             </div>
             <div class="wallet-metric">
                 <span>Resultado liquido realizado</span>
-                <strong class="@GetPayoutClass(_wallet.NetSettledResult)">@FmtSignedSol(_wallet.NetSettledResult)</strong>
+                <strong class="@GetPayoutClass(RealizedNetResult)">@FmtSignedSol(RealizedNetResult)</strong>
             </div>
         </div>
 
@@ -614,6 +614,9 @@
             ? _onChainBalanceError
             : $"Saldo real na rede {OnChainCluster}";
 
+    private decimal RealizedNetResult
+        => (_wallet?.RealizedProfit ?? 0m) - (_wallet?.RealizedLoss ?? 0m);
+
     private IReadOnlyList<InvestmentGroupViewModel> InvestmentGroups
         => _wallet?.Investments
             .GroupBy(item => item.Symbol, StringComparer.OrdinalIgnoreCase)
@@ -777,9 +780,6 @@
 
     private static string FmtOptionalSignedSol(decimal? value)
         => value.HasValue ? FmtSignedSol(value.Value) : "-";
-
-    private static string FmtLossSol(decimal value)
-        => value > 0m ? $"-{value:0.########} SOL" : "0 SOL";
 
     private static string GetPayoutClass(decimal value)
         => value > 0m

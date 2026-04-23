@@ -56,21 +56,19 @@ public sealed class WalletController : ControllerBase
             .ToList();
 
         var openInvestments = investments
-            .Where(i => i.MatchStatus is nameof(MatchStatus.Pending) or nameof(MatchStatus.Ongoing))
+            .Where(i => !i.SettledAt.HasValue)
             .ToList();
 
-        var settledInvestments = investments
-            .Where(i => i.MatchStatus is nameof(MatchStatus.Completed) or nameof(MatchStatus.Cancelled)
-                || i.IsWinner.HasValue
-                || i.SettledAt.HasValue)
+        var realizedInvestments = investments
+            .Where(i => i.SettledAt.HasValue)
             .ToList();
 
         var totalInvested = investments.Sum(i => i.Amount);
         var openAmount = openInvestments.Sum(i => i.Amount);
-        var totalPayout = investments.Sum(i => i.PayoutAmount ?? 0m);
-        var realizedProfit = settledInvestments.Sum(GetProfitAmount);
-        var realizedLoss = settledInvestments.Sum(GetLossAmount);
-        var netSettledResult = settledInvestments.Sum(GetNetResult);
+        var totalPayout = realizedInvestments.Sum(i => i.PayoutAmount ?? 0m);
+        var realizedProfit = realizedInvestments.Sum(GetProfitAmount);
+        var realizedLoss = realizedInvestments.Sum(GetLossAmount);
+        var realizedNetResult = realizedProfit - realizedLoss;
 
         return Ok(new MyWalletDto
         {
@@ -86,9 +84,9 @@ public sealed class WalletController : ControllerBase
             TotalPayout = totalPayout,
             RealizedProfit = realizedProfit,
             RealizedLoss = realizedLoss,
-            NetSettledResult = netSettledResult,
+            RealizedNetResult = realizedNetResult,
             OpenInvestments = openInvestments.Count,
-            SettledInvestments = settledInvestments.Count,
+            SettledInvestments = realizedInvestments.Count,
             ActivePositions = positions.Select(ToPositionDto).ToList(),
             Investments = investments
         });
@@ -184,9 +182,4 @@ public sealed class WalletController : ControllerBase
         return payout > investment.Amount ? payout - investment.Amount : 0m;
     }
 
-    private static decimal GetNetResult(MyInvestmentDto investment)
-    {
-        var payout = investment.PayoutAmount ?? 0m;
-        return payout - investment.Amount;
-    }
 }

@@ -666,8 +666,14 @@ namespace CriptoVersus.Worker
             if (positions.Count == 0)
                 return;
 
+            var reservedPositionIds = await db.Bet
+                .Where(b => b.PositionId.HasValue && b.SettledAt == null)
+                .Select(b => b.PositionId!.Value)
+                .ToListAsync(ct);
+
             var created = 0;
             var now = DateTime.UtcNow;
+            var reserved = reservedPositionIds.ToHashSet();
 
             foreach (var match in openMatches)
             {
@@ -691,7 +697,7 @@ namespace CriptoVersus.Worker
 
                 foreach (var position in matchPositions)
                 {
-                    if (existing.Contains(position.PositionId))
+                    if (existing.Contains(position.PositionId) || reserved.Contains(position.PositionId))
                         continue;
 
                     db.Bet.Add(new Bet
@@ -710,6 +716,7 @@ namespace CriptoVersus.Worker
                         SettledAt = null
                     });
 
+                    reserved.Add(position.PositionId);
                     created++;
                 }
             }
@@ -1142,21 +1149,19 @@ namespace CriptoVersus.Worker
 
                     if (winnerTeamId is not int settledWinnerTeamId || loserTeamId is not int settledLoserTeamId)
                     {
-                        foreach (var bet in bets)
-                        {
-                            bet.IsWinner = false;
-                            bet.PayoutAmount = 0m;
-                            bet.SettledAt = settledAtUtc;
-                        }
-
-                        await db.SaveChangesAsync(ct);
-                        await tx.CommitAsync(ct);
-
                         _logger.LogInformation(
                             "🤝 Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
                             match.MatchId,
                             bets.Count);
 
+                        await SettleNoContestAsync(
+                            db,
+                            ledgerService,
+                            bets,
+                            settledAtUtc,
+                            ct);
+
+                        await tx.CommitAsync(ct);
                         return;
                     }
 
@@ -1177,24 +1182,23 @@ namespace CriptoVersus.Worker
                     var loserRefundPool = RoundMoney(totalLoserStake * loserRefundRate);
                     var distributablePool = RoundMoney(totalLoserStake - platformFee - loserRefundPool);
 
-                    if (winnerBets.Count == 0 || totalWinnerStake <= 0m)
+                    if (winnerBets.Count == 0 || loserBets.Count == 0 || totalWinnerStake <= 0m || totalLoserStake <= 0m)
                     {
-                        foreach (var bet in bets)
-                        {
-                            bet.IsWinner = false;
-                            bet.PayoutAmount = 0m;
-                            bet.SettledAt = settledAtUtc;
-                        }
-
-                        await db.SaveChangesAsync(ct);
-                        await tx.CommitAsync(ct);
-
                         _logger.LogWarning(
-                            "⚠️ Settlement sem winners válidos. match={matchId} winnerTeamId={winnerTeamId} bets={betsCount}",
+                            "⚠️ Settlement sem contraparte suficiente. match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets}",
                             match.MatchId,
                             winnerTeamId,
-                            bets.Count);
+                            winnerBets.Count,
+                            loserBets.Count);
 
+                        await SettleNoContestAsync(
+                            db,
+                            ledgerService,
+                            bets,
+                            settledAtUtc,
+                            ct);
+
+                        await tx.CommitAsync(ct);
                         return;
                     }
 
@@ -1293,6 +1297,48 @@ namespace CriptoVersus.Worker
                     throw;
                 }
             });
+        }
+
+        private async Task SettleNoContestAsync(
+            EthicAIDbContext db,
+            ILedgerService ledgerService,
+            IReadOnlyCollection<Bet> bets,
+            DateTime settledAtUtc,
+            CancellationToken ct)
+        {
+            foreach (var bet in bets)
+            {
+                var principal = SafeMoney(bet.Amount);
+
+                bet.IsWinner = null;
+                bet.PayoutAmount = principal;
+                bet.SettledAt = settledAtUtc;
+
+                if (await ApplyPositionCapitalAsync(db, bet, principal, settledAtUtc, ct))
+                    continue;
+
+                var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
+                if (user == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Usuário não encontrado para devolver principal. UserId={bet.UserId}, BetId={bet.BetId}");
+                }
+
+                var balanceBefore = SafeMoney(user.Balance);
+                user.Balance = balanceBefore + principal;
+
+                await ledgerService.AddEntryAsync(
+                    user: user,
+                    type: "NO_CONTEST_REFUND",
+                    amount: principal,
+                    balanceBefore: balanceBefore,
+                    balanceAfter: user.Balance,
+                    referenceId: bet.BetId,
+                    description: $"Devolucao integral da bet {bet.BetId} no match {bet.MatchId} sem contraparte valida",
+                    ct: ct);
+            }
+
+            await db.SaveChangesAsync(ct);
         }
 
         private async Task<bool> ApplyPositionCapitalAsync(
