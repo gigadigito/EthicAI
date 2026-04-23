@@ -1206,12 +1206,22 @@
         _loggedWalletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await RefreshAuthenticatedUserAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         _loading = true;
         _error = null;
         _match = null;
-        await RefreshAuthenticatedUserAsync();
 
         try
         {

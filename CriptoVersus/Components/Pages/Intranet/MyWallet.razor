@@ -56,12 +56,16 @@
                 <strong>@FmtSol(_wallet.Balance)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Total investido</span>
+                <span>Total apostado</span>
                 <strong>@FmtSol(_wallet.TotalInvested)</strong>
             </div>
             <div class="wallet-metric">
                 <span>Em aberto</span>
                 <strong>@FmtSol(_wallet.OpenAmount)</strong>
+            </div>
+            <div class="wallet-metric">
+                <span>Recebido</span>
+                <strong>@FmtSol(_wallet.TotalPayout)</strong>
             </div>
             <div class="wallet-metric">
                 <span>Lucro realizado</span>
@@ -73,7 +77,7 @@
             </div>
             <div class="wallet-metric">
                 <span>Resultado liquido realizado</span>
-                <strong class="@GetPayoutClass(RealizedNetResult)">@FmtSignedSol(RealizedNetResult)</strong>
+                <strong class="@GetPayoutClass(_wallet.RealizedNetResult)">@FmtSignedSol(_wallet.RealizedNetResult)</strong>
             </div>
         </div>
 
@@ -128,11 +132,11 @@
         }
 
         <div class="wallet-section-title">
-            <h3>Moedas investidas</h3>
-            <span>@_wallet.OpenInvestments em aberto | @_wallet.SettledInvestments finalizados</span>
+            <h3>Historico por token/time</h3>
+            <span>@_wallet.OpenInvestments em aberto | @_wallet.SettledInvestments finalizadas</span>
         </div>
 
-        @if (_wallet.Investments.Count == 0)
+        @if (_wallet.InvestmentGroups.Count == 0)
         {
             <div class="wallet-empty">
                 Voce ainda nao tem investimentos registrados. Escolha uma partida para iniciar sua primeira posicao.
@@ -141,109 +145,9 @@
         else
         {
             <div class="wallet-investments">
-                @foreach (var group in InvestmentGroups)
+                @foreach (var group in _wallet.InvestmentGroups)
                 {
-                    var isExpanded = IsInvestmentGroupExpanded(group.Symbol);
-
-                    <article class="investment-group">
-                        <button type="button"
-                                class="investment-group-header"
-                                @onclick="() => ToggleInvestmentGroup(group.Symbol)"
-                                aria-expanded="@isExpanded">
-                            <div class="investment-main">
-                                <span class="coin-symbol" title="@group.Symbol">
-                                    <img src="@GetCoinIconUrl(group.Symbol)"
-                                         alt="@group.Symbol"
-                                         loading="lazy"
-                                         onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-                                    <span class="coin-symbol-fallback d-none">@GetInitials(group.Symbol)</span>
-                                </span>
-                                <div>
-                                    <strong>@group.CurrencyName</strong>
-                                    <span class="investment-count-badge">@group.InvestmentCount partida@(group.InvestmentCount == 1 ? "" : "s") registrada@(group.InvestmentCount == 1 ? "" : "s")</span>
-                                </div>
-                            </div>
-
-                            <div class="investment-data">
-                                <span>Total</span>
-                                <strong>@FmtSol(group.TotalAmount)</strong>
-                            </div>
-
-                            <div class="investment-data">
-                                <span>Em aberto</span>
-                                <strong>@group.OpenCount</strong>
-                            </div>
-
-                            <div class="investment-data">
-                                <span>Ultima entrada</span>
-                                <strong>@FmtDate(group.LastBetTime)</strong>
-                            </div>
-
-                            <div class="investment-data">
-                                <span>Retorno</span>
-                                <strong class="@GetPayoutClass(group.TotalPayout)">@FmtSignedSol(group.TotalPayout)</strong>
-                            </div>
-
-                            <span class="investment-toggle">@(isExpanded ? "Ocultar" : "Ver detalhes")</span>
-                        </button>
-
-                        @if (isExpanded)
-                        {
-                            <div class="investment-group-details">
-                                @foreach (var item in group.Items)
-                                {
-                                    <article class="investment-row">
-                                        <div class="investment-main">
-                                            <span class="coin-symbol" title="@item.Symbol">
-                                                <img src="@GetCoinIconUrl(item.Symbol)"
-                                                     alt="@item.Symbol"
-                                                     loading="lazy"
-                                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-                                                <span class="coin-symbol-fallback d-none">@GetInitials(item.Symbol)</span>
-                                            </span>
-                                            <div>
-                                                <strong>@item.CurrencyName</strong>
-                                                <div class="investment-versus">
-                                                    <span class="investment-versus-label">VS</span>
-                                                    <span class="investment-versus-opponent">
-                                                        <span class="investment-versus-icon" title="@item.OpponentSymbol">
-                                                            <img src="@GetCoinIconUrl(item.OpponentSymbol)"
-                                                                 alt="@item.OpponentSymbol"
-                                                                 loading="lazy"
-                                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-                                                            <span class="coin-symbol-fallback d-none">@GetInitials(item.OpponentSymbol)</span>
-                                                        </span>
-                                                        <MarketPairText Symbol="@item.OpponentSymbol" />
-                                                    </span>
-                                                    <span class="investment-match-id">| Match #@item.MatchId</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="investment-data">
-                                            <span>Valor</span>
-                                            <strong>@FmtSol(item.Amount)</strong>
-                                        </div>
-
-                                        <div class="investment-data">
-                                            <span>Status</span>
-                                            <strong>@item.InvestmentStatus</strong>
-                                        </div>
-
-                                        <div class="investment-data">
-                                            <span>Data</span>
-                                            <strong>@FmtDate(item.BetTime)</strong>
-                                        </div>
-
-                                        <div class="investment-data">
-                                            <span>Retorno</span>
-                                            <strong class="@GetPayoutClass(item.PayoutAmount)">@FmtOptionalSignedSol(item.PayoutAmount)</strong>
-                                        </div>
-                                    </article>
-                                }
-                            </div>
-                        }
-                    </article>
+                    <WalletMatchHistoryGroup UserId="@_wallet.UserId" Group="@group" />
                 }
             </div>
         }
@@ -552,12 +456,128 @@
         color: #fecaca;
     }
 
+    .wallet-history-group,
+    .wallet-history-summary,
+    .wallet-history-body,
+    .wallet-match-detail,
+    .wallet-history-steps {
+        display: grid;
+        gap: 14px;
+    }
+
+    .wallet-history-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .wallet-history-kpi,
+    .wallet-history-step,
+    .wallet-match-card {
+        padding: 12px 14px;
+        border: 1px solid #303741;
+        border-radius: 10px;
+        background: #11161d;
+    }
+
+    .wallet-match-card {
+        display: grid;
+        gap: 14px;
+    }
+
+    .wallet-history-kpi {
+        display: grid;
+        gap: 4px;
+    }
+
+    .wallet-history-button,
+    .wallet-history-filter,
+    .wallet-result-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        font-weight: 800;
+    }
+
+    .wallet-history-button,
+    .wallet-history-filter {
+        padding: .58rem .9rem;
+        border: 1px solid #374151;
+        background: #11161d;
+        color: #e5e7eb;
+    }
+
+    .wallet-history-button.is-primary,
+    .wallet-history-filter.is-active {
+        background: #0f766e;
+        border-color: #14b8a6;
+        color: #ecfeff;
+    }
+
+    .wallet-history-toolbar,
+    .wallet-match-top,
+    .wallet-match-line,
+    .wallet-match-meta,
+    .wallet-history-filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .wallet-history-toolbar,
+    .wallet-match-top {
+        justify-content: space-between;
+    }
+
+    .wallet-match-meta span,
+    .wallet-result-badge {
+        padding: .3rem .65rem;
+        border: 1px solid #374151;
+        background: #181b21;
+    }
+
+    .wallet-result-won {
+        color: #86efac;
+        border-color: rgba(34, 197, 94, .35);
+        background: rgba(34, 197, 94, .12);
+    }
+
+    .wallet-result-lost {
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, .35);
+        background: rgba(239, 68, 68, .12);
+    }
+
+    .wallet-result-open {
+        color: #93c5fd;
+        border-color: rgba(59, 130, 246, .35);
+        background: rgba(59, 130, 246, .12);
+    }
+
+    .wallet-result-neutral {
+        color: #cbd5e1;
+        border-color: rgba(148, 163, 184, .3);
+        background: rgba(148, 163, 184, .12);
+    }
+
+    .wallet-history-summary-text {
+        margin: 0;
+        padding: 12px 14px;
+        border-left: 3px solid #14b8a6;
+        border-radius: 8px;
+        background: #11161d;
+        color: #cbd5e1;
+    }
+
     @@media (max-width: 980px) {
         .wallet-profile,
         .wallet-metrics,
         .position-row,
         .investment-row,
-        .investment-group-header {
+        .investment-group-header,
+        .wallet-history-grid {
             grid-template-columns: 1fr 1fr;
         }
 
@@ -571,7 +591,8 @@
         .wallet-metrics,
         .position-row,
         .investment-row,
-        .investment-group-header {
+        .investment-group-header,
+        .wallet-history-grid {
             grid-template-columns: 1fr;
         }
 
@@ -590,7 +611,6 @@
     private double? _onChainBalance;
     private bool _onChainBalanceLoading;
     private string? _onChainBalanceError;
-    private readonly HashSet<string> _expandedInvestmentGroups = new(StringComparer.OrdinalIgnoreCase);
 
     private string DisplayName
         => !string.IsNullOrWhiteSpace(_wallet?.Name)
@@ -613,37 +633,6 @@
         => _onChainBalanceError is not null
             ? _onChainBalanceError
             : $"Saldo real na rede {OnChainCluster}";
-
-    private decimal RealizedNetResult
-        => (_wallet?.RealizedProfit ?? 0m) - (_wallet?.RealizedLoss ?? 0m);
-
-    private IReadOnlyList<InvestmentGroupViewModel> InvestmentGroups
-        => _wallet?.Investments
-            .GroupBy(item => item.Symbol, StringComparer.OrdinalIgnoreCase)
-            .Select(group =>
-            {
-                var orderedItems = group
-                    .OrderByDescending(item => item.BetTime)
-                    .ThenByDescending(item => item.MatchId)
-                    .ToList();
-
-                return new InvestmentGroupViewModel
-                {
-                    Symbol = group.Key,
-                    CurrencyName = orderedItems[0].CurrencyName,
-                    TotalAmount = orderedItems.Sum(item => item.Amount),
-                    TotalPayout = orderedItems.Sum(item => item.PayoutAmount ?? 0m),
-                    OpenCount = orderedItems.Count(IsOpenInvestment),
-                    InvestmentCount = orderedItems.Count,
-                    LastBetTime = orderedItems[0].BetTime,
-                    Items = orderedItems
-                };
-            })
-            .OrderByDescending(group => group.OpenCount)
-            .ThenByDescending(group => group.TotalAmount)
-            .ThenBy(group => group.Symbol, StringComparer.OrdinalIgnoreCase)
-            .ToList()
-            ?? [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -670,7 +659,6 @@
             }
 
             _wallet = await Api.GetMyWalletAsync();
-            SyncExpandedInvestmentGroups();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -691,32 +679,6 @@
             _loading = false;
             await InvokeAsync(StateHasChanged);
         }
-    }
-
-    private void ToggleInvestmentGroup(string symbol)
-    {
-        if (!_expandedInvestmentGroups.Add(symbol))
-            _expandedInvestmentGroups.Remove(symbol);
-    }
-
-    private bool IsInvestmentGroupExpanded(string symbol)
-        => _expandedInvestmentGroups.Contains(symbol);
-
-    private void SyncExpandedInvestmentGroups()
-    {
-        if (_wallet is null)
-        {
-            _expandedInvestmentGroups.Clear();
-            return;
-        }
-
-        var activeSymbols = _wallet.Investments
-            .Select(item => item.Symbol)
-            .Where(symbol => !string.IsNullOrWhiteSpace(symbol))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        _expandedInvestmentGroups.RemoveWhere(symbol => !activeSymbols.Contains(symbol));
     }
 
     private async Task LoadOnChainBalanceAsync()
@@ -778,9 +740,6 @@
                 ? $"-{Math.Abs(value):0.########} SOL"
                 : "0 SOL";
 
-    private static string FmtOptionalSignedSol(decimal? value)
-        => value.HasValue ? FmtSignedSol(value.Value) : "-";
-
     private static string GetPayoutClass(decimal value)
         => value > 0m
             ? "payout-positive"
@@ -803,9 +762,6 @@
             "Paused" => "Pausada",
             _ => status
         };
-
-    private static bool IsOpenInvestment(MyInvestmentDto investment)
-        => investment.MatchStatus is "Pending" or "Ongoing";
 
     private static string GetBaseSymbol(string pair)
     {
@@ -842,17 +798,5 @@
     {
         if (_walletBalanceModule is not null)
             await _walletBalanceModule.DisposeAsync();
-    }
-
-    private sealed class InvestmentGroupViewModel
-    {
-        public string Symbol { get; init; } = "";
-        public string CurrencyName { get; init; } = "";
-        public decimal TotalAmount { get; init; }
-        public decimal TotalPayout { get; init; }
-        public int OpenCount { get; init; }
-        public int InvestmentCount { get; init; }
-        public DateTime LastBetTime { get; init; }
-        public IReadOnlyList<MyInvestmentDto> Items { get; init; } = [];
     }
 }

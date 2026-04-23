@@ -61,6 +61,18 @@ public sealed class CriptoVersusApiClient
     public async Task<MyWalletDto?> GetMyWalletAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<MyWalletDto>("api/wallet/me", ct);
 
+    public async Task<UserMatchHistoryPageDto?> GetWalletHistoryMatchesAsync(
+        int userId,
+        int teamId,
+        int page = 1,
+        int pageSize = 10,
+        string status = "all",
+        CancellationToken ct = default)
+    {
+        var url = $"api/users/{userId}/wallet-history/{teamId}/matches?page={page}&pageSize={pageSize}&status={Uri.EscapeDataString(status)}";
+        return await GetFromJsonWithBearerAsync<UserMatchHistoryPageDto>(url, ct);
+    }
+
     public async Task<AdminSystemDto?> GetAdminSystemAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<AdminSystemDto>("api/admin/system", ct);
 

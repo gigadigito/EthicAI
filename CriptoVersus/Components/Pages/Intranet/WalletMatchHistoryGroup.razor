@@ -1,0 +1,247 @@
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+
+<article class="investment-group wallet-history-group">
+    <div class="wallet-history-summary">
+        <div class="investment-main">
+            <span class="coin-symbol" title="@Group.Symbol">
+                <img src="@GetCoinIconUrl(Group.Symbol)"
+                     alt="@Group.Symbol"
+                     loading="lazy"
+                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                <span class="coin-symbol-fallback d-none">@GetInitials(Group.Symbol)</span>
+            </span>
+            <div>
+                <strong><MarketPairText Symbol="@Group.Symbol" /></strong>
+                <span>@Group.CurrencyName</span>
+                <span class="investment-count-badge">@SummaryText</span>
+            </div>
+        </div>
+
+        <div class="wallet-history-grid">
+            <div class="wallet-history-kpi">
+                <span>Total apostado</span>
+                <strong>@FmtSol(Group.TotalInvested)</strong>
+            </div>
+            <div class="wallet-history-kpi">
+                <span>Em aberto</span>
+                <strong>@FmtSol(Group.OpenAmount)</strong>
+            </div>
+            <div class="wallet-history-kpi">
+                <span>Recebido</span>
+                <strong>@FmtSol(Group.ReceivedAmount)</strong>
+            </div>
+            <div class="wallet-history-kpi">
+                <span>Lucro/Prejuizo realizado</span>
+                <strong class="@GetPayoutClass(Group.RealizedNetResult)">@FmtSignedSol(Group.RealizedNetResult)</strong>
+            </div>
+            <div class="wallet-history-kpi">
+                <span>Partidas ganhas</span>
+                <strong>@Group.WonCount</strong>
+            </div>
+            <div class="wallet-history-kpi">
+                <span>Partidas perdidas</span>
+                <strong>@Group.LostCount</strong>
+            </div>
+            <div class="wallet-history-kpi">
+                <span>Ultima entrada</span>
+                <strong>@FmtDate(Group.LastBetTime)</strong>
+            </div>
+        </div>
+
+        <button type="button" class="wallet-history-button @( _expanded ? "is-primary" : "" )" @onclick="ToggleAsync">
+            @(_expanded ? "Ocultar partidas" : "Ver partidas")
+        </button>
+    </div>
+
+    @if (_expanded)
+    {
+        <div class="wallet-history-body">
+            <div class="wallet-history-toolbar">
+                <div class="wallet-history-filters">
+                    @foreach (var option in Filters)
+                    {
+                        <button type="button"
+                                class="wallet-history-filter @(_status == option.Value ? "is-active" : "")"
+                                @onclick="() => ChangeFilterAsync(option.Value)">
+                            @option.Label
+                        </button>
+                    }
+                </div>
+                @if (_page is not null)
+                {
+                    <span>Pagina @_page.Page de @_page.TotalPages | @_page.TotalItems partidas</span>
+                }
+            </div>
+
+            @if (_loading)
+            {
+                <div class="wallet-message">Carregando partidas...</div>
+            }
+            else if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="wallet-message wallet-message-danger">@_error</div>
+            }
+            else if (_page is null || _page.Items.Count == 0)
+            {
+                <div class="wallet-empty">Nenhuma partida encontrada para este filtro.</div>
+            }
+            else
+            {
+                @foreach (var item in _page.Items)
+                {
+                    var detailsOpen = _expandedMatches.Contains(item.BetId);
+                    <article class="wallet-match-card">
+                        <div class="wallet-match-top">
+                            <div>
+                                <div class="wallet-match-line">
+                                    <strong>@item.UserTeamSymbol</strong>
+                                    <span>vs</span>
+                                    <strong>@item.OpponentSymbol</strong>
+                                    <span class="investment-count-badge">Match #@item.MatchId</span>
+                                </div>
+                                <div class="wallet-match-meta">
+                                    <span>Meu time: @item.UserTeamSymbol</span>
+                                    <span>@item.MatchResultSummary</span>
+                                    <span>Vencedor: @(item.WinnerTeamSymbol ?? "-")</span>
+                                </div>
+                            </div>
+                            <span class="wallet-result-badge @GetResultBadgeClass(item)">@item.UserResultLabel</span>
+                        </div>
+
+                        <div class="wallet-history-grid">
+                            <div class="wallet-history-kpi"><span>Apostado</span><strong>@FmtSol(item.BetAmount)</strong></div>
+                            <div class="wallet-history-kpi"><span>Recebido</span><strong>@FmtSol(item.ReceivedAmount)</strong></div>
+                            <div class="wallet-history-kpi"><span>Lucro/Prejuizo</span><strong class="@GetPayoutClass(item.IsOpen ? (decimal?)null : item.NetResult)">@(item.IsOpen ? "Em aberto" : FmtSignedSol(item.NetResult))</strong></div>
+                            <div class="wallet-history-kpi"><span>Reembolso</span><strong>@FmtOptionalSol(item.RefundAmount > 0m ? item.RefundAmount : null)</strong></div>
+                            <div class="wallet-history-kpi"><span>Taxa da casa</span><strong>@FmtOptionalSol(item.HouseFeeAmount > 0m ? item.HouseFeeAmount : null)</strong></div>
+                            <div class="wallet-history-kpi"><span>Status</span><strong>@FmtMatchStatus(item.MatchStatus)</strong></div>
+                        </div>
+
+                        <p class="wallet-history-summary-text">@item.HumanSummary</p>
+
+                        <button type="button" class="wallet-history-button" @onclick="() => ToggleMatchDetail(item.BetId)">
+                            @(detailsOpen ? "Ocultar detalhes da partida" : "Ver detalhes da partida")
+                        </button>
+
+                        @if (detailsOpen)
+                        {
+                            <div class="wallet-match-detail">
+                                <div class="wallet-history-grid">
+                                    <div class="wallet-history-kpi"><span>Inicio</span><strong>@FmtDate(item.MatchStartTime)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Finalizacao</span><strong>@FmtDate(item.MatchEndTime)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Total no Time A</span><strong>@FmtSol(item.TotalBetOnTeamA)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Total no Time B</span><strong>@FmtSol(item.TotalBetOnTeamB)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Total da pool</span><strong>@FmtSol(item.TotalPool)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Total distribuido</span><strong>@FmtSol(item.TotalDistributed)</strong></div>
+                                </div>
+                                <div class="wallet-history-steps">
+                                    @foreach (var step in item.SettlementSteps)
+                                    {
+                                        <div class="wallet-history-step">@step</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </article>
+                }
+
+                <div class="wallet-history-toolbar">
+                    <button type="button" class="wallet-history-button" disabled="@(_page.Page <= 1)" @onclick="() => LoadPageAsync(_page.Page - 1)">Anterior</button>
+                    <span>Pagina @_page.Page de @_page.TotalPages</span>
+                    <button type="button" class="wallet-history-button" disabled="@(_page.Page >= _page.TotalPages)" @onclick="() => LoadPageAsync(_page.Page + 1)">Proxima</button>
+                </div>
+            }
+        </div>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public required int UserId { get; set; }
+    [Parameter, EditorRequired] public required MyWalletInvestmentGroupDto Group { get; set; }
+
+    private bool _expanded;
+    private bool _loading;
+    private string? _error;
+    private string _status = "all";
+    private UserMatchHistoryPageDto? _page;
+    private readonly HashSet<int> _expandedMatches = [];
+
+    private static readonly (string Value, string Label)[] Filters =
+    [
+        ("all", "Todas"),
+        ("won", "Ganhou"),
+        ("lost", "Perdeu"),
+        ("open", "Em aberto"),
+        ("finalized", "Finalizadas")
+    ];
+
+    private string SummaryText => $"{Group.MatchCount} partidas registradas: {Group.WonCount} ganhas, {Group.LostCount} perdidas, {Group.OpenCount} em aberto.";
+
+    private async Task ToggleAsync()
+    {
+        _expanded = !_expanded;
+        if (_expanded && _page is null)
+            await LoadPageAsync(1);
+    }
+
+    private async Task ChangeFilterAsync(string status)
+    {
+        _status = status;
+        await LoadPageAsync(1);
+    }
+
+    private async Task LoadPageAsync(int page)
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _page = await Api.GetWalletHistoryMatchesAsync(UserId, Group.TeamId, page, 10, _status);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Nao foi possivel carregar as partidas: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ToggleMatchDetail(int betId)
+    {
+        if (!_expandedMatches.Add(betId))
+            _expandedMatches.Remove(betId);
+    }
+
+    private static string GetResultBadgeClass(UserMatchHistoryItemDto item)
+        => item.UserResult switch
+        {
+            "won" => "wallet-result-won",
+            "lost" or "partial-loss" => "wallet-result-lost",
+            "open" => "wallet-result-open",
+            _ => "wallet-result-neutral"
+        };
+
+    private static string FmtMatchStatus(string status)
+        => status switch
+        {
+            "Pending" => "Pendente",
+            "Ongoing" => "Em andamento",
+            "Completed" => "Finalizada",
+            "Cancelled" => "Cancelada",
+            _ => status
+        };
+
+    private static string FmtSol(decimal value) => $"{value:0.########} SOL";
+    private static string FmtSignedSol(decimal value) => value > 0m ? $"+{value:0.########} SOL" : value < 0m ? $"-{Math.Abs(value):0.########} SOL" : "0 SOL";
+    private static string FmtOptionalSol(decimal? value) => value.HasValue ? FmtSol(value.Value) : "-";
+    private static string FmtDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-";
+    private static string GetPayoutClass(decimal value) => value > 0m ? "payout-positive" : value < 0m ? "payout-negative" : "payout-neutral";
+    private static string GetPayoutClass(decimal? value) => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
+    private static string GetBaseSymbol(string pair) => string.IsNullOrWhiteSpace(pair) ? "" : new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" }.FirstOrDefault(q => pair.Trim().ToUpperInvariant().EndsWith(q, StringComparison.OrdinalIgnoreCase) && pair.Length > q.Length) is string q ? pair.Trim().ToUpperInvariant()[..^q.Length] : pair.Trim().ToUpperInvariant();
+    private static string GetCoinIconUrl(string symbol) => $"https://criptoversus-api.duckdns.org/api/icons/binance/{GetBaseSymbol(symbol)}";
+    private static string GetInitials(string value) => string.IsNullOrWhiteSpace(GetBaseSymbol(value)) ? "?" : GetBaseSymbol(value) is var symbol && symbol.Length <= 3 ? symbol : GetBaseSymbol(value)[..3];
+}

@@ -18,24 +18,84 @@ public sealed class MyWalletDto
     public int OpenInvestments { get; set; }
     public int SettledInvestments { get; set; }
     public List<TeamPositionDto> ActivePositions { get; set; } = [];
-    public List<MyInvestmentDto> Investments { get; set; } = [];
+    public List<MyWalletInvestmentGroupDto> InvestmentGroups { get; set; } = [];
 }
 
-public sealed class MyInvestmentDto
+public sealed class MyWalletInvestmentGroupDto
 {
-    public int BetId { get; set; }
-    public int MatchId { get; set; }
     public int TeamId { get; set; }
     public string Symbol { get; set; } = "";
     public string CurrencyName { get; set; } = "";
+    public decimal TotalInvested { get; set; }
+    public decimal OpenAmount { get; set; }
+    public decimal ReceivedAmount { get; set; }
+    public decimal RealizedNetResult { get; set; }
+    public int MatchCount { get; set; }
+    public int WonCount { get; set; }
+    public int LostCount { get; set; }
+    public int OpenCount { get; set; }
+    public int RefundedCount { get; set; }
+    public int CancelledCount { get; set; }
+    public int DrawCount { get; set; }
+    public DateTime? LastBetTime { get; set; }
+}
+
+public sealed class UserMatchHistoryPageDto
+{
+    public List<UserMatchHistoryItemDto> Items { get; set; } = [];
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalItems { get; set; }
+    public int TotalPages { get; set; }
+    public string Status { get; set; } = "all";
+}
+
+public sealed class UserMatchHistoryItemDto
+{
+    public int BetId { get; set; }
+    public int MatchId { get; set; }
+    public int UserId { get; set; }
+    public int TeamId { get; set; }
+    public int TeamAId { get; set; }
+    public int TeamBId { get; set; }
+    public int? WinnerTeamId { get; set; }
+    public string UserTeamSymbol { get; set; } = "";
     public string OpponentSymbol { get; set; } = "";
-    public decimal Amount { get; set; }
+    public string TeamASymbol { get; set; } = "";
+    public string TeamBSymbol { get; set; } = "";
+    public string? WinnerTeamSymbol { get; set; }
+    public string CurrencyName { get; set; } = "";
+    public decimal BetAmount { get; set; }
+    public decimal ReceivedAmount { get; set; }
+    public decimal PayoutAmount { get; set; }
+    public decimal RefundAmount { get; set; }
+    public decimal HouseFeeAmount { get; set; }
+    public decimal NetResult { get; set; }
     public DateTime BetTime { get; set; }
+    public DateTime? MatchStartTime { get; set; }
+    public DateTime? MatchEndTime { get; set; }
+    public int ScoreTeamA { get; set; }
+    public int ScoreTeamB { get; set; }
     public string MatchStatus { get; set; } = "";
-    public string InvestmentStatus { get; set; } = "";
+    public string UserResult { get; set; } = "";
+    public string UserResultLabel { get; set; } = "";
+    public string MatchResultSummary { get; set; } = "";
+    public string HumanSummary { get; set; } = "";
+    public string SettlementSummary { get; set; } = "";
     public bool Claimed { get; set; }
     public bool? IsWinner { get; set; }
-    public decimal? PayoutAmount { get; set; }
+    public bool IsLoser { get; set; }
+    public bool IsOpen { get; set; }
+    public bool IsRefunded { get; set; }
+    public bool IsCancelled { get; set; }
+    public bool IsDraw { get; set; }
+    public bool IsPartialLoss { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
     public DateTimeOffset? BettingCloseTime { get; set; }
+    public decimal TotalBetOnTeamA { get; set; }
+    public decimal TotalBetOnTeamB { get; set; }
+    public decimal TotalPool { get; set; }
+    public decimal TotalDistributed { get; set; }
+    public List<MatchScoreEventDto> ScoreEvents { get; set; } = [];
+    public List<string> SettlementSteps { get; set; } = [];
 }
