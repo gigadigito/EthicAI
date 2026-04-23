@@ -64,16 +64,16 @@
                 <strong>@FmtSol(_wallet.OpenAmount)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Retorno recebido</span>
-                <strong>@FmtSol(_wallet.TotalPayout)</strong>
+                <span>Lucro realizado</span>
+                <strong class="payout-positive">@FmtSol(_wallet.RealizedProfit)</strong>
             </div>
             <div class="wallet-metric">
                 <span>Perda realizada</span>
                 <strong class="payout-negative">@FmtLossSol(_wallet.RealizedLoss)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Resultado liquido</span>
-                <strong class="@GetPayoutClass(_wallet.NetPortfolioResult)">@FmtSignedSol(_wallet.NetPortfolioResult)</strong>
+                <span>Resultado liquido realizado</span>
+                <strong class="@GetPayoutClass(_wallet.NetSettledResult)">@FmtSignedSol(_wallet.NetSettledResult)</strong>
             </div>
         </div>
 

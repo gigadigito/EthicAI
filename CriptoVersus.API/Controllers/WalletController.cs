@@ -68,9 +68,9 @@ public sealed class WalletController : ControllerBase
         var totalInvested = investments.Sum(i => i.Amount);
         var openAmount = openInvestments.Sum(i => i.Amount);
         var totalPayout = investments.Sum(i => i.PayoutAmount ?? 0m);
+        var realizedProfit = settledInvestments.Sum(GetProfitAmount);
         var realizedLoss = settledInvestments.Sum(GetLossAmount);
         var netSettledResult = settledInvestments.Sum(GetNetResult);
-        var netPortfolioResult = totalPayout + openAmount - totalInvested;
 
         return Ok(new MyWalletDto
         {
@@ -84,8 +84,8 @@ public sealed class WalletController : ControllerBase
             TotalInvested = totalInvested,
             OpenAmount = openAmount,
             TotalPayout = totalPayout,
+            RealizedProfit = realizedProfit,
             RealizedLoss = realizedLoss,
-            NetPortfolioResult = netPortfolioResult,
             NetSettledResult = netSettledResult,
             OpenInvestments = openInvestments.Count,
             SettledInvestments = settledInvestments.Count,
@@ -176,6 +176,12 @@ public sealed class WalletController : ControllerBase
     {
         var payout = investment.PayoutAmount ?? 0m;
         return payout < investment.Amount ? investment.Amount - payout : 0m;
+    }
+
+    private static decimal GetProfitAmount(MyInvestmentDto investment)
+    {
+        var payout = investment.PayoutAmount ?? 0m;
+        return payout > investment.Amount ? payout - investment.Amount : 0m;
     }
 
     private static decimal GetNetResult(MyInvestmentDto investment)

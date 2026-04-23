@@ -12,8 +12,8 @@ public sealed class MyWalletDto
     public decimal TotalInvested { get; set; }
     public decimal OpenAmount { get; set; }
     public decimal TotalPayout { get; set; }
+    public decimal RealizedProfit { get; set; }
     public decimal RealizedLoss { get; set; }
-    public decimal NetPortfolioResult { get; set; }
     public decimal NetSettledResult { get; set; }
     public int OpenInvestments { get; set; }
     public int SettledInvestments { get; set; }
