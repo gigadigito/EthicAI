@@ -38,7 +38,9 @@
     </main>
 </div>
 
-<SolanaLoginModal @ref="loginModal" OnLoginSucceeded="HandleLoginSucceededAsync" />
+<SolanaLoginModal @ref="loginModal"
+                  OnLoginSucceeded="HandleLoginSucceededAsync"
+                  OnSessionChanged="HandleSessionChangedAsync" />
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
@@ -84,6 +86,11 @@
     {
         await LoadLoginSessionAsync();
         Nav.NavigateTo("/minha-carteira");
+    }
+
+    private async Task HandleSessionChangedAsync()
+    {
+        await LoadLoginSessionAsync();
     }
 
     private static string GetWalletAvatarUrl(string wallet)

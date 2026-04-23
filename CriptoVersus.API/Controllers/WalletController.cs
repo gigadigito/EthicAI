@@ -65,6 +65,9 @@ public sealed class WalletController : ControllerBase
                 || i.SettledAt.HasValue)
             .ToList();
 
+        var realizedLoss = settledInvestments.Sum(GetLossAmount);
+        var netSettledResult = settledInvestments.Sum(GetNetResult);
+
         return Ok(new MyWalletDto
         {
             UserId = user.UserID,
@@ -77,6 +80,8 @@ public sealed class WalletController : ControllerBase
             TotalInvested = investments.Sum(i => i.Amount),
             OpenAmount = openInvestments.Sum(i => i.Amount),
             TotalPayout = investments.Sum(i => i.PayoutAmount ?? 0m),
+            RealizedLoss = realizedLoss,
+            NetSettledResult = netSettledResult,
             OpenInvestments = openInvestments.Count,
             SettledInvestments = settledInvestments.Count,
             ActivePositions = positions.Select(ToPositionDto).ToList(),
@@ -115,6 +120,8 @@ public sealed class WalletController : ControllerBase
             Claimed = bet.Claimed,
             IsWinner = bet.IsWinner,
             PayoutAmount = bet.PayoutAmount,
+            LossAmount = GetLossAmount(bet.Amount, bet.PayoutAmount),
+            NetResult = GetNetResult(bet.Amount, bet.PayoutAmount),
             SettledAt = bet.SettledAt,
             BettingCloseTime = match.BettingCloseTime
         };
@@ -155,9 +162,32 @@ public sealed class WalletController : ControllerBase
             MatchStatus.Cancelled => "Cancelado",
             MatchStatus.Completed when bet.IsWinner == true && bet.Claimed => "Retorno reivindicado",
             MatchStatus.Completed when bet.IsWinner == true => "Retorno disponivel",
+            MatchStatus.Completed when bet.IsWinner == false && (bet.PayoutAmount ?? 0m) > 0m => "Derrota com devolucao parcial",
             MatchStatus.Completed when bet.IsWinner == false => "Finalizado",
             MatchStatus.Completed => "Aguardando liquidacao",
             _ => "Aguardando"
         };
+    }
+
+    private static decimal GetLossAmount(MyInvestmentDto investment)
+    {
+        return GetLossAmount(investment.Amount, investment.PayoutAmount);
+    }
+
+    private static decimal GetNetResult(MyInvestmentDto investment)
+    {
+        return GetNetResult(investment.Amount, investment.PayoutAmount);
+    }
+
+    private static decimal GetLossAmount(decimal amount, decimal? payoutAmount)
+    {
+        var payout = payoutAmount ?? 0m;
+        return payout < amount ? amount - payout : 0m;
+    }
+
+    private static decimal GetNetResult(decimal amount, decimal? payoutAmount)
+    {
+        var payout = payoutAmount ?? 0m;
+        return payout - amount;
     }
 }

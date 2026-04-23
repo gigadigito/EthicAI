@@ -1,6 +1,8 @@
 ﻿@inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@using CriptoVersus.Web.Services
+@inject WalletSessionState WalletState
 @if (isOpen)
 {
     <div class="modal-backdrop fade show"></div>
@@ -71,6 +73,7 @@
 
 @code {
     [Parameter] public EventCallback OnLoginSucceeded { get; set; }
+    [Parameter] public EventCallback OnSessionChanged { get; set; }
 
     private sealed class LoginResponse
     {
@@ -90,6 +93,7 @@
     public async Task OpenAsync()
     {
         isOpen = true;
+        publicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
         await LoadJsAsync();
         await InvokeAsync(StateHasChanged);
     }
@@ -150,8 +154,14 @@
                 await module.InvokeVoidAsync("disconnect");
             }
 
+            await SessionStorage.RemoveItemAsync("authToken");
+            await SessionStorage.RemoveItemAsync("userId");
+            await SessionStorage.RemoveItemAsync("walletPublicKey");
+            WalletState.SetSession(null, null);
+
             publicKey = null;
             SetStatus("Carteira desconectada", "Você pode conectar outra carteira quando quiser.", "info");
+            await OnSessionChanged.InvokeAsync();
         }
         catch (Exception ex)
         {
@@ -207,7 +217,9 @@
                     await SessionStorage.SetItemAsync("authToken", loginResult.Token);
                     await SessionStorage.SetItemAsync("userId", loginResult.UserId);
                     await SessionStorage.SetItemAsync("walletPublicKey", loginResult.PublicKey);
+                    WalletState.SetSession(loginResult.Token, loginResult.PublicKey);
                     await OnLoginSucceeded.InvokeAsync();
+                    await OnSessionChanged.InvokeAsync();
                     SetStatus("Login realizado", "Sua carteira foi autenticada com sucesso.", "success");
                 }
                 else

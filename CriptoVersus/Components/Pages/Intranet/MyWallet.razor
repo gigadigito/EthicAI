@@ -67,6 +67,14 @@
                 <span>Retorno recebido</span>
                 <strong>@FmtSol(_wallet.TotalPayout)</strong>
             </div>
+            <div class="wallet-metric">
+                <span>Perda realizada</span>
+                <strong class="payout-negative">@FmtLossSol(_wallet.RealizedLoss)</strong>
+            </div>
+            <div class="wallet-metric">
+                <span>Resultado liquido</span>
+                <strong class="@GetPayoutClass(_wallet.NetSettledResult)">@FmtSignedSol(_wallet.NetSettledResult)</strong>
+            </div>
         </div>
 
         <div class="wallet-section-title">
@@ -152,7 +160,7 @@
                                 </span>
                                 <div>
                                     <strong>@group.CurrencyName</strong>
-                                    <span>@group.InvestmentCount investimento@(group.InvestmentCount == 1 ? "" : "s") registrado@(group.InvestmentCount == 1 ? "" : "s")</span>
+                                    <span class="investment-count-badge">@group.InvestmentCount partida@(group.InvestmentCount == 1 ? "" : "s") registrada@(group.InvestmentCount == 1 ? "" : "s")</span>
                                 </div>
                             </div>
 
@@ -172,8 +180,8 @@
                             </div>
 
                             <div class="investment-data">
-                                <span>Retorno</span>
-                                <strong>@FmtSol(group.TotalPayout)</strong>
+                                <span>Resultado liquido</span>
+                                <strong class="@GetPayoutClass(group.TotalNetResult)">@FmtSignedSol(group.TotalNetResult)</strong>
                             </div>
 
                             <span class="investment-toggle">@(isExpanded ? "Ocultar" : "Ver detalhes")</span>
@@ -195,7 +203,20 @@
                                             </span>
                                             <div>
                                                 <strong>@item.CurrencyName</strong>
-                                                <span>contra <MarketPairText Symbol="@item.OpponentSymbol" /> | Match #@item.MatchId</span>
+                                                <div class="investment-versus">
+                                                    <span class="investment-versus-label">VS</span>
+                                                    <span class="investment-versus-opponent">
+                                                        <span class="investment-versus-icon" title="@item.OpponentSymbol">
+                                                            <img src="@GetCoinIconUrl(item.OpponentSymbol)"
+                                                                 alt="@item.OpponentSymbol"
+                                                                 loading="lazy"
+                                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                                            <span class="coin-symbol-fallback d-none">@GetInitials(item.OpponentSymbol)</span>
+                                                        </span>
+                                                        <MarketPairText Symbol="@item.OpponentSymbol" />
+                                                    </span>
+                                                    <span class="investment-match-id">| Match #@item.MatchId</span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -215,8 +236,15 @@
                                         </div>
 
                                         <div class="investment-data">
-                                            <span>Retorno</span>
-                                            <strong>@FmtOptionalSol(item.PayoutAmount)</strong>
+                                            <span>Resultado liquido</span>
+                                            <strong class="@GetPayoutClass(item.NetResult)">@FmtSignedSol(item.NetResult)</strong>
+                                            <small class="investment-result-note">
+                                                Recebido: @FmtOptionalSol(item.PayoutAmount)
+                                                @if (item.LossAmount > 0m)
+                                                {
+                                                    <span> | Perda: @FmtLossSol(item.LossAmount)</span>
+                                                }
+                                            </small>
                                         </div>
                                     </article>
                                 }
@@ -305,6 +333,18 @@
 
     .wallet-balance {
         color: #5eead4;
+    }
+
+    .payout-positive {
+        color: #4ade80;
+    }
+
+    .payout-negative {
+        color: #f87171;
+    }
+
+    .payout-neutral {
+        color: #f8fafc;
     }
 
     .wallet-metrics {
@@ -411,6 +451,77 @@
 
     .investment-main span:last-child {
         color: #cbd5e1;
+    }
+
+    .investment-count-badge {
+        align-items: center;
+        background: rgba(45, 212, 191, .08);
+        border: 1px solid rgba(45, 212, 191, .22);
+        border-radius: 999px;
+        color: #d1fae5;
+        display: inline-flex;
+        font-size: .78rem;
+        font-weight: 800;
+        padding: .28rem .62rem;
+        width: fit-content;
+    }
+
+    .investment-versus {
+        align-items: center;
+        color: #cbd5e1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .55rem;
+    }
+
+    .investment-versus-icon {
+        align-items: center;
+        background: #11161d;
+        border: 1px solid rgba(148, 163, 184, .24);
+        border-radius: 999px;
+        display: inline-flex;
+        flex: 0 0 1.7rem;
+        height: 1.7rem;
+        justify-content: center;
+        overflow: hidden;
+        width: 1.7rem;
+    }
+
+    .investment-versus-opponent {
+        align-items: center;
+        display: inline-flex;
+        gap: .45rem;
+    }
+
+    .investment-versus-icon img {
+        display: block;
+        height: 1.1rem;
+        object-fit: contain;
+        width: 1.1rem;
+    }
+
+    .investment-versus-label {
+        align-items: center;
+        background: rgba(148, 163, 184, .08);
+        border: 1px solid rgba(148, 163, 184, .18);
+        border-radius: 999px;
+        color: #cbd5e1;
+        display: inline-flex;
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        min-height: 1.55rem;
+        padding: 0 .5rem;
+    }
+
+    .investment-match-id {
+        color: #94a3b8;
+    }
+
+    .investment-result-note {
+        color: #94a3b8;
+        font-size: .8rem;
+        font-weight: 700;
     }
 
     .coin-symbol {
@@ -532,6 +643,7 @@
                     CurrencyName = orderedItems[0].CurrencyName,
                     TotalAmount = orderedItems.Sum(item => item.Amount),
                     TotalPayout = orderedItems.Sum(item => item.PayoutAmount ?? 0m),
+                    TotalNetResult = orderedItems.Sum(item => item.NetResult),
                     OpenCount = orderedItems.Count(IsOpenInvestment),
                     InvestmentCount = orderedItems.Count,
                     LastBetTime = orderedItems[0].BetTime,
@@ -670,6 +782,29 @@
     private static string FmtOptionalSol(decimal? value)
         => value.HasValue ? FmtSol(value.Value) : "-";
 
+    private static string FmtSignedSol(decimal value)
+        => value > 0m
+            ? $"+{value:0.########} SOL"
+            : value < 0m
+                ? $"-{Math.Abs(value):0.########} SOL"
+                : "0 SOL";
+
+    private static string FmtOptionalSignedSol(decimal? value)
+        => value.HasValue ? FmtSignedSol(value.Value) : "-";
+
+    private static string FmtLossSol(decimal value)
+        => value > 0m ? $"-{value:0.########} SOL" : "0 SOL";
+
+    private static string GetPayoutClass(decimal value)
+        => value > 0m
+            ? "payout-positive"
+            : value < 0m
+                ? "payout-negative"
+                : "payout-neutral";
+
+    private static string GetPayoutClass(decimal? value)
+        => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
+
     private static string FmtDate(DateTime? value)
         => value.HasValue ? value.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-";
 
@@ -729,6 +864,7 @@
         public string CurrencyName { get; init; } = "";
         public decimal TotalAmount { get; init; }
         public decimal TotalPayout { get; init; }
+        public decimal TotalNetResult { get; init; }
         public int OpenCount { get; init; }
         public int InvestmentCount { get; init; }
         public DateTime LastBetTime { get; init; }

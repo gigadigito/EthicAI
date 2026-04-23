@@ -177,14 +177,26 @@
             </div>
         </section>
 
-        @if (!string.IsNullOrWhiteSpace(_betResponseBody))
+        @if (!string.IsNullOrWhiteSpace(_betResponseBody) && CanSeeInvestmentDebug)
         {
-            <div class="card mb-3">
-                <div class="card-header">
-                    <strong>Retorno do Investimento</strong>
-                </div>
-                <div class="card-body">
-                    <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@_betResponseBody</pre>
+            <div class="accordion mb-3" id="investmentReturnAccordion">
+                <div class="accordion-item bg-dark border-secondary">
+                    <h2 class="accordion-header" id="investmentReturnHeading">
+                        <button class="accordion-button @(_isInvestmentReturnOpen ? "" : "collapsed") bg-dark text-light"
+                                type="button"
+                                @onclick="ToggleInvestmentReturn"
+                                aria-expanded="@_isInvestmentReturnOpen"
+                                aria-controls="investmentReturnCollapse">
+                            Retorno do Investimento
+                        </button>
+                    </h2>
+                    <div id="investmentReturnCollapse"
+                         class="accordion-collapse collapse @(_isInvestmentReturnOpen ? "show" : "")"
+                         aria-labelledby="investmentReturnHeading">
+                        <div class="accordion-body">
+                            <pre class="bg-dark text-white border rounded p-3 small mb-0" style="white-space: pre-wrap;">@_betResponseBody</pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         }
@@ -1127,6 +1139,7 @@
     private bool _showSimplePopup;
     private string _simplePopupTitle = "";
     private string _simplePopupMessage = "";
+    private bool _isInvestmentReturnOpen;
     private bool _showInvestmentAmountModal;
     private int _pendingBetTeamId;
     private string _pendingBetTeamName = "";
@@ -1146,6 +1159,10 @@
         => string.IsNullOrWhiteSpace(_loggedWalletPublicKey)
             ? "Carteira nao conectada"
             : _loggedWalletPublicKey;
+
+    private bool CanSeeInvestmentDebug
+        => IsConfiguredWallet(_loggedWalletPublicKey, Config["CriptoVersus:AdminWallet"])
+            || IsConfiguredWallet(_loggedWalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
 
     private int _investmentAmountRangeIndex
     {
@@ -1410,6 +1427,11 @@
         _showSimplePopup = false;
     }
 
+    private void ToggleInvestmentReturn()
+    {
+        _isInvestmentReturnOpen = !_isInvestmentReturnOpen;
+    }
+
     private async Task SendBet(int matchId, int teamId, string teamName, decimal amountSol)
     {
         _isSendingBet = true;
@@ -1572,6 +1594,13 @@
             return $"Partida ainda não criada on-chain na devnet. Usuário={selectedUserDisplay}.";
 
         return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
+    }
+
+    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet)
+    {
+        return !string.IsNullOrWhiteSpace(wallet)
+            && !string.IsNullOrWhiteSpace(configuredWallet)
+            && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
     }
 
     private static string GetBetPopupExceptionMessage(Exception ex)

@@ -12,6 +12,8 @@ public sealed class MyWalletDto
     public decimal TotalInvested { get; set; }
     public decimal OpenAmount { get; set; }
     public decimal TotalPayout { get; set; }
+    public decimal RealizedLoss { get; set; }
+    public decimal NetSettledResult { get; set; }
     public int OpenInvestments { get; set; }
     public int SettledInvestments { get; set; }
     public List<TeamPositionDto> ActivePositions { get; set; } = [];
@@ -33,6 +35,8 @@ public sealed class MyInvestmentDto
     public bool Claimed { get; set; }
     public bool? IsWinner { get; set; }
     public decimal? PayoutAmount { get; set; }
+    public decimal LossAmount { get; set; }
+    public decimal NetResult { get; set; }
     public DateTimeOffset? SettledAt { get; set; }
     public DateTimeOffset? BettingCloseTime { get; set; }
 }
