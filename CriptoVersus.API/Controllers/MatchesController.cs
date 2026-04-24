@@ -20,15 +20,18 @@ namespace CriptoVersus.API.Controllers
         private readonly EthicAIDbContext _db;
         private readonly IHubContext<DashboardHub> _hub;
         private readonly IMatchScoreRebuildService _matchScoreRebuildService;
+        private readonly IConfiguration _configuration;
 
         public MatchesController(
             EthicAIDbContext db,
             IHubContext<DashboardHub> hub,
-            IMatchScoreRebuildService matchScoreRebuildService)
+            IMatchScoreRebuildService matchScoreRebuildService,
+            IConfiguration configuration)
         {
             _db = db;
             _hub = hub;
             _matchScoreRebuildService = matchScoreRebuildService;
+            _configuration = configuration;
         }
 
         // =========================
@@ -50,17 +53,18 @@ namespace CriptoVersus.API.Controllers
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Include(m => m.WinnerTeam).ThenInclude(t => t!.Currency)
                 .AsQueryable();
 
             if (status != null)
                 q = q.Where(m => m.Status == status);
 
-            var items = await q
+            var matches = await q
                 .OrderByDescending(m => m.StartTime ?? DateTime.MaxValue)
                 .Take(take)
-                .Select(m => ToMatchDto(m, now))
                 .ToListAsync(ct);
 
+            var items = await ToMatchDtosAsync(matches, now, ct);
             return Ok(items);
         }
         // =========================
@@ -86,6 +90,7 @@ namespace CriptoVersus.API.Controllers
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Include(m => m.WinnerTeam).ThenInclude(t => t!.Currency)
                 .Where(m =>
                     (m.TeamA.Currency.Symbol.ToUpper() == a && m.TeamB.Currency.Symbol.ToUpper() == b) ||
                     (m.TeamA.Currency.Symbol.ToUpper() == b && m.TeamB.Currency.Symbol.ToUpper() == a));
@@ -99,7 +104,7 @@ namespace CriptoVersus.API.Controllers
             if (match is null)
                 return NotFound();
 
-            return Ok(ToMatchDto(match, now));
+            return Ok(await ToMatchDtoAsync(match, now, ct));
         }
 
         // =========================
@@ -115,12 +120,13 @@ namespace CriptoVersus.API.Controllers
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Include(m => m.WinnerTeam).ThenInclude(t => t!.Currency)
                 .FirstOrDefaultAsync(m => m.MatchId == id, ct);
 
             if (match == null)
                 return NotFound();
 
-            return Ok(ToMatchDto(match, now));
+            return Ok(await ToMatchDtoAsync(match, now, ct));
         }
 
         [AllowAnonymous]
@@ -308,40 +314,253 @@ namespace CriptoVersus.API.Controllers
         // =========================
         // Helpers
         // =========================
-        private static MatchDto ToMatchDto(Match m, DateTime nowUtc)
+        private async Task<List<MatchDto>> ToMatchDtosAsync(List<Match> matches, DateTime nowUtc, CancellationToken ct)
         {
-            var a = m.TeamA?.Currency;
-            var b = m.TeamB?.Currency;
+            if (matches.Count == 0)
+                return [];
 
-            int elapsed = 0;
-            bool finished = m.Status == MatchStatus.Completed;
+            var matchIds = matches.Select(m => m.MatchId).ToList();
 
-            if (m.StartTime != null)
-                elapsed = (int)Math.Max(0, (nowUtc - m.StartTime.Value).TotalMinutes);
+            var aggregates = await _db.Set<Bet>()
+                .AsNoTracking()
+                .Where(b => matchIds.Contains(b.MatchId))
+                .GroupBy(b => new { b.MatchId, b.TeamId })
+                .Select(g => new MatchSideAggregate
+                {
+                    MatchId = g.Key.MatchId,
+                    TeamId = g.Key.TeamId,
+                    TotalAmount = g.Sum(x => x.Amount),
+                    TotalDistributed = g.Sum(x => x.PayoutAmount ?? 0m),
+                    BetCount = g.Count(),
+                    WalletCount = g.Select(x => x.UserId).Distinct().Count()
+                })
+                .ToListAsync(ct);
+
+            var participants = await _db.Set<Bet>()
+                .AsNoTracking()
+                .Where(b => matchIds.Contains(b.MatchId))
+                .Include(b => b.User)
+                .Include(b => b.Team).ThenInclude(t => t.Currency)
+                .Include(b => b.Match)
+                .OrderByDescending(b => b.BetTime)
+                .ToListAsync(ct);
+
+            var participantsByMatch = participants
+                .GroupBy(x => x.MatchId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(x => new MatchParticipantDto
+                    {
+                        WalletMasked = MaskWallet(x.User?.Wallet),
+                        TeamSymbol = x.Team?.Currency?.Symbol ?? $"Team#{x.TeamId}",
+                        BetAmount = x.Amount,
+                        ResultLabel = GetParticipantResultLabel(x.Match?.Status ?? MatchStatus.Pending, x.IsWinner, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode),
+                        ReceivedAmount = GetParticipantReceivedAmount(x.Match?.Status ?? MatchStatus.Pending, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode)
+                    }).ToList());
+
+            return matches.Select(match => ToMatchDto(match, nowUtc, aggregates, participantsByMatch)).ToList();
+        }
+
+        private async Task<MatchDto> ToMatchDtoAsync(Match match, DateTime nowUtc, CancellationToken ct)
+        {
+            var items = await ToMatchDtosAsync([match], nowUtc, ct);
+            return items[0];
+        }
+
+        private MatchDto ToMatchDto(
+            Match match,
+            DateTime nowUtc,
+            List<MatchSideAggregate> aggregates,
+            Dictionary<int, List<MatchParticipantDto>> participantsByMatch)
+        {
+            var a = match.TeamA?.Currency;
+            var b = match.TeamB?.Currency;
+            var winner = match.WinnerTeam?.Currency;
+
+            var elapsed = 0;
+            var finished = match.Status == MatchStatus.Completed;
+
+            if (match.StartTime != null)
+                elapsed = (int)Math.Max(0, (nowUtc - match.StartTime.Value).TotalMinutes);
+
+            var teamAStats = aggregates.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamAId);
+            var teamBStats = aggregates.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamBId);
+            var totalAmountTeamA = teamAStats?.TotalAmount ?? 0m;
+            var totalAmountTeamB = teamBStats?.TotalAmount ?? 0m;
+            var walletCountTeamA = teamAStats?.WalletCount ?? 0;
+            var walletCountTeamB = teamBStats?.WalletCount ?? 0;
+            var betCountTeamA = teamAStats?.BetCount ?? 0;
+            var betCountTeamB = teamBStats?.BetCount ?? 0;
+            var totalPool = totalAmountTeamA + totalAmountTeamB;
+            var totalDistributed = aggregates.Where(x => x.MatchId == match.MatchId).Sum(x => x.TotalDistributed);
+            var hasBetsOnBothSides = totalAmountTeamA > 0m && totalAmountTeamB > 0m && walletCountTeamA > 0 && walletCountTeamB > 0;
+            var hasValidFinancialDispute = HasValidFinancialDispute(match, totalAmountTeamA, totalAmountTeamB, walletCountTeamA, walletCountTeamB);
+            var losingPool = match.WinnerTeamId == match.TeamAId ? totalAmountTeamB : match.WinnerTeamId == match.TeamBId ? totalAmountTeamA : 0m;
+            var winningPool = match.WinnerTeamId == match.TeamAId ? totalAmountTeamA : match.WinnerTeamId == match.TeamBId ? totalAmountTeamB : 0m;
+            var houseFeeRate = ClampRate(GetDecimal("CriptoVersusWorker:Settlement:HouseFeeRate", 0.01m));
+            var houseFeeAmount = hasValidFinancialDispute ? Math.Round(losingPool * houseFeeRate, 8) : 0m;
 
             return new MatchDto
             {
-                MatchId = m.MatchId,
-                TeamA = a?.Symbol ?? $"Team#{m.TeamAId}",
-                TeamB = b?.Symbol ?? $"Team#{m.TeamBId}",
-                TeamAId = m.TeamAId,
-                TeamBId = m.TeamBId,
-                ScoreA = m.ScoreA,
-                ScoreB = m.ScoreB,
-                Status = m.Status.ToString(),
-                StartTime = m.StartTime,
-                EndTime = m.EndTime,
+                MatchId = match.MatchId,
+                TeamA = a?.Symbol ?? $"Team#{match.TeamAId}",
+                TeamB = b?.Symbol ?? $"Team#{match.TeamBId}",
+                TeamAId = match.TeamAId,
+                TeamBId = match.TeamBId,
+                ScoreA = match.ScoreA,
+                ScoreB = match.ScoreB,
+                Status = match.Status.ToString(),
+                StartTime = match.StartTime,
+                EndTime = match.EndTime,
                 ElapsedMinutes = elapsed,
                 RemainingMinutes = Math.Max(0, 90 - elapsed),
                 IsFinished = finished,
-
-                // ✅ NOVO: percentuais atuais
                 PctA = (decimal?)a?.PercentageChange,
                 PctB = (decimal?)b?.PercentageChange,
                 QuoteVolumeA = a?.QuoteVolume,
                 QuoteVolumeB = b?.QuoteVolume,
-                ScoringRuleType = m.ScoringRuleType.ToString()
+                ScoringRuleType = match.ScoringRuleType.ToString(),
+                WinnerTeamId = match.WinnerTeamId,
+                WinnerTeamSymbol = winner?.Symbol ?? (match.WinnerTeamId == match.TeamAId ? a?.Symbol : match.WinnerTeamId == match.TeamBId ? b?.Symbol : null),
+                EndReasonCode = ResolveSettlementReasonCode(match, totalAmountTeamA, totalAmountTeamB, walletCountTeamA, walletCountTeamB),
+                EndReasonDetail = match.EndReasonDetail,
+                TotalAmountTeamA = totalAmountTeamA,
+                TotalAmountTeamB = totalAmountTeamB,
+                WalletCountTeamA = walletCountTeamA,
+                WalletCountTeamB = walletCountTeamB,
+                BetCountTeamA = betCountTeamA,
+                BetCountTeamB = betCountTeamB,
+                TotalPool = totalPool,
+                LosingPool = losingPool,
+                WinningPool = winningPool,
+                HouseFeeAmount = houseFeeAmount,
+                TotalDistributed = totalDistributed,
+                HasBetsOnBothSides = hasBetsOnBothSides,
+                HasValidFinancialDispute = hasValidFinancialDispute,
+                Participants = participantsByMatch.TryGetValue(match.MatchId, out var participantsForMatch) ? participantsForMatch : []
             };
+        }
+
+        private decimal GetDecimal(string key, decimal fallback)
+            => decimal.TryParse(_configuration[key], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var value)
+                ? value
+                : fallback;
+
+        private static decimal ClampRate(decimal rate)
+            => Math.Clamp(rate, 0m, 1m);
+
+        private static bool HasValidFinancialDispute(
+            Match match,
+            decimal totalAmountTeamA,
+            decimal totalAmountTeamB,
+            int walletCountTeamA,
+            int walletCountTeamB)
+            => match.Status == MatchStatus.Completed
+               && match.WinnerTeamId.HasValue
+               && match.ScoreA != match.ScoreB
+               && totalAmountTeamA > 0m
+               && totalAmountTeamB > 0m
+               && walletCountTeamA > 0
+               && walletCountTeamB > 0;
+
+        private static string ResolveSettlementReasonCode(
+            Match match,
+            decimal totalAmountTeamA,
+            decimal totalAmountTeamB,
+            int walletCountTeamA,
+            int walletCountTeamB)
+        {
+            if (!string.IsNullOrWhiteSpace(match.EndReasonCode))
+                return match.EndReasonCode!;
+
+            if (match.Status == MatchStatus.Cancelled)
+                return "CANCELLED";
+
+            if (match.ScoreA == 0 && match.ScoreB == 0)
+                return "DRAW_ZERO_ZERO";
+
+            if (!match.WinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
+                return "NO_WINNER";
+
+            if (totalAmountTeamA <= 0m || walletCountTeamA <= 0)
+                return "NO_BETS_ON_TEAM_A";
+
+            if (totalAmountTeamB <= 0m || walletCountTeamB <= 0)
+                return "NO_BETS_ON_TEAM_B";
+
+            return "SETTLED";
+        }
+
+        private static string MaskWallet(string? wallet)
+        {
+            if (string.IsNullOrWhiteSpace(wallet))
+                return "-";
+
+            var trimmed = wallet.Trim();
+            if (trimmed.Length <= 10)
+                return trimmed;
+
+            return $"{trimmed[..4]}...{trimmed[^4..]}";
+        }
+
+        private static decimal GetParticipantReceivedAmount(MatchStatus matchStatus, decimal payoutAmount, decimal betAmount, string? settlementReasonCode)
+        {
+            var resultCode = GetParticipantResultCode(matchStatus, null, payoutAmount, betAmount, settlementReasonCode);
+            return resultCode switch
+            {
+                "won" or "lost" or "partial-loss" => payoutAmount,
+                "refunded" => payoutAmount > 0m ? payoutAmount : betAmount,
+                "cancelled" or "draw-refunded" or "won-no-opponent-pool" or "refunded-no-counterparty" => betAmount,
+                _ => 0m
+            };
+        }
+
+        private static string GetParticipantResultLabel(MatchStatus matchStatus, bool? isWinner, decimal payoutAmount, decimal betAmount, string? settlementReasonCode)
+            => GetParticipantResultCode(matchStatus, isWinner, payoutAmount, betAmount, settlementReasonCode) switch
+            {
+                "won" => "GANHOU",
+                "lost" => "PERDEU",
+                "partial-loss" => "PERDEU PARCIALMENTE",
+                "open" => "EM ABERTO",
+                "won-no-opponent-pool" => "SEM ADVERSARIO",
+                "refunded-no-counterparty" => "SEM CONTRAPARTE",
+                _ => "REEMBOLSADO"
+            };
+
+        private static string GetParticipantResultCode(MatchStatus matchStatus, bool? isWinner, decimal payoutAmount, decimal betAmount, string? settlementReasonCode)
+        {
+            if (matchStatus is MatchStatus.Pending or MatchStatus.Ongoing)
+                return "open";
+
+            if (matchStatus == MatchStatus.Cancelled || settlementReasonCode == "CANCELLED")
+                return "cancelled";
+
+            if (settlementReasonCode == "DRAW_ZERO_ZERO")
+                return "draw-refunded";
+
+            if (settlementReasonCode is "NO_BETS_ON_TEAM_A" or "NO_BETS_ON_TEAM_B" or "NO_COUNTERPARTY")
+                return isWinner == true ? "won-no-opponent-pool" : "refunded-no-counterparty";
+
+            if (isWinner == true || payoutAmount > betAmount)
+                return "won";
+
+            if (payoutAmount == betAmount && betAmount > 0m)
+                return "refunded";
+
+            if (payoutAmount > 0m && payoutAmount < betAmount)
+                return "partial-loss";
+
+            return "lost";
+        }
+
+        private sealed class MatchSideAggregate
+        {
+            public int MatchId { get; init; }
+            public int TeamId { get; init; }
+            public decimal TotalAmount { get; init; }
+            public decimal TotalDistributed { get; init; }
+            public int BetCount { get; init; }
+            public int WalletCount { get; init; }
         }
 
         private Task NotifyDashboardChangedAsync(string reason, int matchId, CancellationToken ct)

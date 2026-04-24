@@ -38,11 +38,29 @@ namespace DTOs
 
 
         // ✅ NOVO: % atual de cada moeda
-        public decimal? PctA { get; set; }
-        public decimal? PctB { get; set; }
-        public decimal? QuoteVolumeA { get; set; }
-        public decimal? QuoteVolumeB { get; set; }
-        public string ScoringRuleType { get; set; } = string.Empty;
+    public decimal? PctA { get; set; }
+    public decimal? PctB { get; set; }
+    public decimal? QuoteVolumeA { get; set; }
+    public decimal? QuoteVolumeB { get; set; }
+    public string ScoringRuleType { get; set; } = string.Empty;
+    public int? WinnerTeamId { get; set; }
+    public string? WinnerTeamSymbol { get; set; }
+    public string? EndReasonCode { get; set; }
+    public string? EndReasonDetail { get; set; }
+    public decimal TotalAmountTeamA { get; set; }
+    public decimal TotalAmountTeamB { get; set; }
+    public int WalletCountTeamA { get; set; }
+    public int WalletCountTeamB { get; set; }
+    public int BetCountTeamA { get; set; }
+    public int BetCountTeamB { get; set; }
+    public decimal TotalPool { get; set; }
+    public decimal LosingPool { get; set; }
+    public decimal WinningPool { get; set; }
+    public decimal HouseFeeAmount { get; set; }
+    public decimal TotalDistributed { get; set; }
+    public bool HasBetsOnBothSides { get; set; }
+    public bool HasValidFinancialDispute { get; set; }
+    public List<MatchParticipantDto> Participants { get; set; } = [];
     }
 
 

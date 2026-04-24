@@ -131,17 +131,43 @@
                                 <div class="wallet-history-grid">
                                     <div class="wallet-history-kpi"><span>Inicio</span><strong>@FmtDate(item.MatchStartTime)</strong></div>
                                     <div class="wallet-history-kpi"><span>Finalizacao</span><strong>@FmtDate(item.MatchEndTime)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Carteiras no Time A</span><strong>@item.WalletCountTeamA</strong></div>
+                                    <div class="wallet-history-kpi"><span>Carteiras no Time B</span><strong>@item.WalletCountTeamB</strong></div>
+                                    <div class="wallet-history-kpi"><span>Apostas no Time A</span><strong>@item.BetCountTeamA</strong></div>
+                                    <div class="wallet-history-kpi"><span>Apostas no Time B</span><strong>@item.BetCountTeamB</strong></div>
                                     <div class="wallet-history-kpi"><span>Total no Time A</span><strong>@FmtSol(item.TotalBetOnTeamA)</strong></div>
                                     <div class="wallet-history-kpi"><span>Total no Time B</span><strong>@FmtSol(item.TotalBetOnTeamB)</strong></div>
                                     <div class="wallet-history-kpi"><span>Total da pool</span><strong>@FmtSol(item.TotalPool)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Pool vencedora</span><strong>@FmtSol(item.WinningPool)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Pool perdedora</span><strong>@FmtSol(item.LosingPool)</strong></div>
                                     <div class="wallet-history-kpi"><span>Total distribuido</span><strong>@FmtSol(item.TotalDistributed)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Disputa financeira valida?</span><strong>@(item.HasValidFinancialDispute ? "Sim" : "Nao")</strong></div>
+                                    <div class="wallet-history-kpi"><span>Motivo da liquidacao</span><strong>@(item.SettlementReasonCode ?? "-")</strong></div>
                                 </div>
+
+                                @if (!string.IsNullOrWhiteSpace(item.SettlementReasonDetail))
+                                {
+                                    <p class="wallet-history-summary-text mb-0">@item.SettlementReasonDetail</p>
+                                }
+
                                 <div class="wallet-history-steps">
                                     @foreach (var step in item.SettlementSteps)
                                     {
                                         <div class="wallet-history-step">@step</div>
                                     }
                                 </div>
+
+                                @if (item.Participants.Count > 0)
+                                {
+                                    <div class="wallet-history-steps">
+                                        @foreach (var participant in item.Participants)
+                                        {
+                                            <div class="wallet-history-step">
+                                                <strong>@participant.WalletMasked</strong> • @participant.TeamSymbol • Apostado: @FmtSol(participant.BetAmount) • Resultado: @participant.ResultLabel • Recebido: @FmtSol(participant.ReceivedAmount)
+                                            </div>
+                                        }
+                                    </div>
+                                }
                             </div>
                         }
                     </article>
@@ -220,6 +246,7 @@
         => item.UserResult switch
         {
             "won" => "wallet-result-won",
+            "won-no-opponent-pool" => "wallet-result-neutral",
             "lost" or "partial-loss" => "wallet-result-lost",
             "open" => "wallet-result-open",
             _ => "wallet-result-neutral"

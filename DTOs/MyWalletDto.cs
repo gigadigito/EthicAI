@@ -94,8 +94,28 @@ public sealed class UserMatchHistoryItemDto
     public DateTimeOffset? BettingCloseTime { get; set; }
     public decimal TotalBetOnTeamA { get; set; }
     public decimal TotalBetOnTeamB { get; set; }
+    public int WalletCountTeamA { get; set; }
+    public int WalletCountTeamB { get; set; }
+    public int BetCountTeamA { get; set; }
+    public int BetCountTeamB { get; set; }
     public decimal TotalPool { get; set; }
+    public decimal WinningPool { get; set; }
+    public decimal LosingPool { get; set; }
     public decimal TotalDistributed { get; set; }
+    public bool HasBetsOnBothSides { get; set; }
+    public bool HasValidFinancialDispute { get; set; }
+    public string? SettlementReasonCode { get; set; }
+    public string? SettlementReasonDetail { get; set; }
     public List<MatchScoreEventDto> ScoreEvents { get; set; } = [];
+    public List<MatchParticipantDto> Participants { get; set; } = [];
     public List<string> SettlementSteps { get; set; } = [];
+}
+
+public sealed class MatchParticipantDto
+{
+    public string WalletMasked { get; set; } = "";
+    public string TeamSymbol { get; set; } = "";
+    public decimal BetAmount { get; set; }
+    public string ResultLabel { get; set; } = "";
+    public decimal ReceivedAmount { get; set; }
 }

@@ -44,7 +44,10 @@ public sealed class WalletController : ControllerBase
                 BetTime = b.BetTime,
                 MatchStatus = b.Match.Status,
                 IsWinner = b.IsWinner,
-                SettledAt = b.SettledAt
+                SettledAt = b.SettledAt,
+                EndReasonCode = b.Match.EndReasonCode,
+                ScoreTeamA = b.Match.ScoreA,
+                ScoreTeamB = b.Match.ScoreB
             })
             .ToListAsync(cancellationToken);
 
@@ -57,7 +60,7 @@ public sealed class WalletController : ControllerBase
 
         var totalInvested = betRows.Sum(i => i.Amount);
         var openAmount = betRows.Where(IsOpen).Sum(i => i.Amount);
-        var totalPayout = betRows.Where(i => i.SettledAt.HasValue).Sum(i => i.PayoutAmount ?? 0m);
+        var totalPayout = betRows.Where(i => i.SettledAt.HasValue).Sum(GetSettledValue);
         var realizedProfit = betRows.Where(i => i.SettledAt.HasValue).Sum(GetProfitAmount);
         var realizedLoss = betRows.Where(i => i.SettledAt.HasValue).Sum(GetLossAmount);
         var realizedNetResult = realizedProfit - realizedLoss;
@@ -74,8 +77,8 @@ public sealed class WalletController : ControllerBase
                     CurrencyName = group.Key.TeamName,
                     TotalInvested = rows.Sum(x => x.Amount),
                     OpenAmount = rows.Where(IsOpen).Sum(x => x.Amount),
-                    ReceivedAmount = rows.Where(x => x.SettledAt.HasValue).Sum(x => x.PayoutAmount ?? 0m),
-                    RealizedNetResult = rows.Where(x => x.SettledAt.HasValue).Sum(x => (x.PayoutAmount ?? 0m) - x.Amount),
+                    ReceivedAmount = rows.Where(x => x.SettledAt.HasValue).Sum(GetSettledValue),
+                    RealizedNetResult = rows.Where(x => x.SettledAt.HasValue).Sum(GetNetAmount),
                     MatchCount = rows.Count,
                     WonCount = rows.Count(IsWon),
                     LostCount = rows.Count(IsLost),
@@ -167,9 +170,33 @@ public sealed class WalletController : ControllerBase
                 g.Key.MatchId,
                 g.Key.TeamId,
                 TotalAmount = g.Sum(x => x.Amount),
-                TotalDistributed = g.Sum(x => x.PayoutAmount ?? 0m)
+                TotalDistributed = g.Sum(x => x.PayoutAmount ?? 0m),
+                BetCount = g.Count(),
+                WalletCount = g.Select(x => x.UserId).Distinct().Count()
             })
             .ToListAsync(cancellationToken);
+
+        var participantRows = await _context.Bet
+            .AsNoTracking()
+            .Where(b => matchIds.Contains(b.MatchId))
+            .Include(b => b.User)
+            .Include(b => b.Match)
+            .Include(b => b.Team).ThenInclude(t => t.Currency)
+            .OrderByDescending(b => b.BetTime)
+            .ToListAsync(cancellationToken);
+
+        var participantsByMatch = participantRows
+            .GroupBy(x => x.MatchId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => new MatchParticipantDto
+                {
+                    WalletMasked = MaskWallet(x.User?.Wallet),
+                    TeamSymbol = x.Team?.Currency?.Symbol ?? $"Team#{x.TeamId}",
+                    BetAmount = x.Amount,
+                    ResultLabel = GetParticipantResultLabel(x.Match?.Status ?? MatchStatus.Pending, x.IsWinner, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode),
+                    ReceivedAmount = GetParticipantReceivedAmount(x.Match?.Status ?? MatchStatus.Pending, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode)
+                }).ToList());
 
         var scoreEvents = await _context.MatchScoreEvent
             .AsNoTracking()
@@ -219,29 +246,30 @@ public sealed class WalletController : ControllerBase
                 var teamASymbol = teamA?.Currency?.Symbol ?? $"Team#{match.TeamAId}";
                 var teamBSymbol = teamB?.Currency?.Symbol ?? $"Team#{match.TeamBId}";
                 var opponentSymbol = bet.TeamId == match.TeamAId ? teamBSymbol : teamASymbol;
-                var receivedAmount = bet.PayoutAmount ?? 0m;
-                var netResult = match.Status switch
-                {
-                    MatchStatus.Completed => receivedAmount - bet.Amount,
-                    MatchStatus.Cancelled => 0m,
-                    _ => 0m
-                };
-                var totalBetOnTeamA = matchPoolMap.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamAId)?.TotalAmount ?? 0m;
-                var totalBetOnTeamB = matchPoolMap.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamBId)?.TotalAmount ?? 0m;
+                var teamAPool = matchPoolMap.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamAId);
+                var teamBPool = matchPoolMap.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamBId);
+                var totalBetOnTeamA = teamAPool?.TotalAmount ?? 0m;
+                var totalBetOnTeamB = teamBPool?.TotalAmount ?? 0m;
+                var betCountTeamA = teamAPool?.BetCount ?? 0;
+                var betCountTeamB = teamBPool?.BetCount ?? 0;
+                var walletCountTeamA = teamAPool?.WalletCount ?? 0;
+                var walletCountTeamB = teamBPool?.WalletCount ?? 0;
                 var totalDistributed = matchPoolMap.Where(x => x.MatchId == match.MatchId).Sum(x => x.TotalDistributed);
                 var totalPool = totalBetOnTeamA + totalBetOnTeamB;
-                var houseFeeAmount = match.Status == MatchStatus.Completed ? Math.Round(totalPool * houseFeeRate, 8) : 0m;
-                var result = ClassifyResult(match.Status, bet.IsWinner, receivedAmount, bet.Amount);
+                var hasBetsOnBothSides = totalBetOnTeamA > 0m && totalBetOnTeamB > 0m && walletCountTeamA > 0 && walletCountTeamB > 0;
+                var settlementReasonCode = ResolveSettlementReasonCode(match, totalBetOnTeamA, totalBetOnTeamB, walletCountTeamA, walletCountTeamB);
+                var hasValidFinancialDispute = HasValidFinancialDispute(match, totalBetOnTeamA, totalBetOnTeamB, walletCountTeamA, walletCountTeamB);
+                var winningPool = match.WinnerTeamId == match.TeamAId ? totalBetOnTeamA : match.WinnerTeamId == match.TeamBId ? totalBetOnTeamB : 0m;
+                var losingPool = match.WinnerTeamId == match.TeamAId ? totalBetOnTeamB : match.WinnerTeamId == match.TeamBId ? totalBetOnTeamA : 0m;
+                var houseFeeAmount = hasValidFinancialDispute && match.Status == MatchStatus.Completed ? Math.Round(losingPool * houseFeeRate, 8) : 0m;
+                var result = ClassifyResult(match.Status, bet.IsWinner, bet.PayoutAmount ?? 0m, bet.Amount, settlementReasonCode);
                 var scoreSummary = $"{teamASymbol} {match.ScoreA} x {match.ScoreB} {teamBSymbol}";
                 var winnerSymbol = winner?.Currency?.Symbol
                     ?? (match.WinnerTeamId == match.TeamAId ? teamASymbol : match.WinnerTeamId == match.TeamBId ? teamBSymbol : null);
-                var refundAmount = result.Code switch
-                {
-                    "refunded" or "partial-loss" => receivedAmount,
-                    "cancelled" => bet.Amount,
-                    _ => 0m
-                };
-                var settlementSteps = BuildSettlementSteps(result, bet.Amount, receivedAmount, refundAmount, netResult, houseFeeAmount, totalPool, totalDistributed);
+                var effectiveReceivedAmount = GetEffectiveReceivedAmount(result, bet.PayoutAmount ?? 0m, bet.Amount);
+                var refundAmount = GetRefundAmount(result, bet.PayoutAmount ?? 0m, bet.Amount);
+                var netResult = GetNetResult(result, effectiveReceivedAmount, refundAmount, bet.Amount);
+                var settlementSteps = BuildSettlementSteps(result, bet.Amount, effectiveReceivedAmount, refundAmount, netResult, houseFeeAmount, totalPool, totalDistributed, settlementReasonCode, hasValidFinancialDispute);
 
                 return new UserMatchHistoryItemDto
                 {
@@ -259,8 +287,8 @@ public sealed class WalletController : ControllerBase
                     WinnerTeamSymbol = winnerSymbol,
                     CurrencyName = selectedTeam?.Currency?.Name ?? "Moeda",
                     BetAmount = bet.Amount,
-                    ReceivedAmount = receivedAmount,
-                    PayoutAmount = receivedAmount,
+                    ReceivedAmount = effectiveReceivedAmount,
+                    PayoutAmount = bet.PayoutAmount ?? 0m,
                     RefundAmount = refundAmount,
                     HouseFeeAmount = houseFeeAmount,
                     NetResult = netResult,
@@ -273,8 +301,8 @@ public sealed class WalletController : ControllerBase
                     UserResult = result.Code,
                     UserResultLabel = result.Label,
                     MatchResultSummary = scoreSummary,
-                    HumanSummary = BuildHumanSummary(result, userTeamSymbol, opponentSymbol, bet.Amount, receivedAmount, refundAmount, netResult, winnerSymbol),
-                    SettlementSummary = BuildSettlementSummary(result, bet.Amount, receivedAmount, refundAmount, netResult),
+                    HumanSummary = BuildHumanSummary(result, userTeamSymbol, opponentSymbol, bet.Amount, effectiveReceivedAmount, refundAmount, netResult, winnerSymbol),
+                    SettlementSummary = BuildSettlementSummary(result, bet.Amount, effectiveReceivedAmount, refundAmount, netResult),
                     Claimed = bet.Claimed,
                     IsWinner = bet.IsWinner,
                     IsLoser = result.IsLoser,
@@ -287,9 +315,20 @@ public sealed class WalletController : ControllerBase
                     BettingCloseTime = match.BettingCloseTime,
                     TotalBetOnTeamA = totalBetOnTeamA,
                     TotalBetOnTeamB = totalBetOnTeamB,
+                    WalletCountTeamA = walletCountTeamA,
+                    WalletCountTeamB = walletCountTeamB,
+                    BetCountTeamA = betCountTeamA,
+                    BetCountTeamB = betCountTeamB,
                     TotalPool = totalPool,
+                    WinningPool = winningPool,
+                    LosingPool = losingPool,
                     TotalDistributed = totalDistributed,
+                    HasBetsOnBothSides = hasBetsOnBothSides,
+                    HasValidFinancialDispute = hasValidFinancialDispute,
+                    SettlementReasonCode = settlementReasonCode,
+                    SettlementReasonDetail = match.EndReasonDetail,
                     ScoreEvents = scoreEventsByMatch.TryGetValue(match.MatchId, out var eventsForMatch) ? eventsForMatch : [],
+                    Participants = participantsByMatch.TryGetValue(match.MatchId, out var participants) ? participants : [],
                     SettlementSteps = settlementSteps
                 };
             })
@@ -364,30 +403,49 @@ public sealed class WalletController : ControllerBase
         => row.MatchStatus is MatchStatus.Pending or MatchStatus.Ongoing || !row.SettledAt.HasValue && row.MatchStatus == MatchStatus.Completed;
 
     private static bool IsWon(WalletBetSummaryRow row)
-        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount).Code == "won";
+        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount, row.EndReasonCode).Code == "won";
 
     private static bool IsLost(WalletBetSummaryRow row)
-        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount).IsLoser;
+        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount, row.EndReasonCode).IsLoser;
 
     private static bool IsRefunded(WalletBetSummaryRow row)
-        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount).IsRefunded;
+        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount, row.EndReasonCode).IsRefunded;
 
     private static bool IsCancelled(WalletBetSummaryRow row)
-        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount).IsCancelled;
+        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount, row.EndReasonCode).IsCancelled;
 
     private static bool IsDraw(WalletBetSummaryRow row)
-        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount).IsDraw;
+        => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount, row.EndReasonCode).IsDraw;
 
     private static decimal GetLossAmount(WalletBetSummaryRow investment)
     {
-        var payout = investment.PayoutAmount ?? 0m;
-        return payout < investment.Amount ? investment.Amount - payout : 0m;
+        var result = ClassifyResult(investment.MatchStatus, investment.IsWinner, investment.PayoutAmount ?? 0m, investment.Amount, investment.EndReasonCode);
+        var settledValue = GetEffectiveReceivedAmount(result, investment.PayoutAmount ?? 0m, investment.Amount)
+            + GetRefundAmount(result, investment.PayoutAmount ?? 0m, investment.Amount);
+        return settledValue < investment.Amount ? investment.Amount - settledValue : 0m;
     }
 
     private static decimal GetProfitAmount(WalletBetSummaryRow investment)
     {
-        var payout = investment.PayoutAmount ?? 0m;
-        return payout > investment.Amount ? payout - investment.Amount : 0m;
+        var result = ClassifyResult(investment.MatchStatus, investment.IsWinner, investment.PayoutAmount ?? 0m, investment.Amount, investment.EndReasonCode);
+        var settledValue = GetEffectiveReceivedAmount(result, investment.PayoutAmount ?? 0m, investment.Amount)
+            + GetRefundAmount(result, investment.PayoutAmount ?? 0m, investment.Amount);
+        return settledValue > investment.Amount ? settledValue - investment.Amount : 0m;
+    }
+
+    private static decimal GetSettledValue(WalletBetSummaryRow investment)
+    {
+        var result = ClassifyResult(investment.MatchStatus, investment.IsWinner, investment.PayoutAmount ?? 0m, investment.Amount, investment.EndReasonCode);
+        return GetEffectiveReceivedAmount(result, investment.PayoutAmount ?? 0m, investment.Amount)
+            + GetRefundAmount(result, investment.PayoutAmount ?? 0m, investment.Amount);
+    }
+
+    private static decimal GetNetAmount(WalletBetSummaryRow investment)
+    {
+        var result = ClassifyResult(investment.MatchStatus, investment.IsWinner, investment.PayoutAmount ?? 0m, investment.Amount, investment.EndReasonCode);
+        var receivedAmount = GetEffectiveReceivedAmount(result, investment.PayoutAmount ?? 0m, investment.Amount);
+        var refundAmount = GetRefundAmount(result, investment.PayoutAmount ?? 0m, investment.Amount);
+        return GetNetResult(result, receivedAmount, refundAmount, investment.Amount);
     }
 
     private static string NormalizeStatusFilter(string? status)
@@ -405,7 +463,7 @@ public sealed class WalletController : ControllerBase
         if (status == "all")
             return true;
 
-        var result = ClassifyResult(bet.Match.Status, bet.IsWinner, bet.PayoutAmount ?? 0m, bet.Amount);
+        var result = ClassifyResult(bet.Match.Status, bet.IsWinner, bet.PayoutAmount ?? 0m, bet.Amount, bet.Match.EndReasonCode);
 
         return status switch
         {
@@ -417,15 +475,24 @@ public sealed class WalletController : ControllerBase
         };
     }
 
-    private static WalletResultClassification ClassifyResult(MatchStatus matchStatus, bool? isWinner, decimal receivedAmount, decimal betAmount)
+    private static WalletResultClassification ClassifyResult(MatchStatus matchStatus, bool? isWinner, decimal receivedAmount, decimal betAmount, string? settlementReasonCode)
     {
         if (matchStatus is MatchStatus.Pending or MatchStatus.Ongoing)
             return new("open", "EM ABERTO", IsOpen: true);
 
-        if (matchStatus == MatchStatus.Cancelled)
-            return receivedAmount > 0m
-                ? new("refunded", "REEMBOLSADO", IsRefunded: true)
-                : new("cancelled", "CANCELADA", IsCancelled: true);
+        if (matchStatus == MatchStatus.Cancelled || settlementReasonCode == "CANCELLED")
+            return new("cancelled", "CANCELADA", IsCancelled: true, IsRefunded: true);
+
+        if (settlementReasonCode == "DRAW_ZERO_ZERO")
+            return new("draw-refunded", "REEMBOLSADO", IsRefunded: true, IsDraw: true);
+
+        if (settlementReasonCode is "NO_BETS_ON_TEAM_A" or "NO_BETS_ON_TEAM_B" or "NO_COUNTERPARTY")
+            return isWinner == true
+                ? new("won-no-opponent-pool", "VENCEU SEM GANHO", IsRefunded: true)
+                : new("refunded-no-counterparty", "REEMBOLSADO", IsRefunded: true);
+
+        if (settlementReasonCode == "NO_WINNER")
+            return new("refunded", "REEMBOLSADO", IsRefunded: true, IsDraw: true);
 
         if (isWinner == true || receivedAmount > betAmount)
             return new("won", "GANHOU");
@@ -459,6 +526,9 @@ public sealed class WalletController : ControllerBase
             "partial-loss" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. Houve devolucao parcial de {FmtSol(receivedAmount)}. Resultado liquido: {FmtSignedSol(netResult)}.",
             "refunded" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. A partida foi reembolsada. Voce recebeu {FmtSol(receivedAmount)} de volta.",
             "cancelled" => $"Sua aposta em {userTeamSymbol} foi cancelada. Nenhum prejuizo foi realizado. Reembolso previsto: {FmtSol(refundAmount)}.",
+            "draw-refunded" => $"Partida terminou sem vencedor. Nao houve cobranca de taxa. Sua aposta em {userTeamSymbol} foi devolvida integralmente.",
+            "won-no-opponent-pool" => $"Seu time {userTeamSymbol} venceu a partida, mas nao havia apostas validas do outro lado. Nao houve ganho financeiro nem cobranca de taxa. Sua aposta foi devolvida.",
+            "refunded-no-counterparty" => $"Seu time {userTeamSymbol} nao teve contraparte financeira valida. Nao houve perda financeira nem cobranca de taxa. Sua aposta foi devolvida.",
             "draw" => $"Voce apostou {FmtSol(betAmount)} em {userTeamSymbol}. A partida terminou empatada. Consulte a regra aplicada no detalhe da partida.",
             _ => "Sua posicao esta ativa. O resultado sera calculado quando a partida finalizar."
         };
@@ -479,6 +549,9 @@ public sealed class WalletController : ControllerBase
             "partial-loss" => $"Apostado: {FmtSol(betAmount)}. Recebido parcialmente: {FmtSol(receivedAmount)}. Resultado liquido: {FmtSignedSol(netResult)}.",
             "refunded" => $"Apostado: {FmtSol(betAmount)}. Reembolso: {FmtSol(receivedAmount)}.",
             "cancelled" => $"Apostado: {FmtSol(betAmount)}. Partida cancelada. Reembolso previsto: {FmtSol(refundAmount)}. Resultado liquido: 0 SOL.",
+            "draw-refunded" => $"Apostado: {FmtSol(betAmount)}. Sem vencedor e sem taxa. Reembolso integral: {FmtSol(refundAmount)}.",
+            "won-no-opponent-pool" => $"Apostado: {FmtSol(betAmount)}. Sem pool adversaria valida. Valor devolvido: {FmtSol(refundAmount)}. Resultado liquido: 0 SOL.",
+            "refunded-no-counterparty" => $"Apostado: {FmtSol(betAmount)}. Sem contraparte financeira valida. Reembolso integral: {FmtSol(refundAmount)}.",
             _ => $"Apostado: {FmtSol(betAmount)}. Recebido: {FmtSol(receivedAmount)}."
         };
     }
@@ -491,13 +564,19 @@ public sealed class WalletController : ControllerBase
         decimal netResult,
         decimal houseFeeAmount,
         decimal totalPool,
-        decimal totalDistributed)
+        decimal totalDistributed,
+        string? settlementReasonCode,
+        bool hasValidFinancialDispute)
     {
         var steps = new List<string>
         {
             $"Aposta registrada: {FmtSol(betAmount)}.",
-            $"Pool total da partida: {FmtSol(totalPool)}."
+            $"Pool total da partida: {FmtSol(totalPool)}.",
+            $"Houve disputa financeira valida? {(hasValidFinancialDispute ? "Sim" : "Nao")}."
         };
+
+        if (!string.IsNullOrWhiteSpace(settlementReasonCode))
+            steps.Add($"Motivo da liquidacao: {settlementReasonCode}.");
 
         if (houseFeeAmount > 0m)
             steps.Add($"Taxa da casa estimada na pool: {FmtSol(houseFeeAmount)}.");
@@ -513,6 +592,9 @@ public sealed class WalletController : ControllerBase
             "partial-loss" => $"Aposta com devolucao parcial. Recebimento: {FmtSol(receivedAmount)}.",
             "refunded" => $"Aposta reembolsada. Recebimento: {FmtSol(receivedAmount)}.",
             "cancelled" => $"Partida cancelada. Reembolso previsto ao usuario: {FmtSol(refundAmount)}.",
+            "draw-refunded" => $"Partida sem vencedor. Reembolso integral: {FmtSol(refundAmount)}.",
+            "won-no-opponent-pool" => $"Venceu no placar, mas sem pool adversaria. Reembolso integral: {FmtSol(refundAmount)}.",
+            "refunded-no-counterparty" => $"Sem contraparte financeira valida. Reembolso integral: {FmtSol(refundAmount)}.",
             _ => "Regra especial aplicada na liquidacao."
         });
 
@@ -543,6 +625,9 @@ public sealed class WalletController : ControllerBase
         public MatchStatus MatchStatus { get; init; }
         public bool? IsWinner { get; init; }
         public DateTimeOffset? SettledAt { get; init; }
+        public string? EndReasonCode { get; init; }
+        public int ScoreTeamA { get; init; }
+        public int ScoreTeamB { get; init; }
     }
 
     private sealed record WalletResultClassification(
@@ -554,4 +639,92 @@ public sealed class WalletController : ControllerBase
         bool IsCancelled = false,
         bool IsDraw = false,
         bool IsPartialLoss = false);
+
+    private static bool HasValidFinancialDispute(
+        Match match,
+        decimal totalBetOnTeamA,
+        decimal totalBetOnTeamB,
+        int walletCountTeamA,
+        int walletCountTeamB)
+        => match.Status == MatchStatus.Completed
+           && match.WinnerTeamId.HasValue
+           && match.ScoreA != match.ScoreB
+           && totalBetOnTeamA > 0m
+           && totalBetOnTeamB > 0m
+           && walletCountTeamA > 0
+           && walletCountTeamB > 0;
+
+    private static string ResolveSettlementReasonCode(
+        Match match,
+        decimal totalBetOnTeamA,
+        decimal totalBetOnTeamB,
+        int walletCountTeamA,
+        int walletCountTeamB)
+    {
+        if (!string.IsNullOrWhiteSpace(match.EndReasonCode))
+            return match.EndReasonCode!;
+
+        if (match.Status == MatchStatus.Cancelled)
+            return "CANCELLED";
+
+        if (match.ScoreA == 0 && match.ScoreB == 0)
+            return "DRAW_ZERO_ZERO";
+
+        if (!match.WinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
+            return "NO_WINNER";
+
+        if (totalBetOnTeamA <= 0m || walletCountTeamA <= 0)
+            return "NO_BETS_ON_TEAM_A";
+
+        if (totalBetOnTeamB <= 0m || walletCountTeamB <= 0)
+            return "NO_BETS_ON_TEAM_B";
+
+        return "SETTLED";
+    }
+
+    private static decimal GetEffectiveReceivedAmount(WalletResultClassification result, decimal payoutAmount, decimal betAmount)
+        => result.Code switch
+        {
+            "won" or "lost" or "partial-loss" => payoutAmount,
+            _ => 0m
+        };
+
+    private static decimal GetRefundAmount(WalletResultClassification result, decimal payoutAmount, decimal betAmount)
+        => result.Code switch
+        {
+            "refunded" => payoutAmount > 0m ? payoutAmount : betAmount,
+            "partial-loss" => payoutAmount,
+            "cancelled" or "draw-refunded" or "won-no-opponent-pool" or "refunded-no-counterparty" => betAmount,
+            _ => 0m
+        };
+
+    private static decimal GetNetResult(WalletResultClassification result, decimal receivedAmount, decimal refundAmount, decimal betAmount)
+        => result.IsOpen ? 0m : receivedAmount + refundAmount - betAmount;
+
+    private static string MaskWallet(string? wallet)
+    {
+        if (string.IsNullOrWhiteSpace(wallet))
+            return "-";
+
+        var trimmed = wallet.Trim();
+        if (trimmed.Length <= 10)
+            return trimmed;
+
+        return $"{trimmed[..4]}...{trimmed[^4..]}";
+    }
+
+    private static decimal GetParticipantReceivedAmount(MatchStatus matchStatus, decimal payoutAmount, decimal betAmount, string? settlementReasonCode)
+    {
+        var result = ClassifyResult(matchStatus, null, payoutAmount, betAmount, settlementReasonCode);
+        return result.Code switch
+        {
+            "won" or "lost" or "partial-loss" => payoutAmount,
+            "refunded" => payoutAmount > 0m ? payoutAmount : betAmount,
+            "cancelled" or "draw-refunded" or "won-no-opponent-pool" or "refunded-no-counterparty" => betAmount,
+            _ => 0m
+        };
+    }
+
+    private static string GetParticipantResultLabel(MatchStatus matchStatus, bool? isWinner, decimal payoutAmount, decimal betAmount, string? settlementReasonCode)
+        => ClassifyResult(matchStatus, isWinner, payoutAmount, betAmount, settlementReasonCode).Label;
 }

@@ -1149,6 +1149,11 @@ namespace CriptoVersus.Worker
 
                     if (winnerTeamId is not int settledWinnerTeamId || loserTeamId is not int settledLoserTeamId)
                     {
+                        ApplyNoContestReason(match, "NO_WINNER", "Partida encerrada sem vencedor definido.");
+
+                        if (match.ScoreA == 0 && match.ScoreB == 0)
+                            ApplyNoContestReason(match, "DRAW_ZERO_ZERO", "Partida terminou em 0x0. Sem vencedor, sem taxa e com reembolso integral.");
+
                         _logger.LogInformation(
                             "🤝 Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
                             match.MatchId,
@@ -1184,6 +1189,15 @@ namespace CriptoVersus.Worker
 
                     if (winnerBets.Count == 0 || loserBets.Count == 0 || totalWinnerStake <= 0m || totalLoserStake <= 0m)
                     {
+                        var reasonCode = DetermineNoContestReason(
+                            match,
+                            winnerBets.Count,
+                            loserBets.Count,
+                            totalWinnerStake,
+                            totalLoserStake);
+
+                        ApplyNoContestReason(match, reasonCode, BuildNoContestReasonDetail(reasonCode, match));
+
                         _logger.LogWarning(
                             "⚠️ Settlement sem contraparte suficiente. match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets}",
                             match.MatchId,
@@ -1339,6 +1353,55 @@ namespace CriptoVersus.Worker
             }
 
             await db.SaveChangesAsync(ct);
+        }
+
+        private static string DetermineNoContestReason(
+            Match match,
+            int winnerBetsCount,
+            int loserBetsCount,
+            decimal totalWinnerStake,
+            decimal totalLoserStake)
+        {
+            if (match.Status == MatchStatus.Cancelled)
+                return "CANCELLED";
+
+            if (match.ScoreA == 0 && match.ScoreB == 0)
+                return "DRAW_ZERO_ZERO";
+
+            if (!match.WinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
+                return "NO_WINNER";
+
+            if (match.WinnerTeamId == match.TeamAId && (winnerBetsCount <= 0 || totalWinnerStake <= 0m))
+                return "NO_BETS_ON_TEAM_A";
+
+            if (match.WinnerTeamId == match.TeamBId && (winnerBetsCount <= 0 || totalWinnerStake <= 0m))
+                return "NO_BETS_ON_TEAM_B";
+
+            if (match.WinnerTeamId == match.TeamAId && (loserBetsCount <= 0 || totalLoserStake <= 0m))
+                return "NO_BETS_ON_TEAM_B";
+
+            if (match.WinnerTeamId == match.TeamBId && (loserBetsCount <= 0 || totalLoserStake <= 0m))
+                return "NO_BETS_ON_TEAM_A";
+
+            return "NO_COUNTERPARTY";
+        }
+
+        private static string BuildNoContestReasonDetail(string reasonCode, Match match)
+            => reasonCode switch
+            {
+                "DRAW_ZERO_ZERO" => "Placar final 0x0. Nao houve vencedor nem disputa financeira valida.",
+                "NO_BETS_ON_TEAM_A" => $"Nao havia apostas validas em {match.TeamAId}. Sem contraparte financeira valida.",
+                "NO_BETS_ON_TEAM_B" => $"Nao havia apostas validas em {match.TeamBId}. Sem contraparte financeira valida.",
+                "NO_COUNTERPARTY" => "Nao havia apostas validas nos dois lados para formar contraparte financeira.",
+                "CANCELLED" => "Partida cancelada. Apostas devolvidas integralmente.",
+                _ => "Partida encerrada sem vencedor definido. Apostas devolvidas integralmente."
+            };
+
+        private static void ApplyNoContestReason(Match match, string reasonCode, string reasonDetail)
+        {
+            match.EndReasonCode = reasonCode;
+            match.EndReasonDetail = reasonDetail;
+            match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
         }
 
         private async Task<bool> ApplyPositionCapitalAsync(
