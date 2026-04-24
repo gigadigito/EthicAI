@@ -54,12 +54,16 @@ namespace DTOs
     public int BetCountTeamA { get; set; }
     public int BetCountTeamB { get; set; }
     public decimal TotalPool { get; set; }
+    public int TotalWalletCount { get; set; }
+    public decimal TotalPoolAmount { get; set; }
     public decimal LosingPool { get; set; }
     public decimal WinningPool { get; set; }
     public decimal HouseFeeAmount { get; set; }
     public decimal TotalDistributed { get; set; }
     public bool HasBetsOnBothSides { get; set; }
     public bool HasValidFinancialDispute { get; set; }
+    public int PoolStrengthTeamA { get; set; }
+    public int PoolStrengthTeamB { get; set; }
     public List<MatchParticipantDto> Participants { get; set; } = [];
     }
 

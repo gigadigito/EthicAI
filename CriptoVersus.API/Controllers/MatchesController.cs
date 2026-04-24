@@ -95,10 +95,14 @@ namespace CriptoVersus.API.Controllers
                     (m.TeamA.Currency.Symbol.ToUpper() == a && m.TeamB.Currency.Symbol.ToUpper() == b) ||
                     (m.TeamA.Currency.Symbol.ToUpper() == b && m.TeamB.Currency.Symbol.ToUpper() == a));
 
-            // Prioriza Ongoing, depois mais recente
+            // Prioriza a partida ao vivo. Se nao houver, prioriza a ultima finalizada
+            // antes de mostrar uma nova pending do mesmo par.
             var match = await q
-                .OrderBy(m => m.Status == MatchStatus.Ongoing ? 0 : 1)
-                .ThenByDescending(m => m.StartTime ?? DateTime.MinValue)
+                .OrderBy(m => m.Status == MatchStatus.Ongoing ? 0
+                    : m.Status == MatchStatus.Completed ? 1
+                    : m.Status == MatchStatus.Pending ? 2
+                    : 3)
+                .ThenByDescending(m => m.EndTime ?? m.StartTime ?? DateTime.MinValue)
                 .FirstOrDefaultAsync(ct);
 
             if (match is null)
@@ -392,6 +396,7 @@ namespace CriptoVersus.API.Controllers
             var betCountTeamA = teamAStats?.BetCount ?? 0;
             var betCountTeamB = teamBStats?.BetCount ?? 0;
             var totalPool = totalAmountTeamA + totalAmountTeamB;
+            var totalWalletCount = walletCountTeamA + walletCountTeamB;
             var totalDistributed = aggregates.Where(x => x.MatchId == match.MatchId).Sum(x => x.TotalDistributed);
             var hasBetsOnBothSides = totalAmountTeamA > 0m && totalAmountTeamB > 0m && walletCountTeamA > 0 && walletCountTeamB > 0;
             var hasValidFinancialDispute = HasValidFinancialDispute(match, totalAmountTeamA, totalAmountTeamB, walletCountTeamA, walletCountTeamB);
@@ -399,6 +404,8 @@ namespace CriptoVersus.API.Controllers
             var winningPool = match.WinnerTeamId == match.TeamAId ? totalAmountTeamA : match.WinnerTeamId == match.TeamBId ? totalAmountTeamB : 0m;
             var houseFeeRate = ClampRate(GetDecimal("CriptoVersusWorker:Settlement:HouseFeeRate", 0.01m));
             var houseFeeAmount = hasValidFinancialDispute ? Math.Round(losingPool * houseFeeRate, 8) : 0m;
+            var poolStrengthTeamA = CalculatePoolStrength(walletCountTeamA, totalWalletCount, totalAmountTeamA, totalPool);
+            var poolStrengthTeamB = CalculatePoolStrength(walletCountTeamB, totalWalletCount, totalAmountTeamB, totalPool);
 
             return new MatchDto
             {
@@ -431,12 +438,16 @@ namespace CriptoVersus.API.Controllers
                 BetCountTeamA = betCountTeamA,
                 BetCountTeamB = betCountTeamB,
                 TotalPool = totalPool,
+                TotalWalletCount = totalWalletCount,
+                TotalPoolAmount = totalPool,
                 LosingPool = losingPool,
                 WinningPool = winningPool,
                 HouseFeeAmount = houseFeeAmount,
                 TotalDistributed = totalDistributed,
                 HasBetsOnBothSides = hasBetsOnBothSides,
                 HasValidFinancialDispute = hasValidFinancialDispute,
+                PoolStrengthTeamA = poolStrengthTeamA,
+                PoolStrengthTeamB = poolStrengthTeamB,
                 Participants = participantsByMatch.TryGetValue(match.MatchId, out var participantsForMatch) ? participantsForMatch : []
             };
         }
@@ -448,6 +459,23 @@ namespace CriptoVersus.API.Controllers
 
         private static decimal ClampRate(decimal rate)
             => Math.Clamp(rate, 0m, 1m);
+
+        private static int CalculatePoolStrength(int walletCountTeam, int totalWalletCount, decimal totalAmountTeam, decimal totalPoolAmount)
+        {
+            const decimal walletWeight = 0.5m;
+            const decimal amountWeight = 0.5m;
+
+            var walletShare = totalWalletCount > 0
+                ? (decimal)walletCountTeam / totalWalletCount
+                : 0m;
+
+            var amountShare = totalPoolAmount > 0m
+                ? totalAmountTeam / totalPoolAmount
+                : 0m;
+
+            var strength = (walletShare * walletWeight + amountShare * amountWeight) * 100m;
+            return (int)Math.Clamp(Math.Round(strength, MidpointRounding.AwayFromZero), 0m, 100m);
+        }
 
         private static bool HasValidFinancialDispute(
             Match match,
