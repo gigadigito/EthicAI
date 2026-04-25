@@ -1,3 +1,5 @@
+
+
 cd /home/admin/stacks/criptoversus-api/src
 git status
 git pull origin main

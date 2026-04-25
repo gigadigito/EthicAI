@@ -1427,6 +1427,15 @@
         }
 
         await RefreshAuthenticatedUserAsync();
+        try
+        {
+            await HubClient.EnsureStartedAsync();
+        }
+        catch
+        {
+            // O detalhe da partida ainda funciona sem o hub; mantemos o fallback de recarga leve.
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -1877,10 +1886,12 @@
     private string _remainingText = "(90:00)";
 
     private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+    private static readonly TimeSpan LiveReloadInterval = TimeSpan.FromSeconds(5);
 
     private bool _hubWired;
     private CancellationTokenSource? _reloadCts;
     private int _reloadSeq;
+    private DateTime _lastAutoReloadUtc = DateTime.MinValue;
 
     protected override void OnInitialized()
     {
@@ -1999,6 +2010,23 @@
         if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
 
         _remainingText = $"({(int)remaining.TotalMinutes:00}:{remaining.Seconds:00})";
+
+        if (ShouldAutoReloadLiveMatch(DateTime.UtcNow, elapsed))
+        {
+            _lastAutoReloadUtc = DateTime.UtcNow;
+            DebouncedReload();
+        }
+    }
+
+    private bool ShouldAutoReloadLiveMatch(DateTime nowUtc, TimeSpan elapsed)
+    {
+        if (_match is null || !IsOngoing(_match.Status))
+            return false;
+
+        if (elapsed >= MatchDuration)
+            return true;
+
+        return nowUtc - _lastAutoReloadUtc >= LiveReloadInterval;
     }
 
     public void Dispose()

@@ -1142,7 +1142,7 @@ namespace CriptoVersus.Worker
                         return;
                     }
 
-                    var winnerTeamId = match.WinnerTeamId;
+                    var winnerTeamId = GetEffectiveWinnerTeamId(match);
                     var loserTeamId = winnerTeamId.HasValue
                         ? (winnerTeamId == match.TeamAId ? match.TeamBId : match.TeamAId)
                         : (int?)null;
@@ -1362,28 +1362,44 @@ namespace CriptoVersus.Worker
             decimal totalWinnerStake,
             decimal totalLoserStake)
         {
+            var effectiveWinnerTeamId = GetEffectiveWinnerTeamId(match);
+
             if (match.Status == MatchStatus.Cancelled)
                 return "CANCELLED";
 
             if (match.ScoreA == 0 && match.ScoreB == 0)
                 return "DRAW_ZERO_ZERO";
 
-            if (!match.WinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
+            if (!effectiveWinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
                 return "NO_WINNER";
 
-            if (match.WinnerTeamId == match.TeamAId && (winnerBetsCount <= 0 || totalWinnerStake <= 0m))
+            if (effectiveWinnerTeamId == match.TeamAId && (winnerBetsCount <= 0 || totalWinnerStake <= 0m))
                 return "NO_BETS_ON_TEAM_A";
 
-            if (match.WinnerTeamId == match.TeamBId && (winnerBetsCount <= 0 || totalWinnerStake <= 0m))
+            if (effectiveWinnerTeamId == match.TeamBId && (winnerBetsCount <= 0 || totalWinnerStake <= 0m))
                 return "NO_BETS_ON_TEAM_B";
 
-            if (match.WinnerTeamId == match.TeamAId && (loserBetsCount <= 0 || totalLoserStake <= 0m))
+            if (effectiveWinnerTeamId == match.TeamAId && (loserBetsCount <= 0 || totalLoserStake <= 0m))
                 return "NO_BETS_ON_TEAM_B";
 
-            if (match.WinnerTeamId == match.TeamBId && (loserBetsCount <= 0 || totalLoserStake <= 0m))
+            if (effectiveWinnerTeamId == match.TeamBId && (loserBetsCount <= 0 || totalLoserStake <= 0m))
                 return "NO_BETS_ON_TEAM_A";
 
             return "NO_COUNTERPARTY";
+        }
+
+        private static int? GetEffectiveWinnerTeamId(Match match)
+        {
+            if (match.WinnerTeamId.HasValue)
+                return match.WinnerTeamId;
+
+            if (match.ScoreA > match.ScoreB)
+                return match.TeamAId;
+
+            if (match.ScoreB > match.ScoreA)
+                return match.TeamBId;
+
+            return null;
         }
 
         private static string BuildNoContestReasonDetail(string reasonCode, Match match)

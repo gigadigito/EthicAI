@@ -309,6 +309,7 @@ namespace CriptoVersus.API.Controllers
 
             match.Status = MatchStatus.Completed;
             match.EndTime = DateTime.UtcNow;
+            match.WinnerTeamId = GetEffectiveWinnerTeamId(match);
 
             await _db.SaveChangesAsync(ct);
             await NotifyDashboardChangedAsync("match_completed", match.MatchId, ct);
@@ -380,6 +381,7 @@ namespace CriptoVersus.API.Controllers
             var a = match.TeamA?.Currency;
             var b = match.TeamB?.Currency;
             var winner = match.WinnerTeam?.Currency;
+            var effectiveWinnerTeamId = GetEffectiveWinnerTeamId(match);
 
             var elapsed = 0;
             var finished = match.Status == MatchStatus.Completed;
@@ -400,8 +402,8 @@ namespace CriptoVersus.API.Controllers
             var totalDistributed = aggregates.Where(x => x.MatchId == match.MatchId).Sum(x => x.TotalDistributed);
             var hasBetsOnBothSides = totalAmountTeamA > 0m && totalAmountTeamB > 0m && walletCountTeamA > 0 && walletCountTeamB > 0;
             var hasValidFinancialDispute = HasValidFinancialDispute(match, totalAmountTeamA, totalAmountTeamB, walletCountTeamA, walletCountTeamB);
-            var losingPool = match.WinnerTeamId == match.TeamAId ? totalAmountTeamB : match.WinnerTeamId == match.TeamBId ? totalAmountTeamA : 0m;
-            var winningPool = match.WinnerTeamId == match.TeamAId ? totalAmountTeamA : match.WinnerTeamId == match.TeamBId ? totalAmountTeamB : 0m;
+            var losingPool = effectiveWinnerTeamId == match.TeamAId ? totalAmountTeamB : effectiveWinnerTeamId == match.TeamBId ? totalAmountTeamA : 0m;
+            var winningPool = effectiveWinnerTeamId == match.TeamAId ? totalAmountTeamA : effectiveWinnerTeamId == match.TeamBId ? totalAmountTeamB : 0m;
             var houseFeeRate = ClampRate(GetDecimal("CriptoVersusWorker:Settlement:HouseFeeRate", 0.01m));
             var houseFeeAmount = hasValidFinancialDispute ? Math.Round(losingPool * houseFeeRate, 8) : 0m;
             var poolStrengthTeamA = CalculatePoolStrength(walletCountTeamA, totalWalletCount, totalAmountTeamA, totalPool);
@@ -427,8 +429,8 @@ namespace CriptoVersus.API.Controllers
                 QuoteVolumeA = a?.QuoteVolume,
                 QuoteVolumeB = b?.QuoteVolume,
                 ScoringRuleType = match.ScoringRuleType.ToString(),
-                WinnerTeamId = match.WinnerTeamId,
-                WinnerTeamSymbol = winner?.Symbol ?? (match.WinnerTeamId == match.TeamAId ? a?.Symbol : match.WinnerTeamId == match.TeamBId ? b?.Symbol : null),
+                WinnerTeamId = effectiveWinnerTeamId,
+                WinnerTeamSymbol = winner?.Symbol ?? (effectiveWinnerTeamId == match.TeamAId ? a?.Symbol : effectiveWinnerTeamId == match.TeamBId ? b?.Symbol : null),
                 EndReasonCode = ResolveSettlementReasonCode(match, totalAmountTeamA, totalAmountTeamB, walletCountTeamA, walletCountTeamB),
                 EndReasonDetail = match.EndReasonDetail,
                 TotalAmountTeamA = totalAmountTeamA,
@@ -484,12 +486,26 @@ namespace CriptoVersus.API.Controllers
             int walletCountTeamA,
             int walletCountTeamB)
             => match.Status == MatchStatus.Completed
-               && match.WinnerTeamId.HasValue
+               && GetEffectiveWinnerTeamId(match).HasValue
                && match.ScoreA != match.ScoreB
                && totalAmountTeamA > 0m
                && totalAmountTeamB > 0m
                && walletCountTeamA > 0
                && walletCountTeamB > 0;
+
+        private static int? GetEffectiveWinnerTeamId(Match match)
+        {
+            if (match.WinnerTeamId.HasValue)
+                return match.WinnerTeamId;
+
+            if (match.ScoreA > match.ScoreB)
+                return match.TeamAId;
+
+            if (match.ScoreB > match.ScoreA)
+                return match.TeamBId;
+
+            return null;
+        }
 
         private static string ResolveSettlementReasonCode(
             Match match,
@@ -507,7 +523,7 @@ namespace CriptoVersus.API.Controllers
             if (match.ScoreA == 0 && match.ScoreB == 0)
                 return "DRAW_ZERO_ZERO";
 
-            if (!match.WinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
+            if (!GetEffectiveWinnerTeamId(match).HasValue || match.ScoreA == match.ScoreB)
                 return "NO_WINNER";
 
             if (totalAmountTeamA <= 0m || walletCountTeamA <= 0)

@@ -242,6 +242,7 @@ public sealed class WalletController : ControllerBase
                 var teamA = match.TeamA;
                 var teamB = match.TeamB;
                 var winner = match.WinnerTeam;
+                var effectiveWinnerTeamId = GetEffectiveWinnerTeamId(match);
                 var userTeamSymbol = selectedTeam?.Currency?.Symbol ?? $"Team#{bet.TeamId}";
                 var teamASymbol = teamA?.Currency?.Symbol ?? $"Team#{match.TeamAId}";
                 var teamBSymbol = teamB?.Currency?.Symbol ?? $"Team#{match.TeamBId}";
@@ -259,13 +260,13 @@ public sealed class WalletController : ControllerBase
                 var hasBetsOnBothSides = totalBetOnTeamA > 0m && totalBetOnTeamB > 0m && walletCountTeamA > 0 && walletCountTeamB > 0;
                 var settlementReasonCode = ResolveSettlementReasonCode(match, totalBetOnTeamA, totalBetOnTeamB, walletCountTeamA, walletCountTeamB);
                 var hasValidFinancialDispute = HasValidFinancialDispute(match, totalBetOnTeamA, totalBetOnTeamB, walletCountTeamA, walletCountTeamB);
-                var winningPool = match.WinnerTeamId == match.TeamAId ? totalBetOnTeamA : match.WinnerTeamId == match.TeamBId ? totalBetOnTeamB : 0m;
-                var losingPool = match.WinnerTeamId == match.TeamAId ? totalBetOnTeamB : match.WinnerTeamId == match.TeamBId ? totalBetOnTeamA : 0m;
+                var winningPool = effectiveWinnerTeamId == match.TeamAId ? totalBetOnTeamA : effectiveWinnerTeamId == match.TeamBId ? totalBetOnTeamB : 0m;
+                var losingPool = effectiveWinnerTeamId == match.TeamAId ? totalBetOnTeamB : effectiveWinnerTeamId == match.TeamBId ? totalBetOnTeamA : 0m;
                 var houseFeeAmount = hasValidFinancialDispute && match.Status == MatchStatus.Completed ? Math.Round(losingPool * houseFeeRate, 8) : 0m;
                 var result = ClassifyResult(match.Status, bet.IsWinner, bet.PayoutAmount ?? 0m, bet.Amount, settlementReasonCode);
                 var scoreSummary = $"{teamASymbol} {match.ScoreA} x {match.ScoreB} {teamBSymbol}";
                 var winnerSymbol = winner?.Currency?.Symbol
-                    ?? (match.WinnerTeamId == match.TeamAId ? teamASymbol : match.WinnerTeamId == match.TeamBId ? teamBSymbol : null);
+                    ?? (effectiveWinnerTeamId == match.TeamAId ? teamASymbol : effectiveWinnerTeamId == match.TeamBId ? teamBSymbol : null);
                 var effectiveReceivedAmount = GetEffectiveReceivedAmount(result, bet.PayoutAmount ?? 0m, bet.Amount);
                 var refundAmount = GetRefundAmount(result, bet.PayoutAmount ?? 0m, bet.Amount);
                 var netResult = GetNetResult(result, effectiveReceivedAmount, refundAmount, bet.Amount);
@@ -279,7 +280,7 @@ public sealed class WalletController : ControllerBase
                     TeamId = bet.TeamId,
                     TeamAId = match.TeamAId,
                     TeamBId = match.TeamBId,
-                    WinnerTeamId = match.WinnerTeamId,
+                    WinnerTeamId = effectiveWinnerTeamId,
                     UserTeamSymbol = userTeamSymbol,
                     OpponentSymbol = opponentSymbol,
                     TeamASymbol = teamASymbol,
@@ -647,12 +648,26 @@ public sealed class WalletController : ControllerBase
         int walletCountTeamA,
         int walletCountTeamB)
         => match.Status == MatchStatus.Completed
-           && match.WinnerTeamId.HasValue
+           && GetEffectiveWinnerTeamId(match).HasValue
            && match.ScoreA != match.ScoreB
            && totalBetOnTeamA > 0m
            && totalBetOnTeamB > 0m
            && walletCountTeamA > 0
            && walletCountTeamB > 0;
+
+    private static int? GetEffectiveWinnerTeamId(Match match)
+    {
+        if (match.WinnerTeamId.HasValue)
+            return match.WinnerTeamId;
+
+        if (match.ScoreA > match.ScoreB)
+            return match.TeamAId;
+
+        if (match.ScoreB > match.ScoreA)
+            return match.TeamBId;
+
+        return null;
+    }
 
     private static string ResolveSettlementReasonCode(
         Match match,
@@ -670,7 +685,7 @@ public sealed class WalletController : ControllerBase
         if (match.ScoreA == 0 && match.ScoreB == 0)
             return "DRAW_ZERO_ZERO";
 
-        if (!match.WinnerTeamId.HasValue || match.ScoreA == match.ScoreB)
+        if (!GetEffectiveWinnerTeamId(match).HasValue || match.ScoreA == match.ScoreB)
             return "NO_WINNER";
 
         if (totalBetOnTeamA <= 0m || walletCountTeamA <= 0)
