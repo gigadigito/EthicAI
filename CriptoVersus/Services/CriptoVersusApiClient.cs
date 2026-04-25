@@ -32,6 +32,9 @@ public sealed class CriptoVersusApiClient
         return await GetFromJsonWithBearerAsync<MatchDto>(url);
     }
 
+    public async Task<MatchDto?> GetMatchByIdAsync(int matchId, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<MatchDto>($"api/Matches/{matchId}", ct);
+
     public async Task<List<MatchMetricSnapshotDto>?> GetMatchMetricSnapshotsAsync(
         int matchId,
         int take = 500,

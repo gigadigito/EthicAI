@@ -336,7 +336,7 @@ else
                                 @if (!canBetLive)
                                 {
                                     <span class="closed-bet">Investimentos encerrados</span>
-                                    <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
+                                    <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">Acompanhar</a>
                                 }
                                 else
                                 {
@@ -422,7 +422,7 @@ else
                                 <span style="width: @GetProgressPercent(m.ElapsedMinutes, m.RemainingMinutes)%"></span>
                             </div>
 
-                            <a class="live-watch-cta" href="@GetMatchUrl(m.TeamA, m.TeamB)">
+                            <a class="live-watch-cta" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">
                                 <span class="live-watch-copy">
                                     <span class="live-watch-kicker">Acompanhamento ao vivo</span>
                                     <span class="live-watch-title">Abrir painel da partida</span>
@@ -432,7 +432,7 @@ else
 
                             <div class="match-card-footer">
                                 <span class="match-meta">Mercado acompanha variação em tempo real</span>
-                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Detalhes</a>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">Detalhes</a>
                             </div>
                         </article>
                     }
@@ -505,7 +505,7 @@ else
 
                             <div class="match-card-footer">
                                 <span class="match-meta">Historico e log da partida disponiveis</span>
-                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB)">Acompanhar</a>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">Acompanhar</a>
                             </div>
                         </article>
                     }
@@ -1598,9 +1598,10 @@ else
         return "status-closed";
     }
 
-    private static string GetMatchUrl(string teamA, string teamB)
+    private static string GetMatchUrl(string teamA, string teamB, int? matchId = null)
     {
-        return $"/match/{Slugify(teamA)}-vs-{Slugify(teamB)}";
+        var baseUrl = $"/match/{Slugify(teamA)}-vs-{Slugify(teamB)}";
+        return matchId is int id && id > 0 ? $"{baseUrl}/{id}" : baseUrl;
     }
 
     private static string Slugify(string s)
