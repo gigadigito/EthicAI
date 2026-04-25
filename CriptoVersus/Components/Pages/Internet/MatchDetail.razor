@@ -1807,6 +1807,9 @@
         if (match.WinnerTeamId.HasValue)
             return match.WinnerTeamId;
 
+        if (!IsCompleted(match.Status))
+            return null;
+
         if (match.ScoreA > match.ScoreB)
             return match.TeamAId;
 

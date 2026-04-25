@@ -660,6 +660,9 @@ public sealed class WalletController : ControllerBase
         if (match.WinnerTeamId.HasValue)
             return match.WinnerTeamId;
 
+        if (match.Status != MatchStatus.Completed)
+            return null;
+
         if (match.ScoreA > match.ScoreB)
             return match.TeamAId;
 
