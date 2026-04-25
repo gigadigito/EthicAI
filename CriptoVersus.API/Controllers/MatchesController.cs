@@ -64,6 +64,10 @@ namespace CriptoVersus.API.Controllers
                 .Take(take)
                 .ToListAsync(ct);
 
+            matches = matches
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol))
+                .ToList();
+
             var items = await ToMatchDtosAsync(matches, now, ct);
             return Ok(items);
         }
@@ -108,6 +112,9 @@ namespace CriptoVersus.API.Controllers
             if (match is null)
                 return NotFound();
 
+            if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol))
+                return NotFound();
+
             return Ok(await ToMatchDtoAsync(match, now, ct));
         }
 
@@ -128,6 +135,9 @@ namespace CriptoVersus.API.Controllers
                 .FirstOrDefaultAsync(m => m.MatchId == id, ct);
 
             if (match == null)
+                return NotFound();
+
+            if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol))
                 return NotFound();
 
             return Ok(await ToMatchDtoAsync(match, now, ct));
@@ -239,11 +249,20 @@ namespace CriptoVersus.API.Controllers
             if (req.TeamAId == req.TeamBId)
                 return BadRequest("TeamA e TeamB devem ser diferentes.");
 
-            var teamAExists = await _db.Set<Team>().AnyAsync(t => t.TeamId == req.TeamAId, ct);
-            var teamBExists = await _db.Set<Team>().AnyAsync(t => t.TeamId == req.TeamBId, ct);
+            var teams = await _db.Set<Team>()
+                .AsNoTracking()
+                .Include(t => t.Currency)
+                .Where(t => t.TeamId == req.TeamAId || t.TeamId == req.TeamBId)
+                .ToListAsync(ct);
 
-            if (!teamAExists || !teamBExists)
+            var teamA = teams.FirstOrDefault(t => t.TeamId == req.TeamAId);
+            var teamB = teams.FirstOrDefault(t => t.TeamId == req.TeamBId);
+
+            if (teamA is null || teamB is null)
                 return BadRequest("Time inválido.");
+
+            if (MatchPairRules.IsForbiddenPair(teamA.Currency?.Symbol, teamB.Currency?.Symbol))
+                return BadRequest(MatchPairRules.GetForbiddenPairReason(teamA.Currency?.Symbol, teamB.Currency?.Symbol));
 
             var match = new Match
             {

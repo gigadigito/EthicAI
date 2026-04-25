@@ -94,6 +94,7 @@ namespace BLL.NFTFutebol
                 var b = currencies[i + 1];
 
                 if (a.CurrencyId == 0 || b.CurrencyId == 0) continue;
+                if (MatchPairRules.IsForbiddenPair(a.Symbol, b.Symbol)) continue;
 
                 var key = NormalizePairKey(a.Symbol, b.Symbol);
                 if (existingPairs.Contains(key)) continue;
@@ -152,6 +153,9 @@ namespace BLL.NFTFutebol
             {
                 var currencyA = currencies[i * 2];
                 var currencyB = currencies[i * 2 + 1];
+
+                if (MatchPairRules.IsForbiddenPair(currencyA.Symbol, currencyB.Symbol))
+                    continue;
 
                 // Criar times para as moedas
                 var teamA = new Team { CurrencyId = currencyA.CurrencyId };

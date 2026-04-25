@@ -119,7 +119,7 @@ namespace CriptoVersus.API.Controllers
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
-            return await db.Set<Match>()
+            var items = await db.Set<Match>()
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
@@ -128,13 +128,17 @@ namespace CriptoVersus.API.Controllers
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
+
+            return items
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB))
+                .ToList();
         }
 
         private async Task<List<MatchDto>> GetPendingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
-            return await db.Set<Match>()
+            var items = await db.Set<Match>()
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
@@ -146,6 +150,10 @@ namespace CriptoVersus.API.Controllers
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
+
+            return items
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB))
+                .ToList();
         }
 
         private async Task<List<MatchDto>> GetCompletedListAsync(
@@ -157,7 +165,7 @@ namespace CriptoVersus.API.Controllers
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
-            return await db.Set<Match>()
+            var items = await db.Set<Match>()
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
@@ -167,26 +175,49 @@ namespace CriptoVersus.API.Controllers
                 .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
+
+            return items
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB))
+                .ToList();
         }
 
         private async Task<int> CountPendingAsync(CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
-            return await db.Set<Match>().AsNoTracking().CountAsync(m => m.Status == MatchStatus.Pending, ct);
+            var items = await db.Set<Match>()
+                .AsNoTracking()
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Where(m => m.Status == MatchStatus.Pending)
+                .ToListAsync(ct);
+
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol));
         }
 
         private async Task<int> CountOngoingAsync(CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
-            return await db.Set<Match>().AsNoTracking().CountAsync(m => m.Status == MatchStatus.Ongoing, ct);
+            var items = await db.Set<Match>()
+                .AsNoTracking()
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Where(m => m.Status == MatchStatus.Ongoing)
+                .ToListAsync(ct);
+
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol));
         }
 
         private async Task<int> CountCompletedLast24hAsync(DateTime last24h, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
-            return await db.Set<Match>()
+            var items = await db.Set<Match>()
                 .AsNoTracking()
-                .CountAsync(m => m.EndTime != null && m.EndTime >= last24h, ct);
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .Where(m => m.EndTime != null && m.EndTime >= last24h)
+                .ToListAsync(ct);
+
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol));
         }
 
         private static MatchDto ToMatchDto(Match m, DateTime nowUtc, int matchDurationMinutes)
