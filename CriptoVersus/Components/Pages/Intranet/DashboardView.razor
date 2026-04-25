@@ -616,6 +616,7 @@ else
     .match-list-grid {
         display: grid;
         gap: .85rem;
+        grid-template-columns: 1fr;
     }
 
     .listing-match-card {
@@ -973,6 +974,25 @@ else
         background: rgba(45, 212, 191, .14);
         border-color: #2dd4bf;
         color: #5eead4;
+    }
+
+    @@media (min-width: 1680px) {
+        .match-list-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .listing-match-card {
+            padding: .85rem;
+        }
+
+        .team-symbol {
+            font-size: .94rem;
+        }
+
+        .score-cell {
+            min-width: 5.6rem;
+            padding: 0 .65rem;
+        }
     }
 
     @@media (max-width: 992px) {

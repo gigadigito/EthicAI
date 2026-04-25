@@ -8,7 +8,9 @@ namespace DAL.NftFutebol
         private static readonly HashSet<string> ForbiddenStablecoins = new(StringComparer.OrdinalIgnoreCase)
         {
             "USDC",
-            "USDT"
+            "USDT",
+            "FDUSD",
+            "EUR"
         };
 
         public static bool IsForbiddenStablecoin(string? symbol)
@@ -22,7 +24,7 @@ namespace DAL.NftFutebol
         {
             var a = string.IsNullOrWhiteSpace(symbolA) ? "?" : symbolA.Trim().ToUpperInvariant();
             var b = string.IsNullOrWhiteSpace(symbolB) ? "?" : symbolB.Trim().ToUpperInvariant();
-            return $"Partidas com stablecoins nao sao permitidas. Par recebido: {a} vs {b}. Stablecoins bloqueadas: USDC e USDT.";
+            return $"Partidas com stablecoins nao sao permitidas. Par recebido: {a} vs {b}. Ativos bloqueados: USDC, USDT, FDUSD e EUR.";
         }
     }
 }
