@@ -92,6 +92,16 @@ namespace EthicAI.EntityModel
                       .HasColumnName("nr_balance")
                       .HasDefaultValue(0m);
 
+                entity.Property(e => e.TotalClaimed)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_total_claimed")
+                      .HasDefaultValue(0m);
+
+                entity.Property(e => e.TotalWithdrawn)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_total_withdrawn")
+                      .HasDefaultValue(0m);
+
                 entity.HasMany(e => e.TeamPositions)
                       .WithOne(p => p.User)
                       .HasForeignKey(p => p.UserId)

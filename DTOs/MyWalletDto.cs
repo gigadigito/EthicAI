@@ -8,15 +8,19 @@ public sealed class MyWalletDto
     public string? Email { get; set; }
     public DateTime DtCreate { get; set; }
     public DateTime? LastLogin { get; set; }
-    public decimal Balance { get; set; }
+    public decimal SystemBalance { get; set; }
     public decimal TotalInvested { get; set; }
     public decimal OpenAmount { get; set; }
-    public decimal TotalPayout { get; set; }
+    public decimal AvailableReturns { get; set; }
+    public decimal TotalClaimed { get; set; }
+    public decimal TotalWithdrawn { get; set; }
     public decimal RealizedProfit { get; set; }
     public decimal RealizedLoss { get; set; }
     public decimal RealizedNetResult { get; set; }
     public int OpenInvestments { get; set; }
     public int SettledInvestments { get; set; }
+    public bool CanClaim { get; set; }
+    public bool CanWithdraw { get; set; }
     public List<TeamPositionDto> ActivePositions { get; set; } = [];
     public List<MyWalletInvestmentGroupDto> InvestmentGroups { get; set; } = [];
 }
@@ -28,7 +32,7 @@ public sealed class MyWalletInvestmentGroupDto
     public string CurrencyName { get; set; } = "";
     public decimal TotalInvested { get; set; }
     public decimal OpenAmount { get; set; }
-    public decimal ReceivedAmount { get; set; }
+    public decimal AvailableReturns { get; set; }
     public decimal RealizedNetResult { get; set; }
     public int MatchCount { get; set; }
     public int WonCount { get; set; }

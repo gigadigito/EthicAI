@@ -64,6 +64,16 @@ public sealed class CriptoVersusApiClient
     public async Task<MyWalletDto?> GetMyWalletAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<MyWalletDto>("api/wallet/me", ct);
 
+    public async Task<WalletActionResultDto?> ClaimAvailableReturnsAsync(
+        ClaimAvailableReturnsRequest? request = null,
+        CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<WalletActionResultDto>("api/wallet/claim", request ?? new ClaimAvailableReturnsRequest(), ct);
+
+    public async Task<WalletActionResultDto?> WithdrawSystemBalanceAsync(
+        WithdrawSystemBalanceRequest request,
+        CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<WalletActionResultDto>("api/wallet/withdraw", request, ct);
+
     public async Task<UserMatchHistoryPageDto?> GetWalletHistoryMatchesAsync(
         int userId,
         int teamId,
@@ -87,6 +97,24 @@ public sealed class CriptoVersusApiClient
         CancellationToken ct = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        await AddBearerTokenAsync(request);
+
+        using var response = await _http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+    }
+
+    private async Task<T?> PostAsJsonWithBearerAsync<T>(
+        string url,
+        object payload,
+        CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(payload)
+        };
+
         await AddBearerTokenAsync(request);
 
         using var response = await _http.SendAsync(request, ct);

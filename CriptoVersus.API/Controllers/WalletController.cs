@@ -45,6 +45,7 @@ public sealed class WalletController : ControllerBase
                 MatchStatus = b.Match.Status,
                 IsWinner = b.IsWinner,
                 SettledAt = b.SettledAt,
+                Claimed = b.Claimed,
                 EndReasonCode = b.Match.EndReasonCode,
                 ScoreTeamA = b.Match.ScoreA,
                 ScoreTeamB = b.Match.ScoreB
@@ -60,7 +61,9 @@ public sealed class WalletController : ControllerBase
 
         var totalInvested = betRows.Sum(i => i.Amount);
         var openAmount = betRows.Where(IsOpen).Sum(i => i.Amount);
-        var totalPayout = betRows.Where(i => i.SettledAt.HasValue).Sum(GetSettledValue);
+        var availableReturns = betRows
+            .Where(i => i.SettledAt.HasValue && !i.Claimed && (i.PayoutAmount ?? 0m) > 0m)
+            .Sum(i => i.PayoutAmount ?? 0m);
         var realizedProfit = betRows.Where(i => i.SettledAt.HasValue).Sum(GetProfitAmount);
         var realizedLoss = betRows.Where(i => i.SettledAt.HasValue).Sum(GetLossAmount);
         var realizedNetResult = realizedProfit - realizedLoss;
@@ -77,7 +80,9 @@ public sealed class WalletController : ControllerBase
                     CurrencyName = group.Key.TeamName,
                     TotalInvested = rows.Sum(x => x.Amount),
                     OpenAmount = rows.Where(IsOpen).Sum(x => x.Amount),
-                    ReceivedAmount = rows.Where(x => x.SettledAt.HasValue).Sum(GetSettledValue),
+                    AvailableReturns = rows
+                        .Where(x => x.SettledAt.HasValue && !x.Claimed && (x.PayoutAmount ?? 0m) > 0m)
+                        .Sum(x => x.PayoutAmount ?? 0m),
                     RealizedNetResult = rows.Where(x => x.SettledAt.HasValue).Sum(GetNetAmount),
                     MatchCount = rows.Count,
                     WonCount = rows.Count(IsWon),
@@ -102,17 +107,123 @@ public sealed class WalletController : ControllerBase
             Email = user.Email,
             DtCreate = user.DtCreate,
             LastLogin = user.LastLogin,
-            Balance = user.Balance,
+            SystemBalance = user.Balance,
             TotalInvested = totalInvested,
             OpenAmount = openAmount,
-            TotalPayout = totalPayout,
+            AvailableReturns = availableReturns,
+            TotalClaimed = user.TotalClaimed,
+            TotalWithdrawn = user.TotalWithdrawn,
             RealizedProfit = realizedProfit,
             RealizedLoss = realizedLoss,
             RealizedNetResult = realizedNetResult,
             OpenInvestments = betRows.Count(IsOpen),
             SettledInvestments = betRows.Count(x => x.SettledAt.HasValue),
+            CanClaim = availableReturns > 0m,
+            CanWithdraw = user.Balance > 0m,
             ActivePositions = positions.Select(ToPositionDto).ToList(),
             InvestmentGroups = investmentGroups
+        });
+    }
+
+    [HttpPost("claim")]
+    public async Task<ActionResult<WalletActionResultDto>> ClaimAvailableReturns(
+        [FromBody] ClaimAvailableReturnsRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
+        if (user is null)
+            return Unauthorized(new { message = "Token sem wallet valida." });
+
+        var claimableBets = await _context.Bet
+            .Where(b => b.UserId == user.UserID
+                && b.SettledAt.HasValue
+                && !b.Claimed
+                && (b.PayoutAmount ?? 0m) > 0m)
+            .ToListAsync(cancellationToken);
+
+        if (claimableBets.Count == 0)
+            return BadRequest(new { message = "NothingToClaim" });
+
+        var totalClaimAmount = RoundMoney(claimableBets.Sum(b => b.PayoutAmount ?? 0m));
+        var nowUtc = DateTime.UtcNow;
+        var balanceBefore = user.Balance;
+
+        foreach (var bet in claimableBets)
+        {
+            bet.Claimed = true;
+            bet.ClaimedAt = nowUtc;
+        }
+
+        user.Balance = RoundMoney(user.Balance + totalClaimAmount);
+        user.TotalClaimed = RoundMoney(user.TotalClaimed + totalClaimAmount);
+        user.DtUpdate = nowUtc;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await AddLedgerEntrySafeAsync(
+            user,
+            "CLAIM",
+            totalClaimAmount,
+            balanceBefore,
+            user.Balance,
+            $"Claim de {claimableBets.Count} retornos liquidados.",
+            cancellationToken);
+
+        return Ok(new WalletActionResultDto
+        {
+            ProcessedAmount = totalClaimAmount,
+            SystemBalance = user.Balance,
+            AvailableReturns = 0m,
+            OnChainSignature = request?.OnChainSignature,
+            Message = "Retornos resgatados com sucesso."
+        });
+    }
+
+    [HttpPost("withdraw")]
+    public async Task<ActionResult<WalletActionResultDto>> WithdrawSystemBalance(
+        [FromBody] WithdrawSystemBalanceRequest request,
+        CancellationToken cancellationToken)
+    {
+        var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
+        if (user is null)
+            return Unauthorized(new { message = "Token sem wallet valida." });
+
+        var amount = RoundMoney(request.Amount);
+        if (amount <= 0m)
+            return BadRequest(new { message = "NothingToWithdraw" });
+
+        if (user.Balance <= 0m || amount > user.Balance)
+            return BadRequest(new { message = "InsufficientSystemBalance" });
+
+        var balanceBefore = user.Balance;
+        user.Balance = RoundMoney(user.Balance - amount);
+        user.TotalWithdrawn = RoundMoney(user.TotalWithdrawn + amount);
+        user.DtUpdate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await AddLedgerEntrySafeAsync(
+            user,
+            "WITHDRAW",
+            -amount,
+            balanceBefore,
+            user.Balance,
+            "Saque registrado para a carteira Solana do usuario.",
+            cancellationToken);
+
+        var availableReturns = await _context.Bet
+            .AsNoTracking()
+            .Where(b => b.UserId == user.UserID
+                && b.SettledAt.HasValue
+                && !b.Claimed
+                && (b.PayoutAmount ?? 0m) > 0m)
+            .SumAsync(b => b.PayoutAmount ?? 0m, cancellationToken);
+
+        return Ok(new WalletActionResultDto
+        {
+            ProcessedAmount = amount,
+            SystemBalance = user.Balance,
+            AvailableReturns = availableReturns,
+            OnChainSignature = request.OnChainSignature,
+            Message = "Saque registrado com sucesso."
         });
     }
 
@@ -354,6 +465,16 @@ public sealed class WalletController : ControllerBase
 
         return await _context.User
             .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Wallet == wallet, cancellationToken);
+    }
+
+    private async Task<User?> GetAuthenticatedTrackedUserAsync(CancellationToken cancellationToken)
+    {
+        var wallet = GetAuthenticatedWallet();
+        if (string.IsNullOrWhiteSpace(wallet))
+            return null;
+
+        return await _context.User
             .FirstOrDefaultAsync(u => u.Wallet == wallet, cancellationToken);
     }
 
@@ -615,6 +736,32 @@ public sealed class WalletController : ControllerBase
                 ? $"-{Math.Abs(value):0.########} SOL"
                 : "0 SOL";
 
+    private static decimal RoundMoney(decimal value)
+        => Math.Round(value, 8, MidpointRounding.ToZero);
+
+    private async Task AddLedgerEntrySafeAsync(
+        User user,
+        string type,
+        decimal amount,
+        decimal balanceBefore,
+        decimal balanceAfter,
+        string description,
+        CancellationToken ct)
+    {
+        _context.Set<Ledger>().Add(new Ledger
+        {
+            UserId = user.UserID,
+            Type = type.Trim().ToUpperInvariant(),
+            Amount = RoundMoney(amount),
+            BalanceBefore = RoundMoney(balanceBefore),
+            BalanceAfter = RoundMoney(balanceAfter),
+            CreatedAt = DateTime.UtcNow,
+            Description = description
+        });
+
+        await _context.SaveChangesAsync(ct);
+    }
+
     private sealed class WalletBetSummaryRow
     {
         public int TeamId { get; init; }
@@ -626,6 +773,7 @@ public sealed class WalletController : ControllerBase
         public MatchStatus MatchStatus { get; init; }
         public bool? IsWinner { get; init; }
         public DateTimeOffset? SettledAt { get; init; }
+        public bool Claimed { get; init; }
         public string? EndReasonCode { get; init; }
         public int ScoreTeamA { get; init; }
         public int ScoreTeamB { get; init; }

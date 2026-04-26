@@ -1238,32 +1238,11 @@ namespace CriptoVersus.Worker
 
                         bet.PayoutAmount = loserRefund;
                         bet.SettledAt = settledAtUtc;
+                        bet.Claimed = false;
+                        bet.ClaimedAt = null;
 
                         if (await ApplyPositionCapitalAsync(db, bet, loserRefund, settledAtUtc, ct))
                             continue;
-
-                        if (loserRefund > 0m)
-                        {
-                            var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
-                            if (user == null)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Usuário não encontrado para devolver bet perdedora. UserId={bet.UserId}, BetId={bet.BetId}");
-                            }
-
-                            var balanceBefore = SafeMoney(user.Balance);
-                            user.Balance = balanceBefore + loserRefund;
-
-                            await ledgerService.AddEntryAsync(
-                                user: user,
-                                type: "LOSS_REFUND",
-                                amount: loserRefund,
-                                balanceBefore: balanceBefore,
-                                balanceAfter: user.Balance,
-                                referenceId: bet.BetId,
-                                description: $"Devolucao parcial da bet {bet.BetId} no match {bet.MatchId}",
-                                ct: ct);
-                        }
                     }
 
                     foreach (var bet in winnerBets)
@@ -1276,29 +1255,11 @@ namespace CriptoVersus.Worker
                         bet.IsWinner = true;
                         bet.PayoutAmount = payout;
                         bet.SettledAt = settledAtUtc;
+                        bet.Claimed = false;
+                        bet.ClaimedAt = null;
 
                         if (await ApplyPositionCapitalAsync(db, bet, payout, settledAtUtc, ct))
                             continue;
-
-                        var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
-                        if (user == null)
-                        {
-                            throw new InvalidOperationException(
-                                $"Usuário não encontrado para liquidar bet. UserId={bet.UserId}, BetId={bet.BetId}");
-                        }
-
-                        var balanceBefore = SafeMoney(user.Balance);
-                        user.Balance = balanceBefore + payout;
-
-                        await ledgerService.AddEntryAsync(
-                            user: user,
-                            type: "WIN",
-                            amount: payout,
-                            balanceBefore: balanceBefore,
-                            balanceAfter: user.Balance,
-                            referenceId: bet.BetId,
-                            description: $"Payout da bet {bet.BetId} no match {bet.MatchId}",
-                            ct: ct);
                     }
 
                     await db.SaveChangesAsync(ct);
@@ -1339,29 +1300,11 @@ namespace CriptoVersus.Worker
                 bet.IsWinner = null;
                 bet.PayoutAmount = principal;
                 bet.SettledAt = settledAtUtc;
+                bet.Claimed = false;
+                bet.ClaimedAt = null;
 
                 if (await ApplyPositionCapitalAsync(db, bet, principal, settledAtUtc, ct))
                     continue;
-
-                var user = await db.User.FirstOrDefaultAsync(u => u.UserID == bet.UserId, ct);
-                if (user == null)
-                {
-                    throw new InvalidOperationException(
-                        $"Usuário não encontrado para devolver principal. UserId={bet.UserId}, BetId={bet.BetId}");
-                }
-
-                var balanceBefore = SafeMoney(user.Balance);
-                user.Balance = balanceBefore + principal;
-
-                await ledgerService.AddEntryAsync(
-                    user: user,
-                    type: "NO_CONTEST_REFUND",
-                    amount: principal,
-                    balanceBefore: balanceBefore,
-                    balanceAfter: user.Balance,
-                    referenceId: bet.BetId,
-                    description: $"Devolucao integral da bet {bet.BetId} no match {bet.MatchId} sem contraparte valida",
-                    ct: ct);
             }
 
             await db.SaveChangesAsync(ct);

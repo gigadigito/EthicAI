@@ -53,7 +53,7 @@
         <div class="wallet-metrics">
             <div class="wallet-metric">
                 <span>Saldo no sistema</span>
-                <strong>@FmtSol(_wallet.Balance)</strong>
+                <strong>@FmtSol(_wallet.SystemBalance)</strong>
             </div>
             <div class="wallet-metric">
                 <span>Total apostado</span>
@@ -64,8 +64,8 @@
                 <strong>@FmtSol(_wallet.OpenAmount)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Recebido</span>
-                <strong>@FmtSol(_wallet.TotalPayout)</strong>
+                <span>Retornos disponiveis</span>
+                <strong>@FmtSol(_wallet.AvailableReturns)</strong>
             </div>
             <div class="wallet-metric">
                 <span>Lucro realizado</span>
@@ -79,6 +79,40 @@
                 <span>Resultado liquido realizado</span>
                 <strong class="@GetPayoutClass(_wallet.RealizedNetResult)">@FmtSignedSol(_wallet.RealizedNetResult)</strong>
             </div>
+        </div>
+
+        <div class="wallet-actions-card">
+            <div class="wallet-actions-summary">
+                <div>
+                    <span class="wallet-label">Retornos disponiveis</span>
+                    <strong>@FmtSol(_wallet.AvailableReturns)</strong>
+                </div>
+                <div>
+                    <span class="wallet-label">Saldo no sistema</span>
+                    <strong>@FmtSol(_wallet.SystemBalance)</strong>
+                </div>
+            </div>
+            <div class="wallet-actions-buttons">
+                <button type="button"
+                        class="wallet-history-button is-primary"
+                        disabled="@(!_wallet.CanClaim || _actionBusy)"
+                        @onclick="ClaimAvailableReturnsAsync">
+                    @(_wallet.CanClaim ? "Resgatar retornos" : "Sem retornos pendentes")
+                </button>
+                @if (_wallet.CanWithdraw)
+                {
+                    <button type="button"
+                            class="wallet-history-button"
+                            disabled="@_actionBusy"
+                            @onclick="WithdrawSystemBalanceAsync">
+                        Sacar para carteira
+                    </button>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(_actionMessage))
+            {
+                <div class="wallet-message">@_actionMessage</div>
+            }
         </div>
 
         <div class="wallet-section-title">
@@ -195,7 +229,8 @@
     .wallet-profile,
     .wallet-metrics,
     .wallet-positions,
-    .wallet-investments {
+    .wallet-investments,
+    .wallet-actions-card {
         display: grid;
         gap: 12px;
     }
@@ -253,6 +288,27 @@
         border: 1px solid #303741;
         border-radius: 8px;
         background: #181b21;
+    }
+
+    .wallet-actions-card {
+        padding: 18px;
+        border: 1px solid #1f766e;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(15, 118, 110, .14), rgba(17, 22, 29, .96));
+    }
+
+    .wallet-actions-summary,
+    .wallet-actions-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .wallet-actions-summary > div {
+        display: grid;
+        gap: 4px;
     }
 
     .wallet-metric strong {
@@ -607,6 +663,8 @@
     private MyWalletDto? _wallet;
     private bool _loading = true;
     private string? _error;
+    private string? _actionMessage;
+    private bool _actionBusy;
     private IJSObjectReference? _walletBalanceModule;
     private double? _onChainBalance;
     private bool _onChainBalanceLoading;
@@ -677,6 +735,63 @@
         finally
         {
             _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ClaimAvailableReturnsAsync()
+    {
+        if (_wallet is null || !_wallet.CanClaim)
+            return;
+
+        _actionBusy = true;
+        _actionMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Api.ClaimAvailableReturnsAsync();
+            _actionMessage = result?.Message ?? "Retornos resgatados com sucesso.";
+            await LoadWalletAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionMessage = $"Nao foi possivel resgatar os retornos: {ex.Message}";
+        }
+        finally
+        {
+            _actionBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task WithdrawSystemBalanceAsync()
+    {
+        if (_wallet is null || !_wallet.CanWithdraw || _wallet.SystemBalance <= 0m)
+            return;
+
+        _actionBusy = true;
+        _actionMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await Api.WithdrawSystemBalanceAsync(new WithdrawSystemBalanceRequest
+            {
+                Amount = _wallet.SystemBalance
+            });
+
+            _actionMessage = result?.Message ?? "Saque registrado com sucesso.";
+            await LoadWalletAsync();
+            await LoadOnChainBalanceAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionMessage = $"Nao foi possivel registrar o saque: {ex.Message}";
+        }
+        finally
+        {
+            _actionBusy = false;
             await InvokeAsync(StateHasChanged);
         }
     }

@@ -53,5 +53,7 @@ namespace DAL
         public virtual ICollection<Bet> Bets { get; set; } // Relacionamento com Bet
         public virtual ICollection<UserTeamPosition> TeamPositions { get; set; }
         public decimal Balance { get; set; }
+        public decimal TotalClaimed { get; set; }
+        public decimal TotalWithdrawn { get; set; }
     }
 }
