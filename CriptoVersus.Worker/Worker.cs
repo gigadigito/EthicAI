@@ -469,25 +469,8 @@ namespace CriptoVersus.Worker
             DateTime nowUtc,
             CancellationToken ct)
         {
-            var teamA = await db.Team
-                .Include(t => t.Currency)
-                .Where(t => t.Currency != null && t.Currency.Symbol == curA.Symbol)
-                .OrderBy(t => t.TeamId)
-                .FirstOrDefaultAsync(ct);
-
-            var teamB = await db.Team
-                .Include(t => t.Currency)
-                .Where(t => t.Currency != null && t.Currency.Symbol == curB.Symbol)
-                .OrderBy(t => t.TeamId)
-                .FirstOrDefaultAsync(ct);
-
-            if (teamA == null || teamB == null)
-            {
-                _logger.LogWarning(
-                    "⚠️ Team não encontrado para criar partida pending: {a} vs {b}",
-                    curA.Symbol, curB.Symbol);
-                return false;
-            }
+            var teamA = await GetOrCreateTeamAsync(db, curA, ct);
+            var teamB = await GetOrCreateTeamAsync(db, curB, ct);
 
             var startTime = nowUtc.Add(PendingLeadTime);
             var bettingCloseTime = startTime.Subtract(BettingCloseOffset);
@@ -538,6 +521,36 @@ namespace CriptoVersus.Worker
                 match.MatchId, curA.Symbol, curB.Symbol, startTime, bettingCloseTime, match.ScoringRuleType);
 
             return true;
+        }
+
+        private async Task<Team> GetOrCreateTeamAsync(
+            EthicAIDbContext db,
+            Currency currency,
+            CancellationToken ct)
+        {
+            var existing = await db.Team
+                .Include(t => t.Currency)
+                .Where(t => t.Currency != null && t.Currency.Symbol == currency.Symbol)
+                .OrderBy(t => t.TeamId)
+                .FirstOrDefaultAsync(ct);
+
+            if (existing != null)
+                return existing;
+
+            var created = new Team
+            {
+                CurrencyId = currency.CurrencyId
+            };
+
+            db.Team.Add(created);
+            await db.SaveChangesAsync(ct);
+
+            _logger.LogInformation(
+                "🆕 Team criado automaticamente para {symbol}. TeamId={teamId}",
+                currency.Symbol,
+                created.TeamId);
+
+            return created;
         }
 
         private async Task PromoteDuePendingToOngoingAsync(
