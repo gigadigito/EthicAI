@@ -162,7 +162,7 @@ namespace CriptoVersus.Web.Services
 
                 return Task.CompletedTask;
             };
-        }
+        }'
 
         private static string? ExtractPayload(object?[]? args)
         {
