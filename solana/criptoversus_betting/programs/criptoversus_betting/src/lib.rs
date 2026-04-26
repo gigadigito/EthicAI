@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke_signed, system_instruction};
 
-declare_id!("4Ck537z1KEw1Azn9EHMvrW6xUhXGCUhDpSBJh6j5xjSX");
+declare_id!("2xGqwZH6wwfL5q12ftd2weu8zsYcmEZ8wFVWHjPY25FV");
 
 const SETTLEMENT_ID_MAX_LEN: usize = 32;
 

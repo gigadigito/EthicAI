@@ -1262,25 +1262,15 @@ else
             }
 
             string? onChainSignature = null;
-            OnChainBetResult? onChainResult = null;
-            var onChainBettingEnabled = Config.GetValue<bool>("OnChainBetting:Enabled");
-
-            if (onChainBettingEnabled)
-            {
-                onChainResult = await PlaceOnChainBetAsync(match, teamId, amountSol);
-                onChainSignature = onChainResult.Signature;
-                BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
-            }
+            var investDiagnostics = await PrepareInvestmentDiagnosticsAsync(match, teamId, teamName, amountSol);
+            BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(investDiagnostics));
 
             var payload = new
             {
                 userId = SelectedUserId,
                 teamId = teamId,
                 amount = amountSol,
-                onChainSignature,
-                onChainPositionAccount = onChainResult?.PositionAccount,
-                onChainPositionVault = onChainResult?.PositionVault,
-                onChainAmountLamports = onChainResult?.AmountLamports
+                onChainSignature
             };
 
             var url = $"https://criptoversus-api.duckdns.org/api/match/{match.MatchId}/bet";
@@ -1356,30 +1346,30 @@ else
             && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
     }
 
-    private async Task<OnChainBetResult> PlaceOnChainBetAsync(BettableMatchViewModel match, int teamId, decimal amountSol)
+    private async Task<InvestmentPreparationResult> PrepareInvestmentDiagnosticsAsync(BettableMatchViewModel match, int teamId, string teamName, decimal amountSol)
     {
         BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaBetting.js?v=20260420-position-pda");
+            "./js/solanaInvestDiagnostics.js?v=20260426-invest-offchain");
 
         var programId = Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))
             throw new InvalidOperationException("OnChainBetting:ProgramId não configurado.");
 
-        return await BettingModule.InvokeAsync<OnChainBetResult>(
-            "placeBet",
+        return await BettingModule.InvokeAsync<InvestmentPreparationResult>(
+            "prepareInvestment",
             new
             {
                 programId,
                 cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
                 matchId = match.MatchId,
                 teamId,
+                teamName,
                 teamAId = match.TeamAId,
                 teamBId = match.TeamBId,
                 bettingCloseUnix = GetOnChainBettingCloseUnix(match),
-                autoCreateMatch = true,
-                authorityPublicKey = Config["OnChainBetting:AuthorityWallet"] ?? Config["CriptoVersus:AdminWallet"],
-                amountSol
+                amountSol,
+                supportsLegacyPositionInvestments = Config.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments")
             });
     }
 
@@ -1656,16 +1646,18 @@ else
         }
     }
 
-    private sealed class OnChainBetResult
+    private sealed class InvestmentPreparationResult
     {
-        public string Signature { get; set; } = "";
-        public string Instruction { get; set; } = "";
-        public string? CreateMatchSignature { get; set; }
-        public string? MatchAccount { get; set; }
-        public string? BetAccount { get; set; }
-        public string? Vault { get; set; }
-        public string? PositionAccount { get; set; }
-        public string? PositionVault { get; set; }
+        public string? Signature { get; set; }
+        public string? Instruction { get; set; }
+        public string? Result { get; set; }
+        public string? ProgramId { get; set; }
+        public string? UserAccountPda { get; set; }
+        public string? ConfigPda { get; set; }
+        public string? VaultPda { get; set; }
+        public string? PositionPda { get; set; }
+        public bool UserAccountExists { get; set; }
+        public bool PositionExists { get; set; }
         public string AmountLamports { get; set; } = "";
     }
 

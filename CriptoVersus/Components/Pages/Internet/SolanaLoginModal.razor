@@ -3,6 +3,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @using CriptoVersus.Web.Services
 @inject WalletSessionState WalletState
+@inject IConfiguration Config
 @if (isOpen)
 {
     <div class="modal-backdrop fade show"></div>
@@ -83,12 +84,19 @@
         public int ExpiresInMinutes { get; set; }
     }
     private IJSObjectReference? module;
+    private IJSObjectReference? walletActionsModule;
     private bool isOpen;
     private string? publicKey;
     private string? status;
     private string statusTitle = "";
     private string statusKind = "info";
     private bool showInstallPhantom;
+
+    private string OnChainCluster
+        => Config["OnChainBetting:Cluster"] ?? "devnet";
+
+    private string OnChainProgramId
+        => Config["OnChainBetting:ProgramId"] ?? string.Empty;
 
     public async Task OpenAsync()
     {
@@ -111,6 +119,16 @@
             module = await JS.InvokeAsync<IJSObjectReference>(
                 "import",
                 "./js/solanaWallet.js");
+        }
+    }
+
+    private async Task LoadWalletActionsAsync()
+    {
+        if (walletActionsModule is null)
+        {
+            walletActionsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletActions.js?v=20260426-login-onchain");
         }
     }
 
@@ -218,9 +236,10 @@
                     await SessionStorage.SetItemAsync("userId", loginResult.UserId);
                     await SessionStorage.SetItemAsync("walletPublicKey", loginResult.PublicKey);
                     WalletState.SetSession(loginResult.Token, loginResult.PublicKey);
+                    await EnsureOnChainAccountAsync();
                     await OnLoginSucceeded.InvokeAsync();
                     await OnSessionChanged.InvokeAsync();
-                    SetStatus("Login realizado", "Sua carteira foi autenticada com sucesso.", "success");
+                    SetStatus("Login realizado", "Sua carteira foi autenticada e a conta on-chain foi validada.", "success");
                 }
                 else
                 {
@@ -270,6 +289,38 @@
         }
     }
 
+    private async Task EnsureOnChainAccountAsync()
+    {
+        if (string.IsNullOrWhiteSpace(OnChainProgramId))
+            throw new InvalidOperationException("OnChainBetting:ProgramId nao configurado.");
+
+        await LoadWalletActionsAsync();
+
+        SetStatus("Criando sua conta on-chain...", "Validando a UserAccount da wallet conectada no contrato atual.", "info");
+
+        try
+        {
+            var result = await walletActionsModule!.InvokeAsync<OnChainOnboardingResult>(
+                "ensureUserOnchainAccount",
+                new
+                {
+                    programId = OnChainProgramId,
+                    cluster = OnChainCluster
+                });
+
+            var finalMessage = result.created
+                ? $"Conta on-chain pronta. PDA: {result.userAccountPda}."
+                : $"Conta on-chain pronta. PDA: {result.userAccountPda}.";
+
+            SetStatus("Conta on-chain pronta.", finalMessage, "success");
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Falha ao criar conta on-chain.", GetFriendlyError(ex), "warning");
+            throw;
+        }
+    }
+
     private void SetStatus(string title, string message, string kind, bool showInstall = false)
     {
         statusTitle = title;
@@ -315,6 +366,20 @@
         public string nonce { get; set; } = string.Empty;
         public int expiresInMinutes { get; set; }
         public string message { get; set; } = string.Empty;
+    }
+
+    private sealed class OnChainOnboardingResult
+    {
+        public string wallet { get; set; } = string.Empty;
+        public string cluster { get; set; } = string.Empty;
+        public string programId { get; set; } = string.Empty;
+        public string userAccountPda { get; set; } = string.Empty;
+        public bool exists { get; set; }
+        public bool created { get; set; }
+        public string? initSignature { get; set; }
+        public string systemBalanceLamports { get; set; } = "0";
+        public string totalClaimedLamports { get; set; } = "0";
+        public string totalWithdrawnLamports { get; set; } = "0";
     }
 }
 

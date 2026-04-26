@@ -3,7 +3,7 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-criptoversus_betting = "4Ck537z1KEw1Azn9EHMvrW6xUhXGCUhDpSBJh6j5xjSX"
+criptoversus_betting = "2xGqwZH6wwfL5q12ftd2weu8zsYcmEZ8wFVWHjPY25FV"
 
 [registry]
 url = "https://api.apr.dev"

@@ -16,6 +16,18 @@ function getWeb3() {
     return window.solanaWeb3;
 }
 
+function logLogin(message, ...args) {
+    console.log(`[CRYPTOLOGIN] ${message}`, ...args);
+}
+
+function warnLogin(message, ...args) {
+    console.warn(`[CRYPTOLOGIN] ${message}`, ...args);
+}
+
+function errorLogin(message, ...args) {
+    console.error(`[CRYPTOLOGIN][ERRO] ${message}`, ...args);
+}
+
 function u64Le(value) {
     const bytes = new Uint8Array(8);
     const view = new DataView(bytes.buffer);
@@ -57,6 +69,143 @@ async function sendAndConfirm(connection, provider, transaction) {
     }, "confirmed");
 
     return signature;
+}
+
+function readU64Le(bytes, offset) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return view.getBigUint64(offset, true);
+}
+
+function readI64Le(bytes, offset) {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    return view.getBigInt64(offset, true);
+}
+
+function lamportsToSolString(lamports, decimals = 9) {
+    const value = typeof lamports === "bigint" ? lamports : BigInt(lamports);
+    const divisor = 10n ** BigInt(decimals);
+    const integer = value / divisor;
+    const fraction = value % divisor;
+    const fractionText = fraction.toString().padStart(decimals, "0").replace(/0+$/, "");
+    return fractionText ? `${integer}.${fractionText}` : integer.toString();
+}
+
+function decodeUserAccount(data, PublicKey) {
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+    const minimumLength = 8 + 32 + 8 + 8 + 8 + 8 + 8 + 1;
+
+    if (bytes.length < minimumLength) {
+        throw new Error(`UserAccount com tamanho invalido: ${bytes.length} bytes.`);
+    }
+
+    const owner = new PublicKey(bytes.slice(8, 40)).toBase58();
+    const systemBalanceLamports = readU64Le(bytes, 40);
+    const totalClaimedLamports = readU64Le(bytes, 48);
+    const totalWithdrawnLamports = readU64Le(bytes, 56);
+    const createdAtUnix = readI64Le(bytes, 64);
+    const updatedAtUnix = readI64Le(bytes, 72);
+    const bump = bytes[80];
+
+    return {
+        owner,
+        systemBalanceLamports,
+        totalClaimedLamports,
+        totalWithdrawnLamports,
+        createdAtUnix,
+        updatedAtUnix,
+        bump
+    };
+}
+
+export async function ensureUserOnchainAccount(options) {
+    const web3 = getWeb3();
+    const {
+        Connection,
+        PublicKey,
+        Transaction,
+        TransactionInstruction,
+        SystemProgram,
+        clusterApiUrl
+    } = web3;
+
+    const provider = getProvider();
+    if (!provider.isConnected) {
+        await provider.connect();
+    }
+
+    const cluster = options.cluster || "devnet";
+    const programId = new PublicKey(options.programId);
+    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+
+    logLogin("Wallet conectada:", provider.publicKey.toBase58());
+    logLogin("Cluster:", cluster);
+    logLogin("Program ID:", programId.toBase58());
+
+    const [userAccount] = PublicKey.findProgramAddressSync(
+        [new TextEncoder().encode("user"), provider.publicKey.toBuffer()],
+        programId
+    );
+
+    logLogin("UserAccount PDA:", userAccount.toBase58());
+
+    try {
+        let accountInfo = await connection.getAccountInfo(userAccount, "confirmed");
+        logLogin("UserAccount encontrada?", accountInfo !== null);
+
+        let created = false;
+        let initSignature = null;
+
+        if (!accountInfo) {
+            warnLogin("UserAccount nao encontrada. Iniciando init_user_account...");
+
+            const instruction = new TransactionInstruction({
+                programId,
+                keys: [
+                    { pubkey: userAccount, isSigner: false, isWritable: true },
+                    { pubkey: provider.publicKey, isSigner: true, isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
+                ],
+                data: await discriminator("init_user_account")
+            });
+
+            const transaction = new Transaction().add(instruction);
+            initSignature = await sendAndConfirm(connection, provider, transaction);
+            created = true;
+
+            logLogin("init_user_account tx:", initSignature);
+            logLogin("Aguardando confirmacao...");
+            logLogin("init confirmado com sucesso.");
+            logLogin("Reconsultando UserAccount...");
+
+            accountInfo = await connection.getAccountInfo(userAccount, "confirmed");
+            logLogin("UserAccount encontrada apos init?", accountInfo !== null);
+        }
+
+        if (!accountInfo) {
+            throw new Error("UserAccount continua ausente apos tentativa de init_user_account.");
+        }
+
+        const decoded = decodeUserAccount(accountInfo.data, PublicKey);
+        logLogin("system_balance:", `${lamportsToSolString(decoded.systemBalanceLamports)} SOL`);
+        logLogin("total_claimed:", `${lamportsToSolString(decoded.totalClaimedLamports)} SOL`);
+        logLogin("total_withdrawn:", `${lamportsToSolString(decoded.totalWithdrawnLamports)} SOL`);
+
+        return {
+            wallet: provider.publicKey.toBase58(),
+            cluster,
+            programId: programId.toBase58(),
+            userAccountPda: userAccount.toBase58(),
+            exists: true,
+            created,
+            initSignature,
+            systemBalanceLamports: decoded.systemBalanceLamports.toString(),
+            totalClaimedLamports: decoded.totalClaimedLamports.toString(),
+            totalWithdrawnLamports: decoded.totalWithdrawnLamports.toString()
+        };
+    } catch (error) {
+        errorLogin("motivo completo", error);
+        throw error;
+    }
 }
 
 export async function claimAvailableReturns(options) {
@@ -101,6 +250,12 @@ export async function withdrawSystemBalance(options) {
     const [userAccount] = PublicKey.findProgramAddressSync(
         [new TextEncoder().encode("user"), provider.publicKey.toBuffer()],
         programId);
+
+    const existingUserAccount = await connection.getAccountInfo(userAccount, "confirmed");
+    if (!existingUserAccount) {
+        warnLogin("UserAccount encontrada?", false);
+        throw new Error("UserAccount nao inicializada para esta wallet. Conclua o onboarding on-chain antes do saque.");
+    }
 
     const instruction = new TransactionInstruction({
         programId,

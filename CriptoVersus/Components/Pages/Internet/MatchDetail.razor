@@ -2005,14 +2005,8 @@
             }
 
             string? onChainSignature = null;
-            var onChainBettingEnabled = Config.GetValue<bool>("OnChainBetting:Enabled");
-
-            if (onChainBettingEnabled)
-            {
-                var onChainResult = await PlaceOnChainBetAsync(matchId, teamId, amountSol);
-                onChainSignature = onChainResult.Signature;
-                _betResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(onChainResult));
-            }
+            var investDiagnostics = await PrepareInvestmentDiagnosticsAsync(matchId, teamId, teamName, amountSol);
+            _betResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(investDiagnostics));
 
             var payload = new
             {
@@ -2064,33 +2058,33 @@
         }
     }
 
-    private async Task<OnChainBetResult> PlaceOnChainBetAsync(int matchId, int teamId, decimal amountSol)
+    private async Task<InvestmentPreparationResult> PrepareInvestmentDiagnosticsAsync(int matchId, int teamId, string teamName, decimal amountSol)
     {
         if (_match is null)
             throw new InvalidOperationException("Partida nao carregada para investimento on-chain.");
 
         _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaBetting.js?v=20260420-position-pda");
+            "./js/solanaInvestDiagnostics.js?v=20260426-invest-offchain");
 
         var programId = Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))
             throw new InvalidOperationException("OnChainBetting:ProgramId não configurado.");
 
-        return await _bettingModule.InvokeAsync<OnChainBetResult>(
-            "placeBet",
+        return await _bettingModule.InvokeAsync<InvestmentPreparationResult>(
+            "prepareInvestment",
             new
             {
                 programId,
                 cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
                 matchId,
                 teamId,
+                teamName,
                 teamAId = _match.TeamAId,
                 teamBId = _match.TeamBId,
                 bettingCloseUnix = GetOnChainBettingCloseUnix(_match),
-                autoCreateMatch = true,
-                authorityPublicKey = Config["OnChainBetting:AuthorityWallet"] ?? Config["CriptoVersus:AdminWallet"],
-                amountSol
+                amountSol,
+                supportsLegacyPositionInvestments = Config.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments")
             });
     }
 
@@ -2820,12 +2814,18 @@
         public string Label { get; init; } = "";
     }
 
-    private sealed class OnChainBetResult
+    private sealed class InvestmentPreparationResult
     {
-        public string Signature { get; set; } = "";
-        public string MatchAccount { get; set; } = "";
-        public string BetAccount { get; set; } = "";
-        public string Vault { get; set; } = "";
+        public string? Signature { get; set; }
+        public string? Instruction { get; set; }
+        public string? Result { get; set; }
+        public string? ProgramId { get; set; }
+        public string? UserAccountPda { get; set; }
+        public string? ConfigPda { get; set; }
+        public string? VaultPda { get; set; }
+        public string? PositionPda { get; set; }
+        public bool UserAccountExists { get; set; }
+        public bool PositionExists { get; set; }
         public string AmountLamports { get; set; } = "";
     }
 }
