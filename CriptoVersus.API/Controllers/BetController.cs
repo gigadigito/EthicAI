@@ -65,7 +65,7 @@ namespace CriptoVersus.API.Controllers
             if (request.Amount <= 0)
                 return BadRequest("O valor do investimento ficou inválido após o arredondamento.");
 
-            var onChainBettingEnabled = IsLegacyPositionOnChainEnabled();
+            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
 
             if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature))
             {
@@ -355,12 +355,6 @@ namespace CriptoVersus.API.Controllers
         {
             return !string.IsNullOrWhiteSpace(configuredWallet)
                 && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
-        }
-
-        private bool IsLegacyPositionOnChainEnabled()
-        {
-            return _configuration.GetValue<bool>("OnChainBetting:Enabled")
-                && _configuration.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments");
         }
 
         private Task NotifyDashboardChangedAsync(BetCreateResponse response, CancellationToken cancellationToken)

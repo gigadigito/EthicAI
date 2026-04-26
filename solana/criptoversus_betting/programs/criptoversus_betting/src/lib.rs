@@ -76,6 +76,30 @@ pub mod criptoversus_betting {
         Ok(())
     }
 
+    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+        require!(amount > 0, BettingError::InvalidAmount);
+
+        let user_account = &mut ctx.accounts.user_account;
+        require_keys_eq!(user_account.owner, ctx.accounts.owner.key(), BettingError::Unauthorized);
+
+        anchor_lang::solana_program::program::invoke(
+            &system_instruction::transfer(
+                &ctx.accounts.owner.key(),
+                &ctx.accounts.vault.key(),
+                amount,
+            ),
+            &[
+                ctx.accounts.owner.to_account_info(),
+                ctx.accounts.vault.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
+
+        user_account.updated_at = Clock::get()?.unix_timestamp;
+
+        Ok(())
+    }
+
     pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         require!(amount > 0, BettingError::NothingToWithdraw);
 
@@ -187,6 +211,27 @@ pub struct CreditUserBalance<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
+    #[account(seeds = [b"config"], bump = config.bump)]
+    pub config: Account<'info, Config>,
+    #[account(
+        mut,
+        seeds = [b"vault"],
+        bump = config.vault_bump
+    )]
+    pub vault: Account<'info, VaultAccount>,
+    #[account(
+        mut,
+        seeds = [b"user", owner.key().as_ref()],
+        bump = user_account.bump
+    )]
+    pub user_account: Account<'info, UserAccount>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct Deposit<'info> {
     #[account(seeds = [b"config"], bump = config.bump)]
     pub config: Account<'info, Config>,
     #[account(

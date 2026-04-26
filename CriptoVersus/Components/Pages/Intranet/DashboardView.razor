@@ -1261,7 +1261,6 @@ else
                 return;
             }
 
-            string? onChainSignature = null;
             var investDiagnostics = await PrepareInvestmentDiagnosticsAsync(match, teamId, teamName, amountSol);
             BetResponseBody = PrettyJsonOrRaw(JsonSerializer.Serialize(investDiagnostics));
 
@@ -1270,7 +1269,8 @@ else
                 userId = SelectedUserId,
                 teamId = teamId,
                 amount = amountSol,
-                onChainSignature
+                onChainSignature = investDiagnostics.Signature,
+                onChainAmountLamports = investDiagnostics.AmountLamports
             };
 
             var url = $"https://criptoversus-api.duckdns.org/api/match/{match.MatchId}/bet";

@@ -278,19 +278,40 @@ export async function prepareInvestment(options) {
 
         if (!supportsLegacyPositionInvestments) {
             warnInvest("Fluxo legado detectado. O contrato atual nao possui create_position, deposit_position, create_match ou place_bet.");
-            logInvest("Instrução que será chamada:", "OFFCHAIN_ONLY");
+            logInvest("Instrução que será chamada:", "deposit");
             logInvest("Accounts enviados:", {
                 config: configPda.toBase58(),
                 vault: vaultPda.toBase58(),
                 userAccount: userAccount.toBase58(),
+                owner: provider.publicKey.toBase58(),
                 legacyPositionPda: legacyPositionPda.toBase58(),
                 legacyPositionVaultPda: legacyPositionVaultPda.toBase58(),
                 legacyMatchPda: legacyMatchPda?.toBase58() ?? null,
                 legacyBetPda: legacyBetPda?.toBase58() ?? null
             });
-            logInvest("Transaction signature:", null);
-            logInvest("Confirmação:", "nenhuma - investimento segue off-chain");
-            logInvest("Resultado final:", "Investimento será enviado apenas ao backend. O contrato atual permanece como onboarding, saldo consolidado, credit_user_balance e withdraw.");
+
+            const instruction = new TransactionInstruction({
+                programId,
+                keys: [
+                    { pubkey: configPda, isSigner: false, isWritable: false },
+                    { pubkey: vaultPda, isSigner: false, isWritable: true },
+                    { pubkey: userAccount, isSigner: false, isWritable: true },
+                    { pubkey: provider.publicKey, isSigner: true, isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }
+                ],
+                data: concatBytes(
+                    await discriminator("deposit"),
+                    u64Le(amountLamports))
+            });
+
+            stage.current = "deposit";
+
+            const transaction = new Transaction().add(instruction);
+            const signature = await sendAndConfirm(connection, provider, transaction);
+
+            logInvest("Transaction signature:", signature);
+            logInvest("Confirmação:", "confirmed");
+            logInvest("Resultado final:", "Funding on-chain realizado com sucesso. O backend pode registrar a aposta usando o stake vindo direto da wallet.");
 
             return {
                 wallet: provider.publicKey.toBase58(),
@@ -307,14 +328,14 @@ export async function prepareInvestment(options) {
                 positionExists: legacyPositionInfo !== null,
                 legacyMatchPda: legacyMatchPda?.toBase58() ?? null,
                 legacyBetPda: legacyBetPda?.toBase58() ?? null,
-                instruction: "OFFCHAIN_ONLY",
-                signature: null,
-                confirmation: "SKIPPED",
+                instruction: "deposit",
+                signature,
+                confirmation: "confirmed",
                 initSignature,
                 systemBalanceLamports: decoded.systemBalanceLamports.toString(),
                 totalClaimedLamports: decoded.totalClaimedLamports.toString(),
                 totalWithdrawnLamports: decoded.totalWithdrawnLamports.toString(),
-                result: "OFFCHAIN_BACKEND_ONLY"
+                result: "DIRECT_WALLET_FUNDING_OK"
             };
         }
 

@@ -68,7 +68,7 @@ public sealed class PositionsController : ControllerBase
             if (!teamExists)
                 return NotFound(new { message = "Time nao encontrado." });
 
-            var onChainBettingEnabled = IsLegacyPositionOnChainEnabled();
+            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
             if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature))
             {
                 return BadRequest(new
@@ -187,7 +187,7 @@ public sealed class PositionsController : ControllerBase
             if (position is null)
                 return NotFound(new { message = "Posicao nao encontrada." });
 
-            var onChainBettingEnabled = IsLegacyPositionOnChainEnabled();
+            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
             var strategy = _context.Database.CreateExecutionStrategy();
 
             await strategy.ExecuteAsync(async () =>
@@ -324,9 +324,4 @@ public sealed class PositionsController : ControllerBase
     private static long? AddLamports(long? current, long? added)
         => added.HasValue ? (current ?? 0L) + added.Value : current;
 
-    private bool IsLegacyPositionOnChainEnabled()
-    {
-        return _configuration.GetValue<bool>("OnChainBetting:Enabled")
-            && _configuration.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments");
-    }
 }

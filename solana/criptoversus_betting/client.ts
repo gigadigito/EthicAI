@@ -26,6 +26,7 @@ async function main() {
   const admin = provider.wallet.publicKey;
   const user = provider.wallet.publicKey;
   const settlementId = "settlement-001";
+  const depositAmount = new anchor.BN(100_000_000);
   const creditAmount = new anchor.BN(1_350_000_000);
   const withdrawPartial = new anchor.BN(350_000_000);
   const withdrawTotal = new anchor.BN(1_000_000_000);
@@ -65,7 +66,19 @@ async function main() {
     })
     .rpc();
 
-  console.log("3. fund vault for withdraw tests");
+  console.log("3. deposit direct from wallet");
+  await program.methods
+    .deposit(depositAmount)
+    .accounts({
+      config,
+      vault,
+      userAccount,
+      owner: user,
+      systemProgram: SystemProgram.programId
+    })
+    .rpc();
+
+  console.log("4. fund vault for withdraw tests");
   const fundVaultSignature = await provider.sendAndConfirm(
     new anchor.web3.Transaction().add(
       SystemProgram.transfer({
@@ -77,7 +90,7 @@ async function main() {
   );
   console.log("vault funding tx", fundVaultSignature);
 
-  console.log("4. credit_user_balance as admin");
+  console.log("5. credit_user_balance as admin");
   await program.methods
     .creditUserBalance(creditAmount, settlementId)
     .accounts({
@@ -91,9 +104,9 @@ async function main() {
     .rpc();
 
   const userAfterCredit = await program.account.userAccount.fetch(userAccount);
-  console.log("5. system_balance", userAfterCredit.systemBalance.toString());
+  console.log("6. system_balance", userAfterCredit.systemBalance.toString());
 
-  console.log("6. duplicate credit should fail");
+  console.log("7. duplicate credit should fail");
   try {
     await program.methods
       .creditUserBalance(creditAmount, settlementId)
@@ -111,7 +124,7 @@ async function main() {
     console.log("duplicate credit failed as expected");
   }
 
-  console.log("7. partial withdraw");
+  console.log("8. partial withdraw");
   await program.methods
     .withdraw(withdrawPartial)
     .accounts({
@@ -124,9 +137,9 @@ async function main() {
     .rpc();
 
   const userAfterPartialWithdraw = await program.account.userAccount.fetch(userAccount);
-  console.log("8. system_balance after partial withdraw", userAfterPartialWithdraw.systemBalance.toString());
+  console.log("9. system_balance after partial withdraw", userAfterPartialWithdraw.systemBalance.toString());
 
-  console.log("9. total withdraw");
+  console.log("10. total withdraw");
   await program.methods
     .withdraw(withdrawTotal)
     .accounts({
@@ -139,9 +152,9 @@ async function main() {
     .rpc();
 
   const userAfterTotalWithdraw = await program.account.userAccount.fetch(userAccount);
-  console.log("10. system_balance after total withdraw", userAfterTotalWithdraw.systemBalance.toString());
+  console.log("11. system_balance after total withdraw", userAfterTotalWithdraw.systemBalance.toString());
 
-  console.log("11. withdraw without balance should fail");
+  console.log("12. withdraw without balance should fail");
   try {
     await program.methods
       .withdraw(new anchor.BN(1))
