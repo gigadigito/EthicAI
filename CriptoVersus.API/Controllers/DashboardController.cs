@@ -95,6 +95,7 @@ namespace CriptoVersus.API.Controllers
             var list = await db.Set<Currency>()
                 .AsNoTracking()
                 .Where(c => c.Symbol != null && EF.Functions.ILike(c.Symbol, "%USDT"))
+                .Where(c => !MatchPairRules.IsForbiddenStablecoin(c.Symbol, _config))
                 .Where(c => c.LastUpdated >= minUtc)
                 .OrderByDescending(c => c.PercentageChange)
                 .ThenByDescending(c => c.LastUpdated)
@@ -130,7 +131,7 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return items
-                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB))
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
                 .ToList();
         }
 
@@ -152,7 +153,7 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return items
-                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB))
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
                 .ToList();
         }
 
@@ -177,7 +178,7 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return items
-                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB))
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
                 .ToList();
         }
 
@@ -191,7 +192,7 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.Status == MatchStatus.Pending)
                 .ToListAsync(ct);
 
-            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol));
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _config));
         }
 
         private async Task<int> CountOngoingAsync(CancellationToken ct)
@@ -204,7 +205,7 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.Status == MatchStatus.Ongoing)
                 .ToListAsync(ct);
 
-            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol));
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _config));
         }
 
         private async Task<int> CountCompletedLast24hAsync(DateTime last24h, CancellationToken ct)
@@ -217,7 +218,7 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.EndTime != null && m.EndTime >= last24h)
                 .ToListAsync(ct);
 
-            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol));
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _config));
         }
 
         private static MatchDto ToMatchDto(Match m, DateTime nowUtc, int matchDurationMinutes)

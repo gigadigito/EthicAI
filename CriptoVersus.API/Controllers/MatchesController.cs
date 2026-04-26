@@ -65,7 +65,7 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             matches = matches
-                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol))
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _configuration))
                 .ToList();
 
             var items = await ToMatchDtosAsync(matches, now, ct);
@@ -112,7 +112,7 @@ namespace CriptoVersus.API.Controllers
             if (match is null)
                 return NotFound();
 
-            if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol))
+            if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol, _configuration))
                 return NotFound();
 
             return Ok(await ToMatchDtoAsync(match, now, ct));
@@ -137,7 +137,7 @@ namespace CriptoVersus.API.Controllers
             if (match == null)
                 return NotFound();
 
-            if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol))
+            if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol, _configuration))
                 return NotFound();
 
             return Ok(await ToMatchDtoAsync(match, now, ct));
@@ -261,8 +261,8 @@ namespace CriptoVersus.API.Controllers
             if (teamA is null || teamB is null)
                 return BadRequest("Time inválido.");
 
-            if (MatchPairRules.IsForbiddenPair(teamA.Currency?.Symbol, teamB.Currency?.Symbol))
-                return BadRequest(MatchPairRules.GetForbiddenPairReason(teamA.Currency?.Symbol, teamB.Currency?.Symbol));
+            if (MatchPairRules.IsForbiddenPair(teamA.Currency?.Symbol, teamB.Currency?.Symbol, _configuration))
+                return BadRequest(MatchPairRules.GetForbiddenPairReason(teamA.Currency?.Symbol, teamB.Currency?.Symbol, _configuration));
 
             var match = new Match
             {
