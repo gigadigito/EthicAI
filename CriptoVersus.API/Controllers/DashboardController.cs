@@ -32,15 +32,6 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] int ongoing = 10,
             CancellationToken ct = default)
         {
-            if (!Request.Query.ContainsKey("top"))
-                top = GetInt("CriptoVersusWorker:TopGainersTake", 10);
-
-            if (!Request.Query.ContainsKey("pending"))
-                pending = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3);
-
-            if (!Request.Query.ContainsKey("ongoing"))
-                ongoing = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3);
-
             top = Math.Clamp(top, 1, 50);
             pending = Math.Clamp(pending, 0, 50);
             ongoing = Math.Clamp(ongoing, 0, 50);
@@ -48,9 +39,9 @@ namespace CriptoVersus.API.Controllers
             var now = DateTime.UtcNow;
             var last24h = now.AddHours(-24);
 
-            var cycleIntervalSeconds = GetInt("CriptoVersusWorker:IntervalSeconds", 30);
-            var matchDurationMinutes = GetInt("CriptoVersusWorker:MatchDurationMinutes", 90);
-            var targetPendingMatches = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3);
+            var cycleIntervalSeconds = GetInt("CriptoVersus:Worker:CycleIntervalSeconds", 60);
+            var matchDurationMinutes = GetInt("CriptoVersus:Match:DurationMinutes", 90);
+            var targetPendingMatches = GetInt("CriptoVersus:Match:TargetPendingMatches", 10);
 
             var workerTask = ReadWorkerStatusAsync(
                 nowUtc: now,
@@ -59,13 +50,9 @@ namespace CriptoVersus.API.Controllers
                 targetPendingMatches: targetPendingMatches,
                 ct: ct);
 
-            var topGainers = await GetTopGainersAsync(top, ct);
-            var topRankBySymbol = topGainers
-                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
-                .ToDictionary(x => x.Symbol, x => x.Rank, StringComparer.OrdinalIgnoreCase);
-
-            var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, topRankBySymbol, ct);
-            var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, topRankBySymbol, ct);
+            var topGainersTask = GetTopGainersAsync(top, ct);
+            var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, ct);
+            var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, ct);
             var completedListTask = GetCompletedListAsync(ongoing, now, last24h, matchDurationMinutes, ct);
 
             var pendingCountTask = CountPendingAsync(ct);
@@ -74,6 +61,7 @@ namespace CriptoVersus.API.Controllers
 
             await Task.WhenAll(
                 workerTask,
+                topGainersTask,
                 ongoingListTask,
                 pendingListTask,
                 completedListTask,
@@ -85,7 +73,7 @@ namespace CriptoVersus.API.Controllers
             {
                 ServerTimeUtc = now,
                 Worker = workerTask.Result,
-                TopGainers = topGainers,
+                TopGainers = topGainersTask.Result,
                 Matches = new MatchSummaryDto
                 {
                     Pending = pendingCountTask.Result,
@@ -131,12 +119,7 @@ namespace CriptoVersus.API.Controllers
             return list;
         }
 
-        private async Task<List<MatchDto>> GetOngoingListAsync(
-            int take,
-            DateTime now,
-            int matchDurationMinutes,
-            Dictionary<string, int> topRankBySymbol,
-            CancellationToken ct)
+        private async Task<List<MatchDto>> GetOngoingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
@@ -146,24 +129,16 @@ namespace CriptoVersus.API.Controllers
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .Where(m => m.Status == MatchStatus.Ongoing)
                 .OrderByDescending(m => m.StartTime ?? DateTime.MinValue)
-                .Take(Math.Max(take * 4, take))
+                .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
 
             return items
                 .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
-                .OrderBy(m => GetMatchPriority(m.TeamA, m.TeamB, topRankBySymbol))
-                .ThenByDescending(m => m.StartTime ?? DateTime.MinValue)
-                .Take(take)
                 .ToList();
         }
 
-        private async Task<List<MatchDto>> GetPendingListAsync(
-            int take,
-            DateTime now,
-            int matchDurationMinutes,
-            Dictionary<string, int> topRankBySymbol,
-            CancellationToken ct)
+        private async Task<List<MatchDto>> GetPendingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
@@ -176,15 +151,12 @@ namespace CriptoVersus.API.Controllers
                     (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > now) ||
                     (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > now))
                 .OrderBy(m => m.StartTime)
-                .Take(Math.Max(take * 4, take))
+                .Take(take)
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
 
             return items
                 .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
-                .OrderBy(m => GetMatchPriority(m.TeamA, m.TeamB, topRankBySymbol))
-                .ThenBy(m => m.StartTime ?? DateTime.MaxValue)
-                .Take(take)
                 .ToList();
         }
 
@@ -243,26 +215,6 @@ namespace CriptoVersus.API.Controllers
                 m.TeamA?.Currency?.Symbol,
                 m.TeamB?.Currency?.Symbol,
                 _config));
-        }
-
-        private static int GetMatchPriority(string? teamA, string? teamB, Dictionary<string, int> topRankBySymbol)
-        {
-            if (string.IsNullOrWhiteSpace(teamA) || string.IsNullOrWhiteSpace(teamB))
-                return int.MaxValue;
-
-            var hasA = topRankBySymbol.TryGetValue(teamA, out var rankA);
-            var hasB = topRankBySymbol.TryGetValue(teamB, out var rankB);
-
-            if (hasA && hasB)
-                return rankA + rankB;
-
-            if (hasA)
-                return 10_000 + rankA;
-
-            if (hasB)
-                return 20_000 + rankB;
-
-            return 30_000;
         }
 
         private async Task<int> CountCompletedLast24hAsync(DateTime last24h, CancellationToken ct)

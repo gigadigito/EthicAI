@@ -34,6 +34,12 @@ namespace CriptoVersus.Worker
 
         private const string WorkerName = "CriptoVersus.Worker";
 
+        private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+
+        private const int DesiredOngoing = 10;
+        private const int DesiredPending = 10;
+
         private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(2);
 
@@ -42,27 +48,12 @@ namespace CriptoVersus.Worker
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m;
         private const int MinTradesCount = 2000;
+        private const int TakeGainers = 40;
         private const int LogTop = 15;
 
         private const int MoneyScale = 8;
 
         public record HealthItem(bool Ok, string Message);
-
-        private TimeSpan EffectiveCycleInterval
-            => TimeSpan.FromSeconds(Math.Max(5, _options.IntervalSeconds > 0 ? _options.IntervalSeconds : 60));
-
-        private int DesiredOngoing
-            => Math.Max(1, _options.DesiredActiveMatches > 0 ? _options.DesiredActiveMatches : 3);
-
-        private int DesiredPending
-            => DesiredOngoing;
-
-        private int TakeGainers
-            => Math.Max(2, _options.TopGainersTake > 0 ? _options.TopGainersTake : 10);
-
-        private TimeSpan EffectiveMatchDuration
-            => TimeSpan.FromMinutes(Math.Max(1, _options.MatchDurationMinutes > 0 ? _options.MatchDurationMinutes : 90));
-
         public Worker(
             ILogger<Worker> logger,
             IServiceProvider sp,
@@ -95,7 +86,7 @@ namespace CriptoVersus.Worker
             while (!stoppingToken.IsCancellationRequested)
             {
                 await ExecuteCycleWithStatusAsync(stoppingToken);
-                await Task.Delay(EffectiveCycleInterval, stoppingToken);
+                await Task.Delay(CycleInterval, stoppingToken);
             }
         }
 
@@ -168,7 +159,7 @@ namespace CriptoVersus.Worker
             var nowUtc = DateTime.UtcNow;
 
             var topGainers = await LoadTopGainersAsync(http, ct);
-            if (topGainers.Count < 2)
+            if (topGainers.Count < 6)
             {
                 _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
                 return;
@@ -1069,7 +1060,7 @@ namespace CriptoVersus.Worker
 
                 var startUtc = ToUtcSafe(match.StartTime.Value);
 
-                if (nowUtc - startUtc >= EffectiveMatchDuration)
+                if (nowUtc - startUtc >= MatchDuration)
                 {
                     if (match.ScoreA > match.ScoreB)
                         match.WinnerTeamId = match.TeamAId;
@@ -1081,15 +1072,14 @@ namespace CriptoVersus.Worker
                     match.Status = MatchStatus.Completed;
                     match.EndTime = nowUtc;
                     match.EndReasonCode = "TIME_LIMIT";
-                    match.EndReasonDetail = $"Reached {EffectiveMatchDuration.TotalMinutes}min time limit";
+                    match.EndReasonDetail = $"Reached {MatchDuration.TotalMinutes}min time limit";
                     match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
 
                     await db.SaveChangesAsync(ct);
 
                     _logger.LogInformation(
-                        "⏱️ Match {id} atingiu {duration}min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
+                        "⏱️ Match {id} atingiu 90min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
                         match.MatchId,
-                        EffectiveMatchDuration.TotalMinutes,
                         match.WinnerTeamId,
                         match.ScoreA,
                         match.ScoreB);
