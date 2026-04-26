@@ -35,7 +35,22 @@
                 <p>
                     Regra de elegibilidade do confronto: pares com stablecoins sao bloqueados. O sistema nao permite criar,
                     listar ou operar partidas que envolvam <strong>USDC</strong>, <strong>USDT</strong>,
-                    <strong>FDUSD</strong> ou <strong>EUR</strong>.
+                    <strong>FDUSD</strong>, <strong>EUR</strong>, <strong>RLUSD</strong>,
+                    <strong>USD1</strong> ou <strong>U</strong>.
+                </p>
+                <ul class="rules-bullet-list">
+                    <li><strong>USDC</strong>: stablecoin, usada como referencia de preco e com baixa volatilidade relativa.</li>
+                    <li><strong>USDT</strong>: stablecoin, usada como par base de mercado e inadequada para disputa de valorizacao.</li>
+                    <li><strong>FDUSD</strong>: stablecoin, mantem comportamento de preco estavel e distorce a competitividade da partida.</li>
+                    <li><strong>EUR</strong>: tratado no protocolo como ativo de referencia/estabilidade, sem perfil ideal para confronto de momentum.</li>
+                    <li><strong>RLUSD</strong>: stablecoin, projetada para estabilidade de preco e sem perfil adequado para confronto de momentum.</li>
+                    <li><strong>USD1</strong>: stablecoin dolarizada, com comportamento esperado de baixa oscilacao relativa.</li>
+                    <li><strong>U</strong>: tratado pelo protocolo como ativo estavel/bloqueado para evitar partidas sem dinamica competitiva.</li>
+                </ul>
+                <p>
+                    Motivo do bloqueio: o CriptoVersus foi desenhado para confrontar ativos com oscilacao real de mercado.
+                    Stablecoins e ativos de referencia tendem a variar pouco, o que empobrece o placar, desequilibra a leitura
+                    de momentum e pode gerar partidas visualmente injustas ou sem dinamica competitiva.
                 </p>
                 <div class="rules-pill-row">
                     <strong>Snapshots por time</strong>
