@@ -754,25 +754,9 @@
 
         try
         {
-            if (string.IsNullOrWhiteSpace(OnChainProgramId))
-                throw new InvalidOperationException("OnChainBetting:ProgramId nao configurado.");
-
-            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./js/solanaWalletActions.js?v=20260426-claim-withdraw");
-
-            var chainResult = await _walletActionsModule.InvokeAsync<ChainClaimResult>(
-                "claimAvailableReturns",
-                new
-                {
-                    programId = OnChainProgramId,
-                    cluster = OnChainCluster,
-                    claimableBets = _wallet.ClaimableBets
-                });
-
             var result = await Api.ClaimAvailableReturnsAsync(new ClaimAvailableReturnsRequest
             {
-                OnChainSignature = string.Join(",", chainResult.signatures)
+                OnChainSignature = null
             });
             _actionMessage = result?.Message ?? "Retornos resgatados com sucesso.";
             await LoadWalletAsync();
@@ -958,12 +942,6 @@
         if (_walletActionsModule is not null)
             await _walletActionsModule.DisposeAsync();
     }
-
-    private sealed class ChainClaimResult
-    {
-        public List<string> signatures { get; set; } = [];
-    }
-
     private sealed class ChainWithdrawResult
     {
         public string signature { get; set; } = string.Empty;

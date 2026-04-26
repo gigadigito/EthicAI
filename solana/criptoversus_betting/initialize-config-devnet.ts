@@ -36,6 +36,7 @@ const idl = {
       name: "initializeConfig",
       accounts: [
         { name: "config", isMut: true, isSigner: false },
+        { name: "vault", isMut: true, isSigner: false },
         { name: "authority", isMut: true, isSigner: true },
         { name: "systemProgram", isMut: false, isSigner: false },
       ],
@@ -65,15 +66,25 @@ async function main() {
     [Buffer.from("config")],
     program.programId
   );
+  const [vaultPda, vaultBump] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("vault")],
+    program.programId
+  );
 
   console.log("Config PDA:", configPda.toBase58(), "bump:", configBump);
+  console.log("Vault PDA:", vaultPda.toBase58(), "bump:", vaultBump);
 
   const existingConfig = await connection.getAccountInfo(configPda, "confirmed");
-  if (existingConfig) {
-    console.log("RESULTADO: config ja existe on-chain para este programa.");
+  const existingVault = await connection.getAccountInfo(vaultPda, "confirmed");
+  if (existingConfig || existingVault) {
+    console.log("RESULTADO: config/vault ja existem on-chain para este programa.");
     console.log(
-      "Explorer DEVNET:",
+      "Config Explorer DEVNET:",
       `https://explorer.solana.com/address/${configPda.toBase58()}?cluster=devnet`
+    );
+    console.log(
+      "Vault Explorer DEVNET:",
+      `https://explorer.solana.com/address/${vaultPda.toBase58()}?cluster=devnet`
     );
     return;
   }
@@ -84,6 +95,7 @@ async function main() {
     .initializeConfig()
     .accounts({
       config: configPda,
+      vault: vaultPda,
       authority,
       systemProgram: anchor.web3.SystemProgram.programId,
     })

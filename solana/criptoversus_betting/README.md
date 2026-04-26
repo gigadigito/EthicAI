@@ -1,14 +1,29 @@
 # CriptoVersus Betting Program
 
-Anchor program for devnet SOL escrow betting.
+Anchor program for the simplified devnet custody flow.
+
+## On-Chain Scope
+
+The blockchain now stores only:
+
+1. `Config`
+2. `VaultAccount`
+3. `UserAccount`
+4. `SettlementReceipt`
+
+The backend remains the source of truth for:
+
+1. matches
+2. bets
+3. payout calculation
+4. history
 
 ## Flow
 
-1. `initialize_config` stores the authority wallet.
-2. `create_match` creates a match PDA and a vault PDA.
-3. `place_bet` transfers lamports from the bettor wallet to the vault PDA.
-4. `settle_match` records the winning team.
-5. `claim_payout` pays winners proportionally from the vault.
+1. `initialize_config` creates the authority config and vault PDA.
+2. `init_user_account` creates the consolidated user balance PDA.
+3. `credit_user_balance` credits a user's `system_balance` using an admin-authorized `settlement_id`.
+4. `withdraw` transfers lamports from the vault PDA to the user's wallet.
 
 ## Build And Deploy
 
@@ -28,15 +43,33 @@ After deploy, copy the generated program id into:
 - `Anchor.toml`
 - `CriptoVersus/appsettings.json` under `OnChainBetting:ProgramId`
 
-Then create the on-chain config and matches with an Anchor script or CLI client.
+If you changed the program layout from an older version, do not reuse old initialized state blindly. The safest path is:
 
-## Create A Devnet Match In Solana Playground
+1. deploy the final contract version
+2. initialize fresh `config` and `vault`
+3. initialize each required `user_account`
+4. start crediting users with `settlement_id`
 
-Copy `create-match-devnet.ts` into the Solana Playground client, adjust:
+## Devnet Checklist
 
-- `MATCH_ID`
-- `TEAM_A_ID`
-- `TEAM_B_ID`
+Run these scripts in Solana Playground or adapt them for your local Anchor client:
 
-Use the same wallet that ran `initialize_config`, then run the client. The app can only call
-`place_bet` after the matching on-chain account has been created.
+1. `initialize-config-devnet.ts`
+2. `init-user-account-devnet.ts`
+3. `credit-user-balance-devnet.ts`
+
+`create-match-devnet.ts` is now obsolete and kept only as a reminder that the old per-match flow is no longer used.
+
+## Practical Recovery For Current Withdraw Error
+
+If `withdraw` fails with `config -> AccountDidNotDeserialize`, the deployed program and the stored `config` account are out of sync.
+
+Recovery path:
+
+1. Confirm the final `ProgramId` you want to keep.
+2. Deploy the simplified contract matching `programs/criptoversus_betting/src/lib.rs`.
+3. Update `Anchor.toml` and `CriptoVersus/appsettings.json` to the same `ProgramId`.
+4. Run `initialize-config-devnet.ts` with the authority wallet.
+5. Run `init-user-account-devnet.ts` for the target user wallet.
+6. Credit the user through `credit-user-balance-devnet.ts` or your backend admin flow.
+7. Retry `withdraw` from the application.

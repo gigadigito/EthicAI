@@ -60,68 +60,7 @@ async function sendAndConfirm(connection, provider, transaction) {
 }
 
 export async function claimAvailableReturns(options) {
-    const web3 = getWeb3();
-    const {
-        Connection,
-        PublicKey,
-        Transaction,
-        TransactionInstruction,
-        clusterApiUrl
-    } = web3;
-
-    const provider = getProvider();
-    if (!provider.isConnected) {
-        await provider.connect();
-    }
-
-    const programId = new PublicKey(options.programId);
-    const cluster = options.cluster || "devnet";
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
-    const claimableBets = Array.isArray(options.claimableBets) ? options.claimableBets : [];
-
-    if (claimableBets.length === 0) {
-        throw new Error("Nao ha bets claimaveis para resgatar.");
-    }
-
-    const [userAccount] = PublicKey.findProgramAddressSync(
-        [new TextEncoder().encode("user"), provider.publicKey.toBuffer()],
-        programId);
-
-    const claimDiscriminator = await discriminator("claim");
-    const signatures = [];
-
-    for (const entry of claimableBets) {
-        const matchId = BigInt(entry.matchId);
-        const matchSeed = u64Le(matchId);
-
-        const [matchAccount] = PublicKey.findProgramAddressSync(
-            [new TextEncoder().encode("match"), matchSeed],
-            programId);
-
-        const [bet] = PublicKey.findProgramAddressSync(
-            [new TextEncoder().encode("bet"), matchAccount.toBuffer(), provider.publicKey.toBuffer()],
-            programId);
-
-        const instruction = new TransactionInstruction({
-            programId,
-            keys: [
-                { pubkey: matchAccount, isSigner: false, isWritable: false },
-                { pubkey: userAccount, isSigner: false, isWritable: true },
-                { pubkey: bet, isSigner: false, isWritable: true },
-                { pubkey: provider.publicKey, isSigner: true, isWritable: true }
-            ],
-            data: claimDiscriminator
-        });
-
-        const transaction = new Transaction().add(instruction);
-        const signature = await sendAndConfirm(connection, provider, transaction);
-        signatures.push(signature);
-    }
-
-    return {
-        signatures,
-        userAccount: userAccount.toBase58()
-    };
+    throw new Error("O resgate de retornos agora e processado pelo backend. Atualize a tela e tente novamente.");
 }
 
 export async function withdrawSystemBalance(options) {
