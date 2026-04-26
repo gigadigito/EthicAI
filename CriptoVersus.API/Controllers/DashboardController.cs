@@ -60,17 +60,16 @@ namespace CriptoVersus.API.Controllers
                 ct: ct);
 
             var topGainers = await GetTopGainersAsync(top, ct);
-            var allowedTopSymbols = topGainers
-                .Select(x => x.Symbol)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var topRankBySymbol = topGainers
+                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+                .ToDictionary(x => x.Symbol, x => x.Rank, StringComparer.OrdinalIgnoreCase);
 
-            var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, allowedTopSymbols, ct);
-            var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, allowedTopSymbols, ct);
+            var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, topRankBySymbol, ct);
+            var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, topRankBySymbol, ct);
             var completedListTask = GetCompletedListAsync(ongoing, now, last24h, matchDurationMinutes, ct);
 
-            var pendingCountTask = CountPendingAsync(allowedTopSymbols, ct);
-            var ongoingCountTask = CountOngoingAsync(allowedTopSymbols, ct);
+            var pendingCountTask = CountPendingAsync(ct);
+            var ongoingCountTask = CountOngoingAsync(ct);
             var completedLast24hTask = CountCompletedLast24hAsync(last24h, ct);
 
             await Task.WhenAll(
@@ -136,7 +135,7 @@ namespace CriptoVersus.API.Controllers
             int take,
             DateTime now,
             int matchDurationMinutes,
-            HashSet<string> allowedTopSymbols,
+            Dictionary<string, int> topRankBySymbol,
             CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -152,7 +151,9 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return items
-                .Where(m => IsCurrentTopGainerMatch(m.TeamA, m.TeamB, allowedTopSymbols))
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
+                .OrderBy(m => GetMatchPriority(m.TeamA, m.TeamB, topRankBySymbol))
+                .ThenByDescending(m => m.StartTime ?? DateTime.MinValue)
                 .Take(take)
                 .ToList();
         }
@@ -161,7 +162,7 @@ namespace CriptoVersus.API.Controllers
             int take,
             DateTime now,
             int matchDurationMinutes,
-            HashSet<string> allowedTopSymbols,
+            Dictionary<string, int> topRankBySymbol,
             CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -180,7 +181,9 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return items
-                .Where(m => IsCurrentTopGainerMatch(m.TeamA, m.TeamB, allowedTopSymbols))
+                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
+                .OrderBy(m => GetMatchPriority(m.TeamA, m.TeamB, topRankBySymbol))
+                .ThenBy(m => m.StartTime ?? DateTime.MaxValue)
                 .Take(take)
                 .ToList();
         }
@@ -210,7 +213,7 @@ namespace CriptoVersus.API.Controllers
                 .ToList();
         }
 
-        private async Task<int> CountPendingAsync(HashSet<string> allowedTopSymbols, CancellationToken ct)
+        private async Task<int> CountPendingAsync(CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
             var items = await db.Set<Match>()
@@ -220,13 +223,13 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.Status == MatchStatus.Pending)
                 .ToListAsync(ct);
 
-            return items.Count(m => IsCurrentTopGainerMatch(
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(
                 m.TeamA?.Currency?.Symbol,
                 m.TeamB?.Currency?.Symbol,
-                allowedTopSymbols));
+                _config));
         }
 
-        private async Task<int> CountOngoingAsync(HashSet<string> allowedTopSymbols, CancellationToken ct)
+        private async Task<int> CountOngoingAsync(CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
             var items = await db.Set<Match>()
@@ -236,25 +239,31 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.Status == MatchStatus.Ongoing)
                 .ToListAsync(ct);
 
-            return items.Count(m => IsCurrentTopGainerMatch(
+            return items.Count(m => !MatchPairRules.IsForbiddenPair(
                 m.TeamA?.Currency?.Symbol,
                 m.TeamB?.Currency?.Symbol,
-                allowedTopSymbols));
+                _config));
         }
 
-        private bool IsCurrentTopGainerMatch(string? teamA, string? teamB, HashSet<string> allowedTopSymbols)
+        private static int GetMatchPriority(string? teamA, string? teamB, Dictionary<string, int> topRankBySymbol)
         {
-            if (MatchPairRules.IsForbiddenPair(teamA, teamB, _config))
-                return false;
-
             if (string.IsNullOrWhiteSpace(teamA) || string.IsNullOrWhiteSpace(teamB))
-                return false;
+                return int.MaxValue;
 
-            return allowedTopSymbols.Contains(teamA) && allowedTopSymbols.Contains(teamB);
+            var hasA = topRankBySymbol.TryGetValue(teamA, out var rankA);
+            var hasB = topRankBySymbol.TryGetValue(teamB, out var rankB);
+
+            if (hasA && hasB)
+                return rankA + rankB;
+
+            if (hasA)
+                return 10_000 + rankA;
+
+            if (hasB)
+                return 20_000 + rankB;
+
+            return 30_000;
         }
-
-        private bool IsCurrentTopGainerMatch(MatchDto match, HashSet<string> allowedTopSymbols)
-            => IsCurrentTopGainerMatch(match.TeamA, match.TeamB, allowedTopSymbols);
 
         private async Task<int> CountCompletedLast24hAsync(DateTime last24h, CancellationToken ct)
         {
