@@ -95,11 +95,9 @@ namespace CriptoVersus.API.Controllers
             var list = await db.Set<Currency>()
                 .AsNoTracking()
                 .Where(c => c.Symbol != null && EF.Functions.ILike(c.Symbol, "%USDT"))
-                .Where(c => !MatchPairRules.IsForbiddenStablecoin(c.Symbol, _config))
                 .Where(c => c.LastUpdated >= minUtc)
                 .OrderByDescending(c => c.PercentageChange)
                 .ThenByDescending(c => c.LastUpdated)
-                .Take(top)
                 .Select(c => new CurrencyDto
                 {
                     Symbol = c.Symbol!,
@@ -109,6 +107,11 @@ namespace CriptoVersus.API.Controllers
                     Rank = 0
                 })
                 .ToListAsync(ct);
+
+            list = list
+                .Where(c => !MatchPairRules.IsForbiddenStablecoin(c.Symbol, _config))
+                .Take(top)
+                .ToList();
 
             for (int i = 0; i < list.Count; i++)
                 list[i].Rank = i + 1;
