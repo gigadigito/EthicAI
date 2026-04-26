@@ -59,18 +59,22 @@ namespace CriptoVersus.API.Controllers
                 targetPendingMatches: targetPendingMatches,
                 ct: ct);
 
-            var topGainersTask = GetTopGainersAsync(top, ct);
-            var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, ct);
-            var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, ct);
+            var topGainers = await GetTopGainersAsync(top, ct);
+            var allowedTopSymbols = topGainers
+                .Select(x => x.Symbol)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, allowedTopSymbols, ct);
+            var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, allowedTopSymbols, ct);
             var completedListTask = GetCompletedListAsync(ongoing, now, last24h, matchDurationMinutes, ct);
 
-            var pendingCountTask = CountPendingAsync(ct);
-            var ongoingCountTask = CountOngoingAsync(ct);
+            var pendingCountTask = CountPendingAsync(allowedTopSymbols, ct);
+            var ongoingCountTask = CountOngoingAsync(allowedTopSymbols, ct);
             var completedLast24hTask = CountCompletedLast24hAsync(last24h, ct);
 
             await Task.WhenAll(
                 workerTask,
-                topGainersTask,
                 ongoingListTask,
                 pendingListTask,
                 completedListTask,
@@ -82,7 +86,7 @@ namespace CriptoVersus.API.Controllers
             {
                 ServerTimeUtc = now,
                 Worker = workerTask.Result,
-                TopGainers = topGainersTask.Result,
+                TopGainers = topGainers,
                 Matches = new MatchSummaryDto
                 {
                     Pending = pendingCountTask.Result,
@@ -128,7 +132,12 @@ namespace CriptoVersus.API.Controllers
             return list;
         }
 
-        private async Task<List<MatchDto>> GetOngoingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
+        private async Task<List<MatchDto>> GetOngoingListAsync(
+            int take,
+            DateTime now,
+            int matchDurationMinutes,
+            HashSet<string> allowedTopSymbols,
+            CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
@@ -138,16 +147,22 @@ namespace CriptoVersus.API.Controllers
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .Where(m => m.Status == MatchStatus.Ongoing)
                 .OrderByDescending(m => m.StartTime ?? DateTime.MinValue)
-                .Take(take)
+                .Take(Math.Max(take * 4, take))
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
 
             return items
-                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
+                .Where(m => IsCurrentTopGainerMatch(m.TeamA, m.TeamB, allowedTopSymbols))
+                .Take(take)
                 .ToList();
         }
 
-        private async Task<List<MatchDto>> GetPendingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
+        private async Task<List<MatchDto>> GetPendingListAsync(
+            int take,
+            DateTime now,
+            int matchDurationMinutes,
+            HashSet<string> allowedTopSymbols,
+            CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
 
@@ -160,12 +175,13 @@ namespace CriptoVersus.API.Controllers
                     (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > now) ||
                     (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > now))
                 .OrderBy(m => m.StartTime)
-                .Take(take)
+                .Take(Math.Max(take * 4, take))
                 .Select(m => ToMatchDto(m, now, matchDurationMinutes))
                 .ToListAsync(ct);
 
             return items
-                .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA, m.TeamB, _config))
+                .Where(m => IsCurrentTopGainerMatch(m.TeamA, m.TeamB, allowedTopSymbols))
+                .Take(take)
                 .ToList();
         }
 
@@ -194,7 +210,7 @@ namespace CriptoVersus.API.Controllers
                 .ToList();
         }
 
-        private async Task<int> CountPendingAsync(CancellationToken ct)
+        private async Task<int> CountPendingAsync(HashSet<string> allowedTopSymbols, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
             var items = await db.Set<Match>()
@@ -204,10 +220,13 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.Status == MatchStatus.Pending)
                 .ToListAsync(ct);
 
-            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _config));
+            return items.Count(m => IsCurrentTopGainerMatch(
+                m.TeamA?.Currency?.Symbol,
+                m.TeamB?.Currency?.Symbol,
+                allowedTopSymbols));
         }
 
-        private async Task<int> CountOngoingAsync(CancellationToken ct)
+        private async Task<int> CountOngoingAsync(HashSet<string> allowedTopSymbols, CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
             var items = await db.Set<Match>()
@@ -217,8 +236,25 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => m.Status == MatchStatus.Ongoing)
                 .ToListAsync(ct);
 
-            return items.Count(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _config));
+            return items.Count(m => IsCurrentTopGainerMatch(
+                m.TeamA?.Currency?.Symbol,
+                m.TeamB?.Currency?.Symbol,
+                allowedTopSymbols));
         }
+
+        private bool IsCurrentTopGainerMatch(string? teamA, string? teamB, HashSet<string> allowedTopSymbols)
+        {
+            if (MatchPairRules.IsForbiddenPair(teamA, teamB, _config))
+                return false;
+
+            if (string.IsNullOrWhiteSpace(teamA) || string.IsNullOrWhiteSpace(teamB))
+                return false;
+
+            return allowedTopSymbols.Contains(teamA) && allowedTopSymbols.Contains(teamB);
+        }
+
+        private bool IsCurrentTopGainerMatch(MatchDto match, HashSet<string> allowedTopSymbols)
+            => IsCurrentTopGainerMatch(match.TeamA, match.TeamB, allowedTopSymbols);
 
         private async Task<int> CountCompletedLast24hAsync(DateTime last24h, CancellationToken ct)
         {
