@@ -4,6 +4,7 @@ using EthicAI.Data;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CriptoVersus.API.Controllers
 {
@@ -12,7 +13,13 @@ namespace CriptoVersus.API.Controllers
     public class WorkerController : ControllerBase
     {
         private readonly EthicAIDbContext _db;
-        public WorkerController(EthicAIDbContext db) => _db = db;
+        private readonly IConfiguration _config;
+
+        public WorkerController(EthicAIDbContext db, IConfiguration config)
+        {
+            _db = db;
+            _config = config;
+        }
 
         [HttpGet("status")]
         public async Task<ActionResult<WorkerStatusDto>> Status(CancellationToken ct = default)
@@ -57,10 +64,16 @@ namespace CriptoVersus.API.Controllers
                 LastCycleEndUtc = row.LastCycleEndUtc,
                 LastError = row.LastError,
                 LastErrorUtc = row.LastErrorUtc,
-                CycleIntervalSeconds = 60,
-                MatchDurationMinutes = 90,
-                TargetUpcomingMatches = 3
+                CycleIntervalSeconds = GetInt("CriptoVersusWorker:IntervalSeconds", 30),
+                MatchDurationMinutes = GetInt("CriptoVersusWorker:MatchDurationMinutes", 90),
+                TargetUpcomingMatches = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3)
             };
+        }
+
+        private int GetInt(string key, int fallback)
+        {
+            var raw = _config[key];
+            return int.TryParse(raw, out var value) ? value : fallback;
         }
 
         // DTO interno só pra mapear SQL sem entidade formal

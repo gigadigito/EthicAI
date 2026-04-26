@@ -32,6 +32,15 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] int ongoing = 10,
             CancellationToken ct = default)
         {
+            if (!Request.Query.ContainsKey("top"))
+                top = GetInt("CriptoVersusWorker:TopGainersTake", 10);
+
+            if (!Request.Query.ContainsKey("pending"))
+                pending = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3);
+
+            if (!Request.Query.ContainsKey("ongoing"))
+                ongoing = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3);
+
             top = Math.Clamp(top, 1, 50);
             pending = Math.Clamp(pending, 0, 50);
             ongoing = Math.Clamp(ongoing, 0, 50);
@@ -39,9 +48,9 @@ namespace CriptoVersus.API.Controllers
             var now = DateTime.UtcNow;
             var last24h = now.AddHours(-24);
 
-            var cycleIntervalSeconds = GetInt("CriptoVersus:Worker:CycleIntervalSeconds", 60);
-            var matchDurationMinutes = GetInt("CriptoVersus:Match:DurationMinutes", 90);
-            var targetPendingMatches = GetInt("CriptoVersus:Match:TargetPendingMatches", 10);
+            var cycleIntervalSeconds = GetInt("CriptoVersusWorker:IntervalSeconds", 30);
+            var matchDurationMinutes = GetInt("CriptoVersusWorker:MatchDurationMinutes", 90);
+            var targetPendingMatches = GetInt("CriptoVersusWorker:DesiredActiveMatches", 3);
 
             var workerTask = ReadWorkerStatusAsync(
                 nowUtc: now,
