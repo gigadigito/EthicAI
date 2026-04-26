@@ -59,6 +59,22 @@ public sealed class WalletController : ControllerBase
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
 
+        var claimableBets = await _context.Bet
+            .AsNoTracking()
+            .Where(b => b.UserId == user.UserID
+                && b.SettledAt.HasValue
+                && !b.Claimed
+                && (b.PayoutAmount ?? 0m) > 0m)
+            .OrderBy(b => b.MatchId)
+            .Select(b => new ClaimableBetDto
+            {
+                BetId = b.BetId,
+                MatchId = b.MatchId,
+                TeamId = b.TeamId,
+                PayoutAmount = b.PayoutAmount ?? 0m
+            })
+            .ToListAsync(cancellationToken);
+
         var totalInvested = betRows.Sum(i => i.Amount);
         var openAmount = betRows.Where(IsOpen).Sum(i => i.Amount);
         var availableReturns = betRows
@@ -120,6 +136,7 @@ public sealed class WalletController : ControllerBase
             SettledInvestments = betRows.Count(x => x.SettledAt.HasValue),
             CanClaim = availableReturns > 0m,
             CanWithdraw = user.Balance > 0m,
+            ClaimableBets = claimableBets,
             ActivePositions = positions.Select(ToPositionDto).ToList(),
             InvestmentGroups = investmentGroups
         });

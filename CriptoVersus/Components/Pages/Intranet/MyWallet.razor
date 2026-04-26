@@ -666,6 +666,7 @@
     private string? _actionMessage;
     private bool _actionBusy;
     private IJSObjectReference? _walletBalanceModule;
+    private IJSObjectReference? _walletActionsModule;
     private double? _onChainBalance;
     private bool _onChainBalanceLoading;
     private string? _onChainBalanceError;
@@ -677,6 +678,9 @@
 
     private string OnChainCluster
         => Config["OnChainBetting:Cluster"] ?? "devnet";
+
+    private string OnChainProgramId
+        => Config["OnChainBetting:ProgramId"] ?? string.Empty;
 
     private string OnChainBalanceText
         => _onChainBalanceLoading
@@ -750,9 +754,29 @@
 
         try
         {
-            var result = await Api.ClaimAvailableReturnsAsync();
+            if (string.IsNullOrWhiteSpace(OnChainProgramId))
+                throw new InvalidOperationException("OnChainBetting:ProgramId nao configurado.");
+
+            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletActions.js?v=20260426-claim-withdraw");
+
+            var chainResult = await _walletActionsModule.InvokeAsync<ChainClaimResult>(
+                "claimAvailableReturns",
+                new
+                {
+                    programId = OnChainProgramId,
+                    cluster = OnChainCluster,
+                    claimableBets = _wallet.ClaimableBets
+                });
+
+            var result = await Api.ClaimAvailableReturnsAsync(new ClaimAvailableReturnsRequest
+            {
+                OnChainSignature = string.Join(",", chainResult.signatures)
+            });
             _actionMessage = result?.Message ?? "Retornos resgatados com sucesso.";
             await LoadWalletAsync();
+            await LoadOnChainBalanceAsync();
         }
         catch (Exception ex)
         {
@@ -776,9 +800,26 @@
 
         try
         {
+            if (string.IsNullOrWhiteSpace(OnChainProgramId))
+                throw new InvalidOperationException("OnChainBetting:ProgramId nao configurado.");
+
+            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletActions.js?v=20260426-claim-withdraw");
+
+            var chainResult = await _walletActionsModule.InvokeAsync<ChainWithdrawResult>(
+                "withdrawSystemBalance",
+                new
+                {
+                    programId = OnChainProgramId,
+                    cluster = OnChainCluster,
+                    amountSol = _wallet.SystemBalance
+                });
+
             var result = await Api.WithdrawSystemBalanceAsync(new WithdrawSystemBalanceRequest
             {
-                Amount = _wallet.SystemBalance
+                Amount = _wallet.SystemBalance,
+                OnChainSignature = chainResult.signature
             });
 
             _actionMessage = result?.Message ?? "Saque registrado com sucesso.";
@@ -913,5 +954,18 @@
     {
         if (_walletBalanceModule is not null)
             await _walletBalanceModule.DisposeAsync();
+
+        if (_walletActionsModule is not null)
+            await _walletActionsModule.DisposeAsync();
+    }
+
+    private sealed class ChainClaimResult
+    {
+        public List<string> signatures { get; set; } = [];
+    }
+
+    private sealed class ChainWithdrawResult
+    {
+        public string signature { get; set; } = string.Empty;
     }
 }

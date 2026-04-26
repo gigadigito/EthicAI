@@ -21,8 +21,17 @@ public sealed class MyWalletDto
     public int SettledInvestments { get; set; }
     public bool CanClaim { get; set; }
     public bool CanWithdraw { get; set; }
+    public List<ClaimableBetDto> ClaimableBets { get; set; } = [];
     public List<TeamPositionDto> ActivePositions { get; set; } = [];
     public List<MyWalletInvestmentGroupDto> InvestmentGroups { get; set; } = [];
+}
+
+public sealed class ClaimableBetDto
+{
+    public int BetId { get; set; }
+    public int MatchId { get; set; }
+    public int TeamId { get; set; }
+    public decimal PayoutAmount { get; set; }
 }
 
 public sealed class MyWalletInvestmentGroupDto
