@@ -66,6 +66,7 @@ namespace CriptoVersus.API.Controllers
                 return BadRequest("O valor do investimento ficou inválido após o arredondamento.");
 
             var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
+            var fundedFromWallet = !string.IsNullOrWhiteSpace(request.OnChainSignature);
 
             if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature))
             {
@@ -135,7 +136,7 @@ namespace CriptoVersus.API.Controllers
                         });
                     }
 
-                    if (!onChainBettingEnabled && user.Balance < request.Amount)
+                    if (!fundedFromWallet && user.Balance < request.Amount)
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
                         {
@@ -148,7 +149,7 @@ namespace CriptoVersus.API.Controllers
                     var nowUtc = DateTime.UtcNow;
                     var balanceBefore = user.Balance;
 
-                    if (!onChainBettingEnabled)
+                    if (!fundedFromWallet)
                         user.Balance -= request.Amount;
 
                     var position = await _context.UserTeamPosition
@@ -167,7 +168,7 @@ namespace CriptoVersus.API.Controllers
                             OnChainPositionAddress = NormalizeAddress(request.OnChainPositionAccount),
                             OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault),
                             LastOnChainSignature = NormalizeAddress(request.OnChainSignature),
-                            OnChainCluster = onChainBettingEnabled
+                            OnChainCluster = fundedFromWallet
                                 ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
                                 : null,
                             CurrentLamports = ParseLamports(request.OnChainAmountLamports),
@@ -187,7 +188,7 @@ namespace CriptoVersus.API.Controllers
                         position.OnChainPositionAddress = NormalizeAddress(request.OnChainPositionAccount) ?? position.OnChainPositionAddress;
                         position.OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault) ?? position.OnChainVaultAddress;
                         position.LastOnChainSignature = NormalizeAddress(request.OnChainSignature) ?? position.LastOnChainSignature;
-                        position.OnChainCluster = onChainBettingEnabled
+                        position.OnChainCluster = fundedFromWallet
                             ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
                             : position.OnChainCluster;
                         position.CurrentLamports = AddLamports(
@@ -239,12 +240,12 @@ namespace CriptoVersus.API.Controllers
 
                     await _ledgerService.AddEntryAsync(
                         user: user,
-                        type: onChainBettingEnabled ? "BET_ONCHAIN" : "BET",
-                        amount: onChainBettingEnabled ? 0m : -request.Amount,
+                        type: fundedFromWallet ? "BET_ONCHAIN" : "BET",
+                        amount: fundedFromWallet ? 0m : -request.Amount,
                         balanceBefore: balanceBefore,
                         balanceAfter: user.Balance,
                         referenceId: bet.BetId,
-                        description: onChainBettingEnabled
+                        description: fundedFromWallet
                             ? $"Investimento on-chain realizado no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}"
                             : $"Investimento realizado no match {bet.MatchId}, team {bet.TeamId}",
                         ct: cancellationToken);
