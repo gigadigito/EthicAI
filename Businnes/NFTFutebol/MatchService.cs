@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using DAL;
 using DAL.NftFutebol;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
@@ -213,18 +214,54 @@ namespace BLL.NFTFutebol
         {
             try
             {
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+
+                amount = decimal.Round(amount, 8, MidpointRounding.ToZero);
+                if (amount <= 0m)
+                    return false;
+
+                var user = await _context.User.FirstOrDefaultAsync(x => x.UserID == userid);
+                if (user is null || user.Balance < amount)
+                    return false;
+
+                var balanceBefore = user.Balance;
+                user.Balance = decimal.Round(user.Balance - amount, 8, MidpointRounding.ToZero);
+                user.DtUpdate = DateTime.UtcNow;
+
+                var nextPosition = (await _context.Bet
+                    .Where(b => b.MatchId == matchId)
+                    .Select(b => (int?)b.Position)
+                    .MaxAsync() ?? 0) + 1;
+
                 var bet = new Bet
                 {
                     MatchId = matchId,
                     TeamId = teamId,
                     UserId = userid,
                     Amount = amount,
+                    Position = nextPosition,
                     Claimed = false,
                     ClaimedAt = null,
                     BetTime = DateTime.UtcNow
                 };
+
                 _context.Bet.Add(bet);
                 await _context.SaveChangesAsync();
+
+                _context.Set<Ledger>().Add(new Ledger
+                {
+                    UserId = user.UserID,
+                    Type = "BET",
+                    Amount = -amount,
+                    BalanceBefore = balanceBefore,
+                    BalanceAfter = user.Balance,
+                    CreatedAt = DateTime.UtcNow,
+                    ReferenceId = bet.BetId,
+                    Description = $"Investimento realizado no match {bet.MatchId}, team {bet.TeamId} (legacy MatchService)"
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
             catch(Exception ex)

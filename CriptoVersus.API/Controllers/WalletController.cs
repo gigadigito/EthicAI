@@ -397,8 +397,9 @@ public sealed class WalletController : ControllerBase
                     ?? (effectiveWinnerTeamId == match.TeamAId ? teamASymbol : effectiveWinnerTeamId == match.TeamBId ? teamBSymbol : null);
                 var effectiveReceivedAmount = GetEffectiveReceivedAmount(result, bet.PayoutAmount ?? 0m, bet.Amount);
                 var refundAmount = GetRefundAmount(result, bet.PayoutAmount ?? 0m, bet.Amount);
+                var displayReceivedAmount = GetParticipantReceivedAmount(match.Status, bet.PayoutAmount ?? 0m, bet.Amount, settlementReasonCode);
                 var netResult = GetNetResult(result, effectiveReceivedAmount, refundAmount, bet.Amount);
-                var settlementSteps = BuildSettlementSteps(result, bet.Amount, effectiveReceivedAmount, refundAmount, netResult, houseFeeAmount, totalPool, totalDistributed, settlementReasonCode, hasValidFinancialDispute);
+                var settlementSteps = BuildSettlementSteps(result, bet.Amount, displayReceivedAmount, refundAmount, netResult, houseFeeAmount, totalPool, totalDistributed, settlementReasonCode, hasValidFinancialDispute);
 
                 return new UserMatchHistoryItemDto
                 {
@@ -416,7 +417,7 @@ public sealed class WalletController : ControllerBase
                     WinnerTeamSymbol = winnerSymbol,
                     CurrencyName = selectedTeam?.Currency?.Name ?? "Moeda",
                     BetAmount = bet.Amount,
-                    ReceivedAmount = effectiveReceivedAmount,
+                    ReceivedAmount = displayReceivedAmount,
                     PayoutAmount = bet.PayoutAmount ?? 0m,
                     RefundAmount = refundAmount,
                     HouseFeeAmount = houseFeeAmount,
@@ -430,8 +431,8 @@ public sealed class WalletController : ControllerBase
                     UserResult = result.Code,
                     UserResultLabel = result.Label,
                     MatchResultSummary = scoreSummary,
-                    HumanSummary = BuildHumanSummary(result, userTeamSymbol, opponentSymbol, bet.Amount, effectiveReceivedAmount, refundAmount, netResult, winnerSymbol),
-                    SettlementSummary = BuildSettlementSummary(result, bet.Amount, effectiveReceivedAmount, refundAmount, netResult),
+                    HumanSummary = BuildHumanSummary(result, userTeamSymbol, opponentSymbol, bet.Amount, displayReceivedAmount, refundAmount, netResult, winnerSymbol),
+                    SettlementSummary = BuildSettlementSummary(result, bet.Amount, displayReceivedAmount, refundAmount, netResult),
                     Claimed = bet.Claimed,
                     IsWinner = bet.IsWinner,
                     IsLoser = result.IsLoser,
