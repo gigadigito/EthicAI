@@ -67,8 +67,9 @@ namespace CriptoVersus.API.Controllers
 
             var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
             var fundedFromWallet = !string.IsNullOrWhiteSpace(request.OnChainSignature);
+            var isInternalTestAuth = IsInternalTestAuth(wallet);
 
-            if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature))
+            if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature) && !isInternalTestAuth)
             {
                 return BadRequest(new
                 {
@@ -350,6 +351,19 @@ namespace CriptoVersus.API.Controllers
 
             return IsConfiguredWallet(wallet, adminWallet)
                 || IsConfiguredWallet(wallet, onChainAuthorityWallet);
+        }
+
+        private bool IsInternalTestAuth(string wallet)
+        {
+            if (!_configuration.GetValue<bool>("CriptoVersusTestSupport:Enabled"))
+                return false;
+
+            var authType = User.FindFirstValue("auth_type");
+            if (!string.Equals(authType, "test", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var walletPrefix = _configuration["CriptoVersusTestSupport:WalletPrefix"] ?? "test-wallet-";
+            return wallet.StartsWith(walletPrefix, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsConfiguredWallet(string wallet, string? configuredWallet)

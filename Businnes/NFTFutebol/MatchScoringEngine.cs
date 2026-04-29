@@ -164,60 +164,11 @@ namespace BLL.NFTFutebol
             var teamAScore = context.CurrentScoreA;
             var teamBScore = context.CurrentScoreB;
 
-            if (context.PreviousTeamA is null || context.PreviousTeamB is null)
-            {
-                context.State.LastVolumeLeaderTeamId = ResolveLeader(
-                    context.TeamA.TeamId,
-                    context.TeamA.QuoteVolume,
-                    context.TeamB.TeamId,
-                    context.TeamB.QuoteVolume);
-
-                return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
-            }
-
-            var previousDiff = context.PreviousTeamA.QuoteVolume - context.PreviousTeamB.QuoteVolume;
-            var currentDiff = context.TeamA.QuoteVolume - context.TeamB.QuoteVolume;
-
-            if (previousDiff < 0m && currentDiff >= 0m)
-            {
-                teamAScore++;
-                events.Add(new PendingMatchScoreEvent
-                {
-                    TeamId = context.TeamA.TeamId,
-                    RuleType = MatchScoringRuleType.VolumeCrossover,
-                    EventType = "VOLUME_CROSSOVER_UP",
-                    ReasonCode = "VOLUME_CROSSOVER_UP",
-                    Points = 1,
-                    TeamQuoteVolume = context.TeamA.QuoteVolume,
-                    OpponentQuoteVolume = context.TeamB.QuoteVolume,
-                    MetricDelta = currentDiff,
-                    EventTimeUtc = context.EvaluatedAtUtc,
-                    Description = $"{context.TeamA.Symbol} marcou 1 ponto por cruzar a linha de volume para cima."
-                });
-            }
-            else if (previousDiff > 0m && currentDiff <= 0m)
-            {
-                teamBScore++;
-                events.Add(new PendingMatchScoreEvent
-                {
-                    TeamId = context.TeamB.TeamId,
-                    RuleType = MatchScoringRuleType.VolumeCrossover,
-                    EventType = "VOLUME_CROSSOVER_UP",
-                    ReasonCode = "VOLUME_CROSSOVER_UP",
-                    Points = 1,
-                    TeamQuoteVolume = context.TeamB.QuoteVolume,
-                    OpponentQuoteVolume = context.TeamA.QuoteVolume,
-                    MetricDelta = -currentDiff,
-                    EventTimeUtc = context.EvaluatedAtUtc,
-                    Description = $"{context.TeamB.Symbol} marcou 1 ponto por cruzar a linha de volume para cima."
-                });
-            }
-
-            context.State.LastVolumeLeaderTeamId = ResolveLeader(
-                context.TeamA.TeamId,
-                context.TeamA.QuoteVolume,
-                context.TeamB.TeamId,
-                context.TeamB.QuoteVolume);
+            ApplyVolumeCrossover(
+                context,
+                events,
+                ref teamAScore,
+                ref teamBScore);
 
             return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
         }
@@ -268,7 +219,75 @@ namespace BLL.NFTFutebol
                 context.State.LastProcessedVolumeWindowEndUtc = window.WindowEndUtc;
             }
 
+            ApplyVolumeCrossover(
+                context,
+                events,
+                ref teamAScore,
+                ref teamBScore);
+
             return MatchScoringResult.From(context.State, teamAScore, teamBScore, events);
+        }
+
+        private static void ApplyVolumeCrossover(
+            MatchScoringContext context,
+            List<PendingMatchScoreEvent> events,
+            ref int teamAScore,
+            ref int teamBScore)
+        {
+            if (context.PreviousTeamA is null || context.PreviousTeamB is null)
+            {
+                context.State.LastVolumeLeaderTeamId = ResolveLeader(
+                    context.TeamA.TeamId,
+                    context.TeamA.QuoteVolume,
+                    context.TeamB.TeamId,
+                    context.TeamB.QuoteVolume);
+
+                return;
+            }
+
+            var previousDiff = context.PreviousTeamA.QuoteVolume - context.PreviousTeamB.QuoteVolume;
+            var currentDiff = context.TeamA.QuoteVolume - context.TeamB.QuoteVolume;
+
+            if (previousDiff < 0m && currentDiff >= 0m)
+            {
+                teamAScore++;
+                events.Add(new PendingMatchScoreEvent
+                {
+                    TeamId = context.TeamA.TeamId,
+                    RuleType = MatchScoringRuleType.VolumeCrossover,
+                    EventType = "VOLUME_CROSSOVER_UP",
+                    ReasonCode = "VOLUME_CROSSOVER_UP",
+                    Points = 1,
+                    TeamQuoteVolume = context.TeamA.QuoteVolume,
+                    OpponentQuoteVolume = context.TeamB.QuoteVolume,
+                    MetricDelta = currentDiff,
+                    EventTimeUtc = context.EvaluatedAtUtc,
+                    Description = $"{context.TeamA.Symbol} marcou 1 ponto por cruzar a linha de volume para cima."
+                });
+            }
+            else if (previousDiff > 0m && currentDiff <= 0m)
+            {
+                teamBScore++;
+                events.Add(new PendingMatchScoreEvent
+                {
+                    TeamId = context.TeamB.TeamId,
+                    RuleType = MatchScoringRuleType.VolumeCrossover,
+                    EventType = "VOLUME_CROSSOVER_UP",
+                    ReasonCode = "VOLUME_CROSSOVER_UP",
+                    Points = 1,
+                    TeamQuoteVolume = context.TeamB.QuoteVolume,
+                    OpponentQuoteVolume = context.TeamA.QuoteVolume,
+                    MetricDelta = -currentDiff,
+                    EventTimeUtc = context.EvaluatedAtUtc,
+                    Description = $"{context.TeamB.Symbol} marcou 1 ponto por cruzar a linha de volume para cima."
+                });
+            }
+
+            context.State.LastVolumeLeaderTeamId = ResolveLeader(
+                context.TeamA.TeamId,
+                context.TeamA.QuoteVolume,
+                context.TeamB.TeamId,
+                context.TeamB.QuoteVolume);
         }
 
         private static int? ResolveLeader(int teamAId, decimal metricA, int teamBId, decimal metricB)

@@ -26,6 +26,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.API", "CriptoV
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DTOs", "DTOs\DTOs.csproj", "{0569373B-F6E6-4ACE-977F-206591829BEE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Tests.Integration", "CriptoVersus.Tests.Integration\CriptoVersus.Tests.Integration.csproj", "{48E59263-26BD-43DF-B798-0B88312E7BA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,6 +66,10 @@ Global
 		{0569373B-F6E6-4ACE-977F-206591829BEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0569373B-F6E6-4ACE-977F-206591829BEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0569373B-F6E6-4ACE-977F-206591829BEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48E59263-26BD-43DF-B798-0B88312E7BA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48E59263-26BD-43DF-B798-0B88312E7BA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48E59263-26BD-43DF-B798-0B88312E7BA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48E59263-26BD-43DF-B798-0B88312E7BA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

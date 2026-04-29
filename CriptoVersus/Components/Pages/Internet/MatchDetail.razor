@@ -2611,23 +2611,26 @@
 
     private int GetVolumeWins(int teamId)
         => IsVolumeWindowMatch()
-            ? GetWins(teamId, IsVolumeWindowRule)
+            ? GetWins(teamId, IsVolumeCrossoverRule)
             : GetWins(teamId, IsVolumeCrossoverRule);
+
+    private int GetVolumeWindowPoints(int teamId)
+        => GetWins(teamId, IsVolumeWindowRule);
 
     private string GetVolumeCardTitle()
         => IsVolumeWindowMatch()
-            ? "Historico de Volume (janela de 15 min)"
+            ? "Historico de Volume (janela + cruzamento)"
             : IsVolumeCrossoverMatch()
                 ? "Historico de Volume (cruzamento)"
                 : "Historico de Volume";
 
     private string GetVolumeWinLabel()
-        => IsVolumeWindowMatch() ? "vitoria(s) na janela" : "ganho(s)";
+        => "cruzamento(s)";
 
     private string GetVolumeCardDescription()
     {
         if (IsVolumeWindowMatch())
-            return "Comparacao baseada no volume fechado dos ultimos 15 minutos de cada candle. Cada janela fechada pode gerar no maximo 1 ponto.";
+            return $"Os selos acima mostram apenas cruzamentos para cima no grafico. Pontos por janela de 15 minutos continuam valendo no placar e no log: {_match?.TeamA} {GetVolumeWindowPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetVolumeWindowPoints(_match?.TeamBId ?? 0)}.";
 
         if (IsVolumeCrossoverMatch())
             return "Comparacao baseada em cruzamento de volume: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";

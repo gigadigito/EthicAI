@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "CriptoVersus.Tests.Integration": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "CriptoVersusApi__RunProductionIntegrationTests": "true",
+        "CriptoVersusApi__TestApiKey": "SUA_CHAVE_DE_TESTE",
+        "CriptoVersusApi__BaseUrl": "https://criptoversus-api.duckdns.org"
+      }
+    }
+  }
+}
