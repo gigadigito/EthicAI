@@ -33,7 +33,7 @@
                 <strong>@FmtSol(Group.AvailableReturns)</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Lucro/Prejuizo realizado</span>
+                <span>Resultado liquido realizado</span>
                 <strong class="@GetPayoutClass(Group.RealizedNetResult)">@FmtSignedSol(Group.RealizedNetResult)</strong>
             </div>
             <div class="wallet-history-kpi">
@@ -107,19 +107,19 @@
                                     <span>Vencedor: @(item.WinnerTeamSymbol ?? "-")</span>
                                 </div>
                             </div>
-                            <span class="wallet-result-badge @GetResultBadgeClass(item)">@item.UserResultLabel</span>
+                            <span class="wallet-result-badge @GetResultBadgeClass(item)">@GetFinancialStatusLabel(item)</span>
                         </div>
 
                         <div class="wallet-history-grid">
                             <div class="wallet-history-kpi"><span>Apostado</span><strong>@FmtSol(item.BetAmount)</strong></div>
                             <div class="wallet-history-kpi"><span>Recebido</span><strong>@FmtSol(item.ReceivedAmount)</strong></div>
-                            <div class="wallet-history-kpi"><span>Lucro/Prejuizo</span><strong class="@GetPayoutClass(item.IsOpen ? (decimal?)null : item.NetResult)">@(item.IsOpen ? "Em aberto" : FmtSignedSol(item.NetResult))</strong></div>
+                            <div class="wallet-history-kpi"><span>Resultado liquido</span><strong class="@GetPayoutClass(item.IsOpen ? (decimal?)null : item.NetResult)">@(item.IsOpen ? "Em aberto" : FmtSignedSol(item.NetResult))</strong></div>
                             <div class="wallet-history-kpi"><span>Reembolso</span><strong>@FmtOptionalSol(item.RefundAmount > 0m ? item.RefundAmount : null)</strong></div>
                             <div class="wallet-history-kpi"><span>Taxa da casa</span><strong>@FmtOptionalSol(item.HouseFeeAmount > 0m ? item.HouseFeeAmount : null)</strong></div>
-                            <div class="wallet-history-kpi"><span>Status</span><strong>@FmtMatchStatus(item.MatchStatus)</strong></div>
+                            <div class="wallet-history-kpi"><span>Status financeiro</span><strong class="@GetFinancialStatusClass(item)">@GetFinancialStatusLabel(item)</strong></div>
                         </div>
 
-                        <p class="wallet-history-summary-text">@item.HumanSummary</p>
+                        <p class="wallet-history-summary-text @GetSummaryTextClass(item)">@item.HumanSummary</p>
 
                         <button type="button" class="wallet-history-button" @onclick="() => ToggleMatchDetail(item.BetId)">
                             @(detailsOpen ? "Ocultar detalhes da partida" : "Ver detalhes da partida")
@@ -131,6 +131,7 @@
                                 <div class="wallet-history-grid">
                                     <div class="wallet-history-kpi"><span>Inicio</span><strong>@FmtDate(item.MatchStartTime)</strong></div>
                                     <div class="wallet-history-kpi"><span>Finalizacao</span><strong>@FmtDate(item.MatchEndTime)</strong></div>
+                                    <div class="wallet-history-kpi"><span>Status da partida</span><strong>@FmtMatchStatus(item.MatchStatus)</strong></div>
                                     <div class="wallet-history-kpi"><span>Carteiras no Time A</span><strong>@item.WalletCountTeamA</strong></div>
                                     <div class="wallet-history-kpi"><span>Carteiras no Time B</span><strong>@item.WalletCountTeamB</strong></div>
                                     <div class="wallet-history-kpi"><span>Apostas no Time A</span><strong>@item.BetCountTeamA</strong></div>
@@ -246,10 +247,29 @@
         => item.UserResult switch
         {
             "won" => "wallet-result-won",
-            "won-no-opponent-pool" => "wallet-result-neutral",
+            "won-no-opponent-pool" or "refunded" or "cancelled" or "draw-refunded" or "refunded-no-counterparty" or "draw" => "wallet-result-refunded",
             "lost" or "partial-loss" => "wallet-result-lost",
             "open" => "wallet-result-open",
             _ => "wallet-result-neutral"
+        };
+
+    private static string GetFinancialStatusClass(UserMatchHistoryItemDto item)
+        => item.UserResult switch
+        {
+            "won" => "payout-positive",
+            "lost" or "partial-loss" => "payout-negative",
+            _ => "payout-neutral"
+        };
+
+    private static string GetFinancialStatusLabel(UserMatchHistoryItemDto item)
+        => string.IsNullOrWhiteSpace(item.UserResultLabel) ? "-" : item.UserResultLabel;
+
+    private static string GetSummaryTextClass(UserMatchHistoryItemDto item)
+        => item.UserResult switch
+        {
+            "lost" or "partial-loss" => "wallet-history-summary-text-negative",
+            "refunded" or "cancelled" or "draw-refunded" or "refunded-no-counterparty" or "won-no-opponent-pool" or "draw" => "wallet-history-summary-text-neutral",
+            _ => string.Empty
         };
 
     private static string FmtMatchStatus(string status)
