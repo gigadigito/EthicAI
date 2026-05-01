@@ -1,9 +1,11 @@
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using BLL.Blockchain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -16,11 +18,16 @@ public sealed class AdminController : ControllerBase
 {
     private readonly EthicAIDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
-    public AdminController(EthicAIDbContext context, IConfiguration configuration)
+    public AdminController(
+        EthicAIDbContext context,
+        IConfiguration configuration,
+        IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
+        _blockchainOptions = blockchainOptions.Value;
     }
 
     [HttpGet("system")]
@@ -67,9 +74,14 @@ public sealed class AdminController : ControllerBase
         {
             ServerTimeUtc = DateTime.UtcNow,
             AdminWallet = _configuration["CriptoVersus:AdminWallet"] ?? "",
-            OnChainAuthorityWallet = _configuration["OnChainBetting:AuthorityWallet"] ?? "",
-            OnChainCluster = _configuration["OnChainBetting:Cluster"] ?? "devnet",
-            ProgramId = _configuration["OnChainBetting:ProgramId"] ?? "",
+            BlockchainMode = _blockchainOptions.Mode.ToString(),
+            OnChainAuthorityWallet = _blockchainOptions.GetActiveAuthorityPublicKey(),
+            OnChainCluster = _blockchainOptions.Cluster,
+            ProgramId = _blockchainOptions.GetActiveProgramId(),
+            CustodyWalletPublicKey = _blockchainOptions.CustodyWalletPublicKey,
+            CustodyWalletLabel = _blockchainOptions.CustodyWalletLabel,
+            EnableOnChainBets = _blockchainOptions.IsOnChainBetFlowEnabled(),
+            EnableOnChainSettlement = _blockchainOptions.IsOnChainSettlementFlowEnabled(),
             Users = await _context.User.AsNoTracking().CountAsync(ct),
             MatchesTotal = await _context.Match.AsNoTracking().CountAsync(ct),
             MatchesPending = await _context.Match.AsNoTracking().CountAsync(m => m.Status == pending, ct),
@@ -105,7 +117,7 @@ public sealed class AdminController : ControllerBase
             return false;
 
         var adminWallet = _configuration["CriptoVersus:AdminWallet"];
-        var authorityWallet = _configuration["OnChainBetting:AuthorityWallet"];
+        var authorityWallet = _blockchainOptions.GetActiveAuthorityPublicKey();
 
         return IsConfiguredWallet(wallet, adminWallet)
             || IsConfiguredWallet(wallet, authorityWallet);

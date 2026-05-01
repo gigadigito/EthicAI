@@ -265,3 +265,11 @@
         display: none;
     }
 }
+
+@media (min-width: 641px) and (max-width: 900px) {
+    .nav-scrollable {
+        height: auto;
+        max-height: none;
+        overflow-y: visible;
+    }
+}

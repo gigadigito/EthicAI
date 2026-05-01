@@ -4,9 +4,14 @@ public sealed class AdminSystemDto
 {
     public DateTime ServerTimeUtc { get; set; }
     public string AdminWallet { get; set; } = "";
+    public string BlockchainMode { get; set; } = "";
     public string OnChainAuthorityWallet { get; set; } = "";
     public string OnChainCluster { get; set; } = "devnet";
     public string ProgramId { get; set; } = "";
+    public string CustodyWalletPublicKey { get; set; } = "";
+    public string CustodyWalletLabel { get; set; } = "";
+    public bool EnableOnChainBets { get; set; }
+    public bool EnableOnChainSettlement { get; set; }
     public int Users { get; set; }
     public int MatchesTotal { get; set; }
     public int MatchesPending { get; set; }

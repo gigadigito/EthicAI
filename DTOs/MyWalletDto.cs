@@ -4,6 +4,11 @@ public sealed class MyWalletDto
 {
     public int UserId { get; set; }
     public string Wallet { get; set; } = "";
+    public string BlockchainMode { get; set; } = "";
+    public string CustodyWalletPublicKey { get; set; } = "";
+    public string CustodyWalletLabel { get; set; } = "";
+    public bool UsesOnChainContract { get; set; }
+    public bool EnableOnChainWithdrawals { get; set; }
     public string? Name { get; set; }
     public string? Email { get; set; }
     public DateTime DtCreate { get; set; }

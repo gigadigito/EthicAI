@@ -3,9 +3,14 @@ namespace DTOs;
 public sealed class TokenomicsDto
 {
     public DateTime ServerTimeUtc { get; set; }
+    public string BlockchainMode { get; set; } = "";
     public string Cluster { get; set; } = "devnet";
     public string ProgramId { get; set; } = "";
     public string AuthorityWallet { get; set; } = "";
+    public string CustodyWalletPublicKey { get; set; } = "";
+    public string CustodyWalletLabel { get; set; } = "";
+    public bool EnableOnChainBets { get; set; }
+    public bool EnableOnChainSettlement { get; set; }
     public decimal HouseFeeRate { get; set; }
     public decimal LoserRefundRate { get; set; }
     public decimal WinnerPoolRate { get; set; }

@@ -92,11 +92,19 @@
     private string statusKind = "info";
     private bool showInstallPhantom;
 
+    private string BlockchainMode
+        => Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
+
     private string OnChainCluster
-        => Config["OnChainBetting:Cluster"] ?? "devnet";
+        => Config["CriptoVersusBlockchain:Cluster"] ?? Config["OnChainBetting:Cluster"] ?? "devnet";
 
     private string OnChainProgramId
-        => Config["OnChainBetting:ProgramId"] ?? string.Empty;
+        => string.Equals(BlockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"] ?? string.Empty
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"] ?? string.Empty;
+
+    private bool ShouldEnsureOnChainAccount
+        => !string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
     public async Task OpenAsync()
     {
@@ -236,10 +244,17 @@
                     await SessionStorage.SetItemAsync("userId", loginResult.UserId);
                     await SessionStorage.SetItemAsync("walletPublicKey", loginResult.PublicKey);
                     WalletState.SetSession(loginResult.Token, loginResult.PublicKey);
-                    await EnsureOnChainAccountAsync();
+                    if (ShouldEnsureOnChainAccount)
+                    {
+                        await EnsureOnChainAccountAsync();
+                        SetStatus("Login realizado", "Sua carteira foi autenticada e a conta on-chain foi validada.", "success");
+                    }
+                    else
+                    {
+                        SetStatus("Login realizado", "Sua carteira foi autenticada para uso em custodia off-chain.", "success");
+                    }
                     await OnLoginSucceeded.InvokeAsync();
                     await OnSessionChanged.InvokeAsync();
-                    SetStatus("Login realizado", "Sua carteira foi autenticada e a conta on-chain foi validada.", "success");
                 }
                 else
                 {
@@ -291,8 +306,11 @@
 
     private async Task EnsureOnChainAccountAsync()
     {
+        if (!ShouldEnsureOnChainAccount)
+            return;
+
         if (string.IsNullOrWhiteSpace(OnChainProgramId))
-            throw new InvalidOperationException("OnChainBetting:ProgramId nao configurado.");
+            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
 
         await LoadWalletActionsAsync();
 

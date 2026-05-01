@@ -1,4 +1,5 @@
 ﻿using BLL;
+using BLL.Blockchain;
 using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
 using EthicAI.EntityModel;
@@ -14,6 +15,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ILedgerService, LedgerService>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
+builder.Services.Configure<CriptoVersusBlockchainOptions>(
+    builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
+builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
+builder.Services.AddScoped<OffChainCustodyFundsService>();
+builder.Services.AddScoped<HybridContractCustodyFundsService>();
+builder.Services.AddScoped<FullOnChainFundsService>();
+builder.Services.AddScoped<ICriptoVersusFundsService>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value;
+    return options.Mode switch
+    {
+        BlockchainOperationMode.OffChainCustody => sp.GetRequiredService<OffChainCustodyFundsService>(),
+        BlockchainOperationMode.FullOnChain => sp.GetRequiredService<FullOnChainFundsService>(),
+        _ => sp.GetRequiredService<HybridContractCustodyFundsService>()
+    };
+});
 builder.Services.Configure<MatchScoreRebuildOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker:Scoring"));
 builder.Services.AddControllers();
@@ -96,6 +113,14 @@ if (string.IsNullOrWhiteSpace(connStr))
 builder.Services.AddDbContextFactory<EthicAIDbContext>(opt => opt.UseNpgsql(connStr));
 
 var app = builder.Build();
+
+var blockchainOptions = app.Services
+    .GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>()
+    .Value;
+CriptoVersusBlockchainStartupLogger.Log(
+    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("CriptoVersus.API.Blockchain"),
+    blockchainOptions,
+    "CriptoVersus.API");
 
 /* ✅ ESSENCIAL atrás de proxy (NPM) + Docker */
 var fwdOptions = new ForwardedHeadersOptions

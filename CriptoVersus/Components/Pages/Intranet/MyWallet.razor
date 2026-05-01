@@ -692,11 +692,19 @@
             ? _wallet.Name!
             : $"Usuario #{_wallet?.UserId}";
 
+    private string BlockchainMode
+        => Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
+
     private string OnChainCluster
-        => Config["OnChainBetting:Cluster"] ?? "devnet";
+        => Config["CriptoVersusBlockchain:Cluster"] ?? Config["OnChainBetting:Cluster"] ?? "devnet";
 
     private string OnChainProgramId
-        => Config["OnChainBetting:ProgramId"] ?? string.Empty;
+        => string.Equals(BlockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"] ?? string.Empty
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"] ?? string.Empty;
+
+    private bool UsesOnChainContract
+        => !string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
     private string OnChainBalanceText
         => _onChainBalanceLoading
@@ -800,26 +808,32 @@
 
         try
         {
-            if (string.IsNullOrWhiteSpace(OnChainProgramId))
-                throw new InvalidOperationException("OnChainBetting:ProgramId nao configurado.");
+            string? onChainSignature = null;
+            if (UsesOnChainContract)
+            {
+                if (string.IsNullOrWhiteSpace(OnChainProgramId))
+                    throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
 
-            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./js/solanaWalletActions.js?v=20260426-claim-withdraw");
+                _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                    "import",
+                    "./js/solanaWalletActions.js?v=20260426-claim-withdraw");
 
-            var chainResult = await _walletActionsModule.InvokeAsync<ChainWithdrawResult>(
-                "withdrawSystemBalance",
-                new
-                {
-                    programId = OnChainProgramId,
-                    cluster = OnChainCluster,
-                    amountSol = _wallet.SystemBalance
-                });
+                var chainResult = await _walletActionsModule.InvokeAsync<ChainWithdrawResult>(
+                    "withdrawSystemBalance",
+                    new
+                    {
+                        programId = OnChainProgramId,
+                        cluster = OnChainCluster,
+                        amountSol = _wallet.SystemBalance
+                    });
+
+                onChainSignature = chainResult.signature;
+            }
 
             var result = await Api.WithdrawSystemBalanceAsync(new WithdrawSystemBalanceRequest
             {
                 Amount = _wallet.SystemBalance,
-                OnChainSignature = chainResult.signature
+                OnChainSignature = onChainSignature
             });
 
             _actionMessage = result?.Message ?? "Saque registrado com sucesso.";
@@ -839,7 +853,7 @@
 
     private async Task LoadOnChainBalanceAsync()
     {
-        if (_wallet is null || string.IsNullOrWhiteSpace(_wallet.Wallet))
+        if (_wallet is null || string.IsNullOrWhiteSpace(_wallet.Wallet) || !UsesOnChainContract)
             return;
 
         _onChainBalanceLoading = true;

@@ -27,6 +27,8 @@ namespace EthicAI.EntityModel
         public DbSet<MatchMetricSnapshot> MatchMetricSnapshot { get; set; }
         public DbSet<MatchScoreEvent> MatchScoreEvent { get; set; }
         public DbSet<MatchScoreState> MatchScoreState { get; set; }
+        public DbSet<FinancialMigrationBatch> FinancialMigrationBatch { get; set; }
+        public DbSet<FundMigrationCheckpoint> FundMigrationCheckpoint { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -106,6 +108,50 @@ namespace EthicAI.EntityModel
                       .WithOne(p => p.User)
                       .HasForeignKey(p => p.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<FinancialMigrationBatch>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("financial_migration_batch");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.FromMode).HasMaxLength(50).HasColumnName("from_mode");
+                entity.Property(e => e.ToMode).HasMaxLength(50).HasColumnName("to_mode");
+                entity.Property(e => e.TotalUsers).HasColumnName("total_users");
+                entity.Property(e => e.TotalAvailableBalance).HasColumnType("decimal(18, 8)").HasColumnName("total_available_balance");
+                entity.Property(e => e.TotalLockedBalance).HasColumnType("decimal(18, 8)").HasColumnName("total_locked_balance");
+                entity.Property(e => e.TotalSystemBalance).HasColumnType("decimal(18, 8)").HasColumnName("total_system_balance");
+                entity.Property(e => e.LedgerLastId).HasColumnName("ledger_last_id");
+                entity.Property(e => e.BatchHash).HasMaxLength(128).HasColumnName("batch_hash");
+                entity.Property(e => e.Status).HasMaxLength(30).HasColumnName("status");
+                entity.Property(e => e.CreatedAt).HasColumnType("timestamp with time zone").HasColumnName("created_at");
+                entity.Property(e => e.CompletedAt).HasColumnType("timestamp with time zone").HasColumnName("completed_at");
+
+                entity.HasMany(e => e.Checkpoints)
+                    .WithOne(e => e.Batch)
+                    .HasForeignKey(e => e.BatchId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<FundMigrationCheckpoint>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("fund_migration_checkpoint");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.BatchId).HasColumnName("batch_id");
+                entity.Property(e => e.TxWallet).HasMaxLength(50).HasColumnName("tx_wallet");
+                entity.Property(e => e.OldMode).HasMaxLength(50).HasColumnName("old_mode");
+                entity.Property(e => e.NewMode).HasMaxLength(50).HasColumnName("new_mode");
+                entity.Property(e => e.BalanceBefore).HasColumnType("decimal(18, 8)").HasColumnName("balance_before");
+                entity.Property(e => e.LockedBalanceBefore).HasColumnType("decimal(18, 8)").HasColumnName("locked_balance_before");
+                entity.Property(e => e.SystemBalanceBefore).HasColumnType("decimal(18, 8)").HasColumnName("system_balance_before");
+                entity.Property(e => e.LedgerLastId).HasColumnName("ledger_last_id");
+                entity.Property(e => e.MigrationHash).HasMaxLength(128).HasColumnName("migration_hash");
+                entity.Property(e => e.Status).HasMaxLength(30).HasColumnName("status");
+                entity.Property(e => e.CreatedAt).HasColumnType("timestamp with time zone").HasColumnName("created_at");
+                entity.Property(e => e.CompletedAt).HasColumnType("timestamp with time zone").HasColumnName("completed_at");
             });
 
             modelBuilder.Entity<PreSalePurchase>(entity =>

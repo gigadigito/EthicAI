@@ -9,6 +9,7 @@ using BLL.NFTFutebol;
 using BLL.GameRules;
 using CriptoVersus.Worker;
 using BLL;
+using BLL.Blockchain;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -22,6 +23,8 @@ builder.Configuration
 builder.Services.AddHttpClient();
 builder.Services.Configure<CriptoVersusWorkerOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker"));
+builder.Services.Configure<CriptoVersusBlockchainOptions>(
+    builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 
 static async Task<string> BuildConnectionStringWithResolvedHostAsync(
     IConfiguration cfg,
@@ -80,6 +83,20 @@ static async Task<string> BuildConnectionStringWithResolvedHostAsync(
     return csb.ConnectionString;
 }
 builder.Services.AddScoped<ILedgerService, LedgerService>();
+builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
+builder.Services.AddScoped<OffChainCustodyFundsService>();
+builder.Services.AddScoped<HybridContractCustodyFundsService>();
+builder.Services.AddScoped<FullOnChainFundsService>();
+builder.Services.AddScoped<ICriptoVersusFundsService>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value;
+    return options.Mode switch
+    {
+        BlockchainOperationMode.OffChainCustody => sp.GetRequiredService<OffChainCustodyFundsService>(),
+        BlockchainOperationMode.FullOnChain => sp.GetRequiredService<FullOnChainFundsService>(),
+        _ => sp.GetRequiredService<HybridContractCustodyFundsService>()
+    };
+});
 
 builder.Services.AddDbContext<EthicAIDbContext>((sp, options) =>
 {
@@ -120,5 +137,10 @@ var host = builder.Build();
 host.Services.GetRequiredService<ILoggerFactory>()
     .CreateLogger("Startup")
     .LogInformation("✅ Worker host iniciado. Env={env}", builder.Environment.EnvironmentName);
+
+CriptoVersusBlockchainStartupLogger.Log(
+    host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("CriptoVersus.Worker.Blockchain"),
+    host.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value,
+    "CriptoVersus.Worker");
 
 await host.RunAsync();

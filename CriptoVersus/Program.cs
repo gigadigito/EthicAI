@@ -1,6 +1,6 @@
 
-
 using Blazored.SessionStorage;
+using BLL.Blockchain;
 using CriptoVersus.Web.Components;
 using CriptoVersus.Web.Services;
 
@@ -12,6 +12,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped<DashboardHubClient>();
 builder.Services.AddScoped<WalletSessionState>();
+builder.Services.Configure<CriptoVersusBlockchainOptions>(
+    builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 
 
 builder.Services.AddServerSideBlazor()
@@ -29,6 +31,11 @@ builder.Services.AddScoped<CriptoVersusApiClient>();
 
 builder.Services.AddBlazoredSessionStorage();
 var app = builder.Build();
+
+CriptoVersusBlockchainStartupLogger.Log(
+    app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("CriptoVersus.Web.Blockchain"),
+    app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value,
+    "CriptoVersus.Web");
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

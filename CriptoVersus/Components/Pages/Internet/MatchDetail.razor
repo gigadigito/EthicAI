@@ -2063,20 +2063,32 @@
         if (_match is null)
             throw new InvalidOperationException("Partida nao carregada para investimento on-chain.");
 
+        var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
+        var usesOnChainContract = !string.Equals(blockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
+        if (!usesOnChainContract)
+        {
+            return new InvestmentPreparationResult
+            {
+                AmountLamports = string.Empty
+            };
+        }
+
         _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
             "./js/solanaInvestDiagnostics.js?v=20260426-invest-offchain");
 
-        var programId = Config["OnChainBetting:ProgramId"];
+        var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];
         if (string.IsNullOrWhiteSpace(programId))
-            throw new InvalidOperationException("OnChainBetting:ProgramId não configurado.");
+            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
 
         return await _bettingModule.InvokeAsync<InvestmentPreparationResult>(
             "prepareInvestment",
             new
             {
                 programId,
-                cluster = Config["OnChainBetting:Cluster"] ?? "devnet",
+                cluster = Config["CriptoVersusBlockchain:Cluster"] ?? Config["OnChainBetting:Cluster"] ?? "devnet",
                 matchId,
                 teamId,
                 teamName,

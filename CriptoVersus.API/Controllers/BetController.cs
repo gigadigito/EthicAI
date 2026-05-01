@@ -1,4 +1,5 @@
 ﻿using BLL;
+using BLL.Blockchain;
 using BLL.NFTFutebol;
 using CriptoVersus.API.Hubs;
 using DAL.NftFutebol;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
@@ -24,6 +26,8 @@ namespace CriptoVersus.API.Controllers
         private readonly ILedgerService _ledgerService;
         private readonly IHubContext<DashboardHub> _hub;
         private readonly IConfiguration _configuration;
+        private readonly ICriptoVersusFundsService _fundsService;
+        private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
         private const int LiveBetMaxMinutes = 45;
 
@@ -32,13 +36,17 @@ namespace CriptoVersus.API.Controllers
             ILogger<BetController> logger,
             ILedgerService ledgerService,
             IHubContext<DashboardHub> hub,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ICriptoVersusFundsService fundsService,
+            IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
         {
             _context = context;
             _logger = logger;
             _ledgerService = ledgerService;
             _hub = hub;
             _configuration = configuration;
+            _fundsService = fundsService;
+            _blockchainOptions = blockchainOptions.Value;
         }
 
         [HttpPost("{matchId:int}/bet")]
@@ -65,11 +73,15 @@ namespace CriptoVersus.API.Controllers
             if (request.Amount <= 0)
                 return BadRequest("O valor do investimento ficou inválido após o arredondamento.");
 
-            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
+            var onChainBettingEnabled = _blockchainOptions.IsOnChainDepositFlowEnabled();
             var fundedFromWallet = !string.IsNullOrWhiteSpace(request.OnChainSignature);
             var isInternalTestAuth = IsInternalTestAuth(wallet);
 
-            if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature) && !isInternalTestAuth)
+            if (onChainBettingEnabled
+                && _blockchainOptions.RequireOnChainConfirmation
+                && string.IsNullOrWhiteSpace(request.OnChainSignature)
+                && !_blockchainOptions.AllowFallbackToOffChain
+                && !isInternalTestAuth)
             {
                 return BadRequest(new
                 {
@@ -151,7 +163,17 @@ namespace CriptoVersus.API.Controllers
                     var balanceBefore = user.Balance;
 
                     if (!fundedFromWallet)
-                        user.Balance -= request.Amount;
+                    {
+                        var lockResult = await _fundsService.LockBetAmountAsync(wallet, matchId, request.TeamId, request.Amount);
+                        if (!lockResult.Succeeded)
+                        {
+                            throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
+                            {
+                                message = lockResult.Message,
+                                code = lockResult.Code
+                            });
+                        }
+                    }
 
                     var position = await _context.UserTeamPosition
                         .FirstOrDefaultAsync(p => p.UserId == user.UserID && p.TeamId == request.TeamId, cancellationToken);
@@ -170,7 +192,7 @@ namespace CriptoVersus.API.Controllers
                             OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault),
                             LastOnChainSignature = NormalizeAddress(request.OnChainSignature),
                             OnChainCluster = fundedFromWallet
-                                ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
+                                ? _blockchainOptions.Cluster
                                 : null,
                             CurrentLamports = ParseLamports(request.OnChainAmountLamports),
                             CreatedAt = nowUtc,
@@ -190,7 +212,7 @@ namespace CriptoVersus.API.Controllers
                         position.OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault) ?? position.OnChainVaultAddress;
                         position.LastOnChainSignature = NormalizeAddress(request.OnChainSignature) ?? position.LastOnChainSignature;
                         position.OnChainCluster = fundedFromWallet
-                            ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
+                            ? _blockchainOptions.Cluster
                             : position.OnChainCluster;
                         position.CurrentLamports = AddLamports(
                             position.CurrentLamports,
@@ -239,17 +261,18 @@ namespace CriptoVersus.API.Controllers
 
                     await _context.SaveChangesAsync(cancellationToken);
 
-                    await _ledgerService.AddEntryAsync(
-                        user: user,
-                        type: fundedFromWallet ? "BET_ONCHAIN" : "BET",
-                        amount: fundedFromWallet ? 0m : -request.Amount,
-                        balanceBefore: balanceBefore,
-                        balanceAfter: user.Balance,
-                        referenceId: bet.BetId,
-                        description: fundedFromWallet
-                            ? $"Investimento on-chain realizado no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}"
-                            : $"Investimento realizado no match {bet.MatchId}, team {bet.TeamId}",
-                        ct: cancellationToken);
+                    if (fundedFromWallet)
+                    {
+                        await _ledgerService.AddEntryAsync(
+                            user: user,
+                            type: "BET_ONCHAIN",
+                            amount: 0m,
+                            balanceBefore: balanceBefore,
+                            balanceAfter: user.Balance,
+                            referenceId: bet.BetId,
+                            description: $"Investimento on-chain realizado no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}",
+                            ct: cancellationToken);
+                    }
 
                     await transaction.CommitAsync(cancellationToken);
 
@@ -347,7 +370,7 @@ namespace CriptoVersus.API.Controllers
         private bool IsAdminWallet(string wallet)
         {
             var adminWallet = _configuration["CriptoVersus:AdminWallet"];
-            var onChainAuthorityWallet = _configuration["OnChainBetting:AuthorityWallet"];
+            var onChainAuthorityWallet = _blockchainOptions.GetActiveAuthorityPublicKey();
 
             return IsConfiguredWallet(wallet, adminWallet)
                 || IsConfiguredWallet(wallet, onChainAuthorityWallet);

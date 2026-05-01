@@ -2,9 +2,12 @@ using DAL;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using BLL.Blockchain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -18,15 +21,21 @@ public sealed class WalletController : ControllerBase
     private readonly EthicAIDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WalletController> _logger;
+    private readonly ICriptoVersusFundsService _fundsService;
+    private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
     public WalletController(
         EthicAIDbContext context,
         IConfiguration configuration,
-        ILogger<WalletController> logger)
+        ILogger<WalletController> logger,
+        ICriptoVersusFundsService fundsService,
+        IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
         _logger = logger;
+        _fundsService = fundsService;
+        _blockchainOptions = blockchainOptions.Value;
     }
 
     [HttpGet("me")]
@@ -124,6 +133,11 @@ public sealed class WalletController : ControllerBase
         {
             UserId = user.UserID,
             Wallet = user.Wallet,
+            BlockchainMode = _blockchainOptions.Mode.ToString(),
+            CustodyWalletPublicKey = _blockchainOptions.CustodyWalletPublicKey,
+            CustodyWalletLabel = _blockchainOptions.CustodyWalletLabel,
+            UsesOnChainContract = _blockchainOptions.UsesOnChainContract,
+            EnableOnChainWithdrawals = _blockchainOptions.IsOnChainWithdrawalFlowEnabled(),
             Name = user.Name,
             Email = user.Email,
             DtCreate = user.DtCreate,
@@ -152,52 +166,92 @@ public sealed class WalletController : ControllerBase
         [FromBody] ClaimAvailableReturnsRequest? request,
         CancellationToken cancellationToken)
     {
-        var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
-        if (user is null)
+        var wallet = GetAuthenticatedWallet();
+        if (string.IsNullOrWhiteSpace(wallet))
             return Unauthorized(new { message = "Token sem wallet valida." });
 
-        var claimableBets = await _context.Bet
-            .Where(b => b.UserId == user.UserID
-                && b.SettledAt.HasValue
-                && !b.Claimed
-                && (b.PayoutAmount ?? 0m) > 0m)
-            .ToListAsync(cancellationToken);
+        var strategy = _context.Database.CreateExecutionStrategy();
 
-        if (claimableBets.Count == 0)
-            return BadRequest(new { message = "NothingToClaim" });
-
-        var totalClaimAmount = RoundMoney(claimableBets.Sum(b => b.PayoutAmount ?? 0m));
-        var nowUtc = DateTime.UtcNow;
-        var balanceBefore = user.Balance;
-
-        foreach (var bet in claimableBets)
+        try
         {
-            bet.Claimed = true;
-            bet.ClaimedAt = nowUtc;
+            WalletActionResultDto? response = null;
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+                try
+                {
+                    var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
+                    if (user is null)
+                        throw new InvalidOperationException("Token sem wallet valida.");
+
+                    var claimableBets = await _context.Bet
+                        .Where(b => b.UserId == user.UserID
+                            && b.SettledAt.HasValue
+                            && !b.Claimed
+                            && (b.PayoutAmount ?? 0m) > 0m)
+                        .OrderBy(b => b.BetId)
+                        .ToListAsync(cancellationToken);
+
+                    if (claimableBets.Count == 0)
+                        throw new WalletFlowException(StatusCodes.Status400BadRequest, "NothingToClaim");
+
+                    var totalClaimAmount = RoundMoney(claimableBets.Sum(b => b.PayoutAmount ?? 0m));
+                    var nowUtc = DateTime.UtcNow;
+
+                    var releaseResult = await _fundsService.ReleasePayoutAsync(
+                        user.Wallet,
+                        totalClaimAmount,
+                        $"Claim de {claimableBets.Count} retornos liquidados.");
+
+                    if (!releaseResult.Succeeded)
+                        throw new WalletFlowException(StatusCodes.Status400BadRequest, releaseResult.Message, releaseResult.Code);
+
+                    foreach (var bet in claimableBets)
+                    {
+                        bet.Claimed = true;
+                        bet.ClaimedAt = nowUtc;
+                    }
+
+                    await _context.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+
+                    response = new WalletActionResultDto
+                    {
+                        ProcessedAmount = totalClaimAmount,
+                        SystemBalance = releaseResult.BalanceAfter ?? user.Balance,
+                        AvailableReturns = 0m,
+                        OnChainSignature = request?.OnChainSignature,
+                        Message = "Retornos resgatados com sucesso."
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            return Ok(response);
         }
-
-        user.Balance = RoundMoney(user.Balance + totalClaimAmount);
-        user.TotalClaimed = RoundMoney(user.TotalClaimed + totalClaimAmount);
-        user.DtUpdate = nowUtc;
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await AddLedgerEntrySafeAsync(
-            user,
-            "CLAIM",
-            totalClaimAmount,
-            balanceBefore,
-            user.Balance,
-            $"Claim de {claimableBets.Count} retornos liquidados.",
-            cancellationToken);
-
-        return Ok(new WalletActionResultDto
+        catch (WalletFlowException ex)
         {
-            ProcessedAmount = totalClaimAmount,
-            SystemBalance = user.Balance,
-            AvailableReturns = 0m,
-            OnChainSignature = request?.OnChainSignature,
-            Message = "Retornos resgatados com sucesso."
-        });
+            return StatusCode(ex.StatusCode, new { message = ex.Message, code = ex.Code });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao processar claim da wallet {Wallet}", wallet);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "ClaimFailed",
+                detail = "Nao foi possivel concluir o claim com seguranca. Nenhuma aposta foi marcada como resgatada."
+            });
+        }
     }
 
     [HttpPost("withdraw")]
@@ -205,48 +259,82 @@ public sealed class WalletController : ControllerBase
         [FromBody] WithdrawSystemBalanceRequest request,
         CancellationToken cancellationToken)
     {
-        var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
-        if (user is null)
+        var wallet = GetAuthenticatedWallet();
+        if (string.IsNullOrWhiteSpace(wallet))
             return Unauthorized(new { message = "Token sem wallet valida." });
 
         var amount = RoundMoney(request.Amount);
         if (amount <= 0m)
             return BadRequest(new { message = "NothingToWithdraw" });
 
-        if (user.Balance <= 0m || amount > user.Balance)
-            return BadRequest(new { message = "InsufficientSystemBalance" });
+        var strategy = _context.Database.CreateExecutionStrategy();
 
-        var balanceBefore = user.Balance;
-        user.Balance = RoundMoney(user.Balance - amount);
-        user.TotalWithdrawn = RoundMoney(user.TotalWithdrawn + amount);
-        user.DtUpdate = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await AddLedgerEntrySafeAsync(
-            user,
-            "WITHDRAW",
-            -amount,
-            balanceBefore,
-            user.Balance,
-            "Saque registrado para a carteira Solana do usuario.",
-            cancellationToken);
-
-        var availableReturns = await _context.Bet
-            .AsNoTracking()
-            .Where(b => b.UserId == user.UserID
-                && b.SettledAt.HasValue
-                && !b.Claimed
-                && (b.PayoutAmount ?? 0m) > 0m)
-            .SumAsync(b => b.PayoutAmount ?? 0m, cancellationToken);
-
-        return Ok(new WalletActionResultDto
+        try
         {
-            ProcessedAmount = amount,
-            SystemBalance = user.Balance,
-            AvailableReturns = availableReturns,
-            OnChainSignature = request.OnChainSignature,
-            Message = "Saque registrado com sucesso."
-        });
+            WalletActionResultDto? response = null;
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+                try
+                {
+                    var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
+                    if (user is null)
+                        throw new InvalidOperationException("Token sem wallet valida.");
+
+                    if (user.Balance <= 0m || amount > user.Balance)
+                        throw new WalletFlowException(StatusCodes.Status400BadRequest, "InsufficientSystemBalance");
+
+                    var withdrawResult = await _fundsService.WithdrawAsync(user.Wallet, amount);
+                    if (!withdrawResult.Succeeded)
+                        throw new WalletFlowException(StatusCodes.Status400BadRequest, withdrawResult.Message, withdrawResult.Code);
+
+                    var availableReturns = await _context.Bet
+                        .AsNoTracking()
+                        .Where(b => b.UserId == user.UserID
+                            && b.SettledAt.HasValue
+                            && !b.Claimed
+                            && (b.PayoutAmount ?? 0m) > 0m)
+                        .SumAsync(b => b.PayoutAmount ?? 0m, cancellationToken);
+
+                    await transaction.CommitAsync(cancellationToken);
+
+                    response = new WalletActionResultDto
+                    {
+                        ProcessedAmount = amount,
+                        SystemBalance = withdrawResult.BalanceAfter ?? user.Balance,
+                        AvailableReturns = availableReturns,
+                        OnChainSignature = request.OnChainSignature,
+                        Message = "Saque registrado com sucesso."
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            return Ok(response);
+        }
+        catch (WalletFlowException ex)
+        {
+            return StatusCode(ex.StatusCode, new { message = ex.Message, code = ex.Code });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao processar saque da wallet {Wallet}", wallet);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "WithdrawFailed",
+                detail = "Nao foi possivel concluir o saque com seguranca."
+            });
+        }
     }
 
     [HttpGet("/api/users/{userId:int}/wallet-history/{teamId:int}/matches")]
@@ -555,6 +643,19 @@ public sealed class WalletController : ControllerBase
 
     private static decimal ClampRate(decimal rate)
         => Math.Clamp(rate, 0m, 1m);
+
+    private sealed class WalletFlowException : Exception
+    {
+        public WalletFlowException(int statusCode, string message, string? code = null)
+            : base(message)
+        {
+            StatusCode = statusCode;
+            Code = code;
+        }
+
+        public int StatusCode { get; }
+        public string? Code { get; }
+    }
 
     private static bool IsOpen(WalletBetSummaryRow row)
         => row.MatchStatus is MatchStatus.Pending or MatchStatus.Ongoing || !row.SettledAt.HasValue && row.MatchStatus == MatchStatus.Completed;

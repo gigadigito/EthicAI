@@ -1,9 +1,11 @@
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using BLL.Blockchain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CriptoVersus.API.Controllers;
 
@@ -14,11 +16,16 @@ public sealed class TokenomicsController : ControllerBase
 {
     private readonly EthicAIDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
-    public TokenomicsController(EthicAIDbContext context, IConfiguration configuration)
+    public TokenomicsController(
+        EthicAIDbContext context,
+        IConfiguration configuration,
+        IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
+        _blockchainOptions = blockchainOptions.Value;
     }
 
     [HttpGet]
@@ -60,9 +67,14 @@ public sealed class TokenomicsController : ControllerBase
         return Ok(new TokenomicsDto
         {
             ServerTimeUtc = DateTime.UtcNow,
-            Cluster = _configuration["OnChainBetting:Cluster"] ?? "devnet",
-            ProgramId = _configuration["OnChainBetting:ProgramId"] ?? "",
-            AuthorityWallet = _configuration["OnChainBetting:AuthorityWallet"] ?? "",
+            BlockchainMode = _blockchainOptions.Mode.ToString(),
+            Cluster = _blockchainOptions.Cluster,
+            ProgramId = _blockchainOptions.GetActiveProgramId(),
+            AuthorityWallet = _blockchainOptions.GetActiveAuthorityPublicKey(),
+            CustodyWalletPublicKey = _blockchainOptions.CustodyWalletPublicKey,
+            CustodyWalletLabel = _blockchainOptions.CustodyWalletLabel,
+            EnableOnChainBets = _blockchainOptions.IsOnChainBetFlowEnabled(),
+            EnableOnChainSettlement = _blockchainOptions.IsOnChainSettlementFlowEnabled(),
             HouseFeeRate = houseFeeRate,
             LoserRefundRate = loserRefundRate,
             WinnerPoolRate = winnerPoolRate,

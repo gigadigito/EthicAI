@@ -1,10 +1,12 @@
 using BLL;
+using BLL.Blockchain;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -18,15 +20,18 @@ public sealed class PositionsController : ControllerBase
     private readonly EthicAIDbContext _context;
     private readonly ILedgerService _ledgerService;
     private readonly IConfiguration _configuration;
+    private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
     public PositionsController(
         EthicAIDbContext context,
         ILedgerService ledgerService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _ledgerService = ledgerService;
         _configuration = configuration;
+        _blockchainOptions = blockchainOptions.Value;
     }
 
     [HttpGet]
@@ -68,8 +73,11 @@ public sealed class PositionsController : ControllerBase
             if (!teamExists)
                 return NotFound(new { message = "Time nao encontrado." });
 
-            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
-            if (onChainBettingEnabled && string.IsNullOrWhiteSpace(request.OnChainSignature))
+            var onChainBettingEnabled = _blockchainOptions.IsOnChainDepositFlowEnabled();
+            if (onChainBettingEnabled
+                && _blockchainOptions.RequireOnChainConfirmation
+                && string.IsNullOrWhiteSpace(request.OnChainSignature)
+                && !_blockchainOptions.AllowFallbackToOffChain)
             {
                 return BadRequest(new
                 {
@@ -114,7 +122,7 @@ public sealed class PositionsController : ControllerBase
                         OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault),
                         LastOnChainSignature = NormalizeAddress(request.OnChainSignature),
                         OnChainCluster = onChainBettingEnabled
-                            ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
+                            ? _blockchainOptions.Cluster
                             : null,
                         CurrentLamports = ParseLamports(request.OnChainAmountLamports),
                         CreatedAt = nowUtc,
@@ -134,7 +142,7 @@ public sealed class PositionsController : ControllerBase
                     position.OnChainVaultAddress = NormalizeAddress(request.OnChainPositionVault) ?? position.OnChainVaultAddress;
                     position.LastOnChainSignature = NormalizeAddress(request.OnChainSignature) ?? position.LastOnChainSignature;
                     position.OnChainCluster = onChainBettingEnabled
-                        ? _configuration["OnChainBetting:Cluster"] ?? "devnet"
+                        ? _blockchainOptions.Cluster
                         : position.OnChainCluster;
                     position.CurrentLamports = AddLamports(position.CurrentLamports, ParseLamports(request.OnChainAmountLamports));
                     position.UpdatedAt = nowUtc;
@@ -187,7 +195,7 @@ public sealed class PositionsController : ControllerBase
             if (position is null)
                 return NotFound(new { message = "Posicao nao encontrada." });
 
-            var onChainBettingEnabled = _configuration.GetValue<bool>("OnChainBetting:Enabled");
+            var onChainBettingEnabled = _blockchainOptions.IsOnChainDepositFlowEnabled();
             var strategy = _context.Database.CreateExecutionStrategy();
 
             await strategy.ExecuteAsync(async () =>
