@@ -16,6 +16,24 @@ function getWeb3() {
     return window.solanaWeb3;
 }
 
+function ensureBufferGlobal() {
+    if (typeof globalThis.Buffer !== "undefined") {
+        return;
+    }
+
+    if (window.solanaWeb3?.Buffer) {
+        globalThis.Buffer = window.solanaWeb3.Buffer;
+        return;
+    }
+
+    if (window.buffer?.Buffer) {
+        globalThis.Buffer = window.buffer.Buffer;
+        return;
+    }
+
+    throw new Error("Buffer nao esta disponivel no browser para construir a transacao Solana.");
+}
+
 function logInvest(message, ...args) {
     console.log(`[CRYPTOINVEST] ${message}`, ...args);
 }
@@ -96,6 +114,8 @@ async function sendAndConfirm(connection, provider, transaction) {
 }
 
 async function sendSolToCustody(connection, provider, destinationPublicKey, lamports, SystemProgram, PublicKey, Transaction) {
+    ensureBufferGlobal();
+
     const transaction = new Transaction().add(
         SystemProgram.transfer({
             fromPubkey: provider.publicKey,
