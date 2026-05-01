@@ -41,7 +41,7 @@
                 <strong>@DisplayName</strong>
             </div>
             <div>
-                <span class="wallet-label">Saldo on-chain</span>
+                <span class="wallet-label">@WalletNetworkBalanceLabel</span>
                 <strong class="wallet-balance" title="@OnChainBalanceTitle">@OnChainBalanceText</strong>
             </div>
             <div>
@@ -49,6 +49,41 @@
                 <strong>@FmtDate(_wallet.LastLogin)</strong>
             </div>
         </div>
+
+        @if (IsOffChainCustodyMode)
+        {
+            <div class="wallet-actions-card">
+                <div class="wallet-actions-summary">
+                    <div>
+                        <span class="wallet-label">Modo operacional</span>
+                        <strong>Modo Off-chain Custody</strong>
+                    </div>
+                    <div>
+                        <span class="wallet-label">Carteira de custodia</span>
+                        <strong>@GetCustodyLabel()</strong>
+                    </div>
+                </div>
+                <div class="wallet-offchain-copy">
+                    <div class="wallet-offchain-address">
+                        <span class="wallet-label">Endereço publico</span>
+                        <strong title="@GetCustodyWalletDisplayValue()">@GetCustodyWalletDisplayValue()</strong>
+                    </div>
+                    <button type="button"
+                            class="wallet-history-button"
+                            disabled="@string.IsNullOrWhiteSpace(_wallet.CustodyWalletPublicKey)"
+                            @onclick="CopyCustodyWalletAsync">
+                        Copiar carteira
+                    </button>
+                </div>
+                <div class="wallet-message">
+                    Neste modo, apostas usam apenas o saldo interno do banco. Transferencias SOL para a carteira de custodia precisam ser conciliadas para virar saldo interno antes de apostar.
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_copyMessage))
+                {
+                    <div class="wallet-message">@_copyMessage</div>
+                }
+            </div>
+        }
 
         <div class="wallet-metrics">
             <div class="wallet-metric">
@@ -304,6 +339,24 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
+    }
+
+    .wallet-offchain-copy {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: space-between;
+    }
+
+    .wallet-offchain-address {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .wallet-offchain-address strong {
+        overflow-wrap: anywhere;
     }
 
     .wallet-actions-summary > div {
@@ -686,6 +739,7 @@
     private double? _onChainBalance;
     private bool _onChainBalanceLoading;
     private string? _onChainBalanceError;
+    private string? _copyMessage;
 
     private string DisplayName
         => !string.IsNullOrWhiteSpace(_wallet?.Name)
@@ -706,8 +760,16 @@
     private bool UsesOnChainContract
         => !string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
+    private bool IsOffChainCustodyMode
+        => string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
+
+    private string WalletNetworkBalanceLabel
+        => IsOffChainCustodyMode ? "Saldo da wallet Solana" : "Saldo on-chain";
+
     private string OnChainBalanceText
-        => _onChainBalanceLoading
+        => IsOffChainCustodyMode
+            ? "Nao utilizado nas apostas"
+            : _onChainBalanceLoading
             ? "Carregando..."
             : _onChainBalanceError is not null
                 ? "-"
@@ -716,7 +778,9 @@
                     : "-";
 
     private string OnChainBalanceTitle
-        => _onChainBalanceError is not null
+        => IsOffChainCustodyMode
+            ? "No modo OffChainCustody, o saldo usado nas apostas e o saldo interno do banco."
+            : _onChainBalanceError is not null
             ? _onChainBalanceError
             : $"Saldo real na rede {OnChainCluster}";
 
@@ -733,6 +797,7 @@
     {
         _loading = true;
         _error = null;
+        _copyMessage = null;
         await InvokeAsync(StateHasChanged);
 
         try
@@ -882,6 +947,34 @@
             await InvokeAsync(StateHasChanged);
         }
     }
+
+    private async Task CopyCustodyWalletAsync()
+    {
+        if (_wallet is null || string.IsNullOrWhiteSpace(_wallet.CustodyWalletPublicKey))
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _wallet.CustodyWalletPublicKey);
+            _copyMessage = "Carteira de custodia copiada.";
+        }
+        catch (Exception ex)
+        {
+            _copyMessage = $"Nao foi possivel copiar a carteira: {ex.Message}";
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GetCustodyLabel()
+        => string.IsNullOrWhiteSpace(_wallet?.CustodyWalletLabel)
+            ? "Custodia configurada"
+            : _wallet!.CustodyWalletLabel;
+
+    private string GetCustodyWalletDisplayValue()
+        => string.IsNullOrWhiteSpace(_wallet?.CustodyWalletPublicKey)
+            ? "Nao configurada"
+            : _wallet!.CustodyWalletPublicKey;
 
     private static string ShortWallet(string wallet)
     {

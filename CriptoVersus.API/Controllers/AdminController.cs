@@ -2,10 +2,12 @@ using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using BLL.Blockchain;
+using BLL;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -19,14 +21,17 @@ public sealed class AdminController : ControllerBase
     private readonly EthicAIDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
+    private readonly ILedgerService _ledgerService;
 
     public AdminController(
         EthicAIDbContext context,
         IConfiguration configuration,
+        ILedgerService ledgerService,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
+        _ledgerService = ledgerService;
         _blockchainOptions = blockchainOptions.Value;
     }
 
@@ -104,6 +109,202 @@ public sealed class AdminController : ControllerBase
         });
     }
 
+    [HttpPost("wallet/credit-test-balance")]
+    public async Task<ActionResult<AdminWalletBalanceAdjustmentResponseDto>> CreditTestBalance(
+        [FromBody] AdminWalletCreditTestBalanceRequestDto request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var wallet = GetAuthenticatedWallet();
+            if (!IsAdminWallet(wallet))
+                return Forbid();
+
+            if (request is null)
+                return BadRequest(new { message = "Payload invalido." });
+
+            var normalizedWallet = NormalizeWallet(request.Wallet);
+            if (string.IsNullOrWhiteSpace(normalizedWallet))
+                return BadRequest(new { message = "Wallet obrigatoria." });
+
+            var amount = RoundMoney(request.Amount);
+            if (amount <= 0m)
+                return BadRequest(new { message = "Amount deve ser maior que zero." });
+
+            var reason = string.IsNullOrWhiteSpace(request.Reason)
+                ? "Credito manual de teste OffChainCustody."
+                : request.Reason.Trim();
+
+            var strategy = _context.Database.CreateExecutionStrategy();
+            AdminWalletBalanceAdjustmentResponseDto? response = null;
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+                try
+                {
+                    var nowUtc = DateTime.UtcNow;
+                    var user = await _context.User.FirstOrDefaultAsync(x => x.Wallet == normalizedWallet, ct);
+                    var createdUser = false;
+
+                    if (user is null)
+                    {
+                        user = new DAL.User
+                        {
+                            Wallet = normalizedWallet,
+                            Name = "OffChain Test User",
+                            Balance = 0m,
+                            TotalClaimed = 0m,
+                            TotalWithdrawn = 0m,
+                            DtCreate = nowUtc,
+                            DtUpdate = nowUtc,
+                            LastLogin = nowUtc
+                        };
+
+                        _context.User.Add(user);
+                        await _context.SaveChangesAsync(ct);
+                        createdUser = true;
+                    }
+
+                    var balanceBefore = user.Balance;
+                    user.Balance = RoundMoney(user.Balance + amount);
+                    user.DtUpdate = nowUtc;
+
+                    await _context.SaveChangesAsync(ct);
+
+                    await _ledgerService.AddEntryAsync(
+                        user,
+                        "CREDIT_TEST_BALANCE",
+                        amount,
+                        balanceBefore,
+                        user.Balance,
+                        description: reason,
+                        ct: ct);
+
+                    await transaction.CommitAsync(ct);
+
+                    response = new AdminWalletBalanceAdjustmentResponseDto
+                    {
+                        Wallet = user.Wallet,
+                        Direction = "credit",
+                        Reason = reason,
+                        Amount = amount,
+                        BalanceBefore = balanceBefore,
+                        BalanceAfter = user.Balance,
+                        UserId = user.UserID,
+                        CreatedUser = createdUser
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw;
+                }
+            });
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("wallet/manual-adjustment")]
+    public async Task<ActionResult<AdminWalletBalanceAdjustmentResponseDto>> ManualAdjustment(
+        [FromBody] AdminWalletManualAdjustmentRequestDto request,
+        CancellationToken ct)
+    {
+        try
+        {
+            var wallet = GetAuthenticatedWallet();
+            if (!IsAdminWallet(wallet))
+                return Forbid();
+
+            if (request is null)
+                return BadRequest(new { message = "Payload invalido." });
+
+            var normalizedWallet = NormalizeWallet(request.Wallet);
+            if (string.IsNullOrWhiteSpace(normalizedWallet))
+                return BadRequest(new { message = "Wallet obrigatoria." });
+
+            var amount = RoundMoney(request.Amount);
+            if (amount <= 0m)
+                return BadRequest(new { message = "Amount deve ser maior que zero." });
+
+            var direction = request.Direction?.Trim().ToLowerInvariant();
+            if (direction is not ("credit" or "debit"))
+                return BadRequest(new { message = "Direction deve ser 'credit' ou 'debit'." });
+
+            var reason = string.IsNullOrWhiteSpace(request.Reason)
+                ? "Ajuste manual OffChainCustody."
+                : request.Reason.Trim();
+
+            var strategy = _context.Database.CreateExecutionStrategy();
+            AdminWalletBalanceAdjustmentResponseDto? response = null;
+
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+                try
+                {
+                    var user = await _context.User.FirstOrDefaultAsync(x => x.Wallet == normalizedWallet, ct);
+                    if (user is null)
+                        throw new InvalidOperationException("Usuario nao encontrado para a wallet informada.");
+
+                    var nowUtc = DateTime.UtcNow;
+                    var balanceBefore = user.Balance;
+                    var signedAmount = direction == "credit" ? amount : -amount;
+                    var balanceAfter = RoundMoney(balanceBefore + signedAmount);
+
+                    if (balanceAfter < 0m)
+                        throw new InvalidOperationException("Ajuste invalido: o saldo nao pode ficar negativo.");
+
+                    user.Balance = balanceAfter;
+                    user.DtUpdate = nowUtc;
+
+                    await _context.SaveChangesAsync(ct);
+
+                    await _ledgerService.AddEntryAsync(
+                        user,
+                        direction == "credit" ? "OFFCHAIN_DEPOSIT_MANUAL" : "OFFCHAIN_DEBIT_MANUAL",
+                        signedAmount,
+                        balanceBefore,
+                        balanceAfter,
+                        description: reason,
+                        ct: ct);
+
+                    await transaction.CommitAsync(ct);
+
+                    response = new AdminWalletBalanceAdjustmentResponseDto
+                    {
+                        Wallet = user.Wallet,
+                        Direction = direction,
+                        Reason = reason,
+                        Amount = amount,
+                        BalanceBefore = balanceBefore,
+                        BalanceAfter = balanceAfter,
+                        UserId = user.UserID,
+                        CreatedUser = false
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(ct);
+                    throw;
+                }
+            });
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     private string? GetAuthenticatedWallet()
     {
         return User.FindFirstValue("wallet")
@@ -128,4 +329,10 @@ public sealed class AdminController : ControllerBase
         return !string.IsNullOrWhiteSpace(configuredWallet)
             && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
     }
+
+    private static string? NormalizeWallet(string? wallet)
+        => string.IsNullOrWhiteSpace(wallet) ? null : wallet.Trim();
+
+    private static decimal RoundMoney(decimal value)
+        => Math.Round(value, 8, MidpointRounding.ToZero);
 }
