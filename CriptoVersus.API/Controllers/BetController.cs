@@ -1,6 +1,7 @@
 ﻿using BLL;
 using BLL.Blockchain;
 using BLL.NFTFutebol;
+using CriptoVersus.API.Services;
 using CriptoVersus.API.Hubs;
 using DAL.NftFutebol;
 using DTOs;
@@ -28,6 +29,7 @@ namespace CriptoVersus.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly ICriptoVersusFundsService _fundsService;
         private readonly CriptoVersusBlockchainOptions _blockchainOptions;
+        private readonly IOffChainCustodyTransferVerifier _offChainCustodyTransferVerifier;
 
         private const int LiveBetMaxMinutes = 45;
 
@@ -38,6 +40,7 @@ namespace CriptoVersus.API.Controllers
             IHubContext<DashboardHub> hub,
             IConfiguration configuration,
             ICriptoVersusFundsService fundsService,
+            IOffChainCustodyTransferVerifier offChainCustodyTransferVerifier,
             IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
         {
             _context = context;
@@ -46,6 +49,7 @@ namespace CriptoVersus.API.Controllers
             _hub = hub;
             _configuration = configuration;
             _fundsService = fundsService;
+            _offChainCustodyTransferVerifier = offChainCustodyTransferVerifier;
             _blockchainOptions = blockchainOptions.Value;
         }
 
@@ -159,6 +163,34 @@ namespace CriptoVersus.API.Controllers
                         });
                     }
 
+                    if (fundedFromWallet && _blockchainOptions.IsOffChainCustodyMode)
+                    {
+                        if (string.IsNullOrWhiteSpace(_blockchainOptions.CustodyWalletPublicKey))
+                        {
+                            throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
+                            {
+                                message = "Carteira de custodia off-chain nao configurada."
+                            });
+                        }
+
+                        var expectedLamports = ParseRequiredLamports(request.OnChainAmountLamports);
+                        var verification = await _offChainCustodyTransferVerifier.VerifyAsync(
+                            request.OnChainSignature!,
+                            wallet,
+                            _blockchainOptions.CustodyWalletPublicKey,
+                            expectedLamports,
+                            cancellationToken);
+
+                        if (!verification.Succeeded)
+                        {
+                            throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
+                            {
+                                message = verification.Message,
+                                code = "OFFCHAIN_CUSTODY_TRANSFER_INVALID"
+                            });
+                        }
+                    }
+
                     var nowUtc = DateTime.UtcNow;
                     var balanceBefore = user.Balance;
 
@@ -263,14 +295,21 @@ namespace CriptoVersus.API.Controllers
 
                     if (fundedFromWallet)
                     {
+                        var ledgerType = _blockchainOptions.IsOffChainCustodyMode
+                            ? "BET_OFFCHAIN_CUSTODY"
+                            : "BET_ONCHAIN";
+                        var ledgerDescription = _blockchainOptions.IsOffChainCustodyMode
+                            ? $"Investimento off-chain custodiado no match {bet.MatchId}, team {bet.TeamId}, transfer signature {request.OnChainSignature}"
+                            : $"Investimento on-chain realizado no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}";
+
                         await _ledgerService.AddEntryAsync(
                             user: user,
-                            type: "BET_ONCHAIN",
+                            type: ledgerType,
                             amount: 0m,
                             balanceBefore: balanceBefore,
                             balanceAfter: user.Balance,
                             referenceId: bet.BetId,
-                            description: $"Investimento on-chain realizado no match {bet.MatchId}, team {bet.TeamId}, signature {request.OnChainSignature}",
+                            description: ledgerDescription,
                             ct: cancellationToken);
                     }
 
@@ -366,6 +405,18 @@ namespace CriptoVersus.API.Controllers
 
         private static long? AddLamports(long? current, long? added)
             => added.HasValue ? (current ?? 0L) + added.Value : current;
+
+        private static long ParseRequiredLamports(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || !long.TryParse(value, out var parsed) || parsed <= 0)
+                throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
+                {
+                    message = "OnChainAmountLamports obrigatorio e invalido para funding via custody off-chain.",
+                    code = "OFFCHAIN_CUSTODY_LAMPORTS_REQUIRED"
+                });
+
+            return parsed;
+        }
 
         private bool IsAdminWallet(string wallet)
         {

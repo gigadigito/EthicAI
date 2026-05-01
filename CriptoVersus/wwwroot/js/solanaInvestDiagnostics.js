@@ -95,6 +95,18 @@ async function sendAndConfirm(connection, provider, transaction) {
     return signature;
 }
 
+async function sendSolToCustody(connection, provider, destinationPublicKey, lamports, SystemProgram, PublicKey, Transaction) {
+    const transaction = new Transaction().add(
+        SystemProgram.transfer({
+            fromPubkey: provider.publicKey,
+            toPubkey: new PublicKey(destinationPublicKey),
+            lamports
+        })
+    );
+
+    return await sendAndConfirm(connection, provider, transaction);
+}
+
 function lamportsToSolString(lamports, decimals = 9) {
     const value = typeof lamports === "bigint" ? lamports : BigInt(lamports);
     const divisor = 10n ** BigInt(decimals);
@@ -209,17 +221,16 @@ export async function prepareInvestment(options) {
 
         const cluster = options.cluster || "devnet";
         const connection = new Connection(clusterApiUrl(cluster), "confirmed");
-        const programId = new PublicKey(options.programId);
         const teamId = Number(options.teamId);
         const matchId = options.matchId ?? null;
         const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
         const teamName = options.teamName || options.selectedCoin || `Team#${teamId}`;
         const supportsLegacyPositionInvestments = Boolean(options.supportsLegacyPositionInvestments);
+        const mode = options.mode || "HybridContractCustody";
 
         logInvest("Iniciando preparação de posição on-chain");
         logInvest("Wallet conectada:", provider.publicKey.toBase58());
         logInvest("Cluster:", cluster);
-        logInvest("Program ID:", programId.toBase58());
         logInvest("Team/Coin selecionada:", teamName);
         logInvest("Team ID:", teamId);
         logInvest("Valor solicitado:", `${options.amountSol} SOL`);
@@ -227,6 +238,44 @@ export async function prepareInvestment(options) {
         if (!Number.isInteger(teamId) || teamId <= 0) {
             throw new Error("Team ID invalido para investimento.");
         }
+
+        if (mode === "OffChainCustody") {
+            const custodyWalletPublicKey = options.custodyWalletPublicKey;
+
+            if (!custodyWalletPublicKey) {
+                throw new Error("Carteira de custodia off-chain nao configurada.");
+            }
+
+            stage.current = "offchain-custody-transfer";
+            logInvest("Modo OffChainCustody detectado.");
+            logInvest("Carteira de custodia:", custodyWalletPublicKey);
+
+            const signature = await sendSolToCustody(
+                connection,
+                provider,
+                custodyWalletPublicKey,
+                amountLamports,
+                SystemProgram,
+                PublicKey,
+                Transaction
+            );
+
+            logInvest("Transferencia para custody confirmada:", signature);
+
+            return {
+                wallet: provider.publicKey.toBase58(),
+                cluster,
+                teamId,
+                matchId,
+                amountLamports: amountLamports.toString(),
+                instruction: "offchain_custody_transfer",
+                signature,
+                result: "OFFCHAIN_CUSTODY_TRANSFER_OK"
+            };
+        }
+
+        const programId = new PublicKey(options.programId);
+        logInvest("Program ID:", programId.toBase58());
 
         stage.current = "user-account";
 

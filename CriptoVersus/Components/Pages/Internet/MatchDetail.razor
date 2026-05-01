@@ -2064,14 +2064,6 @@
             throw new InvalidOperationException("Partida nao carregada para investimento on-chain.");
 
         var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
-        var usesOnChainContract = !string.Equals(blockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
-        if (!usesOnChainContract)
-        {
-            return new InvestmentPreparationResult
-            {
-                AmountLamports = string.Empty
-            };
-        }
 
         _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
@@ -2080,7 +2072,8 @@
         var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
             ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
             : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];
-        if (string.IsNullOrWhiteSpace(programId))
+        if (!string.Equals(blockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(programId))
             throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
 
         return await _bettingModule.InvokeAsync<InvestmentPreparationResult>(
@@ -2096,6 +2089,8 @@
                 teamBId = _match.TeamBId,
                 bettingCloseUnix = GetOnChainBettingCloseUnix(_match),
                 amountSol,
+                mode = blockchainMode,
+                custodyWalletPublicKey = Config["CriptoVersusBlockchain:CustodyWalletPublicKey"],
                 supportsLegacyPositionInvestments = Config.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments")
             });
     }

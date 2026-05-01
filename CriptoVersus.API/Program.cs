@@ -13,6 +13,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddScoped<ILedgerService, LedgerService>();
+builder.Services.AddHttpClient<IOffChainCustodyTransferVerifier, OffChainCustodyTransferVerifier>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
