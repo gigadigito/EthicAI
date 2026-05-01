@@ -1,4 +1,4 @@
-@rendermode InteractiveServer
+﻿@rendermode InteractiveServer
 @page "/tokenomics"
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
@@ -7,10 +7,10 @@
     <div class="tokenomics-hero">
         <div class="hero-copy">
             <span>Tokenomics (Regras)</span>
-            <h2>Pool cíclica de investimento gamificada</h2>
+            <h2>Pool ciclica de investimento gamificada</h2>
             <p>
-                Capital alocado por ativo, participação automática em ciclos futuros e liquidação desenhada para favorecer permanência,
-                rastreabilidade on-chain e retenção de capital no protocolo.
+                Capital alocado por ativo, participacao automatica em ciclos futuros e liquidacao desenhada para favorecer permanencia,
+                rastreabilidade on-chain e retencao de capital no protocolo.
             </p>
         </div>
         <div class="protocol-mark" aria-hidden="true">
@@ -33,12 +33,12 @@
             <article>
                 <span>Capital ativo</span>
                 <strong>@FmtSol(_data.ActiveCapital)</strong>
-                <small>@_data.ActivePositions posições ativas</small>
+                <small>@_data.ActivePositions posicoes ativas</small>
             </article>
             <article>
                 <span>Total alocado</span>
                 <strong>@FmtSol(_data.PrincipalAllocated)</strong>
-                <small>@_data.Users usuários indexados</small>
+                <small>@_data.Users usuarios indexados</small>
             </article>
             <article>
                 <span>Ciclos em andamento</span>
@@ -54,14 +54,14 @@
 
         <section class="topic-callout">
             <div>
-                <span>Tópico especial</span>
+                <span>Topico especial</span>
                 <h3>Regras das partidas e formacao do placar</h3>
                 <p>
                     Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log
-                    auditavel que reconstrói cada ponto da partida.
+                    auditavel que reconstrui cada ponto da partida.
                 </p>
             </div>
-            <a class="topic-link" href="/tokenomics/regras-das-partidas">Abrir tópico completo</a>
+            <a class="topic-link" href="/tokenomics/regras-das-partidas">Abrir topico completo</a>
         </section>
 
         <div class="rule-grid">
@@ -69,8 +69,8 @@
                 <span>01</span>
                 <h3>Como funciona</h3>
                 <p>
-                    O usuário escolhe um ativo/time e deposita SOL em uma posição vinculada àquele lado. Enquanto a posição
-                    permanecer ativa, o capital pode continuar participando automaticamente dos próximos ciclos em que esse
+                    O usuario escolhe um ativo/time e deposita SOL em uma posicao vinculada aquele lado. Enquanto a posicao
+                    permanecer ativa, o capital pode continuar participando automaticamente dos proximos ciclos em que esse
                     ativo voltar a aparecer, sem exigir nova entrada manual a cada rodada.
                 </p>
                 <div class="flow-line">
@@ -83,26 +83,26 @@
 
             <section class="rule-panel" id="posicoes">
                 <span>02</span>
-                <h3>Posições</h3>
+                <h3>Posicoes</h3>
                 <p>
-                    Cada posição pertence a uma carteira e a um ativo específico. O capital atual pode crescer com ciclos
-                    vencedores, sofrer erosão controlada em ciclos perdedores ou entrar em processo de saída quando o usuário
-                    solicitar encerramento da posição.
+                    Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos
+                    vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario
+                    solicitar encerramento da posicao.
                 </p>
                 <dl>
                     <div><dt>Ativas</dt><dd>@_data.ActivePositions</dd></div>
-                    <div><dt>Saída solicitada</dt><dd>@_data.ClosingPositions</dd></div>
+                    <div><dt>Saida solicitada</dt><dd>@_data.ClosingPositions</dd></div>
                     <div><dt>Fechadas</dt><dd>@_data.ClosedPositions</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="pontuacao">
                 <span>03</span>
-                <h3>Sistema de Pontuação</h3>
+                <h3>Sistema de Pontuacao</h3>
                 <p>
-                    A pontuação compara a performance relativa dos ativos dentro do ciclo. A cada @_data.PercentPerGoal.ToString("0.##")%
-                    de vantagem, o ativo pode converter essa diferença em gols, sempre respeitando o teto máximo de pontuação
-                    por lado definido na configuração operacional.
+                    A pontuacao compara a performance relativa dos ativos dentro do ciclo. A cada @_data.PercentPerGoal.ToString("0.##")%
+                    de vantagem, o ativo pode converter essa diferenca em gols, sempre respeitando o teto maximo de pontuacao
+                    por lado definido na configuracao operacional.
                 </p>
                 <dl>
                     <div><dt>% por gol</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
@@ -114,23 +114,23 @@
                 <span>04</span>
                 <h3>Ciclos</h3>
                 <p>
-                    Cada partida representa um ciclo de mercado com janela de entrada, período de acompanhamento e liquidação.
-                    Se a reentrada automática estiver habilitada, posições recorrentes voltam ao jogo quando o ativo reaparece,
-                    desde que a posição siga ativa e acima do capital mínimo operacional.
+                    Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao.
+                    Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece,
+                    desde que a posicao siga ativa e acima do capital minimo operacional.
                 </p>
                 <dl>
-                    <div><dt>Duração alvo</dt><dd>@_data.MatchDurationMinutes min</dd></div>
-                    <div><dt>Reentrada automática</dt><dd>@(_data.AutoReenterEnabled ? "Ativa" : "Pausada")</dd></div>
+                    <div><dt>Duracao alvo</dt><dd>@_data.MatchDurationMinutes min</dd></div>
+                    <div><dt>Reentrada automatica</dt><dd>@(_data.AutoReenterEnabled ? "Ativa" : "Pausada")</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="liquidacao">
                 <span>05</span>
-                <h3>Liquidação</h3>
+                <h3>Liquidacao</h3>
                 <p>
-                    O lado vencedor recebe ganho proporcional da parcela distribuível originada no lado perdedor. O lado
-                    perdedor preserva a maior parte do capital, reduzindo a eliminação rápida e reforçando uma dinâmica mais
-                    parecida com pool rotativa do que com aposta clássica de rodada única.
+                    O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado
+                    perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais
+                    parecida com pool rotativa do que com aposta classica de rodada unica.
                 </p>
                 <div class="allocation-bar">
                     <i style="width:@PctCss(_data.LoserRefundRate)"></i>
@@ -148,12 +148,12 @@
                 <span>06</span>
                 <h3>Taxas</h3>
                 <p>
-                    A taxa da casa é mantida em nível reduzido para sustentar a operação, a indexação e a infraestrutura
-                    on-chain, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.
+                    A taxa da casa e mantida em nivel reduzido para sustentar a operacao, a indexacao e a infraestrutura
+                    operacional, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.
                 </p>
                 <dl>
                     <div><dt>Taxa da casa</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
-                    <div><dt>Capital mínimo</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
+                    <div><dt>Capital minimo</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
                 </dl>
             </section>
 
@@ -161,8 +161,8 @@
                 <span>07</span>
                 <h3>Retirada</h3>
                 <p>
-                    O usuário pode solicitar saída da posição a qualquer momento. Se houver ciclo ativo, a posição aguarda a
-                    liquidação daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada
+                    O usuario pode solicitar saida da posicao a qualquer momento. Se houver ciclo ativo, a posicao aguarda a
+                    liquidacao daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada
                     conforme o fluxo operacional habilitado no sistema.
                 </p>
             </section>
@@ -171,25 +171,42 @@
                 <span>08</span>
                 <h3>Riscos</h3>
                 <p>
-                    O protocolo opera com ativos voláteis, regras automatizadas e contratos em rede Solana. Pequenas perdas por
-                    ciclo podem se acumular ao longo do tempo, parâmetros podem ser ajustados pela operação e ambiente de devnet
-                    não deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.
+                    O protocolo opera com ativos volateis, regras automatizadas e contratos em rede Solana. Pequenas perdas por
+                    ciclo podem se acumular ao longo do tempo, parametros podem ser ajustados pela operacao e ambiente de devnet
+                    nao deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.
                 </p>
             </section>
 
             <section class="rule-panel contract-panel" id="contrato">
                 <span>09</span>
-                <h3>Contrato on-chain</h3>
-                <p>
-                    Depósitos e posições usam o programa configurado na rede @_data.Cluster. O backend atua como indexador e
-                    camada de orquestração, enquanto a posição on-chain preserva a rastreabilidade do capital, dos endereços
-                    vinculados e da lógica operacional publicada no contrato.
-                </p>
-                <dl>
-                    <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
-                    <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
-                    <div><dt>Rede</dt><dd>@_data.Cluster</dd></div>
-                </dl>
+                @if (IsOffChainCustodyMode)
+                {
+                    <h3>Carteira de custodia</h3>
+                    <p>
+                        No modo Off-chain Custody, os fundos operacionais sao conciliados fora do contrato. A wallet Solana
+                        continua sendo a identidade do usuario, enquanto as transferencias para a carteira de custodia na rede
+                        @_data.Cluster precisam ser reconhecidas pelo sistema para virar saldo interno de apostas.
+                    </p>
+                    <dl>
+                        <div><dt>Carteira</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
+                        <div><dt>Label</dt><dd>@DisplayCustodyWalletLabel</dd></div>
+                        <div><dt>Rede</dt><dd>@_data.Cluster</dd></div>
+                    </dl>
+                }
+                else
+                {
+                    <h3>Contrato on-chain</h3>
+                    <p>
+                        Depositos e posicoes usam o programa configurado na rede @_data.Cluster. O backend atua como indexador e
+                        camada de orquestracao, enquanto a posicao on-chain preserva a rastreabilidade do capital, dos enderecos
+                        vinculados e da logica operacional publicada no contrato.
+                    </p>
+                    <dl>
+                        <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
+                        <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
+                        <div><dt>Rede</dt><dd>@_data.Cluster</dd></div>
+                    </dl>
+                }
             </section>
         </div>
 
@@ -198,7 +215,7 @@
             <section class="positions-band">
                 <div>
                     <span>Ativos com mais capital</span>
-                    <h3>Distribuição atual das posições</h3>
+                    <h3>Distribuicao atual das posicoes</h3>
                 </div>
                 <div class="position-list">
                     @foreach (var position in _data.TopPositions)
@@ -218,6 +235,14 @@
     private TokenomicsDto? _data;
     private bool _loading = true;
     private string? _error;
+
+    private bool IsOffChainCustodyMode
+        => string.Equals(_data?.BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
+
+    private string DisplayCustodyWalletLabel
+        => string.IsNullOrWhiteSpace(_data?.CustodyWalletLabel)
+            ? "Carteira de custodia"
+            : _data!.CustodyWalletLabel;
 
     protected override async Task OnInitializedAsync()
     {

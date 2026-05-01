@@ -30,8 +30,6 @@ function ensureBufferGlobal() {
         globalThis.Buffer = window.buffer.Buffer;
         return;
     }
-
-    throw new Error("Buffer nao esta disponivel no browser para construir a transacao Solana.");
 }
 
 function logInvest(message, ...args) {
@@ -101,8 +99,22 @@ async function sendAndConfirm(connection, provider, transaction) {
     transaction.feePayer = provider.publicKey;
     transaction.recentBlockhash = blockhash;
 
-    const signed = await provider.signTransaction(transaction);
-    const signature = await connection.sendRawTransaction(signed.serialize());
+    let signature;
+
+    if (typeof provider.signAndSendTransaction === "function") {
+        const result = await provider.signAndSendTransaction(transaction, {
+            preflightCommitment: "confirmed"
+        });
+
+        signature = typeof result === "string" ? result : result?.signature;
+    } else {
+        const signed = await provider.signTransaction(transaction);
+        signature = await connection.sendRawTransaction(signed.serialize());
+    }
+
+    if (!signature) {
+        throw new Error("Nao foi possivel obter a assinatura da transacao Solana.");
+    }
 
     await connection.confirmTransaction({
         signature,

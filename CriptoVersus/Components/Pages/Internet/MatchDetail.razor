@@ -14,7 +14,10 @@
 @inject IConfiguration Config
 @rendermode InteractiveServer
 @implements IDisposable
-<PageTitle>@_title</PageTitle>
+@if (EmitPageTitle)
+{
+    <PageTitle>@_title</PageTitle>
+}
 
 <div class="container py-3">
 
@@ -1570,6 +1573,7 @@
     [Parameter] public string? SlugA { get; set; }
     [Parameter] public string? SlugB { get; set; }
     [Parameter] public int? MatchId { get; set; }
+    [Parameter] public bool EmitPageTitle { get; set; } = true;
 
     private bool _loading = true;
     private string? _error;

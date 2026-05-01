@@ -1,0 +1,115 @@
+@page "/match/{MatchId:int}/{Slug}"
+@page "/{Culture}/match/{MatchId:int}/{Slug}"
+@page "/{Culture}/partida/{MatchId:int}/{Slug}"
+@using DTOs
+@inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@inject CriptoVersus.Web.Services.MatchSeoService MatchSeo
+@inject CriptoVersus.Web.Services.MatchSlugHelper MatchSlugHelper
+@inject CriptoVersus.Web.Services.RouteLocalizationService RouteLocalization
+@inject NavigationManager Nav
+
+<PageTitle>@_metaTitle</PageTitle>
+<HeadContent>
+    @if (!string.IsNullOrWhiteSpace(_canonicalUrl))
+    {
+        <link rel="canonical" href="@_canonicalUrl" />
+        @foreach (var alternateLink in _alternateLinks)
+        {
+            <link rel="alternate" hreflang="@alternateLink.HrefLang" href="@alternateLink.Href" />
+        }
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_metaDescription))
+    {
+        <meta name="description" content="@_metaDescription" />
+    }
+</HeadContent>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <div class="container py-3">
+        <div class="alert alert-danger">
+            <strong>Erro:</strong> @_error
+        </div>
+    </div>
+}
+else if (_resolvedMatchId > 0)
+{
+    <MatchDetail SlugA="@_slugA"
+                 SlugB="@_slugB"
+                 MatchId="@_resolvedMatchId"
+                 EmitPageTitle="false" />
+}
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+    [Parameter] public string? Slug { get; set; }
+    [Parameter] public int MatchId { get; set; }
+
+    private string _metaTitle = "CriptoVersus";
+    private string _metaDescription = string.Empty;
+    private string _canonicalUrl = string.Empty;
+    private IReadOnlyList<CriptoVersus.Web.Services.AlternateLink> _alternateLinks = [];
+    private string _slugA = string.Empty;
+    private string _slugB = string.Empty;
+    private string? _error;
+    private int _resolvedMatchId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _error = null;
+        _resolvedMatchId = 0;
+        _slugA = string.Empty;
+        _slugB = string.Empty;
+        _metaTitle = "CriptoVersus";
+        _metaDescription = string.Empty;
+        _canonicalUrl = string.Empty;
+        _alternateLinks = [];
+
+        try
+        {
+            if (MatchId <= 0)
+            {
+                _error = "Partida invalida.";
+                return;
+            }
+
+            var match = await Api.GetMatchByIdAsync(MatchId);
+            if (match is null)
+            {
+                _error = $"Nenhuma partida encontrada para o match #{MatchId}.";
+                return;
+            }
+
+            var officialSlug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+            _resolvedMatchId = match.MatchId;
+            _metaTitle = MatchSeo.BuildTitle(match);
+            _metaDescription = MatchSeo.BuildDescription(match);
+            _canonicalUrl = MatchSeo.BuildCanonicalUrl(match.MatchId, officialSlug, Nav.BaseUri);
+            _alternateLinks = MatchSeo.BuildAlternateLinks(match.MatchId, officialSlug, Nav.BaseUri);
+
+            var expectedPath = RouteLocalization.BuildBestPath(Culture, match.MatchId, officialSlug);
+            var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+            if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo(expectedPath, replace: true);
+                return;
+            }
+
+            (_slugA, _slugB) = SplitSlug(officialSlug);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private static (string SlugA, string SlugB) SplitSlug(string slug)
+    {
+        const string separator = "-vs-";
+        var index = slug.IndexOf(separator, StringComparison.Ordinal);
+        return index < 0
+            ? (slug, string.Empty)
+            : (slug[..index], slug[(index + separator.Length)..]);
+    }
+}

@@ -12,6 +12,11 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped<DashboardHubClient>();
 builder.Services.AddScoped<WalletSessionState>();
+builder.Services.AddScoped<MatchSlugHelper>();
+builder.Services.AddScoped<RouteLocalizationService>();
+builder.Services.AddScoped<MatchSeoService>();
+builder.Services.AddScoped<MatchRouteRedirectResolver>();
+builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 
@@ -50,6 +55,7 @@ if (!app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+app.UseMiddleware<MatchRouteRedirectMiddleware>();
 
 app.UseStaticFiles();
 app.UseAntiforgery();

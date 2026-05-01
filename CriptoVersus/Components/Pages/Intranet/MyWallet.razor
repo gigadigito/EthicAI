@@ -764,12 +764,10 @@
         => string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
     private string WalletNetworkBalanceLabel
-        => IsOffChainCustodyMode ? "Saldo da wallet Solana" : "Saldo on-chain";
+        => "Saldo on-chain";
 
     private string OnChainBalanceText
-        => IsOffChainCustodyMode
-            ? "Nao utilizado nas apostas"
-            : _onChainBalanceLoading
+        => _onChainBalanceLoading
             ? "Carregando..."
             : _onChainBalanceError is not null
                 ? "-"
@@ -778,9 +776,7 @@
                     : "-";
 
     private string OnChainBalanceTitle
-        => IsOffChainCustodyMode
-            ? "No modo OffChainCustody, o saldo usado nas apostas e o saldo interno do banco."
-            : _onChainBalanceError is not null
+        => _onChainBalanceError is not null
             ? _onChainBalanceError
             : $"Saldo real na rede {OnChainCluster}";
 
@@ -918,7 +914,7 @@
 
     private async Task LoadOnChainBalanceAsync()
     {
-        if (_wallet is null || string.IsNullOrWhiteSpace(_wallet.Wallet) || !UsesOnChainContract)
+        if (_wallet is null || string.IsNullOrWhiteSpace(_wallet.Wallet))
             return;
 
         _onChainBalanceLoading = true;
