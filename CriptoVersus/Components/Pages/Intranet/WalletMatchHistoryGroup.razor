@@ -1,6 +1,7 @@
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
+@inject BrowserTimeZoneService BrowserTimeZone
 
 <article class="investment-group wallet-history-group">
     <div class="wallet-history-summary">
@@ -206,6 +207,22 @@
 
     private string SummaryText => $"{Group.MatchCount} partidas registradas: {Group.WonCount} ganhas, {Group.LostCount} perdidas, {Group.OpenCount} em aberto.";
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            await BrowserTimeZone.EnsureInitializedAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+        {
+            // Timezone via JS não está disponível durante o prerender.
+        }
+    }
+
     private async Task ToggleAsync()
     {
         _expanded = !_expanded;
@@ -285,7 +302,7 @@
     private static string FmtSol(decimal value) => $"{value:0.########} SOL";
     private static string FmtSignedSol(decimal value) => value > 0m ? $"+{value:0.########} SOL" : value < 0m ? $"-{Math.Abs(value):0.########} SOL" : "0 SOL";
     private static string FmtOptionalSol(decimal? value) => value.HasValue ? FmtSol(value.Value) : "-";
-    private static string FmtDate(DateTime? value) => value.HasValue ? value.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-";
+    private string FmtDate(DateTime? value) => BrowserTimeZone.FormatDateTime(value, "pt-BR");
     private static string GetPayoutClass(decimal value) => value > 0m ? "payout-positive" : value < 0m ? "payout-negative" : "payout-neutral";
     private static string GetPayoutClass(decimal? value) => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
     private static string GetBaseSymbol(string pair) => string.IsNullOrWhiteSpace(pair) ? "" : new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" }.FirstOrDefault(q => pair.Trim().ToUpperInvariant().EndsWith(q, StringComparison.OrdinalIgnoreCase) && pair.Length > q.Length) is string q ? pair.Trim().ToUpperInvariant()[..^q.Length] : pair.Trim().ToUpperInvariant();

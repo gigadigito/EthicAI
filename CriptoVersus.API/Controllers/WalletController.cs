@@ -53,6 +53,10 @@ public sealed class WalletController : ControllerBase
                 TeamId = b.TeamId,
                 TeamSymbol = b.Team.Currency != null ? b.Team.Currency.Symbol : $"Team#{b.TeamId}",
                 TeamName = b.Team.Currency != null ? b.Team.Currency.Name : "Moeda",
+                PositionId = b.PositionId,
+                PositionStatus = b.PositionEntry != null
+                    ? b.PositionEntry.Status
+                    : (TeamPositionStatus?)null,
                 Amount = b.Amount,
                 PayoutAmount = b.PayoutAmount,
                 BetTime = b.BetTime,
@@ -78,6 +82,9 @@ public sealed class WalletController : ControllerBase
             .Where(b => b.UserId == user.UserID
                 && b.SettledAt.HasValue
                 && !b.Claimed
+                && (!b.PositionId.HasValue
+                    || b.PositionEntry == null
+                    || b.PositionEntry.Status == TeamPositionStatus.Closed)
                 && (b.PayoutAmount ?? 0m) > 0m)
             .OrderBy(b => b.MatchId)
             .Select(b => new ClaimableBetDto
@@ -89,10 +96,10 @@ public sealed class WalletController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
-        var totalInvested = betRows.Sum(i => i.Amount);
+        var totalInvested = positions.Sum(p => p.PrincipalAllocated);
         var openAmount = betRows.Where(IsOpen).Sum(i => i.Amount);
         var availableReturns = betRows
-            .Where(i => i.SettledAt.HasValue && !i.Claimed && (i.PayoutAmount ?? 0m) > 0m)
+            .Where(IsClaimableReturn)
             .Sum(i => i.PayoutAmount ?? 0m);
         var realizedProfit = betRows.Where(i => i.SettledAt.HasValue).Sum(GetProfitAmount);
         var realizedLoss = betRows.Where(i => i.SettledAt.HasValue).Sum(GetLossAmount);
@@ -111,7 +118,7 @@ public sealed class WalletController : ControllerBase
                     TotalInvested = rows.Sum(x => x.Amount),
                     OpenAmount = rows.Where(IsOpen).Sum(x => x.Amount),
                     AvailableReturns = rows
-                        .Where(x => x.SettledAt.HasValue && !x.Claimed && (x.PayoutAmount ?? 0m) > 0m)
+                        .Where(IsClaimableReturn)
                         .Sum(x => x.PayoutAmount ?? 0m),
                     RealizedNetResult = rows.Where(x => x.SettledAt.HasValue).Sum(GetNetAmount),
                     MatchCount = rows.Count,
@@ -190,6 +197,9 @@ public sealed class WalletController : ControllerBase
                         .Where(b => b.UserId == user.UserID
                             && b.SettledAt.HasValue
                             && !b.Claimed
+                            && (!b.PositionId.HasValue
+                                || b.PositionEntry == null
+                                || b.PositionEntry.Status == TeamPositionStatus.Closed)
                             && (b.PayoutAmount ?? 0m) > 0m)
                         .OrderBy(b => b.BetId)
                         .ToListAsync(cancellationToken);
@@ -295,6 +305,9 @@ public sealed class WalletController : ControllerBase
                         .Where(b => b.UserId == user.UserID
                             && b.SettledAt.HasValue
                             && !b.Claimed
+                            && (!b.PositionId.HasValue
+                                || b.PositionEntry == null
+                                || b.PositionEntry.Status == TeamPositionStatus.Closed)
                             && (b.PayoutAmount ?? 0m) > 0m)
                         .SumAsync(b => b.PayoutAmount ?? 0m, cancellationToken);
 
@@ -675,6 +688,12 @@ public sealed class WalletController : ControllerBase
     private static bool IsDraw(WalletBetSummaryRow row)
         => ClassifyResult(row.MatchStatus, row.IsWinner, row.PayoutAmount ?? 0m, row.Amount, row.EndReasonCode).IsDraw;
 
+    private static bool IsClaimableReturn(WalletBetSummaryRow row)
+        => row.SettledAt.HasValue
+            && !row.Claimed
+            && (row.PayoutAmount ?? 0m) > 0m
+            && (!row.PositionId.HasValue || row.PositionStatus == TeamPositionStatus.Closed);
+
     private static decimal GetLossAmount(WalletBetSummaryRow investment)
     {
         var result = ClassifyResult(investment.MatchStatus, investment.IsWinner, investment.PayoutAmount ?? 0m, investment.Amount, investment.EndReasonCode);
@@ -899,6 +918,8 @@ public sealed class WalletController : ControllerBase
         public int TeamId { get; init; }
         public string TeamSymbol { get; init; } = "";
         public string TeamName { get; init; } = "";
+        public int? PositionId { get; init; }
+        public TeamPositionStatus? PositionStatus { get; init; }
         public decimal Amount { get; init; }
         public decimal? PayoutAmount { get; init; }
         public DateTime BetTime { get; init; }

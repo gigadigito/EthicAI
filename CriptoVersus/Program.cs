@@ -12,10 +12,12 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped<DashboardHubClient>();
 builder.Services.AddScoped<WalletSessionState>();
+builder.Services.AddScoped<BrowserTimeZoneService>();
 builder.Services.AddScoped<MatchSlugHelper>();
 builder.Services.AddScoped<RouteLocalizationService>();
 builder.Services.AddScoped<MatchSeoService>();
-builder.Services.AddScoped<MatchRouteRedirectResolver>();
+builder.Services.AddScoped<RoadmapContentService>();
+builder.Services.AddSingleton<MatchRouteRedirectResolver>();
 builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
@@ -64,3 +66,4 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+

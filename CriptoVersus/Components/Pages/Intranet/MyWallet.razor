@@ -6,6 +6,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject IConfiguration Config
 @inject IJSRuntime JS
+@inject BrowserTimeZoneService BrowserTimeZone
 @implements IAsyncDisposable
 
 <section class="wallet-page">
@@ -785,8 +786,17 @@
         if (!firstRender)
             return;
 
-        await LoadWalletAsync();
-        await LoadOnChainBalanceAsync();
+        try
+        {
+            await BrowserTimeZone.EnsureInitializedAsync();
+            await LoadWalletAsync();
+            await LoadOnChainBalanceAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+        {
+            // Fluxo depende de SessionStorage/JS e será repetido no render interativo.
+        }
     }
 
     private async Task LoadWalletAsync()
@@ -1009,8 +1019,8 @@
     private static string GetPayoutClass(decimal? value)
         => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
 
-    private static string FmtDate(DateTime? value)
-        => value.HasValue ? value.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-";
+    private string FmtDate(DateTime? value)
+        => BrowserTimeZone.FormatDateTime(value, "pt-BR");
 
     private static string FmtPositionStatus(string status)
         => status switch

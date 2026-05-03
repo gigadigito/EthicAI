@@ -9,6 +9,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject IJSRuntime JS
 @inject IConfiguration Config
+@inject BrowserTimeZoneService BrowserTimeZone
 @inject MatchSlugHelper MatchSlugHelper
 @inject RouteLocalizationService RouteLocalization
 
@@ -734,7 +735,25 @@ else
         color: #ffffff;
         font-size: 1rem;
         font-weight: 800;
-        overflow-wrap: anywhere;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .team-symbol .market-pair-text {
+        display: inline-flex;
+        min-width: 0;
+        white-space: nowrap;
+    }
+
+    .team-symbol .market-pair-text__base {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .team-cell-right .team-symbol .market-pair-text {
+        justify-content: flex-end;
     }
 
     .metric-positive {
@@ -760,14 +779,14 @@ else
         border-right: 1px solid #303741;
         display: grid;
         gap: .12rem;
-        min-width: 6.25rem;
-        padding: 0 .8rem;
+        min-width: 4.9rem;
+        padding: 0 .45rem;
         text-align: center;
     }
 
     .score-value {
         color: #f9fafb;
-        font-size: 1.22rem;
+        font-size: 1.02rem;
         font-weight: 900;
         line-height: 1.1;
         white-space: nowrap;
@@ -988,12 +1007,16 @@ else
         }
 
         .team-symbol {
-            font-size: .94rem;
+            font-size: .9rem;
         }
 
         .score-cell {
-            min-width: 5.6rem;
-            padding: 0 .65rem;
+            min-width: 4.45rem;
+            padding: 0 .35rem;
+        }
+
+        .score-value {
+            font-size: .94rem;
         }
     }
 
@@ -1008,13 +1031,31 @@ else
             padding: .85rem;
         }
 
+        .match-card-top {
+            text-align: center;
+        }
+
         .matchup-row {
             grid-template-columns: 1fr;
-            text-align: left;
+            justify-items: center;
+            text-align: center;
         }
 
         .team-cell-right {
-            text-align: left;
+            text-align: center;
+        }
+
+        .team-line,
+        .team-line-right {
+            justify-content: center;
+        }
+
+        .team-line-right {
+            flex-direction: row;
+        }
+
+        .team-cell-right .team-symbol .market-pair-text {
+            justify-content: center;
         }
 
         .score-cell {
@@ -1024,12 +1065,19 @@ else
             border-bottom: 1px solid #303741;
             min-width: 0;
             padding: .65rem 0;
-            text-align: left;
+            text-align: center;
+            width: 100%;
         }
 
         .match-card-footer {
             align-items: stretch;
             flex-direction: column;
+            text-align: center;
+        }
+
+        .match-meta {
+            text-align: center;
+            width: 100%;
         }
 
         .match-card-footer .btn {
@@ -1130,9 +1178,18 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender)
+            return;
+
+        try
         {
+            await BrowserTimeZone.EnsureInitializedAsync();
             await LoadSessionUserAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+        {
+            // SessionStorage e timezone via JS ficam disponíveis quando o render interativo subir.
         }
     }
 
@@ -1511,8 +1568,8 @@ else
         return "Não conseguimos concluir seu investimento agora. Verifique sua carteira e tente novamente.";
     }
 
-    private static string FmtUtc(DateTime? dt)
-        => dt is null ? "-" : dt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+    private string FmtUtc(DateTime? dt)
+        => BrowserTimeZone.FormatDateTime(dt, "pt-BR", includeSeconds: true);
 
     private static string FmtPct(decimal? v)
     {
@@ -1563,7 +1620,7 @@ else
         return $"{scoreA} x {scoreB}";
     }
 
-    private static string GetMatchClock(BettableMatchViewModel match)
+    private string GetMatchClock(BettableMatchViewModel match)
     {
         if (string.Equals(match.Status, "Pending", StringComparison.OrdinalIgnoreCase))
             return match.StartTime is null ? "Aguardando inicio" : FmtUtc(match.StartTime);

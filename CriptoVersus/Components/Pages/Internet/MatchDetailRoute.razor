@@ -22,6 +22,22 @@
     @if (!string.IsNullOrWhiteSpace(_metaDescription))
     {
         <meta name="description" content="@_metaDescription" />
+        <meta property="og:description" content="@_metaDescription" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_ogTitle))
+    {
+        <meta property="og:title" content="@_ogTitle" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_ogUrl))
+    {
+        <meta property="og:url" content="@_ogUrl" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_twitterCard))
+    {
+        <meta name="twitter:card" content="@_twitterCard" />
     }
 </HeadContent>
 
@@ -50,6 +66,9 @@ else if (_resolvedMatchId > 0)
     private string _metaDescription = string.Empty;
     private string _canonicalUrl = string.Empty;
     private IReadOnlyList<CriptoVersus.Web.Services.AlternateLink> _alternateLinks = [];
+    private string _ogTitle = string.Empty;
+    private string _ogUrl = string.Empty;
+    private string _twitterCard = string.Empty;
     private string _slugA = string.Empty;
     private string _slugB = string.Empty;
     private string? _error;
@@ -65,6 +84,9 @@ else if (_resolvedMatchId > 0)
         _metaDescription = string.Empty;
         _canonicalUrl = string.Empty;
         _alternateLinks = [];
+        _ogTitle = string.Empty;
+        _ogUrl = string.Empty;
+        _twitterCard = string.Empty;
 
         try
         {
@@ -83,10 +105,14 @@ else if (_resolvedMatchId > 0)
 
             var officialSlug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
             _resolvedMatchId = match.MatchId;
-            _metaTitle = MatchSeo.BuildTitle(match);
-            _metaDescription = MatchSeo.BuildDescription(match);
-            _canonicalUrl = MatchSeo.BuildCanonicalUrl(match.MatchId, officialSlug, Nav.BaseUri);
-            _alternateLinks = MatchSeo.BuildAlternateLinks(match.MatchId, officialSlug, Nav.BaseUri);
+            var metadata = MatchSeo.BuildMetadata(match, officialSlug, Culture, Nav.BaseUri);
+            _metaTitle = metadata.Title;
+            _metaDescription = metadata.Description;
+            _canonicalUrl = metadata.CanonicalUrl;
+            _alternateLinks = metadata.AlternateLinks;
+            _ogTitle = metadata.OpenGraphTitle;
+            _ogUrl = metadata.OpenGraphUrl;
+            _twitterCard = metadata.TwitterCard;
 
             var expectedPath = RouteLocalization.BuildBestPath(Culture, match.MatchId, officialSlug);
             var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');

@@ -12,6 +12,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject CriptoVersus.Web.Services.DashboardHubClient HubClient
 @inject IConfiguration Config
+@inject CriptoVersus.Web.Services.BrowserTimeZoneService BrowserTimeZone
 @rendermode InteractiveServer
 @implements IDisposable
 @if (EmitPageTitle)
@@ -174,13 +175,13 @@
                                 @if (_match.StartTime is not null)
                                 {
                                     <span class="badge text-bg-dark border border-secondary-subtle">
-                                        Início: @_match.StartTime.Value.ToString("dd/MM/yyyy HH:mm")
+                                        Início: @FmtDateTime(_match.StartTime)
                                     </span>
                                 }
                                 @if (_match.EndTime is not null)
                                 {
                                     <span class="badge text-bg-dark border border-secondary-subtle">
-                                        Fim: @_match.EndTime.Value.ToString("dd/MM/yyyy HH:mm")
+                                        Fim: @FmtDateTime(_match.EndTime)
                                     </span>
                                 }
                             </div>
@@ -1474,6 +1475,54 @@
         }
     }
 
+    @@media (max-width: 576px) {
+        .match-hero .row.align-items-center {
+            text-align: center;
+        }
+
+        .match-hero .col-12.col-md-4 > .d-flex {
+            justify-content: center;
+        }
+
+        .match-hero .justify-content-md-end {
+            justify-content: center !important;
+        }
+
+        .match-hero .text-md-end {
+            text-align: center !important;
+        }
+
+        .match-hero .flex-grow-1,
+        .match-hero .text-md-end {
+            flex-grow: 0 !important;
+        }
+
+        .team-name,
+        .team-sub,
+        .timebar,
+        .scoreline {
+            text-align: center;
+            justify-content: center;
+        }
+
+        .match-live,
+        .scoreline,
+        .timebar {
+            width: 100%;
+        }
+
+        .match-hero .row.mt-3 .d-flex {
+            justify-content: center !important;
+            text-align: center;
+        }
+
+        .match-hero .row.mt-3 .small,
+        .match-hero .row.mt-3 .d-flex.flex-wrap.gap-2 {
+            justify-content: center !important;
+            width: 100%;
+        }
+    }
+
     .chart-wrap {
         width: 100%;
         height: 220px;
@@ -1662,7 +1711,16 @@
             return;
         }
 
-        await RefreshAuthenticatedUserAsync();
+        try
+        {
+            await BrowserTimeZone.EnsureInitializedAsync();
+            await RefreshAuthenticatedUserAsync();
+        }
+        catch (Exception ex) when (CriptoVersus.Web.Services.InteropSafety.IsDeferredInteropException(ex))
+        {
+            return;
+        }
+
         try
         {
             await HubClient.EnsureStartedAsync();
@@ -2691,8 +2749,8 @@
             _ => ruleType
         };
 
-    private static string FormatEventTime(DateTime eventTimeUtc)
-        => eventTimeUtc.ToLocalTime().ToString("dd/MM HH:mm:ss");
+    private string FormatEventTime(DateTime eventTimeUtc)
+        => BrowserTimeZone.ConvertUtcToLocal(eventTimeUtc).ToString("dd/MM HH:mm:ss");
 
     private IReadOnlyList<ChartAxisTick> GetPercentageAxisTicks()
         => BuildAxisTicks(_percentageChart, value => $"{value:0.00}%");
@@ -2762,7 +2820,7 @@
         return chart.StartUtc;
     }
 
-    private static string FormatMatchTimeTick(DateTime? startUtc, DateTime tickUtc)
+    private string FormatMatchTimeTick(DateTime? startUtc, DateTime tickUtc)
     {
         if (startUtc is DateTime matchStartUtc)
         {
@@ -2770,8 +2828,11 @@
             return $"{elapsedMinutes:0}m";
         }
 
-        return tickUtc.ToLocalTime().ToString("HH:mm");
+        return BrowserTimeZone.ConvertUtcToLocal(tickUtc).ToString("HH:mm");
     }
+
+    private string FmtDateTime(DateTime? value)
+        => BrowserTimeZone.FormatDateTime(value, "pt-BR");
 
     private static bool IsPercentageCrossoverRule(string ruleType)
         => ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);

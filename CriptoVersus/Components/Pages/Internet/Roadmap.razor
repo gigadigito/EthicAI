@@ -1,0 +1,692 @@
+@page "/roadmap"
+@page "/pt/roadmap"
+@page "/en/roadmap"
+@using CriptoVersus.Web.Services
+@inject NavigationManager Nav
+@inject RoadmapContentService RoadmapContentService
+
+<PageTitle>@_page.PageTitle</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="@_page.MetaDescription" />
+    <link rel="canonical" href="@_page.CanonicalUrl" />
+    @foreach (var alternate in _page.AlternateLinks)
+    {
+        <link rel="alternate" hreflang="@alternate.HrefLang" href="@alternate.Href" />
+    }
+    <meta property="og:title" content="@_page.OpenGraph.Title" />
+    <meta property="og:description" content="@_page.OpenGraph.Description" />
+    <meta property="og:type" content="@_page.OpenGraph.Type" />
+    <meta property="og:url" content="@_page.OpenGraph.Url" />
+</HeadContent>
+
+<section class="roadmap-page">
+    <div class="roadmap-hero">
+        <div class="roadmap-banner">
+            <div class="roadmap-banner__frame" aria-hidden="true"></div>
+            <div class="roadmap-banner__glow roadmap-banner__glow--left"></div>
+            <div class="roadmap-banner__glow roadmap-banner__glow--right"></div>
+
+            <div class="roadmap-banner__art" aria-hidden="true">
+                <img class="roadmap-banner__visual" src="/img/roadmap-logo2.png" alt="" />
+                <div class="roadmap-banner__core">
+                    <span class="roadmap-banner__crown">♛</span>
+                    <span class="roadmap-banner__monogram roadmap-banner__monogram--c">C</span>
+                    <span class="roadmap-banner__monogram roadmap-banner__monogram--v">V</span>
+                    <span class="roadmap-banner__slash"></span>
+                </div>
+                <div class="roadmap-banner__candles roadmap-banner__candles--left">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="roadmap-banner__candles roadmap-banner__candles--right">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+
+            <div class="roadmap-banner__copy">
+                <span class="roadmap-eyebrow">@_page.Hero.Eyebrow</span>
+                <h1 class="roadmap-hero__wordmark">
+                    <span class="roadmap-hero__wordmark-core">Cripto</span><span class="roadmap-hero__wordmark-accent">Versus</span>
+                </h1>
+
+                <p class="roadmap-banner__summary">@_page.Hero.Subtitle</p>
+
+                <div class="roadmap-hero__identity roadmap-hero__identity--banner">
+                    <span class="roadmap-hero__identity-word roadmap-hero__identity-word--purple">Arena financeira.</span>
+                    <span class="roadmap-hero__identity-word">Estratégia.</span>
+                    <span class="roadmap-hero__identity-word roadmap-hero__identity-word--green">Vitória.</span>
+                </div>
+
+                <div class="roadmap-banner__divider" aria-hidden="true">
+                    <span class="roadmap-banner__divider-line"></span>
+                    <div class="roadmap-hero__solana-mark">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span class="roadmap-banner__divider-line"></span>
+                </div>
+
+                <div class="roadmap-banner__intel">
+                    <article class="roadmap-banner__intel-card roadmap-banner__intel-card--metric">
+                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Phases mapped" : "Fases mapeadas")</span>
+                        <strong class="roadmap-banner__intel-value">@_page.Phases.Count</strong>
+                        <p>@(_page.Culture == "en" ? "Public evolution from foundation to AI commentary." : "Evolucao publica da fundacao ate a experiencia com IA.")</p>
+                    </article>
+
+                    <article class="roadmap-banner__intel-card roadmap-banner__intel-card--metric">
+                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Workstreams active" : "Frentes ativas")</span>
+                        <strong class="roadmap-banner__intel-value">@GetTrackedInitiativeCount()</strong>
+                        <p>@(_page.Culture == "en" ? "Status cards, principles and visible roadmap milestones." : "Status cards, principios e marcos visiveis do roadmap.")</p>
+                    </article>
+
+                    <article class="roadmap-banner__intel-card roadmap-banner__intel-card--focus">
+                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Current focus" : "Foco atual")</span>
+                        <strong class="roadmap-banner__intel-title">@GetCurrentFocusTitle()</strong>
+                        <p>@GetCurrentFocusDescription()</p>
+                    </article>
+
+                    <article class="roadmap-banner__intel-card roadmap-banner__intel-card--next">
+                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Next milestone" : "Proximo marco")</span>
+                        <strong class="roadmap-banner__intel-title">@GetNextMilestoneTitle()</strong>
+                        <ul class="roadmap-banner__intel-list">
+                            @foreach (var item in GetNextMilestoneItems())
+                            {
+                                <li>@item</li>
+                            }
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="roadmap-strip" aria-label="@(_page.Culture == "en" ? "Brand pillars" : "Pilares da marca")">
+        <article class="roadmap-strip__item roadmap-strip__item--status">
+            <div class="roadmap-strip__icon roadmap-strip__icon--purple" aria-hidden="true">◈</div>
+            <div>
+                <strong>@GetStatusSummary()</strong>
+                <span>@_page.Hero.Subtitle</span>
+            </div>
+        </article>
+
+        <article class="roadmap-strip__item roadmap-strip__item--cta">
+            <a class="roadmap-cta roadmap-cta-primary" href="@_page.Hero.PrimaryCtaHref">@_page.Hero.PrimaryCtaLabel</a>
+            <a class="roadmap-cta roadmap-cta-secondary" href="@_page.Hero.SecondaryCtaHref">@_page.Hero.SecondaryCtaLabel</a>
+        </article>
+
+        @foreach (var pillar in GetBrandPillars())
+        {
+            <article class="roadmap-strip__item">
+                <div class="roadmap-strip__icon roadmap-strip__icon--@pillar.Accent" aria-hidden="true">@pillar.Icon</div>
+                <div>
+                    <strong>@pillar.Title</strong>
+                    <span>@pillar.Subtitle</span>
+                </div>
+            </article>
+        }
+    </section>
+
+    <section class="roadmap-section">
+        <div class="roadmap-section__head">
+            <span>@(_page.Culture == "en" ? "Project status" : "Status geral do projeto")</span>
+            <h2>@(_page.Culture == "en" ? "Current platform direction" : "Direcao atual da plataforma")</h2>
+        </div>
+
+        <div class="roadmap-info-grid">
+            @foreach (var card in _page.StatusCards)
+            {
+                <article class="roadmap-info-card">
+                    <span class="roadmap-info-card__tag">@card.Tag</span>
+                    <h3>@card.Title</h3>
+                    <p>@card.Description</p>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section class="roadmap-section">
+        <div class="roadmap-section__head">
+            <span>Roadmap</span>
+            <h2>@(_page.Culture == "en" ? "Planned evolution by phase" : "Evolucao planejada por fase")</h2>
+        </div>
+
+        <div class="roadmap-timeline">
+            @foreach (var phase in _page.Phases.OrderBy(x => x.SortOrder))
+            {
+                <article class="roadmap-phase-card">
+                    <div class="roadmap-phase-card__rail" aria-hidden="true">
+                        <span></span>
+                    </div>
+                    <div class="roadmap-phase-card__header">
+                        <div>
+                            <span class="roadmap-phase-card__eyebrow">@phase.PhaseLabel</span>
+                            <h3>@phase.Title</h3>
+                        </div>
+                        <span class="roadmap-badge @GetStatusCssClass(phase.Status)">@GetStatusLabel(phase.Status)</span>
+                    </div>
+
+                    <p class="roadmap-phase-card__description">@phase.Description</p>
+
+                    <ul class="roadmap-phase-card__list">
+                        @foreach (var item in phase.Items)
+                        {
+                            <li>@item</li>
+                        }
+                    </ul>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section class="roadmap-section">
+        <div class="roadmap-section__head">
+            <span>@(_page.Culture == "en" ? "Guiding principles" : "Principios")</span>
+            <h2>@(_page.Culture == "en" ? "How product decisions are framed" : "Como as decisoes do produto sao guiadas")</h2>
+        </div>
+
+        <div class="roadmap-info-grid roadmap-info-grid--principles">
+            @foreach (var principle in _page.Principles)
+            {
+                <article class="roadmap-info-card roadmap-info-card--principle">
+                    <span class="roadmap-info-card__tag">@principle.Tag</span>
+                    <h3>@principle.Title</h3>
+                    <p>@principle.Description</p>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section class="roadmap-notice">
+        <span>@_page.NoticeTitle</span>
+        <p>@_page.NoticeText</p>
+    </section>
+</section>
+
+<style>/*
+    .roadmap-page {
+        display: grid;
+        gap: 28px;
+        width: min(1180px, 100%);
+        margin: 0;
+        color: #e5eef8;
+    }
+
+    .roadmap-hero,
+    .roadmap-phase-card,
+    .roadmap-info-card,
+    .roadmap-notice {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(116, 140, 168, 0.18);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(14, 18, 28, 0.96), rgba(9, 13, 20, 0.98));
+        box-shadow: 0 18px 55px rgba(0, 0, 0, 0.26);
+    }
+
+    .roadmap-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(280px, .9fr);
+        gap: 24px;
+        padding: 30px;
+        background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.18), transparent 36%),
+            radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.16), transparent 34%),
+            linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(9, 13, 20, 0.99));
+    }
+
+    .roadmap-eyebrow,
+    .roadmap-section__head span,
+    .roadmap-phase-card__eyebrow,
+    .roadmap-notice span,
+    .roadmap-info-card__tag {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(20, 184, 166, 0.12);
+        border: 1px solid rgba(45, 212, 191, 0.18);
+        color: #67e8f9;
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .roadmap-hero__copy,
+    .roadmap-section,
+    .roadmap-phase-card,
+    .roadmap-info-card,
+    .roadmap-notice {
+        display: grid;
+        gap: 16px;
+    }
+
+    .roadmap-hero__copy h1,
+    .roadmap-section__head h2,
+    .roadmap-phase-card h3,
+    .roadmap-info-card h3 {
+        margin: 0;
+        color: #f8fbff;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+    }
+
+    .roadmap-hero__copy h1 {
+        font-size: clamp(2.3rem, 4vw, 4.15rem);
+        line-height: .95;
+        max-width: 11ch;
+    }
+
+    .roadmap-hero__copy p,
+    .roadmap-phase-card__description,
+    .roadmap-info-card p,
+    .roadmap-notice p {
+        margin: 0;
+        color: #bfd0e4;
+        line-height: 1.7;
+        max-width: 70ch;
+    }
+
+    .roadmap-cta-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 6px;
+    }
+
+    .roadmap-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        border-radius: 999px;
+        font-weight: 800;
+        text-decoration: none;
+        transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .roadmap-cta:hover {
+        transform: translateY(-1px);
+    }
+
+    .roadmap-cta-primary {
+        background: linear-gradient(135deg, #22c55e, #14b8a6);
+        color: #04130d;
+    }
+
+    .roadmap-cta-secondary {
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: rgba(15, 23, 42, 0.72);
+        color: #f8fbff;
+    }
+
+    .roadmap-hero__panel {
+        display: grid;
+        align-content: space-between;
+        gap: 18px;
+        min-height: 100%;
+        padding: 20px;
+        border-radius: 20px;
+        border: 1px solid rgba(103, 232, 249, 0.14);
+        background:
+            linear-gradient(180deg, rgba(11, 18, 32, 0.88), rgba(8, 12, 18, 0.94)),
+            radial-gradient(circle at top, rgba(168, 85, 247, 0.18), transparent 45%);
+    }
+
+    .roadmap-signal {
+        width: 100%;
+        height: 120px;
+        border-radius: 18px;
+        background:
+            linear-gradient(90deg, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0.02) 100%),
+            repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.05) 0 1px, transparent 1px 18px),
+            repeating-linear-gradient(180deg, rgba(148, 163, 184, 0.04) 0 1px, transparent 1px 18px);
+        position: relative;
+    }
+
+    .roadmap-signal::after {
+        content: "";
+        position: absolute;
+        inset: 28px 18px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(34, 197, 94, 0), rgba(34, 197, 94, 0.8), rgba(96, 165, 250, 0.9), rgba(168, 85, 247, 0));
+        filter: blur(10px);
+    }
+
+    .roadmap-chip {
+        display: inline-flex;
+        width: fit-content;
+        align-items: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.28);
+        color: #86efac;
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+
+    .roadmap-hero__stats {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .roadmap-hero__stats article,
+    .roadmap-info-card {
+        padding: 18px;
+    }
+
+    .roadmap-hero__stats span {
+        display: block;
+        color: #8aa0b8;
+        font-size: .84rem;
+        margin-bottom: 6px;
+    }
+
+    .roadmap-hero__stats strong {
+        color: #f8fbff;
+        font-size: 1.5rem;
+        font-weight: 900;
+    }
+
+    .roadmap-section {
+        gap: 18px;
+    }
+
+    .roadmap-section__head {
+        display: grid;
+        gap: 10px;
+    }
+
+    .roadmap-section__head h2 {
+        font-size: clamp(1.5rem, 2.2vw, 2.4rem);
+    }
+
+    .roadmap-info-grid,
+    .roadmap-timeline {
+        display: grid;
+        gap: 18px;
+    }
+
+    .roadmap-info-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .roadmap-info-grid--principles {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .roadmap-info-card h3 {
+        font-size: 1.08rem;
+    }
+
+    .roadmap-info-card--principle {
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(7, 12, 20, 0.98));
+    }
+
+    .roadmap-phase-card {
+        padding: 22px;
+    }
+
+    .roadmap-phase-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(180deg, rgba(34, 197, 94, 0.95), rgba(59, 130, 246, 0.8), rgba(168, 85, 247, 0.82));
+    }
+
+    .roadmap-phase-card__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+    }
+
+    .roadmap-phase-card__list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding-left: 20px;
+        color: #d9e7f4;
+    }
+
+    .roadmap-phase-card__list li::marker {
+        color: #34d399;
+    }
+
+    .roadmap-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 36px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: .82rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        white-space: nowrap;
+    }
+
+    .roadmap-badge-completed {
+        background: rgba(34, 197, 94, 0.13);
+        border-color: rgba(34, 197, 94, 0.28);
+        color: #86efac;
+    }
+
+    .roadmap-badge-progress {
+        background: rgba(59, 130, 246, 0.13);
+        border-color: rgba(59, 130, 246, 0.28);
+        color: #93c5fd;
+    }
+
+    .roadmap-badge-planned {
+        background: rgba(250, 204, 21, 0.12);
+        border-color: rgba(250, 204, 21, 0.28);
+        color: #fde68a;
+    }
+
+    .roadmap-badge-future {
+        background: rgba(168, 85, 247, 0.12);
+        border-color: rgba(168, 85, 247, 0.28);
+        color: #d8b4fe;
+    }
+
+    .roadmap-badge-experimental {
+        background: rgba(249, 115, 22, 0.12);
+        border-color: rgba(249, 115, 22, 0.28);
+        color: #fdba74;
+    }
+
+    .roadmap-notice {
+        padding: 22px;
+        border-color: rgba(249, 115, 22, 0.22);
+        background: linear-gradient(180deg, rgba(49, 24, 12, 0.42), rgba(14, 15, 18, 0.98));
+    }
+
+    @@media (max-width: 1120px) {
+        .roadmap-info-grid,
+        .roadmap-info-grid--principles {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 920px) {
+        .roadmap-hero {
+            grid-template-columns: 1fr;
+        }
+
+        .roadmap-hero__stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .roadmap-page {
+            gap: 22px;
+        }
+
+        .roadmap-hero,
+        .roadmap-phase-card,
+        .roadmap-info-card,
+        .roadmap-notice {
+            border-radius: 20px;
+        }
+
+        .roadmap-hero {
+            padding: 22px;
+        }
+
+        .roadmap-hero__copy,
+        .roadmap-section__head,
+        .roadmap-hero__panel,
+        .roadmap-notice {
+            text-align: center;
+            justify-items: center;
+        }
+
+        .roadmap-cta-group,
+        .roadmap-phase-card__header {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .roadmap-cta {
+            width: 100%;
+        }
+
+        .roadmap-hero__stats,
+        .roadmap-info-grid,
+        .roadmap-info-grid--principles {
+            grid-template-columns: 1fr;
+        }
+
+        .roadmap-phase-card__header {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .roadmap-phase-card,
+        .roadmap-info-card {
+            text-align: center;
+        }
+
+        .roadmap-phase-card__list {
+            text-align: left;
+        }
+    }
+*/</style>
+
+@code {
+    private RoadmapPageContent _page = new();
+
+    protected override void OnParametersSet()
+    {
+        _page = RoadmapContentService.BuildPage(GetCultureFromRoute());
+    }
+
+    private string? GetCultureFromRoute()
+    {
+        var relativePath = Nav.ToBaseRelativePath(Nav.Uri).Trim('/');
+
+        if (relativePath.StartsWith("en/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "en/roadmap", StringComparison.OrdinalIgnoreCase))
+            return "en";
+
+        if (relativePath.StartsWith("pt/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "pt/roadmap", StringComparison.OrdinalIgnoreCase))
+            return "pt";
+
+        return "pt";
+    }
+
+    private string GetStatusSummary()
+        => _page.Culture == "en"
+            ? "Experimental platform roadmap"
+            : "Roadmap de plataforma experimental";
+
+    private int GetTrackedInitiativeCount()
+        => _page.StatusCards.Count + _page.Principles.Count + _page.Phases.Count(x => x.Status is RoadmapPhaseStatus.InProgress or RoadmapPhaseStatus.Experimental);
+
+    private RoadmapPhase? GetCurrentFocusPhase()
+        => _page.Phases
+            .OrderBy(x => x.SortOrder)
+            .FirstOrDefault(x => x.Status is RoadmapPhaseStatus.InProgress or RoadmapPhaseStatus.Experimental)
+           ?? _page.Phases.OrderBy(x => x.SortOrder).FirstOrDefault();
+
+    private RoadmapPhase? GetNextMilestonePhase()
+        => _page.Phases
+            .OrderBy(x => x.SortOrder)
+            .FirstOrDefault(x => x.Status == RoadmapPhaseStatus.Planned)
+           ?? _page.Phases.OrderBy(x => x.SortOrder).FirstOrDefault(x => x.Status == RoadmapPhaseStatus.Future)
+           ?? _page.Phases.OrderBy(x => x.SortOrder).LastOrDefault();
+
+    private string GetCurrentFocusTitle()
+        => GetCurrentFocusPhase()?.Title
+           ?? (_page.Culture == "en" ? "Active roadmap execution" : "Execucao ativa do roadmap");
+
+    private string GetCurrentFocusDescription()
+        => GetCurrentFocusPhase()?.Description
+           ?? _page.Hero.Subtitle;
+
+    private string GetNextMilestoneTitle()
+        => GetNextMilestonePhase()?.Title
+           ?? (_page.Culture == "en" ? "Roadmap in expansion" : "Roadmap em expansao");
+
+    private IReadOnlyList<string> GetNextMilestoneItems()
+        => GetNextMilestonePhase()?.Items.Take(3).ToArray()
+           ?? (_page.Culture == "en"
+               ? ["Upcoming delivery details will be published soon."]
+               : ["Detalhes das proximas entregas serao publicados em breve."]);
+
+    private string GetStatusLabel(RoadmapPhaseStatus status)
+        => (_page.Culture, status) switch
+        {
+            ("en", RoadmapPhaseStatus.Completed) => "Completed",
+            ("en", RoadmapPhaseStatus.InProgress) => "In progress",
+            ("en", RoadmapPhaseStatus.Planned) => "Planned",
+            ("en", RoadmapPhaseStatus.Future) => "Future",
+            ("en", RoadmapPhaseStatus.Experimental) => "Experimental",
+            (_, RoadmapPhaseStatus.Completed) => "Concluido",
+            (_, RoadmapPhaseStatus.InProgress) => "Em andamento",
+            (_, RoadmapPhaseStatus.Planned) => "Planejado",
+            (_, RoadmapPhaseStatus.Future) => "Futuro",
+            _ => "Experimental"
+        };
+
+    private static string GetStatusCssClass(RoadmapPhaseStatus status)
+        => status switch
+        {
+            RoadmapPhaseStatus.Completed => "roadmap-badge-completed",
+            RoadmapPhaseStatus.InProgress => "roadmap-badge-progress",
+            RoadmapPhaseStatus.Planned => "roadmap-badge-planned",
+            RoadmapPhaseStatus.Future => "roadmap-badge-future",
+            _ => "roadmap-badge-experimental"
+        };
+
+    private IReadOnlyList<(string Icon, string Accent, string Title, string Subtitle)> GetBrandPillars()
+        => _page.Culture == "en"
+            ?
+            [
+                ("✦", "purple", "Competition", "Between digital assets"),
+                ("↗", "green", "Strategy", "Performance and timing"),
+                ("⬢", "cyan", "Technology", "Blockchain infrastructure"),
+                ("🏆", "gold", "Ranking", "Rewards and progression"),
+                ("◎", "purple", "Global", "Decentralized arena")
+            ]
+            :
+            [
+                ("✦", "purple", "Competição", "Entre ativos digitais"),
+                ("↗", "green", "Estratégia", "Performance e timing"),
+                ("⬢", "cyan", "Tecnologia", "Infraestrutura blockchain"),
+                ("🏆", "gold", "Ranking", "Recompensas e progressão"),
+                ("◎", "purple", "Global", "Arena descentralizada")
+            ];
+}

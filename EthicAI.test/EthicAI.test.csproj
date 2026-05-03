@@ -31,6 +31,7 @@
     <Compile Include="..\CriptoVersus\Services\MatchSlugHelper.cs" Link="CriptoVersus\Services\MatchSlugHelper.cs" />
     <Compile Include="..\CriptoVersus\Services\RouteLocalizationService.cs" Link="CriptoVersus\Services\RouteLocalizationService.cs" />
     <Compile Include="..\CriptoVersus\Services\MatchSeoService.cs" Link="CriptoVersus\Services\MatchSeoService.cs" />
+    <Compile Include="..\CriptoVersus\Services\RoadmapContentService.cs" Link="CriptoVersus\Services\RoadmapContentService.cs" />
     <Compile Include="..\CriptoVersus\Services\IMatchRouteLookupService.cs" Link="CriptoVersus\Services\IMatchRouteLookupService.cs" />
     <Compile Include="..\CriptoVersus\Services\MatchRouteRedirectResolver.cs" Link="CriptoVersus\Services\MatchRouteRedirectResolver.cs" />
     <Compile Include="..\DTOs\MatchDto.cs" Link="DTOs\MatchDto.cs" />

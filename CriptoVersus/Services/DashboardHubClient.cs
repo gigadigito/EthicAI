@@ -24,6 +24,7 @@ namespace CriptoVersus.Web.Services
         private readonly SemaphoreSlim _reconnectLock = new(1, 1);
         private CancellationTokenSource _lifetimeCts = new();
         private Task? _reconnectTask;
+        private int _disposing;
 
         public event Action<string?>? DashboardChanged;
 
@@ -41,7 +42,7 @@ namespace CriptoVersus.Web.Services
 
         public async Task EnsureStartedAsync(CancellationToken ct = default)
         {
-            if (_lifetimeCts.IsCancellationRequested)
+            if (Volatile.Read(ref _disposing) == 1 || _lifetimeCts.IsCancellationRequested)
                 return;
 
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetimeCts.Token);
@@ -152,12 +153,25 @@ namespace CriptoVersus.Web.Services
 
             hub.Closed += ex =>
             {
+                if (Volatile.Read(ref _disposing) == 1)
+                    return Task.CompletedTask;
+
                 _logger.LogWarning(ex, "Hub CLOSED id={id} state={state}. Will start reconnect loop.", _id, hub.State);
 
                 // dispara loop em background, mas garantimos 1 por vez
                 if (_reconnectTask is null || _reconnectTask.IsCompleted)
                 {
-                    _reconnectTask = Task.Run(() => ReconnectLoopAsync(_lifetimeCts.Token));
+                    CancellationToken lifetimeToken;
+                    try
+                    {
+                        lifetimeToken = _lifetimeCts.Token;
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    _reconnectTask = Task.Run(() => ReconnectLoopAsync(lifetimeToken), lifetimeToken);
                 }
 
                 return Task.CompletedTask;
@@ -217,16 +231,24 @@ namespace CriptoVersus.Web.Services
 
         private async Task ReconnectLoopAsync(CancellationToken ct)
         {
-            if (ct.IsCancellationRequested)
+            if (Volatile.Read(ref _disposing) == 1 || ct.IsCancellationRequested)
                 return;
 
-            await _reconnectLock.WaitAsync(ct);
+            try
+            {
+                await _reconnectLock.WaitAsync(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
             try
             {
                 var attempt = 0;
                 var delays = new[] { 2, 5, 10, 20, 30 };
 
-                while (!ct.IsCancellationRequested)
+                while (Volatile.Read(ref _disposing) == 0 && !ct.IsCancellationRequested)
                 {
                     attempt++;
 
@@ -263,6 +285,10 @@ namespace CriptoVersus.Web.Services
                         _logger.LogInformation("ReconnectLoop: success id={id} connId={connId}", _id, _hub.ConnectionId);
                         return;
                     }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "ReconnectLoop: failed attempt={attempt} id={id}", attempt, _id);
@@ -295,10 +321,15 @@ namespace CriptoVersus.Web.Services
         {
             _logger.LogInformation("DashboardHubClient DisposeAsync id={id}", _id);
 
+            if (Interlocked.Exchange(ref _disposing, 1) == 1)
+                return;
+
             try { _lifetimeCts.Cancel(); } catch { }
 
-            _startLock.Dispose();
-            _reconnectLock.Dispose();
+            if (_reconnectTask is not null)
+            {
+                try { await _reconnectTask; } catch { }
+            }
 
             if (_hub is not null)
             {
@@ -307,6 +338,8 @@ namespace CriptoVersus.Web.Services
                 _hub = null;
             }
 
+            _startLock.Dispose();
+            _reconnectLock.Dispose();
             _lifetimeCts.Dispose();
         }
     }

@@ -1,0 +1,144 @@
+@implements IDisposable
+
+@if (_isMounted)
+{
+    <div class="brand-loader @(IsVisible ? "brand-loader--active" : "brand-loader--closing")"
+         aria-hidden="@(!IsVisible)"
+         role="status"
+         aria-live="polite">
+        <div class="brand-loader__backdrop">
+            <div class="brand-loader__coliseum brand-loader__coliseum--left"></div>
+            <div class="brand-loader__coliseum brand-loader__coliseum--right"></div>
+            <div class="brand-loader__grain"></div>
+        </div>
+
+        <div class="brand-loader__stage">
+            <div class="brand-loader__shockwave"></div>
+            <div class="brand-loader__flash"></div>
+            <div class="brand-loader__electric brand-loader__electric--left"></div>
+            <div class="brand-loader__electric brand-loader__electric--right"></div>
+
+            <div class="coin-assembly" aria-label="CriptoVersus loading brand">
+                <div class="coin-half coin-half--left">
+                    @* Este SVG usa a arte oficial em /img/loader-emblem.svg e recorta só a metade esquerda. *@
+                    <svg viewBox="0 0 320 320" class="coin-svg coin-svg--left" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <clipPath id="leftHalfClip">
+                                <path d="M0 0H173L173 22L161 44L176 68L160 96L171 124L154 149L166 178L150 207L160 232L146 262L152 320H0Z" />
+                            </clipPath>
+                            <clipPath id="leftCircleClip">
+                                <circle cx="160" cy="160" r="146" />
+                            </clipPath>
+                        </defs>
+                        <g clip-path="url(#leftCircleClip)">
+                            <image href="/img/loader-emblem.svg"
+                                   x="0"
+                                   y="0"
+                                   width="320"
+                                   height="320"
+                                   preserveAspectRatio="xMidYMid slice"
+                                   clip-path="url(#leftHalfClip)"
+                                   class="emblem-image emblem-image--left" />
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="coin-half coin-half--right">
+                    @* Este SVG usa a arte oficial em /img/loader-emblem.svg e recorta só a metade direita. *@
+                    <svg viewBox="0 0 320 320" class="coin-svg coin-svg--right" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <clipPath id="rightHalfClip">
+                                <path d="M147 0H320V320H168L162 294L174 266L164 240L180 212L170 186L186 156L173 128L188 98L177 70L191 42L183 20L147 0Z" />
+                            </clipPath>
+                            <clipPath id="rightCircleClip">
+                                <circle cx="160" cy="160" r="146" />
+                            </clipPath>
+                        </defs>
+                        <g clip-path="url(#rightCircleClip)">
+                            <image href="/img/loader-emblem.svg"
+                                   x="0"
+                                   y="0"
+                                   width="320"
+                                   height="320"
+                                   preserveAspectRatio="xMidYMid slice"
+                                   clip-path="url(#rightHalfClip)"
+                                   class="emblem-image emblem-image--right" />
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="coin-core">
+                    <svg viewBox="0 0 320 320" class="coin-core__svg" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <clipPath id="wholeCircleClip">
+                                <circle cx="160" cy="160" r="146" />
+                            </clipPath>
+                        </defs>
+                        <g clip-path="url(#wholeCircleClip)">
+                            <image href="/img/loader-emblem.svg"
+                                   x="0"
+                                   y="0"
+                                   width="320"
+                                   height="320"
+                                   preserveAspectRatio="xMidYMid slice"
+                                   class="emblem-image emblem-image--whole" />
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="brand-loader__copy">
+                <span class="brand-loader__eyebrow">Arena Financeira</span>
+                <div class="brand-loader__status-rotator" aria-hidden="true">
+                    <span>Preparando arena...</span>
+                    <span>Sincronizando mercado...</span>
+                    <span>Carregando batalhas...</span>
+                </div>
+                <span class="brand-loader__status-static">Preparando arena...</span>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback Hidden { get; set; }
+
+    private bool _isMounted = true;
+    private CancellationTokenSource? _hideCts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible)
+        {
+            _hideCts?.Cancel();
+            _hideCts?.Dispose();
+            _hideCts = null;
+            return;
+        }
+
+        if (!_isMounted || _hideCts is not null)
+            return;
+
+        _hideCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(650, _hideCts.Token);
+            _isMounted = false;
+            await Hidden.InvokeAsync();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        _hideCts?.Cancel();
+        _hideCts?.Dispose();
+    }
+}

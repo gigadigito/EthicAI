@@ -12,6 +12,7 @@
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject IConfiguration Config
 @inject WalletSessionState WalletState
+@inject BrowserTimeZoneService BrowserTimeZone
 
 <h3 class="mb-3">Dashboard</h3>
 
@@ -347,8 +348,16 @@ else
 
         if (firstRender)
         {
-            await LoadPrivilegedWalletStateAsync();
-            await InvokeAsync(StateHasChanged);
+            try
+            {
+                await BrowserTimeZone.EnsureInitializedAsync();
+                await LoadPrivilegedWalletStateAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+            {
+                D($"Interop adiado no prerender: {ex.GetType().Name}");
+            }
 
             // só loga 1 vez, sem StateHasChanged
             D($"🔥 OnAfterRenderAsync firstRender={firstRender}");
@@ -550,11 +559,11 @@ else
         return $"{sign}{v.Value:0.##}%";
     }
 
-    private static string FmtUtc(DateTime? dt)
-        => dt is null ? "-" : dt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+    private string FmtUtc(DateTime? dt)
+        => BrowserTimeZone.FormatDateTime(dt, "pt-BR", includeSeconds: true);
 
-    private static string FmtUtc(DateTime dt)
-        => dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+    private string FmtUtc(DateTime dt)
+        => BrowserTimeZone.FormatDateTime(dt, "pt-BR", includeSeconds: true);
 }
 
 

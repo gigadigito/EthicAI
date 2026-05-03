@@ -2,21 +2,11 @@
 @page "/tokenomics"
 @using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@inject IJSRuntime JS
 
 <section class="tokenomics-page">
     <div class="tokenomics-hero">
-        <div class="hero-copy">
-            <span>Tokenomics (Regras)</span>
-            <h2>Pool ciclica de investimento gamificada</h2>
-            <p>
-                Capital alocado por ativo, participacao automatica em ciclos futuros e liquidacao desenhada para favorecer permanencia,
-                rastreabilidade on-chain e retencao de capital no protocolo.
-            </p>
-        </div>
-        <div class="protocol-mark" aria-hidden="true">
-            <img src="/img/logo.jpg" alt="" />
-            <strong>CV</strong>
-        </div>
+        <img class="tokenomics-hero__banner" src="/img/tokenomics-hero-banner.png" alt="CriptoVersus Arena Financeira. Estrategia. Vitoria." />
     </div>
 
     @if (_loading)
@@ -69,15 +59,15 @@
                 <span>01</span>
                 <h3>Como funciona</h3>
                 <p>
-                    O usuario escolhe um ativo/time e deposita SOL em uma posicao vinculada aquele lado. Enquanto a posicao
-                    permanecer ativa, o capital pode continuar participando automaticamente dos proximos ciclos em que esse
-                    ativo voltar a aparecer, sem exigir nova entrada manual a cada rodada.
+                    Escolha um ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos
+                    ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e
+                    seu capital continua pronto para seguir no jogo.
                 </p>
                 <div class="flow-line">
-                    <strong>Depositar</strong>
-                    <strong>Participar</strong>
-                    <strong>Liquidar</strong>
-                    <strong>Continuar</strong>
+                    <strong>Depositar SOL</strong>
+                    <strong>Entrar na posicao</strong>
+                    <strong>Liquidar quando desejar</strong>
+                    <strong>Continuar automaticamente</strong>
                 </div>
             </section>
 
@@ -124,7 +114,7 @@
                 </dl>
             </section>
 
-            <section class="rule-panel" id="liquidacao">
+            <section class="rule-panel settlement-panel" id="liquidacao">
                 <span>05</span>
                 <h3>Liquidacao</h3>
                 <p>
@@ -132,6 +122,23 @@
                     perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais
                     parecida com pool rotativa do que com aposta classica de rodada unica.
                 </p>
+                <div class="settlement-chart" aria-label="Distribuicao da liquidacao">
+                    <div class="settlement-chart__pie" @ref="_settlementPieRef"></div>
+                    <div class="settlement-chart__summary">
+                        <article class="settlement-chart__target settlement-chart__target--refund">
+                            <small>Retorno ao perdedor</small>
+                            <strong>@FmtPct(_data.LoserRefundRate)</strong>
+                        </article>
+                        <article class="settlement-chart__target settlement-chart__target--winners">
+                            <small>Pool dos vencedores</small>
+                            <strong>@FmtPct(_data.WinnerPoolRate)</strong>
+                        </article>
+                        <article class="settlement-chart__target settlement-chart__target--house">
+                            <small>Taxa da casa</small>
+                            <strong>@FmtPct(_data.HouseFeeRate)</strong>
+                        </article>
+                    </div>
+                </div>
                 <div class="allocation-bar">
                     <i style="width:@PctCss(_data.LoserRefundRate)"></i>
                     <b style="width:@PctCss(_data.WinnerPoolRate)"></b>
@@ -213,17 +220,35 @@
         @if (_data.TopPositions.Count > 0)
         {
             <section class="positions-band">
-                <div>
+                <div class="positions-band__header">
                     <span>Ativos com mais capital</span>
                     <h3>Distribuicao atual das posicoes</h3>
+                    <p>Leitura rapida das posicoes com maior capital ativo neste momento.</p>
                 </div>
                 <div class="position-list">
+                    @{
+                        var rank = 1;
+                    }
                     @foreach (var position in _data.TopPositions)
                     {
                         <article>
-                            <strong><MarketPairText Symbol="@position.Symbol" /></strong>
-                            <span>@FmtSol(position.CurrentCapital)</span>
+                            <div class="position-list__rank">@rank.ToString("00")</div>
+                            <div class="position-list__body">
+                                <strong class="@GetPositionTitleClass(position.Symbol)">
+                                    <span>@GetBaseSymbol(position.Symbol)</span>
+                                    <span class="position-list__quote" title="@GetBaseSymbol(position.Symbol)">
+                                        <img src="@GetCoinIconUrl(GetBaseSymbol(position.Symbol))"
+                                             alt="@GetBaseSymbol(position.Symbol)"
+                                             loading="lazy"
+                                             onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                        <span class="position-list__quote-fallback d-none">@GetBaseSymbol(position.Symbol)</span>
+                                    </span>
+                                </strong>
+                                <span>@FmtSol(position.CurrentCapital)</span>
+                                <small>Capital em jogo</small>
+                            </div>
                         </article>
+                        rank++;
                     }
                 </div>
             </section>
@@ -235,6 +260,8 @@
     private TokenomicsDto? _data;
     private bool _loading = true;
     private string? _error;
+    private ElementReference _settlementPieRef;
+    private bool _settlementChartRendered;
 
     private bool IsOffChainCustodyMode
         => string.Equals(_data?.BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
@@ -260,6 +287,24 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_data is null || _settlementChartRendered)
+            return;
+
+        _settlementChartRendered = true;
+
+        await JS.InvokeVoidAsync(
+            "tokenomicsCharts.renderSettlementPie",
+            _settlementPieRef,
+            new
+            {
+                loserRefundRate = decimal.ToDouble(_data.LoserRefundRate),
+                winnerPoolRate = decimal.ToDouble(_data.WinnerPoolRate),
+                houseFeeRate = decimal.ToDouble(_data.HouseFeeRate)
+            });
+    }
+
     private static string FmtSol(decimal value)
         => $"{value:0.########} SOL";
 
@@ -268,6 +313,42 @@
 
     private static string PctCss(decimal value)
         => $"{Math.Max(0m, Math.Min(1m, value)) * 100m:0.##}%";
+
+    private static string GetBaseSymbol(string pair)
+    {
+        if (string.IsNullOrWhiteSpace(pair))
+            return "";
+
+        var normalized = pair.Trim().ToUpperInvariant();
+        var quotes = new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" };
+
+        foreach (var quote in quotes)
+        {
+            if (normalized.EndsWith(quote, StringComparison.OrdinalIgnoreCase) && normalized.Length > quote.Length)
+                return normalized[..^quote.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string GetCoinIconUrl(string symbol)
+        => $"https://criptoversus-api.duckdns.org/api/icons/binance/{symbol.Trim().ToUpperInvariant()}";
+
+    private static string GetPositionTitleClass(string pair)
+    {
+        var length = GetBaseSymbol(pair).Length;
+
+        if (length >= 10)
+            return "position-list__title position-list__title--xs";
+
+        if (length >= 8)
+            return "position-list__title position-list__title--sm";
+
+        if (length >= 6)
+            return "position-list__title position-list__title--md";
+
+        return "position-list__title";
+    }
 
     private static string ShortAddress(string? value)
     {
@@ -285,199 +366,215 @@
 
 <style>
     .tokenomics-page {
+        --tk-bg: #07090d;
+        --tk-panel: rgba(10, 13, 21, 0.96);
+        --tk-panel-soft: rgba(12, 16, 26, 0.92);
+        --tk-border: rgba(118, 131, 164, 0.18);
+        --tk-text: #eef4ff;
+        --tk-muted: #aab7cb;
+        --tk-purple: #9f5cff;
+        --tk-green: #4cf38d;
+        --tk-cyan: #53c8ff;
+        --tk-gold: #f4c247;
         display: grid;
-        gap: 1.25rem;
+        gap: 1.35rem;
+        position: relative;
+        width: min(1680px, 100%);
+        color: var(--tk-text);
+    }
+
+    .tokenomics-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 8% 12%, rgba(159, 92, 255, 0.14), transparent 20%),
+            radial-gradient(circle at 92% 16%, rgba(76, 243, 141, 0.1), transparent 24%);
     }
 
     .tokenomics-hero {
-        min-height: 280px;
-        border: 1px solid #243041;
-        border-radius: 8px;
-        padding: clamp(1.25rem, 3vw, 2rem);
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 1.5rem;
-        background:
-            linear-gradient(90deg, rgba(11, 18, 26, .96), rgba(17, 26, 36, .88)),
-            url('/img/logo.jpg') center right / auto 110% no-repeat;
+        min-height: 0;
+        border: 1px solid var(--tk-border);
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow:
+            0 30px 80px rgba(0, 0, 0, 0.42),
+            inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
-    .hero-copy {
-        max-width: 760px;
+    .tokenomics-hero__banner {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 923 / 321;
+        object-fit: cover;
+        background: #030507;
     }
 
-    .hero-copy span,
     .rule-panel span,
     .metrics-band span,
     .positions-band span {
-        color: #5eead4;
+        color: #7ff6df;
         font-weight: 900;
-        letter-spacing: 0;
+        letter-spacing: .12em;
         text-transform: uppercase;
-    }
-
-    .hero-copy h2 {
-        margin: .4rem 0 .8rem;
-        color: #f8fafc;
-        font-size: clamp(2rem, 5vw, 4rem);
-        line-height: 1;
-        max-width: 720px;
-    }
-
-    .hero-copy p {
-        color: #dbeafe;
-        font-size: 1.1rem;
-        max-width: 620px;
-        margin: 0;
-    }
-
-    .protocol-mark {
-        width: 132px;
-        aspect-ratio: 1;
-        border: 1px solid #2dd4bf;
-        border-radius: 8px;
-        display: grid;
-        place-items: center;
-        background: #0d131b;
-        overflow: hidden;
-    }
-
-    .protocol-mark img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        opacity: .45;
-        grid-area: 1 / 1;
-    }
-
-    .protocol-mark strong {
-        grid-area: 1 / 1;
-        color: #f8fafc;
-        font-size: 2.2rem;
     }
 
     .metrics-band,
     .rule-panel,
     .positions-band,
     .rule-alert {
-        border: 1px solid #283241;
-        border-radius: 8px;
-        background: #11161e;
+        position: relative;
+        border: 1px solid var(--tk-border);
+        border-radius: 24px;
+        background:
+            linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
+        box-shadow:
+            0 24px 70px rgba(0,0,0,0.34),
+            inset 0 1px 0 rgba(255,255,255,0.03);
+        overflow: hidden;
+    }
+
+    .metrics-band::before,
+    .rule-panel::before,
+    .positions-band::before,
+    .rule-alert::before,
+    .topic-callout::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            linear-gradient(135deg, rgba(126, 34, 206, 0.08), transparent 22%, transparent 72%, rgba(34, 197, 94, 0.07)),
+            linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
     }
 
     .metrics-band {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 1px;
         overflow: hidden;
-        background: #283241;
+        background: rgba(86, 100, 126, 0.16);
     }
 
     .metrics-band article {
-        padding: 1rem;
-        background: #11161e;
+        position: relative;
+        padding: 1.15rem 1.2rem;
+        background:
+            linear-gradient(180deg, rgba(8, 11, 18, 0.98), rgba(8, 10, 16, 0.98));
         display: grid;
-        gap: .35rem;
+        gap: .42rem;
     }
 
     .metrics-band strong {
-        color: #f8fafc;
-        font-size: 1.55rem;
+        color: #f8fbff;
+        font-size: clamp(1.7rem, 2vw, 2.2rem);
+        letter-spacing: -.04em;
     }
 
     .metrics-band small {
-        color: #a8b3c4;
+        color: var(--tk-muted);
     }
 
     .topic-callout {
         align-items: center;
         background:
-            radial-gradient(circle at top left, rgba(45, 212, 191, .15), transparent 35%),
-            linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(18, 27, 38, .92));
-        border: 1px solid rgba(45, 212, 191, .28);
-        border-radius: 8px;
+            radial-gradient(circle at top left, rgba(159, 92, 255, .16), transparent 34%),
+            radial-gradient(circle at bottom right, rgba(76, 243, 141, .12), transparent 32%),
+            linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
+        border: 1px solid rgba(116, 131, 164, .2);
+        border-radius: 24px;
         display: grid;
-        gap: 1rem;
+        gap: 1.2rem;
         grid-template-columns: minmax(0, 1fr) auto;
-        padding: 1.1rem 1.2rem;
+        padding: 1.2rem 1.35rem;
+        position: relative;
+        overflow: hidden;
     }
 
     .topic-callout h3 {
-        color: #f8fafc;
-        margin: .35rem 0 .45rem;
+        color: #f8fbff;
+        margin: .42rem 0 .5rem;
+        font-size: clamp(1.35rem, 2vw, 1.8rem);
+        letter-spacing: -.03em;
     }
 
     .topic-callout p {
-        color: #cbd5e1;
-        line-height: 1.55;
+        color: #ced8e6;
+        line-height: 1.65;
         margin: 0;
         max-width: 780px;
     }
 
     .topic-link {
         align-items: center;
-        background: #f8fafc;
+        background: linear-gradient(90deg, rgba(159, 92, 255, 0.94), rgba(76, 243, 141, 0.94));
         border-radius: 999px;
-        color: #08111b;
+        color: #041018;
         display: inline-flex;
         font-weight: 900;
-        min-height: 2.75rem;
-        padding: 0 1rem;
+        min-height: 3rem;
+        padding: 0 1.15rem;
         text-decoration: none;
         white-space: nowrap;
+        box-shadow: 0 10px 24px rgba(24, 255, 112, 0.14);
     }
 
     .topic-link:hover {
-        background: #ccfbf1;
-        color: #08111b;
+        color: #041018;
+        filter: brightness(1.05);
     }
 
     .rule-grid {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
-        gap: .9rem;
+        gap: 1rem;
     }
 
     .rule-panel {
         grid-column: span 4;
-        padding: 1.1rem;
+        padding: 1.15rem 1.15rem 1.2rem;
         display: grid;
-        gap: .75rem;
+        gap: .82rem;
         align-content: start;
     }
 
     .lead-panel,
-    .contract-panel {
+    .contract-panel,
+    .settlement-panel {
         grid-column: span 8;
     }
 
     .rule-panel h3,
     .positions-band h3 {
-        color: #f8fafc;
+        color: #f8fbff;
         margin: 0;
         font-size: 1.45rem;
+        letter-spacing: -.03em;
     }
 
     .rule-panel p {
-        color: #dbeafe;
+        color: #d5e1ee;
         margin: 0;
-        line-height: 1.55;
+        line-height: 1.65;
     }
 
     .flow-line {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: .5rem;
+        gap: .65rem;
     }
 
     .flow-line strong,
     .legend span {
-        border: 1px solid #334155;
-        border-radius: 8px;
-        color: #f8fafc;
-        padding: .65rem;
+        border: 1px solid rgba(118, 131, 164, 0.18);
+        border-radius: 14px;
+        color: #f8fbff;
+        padding: .8rem .7rem;
         text-align: center;
+        background: rgba(9, 12, 19, 0.74);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
     }
 
     .rule-panel dl {
@@ -490,17 +587,17 @@
         display: flex;
         justify-content: space-between;
         gap: 1rem;
-        border-top: 1px solid #283241;
-        padding-top: .55rem;
+        border-top: 1px solid rgba(118, 131, 164, 0.14);
+        padding-top: .68rem;
     }
 
     .rule-panel dt {
-        color: #9aa8bd;
+        color: #9fb0c7;
         font-weight: 900;
     }
 
     .rule-panel dd {
-        color: #f8fafc;
+        color: #f8fbff;
         margin: 0;
         font-weight: 900;
         overflow-wrap: anywhere;
@@ -511,9 +608,69 @@
         height: 14px;
         display: flex;
         overflow: hidden;
-        border-radius: 8px;
+        border-radius: 999px;
         background: #0b1118;
-        border: 1px solid #283241;
+        border: 1px solid rgba(118, 131, 164, 0.18);
+    }
+
+    .settlement-chart {
+        display: grid;
+        grid-template-columns: minmax(280px, 1.15fr) minmax(240px, .9fr);
+        gap: 1rem;
+        align-items: center;
+        padding: 1rem;
+        border: 1px solid rgba(118, 131, 164, 0.18);
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at left center, rgba(159, 92, 255, 0.09), transparent 30%),
+            radial-gradient(circle at right center, rgba(76, 243, 141, 0.08), transparent 34%),
+            #101720;
+    }
+
+    .settlement-chart__pie {
+        width: 100%;
+        min-height: 260px;
+    }
+
+    .settlement-chart__summary {
+        display: grid;
+        gap: .7rem;
+    }
+
+    .settlement-chart__target {
+        display: grid;
+        gap: .35rem;
+        padding: .85rem .95rem;
+        border-radius: 12px;
+        border: 1px solid rgba(118, 131, 164, 0.18);
+        background: rgba(11, 17, 24, 0.88);
+    }
+
+    .settlement-chart__target small {
+        color: #94a3b8;
+        font-size: .76rem;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .settlement-chart__target strong {
+        color: #f8fafc;
+        font-size: 1.1rem;
+    }
+
+    .settlement-chart__target--refund {
+        border-color: rgba(94, 234, 212, 0.32);
+        box-shadow: inset 3px 0 0 #5eead4;
+    }
+
+    .settlement-chart__target--winners {
+        border-color: rgba(147, 197, 253, 0.28);
+        box-shadow: inset 3px 0 0 #93c5fd;
+    }
+
+    .settlement-chart__target--house {
+        border-color: rgba(248, 250, 252, 0.22);
+        box-shadow: inset 3px 0 0 #f8fafc;
     }
 
     .allocation-bar i,
@@ -542,34 +699,151 @@
     }
 
     .positions-band {
-        padding: 1.1rem;
+        padding: 1.35rem 1.35rem 1.45rem;
         display: grid;
-        gap: 1rem;
+        gap: 1.15rem;
+        background:
+            radial-gradient(circle at left top, rgba(159, 92, 255, 0.08), transparent 26%),
+            radial-gradient(circle at right center, rgba(76, 243, 141, 0.08), transparent 30%),
+            linear-gradient(180deg, rgba(9, 13, 20, 0.98), rgba(7, 10, 16, 0.99));
+    }
+
+    .positions-band__header {
+        display: grid;
+        gap: .3rem;
+        max-width: 42rem;
+    }
+
+    .positions-band__header p {
+        margin: 0;
+        color: #98a8bf;
+        line-height: 1.6;
     }
 
     .position-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-        gap: .65rem;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1rem;
     }
 
     .position-list article {
-        border: 1px solid #283241;
-        border-radius: 8px;
-        padding: .85rem;
-        display: flex;
-        justify-content: space-between;
-        gap: .75rem;
-        background: #151b24;
+        position: relative;
+        border: 1px solid rgba(118, 131, 164, 0.14);
+        border-radius: 20px;
+        padding: 1.15rem 1.15rem 1.2rem;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: .95rem;
+        background:
+            linear-gradient(180deg, rgba(10, 14, 22, 0.98), rgba(7, 10, 16, 0.98));
+        overflow: hidden;
+        min-height: 128px;
+    }
+
+    .position-list article::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent 24%, transparent 76%, rgba(76, 243, 141, 0.05));
+    }
+
+    .position-list__rank {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        color: #7ff6df;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        background: linear-gradient(180deg, rgba(127, 246, 223, 0.12), rgba(127, 246, 223, 0.04));
+        border: 1px solid rgba(127, 246, 223, 0.18);
+    }
+
+    .position-list__body {
+        display: grid;
+        gap: .22rem;
+        align-content: start;
     }
 
     .position-list strong {
         color: #f8fafc;
+        font-size: 1.15rem;
+        letter-spacing: .01em;
+        overflow-wrap: anywhere;
+        line-height: 1.2;
     }
 
-    .position-list article span {
-        color: #5eead4;
-        text-transform: none;
+    .position-list__title {
+        align-items: center;
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: .42rem;
+        max-width: 100%;
+        font-size: clamp(1.55rem, 1.2vw + 1rem, 2rem);
+    }
+
+    .position-list__title > span:first-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .position-list__title--md {
+        font-size: clamp(1.38rem, 1.02vw + .92rem, 1.72rem);
+    }
+
+    .position-list__title--sm {
+        font-size: clamp(1.2rem, .88vw + .88rem, 1.48rem);
+    }
+
+    .position-list__title--xs {
+        font-size: clamp(1.02rem, .72vw + .82rem, 1.28rem);
+    }
+
+    .position-list__quote {
+        align-items: center;
+        display: inline-flex;
+        justify-content: center;
+        width: 1.5em;
+        height: 1.5em;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(118, 131, 164, 0.14);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+        flex: 0 0 auto;
+    }
+
+    .position-list__quote img {
+        width: 72%;
+        height: 72%;
+        object-fit: contain;
+        display: block;
+    }
+
+    .position-list__quote-fallback {
+        color: #9fb0c7;
+        font-size: .48em;
+        font-weight: 800;
+        letter-spacing: .06em;
+    }
+
+    .position-list__body > span {
+        color: var(--tk-green);
+        font-size: 1.95rem;
+        font-weight: 900;
+        letter-spacing: -.03em;
+        line-height: 1;
+        margin-top: .2rem;
+    }
+
+    .position-list__body small {
+        color: #7f8ea3;
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
     }
 
     .rule-alert {
@@ -580,26 +854,21 @@
     @@media (max-width: 1050px) {
         .rule-panel,
         .lead-panel,
-        .contract-panel {
+        .contract-panel,
+        .settlement-panel {
             grid-column: span 6;
         }
     }
 
     @@media (max-width: 760px) {
         .tokenomics-hero {
-            grid-template-columns: 1fr;
-            background:
-                linear-gradient(90deg, rgba(11, 18, 26, .96), rgba(17, 26, 36, .9)),
-                url('/img/logo.jpg') center / cover no-repeat;
-        }
-
-        .protocol-mark {
-            width: 96px;
+            border-radius: 22px;
         }
 
         .rule-panel,
         .lead-panel,
-        .contract-panel {
+        .contract-panel,
+        .settlement-panel {
             grid-column: 1 / -1;
         }
 
@@ -609,6 +878,49 @@
 
         .topic-callout {
             grid-template-columns: 1fr;
+        }
+
+        .position-list {
+            grid-template-columns: 1fr;
+        }
+
+        .position-list article {
+            min-height: 116px;
+            padding: 1rem 1rem 1.05rem;
+        }
+
+        .position-list__title {
+            font-size: 1.22rem;
+            gap: .34rem;
+        }
+
+        .position-list__title--md {
+            font-size: 1.08rem;
+        }
+
+        .position-list__title--sm {
+            font-size: .98rem;
+        }
+
+        .position-list__title--xs {
+            font-size: .9rem;
+        }
+
+        .position-list__body > span {
+            font-size: 1.7rem;
+        }
+
+        .position-list__quote {
+            width: 1.35em;
+            height: 1.35em;
+        }
+
+        .settlement-chart {
+            grid-template-columns: 1fr;
+        }
+
+        .settlement-chart__pie {
+            min-height: 220px;
         }
     }
 </style>

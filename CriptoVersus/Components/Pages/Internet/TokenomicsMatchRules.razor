@@ -10,7 +10,9 @@
                 para transformar variacao percentual e volume em uma leitura clara de jogo.
             </p>
         </div>
-        <div class="rules-hero-mark" aria-hidden="true">RX</div>
+        <div class="rules-hero-mark" aria-hidden="true">
+            <img src="/img/favicon-emblema.png" alt="" />
+        </div>
     </div>
 
     <div class="rules-layout">
@@ -213,12 +215,18 @@
         background: linear-gradient(135deg, rgba(15, 23, 42, .96), rgba(10, 15, 23, .96));
         border: 1px solid rgba(94, 234, 212, .55);
         border-radius: 12px;
-        color: #f8fafc;
         display: inline-flex;
-        font-size: 2.2rem;
-        font-weight: 900;
         justify-content: center;
+        overflow: hidden;
+        padding: .55rem;
         width: 138px;
+    }
+
+    .rules-hero-mark img {
+        display: block;
+        height: 100%;
+        object-fit: contain;
+        width: 100%;
     }
 
     .rules-layout {

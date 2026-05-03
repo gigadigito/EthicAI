@@ -5,6 +5,9 @@
 @inject WalletSessionState WalletState
 @inject NavigationManager Nav
 
+<InitialBrandLoader IsVisible="_showInitialLoader"
+                    Hidden="HandleLoaderHiddenAsync" />
+
 <div class="app-shell">
     <aside class="app-sidebar">
         <NavMenu />
@@ -52,6 +55,8 @@
     private SolanaLoginModal? loginModal;
     private string? authToken;
     private string? walletPublicKey;
+    private bool _showInitialLoader = true;
+    private readonly DateTime _loaderStartedUtc = DateTime.UtcNow;
 
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
@@ -59,11 +64,21 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (!firstRender)
+            return;
+
+        try
         {
             await LoadLoginSessionAsync();
             StateHasChanged();
         }
+        catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+        {
+            // SessionStorage depende de JS interop e pode falhar durante o prerender.
+            return;
+        }
+
+        await HideInitialLoaderWhenReadyAsync();
     }
 
     private async Task AbrirLoginAsync()
@@ -92,6 +107,23 @@
     {
         await LoadLoginSessionAsync();
     }
+
+    private async Task HideInitialLoaderWhenReadyAsync()
+    {
+        if (!_showInitialLoader)
+            return;
+
+        var elapsed = DateTime.UtcNow - _loaderStartedUtc;
+        var remaining = TimeSpan.FromMilliseconds(2400) - elapsed;
+        if (remaining > TimeSpan.Zero)
+            await Task.Delay(remaining);
+
+        _showInitialLoader = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task HandleLoaderHiddenAsync()
+        => Task.CompletedTask;
 
     private static string GetWalletAvatarUrl(string wallet)
         => $"https://api.dicebear.com/9.x/identicon/svg?seed={Uri.EscapeDataString(wallet)}";
