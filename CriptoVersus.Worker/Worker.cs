@@ -649,13 +649,14 @@ namespace CriptoVersus.Worker
 
             var openMatches = await db.Match
                 .Where(m =>
-                    m.Status == MatchStatus.Pending &&
-                    m.StartTime.HasValue &&
-                    m.StartTime.Value > nowUtc &&
-                    (
-                        (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
-                        (!m.BettingCloseTime.HasValue && m.StartTime.Value > nowUtc)
-                    ))
+                    (m.Status == MatchStatus.Pending &&
+                     m.StartTime.HasValue &&
+                     m.StartTime.Value > nowUtc &&
+                     (
+                         (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
+                         (!m.BettingCloseTime.HasValue && m.StartTime.Value > nowUtc)
+                     ))
+                    || m.Status == MatchStatus.Ongoing)
                 .OrderBy(m => m.StartTime)
                 .ToListAsync(ct);
 
@@ -669,8 +670,10 @@ namespace CriptoVersus.Worker
 
             var positions = await db.UserTeamPosition
                 .Where(p =>
-                    p.Status == TeamPositionStatus.Active &&
-                    p.AutoCompound &&
+                    (
+                        (p.Status == TeamPositionStatus.Active && p.AutoCompound) ||
+                        p.Status == TeamPositionStatus.ClosingRequested
+                    ) &&
                     p.CurrentCapital > minCapital &&
                     teamIds.Contains(p.TeamId))
                 .ToListAsync(ct);
@@ -690,7 +693,17 @@ namespace CriptoVersus.Worker
             foreach (var match in openMatches)
             {
                 var matchPositions = positions
-                    .Where(p => p.TeamId == match.TeamAId || p.TeamId == match.TeamBId)
+                    .Where(p =>
+                    {
+                        if (p.TeamId != match.TeamAId && p.TeamId != match.TeamBId)
+                            return false;
+
+                        var cutoffUtc = match.BettingCloseTime?.UtcDateTime
+                            ?? match.StartTime
+                            ?? nowUtc;
+
+                        return p.CreatedAt <= cutoffUtc;
+                    })
                     .ToList();
 
                 if (matchPositions.Count == 0)
