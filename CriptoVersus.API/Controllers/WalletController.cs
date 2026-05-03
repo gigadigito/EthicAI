@@ -104,18 +104,25 @@ public sealed class WalletController : ControllerBase
         var realizedProfit = betRows.Where(i => i.SettledAt.HasValue).Sum(GetProfitAmount);
         var realizedLoss = betRows.Where(i => i.SettledAt.HasValue).Sum(GetLossAmount);
         var realizedNetResult = realizedProfit - realizedLoss;
+        var positionPrincipalByTeam = positions
+            .GroupBy(p => p.TeamId)
+            .ToDictionary(g => g.Key, g => g.Sum(p => p.PrincipalAllocated));
 
         var investmentGroups = betRows
             .GroupBy(x => new { x.TeamId, x.TeamSymbol, x.TeamName })
             .Select(group =>
             {
                 var rows = group.ToList();
+                var currentAllocatedPrincipal = positionPrincipalByTeam.TryGetValue(group.Key.TeamId, out var principal)
+                    ? principal
+                    : 0m;
+
                 return new MyWalletInvestmentGroupDto
                 {
                     TeamId = group.Key.TeamId,
                     Symbol = group.Key.TeamSymbol,
                     CurrencyName = group.Key.TeamName,
-                    TotalInvested = rows.Sum(x => x.Amount),
+                    TotalInvested = currentAllocatedPrincipal,
                     OpenAmount = rows.Where(IsOpen).Sum(x => x.Amount),
                     AvailableReturns = rows
                         .Where(IsClaimableReturn)
