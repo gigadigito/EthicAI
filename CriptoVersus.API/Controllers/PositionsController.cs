@@ -48,7 +48,8 @@ public sealed class PositionsController : ControllerBase
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(ct);
 
-        return Ok(positions.Select(ToDto).ToList());
+        var openBetPositionIds = await GetOpenBetPositionIdsAsync(user.UserID, ct);
+        return Ok(positions.Select(p => ToDto(p, openBetPositionIds.Contains(p.PositionId))).ToList());
     }
 
     [HttpPost]
@@ -168,7 +169,7 @@ public sealed class PositionsController : ControllerBase
             await _context.Entry(position!).Reference(p => p.Team).LoadAsync(ct);
             await _context.Entry(position!.Team).Reference(t => t.Currency).LoadAsync(ct);
 
-            return Ok(ToDto(position!));
+            return Ok(ToDto(position!, hasOpenBet: false));
         }
         catch (InvalidOperationException ex)
         {
@@ -247,7 +248,7 @@ public sealed class PositionsController : ControllerBase
                 await transaction.CommitAsync(ct);
             });
 
-            return Ok(ToDto(position));
+            return Ok(ToDto(position, hasOpenBet: false));
         }
         catch (InvalidOperationException ex)
         {
@@ -269,12 +270,111 @@ public sealed class PositionsController : ControllerBase
         if (position is null)
             return NotFound(new { message = "Posicao nao encontrada." });
 
-        position.Status = TeamPositionStatus.ClosingRequested;
-        position.AutoCompound = false;
-        position.UpdatedAt = DateTime.UtcNow;
+        var strategy = _context.Database.CreateExecutionStrategy();
+        var hasOpenBet = false;
 
-        await _context.SaveChangesAsync(ct);
-        return Ok(ToDto(position));
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+
+            hasOpenBet = await _context.Bet
+                .AsNoTracking()
+                .AnyAsync(b => b.PositionId == position.PositionId && b.SettledAt == null, ct);
+
+            var nowUtc = DateTime.UtcNow;
+
+            if (hasOpenBet)
+            {
+                position.Status = TeamPositionStatus.ClosingRequested;
+                position.AutoCompound = false;
+                position.UpdatedAt = nowUtc;
+                await _context.SaveChangesAsync(ct);
+            }
+            else
+            {
+                var pendingMatch = await _context.Match
+                    .AsNoTracking()
+                    .Where(m =>
+                        m.Status == MatchStatus.Pending &&
+                        m.StartTime.HasValue &&
+                        m.StartTime.Value > nowUtc &&
+                        (m.TeamAId == position.TeamId || m.TeamBId == position.TeamId) &&
+                        (
+                            (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
+                            (!m.BettingCloseTime.HasValue && m.StartTime.Value > nowUtc)
+                        ))
+                    .OrderBy(m => m.StartTime)
+                    .FirstOrDefaultAsync(ct);
+
+                if (pendingMatch is not null && position.CurrentCapital > 0m)
+                {
+                    var nextPosition = (await _context.Bet
+                        .Where(b => b.MatchId == pendingMatch.MatchId)
+                        .Select(b => (int?)b.Position)
+                        .MaxAsync(ct) ?? 0) + 1;
+
+                    _context.Bet.Add(new Bet
+                    {
+                        MatchId = pendingMatch.MatchId,
+                        TeamId = position.TeamId,
+                        UserId = position.UserId,
+                        PositionId = position.PositionId,
+                        Amount = RoundMoney(position.CurrentCapital),
+                        BetTime = nowUtc,
+                        Position = nextPosition,
+                        Claimed = false,
+                        ClaimedAt = null,
+                        IsWinner = null,
+                        PayoutAmount = null,
+                        SettledAt = null
+                    });
+
+                    position.Status = TeamPositionStatus.ClosingRequested;
+                    position.AutoCompound = false;
+                    position.UpdatedAt = nowUtc;
+                    hasOpenBet = true;
+                    await _context.SaveChangesAsync(ct);
+                }
+                else
+                {
+                    var releasableAmount = RoundMoney(position.CurrentCapital);
+                    var balanceBefore = user.Balance;
+
+                    if (releasableAmount > 0m)
+                    {
+                        user.Balance = RoundMoney(user.Balance + releasableAmount);
+                        user.DtUpdate = nowUtc;
+                    }
+
+                    position.PrincipalAllocated = 0m;
+                    position.CurrentCapital = 0m;
+                    position.Status = TeamPositionStatus.Closed;
+                    position.AutoCompound = false;
+                    position.ClosedAt = nowUtc;
+                    position.UpdatedAt = nowUtc;
+                    position.CurrentLamports = null;
+
+                    await _context.SaveChangesAsync(ct);
+
+                    if (releasableAmount > 0m)
+                    {
+                        await _ledgerService.AddEntryAsync(
+                            user: user,
+                            type: "POSITION_CLOSE_RELEASE",
+                            amount: releasableAmount,
+                            balanceBefore: balanceBefore,
+                            balanceAfter: user.Balance,
+                            referenceId: position.PositionId,
+                            description: $"Encerramento da posicao {position.PositionId} com liberacao para saldo do sistema.",
+                            ct: ct);
+                    }
+                }
+            }
+
+            await transaction.CommitAsync(ct);
+        });
+
+        return Ok(ToDto(position, hasOpenBet));
     }
 
     private async Task<DAL.User?> GetAuthenticatedUserAsync(CancellationToken ct)
@@ -289,7 +389,19 @@ public sealed class PositionsController : ControllerBase
         return await _context.User.FirstOrDefaultAsync(u => u.Wallet == wallet, ct);
     }
 
-    private static TeamPositionDto ToDto(UserTeamPosition position)
+    private async Task<HashSet<int>> GetOpenBetPositionIdsAsync(int userId, CancellationToken ct)
+    {
+        var ids = await _context.Bet
+            .AsNoTracking()
+            .Where(b => b.UserId == userId && b.PositionId.HasValue && b.SettledAt == null)
+            .Select(b => b.PositionId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return ids.ToHashSet();
+    }
+
+    private static TeamPositionDto ToDto(UserTeamPosition position, bool hasOpenBet)
     {
         var currency = position.Team.Currency;
 
@@ -304,6 +416,8 @@ public sealed class PositionsController : ControllerBase
             CurrentCapital = position.CurrentCapital,
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
+            HasOpenBet = hasOpenBet,
+            CanCloseNow = !hasOpenBet && position.Status != TeamPositionStatus.Closed,
             OnChainPositionAddress = position.OnChainPositionAddress,
             OnChainVaultAddress = position.OnChainVaultAddress,
             LastOnChainSignature = position.LastOnChainSignature,

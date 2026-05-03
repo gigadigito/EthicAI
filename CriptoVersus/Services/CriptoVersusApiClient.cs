@@ -74,6 +74,11 @@ public sealed class CriptoVersusApiClient
         CancellationToken ct = default)
         => await PostAsJsonWithBearerAsync<WalletActionResultDto>("api/wallet/withdraw", request, ct);
 
+    public async Task<TeamPositionDto?> RequestClosePositionAsync(
+        int positionId,
+        CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<TeamPositionDto>($"api/positions/{positionId}/close", new { }, ct);
+
     public async Task<UserMatchHistoryPageDto?> GetWalletHistoryMatchesAsync(
         int userId,
         int teamId,

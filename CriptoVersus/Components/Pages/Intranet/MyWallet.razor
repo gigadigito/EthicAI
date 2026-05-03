@@ -92,7 +92,7 @@
                 <strong>@FmtSol(_wallet.SystemBalance)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Total apostado</span>
+                <span>Capital alocado</span>
                 <strong>@FmtSol(_wallet.TotalInvested)</strong>
             </div>
             <div class="wallet-metric">
@@ -100,8 +100,8 @@
                 <strong>@FmtSol(_wallet.OpenAmount)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Retornos disponiveis</span>
-                <strong>@FmtSol(_wallet.AvailableReturns)</strong>
+                <span>Posicoes em saida</span>
+                <strong>@CountPositionsByStatus("ClosingRequested")</strong>
             </div>
             <div class="wallet-metric">
                 <span>Lucro realizado</span>
@@ -120,25 +120,22 @@
         <div class="wallet-actions-card">
             <div class="wallet-actions-summary">
                 <div>
-                    <span class="wallet-label">Retornos disponiveis</span>
-                    <strong>@FmtSol(_wallet.AvailableReturns)</strong>
-                </div>
-                <div>
                     <span class="wallet-label">Saldo no sistema</span>
                     <strong>@FmtSol(_wallet.SystemBalance)</strong>
                 </div>
+                <div>
+                    <span class="wallet-label">Posicoes em saida</span>
+                    <strong>@CountPositionsByStatus("ClosingRequested")</strong>
+                </div>
+            </div>
+            <div class="wallet-message">
+                Para liberar saldo para saque, finalize uma posicao fora de jogo. Se ela ainda estiver vinculada a uma partida em andamento, a saida fica solicitada e o saldo volta automaticamente para o sistema quando essa partida for liquidada.
             </div>
             <div class="wallet-actions-buttons">
-                <button type="button"
-                        class="wallet-history-button is-primary"
-                        disabled="@(!_wallet.CanClaim || _actionBusy)"
-                        @onclick="ClaimAvailableReturnsAsync">
-                    @(_wallet.CanClaim ? "Resgatar retornos" : "Sem retornos pendentes")
-                </button>
                 @if (_wallet.CanWithdraw)
                 {
                     <button type="button"
-                            class="wallet-history-button"
+                            class="wallet-history-button is-primary"
                             disabled="@_actionBusy"
                             @onclick="WithdrawSystemBalanceAsync">
                         Sacar para carteira
@@ -195,6 +192,16 @@
                         <div class="investment-data">
                             <span>Status</span>
                             <strong>@FmtPositionStatus(position.Status)</strong>
+                        </div>
+
+                        <div class="investment-data investment-data-action">
+                            <span>Acao</span>
+                            <button type="button"
+                                    class="wallet-history-button"
+                                    disabled="@(_actionBusy || string.Equals(position.Status, "ClosingRequested", StringComparison.OrdinalIgnoreCase))"
+                                    @onclick="() => RequestClosePositionAsync(position)">
+                                @(position.CanCloseNow ? "Finalizar posicao" : "Solicitar saida")
+                            </button>
                         </div>
                     </article>
                 }
@@ -396,7 +403,7 @@
 
     .position-row {
         display: grid;
-        grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(130px, 1fr));
+        grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(130px, 1fr));
         gap: 14px;
         align-items: center;
         padding: 16px;
@@ -550,6 +557,14 @@
     .coin-symbol-fallback {
         font-size: .78rem;
         line-height: 1;
+    }
+
+    .investment-data-action {
+        align-items: start;
+    }
+
+    .investment-data-action .wallet-history-button {
+        justify-self: start;
     }
 
     .wallet-message,
@@ -838,36 +853,6 @@
         }
     }
 
-    private async Task ClaimAvailableReturnsAsync()
-    {
-        if (_wallet is null || !_wallet.CanClaim)
-            return;
-
-        _actionBusy = true;
-        _actionMessage = null;
-        await InvokeAsync(StateHasChanged);
-
-        try
-        {
-            var result = await Api.ClaimAvailableReturnsAsync(new ClaimAvailableReturnsRequest
-            {
-                OnChainSignature = null
-            });
-            _actionMessage = result?.Message ?? "Retornos resgatados com sucesso.";
-            await LoadWalletAsync();
-            await LoadOnChainBalanceAsync();
-        }
-        catch (Exception ex)
-        {
-            _actionMessage = $"Nao foi possivel resgatar os retornos: {ex.Message}";
-        }
-        finally
-        {
-            _actionBusy = false;
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
     private async Task WithdrawSystemBalanceAsync()
     {
         if (_wallet is null || !_wallet.CanWithdraw || _wallet.SystemBalance <= 0m)
@@ -914,6 +899,35 @@
         catch (Exception ex)
         {
             _actionMessage = $"Nao foi possivel registrar o saque: {ex.Message}";
+        }
+        finally
+        {
+            _actionBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RequestClosePositionAsync(TeamPositionDto position)
+    {
+        if (_wallet is null)
+            return;
+
+        _actionBusy = true;
+        _actionMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Api.RequestClosePositionAsync(position.PositionId);
+            _actionMessage = position.CanCloseNow
+                ? $"A posicao {position.Symbol} foi encerrada e o saldo voltou para o sistema."
+                : $"A posicao {position.Symbol} ficou com saida solicitada. Como ela ainda participa de uma partida em andamento, o saldo sera liberado para o sistema assim que essa partida for liquidada.";
+            await LoadWalletAsync();
+            await LoadOnChainBalanceAsync();
+        }
+        catch (Exception ex)
+        {
+            _actionMessage = $"Nao foi possivel finalizar a posicao {position.Symbol}: {ex.Message}";
         }
         finally
         {
@@ -1031,6 +1045,9 @@
             "Paused" => "Pausada",
             _ => status
         };
+
+    private int CountPositionsByStatus(string status)
+        => _wallet?.ActivePositions.Count(p => string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase)) ?? 0;
 
     private static string GetBaseSymbol(string pair)
     {

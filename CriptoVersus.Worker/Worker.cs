@@ -1241,7 +1241,7 @@ namespace CriptoVersus.Worker
                         bet.Claimed = false;
                         bet.ClaimedAt = null;
 
-                        if (await ApplyPositionCapitalAsync(db, bet, loserRefund, settledAtUtc, ct))
+                        if (await ApplyPositionCapitalAsync(db, ledgerService, bet, loserRefund, settledAtUtc, ct))
                             continue;
                     }
 
@@ -1258,7 +1258,7 @@ namespace CriptoVersus.Worker
                         bet.Claimed = false;
                         bet.ClaimedAt = null;
 
-                        if (await ApplyPositionCapitalAsync(db, bet, payout, settledAtUtc, ct))
+                        if (await ApplyPositionCapitalAsync(db, ledgerService, bet, payout, settledAtUtc, ct))
                             continue;
                     }
 
@@ -1303,7 +1303,7 @@ namespace CriptoVersus.Worker
                 bet.Claimed = false;
                 bet.ClaimedAt = null;
 
-                if (await ApplyPositionCapitalAsync(db, bet, principal, settledAtUtc, ct))
+                if (await ApplyPositionCapitalAsync(db, ledgerService, bet, principal, settledAtUtc, ct))
                     continue;
             }
 
@@ -1377,6 +1377,7 @@ namespace CriptoVersus.Worker
 
         private async Task<bool> ApplyPositionCapitalAsync(
             EthicAIDbContext db,
+            ILedgerService ledgerService,
             Bet bet,
             decimal capital,
             DateTime settledAtUtc,
@@ -1391,24 +1392,57 @@ namespace CriptoVersus.Worker
             if (position is null)
                 return false;
 
-            position.CurrentCapital = RoundMoney(capital);
-            position.UpdatedAt = settledAtUtc;
-
             if (position.Status == TeamPositionStatus.ClosingRequested)
             {
+                var user = await db.User.FirstOrDefaultAsync(u => u.UserID == position.UserId, ct);
+                if (user is null)
+                    throw new InvalidOperationException($"Usuario {position.UserId} nao encontrado para encerrar posicao {position.PositionId}.");
+
+                var releasableAmount = RoundMoney(capital);
+                var balanceBefore = user.Balance;
+
+                if (releasableAmount > 0m)
+                {
+                    user.Balance = RoundMoney(user.Balance + releasableAmount);
+                    user.DtUpdate = settledAtUtc;
+                }
+
+                position.PrincipalAllocated = 0m;
+                position.CurrentCapital = 0m;
                 position.Status = TeamPositionStatus.Closed;
                 position.AutoCompound = false;
                 position.ClosedAt = settledAtUtc;
-            }
-            else if (position.CurrentCapital <= Math.Max(_options.Settlement.MinPositionCapital, 0m))
-            {
-                position.Status = TeamPositionStatus.Paused;
-                position.AutoCompound = false;
+
+                if (releasableAmount > 0m)
+                {
+                    await db.SaveChangesAsync(ct);
+                    await ledgerService.AddEntryAsync(
+                        user: user,
+                        type: "POSITION_CLOSE_RELEASE",
+                        amount: releasableAmount,
+                        balanceBefore: balanceBefore,
+                        balanceAfter: user.Balance,
+                        referenceId: position.PositionId,
+                        description: $"Encerramento da posicao {position.PositionId} apos liquidacao da partida.",
+                        ct: ct);
+                }
             }
             else
             {
-                position.Status = TeamPositionStatus.Active;
+                position.CurrentCapital = RoundMoney(capital);
+
+                if (position.CurrentCapital <= Math.Max(_options.Settlement.MinPositionCapital, 0m))
+                {
+                    position.Status = TeamPositionStatus.Paused;
+                    position.AutoCompound = false;
+                }
+                else
+                {
+                    position.Status = TeamPositionStatus.Active;
+                }
             }
+
+            position.UpdatedAt = settledAtUtc;
 
             return true;
         }

@@ -11,6 +11,8 @@ public sealed class TeamPositionDto
     public decimal CurrentCapital { get; set; }
     public bool AutoCompound { get; set; }
     public string Status { get; set; } = "";
+    public bool HasOpenBet { get; set; }
+    public bool CanCloseNow { get; set; }
     public string? OnChainPositionAddress { get; set; }
     public string? OnChainVaultAddress { get; set; }
     public string? LastOnChainSignature { get; set; }

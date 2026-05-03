@@ -77,61 +77,79 @@ public sealed class WalletController : ControllerBase
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
 
-        var claimableBets = await _context.Bet
+        var openBetPositionIds = await _context.Bet
             .AsNoTracking()
-            .Where(b => b.UserId == user.UserID
-                && b.SettledAt.HasValue
-                && !b.Claimed
-                && (!b.PositionId.HasValue
-                    || b.PositionEntry == null
-                    || b.PositionEntry.Status == TeamPositionStatus.Closed)
-                && (b.PayoutAmount ?? 0m) > 0m)
-            .OrderBy(b => b.MatchId)
-            .Select(b => new ClaimableBetDto
-            {
-                BetId = b.BetId,
-                MatchId = b.MatchId,
-                TeamId = b.TeamId,
-                PayoutAmount = b.PayoutAmount ?? 0m
-            })
+            .Where(b => b.UserId == user.UserID && b.PositionId.HasValue && b.SettledAt == null)
+            .Select(b => b.PositionId!.Value)
+            .Distinct()
             .ToListAsync(cancellationToken);
+        var openBetPositionIdSet = openBetPositionIds.ToHashSet();
+
+        var claimableBets = new List<ClaimableBetDto>();
 
         var totalInvested = positions.Sum(p => p.PrincipalAllocated);
         var openAmount = betRows.Where(IsOpen).Sum(i => i.Amount);
-        var availableReturns = betRows
-            .Where(IsClaimableReturn)
-            .Sum(i => i.PayoutAmount ?? 0m);
+        const decimal availableReturns = 0m;
         var realizedProfit = betRows.Where(i => i.SettledAt.HasValue).Sum(GetProfitAmount);
         var realizedLoss = betRows.Where(i => i.SettledAt.HasValue).Sum(GetLossAmount);
         var realizedNetResult = realizedProfit - realizedLoss;
-        var positionPrincipalByTeam = positions
+        var positionInfoByTeam = positions
             .GroupBy(p => p.TeamId)
-            .ToDictionary(g => g.Key, g => g.Sum(p => p.PrincipalAllocated));
+            .ToDictionary(
+                g => g.Key,
+                g => new
+                {
+                    Symbol = g.First().Team?.Currency?.Symbol ?? $"Team#{g.Key}",
+                    CurrencyName = g.First().Team?.Currency?.Name ?? "Moeda",
+                    PrincipalAllocated = g.Sum(p => p.PrincipalAllocated),
+                    OpenCapital = g
+                        .Where(p => openBetPositionIdSet.Contains(p.PositionId))
+                        .Sum(p => p.CurrentCapital),
+                    OpenCount = g.Count(p => openBetPositionIdSet.Contains(p.PositionId))
+                });
 
-        var investmentGroups = betRows
-            .GroupBy(x => new { x.TeamId, x.TeamSymbol, x.TeamName })
-            .Select(group =>
+        var betGroupsByTeam = betRows
+            .GroupBy(x => x.TeamId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var teamIds = betGroupsByTeam.Keys
+            .Union(positionInfoByTeam.Keys)
+            .ToList();
+
+        var investmentGroups = teamIds
+            .Select(teamId =>
             {
-                var rows = group.ToList();
-                var currentAllocatedPrincipal = positionPrincipalByTeam.TryGetValue(group.Key.TeamId, out var principal)
-                    ? principal
-                    : 0m;
+                var rows = betGroupsByTeam.TryGetValue(teamId, out var groupedRows)
+                    ? groupedRows
+                    : [];
+                var positionInfo = positionInfoByTeam.TryGetValue(teamId, out var groupedPosition)
+                    ? groupedPosition
+                    : null;
+
+                var openAmountFromBets = rows.Where(IsOpen).Sum(x => x.Amount);
+                var openCountFromBets = rows.Count(IsOpen);
+                var fallbackOpenAmount = positionInfo?.OpenCapital ?? 0m;
+                var fallbackOpenCount = positionInfo?.OpenCount ?? 0;
+                var symbol = rows.FirstOrDefault()?.TeamSymbol
+                    ?? positionInfo?.Symbol
+                    ?? $"Team#{teamId}";
+                var currencyName = rows.FirstOrDefault()?.TeamName
+                    ?? positionInfo?.CurrencyName
+                    ?? "Moeda";
 
                 return new MyWalletInvestmentGroupDto
                 {
-                    TeamId = group.Key.TeamId,
-                    Symbol = group.Key.TeamSymbol,
-                    CurrencyName = group.Key.TeamName,
-                    TotalInvested = currentAllocatedPrincipal,
-                    OpenAmount = rows.Where(IsOpen).Sum(x => x.Amount),
-                    AvailableReturns = rows
-                        .Where(IsClaimableReturn)
-                        .Sum(x => x.PayoutAmount ?? 0m),
+                    TeamId = teamId,
+                    Symbol = symbol,
+                    CurrencyName = currencyName,
+                    TotalInvested = positionInfo?.PrincipalAllocated ?? 0m,
+                    OpenAmount = openAmountFromBets > 0m ? openAmountFromBets : fallbackOpenAmount,
+                    AvailableReturns = 0m,
                     RealizedNetResult = rows.Where(x => x.SettledAt.HasValue).Sum(GetNetAmount),
                     MatchCount = rows.Count,
                     WonCount = rows.Count(IsWon),
                     LostCount = rows.Count(IsLost),
-                    OpenCount = rows.Count(IsOpen),
+                    OpenCount = openCountFromBets > 0 ? openCountFromBets : fallbackOpenCount,
                     RefundedCount = rows.Count(IsRefunded),
                     CancelledCount = rows.Count(IsCancelled),
                     DrawCount = rows.Count(IsDraw),
@@ -167,108 +185,26 @@ public sealed class WalletController : ControllerBase
             RealizedNetResult = realizedNetResult,
             OpenInvestments = betRows.Count(IsOpen),
             SettledInvestments = betRows.Count(x => x.SettledAt.HasValue),
-            CanClaim = availableReturns > 0m,
+            CanClaim = false,
             CanWithdraw = user.Balance > 0m,
             ClaimableBets = claimableBets,
-            ActivePositions = positions.Select(ToPositionDto).ToList(),
+            ActivePositions = positions.Select(p => ToPositionDto(p, openBetPositionIdSet.Contains(p.PositionId))).ToList(),
             InvestmentGroups = investmentGroups
         });
     }
 
     [HttpPost("claim")]
-    public async Task<ActionResult<WalletActionResultDto>> ClaimAvailableReturns(
+    public ActionResult<WalletActionResultDto> ClaimAvailableReturns(
         [FromBody] ClaimAvailableReturnsRequest? request,
         CancellationToken cancellationToken)
     {
-        var wallet = GetAuthenticatedWallet();
-        if (string.IsNullOrWhiteSpace(wallet))
-            return Unauthorized(new { message = "Token sem wallet valida." });
+        _ = request;
+        _ = cancellationToken;
 
-        var strategy = _context.Database.CreateExecutionStrategy();
-
-        try
+        return BadRequest(new
         {
-            WalletActionResultDto? response = null;
-
-            await strategy.ExecuteAsync(async () =>
-            {
-                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-
-                try
-                {
-                    var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
-                    if (user is null)
-                        throw new InvalidOperationException("Token sem wallet valida.");
-
-                    var claimableBets = await _context.Bet
-                        .Where(b => b.UserId == user.UserID
-                            && b.SettledAt.HasValue
-                            && !b.Claimed
-                            && (!b.PositionId.HasValue
-                                || b.PositionEntry == null
-                                || b.PositionEntry.Status == TeamPositionStatus.Closed)
-                            && (b.PayoutAmount ?? 0m) > 0m)
-                        .OrderBy(b => b.BetId)
-                        .ToListAsync(cancellationToken);
-
-                    if (claimableBets.Count == 0)
-                        throw new WalletFlowException(StatusCodes.Status400BadRequest, "NothingToClaim");
-
-                    var totalClaimAmount = RoundMoney(claimableBets.Sum(b => b.PayoutAmount ?? 0m));
-                    var nowUtc = DateTime.UtcNow;
-
-                    var releaseResult = await _fundsService.ReleasePayoutAsync(
-                        user.Wallet,
-                        totalClaimAmount,
-                        $"Claim de {claimableBets.Count} retornos liquidados.");
-
-                    if (!releaseResult.Succeeded)
-                        throw new WalletFlowException(StatusCodes.Status400BadRequest, releaseResult.Message, releaseResult.Code);
-
-                    foreach (var bet in claimableBets)
-                    {
-                        bet.Claimed = true;
-                        bet.ClaimedAt = nowUtc;
-                    }
-
-                    await _context.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
-
-                    response = new WalletActionResultDto
-                    {
-                        ProcessedAmount = totalClaimAmount,
-                        SystemBalance = releaseResult.BalanceAfter ?? user.Balance,
-                        AvailableReturns = 0m,
-                        OnChainSignature = request?.OnChainSignature,
-                        Message = "Retornos resgatados com sucesso."
-                    };
-                }
-                catch
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
-                }
-            });
-
-            return Ok(response);
-        }
-        catch (WalletFlowException ex)
-        {
-            return StatusCode(ex.StatusCode, new { message = ex.Message, code = ex.Code });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Falha ao processar claim da wallet {Wallet}", wallet);
-            return StatusCode(StatusCodes.Status500InternalServerError, new
-            {
-                message = "ClaimFailed",
-                detail = "Nao foi possivel concluir o claim com seguranca. Nenhuma aposta foi marcada como resgatada."
-            });
-        }
+            message = "O claim manual foi desativado. Para liberar saldo para saque, finalize uma posicao ativa fora de jogo ou solicite saida de uma posicao ainda em partida."
+        });
     }
 
     [HttpPost("withdraw")]
@@ -307,24 +243,13 @@ public sealed class WalletController : ControllerBase
                     if (!withdrawResult.Succeeded)
                         throw new WalletFlowException(StatusCodes.Status400BadRequest, withdrawResult.Message, withdrawResult.Code);
 
-                    var availableReturns = await _context.Bet
-                        .AsNoTracking()
-                        .Where(b => b.UserId == user.UserID
-                            && b.SettledAt.HasValue
-                            && !b.Claimed
-                            && (!b.PositionId.HasValue
-                                || b.PositionEntry == null
-                                || b.PositionEntry.Status == TeamPositionStatus.Closed)
-                            && (b.PayoutAmount ?? 0m) > 0m)
-                        .SumAsync(b => b.PayoutAmount ?? 0m, cancellationToken);
-
                     await transaction.CommitAsync(cancellationToken);
 
                     response = new WalletActionResultDto
                     {
                         ProcessedAmount = amount,
                         SystemBalance = withdrawResult.BalanceAfter ?? user.Balance,
-                        AvailableReturns = availableReturns,
+                        AvailableReturns = 0m,
                         OnChainSignature = request.OnChainSignature,
                         Message = "Saque registrado com sucesso."
                     };
@@ -628,7 +553,7 @@ public sealed class WalletController : ControllerBase
             ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
     }
 
-    private static TeamPositionDto ToPositionDto(UserTeamPosition position)
+    private static TeamPositionDto ToPositionDto(UserTeamPosition position, bool hasOpenBet)
     {
         var currency = position.Team.Currency;
 
@@ -643,6 +568,8 @@ public sealed class WalletController : ControllerBase
             CurrentCapital = position.CurrentCapital,
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
+            HasOpenBet = hasOpenBet,
+            CanCloseNow = !hasOpenBet && position.Status != TeamPositionStatus.Closed,
             OnChainPositionAddress = position.OnChainPositionAddress,
             OnChainVaultAddress = position.OnChainVaultAddress,
             LastOnChainSignature = position.LastOnChainSignature,

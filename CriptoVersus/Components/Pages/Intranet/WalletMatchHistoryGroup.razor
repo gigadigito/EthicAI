@@ -22,7 +22,7 @@
 
         <div class="wallet-history-grid">
             <div class="wallet-history-kpi">
-                <span>Total apostado</span>
+                <span>Capital alocado</span>
                 <strong>@FmtSol(Group.TotalInvested)</strong>
             </div>
             <div class="wallet-history-kpi">
@@ -30,8 +30,8 @@
                 <strong>@FmtSol(Group.OpenAmount)</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Retornos disponiveis</span>
-                <strong>@FmtSol(Group.AvailableReturns)</strong>
+                <span>Partidas reembolsadas</span>
+                <strong>@Group.RefundedCount</strong>
             </div>
             <div class="wallet-history-kpi">
                 <span>Resultado liquido realizado</span>
