@@ -47,7 +47,9 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
             : _options.RpcUrl;
 
         var lamports = (ulong)Math.Round(amount * 1_000_000_000m, 0, MidpointRounding.ToZero);
-        var wallet = new Wallet(ParseSecretKey(secretKeyValue));
+        var privateKeyBytes = ParseSecretKey(secretKeyValue);
+        var custodyPublicKey = new SolanaPublicKey(_options.CustodyWalletPublicKey);
+        var account = new Account(privateKeyBytes, custodyPublicKey.KeyBytes);
         var rpcClient = ClientFactory.GetClient(rpcUrl);
 
         var blockhash = await rpcClient.GetRecentBlockHashAsync();
@@ -56,12 +58,12 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
 
         var tx = new TransactionBuilder()
             .SetRecentBlockHash(blockhash.Result.Value.Blockhash)
-            .SetFeePayer(wallet.Account)
+            .SetFeePayer(account)
             .AddInstruction(SystemProgram.Transfer(
-                wallet.Account.PublicKey,
+                account.PublicKey,
                 new SolanaPublicKey(destinationWallet),
                 lamports))
-            .Build(wallet.Account);
+            .Build(account);
 
         var sendResult = await rpcClient.SendTransactionAsync(tx);
         if (!sendResult.WasSuccessful || string.IsNullOrWhiteSpace(sendResult.Result))
