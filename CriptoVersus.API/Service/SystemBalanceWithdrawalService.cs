@@ -54,7 +54,7 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
 {
     internal const string PendingLedgerType = "WITHDRAW_REQ";
     internal const string FailedLedgerType = "WITHDRAW_FAIL";
-    internal const string CompletedLedgerType = "SYSTEM_BALANCE_WITHDRAW";
+    internal const string CompletedLedgerType = "SYSTEM_BAL_WITHDRAW";
     internal const string CancelledLedgerType = "WITHDRAW_CANCELLED";
 
     private readonly EthicAIDbContext _context;
