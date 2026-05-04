@@ -1505,6 +1505,7 @@ else
         }
 
         return result
+            .Where(x => CanBet(x.Status, x.ElapsedMinutes))
             .OrderBy(x => x.Status == "Pending" ? 0 : 1)
             .ThenBy(x => x.MatchId)
             .ToList();

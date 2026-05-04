@@ -128,8 +128,6 @@ public sealed class WalletController : ControllerBase
 
                 var openAmountFromBets = rows.Where(IsOpen).Sum(x => x.Amount);
                 var openCountFromBets = rows.Count(IsOpen);
-                var fallbackOpenAmount = positionInfo?.OpenCapital ?? 0m;
-                var fallbackOpenCount = positionInfo?.OpenCount ?? 0;
                 var symbol = rows.FirstOrDefault()?.TeamSymbol
                     ?? positionInfo?.Symbol
                     ?? $"Team#{teamId}";
@@ -143,13 +141,13 @@ public sealed class WalletController : ControllerBase
                     Symbol = symbol,
                     CurrencyName = currencyName,
                     TotalInvested = positionInfo?.PrincipalAllocated ?? 0m,
-                    OpenAmount = openAmountFromBets > 0m ? openAmountFromBets : fallbackOpenAmount,
+                    OpenAmount = openAmountFromBets,
                     AvailableReturns = 0m,
                     RealizedNetResult = rows.Where(x => x.SettledAt.HasValue).Sum(GetNetAmount),
                     MatchCount = rows.Count,
                     WonCount = rows.Count(IsWon),
                     LostCount = rows.Count(IsLost),
-                    OpenCount = openCountFromBets > 0 ? openCountFromBets : fallbackOpenCount,
+                    OpenCount = openCountFromBets,
                     RefundedCount = rows.Count(IsRefunded),
                     CancelledCount = rows.Count(IsCancelled),
                     DrawCount = rows.Count(IsDraw),
