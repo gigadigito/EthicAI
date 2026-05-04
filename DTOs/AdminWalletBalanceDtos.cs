@@ -26,3 +26,24 @@ public sealed class AdminWalletBalanceAdjustmentResponseDto
     public decimal BalanceAfter { get; set; }
     public bool CreatedUser { get; set; }
 }
+
+public sealed class AdminSystemBalanceWithdrawDiagnosticsDto
+{
+    public DateTime GeneratedAtUtc { get; set; }
+    public string BlockchainMode { get; set; } = "";
+    public List<AdminSystemBalanceWithdrawDiagnosticItemDto> Items { get; set; } = [];
+}
+
+public sealed class AdminSystemBalanceWithdrawDiagnosticItemDto
+{
+    public int UserId { get; set; }
+    public string Wallet { get; set; } = "";
+    public decimal SystemBalance { get; set; }
+    public decimal TotalWithdrawn { get; set; }
+    public string RetryStatus { get; set; } = "";
+    public int PendingAttempts { get; set; }
+    public int FailedAttempts { get; set; }
+    public DateTime? LastAttemptAtUtc { get; set; }
+    public string? LastAttemptType { get; set; }
+    public string? LastAttemptDescription { get; set; }
+}

@@ -28,6 +28,18 @@ function errorLogin(message, ...args) {
     console.error(`[CRYPTOLOGIN][ERRO] ${message}`, ...args);
 }
 
+function logWithdraw(message, ...args) {
+    console.log(`[CRYPTO_WITHDRAW] ${message}`, ...args);
+}
+
+function warnWithdraw(message, ...args) {
+    console.warn(`[CRYPTO_WITHDRAW] ${message}`, ...args);
+}
+
+function errorWithdraw(message, ...args) {
+    console.error(`[CRYPTO_WITHDRAW][ERRO] ${message}`, ...args);
+}
+
 function u64Le(value) {
     const bytes = new Uint8Array(8);
     const view = new DataView(bytes.buffer);
@@ -225,18 +237,50 @@ export async function withdrawSystemBalance(options) {
     } = web3;
 
     const provider = getProvider();
+    const cluster = options.cluster || "devnet";
+    const mode = options.mode || "HybridContractCustody";
+    const expectedWallet = options.expectedWallet || null;
+    const amountSol = Number(options.amountSol);
+    const destinationWallet = expectedWallet || null;
+
     if (!provider.isConnected) {
+        warnWithdraw("wallet nao conectada. solicitando conexao...");
         await provider.connect();
     }
 
-    const amountSol = Number(options.amountSol);
+    if (!provider.publicKey) {
+        throw new Error("wallet nao conectada");
+    }
+
+    const connectedWallet = provider.publicKey.toBase58();
+    logWithdraw("wallet conectada", true);
+    logWithdraw("publicKey", connectedWallet);
+    logWithdraw("cluster", cluster);
+    logWithdraw("valor solicitado", `${amountSol} SOL`);
+    logWithdraw("destino", destinationWallet);
+
     if (!Number.isFinite(amountSol) || amountSol <= 0) {
         throw new Error("Valor de saque invalido.");
     }
 
+    if (expectedWallet && connectedWallet !== expectedWallet) {
+        throw new Error("carteira diferente da conta");
+    }
+
+    if (mode !== "HybridContractCustody") {
+        warnWithdraw(`modo ${mode} nao suporta withdraw on-chain automatico.`);
+        return {
+            connectedWallet,
+            cluster,
+            mode,
+            supported: false,
+            signature: null,
+            confirmationStatus: "unsupported"
+        };
+    }
+
     const amountLamports = BigInt(Math.round(amountSol * LAMPORTS_PER_SOL));
     const programId = new PublicKey(options.programId);
-    const cluster = options.cluster || "devnet";
     const connection = new Connection(clusterApiUrl(cluster), "confirmed");
 
     const [config] = PublicKey.findProgramAddressSync(
@@ -253,7 +297,7 @@ export async function withdrawSystemBalance(options) {
 
     const existingUserAccount = await connection.getAccountInfo(userAccount, "confirmed");
     if (!existingUserAccount) {
-        warnLogin("UserAccount encontrada?", false);
+        warnWithdraw("UserAccount encontrada?", false);
         throw new Error("UserAccount nao inicializada para esta wallet. Conclua o onboarding on-chain antes do saque.");
     }
 
@@ -273,9 +317,21 @@ export async function withdrawSystemBalance(options) {
 
     const transaction = new Transaction().add(instruction);
     const signature = await sendAndConfirm(connection, provider, transaction);
+    logWithdraw("signature", signature);
+
+    const confirmation = await connection.getSignatureStatus(signature, {
+        searchTransactionHistory: true
+    });
+    const confirmationStatus = confirmation?.value?.confirmationStatus || "confirmed";
+    logWithdraw("confirmacao RPC", confirmationStatus);
 
     return {
+        connectedWallet,
+        cluster,
+        mode,
+        supported: true,
         signature,
+        confirmationStatus,
         amountLamports: amountLamports.toString(),
         userAccount: userAccount.toBase58(),
         vault: vault.toBase58()

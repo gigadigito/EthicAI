@@ -135,13 +135,13 @@
                 Para liberar saldo para saque, finalize uma posicao fora de jogo. Se ela ainda estiver vinculada a uma partida em andamento, a saida fica solicitada e o saldo volta automaticamente para o sistema quando essa partida for liquidada.
             </div>
             <div class="wallet-actions-buttons">
-                @if (_wallet.CanWithdraw)
+                @if (_wallet.SystemBalance > 0m)
                 {
                     <button type="button"
                             class="wallet-history-button is-primary"
                             disabled="@_actionBusy"
                             @onclick="WithdrawSystemBalanceAsync">
-                        Sacar para carteira
+                        Resgatar para minha carteira
                     </button>
                 }
             </div>
@@ -865,7 +865,7 @@
 
     private async Task WithdrawSystemBalanceAsync()
     {
-        if (_wallet is null || !_wallet.CanWithdraw || _wallet.SystemBalance <= 0m)
+        if (_wallet is null || _wallet.SystemBalance <= 0m)
             return;
 
         _actionBusy = true;
@@ -874,41 +874,68 @@
 
         try
         {
-            string? onChainSignature = null;
-            if (UsesOnChainContract)
+            _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletActions.js?v=20260504-system-balance-withdraw");
+
+            _actionMessage = "Validando wallet conectada...";
+            await InvokeAsync(StateHasChanged);
+
+            var chainResult = await _walletActionsModule.InvokeAsync<ChainWithdrawResult>(
+                "withdrawSystemBalance",
+                new
+                {
+                    mode = BlockchainMode,
+                    programId = OnChainProgramId,
+                    cluster = OnChainCluster,
+                    amountSol = _wallet.SystemBalance,
+                    expectedWallet = _wallet.Wallet
+                });
+
+            if (!chainResult.supported)
             {
-                if (string.IsNullOrWhiteSpace(OnChainProgramId))
-                    throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
-
-                _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
-                    "import",
-                    "./js/solanaWalletActions.js?v=20260426-claim-withdraw");
-
-                var chainResult = await _walletActionsModule.InvokeAsync<ChainWithdrawResult>(
-                    "withdrawSystemBalance",
-                    new
-                    {
-                        programId = OnChainProgramId,
-                        cluster = OnChainCluster,
-                        amountSol = _wallet.SystemBalance
-                    });
-
-                onChainSignature = chainResult.signature;
+                _actionMessage = $"O modo {BlockchainMode} ainda nao suporta resgate on-chain automatico. Seu saldo continua disponivel no sistema para retry futuro.";
+                return;
             }
+
+            if (string.IsNullOrWhiteSpace(chainResult.connectedWallet))
+            {
+                _actionMessage = "Wallet nao conectada.";
+                return;
+            }
+
+            if (!string.Equals(chainResult.connectedWallet, _wallet.Wallet, StringComparison.Ordinal))
+            {
+                _actionMessage = "A carteira conectada e diferente da conta logada.";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(chainResult.signature))
+            {
+                _actionMessage = "Erro ao confirmar o resgate na wallet.";
+                return;
+            }
+
+            _actionMessage = $"Transacao enviada: {chainResult.signature}";
+            await InvokeAsync(StateHasChanged);
+
+            _actionMessage = $"Transacao confirmada: {chainResult.signature}";
+            await InvokeAsync(StateHasChanged);
 
             var result = await Api.WithdrawSystemBalanceAsync(new WithdrawSystemBalanceRequest
             {
                 Amount = _wallet.SystemBalance,
-                OnChainSignature = onChainSignature
+                OnChainSignature = chainResult.signature,
+                ConnectedWalletPublicKey = chainResult.connectedWallet
             });
 
-            _actionMessage = result?.Message ?? "Saque registrado com sucesso.";
+            _actionMessage = result?.Message ?? "Resgate concluido.";
             await LoadWalletAsync();
             await LoadOnChainBalanceAsync();
         }
         catch (Exception ex)
         {
-            _actionMessage = $"Nao foi possivel registrar o saque: {ex.Message}";
+            _actionMessage = ResolveWithdrawErrorMessage(ex);
         }
         finally
         {
@@ -1110,6 +1137,29 @@
     }
     private sealed class ChainWithdrawResult
     {
-        public string signature { get; set; } = string.Empty;
+        public bool supported { get; set; }
+        public string? signature { get; set; }
+        public string? connectedWallet { get; set; }
+        public string? confirmationStatus { get; set; }
+    }
+
+    private static string ResolveWithdrawErrorMessage(Exception ex)
+    {
+        var message = ex.Message ?? "Erro desconhecido.";
+        var normalized = message.ToLowerInvariant();
+
+        if (normalized.Contains("wallet nao conectada"))
+            return "Wallet nao conectada.";
+
+        if (normalized.Contains("carteira diferente da conta"))
+            return "A carteira conectada e diferente da conta logada.";
+
+        if (normalized.Contains("saldo insuficiente"))
+            return "Saldo insuficiente.";
+
+        if (normalized.Contains("signature") || normalized.Contains("assinatura"))
+            return $"Erro ao confirmar o resgate: {message}";
+
+        return $"Erro ao confirmar o resgate: {message}";
     }
 }

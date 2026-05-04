@@ -2,6 +2,7 @@
 using Blazored.SessionStorage;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace CriptoVersus.Web.Services;
 
@@ -105,7 +106,7 @@ public sealed class CriptoVersusApiClient
         await AddBearerTokenAsync(request);
 
         using var response = await _http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowAsync(response, ct);
 
         return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
     }
@@ -123,9 +124,50 @@ public sealed class CriptoVersusApiClient
         await AddBearerTokenAsync(request);
 
         using var response = await _http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowAsync(response, ct);
 
         return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+    }
+
+    private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        var message = TryReadApiMessage(body)
+            ?? $"HTTP {(int)response.StatusCode} calling {response.RequestMessage?.RequestUri}";
+
+        throw new InvalidOperationException(message);
+    }
+
+    private static string? TryReadApiMessage(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return null;
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+
+            var message = root.TryGetProperty("message", out var messageElement)
+                ? messageElement.GetString()
+                : null;
+            var detail = root.TryGetProperty("detail", out var detailElement)
+                ? detailElement.GetString()
+                : null;
+
+            return string.IsNullOrWhiteSpace(detail)
+                ? message
+                : string.IsNullOrWhiteSpace(message)
+                    ? detail
+                    : $"{message}: {detail}";
+        }
+        catch
+        {
+            return body;
+        }
     }
 
     private async Task AddBearerTokenAsync(HttpRequestMessage request)

@@ -3,6 +3,7 @@ using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using BLL.Blockchain;
+using CriptoVersus.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,20 +22,20 @@ public sealed class WalletController : ControllerBase
     private readonly EthicAIDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WalletController> _logger;
-    private readonly ICriptoVersusFundsService _fundsService;
+    private readonly ISystemBalanceWithdrawalService _systemBalanceWithdrawalService;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
     public WalletController(
         EthicAIDbContext context,
         IConfiguration configuration,
         ILogger<WalletController> logger,
-        ICriptoVersusFundsService fundsService,
+        ISystemBalanceWithdrawalService systemBalanceWithdrawalService,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
         _logger = logger;
-        _fundsService = fundsService;
+        _systemBalanceWithdrawalService = systemBalanceWithdrawalService;
         _blockchainOptions = blockchainOptions.Value;
     }
 
@@ -229,72 +230,16 @@ public sealed class WalletController : ControllerBase
         if (string.IsNullOrWhiteSpace(wallet))
             return Unauthorized(new { message = "Token sem wallet valida." });
 
-        if (!_blockchainOptions.IsOnChainWithdrawalFlowEnabled())
-        {
-            return BadRequest(new
-            {
-                message = "WithdrawUnavailableInCurrentMode",
-                detail = "Saque direto desativado no modo atual. O saldo nao sera debitado sem fluxo on-chain habilitado."
-            });
-        }
-
-        var amount = RoundMoney(request.Amount);
-        if (amount <= 0m)
-            return BadRequest(new { message = "NothingToWithdraw" });
-
-        if (_blockchainOptions.RequireOnChainConfirmation && string.IsNullOrWhiteSpace(request.OnChainSignature))
-        {
-            return BadRequest(new
-            {
-                message = "MissingOnChainSignature",
-                detail = "A assinatura on-chain do saque e obrigatoria antes de debitar o saldo do sistema."
-            });
-        }
-
-        var strategy = _context.Database.CreateExecutionStrategy();
-
         try
         {
-            WalletActionResultDto? response = null;
+            var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
+            if (user is null)
+                return Unauthorized(new { message = "Token sem wallet valida." });
 
-            await strategy.ExecuteAsync(async () =>
-            {
-                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
-
-                try
-                {
-                    var user = await GetAuthenticatedTrackedUserAsync(cancellationToken);
-                    if (user is null)
-                        throw new InvalidOperationException("Token sem wallet valida.");
-
-                    if (user.Balance <= 0m || amount > user.Balance)
-                        throw new WalletFlowException(StatusCodes.Status400BadRequest, "InsufficientSystemBalance");
-
-                    var withdrawResult = await _fundsService.WithdrawAsync(user.Wallet, amount);
-                    if (!withdrawResult.Succeeded)
-                        throw new WalletFlowException(StatusCodes.Status400BadRequest, withdrawResult.Message, withdrawResult.Code);
-
-                    await transaction.CommitAsync(cancellationToken);
-
-                    response = new WalletActionResultDto
-                    {
-                        ProcessedAmount = amount,
-                        SystemBalance = withdrawResult.BalanceAfter ?? user.Balance,
-                        AvailableReturns = 0m,
-                        OnChainSignature = request.OnChainSignature,
-                        Message = "Saque registrado com sucesso."
-                    };
-                }
-                catch
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
-                }
-            });
-
+            var response = await _systemBalanceWithdrawalService.WithdrawAsync(user, request, cancellationToken);
             return Ok(response);
         }
-        catch (WalletFlowException ex)
+        catch (WithdrawalFlowException ex)
         {
             return StatusCode(ex.StatusCode, new { message = ex.Message, code = ex.Code });
         }
@@ -622,19 +567,6 @@ public sealed class WalletController : ControllerBase
 
     private static decimal ClampRate(decimal rate)
         => Math.Clamp(rate, 0m, 1m);
-
-    private sealed class WalletFlowException : Exception
-    {
-        public WalletFlowException(int statusCode, string message, string? code = null)
-            : base(message)
-        {
-            StatusCode = statusCode;
-            Code = code;
-        }
-
-        public int StatusCode { get; }
-        public string? Code { get; }
-    }
 
     private static bool IsOpen(WalletBetSummaryRow row)
         => row.MatchStatus is MatchStatus.Pending or MatchStatus.Ongoing || !row.SettledAt.HasValue && row.MatchStatus == MatchStatus.Completed;

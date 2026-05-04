@@ -3,6 +3,7 @@ using DTOs;
 using EthicAI.EntityModel;
 using BLL.Blockchain;
 using BLL;
+using CriptoVersus.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,16 +23,19 @@ public sealed class AdminController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
     private readonly ILedgerService _ledgerService;
+    private readonly ISystemBalanceWithdrawalService _systemBalanceWithdrawalService;
 
     public AdminController(
         EthicAIDbContext context,
         IConfiguration configuration,
         ILedgerService ledgerService,
+        ISystemBalanceWithdrawalService systemBalanceWithdrawalService,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
         _ledgerService = ledgerService;
+        _systemBalanceWithdrawalService = systemBalanceWithdrawalService;
         _blockchainOptions = blockchainOptions.Value;
     }
 
@@ -107,6 +111,17 @@ public sealed class AdminController : ControllerBase
             OpenBetAmount = openBetAmount,
             RecentPositions = recentPositions
         });
+    }
+
+    [HttpGet("wallet/withdraw-diagnostics")]
+    public async Task<ActionResult<AdminSystemBalanceWithdrawDiagnosticsDto>> WithdrawDiagnostics(CancellationToken ct)
+    {
+        var wallet = GetAuthenticatedWallet();
+        if (!IsAdminWallet(wallet))
+            return Forbid();
+
+        var diagnostics = await _systemBalanceWithdrawalService.BuildDiagnosticsAsync(ct);
+        return Ok(diagnostics);
     }
 
     [HttpPost("wallet/credit-test-balance")]
