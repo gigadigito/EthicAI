@@ -83,14 +83,27 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
     private static byte[] ParseSecretKey(string secretKeyValue)
     {
         var normalizedValue = secretKeyValue.Trim().Trim('"');
+        var base58Candidate = TryDecodeBase58(normalizedValue);
+        if (base58Candidate is not null && IsExpectedSecretKeyLength(base58Candidate.Length))
+            return base58Candidate;
 
         try
         {
-            return Convert.FromBase64String(normalizedValue);
+            var base64Candidate = Convert.FromBase64String(normalizedValue);
+            if (IsExpectedSecretKeyLength(base64Candidate.Length))
+                return base64Candidate;
+
+            if (base58Candidate is not null)
+                return base58Candidate;
+
+            return base64Candidate;
         }
         catch (FormatException)
         {
-            return Base58Decode(normalizedValue);
+            if (base58Candidate is not null)
+                return base58Candidate;
+
+            throw new InvalidOperationException("A chave da custodia nao esta em base64 nem base58 validos.");
         }
     }
 
@@ -129,4 +142,19 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
         bytes.CopyTo(result, leadingZeroCount);
         return result;
     }
+
+    private static byte[]? TryDecodeBase58(string value)
+    {
+        try
+        {
+            return Base58Decode(value);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    private static bool IsExpectedSecretKeyLength(int length)
+        => length is 32 or 64;
 }
