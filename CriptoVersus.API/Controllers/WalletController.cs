@@ -196,7 +196,7 @@ public sealed class WalletController : ControllerBase
             OpenInvestments = betRows.Count(IsOpen),
             SettledInvestments = betRows.Count(x => x.SettledAt.HasValue),
             CanClaim = false,
-            CanWithdraw = user.Balance > 0m,
+            CanWithdraw = user.Balance > 0m && _blockchainOptions.IsOnChainWithdrawalFlowEnabled(),
             ClaimableBets = claimableBets,
             ActivePositions = positions.Select(p => ToPositionDto(
                 p,
@@ -229,9 +229,27 @@ public sealed class WalletController : ControllerBase
         if (string.IsNullOrWhiteSpace(wallet))
             return Unauthorized(new { message = "Token sem wallet valida." });
 
+        if (!_blockchainOptions.IsOnChainWithdrawalFlowEnabled())
+        {
+            return BadRequest(new
+            {
+                message = "WithdrawUnavailableInCurrentMode",
+                detail = "Saque direto desativado no modo atual. O saldo nao sera debitado sem fluxo on-chain habilitado."
+            });
+        }
+
         var amount = RoundMoney(request.Amount);
         if (amount <= 0m)
             return BadRequest(new { message = "NothingToWithdraw" });
+
+        if (_blockchainOptions.RequireOnChainConfirmation && string.IsNullOrWhiteSpace(request.OnChainSignature))
+        {
+            return BadRequest(new
+            {
+                message = "MissingOnChainSignature",
+                detail = "A assinatura on-chain do saque e obrigatoria antes de debitar o saldo do sistema."
+            });
+        }
 
         var strategy = _context.Database.CreateExecutionStrategy();
 

@@ -79,6 +79,9 @@
                 <div class="wallet-message">
                     Neste modo, apostas usam apenas o saldo interno do banco. Transferencias SOL para a carteira de custodia precisam ser conciliadas para virar saldo interno antes de apostar.
                 </div>
+                <div class="wallet-message">
+                    Saques automaticos para a carteira conectada ficam desativados neste modo para evitar debito sem transferencia on-chain confirmada.
+                </div>
                 @if (!string.IsNullOrWhiteSpace(_copyMessage))
                 {
                     <div class="wallet-message">@_copyMessage</div>
