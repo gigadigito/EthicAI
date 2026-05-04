@@ -113,7 +113,7 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
             return keyBytes;
 
         if (keyBytes.Length == 64)
-            return keyBytes.Take(32).ToArray();
+            return keyBytes;
 
         throw new InvalidOperationException($"A chave da custodia precisa ter 32 ou 64 bytes apos decodificacao. Tamanho recebido: {keyBytes.Length}.");
     }
