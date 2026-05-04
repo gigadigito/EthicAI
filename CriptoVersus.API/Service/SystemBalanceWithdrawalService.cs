@@ -414,6 +414,9 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
 
 public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
 {
+    private const int MaxConfirmationAttempts = 8;
+    private static readonly TimeSpan ConfirmationRetryDelay = TimeSpan.FromSeconds(2);
+
     private readonly HttpClient _httpClient;
     private readonly CriptoVersusBlockchainOptions _options;
     private readonly ILogger<OnChainWithdrawalVerifier> _logger;
@@ -438,32 +441,8 @@ public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
             return OnChainWithdrawalVerificationResult.Failure("RPC_NOT_CONFIGURED", "RpcUrl nao configurada para validacao do withdraw.");
 
         var lamportsExpected = ToLamports(expectedAmount);
-        var requestBody = new
-        {
-            jsonrpc = "2.0",
-            id = 1,
-            method = "getTransaction",
-            @params = new object[]
-            {
-                signature,
-                new
-                {
-                    encoding = "jsonParsed",
-                    commitment = "confirmed",
-                    maxSupportedTransactionVersion = 0
-                }
-            }
-        };
-
-        using var response = await _httpClient.PostAsJsonAsync(_options.RpcUrl, requestBody, ct);
-        if (!response.IsSuccessStatusCode)
-        {
-            _logger.LogWarning("[CRYPTO_WITHDRAW][API] RPC returned HTTP {StatusCode} for signature {Signature}", response.StatusCode, signature);
-            return OnChainWithdrawalVerificationResult.Failure("RPC_FAILURE", "Falha RPC ao validar a transacao de withdraw.");
-        }
-
-        using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
-        var root = document.RootElement;
+        using var document = await FetchTransactionWithRetryAsync(signature, ct);
+        var root = document.RootElement.Clone();
 
         if (root.TryGetProperty("error", out var errorElement))
         {
@@ -472,7 +451,11 @@ public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
         }
 
         if (!root.TryGetProperty("result", out var resultElement) || resultElement.ValueKind == JsonValueKind.Null)
-            return OnChainWithdrawalVerificationResult.Failure("SIGNATURE_NOT_FOUND", "A assinatura informada nao existe na rede Solana.");
+        {
+            return OnChainWithdrawalVerificationResult.Failure(
+                "SIGNATURE_NOT_FOUND",
+                "A assinatura informada nao existe na rede Solana ou ainda nao foi confirmada.");
+        }
 
         if (resultElement.TryGetProperty("meta", out var metaElement)
             && metaElement.TryGetProperty("err", out var txErrorElement)
@@ -521,6 +504,91 @@ public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
             _options.Cluster,
             destinationWallet,
             lamportsExpected);
+    }
+
+    private async Task<JsonDocument> FetchTransactionWithRetryAsync(string signature, CancellationToken ct)
+    {
+        for (var attempt = 1; attempt <= MaxConfirmationAttempts; attempt++)
+        {
+            var document = await FetchTransactionAsync(signature, ct);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("error", out var errorElement))
+            {
+                _logger.LogWarning(
+                    "[CRYPTO_WITHDRAW][API] RPC error validating signature {Signature} on attempt {Attempt}/{MaxAttempts}: {Error}",
+                    signature,
+                    attempt,
+                    MaxConfirmationAttempts,
+                    errorElement.ToString());
+                return document;
+            }
+
+            if (root.TryGetProperty("result", out var resultElement) && resultElement.ValueKind != JsonValueKind.Null)
+            {
+                if (attempt > 1)
+                {
+                    _logger.LogInformation(
+                        "[CRYPTO_WITHDRAW][API] signature {Signature} became available on attempt {Attempt}/{MaxAttempts}.",
+                        signature,
+                        attempt,
+                        MaxConfirmationAttempts);
+                }
+
+                return document;
+            }
+
+            if (attempt < MaxConfirmationAttempts)
+            {
+                _logger.LogInformation(
+                    "[CRYPTO_WITHDRAW][API] signature {Signature} not available yet on attempt {Attempt}/{MaxAttempts}. Waiting {DelaySeconds}s before retry.",
+                    signature,
+                    attempt,
+                    MaxConfirmationAttempts,
+                    ConfirmationRetryDelay.TotalSeconds);
+                document.Dispose();
+                await Task.Delay(ConfirmationRetryDelay, ct);
+                continue;
+            }
+
+            return document;
+        }
+
+        throw new InvalidOperationException("Falha inesperada ao validar confirmacao do saque.");
+    }
+
+    private async Task<JsonDocument> FetchTransactionAsync(string signature, CancellationToken ct)
+    {
+        var requestBody = new
+        {
+            jsonrpc = "2.0",
+            id = 1,
+            method = "getTransaction",
+            @params = new object[]
+            {
+                signature,
+                new
+                {
+                    encoding = "jsonParsed",
+                    commitment = "confirmed",
+                    maxSupportedTransactionVersion = 0
+                }
+            }
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(_options.RpcUrl, requestBody, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            response.Dispose();
+            using var errorDocument = JsonDocument.Parse("{\"error\":\"http_failure\"}");
+            _logger.LogWarning("[CRYPTO_WITHDRAW][API] RPC returned HTTP failure for signature {Signature}.", signature);
+            return JsonDocument.Parse("{\"error\":{\"message\":\"http_failure\"}}");
+        }
+
+        await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+        var document = await JsonDocument.ParseAsync(responseStream, cancellationToken: ct);
+        response.Dispose();
+        return document;
     }
 
     private bool TryFindMatchingWithdrawInstruction(
