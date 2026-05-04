@@ -180,6 +180,7 @@ namespace CriptoVersus.Worker
             await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
             await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
             await ProcessCompletedMatchSettlementsAsync(db, ledgerService, nowUtc, ct);
+            await SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, ct);
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
             await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
@@ -698,6 +699,9 @@ namespace CriptoVersus.Worker
                         if (p.TeamId != match.TeamAId && p.TeamId != match.TeamBId)
                             return false;
 
+                        if (p.Status == TeamPositionStatus.ClosingRequested && match.Status != MatchStatus.Ongoing)
+                            return false;
+
                         var cutoffUtc = match.BettingCloseTime?.UtcDateTime
                             ?? match.StartTime
                             ?? nowUtc;
@@ -754,6 +758,84 @@ namespace CriptoVersus.Worker
             _logger.LogInformation(
                 "🔁 Recurring positions materializadas: {count} entradas automáticas.",
                 created);
+        }
+
+        private async Task SweepClosingRequestedPositionsAsync(
+            EthicAIDbContext db,
+            ILedgerService ledgerService,
+            DateTime nowUtc,
+            CancellationToken ct)
+        {
+            var positions = await db.UserTeamPosition
+                .Where(p => p.Status == TeamPositionStatus.ClosingRequested)
+                .ToListAsync(ct);
+
+            if (positions.Count == 0)
+                return;
+
+            var positionIds = positions.Select(p => p.PositionId).ToList();
+            var unsettledBets = await db.Bet
+                .Include(b => b.Match)
+                .Where(b => b.PositionId.HasValue && positionIds.Contains(b.PositionId.Value) && b.SettledAt == null)
+                .ToListAsync(ct);
+
+            var released = 0;
+            var preserved = 0;
+            var skipped = 0;
+
+            foreach (var position in positions)
+            {
+                var openBets = unsettledBets
+                    .Where(b => b.PositionId == position.PositionId)
+                    .ToList();
+
+                if (openBets.Any(b => b.Match.Status == MatchStatus.Ongoing))
+                {
+                    preserved++;
+                    continue;
+                }
+
+                var pendingBets = openBets
+                    .Where(b => b.Match.Status == MatchStatus.Pending)
+                    .ToList();
+
+                var otherUnsettled = openBets
+                    .Where(b => b.Match.Status != MatchStatus.Pending)
+                    .ToList();
+
+                if (otherUnsettled.Count > 0)
+                {
+                    skipped++;
+                    _logger.LogWarning(
+                        "⚠️ Posicao {positionId} em ClosingRequested mantida por bets nao liquidadas em status inesperado: {statuses}",
+                        position.PositionId,
+                        string.Join(", ", otherUnsettled.Select(b => $"{b.BetId}:{b.Match.Status}")));
+                    continue;
+                }
+
+                if (pendingBets.Count > 0)
+                    db.Bet.RemoveRange(pendingBets);
+
+                await ReleasePositionToSystemAsync(
+                    db,
+                    ledgerService,
+                    position,
+                    RoundMoney(position.CurrentCapital),
+                    nowUtc,
+                    "Encerramento da posicao apos limpeza de saida solicitada sem jogo em andamento.",
+                    ct);
+
+                released++;
+            }
+
+            if (released == 0 && skipped == 0)
+                return;
+
+            _logger.LogInformation(
+                "🧹 ClosingRequested sweep: liberadas={released} preservadasOngoing={preserved} puladas={skipped}",
+                released,
+                preserved,
+                skipped);
         }
 
         private async Task<int> CountClosedPendingAsync(
@@ -1407,38 +1489,14 @@ namespace CriptoVersus.Worker
 
             if (position.Status == TeamPositionStatus.ClosingRequested)
             {
-                var user = await db.User.FirstOrDefaultAsync(u => u.UserID == position.UserId, ct);
-                if (user is null)
-                    throw new InvalidOperationException($"Usuario {position.UserId} nao encontrado para encerrar posicao {position.PositionId}.");
-
-                var releasableAmount = RoundMoney(capital);
-                var balanceBefore = user.Balance;
-
-                if (releasableAmount > 0m)
-                {
-                    user.Balance = RoundMoney(user.Balance + releasableAmount);
-                    user.DtUpdate = settledAtUtc;
-                }
-
-                position.PrincipalAllocated = 0m;
-                position.CurrentCapital = 0m;
-                position.Status = TeamPositionStatus.Closed;
-                position.AutoCompound = false;
-                position.ClosedAt = settledAtUtc;
-
-                if (releasableAmount > 0m)
-                {
-                    await db.SaveChangesAsync(ct);
-                    await ledgerService.AddEntryAsync(
-                        user: user,
-                        type: "POSITION_CLOSE_RELEASE",
-                        amount: releasableAmount,
-                        balanceBefore: balanceBefore,
-                        balanceAfter: user.Balance,
-                        referenceId: position.PositionId,
-                        description: $"Encerramento da posicao {position.PositionId} apos liquidacao da partida.",
-                        ct: ct);
-                }
+                await ReleasePositionToSystemAsync(
+                    db,
+                    ledgerService,
+                    position,
+                    RoundMoney(capital),
+                    settledAtUtc,
+                    $"Encerramento da posicao {position.PositionId} apos liquidacao da partida.",
+                    ct);
             }
             else
             {
@@ -1458,6 +1516,52 @@ namespace CriptoVersus.Worker
             position.UpdatedAt = settledAtUtc;
 
             return true;
+        }
+
+        private async Task ReleasePositionToSystemAsync(
+            EthicAIDbContext db,
+            ILedgerService ledgerService,
+            UserTeamPosition position,
+            decimal releasableAmount,
+            DateTime releasedAtUtc,
+            string description,
+            CancellationToken ct)
+        {
+            var user = await db.User.FirstOrDefaultAsync(u => u.UserID == position.UserId, ct);
+            if (user is null)
+                throw new InvalidOperationException($"Usuario {position.UserId} nao encontrado para encerrar posicao {position.PositionId}.");
+
+            releasableAmount = RoundMoney(releasableAmount);
+            var balanceBefore = user.Balance;
+
+            if (releasableAmount > 0m)
+            {
+                user.Balance = RoundMoney(user.Balance + releasableAmount);
+                user.DtUpdate = releasedAtUtc;
+            }
+
+            position.PrincipalAllocated = 0m;
+            position.CurrentCapital = 0m;
+            position.Status = TeamPositionStatus.Closed;
+            position.AutoCompound = false;
+            position.ClosedAt = releasedAtUtc;
+            position.UpdatedAt = releasedAtUtc;
+            position.CurrentLamports = null;
+
+            await db.SaveChangesAsync(ct);
+
+            if (releasableAmount <= 0m)
+                return;
+
+            await ledgerService.AddEntryAsync(
+                user: user,
+                type: "POSITION_CLOSE_RELEASE",
+                amount: releasableAmount,
+                balanceBefore: balanceBefore,
+                balanceAfter: user.Balance,
+                referenceId: position.PositionId,
+                description: description,
+                ct: ct);
         }
 
         private static void ApplyFinish(Match match, int? winnerTeamId, MatchDecision decision, DateTime nowUtc)
