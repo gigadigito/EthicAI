@@ -53,7 +53,7 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
         var account = new Account(privateKeyBytes, custodyPublicKey.KeyBytes);
         var rpcClient = ClientFactory.GetClient(rpcUrl);
 
-        var blockhash = await rpcClient.GetRecentBlockHashAsync();
+        var blockhash = await rpcClient.GetLatestBlockHashAsync();
         if (!blockhash.WasSuccessful || blockhash.Result?.Value is null)
             throw new InvalidOperationException($"Falha ao obter blockhash para saque: {blockhash.Reason}");
 
