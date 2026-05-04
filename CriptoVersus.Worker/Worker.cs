@@ -1571,7 +1571,7 @@ namespace CriptoVersus.Worker
 
             await ledgerService.AddEntryAsync(
                 user: user,
-                type: "POSITION_CLOSE_RELEASE",
+                type: "POS_CLOSE_RELEASE",
                 amount: releasableAmount,
                 balanceBefore: balanceBefore,
                 balanceAfter: user.Balance,

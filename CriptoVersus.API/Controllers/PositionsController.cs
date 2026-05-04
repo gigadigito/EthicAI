@@ -232,7 +232,7 @@ public sealed class PositionsController : ControllerBase
 
                     await _ledgerService.AddEntryAsync(
                         user: user,
-                        type: onChainBettingEnabled ? "POSITION_TOPUP_ONCHAIN" : "POSITION_TOPUP",
+                        type: onChainBettingEnabled ? "POS_TOPUP_ONCHAIN" : "POSITION_TOPUP",
                         amount: onChainBettingEnabled ? 0m : -amount,
                         balanceBefore: balanceBefore,
                         balanceAfter: user.Balance,
@@ -332,7 +332,7 @@ public sealed class PositionsController : ControllerBase
                 {
                     await _ledgerService.AddEntryAsync(
                         user: user,
-                        type: "POSITION_CLOSE_RELEASE",
+                        type: "POS_CLOSE_RELEASE",
                         amount: releasableAmount,
                         balanceBefore: balanceBefore,
                         balanceAfter: user.Balance,
