@@ -1209,7 +1209,7 @@ namespace CriptoVersus.Worker
                 .Include(x => x.TeamA).ThenInclude(t => t.Currency)
                 .Include(x => x.TeamB).ThenInclude(t => t.Currency)
                 .Where(m =>
-                    m.Status == MatchStatus.Completed &&
+                    (m.Status == MatchStatus.Completed || m.Status == MatchStatus.Cancelled) &&
                     m.EndTime.HasValue &&
                     db.Bet.Any(b => b.MatchId == m.MatchId && b.SettledAt == null))
                 .OrderBy(m => m.EndTime)
