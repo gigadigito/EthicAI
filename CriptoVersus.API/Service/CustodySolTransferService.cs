@@ -1,5 +1,6 @@
 using BLL.Blockchain;
 using Microsoft.Extensions.Options;
+using System.Numerics;
 using Solnet.Programs;
 using Solnet.Rpc;
 using Solnet.Rpc.Builders;
@@ -81,13 +82,15 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
 
     private static byte[] ParseSecretKey(string secretKeyValue)
     {
+        var normalizedValue = secretKeyValue.Trim().Trim('"');
+
         try
         {
-            return Convert.FromBase64String(secretKeyValue);
+            return Convert.FromBase64String(normalizedValue);
         }
         catch (FormatException)
         {
-            return Base58Decode(secretKeyValue);
+            return Base58Decode(normalizedValue);
         }
     }
 
@@ -105,33 +108,25 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
     private static byte[] Base58Decode(string value)
     {
         const string alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-        var output = new List<byte> { 0 };
+        var intData = BigInteger.Zero;
 
         foreach (var c in value.Trim())
         {
-            var carry = alphabet.IndexOf(c);
-            if (carry < 0)
+            var digit = alphabet.IndexOf(c);
+            if (digit < 0)
                 throw new InvalidOperationException("A chave da custodia nao esta em base64 nem base58 validos.");
 
-            var currentCarry = carry;
-            for (var i = 0; i < output.Count; i++)
-            {
-                var current = output[i] * 58 + currentCarry;
-                output[i] = (byte)(current & 0xff);
-                currentCarry = current >> 8;
-            }
-
-            while (currentCarry > 0)
-            {
-                output.Add((byte)(currentCarry & 0xff));
-                currentCarry >>= 8;
-            }
+            intData = intData * 58 + digit;
         }
 
-        foreach (var _ in value.TakeWhile(ch => ch == '1'))
-            output.Add(0);
+        var bytes = intData.ToByteArray(isUnsigned: true, isBigEndian: true);
+        var leadingZeroCount = value.TakeWhile(ch => ch == '1').Count();
 
-        output.Reverse();
-        return output.ToArray();
+        if (leadingZeroCount == 0)
+            return bytes;
+
+        var result = new byte[leadingZeroCount + bytes.Length];
+        bytes.CopyTo(result, leadingZeroCount);
+        return result;
     }
 }
