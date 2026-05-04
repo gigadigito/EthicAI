@@ -188,11 +188,15 @@ namespace CriptoVersus.API.Controllers
         private async Task<int> CountPendingAsync(CancellationToken ct)
         {
             await using var db = await _dbFactory.CreateDbContextAsync(ct);
+            var now = DateTime.UtcNow;
             var items = await db.Set<Match>()
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
                 .Include(m => m.TeamB).ThenInclude(t => t.Currency)
                 .Where(m => m.Status == MatchStatus.Pending)
+                .Where(m =>
+                    (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > now) ||
+                    (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > now))
                 .ToListAsync(ct);
 
             return items.Count(m => !MatchPairRules.IsForbiddenPair(

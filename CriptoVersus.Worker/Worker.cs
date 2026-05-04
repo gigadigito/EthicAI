@@ -159,30 +159,43 @@ namespace CriptoVersus.Worker
             var nowUtc = DateTime.UtcNow;
 
             var topGainers = await LoadTopGainersAsync(http, ct);
-            if (topGainers.Count < 6)
+            var hasHealthySnapshot = topGainers.Count >= 6;
+            if (!hasHealthySnapshot)
             {
-                _logger.LogWarning("⚠️ Top gainers insuficiente (count={count}).", topGainers.Count);
-                return;
+                _logger.LogWarning(
+                    "⚠️ Top gainers insuficiente (count={count}). O ciclo continuara para promover/liquidar partidas, mas sem limpeza agressiva nem reposicao de pending.",
+                    topGainers.Count);
             }
-
-            LogTopGainers(topGainers);
+            else
+            {
+                LogTopGainers(topGainers);
+            }
 
             var snapshotUtc = nowUtc;
             var snapshot = BuildSnapshot(topGainers);
 
-            var currencies = await matchService.SaveCurrenciesAsync(topGainers);
-            var currencyBySymbol = BuildCurrencyMap(currencies);
-            var allowedSymbols = BuildAllowedSet(snapshot);
+            Dictionary<string, Currency> currencyBySymbol = new(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> allowedSymbols = new(StringComparer.OrdinalIgnoreCase);
+
+            if (topGainers.Count > 0)
+            {
+                var currencies = await matchService.SaveCurrenciesAsync(topGainers);
+                currencyBySymbol = BuildCurrencyMap(currencies);
+                allowedSymbols = BuildAllowedSet(snapshot);
+            }
 
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
             await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
             await CancelVeryOldPendingAsync(db, nowUtc, ct);
-            await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
+            if (hasHealthySnapshot)
+                await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
+
             await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
             await ProcessCompletedMatchSettlementsAsync(db, ledgerService, nowUtc, ct);
             await SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, ct);
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
-            await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
+            if (hasHealthySnapshot)
+                await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
             await MaterializeRecurringPositionBetsAsync(db, nowUtc, ct);
 
@@ -869,8 +882,11 @@ namespace CriptoVersus.Worker
             {
                 var a = m.TeamA?.Currency?.Symbol ?? "";
                 var b = m.TeamB?.Currency?.Symbol ?? "";
+                var bettingStillOpen =
+                    (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
+                    (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > nowUtc);
 
-                if (!allowed.Contains(a) || !allowed.Contains(b))
+                if ((!allowed.Contains(a) || !allowed.Contains(b)) && !bettingStillOpen)
                 {
                     m.Status = MatchStatus.Cancelled;
                     m.EndTime = nowUtc;
