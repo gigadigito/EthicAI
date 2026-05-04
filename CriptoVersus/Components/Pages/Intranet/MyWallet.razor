@@ -921,7 +921,7 @@
             await Api.RequestClosePositionAsync(position.PositionId);
             _actionMessage = position.CanCloseNow
                 ? $"A posicao {position.Symbol} foi encerrada e o saldo voltou para o sistema."
-                : $"A posicao {position.Symbol} ficou com saida solicitada. Como ela ainda participa de uma partida em andamento, o saldo sera liberado para o sistema assim que essa partida for liquidada.";
+                : GetCloseRequestedMessage(position);
             await LoadWalletAsync();
             await LoadOnChainBalanceAsync();
         }
@@ -966,6 +966,16 @@
             _onChainBalanceLoading = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private static string GetCloseRequestedMessage(TeamPositionDto position)
+    {
+        return position.OpenBetMatchStatus switch
+        {
+            "Ongoing" => $"A posicao {position.Symbol} ficou com saida solicitada. Como ela ainda participa de uma partida em andamento, o saldo sera liberado para o sistema assim que essa partida for liquidada.",
+            "Pending" => $"A posicao {position.Symbol} ficou com saida solicitada. Ela ja esta vinculada a uma partida aberta e o saldo sera liberado para o sistema quando essa partida for encerrada.",
+            _ => $"A posicao {position.Symbol} ficou com saida solicitada. O saldo sera liberado para o sistema quando a partida vinculada for encerrada."
+        };
     }
 
     private async Task CopyCustodyWalletAsync()

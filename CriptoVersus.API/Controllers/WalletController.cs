@@ -77,13 +77,25 @@ public sealed class WalletController : ControllerBase
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(cancellationToken);
 
-        var openBetPositionIds = await _context.Bet
+        var openBetStatuses = await _context.Bet
             .AsNoTracking()
             .Where(b => b.UserId == user.UserID && b.PositionId.HasValue && b.SettledAt == null)
-            .Select(b => b.PositionId!.Value)
-            .Distinct()
+            .Select(b => new
+            {
+                PositionId = b.PositionId!.Value,
+                Status = b.Match.Status
+            })
             .ToListAsync(cancellationToken);
-        var openBetPositionIdSet = openBetPositionIds.ToHashSet();
+        var openBetPositionIdSet = openBetStatuses
+            .Select(x => x.PositionId)
+            .ToHashSet();
+        var openBetStatusByPosition = openBetStatuses
+            .GroupBy(x => x.PositionId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(x => x.Status == MatchStatus.Ongoing)
+                    .Select(x => x.Status.ToString())
+                    .First());
 
         var claimableBets = new List<ClaimableBetDto>();
 
@@ -186,7 +198,10 @@ public sealed class WalletController : ControllerBase
             CanClaim = false,
             CanWithdraw = user.Balance > 0m,
             ClaimableBets = claimableBets,
-            ActivePositions = positions.Select(p => ToPositionDto(p, openBetPositionIdSet.Contains(p.PositionId))).ToList(),
+            ActivePositions = positions.Select(p => ToPositionDto(
+                p,
+                openBetPositionIdSet.Contains(p.PositionId),
+                openBetStatusByPosition.TryGetValue(p.PositionId, out var openMatchStatus) ? openMatchStatus : null)).ToList(),
             InvestmentGroups = investmentGroups
         });
     }
@@ -551,7 +566,7 @@ public sealed class WalletController : ControllerBase
             ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
     }
 
-    private static TeamPositionDto ToPositionDto(UserTeamPosition position, bool hasOpenBet)
+    private static TeamPositionDto ToPositionDto(UserTeamPosition position, bool hasOpenBet, string? openBetMatchStatus)
     {
         var currency = position.Team.Currency;
 
@@ -567,6 +582,7 @@ public sealed class WalletController : ControllerBase
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
             HasOpenBet = hasOpenBet,
+            OpenBetMatchStatus = openBetMatchStatus,
             CanCloseNow = !hasOpenBet && position.Status != TeamPositionStatus.Closed,
             OnChainPositionAddress = position.OnChainPositionAddress,
             OnChainVaultAddress = position.OnChainVaultAddress,

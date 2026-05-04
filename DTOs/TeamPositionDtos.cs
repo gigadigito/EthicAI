@@ -12,6 +12,7 @@ public sealed class TeamPositionDto
     public bool AutoCompound { get; set; }
     public string Status { get; set; } = "";
     public bool HasOpenBet { get; set; }
+    public string? OpenBetMatchStatus { get; set; }
     public bool CanCloseNow { get; set; }
     public string? OnChainPositionAddress { get; set; }
     public string? OnChainVaultAddress { get; set; }

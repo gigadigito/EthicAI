@@ -48,8 +48,11 @@ public sealed class PositionsController : ControllerBase
             .OrderByDescending(p => p.UpdatedAt)
             .ToListAsync(ct);
 
-        var openBetPositionIds = await GetOpenBetPositionIdsAsync(user.UserID, ct);
-        return Ok(positions.Select(p => ToDto(p, openBetPositionIds.Contains(p.PositionId))).ToList());
+        var openBetStatuses = await GetOpenBetStatusesAsync(user.UserID, ct);
+        return Ok(positions.Select(p => ToDto(
+            p,
+            openBetStatuses.TryGetValue(p.PositionId, out var matchStatus),
+            matchStatus)).ToList());
     }
 
     [HttpPost]
@@ -169,7 +172,7 @@ public sealed class PositionsController : ControllerBase
             await _context.Entry(position!).Reference(p => p.Team).LoadAsync(ct);
             await _context.Entry(position!.Team).Reference(t => t.Currency).LoadAsync(ct);
 
-            return Ok(ToDto(position!, hasOpenBet: false));
+            return Ok(ToDto(position!, hasOpenBet: false, openBetMatchStatus: null));
         }
         catch (InvalidOperationException ex)
         {
@@ -248,7 +251,7 @@ public sealed class PositionsController : ControllerBase
                 await transaction.CommitAsync(ct);
             });
 
-            return Ok(ToDto(position, hasOpenBet: false));
+            return Ok(ToDto(position, hasOpenBet: false, openBetMatchStatus: null));
         }
         catch (InvalidOperationException ex)
         {
@@ -272,6 +275,7 @@ public sealed class PositionsController : ControllerBase
 
         var strategy = _context.Database.CreateExecutionStrategy();
         var hasOpenBet = false;
+        string? openBetMatchStatus = null;
 
         await strategy.ExecuteAsync(async () =>
         {
@@ -280,6 +284,16 @@ public sealed class PositionsController : ControllerBase
             hasOpenBet = await _context.Bet
                 .AsNoTracking()
                 .AnyAsync(b => b.PositionId == position.PositionId && b.SettledAt == null, ct);
+
+            if (hasOpenBet)
+            {
+                openBetMatchStatus = await _context.Bet
+                    .AsNoTracking()
+                    .Where(b => b.PositionId == position.PositionId && b.SettledAt == null)
+                    .OrderByDescending(b => b.Match.Status == MatchStatus.Ongoing)
+                    .Select(b => b.Match.Status.ToString())
+                    .FirstOrDefaultAsync(ct);
+            }
 
             var nowUtc = DateTime.UtcNow;
 
@@ -332,6 +346,7 @@ public sealed class PositionsController : ControllerBase
                     position.Status = TeamPositionStatus.ClosingRequested;
                     position.AutoCompound = false;
                     position.UpdatedAt = nowUtc;
+                    openBetMatchStatus = pendingMatch.Status.ToString();
                     hasOpenBet = true;
                     await _context.SaveChangesAsync(ct);
                 }
@@ -374,7 +389,7 @@ public sealed class PositionsController : ControllerBase
             await transaction.CommitAsync(ct);
         });
 
-        return Ok(ToDto(position, hasOpenBet));
+        return Ok(ToDto(position, hasOpenBet, openBetMatchStatus));
     }
 
     private async Task<DAL.User?> GetAuthenticatedUserAsync(CancellationToken ct)
@@ -389,19 +404,28 @@ public sealed class PositionsController : ControllerBase
         return await _context.User.FirstOrDefaultAsync(u => u.Wallet == wallet, ct);
     }
 
-    private async Task<HashSet<int>> GetOpenBetPositionIdsAsync(int userId, CancellationToken ct)
+    private async Task<Dictionary<int, string>> GetOpenBetStatusesAsync(int userId, CancellationToken ct)
     {
-        var ids = await _context.Bet
+        var rows = await _context.Bet
             .AsNoTracking()
             .Where(b => b.UserId == userId && b.PositionId.HasValue && b.SettledAt == null)
-            .Select(b => b.PositionId!.Value)
-            .Distinct()
+            .Select(b => new
+            {
+                PositionId = b.PositionId!.Value,
+                Status = b.Match.Status
+            })
             .ToListAsync(ct);
 
-        return ids.ToHashSet();
+        return rows
+            .GroupBy(x => x.PositionId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(x => x.Status == MatchStatus.Ongoing)
+                    .Select(x => x.Status.ToString())
+                    .First());
     }
 
-    private static TeamPositionDto ToDto(UserTeamPosition position, bool hasOpenBet)
+    private static TeamPositionDto ToDto(UserTeamPosition position, bool hasOpenBet, string? openBetMatchStatus)
     {
         var currency = position.Team.Currency;
 
@@ -417,6 +441,7 @@ public sealed class PositionsController : ControllerBase
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
             HasOpenBet = hasOpenBet,
+            OpenBetMatchStatus = openBetMatchStatus,
             CanCloseNow = !hasOpenBet && position.Status != TeamPositionStatus.Closed,
             OnChainPositionAddress = position.OnChainPositionAddress,
             OnChainVaultAddress = position.OnChainVaultAddress,

@@ -335,6 +335,11 @@ else
                                 <span style="width: @GetProgressPercent(m.ElapsedMinutes, m.RemainingMinutes)%"></span>
                             </div>
 
+                            @if (CanSeeExactMatchStatus)
+                            {
+                                <div class="match-admin-status">Status interno: @m.Status</div>
+                            }
+
                             <div class="match-card-footer">
                                 @if (!canBetLive)
                                 {
@@ -425,6 +430,11 @@ else
                                 <span style="width: @GetProgressPercent(m.ElapsedMinutes, m.RemainingMinutes)%"></span>
                             </div>
 
+                            @if (CanSeeExactMatchStatus)
+                            {
+                                <div class="match-admin-status">Status interno: @m.Status</div>
+                            }
+
                             <a class="live-watch-cta" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">
                                 <span class="live-watch-copy">
                                     <span class="live-watch-kicker">Acompanhamento ao vivo</span>
@@ -505,6 +515,11 @@ else
                             <div class="match-progress" aria-label="Progresso da partida">
                                 <span style="width:100%"></span>
                             </div>
+
+                            @if (CanSeeExactMatchStatus)
+                            {
+                                <div class="match-admin-status">Status interno: @m.Status</div>
+                            }
 
                             <div class="match-card-footer">
                                 <span class="match-meta">Historico e log da partida disponiveis</span>
@@ -1136,6 +1151,7 @@ else
     private string InvestmentAmountError { get; set; } = "";
 
     private const int LiveBetMaxMinutes = 45;
+    private const string ExactAdminWallet = "GgbL9aYEAcZycbqFnJ8jnBxYEwu3jn8L2Ss8UbrN31Sc";
     private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.1m, 0.25m, 0.5m, 1m];
 
     private int InvestmentAmountRangeIndex
@@ -1175,6 +1191,9 @@ else
 
     private bool CanSeeInvestmentDebug
         => IsConfiguredWallet(CurrentWalletPublicKey, Config["CriptoVersus:AdminWallet"]);
+
+    private bool CanSeeExactMatchStatus
+        => string.Equals(CurrentWalletPublicKey, ExactAdminWallet, StringComparison.Ordinal);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -1513,13 +1532,8 @@ else
 
     private static bool CanBet(string? status, int elapsedMinutes)
     {
-        if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        if (string.Equals(status, "Ongoing", StringComparison.OrdinalIgnoreCase))
-            return elapsedMinutes >= 0 && elapsedMinutes < LiveBetMaxMinutes;
-
-        return false;
+        _ = elapsedMinutes;
+        return string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string PrettyJsonOrRaw(string text)
