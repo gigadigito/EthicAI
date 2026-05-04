@@ -47,7 +47,7 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
             : _options.RpcUrl;
 
         var lamports = (ulong)Math.Round(amount * 1_000_000_000m, 0, MidpointRounding.ToZero);
-        var wallet = new Wallet(Convert.FromBase64String(secretKeyValue));
+        var wallet = new Wallet(ParseSecretKey(secretKeyValue));
         var rpcClient = ClientFactory.GetClient(rpcUrl);
 
         var blockhash = await rpcClient.GetRecentBlockHashAsync();
@@ -75,5 +75,50 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
             sendResult.Result);
 
         return sendResult.Result;
+    }
+
+    private static byte[] ParseSecretKey(string secretKeyValue)
+    {
+        try
+        {
+            return Convert.FromBase64String(secretKeyValue);
+        }
+        catch (FormatException)
+        {
+            return Base58Decode(secretKeyValue);
+        }
+    }
+
+    private static byte[] Base58Decode(string value)
+    {
+        const string alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        var output = new List<byte> { 0 };
+
+        foreach (var c in value.Trim())
+        {
+            var carry = alphabet.IndexOf(c);
+            if (carry < 0)
+                throw new InvalidOperationException("A chave da custodia nao esta em base64 nem base58 validos.");
+
+            var currentCarry = carry;
+            for (var i = 0; i < output.Count; i++)
+            {
+                var current = output[i] * 58 + currentCarry;
+                output[i] = (byte)(current & 0xff);
+                currentCarry = current >> 8;
+            }
+
+            while (currentCarry > 0)
+            {
+                output.Add((byte)(currentCarry & 0xff));
+                currentCarry >>= 8;
+            }
+        }
+
+        foreach (var _ in value.TakeWhile(ch => ch == '1'))
+            output.Add(0);
+
+        output.Reverse();
+        return output.ToArray();
     }
 }
