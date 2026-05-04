@@ -281,23 +281,21 @@ public sealed class PositionsController : ControllerBase
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(ct);
 
-            hasOpenBet = await _context.Bet
-                .AsNoTracking()
-                .AnyAsync(b => b.PositionId == position.PositionId && b.SettledAt == null, ct);
+            var openBets = await _context.Bet
+                .Include(b => b.Match)
+                .Where(b => b.PositionId == position.PositionId && b.SettledAt == null)
+                .OrderByDescending(b => b.Match.Status == MatchStatus.Ongoing)
+                .ToListAsync(ct);
 
-            if (hasOpenBet)
-            {
-                openBetMatchStatus = await _context.Bet
-                    .AsNoTracking()
-                    .Where(b => b.PositionId == position.PositionId && b.SettledAt == null)
-                    .OrderByDescending(b => b.Match.Status == MatchStatus.Ongoing)
-                    .Select(b => b.Match.Status.ToString())
-                    .FirstOrDefaultAsync(ct);
-            }
+            hasOpenBet = openBets.Count > 0;
+            openBetMatchStatus = openBets
+                .Select(b => b.Match.Status.ToString())
+                .FirstOrDefault();
 
             var nowUtc = DateTime.UtcNow;
+            var hasOngoingBet = openBets.Any(b => b.Match.Status == MatchStatus.Ongoing);
 
-            if (hasOpenBet)
+            if (hasOngoingBet)
             {
                 position.Status = TeamPositionStatus.ClosingRequested;
                 position.AutoCompound = false;
@@ -306,83 +304,41 @@ public sealed class PositionsController : ControllerBase
             }
             else
             {
-                var pendingMatch = await _context.Match
-                    .AsNoTracking()
-                    .Where(m =>
-                        m.Status == MatchStatus.Pending &&
-                        m.StartTime.HasValue &&
-                        m.StartTime.Value > nowUtc &&
-                        (m.TeamAId == position.TeamId || m.TeamBId == position.TeamId) &&
-                        (
-                            (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
-                            (!m.BettingCloseTime.HasValue && m.StartTime.Value > nowUtc)
-                        ))
-                    .OrderBy(m => m.StartTime)
-                    .FirstOrDefaultAsync(ct);
+                if (openBets.Count > 0)
+                    _context.Bet.RemoveRange(openBets);
 
-                if (pendingMatch is not null && position.CurrentCapital > 0m)
+                var releasableAmount = RoundMoney(position.CurrentCapital);
+                var balanceBefore = user.Balance;
+
+                if (releasableAmount > 0m)
                 {
-                    var nextPosition = (await _context.Bet
-                        .Where(b => b.MatchId == pendingMatch.MatchId)
-                        .Select(b => (int?)b.Position)
-                        .MaxAsync(ct) ?? 0) + 1;
-
-                    _context.Bet.Add(new Bet
-                    {
-                        MatchId = pendingMatch.MatchId,
-                        TeamId = position.TeamId,
-                        UserId = position.UserId,
-                        PositionId = position.PositionId,
-                        Amount = RoundMoney(position.CurrentCapital),
-                        BetTime = nowUtc,
-                        Position = nextPosition,
-                        Claimed = false,
-                        ClaimedAt = null,
-                        IsWinner = null,
-                        PayoutAmount = null,
-                        SettledAt = null
-                    });
-
-                    position.Status = TeamPositionStatus.ClosingRequested;
-                    position.AutoCompound = false;
-                    position.UpdatedAt = nowUtc;
-                    openBetMatchStatus = pendingMatch.Status.ToString();
-                    hasOpenBet = true;
-                    await _context.SaveChangesAsync(ct);
+                    user.Balance = RoundMoney(user.Balance + releasableAmount);
+                    user.DtUpdate = nowUtc;
                 }
-                else
+
+                position.PrincipalAllocated = 0m;
+                position.CurrentCapital = 0m;
+                position.Status = TeamPositionStatus.Closed;
+                position.AutoCompound = false;
+                position.ClosedAt = nowUtc;
+                position.UpdatedAt = nowUtc;
+                position.CurrentLamports = null;
+                hasOpenBet = false;
+                openBetMatchStatus = null;
+
+                await _context.SaveChangesAsync(ct);
+
+                if (releasableAmount > 0m)
                 {
-                    var releasableAmount = RoundMoney(position.CurrentCapital);
-                    var balanceBefore = user.Balance;
-
-                    if (releasableAmount > 0m)
-                    {
-                        user.Balance = RoundMoney(user.Balance + releasableAmount);
-                        user.DtUpdate = nowUtc;
-                    }
-
-                    position.PrincipalAllocated = 0m;
-                    position.CurrentCapital = 0m;
-                    position.Status = TeamPositionStatus.Closed;
-                    position.AutoCompound = false;
-                    position.ClosedAt = nowUtc;
-                    position.UpdatedAt = nowUtc;
-                    position.CurrentLamports = null;
-
-                    await _context.SaveChangesAsync(ct);
-
-                    if (releasableAmount > 0m)
-                    {
-                        await _ledgerService.AddEntryAsync(
-                            user: user,
-                            type: "POSITION_CLOSE_RELEASE",
-                            amount: releasableAmount,
-                            balanceBefore: balanceBefore,
-                            balanceAfter: user.Balance,
-                            referenceId: position.PositionId,
-                            description: $"Encerramento da posicao {position.PositionId} com liberacao para saldo do sistema.",
-                            ct: ct);
-                    }
+                    await _ledgerService.AddEntryAsync(
+                        user: user,
+                        type: "POSITION_CLOSE_RELEASE",
+                        amount: releasableAmount,
+                        balanceBefore: balanceBefore,
+                        balanceAfter: user.Balance,
+                        referenceId: position.PositionId,
+                        description: $"Encerramento da posicao {position.PositionId} com liberacao para saldo do sistema.",
+                        ct: ct);
                 }
             }
 

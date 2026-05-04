@@ -196,12 +196,19 @@
 
                         <div class="investment-data investment-data-action">
                             <span>Acao</span>
-                            <button type="button"
-                                    class="wallet-history-button"
-                                    disabled="@(_actionBusy || string.Equals(position.Status, "ClosingRequested", StringComparison.OrdinalIgnoreCase))"
-                                    @onclick="() => RequestClosePositionAsync(position)">
-                                @(position.CanCloseNow ? "Finalizar posicao" : "Solicitar saida")
-                            </button>
+                            @if (string.Equals(position.Status, "ClosingRequested", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <strong>Saida solicitada</strong>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="wallet-history-button"
+                                        disabled="@_actionBusy"
+                                        @onclick="() => RequestClosePositionAsync(position)">
+                                    @(position.CanCloseNow ? "Finalizar posicao" : "Solicitar saida")
+                                </button>
+                            }
                         </div>
                     </article>
                 }
