@@ -70,7 +70,7 @@ public sealed class CriptoVersusBlockchainOptions
         => UsesOnChainContract && EnableOnChainDeposits;
 
     public bool IsOnChainWithdrawalFlowEnabled()
-        => UsesOnChainContract && EnableOnChainWithdrawals;
+        => EnableOnChainWithdrawals && (UsesOnChainContract || IsOffChainCustodyMode);
 
     public bool IsOnChainBetFlowEnabled()
         => UsesOnChainContract && EnableOnChainBets;

@@ -910,23 +910,32 @@
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(chainResult.signature))
+            if (IsOffChainCustodyMode)
+            {
+                _actionMessage = "Wallet autorizou o resgate. Enviando saque real da custodia para sua carteira...";
+                await InvokeAsync(StateHasChanged);
+            }
+            else if (string.IsNullOrWhiteSpace(chainResult.signature))
             {
                 _actionMessage = "Erro ao confirmar o resgate na wallet.";
                 return;
             }
+            else
+            {
+                _actionMessage = $"Transacao enviada: {chainResult.signature}";
+                await InvokeAsync(StateHasChanged);
 
-            _actionMessage = $"Transacao enviada: {chainResult.signature}";
-            await InvokeAsync(StateHasChanged);
-
-            _actionMessage = $"Transacao confirmada: {chainResult.signature}";
-            await InvokeAsync(StateHasChanged);
+                _actionMessage = $"Transacao confirmada: {chainResult.signature}";
+                await InvokeAsync(StateHasChanged);
+            }
 
             var result = await Api.WithdrawSystemBalanceAsync(new WithdrawSystemBalanceRequest
             {
                 Amount = _wallet.SystemBalance,
                 OnChainSignature = chainResult.signature,
-                ConnectedWalletPublicKey = chainResult.connectedWallet
+                ConnectedWalletPublicKey = chainResult.connectedWallet,
+                WalletProofMessage = chainResult.proofMessage,
+                WalletProofSignature = chainResult.proofSignature
             });
 
             _actionMessage = result?.Message ?? "Resgate concluido.";
@@ -1141,6 +1150,8 @@
         public string? signature { get; set; }
         public string? connectedWallet { get; set; }
         public string? confirmationStatus { get; set; }
+        public string? proofMessage { get; set; }
+        public string? proofSignature { get; set; }
     }
 
     private static string ResolveWithdrawErrorMessage(Exception ex)

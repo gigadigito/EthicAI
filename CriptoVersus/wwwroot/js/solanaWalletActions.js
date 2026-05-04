@@ -40,6 +40,16 @@ function errorWithdraw(message, ...args) {
     console.error(`[CRYPTO_WITHDRAW][ERRO] ${message}`, ...args);
 }
 
+function bytesToBase64(bytes) {
+    const array = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    let binary = "";
+    for (const byte of array) {
+        binary += String.fromCharCode(byte);
+    }
+
+    return btoa(binary);
+}
+
 function u64Le(value) {
     const bytes = new Uint8Array(8);
     const view = new DataView(bytes.buffer);
@@ -267,6 +277,30 @@ export async function withdrawSystemBalance(options) {
         throw new Error("carteira diferente da conta");
     }
 
+    if (mode === "OffChainCustody") {
+        if (typeof provider.signMessage !== "function") {
+            throw new Error("wallet sem suporte a assinatura de mensagem");
+        }
+
+        const proofMessage =
+            `CriptoVersus withdraw authorization\nwallet:${connectedWallet}\namount:${amountSol}\ncluster:${cluster}\nts:${Date.now()}`;
+        const encodedMessage = new TextEncoder().encode(proofMessage);
+        const signedMessage = await provider.signMessage(encodedMessage, "utf8");
+        const proofSignature = bytesToBase64(signedMessage.signature || signedMessage);
+        logWithdraw("assinatura de autorizacao gerada", true);
+
+        return {
+            connectedWallet,
+            cluster,
+            mode,
+            supported: true,
+            signature: null,
+            proofMessage,
+            proofSignature,
+            confirmationStatus: "wallet-signed"
+        };
+    }
+
     if (mode !== "HybridContractCustody") {
         warnWithdraw(`modo ${mode} nao suporta withdraw on-chain automatico.`);
         return {
@@ -331,6 +365,8 @@ export async function withdrawSystemBalance(options) {
         mode,
         supported: true,
         signature,
+        proofMessage: null,
+        proofSignature: null,
         confirmationStatus,
         amountLamports: amountLamports.toString(),
         userAccount: userAccount.toBase58(),

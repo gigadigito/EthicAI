@@ -172,6 +172,7 @@ public sealed class SystemBalanceWithdrawalServiceTests
             db,
             new LedgerService(db),
             verifier,
+            new FakeCustodyTransferService(),
             options,
             NullLogger<SystemBalanceWithdrawalService>.Instance);
     }
@@ -227,5 +228,11 @@ public sealed class SystemBalanceWithdrawalServiceTests
                     ? OnChainWithdrawalVerificationResult.Success("ok", "devnet", expectedWallet, 1_000_000_000)
                     : OnChainWithdrawalVerificationResult.Failure(_code, _message));
         }
+    }
+
+    private sealed class FakeCustodyTransferService : ICustodySolTransferService
+    {
+        public Task<string> TransferAsync(string destinationWallet, decimal amount, CancellationToken ct = default)
+            => Task.FromResult("custody-sig");
     }
 }

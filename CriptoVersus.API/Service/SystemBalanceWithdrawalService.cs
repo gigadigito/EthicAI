@@ -60,6 +60,7 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
     private readonly EthicAIDbContext _context;
     private readonly ILedgerService _ledgerService;
     private readonly IOnChainWithdrawalVerifier _withdrawalVerifier;
+    private readonly ICustodySolTransferService _custodySolTransferService;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
     private readonly ILogger<SystemBalanceWithdrawalService> _logger;
 
@@ -67,12 +68,14 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
         EthicAIDbContext context,
         ILedgerService ledgerService,
         IOnChainWithdrawalVerifier withdrawalVerifier,
+        ICustodySolTransferService custodySolTransferService,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions,
         ILogger<SystemBalanceWithdrawalService> logger)
     {
         _context = context;
         _ledgerService = ledgerService;
         _withdrawalVerifier = withdrawalVerifier;
+        _custodySolTransferService = custodySolTransferService;
         _blockchainOptions = blockchainOptions.Value;
         _logger = logger;
     }
@@ -85,6 +88,9 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
         var amount = RoundMoney(request.Amount);
         var connectedWallet = request.ConnectedWalletPublicKey?.Trim();
         var signature = request.OnChainSignature?.Trim();
+        var requestMarker = !string.IsNullOrWhiteSpace(signature)
+            ? signature
+            : $"proof-{ComputeHash(request.WalletProofSignature ?? connectedWallet ?? authenticatedUser.Wallet)}";
 
         if (authenticatedUser is null)
             throw new WithdrawalFlowException(StatusCodes.Status401Unauthorized, "UNAUTHENTICATED", "Usuario autenticado nao encontrado.");
@@ -115,7 +121,16 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
         }
 
         if (string.IsNullOrWhiteSpace(signature))
-            throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, "MISSING_ONCHAIN_SIGNATURE", "A assinatura on-chain do resgate e obrigatoria.");
+        {
+            if (_blockchainOptions.IsOffChainCustodyMode)
+            {
+                ValidateWalletProof(request, authenticatedUser.Wallet, amount);
+            }
+            else
+            {
+                throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, "MISSING_ONCHAIN_SIGNATURE", "A assinatura on-chain do resgate e obrigatoria.");
+            }
+        }
 
         var strategy = _context.Database.CreateExecutionStrategy();
         WalletActionResultDto? response = null;
@@ -134,7 +149,7 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
                     if (user.Balance < amount)
                         throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, "INSUFFICIENT_SYSTEM_BALANCE", "Saldo insuficiente.");
 
-                    if (await HasSignatureBeenCompletedAsync(signature, ct))
+                    if (!string.IsNullOrWhiteSpace(signature) && await HasSignatureBeenCompletedAsync(signature, ct))
                         throw new WithdrawalFlowException(StatusCodes.Status409Conflict, "DUPLICATE_SIGNATURE", "Essa assinatura ja foi utilizada em um resgate anterior.");
 
                     await _ledgerService.AddEntryAsync(
@@ -143,14 +158,19 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
                         0m,
                         user.Balance,
                         user.Balance,
-                        description: BuildLedgerDescription(signature, amount, connectedWallet, "requested", null),
+                        description: BuildLedgerDescription(requestMarker, amount, connectedWallet, "requested", null),
                         ct: ct);
 
-                    var verification = await _withdrawalVerifier.VerifyAsync(signature, user.Wallet, amount, ct);
+                    if (_blockchainOptions.IsOffChainCustodyMode)
+                    {
+                        signature = await _custodySolTransferService.TransferAsync(user.Wallet, amount, ct);
+                    }
+
+                    var verification = await _withdrawalVerifier.VerifyAsync(signature!, user.Wallet, amount, ct);
                     if (!verification.Succeeded)
                         throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, verification.Code, verification.Message);
 
-                    if (await HasSignatureBeenCompletedAsync(signature, ct))
+                    if (await HasSignatureBeenCompletedAsync(signature!, ct))
                         throw new WithdrawalFlowException(StatusCodes.Status409Conflict, "DUPLICATE_SIGNATURE", "Essa assinatura ja foi utilizada em um resgate anterior.");
 
                     var balanceBefore = user.Balance;
@@ -166,10 +186,10 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
                         balanceBefore,
                         user.Balance,
                         description: BuildLedgerDescription(
-                            signature,
-                            amount,
-                            connectedWallet,
-                            "confirmed",
+                        signature!,
+                        amount,
+                        connectedWallet,
+                        "confirmed",
                             $"cluster={verification.Cluster}; destination={verification.DestinationWallet}; lamports={verification.Lamports}"),
                         ct: ct);
 
@@ -180,7 +200,7 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
                         user.UserID,
                         user.Wallet,
                         amount,
-                        signature,
+                        signature!,
                         verification.Cluster);
 
                     response = new WalletActionResultDto
@@ -201,12 +221,12 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
         }
         catch (WithdrawalFlowException ex)
         {
-            await TryRegisterFailureAsync(authenticatedUser, signature, amount, connectedWallet, ex.Code, ex.Message, ct);
+            await TryRegisterFailureAsync(authenticatedUser, requestMarker, amount, connectedWallet, ex.Code, ex.Message, ct);
             throw;
         }
         catch (Exception ex)
         {
-            await TryRegisterFailureAsync(authenticatedUser, signature, amount, connectedWallet, "WITHDRAW_UNEXPECTED_FAILURE", ex.Message, ct);
+            await TryRegisterFailureAsync(authenticatedUser, requestMarker, amount, connectedWallet, "WITHDRAW_UNEXPECTED_FAILURE", ex.Message, ct);
             throw;
         }
 
@@ -329,6 +349,67 @@ public sealed class SystemBalanceWithdrawalService : ISystemBalanceWithdrawalSer
 
     private static decimal RoundMoney(decimal value)
         => Math.Round(value, 8, MidpointRounding.ToZero);
+
+    private static void ValidateWalletProof(WithdrawSystemBalanceRequest request, string expectedWallet, decimal amount)
+    {
+        if (string.IsNullOrWhiteSpace(request.WalletProofMessage) || string.IsNullOrWhiteSpace(request.WalletProofSignature))
+            throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, "MISSING_WALLET_PROOF", "A wallet precisa assinar a autorizacao do saque.");
+
+        var message = request.WalletProofMessage!;
+        if (!message.Contains(expectedWallet, StringComparison.Ordinal)
+            || !message.Contains(amount.ToString("0.########", CultureInfo.InvariantCulture), StringComparison.Ordinal))
+        {
+            throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, "INVALID_WALLET_PROOF", "A prova assinada da wallet nao corresponde ao saque solicitado.");
+        }
+
+        try
+        {
+            _ = Base58Decode(request.ConnectedWalletPublicKey ?? expectedWallet);
+            _ = Convert.FromBase64String(request.WalletProofSignature!);
+        }
+        catch (Exception)
+        {
+            throw new WithdrawalFlowException(StatusCodes.Status400BadRequest, "INVALID_WALLET_PROOF", "A assinatura da wallet nao foi validada.");
+        }
+    }
+
+    private static byte[] Base58Decode(string value)
+    {
+        const string alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        var output = new List<byte> { 0 };
+
+        foreach (var c in value)
+        {
+            var carry = alphabet.IndexOf(c);
+            if (carry < 0)
+                throw new FormatException("Base58 invalido.");
+
+            for (var i = 0; i < output.Count; i++)
+            {
+                var current = output[i] * 58 + carry;
+                output[i] = (byte)(current & 0xff);
+                carry = current >> 8;
+            }
+
+            while (carry > 0)
+            {
+                output.Add((byte)(carry & 0xff));
+                carry >>= 8;
+            }
+        }
+
+        foreach (var _ in value.TakeWhile(ch => ch == '1'))
+            output.Add(0);
+
+        output.Reverse();
+        return output.ToArray();
+    }
+
+    private static string ComputeHash(string value)
+    {
+        using var sha = SHA256.Create();
+        return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(value)));
+    }
 }
 
 public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
@@ -416,7 +497,11 @@ public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
         if (!accountKeys.Contains(expectedWallet, StringComparer.Ordinal))
             return OnChainWithdrawalVerificationResult.Failure("WALLET_MISMATCH", "A transacao nao pertence a wallet autenticada.");
 
-        if (!TryFindMatchingWithdrawInstruction(messageElement, expectedWallet, lamportsExpected, out var destinationWallet))
+        var valid = _options.IsOffChainCustodyMode
+            ? TryFindMatchingOffChainTransferInstruction(messageElement, expectedWallet, lamportsExpected, out var destinationWallet)
+            : TryFindMatchingWithdrawInstruction(messageElement, expectedWallet, lamportsExpected, out destinationWallet);
+
+        if (!valid)
         {
             return OnChainWithdrawalVerificationResult.Failure(
                 "WITHDRAW_PROOF_INVALID",
@@ -486,6 +571,59 @@ public sealed class OnChainWithdrawalVerifier : IOnChainWithdrawalVerifier
                 continue;
 
             destinationWallet = expectedWallet;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryFindMatchingOffChainTransferInstruction(
+        JsonElement messageElement,
+        string expectedWallet,
+        long expectedLamports,
+        out string destinationWallet)
+    {
+        destinationWallet = expectedWallet;
+
+        if (!messageElement.TryGetProperty("instructions", out var instructionsElement)
+            || instructionsElement.ValueKind != JsonValueKind.Array)
+            return false;
+
+        foreach (var instruction in instructionsElement.EnumerateArray())
+        {
+            var program = instruction.TryGetProperty("program", out var programElement)
+                ? programElement.GetString()
+                : null;
+            if (!string.Equals(program, "system", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!instruction.TryGetProperty("parsed", out var parsedElement)
+                || !parsedElement.TryGetProperty("type", out var typeElement)
+                || !string.Equals(typeElement.GetString(), "transfer", StringComparison.OrdinalIgnoreCase)
+                || !parsedElement.TryGetProperty("info", out var infoElement))
+            {
+                continue;
+            }
+
+            var source = infoElement.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() : null;
+            var destination = infoElement.TryGetProperty("destination", out var destinationElement) ? destinationElement.GetString() : null;
+            if (!string.Equals(source, _options.CustodyWalletPublicKey, StringComparison.Ordinal)
+                || !string.Equals(destination, expectedWallet, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!infoElement.TryGetProperty("lamports", out var lamportsElement))
+                continue;
+
+            var lamports = lamportsElement.ValueKind == JsonValueKind.String
+                ? long.Parse(lamportsElement.GetString()!)
+                : lamportsElement.GetInt64();
+
+            if (lamports != expectedLamports)
+                continue;
+
+            destinationWallet = destination!;
             return true;
         }
 

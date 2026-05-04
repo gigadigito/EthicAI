@@ -10,6 +10,8 @@ public sealed class WithdrawSystemBalanceRequest
     public decimal Amount { get; set; }
     public string? OnChainSignature { get; set; }
     public string? ConnectedWalletPublicKey { get; set; }
+    public string? WalletProofMessage { get; set; }
+    public string? WalletProofSignature { get; set; }
 }
 
 public sealed class WalletActionResultDto

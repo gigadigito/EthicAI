@@ -16,6 +16,7 @@ builder.Services.AddScoped<ILedgerService, LedgerService>();
 builder.Services.AddHttpClient<IOffChainCustodyTransferVerifier, OffChainCustodyTransferVerifier>();
 builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVerifier>();
 builder.Services.AddScoped<ISystemBalanceWithdrawalService, SystemBalanceWithdrawalService>();
+builder.Services.AddScoped<ICustodySolTransferService, CustodySolTransferService>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
