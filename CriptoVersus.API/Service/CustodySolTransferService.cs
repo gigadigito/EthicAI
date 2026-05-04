@@ -47,7 +47,7 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
             : _options.RpcUrl;
 
         var lamports = (ulong)Math.Round(amount * 1_000_000_000m, 0, MidpointRounding.ToZero);
-        var privateKeyBytes = ParseSecretKey(secretKeyValue);
+        var privateKeyBytes = NormalizePrivateKey(ParseSecretKey(secretKeyValue));
         var custodyPublicKey = new SolanaPublicKey(_options.CustodyWalletPublicKey);
         var account = new Account(privateKeyBytes, custodyPublicKey.KeyBytes);
         var rpcClient = ClientFactory.GetClient(rpcUrl);
@@ -89,6 +89,17 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
         {
             return Base58Decode(secretKeyValue);
         }
+    }
+
+    private static byte[] NormalizePrivateKey(byte[] keyBytes)
+    {
+        if (keyBytes.Length == 32)
+            return keyBytes;
+
+        if (keyBytes.Length == 64)
+            return keyBytes.Take(32).ToArray();
+
+        throw new InvalidOperationException($"A chave da custodia precisa ter 32 ou 64 bytes apos decodificacao. Tamanho recebido: {keyBytes.Length}.");
     }
 
     private static byte[] Base58Decode(string value)
