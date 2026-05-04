@@ -172,8 +172,16 @@ public sealed class CriptoVersusApiClient
 
     private async Task AddBearerTokenAsync(HttpRequestMessage request)
     {
-        var token = await _sessionStorage.GetItemAsync<string>("authToken");
-        if (!string.IsNullOrWhiteSpace(token))
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        try
+        {
+            var token = await _sessionStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrWhiteSpace(token))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+        catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+        {
+            // Em prerender/middleware server-side nao ha SessionStorage disponivel.
+            // Nesses cenarios seguimos sem bearer e deixamos a rota publica responder.
+        }
     }
 }

@@ -4,6 +4,8 @@
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject WalletSessionState WalletState
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <InitialBrandLoader IsVisible="_showInitialLoader"
                     Hidden="HandleLoaderHiddenAsync" />
@@ -30,7 +32,12 @@
             else
             {
                 <button class="wallet-button" @onclick="AbrirLoginAsync">
-                    Login com Solana
+                    <span class="phantom-button-content">
+                        <span class="phantom-mark" aria-hidden="true">
+                            <img src="/img/phantom-logo.png" alt="" />
+                        </span>
+                        <span>Entrar com Phantom</span>
+                    </span>
                 </button>
             }
         </header>
@@ -51,12 +58,39 @@
     <a class="dismiss">x</a>
 </div>
 
+<style>
+    .phantom-button-content {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        line-height: 1;
+    }
+
+    .phantom-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 20px;
+        flex: 0 0 32px;
+    }
+
+    .phantom-mark img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+    }
+</style>
+
 @code {
     private SolanaLoginModal? loginModal;
     private string? authToken;
     private string? walletPublicKey;
     private bool _showInitialLoader = true;
     private readonly DateTime _loaderStartedUtc = DateTime.UtcNow;
+    private IJSObjectReference? _walletActionsModule;
+    private DotNetObjectReference<MainLayout>? _walletObserverRef;
 
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
@@ -70,6 +104,7 @@
         try
         {
             await LoadLoginSessionAsync();
+            await SyncWalletObserverAsync();
             StateHasChanged();
         }
         catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
@@ -100,12 +135,63 @@
     private async Task HandleLoginSucceededAsync()
     {
         await LoadLoginSessionAsync();
+        await SyncWalletObserverAsync();
         Nav.NavigateTo("/minha-carteira");
     }
 
     private async Task HandleSessionChangedAsync()
     {
         await LoadLoginSessionAsync();
+        await SyncWalletObserverAsync();
+    }
+
+    private async Task SyncWalletObserverAsync()
+    {
+        _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/solanaWalletActions.js?v=20260504-wallet-observer");
+
+        if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
+        {
+            await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
+            return;
+        }
+
+        _walletObserverRef ??= DotNetObjectReference.Create(this);
+
+        await _walletActionsModule.InvokeAsync<bool>(
+            "registerWalletObserver",
+            _walletObserverRef,
+            new
+            {
+                expectedWallet = walletPublicKey,
+                cluster = "session"
+            });
+    }
+
+    [JSInvokable]
+    public async Task HandleWalletProviderSessionChanged(WalletProviderStateChange state)
+    {
+        if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
+            return;
+
+        if (string.Equals(state.status, "connected", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await SessionStorage.RemoveItemAsync("authToken");
+        await SessionStorage.RemoveItemAsync("userId");
+        await SessionStorage.RemoveItemAsync("walletPublicKey");
+
+        authToken = null;
+        walletPublicKey = null;
+        WalletState.SetSession(null, null);
+
+        if (_walletActionsModule is not null)
+        {
+            await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HideInitialLoaderWhenReadyAsync()
@@ -137,5 +223,33 @@
             return wallet;
 
         return $"{wallet[..start]}...{wallet[^end..]}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_walletActionsModule is not null)
+        {
+            try
+            {
+                await _walletActionsModule.InvokeVoidAsync("unregisterWalletObserver");
+            }
+            catch
+            {
+                // Ignora falhas de teardown do observer JS.
+            }
+
+            await _walletActionsModule.DisposeAsync();
+        }
+
+        _walletObserverRef?.Dispose();
+    }
+
+    public sealed class WalletProviderStateChange
+    {
+        public string? status { get; set; }
+        public string? reason { get; set; }
+        public string? connectedWallet { get; set; }
+        public string? expectedWallet { get; set; }
+        public string? cluster { get; set; }
     }
 }

@@ -80,16 +80,16 @@ a:hover,
 }
 
 .btn-primary {
-    background-color: #2dd4bf;
-    border-color: #5eead4;
-    color: #07110c;
+    background: linear-gradient(180deg, #4b146b 0%, #2e0943 100%);
+    border-color: #a78bfa;
+    color: #f8fafc;
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-    background-color: #22c55e;
-    border-color: #34d399;
-    color: #07110c;
+    background: linear-gradient(180deg, #5b1a82 0%, #3a0c56 100%);
+    border-color: #c4b5fd;
+    color: #f8fafc;
 }
 
 .btn:focus,
@@ -98,7 +98,7 @@ a:hover,
 .form-control:focus,
 .form-select:focus,
 .form-check-input:focus {
-    box-shadow: 0 0 0 .2rem rgba(45, 212, 191, .24);
+    box-shadow: 0 0 0 .2rem rgba(167, 139, 250, .28);
 }
 
 .card {

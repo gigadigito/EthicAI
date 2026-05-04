@@ -7,6 +7,7 @@
 @inject IConfiguration Config
 @inject IJSRuntime JS
 @inject BrowserTimeZoneService BrowserTimeZone
+@inject WalletSessionState WalletState
 @implements IAsyncDisposable
 
 <section class="wallet-page">
@@ -824,6 +825,11 @@
         }
     }
 
+    protected override void OnInitialized()
+    {
+        WalletState.Changed += HandleWalletStateChanged;
+    }
+
     private async Task LoadWalletAsync()
     {
         _loading = true;
@@ -1138,6 +1144,8 @@
 
     public async ValueTask DisposeAsync()
     {
+        WalletState.Changed -= HandleWalletStateChanged;
+
         if (_walletBalanceModule is not null)
             await _walletBalanceModule.DisposeAsync();
 
@@ -1172,5 +1180,22 @@
             return $"Erro ao confirmar o resgate: {message}";
 
         return $"Erro ao confirmar o resgate: {message}";
+    }
+
+    private void HandleWalletStateChanged()
+    {
+        if (!string.IsNullOrWhiteSpace(WalletState.AuthToken))
+            return;
+
+        _wallet = null;
+        _loading = false;
+        _error = "A carteira conectada foi alterada ou desconectada. Faca login novamente com a wallet atual.";
+        _actionMessage = null;
+        _actionBusy = false;
+        _onChainBalance = null;
+        _onChainBalanceError = null;
+        _copyMessage = null;
+
+        _ = InvokeAsync(StateHasChanged);
     }
 }

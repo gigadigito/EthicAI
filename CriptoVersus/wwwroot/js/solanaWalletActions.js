@@ -40,6 +40,8 @@ function errorWithdraw(message, ...args) {
     console.error(`[CRYPTO_WITHDRAW][ERRO] ${message}`, ...args);
 }
 
+let walletObserverState = null;
+
 function bytesToBase64(bytes) {
     const array = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
     let binary = "";
@@ -74,6 +76,130 @@ function concatBytes(...parts) {
     }
 
     return result;
+}
+
+function providerPublicKeyToBase58(provider) {
+    if (!provider?.publicKey) {
+        return null;
+    }
+
+    if (typeof provider.publicKey.toBase58 === "function") {
+        return provider.publicKey.toBase58();
+    }
+
+    return provider.publicKey.toString?.() || null;
+}
+
+function removeProviderListener(provider, eventName, handler) {
+    if (!provider || !handler) {
+        return;
+    }
+
+    if (typeof provider.off === "function") {
+        provider.off(eventName, handler);
+        return;
+    }
+
+    if (typeof provider.removeListener === "function") {
+        provider.removeListener(eventName, handler);
+    }
+}
+
+async function notifyWalletObserver(reason) {
+    if (!walletObserverState?.dotNetRef || !walletObserverState.provider) {
+        return;
+    }
+
+    const provider = walletObserverState.provider;
+    const connectedWallet = providerPublicKeyToBase58(provider);
+    const isConnected = !!provider.isConnected && !!connectedWallet;
+    let status = "connected";
+
+    if (!isConnected) {
+        status = "disconnected";
+    } else if (walletObserverState.expectedWallet && connectedWallet !== walletObserverState.expectedWallet) {
+        status = "wallet_changed";
+    }
+
+    await walletObserverState.dotNetRef.invokeMethodAsync("HandleWalletProviderSessionChanged", {
+        status,
+        reason,
+        connectedWallet,
+        expectedWallet: walletObserverState.expectedWallet,
+        cluster: walletObserverState.expectedCluster
+    });
+}
+
+function queueWalletObserverNotification(reason) {
+    void notifyWalletObserver(reason);
+}
+
+export function unregisterWalletObserver() {
+    if (!walletObserverState) {
+        return;
+    }
+
+    const { provider, handlers } = walletObserverState;
+
+    if (provider && handlers) {
+        removeProviderListener(provider, "connect", handlers.connect);
+        removeProviderListener(provider, "disconnect", handlers.disconnect);
+        removeProviderListener(provider, "accountChanged", handlers.accountChanged);
+        removeProviderListener(provider, "accountsChanged", handlers.accountsChanged);
+    }
+
+    if (handlers?.focus) {
+        window.removeEventListener("focus", handlers.focus);
+    }
+
+    if (handlers?.visibilityChange) {
+        document.removeEventListener("visibilitychange", handlers.visibilityChange);
+    }
+
+    walletObserverState = null;
+}
+
+export function registerWalletObserver(dotNetRef, options) {
+    unregisterWalletObserver();
+
+    const provider = window.solana;
+    if (!provider?.isPhantom || typeof dotNetRef?.invokeMethodAsync !== "function") {
+        return false;
+    }
+
+    const handlers = {
+        connect: () => queueWalletObserverNotification("connect"),
+        disconnect: () => queueWalletObserverNotification("disconnect"),
+        accountChanged: () => queueWalletObserverNotification("accountChanged"),
+        accountsChanged: () => queueWalletObserverNotification("accountsChanged"),
+        focus: () => queueWalletObserverNotification("focus"),
+        visibilityChange: () => {
+            if (document.visibilityState === "visible") {
+                queueWalletObserverNotification("visibilitychange");
+            }
+        }
+    };
+
+    if (typeof provider.on === "function") {
+        provider.on("connect", handlers.connect);
+        provider.on("disconnect", handlers.disconnect);
+        provider.on("accountChanged", handlers.accountChanged);
+        provider.on("accountsChanged", handlers.accountsChanged);
+    }
+
+    window.addEventListener("focus", handlers.focus);
+    document.addEventListener("visibilitychange", handlers.visibilityChange);
+
+    walletObserverState = {
+        dotNetRef,
+        provider,
+        expectedWallet: options?.expectedWallet || null,
+        expectedCluster: options?.cluster || null,
+        handlers
+    };
+
+    queueWalletObserverNotification("register");
+    return true;
 }
 
 async function sendAndConfirm(connection, provider, transaction) {

@@ -14,21 +14,26 @@
 
                 <div class="modal-header">
                     <div>
-                        <div class="modal-kicker">Carteira Solana</div>
-                        <h5 class="modal-title">Login com Solana</h5>
+                        <div class="modal-kicker">Carteira Phantom</div>
+                        <h5 class="modal-title">Entrar com Phantom</h5>
                     </div>
                     <button type="button" class="btn-close" @onclick="Close"></button>
                 </div>
 
                 <div class="modal-body">
                     <p class="modal-helper">
-                        Conecte sua carteira para investir e acompanhar suas posições na CriptoVersus.
+                        Conecte sua Phantom para investir e acompanhar suas posições na CriptoVersus.
                     </p>
 
                     @if (string.IsNullOrEmpty(publicKey))
                     {
                         <button class="btn btn-primary w-100 wallet-connect-button" @onclick="ConnectAsync">
-                            Conectar Phantom
+                            <span class="phantom-button-content">
+                                <span class="phantom-mark" aria-hidden="true">
+                                    <img src="/img/phantom-logo.png" alt="" />
+                                </span>
+                                <span>Entrar com Phantom</span>
+                            </span>
                         </button>
                     }
                     else
@@ -126,7 +131,7 @@
         {
             module = await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWallet.js");
+                "./js/solanawallet.js");
         }
     }
 
@@ -402,6 +407,32 @@
 }
 
 <style>
+    .phantom-button-content {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        line-height: 1;
+    }
+
+    .phantom-mark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 20px;
+        flex: 0 0 32px;
+    }
+
+    .phantom-mark img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+    }
+</style>
+
+<style>
     .solana-login-modal {
         background: #111318;
         border: 1px solid #303741;
@@ -443,7 +474,12 @@
     }
 
     .wallet-connect-button {
-        min-height: 2.75rem;
+        height: 32px;
+        max-height: 32px;
+        min-height: 32px;
+        line-height: 1;
+        padding-top: .15rem;
+        padding-bottom: .15rem;
     }
 
     .wallet-alert {

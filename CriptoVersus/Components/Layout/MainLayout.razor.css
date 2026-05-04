@@ -152,23 +152,27 @@ main {
 }
 
 .wallet-button {
-    background: #22c55e;
-    border: 1px solid #34d399;
+    background: linear-gradient(180deg, #4b146b 0%, #2e0943 100%);
+    border: 1px solid #a78bfa;
     border-radius: 8px;
-    color: #07110c;
+    color: #f8fafc;
+    font-size: .9rem;
     font-weight: 900;
-    min-height: 2.5rem;
-    padding: .55rem .9rem;
+    height: 32px;
+    max-height: 32px;
+    min-height: 32px;
+    line-height: 1;
+    padding: .15rem .75rem;
     white-space: nowrap;
 }
 
 .wallet-button:hover {
-    background: #2dd4bf;
-    border-color: #5eead4;
+    background: linear-gradient(180deg, #5b1a82 0%, #3a0c56 100%);
+    border-color: #c4b5fd;
 }
 
 .wallet-button:focus-visible {
-    outline: 3px solid rgba(45, 212, 191, .35);
+    outline: 3px solid rgba(167, 139, 250, .35);
     outline-offset: 2px;
 }
 

@@ -2499,8 +2499,8 @@
         return $"{mm:00}:{ss:00}.{ms:000}";
     }
 
-    private readonly List<MatchMetricSnapshotDto> _metricSnapshots = new();
-    private readonly List<MatchScoreEventDto> _scoreEvents = new();
+    private List<MatchMetricSnapshotDto> _metricSnapshots = new();
+    private List<MatchScoreEventDto> _scoreEvents = new();
     private ChartSeriesState _percentageChart = ChartSeriesState.Empty;
     private ChartSeriesState _volumeChart = ChartSeriesState.Empty;
 
@@ -2508,8 +2508,8 @@
     {
         if (_match is null)
         {
-            _metricSnapshots.Clear();
-            _scoreEvents.Clear();
+            _metricSnapshots = new();
+            _scoreEvents = new();
             _percentageChart = ChartSeriesState.Empty;
             _volumeChart = ChartSeriesState.Empty;
             return;
@@ -2523,15 +2523,18 @@
         var snapshots = snapshotsTask.Result ?? [];
         var scoreEvents = scoreEventsTask.Result ?? [];
 
-        _metricSnapshots.Clear();
-        _metricSnapshots.AddRange(snapshots
+        var orderedSnapshots = snapshots
             .OrderBy(x => x.CapturedAtUtc)
-            .ThenBy(x => x.TeamId));
+            .ThenBy(x => x.TeamId)
+            .ToList();
 
-        _scoreEvents.Clear();
-        _scoreEvents.AddRange(scoreEvents
+        var orderedScoreEvents = scoreEvents
             .OrderBy(x => x.EventSequence)
-            .ThenBy(x => x.EventTimeUtc));
+            .ThenBy(x => x.EventTimeUtc)
+            .ToList();
+
+        _metricSnapshots = orderedSnapshots;
+        _scoreEvents = orderedScoreEvents;
 
         _percentageChart = BuildChartState(
             _metricSnapshots,
