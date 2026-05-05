@@ -281,9 +281,14 @@ public sealed class RoadmapContentService
     private string ResolveBaseUrl(string? fallbackBaseUri)
     {
         var configuredBaseUrl = _configuration["CriptoVersus:PublicBaseUrl"];
-        return !string.IsNullOrWhiteSpace(configuredBaseUrl)
-            ? configuredBaseUrl.TrimEnd('/')
-            : (fallbackBaseUri ?? "https://criptoversus.com").TrimEnd('/');
+        var baseUrl = !string.IsNullOrWhiteSpace(configuredBaseUrl)
+            ? configuredBaseUrl
+            : fallbackBaseUri;
+
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            throw new InvalidOperationException("Configure CriptoVersus:PublicBaseUrl para gerar URLs absolutas do roadmap.");
+
+        return baseUrl.TrimEnd('/');
     }
 
     private static string BuildAbsoluteUrl(string baseUrl, string path)

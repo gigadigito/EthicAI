@@ -30,6 +30,7 @@ namespace CriptoVersus.Worker
         private readonly ILogger<Worker> _logger;
         private readonly IServiceProvider _sp;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
         private readonly CriptoVersusWorkerOptions _options;
 
         private const string WorkerName = "CriptoVersus.Worker";
@@ -58,11 +59,13 @@ namespace CriptoVersus.Worker
             ILogger<Worker> logger,
             IServiceProvider sp,
             IHttpClientFactory httpClientFactory,
+            IConfiguration configuration,
             IOptions<CriptoVersusWorkerOptions> options)
         {
             _logger = logger;
             _sp = sp;
             _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
             _options = options.Value;
         }
 
@@ -1959,8 +1962,22 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
         private async Task WaitForPostgresAsync(CancellationToken ct)
         {
-            const string host = "postgres";
-            const int port = 5432;
+            var connectionString = _configuration.GetConnectionString("Default");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                _logger.LogWarning("⚠️ ConnectionStrings:Default não configurada. O worker vai continuar.");
+                return;
+            }
+
+            var csb = new NpgsqlConnectionStringBuilder(connectionString);
+            var host = csb.Host?.Trim();
+            var port = csb.Port;
+
+            if (string.IsNullOrWhiteSpace(host) || port <= 0)
+            {
+                _logger.LogWarning("⚠️ ConnectionStrings:Default sem Host/Port válidos. O worker vai continuar.");
+                return;
+            }
 
             var deadline = DateTime.UtcNow.AddMinutes(3);
             var attempt = 0;

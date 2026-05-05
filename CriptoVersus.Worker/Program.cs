@@ -13,6 +13,9 @@ using BLL.Blockchain;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+
+
+
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false)
@@ -21,6 +24,25 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 CriptoVersus.Worker.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builder.Configuration, builder.Environment);
+
+
+var env = builder.Environment.EnvironmentName;
+var db = builder.Configuration.GetConnectionString("Default");
+var cluster = builder.Configuration["CriptoVersusBlockchain:Cluster"];
+var rpcUrl = builder.Configuration["CriptoVersusBlockchain:RpcUrl"];
+var wallet = builder.Configuration["CriptoVersusBlockchain:CustodyWalletPublicKey"];
+var interval = builder.Configuration["CriptoVersusWorker:IntervalSeconds"];
+
+Console.ForegroundColor = ConsoleColor.Yellow;
+Console.WriteLine("=================================");
+Console.WriteLine($"WORKER ENV: {env}");
+Console.WriteLine($"DB: {db}");
+Console.WriteLine($"Cluster: {cluster}");
+Console.WriteLine($"RpcUrl: {rpcUrl}");
+Console.WriteLine($"Custody Wallet: {wallet}");
+Console.WriteLine($"Worker Interval: {interval}");
+Console.WriteLine("=================================");
+Console.ResetColor();
 
 builder.Services.AddHttpClient();
 builder.Services.Configure<CriptoVersusWorkerOptions>(

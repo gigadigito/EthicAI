@@ -18,6 +18,9 @@ var env = builder.Environment.EnvironmentName;
 var db = builder.Configuration.GetConnectionString("Default");
 var workerInterval = builder.Configuration["CriptoVersusWorker:IntervalSeconds"];
 var blockchainMode = builder.Configuration["CriptoVersusBlockchain:Mode"];
+var adminWallet = builder.Configuration["CriptoVersus:AdminWallet"];
+var custodyWallet = builder.Configuration["CriptoVersusBlockchain:CustodyWalletPublicKey"];
+
 
 Console.ForegroundColor = ConsoleColor.Green;
 Console.WriteLine("=================================");
@@ -25,6 +28,8 @@ Console.WriteLine($"ENV: {env}");
 Console.WriteLine($"DB: {db}");
 Console.WriteLine($"Worker Interval: {workerInterval}");
 Console.WriteLine($"Blockchain Mode: {blockchainMode}");
+Console.WriteLine($"Admin Wallet: {adminWallet}");
+Console.WriteLine($"Custody Wallet: {custodyWallet}");
 Console.WriteLine("=================================");
 Console.ResetColor();
 

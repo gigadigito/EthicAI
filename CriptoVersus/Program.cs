@@ -16,10 +16,25 @@ Console.WriteLine($"API BASE URL: {apiBaseUrl}");
 Console.WriteLine("=================================");
 Console.ResetColor();
 
-EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builder.Configuration, builder.Environment);
-
 if (string.IsNullOrWhiteSpace(apiBaseUrl))
     throw new InvalidOperationException("Api:BaseUrl não configurado.");
+
+
+if (builder.Environment.IsDevelopment())
+{
+    var api = builder.Configuration["Api:BaseUrl"] ?? "";
+    var cluster = builder.Configuration["CriptoVersusBlockchain:Cluster"] ?? "";
+    var wallet = builder.Configuration["CriptoVersusBlockchain:CustodyWalletPublicKey"] ?? "";
+
+    if (api.Contains("criptoversus.com"))
+        throw new Exception("🚨 DEV apontando para API de PRODUÇÃO");
+
+    if (cluster == "mainnet-beta")
+        throw new Exception("🚨 DEV usando MAINNET");
+
+    if (wallet.StartsWith("GHdFhv"))
+        throw new Exception("🚨 DEV usando wallet de PRODUÇÃO");
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
