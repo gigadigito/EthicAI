@@ -151,6 +151,19 @@ main {
     margin: 0;
 }
 
+.topbar-version {
+    background: rgba(45, 212, 191, .12);
+    border: 1px solid rgba(45, 212, 191, .28);
+    border-radius: 999px;
+    color: #99f6e4;
+    display: inline-flex;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    margin-top: .45rem;
+    padding: .18rem .5rem;
+}
+
 .wallet-button {
     background: linear-gradient(180deg, #4b146b 0%, #2e0943 100%);
     border: 1px solid #a78bfa;
