@@ -24,15 +24,20 @@ docker compose logs -f --tail 300 criptoversus-worker
 
 
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-4B737GWQYX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+cd /home/admin/stacks/criptoversus-web/src
+git status
+git pull origin main
+git log -1 --oneline
 
-  gtag('config', 'G-4B737GWQYX');
-</script>
+cd /home/admin/stacks/criptoversus-web
+docker compose down
+docker compose up -d --build
+docker compose logs -f --tail 300 criptoversus-web
+
+
+
+https://analytics.google.com/analytics/web/?authuser=2#/a393717876p536329093/realtime/pages?params=_u..nav%3Dmaui
+
 
 
 insert into "user" (

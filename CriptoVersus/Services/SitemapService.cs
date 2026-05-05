@@ -59,7 +59,8 @@ public sealed class SitemapService
         var entries = new List<SitemapEntry>
         {
             CreateEntry(baseUri, "/", now, "daily", "1.0"),
-            CreateEntry(baseUri, "/roadmap", now, "weekly", "0.8")
+            CreateEntry(baseUri, "/roadmap", now, "weekly", "0.8"),
+            CreateEntry(baseUri, "/tokenomics", now, "weekly", "0.8")
         };
 
         entries.AddRange(await GetMatchEntriesAsync(baseUri, ct));
