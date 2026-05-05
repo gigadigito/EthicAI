@@ -252,7 +252,9 @@ export async function prepareInvestment(options) {
         }
 
         const cluster = options.cluster || "devnet";
-        const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+        const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
+        const endpoint = rpcUrl || clusterApiUrl(cluster);
+        const connection = new Connection(endpoint, "confirmed");
         const teamId = Number(options.teamId);
         const matchId = options.matchId ?? null;
         const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
@@ -263,6 +265,7 @@ export async function prepareInvestment(options) {
         logInvest("Iniciando preparação de posição on-chain");
         logInvest("Wallet conectada:", provider.publicKey.toBase58());
         logInvest("Cluster:", cluster);
+        logInvest("RPC URL:", endpoint);
         logInvest("Team/Coin selecionada:", teamName);
         logInvest("Team ID:", teamId);
         logInvest("Valor solicitado:", `${options.amountSol} SOL`);
