@@ -272,8 +272,7 @@ export async function ensureUserOnchainAccount(options) {
         PublicKey,
         Transaction,
         TransactionInstruction,
-        SystemProgram,
-        clusterApiUrl
+        SystemProgram
     } = web3;
 
     const provider = getProvider();
@@ -282,8 +281,12 @@ export async function ensureUserOnchainAccount(options) {
     }
 
     const cluster = options.cluster || "devnet";
+    const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
     const programId = new PublicKey(options.programId);
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+    if (!rpcUrl) {
+        throw new Error(`RpcUrl nao configurada para onboarding em ${cluster}.`);
+    }
+    const connection = new Connection(rpcUrl, "confirmed");
 
     logLogin("Wallet conectada:", provider.publicKey.toBase58());
     logLogin("Cluster:", cluster);
@@ -368,12 +371,12 @@ export async function withdrawSystemBalance(options) {
         Transaction,
         TransactionInstruction,
         SystemProgram,
-        clusterApiUrl,
         LAMPORTS_PER_SOL
     } = web3;
 
     const provider = getProvider();
     const cluster = options.cluster || "devnet";
+    const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
     const mode = options.mode || "HybridContractCustody";
     const expectedWallet = options.expectedWallet || null;
     const amountSol = Number(options.amountSol);
@@ -441,7 +444,10 @@ export async function withdrawSystemBalance(options) {
 
     const amountLamports = BigInt(Math.round(amountSol * LAMPORTS_PER_SOL));
     const programId = new PublicKey(options.programId);
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+    if (!rpcUrl) {
+        throw new Error(`RpcUrl nao configurada para saque em ${cluster}.`);
+    }
+    const connection = new Connection(rpcUrl, "confirmed");
 
     const [config] = PublicKey.findProgramAddressSync(
         [new TextEncoder().encode("config")],

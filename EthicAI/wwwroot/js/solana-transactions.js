@@ -2,14 +2,18 @@
     try {
         const {
             Connection,
-            clusterApiUrl,
             PublicKey,
             Transaction,
             SystemProgram,
             LAMPORTS_PER_SOL
         } = window.solanaWeb3;
 
-        const connection = new Connection(clusterApiUrl('testnet'));
+        const rpcUrl = window.ethicaiBlockchainConfig?.rpcUrl?.trim?.() || "";
+        if (!rpcUrl) {
+            throw new Error('CriptoVersusBlockchain:RpcUrl nao configurada.');
+        }
+
+        const connection = new Connection(rpcUrl, "confirmed");
        
         const wallet = window.solana;
 

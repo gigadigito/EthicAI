@@ -141,7 +141,7 @@
         {
             walletActionsModule = await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletActions.js?v=20260426-login-onchain");
+                "./js/solanaWalletActions.js?v=20260505-rpc-config");
         }
     }
 
@@ -328,7 +328,8 @@
                 new
                 {
                     programId = OnChainProgramId,
-                    cluster = OnChainCluster
+                    cluster = OnChainCluster,
+                    rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"]
                 });
 
             var finalMessage = result.created

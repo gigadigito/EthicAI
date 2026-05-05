@@ -1430,7 +1430,7 @@ else
 
         BettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaInvestDiagnostics.js?v=20260426-invest-offchain");
+            "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
 
         var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
             ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]

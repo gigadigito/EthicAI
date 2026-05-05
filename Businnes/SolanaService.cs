@@ -26,8 +26,13 @@ namespace EthicAI.Business
 
         public SolanaService(IConfiguration configuration)
         {
-            // Conectar-se à Testnet
-            _rpcClient = ClientFactory.GetClient(Cluster.TestNet);
+            var rpcUrl = configuration["CriptoVersusBlockchain:RpcUrl"];
+            if (string.IsNullOrWhiteSpace(rpcUrl))
+            {
+                throw new Exception("CriptoVersusBlockchain:RpcUrl nao configurada.");
+            }
+
+            _rpcClient = ClientFactory.GetClient(rpcUrl);
 
             // Obter a chave secreta de uma variável de ambiente
             var secretKeyString = configuration["SOLANA_SECRET_KEY"];

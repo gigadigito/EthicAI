@@ -144,7 +144,6 @@ export async function depositPosition(options) {
         Transaction,
         TransactionInstruction,
         SystemProgram,
-        clusterApiUrl,
         LAMPORTS_PER_SOL
     } = web3;
 
@@ -156,7 +155,11 @@ export async function depositPosition(options) {
 
     const programId = new PublicKey(options.programId);
     const cluster = options.cluster || "devnet";
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+    const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
+    if (!rpcUrl) {
+        throw new Error(`RpcUrl nao configurada para investimento em ${cluster}.`);
+    }
+    const connection = new Connection(rpcUrl, "confirmed");
     const teamId = Number(options.teamId);
     const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
 
@@ -215,7 +218,6 @@ export async function placeLegacyMatchBet(options) {
         Transaction,
         TransactionInstruction,
         SystemProgram,
-        clusterApiUrl,
         LAMPORTS_PER_SOL
     } = web3;
 
@@ -227,7 +229,11 @@ export async function placeLegacyMatchBet(options) {
 
     const programId = new PublicKey(options.programId);
     const cluster = options.cluster || "devnet";
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+    const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
+    if (!rpcUrl) {
+        throw new Error(`RpcUrl nao configurada para aposta em ${cluster}.`);
+    }
+    const connection = new Connection(rpcUrl, "confirmed");
     const matchId = BigInt(options.matchId);
     const teamId = Number(options.teamId);
     const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);

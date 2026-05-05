@@ -1,5 +1,10 @@
 ﻿window.ethicaiClaim = async function () {
-    const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("devnet"));
+    const rpcUrl = window.ethicaiBlockchainConfig?.rpcUrl?.trim?.() || "";
+    if (!rpcUrl) {
+        throw new Error("CriptoVersusBlockchain:RpcUrl nao configurada.");
+    }
+
+    const connection = new solanaWeb3.Connection(rpcUrl, "confirmed");
     const wallet = window.solana;
 
     // Solicita conexão com a carteira

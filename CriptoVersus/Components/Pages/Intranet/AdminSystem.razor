@@ -177,14 +177,15 @@
             {
                 _adminModule ??= await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "./js/solanaAdmin.js?v=20260420-admin");
+                    "./js/solanaAdmin.js?v=20260505-rpc-config");
 
                 _chain = await _adminModule.InvokeAsync<ChainOverview>(
                     "getProgramOverview",
                     new
                     {
                         programId = _system.ProgramId,
-                        cluster = _system.OnChainCluster
+                        cluster = _system.OnChainCluster,
+                        rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"]
                     });
             }
         }

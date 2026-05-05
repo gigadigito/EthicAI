@@ -43,9 +43,10 @@ public sealed class CustodySolTransferService : ICustodySolTransferService
         if (string.IsNullOrWhiteSpace(secretKeyValue))
             throw new InvalidOperationException("CustodyWalletSecretKeyBase64/SOLANA_SECRET_KEY nao configurada para o saque real.");
 
-        var rpcUrl = string.IsNullOrWhiteSpace(_options.RpcUrl)
-            ? "https://api.devnet.solana.com"
-            : _options.RpcUrl;
+        if (string.IsNullOrWhiteSpace(_options.RpcUrl))
+            throw new InvalidOperationException("CriptoVersusBlockchain:RpcUrl nao configurada para o saque real.");
+
+        var rpcUrl = _options.RpcUrl;
 
         var lamports = (ulong)Math.Round(amount * 1_000_000_000m, 0, MidpointRounding.ToZero);
         var privateKeyBytes = NormalizePrivateKey(ParseSecretKey(secretKeyValue));

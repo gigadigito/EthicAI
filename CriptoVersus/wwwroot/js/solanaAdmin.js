@@ -15,13 +15,16 @@ export async function getProgramOverview(options) {
     const {
         Connection,
         PublicKey,
-        clusterApiUrl,
         LAMPORTS_PER_SOL
     } = web3;
 
     const programId = new PublicKey(options.programId);
     const cluster = options.cluster || "devnet";
-    const connection = new Connection(clusterApiUrl(cluster), "confirmed");
+    const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
+    if (!rpcUrl) {
+        throw new Error(`RpcUrl nao configurada para admin em ${cluster}.`);
+    }
+    const connection = new Connection(rpcUrl, "confirmed");
 
     const [configPda] = PublicKey.findProgramAddressSync(
         [new TextEncoder().encode("config")],

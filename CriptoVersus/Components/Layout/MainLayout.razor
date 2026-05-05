@@ -149,7 +149,7 @@
     {
         _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaWalletActions.js?v=20260504-wallet-observer");
+            "./js/solanaWalletActions.js?v=20260505-rpc-config");
 
         if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
         {

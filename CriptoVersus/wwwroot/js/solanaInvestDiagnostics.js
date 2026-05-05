@@ -240,7 +240,6 @@ export async function prepareInvestment(options) {
             Transaction,
             TransactionInstruction,
             SystemProgram,
-            clusterApiUrl,
             LAMPORTS_PER_SOL
         } = web3;
 
@@ -253,7 +252,10 @@ export async function prepareInvestment(options) {
 
         const cluster = options.cluster || "devnet";
         const rpcUrl = typeof options.rpcUrl === "string" ? options.rpcUrl.trim() : "";
-        const endpoint = rpcUrl || clusterApiUrl(cluster);
+        if (!rpcUrl) {
+            throw new Error("RpcUrl nao configurada para investimento.");
+        }
+        const endpoint = rpcUrl;
         const connection = new Connection(endpoint, "confirmed");
         const teamId = Number(options.teamId);
         const matchId = options.matchId ?? null;

@@ -9,7 +9,7 @@ public sealed class CriptoVersusBlockchainOptions
     public BlockchainOperationMode Mode { get; set; } = BlockchainOperationMode.HybridContractCustody;
 
     public string Cluster { get; set; } = "devnet";
-    public string RpcUrl { get; set; } = "https://api.devnet.solana.com";
+    public string RpcUrl { get; set; } = string.Empty;
 
     public string CurrentHybridProgramId { get; set; } = "2xGqwZH6wwfL5q12ftd2weu8zsYcmEZ8wFVWHjPY25FV";
     public string FutureFullOnChainProgramId { get; set; } = "";

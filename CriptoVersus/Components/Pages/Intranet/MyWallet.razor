@@ -882,7 +882,7 @@
         {
             _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletActions.js?v=20260504-system-balance-withdraw");
+                "./js/solanaWalletActions.js?v=20260505-rpc-config");
 
             _actionMessage = "Validando wallet conectada...";
             await InvokeAsync(StateHasChanged);
@@ -894,6 +894,7 @@
                     mode = BlockchainMode,
                     programId = OnChainProgramId,
                     cluster = OnChainCluster,
+                    rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
                     amountSol = _wallet.SystemBalance,
                     expectedWallet = _wallet.Wallet
                 });
@@ -1001,12 +1002,13 @@
         {
             _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletBalance.js?v=20260419-onchain-balance");
+                "./js/solanaWalletBalance.js?v=20260505-rpc-config");
 
             _onChainBalance = await _walletBalanceModule.InvokeAsync<double>(
                 "getSolBalance",
                 _wallet.Wallet,
-                OnChainCluster);
+                OnChainCluster,
+                Config["CriptoVersusBlockchain:RpcUrl"]);
         }
         catch (Exception ex)
         {
