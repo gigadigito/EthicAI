@@ -12,6 +12,25 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 🔥 LOG DE SEGURANÇA COMPLETO
+var env = builder.Environment.EnvironmentName;
+var db = builder.Configuration.GetConnectionString("Default");
+var workerInterval = builder.Configuration["CriptoVersusWorker:IntervalSeconds"];
+var blockchainMode = builder.Configuration["CriptoVersusBlockchain:Mode"];
+
+Console.ForegroundColor = ConsoleColor.Green;
+Console.WriteLine("=================================");
+Console.WriteLine($"ENV: {env}");
+Console.WriteLine($"DB: {db}");
+Console.WriteLine($"Worker Interval: {workerInterval}");
+Console.WriteLine($"Blockchain Mode: {blockchainMode}");
+Console.WriteLine("=================================");
+Console.ResetColor();
+
+CriptoVersus.API.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builder.Configuration, builder.Environment);
+
+
 builder.Services.AddScoped<ILedgerService, LedgerService>();
 builder.Services.AddHttpClient<IOffChainCustodyTransferVerifier, OffChainCustodyTransferVerifier>();
 builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVerifier>();

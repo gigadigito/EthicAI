@@ -1351,7 +1351,7 @@ else
                 onChainAmountLamports = investDiagnostics.AmountLamports
             };
 
-            var url = $"https://criptoversus-api.duckdns.org/api/match/{match.MatchId}/bet";
+            var url = EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/match/{match.MatchId}/bet");
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = JsonContent.Create(payload)
@@ -1614,8 +1614,8 @@ else
         return pair;
     }
 
-    private static string GetCoinIconUrl(string pair)
-        => $"https://criptoversus-api.duckdns.org/api/icons/binance/{GetBaseSymbol(pair)}";
+    private string GetCoinIconUrl(string pair)
+        => EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{GetBaseSymbol(pair)}");
 
     private static string GetInitials(string value)
     {

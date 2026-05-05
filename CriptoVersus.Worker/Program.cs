@@ -20,6 +20,8 @@ builder.Configuration
     .AddUserSecrets<Program>(optional: true)
     .AddEnvironmentVariables();
 
+CriptoVersus.Worker.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builder.Configuration, builder.Environment);
+
 builder.Services.AddHttpClient();
 builder.Services.Configure<CriptoVersusWorkerOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker"));

@@ -1692,10 +1692,10 @@
         return pair;
     }
 
-    private static string GetCoinIconUrl(string pair)
+    private string GetCoinIconUrl(string pair)
     {
         var baseSymbol = GetBaseSymbol(pair);
-        return $"https://criptoversus-api.duckdns.org/api/icons/binance/{baseSymbol}";
+        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
     }
 
     private async Task RefreshAuthenticatedUserAsync()
@@ -2078,7 +2078,7 @@
                 onChainAmountLamports = investDiagnostics.AmountLamports
             };
 
-            var url = $"https://criptoversus-api.duckdns.org/api/match/{matchId}/bet";
+            var url = CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/match/{matchId}/bet");
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = JsonContent.Create(payload)

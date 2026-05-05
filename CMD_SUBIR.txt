@@ -24,6 +24,17 @@ docker compose logs -f --tail 300 criptoversus-worker
 
 
 
+cd /home/admin/stacks/criptoversus-web/src
+git status
+git pull origin main
+git log -1 --oneline
+
+cd /home/admin/stacks/criptoversus-web
+docker compose down
+docker compose up -d --build
+docker compose logs -f --tail 300 criptoversus-web
+
+
 
 insert into "user" (
     cd_user,

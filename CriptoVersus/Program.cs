@@ -6,6 +6,21 @@ using CriptoVersus.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var env = builder.Environment.EnvironmentName;
+var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
+
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("=================================");
+Console.WriteLine($"WEB ENV: {env}");
+Console.WriteLine($"API BASE URL: {apiBaseUrl}");
+Console.WriteLine("=================================");
+Console.ResetColor();
+
+EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builder.Configuration, builder.Environment);
+
+if (string.IsNullOrWhiteSpace(apiBaseUrl))
+    throw new InvalidOperationException("Api:BaseUrl não configurado.");
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

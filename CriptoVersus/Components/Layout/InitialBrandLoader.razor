@@ -107,11 +107,14 @@
     [Parameter]
     public EventCallback Hidden { get; set; }
 
-    private bool _isMounted = true;
+    private bool _isMounted;
     private CancellationTokenSource? _hideCts;
 
     protected override async Task OnParametersSetAsync()
     {
+        if (!_isMounted)
+            return;
+
         if (IsVisible)
         {
             _hideCts?.Cancel();
@@ -134,6 +137,15 @@
         catch (OperationCanceledException)
         {
         }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender || _isMounted || !IsVisible)
+            return;
+
+        _isMounted = true;
+        StateHasChanged();
     }
 
     public void Dispose()

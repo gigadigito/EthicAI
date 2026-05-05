@@ -1,4 +1,4 @@
-@rendermode InteractiveServer
+﻿@rendermode InteractiveServer
 @page "/minha-carteira"
 @using DTOs
 @using CriptoVersus.Web.Services
@@ -1129,8 +1129,8 @@
         return pair;
     }
 
-    private static string GetCoinIconUrl(string symbol)
-        => $"https://criptoversus-api.duckdns.org/api/icons/binance/{GetBaseSymbol(symbol)}";
+    private string GetCoinIconUrl(string symbol)
+        => EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{GetBaseSymbol(symbol)}");
 
     private static string GetInitials(string value)
     {
