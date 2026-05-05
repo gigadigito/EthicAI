@@ -39,6 +39,7 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddScoped<DashboardHubClient>();
 builder.Services.AddScoped<WalletSessionState>();
@@ -47,6 +48,7 @@ builder.Services.AddScoped<MatchSlugHelper>();
 builder.Services.AddScoped<RouteLocalizationService>();
 builder.Services.AddScoped<MatchSeoService>();
 builder.Services.AddScoped<RoadmapContentService>();
+builder.Services.AddScoped<SitemapService>();
 builder.Services.AddSingleton<MatchRouteRedirectResolver>();
 builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
@@ -91,6 +93,18 @@ app.UseMiddleware<MatchRouteRedirectMiddleware>();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.MapGet("/sitemap.xml", async (SitemapService sitemapService, CancellationToken ct) =>
+{
+    var xml = await sitemapService.GetSitemapXmlAsync(ct);
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
+app.MapGet("/robots.txt", async (SitemapService sitemapService, CancellationToken ct) =>
+{
+    var content = await sitemapService.GetRobotsTxtAsync(ct);
+    return Results.Content(content, "text/plain; charset=utf-8");
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
