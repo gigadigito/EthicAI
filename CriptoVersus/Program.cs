@@ -94,9 +94,15 @@ app.UseMiddleware<MatchRouteRedirectMiddleware>();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapGet("/sitemap.xml", async (SitemapService sitemapService, CancellationToken ct) =>
+app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {
     var xml = await sitemapService.GetSitemapXmlAsync(ct);
+    httpContext.Response.ContentType = "application/xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
     return Results.Content(xml, "application/xml; charset=utf-8");
 });
 
