@@ -375,6 +375,48 @@
                     </div>
                 </div>
 
+                <div class="social-share-card__events">
+                    <div class="card match-panel social-share-events-panel p-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <div class="social-share-events-panel__title">Log da Pontuacao</div>
+                                <div class="social-share-events-panel__subtitle">Momento a momento mais relevante da partida</div>
+                            </div>
+                            <div class="small text-muted">@_scoreEvents.Count evento(s)</div>
+                        </div>
+
+                        @if (_scoreEvents.Count == 0)
+                        {
+                            <div class="social-share-events-empty mt-3">
+                                Nenhum ponto foi registrado nesta partida ate o momento.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="social-share-events-list mt-3">
+                                @foreach (var scoreEvent in _scoreEvents.OrderByDescending(x => x.EventSequence).Take(4))
+                                {
+                                    <article class="social-share-event-item">
+                                        <div class="social-share-event-item__meta">
+                                            <div class="social-share-event-item__badges">
+                                                <span class="match-score-event__icon" title="@GetScoreEventIconTitle(scoreEvent)">
+                                                    @GetScoreEventIcon(scoreEvent)
+                                                </span>
+                                                <span class="badge text-bg-dark border border-secondary-subtle">#@scoreEvent.EventSequence</span>
+                                                <span class="badge @GetTeamEventBadgeClass(scoreEvent.TeamId)">@scoreEvent.TeamSymbol</span>
+                                                <span class="badge text-bg-dark border border-secondary-subtle">@GetRuleLabel(scoreEvent.RuleType)</span>
+                                                <span class="badge match-score-event__points">+@scoreEvent.Points</span>
+                                            </div>
+                                            <div class="social-share-event-item__time">@FormatEventTime(scoreEvent.EventTimeUtc)</div>
+                                        </div>
+                                        <div class="social-share-event-item__description">@scoreEvent.Description</div>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 <div class="social-share-card__footer">
                     <div class="social-share-card__brand">CriptoVersus</div>
                     <div class="social-share-card__footer-meta">
@@ -1655,6 +1697,79 @@
         height: 170px;
     }
 
+    .social-share-events-panel {
+        border-radius: 24px;
+    }
+
+    .social-share-events-panel__title {
+        color: #f8fafc;
+        font-size: 1rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+    }
+
+    .social-share-events-panel__subtitle {
+        color: rgba(255,255,255,.5);
+        font-size: .78rem;
+        font-weight: 600;
+        margin-top: .18rem;
+    }
+
+    .social-share-events-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .8rem;
+    }
+
+    .social-share-event-item {
+        display: grid;
+        gap: .65rem;
+        padding: .95rem 1rem;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+        border: 1px solid rgba(255,255,255,.07);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+
+    .social-share-event-item__meta {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .social-share-event-item__badges {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        flex-wrap: wrap;
+    }
+
+    .social-share-event-item__time {
+        color: rgba(255,255,255,.5);
+        font-size: .75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .social-share-event-item__description {
+        color: rgba(255,255,255,.9);
+        font-size: .92rem;
+        line-height: 1.45;
+    }
+
+    .social-share-events-empty {
+        display: grid;
+        place-items: center;
+        min-height: 96px;
+        border-radius: 18px;
+        color: rgba(255,255,255,.56);
+        font-size: .9rem;
+        text-align: center;
+        background: rgba(255,255,255,.03);
+        border: 1px dashed rgba(255,255,255,.1);
+    }
+
     .social-share-card__brand {
         color: rgba(255,255,255,.88);
         font-weight: 900;
@@ -1674,7 +1789,8 @@
     @@media (max-width: 1199.98px) {
         .social-share-card__hero,
         .social-share-card__stats,
-        .social-share-card__charts {
+        .social-share-card__charts,
+        .social-share-events-list {
             grid-template-columns: minmax(0, 1fr);
         }
 
