@@ -5,6 +5,7 @@
 @using System.Net.Http.Json
 @using System.Text.Json
 @using DTOs
+@using CriptoVersus.Web.Services
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -13,6 +14,7 @@
 @inject CriptoVersus.Web.Services.DashboardHubClient HubClient
 @inject IConfiguration Config
 @inject CriptoVersus.Web.Services.BrowserTimeZoneService BrowserTimeZone
+@inject AppCultureService AppCulture
 @rendermode InteractiveServer
 @implements IDisposable
 @if (EmitPageTitle)
@@ -26,19 +28,19 @@
     {
         <div class="d-flex align-items-center gap-2 text-muted">
             <div class="spinner-border spinner-border-sm" role="status"></div>
-            <span>Carregando partida...</span>
+            <span>@Ui("Loading match...", "Carregando partida...")</span>
         </div>
     }
     else if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="alert alert-danger">
-            <strong>Erro:</strong> @_error
+            <strong>@Ui("Error:", "Erro:")</strong> @_error
         </div>
     }
     else if (_match is null)
     {
         <div class="alert alert-warning">
-            Partida não encontrada.
+            @Ui("Match not found.", "Partida não encontrada.")
         </div>
     }
     else
@@ -56,7 +58,7 @@
 
                     <div class="social-share-card__header-meta">
                         <span class="social-share-card__status @(ShouldShowLiveBadge(_match) ? "social-share-card__status--live" : "social-share-card__status--final")">
-                            @(ShouldShowLiveBadge(_match) ? "AO VIVO" : GetPresentationStatusText(_match).ToUpperInvariant())
+                            @(ShouldShowLiveBadge(_match) ? Ui("LIVE", "AO VIVO") : GetPresentationStatusText(_match).ToUpperInvariant())
                         </span>
                         <span class="social-share-card__match-id">Match #@_match.MatchId</span>
                     </div>
@@ -94,7 +96,7 @@
                             <div class="match-live">
                                 <span class="badge rounded-pill bg-danger match-live__pill">
                                     <span class="match-live__dot"></span>
-                                    AO VIVO
+                                    @Ui("LIVE", "AO VIVO")
                                 </span>
                             </div>
                         }
@@ -161,7 +163,7 @@
                                     type="button"
                                     disabled="@(!CanBetOnCurrentMatch() || _isSendingBet)"
                                     @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
-                                Investir
+                                @Ui("Invest", "Investir")
                             </button>
                         </div>
 
@@ -171,7 +173,7 @@
                                 <strong>@_match.PoolStrengthTeamA%</strong>
                             </div>
                             <div class="social-share-team-card__metric-row">
-                                <span>Apostas</span>
+                                <span>@Ui("Bets", "Apostas")</span>
                                 <strong>@_match.BetCountTeamA</strong>
                             </div>
                             <div class="social-share-team-card__metric-row">
@@ -191,11 +193,11 @@
                         }
                         @if (ShouldShowResultStage(_match))
                         {
-                            <div class="clock-title">RESULTADO FINAL</div>
+                            <div class="clock-title">@Ui("FINAL RESULT", "RESULTADO FINAL")</div>
                             <div class="winner-label">WINNER IS</div>
                             <div class="winner-name">@GetWinnerDisplayText(_match)</div>
                             <div class="clock-remaining">
-                                Placar final <span class="fw-semibold">@_match.ScoreA x @_match.ScoreB</span>
+                                @Ui("Final score", "Placar final") <span class="fw-semibold">@_match.ScoreA x @_match.ScoreB</span>
                             </div>
                             <div class="mt-2">
                                 <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
@@ -205,17 +207,17 @@
                         }
                         else
                         {
-                            <div class="clock-title">CRONÔMETRO</div>
+                            <div class="clock-title">@Ui("MATCH CLOCK", "CRONÔMETRO")</div>
                             <div class="clock-time">@_clockLive</div>
                             <div class="clock-remaining">
-                                Restante <span class="fw-semibold">@_remainingLive</span>
+                                @Ui("Remaining", "Restante") <span class="fw-semibold">@_remainingLive</span>
                             </div>
                             <div class="mt-2">
                                 @if (ShouldShowLiveBadge(_match))
                                 {
                                     <span class="badge rounded-pill bg-danger match-live__pill">
                                         <span class="match-live__dot"></span>
-                                        AO VIVO
+                                        @Ui("LIVE", "AO VIVO")
                                     </span>
                                 }
                                 else
@@ -248,7 +250,7 @@
                                     type="button"
                                     disabled="@(!CanBetOnCurrentMatch() || _isSendingBet)"
                                     @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
-                                Investir
+                                @Ui("Invest", "Investir")
                             </button>
                         </div>
 
@@ -258,7 +260,7 @@
                                 <strong>@_match.PoolStrengthTeamB%</strong>
                             </div>
                             <div class="social-share-team-card__metric-row">
-                                <span>Apostas</span>
+                                <span>@Ui("Bets", "Apostas")</span>
                                 <strong>@_match.BetCountTeamB</strong>
                             </div>
                             <div class="social-share-team-card__metric-row">
@@ -391,16 +393,16 @@
                     <div class="card match-panel social-share-events-panel p-3">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                                <div class="social-share-events-panel__title">Log da Pontuacao</div>
-                                <div class="social-share-events-panel__subtitle">Momento a momento mais relevante da partida</div>
+                                <div class="social-share-events-panel__title">@Ui("Scoring log", "Log da Pontuacao")</div>
+                                <div class="social-share-events-panel__subtitle">@Ui("Most relevant moment-by-moment events from the match", "Momento a momento mais relevante da partida")</div>
                             </div>
-                            <div class="small text-muted">@_scoreEvents.Count evento(s)</div>
+                            <div class="small text-muted">@_scoreEvents.Count @Ui("event(s)", "evento(s)")</div>
                         </div>
 
                         @if (_scoreEvents.Count == 0)
                         {
                             <div class="social-share-events-empty mt-3">
-                                Nenhum ponto foi registrado nesta partida ate o momento.
+                                @Ui("No scoring events have been recorded for this match yet.", "Nenhum ponto foi registrado nesta partida ate o momento.")
                             </div>
                         }
                         else
@@ -421,7 +423,7 @@
                                             </div>
                                             <div class="social-share-event-item__time">@FormatEventTime(scoreEvent.EventTimeUtc)</div>
                                         </div>
-                                        <div class="social-share-event-item__description">@scoreEvent.Description</div>
+                                        <div class="social-share-event-item__description">@GetLocalizedScoreEventDescription(scoreEvent)</div>
                                     </article>
                                 }
                             </div>
@@ -450,7 +452,7 @@
                                 @onclick="ToggleInvestmentReturn"
                                 aria-expanded="@_isInvestmentReturnOpen"
                                 aria-controls="investmentReturnCollapse">
-                            Retorno do Investimento
+                            @Ui("Investment response", "Retorno do Investimento")
                         </button>
                     </h2>
                     <div id="investmentReturnCollapse"
@@ -471,7 +473,7 @@
             <div class="col-12 col-lg-8">
                 <div class="card match-panel p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="fw-bold">Painel da Partida</div>
+                        <div class="fw-bold">@Ui("Match panel", "Painel da Partida")</div>
 
                         <span class="badge @GetStatusBadgeClass(_match.Status)">
                             @_match.Status
@@ -480,89 +482,89 @@
 
                     <div class="row mt-3 g-3 small">
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Decorrido</div>
+                            <div class="text-muted">@Ui("Elapsed", "Decorrido")</div>
                             <div class="fw-semibold">@_match.ElapsedMinutes min</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Restante</div>
+                            <div class="text-muted">@Ui("Remaining", "Restante")</div>
                             <div class="fw-semibold">@_match.RemainingMinutes min</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Placar</div>
+                            <div class="text-muted">@Ui("Score", "Placar")</div>
                             <div class="fw-semibold">@_match.ScoreA x @_match.ScoreB</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Partida</div>
+                            <div class="text-muted">@Ui("Match", "Partida")</div>
                             <div class="fw-semibold">#@_match.MatchId</div>
                         </div>
                         <div class="col-12">
-                            <div class="text-muted">Regra ativa</div>
+                            <div class="text-muted">@Ui("Active rule", "Regra ativa")</div>
                             <div class="fw-semibold">@GetRuleLabel(_match.ScoringRuleType)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Vencedor</div>
-                            <div class="fw-semibold">@(_match.WinnerTeamSymbol ?? "Sem vencedor")</div>
+                            <div class="text-muted">@Ui("Winner", "Vencedor")</div>
+                            <div class="fw-semibold">@(_match.WinnerTeamSymbol ?? Ui("No winner", "Sem vencedor"))</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Motivo da liquidacao</div>
+                            <div class="text-muted">@Ui("Settlement reason", "Motivo da liquidacao")</div>
                             <div class="fw-semibold">@(_match.EndReasonCode ?? "-")</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Disputa financeira valida?</div>
-                            <div class="fw-semibold">@(_match.HasValidFinancialDispute ? "Sim" : "Nao")</div>
+                            <div class="text-muted">@Ui("Valid financial dispute?", "Disputa financeira valida?")</div>
+                            <div class="fw-semibold">@(_match.HasValidFinancialDispute ? Ui("Yes", "Sim") : Ui("No", "Nao"))</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Apostas dos dois lados?</div>
-                            <div class="fw-semibold">@(_match.HasBetsOnBothSides ? "Sim" : "Nao")</div>
+                            <div class="text-muted">@Ui("Bets on both sides?", "Apostas dos dois lados?")</div>
+                            <div class="fw-semibold">@(_match.HasBetsOnBothSides ? Ui("Yes", "Sim") : Ui("No", "Nao"))</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Carteiras no Time A</div>
+                            <div class="text-muted">@Ui("Wallets on Team A", "Carteiras no Time A")</div>
                             <div class="fw-semibold">@_match.WalletCountTeamA</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Carteiras no Time B</div>
+                            <div class="text-muted">@Ui("Wallets on Team B", "Carteiras no Time B")</div>
                             <div class="fw-semibold">@_match.WalletCountTeamB</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Apostas no Time A</div>
+                            <div class="text-muted">@Ui("Bets on Team A", "Apostas no Time A")</div>
                             <div class="fw-semibold">@_match.BetCountTeamA</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Apostas no Time B</div>
+                            <div class="text-muted">@Ui("Bets on Team B", "Apostas no Time B")</div>
                             <div class="fw-semibold">@_match.BetCountTeamB</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Total no Time A</div>
+                            <div class="text-muted">@Ui("Total on Team A", "Total no Time A")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.TotalAmountTeamA)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Total no Time B</div>
+                            <div class="text-muted">@Ui("Total on Team B", "Total no Time B")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.TotalAmountTeamB)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Pool vencedora</div>
+                            <div class="text-muted">@Ui("Winning pool", "Pool vencedora")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.WinningPool)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Pool perdedora</div>
+                            <div class="text-muted">@Ui("Losing pool", "Pool perdedora")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.LosingPool)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Total da pool</div>
+                            <div class="text-muted">@Ui("Total pool", "Total da pool")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.TotalPool)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Taxa da casa</div>
+                            <div class="text-muted">@Ui("House fee", "Taxa da casa")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.HouseFeeAmount)</div>
                         </div>
                         <div class="col-6 col-md-3">
-                            <div class="text-muted">Total distribuido</div>
+                            <div class="text-muted">@Ui("Total distributed", "Total distribuido")</div>
                             <div class="fw-semibold">@FmtSolAmount(_match.TotalDistributed)</div>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(_match.EndReasonDetail))
                         {
                             <div class="col-12">
-                                <div class="text-muted">Resumo da liquidacao</div>
+                                <div class="text-muted">@Ui("Settlement summary", "Resumo da liquidacao")</div>
                                 <div class="fw-semibold">@GetSettlementHumanText(_match)</div>
                             </div>
                         }
@@ -571,7 +573,7 @@
                     @if (_match.IsFinished)
                     {
                         <div class="mt-3">
-                            <span class="badge bg-secondary">Finalizada</span>
+                            <span class="badge bg-secondary">@Ui("Finished", "Finalizada")</span>
                         </div>
                     }
                 </div>
@@ -579,20 +581,20 @@
 
             <div class="col-12 col-lg-4">
                 <div class="card match-panel p-3">
-                    <div class="fw-bold mb-2">Ações</div>
+                    <div class="fw-bold mb-2">@Ui("Actions", "Ações")</div>
 
                     <div class="d-grid gap-2">
                         <button class="btn btn-outline-light" @onclick="CopyLink">
-                            🔗 Copiar link
+                            🔗 @Ui("Copy link", "Copiar link")
                         </button>
 
                         <button class="btn btn-outline-secondary" @onclick="GoBack">
-                            ← Voltar
+                            ← @Ui("Back", "Voltar")
                         </button>
                     </div>
 
                     <div class="small text-muted mt-3">
-                        Dica: compartilhe o link para abrir a partida direto no “modo arena”.
+                        @Ui("Tip: share the link to open the match directly in arena mode.", "Dica: compartilhe o link para abrir a partida direto no “modo arena”.")
                     </div>
                 </div>
             </div>
@@ -604,8 +606,8 @@
                 <div class="col-12">
                     <div class="card match-panel p-3">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="fw-bold">Participantes da Partida</div>
-                            <div class="small text-muted">@_match.Participants.Count participante(s)</div>
+                            <div class="fw-bold">@Ui("Match participants", "Participantes da Partida")</div>
+                            <div class="small text-muted">@_match.Participants.Count @Ui("participant(s)", "participante(s)")</div>
                         </div>
 
                         <div class="mt-3 d-flex flex-column gap-2">
@@ -616,11 +618,11 @@
                                     <span class="mx-2">•</span>
                                     <span>@participant.TeamSymbol</span>
                                     <span class="mx-2">•</span>
-                                    <span>Apostado: @FmtSolAmount(participant.BetAmount)</span>
+                                    <span>@Ui("Bet:", "Apostado:") @FmtSolAmount(participant.BetAmount)</span>
                                     <span class="mx-2">•</span>
-                                    <span>Resultado: @participant.ResultLabel</span>
+                                    <span>@Ui("Result:", "Resultado:") @participant.ResultLabel</span>
                                     <span class="mx-2">•</span>
-                                    <span>Recebido: @FmtSolAmount(participant.ReceivedAmount)</span>
+                                    <span>@Ui("Received:", "Recebido:") @FmtSolAmount(participant.ReceivedAmount)</span>
                                 </div>
                             }
                         </div>
@@ -636,17 +638,17 @@
             <div class="col-12">
                 <div class="card match-panel p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                        <div class="fw-bold">garantir posição</div>
+                        <div class="fw-bold">@Ui("secure position", "garantir posição")</div>
                         <span class="badge @(CanBetOnCurrentMatch() ? "bg-success" : "bg-secondary")">
-                            @(CanBetOnCurrentMatch() ? "Investimentos abertos" : "Investimentos encerrados")
+                            @(CanBetOnCurrentMatch() ? Ui("Investments open", "Investimentos abertos") : Ui("Investments closed", "Investimentos encerrados"))
                         </span>
                     </div>
 
                     @if (!CanBetOnCurrentMatch())
                     {
                         <div class="alert alert-secondary mb-0">
-                            Investimentos indisponíveis para esta partida. Status: <strong>@_match.Status</strong>,
-                            tempo decorrido: <strong>@_match.ElapsedMinutes min</strong>.
+                            @Ui("Investments are unavailable for this match.", "Investimentos indisponíveis para esta partida.") @Ui("Status:", "Status:") <strong>@_match.Status</strong>,
+                            @Ui("elapsed time:", "tempo decorrido:") <strong>@_match.ElapsedMinutes min</strong>.
                         </div>
                     }
                     else
@@ -656,7 +658,7 @@
                                 <button class="btn btn-success w-100"
                                         disabled="@_isSendingBet"
                                         @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
-                                    Investir em <MarketPairText Symbol="@_match.TeamA" />
+                                    @Ui("Invest in", "Investir em") <MarketPairText Symbol="@_match.TeamA" />
                                 </button>
                             </div>
 
@@ -664,7 +666,7 @@
                                 <button class="btn btn-primary w-100"
                                         disabled="@_isSendingBet"
                                         @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
-                                    Investir em <MarketPairText Symbol="@_match.TeamB" />
+                                    @Ui("Invest in", "Investir em") <MarketPairText Symbol="@_match.TeamB" />
                                 </button>
                             </div>
                         </div>
@@ -680,16 +682,16 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content bg-dark text-light border border-secondary">
                         <div class="modal-header border-secondary">
-                            <h5 class="modal-title">Escolha o valor em SOL</h5>
-                            <button type="button" class="btn-close btn-close-white" aria-label="Fechar" @onclick="CloseInvestmentAmountModal"></button>
+                            <h5 class="modal-title">@Ui("Choose the amount in SOL", "Escolha o valor em SOL")</h5>
+                            <button type="button" class="btn-close btn-close-white" aria-label="@Ui("Close", "Fechar")" @onclick="CloseInvestmentAmountModal"></button>
                         </div>
                         <div class="modal-body">
                             <div class="amount-modal-team">
-                                <span>Investimento em</span>
+                                <span>@Ui("Investment in", "Investimento em")</span>
                                 <strong><MarketPairText Symbol="@_pendingBetTeamName" /></strong>
                             </div>
 
-                            <div class="amount-quick-grid" aria-label="Valores rapidos em SOL">
+                            <div class="amount-quick-grid" aria-label="@Ui("Quick values in SOL", "Valores rapidos em SOL")">
                                 @foreach (var amount in QuickInvestmentAmounts)
                                 {
                                     <button type="button"
@@ -701,7 +703,7 @@
                             </div>
 
                             <label class="form-label mt-3" for="matchInvestmentAmountRange">
-                                Ajuste rapido: <strong>@FmtSolAmount(_investmentAmount)</strong>
+                                @Ui("Quick adjustment:", "Ajuste rapido:") <strong>@FmtSolAmount(_investmentAmount)</strong>
                             </label>
                             <input id="matchInvestmentAmountRange"
                                    class="form-range"
@@ -713,7 +715,7 @@
                                    @bind:event="oninput" />
 
                             <label class="form-label mt-3" for="matchInvestmentAmountInput">
-                                Ou digite qualquer valor em SOL
+                                @Ui("Or enter any amount in SOL", "Ou digite qualquer valor em SOL")
                             </label>
                             <input id="matchInvestmentAmountInput"
                                    class="form-control"
@@ -729,9 +731,9 @@
                             }
                         </div>
                         <div class="modal-footer border-secondary">
-                            <button type="button" class="btn btn-outline-light" @onclick="CloseInvestmentAmountModal">Cancelar</button>
+                            <button type="button" class="btn btn-outline-light" @onclick="CloseInvestmentAmountModal">@Ui("Cancel", "Cancelar")</button>
                             <button type="button" class="btn btn-primary" disabled="@_isSendingBet" @onclick="ConfirmInvestmentAmountAsync">
-                                @(_isSendingBet ? "Enviando..." : $"Investir {FmtSolAmount(_investmentAmount)}")
+                                @(_isSendingBet ? Ui("Sending...", "Enviando...") : $"{Ui("Invest", "Investir")} {FmtSolAmount(_investmentAmount)}")
                             </button>
                         </div>
                     </div>
@@ -747,13 +749,13 @@
                     <div class="modal-content bg-dark text-light border border-secondary">
                         <div class="modal-header border-secondary">
                             <h5 class="modal-title">@_simplePopupTitle</h5>
-                            <button type="button" class="btn-close btn-close-white" aria-label="Fechar" @onclick="CloseSimplePopup"></button>
+                            <button type="button" class="btn-close btn-close-white" aria-label="@Ui("Close", "Fechar")" @onclick="CloseSimplePopup"></button>
                         </div>
                         <div class="modal-body text-light-emphasis">
                             <p class="mb-0">@_simplePopupMessage</p>
                         </div>
                         <div class="modal-footer border-secondary">
-                            <button type="button" class="btn btn-primary" @onclick="CloseSimplePopup">Entendi</button>
+                            <button type="button" class="btn btn-primary" @onclick="CloseSimplePopup">@Ui("Got it", "Entendi")</button>
                         </div>
                     </div>
                 </div>
@@ -2096,12 +2098,16 @@
             return "-";
 
         if (IsCompleted(match.Status))
-            return match.Status;
+            return Ui("Completed", "Encerrado");
 
         if (HasReachedLocalTimeLimit())
-            return "Encerrando";
+            return Ui("Closing", "Encerrando");
 
-        return match.Status;
+        return string.Equals(match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase)
+            ? Ui("Live", "Ao vivo")
+            : string.Equals(match.Status, "Pending", StringComparison.OrdinalIgnoreCase)
+                ? Ui("Pending", "Pendente")
+                : match.Status;
     }
 
     private static int? GetEffectiveWinnerTeamId(MatchDto? match)
@@ -2145,7 +2151,7 @@
            : v.Value < 0 ? "▼"
            : "•";
 
-    private static string GetWinnerDisplayText(MatchDto match)
+    private string GetWinnerDisplayText(MatchDto match)
     {
         var effectiveWinnerTeamId = GetEffectiveWinnerTeamId(match);
 
@@ -2158,7 +2164,7 @@
         if (effectiveWinnerTeamId == match.TeamBId)
             return GetDisplayTeamName(match.TeamB);
 
-        return "SEM VENCEDOR";
+        return Ui("NO WINNER", "SEM VENCEDOR");
     }
 
     private string GetWinnerFxClass(int teamId)
@@ -2172,26 +2178,49 @@
            && GetEffectiveWinnerTeamId(match).HasValue
            && match.ScoreA != match.ScoreB;
 
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private bool IsEnglish => CurrentCulture == "en";
+    private string Ui(string en, string pt) => IsEnglish ? en : pt;
+
     private static string GetScoreEventIcon(MatchScoreEventDto scoreEvent)
         => scoreEvent.Points > 0 ? "⚽" : "◎";
 
-    private static string GetScoreEventIconTitle(MatchScoreEventDto scoreEvent)
+    private string GetScoreEventIconTitle(MatchScoreEventDto scoreEvent)
         => scoreEvent.Points > 0
-            ? $"{scoreEvent.TeamSymbol} marcou {scoreEvent.Points} ponto(s)"
-            : "Evento de pontuacao";
+            ? (IsEnglish
+                ? $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s)"
+                : $"{scoreEvent.TeamSymbol} marcou {scoreEvent.Points} ponto(s)")
+            : Ui("Scoring event", "Evento de pontuacao");
 
-    private static string GetSettlementHumanText(MatchDto match)
+    private string GetSettlementHumanText(MatchDto match)
         => match.EndReasonCode switch
         {
-            "DRAW_ZERO_ZERO" => "Partida terminou sem vencedor. Nao houve cobranca de taxa. Todas as apostas devem ser devolvidas integralmente.",
-            "NO_BETS_ON_TEAM_A" or "NO_BETS_ON_TEAM_B" => "Houve vencedor tecnico no placar, mas nao existia pool adversaria valida. Nao houve ganho financeiro nem cobranca de taxa.",
-            "NO_COUNTERPARTY" => "Nao havia contraparte financeira valida. Nao houve perda financeira nem cobranca de taxa.",
-            "CANCELLED" => "Partida cancelada. Sem taxa da casa e com devolucao integral das apostas.",
-            "NO_WINNER" => "Partida finalizada sem vencedor financeiro valido. As apostas devem ser reembolsadas.",
+            "DRAW_ZERO_ZERO" => Ui("The match ended without a winner. No fee was charged and all bets must be fully refunded.", "Partida terminou sem vencedor. Nao houve cobranca de taxa. Todas as apostas devem ser devolvidas integralmente."),
+            "NO_BETS_ON_TEAM_A" or "NO_BETS_ON_TEAM_B" => Ui("There was a technical winner on the scoreboard, but there was no valid opposing pool. No financial gain or house fee was applied.", "Houve vencedor tecnico no placar, mas nao existia pool adversaria valida. Nao houve ganho financeiro nem cobranca de taxa."),
+            "NO_COUNTERPARTY" => Ui("There was no valid financial counterparty. No financial loss or house fee was applied.", "Nao havia contraparte financeira valida. Nao houve perda financeira nem cobranca de taxa."),
+            "CANCELLED" => Ui("Match canceled. No house fee and full refund of bets.", "Partida cancelada. Sem taxa da casa e com devolucao integral das apostas."),
+            "NO_WINNER" => Ui("Match finished without a valid financial winner. Bets must be refunded.", "Partida finalizada sem vencedor financeiro valido. As apostas devem ser reembolsadas."),
             _ => string.IsNullOrWhiteSpace(match.EndReasonDetail)
-                ? "Liquidacao concluida conforme a regra da partida."
+                ? Ui("Settlement completed according to the match rule.", "Liquidacao concluida conforme a regra da partida.")
                 : match.EndReasonDetail!
         };
+
+    private string GetLocalizedScoreEventDescription(MatchScoreEventDto scoreEvent)
+    {
+        if (!IsEnglish)
+            return scoreEvent.Description;
+
+        return scoreEvent.RuleType switch
+        {
+            "PercentThreshold" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) by reaching the percentage threshold.",
+            "PercentageCrossover" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) on an upward percentage crossover.",
+            "VolumeWindow" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) by leading the volume window.",
+            "VolumeCrossover" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) on an upward volume crossover.",
+            _ => string.IsNullOrWhiteSpace(scoreEvent.Description)
+                ? $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s)."
+                : scoreEvent.Description
+        };
+    }
 
     private async Task CopyLink()
     {
@@ -2252,7 +2281,7 @@
     {
         if (_match is null || _pendingBetTeamId <= 0 || string.IsNullOrWhiteSpace(_pendingBetTeamName))
         {
-            _investmentAmountError = "Escolha uma moeda para investir.";
+            _investmentAmountError = Ui("Choose a coin to invest in.", "Escolha uma moeda para investir.");
             return;
         }
 
@@ -2260,7 +2289,7 @@
 
         if (_investmentAmount <= 0)
         {
-            _investmentAmountError = "Informe um valor maior que zero.";
+            _investmentAmountError = Ui("Enter an amount greater than zero.", "Informe um valor maior que zero.");
             return;
         }
 
@@ -2446,12 +2475,12 @@
         }
     }
 
-    private static string GetBetExceptionMessage(Exception ex, string selectedUserDisplay)
+    private string GetBetExceptionMessage(Exception ex, string selectedUserDisplay)
     {
         if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
-            return $"Partida ainda não criada on-chain na devnet. Usuário={selectedUserDisplay}.";
+            return $"ONCHAIN_MATCH_NOT_INITIALIZED. User={selectedUserDisplay}.";
 
-        return $"Erro ao chamar o investimento. Usuário={selectedUserDisplay}.";
+        return $"Investment request error. User={selectedUserDisplay}.";
     }
 
     private static bool IsConfiguredWallet(string? wallet, string? configuredWallet)
@@ -2461,15 +2490,15 @@
             && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
     }
 
-    private static string GetBetPopupExceptionMessage(Exception ex)
+    private string GetBetPopupExceptionMessage(Exception ex)
     {
         if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
-            return "A partida ainda não foi criada on-chain na devnet. Tente novamente em instantes.";
+            return Ui("The match has not been created on-chain on devnet yet. Please try again shortly.", "A partida ainda não foi criada on-chain na devnet. Tente novamente em instantes.");
 
         if (ex.ToString().Contains("TeamId invalido para posicao on-chain.", StringComparison.OrdinalIgnoreCase))
-            return "Nao foi possivel preparar a posicao on-chain dessa moeda agora. Tente novamente em instantes.";
+            return Ui("It was not possible to prepare this coin's on-chain position right now. Please try again shortly.", "Nao foi possivel preparar a posicao on-chain dessa moeda agora. Tente novamente em instantes.");
 
-        return "Nao foi possivel concluir o investimento agora. Tente novamente em instantes.";
+        return Ui("It was not possible to complete the investment right now. Please try again shortly.", "Nao foi possivel concluir o investimento agora. Tente novamente em instantes.");
     }
 
     private PeriodicTimer? _timer;
@@ -2900,23 +2929,25 @@
 
     private string GetPercentageCardTitle()
         => IsPercentThresholdMatch()
-            ? "Historico de Percentual (threshold + cruzamento)"
+            ? Ui("Percentage history (threshold + crossover)", "Historico de Percentual (threshold + cruzamento)")
             : IsPercentageCrossoverMatch()
-                ? "Historico de Percentual (cruzamento)"
-                : "Historico de Percentual";
+                ? Ui("Percentage history (crossover)", "Historico de Percentual (cruzamento)")
+                : Ui("Percentage history", "Historico de Percentual");
 
     private string GetPercentageWinLabel()
-        => "cruzamento(s)";
+        => Ui("crossover(s)", "cruzamento(s)");
 
     private string GetPercentageCardDescription()
     {
         if (IsPercentThresholdMatch())
-            return $"Os selos acima mostram apenas cruzamentos para cima no grafico. Pontos por faixa continuam valendo no placar e no log: {_match?.TeamA} {GetPercentageThresholdPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetPercentageThresholdPoints(_match?.TeamBId ?? 0)}.";
+            return Ui(
+                $"The badges above show only upward crossovers on the chart. Threshold points still count toward the score and log: {_match?.TeamA} {GetPercentageThresholdPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetPercentageThresholdPoints(_match?.TeamBId ?? 0)}.",
+                $"Os selos acima mostram apenas cruzamentos para cima no grafico. Pontos por faixa continuam valendo no placar e no log: {_match?.TeamA} {GetPercentageThresholdPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetPercentageThresholdPoints(_match?.TeamBId ?? 0)}.");
 
         if (IsPercentageCrossoverMatch())
-            return "Pontuacao baseada em cruzamento percentual: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";
+            return Ui("Scoring based on percentage crossover: a point only appears when one team's line crosses the other's from bottom to top.", "Pontuacao baseada em cruzamento percentual: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.");
 
-        return "Percentual exibido para acompanhamento da partida.";
+        return Ui("Percentage displayed for match tracking.", "Percentual exibido para acompanhamento da partida.");
     }
 
     private bool IsPercentThresholdMatch()
@@ -2935,23 +2966,25 @@
 
     private string GetVolumeCardTitle()
         => IsVolumeWindowMatch()
-            ? "Historico de Volume (janela + cruzamento)"
+            ? Ui("Volume history (window + crossover)", "Historico de Volume (janela + cruzamento)")
             : IsVolumeCrossoverMatch()
-                ? "Historico de Volume (cruzamento)"
-                : "Historico de Volume";
+                ? Ui("Volume history (crossover)", "Historico de Volume (cruzamento)")
+                : Ui("Volume history", "Historico de Volume");
 
     private string GetVolumeWinLabel()
-        => "cruzamento(s)";
+        => Ui("crossover(s)", "cruzamento(s)");
 
     private string GetVolumeCardDescription()
     {
         if (IsVolumeWindowMatch())
-            return $"Os selos acima mostram apenas cruzamentos para cima no grafico. Pontos por janela de 15 minutos continuam valendo no placar e no log: {_match?.TeamA} {GetVolumeWindowPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetVolumeWindowPoints(_match?.TeamBId ?? 0)}.";
+            return Ui(
+                $"The badges above show only upward crossovers on the chart. Points from the 15-minute window still count toward the score and log: {_match?.TeamA} {GetVolumeWindowPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetVolumeWindowPoints(_match?.TeamBId ?? 0)}.",
+                $"Os selos acima mostram apenas cruzamentos para cima no grafico. Pontos por janela de 15 minutos continuam valendo no placar e no log: {_match?.TeamA} {GetVolumeWindowPoints(_match?.TeamAId ?? 0)} | {_match?.TeamB} {GetVolumeWindowPoints(_match?.TeamBId ?? 0)}.");
 
         if (IsVolumeCrossoverMatch())
-            return "Comparacao baseada em cruzamento de volume: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.";
+            return Ui("Comparison based on volume crossover: a point only appears when one team's line crosses the other's from bottom to top.", "Comparacao baseada em cruzamento de volume: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.");
 
-        return "Volume exibido para acompanhamento da partida.";
+        return Ui("Volume displayed for match tracking.", "Volume exibido para acompanhamento da partida.");
     }
 
     private bool ShouldExplainNoVolumeCross()
@@ -2986,13 +3019,13 @@
         return "text-bg-dark border border-secondary-subtle";
     }
 
-    private static string GetRuleLabel(string ruleType)
+    private string GetRuleLabel(string ruleType)
         => ruleType switch
         {
             "PercentThreshold" => "Threshold %",
-            "PercentageCrossover" => "Cruzamento %",
-            "VolumeWindow" => "Janela Volume",
-            "VolumeCrossover" => "Cruzamento Volume",
+            "PercentageCrossover" => Ui("Crossover %", "Cruzamento %"),
+            "VolumeWindow" => Ui("Volume window", "Janela Volume"),
+            "VolumeCrossover" => Ui("Volume crossover", "Cruzamento Volume"),
             _ => ruleType
         };
 
@@ -3099,15 +3132,15 @@
     private string GetChartEmptyMessage()
     {
         if (_match is null)
-            return "Os graficos serao exibidos quando a partida for carregada.";
+            return Ui("Charts will be displayed when the match is loaded.", "Os graficos serao exibidos quando a partida for carregada.");
 
         var teamACount = GetTeamSnapshotCount(_match.TeamAId);
         var teamBCount = GetTeamSnapshotCount(_match.TeamBId);
 
         if (teamACount == 0 && teamBCount == 0)
-            return "Ainda nao existem snapshots persistidos para esta partida. Depois que o worker rodar e gravar as coletas, os graficos aparecem aqui.";
+            return Ui("There are no persisted snapshots for this match yet. After the worker runs and records the captures, the charts will appear here.", "Ainda nao existem snapshots persistidos para esta partida. Depois que o worker rodar e gravar as coletas, os graficos aparecem aqui.");
 
-        return $"Ainda nao ha pontos suficientes para desenhar as linhas. Sao necessarias pelo menos 2 coletas por time. {_match.TeamA}: {teamACount}. {_match.TeamB}: {teamBCount}.";
+        return Ui($"There are not enough points yet to draw the lines. At least 2 captures per team are required. {_match.TeamA}: {teamACount}. {_match.TeamB}: {teamBCount}.", $"Ainda nao ha pontos suficientes para desenhar as linhas. Sao necessarias pelo menos 2 coletas por time. {_match.TeamA}: {teamACount}. {_match.TeamB}: {teamBCount}.");
     }
 
     private sealed class ChartSeriesState

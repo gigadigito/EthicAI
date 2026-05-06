@@ -40,7 +40,10 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddSingleton<AppCultureService>();
+builder.Services.AddSingleton<LocalizationService>();
 builder.Services.AddScoped<DashboardHubClient>();
 builder.Services.AddScoped<WalletSessionState>();
 builder.Services.AddScoped<BrowserTimeZoneService>();

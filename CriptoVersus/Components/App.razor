@@ -1,5 +1,8 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+@inject IHttpContextAccessor HttpContextAccessor
+@using CriptoVersus.Web.Services
+@inject AppCultureService AppCulture
+<html lang="@AppCulture.ToHtmlLang(AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext))">
 
 <head>
     <meta charset="utf-8" />
@@ -16,6 +19,16 @@
     <meta name="theme-color" content="#3f3c58" />
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-4B737GWQYX"></script>
     <script>
+        (function () {
+            try {
+                var key = 'cv_culture';
+                var culture = localStorage.getItem(key);
+                if (culture) {
+                    document.cookie = key + '=' + encodeURIComponent(culture) + '; path=/; max-age=31536000; SameSite=Lax';
+                }
+            } catch (e) { }
+        })();
+
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());

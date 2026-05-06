@@ -1,14 +1,17 @@
 @using CriptoVersus.Web.Services
 @inject WalletSessionState WalletState
 @inject IConfiguration Config
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject NavigationManager Nav
 @implements IDisposable
 
 <div class="brand-block">
-    <a class="brand-mark" href="">
+    <a class="brand-mark" href="@RouteLocalization.BuildHomePath(CurrentCulture)">
         <img class="brand-logo" src="/favicon-round-preview.png" alt="CriptoVersus" />
         <span>
             <strong>CriptoVersus</strong>
-            <small>Trading Arena</small>
+            <small>@L.T("nav.brandSubtitle", CurrentCulture)</small>
         </span>
     </a>
 </div>
@@ -18,41 +21,41 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="app-nav">
         <div class="nav-item">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <NavLink class="nav-link" href="@RouteLocalization.BuildHomePath(CurrentCulture)" Match="NavLinkMatch.All">
                 <span class="nav-icon">H</span>
-                <span>Home</span>
+                <span>@L.T("nav.home", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="tokenomics">
+            <NavLink class="nav-link" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
                 <span class="nav-icon">T</span>
-                <span>Tokenomics</span>
+                <span>@L.T("nav.howItWorks", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="roadmap">
+            <NavLink class="nav-link" href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
                 <span class="nav-icon">R</span>
-                <span>Roadmap</span>
+                <span>@L.T("nav.roadmap", CurrentCulture)</span>
             </NavLink>
         </div>
 
         @if (IsLoggedIn)
         {
-            <div class="nav-item">
-                <NavLink class="nav-link" href="minha-carteira">
-                    <span class="nav-icon">C</span>
-                    <span>Minha Carteira</span>
-                </NavLink>
-            </div>
+                <div class="nav-item">
+                    <NavLink class="nav-link" href="minha-carteira">
+                        <span class="nav-icon">C</span>
+                        <span>@L.T("nav.wallet", CurrentCulture)</span>
+                    </NavLink>
+                </div>
 
             @if (IsAdminWallet)
             {
                 <div class="nav-item">
                     <NavLink class="nav-link" href="admin-sistema">
                         <span class="nav-icon">A</span>
-                        <span>Admin</span>
+                        <span>@L.T("nav.admin", CurrentCulture)</span>
                     </NavLink>
                 </div>
             }
@@ -62,10 +65,13 @@
 
 <div class="sidebar-footer">
     <span class="live-dot"></span>
-    <span>Ambiente conectado</span>
+    <span>@L.T("nav.connected", CurrentCulture)</span>
 </div>
 
 @code {
+    [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(WalletState.AuthToken)
             && !string.IsNullOrWhiteSpace(WalletState.WalletPublicKey);

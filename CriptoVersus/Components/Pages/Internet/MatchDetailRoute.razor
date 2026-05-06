@@ -17,6 +17,10 @@
         {
             <link rel="alternate" hreflang="@alternateLink.HrefLang" href="@alternateLink.Href" />
         }
+        @if (!string.IsNullOrWhiteSpace(_xDefaultUrl))
+        {
+            <link rel="alternate" hreflang="x-default" href="@_xDefaultUrl" />
+        }
     }
 
     @if (!string.IsNullOrWhiteSpace(_metaDescription))
@@ -28,6 +32,16 @@
     @if (!string.IsNullOrWhiteSpace(_ogTitle))
     {
         <meta property="og:title" content="@_ogTitle" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_ogLocale))
+    {
+        <meta property="og:locale" content="@_ogLocale" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_ogAlternateLocale))
+    {
+        <meta property="og:locale:alternate" content="@_ogAlternateLocale" />
     }
 
     @if (!string.IsNullOrWhiteSpace(_ogUrl))
@@ -47,6 +61,16 @@
     @if (!string.IsNullOrWhiteSpace(_twitterCard))
     {
         <meta name="twitter:card" content="@_twitterCard" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_twitterTitle))
+    {
+        <meta name="twitter:title" content="@_twitterTitle" />
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_twitterDescription))
+    {
+        <meta name="twitter:description" content="@_twitterDescription" />
     }
 
     @if (!string.IsNullOrWhiteSpace(_twitterImageUrl))
@@ -88,9 +112,14 @@ else if (_resolvedMatchId > 0)
     private IReadOnlyList<CriptoVersus.Web.Services.AlternateLink> _alternateLinks = [];
     private string _ogTitle = string.Empty;
     private string _ogUrl = string.Empty;
+    private string _ogLocale = string.Empty;
+    private string _ogAlternateLocale = string.Empty;
     private string _ogImageUrl = string.Empty;
+    private string _twitterTitle = string.Empty;
+    private string _twitterDescription = string.Empty;
     private string _twitterImageUrl = string.Empty;
     private string _socialImageAlt = string.Empty;
+    private string _xDefaultUrl = string.Empty;
     private string _twitterCard = string.Empty;
     private string _slugA = string.Empty;
     private string _slugB = string.Empty;
@@ -109,9 +138,14 @@ else if (_resolvedMatchId > 0)
         _alternateLinks = [];
         _ogTitle = string.Empty;
         _ogUrl = string.Empty;
+        _ogLocale = string.Empty;
+        _ogAlternateLocale = string.Empty;
         _ogImageUrl = string.Empty;
+        _twitterTitle = string.Empty;
+        _twitterDescription = string.Empty;
         _twitterImageUrl = string.Empty;
         _socialImageAlt = string.Empty;
+        _xDefaultUrl = string.Empty;
         _twitterCard = string.Empty;
 
         try
@@ -138,9 +172,14 @@ else if (_resolvedMatchId > 0)
             _alternateLinks = metadata.AlternateLinks;
             _ogTitle = metadata.OpenGraphTitle;
             _ogUrl = metadata.OpenGraphUrl;
+            _ogLocale = metadata.OpenGraphLocale;
+            _ogAlternateLocale = metadata.OpenGraphAlternateLocale;
             _ogImageUrl = metadata.OpenGraphImageUrl;
+            _twitterTitle = metadata.TwitterTitle;
+            _twitterDescription = metadata.TwitterDescription;
             _twitterImageUrl = metadata.TwitterImageUrl;
             _socialImageAlt = metadata.SocialImageAlt;
+            _xDefaultUrl = metadata.XDefaultUrl;
             _twitterCard = metadata.TwitterCard;
 
             var expectedPath = RouteLocalization.BuildBestPath(Culture, match.MatchId, officialSlug);

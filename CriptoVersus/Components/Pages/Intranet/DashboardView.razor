@@ -12,6 +12,9 @@
 @inject BrowserTimeZoneService BrowserTimeZone
 @inject MatchSlugHelper MatchSlugHelper
 @inject RouteLocalizationService RouteLocalization
+@inject NavigationManager Nav
+@inject AppCultureService AppCulture
+@inject LocalizationService L
 
 @if (Snapshot is null)
 {
@@ -65,7 +68,7 @@ else
         <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="text-muted">Pendentes</div>
+                    <div class="text-muted">@L.T("home.dashboard.pending", CurrentCulture)</div>
                     <div class="fs-2 fw-bold">@Snapshot.Matches.Pending</div>
                 </div>
             </div>
@@ -74,7 +77,7 @@ else
         <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="text-muted">Em andamento</div>
+                    <div class="text-muted">@L.T("home.dashboard.ongoing", CurrentCulture)</div>
                     <div class="fs-2 fw-bold">@Snapshot.Matches.Ongoing</div>
                 </div>
             </div>
@@ -83,7 +86,7 @@ else
         <div class="col-md-4">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="text-muted">Finalizadas (24h)</div>
+                    <div class="text-muted">@L.T("home.dashboard.completed24h", CurrentCulture)</div>
                     <div class="fs-2 fw-bold">@Snapshot.Matches.CompletedLast24h</div>
                 </div>
             </div>
@@ -271,15 +274,15 @@ else
         <section class="listing-panel">
             <div class="listing-panel-head">
                 <div>
-                    <div class="listing-eyebrow">Investimentos</div>
-                    <h3>Partidas com mercado aberto</h3>
+                    <div class="listing-eyebrow">@L.T("home.dashboard.investments", CurrentCulture)</div>
+                    <h3>@L.T("home.dashboard.openMarkets", CurrentCulture)</h3>
                 </div>
                 <span class="listing-count">@bettableMatches.Count</span>
             </div>
 
             @if (bettableMatches.Count == 0)
             {
-                <div class="listing-empty">Nenhuma partida disponível para investimento.</div>
+                <div class="listing-empty">@L.T("home.dashboard.noOpenMarkets", CurrentCulture)</div>
             }
             else
             {
@@ -292,7 +295,7 @@ else
 
                         <article class="listing-match-card">
                             <div class="match-card-top">
-                                <span>Match #@m.MatchId</span>
+                                <span>@L.T("home.dashboard.matchId", CurrentCulture, m.MatchId)</span>
                                 <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
                             </div>
 
@@ -343,21 +346,21 @@ else
                             <div class="match-card-footer">
                                 @if (!canBetLive)
                                 {
-                                    <span class="closed-bet">Investimentos encerrados</span>
-                                    <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">Acompanhar</a>
+                                    <span class="closed-bet">@L.T("home.dashboard.closedInvestments", CurrentCulture)</span>
+                                    <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">@L.T("home.dashboard.follow", CurrentCulture)</a>
                                 }
                                 else
                                 {
                                     <button class="btn btn-success btn-sm"
                                             disabled="@disabledA"
                                             @onclick="() => OpenInvestmentAmountModal(m, m.TeamAId, m.TeamA)">
-                                        Investir <MarketPairText Symbol="@m.TeamA" />
+                                        @L.T("home.dashboard.invest", CurrentCulture) <MarketPairText Symbol="@m.TeamA" />
                                     </button>
 
                                     <button class="btn btn-outline-light btn-sm"
                                             disabled="@disabledB"
                                             @onclick="() => OpenInvestmentAmountModal(m, m.TeamBId, m.TeamB)">
-                                        Investir <MarketPairText Symbol="@m.TeamB" />
+                                        @L.T("home.dashboard.invest", CurrentCulture) <MarketPairText Symbol="@m.TeamB" />
                                     </button>
                                 }
                             </div>
@@ -370,15 +373,15 @@ else
         <section class="listing-panel">
             <div class="listing-panel-head">
                 <div>
-                    <div class="listing-eyebrow">Ao vivo</div>
-                    <h3>Partidas em andamento</h3>
+                    <div class="listing-eyebrow">@L.T("home.dashboard.liveEyebrow", CurrentCulture)</div>
+                    <h3>@L.T("home.dashboard.liveMatches", CurrentCulture)</h3>
                 </div>
                 <span class="listing-count">@Snapshot.Matches.OngoingList.Count</span>
             </div>
 
             @if (Snapshot.Matches.OngoingList.Count == 0)
             {
-                <div class="listing-empty">Nenhuma partida em andamento.</div>
+                <div class="listing-empty">@L.T("home.dashboard.noLiveMatches", CurrentCulture)</div>
             }
             else
             {
@@ -387,8 +390,8 @@ else
                     {
                         <article class="listing-match-card listing-match-card-live">
                             <div class="match-card-top">
-                                <span>Match #@m.MatchId</span>
-                                <span class="status-pill status-live">AO VIVO</span>
+                                <span>@L.T("home.dashboard.matchId", CurrentCulture, m.MatchId)</span>
+                                <span class="status-pill status-live">@L.T("match.status.ongoing", CurrentCulture)</span>
                             </div>
 
                             <div class="matchup-row">
@@ -408,7 +411,7 @@ else
 
                                 <div class="score-cell">
                                     <span class="score-value">@m.ScoreA x @m.ScoreB</span>
-                                    <span class="score-caption">@m.ElapsedMinutes' jogados · -@m.RemainingMinutes'</span>
+                                    <span class="score-caption">@GetLiveMatchCaption(m.ElapsedMinutes, m.RemainingMinutes)</span>
                                 </div>
 
                                 <div class="team-cell team-cell-right">
@@ -437,15 +440,15 @@ else
 
                             <a class="live-watch-cta" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">
                                 <span class="live-watch-copy">
-                                    <span class="live-watch-kicker">Acompanhamento ao vivo</span>
-                                    <span class="live-watch-title">Abrir painel da partida</span>
+                                    <span class="live-watch-kicker">@L.T("home.dashboard.liveTracking", CurrentCulture)</span>
+                                    <span class="live-watch-title">@L.T("home.dashboard.openMatchPanel", CurrentCulture)</span>
                                 </span>
-                                <span class="live-watch-badge">AO VIVO</span>
+                                <span class="live-watch-badge">@L.T("match.status.ongoing", CurrentCulture)</span>
                             </a>
 
                             <div class="match-card-footer">
-                                <span class="match-meta">Mercado acompanha variação em tempo real</span>
-                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">Detalhes</a>
+                                <span class="match-meta">@L.T("home.dashboard.marketRealtime", CurrentCulture)</span>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">@L.T("home.dashboard.details", CurrentCulture)</a>
                             </div>
                         </article>
                     }
@@ -456,15 +459,15 @@ else
         <section class="listing-panel">
             <div class="listing-panel-head">
                 <div>
-                    <div class="listing-eyebrow">Encerradas</div>
-                    <h3>Partidas finalizadas</h3>
+                    <div class="listing-eyebrow">@L.T("home.dashboard.completedEyebrow", CurrentCulture)</div>
+                    <h3>@L.T("home.dashboard.completedMatches", CurrentCulture)</h3>
                 </div>
                 <span class="listing-count">@Snapshot.Matches.CompletedList.Count</span>
             </div>
 
             @if (Snapshot.Matches.CompletedList.Count == 0)
             {
-                <div class="listing-empty">Nenhuma partida finalizada nas ultimas 24 horas.</div>
+                <div class="listing-empty">@L.T("home.dashboard.noCompletedMatches", CurrentCulture)</div>
             }
             else
             {
@@ -473,7 +476,7 @@ else
                     {
                         <article class="listing-match-card">
                             <div class="match-card-top">
-                                <span>Match #@m.MatchId</span>
+                                <span>@L.T("home.dashboard.matchId", CurrentCulture, m.MatchId)</span>
                                 <span class="status-pill @GetStatusPillClass(m.Status)">@GetStatusLabel(m.Status)</span>
                             </div>
 
@@ -494,7 +497,7 @@ else
 
                                 <div class="score-cell">
                                     <span class="score-value">@m.ScoreA x @m.ScoreB</span>
-                                    <span class="score-caption">Partida encerrada</span>
+                                    <span class="score-caption">@L.T("home.dashboard.matchCompleted", CurrentCulture)</span>
                                 </div>
 
                                 <div class="team-cell team-cell-right">
@@ -518,12 +521,12 @@ else
 
                             @if (CanSeeExactMatchStatus)
                             {
-                                <div class="match-admin-status">Status interno: @m.Status</div>
+                                <div class="match-admin-status">@L.T("home.dashboard.internalStatus", CurrentCulture): @m.Status</div>
                             }
 
                             <div class="match-card-footer">
-                                <span class="match-meta">Historico e log da partida disponiveis</span>
-                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">Acompanhar</a>
+                                <span class="match-meta">@L.T("home.dashboard.historyAvailable", CurrentCulture)</span>
+                                <a class="btn btn-outline-light btn-sm" href="@GetMatchUrl(m.TeamA, m.TeamB, m.MatchId)">@L.T("home.dashboard.follow", CurrentCulture)</a>
                             </div>
                         </article>
                     }
@@ -534,7 +537,7 @@ else
         <section class="listing-panel listing-panel-wide">
             <div class="listing-panel-head">
                 <div>
-                    <div class="listing-eyebrow">Mercado</div>
+                    <div class="listing-eyebrow">@L.T("home.dashboard.marketEyebrow", CurrentCulture)</div>
                     <h3>Top gainers Binance</h3>
                 </div>
                 <span class="listing-count">@Snapshot.TopGainers.Count</span>
@@ -542,7 +545,7 @@ else
 
             @if (Snapshot.TopGainers.Count == 0)
             {
-                <div class="listing-empty">Sem dados.</div>
+                <div class="listing-empty">@L.T("home.dashboard.noData", CurrentCulture)</div>
             }
             else
             {
@@ -1121,6 +1124,8 @@ else
 </style>
 
 @code {
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
 
     [Parameter] public int EventCount { get; set; }
@@ -1636,15 +1641,18 @@ else
         return $"{scoreA} x {scoreB}";
     }
 
+    private string GetLiveMatchCaption(int elapsedMinutes, int remainingMinutes)
+        => L.T("home.dashboard.liveClock", CurrentCulture, elapsedMinutes, remainingMinutes);
+
     private string GetMatchClock(BettableMatchViewModel match)
     {
         if (string.Equals(match.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-            return match.StartTime is null ? "Aguardando inicio" : FmtUtc(match.StartTime);
+            return match.StartTime is null ? L.T("home.dashboard.awaitingStart", CurrentCulture) : FmtUtc(match.StartTime);
 
         if (match.RemainingMinutes > 0)
-            return $"{match.ElapsedMinutes}' jogados · -{match.RemainingMinutes}'";
+            return L.T("home.dashboard.liveClock", CurrentCulture, match.ElapsedMinutes, match.RemainingMinutes);
 
-        return $"{match.ElapsedMinutes}' jogados";
+        return L.T("home.dashboard.elapsedOnly", CurrentCulture, match.ElapsedMinutes);
     }
 
     private static int GetProgressPercent(int elapsedMinutes, int remainingMinutes)
@@ -1668,15 +1676,15 @@ else
         return value.Value >= 0 ? "metric-positive" : "metric-negative";
     }
 
-    private static string GetStatusLabel(string? status)
+    private string GetStatusLabel(string? status)
     {
         if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase))
-            return "ABERTA";
+            return L.T("home.dashboard.statusOpen", CurrentCulture);
 
         if (string.Equals(status, "Ongoing", StringComparison.OrdinalIgnoreCase))
-            return "AO VIVO";
+            return L.T("match.status.ongoing", CurrentCulture).ToUpperInvariant();
 
-        return "FECHADA";
+        return L.T("home.dashboard.statusClosed", CurrentCulture);
     }
 
     private static string GetStatusPillClass(string? status)
@@ -1696,7 +1704,7 @@ else
             return "#";
 
         var slug = MatchSlugHelper.BuildSlug(teamA, teamB);
-        return RouteLocalization.BuildCanonicalPath(id, slug);
+        return RouteLocalization.BuildLocalizedPath(CurrentCulture, id, slug);
     }
 
     private sealed class BetUserOption

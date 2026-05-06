@@ -1,0 +1,165 @@
+{
+  "layout": {
+    "topbar": {
+      "eyebrow": "CriptoVersus Arena",
+      "title": "Mercado de partidas",
+      "login": "Entrar com Phantom",
+      "language": "Idioma",
+      "english": "English",
+      "portuguese": "Português"
+    }
+  },
+  "nav": {
+    "brandSubtitle": "Arena de Trading",
+    "home": "Início",
+    "howItWorks": "Como Funciona",
+    "roadmap": "Roadmap",
+    "wallet": "Minha Carteira",
+    "admin": "Admin",
+    "connected": "Ambiente conectado"
+  },
+  "home": {
+    "seo": {
+      "title": "CriptoVersus | Arena de Partidas Cripto ao Vivo",
+      "description": "Acompanhe partidas cripto ao vivo no CriptoVersus com placar, desempenho de mercado, estatísticas e páginas públicas preparadas para audiência global.",
+      "ogTitle": "CriptoVersus | Arena de Partidas Cripto ao Vivo",
+      "ogDescription": "Veja partidas cripto ao vivo, placares e batalhas de mercado no CriptoVersus."
+    },
+    "page": {
+      "title": "Dashboard",
+      "loading": "Carregando...",
+      "emptySnapshot": "Sem dados do snapshot."
+    },
+    "dashboard": {
+      "pending": "Pendentes",
+      "ongoing": "Ao vivo",
+      "completed24h": "Finalizadas (24h)",
+      "investments": "Investimentos",
+      "openMarkets": "Partidas com mercado aberto",
+      "noOpenMarkets": "Nenhuma partida disponível para investimento.",
+      "matchId": "Match #{0}",
+      "invest": "Investir",
+      "investIn": "Investir em {0}",
+      "closedInvestments": "Investimentos encerrados",
+      "follow": "Acompanhar",
+      "liveEyebrow": "Ao vivo",
+      "liveMatches": "Partidas em andamento",
+      "noLiveMatches": "Nenhuma partida em andamento.",
+      "liveTracking": "Acompanhamento ao vivo",
+      "openMatchPanel": "Abrir painel da partida",
+      "marketRealtime": "Mercado acompanha variação em tempo real",
+      "details": "Detalhes",
+      "completedEyebrow": "Encerradas",
+      "completedMatches": "Partidas finalizadas",
+      "noCompletedMatches": "Nenhuma partida finalizada nas últimas 24 horas.",
+      "matchCompleted": "Partida encerrada",
+      "internalStatus": "Status interno",
+      "historyAvailable": "Histórico e log da partida disponíveis",
+      "marketEyebrow": "Mercado",
+      "noData": "Sem dados.",
+      "awaitingStart": "Aguardando início",
+      "liveClock": "{0}' jogados · -{1}'",
+      "elapsedOnly": "{0}' jogados",
+      "statusOpen": "ABERTA",
+      "statusClosed": "FECHADA"
+    }
+  },
+  "match": {
+    "seo": {
+      "live": {
+        "title": "{0} vs {1} Ao Vivo | CriptoVersus",
+        "description": "Acompanhe a partida cripto ao vivo entre {0} e {1} no CriptoVersus. Veja placar, desempenho, estatísticas e batalha de mercado em tempo real."
+      },
+      "completed": {
+        "title": "{0} vs {1} Encerrada | CriptoVersus",
+        "description": "Veja o resultado da partida cripto entre {0} e {1} no CriptoVersus. Confira placar final, desempenho, estatísticas e o resumo da batalha de mercado."
+      },
+      "pending": {
+        "title": "{0} vs {1} Próxima Partida | CriptoVersus",
+        "description": "Veja a próxima partida cripto entre {0} e {1} no CriptoVersus."
+      },
+      "fallback": {
+        "title": "{0} vs {1} Partida | CriptoVersus",
+        "description": "Veja os detalhes da partida {0} vs {1} no CriptoVersus."
+      }
+    },
+    "status": {
+      "ongoing": "Ao vivo",
+      "completed": "Encerrada",
+      "pending": "Pendente"
+    }
+  },
+  "roadmap": {
+    "pageTitle": "Roadmap CriptoVersus | Evolução da Plataforma",
+    "metaDescription": "Acompanhe o roadmap público do CriptoVersus: partidas cripto, histórico público, regras de pontuação, transparência, internacionalização e futuras integrações blockchain.",
+    "openGraph": {
+      "title": "Roadmap CriptoVersus",
+      "description": "Veja a evolução planejada do CriptoVersus, incluindo partidas cripto, histórico público, regras avançadas, i18n e integrações blockchain.",
+      "type": "website"
+    },
+    "hero": {
+      "eyebrow": "Visão pública do produto",
+      "title": "Roadmap CriptoVersus",
+      "subtitle": "Acompanhe a evolução da plataforma, novas regras de partidas, melhorias de transparência e futuras integrações.",
+      "primaryCtaLabel": "Ver partidas ao vivo",
+      "secondaryCtaLabel": "Entender as regras"
+    },
+    "labels": {
+      "phasesMapped": "Fases mapeadas",
+      "workstreamsActive": "Frentes ativas",
+      "workstreamsDescription": "Cards de status, princípios e marcos visíveis do roadmap.",
+      "currentFocus": "Foco atual",
+      "nextMilestone": "Próximo marco",
+      "brandPillars": "Pilares da marca",
+      "statusSummary": "Roadmap de plataforma experimental",
+      "currentFocusFallback": "Execução ativa do roadmap",
+      "nextMilestoneFallback": "Roadmap em expansão",
+      "nextMilestoneFallbackItem": "Detalhes das próximas entregas serão publicados em breve."
+    },
+    "brandPillars": [
+      { "icon": "✦", "accent": "purple", "title": "Competição", "subtitle": "Entre ativos digitais" },
+      { "icon": "↗", "accent": "green", "title": "Estratégia", "subtitle": "Performance e timing" },
+      { "icon": "⬢", "accent": "cyan", "title": "Tecnologia", "subtitle": "Infraestrutura blockchain" },
+      { "icon": "🏆", "accent": "gold", "title": "Ranking", "subtitle": "Recompensas e progressão" },
+      { "icon": "◎", "accent": "purple", "title": "Global", "subtitle": "Arena descentralizada" }
+    ],
+    "statusCards": [
+      { "title": "Em desenvolvimento ativo", "description": "Plataforma em iteração constante, com novas entregas públicas e refinamento operacional.", "tag": "Ativo" },
+      { "title": "Partidas cripto automatizadas", "description": "Ciclos entre ativos com acompanhamento de mercado, placar e atualização contínua.", "tag": "Automação" },
+      { "title": "Histórico público", "description": "Resultados e contexto de partidas ganham visibilidade crescente para auditoria e consulta.", "tag": "Transparência" },
+      { "title": "Regras em evolução", "description": "Modelos de pontuação e dinâmicas econômicas seguem sendo testados e ajustados.", "tag": "Iteração" },
+      { "title": "Preparado para expansão internacional", "description": "Arquitetura de rotas, SEO e suporte a timezone local pensados para múltiplas regiões.", "tag": "i18n-ready" }
+    ],
+    "phases": [
+      { "phaseLabel": "Fase 1", "title": "Fundação da Plataforma", "status": "InProgress", "description": "Base operacional para partidas públicas, ciclos iniciais e fluxo guiado por mercado.", "items": [ "Criação das partidas entre moedas", "Integração com dados de mercado", "Tela de partidas ao vivo", "Histórico de partidas encerradas", "Registro de resultados e placares" ], "sortOrder": 1 },
+      { "phaseLabel": "Fase 2", "title": "Transparência e Auditabilidade", "status": "InProgress", "description": "Superfícies públicas que explicam como cada partida evolui e como os resultados podem ser revisados.", "items": [ "Página pública de histórico", "Página pública de detalhe da partida", "Exibição clara de placar, desempenho e resultado", "Melhorias em SEO", "Metadados públicos por partida", "Registro de eventos da partida para auditoria futura" ], "sortOrder": 2 },
+      { "phaseLabel": "Fase 3", "title": "Regras Avançadas de Pontuação", "status": "Planned", "description": "Lógica de jogo mais rica, mantendo explicabilidade e leitura orientada a dados.", "items": [ "Pontuação por diferença percentual", "Pontuação por cruzamento de gráficos", "Pontuação por volume em janelas", "Logs de eventos da partida", "Base para narrador IA no futuro" ], "sortOrder": 3 },
+      { "phaseLabel": "Fase 4", "title": "Economia Cíclica", "status": "Planned", "description": "Evolução para um modelo mais próximo de uma pool competitiva experimental.", "items": [ "Participação automática em ciclos futuros", "Melhor controle de saldo", "Redução de perdas bruscas", "Modelo mais próximo de pool competitiva do que aposta tradicional", "Simulações e ajustes antes de produção ampla" ], "sortOrder": 4 },
+      { "phaseLabel": "Fase 5", "title": "Internacionalização", "status": "Planned", "description": "Estrutura de rotas e conteúdo preparada para expansão multilíngue.", "items": [ "Rotas i18n", "Conteúdo em português e inglês", "Hreflang", "SEO internacional", "Timezone local por região" ], "sortOrder": 5 },
+      { "phaseLabel": "Fase 6", "title": "Integração Blockchain", "status": "Experimental", "description": "Camada on-chain experimental focada em auditabilidade e infraestrutura onde fizer sentido.", "items": [ "Integração com Solana Devnet/Mainnet", "Posições e saldos on-chain quando apropriado", "Separação entre lógica off-chain e settlement on-chain", "Maior auditabilidade pública" ], "sortOrder": 6 },
+      { "phaseLabel": "Fase 7", "title": "Narrador IA e Experiência", "status": "Future", "description": "Camada de experiência construída sobre dados verificáveis e histórico público.", "items": [ "Narrador automático de partidas", "Resumos pós-jogo", "Destaques da partida", "Explicações dos eventos decisivos", "Compartilhamento social" ], "sortOrder": 7 }
+    ],
+    "principles": [
+      { "title": "Transparência antes de escala", "description": "Explicar como o sistema funciona antes de acelerar distribuição.", "tag": "Princípio" },
+      { "title": "Regras claras antes de monetização", "description": "A evolução do produto precisa permanecer legível antes de ganhar escala maior.", "tag": "Princípio" },
+      { "title": "Segurança antes de automação", "description": "Automatizar apenas fluxos suficientemente validados.", "tag": "Princípio" },
+      { "title": "Histórico público antes de rankings", "description": "Tornar resultados observáveis antes de adicionar camadas competitivas maiores.", "tag": "Princípio" },
+      { "title": "Dados verificáveis antes de narrativa", "description": "Qualquer camada futura de narrativa deve nascer de logs, eventos e resultados.", "tag": "Princípio" }
+    ],
+    "noticeTitle": "Aviso importante",
+    "noticeText": "O CriptoVersus é uma plataforma experimental de partidas cripto baseadas em dados de mercado. Regras, modelos econômicos e integrações podem evoluir com o tempo. Nada nesta página representa promessa de ganho financeiro."
+  },
+  "howItWorks": {
+    "seo": {
+      "title": "Como Funciona | CriptoVersus",
+      "description": "Entenda como o CriptoVersus funciona: posições, regras de pontuação, ciclos de partidas, liquidação e competição cripto baseada em mercado."
+    }
+  },
+  "social": {
+    "match": {
+      "live": {
+        "text": "{0} e {1} travam uma batalha intensa no CriptoVersus. Placar atual: {2}. Acompanhe ao vivo: {3}"
+      }
+    }
+  }
+}

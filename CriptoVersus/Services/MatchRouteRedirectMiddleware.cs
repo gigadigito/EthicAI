@@ -15,6 +15,7 @@ public sealed class MatchRouteRedirectMiddleware
 
     public async Task InvokeAsync(
         HttpContext context,
+        AppCultureService appCultureService,
         IMatchRouteLookupService matchRouteLookup,
         MatchSlugHelper matchSlugHelper,
         RouteLocalizationService routeLocalization)
@@ -35,6 +36,8 @@ public sealed class MatchRouteRedirectMiddleware
         var redirectPath = await _resolver.ResolveRedirectPathAsync(
             path,
             context.Request.QueryString.Value,
+            context,
+            appCultureService,
             matchRouteLookup,
             matchSlugHelper,
             routeLocalization,

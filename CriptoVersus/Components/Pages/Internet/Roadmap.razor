@@ -4,6 +4,7 @@
 @using CriptoVersus.Web.Services
 @inject NavigationManager Nav
 @inject RoadmapContentService RoadmapContentService
+@inject AppCultureService AppCulture
 
 <PageTitle>@_page.PageTitle</PageTitle>
 
@@ -14,10 +15,16 @@
     {
         <link rel="alternate" hreflang="@alternate.HrefLang" href="@alternate.Href" />
     }
+    <link rel="alternate" hreflang="x-default" href="@BuildAbsolute("/en/roadmap")" />
     <meta property="og:title" content="@_page.OpenGraph.Title" />
     <meta property="og:description" content="@_page.OpenGraph.Description" />
     <meta property="og:type" content="@_page.OpenGraph.Type" />
     <meta property="og:url" content="@_page.OpenGraph.Url" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(_page.Culture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(_page.Culture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@_page.OpenGraph.Title" />
+    <meta name="twitter:description" content="@_page.OpenGraph.Description" />
 </HeadContent>
 
 <section class="roadmap-page">
@@ -604,8 +611,11 @@
         if (relativePath.StartsWith("pt/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "pt/roadmap", StringComparison.OrdinalIgnoreCase))
             return "pt";
 
-        return "pt";
+        return "en";
     }
+
+    private string BuildAbsolute(string relativePath)
+        => new Uri(new Uri(Nav.BaseUri), relativePath.TrimStart('/')).ToString();
 
     private string GetStatusSummary()
         => _page.Culture == "en"

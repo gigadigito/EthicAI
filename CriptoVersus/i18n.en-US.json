@@ -1,0 +1,165 @@
+{
+  "layout": {
+    "topbar": {
+      "eyebrow": "CriptoVersus Arena",
+      "title": "Match market",
+      "login": "Connect with Phantom",
+      "language": "Language",
+      "english": "English",
+      "portuguese": "Português"
+    }
+  },
+  "nav": {
+    "brandSubtitle": "Trading Arena",
+    "home": "Home",
+    "howItWorks": "How It Works",
+    "roadmap": "Roadmap",
+    "wallet": "My Wallet",
+    "admin": "Admin",
+    "connected": "Connected environment"
+  },
+  "home": {
+    "seo": {
+      "title": "CriptoVersus | Live Crypto Match Arena",
+      "description": "Follow live crypto matches on CriptoVersus with score, market performance, stats and public match pages built for a global audience.",
+      "ogTitle": "CriptoVersus | Live Crypto Match Arena",
+      "ogDescription": "Watch live crypto matches, scoreboards and market battles on CriptoVersus."
+    },
+    "page": {
+      "title": "Dashboard",
+      "loading": "Loading...",
+      "emptySnapshot": "No snapshot data available."
+    },
+    "dashboard": {
+      "pending": "Pending",
+      "ongoing": "Live",
+      "completed24h": "Completed (24h)",
+      "investments": "Investments",
+      "openMarkets": "Matches with open market",
+      "noOpenMarkets": "No matches currently available for investment.",
+      "matchId": "Match #{0}",
+      "invest": "Invest",
+      "investIn": "Invest in {0}",
+      "closedInvestments": "Investments closed",
+      "follow": "Follow",
+      "liveEyebrow": "Live",
+      "liveMatches": "Live matches",
+      "noLiveMatches": "No live matches at the moment.",
+      "liveTracking": "Live coverage",
+      "openMatchPanel": "Open match panel",
+      "marketRealtime": "Market tracks price movement in real time",
+      "details": "Details",
+      "completedEyebrow": "Completed",
+      "completedMatches": "Completed matches",
+      "noCompletedMatches": "No matches finished in the last 24 hours.",
+      "matchCompleted": "Match completed",
+      "internalStatus": "Internal status",
+      "historyAvailable": "Match history and log available",
+      "marketEyebrow": "Market",
+      "noData": "No data.",
+      "awaitingStart": "Awaiting start",
+      "liveClock": "{0}' played · -{1}'",
+      "elapsedOnly": "{0}' played",
+      "statusOpen": "OPEN",
+      "statusClosed": "CLOSED"
+    }
+  },
+  "match": {
+    "seo": {
+      "live": {
+        "title": "{0} vs {1} Live Match | CriptoVersus",
+        "description": "Watch the live crypto match between {0} and {1} on CriptoVersus. Current score, performance, match stats and market battle updated in real time."
+      },
+      "completed": {
+        "title": "{0} vs {1} Completed Match | CriptoVersus",
+        "description": "Review the completed crypto match between {0} and {1} on CriptoVersus. Final score, performance, match stats and market battle recap."
+      },
+      "pending": {
+        "title": "{0} vs {1} Upcoming Match | CriptoVersus",
+        "description": "Preview the upcoming crypto match between {0} and {1} on CriptoVersus."
+      },
+      "fallback": {
+        "title": "{0} vs {1} Match | CriptoVersus",
+        "description": "See match details for {0} vs {1} on CriptoVersus."
+      }
+    },
+    "status": {
+      "ongoing": "Live",
+      "completed": "Completed",
+      "pending": "Pending"
+    }
+  },
+  "roadmap": {
+    "pageTitle": "CriptoVersus Roadmap | Platform Evolution",
+    "metaDescription": "Follow the public CriptoVersus roadmap: crypto matches, public match history, scoring rules, transparency, internationalization and future blockchain integrations.",
+    "openGraph": {
+      "title": "CriptoVersus Roadmap",
+      "description": "See the planned evolution of CriptoVersus, including crypto matches, public match history, advanced rules, i18n and blockchain integrations.",
+      "type": "website"
+    },
+    "hero": {
+      "eyebrow": "Public product overview",
+      "title": "CriptoVersus Roadmap",
+      "subtitle": "Follow the platform evolution, new match rules, transparency improvements and future integrations.",
+      "primaryCtaLabel": "View live matches",
+      "secondaryCtaLabel": "Read the rules"
+    },
+    "labels": {
+      "phasesMapped": "Phases mapped",
+      "workstreamsActive": "Workstreams active",
+      "workstreamsDescription": "Status cards, principles and visible roadmap milestones.",
+      "currentFocus": "Current focus",
+      "nextMilestone": "Next milestone",
+      "brandPillars": "Brand pillars",
+      "statusSummary": "Experimental platform roadmap",
+      "currentFocusFallback": "Active roadmap execution",
+      "nextMilestoneFallback": "Roadmap in expansion",
+      "nextMilestoneFallbackItem": "Upcoming delivery details will be published soon."
+    },
+    "brandPillars": [
+      { "icon": "✦", "accent": "purple", "title": "Competition", "subtitle": "Between digital assets" },
+      { "icon": "↗", "accent": "green", "title": "Strategy", "subtitle": "Performance and timing" },
+      { "icon": "⬢", "accent": "cyan", "title": "Technology", "subtitle": "Blockchain infrastructure" },
+      { "icon": "🏆", "accent": "gold", "title": "Ranking", "subtitle": "Rewards and progression" },
+      { "icon": "◎", "accent": "purple", "title": "Global", "subtitle": "Decentralized arena" }
+    ],
+    "statusCards": [
+      { "title": "Active development", "description": "The platform is evolving continuously with public releases and operational refinements.", "tag": "Active" },
+      { "title": "Automated crypto matches", "description": "Market-based cycles between assets with score tracking and continuous updates.", "tag": "Automation" },
+      { "title": "Public history", "description": "Results and match context are becoming increasingly visible for audit and review.", "tag": "Transparency" },
+      { "title": "Rules in evolution", "description": "Scoring models and economic dynamics are still being tested and refined.", "tag": "Iteration" },
+      { "title": "Ready for international expansion", "description": "Routing, SEO and local timezone support are being shaped for multiple regions.", "tag": "i18n-ready" }
+    ],
+    "phases": [
+      { "phaseLabel": "Phase 1", "title": "Platform Foundation", "status": "InProgress", "description": "Operational foundation for public matches, early cycles and market-driven game flow.", "items": [ "Creation of matches between coins", "Market data integration", "Live match view", "Completed match history", "Result and score registration" ], "sortOrder": 1 },
+      { "phaseLabel": "Phase 2", "title": "Transparency and Auditability", "status": "InProgress", "description": "Public surfaces that explain how each match evolves and how results can be reviewed.", "items": [ "Public history page", "Public match detail page", "Clear display of score, performance and result", "SEO improvements", "Public metadata per match", "Match event records for future auditability" ], "sortOrder": 2 },
+      { "phaseLabel": "Phase 3", "title": "Advanced Scoring Rules", "status": "Planned", "description": "Richer match logic designed to stay explainable and data-driven.", "items": [ "Scoring by percentage difference", "Scoring by chart crossovers", "Scoring by volume windows", "Match event logs", "Foundation for a future AI commentator" ], "sortOrder": 3 },
+      { "phaseLabel": "Phase 4", "title": "Cyclical Economy", "status": "Planned", "description": "Evolution toward a more experimental competitive pool model.", "items": [ "Automatic participation in future cycles", "Better balance control", "Reduced abrupt losses", "A model closer to a competitive pool than a traditional bet", "Simulations and tuning before broader production" ], "sortOrder": 4 },
+      { "phaseLabel": "Phase 5", "title": "Internationalization", "status": "Planned", "description": "Routing and content structure prepared for multilingual expansion.", "items": [ "i18n routes", "Portuguese and English content", "Hreflang", "International SEO", "Local timezone by region" ], "sortOrder": 5 },
+      { "phaseLabel": "Phase 6", "title": "Blockchain Integration", "status": "Experimental", "description": "An experimental on-chain layer focused on auditability and infrastructure where it makes sense.", "items": [ "Solana Devnet/Mainnet integration", "On-chain positions and balances where appropriate", "Separation between off-chain logic and on-chain settlement", "Stronger public auditability" ], "sortOrder": 6 },
+      { "phaseLabel": "Phase 7", "title": "AI Commentary and Experience", "status": "Future", "description": "Experience enhancements built on top of verifiable match data and public history.", "items": [ "Automated match commentator", "Post-match summaries", "Match highlights", "Explanations of decisive events", "Social sharing" ], "sortOrder": 7 }
+    ],
+    "principles": [
+      { "title": "Transparency before scale", "description": "Explain how the system works before trying to accelerate distribution.", "tag": "Principle" },
+      { "title": "Clear rules before monetization", "description": "Product evolution should stay readable before it becomes broader.", "tag": "Principle" },
+      { "title": "Safety before automation", "description": "Only automate flows after they are sufficiently validated.", "tag": "Principle" },
+      { "title": "Public history before rankings", "description": "Make results observable before adding bigger competitive layers.", "tag": "Principle" },
+      { "title": "Verifiable data before narrative", "description": "Any future narrative layer should be grounded in logs, events and results.", "tag": "Principle" }
+    ],
+    "noticeTitle": "Important notice",
+    "noticeText": "CriptoVersus is an experimental platform for crypto matches based on market data. Rules, economic models and integrations may evolve over time. Nothing on this page represents a promise of financial gain."
+  },
+  "howItWorks": {
+    "seo": {
+      "title": "How It Works | CriptoVersus",
+      "description": "Learn how CriptoVersus works: positions, scoring rules, match cycles, settlement and market-driven crypto competition."
+    }
+  },
+  "social": {
+    "match": {
+      "live": {
+        "text": "{0} and {1} are trading blows on CriptoVersus. Current score: {2}. Follow live: {3}"
+      }
+    }
+  }
+}

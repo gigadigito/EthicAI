@@ -1,18 +1,85 @@
 ﻿@rendermode InteractiveServer
 @page "/tokenomics"
+@page "/en/how-it-works"
+@page "/pt/como-funciona"
 @using DTOs
+@using CriptoVersus.Web.Services
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
 @inject IJSRuntime JS
 @inject IConfiguration Config
+@inject NavigationManager Nav
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+
+<PageTitle>@L.T("howItWorks.seo.title", CurrentCulture)</PageTitle>
+<HeadContent>
+    <meta name="description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
+    <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
+    <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("en"))" />
+    <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("pt"))" />
+    <link rel="alternate" hreflang="x-default" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("en"))" />
+    <meta property="og:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
+    <meta property="og:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
+    <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
+    <meta property="og:locale" content="@(AppCulture.ToOgLocale(CurrentCulture))" />
+    <meta property="og:locale:alternate" content="@(AppCulture.GetAlternateOgLocale(CurrentCulture))" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
+    <meta name="twitter:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
+</HeadContent>
 
 <section class="tokenomics-page">
     <div class="tokenomics-hero">
-        <img class="tokenomics-hero__banner" src="/img/tokenomics-hero-banner.png" alt="CriptoVersus Arena Financeira. Estrategia. Vitoria." />
+        @if (IsEnglish)
+        {
+            <div class="tokenomics-hero__board" role="img" aria-label="@L.T("howItWorks.seo.title", CurrentCulture)">
+                <article class="tokenomics-hero__pillar tokenomics-hero__pillar--combat">
+                    <div class="tokenomics-hero__icon">X</div>
+                    <div>
+                        <strong>Competition</strong>
+                        <span>Between assets</span>
+                    </div>
+                </article>
+                <article class="tokenomics-hero__pillar tokenomics-hero__pillar--strategy">
+                    <div class="tokenomics-hero__icon">%</div>
+                    <div>
+                        <strong>Strategy</strong>
+                        <span>And performance</span>
+                    </div>
+                </article>
+                <article class="tokenomics-hero__pillar tokenomics-hero__pillar--tech">
+                    <div class="tokenomics-hero__icon">[]</div>
+                    <div>
+                        <strong>Technology</strong>
+                        <span>Blockchain rails</span>
+                    </div>
+                </article>
+                <article class="tokenomics-hero__pillar tokenomics-hero__pillar--ranking">
+                    <div class="tokenomics-hero__icon">#</div>
+                    <div>
+                        <strong>Ranking</strong>
+                        <span>And rewards</span>
+                    </div>
+                </article>
+                <article class="tokenomics-hero__pillar tokenomics-hero__pillar--global">
+                    <div class="tokenomics-hero__icon">O</div>
+                    <div>
+                        <strong>Global</strong>
+                        <span>And decentralized</span>
+                    </div>
+                </article>
+            </div>
+        }
+        else
+        {
+            <img class="tokenomics-hero__banner" src="/img/tokenomics-hero-banner.png" alt="@L.T("howItWorks.seo.title", CurrentCulture)" />
+        }
     </div>
 
     @if (_loading)
     {
-        <p>Carregando regras do protocolo...</p>
+        <p>@(CurrentCulture == "en" ? "Loading protocol rules..." : "Carregando regras do protocolo...")</p>
     }
     else if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -22,120 +89,121 @@
     {
         <div class="metrics-band">
             <article>
-                <span>Capital ativo</span>
+                <span>@(IsEnglish ? "Active capital" : "Capital ativo")</span>
                 <strong>@FmtSol(_data.ActiveCapital)</strong>
-                <small>@_data.ActivePositions posicoes ativas</small>
+                <small>@(IsEnglish ? $"{_data.ActivePositions} active positions" : $"{_data.ActivePositions} posicoes ativas")</small>
             </article>
             <article>
-                <span>Total alocado</span>
+                <span>@(IsEnglish ? "Total allocated" : "Total alocado")</span>
                 <strong>@FmtSol(_data.PrincipalAllocated)</strong>
-                <small>@_data.Users usuarios indexados</small>
+                <small>@(IsEnglish ? $"{_data.Users} indexed users" : $"{_data.Users} usuarios indexados")</small>
             </article>
             <article>
-                <span>Ciclos em andamento</span>
+                <span>@(IsEnglish ? "Cycles in progress" : "Ciclos em andamento")</span>
                 <strong>@_data.OngoingMatches</strong>
-                <small>@_data.PendingMatches pendentes</small>
+                <small>@(IsEnglish ? $"{_data.PendingMatches} pending" : $"{_data.PendingMatches} pendentes")</small>
             </article>
             <article>
-                <span>Em partidas abertas</span>
+                <span>@(IsEnglish ? "In open matches" : "Em partidas abertas")</span>
                 <strong>@FmtSol(_data.OpenEntryAmount)</strong>
-                <small>@_data.OpenEntries entradas abertas</small>
+                <small>@(IsEnglish ? $"{_data.OpenEntries} open entries" : $"{_data.OpenEntries} entradas abertas")</small>
             </article>
         </div>
 
         <section class="topic-callout">
             <div>
-                <span>Topico especial</span>
-                <h3>Regras das partidas e formacao do placar</h3>
+                <span>@(IsEnglish ? "Special topic" : "Topico especial")</span>
+                <h3>@(IsEnglish ? "Match rules and score formation" : "Regras das partidas e formacao do placar")</h3>
                 <p>
-                    Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log
-                    auditavel que reconstrui cada ponto da partida.
+                    @(IsEnglish
+                        ? "See in detail how crossovers, thresholds, volume windows, crossover volume and the auditable event log rebuild every point in the match."
+                        : "Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log auditavel que reconstrui cada ponto da partida.")
                 </p>
             </div>
-            <a class="topic-link" href="/tokenomics/regras-das-partidas">Abrir topico completo</a>
+            <a class="topic-link" href="@($"{RouteLocalization.BuildHowItWorksPath(CurrentCulture)}#pontuacao")">@(IsEnglish ? "Open full topic" : "Abrir topico completo")</a>
         </section>
 
         <div class="rule-grid">
             <section class="rule-panel lead-panel" id="como-funciona">
                 <span>01</span>
-                <h3>Como funciona</h3>
+                <h3>@(IsEnglish ? "How it works" : "Como funciona")</h3>
                 <p>
-                    Escolha um ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos
-                    ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e
-                    seu capital continua pronto para seguir no jogo.
+                    @(IsEnglish
+                        ? "Choose an asset, deposit SOL and keep your position active to automatically participate in new cycles whenever that asset returns. This way, you do not need to repeat the manual entry every round and your capital stays ready for the next game."
+                        : "Escolha um ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e seu capital continua pronto para seguir no jogo.")
                 </p>
                 <div class="flow-line">
-                    <strong>Depositar SOL</strong>
-                    <strong>Entrar na posicao</strong>
-                    <strong>Liquidar quando desejar</strong>
-                    <strong>Continuar automaticamente</strong>
+                    <strong>@(IsEnglish ? "Deposit SOL" : "Depositar SOL")</strong>
+                    <strong>@(IsEnglish ? "Enter position" : "Entrar na posicao")</strong>
+                    <strong>@(IsEnglish ? "Settle when you want" : "Liquidar quando desejar")</strong>
+                    <strong>@(IsEnglish ? "Continue automatically" : "Continuar automaticamente")</strong>
                 </div>
             </section>
 
             <section class="rule-panel" id="posicoes">
                 <span>02</span>
-                <h3>Posicoes</h3>
+                <h3>@(IsEnglish ? "Positions" : "Posicoes")</h3>
                 <p>
-                    Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos
-                    vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario
-                    solicitar encerramento da posicao.
+                    @(IsEnglish
+                        ? "Each position belongs to a wallet and a specific asset. Current capital can grow after winning cycles, suffer controlled erosion in losing cycles or move into an exit process when the user requests to close the position."
+                        : "Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario solicitar encerramento da posicao.")
                 </p>
                 <dl>
-                    <div><dt>Ativas</dt><dd>@_data.ActivePositions</dd></div>
-                    <div><dt>Saida solicitada</dt><dd>@_data.ClosingPositions</dd></div>
-                    <div><dt>Fechadas</dt><dd>@_data.ClosedPositions</dd></div>
+                    <div><dt>@(IsEnglish ? "Active" : "Ativas")</dt><dd>@_data.ActivePositions</dd></div>
+                    <div><dt>@(IsEnglish ? "Exit requested" : "Saida solicitada")</dt><dd>@_data.ClosingPositions</dd></div>
+                    <div><dt>@(IsEnglish ? "Closed" : "Fechadas")</dt><dd>@_data.ClosedPositions</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="pontuacao">
                 <span>03</span>
-                <h3>Sistema de Pontuacao</h3>
+                <h3>@(IsEnglish ? "Scoring system" : "Sistema de Pontuacao")</h3>
                 <p>
-                    A pontuacao compara a performance relativa dos ativos dentro do ciclo. A cada @_data.PercentPerGoal.ToString("0.##")%
-                    de vantagem, o ativo pode converter essa diferenca em gols, sempre respeitando o teto maximo de pontuacao
-                    por lado definido na configuracao operacional.
+                    @(IsEnglish
+                        ? $"Scoring compares the relative performance of assets inside the cycle. Every {_data.PercentPerGoal:0.##}% of advantage can be converted into goals, while respecting the maximum scoring cap per side defined in the operational configuration."
+                        : $"A pontuacao compara a performance relativa dos ativos dentro do ciclo. A cada {_data.PercentPerGoal:0.##}% de vantagem, o ativo pode converter essa diferenca em gols, sempre respeitando o teto maximo de pontuacao por lado definido na configuracao operacional.")
                 </p>
                 <dl>
-                    <div><dt>% por gol</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
-                    <div><dt>Limite por time</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
+                    <div><dt>@(IsEnglish ? "% per goal" : "% por gol")</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
+                    <div><dt>@(IsEnglish ? "Cap per team" : "Limite por time")</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="ciclos">
                 <span>04</span>
-                <h3>Ciclos</h3>
+                <h3>@(IsEnglish ? "Cycles" : "Ciclos")</h3>
                 <p>
-                    Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao.
-                    Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece,
-                    desde que a posicao siga ativa e acima do capital minimo operacional.
+                    @(IsEnglish
+                        ? "Each match represents a market cycle with an entry window, a tracking period and settlement. If automatic re-entry is enabled, recurring positions return to the game when the asset appears again, as long as the position remains active and above the minimum operational capital."
+                        : "Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao. Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece, desde que a posicao siga ativa e acima do capital minimo operacional.")
                 </p>
                 <dl>
-                    <div><dt>Duracao alvo</dt><dd>@_data.MatchDurationMinutes min</dd></div>
-                    <div><dt>Reentrada automatica</dt><dd>@(_data.AutoReenterEnabled ? "Ativa" : "Pausada")</dd></div>
+                    <div><dt>@(IsEnglish ? "Target duration" : "Duracao alvo")</dt><dd>@_data.MatchDurationMinutes min</dd></div>
+                    <div><dt>@(IsEnglish ? "Auto re-entry" : "Reentrada automatica")</dt><dd>@(_data.AutoReenterEnabled ? (IsEnglish ? "Enabled" : "Ativa") : (IsEnglish ? "Paused" : "Pausada"))</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel settlement-panel" id="liquidacao">
                 <span>05</span>
-                <h3>Liquidacao</h3>
+                <h3>@(IsEnglish ? "Settlement" : "Liquidacao")</h3>
                 <p>
-                    O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado
-                    perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais
-                    parecida com pool rotativa do que com aposta classica de rodada unica.
+                    @(IsEnglish
+                        ? "The winning side receives a proportional gain from the distributable share generated by the losing side. The losing side preserves most of its capital, reducing fast elimination and reinforcing a dynamic closer to a rotating pool than a classic single-round bet."
+                        : "O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais parecida com pool rotativa do que com aposta classica de rodada unica.")
                 </p>
-                <div class="settlement-chart" aria-label="Distribuicao da liquidacao">
+                <div class="settlement-chart" aria-label="@(IsEnglish ? "Settlement distribution" : "Distribuicao da liquidacao")">
                     <div class="settlement-chart__pie" @ref="_settlementPieRef"></div>
                     <div class="settlement-chart__summary">
                         <article class="settlement-chart__target settlement-chart__target--refund">
-                            <small>Retorno ao perdedor</small>
+                            <small>@(IsEnglish ? "Loser refund" : "Retorno ao perdedor")</small>
                             <strong>@FmtPct(_data.LoserRefundRate)</strong>
                         </article>
                         <article class="settlement-chart__target settlement-chart__target--winners">
-                            <small>Pool dos vencedores</small>
+                            <small>@(IsEnglish ? "Winners pool" : "Pool dos vencedores")</small>
                             <strong>@FmtPct(_data.WinnerPoolRate)</strong>
                         </article>
                         <article class="settlement-chart__target settlement-chart__target--house">
-                            <small>Taxa da casa</small>
+                            <small>@(IsEnglish ? "House fee" : "Taxa da casa")</small>
                             <strong>@FmtPct(_data.HouseFeeRate)</strong>
                         </article>
                     </div>
@@ -146,42 +214,43 @@
                     <em style="width:@PctCss(_data.HouseFeeRate)"></em>
                 </div>
                 <div class="legend">
-                    <span>Perdedor recupera @FmtPct(_data.LoserRefundRate)</span>
-                    <span>Vencedores recebem @FmtPct(_data.WinnerPoolRate)</span>
-                    <span>Casa @FmtPct(_data.HouseFeeRate)</span>
+                    <span>@(IsEnglish ? $"Loser recovers {FmtPct(_data.LoserRefundRate)}" : $"Perdedor recupera {FmtPct(_data.LoserRefundRate)}")</span>
+                    <span>@(IsEnglish ? $"Winners receive {FmtPct(_data.WinnerPoolRate)}" : $"Vencedores recebem {FmtPct(_data.WinnerPoolRate)}")</span>
+                    <span>@(IsEnglish ? $"House {FmtPct(_data.HouseFeeRate)}" : $"Casa {FmtPct(_data.HouseFeeRate)}")</span>
                 </div>
             </section>
 
             <section class="rule-panel" id="taxas">
                 <span>06</span>
-                <h3>Taxas</h3>
+                <h3>@(IsEnglish ? "Fees" : "Taxas")</h3>
                 <p>
-                    A taxa da casa e mantida em nivel reduzido para sustentar a operacao, a indexacao e a infraestrutura
-                    operacional, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.
+                    @(IsEnglish
+                        ? "The house fee is kept at a reduced level to support operations, indexing and operational infrastructure without consuming an aggressive share of participant capital in each cycle."
+                        : "A taxa da casa e mantida em nivel reduzido para sustentar a operacao, a indexacao e a infraestrutura operacional, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.")
                 </p>
                 <dl>
-                    <div><dt>Taxa da casa</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
-                    <div><dt>Capital minimo</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
+                    <div><dt>@(IsEnglish ? "House fee" : "Taxa da casa")</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
+                    <div><dt>@(IsEnglish ? "Minimum capital" : "Capital minimo")</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="retirada">
                 <span>07</span>
-                <h3>Retirada</h3>
+                <h3>@(IsEnglish ? "Withdrawal" : "Retirada")</h3>
                 <p>
-                    O usuario pode solicitar saida da posicao a qualquer momento. Se houver ciclo ativo, a posicao aguarda a
-                    liquidacao daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada
-                    conforme o fluxo operacional habilitado no sistema.
+                    @(IsEnglish
+                        ? "The user can request to exit the position at any time. If there is an active cycle, the position waits for that cycle settlement; after that, the remaining capital can proceed to closing and withdrawal according to the operational flow enabled in the system."
+                        : "O usuario pode solicitar saida da posicao a qualquer momento. Se houver ciclo ativo, a posicao aguarda a liquidacao daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada conforme o fluxo operacional habilitado no sistema.")
                 </p>
             </section>
 
             <section class="rule-panel" id="riscos">
                 <span>08</span>
-                <h3>Riscos</h3>
+                <h3>@(IsEnglish ? "Risks" : "Riscos")</h3>
                 <p>
-                    O protocolo opera com ativos volateis, regras automatizadas e contratos em rede Solana. Pequenas perdas por
-                    ciclo podem se acumular ao longo do tempo, parametros podem ser ajustados pela operacao e ambiente de devnet
-                    nao deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.
+                    @(IsEnglish
+                        ? "The protocol operates with volatile assets, automated rules and contracts on the Solana network. Small losses per cycle can accumulate over time, parameters may be adjusted by operations and a devnet environment must not be interpreted as a guarantee of returns, liquidity or future performance."
+                        : "O protocolo opera com ativos volateis, regras automatizadas e contratos em rede Solana. Pequenas perdas por ciclo podem se acumular ao longo do tempo, parametros podem ser ajustados pela operacao e ambiente de devnet nao deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.")
                 </p>
             </section>
 
@@ -189,30 +258,30 @@
                 <span>09</span>
                 @if (IsOffChainCustodyMode)
                 {
-                    <h3>Carteira de custodia</h3>
+                    <h3>@(IsEnglish ? "Custody wallet" : "Carteira de custodia")</h3>
                     <p>
-                        No modo Off-chain Custody, os fundos operacionais sao conciliados fora do contrato. A wallet Solana
-                        continua sendo a identidade do usuario, enquanto as transferencias para a carteira de custodia na rede
-                        @_data.Cluster precisam ser reconhecidas pelo sistema para virar saldo interno de apostas.
+                        @(IsEnglish
+                            ? $"In Off-chain Custody mode, operational funds are reconciled outside the contract. The Solana wallet remains the user identity, while transfers to the custody wallet on the {_data.Cluster} network must be recognized by the system before becoming internal betting balance."
+                            : $"No modo Off-chain Custody, os fundos operacionais sao conciliados fora do contrato. A wallet Solana continua sendo a identidade do usuario, enquanto as transferencias para a carteira de custodia na rede {_data.Cluster} precisam ser reconhecidas pelo sistema para virar saldo interno de apostas.")
                     </p>
                     <dl>
-                        <div><dt>Carteira</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
+                        <div><dt>@(IsEnglish ? "Wallet" : "Carteira")</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
                         <div><dt>Label</dt><dd>@DisplayCustodyWalletLabel</dd></div>
-                        <div><dt>Rede</dt><dd>@_data.Cluster</dd></div>
+                        <div><dt>@(IsEnglish ? "Network" : "Rede")</dt><dd>@_data.Cluster</dd></div>
                     </dl>
                 }
                 else
                 {
-                    <h3>Contrato on-chain</h3>
+                    <h3>@(IsEnglish ? "On-chain contract" : "Contrato on-chain")</h3>
                     <p>
-                        Depositos e posicoes usam o programa configurado na rede @_data.Cluster. O backend atua como indexador e
-                        camada de orquestracao, enquanto a posicao on-chain preserva a rastreabilidade do capital, dos enderecos
-                        vinculados e da logica operacional publicada no contrato.
+                        @(IsEnglish
+                            ? $"Deposits and positions use the configured program on the {_data.Cluster} network. The backend acts as an indexer and orchestration layer, while the on-chain position preserves traceability for capital, linked addresses and the operational logic published in the contract."
+                            : $"Depositos e posicoes usam o programa configurado na rede {_data.Cluster}. O backend atua como indexador e camada de orquestracao, enquanto a posicao on-chain preserva a rastreabilidade do capital, dos enderecos vinculados e da logica operacional publicada no contrato.")
                     </p>
                     <dl>
                         <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
                         <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
-                        <div><dt>Rede</dt><dd>@_data.Cluster</dd></div>
+                        <div><dt>@(IsEnglish ? "Network" : "Rede")</dt><dd>@_data.Cluster</dd></div>
                     </dl>
                 }
             </section>
@@ -222,9 +291,9 @@
         {
             <section class="positions-band">
                 <div class="positions-band__header">
-                    <span>Ativos com mais capital</span>
-                    <h3>Distribuicao atual das posicoes</h3>
-                    <p>Leitura rapida das posicoes com maior capital ativo neste momento.</p>
+                    <span>@(IsEnglish ? "Assets with more capital" : "Ativos com mais capital")</span>
+                    <h3>@(IsEnglish ? "Current position distribution" : "Distribuicao atual das posicoes")</h3>
+                    <p>@(IsEnglish ? "Quick read of the positions with the highest active capital right now." : "Leitura rapida das posicoes com maior capital ativo neste momento.")</p>
                 </div>
                 <div class="position-list">
                     @{
@@ -246,7 +315,7 @@
                                     </span>
                                 </strong>
                                 <span>@FmtSol(position.CurrentCapital)</span>
-                                <small>Capital em jogo</small>
+                                <small>@(IsEnglish ? "Capital in play" : "Capital em jogo")</small>
                             </div>
                         </article>
                         rank++;
@@ -267,9 +336,18 @@
     private bool IsOffChainCustodyMode
         => string.Equals(_data?.BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private bool IsEnglish => CurrentCulture == "en";
+
+    private string BuildAbsolute(string relativePath)
+    {
+        var baseUrl = Config["CriptoVersus:PublicBaseUrl"]?.TrimEnd('/') ?? Nav.BaseUri.TrimEnd('/');
+        return $"{baseUrl}{relativePath}";
+    }
+
     private string DisplayCustodyWalletLabel
         => string.IsNullOrWhiteSpace(_data?.CustodyWalletLabel)
-            ? "Carteira de custodia"
+            ? (IsEnglish ? "Custody wallet" : "Carteira de custodia")
             : _data!.CustodyWalletLabel;
 
     protected override async Task OnInitializedAsync()
@@ -280,7 +358,9 @@
         }
         catch (Exception ex)
         {
-            _error = $"Nao foi possivel carregar as regras dinamicas: {ex.Message}";
+            _error = IsEnglish
+                ? $"Unable to load dynamic rules: {ex.Message}"
+                : $"Nao foi possivel carregar as regras dinamicas: {ex.Message}";
         }
         finally
         {
@@ -411,6 +491,100 @@
         aspect-ratio: 923 / 321;
         object-fit: cover;
         background: #030507;
+    }
+
+    .tokenomics-hero__board {
+        aspect-ratio: 923 / 321;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0;
+        padding: 1.6rem 1.7rem;
+        align-items: stretch;
+        background:
+            radial-gradient(circle at 14% 18%, rgba(159, 92, 255, 0.24), transparent 24%),
+            radial-gradient(circle at 84% 26%, rgba(76, 243, 141, 0.18), transparent 28%),
+            linear-gradient(90deg, rgba(18, 9, 26, 0.97), rgba(4, 17, 14, 0.97)),
+            #030507;
+    }
+
+    .tokenomics-hero__pillar {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 1rem;
+        align-items: center;
+        padding: 1rem 1rem 1rem 1.15rem;
+        min-width: 0;
+    }
+
+    .tokenomics-hero__pillar + .tokenomics-hero__pillar::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 18%;
+        bottom: 18%;
+        width: 1px;
+        background: linear-gradient(180deg, transparent, rgba(255,255,255,0.16), transparent);
+    }
+
+    .tokenomics-hero__icon {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 20px;
+        display: grid;
+        place-items: center;
+        font-size: 1.65rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .tokenomics-hero__pillar strong,
+    .tokenomics-hero__pillar span {
+        display: block;
+        text-transform: uppercase;
+        line-height: 1.05;
+    }
+
+    .tokenomics-hero__pillar strong {
+        font-size: clamp(1rem, 1vw + .5rem, 1.55rem);
+        letter-spacing: .06em;
+        margin-bottom: .38rem;
+    }
+
+    .tokenomics-hero__pillar span {
+        color: #eef5ff;
+        font-size: clamp(1rem, .92vw + .44rem, 1.45rem);
+        font-weight: 800;
+        letter-spacing: .03em;
+        opacity: .95;
+    }
+
+    .tokenomics-hero__pillar--combat strong,
+    .tokenomics-hero__pillar--combat .tokenomics-hero__icon {
+        color: #a855f7;
+    }
+
+    .tokenomics-hero__pillar--strategy strong,
+    .tokenomics-hero__pillar--strategy .tokenomics-hero__icon {
+        color: #4cf38d;
+    }
+
+    .tokenomics-hero__pillar--tech strong,
+    .tokenomics-hero__pillar--tech .tokenomics-hero__icon {
+        color: #38bdf8;
+    }
+
+    .tokenomics-hero__pillar--ranking strong,
+    .tokenomics-hero__pillar--ranking .tokenomics-hero__icon {
+        color: #facc15;
+    }
+
+    .tokenomics-hero__pillar--global strong,
+    .tokenomics-hero__pillar--global .tokenomics-hero__icon {
+        color: #8b5cf6;
     }
 
     .rule-panel span,
@@ -864,6 +1038,33 @@
     @@media (max-width: 760px) {
         .tokenomics-hero {
             border-radius: 22px;
+        }
+
+        .tokenomics-hero__board {
+            aspect-ratio: auto;
+            grid-template-columns: 1fr;
+            padding: 1rem;
+        }
+
+        .tokenomics-hero__pillar {
+            padding: .85rem .3rem;
+        }
+
+        .tokenomics-hero__pillar + .tokenomics-hero__pillar::before {
+            top: 0;
+            bottom: auto;
+            left: 0;
+            right: 0;
+            width: auto;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
+        }
+
+        .tokenomics-hero__icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 16px;
+            font-size: 1.15rem;
         }
 
         .rule-panel,

@@ -1,5 +1,7 @@
 ﻿@rendermode InteractiveServer
 @page "/"
+@page "/en"
+@page "/pt"
 @page "/intranet/dashboard"
 @using CriptoVersus.Web.Services
 @using DTOs
@@ -13,8 +15,29 @@
 @inject IConfiguration Config
 @inject WalletSessionState WalletState
 @inject BrowserTimeZoneService BrowserTimeZone
+@inject NavigationManager Nav
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
 
-<h3 class="mb-3">Dashboard</h3>
+<PageTitle>@L.T("home.seo.title", CurrentCulture)</PageTitle>
+<HeadContent>
+    <meta name="description" content="@L.T("home.seo.description", CurrentCulture)" />
+    <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))" />
+    <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildHomePath("en"))" />
+    <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildHomePath("pt"))" />
+    <link rel="alternate" hreflang="x-default" href="@BuildAbsolute(RouteLocalization.BuildHomePath("en"))" />
+    <meta property="og:title" content="@L.T("home.seo.ogTitle", CurrentCulture)" />
+    <meta property="og:description" content="@L.T("home.seo.ogDescription", CurrentCulture)" />
+    <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))" />
+    <meta property="og:locale" content="@(AppCulture.ToOgLocale(CurrentCulture))" />
+    <meta property="og:locale:alternate" content="@(AppCulture.GetAlternateOgLocale(CurrentCulture))" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@L.T("home.seo.ogTitle", CurrentCulture)" />
+    <meta name="twitter:description" content="@L.T("home.seo.description", CurrentCulture)" />
+</HeadContent>
+
+<h3 class="mb-3">@L.T("home.page.title", CurrentCulture)</h3>
 
 @if (_isPrivilegedWallet)
 {
@@ -41,7 +64,7 @@
 
 @if (_loading)
 {
-    <p>Carregando...</p>
+    <p>@L.T("home.page.loading", CurrentCulture)</p>
 }
 else if (!string.IsNullOrWhiteSpace(_error))
 {
@@ -49,7 +72,7 @@ else if (!string.IsNullOrWhiteSpace(_error))
 }
 else if (_snapshot is null)
 {
-    <div class="alert alert-warning">Sem dados do snapshot.</div>
+    <div class="alert alert-warning">@L.T("home.page.emptySnapshot", CurrentCulture)</div>
 }
 else
 {
@@ -116,6 +139,14 @@ else
     {
         _renderStamp = Guid.NewGuid().ToString("N");
         return InvokeAsync(StateHasChanged);
+    }
+
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+
+    private string BuildAbsolute(string relativePath)
+    {
+        var baseUrl = Config["CriptoVersus:PublicBaseUrl"]?.TrimEnd('/') ?? Nav.BaseUri.TrimEnd('/');
+        return $"{baseUrl}{relativePath}";
     }
 
 

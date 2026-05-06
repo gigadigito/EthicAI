@@ -5,11 +5,38 @@ public sealed class MatchRouteRedirectResolver
     public async Task<string?> ResolveRedirectPathAsync(
         string path,
         string? queryString,
+        HttpContext httpContext,
+        AppCultureService appCultureService,
         IMatchRouteLookupService matchRouteLookup,
         MatchSlugHelper matchSlugHelper,
         RouteLocalizationService routeLocalization,
         CancellationToken cancellationToken = default)
     {
+        var preferredCulture = appCultureService.DetectPreferredRouteCulture(httpContext);
+        var cleanPath = path.Split('?', '#')[0];
+
+        if (cleanPath == "/")
+            return AppendQueryString(routeLocalization.BuildHomePath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/roadmap", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildRoadmapPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildHowItWorksPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase))
+        {
+            var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
+                ?? preferredCulture;
+
+            var canonicalHowItWorksPath = routeLocalization.BuildHowItWorksPath(explicitCulture);
+            if (!cleanPath.Equals(canonicalHowItWorksPath, StringComparison.OrdinalIgnoreCase))
+                return AppendQueryString(canonicalHowItWorksPath, queryString);
+
+            return null;
+        }
+
         var segments = path
             .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
@@ -22,7 +49,7 @@ public sealed class MatchRouteRedirectResolver
             {
                 return await BuildRedirectIfMismatchAsync(
                     requestedPath: $"/match/{segments[1]}/{segments[2]}",
-                    expectedPathFactory: slug => routeLocalization.BuildCanonicalPath(canonicalId, slug),
+                    expectedPathFactory: slug => routeLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, canonicalId, slug),
                     requestedSlug: segments[2],
                     matchId: canonicalId,
                     queryString,
@@ -36,7 +63,22 @@ public sealed class MatchRouteRedirectResolver
                 var slug = officialRoute?.Slug ?? matchSlugHelper.ParseLegacySlug(segments[1]);
 
                 if (!string.IsNullOrWhiteSpace(slug))
-                    return AppendQueryString(routeLocalization.BuildCanonicalPath(legacyId, slug), queryString);
+                    return AppendQueryString(routeLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, legacyId, slug), queryString);
+            }
+        }
+
+        if (segments.Length == 3 && segments[0].Equals("partida", StringComparison.OrdinalIgnoreCase))
+        {
+            if (int.TryParse(segments[1], out var matchId))
+            {
+                return await BuildRedirectIfMismatchAsync(
+                    requestedPath: $"/partida/{segments[1]}/{segments[2]}",
+                    expectedPathFactory: slug => routeLocalization.BuildLocalizedPath(AppCultureService.SecondaryRouteCulture, matchId, slug),
+                    requestedSlug: segments[2],
+                    matchId,
+                    queryString,
+                    matchRouteLookup,
+                    cancellationToken);
             }
         }
 
@@ -45,17 +87,6 @@ public sealed class MatchRouteRedirectResolver
             && routeLocalization.IsKnownMatchSegment(segments[1]))
         {
             var normalizedCulture = routeLocalization.NormalizeCulture(segments[0]);
-            if (normalizedCulture is null)
-            {
-                return await BuildRedirectIfMismatchAsync(
-                    requestedPath: $"/{segments[0]}/{segments[1]}/{segments[2]}/{segments[3]}",
-                    expectedPathFactory: slug => routeLocalization.BuildCanonicalPath(localizedId, slug),
-                    requestedSlug: segments[3],
-                    matchId: localizedId,
-                    queryString,
-                    matchRouteLookup,
-                    cancellationToken);
-            }
 
             return await BuildRedirectIfMismatchAsync(
                 requestedPath: $"/{segments[0]}/{segments[1]}/{segments[2]}/{segments[3]}",

@@ -5,6 +5,9 @@
 @inject WalletSessionState WalletState
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
 @implements IAsyncDisposable
 
 <InitialBrandLoader IsVisible="_showInitialLoader"
@@ -18,28 +21,43 @@
     <main class="app-main">
         <header class="app-topbar">
             <div>
-                <span class="topbar-eyebrow">CriptoVersus Arena</span>
-                <h1>Mercado de partidas</h1>
+                <span class="topbar-eyebrow">@L.T("layout.topbar.eyebrow", CurrentCulture)</span>
+                <h1>@L.T("layout.topbar.title", CurrentCulture)</h1>
             </div>
 
-            @if (IsLoggedIn)
-            {
-                <button class="wallet-identity" title="@walletPublicKey" @onclick="AbrirLoginAsync">
-                    <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
-                    <span class="wallet-address">@ShortWallet(walletPublicKey!)</span>
-                </button>
-            }
-            else
-            {
-                <button class="wallet-button" @onclick="AbrirLoginAsync">
-                    <span class="phantom-button-content">
-                        <span class="phantom-mark" aria-hidden="true">
-                            <img src="/img/phantom-logo.png" alt="" />
+            <div class="topbar-tools">
+                <div class="language-switcher" role="group" aria-label="@L.T("layout.topbar.language", CurrentCulture)">
+                    <button type="button"
+                            class="language-switcher__btn @(CurrentCulture == "en" ? "language-switcher__btn--active" : string.Empty)"
+                            @onclick='() => ChangeLanguageAsync("en")'>
+                        @L.T("layout.topbar.english", CurrentCulture)
+                    </button>
+                    <button type="button"
+                            class="language-switcher__btn @(CurrentCulture == "pt" ? "language-switcher__btn--active" : string.Empty)"
+                            @onclick='() => ChangeLanguageAsync("pt")'>
+                        @L.T("layout.topbar.portuguese", CurrentCulture)
+                    </button>
+                </div>
+
+                @if (IsLoggedIn)
+                {
+                    <button class="wallet-identity" title="@walletPublicKey" @onclick="AbrirLoginAsync">
+                        <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
+                        <span class="wallet-address">@ShortWallet(walletPublicKey!)</span>
+                    </button>
+                }
+                else
+                {
+                    <button class="wallet-button" @onclick="AbrirLoginAsync">
+                        <span class="phantom-button-content">
+                            <span class="phantom-mark" aria-hidden="true">
+                                <img src="/img/phantom-logo.png" alt="" />
+                            </span>
+                            <span>@L.T("layout.topbar.login", CurrentCulture)</span>
                         </span>
-                        <span>Entrar com Phantom</span>
-                    </span>
-                </button>
-            }
+                    </button>
+                }
+            </div>
         </header>
 
         <article class="app-content">
@@ -81,6 +99,38 @@
         display: block;
         object-fit: contain;
     }
+
+    .topbar-tools {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .language-switcher {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .language-switcher__btn {
+        border: 0;
+        background: transparent;
+        color: rgba(255,255,255,.72);
+        border-radius: 999px;
+        padding: .45rem .8rem;
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+    }
+
+    .language-switcher__btn--active {
+        color: #fff;
+        background: rgba(255,255,255,.1);
+    }
 </style>
 
 @code {
@@ -90,7 +140,9 @@
     private bool _showInitialLoader = true;
     private readonly DateTime _loaderStartedUtc = DateTime.UtcNow;
     private IJSObjectReference? _walletActionsModule;
+    private IJSObjectReference? _cultureModule;
     private DotNetObjectReference<MainLayout>? _walletObserverRef;
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
 
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
@@ -122,6 +174,17 @@
         {
             await loginModal.OpenAsync();
         }
+    }
+
+    private async Task ChangeLanguageAsync(string targetCulture)
+    {
+        _cultureModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/culturePreference.js");
+
+        await _cultureModule.InvokeVoidAsync("setPreferredCulture", targetCulture);
+        var targetPath = RouteLocalization.BuildLocalizedPathForCurrentPage(targetCulture, Nav.ToBaseRelativePath(Nav.Uri));
+        Nav.NavigateTo(targetPath, forceLoad: true);
     }
 
     private async Task LoadLoginSessionAsync()
@@ -239,6 +302,11 @@
             }
 
             await _walletActionsModule.DisposeAsync();
+        }
+
+        if (_cultureModule is not null)
+        {
+            await _cultureModule.DisposeAsync();
         }
 
         _walletObserverRef?.Dispose();
