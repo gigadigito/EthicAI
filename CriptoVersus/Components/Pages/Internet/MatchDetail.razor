@@ -153,10 +153,16 @@
                                      onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                 <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
                             </div>
-                            <div>
+                            <div class="social-share-team-card__identity">
                                 <div class="social-share-team-card__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
                                 <div class="social-share-team-card__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
                             </div>
+                            <button class="btn social-share-team-card__cta social-share-team-card__cta--a"
+                                    type="button"
+                                    disabled="@(!CanBetOnCurrentMatch() || _isSendingBet)"
+                                    @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
+                                Investir
+                            </button>
                         </div>
 
                         <div class="social-share-team-card__metrics">
@@ -234,10 +240,16 @@
                                      onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
                                 <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
                             </div>
-                            <div>
+                            <div class="social-share-team-card__identity">
                                 <div class="social-share-team-card__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
                                 <div class="social-share-team-card__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
                             </div>
+                            <button class="btn social-share-team-card__cta social-share-team-card__cta--b"
+                                    type="button"
+                                    disabled="@(!CanBetOnCurrentMatch() || _isSendingBet)"
+                                    @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
+                                Investir
+                            </button>
                         </div>
 
                         <div class="social-share-team-card__metrics">
@@ -624,7 +636,7 @@
             <div class="col-12">
                 <div class="card match-panel p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                        <div class="fw-bold">Teste de Investimento</div>
+                        <div class="fw-bold">garantir posição</div>
                         <span class="badge @(CanBetOnCurrentMatch() ? "bg-success" : "bg-secondary")">
                             @(CanBetOnCurrentMatch() ? "Investimentos abertos" : "Investimentos encerrados")
                         </span>
@@ -1640,6 +1652,11 @@
         gap: .95rem;
     }
 
+    .social-share-team-card__identity {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
     .social-share-team-card__coin {
         flex: 0 0 auto;
     }
@@ -1656,6 +1673,42 @@
         margin-top: .35rem;
         font-size: 1.05rem;
         font-weight: 900;
+    }
+
+    .social-share-team-card__cta {
+        min-width: 108px;
+        padding: .58rem 1rem;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        font-size: .82rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .social-share-team-card__cta:hover:not(:disabled),
+    .social-share-team-card__cta:focus-visible:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.12);
+    }
+
+    .social-share-team-card__cta:disabled {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+
+    .social-share-team-card__cta--a {
+        color: #eafff5;
+        background: linear-gradient(135deg, rgba(16,185,129,.34), rgba(11,118,86,.2));
+        border-color: rgba(52,211,153,.36);
+    }
+
+    .social-share-team-card__cta--b {
+        color: #f7f0ff;
+        background: linear-gradient(135deg, rgba(139,92,246,.34), rgba(88,28,135,.22));
+        border-color: rgba(167,139,250,.36);
     }
 
     .social-share-team-card__metrics {
