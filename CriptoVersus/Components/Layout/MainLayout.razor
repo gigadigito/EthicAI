@@ -10,8 +10,11 @@
 @inject RouteLocalizationService RouteLocalization
 @implements IAsyncDisposable
 
-<InitialBrandLoader IsVisible="_showInitialLoader"
-                    Hidden="HandleLoaderHiddenAsync" />
+@if (!IsPublicSeoRoute)
+{
+    <InitialBrandLoader IsVisible="_showInitialLoader"
+                        Hidden="HandleLoaderHiddenAsync" />
+}
 
 <div class="app-shell">
     <aside class="app-sidebar">
@@ -39,23 +42,26 @@
                     </button>
                 </div>
 
-                @if (IsLoggedIn)
+                @if (ShowWalletUi)
                 {
-                    <button class="wallet-identity" title="@walletPublicKey" @onclick="AbrirLoginAsync">
-                        <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
-                        <span class="wallet-address">@ShortWallet(walletPublicKey!)</span>
-                    </button>
-                }
-                else
-                {
-                    <button class="wallet-button" @onclick="AbrirLoginAsync">
-                        <span class="phantom-button-content">
-                            <span class="phantom-mark" aria-hidden="true">
-                                <img src="/img/phantom-logo.png" alt="" />
+                    @if (IsLoggedIn)
+                    {
+                        <button class="wallet-identity" title="@walletPublicKey" @onclick="AbrirLoginAsync">
+                            <img class="wallet-avatar" src="@GetWalletAvatarUrl(walletPublicKey!)" alt="" />
+                            <span class="wallet-address">@ShortWallet(walletPublicKey!)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="wallet-button" @onclick="AbrirLoginAsync">
+                            <span class="phantom-button-content">
+                                <span class="phantom-mark" aria-hidden="true">
+                                    <img src="/img/phantom-logo.png" alt="" />
+                                </span>
+                                <span>@L.T("layout.topbar.login", CurrentCulture)</span>
                             </span>
-                            <span>@L.T("layout.topbar.login", CurrentCulture)</span>
-                        </span>
-                    </button>
+                        </button>
+                    }
                 }
             </div>
         </header>
@@ -66,15 +72,21 @@
     </main>
 </div>
 
-<SolanaLoginModal @ref="loginModal"
-                  OnLoginSucceeded="HandleLoginSucceededAsync"
-                  OnSessionChanged="HandleSessionChangedAsync" />
+@if (ShowWalletUi)
+{
+    <SolanaLoginModal @ref="loginModal"
+                      OnLoginSucceeded="HandleLoginSucceededAsync"
+                      OnSessionChanged="HandleSessionChangedAsync" />
+}
 
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">x</a>
-</div>
+@if (_interactiveChromeReady && !IsPublicSeoRoute)
+{
+    <div id="blazor-error-ui" data-nosnippet>
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">x</a>
+    </div>
+}
 
 <style>
     .phantom-button-content {
@@ -143,6 +155,9 @@
     private IJSObjectReference? _cultureModule;
     private DotNetObjectReference<MainLayout>? _walletObserverRef;
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private bool _interactiveChromeReady;
+    private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
+    private bool ShowWalletUi => _interactiveChromeReady && !IsPublicSeoRoute;
 
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
@@ -152,6 +167,8 @@
     {
         if (!firstRender)
             return;
+
+        _interactiveChromeReady = true;
 
         try
         {
@@ -212,7 +229,7 @@
     {
         _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "./js/solanaWalletActions.js?v=20260505-rpc-config");
+            "./js/solanaWalletActions.js?v=20260506");
 
         if (string.IsNullOrWhiteSpace(authToken) || string.IsNullOrWhiteSpace(walletPublicKey))
         {
@@ -286,6 +303,24 @@
             return wallet;
 
         return $"{wallet[..start]}...{wallet[^end..]}";
+    }
+
+    private static bool IsPublicRoute(string absoluteUri)
+    {
+        if (!Uri.TryCreate(absoluteUri, UriKind.Absolute, out var uri))
+            return true;
+
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(path))
+            return true;
+
+        return path switch
+        {
+            "" or "/" or "/en" or "/pt" or "/en/roadmap" or "/pt/roadmap" or "/en/how-it-works" or "/pt/como-funciona" => true,
+            _ => path.StartsWith("/en/match/", StringComparison.Ordinal)
+                 || path.StartsWith("/pt/partida/", StringComparison.Ordinal)
+        };
     }
 
     public async ValueTask DisposeAsync()

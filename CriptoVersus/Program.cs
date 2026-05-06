@@ -52,6 +52,8 @@ builder.Services.AddScoped<RouteLocalizationService>();
 builder.Services.AddScoped<MatchSeoService>();
 builder.Services.AddScoped<RoadmapContentService>();
 builder.Services.AddScoped<SitemapService>();
+builder.Services.Configure<SitemapOptions>(
+    builder.Configuration.GetSection(SitemapOptions.SectionName));
 builder.Services.AddSingleton<MatchRouteRedirectResolver>();
 builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
@@ -99,7 +101,43 @@ app.UseAntiforgery();
 
 app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {
-    var xml = await sitemapService.GetSitemapXmlAsync(ct);
+    var xml = await sitemapService.GetSitemapIndexXmlAsync(ct);
+    httpContext.Response.ContentType = "application/xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
+app.MapMethods("/sitemap-pages.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+{
+    var xml = await sitemapService.GetPagesSitemapXmlAsync(ct);
+    httpContext.Response.ContentType = "application/xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
+app.MapMethods("/sitemap-matches-en.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+{
+    var xml = await sitemapService.GetMatchSitemapXmlAsync("en", ct);
+    httpContext.Response.ContentType = "application/xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
+app.MapMethods("/sitemap-matches-pt.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+{
+    var xml = await sitemapService.GetMatchSitemapXmlAsync("pt", ct);
     httpContext.Response.ContentType = "application/xml; charset=utf-8";
     httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
 

@@ -3,17 +3,19 @@ namespace CriptoVersus.Web.Services;
 public sealed class RoadmapContentService
 {
     private readonly IConfiguration _configuration;
+    private readonly RouteLocalizationService _routeLocalization;
 
-    public RoadmapContentService(IConfiguration configuration)
+    public RoadmapContentService(IConfiguration configuration, RouteLocalizationService routeLocalization)
     {
         _configuration = configuration;
+        _routeLocalization = routeLocalization;
     }
 
     public RoadmapPageContent BuildPage(string? culture, string? fallbackBaseUri = null)
     {
         var normalizedCulture = NormalizeCulture(culture);
         var baseUrl = ResolveBaseUrl(fallbackBaseUri);
-        var canonicalUrl = BuildAbsoluteUrl(baseUrl, "/roadmap");
+        var canonicalUrl = BuildAbsoluteUrl(baseUrl, _routeLocalization.BuildRoadmapPath(normalizedCulture));
 
         return normalizedCulture == "en"
             ? BuildEnglishPage(baseUrl, canonicalUrl)
@@ -49,9 +51,9 @@ public sealed class RoadmapContentService
                 Title = "Roadmap CriptoVersus",
                 Subtitle = "Acompanhe a evolução da plataforma, novas regras de partidas, melhorias de transparência e futuras integrações.",
                 PrimaryCtaLabel = "Ver partidas ao vivo",
-                PrimaryCtaHref = "/",
+                PrimaryCtaHref = _routeLocalization.BuildHomePath("pt"),
                 SecondaryCtaLabel = "Entender as regras",
-                SecondaryCtaHref = "/tokenomics"
+                SecondaryCtaHref = _routeLocalization.BuildHowItWorksPath("pt")
             },
             StatusCards =
             [
@@ -194,9 +196,9 @@ public sealed class RoadmapContentService
                 Title = "CriptoVersus Roadmap",
                 Subtitle = "Follow the platform evolution, new match rules, transparency improvements and future integrations.",
                 PrimaryCtaLabel = "View live matches",
-                PrimaryCtaHref = "/",
+                PrimaryCtaHref = _routeLocalization.BuildHomePath("en"),
                 SecondaryCtaLabel = "Read the rules",
-                SecondaryCtaHref = "/tokenomics"
+                SecondaryCtaHref = _routeLocalization.BuildHowItWorksPath("en")
             },
             StatusCards =
             [

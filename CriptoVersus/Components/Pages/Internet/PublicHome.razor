@@ -1,0 +1,546 @@
+@page "/"
+@page "/en"
+@page "/pt"
+@using Microsoft.AspNetCore.Components
+@using System.Text.Json
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject IConfiguration Config
+@inject NavigationManager Nav
+@inject AppCultureService AppCulture
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
+
+<PageTitle>@SeoTitle</PageTitle>
+<HeadContent>
+    <meta name="description" content="@SeoDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@SeoTitle" />
+    <meta property="og:description" content="@SeoDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@SeoTitle" />
+    <meta name="twitter:description" content="@SeoDescription" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="home-landing">
+    <header class="home-hero">
+        <div class="home-hero__copy">
+            <span class="home-hero__eyebrow">@Ui("Global crypto arena", "Arena cripto global")</span>
+            <h1>@Ui("Live crypto matches, market battles and public scoreboards.", "Partidas cripto ao vivo, batalhas de mercado e placares públicos.")</h1>
+            <p>@Ui("CriptoVersus turns live market performance into public matchups between crypto assets, with score, trend, volume and arena-style storytelling built for a global audience.", "O CriptoVersus transforma a performance do mercado em confrontos públicos entre criptoativos, com placar, tendência, volume e narrativa de arena para uma audiência global.")</p>
+            <div class="home-hero__actions">
+                <a class="home-cta home-cta--primary" href="#live-matches">@Ui("Explore live matches", "Explorar partidas ao vivo")</a>
+                <a class="home-cta home-cta--secondary" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@Ui("How it works", "Como funciona")</a>
+                <a class="home-cta home-cta--secondary" href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">Roadmap</a>
+            </div>
+        </div>
+        <div class="home-hero__stats" aria-label="@Ui("Platform highlights", "Destaques da plataforma")">
+            <article>
+                <span>@Ui("Live matches", "Partidas ao vivo")</span>
+                <strong>@(_snapshot?.Matches.Ongoing ?? 0)</strong>
+            </article>
+            <article>
+                <span>@Ui("Completed in 24h", "Encerradas em 24h")</span>
+                <strong>@(_snapshot?.Matches.CompletedLast24h ?? 0)</strong>
+            </article>
+            <article>
+                <span>@Ui("Tracked coins", "Moedas monitoradas")</span>
+                <strong>@Math.Max(_snapshot?.TopGainers.Count ?? 0, 6)</strong>
+            </article>
+        </div>
+    </header>
+
+    <nav class="home-anchor-nav" aria-label="@Ui("Home sections", "Seções da home")">
+        <a href="#live-matches">Live Matches</a>
+        <a href="#top-battles">Top Crypto Battles</a>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#trending-coins">Trending Coins</a>
+        <a href="#rankings">Crypto Arena Rankings</a>
+    </nav>
+
+    <section id="live-matches" class="home-section">
+        <div class="home-section__header">
+            <h2>Live Matches</h2>
+            <p>@Ui("Follow ongoing crypto battles with crawlable public pages that show score, momentum and match context.", "Acompanhe batalhas cripto em andamento com páginas públicas rastreáveis que mostram placar, momento e contexto da partida.")</p>
+        </div>
+        <div class="home-match-grid">
+            @foreach (var match in LiveMatches)
+            {
+                <article class="home-match-card">
+                    <div class="home-match-card__meta">
+                        <span>@Ui("Live battle", "Batalha ao vivo")</span>
+                        <span>#@match.MatchId</span>
+                    </div>
+                    <h3><a href="@GetMatchUrl(match)"><span>@match.TeamA</span> <span>vs</span> <span>@match.TeamB</span></a></h3>
+                    <p>@Ui($"Current score {match.ScoreA} x {match.ScoreB}. Price movement and public match signals update in real time.", $"Placar atual {match.ScoreA} x {match.ScoreB}. Movimento de preço e sinais públicos da partida atualizados em tempo real.")</p>
+                    <div class="home-match-card__footer">
+                        <span>@FormatPct(match.PctA) / @FormatPct(match.PctB)</span>
+                        <a href="@GetMatchUrl(match)">@Ui("Open match", "Abrir partida")</a>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section id="top-battles" class="home-section">
+        <div class="home-section__header">
+            <h2>Top Crypto Battles</h2>
+            <p>@Ui("Featured public match pages connect market performance, scoring rules and transparent historical context.", "Partidas públicas em destaque conectam performance de mercado, regras de pontuação e contexto histórico transparente.")</p>
+        </div>
+        <div class="home-battle-list">
+            @foreach (var match in FeaturedMatches)
+            {
+                <a class="home-battle-link" href="@GetMatchUrl(match)">
+                    <strong>@match.TeamA vs @match.TeamB</strong>
+                    <span>@Ui($"Match #{match.MatchId} • score {match.ScoreA} x {match.ScoreB}", $"Partida #{match.MatchId} • placar {match.ScoreA} x {match.ScoreB}")</span>
+                </a>
+            }
+        </div>
+    </section>
+
+    <section id="how-it-works" class="home-section home-section--split">
+        <div class="home-section__header">
+            <h2>How It Works</h2>
+            <p>@Ui("CriptoVersus tracks market variation between assets, converts configured rules into score events and publishes match pages that can be indexed, shared and audited.", "O CriptoVersus acompanha a variação de mercado entre ativos, converte regras configuradas em eventos de pontuação e publica páginas de partida que podem ser indexadas, compartilhadas e auditadas.")</p>
+            <a class="home-inline-link" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@Ui("Read the full rules", "Ler as regras completas")</a>
+        </div>
+        <div class="home-feature-grid">
+            <article>
+                <h3>@Ui("Public match logic", "Lógica pública das partidas")</h3>
+                <p>@Ui("Each match has score, status, volume, price variation and rule-based events visible on the public page.", "Cada partida tem placar, status, volume, variação de preço e eventos baseados em regra visíveis na página pública.")</p>
+            </article>
+            <article>
+                <h3>@Ui("Arena-style experience", "Experiência estilo arena")</h3>
+                <p>@Ui("The product blends crypto data, live confrontation and social-ready storytelling.", "O produto mistura dados cripto, confronto ao vivo e narrativa pronta para social.")</p>
+            </article>
+            <article>
+                <h3>@Ui("Global SEO-ready routing", "Rotas globais prontas para SEO")</h3>
+                <p>@Ui("Localized public routes, canonical URLs and hreflang support keep international discovery clean.", "Rotas públicas localizadas, URLs canônicas e suporte a hreflang mantêm a descoberta internacional organizada.")</p>
+            </article>
+        </div>
+    </section>
+
+    <section id="trending-coins" class="home-section">
+        <div class="home-section__header">
+            <h2>Trending Coins</h2>
+            <p>@Ui("A quick pulse of the assets currently drawing the strongest attention inside the arena.", "Um pulso rápido dos ativos que estão puxando mais atenção dentro da arena.")</p>
+        </div>
+        <div class="home-coin-grid">
+            @foreach (var coin in TrendingCoins)
+            {
+                <article class="home-coin-card">
+                    <span class="home-coin-card__rank">#@coin.Rank</span>
+                    <h3>@coin.Symbol</h3>
+                    <p>@(!string.IsNullOrWhiteSpace(coin.Name) ? coin.Name : Ui("Tracked market asset", "Ativo monitorado"))</p>
+                    <strong class="@(coin.PercentageChange >= 0 ? "is-up" : "is-down")">@FormatPct(coin.PercentageChange)</strong>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section id="rankings" class="home-section">
+        <div class="home-section__header">
+            <h2>Crypto Arena Rankings</h2>
+            <p>@Ui("Trending assets, featured battles and public match pages build the competitive ranking layer of the arena.", "Ativos em tendência, batalhas em destaque e páginas públicas de partidas constroem a camada competitiva de ranking da arena.")</p>
+        </div>
+        <ol class="home-ranking-list">
+            @foreach (var coin in RankingCoins)
+            {
+                <li>
+                    <strong>@coin.Symbol</strong>
+                    <span>@FormatPct(coin.PercentageChange)</span>
+                </li>
+            }
+        </ol>
+    </section>
+
+    <section class="home-section home-section--compact">
+        <div class="home-section__header">
+            <h2>@Ui("Explore the product", "Explore o produto")</h2>
+        </div>
+        <div class="home-link-grid">
+            <a href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">Roadmap</a>
+            <a href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@Ui("How It Works", "Como funciona")</a>
+            @if (FeaturedMatches.Count > 0)
+            {
+                <a href="@GetMatchUrl(FeaturedMatches[0])">@Ui("Featured match", "Partida em destaque")</a>
+            }
+            <a href="#rankings">Rankings</a>
+        </div>
+    </section>
+</section>
+
+@code {
+    private DashboardSnapshotDto? _snapshot;
+
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private string SeoTitle => Ui("CriptoVersus | Live Crypto Match Arena", "CriptoVersus | Arena de Partidas Cripto ao Vivo");
+    private string SeoDescription => Ui("Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.", "Explore partidas cripto ao vivo, placares públicos, moedas em tendência e batalhas de mercado no CriptoVersus com páginas públicas prontas para SEO.");
+    private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
+    private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildHomePath("en"));
+    private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildHomePath("pt"));
+    private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
+
+    private List<MatchDto> LiveMatches => (_snapshot?.Matches.OngoingList ?? []).Take(6).ToList();
+    private List<MatchDto> FeaturedMatches => (_snapshot?.Matches.OngoingList ?? [])
+        .Concat(_snapshot?.Matches.Upcoming ?? [])
+        .Concat(_snapshot?.Matches.CompletedList ?? [])
+        .Where(x => x.MatchId > 0)
+        .GroupBy(x => x.MatchId)
+        .Select(x => x.First())
+        .Take(6)
+        .ToList();
+    private List<CurrencyDto> TrendingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(6).ToList();
+    private List<CurrencyDto> RankingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(10).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _snapshot = await Api.GetDashboardSnapshotAsync();
+        }
+        catch
+        {
+            _snapshot = null;
+        }
+    }
+
+    private string Ui(string en, string pt) => CurrentCulture == "en" ? en : pt;
+
+    private string BuildAbsolute(string relativePath)
+    {
+        var baseUrl = Config["CriptoVersus:PublicBaseUrl"]?.TrimEnd('/') ?? Nav.BaseUri.TrimEnd('/');
+        return $"{baseUrl}{relativePath}";
+    }
+
+    private string GetMatchUrl(MatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+        return string.IsNullOrWhiteSpace(slug)
+            ? RouteLocalization.BuildHomePath(CurrentCulture)
+            : RouteLocalization.BuildLocalizedPath(CurrentCulture, match.MatchId, slug);
+    }
+
+    private static string FormatPct(decimal? value)
+        => $"{(value ?? 0):+0.##;-0.##;0.##}%";
+
+    private string BuildStructuredDataJson()
+    {
+        var graph = new List<Dictionary<string, object?>>();
+
+        graph.Add(new Dictionary<string, object?>
+        {
+            ["@type"] = "Organization",
+            ["name"] = "CriptoVersus",
+            ["url"] = BuildAbsolute(RouteLocalization.BuildHomePath("en")),
+            ["logo"] = BuildAbsolute("/favicon-round-preview.png")
+        });
+
+        graph.Add(new Dictionary<string, object?>
+        {
+            ["@type"] = "WebSite",
+            ["name"] = "CriptoVersus",
+            ["url"] = BuildAbsolute(RouteLocalization.BuildHomePath("en")),
+            ["inLanguage"] = new[] { "en-US", "pt-BR" }
+        });
+
+        graph.Add(new Dictionary<string, object?>
+        {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new[]
+            {
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "ListItem",
+                    ["position"] = 1,
+                    ["name"] = CurrentCulture == "en" ? "Home" : "Inicio",
+                    ["item"] = CanonicalUrl
+                }
+            }
+        });
+
+        foreach (var match in FeaturedMatches.Take(3))
+        {
+            graph.Add(new Dictionary<string, object?>
+            {
+                ["@type"] = "SportsEvent",
+                ["name"] = $"{match.TeamA} vs {match.TeamB}",
+                ["eventStatus"] = match.IsFinished ? "https://schema.org/EventCompleted" : "https://schema.org/EventScheduled",
+                ["startDate"] = match.StartTime,
+                ["url"] = BuildAbsolute(GetMatchUrl(match)),
+                ["competitor"] = new[]
+                {
+                    new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamA },
+                    new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamB }
+                },
+                ["description"] = Ui(
+                    $"Live crypto match between {match.TeamA} and {match.TeamB} on CriptoVersus.",
+                    $"Partida cripto entre {match.TeamA} e {match.TeamB} no CriptoVersus.")
+            });
+        }
+
+        return JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@graph"] = graph
+        });
+    }
+}
+
+<style>
+    .home-landing {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .home-hero,
+    .home-section,
+    .home-anchor-nav {
+        border: 1px solid rgba(118,131,164,.18);
+        border-radius: 28px;
+        background:
+            radial-gradient(circle at top left, rgba(76,243,141,.08), transparent 24%),
+            radial-gradient(circle at top right, rgba(159,92,255,.08), transparent 26%),
+            linear-gradient(180deg, rgba(10,13,21,.98), rgba(7,9,15,.99));
+        box-shadow: 0 24px 70px rgba(0,0,0,.28);
+        overflow: hidden;
+    }
+
+    .home-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr);
+        gap: 1.5rem;
+        padding: 2rem;
+    }
+
+    .home-hero__eyebrow,
+    .home-section__header h2 {
+        color: #7ff6df;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        font-weight: 900;
+    }
+
+    .home-hero h1 {
+        margin: .75rem 0 1rem;
+        font-size: clamp(2.2rem, 3vw, 4rem);
+        line-height: 1.02;
+    }
+
+    .home-hero p,
+    .home-section__header p,
+    .home-match-card p,
+    .home-feature-grid p,
+    .home-coin-card p {
+        color: #b9c7da;
+        line-height: 1.7;
+    }
+
+    .home-hero__actions,
+    .home-link-grid,
+    .home-battle-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .85rem;
+    }
+
+    .home-cta,
+    .home-inline-link,
+    .home-link-grid a,
+    .home-battle-link {
+        text-decoration: none;
+    }
+
+    .home-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+        padding: 0 1.1rem;
+        border-radius: 999px;
+        font-weight: 800;
+    }
+
+    .home-cta--primary {
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        color: #03150f;
+    }
+
+    .home-cta--secondary,
+    .home-link-grid a,
+    .home-battle-link {
+        border: 1px solid rgba(255,255,255,.12);
+        color: #eef5ff;
+        background: rgba(255,255,255,.03);
+        padding: .85rem 1rem;
+        border-radius: 18px;
+    }
+
+    .home-hero__stats {
+        display: grid;
+        gap: 1px;
+        background: rgba(86, 100, 126, 0.2);
+        border-radius: 24px;
+        overflow: hidden;
+    }
+
+    .home-hero__stats article {
+        padding: 1.2rem 1.3rem;
+        background: rgba(8,11,18,.95);
+        display: grid;
+        gap: .3rem;
+    }
+
+    .home-hero__stats span {
+        color: #8fa1b8;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-size: .75rem;
+    }
+
+    .home-hero__stats strong {
+        font-size: 2rem;
+    }
+
+    .home-anchor-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+        padding: 1rem 1.2rem;
+    }
+
+    .home-anchor-nav a {
+        color: #dce7f7;
+        text-decoration: none;
+        padding: .6rem .9rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,.04);
+    }
+
+    .home-section {
+        padding: 1.5rem;
+        display: grid;
+        gap: 1.1rem;
+    }
+
+    .home-section__header h2 {
+        margin: 0 0 .5rem;
+        font-size: 1.55rem;
+    }
+
+    .home-match-grid,
+    .home-feature-grid,
+    .home-coin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+    }
+
+    .home-match-card,
+    .home-coin-card,
+    .home-feature-grid article {
+        padding: 1.15rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.025);
+    }
+
+    .home-match-card__meta,
+    .home-match-card__footer,
+    .home-coin-card__rank {
+        color: #8ea0b7;
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+
+    .home-match-card__meta,
+    .home-match-card__footer {
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .home-match-card h3,
+    .home-coin-card h3,
+    .home-feature-grid h3 {
+        margin: .7rem 0;
+        font-size: 1.2rem;
+    }
+
+    .home-match-card h3 a {
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .home-match-card__footer a {
+        color: #7ff6df;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .home-battle-list,
+    .home-link-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .home-battle-link strong,
+    .home-battle-link span {
+        display: block;
+    }
+
+    .home-battle-link span {
+        margin-top: .35rem;
+        color: #afc0d6;
+    }
+
+    .home-section--split .home-feature-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .home-inline-link {
+        color: #7ff6df;
+        font-weight: 700;
+    }
+
+    .home-coin-card strong.is-up,
+    .home-ranking-list span {
+        color: #4cf38d;
+    }
+
+    .home-coin-card strong.is-down {
+        color: #ff6b6b;
+    }
+
+    .home-ranking-list {
+        display: grid;
+        gap: .65rem;
+        padding-left: 1.2rem;
+        margin: 0;
+    }
+
+    .home-ranking-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: .65rem;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+
+    @@media (max-width: 980px) {
+        .home-hero,
+        .home-section--split .home-feature-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

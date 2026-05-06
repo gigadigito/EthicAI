@@ -2,45 +2,55 @@ using System.Net.Http.Json;
 using System.Xml.Linq;
 using DTOs;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 
 namespace CriptoVersus.Web.Services;
 
 public sealed class SitemapService
 {
-    private const string SitemapCacheKey = "sitemap.xml::content";
     private const int SitemapCacheMinutes = 5;
-    private const int RelevantWindowDays = 30;
+    private const string IndexCacheKey = "sitemap::index";
+    private const string PagesCacheKey = "sitemap::pages";
+    private const string MatchesEnCacheKey = "sitemap::matches::en";
+    private const string MatchesPtCacheKey = "sitemap::matches::pt";
+
     private static readonly XNamespace SitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
+    private static readonly XNamespace XhtmlNamespace = "http://www.w3.org/1999/xhtml";
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _memoryCache;
     private readonly MatchSlugHelper _matchSlugHelper;
     private readonly RouteLocalizationService _routeLocalization;
+    private readonly SitemapOptions _options;
 
     public SitemapService(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         IMemoryCache memoryCache,
         MatchSlugHelper matchSlugHelper,
-        RouteLocalizationService routeLocalization)
+        RouteLocalizationService routeLocalization,
+        IOptions<SitemapOptions> options)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _memoryCache = memoryCache;
         _matchSlugHelper = matchSlugHelper;
         _routeLocalization = routeLocalization;
+        _options = options.Value;
     }
 
-    public async Task<string> GetSitemapXmlAsync(CancellationToken ct = default)
-    {
-        var cached = await _memoryCache.GetOrCreateAsync(SitemapCacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(SitemapCacheMinutes);
-            return await BuildSitemapXmlAsync(ct);
-        });
+    public async Task<string> GetSitemapIndexXmlAsync(CancellationToken ct = default)
+        => await GetCachedXmlAsync(IndexCacheKey, () => BuildSitemapIndexXmlAsync(ct));
 
-        return cached ?? string.Empty;
+    public async Task<string> GetPagesSitemapXmlAsync(CancellationToken ct = default)
+        => await GetCachedXmlAsync(PagesCacheKey, () => BuildPagesSitemapXmlAsync(ct));
+
+    public async Task<string> GetMatchSitemapXmlAsync(string culture, CancellationToken ct = default)
+    {
+        var normalizedCulture = _routeLocalization.NormalizeCulture(culture);
+        var cacheKey = normalizedCulture == "pt" ? MatchesPtCacheKey : MatchesEnCacheKey;
+        return await GetCachedXmlAsync(cacheKey, () => BuildMatchSitemapXmlAsync(normalizedCulture, ct));
     }
 
     public Task<string> GetRobotsTxtAsync(CancellationToken ct = default)
@@ -51,32 +61,122 @@ public sealed class SitemapService
         return Task.FromResult(content);
     }
 
-    private async Task<string> BuildSitemapXmlAsync(CancellationToken ct)
+    private async Task<string> GetCachedXmlAsync(string cacheKey, Func<Task<string>> factory)
+    {
+        var cached = await _memoryCache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(SitemapCacheMinutes);
+            return await factory();
+        });
+
+        return cached ?? string.Empty;
+    }
+
+    private Task<string> BuildSitemapIndexXmlAsync(CancellationToken ct)
+    {
+        var baseUri = GetPublicBaseUri();
+        var now = DateTime.UtcNow;
+
+        var elements =
+            new[]
+            {
+                "/sitemap-pages.xml",
+                "/sitemap-matches-en.xml",
+                "/sitemap-matches-pt.xml"
+            }
+            .Select(path => new XElement(
+                SitemapNamespace + "sitemap",
+                new XElement(SitemapNamespace + "loc", new Uri(baseUri, path).AbsoluteUri),
+                new XElement(SitemapNamespace + "lastmod", now.ToString("yyyy-MM-dd"))));
+
+        var document = new XDocument(
+            new XDeclaration("1.0", "UTF-8", null),
+            new XElement(SitemapNamespace + "sitemapindex", elements));
+
+        return Task.FromResult(document.ToString(SaveOptions.DisableFormatting));
+    }
+
+    private Task<string> BuildPagesSitemapXmlAsync(CancellationToken ct)
     {
         var baseUri = GetPublicBaseUri();
         var now = DateTime.UtcNow;
 
         var entries = new List<SitemapEntry>
         {
-            CreateEntry(baseUri, "/", now, "daily", "1.0"),
-            CreateEntry(baseUri, "/roadmap", now, "weekly", "0.8"),
-            CreateEntry(baseUri, "/tokenomics", now, "weekly", "0.8")
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHomePath("en"), now, "daily", 1.0m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHomePath("pt"), now, "daily", 0.9m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRoadmapPath("en"), now, "weekly", 0.8m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHowItWorksPath("pt"), now, "weekly", 0.8m)
         };
 
-        entries.AddRange(await GetMatchEntriesAsync(baseUri, ct));
+        return Task.FromResult(BuildUrlSet(entries));
+    }
 
+    private async Task<string> BuildMatchSitemapXmlAsync(string culture, CancellationToken ct)
+    {
+        var baseUri = GetPublicBaseUri();
+        var entries = new List<SitemapEntry>();
+
+        foreach (var match in await GetRelevantMatchesAsync(ct))
+        {
+            var slug = _matchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+            if (string.IsNullOrWhiteSpace(slug))
+                continue;
+
+            var path = _routeLocalization.BuildLocalizedPath(culture, match.MatchId, slug);
+            entries.Add(CreateLocalizedEntry(
+                baseUri,
+                culture,
+                path,
+                GetRelevantTimestampUtc(match),
+                match.IsFinished ? "monthly" : "daily",
+                match.IsFinished ? 0.6m : 0.7m));
+        }
+
+        return BuildUrlSet(entries);
+    }
+
+    private string BuildUrlSet(IEnumerable<SitemapEntry> entries)
+    {
         var urlElements = entries
             .Where(entry => entry.IsValid)
             .GroupBy(entry => entry.Location, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.OrderByDescending(item => item.LastModifiedUtc).First())
             .OrderByDescending(entry => entry.Priority)
+            .ThenByDescending(entry => entry.LastModifiedUtc)
             .ThenBy(entry => entry.Location, StringComparer.OrdinalIgnoreCase)
-            .Select(entry => new XElement(
-                SitemapNamespace + "url",
-                new XElement(SitemapNamespace + "loc", entry.Location),
-                new XElement(SitemapNamespace + "lastmod", entry.LastModifiedUtc.ToString("yyyy-MM-dd")),
-                new XElement(SitemapNamespace + "changefreq", entry.ChangeFrequency),
-                new XElement(SitemapNamespace + "priority", entry.Priority.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))));
+            .Select(entry =>
+            {
+                var urlElement = new XElement(
+                    SitemapNamespace + "url",
+                    new XAttribute(XNamespace.Xmlns + "xhtml", XhtmlNamespace),
+                    new XElement(SitemapNamespace + "loc", entry.Location),
+                    new XElement(SitemapNamespace + "lastmod", entry.LastModifiedUtc.ToString("yyyy-MM-dd")),
+                    new XElement(SitemapNamespace + "changefreq", entry.ChangeFrequency),
+                    new XElement(SitemapNamespace + "priority", entry.Priority.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)));
+
+                foreach (var alternate in entry.Alternates)
+                {
+                    urlElement.Add(new XElement(
+                        XhtmlNamespace + "link",
+                        new XAttribute("rel", "alternate"),
+                        new XAttribute("hreflang", alternate.HrefLang),
+                        new XAttribute("href", alternate.Href)));
+                }
+
+                if (!string.IsNullOrWhiteSpace(entry.XDefaultHref))
+                {
+                    urlElement.Add(new XElement(
+                        XhtmlNamespace + "link",
+                        new XAttribute("rel", "alternate"),
+                        new XAttribute("hreflang", "x-default"),
+                        new XAttribute("href", entry.XDefaultHref)));
+                }
+
+                return urlElement;
+            });
 
         var document = new XDocument(
             new XDeclaration("1.0", "UTF-8", null),
@@ -85,31 +185,33 @@ public sealed class SitemapService
         return document.ToString(SaveOptions.DisableFormatting);
     }
 
-    private async Task<IEnumerable<SitemapEntry>> GetMatchEntriesAsync(Uri baseUri, CancellationToken ct)
+    private async Task<IReadOnlyList<MatchDto>> GetRelevantMatchesAsync(CancellationToken ct)
     {
         var client = _httpClientFactory.CreateClient("CriptoVersusApi");
-        var matches = await client.GetFromJsonAsync<List<MatchDto>>("api/Matches?take=200", ct) ?? [];
-        var cutoff = DateTime.UtcNow.AddDays(-RelevantWindowDays);
+        var safeTake = Math.Clamp(_options.ApiTake, 1, 2000);
+        var matches = await client.GetFromJsonAsync<List<MatchDto>>($"api/Matches?take={safeTake}", ct) ?? [];
+        var cutoff = DateTime.UtcNow.AddDays(-Math.Max(1, _options.RecentMatchWindowDays));
 
         return matches
             .Where(match => match.MatchId > 0)
-            .Where(match => match.IsFinished || GetRelevantTimestampUtc(match) >= cutoff)
-            .Select(match =>
-            {
-                var slug = _matchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
-                if (string.IsNullOrWhiteSpace(slug))
-                    return SitemapEntry.Invalid;
-
-                var path = _routeLocalization.BuildCanonicalPath(match.MatchId, slug);
-                return CreateEntry(
-                    baseUri,
-                    path,
-                    GetRelevantTimestampUtc(match),
-                    match.IsFinished ? "never" : "weekly",
-                    "0.7");
-            })
-            .Where(entry => entry.IsValid)
+            .Where(match => IsIndexableMatch(match, cutoff))
+            .OrderByDescending(GetRelevantTimestampUtc)
+            .Take(Math.Max(1, _options.MaxMatchEntriesPerCulture))
             .ToArray();
+    }
+
+    private bool IsIndexableMatch(MatchDto match, DateTime cutoffUtc)
+    {
+        if (IsOngoing(match.Status))
+            return _options.IncludeOngoingMatches;
+
+        if (IsPending(match.Status))
+            return _options.IncludePendingMatches && GetRelevantTimestampUtc(match) >= cutoffUtc;
+
+        if (match.IsFinished || IsCompleted(match.Status))
+            return _options.IncludeFinishedMatches && GetRelevantTimestampUtc(match) >= cutoffUtc;
+
+        return GetRelevantTimestampUtc(match) >= cutoffUtc;
     }
 
     private Uri GetPublicBaseUri()
@@ -123,6 +225,104 @@ public sealed class SitemapService
 
         return baseUri;
     }
+
+    private SitemapEntry CreateLocalizedEntry(
+        Uri baseUri,
+        string culture,
+        string relativePath,
+        DateTime lastModifiedUtc,
+        string changeFrequency,
+        decimal priority)
+    {
+        if (!relativePath.StartsWith('/'))
+            relativePath = "/" + relativePath;
+
+        if (!Uri.TryCreate(baseUri, relativePath, out var fullUri))
+            return SitemapEntry.Invalid;
+
+        var slugAlternates = BuildAlternates(baseUri, relativePath);
+        var xDefaultHref = BuildXDefaultHref(baseUri, relativePath);
+
+        return new SitemapEntry(
+            fullUri.AbsoluteUri,
+            EnsureUtc(lastModifiedUtc),
+            changeFrequency,
+            priority,
+            slugAlternates,
+            xDefaultHref,
+            true);
+    }
+
+    private IReadOnlyList<SitemapAlternate> BuildAlternates(Uri baseUri, string relativePath)
+    {
+        var alternates = new List<SitemapAlternate>(2);
+
+        switch (relativePath)
+        {
+            case "/en":
+            case "/pt":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHomePath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildHomePath("pt")).AbsoluteUri));
+                return alternates;
+            case "/en/roadmap":
+            case "/pt/roadmap":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/en/how-it-works":
+            case "/pt/como-funciona":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("pt")).AbsoluteUri));
+                return alternates;
+        }
+
+        var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
+        {
+            var slug = segments[3];
+            alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildLocalizedPath("en", matchId, slug)).AbsoluteUri));
+            alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildLocalizedPath("pt", matchId, slug)).AbsoluteUri));
+        }
+
+        return alternates;
+    }
+
+    private string BuildXDefaultHref(Uri baseUri, string relativePath)
+    {
+        switch (relativePath)
+        {
+            case "/en":
+            case "/pt":
+                return new Uri(baseUri, _routeLocalization.BuildHomePath("en")).AbsoluteUri;
+            case "/en/roadmap":
+            case "/pt/roadmap":
+                return new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri;
+            case "/en/how-it-works":
+            case "/pt/como-funciona":
+                return new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri;
+        }
+
+        var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
+        {
+            var slug = segments[3];
+            return new Uri(baseUri, _routeLocalization.BuildLocalizedPath("en", matchId, slug)).AbsoluteUri;
+        }
+
+        return new Uri(baseUri, _routeLocalization.BuildHomePath("en")).AbsoluteUri;
+    }
+
+    private static bool IsOngoing(string? status)
+        => !string.IsNullOrWhiteSpace(status)
+           && status.Trim().Equals("Ongoing", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPending(string? status)
+        => !string.IsNullOrWhiteSpace(status)
+           && status.Trim().Equals("Pending", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCompleted(string? status)
+        => !string.IsNullOrWhiteSpace(status)
+           && status.Trim().Equals("Completed", StringComparison.OrdinalIgnoreCase);
 
     private static DateTime GetRelevantTimestampUtc(MatchDto match)
     {
@@ -146,22 +346,17 @@ public sealed class SitemapService
             _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
         };
 
-    private static SitemapEntry CreateEntry(Uri baseUri, string relativePath, DateTime lastModifiedUtc, string changeFrequency, string priorityText)
+    private sealed record SitemapAlternate(string HrefLang, string Href);
+
+    private sealed record SitemapEntry(
+        string Location,
+        DateTime LastModifiedUtc,
+        string ChangeFrequency,
+        decimal Priority,
+        IReadOnlyList<SitemapAlternate> Alternates,
+        string XDefaultHref,
+        bool IsValid)
     {
-        if (!relativePath.StartsWith('/'))
-            relativePath = "/" + relativePath;
-
-        if (!decimal.TryParse(priorityText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var priority))
-            return SitemapEntry.Invalid;
-
-        if (!Uri.TryCreate(baseUri, relativePath, out var fullUri))
-            return SitemapEntry.Invalid;
-
-        return new SitemapEntry(fullUri.AbsoluteUri, EnsureUtc(lastModifiedUtc), changeFrequency, priority, true);
-    }
-
-    private sealed record SitemapEntry(string Location, DateTime LastModifiedUtc, string ChangeFrequency, decimal Priority, bool IsValid)
-    {
-        public static SitemapEntry Invalid { get; } = new(string.Empty, DateTime.UtcNow, string.Empty, 0m, false);
+        public static SitemapEntry Invalid { get; } = new(string.Empty, DateTime.UtcNow, string.Empty, 0m, [], string.Empty, false);
     }
 }
