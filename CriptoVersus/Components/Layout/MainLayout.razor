@@ -20,7 +20,6 @@
             <div>
                 <span class="topbar-eyebrow">CriptoVersus Arena</span>
                 <h1>Mercado de partidas</h1>
-                <span class="topbar-version" title="Versao do frontend">@FrontendVersion</span>
             </div>
 
             @if (IsLoggedIn)
@@ -86,7 +85,6 @@
 
 @code {
     private SolanaLoginModal? loginModal;
-    private const string FrontendVersion = "web-20260505-rpc-config";
     private string? authToken;
     private string? walletPublicKey;
     private bool _showInitialLoader = true;

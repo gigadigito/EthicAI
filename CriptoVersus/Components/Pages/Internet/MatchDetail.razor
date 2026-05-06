@@ -192,6 +192,197 @@
             </div>
         </section>
 
+        <section id="social-share-card" class="social-share-card mb-4" aria-label="Social share card">
+            <div class="social-share-card__bg"></div>
+            <div class="social-share-card__shell">
+                <div class="social-share-card__header">
+                    <div>
+                        <div class="social-share-card__eyebrow">CRIPTO ARENA</div>
+                        <div class="social-share-card__title">
+                            <MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" />
+                        </div>
+                    </div>
+
+                    <div class="social-share-card__header-meta">
+                        <span class="social-share-card__status @(ShouldShowLiveBadge(_match) ? "social-share-card__status--live" : "social-share-card__status--final")">
+                            @(ShouldShowLiveBadge(_match) ? "AO VIVO" : GetPresentationStatusText(_match).ToUpperInvariant())
+                        </span>
+                        <span class="social-share-card__match-id">Match #@_match.MatchId</span>
+                    </div>
+                </div>
+
+                <div class="social-share-card__scoreboard">
+                    <article class="social-share-side social-share-side--a @(GetWinnerFxClass(_match.TeamAId))">
+                        <div class="social-share-side__identity">
+                            <div class="social-share-side__coin">
+                                <div class="coin-skeleton"></div>
+                                <img class="coin-img social-share-side__coin-img"
+                                     src="@GetCoinIconUrl(_match.TeamA)"
+                                     alt="@_match.TeamA"
+                                     loading="lazy"
+                                     onload="this.previousElementSibling?.classList.add('d-none')"
+                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
+                            </div>
+                            <div>
+                                <div class="social-share-side__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
+                                <div class="social-share-side__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
+                            </div>
+                        </div>
+
+                        <div class="social-share-side__summary">
+                            <div class="social-share-side__metric">
+                                <span>Pool</span>
+                                <strong>@_match.PoolStrengthTeamA%</strong>
+                            </div>
+                            <div class="social-share-side__metric">
+                                <span>Apostas</span>
+                                <strong>@_match.BetCountTeamA</strong>
+                            </div>
+                            <div class="social-share-side__metric">
+                                <span>Volume</span>
+                                <strong>@FmtSolAmount(_match.TotalAmountTeamA)</strong>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="social-share-center @(HasWinnerCelebration(_match) ? "social-share-center--winner" : string.Empty)">
+                        <div class="social-share-center__score">@_match.ScoreA <span>x</span> @_match.ScoreB</div>
+                        <div class="social-share-center__clock">
+                            @if (ShouldShowResultStage(_match))
+                            {
+                                <span>VENCEDOR</span>
+                                <strong>@GetWinnerDisplayText(_match)</strong>
+                            }
+                            else
+                            {
+                                <span>CRONOMETRO</span>
+                                <strong>@_clockLive</strong>
+                            }
+                        </div>
+                        <div class="social-share-center__sub">
+                            @(ShouldShowResultStage(_match) ? $"Placar final {_match.ScoreA} x {_match.ScoreB}" : $"Restante {_remainingLive}")
+                        </div>
+                    </article>
+
+                    <article class="social-share-side social-share-side--b @(GetWinnerFxClass(_match.TeamBId))">
+                        <div class="social-share-side__identity">
+                            <div class="social-share-side__coin">
+                                <div class="coin-skeleton"></div>
+                                <img class="coin-img social-share-side__coin-img"
+                                     src="@GetCoinIconUrl(_match.TeamB)"
+                                     alt="@_match.TeamB"
+                                     loading="lazy"
+                                     onload="this.previousElementSibling?.classList.add('d-none')"
+                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
+                            </div>
+                            <div>
+                                <div class="social-share-side__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
+                                <div class="social-share-side__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
+                            </div>
+                        </div>
+
+                        <div class="social-share-side__summary">
+                            <div class="social-share-side__metric">
+                                <span>Pool</span>
+                                <strong>@_match.PoolStrengthTeamB%</strong>
+                            </div>
+                            <div class="social-share-side__metric">
+                                <span>Apostas</span>
+                                <strong>@_match.BetCountTeamB</strong>
+                            </div>
+                            <div class="social-share-side__metric">
+                                <span>Volume</span>
+                                <strong>@FmtSolAmount(_match.TotalAmountTeamB)</strong>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="social-share-card__charts">
+                    <section class="social-share-chart-card">
+                        <div class="social-share-chart-card__head">
+                            <div>
+                                <div class="social-share-chart-card__label">Percentual</div>
+                                <div class="social-share-chart-card__legend">
+                                    <span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" />
+                                    <span class="dot dot-b ms-2"></span> <MarketPairText Symbol="@_match.TeamB" />
+                                </div>
+                            </div>
+                            <div class="social-share-chart-card__range">
+                                @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%
+                            </div>
+                        </div>
+
+                        @if (_percentageChart.HasData)
+                        {
+                            <div class="social-share-chart-wrap">
+                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                                    @for (var i = 1; i <= 4; i++)
+                                    {
+                                        var y = i * 64;
+                                        <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
+                                    }
+                                    <line x1="0" y1="@_percentageChart.ZeroY" x2="1000" y2="@_percentageChart.ZeroY" class="chart-zero" />
+                                    <polyline points="@_percentageChart.PolyA" class="chart-line chart-line-a" />
+                                    <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
+                                </svg>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="social-share-chart-empty">Sem snapshots suficientes para o grafico percentual.</div>
+                        }
+                    </section>
+
+                    <section class="social-share-chart-card">
+                        <div class="social-share-chart-card__head">
+                            <div>
+                                <div class="social-share-chart-card__label">Volume</div>
+                                <div class="social-share-chart-card__legend">
+                                    <span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" />
+                                    <span class="dot dot-b ms-2"></span> <MarketPairText Symbol="@_match.TeamB" />
+                                </div>
+                            </div>
+                            <div class="social-share-chart-card__range">
+                                @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)
+                            </div>
+                        </div>
+
+                        @if (_volumeChart.HasData)
+                        {
+                            <div class="social-share-chart-wrap">
+                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                                    @for (var i = 1; i <= 4; i++)
+                                    {
+                                        var y = i * 64;
+                                        <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
+                                    }
+                                    <line x1="0" y1="@_volumeChart.ZeroY" x2="1000" y2="@_volumeChart.ZeroY" class="chart-zero" />
+                                    <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
+                                    <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
+                                </svg>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="social-share-chart-empty">Sem snapshots suficientes para o grafico de volume.</div>
+                        }
+                    </section>
+                </div>
+
+                <div class="social-share-card__footer">
+                    <div class="social-share-card__brand">CriptoVersus</div>
+                    <div class="social-share-card__footer-meta">
+                        <span>@GetPresentationStatusText(_match)</span>
+                        <span>•</span>
+                        <span><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         @if (!string.IsNullOrWhiteSpace(_betResponseBody) && CanSeeInvestmentDebug)
         {
             <div class="accordion mb-3" id="investmentReturnAccordion">
@@ -1615,6 +1806,347 @@
 
     .dot-b {
         background: rgba(255,82,82,.95);
+    }
+
+    .social-share-card {
+        position: relative;
+        max-width: 1300px;
+        min-height: 675px;
+        margin-inline: auto;
+        border-radius: 32px;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top left, rgba(0, 230, 118, .16), transparent 28%),
+            radial-gradient(circle at top right, rgba(255, 82, 82, .16), transparent 28%),
+            linear-gradient(145deg, #081018 0%, #0b1220 48%, #060b12 100%);
+        border: 1px solid rgba(255,255,255,.09);
+        box-shadow: 0 28px 90px rgba(0,0,0,.42);
+    }
+
+    .social-share-card__bg {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+        background-size: 34px 34px;
+        opacity: .16;
+        pointer-events: none;
+    }
+
+    .social-share-card__shell {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 1.15rem;
+        min-height: 675px;
+        padding: 1.5rem;
+        grid-template-rows: auto auto 1fr auto;
+    }
+
+    .social-share-card__header,
+    .social-share-card__footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .social-share-card__eyebrow {
+        color: rgba(255,255,255,.5);
+        font-size: .72rem;
+        letter-spacing: .34em;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .social-share-card__title {
+        margin-top: .3rem;
+        color: #f8fafc;
+        font-size: clamp(1.25rem, 1.75vw, 1.7rem);
+        font-weight: 900;
+        letter-spacing: .03em;
+    }
+
+    .social-share-card__header-meta {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .social-share-card__status,
+    .social-share-card__match-id {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .5rem .85rem;
+        border-radius: 999px;
+        font-size: .8rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .social-share-card__status--live {
+        color: #fff5f5;
+        background: rgba(239, 68, 68, .92);
+        box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 12px 28px rgba(239, 68, 68, .2);
+    }
+
+    .social-share-card__status--final {
+        color: rgba(255,255,255,.82);
+        background: rgba(15, 23, 42, .88);
+        border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .social-share-card__match-id {
+        color: rgba(255,255,255,.74);
+        background: rgba(255,255,255,.05);
+        border: 1px solid rgba(255,255,255,.08);
+        letter-spacing: .08em;
+    }
+
+    .social-share-card__scoreboard {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .social-share-side,
+    .social-share-center,
+    .social-share-chart-card {
+        border-radius: 26px;
+        border: 1px solid rgba(255,255,255,.09);
+        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.22);
+    }
+
+    .social-share-side {
+        display: grid;
+        gap: 1rem;
+        padding: 1.2rem 1.15rem;
+        align-content: space-between;
+    }
+
+    .social-share-side--a {
+        background: linear-gradient(160deg, rgba(0,230,118,.16), rgba(255,255,255,.03) 42%, rgba(255,255,255,.02));
+    }
+
+    .social-share-side--b {
+        background: linear-gradient(160deg, rgba(255,82,82,.16), rgba(255,255,255,.03) 42%, rgba(255,255,255,.02));
+    }
+
+    .social-share-side__identity {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .social-share-side__coin {
+        width: 76px;
+        height: 76px;
+        position: relative;
+        display: grid;
+        place-items: center;
+        border-radius: 22px;
+        overflow: hidden;
+        background: rgba(8,15,25,.65);
+        border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .social-share-side__coin-img {
+        width: 58px;
+        height: 58px;
+    }
+
+    .social-share-side__symbol {
+        color: #f8fafc;
+        font-size: clamp(1.25rem, 2vw, 1.65rem);
+        font-weight: 900;
+        letter-spacing: .03em;
+    }
+
+    .social-share-side__pct {
+        margin-top: .25rem;
+        font-size: 1rem;
+    }
+
+    .social-share-side__summary {
+        display: grid;
+        gap: .6rem;
+    }
+
+    .social-share-side__metric {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: .75rem;
+        padding-top: .55rem;
+        border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .social-share-side__metric span {
+        color: rgba(255,255,255,.58);
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-weight: 700;
+    }
+
+    .social-share-side__metric strong {
+        color: #f8fafc;
+        font-size: 1rem;
+        font-weight: 800;
+        text-align: right;
+    }
+
+    .social-share-center {
+        position: relative;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: .9rem;
+        padding: 1.4rem;
+        background:
+            radial-gradient(circle at top, rgba(255, 214, 10, .11), transparent 36%),
+            linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+        text-align: center;
+    }
+
+    .social-share-center--winner {
+        box-shadow: 0 0 0 1px rgba(255,214,10,.16), 0 18px 40px rgba(0,0,0,.22);
+    }
+
+    .social-share-center__score {
+        color: #fff;
+        font-size: clamp(3rem, 5vw, 4.5rem);
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: .02em;
+        text-shadow: 0 10px 40px rgba(0,0,0,.4);
+    }
+
+    .social-share-center__score span {
+        color: rgba(255,255,255,.45);
+        font-size: .55em;
+        vertical-align: middle;
+    }
+
+    .social-share-center__clock {
+        display: grid;
+        gap: .3rem;
+    }
+
+    .social-share-center__clock span {
+        color: rgba(255,255,255,.52);
+        font-size: .76rem;
+        letter-spacing: .28em;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+
+    .social-share-center__clock strong {
+        color: #e2e8f0;
+        font-size: clamp(1.15rem, 1.8vw, 1.55rem);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-weight: 900;
+    }
+
+    .social-share-center__sub {
+        color: rgba(255,255,255,.65);
+        font-size: .92rem;
+        font-weight: 600;
+    }
+
+    .social-share-card__charts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .social-share-chart-card {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: .85rem;
+        padding: 1rem;
+    }
+
+    .social-share-chart-card__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .social-share-chart-card__label {
+        color: #f8fafc;
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+    }
+
+    .social-share-chart-card__legend,
+    .social-share-chart-card__range {
+        color: rgba(255,255,255,.55);
+        font-size: .78rem;
+        font-weight: 700;
+    }
+
+    .social-share-chart-wrap {
+        width: 100%;
+        height: 160px;
+        position: relative;
+        border-radius: 18px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.15));
+        border: 1px solid rgba(255,255,255,.06);
+    }
+
+    .social-share-chart-empty {
+        display: grid;
+        place-items: center;
+        min-height: 160px;
+        border-radius: 18px;
+        color: rgba(255,255,255,.55);
+        font-size: .88rem;
+        text-align: center;
+        background: rgba(255,255,255,.03);
+        border: 1px dashed rgba(255,255,255,.1);
+    }
+
+    .social-share-card__brand {
+        color: rgba(255,255,255,.88);
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+
+    .social-share-card__footer-meta {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        color: rgba(255,255,255,.5);
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .social-share-card__scoreboard {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .social-share-center {
+            order: -1;
+        }
+    }
+
+    @@media (max-width: 991.98px) {
+        .social-share-card {
+            display: none;
+        }
     }
 </style>
 

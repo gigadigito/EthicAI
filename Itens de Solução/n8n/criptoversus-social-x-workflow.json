@@ -1,0 +1,689 @@
+{
+  "name": "CriptoVersus Social X Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 15,
+              "unit": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        400
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRIPTOVERSUS_API_BASE_URL }}/api/social/hot-matches",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-hot-matches",
+      "name": "HTTP Request - Hot Matches",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ Array.isArray($json) ? $json.length > 0 : ($input.all().length > 0 && Object.keys($json).length > 0) }}",
+              "operation": "true"
+            }
+          ]
+        }
+      },
+      "id": "if-has-hot-match",
+      "name": "IF - Existe Jogo Quente",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const raw = $input.all().map(item => item.json);\nconst matches = raw.flatMap(item => Array.isArray(item) ? item : [item]).filter(item => item && typeof item === 'object' && item.matchId);\nif (!matches.length) {\n  return [];\n}\nmatches.sort((a, b) => (b.hotScore ?? 0) - (a.hotScore ?? 0));\nreturn [{ json: matches[0] }];"
+      },
+      "id": "code-pick-first",
+      "name": "Code - Escolher Primeiro Jogo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRIPTOVERSUS_API_BASE_URL }}/api/social/matches/{{ $json.matchId }}/share-card",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-share-card",
+      "name": "HTTP Request - Share Card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.canPost === true }}",
+              "operation": "true"
+            }
+          ]
+        }
+      },
+      "id": "if-can-post",
+      "name": "IF - Pode Postar",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRIPTOVERSUS_API_BASE_URL }}/api/social/matches/{{ $json.matchId }}/image",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-image-info",
+      "name": "HTTP Request - Image Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BROWSERLESS_BASE_URL }}/screenshot?token={{ $env.BROWSERLESS_TOKEN }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { url: $json.publicUrl, options: { fullPage: false, type: 'png' }, viewport: { width: 1200, height: 675 } } }}",
+        "responseFormat": "file",
+        "dataPropertyName": "data",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "http-browserless-screenshot",
+      "name": "HTTP Request - Screenshot Browserless",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/responses",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: 'gpt-4.1-mini', input: [ { role: 'system', content: 'Você é o narrador oficial do CriptoVersus. Crie um post curto para o X sobre uma partida cripto em andamento. Regras: - Máximo 240 caracteres. - Tom empolgado de arena esportiva. - Não prometa lucro. - Não diga que é recomendação financeira. - Cite o placar. - Cite o evento mais recente, se existir. - Inclua a URL da partida. - Use no máximo 3 hashtags.' }, { role: 'user', content: 'Dados:\\n' + JSON.stringify($json) } ] } }}",
+        "options": {
+          "timeout": 45000
+        }
+      },
+      "id": "openai-generate-narration",
+      "name": "OpenAI - Gerar Narração",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition"
+      },
+      "id": "merge-ai-with-share-card",
+      "name": "Merge - IA + Share Card",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst textFromOutput = data.output_text\n  ?? data.output?.map(block => (block.content ?? []).map(content => content.text ?? '').join(' ')).join(' ')\n  ?? data.content?.map(content => content.text ?? '').join(' ')\n  ?? '';\nconst fallbackText = data.suggestedText || `${data.homeSymbol} vs ${data.awaySymbol}: ${data.score} ${data.publicUrl}`;\nconst finalPostText = (textFromOutput || fallbackText).trim();\nreturn [{ json: { ...data, finalPostText } }];"
+      },
+      "id": "code-prepare-final-post",
+      "name": "Code - Preparar Texto Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition"
+      },
+      "id": "merge-post-package",
+      "name": "Merge - Texto + Screenshot",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1160,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "tweet",
+        "operation": "create",
+        "text": "={{ $json.finalPostText }}"
+      },
+      "id": "twitter-post",
+      "name": "X - Publicar Post (Texto + Link)",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://upload.twitter.com/1.1/media/upload.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth1Api",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data"
+      },
+      "id": "twitter-media-upload-optional",
+      "name": "X - Media Upload via HTTP (Opcional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        40
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition"
+      },
+      "id": "merge-register-context",
+      "name": "Merge - Contexto Registro",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst tweetId = data.id ?? data.data?.id ?? data.tweetId ?? data.tweet_id ?? null;\nconst postUrl = tweetId ? `https://x.com/i/web/status/${tweetId}` : null;\nreturn [{\n  json: {\n    matchId: data.matchId,\n    platform: 'X',\n    postText: data.finalPostText,\n    postUrl,\n    externalPostId: tweetId,\n    hotScore: data.hotScore,\n    reason: data.reason\n  }\n}];"
+      },
+      "id": "code-build-register-payload",
+      "name": "Code - Montar Payload Registro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1940,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRIPTOVERSUS_API_BASE_URL }}/api/social/posts/register",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "http-register-post",
+      "name": "HTTP Request - Registrar Postagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "status",
+              "type": "string",
+              "value": "no_hot_matches"
+            },
+            {
+              "name": "message",
+              "type": "string",
+              "value": "Nenhum jogo quente retornado pela API nesta execução."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-no-hot-matches",
+      "name": "Set - Sem Jogos Quentes",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -380,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "status",
+              "type": "string",
+              "value": "skipped_by_api"
+            },
+            {
+              "name": "matchId",
+              "type": "number",
+              "value": "={{ $json.matchId }}"
+            },
+            {
+              "name": "skipReason",
+              "type": "string",
+              "value": "={{ $json.skipReason || 'API informou que nao deve postar agora.' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-can-not-post",
+      "name": "Set - Nao Pode Postar",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        380,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Triggers\nUse `Manual Trigger` para testes iniciais.\nO `Cron Trigger` esta configurado para 15 minutos, mas vem desativado para ativacao manual posterior.",
+        "height": 180,
+        "width": 320,
+        "color": 7
+      },
+      "id": "note-triggers",
+      "name": "Sticky Note - Triggers",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1170,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Bloco API\n1. Busca jogos quentes.\n2. Verifica se existe pelo menos um item.\n3. Seleciona o jogo com maior `hotScore`.\n4. Carrega o `share-card` para decidir se pode postar.",
+        "height": 220,
+        "width": 360,
+        "color": 5
+      },
+      "id": "note-api-block",
+      "name": "Sticky Note - API",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Midia e IA\n- `Image Info` consulta a estrategia de imagem.\n- `Browserless` gera screenshot PNG a partir do `publicUrl`.\n- `OpenAI` escreve a narracao curta para o X usando os dados do `share-card`.",
+        "height": 220,
+        "width": 400,
+        "color": 6
+      },
+      "id": "note-media-ai",
+      "name": "Sticky Note - Midia e IA",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        340,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Publicacao no X\nA primeira versao pode postar apenas texto + link pelo node oficial do X.\nSe quiser upload da imagem do Browserless, configure o node HTTP opcional com OAuth 1.0a e ajuste o fluxo de publicacao.",
+        "height": 220,
+        "width": 420,
+        "color": 4
+      },
+      "id": "note-x-posting",
+      "name": "Sticky Note - X",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        -170
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Registro e controle\nDepois da publicacao, o workflow registra a postagem na API para cooldown e prevencao de repeticao.\nNos testes, voce pode desativar o node `X - Publicar Post (Texto + Link)` para evitar postagem real.",
+        "height": 220,
+        "width": 420,
+        "color": 3
+      },
+      "id": "note-register",
+      "name": "Sticky Note - Registro",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        -120
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Hot Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Hot Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Hot Matches": {
+      "main": [
+        [
+          {
+            "node": "IF - Existe Jogo Quente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Existe Jogo Quente": {
+      "main": [
+        [
+          {
+            "node": "Code - Escolher Primeiro Jogo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set - Sem Jogos Quentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Escolher Primeiro Jogo": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Share Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Share Card": {
+      "main": [
+        [
+          {
+            "node": "IF - Pode Postar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Pode Postar": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Image Info",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "OpenAI - Gerar Narração",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge - IA + Share Card",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Set - Nao Pode Postar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Image Info": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Screenshot Browserless",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Gerar Narração": {
+      "main": [
+        [
+          {
+            "node": "Merge - IA + Share Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge - IA + Share Card": {
+      "main": [
+        [
+          {
+            "node": "Code - Preparar Texto Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Preparar Texto Final": {
+      "main": [
+        [
+          {
+            "node": "Merge - Texto + Screenshot",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Screenshot Browserless": {
+      "main": [
+        [
+          {
+            "node": "Merge - Texto + Screenshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge - Texto + Screenshot": {
+      "main": [
+        [
+          {
+            "node": "X - Publicar Post (Texto + Link)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "X - Media Upload via HTTP (Opcional)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge - Contexto Registro",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "X - Publicar Post (Texto + Link)": {
+      "main": [
+        [
+          {
+            "node": "Merge - Contexto Registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge - Contexto Registro": {
+      "main": [
+        [
+          {
+            "node": "Code - Montar Payload Registro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Montar Payload Registro": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Registrar Postagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8bb4c1d7-2d6b-4ed7-95f1-6ce8918ec001",
+  "id": "criptoversus-social-x-workflow",
+  "tags": []
+}

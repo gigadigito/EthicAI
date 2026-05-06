@@ -15,7 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens
 	ProjectSection(SolutionItems) = preProject
 		appsettings.Production.json = appsettings.Production.json
 		CMD_SUBIR.txt = CMD_SUBIR.txt
+		Itens de Solução\n8n\criptoversus-social-x-workflow.json = Itens de Solução\n8n\criptoversus-social-x-workflow.json
 		Dockerfile = Dockerfile
+		Itens de Solução\n8n\README-social-x.md = Itens de Solução\n8n\README-social-x.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Web", "CriptoVersus\CriptoVersus.Web.csproj", "{F357F1FE-B6BB-496D-BCBF-391BC75AD835}"
