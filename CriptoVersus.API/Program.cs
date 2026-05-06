@@ -42,9 +42,12 @@ builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVeri
 builder.Services.AddScoped<ISystemBalanceWithdrawalService, SystemBalanceWithdrawalService>();
 builder.Services.AddScoped<ICustodySolTransferService, CustodySolTransferService>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
+builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
+builder.Services.Configure<SocialAutomationOptions>(
+    builder.Configuration.GetSection(SocialAutomationOptions.SectionName));
 builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
 builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();

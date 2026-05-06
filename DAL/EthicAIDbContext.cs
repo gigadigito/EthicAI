@@ -27,6 +27,7 @@ namespace EthicAI.EntityModel
         public DbSet<MatchMetricSnapshot> MatchMetricSnapshot { get; set; }
         public DbSet<MatchScoreEvent> MatchScoreEvent { get; set; }
         public DbSet<MatchScoreState> MatchScoreState { get; set; }
+        public DbSet<SocialPostHistory> SocialPostHistory { get; set; }
         public DbSet<FinancialMigrationBatch> FinancialMigrationBatch { get; set; }
         public DbSet<FundMigrationCheckpoint> FundMigrationCheckpoint { get; set; }
 
@@ -641,6 +642,46 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.UpdatedAtUtc)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_updated_at");
+            });
+
+            modelBuilder.Entity<SocialPostHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("social_post_history");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.MatchId).HasColumnName("match_id");
+
+                entity.Property(e => e.Platform)
+                      .HasColumnName("platform")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.PostText)
+                      .HasColumnName("post_text");
+
+                entity.Property(e => e.PostUrl)
+                      .HasColumnName("post_url")
+                      .HasMaxLength(500);
+
+                entity.Property(e => e.ExternalPostId)
+                      .HasColumnName("external_post_id")
+                      .HasMaxLength(200);
+
+                entity.Property(e => e.HotScore).HasColumnName("hot_score");
+
+                entity.Property(e => e.Reason)
+                      .HasColumnName("reason");
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnName("created_at")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => new { e.MatchId, e.Platform, e.CreatedAt });
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             Seed(modelBuilder);

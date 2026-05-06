@@ -36,25 +36,10 @@ docker compose logs -f --tail 300 criptoversus-web
 
 
 
+
+dotnet run --environment Development
+
 https://analytics.google.com/analytics/web/?authuser=2#/a393717876p536329093/realtime/pages?params=_u..nav%3Dmaui
 
 
 
-insert into "user" (
-    cd_user,
-    tx_wallet,
-    nm_name,
-    tx_email,
-    dt_create,
-    dt_update,
-    nr_balance
-)
-select 
-    gs,
-    'wallet_' || gs,
-    'User ' || gs,
-    'user' || gs || '@test.com',
-    now(),
-    now(),
-    1000.0
-from generate_series(100, 110) as gs;
