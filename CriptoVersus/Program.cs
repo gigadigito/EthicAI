@@ -112,6 +112,28 @@ app.MapGet("/robots.txt", async (SitemapService sitemapService, CancellationToke
     return Results.Content(content, "text/plain; charset=utf-8");
 });
 
+app.MapMethods("/social-images/match/{matchId:int}/{slug}.svg", ["GET", "HEAD"], async (
+    HttpContext httpContext,
+    int matchId,
+    CriptoVersusApiClient apiClient,
+    MatchSeoService matchSeoService,
+    CancellationToken ct) =>
+{
+    var match = await apiClient.GetMatchByIdAsync(matchId);
+    if (match is null)
+        return Results.NotFound();
+
+    var svg = matchSeoService.BuildSocialImageSvg(match);
+    httpContext.Response.Headers.CacheControl = "public,max-age=300";
+    httpContext.Response.ContentType = "image/svg+xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(svg);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
+    return Results.Text(svg, "image/svg+xml; charset=utf-8");
+});
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
