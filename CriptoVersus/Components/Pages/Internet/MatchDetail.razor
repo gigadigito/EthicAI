@@ -43,155 +43,6 @@
     }
     else
     {
-        <!-- =========================
-             MATCH HERO / ARENA HEADER
-             ========================= -->
-        <section class="match-hero rounded-4 p-3 p-md-4 mb-3 shadow-sm overflow-hidden">
-            <div class="match-hero__bg"></div>
-
-            <div class="position-relative">
-                <div class="row align-items-center g-3">
-
-                    <!-- Team A -->
-                    <div class="col-12 col-md-4">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="team-badge team-badge--a @(GetWinnerFxClass(_match.TeamAId))">
-                                @if (HasWinnerTeam(_match.TeamAId))
-                                {
-                                    <span class="winner-firework winner-firework--badge winner-firework--badge-a"></span>
-                                    <span class="winner-firework winner-firework--badge winner-firework--badge-b"></span>
-                                }
-                                <div class="coin-wrap" title="@_match.TeamA">
-                                    <div class="coin-skeleton"></div>
-
-                                    <img class="coin-img"
-                                         src="@GetCoinIconUrl(_match.TeamA)"
-                                         alt="@_match.TeamA"
-                                         loading="lazy"
-                                         onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-
-                                    <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
-                                </div>
-                            </div>
-
-                            <div class="flex-grow-1">
-                                <div class="team-name">@GetDisplayTeamName(_match.TeamA)</div>
-                                <div class="team-sub">
-                                    <span class="@GetPctClass(_match.PctA)">
-                                        @FormatPct(_match.PctA)
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Score / Center -->
-                    <div class="col-12 col-md-4 text-center">
-                        <div class="d-inline-flex flex-column align-items-center gap-2">
-
-                            @if (ShouldShowLiveBadge(_match))
-                            {
-                                <div class="match-live">
-                                    <span class="badge rounded-pill bg-danger match-live__pill">
-                                        <span class="match-live__dot"></span>
-                                        AO VIVO
-                                    </span>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="match-live">
-                                    <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
-                                        @GetPresentationStatusText(_match)
-                                    </span>
-                                </div>
-                            }
-
-                            <div class="scoreline">
-                                <span class="score">@_match.ScoreA</span>
-                                <span class="score-sep">x</span>
-                                <span class="score">@_match.ScoreB</span>
-                            </div>
-
-                            <div class="timebar text-muted">
-
-                                <span class="mx-2">•</span>
-                                <span class="text-muted">@_remainingLive</span>
-                                @if (ShouldShowLiveBadge(_match))
-                                {
-                                    <span class="clock-blink ms-2"></span>
-                                }
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <!-- Team B -->
-                    <div class="col-12 col-md-4">
-                        <div class="d-flex align-items-center gap-3 justify-content-md-end">
-                            <div class="text-md-end">
-                                <div class="team-name">@GetDisplayTeamName(_match.TeamB)</div>
-                                <div class="team-sub">
-                                    <span class="@GetPctClass(_match.PctB)">
-                                        @FormatPct(_match.PctB)
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="team-badge team-badge--b @(GetWinnerFxClass(_match.TeamBId))">
-                                @if (HasWinnerTeam(_match.TeamBId))
-                                {
-                                    <span class="winner-firework winner-firework--badge winner-firework--badge-a"></span>
-                                    <span class="winner-firework winner-firework--badge winner-firework--badge-b"></span>
-                                }
-                                <div class="coin-wrap" title="@_match.TeamB">
-                                    <div class="coin-skeleton"></div>
-
-                                    <img class="coin-img"
-                                         src="@GetCoinIconUrl(_match.TeamB)"
-                                         alt="@_match.TeamB"
-                                         loading="lazy"
-                                         onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-
-                                    <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                </div>
-
-
-                <!-- Meta row -->
-                <div class="row mt-3 g-2">
-                    <div class="col-12">
-                        <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-between align-items-center">
-                            <div class="small text-muted">
-                                Match ID: <span class="text-light-emphasis">@_match.MatchId</span>
-                            </div>
-
-                            <div class="d-flex flex-wrap gap-2">
-                                @if (_match.StartTime is not null)
-                                {
-                                    <span class="badge text-bg-dark border border-secondary-subtle">
-                                        Início: @FmtDateTime(_match.StartTime)
-                                    </span>
-                                }
-                                @if (_match.EndTime is not null)
-                                {
-                                    <span class="badge text-bg-dark border border-secondary-subtle">
-                                        Fim: @FmtDateTime(_match.EndTime)
-                                    </span>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
         <section id="social-share-card" class="social-share-card mb-4" aria-label="Social share card">
             <div class="social-share-card__bg"></div>
             <div class="social-share-card__shell">
@@ -211,12 +62,90 @@
                     </div>
                 </div>
 
-                <div class="social-share-card__scoreboard">
-                    <article class="social-share-side social-share-side--a @(GetWinnerFxClass(_match.TeamAId))">
-                        <div class="social-share-side__identity">
-                            <div class="social-share-side__coin">
+                <div class="social-share-card__hero">
+                    <div class="social-share-hero-team social-share-hero-team--a">
+                        <div class="team-badge team-badge--a @(GetWinnerFxClass(_match.TeamAId))">
+                            @if (HasWinnerTeam(_match.TeamAId))
+                            {
+                                <span class="winner-firework winner-firework--badge winner-firework--badge-a"></span>
+                                <span class="winner-firework winner-firework--badge winner-firework--badge-b"></span>
+                            }
+                            <div class="coin-wrap" title="@_match.TeamA">
                                 <div class="coin-skeleton"></div>
-                                <img class="coin-img social-share-side__coin-img"
+                                <img class="coin-img"
+                                     src="@GetCoinIconUrl(_match.TeamA)"
+                                     alt="@_match.TeamA"
+                                     loading="lazy"
+                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="team-name"><MarketPairText Symbol="@_match.TeamA" /></div>
+                            <div class="team-sub">
+                                <span class="@GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="social-share-hero-score">
+                        @if (ShouldShowLiveBadge(_match))
+                        {
+                            <div class="match-live">
+                                <span class="badge rounded-pill bg-danger match-live__pill">
+                                    <span class="match-live__dot"></span>
+                                    AO VIVO
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="match-live">
+                                <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
+                                    @GetPresentationStatusText(_match)
+                                </span>
+                            </div>
+                        }
+
+                        <div class="scoreline">
+                            <span class="score">@_match.ScoreA</span>
+                            <span class="score-sep">x</span>
+                            <span class="score">@_match.ScoreB</span>
+                        </div>
+                    </div>
+
+                    <div class="social-share-hero-team social-share-hero-team--b">
+                        <div>
+                            <div class="team-name"><MarketPairText Symbol="@_match.TeamB" /></div>
+                            <div class="team-sub">
+                                <span class="@GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</span>
+                            </div>
+                        </div>
+                        <div class="team-badge team-badge--b @(GetWinnerFxClass(_match.TeamBId))">
+                            @if (HasWinnerTeam(_match.TeamBId))
+                            {
+                                <span class="winner-firework winner-firework--badge winner-firework--badge-a"></span>
+                                <span class="winner-firework winner-firework--badge winner-firework--badge-b"></span>
+                            }
+                            <div class="coin-wrap" title="@_match.TeamB">
+                                <div class="coin-skeleton"></div>
+                                <img class="coin-img"
+                                     src="@GetCoinIconUrl(_match.TeamB)"
+                                     alt="@_match.TeamB"
+                                     loading="lazy"
+                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="social-share-card__stats">
+                    <div class="card match-card social-share-match-card p-3">
+                        <div class="social-share-team-card__top">
+                            <div class="coin-wrap coin-wrap--sm social-share-team-card__coin" title="@_match.TeamA">
+                                <div class="coin-skeleton"></div>
+                                <img class="coin-img coin-img--sm"
                                      src="@GetCoinIconUrl(_match.TeamA)"
                                      alt="@_match.TeamA"
                                      loading="lazy"
@@ -225,51 +154,79 @@
                                 <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
                             </div>
                             <div>
-                                <div class="social-share-side__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
-                                <div class="social-share-side__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
+                                <div class="social-share-team-card__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
+                                <div class="social-share-team-card__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
                             </div>
                         </div>
 
-                        <div class="social-share-side__summary">
-                            <div class="social-share-side__metric">
+                        <div class="social-share-team-card__metrics">
+                            <div class="social-share-team-card__metric-row">
                                 <span>Pool</span>
                                 <strong>@_match.PoolStrengthTeamA%</strong>
                             </div>
-                            <div class="social-share-side__metric">
+                            <div class="social-share-team-card__metric-row">
                                 <span>Apostas</span>
                                 <strong>@_match.BetCountTeamA</strong>
                             </div>
-                            <div class="social-share-side__metric">
+                            <div class="social-share-team-card__metric-row">
                                 <span>Volume</span>
                                 <strong>@FmtSolAmount(_match.TotalAmountTeamA)</strong>
                             </div>
                         </div>
-                    </article>
+                    </div>
 
-                    <article class="social-share-center @(HasWinnerCelebration(_match) ? "social-share-center--winner" : string.Empty)">
-                        <div class="social-share-center__score">@_match.ScoreA <span>x</span> @_match.ScoreB</div>
-                        <div class="social-share-center__clock">
-                            @if (ShouldShowResultStage(_match))
-                            {
-                                <span>VENCEDOR</span>
-                                <strong>@GetWinnerDisplayText(_match)</strong>
-                            }
-                            else
-                            {
-                                <span>CRONOMETRO</span>
-                                <strong>@_clockLive</strong>
-                            }
-                        </div>
-                        <div class="social-share-center__sub">
-                            @(ShouldShowResultStage(_match) ? $"Placar final {_match.ScoreA} x {_match.ScoreB}" : $"Restante {_remainingLive}")
-                        </div>
-                    </article>
+                    <div class="card clock-card social-share-clock-card p-3 text-center d-flex flex-column justify-content-center @(HasWinnerCelebration(_match) ? "clock-card--winner" : string.Empty)">
+                        @if (HasWinnerCelebration(_match))
+                        {
+                            <span class="winner-firework winner-firework--card winner-firework--card-a"></span>
+                            <span class="winner-firework winner-firework--card winner-firework--card-b"></span>
+                            <span class="winner-firework winner-firework--card winner-firework--card-c"></span>
+                            <span class="winner-firework winner-firework--card winner-firework--card-d"></span>
+                        }
+                        @if (ShouldShowResultStage(_match))
+                        {
+                            <div class="clock-title">RESULTADO FINAL</div>
+                            <div class="winner-label">WINNER IS</div>
+                            <div class="winner-name">@GetWinnerDisplayText(_match)</div>
+                            <div class="clock-remaining">
+                                Placar final <span class="fw-semibold">@_match.ScoreA x @_match.ScoreB</span>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
+                                    @GetPresentationStatusText(_match)
+                                </span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="clock-title">CRONÔMETRO</div>
+                            <div class="clock-time">@_clockLive</div>
+                            <div class="clock-remaining">
+                                Restante <span class="fw-semibold">@_remainingLive</span>
+                            </div>
+                            <div class="mt-2">
+                                @if (ShouldShowLiveBadge(_match))
+                                {
+                                    <span class="badge rounded-pill bg-danger match-live__pill">
+                                        <span class="match-live__dot"></span>
+                                        AO VIVO
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
+                                        @GetPresentationStatusText(_match)
+                                    </span>
+                                }
+                            </div>
+                        }
+                    </div>
 
-                    <article class="social-share-side social-share-side--b @(GetWinnerFxClass(_match.TeamBId))">
-                        <div class="social-share-side__identity">
-                            <div class="social-share-side__coin">
+                    <div class="card match-card social-share-match-card p-3">
+                        <div class="social-share-team-card__top">
+                            <div class="coin-wrap coin-wrap--sm social-share-team-card__coin" title="@_match.TeamB">
                                 <div class="coin-skeleton"></div>
-                                <img class="coin-img social-share-side__coin-img"
+                                <img class="coin-img coin-img--sm"
                                      src="@GetCoinIconUrl(_match.TeamB)"
                                      alt="@_match.TeamB"
                                      loading="lazy"
@@ -278,46 +235,53 @@
                                 <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
                             </div>
                             <div>
-                                <div class="social-share-side__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
-                                <div class="social-share-side__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
+                                <div class="social-share-team-card__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
+                                <div class="social-share-team-card__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
                             </div>
                         </div>
 
-                        <div class="social-share-side__summary">
-                            <div class="social-share-side__metric">
+                        <div class="social-share-team-card__metrics">
+                            <div class="social-share-team-card__metric-row">
                                 <span>Pool</span>
                                 <strong>@_match.PoolStrengthTeamB%</strong>
                             </div>
-                            <div class="social-share-side__metric">
+                            <div class="social-share-team-card__metric-row">
                                 <span>Apostas</span>
                                 <strong>@_match.BetCountTeamB</strong>
                             </div>
-                            <div class="social-share-side__metric">
+                            <div class="social-share-team-card__metric-row">
                                 <span>Volume</span>
                                 <strong>@FmtSolAmount(_match.TotalAmountTeamB)</strong>
                             </div>
                         </div>
-                    </article>
+                    </div>
                 </div>
 
                 <div class="social-share-card__charts">
-                    <section class="social-share-chart-card">
-                        <div class="social-share-chart-card__head">
-                            <div>
-                                <div class="social-share-chart-card__label">Percentual</div>
-                                <div class="social-share-chart-card__legend">
-                                    <span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" />
-                                    <span class="dot dot-b ms-2"></span> <MarketPairText Symbol="@_match.TeamB" />
-                                </div>
-                            </div>
-                            <div class="social-share-chart-card__range">
-                                @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%
-                            </div>
+                    <div class="card match-panel social-share-panel p-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="fw-bold">@GetPercentageCardTitle()</div>
+                            <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-2 flex-wrap">
+                            <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
+                                <MarketPairText Symbol="@_match.TeamA" />: @GetPercentageWins(_match.TeamAId) @GetPercentageWinLabel()
+                            </span>
+                            <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
+                                <MarketPairText Symbol="@_match.TeamB" />: @GetPercentageWins(_match.TeamBId) @GetPercentageWinLabel()
+                            </span>
                         </div>
 
                         @if (_percentageChart.HasData)
                         {
-                            <div class="social-share-chart-wrap">
+                            <div class="chart-wrap social-share-chart-wrap mt-3">
+                                @foreach (var tick in GetPercentageAxisTicks())
+                                {
+                                    <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
+                                        @tick.Label
+                                    </div>
+                                }
                                 <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
                                     @for (var i = 1; i <= 4; i++)
                                     {
@@ -329,30 +293,56 @@
                                     <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
                                 </svg>
                             </div>
+
+                            <div class="chart-x-axis">
+                                @foreach (var tick in GetPercentageTimeTicks())
+                                {
+                                    <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
+                                }
+                            </div>
+
+                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
+                                <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatPct(_match.PctA))</div>
+                                <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatPct(_match.PctB))</div>
+                                <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
+                            </div>
                         }
                         else
                         {
-                            <div class="social-share-chart-empty">Sem snapshots suficientes para o grafico percentual.</div>
+                            <div class="alert alert-secondary mt-3 mb-0">Sem snapshots suficientes para o grafico percentual.</div>
                         }
-                    </section>
+                    </div>
 
-                    <section class="social-share-chart-card">
-                        <div class="social-share-chart-card__head">
-                            <div>
-                                <div class="social-share-chart-card__label">Volume</div>
-                                <div class="social-share-chart-card__legend">
-                                    <span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" />
-                                    <span class="dot dot-b ms-2"></span> <MarketPairText Symbol="@_match.TeamB" />
-                                </div>
+                    <div class="card match-panel social-share-panel p-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <div class="fw-bold">@GetVolumeCardTitle()</div>
+                                @if (ShouldExplainNoVolumeCross())
+                                {
+                                    <span class="badge text-bg-dark border border-secondary-subtle">?</span>
+                                }
                             </div>
-                            <div class="social-share-chart-card__range">
-                                @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)
-                            </div>
+                            <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-2 flex-wrap">
+                            <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
+                                <MarketPairText Symbol="@_match.TeamA" />: @GetVolumeWins(_match.TeamAId) @GetVolumeWinLabel()
+                            </span>
+                            <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
+                                <MarketPairText Symbol="@_match.TeamB" />: @GetVolumeWins(_match.TeamBId) @GetVolumeWinLabel()
+                            </span>
                         </div>
 
                         @if (_volumeChart.HasData)
                         {
-                            <div class="social-share-chart-wrap">
+                            <div class="chart-wrap social-share-chart-wrap mt-3">
+                                @foreach (var tick in GetVolumeAxisTicks())
+                                {
+                                    <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
+                                        @tick.Label
+                                    </div>
+                                }
                                 <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
                                     @for (var i = 1; i <= 4; i++)
                                     {
@@ -364,12 +354,25 @@
                                     <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
                                 </svg>
                             </div>
+
+                            <div class="chart-x-axis">
+                                @foreach (var tick in GetVolumeTimeTicks())
+                                {
+                                    <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
+                                }
+                            </div>
+
+                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
+                                <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatCompactNumber(_match.QuoteVolumeA))</div>
+                                <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatCompactNumber(_match.QuoteVolumeB))</div>
+                                <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
+                            </div>
                         }
                         else
                         {
-                            <div class="social-share-chart-empty">Sem snapshots suficientes para o grafico de volume.</div>
+                            <div class="alert alert-secondary mt-3 mb-0">Sem snapshots suficientes para o grafico de volume.</div>
                         }
-                    </section>
+                    </div>
                 </div>
 
                 <div class="social-share-card__footer">
@@ -406,383 +409,6 @@
                 </div>
             </div>
         }
-
-        <!-- =========================
-             TEAM CARDS + CLOCK (GRID)
-             ========================= -->
-        <div class="row g-3 mb-3">
-
-            <!-- =========================
-                 TEAM A CARD
-                 ========================= -->
-            <div class="col-12 col-lg-4">
-                <div class="card match-card p-3">
-                    <div class="d-flex align-items-center justify-content-between gap-2">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="coin-wrap coin-wrap--sm" title="@_match.TeamA">
-                                <div class="coin-skeleton"></div>
-                                <img class="coin-img coin-img--sm"
-                                     src="@GetCoinIconUrl(_match.TeamA)"
-                                     alt="@_match.TeamA"
-                                     loading="lazy"
-                                     onload="this.previousElementSibling?.classList.add('d-none')"
-                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-                                <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
-                            </div>
-
-                            <div>
-                                <div class="fw-bold fs-5 text-light-emphasis"><MarketPairText Symbol="@_match.TeamA" /></div>
-                                <div class="small">
-                                    <span class="@GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</span>
-                                    <span class="text-muted ms-2">• Score @_match.ScoreA</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="pill pill--a">@GetTrendIcon(_match.PctA)</div>
-                    </div>
-
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span title="Combina quantidade de carteiras e valor apostado neste time. Nao representa o placar nem a variacao do ativo.">Forca da Pool</span>
-                            <span class="fw-semibold">@_match.PoolStrengthTeamA%</span>
-                        </div>
-                        <div class="progress match-progress">
-                            <div class="progress-bar match-progress__bar"
-                                 title="Combina quantidade de carteiras e valor apostado neste time. Nao representa o placar nem a variacao do ativo."
-                                 style="width:@_match.PoolStrengthTeamA%"></div>
-                        </div>
-                        <div class="small text-muted mt-2">
-                            Carteiras: @_match.WalletCountTeamA de @_match.TotalWalletCount
-                            <span class="mx-2">•</span>
-                            Valor apostado: @FmtSolAmount(_match.TotalAmountTeamA) de @FmtSolAmount(_match.TotalPoolAmount)
-                            <span class="mx-2">•</span>
-                            Apostas: @_match.BetCountTeamA
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- =========================
-                 CLOCK CARD (CENTER)
-                 ========================= -->
-            <div class="col-12 col-lg-4">
-                <div class="card clock-card p-3 text-center d-flex flex-column justify-content-center @(HasWinnerCelebration(_match) ? "clock-card--winner" : string.Empty)">
-                    @if (HasWinnerCelebration(_match))
-                    {
-                        <span class="winner-firework winner-firework--card winner-firework--card-a"></span>
-                        <span class="winner-firework winner-firework--card winner-firework--card-b"></span>
-                        <span class="winner-firework winner-firework--card winner-firework--card-c"></span>
-                        <span class="winner-firework winner-firework--card winner-firework--card-d"></span>
-                    }
-                    @if (ShouldShowResultStage(_match))
-                    {
-                        <div class="clock-title">RESULTADO FINAL</div>
-                        <div class="winner-label">WINNER IS</div>
-                        <div class="winner-name">@GetWinnerDisplayText(_match)</div>
-                        <div class="clock-remaining">
-                            Placar final <span class="fw-semibold">@_match.ScoreA x @_match.ScoreB</span>
-                        </div>
-                        <div class="mt-2">
-                            <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
-                                @GetPresentationStatusText(_match)
-                            </span>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="clock-title">CRONÔMETRO</div>
-
-                        <div class="clock-time">@_clockLive</div>
-
-                        <div class="clock-remaining">
-                            Restante <span class="fw-semibold">@_remainingLive</span>
-                        </div>
-
-                        <div class="mt-2">
-                            @if (ShouldShowLiveBadge(_match))
-                            {
-                                <span class="badge rounded-pill bg-danger match-live__pill">
-                                    <span class="match-live__dot"></span>
-                                    AO VIVO
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
-                                    @GetPresentationStatusText(_match)
-                                </span>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- =========================
-                 TEAM B CARD
-                 ========================= -->
-            <div class="col-12 col-lg-4">
-                <div class="card match-card p-3">
-                    <div class="d-flex align-items-center justify-content-between gap-2">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="coin-wrap coin-wrap--sm" title="@_match.TeamB">
-                                <div class="coin-skeleton"></div>
-                                <img class="coin-img coin-img--sm"
-                                     src="@GetCoinIconUrl(_match.TeamB)"
-                                     alt="@_match.TeamB"
-                                     loading="lazy"
-                                     onload="this.previousElementSibling?.classList.add('d-none')"
-                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
-                                <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
-                            </div>
-
-                            <div>
-                                <div class="fw-bold fs-5 text-light-emphasis"><MarketPairText Symbol="@_match.TeamB" /></div>
-                                <div class="small">
-                                    <span class="@GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</span>
-                                    <span class="text-muted ms-2">• Score @_match.ScoreB</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="pill pill--b">@GetTrendIcon(_match.PctB)</div>
-                    </div>
-
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between small text-muted mb-1">
-                            <span title="Combina quantidade de carteiras e valor apostado neste time. Nao representa o placar nem a variacao do ativo.">Forca da Pool</span>
-                            <span class="fw-semibold">@_match.PoolStrengthTeamB%</span>
-                        </div>
-                        <div class="progress match-progress">
-                            <div class="progress-bar match-progress__bar"
-                                 title="Combina quantidade de carteiras e valor apostado neste time. Nao representa o placar nem a variacao do ativo."
-                                 style="width:@_match.PoolStrengthTeamB%"></div>
-                        </div>
-                        <div class="small text-muted mt-2">
-                            Carteiras: @_match.WalletCountTeamB de @_match.TotalWalletCount
-                            <span class="mx-2">•</span>
-                            Valor apostado: @FmtSolAmount(_match.TotalAmountTeamB) de @FmtSolAmount(_match.TotalPoolAmount)
-                            <span class="mx-2">•</span>
-                            Apostas: @_match.BetCountTeamB
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="row g-3 mb-3">
-            <div class="col-12 col-xl-6">
-                <div class="card match-panel p-3 h-100">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="fw-bold">@GetPercentageCardTitle()</div>
-                        <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
-                    </div>
-
-                    <div class="d-flex gap-2 mt-3 flex-wrap">
-                        <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                            <MarketPairText Symbol="@_match.TeamA" />: @GetPercentageWins(_match.TeamAId) @GetPercentageWinLabel()
-                        </span>
-                        <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                            <MarketPairText Symbol="@_match.TeamB" />: @GetPercentageWins(_match.TeamBId) @GetPercentageWinLabel()
-                        </span>
-                    </div>
-
-                    @if (_percentageChart.HasData)
-                    {
-                        <div class="chart-wrap mt-3">
-                            @foreach (var tick in GetPercentageAxisTicks())
-                            {
-                                <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
-                                    @tick.Label
-                                </div>
-                            }
-
-                            <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                @for (var i = 1; i <= 4; i++)
-                                {
-                                    var y = i * 64;
-                                    <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
-                                }
-
-                                <line x1="0" y1="@_percentageChart.ZeroY" x2="1000" y2="@_percentageChart.ZeroY" class="chart-zero" />
-
-                                <polyline points="@_percentageChart.PolyA" class="chart-line chart-line-a" />
-                                <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
-                            </svg>
-                        </div>
-
-                        <div class="chart-x-axis">
-                            @foreach (var tick in GetPercentageTimeTicks())
-                            {
-                                <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
-                            }
-                        </div>
-
-                        <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                            <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatPct(_match.PctA))</div>
-                            <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatPct(_match.PctB))</div>
-                            <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
-                        </div>
-
-                        <div class="small text-muted mt-2">
-                            @GetPercentageCardDescription()
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-secondary mt-3 mb-0">
-                            @GetChartEmptyMessage()
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <div class="col-12 col-xl-6">
-                <div class="card match-panel p-3 h-100">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <div class="fw-bold">@GetVolumeCardTitle()</div>
-                            @if (ShouldExplainNoVolumeCross())
-                            {
-                                <span class="badge text-bg-dark border border-secondary-subtle"
-                                      title="O placar ficou zerado porque nenhuma linha cruzou a outra de baixo para cima durante a partida.">
-                                    ?
-                                </span>
-                            }
-                        </div>
-                        <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
-                    </div>
-
-                    <div class="d-flex gap-2 mt-3 flex-wrap">
-                        <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                            <MarketPairText Symbol="@_match.TeamA" />: @GetVolumeWins(_match.TeamAId) @GetVolumeWinLabel()
-                        </span>
-                        <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                            <MarketPairText Symbol="@_match.TeamB" />: @GetVolumeWins(_match.TeamBId) @GetVolumeWinLabel()
-                        </span>
-                    </div>
-
-                    @if (_volumeChart.HasData)
-                    {
-                        <div class="chart-wrap mt-3">
-                            @foreach (var tick in GetVolumeAxisTicks())
-                            {
-                                <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
-                                    @tick.Label
-                                </div>
-                            }
-
-                            <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                @for (var i = 1; i <= 4; i++)
-                                {
-                                    var y = i * 64;
-                                    <line x1="0" y1="@y" x2="1000" y2="@y" class="chart-grid" />
-                                }
-
-                                <line x1="0" y1="@_volumeChart.ZeroY" x2="1000" y2="@_volumeChart.ZeroY" class="chart-zero" />
-
-                                <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
-                                <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
-                            </svg>
-                        </div>
-
-                        <div class="chart-x-axis">
-                            @foreach (var tick in GetVolumeTimeTicks())
-                            {
-                                <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
-                            }
-                        </div>
-
-                        <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                            <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatCompactNumber(_match.QuoteVolumeA))</div>
-                            <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatCompactNumber(_match.QuoteVolumeB))</div>
-                            <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
-                        </div>
-
-                        <div class="small text-muted mt-2">
-                            @GetVolumeCardDescription()
-                        </div>
-
-                        @if (ShouldExplainNoVolumeCross())
-                        {
-                            <div class="alert alert-secondary mt-3 mb-0">
-                                Nao houve cruzamento entre os graficos de volume durante a partida. Como esta regra so marca ponto quando uma linha cruza a outra de baixo para cima, o resultado ficou 0x0 nesta modalidade.
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <div class="alert alert-secondary mt-3 mb-0">
-                            @GetChartEmptyMessage()
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <div class="col-12">
-                <div class="small text-muted text-center">
-                    Baseado em @_metricSnapshots.Count snapshots persistidos da partida.
-                    <MarketPairText Symbol="@_match.TeamA" />: @GetTeamSnapshotCount(_match.TeamAId).
-                    <MarketPairText Symbol="@_match.TeamB" />: @GetTeamSnapshotCount(_match.TeamBId).
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-3 mb-3">
-            <div class="col-12">
-                <div class="card match-panel p-3">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="fw-bold">Log da Pontuacao</div>
-                        <div class="small text-muted">@_scoreEvents.Count evento(s)</div>
-                    </div>
-
-                    @if (_scoreEvents.Count == 0)
-                    {
-                        <div class="alert match-empty-state mt-3 mb-0">
-                            Nenhum ponto foi registrado nesta partida ate o momento.
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="mt-3 d-flex flex-column gap-2">
-                            @foreach (var scoreEvent in _scoreEvents.OrderByDescending(x => x.EventSequence))
-                            {
-                                <div class="match-score-event border border-secondary-subtle rounded-4 p-3">
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <span class="match-score-event__icon" title="@GetScoreEventIconTitle(scoreEvent)">
-                                                @GetScoreEventIcon(scoreEvent)
-                                            </span>
-                                            <span class="badge text-bg-dark border border-secondary-subtle">
-                                                #@scoreEvent.EventSequence
-                                            </span>
-                                            <span class="badge @GetTeamEventBadgeClass(scoreEvent.TeamId)">
-                                                @scoreEvent.TeamSymbol
-                                            </span>
-                                            <span class="badge text-bg-dark border border-secondary-subtle">
-                                                @GetRuleLabel(scoreEvent.RuleType)
-                                            </span>
-                                            <span class="badge match-score-event__points">
-                                                +@scoreEvent.Points ponto@(scoreEvent.Points == 1 ? "" : "s")
-                                            </span>
-                                        </div>
-
-                                        <div class="small text-muted">
-                                            @FormatEventTime(scoreEvent.EventTimeUtc)
-                                        </div>
-                                    </div>
-
-                                    <div class="match-score-event__description mt-2">
-                                        @scoreEvent.Description
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
 
         <!-- =========================
              TECH PANEL + ACTIONS
@@ -1908,213 +1534,125 @@
         letter-spacing: .08em;
     }
 
-    .social-share-card__scoreboard {
+    .social-share-card__hero {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         gap: 1rem;
-        align-items: stretch;
+        align-items: center;
+        padding: 1.1rem 1.15rem;
+        border-radius: 28px;
+        border: 1px solid rgba(255,255,255,.08);
+        background:
+            radial-gradient(circle at 15% 30%, rgba(0,230,118,.12), transparent 24%),
+            radial-gradient(circle at 85% 30%, rgba(255,82,82,.12), transparent 24%),
+            linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.2);
     }
 
-    .social-share-side,
-    .social-share-center,
-    .social-share-chart-card {
-        border-radius: 26px;
-        border: 1px solid rgba(255,255,255,.09);
-        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.22);
-    }
-
-    .social-share-side {
-        display: grid;
-        gap: 1rem;
-        padding: 1.2rem 1.15rem;
-        align-content: space-between;
-    }
-
-    .social-share-side--a {
-        background: linear-gradient(160deg, rgba(0,230,118,.16), rgba(255,255,255,.03) 42%, rgba(255,255,255,.02));
-    }
-
-    .social-share-side--b {
-        background: linear-gradient(160deg, rgba(255,82,82,.16), rgba(255,255,255,.03) 42%, rgba(255,255,255,.02));
-    }
-
-    .social-share-side__identity {
+    .social-share-hero-team {
         display: flex;
         align-items: center;
         gap: 1rem;
     }
 
-    .social-share-side__coin {
-        width: 76px;
-        height: 76px;
-        position: relative;
-        display: grid;
-        place-items: center;
-        border-radius: 22px;
-        overflow: hidden;
-        background: rgba(8,15,25,.65);
-        border: 1px solid rgba(255,255,255,.08);
-    }
-
-    .social-share-side__coin-img {
-        width: 58px;
-        height: 58px;
-    }
-
-    .social-share-side__symbol {
-        color: #f8fafc;
-        font-size: clamp(1.25rem, 2vw, 1.65rem);
-        font-weight: 900;
-        letter-spacing: .03em;
-    }
-
-    .social-share-side__pct {
-        margin-top: .25rem;
-        font-size: 1rem;
-    }
-
-    .social-share-side__summary {
-        display: grid;
-        gap: .6rem;
-    }
-
-    .social-share-side__metric {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: .75rem;
-        padding-top: .55rem;
-        border-top: 1px solid rgba(255,255,255,.08);
-    }
-
-    .social-share-side__metric span {
-        color: rgba(255,255,255,.58);
-        font-size: .82rem;
-        text-transform: uppercase;
-        letter-spacing: .12em;
-        font-weight: 700;
-    }
-
-    .social-share-side__metric strong {
-        color: #f8fafc;
-        font-size: 1rem;
-        font-weight: 800;
+    .social-share-hero-team--b {
+        justify-content: flex-end;
         text-align: right;
     }
 
-    .social-share-center {
-        position: relative;
+    .social-share-hero-score {
         display: grid;
-        align-content: center;
         justify-items: center;
-        gap: .9rem;
-        padding: 1.4rem;
-        background:
-            radial-gradient(circle at top, rgba(255, 214, 10, .11), transparent 36%),
-            linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-        text-align: center;
+        gap: .5rem;
+        min-width: 240px;
     }
 
-    .social-share-center--winner {
-        box-shadow: 0 0 0 1px rgba(255,214,10,.16), 0 18px 40px rgba(0,0,0,.22);
-    }
-
-    .social-share-center__score {
-        color: #fff;
-        font-size: clamp(3rem, 5vw, 4.5rem);
-        font-weight: 900;
-        line-height: 1;
-        letter-spacing: .02em;
-        text-shadow: 0 10px 40px rgba(0,0,0,.4);
-    }
-
-    .social-share-center__score span {
-        color: rgba(255,255,255,.45);
-        font-size: .55em;
-        vertical-align: middle;
-    }
-
-    .social-share-center__clock {
+    .social-share-card__stats {
         display: grid;
-        gap: .3rem;
+        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+        gap: .9rem;
+        align-items: stretch;
     }
 
-    .social-share-center__clock span {
-        color: rgba(255,255,255,.52);
-        font-size: .76rem;
-        letter-spacing: .28em;
-        text-transform: uppercase;
-        font-weight: 800;
+    .social-share-match-card,
+    .social-share-panel {
+        border-radius: 24px;
     }
 
-    .social-share-center__clock strong {
-        color: #e2e8f0;
-        font-size: clamp(1.15rem, 1.8vw, 1.55rem);
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    .social-share-match-card {
+        min-height: 0;
+        height: auto;
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .social-share-clock-card {
+        min-height: 0;
+        height: auto;
+    }
+
+    .social-share-team-card__top {
+        display: flex;
+        align-items: center;
+        gap: .95rem;
+    }
+
+    .social-share-team-card__coin {
+        flex: 0 0 auto;
+    }
+
+    .social-share-team-card__symbol {
+        color: rgba(255,255,255,.96);
+        font-size: 1.5rem;
+        font-weight: 900;
+        letter-spacing: .02em;
+        line-height: 1.05;
+    }
+
+    .social-share-team-card__pct {
+        margin-top: .35rem;
+        font-size: 1.05rem;
         font-weight: 900;
     }
 
-    .social-share-center__sub {
-        color: rgba(255,255,255,.65);
-        font-size: .92rem;
-        font-weight: 600;
+    .social-share-team-card__metrics {
+        display: grid;
+        gap: .15rem;
+    }
+
+    .social-share-team-card__metric-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .72rem 0;
+        border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .social-share-team-card__metric-row span {
+        color: rgba(255,255,255,.46);
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+    }
+
+    .social-share-team-card__metric-row strong {
+        color: rgba(255,255,255,.96);
+        font-size: 1rem;
+        font-weight: 900;
     }
 
     .social-share-card__charts {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem;
-    }
-
-    .social-share-chart-card {
-        display: grid;
-        grid-template-rows: auto 1fr;
-        gap: .85rem;
-        padding: 1rem;
-    }
-
-    .social-share-chart-card__head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: .75rem;
-    }
-
-    .social-share-chart-card__label {
-        color: #f8fafc;
-        font-size: 1rem;
-        font-weight: 800;
-        letter-spacing: .04em;
-    }
-
-    .social-share-chart-card__legend,
-    .social-share-chart-card__range {
-        color: rgba(255,255,255,.55);
-        font-size: .78rem;
-        font-weight: 700;
+        gap: .9rem;
     }
 
     .social-share-chart-wrap {
         width: 100%;
-        height: 160px;
-        position: relative;
-        border-radius: 18px;
-        overflow: hidden;
-        background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.15));
-        border: 1px solid rgba(255,255,255,.06);
-    }
-
-    .social-share-chart-empty {
-        display: grid;
-        place-items: center;
-        min-height: 160px;
-        border-radius: 18px;
-        color: rgba(255,255,255,.55);
-        font-size: .88rem;
-        text-align: center;
-        background: rgba(255,255,255,.03);
-        border: 1px dashed rgba(255,255,255,.1);
+        height: 170px;
     }
 
     .social-share-card__brand {
@@ -2134,12 +1672,16 @@
     }
 
     @@media (max-width: 1199.98px) {
-        .social-share-card__scoreboard {
+        .social-share-card__hero,
+        .social-share-card__stats,
+        .social-share-card__charts {
             grid-template-columns: minmax(0, 1fr);
         }
 
-        .social-share-center {
-            order: -1;
+        .social-share-hero-team,
+        .social-share-hero-team--b {
+            justify-content: center;
+            text-align: center;
         }
     }
 
