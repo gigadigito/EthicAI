@@ -80,7 +80,31 @@
                         <span>@Ui("Live battle", "Batalha ao vivo")</span>
                         <span>#@match.MatchId</span>
                     </div>
-                    <h3><a href="@GetMatchUrl(match)"><span>@match.TeamA</span> <span>vs</span> <span>@match.TeamB</span></a></h3>
+                    <h3>
+                        <a class="battle-versus battle-versus--live" href="@GetMatchUrl(match)">
+                            <span class="battle-team">
+                                <img class="coin-img"
+                                     src="@GetCoinIconUrl(match.TeamA)"
+                                     width="32"
+                                     alt="@match.TeamA"
+                                     loading="lazy"
+                                     onerror="this.remove();" />
+                                @GetBaseSymbol(match.TeamA)
+                            </span>
+
+                            <span class="battle-vs">VS</span>
+
+                            <span class="battle-team">
+                                <img class="coin-img"
+                                     src="@GetCoinIconUrl(match.TeamB)"
+                                     width="32"
+                                     alt="@match.TeamB"
+                                     loading="lazy"
+                                     onerror="this.remove();" />
+                                @GetBaseSymbol(match.TeamB)
+                            </span>
+                        </a>
+                    </h3>
                     <p>@Ui($"Current score {match.ScoreA} x {match.ScoreB}. Price movement and public match signals update in real time.", $"Placar atual {match.ScoreA} x {match.ScoreB}. Movimento de preço e sinais públicos da partida atualizados em tempo real.")</p>
                     <div class="home-match-card__footer">
                         <span>@FormatPct(match.PctA) / @FormatPct(match.PctB)</span>
@@ -96,11 +120,35 @@
             <h2>Top Crypto Battles</h2>
             <p>@Ui("Featured public match pages connect market performance, scoring rules and transparent historical context.", "Partidas públicas em destaque conectam performance de mercado, regras de pontuação e contexto histórico transparente.")</p>
         </div>
+
         <div class="home-battle-list">
             @foreach (var match in FeaturedMatches)
             {
                 <a class="home-battle-link" href="@GetMatchUrl(match)">
-                    <strong>@match.TeamA vs @match.TeamB</strong>
+                    <strong class="battle-versus">
+                        <span class="battle-team">
+                            <img class="coin-img"
+                                 src="@GetCoinIconUrl(match.TeamA)"
+                                 width="32"
+                                 alt="@match.TeamA"
+                                 loading="lazy"
+                                 onerror="this.remove();" />
+                            @GetBaseSymbol(match.TeamA)
+                        </span>
+
+                        <span class="battle-vs">VS</span>
+
+                        <span class="battle-team">
+                            <img class="coin-img"
+                                 src="@GetCoinIconUrl(match.TeamB)"
+                                 width="32"
+                                 alt="@match.TeamB"
+                                 loading="lazy"
+                                 onerror="this.remove();" />
+                            @GetBaseSymbol(match.TeamB)
+                        </span>
+                    </strong>
+
                     <span>@Ui($"Match #{match.MatchId} • score {match.ScoreA} x {match.ScoreB}", $"Partida #{match.MatchId} • placar {match.ScoreA} x {match.ScoreB}")</span>
                 </a>
             }
@@ -201,7 +249,28 @@
         .ToList();
     private List<CurrencyDto> TrendingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(6).ToList();
     private List<CurrencyDto> RankingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(10).ToList();
+    private string GetCoinIconUrl(string pair)
+    {
+        var baseSymbol = GetBaseSymbol(pair);
+        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+    }
 
+    private static string GetBaseSymbol(string pair)
+    {
+        if (string.IsNullOrWhiteSpace(pair)) return "";
+
+        pair = pair.ToUpperInvariant();
+
+        var quotes = new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" };
+
+        foreach (var q in quotes)
+        {
+            if (pair.EndsWith(q) && pair.Length > q.Length)
+                return pair.Substring(0, pair.Length - q.Length);
+        }
+
+        return pair;
+    }
     protected override async Task OnInitializedAsync()
     {
         try
@@ -297,6 +366,88 @@
 }
 
 <style>
+
+    .battle-versus {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        width: 100%;
+    }
+
+    .battle-team {
+        display: inline-flex !important;
+        align-items: center;
+        gap: .45rem;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .battle-vs {
+        flex-shrink: 0;
+        padding: .2rem .55rem;
+        border-radius: 999px;
+        background: rgba(127,246,223,.08);
+        border: 1px solid rgba(127,246,223,.18);
+        color: #7ff6df;
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .14em;
+    }
+
+    .battle-versus--live {
+        color: #fff;
+        text-decoration: none;
+    }
+    .home-battle-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: .85rem;
+    }
+
+    .home-battle-link {
+        padding: 1rem !important;
+    }
+
+    .battle-versus {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        width: 100%;
+    }
+
+    .battle-team {
+        display: inline-flex !important;
+        align-items: center;
+        gap: .45rem;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .battle-vs {
+        flex-shrink: 0;
+        padding: .2rem .55rem;
+        border-radius: 999px;
+        background: rgba(127,246,223,.08);
+        border: 1px solid rgba(127,246,223,.18);
+        color: #7ff6df;
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .14em;
+    }
+    .home-battle-link strong {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        flex-wrap: wrap;
+    }
+
+        .home-battle-link strong span {
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+        }
     .home-landing {
         display: grid;
         gap: 1.5rem;
