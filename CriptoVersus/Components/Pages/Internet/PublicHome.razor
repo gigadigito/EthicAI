@@ -34,13 +34,38 @@
 <section class="home-landing">
     <header class="home-hero">
         <div class="home-hero__copy">
-            <span class="home-hero__eyebrow">@Ui("Global crypto arena", "Arena cripto global")</span>
-            <h1>@Ui("Live crypto matches, market battles and public scoreboards.", "Partidas cripto ao vivo, batalhas de mercado e placares públicos.")</h1>
-            <p>@Ui("CriptoVersus turns live market performance into public matchups between crypto assets, with score, trend, volume and arena-style storytelling built for a global audience.", "O CriptoVersus transforma a performance do mercado em confrontos públicos entre criptoativos, com placar, tendência, volume e narrativa de arena para uma audiência global.")</p>
+            <span class="home-hero__eyebrow">
+                @Ui("Global crypto arena", "Arena cripto global")
+            </span>
+
+            <h1>
+                @Ui(
+                         "Gamified cyclical crypto pools with live market battles and public scoreboards.",
+                         "Pools cripto cíclicas gamificadas com batalhas de mercado ao vivo e placares públicos."
+                         )
+            </h1>
+
+            <p>
+                @Ui(
+                         "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
+                         "O CriptoVersus transforma a performance do mercado em batalhas cripto cíclicas onde ativos competem como times. Cada ciclo cria novos confrontos, placares públicos, rankings e uma experiência de arena alimentada pelo movimento real do mercado."
+                         )
+            </p>
+
             <div class="home-hero__actions">
-                <a class="home-cta home-cta--primary" href="#live-matches">@Ui("Explore live matches", "Explorar partidas ao vivo")</a>
-                <a class="home-cta home-cta--secondary" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@Ui("How it works", "Como funciona")</a>
-                <a class="home-cta home-cta--secondary" href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">Roadmap</a>
+                <a class="home-cta home-cta--primary" href="#live-matches">
+                    @Ui("Explore live matches", "Explorar partidas ao vivo")
+                </a>
+
+                <a class="home-cta home-cta--secondary"
+                   href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
+                    @Ui("How it works", "Como funciona")
+                </a>
+
+                <a class="home-cta home-cta--secondary"
+                   href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
+                    Roadmap
+                </a>
             </div>
         </div>
         <div class="home-hero__stats" aria-label="@Ui("Platform highlights", "Destaques da plataforma")">
@@ -483,7 +508,7 @@
 
     .home-hero h1 {
         margin: .75rem 0 1rem;
-        font-size: clamp(2.2rem, 3vw, 4rem);
+        font-size: clamp(1.9rem, 2vw, 3rem);
         line-height: 1.02;
     }
 
