@@ -715,6 +715,18 @@
     private string BuildStructuredDataJson()
     {
         var graph = new List<Dictionary<string, object?>>();
+        var siteUrl = BuildAbsolute("");
+        var organizer = new Dictionary<string, object?>
+        {
+            ["@type"] = "Organization",
+            ["name"] = "CriptoVersus",
+            ["url"] = siteUrl
+        };
+        var virtualLocation = new Dictionary<string, object?>
+        {
+            ["@type"] = "VirtualLocation",
+            ["url"] = siteUrl
+        };
 
         graph.Add(new Dictionary<string, object?>
         {
@@ -749,20 +761,32 @@
 
         foreach (var match in FeaturedMatches.Take(3))
         {
-            graph.Add(new Dictionary<string, object?>
+            var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+            var eventUrl = BuildAbsolute(GetMatchUrl(match));
+            var competitors = new[]
+            {
+                new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamA },
+                new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamB }
+            };
+
+            var sportsEvent = new Dictionary<string, object?>
             {
                 ["@type"] = "SportsEvent",
                 ["name"] = $"{match.TeamA} vs {match.TeamB}",
-                ["eventStatus"] = match.IsFinished ? "https://schema.org/EventCompleted" : "https://schema.org/EventScheduled",
-                ["startDate"] = match.StartTime,
-                ["url"] = BuildAbsolute(GetMatchUrl(match)),
-                ["competitor"] = new[]
-                {
-                    new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamA },
-                    new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamB }
-                },
-                ["description"] = T("structuredDataDescription", match.TeamA, match.TeamB)
-            });
+                ["eventStatus"] = GetSchemaEventStatus(match),
+                ["startDate"] = FormatSchemaDate(match.StartTime),
+                ["endDate"] = GetSchemaEndDate(match),
+                ["url"] = eventUrl,
+                ["location"] = virtualLocation,
+                ["organizer"] = organizer,
+                ["competitor"] = competitors,
+                ["performer"] = competitors,
+                ["image"] = new[] { GetSchemaImageUrl(match, slug) },
+                ["description"] = GetStructuredEventDescription(match)
+            };
+
+            RemoveNullValues(sportsEvent);
+            graph.Add(sportsEvent);
         }
 
         return JsonSerializer.Serialize(new Dictionary<string, object?>
@@ -770,6 +794,65 @@
             ["@context"] = "https://schema.org",
             ["@graph"] = graph
         });
+    }
+
+    private string GetSchemaEventStatus(MatchDto match)
+    {
+        if (match.IsFinished || IsMatchCompleted(match.Status))
+            return "https://schema.org/EventCompleted";
+
+        if (IsMatchOngoing(match.Status))
+            return "https://schema.org/EventInProgress";
+
+        return "https://schema.org/EventScheduled";
+    }
+
+    private string? GetSchemaEndDate(MatchDto match)
+    {
+        if (match.IsFinished || IsMatchCompleted(match.Status))
+            return FormatSchemaDate(match.EndTime);
+
+        if (IsMatchOngoing(match.Status) && match.StartTime.HasValue)
+            return FormatSchemaDate(match.StartTime.Value.AddHours(2));
+
+        return null;
+    }
+
+    private static bool IsMatchOngoing(string? status)
+        => string.Equals(status, "ongoing", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsMatchCompleted(string? status)
+        => string.Equals(status, "completed", StringComparison.OrdinalIgnoreCase);
+
+    private static string? FormatSchemaDate(DateTime? value)
+    {
+        if (!value.HasValue)
+            return null;
+
+        var normalized = value.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            : value.Value;
+
+        return normalized.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    }
+
+    private string GetSchemaImageUrl(MatchDto match, string slug)
+    {
+        if (!string.IsNullOrWhiteSpace(slug))
+            return BuildAbsolute($"/social-images/match/{match.MatchId}/{slug}.svg");
+
+        return BuildAbsolute("/favicon-round-preview.png");
+    }
+
+    private string GetStructuredEventDescription(MatchDto match)
+        => CurrentCulture == "en"
+            ? $"Live crypto battle between {match.TeamA} and {match.TeamB} on CriptoVersus, featuring real-time score, momentum and market performance."
+            : $"Batalha cripto ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, com placar em tempo real, momentum e performance de mercado.";
+
+    private static void RemoveNullValues(Dictionary<string, object?> data)
+    {
+        foreach (var key in data.Where(x => x.Value is null).Select(x => x.Key).ToList())
+            data.Remove(key);
     }
 }
 
