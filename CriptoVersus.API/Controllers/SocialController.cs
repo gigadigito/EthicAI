@@ -12,13 +12,16 @@ public sealed class SocialController : ControllerBase
 {
     private readonly ISocialAutomationService _socialAutomationService;
     private readonly ISocialVsRenderService _socialVsRenderService;
+    private readonly ISocialComposeFinalService _socialComposeFinalService;
 
     public SocialController(
         ISocialAutomationService socialAutomationService,
-        ISocialVsRenderService socialVsRenderService)
+        ISocialVsRenderService socialVsRenderService,
+        ISocialComposeFinalService socialComposeFinalService)
     {
         _socialAutomationService = socialAutomationService;
         _socialVsRenderService = socialVsRenderService;
+        _socialComposeFinalService = socialComposeFinalService;
     }
 
     [AllowAnonymous]
@@ -104,6 +107,36 @@ public sealed class SocialController : ControllerBase
                 Score = score
             }, ct);
 
+            return File(bytes, "image/png");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("compose-final")]
+    public async Task<IActionResult> ComposeFinal([FromBody] SocialComposeFinalRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var bytes = await _socialComposeFinalService.ComposeAsync(request, ct);
+            return File(bytes, "image/png");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("compose-final-test")]
+    public async Task<IActionResult> ComposeFinalTest([FromBody] SocialComposeFinalRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var bytes = await _socialComposeFinalService.ComposeAsync(request, ct);
             return File(bytes, "image/png");
         }
         catch (ArgumentException ex)
