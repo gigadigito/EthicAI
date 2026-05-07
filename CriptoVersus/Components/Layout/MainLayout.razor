@@ -157,7 +157,7 @@
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool _interactiveChromeReady;
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
-    private bool ShowWalletUi => _interactiveChromeReady && !IsPublicSeoRoute;
+    private bool ShowWalletUi => _interactiveChromeReady;
 
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
