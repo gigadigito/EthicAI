@@ -9,6 +9,7 @@
 @inject IConfiguration Config
 @inject NavigationManager Nav
 @inject AppCultureService AppCulture
+@inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
 
@@ -35,31 +36,22 @@
     <header class="home-hero">
         <div class="home-hero__copy">
             <span class="home-hero__eyebrow">
-                @Ui("Global crypto arena", "Arena cripto global")
+                @T("globalCryptoArena")
             </span>
 
-            <h1>
-                @Ui(
-                         "Live crypto battles in a gamified cyclical arena.",
-                         "Batalhas cripto ao vivo em uma arena cíclica gamificada."
-                         )
-            </h1>
+            <h1>@T("heroTitle")</h1>
 
-            <p>
-                @Ui(
-                         "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
-                         "O CriptoVersus transforma a performance do mercado em batalhas cripto cíclicas onde ativos competem como times. Cada ciclo cria novos confrontos, placares públicos, rankings e uma experiência de arena alimentada pelo movimento real do mercado."
-                         )
-            </p>
+            <p>@T("heroDescription")</p>
+
 
             <div class="home-hero__actions">
                 <a class="home-cta home-cta--primary" href="#live-matches">
-                    @Ui("Explore live matches", "Explorar partidas ao vivo")
+                    @T("exploreLiveMatches")
                 </a>
 
                 <a class="home-cta home-cta--secondary"
                    href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
-                    @Ui("How it works", "Como funciona")
+                    @T("howItWorks")
                 </a>
 
                 <a class="home-cta home-cta--secondary"
@@ -68,23 +60,23 @@
                 </a>
             </div>
         </div>
-        <div class="home-hero__stats" aria-label="@Ui("Platform highlights", "Destaques da plataforma")">
+        <div class="home-hero__stats" aria-label="@T("platformHighlights")">
             <article>
-                <span>@Ui("Live matches", "Partidas ao vivo")</span>
+                <span>@T("liveMatches")</span>
                 <strong>@(_snapshot?.Matches.Ongoing ?? 0)</strong>
             </article>
             <article>
-                <span>@Ui("Completed in 24h", "Encerradas em 24h")</span>
+                <span>@T("completedIn24h")</span>
                 <strong>@(_snapshot?.Matches.CompletedLast24h ?? 0)</strong>
             </article>
             <article>
-                <span>@Ui("Tracked coins", "Moedas monitoradas")</span>
+                <span>@T("trackedCoins")</span>
                 <strong>@Math.Max(_snapshot?.TopGainers.Count ?? 0, 6)</strong>
             </article>
         </div>
     </header>
 
-    <nav class="home-anchor-nav" aria-label="@Ui("Home sections", "Seções da home")">
+    <nav class="home-anchor-nav" aria-label="@T("homeSections")">
         <a href="#live-matches">Live Matches</a>
         <a href="#top-battles">Top Crypto Battles</a>
         <a href="#how-it-works">How It Works</a>
@@ -95,14 +87,14 @@
     <section id="live-matches" class="home-section">
         <div class="home-section__header">
             <h2>Live Matches</h2>
-            <p>@Ui("Follow ongoing crypto battles with crawlable public pages that show score, momentum and match context.", "Acompanhe batalhas cripto em andamento com páginas públicas rastreáveis que mostram placar, momento e contexto da partida.")</p>
+            <p>@T("followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext")</p>
         </div>
         <div class="home-match-grid">
             @foreach (var match in LiveMatches)
             {
                 <article class="home-match-card">
                     <div class="home-match-card__meta">
-                        <span>@Ui("Live battle", "Batalha ao vivo")</span>
+                        <span>@T("liveBattle")</span>
                         <span>#@match.MatchId</span>
                     </div>
                     <h3>
@@ -130,10 +122,10 @@
                             </span>
                         </a>
                     </h3>
-                    <p>@Ui($"Current score {match.ScoreA} x {match.ScoreB}. Price movement and public match signals update in real time.", $"Placar atual {match.ScoreA} x {match.ScoreB}. Movimento de preço e sinais públicos da partida atualizados em tempo real.")</p>
+                    <p>@T("liveMatchRealtimeSummary", match.ScoreA, match.ScoreB)</p>
                     <div class="home-match-card__footer">
                         <span>@FormatPct(match.PctA) / @FormatPct(match.PctB)</span>
-                        <a href="@GetMatchUrl(match)">@Ui("Open match", "Abrir partida")</a>
+                        <a href="@GetMatchUrl(match)">@T("openMatch")</a>
                     </div>
                 </article>
             }
@@ -143,7 +135,7 @@
     <section id="top-battles" class="home-section">
         <div class="home-section__header">
             <h2>Top Crypto Battles</h2>
-            <p>@Ui("Featured public match pages connect market performance, scoring rules and transparent historical context.", "Partidas públicas em destaque conectam performance de mercado, regras de pontuação e contexto histórico transparente.")</p>
+            <p>@T("featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext")</p>
         </div>
 
         <div class="home-battle-list">
@@ -174,7 +166,7 @@
                         </span>
                     </strong>
 
-                    <span>@Ui($"Match #{match.MatchId} • score {match.ScoreA} x {match.ScoreB}", $"Partida #{match.MatchId} • placar {match.ScoreA} x {match.ScoreB}")</span>
+                    <span>@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
                 </a>
             }
         </div>
@@ -183,21 +175,21 @@
     <section id="how-it-works" class="home-section home-section--split">
         <div class="home-section__header">
             <h2>How It Works</h2>
-            <p>@Ui("CriptoVersus tracks market variation between assets, converts configured rules into score events and publishes match pages that can be indexed, shared and audited.", "O CriptoVersus acompanha a variação de mercado entre ativos, converte regras configuradas em eventos de pontuação e publica páginas de partida que podem ser indexadas, compartilhadas e auditadas.")</p>
-            <a class="home-inline-link" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@Ui("Read the full rules", "Ler as regras completas")</a>
+            <p>@T("criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited")</p>
+            <a class="home-inline-link" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@T("readTheFullRules")</a>
         </div>
         <div class="home-feature-grid">
             <article>
-                <h3>@Ui("Public match logic", "Lógica pública das partidas")</h3>
-                <p>@Ui("Each match has score, status, volume, price variation and rule-based events visible on the public page.", "Cada partida tem placar, status, volume, variação de preço e eventos baseados em regra visíveis na página pública.")</p>
+                <h3>@T("publicMatchLogic")</h3>
+                <p>@T("eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage")</p>
             </article>
             <article>
-                <h3>@Ui("Arena-style experience", "Experiência estilo arena")</h3>
-                <p>@Ui("The product blends crypto data, live confrontation and social-ready storytelling.", "O produto mistura dados cripto, confronto ao vivo e narrativa pronta para social.")</p>
+                <h3>@T("arenaStyleExperience")</h3>
+                <p>@T("theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling")</p>
             </article>
             <article>
-                <h3>@Ui("Global SEO-ready routing", "Rotas globais prontas para SEO")</h3>
-                <p>@Ui("Localized public routes, canonical URLs and hreflang support keep international discovery clean.", "Rotas públicas localizadas, URLs canônicas e suporte a hreflang mantêm a descoberta internacional organizada.")</p>
+                <h3>@T("globalSeoReadyRouting")</h3>
+                <p>@T("localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean")</p>
             </article>
         </div>
     </section>
@@ -205,7 +197,7 @@
     <section id="trending-coins" class="home-section">
         <div class="home-section__header">
             <h2>Trending Coins</h2>
-            <p>@Ui("A quick pulse of the assets currently drawing the strongest attention inside the arena.", "Um pulso rápido dos ativos que estão puxando mais atenção dentro da arena.")</p>
+            <p>@T("aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena")</p>
         </div>
         <div class="home-coin-grid">
             @foreach (var coin in TrendingCoins)
@@ -213,7 +205,7 @@
                 <article class="home-coin-card">
                     <span class="home-coin-card__rank">#@coin.Rank</span>
                     <h3>@coin.Symbol</h3>
-                    <p>@(!string.IsNullOrWhiteSpace(coin.Name) ? coin.Name : Ui("Tracked market asset", "Ativo monitorado"))</p>
+                    <p>@(!string.IsNullOrWhiteSpace(coin.Name) ? coin.Name : T("trackedMarketAsset"))</p>
                     <strong class="@(coin.PercentageChange >= 0 ? "is-up" : "is-down")">@FormatPct(coin.PercentageChange)</strong>
                 </article>
             }
@@ -223,7 +215,7 @@
     <section id="rankings" class="home-section">
         <div class="home-section__header">
             <h2>Crypto Arena Rankings</h2>
-            <p>@Ui("Trending assets, featured battles and public match pages build the competitive ranking layer of the arena.", "Ativos em tendência, batalhas em destaque e páginas públicas de partidas constroem a camada competitiva de ranking da arena.")</p>
+            <p>@T("trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena")</p>
         </div>
         <ol class="home-ranking-list">
             @foreach (var coin in RankingCoins)
@@ -238,26 +230,27 @@
 
     <section class="home-section home-section--compact">
         <div class="home-section__header">
-            <h2>@Ui("Explore the product", "Explore o produto")</h2>
+            <h2>@T("exploreTheProduct")</h2>
         </div>
         <div class="home-link-grid">
             <a href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">Roadmap</a>
-            <a href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@Ui("How It Works", "Como funciona")</a>
+            <a href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@T("howItWorks2")</a>
             @if (FeaturedMatches.Count > 0)
             {
-                <a href="@GetMatchUrl(FeaturedMatches[0])">@Ui("Featured match", "Partida em destaque")</a>
+                <a href="@GetMatchUrl(FeaturedMatches[0])">@T("featuredMatch")</a>
             }
             <a href="#rankings">Rankings</a>
         </div>
     </section>
+
 </section>
 
 @code {
     private DashboardSnapshotDto? _snapshot;
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
-    private string SeoTitle => Ui("CriptoVersus | Live Crypto Match Arena", "CriptoVersus | Arena de Partidas Cripto ao Vivo");
-    private string SeoDescription => Ui("Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.", "Explore partidas cripto ao vivo, placares públicos, moedas em tendência e batalhas de mercado no CriptoVersus com páginas públicas prontas para SEO.");
+    private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
+    private string SeoDescription => T("exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages");
     private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
     private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildHomePath("en"));
     private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildHomePath("pt"));
@@ -308,7 +301,8 @@
         }
     }
 
-    private string Ui(string en, string pt) => CurrentCulture == "en" ? en : pt;
+    private string T(string key, params object?[] args)
+        => L.T($"publicHome.{key}", CurrentCulture, args);
 
     private string BuildAbsolute(string relativePath)
     {
@@ -376,9 +370,7 @@
                     new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamA },
                     new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamB }
                 },
-                ["description"] = Ui(
-                    $"Live crypto match between {match.TeamA} and {match.TeamB} on CriptoVersus.",
-                    $"Partida cripto entre {match.TeamA} e {match.TeamB} no CriptoVersus.")
+                ["description"] = T("structuredDataDescription", match.TeamA, match.TeamB)
             });
         }
 

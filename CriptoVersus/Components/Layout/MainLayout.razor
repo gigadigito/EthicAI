@@ -8,6 +8,7 @@
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
+@inject PublishedVersionService PublishedVersion
 @implements IAsyncDisposable
 
 @if (!ShouldHideInitialLoader)
@@ -17,6 +18,14 @@
 }
 
 <div class="app-shell">
+    <input type="hidden"
+           id="cv-published-version"
+           value="@PublishedVersion.VersionTag"
+           data-version-tag="@PublishedVersion.VersionTag"
+           data-environment="@PublishedVersion.EnvironmentName"
+           data-version="@PublishedVersion.VersionValue"
+           data-published-at-utc="@PublishedVersion.PublishedAtUtc" />
+
     <aside class="app-sidebar">
         <NavMenu />
     </aside>
@@ -153,6 +162,7 @@
     private readonly DateTime _loaderStartedUtc = DateTime.UtcNow;
     private IJSObjectReference? _walletActionsModule;
     private IJSObjectReference? _cultureModule;
+    private IJSObjectReference? _appVersionModule;
     private DotNetObjectReference<MainLayout>? _walletObserverRef;
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool _interactiveChromeReady;
@@ -176,6 +186,7 @@
         {
             await LoadLoginSessionAsync();
             await SyncWalletObserverAsync();
+            await WarnPublishedVersionAsync();
             StateHasChanged();
         }
         catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
@@ -204,6 +215,17 @@
         await _cultureModule.InvokeVoidAsync("setPreferredCulture", targetCulture);
         var targetPath = RouteLocalization.BuildLocalizedPathForCurrentPage(targetCulture, Nav.ToBaseRelativePath(Nav.Uri));
         Nav.NavigateTo(targetPath, forceLoad: true);
+    }
+
+    private async Task WarnPublishedVersionAsync()
+    {
+        _appVersionModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/appVersion.js");
+
+        await _appVersionModule.InvokeVoidAsync(
+            "warnPublishedVersion",
+            PublishedVersion.VersionTag);
     }
 
     private async Task LoadLoginSessionAsync()
@@ -351,6 +373,9 @@
 
             await _walletActionsModule.DisposeAsync();
         }
+
+        if (_appVersionModule is not null)
+            await _appVersionModule.DisposeAsync();
 
         if (_cultureModule is not null)
         {

@@ -1,4 +1,4 @@
-﻿{
+{
   "layout": {
     "topbar": {
       "eyebrow": "CriptoVersus Arena",
@@ -117,34 +117,190 @@
       "nextMilestoneFallbackItem": "Upcoming delivery details will be published soon."
     },
     "brandPillars": [
-      { "icon": "✦", "accent": "purple", "title": "Competition", "subtitle": "Between digital assets" },
-      { "icon": "↗", "accent": "green", "title": "Strategy", "subtitle": "Performance and timing" },
-      { "icon": "⬢", "accent": "cyan", "title": "Technology", "subtitle": "Blockchain infrastructure" },
-      { "icon": "🏆", "accent": "gold", "title": "Ranking", "subtitle": "Rewards and progression" },
-      { "icon": "◎", "accent": "purple", "title": "Global", "subtitle": "Decentralized arena" }
+      {
+        "icon": "✦",
+        "accent": "purple",
+        "title": "Competition",
+        "subtitle": "Between digital assets"
+      },
+      {
+        "icon": "↗",
+        "accent": "green",
+        "title": "Strategy",
+        "subtitle": "Performance and timing"
+      },
+      {
+        "icon": "⬢",
+        "accent": "cyan",
+        "title": "Technology",
+        "subtitle": "Blockchain infrastructure"
+      },
+      {
+        "icon": "🏆",
+        "accent": "gold",
+        "title": "Ranking",
+        "subtitle": "Rewards and progression"
+      },
+      {
+        "icon": "◎",
+        "accent": "purple",
+        "title": "Global",
+        "subtitle": "Decentralized arena"
+      }
     ],
     "statusCards": [
-      { "title": "Active development", "description": "The platform is evolving continuously with public releases and operational refinements.", "tag": "Active" },
-      { "title": "Automated crypto matches", "description": "Market-based cycles between assets with score tracking and continuous updates.", "tag": "Automation" },
-      { "title": "Public history", "description": "Results and match context are becoming increasingly visible for audit and review.", "tag": "Transparency" },
-      { "title": "Rules in evolution", "description": "Scoring models and economic dynamics are still being tested and refined.", "tag": "Iteration" },
-      { "title": "Ready for international expansion", "description": "Routing, SEO and local timezone support are being shaped for multiple regions.", "tag": "i18n-ready" }
+      {
+        "title": "Active development",
+        "description": "The platform is evolving continuously with public releases and operational refinements.",
+        "tag": "Active"
+      },
+      {
+        "title": "Automated crypto matches",
+        "description": "Market-based cycles between assets with score tracking and continuous updates.",
+        "tag": "Automation"
+      },
+      {
+        "title": "Public history",
+        "description": "Results and match context are becoming increasingly visible for audit and review.",
+        "tag": "Transparency"
+      },
+      {
+        "title": "Rules in evolution",
+        "description": "Scoring models and economic dynamics are still being tested and refined.",
+        "tag": "Iteration"
+      },
+      {
+        "title": "Ready for international expansion",
+        "description": "Routing, SEO and local timezone support are being shaped for multiple regions.",
+        "tag": "i18n-ready"
+      }
     ],
     "phases": [
-      { "phaseLabel": "Phase 1", "title": "Platform Foundation", "status": "InProgress", "description": "Operational foundation for public matches, early cycles and market-driven game flow.", "items": [ "Creation of matches between coins", "Market data integration", "Live match view", "Completed match history", "Result and score registration" ], "sortOrder": 1 },
-      { "phaseLabel": "Phase 2", "title": "Transparency and Auditability", "status": "InProgress", "description": "Public surfaces that explain how each match evolves and how results can be reviewed.", "items": [ "Public history page", "Public match detail page", "Clear display of score, performance and result", "SEO improvements", "Public metadata per match", "Match event records for future auditability" ], "sortOrder": 2 },
-      { "phaseLabel": "Phase 3", "title": "Advanced Scoring Rules", "status": "Planned", "description": "Richer match logic designed to stay explainable and data-driven.", "items": [ "Scoring by percentage difference", "Scoring by chart crossovers", "Scoring by volume windows", "Match event logs", "Foundation for a future AI commentator" ], "sortOrder": 3 },
-      { "phaseLabel": "Phase 4", "title": "Cyclical Economy", "status": "Planned", "description": "Evolution toward a more experimental competitive pool model.", "items": [ "Automatic participation in future cycles", "Better balance control", "Reduced abrupt losses", "A model closer to a competitive pool than a traditional bet", "Simulations and tuning before broader production" ], "sortOrder": 4 },
-      { "phaseLabel": "Phase 5", "title": "Internationalization", "status": "Planned", "description": "Routing and content structure prepared for multilingual expansion.", "items": [ "i18n routes", "Portuguese and English content", "Hreflang", "International SEO", "Local timezone by region" ], "sortOrder": 5 },
-      { "phaseLabel": "Phase 6", "title": "Blockchain Integration", "status": "Experimental", "description": "An experimental on-chain layer focused on auditability and infrastructure where it makes sense.", "items": [ "Solana Devnet/Mainnet integration", "On-chain positions and balances where appropriate", "Separation between off-chain logic and on-chain settlement", "Stronger public auditability" ], "sortOrder": 6 },
-      { "phaseLabel": "Phase 7", "title": "AI Commentary and Experience", "status": "Future", "description": "Experience enhancements built on top of verifiable match data and public history.", "items": [ "Automated match commentator", "Post-match summaries", "Match highlights", "Explanations of decisive events", "Social sharing" ], "sortOrder": 7 }
+      {
+        "phaseLabel": "Phase 1",
+        "title": "Platform Foundation",
+        "status": "InProgress",
+        "description": "Operational foundation for public matches, early cycles and market-driven game flow.",
+        "items": [
+          "Creation of matches between coins",
+          "Market data integration",
+          "Live match view",
+          "Completed match history",
+          "Result and score registration"
+        ],
+        "sortOrder": 1
+      },
+      {
+        "phaseLabel": "Phase 2",
+        "title": "Transparency and Auditability",
+        "status": "InProgress",
+        "description": "Public surfaces that explain how each match evolves and how results can be reviewed.",
+        "items": [
+          "Public history page",
+          "Public match detail page",
+          "Clear display of score, performance and result",
+          "SEO improvements",
+          "Public metadata per match",
+          "Match event records for future auditability"
+        ],
+        "sortOrder": 2
+      },
+      {
+        "phaseLabel": "Phase 3",
+        "title": "Advanced Scoring Rules",
+        "status": "Planned",
+        "description": "Richer match logic designed to stay explainable and data-driven.",
+        "items": [
+          "Scoring by percentage difference",
+          "Scoring by chart crossovers",
+          "Scoring by volume windows",
+          "Match event logs",
+          "Foundation for a future AI commentator"
+        ],
+        "sortOrder": 3
+      },
+      {
+        "phaseLabel": "Phase 4",
+        "title": "Cyclical Economy",
+        "status": "Planned",
+        "description": "Evolution toward a more experimental competitive pool model.",
+        "items": [
+          "Automatic participation in future cycles",
+          "Better balance control",
+          "Reduced abrupt losses",
+          "A model closer to a competitive pool than a traditional bet",
+          "Simulations and tuning before broader production"
+        ],
+        "sortOrder": 4
+      },
+      {
+        "phaseLabel": "Phase 5",
+        "title": "Internationalization",
+        "status": "Planned",
+        "description": "Routing and content structure prepared for multilingual expansion.",
+        "items": [
+          "i18n routes",
+          "Portuguese and English content",
+          "Hreflang",
+          "International SEO",
+          "Local timezone by region"
+        ],
+        "sortOrder": 5
+      },
+      {
+        "phaseLabel": "Phase 6",
+        "title": "Blockchain Integration",
+        "status": "Experimental",
+        "description": "An experimental on-chain layer focused on auditability and infrastructure where it makes sense.",
+        "items": [
+          "Solana Devnet/Mainnet integration",
+          "On-chain positions and balances where appropriate",
+          "Separation between off-chain logic and on-chain settlement",
+          "Stronger public auditability"
+        ],
+        "sortOrder": 6
+      },
+      {
+        "phaseLabel": "Phase 7",
+        "title": "AI Commentary and Experience",
+        "status": "Future",
+        "description": "Experience enhancements built on top of verifiable match data and public history.",
+        "items": [
+          "Automated match commentator",
+          "Post-match summaries",
+          "Match highlights",
+          "Explanations of decisive events",
+          "Social sharing"
+        ],
+        "sortOrder": 7
+      }
     ],
     "principles": [
-      { "title": "Transparency before scale", "description": "Explain how the system works before trying to accelerate distribution.", "tag": "Principle" },
-      { "title": "Clear rules before monetization", "description": "Product evolution should stay readable before it becomes broader.", "tag": "Principle" },
-      { "title": "Safety before automation", "description": "Only automate flows after they are sufficiently validated.", "tag": "Principle" },
-      { "title": "Public history before rankings", "description": "Make results observable before adding bigger competitive layers.", "tag": "Principle" },
-      { "title": "Verifiable data before narrative", "description": "Any future narrative layer should be grounded in logs, events and results.", "tag": "Principle" }
+      {
+        "title": "Transparency before scale",
+        "description": "Explain how the system works before trying to accelerate distribution.",
+        "tag": "Principle"
+      },
+      {
+        "title": "Clear rules before monetization",
+        "description": "Product evolution should stay readable before it becomes broader.",
+        "tag": "Principle"
+      },
+      {
+        "title": "Safety before automation",
+        "description": "Only automate flows after they are sufficiently validated.",
+        "tag": "Principle"
+      },
+      {
+        "title": "Public history before rankings",
+        "description": "Make results observable before adding bigger competitive layers.",
+        "tag": "Principle"
+      },
+      {
+        "title": "Verifiable data before narrative",
+        "description": "Any future narrative layer should be grounded in logs, events and results.",
+        "tag": "Principle"
+      }
     ],
     "noticeTitle": "Important notice",
     "noticeText": "CriptoVersus is an experimental platform for crypto matches based on market data. Rules, economic models and integrations may evolve over time. Nothing on this page represents a promise of financial gain."
@@ -161,7 +317,143 @@
         "text": "{0} and {1} are trading blows on CriptoVersus. Current score: {2}. Follow live: {3}"
       }
     }
+  },
+  "publicHome": {
+    "globalCryptoArena": "Global crypto arena",
+    "exploreLiveMatches": "Explore live matches",
+    "howItWorks": "How it works",
+    "platformHighlights": "Platform highlights",
+    "liveMatches": "Live matches",
+    "completedIn24h": "Completed in 24h",
+    "trackedCoins": "Tracked coins",
+    "homeSections": "Home sections",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Follow ongoing crypto battles with crawlable public pages that show score, momentum and match context.",
+    "liveBattle": "Live battle",
+    "openMatch": "Open match",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "Featured public match pages connect market performance, scoring rules and transparent historical context.",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus tracks market variation between assets, converts configured rules into score events and publishes match pages that can be indexed, shared and audited.",
+    "readTheFullRules": "Read the full rules",
+    "publicMatchLogic": "Public match logic",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Each match has score, status, volume, price variation and rule-based events visible on the public page.",
+    "arenaStyleExperience": "Arena-style experience",
+    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "The product blends crypto data, live confrontation and social-ready storytelling.",
+    "globalSeoReadyRouting": "Global SEO-ready routing",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Localized public routes, canonical URLs and hreflang support keep international discovery clean.",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "A quick pulse of the assets currently drawing the strongest attention inside the arena.",
+    "trackedMarketAsset": "Tracked market asset",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Trending assets, featured battles and public match pages build the competitive ranking layer of the arena.",
+    "exploreTheProduct": "Explore the product",
+    "howItWorks2": "How It Works",
+    "featuredMatch": "Featured match",
+    "criptoversusLiveCryptoMatchArena": "CriptoVersus | Live Crypto Match Arena",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.",
+    "heroTitle": "Live crypto battles in a gamified cyclical arena.",
+    "heroDescription": "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
+    "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
+    "featuredMatchScoreSummary": "Match #{0} ? score {1} x {2}",
+    "structuredDataDescription": "Live crypto match between {0} and {1} on CriptoVersus."
+  },
+  "matchDetail": {
+    "loadingMatch": "Loading match...",
+    "error": "Error:",
+    "matchNotFound": "Match not found.",
+    "live": "LIVE",
+    "invest": "Invest",
+    "bets": "Bets",
+    "finalResult": "FINAL RESULT",
+    "finalScore": "Final score",
+    "matchClock": "MATCH CLOCK",
+    "remaining": "Remaining",
+    "scoringLog": "Scoring log",
+    "mostRelevantMomentByMomentEventsFromTheMatch": "Most relevant moment-by-moment events from the match",
+    "eventS": "event(s)",
+    "noScoringEventsHaveBeenRecordedForThisMatchYet": "No scoring events have been recorded for this match yet.",
+    "investmentResponse": "Investment response",
+    "matchPanel": "Match panel",
+    "elapsed": "Elapsed",
+    "score": "Score",
+    "match": "Match",
+    "activeRule": "Active rule",
+    "winner": "Winner",
+    "noWinner": "No winner",
+    "settlementReason": "Settlement reason",
+    "validFinancialDispute": "Valid financial dispute?",
+    "yes": "Yes",
+    "no": "No",
+    "betsOnBothSides": "Bets on both sides?",
+    "walletsOnTeamA": "Wallets on Team A",
+    "walletsOnTeamB": "Wallets on Team B",
+    "betsOnTeamA": "Bets on Team A",
+    "betsOnTeamB": "Bets on Team B",
+    "totalOnTeamA": "Total on Team A",
+    "totalOnTeamB": "Total on Team B",
+    "winningPool": "Winning pool",
+    "losingPool": "Losing pool",
+    "totalPool": "Total pool",
+    "houseFee": "House fee",
+    "totalDistributed": "Total distributed",
+    "settlementSummary": "Settlement summary",
+    "finished": "Finished",
+    "actions": "Actions",
+    "copyLink": "Copy link",
+    "back": "Back",
+    "tipShareTheLinkToOpenTheMatchDirectlyInArenaMode": "Tip: share the link to open the match directly in arena mode.",
+    "matchParticipants": "Match participants",
+    "participantS": "participant(s)",
+    "bet": "Bet:",
+    "result": "Result:",
+    "received": "Received:",
+    "securePosition": "secure position",
+    "investmentsOpen": "Investments open",
+    "investmentsClosed": "Investments closed",
+    "investmentsAreUnavailableForThisMatch": "Investments are unavailable for this match.",
+    "status": "Status:",
+    "elapsedTime": "elapsed time:",
+    "investIn": "Invest in",
+    "chooseTheAmountInSol": "Choose the amount in SOL",
+    "close": "Close",
+    "investmentIn": "Investment in",
+    "quickValuesInSol": "Quick values in SOL",
+    "quickAdjustment": "Quick adjustment:",
+    "orEnterAnyAmountInSol": "Or enter any amount in SOL",
+    "cancel": "Cancel",
+    "sending": "Sending...",
+    "gotIt": "Got it",
+    "completed": "Completed",
+    "closing": "Closing",
+    "live2": "Live",
+    "pending": "Pending",
+    "noWinner2": "NO WINNER",
+    "scoringEvent": "Scoring event",
+    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "The match ended without a winner. No fee was charged and all bets must be fully refunded.",
+    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "There was a technical winner on the scoreboard, but there was no valid opposing pool. No financial gain or house fee was applied.",
+    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "There was no valid financial counterparty. No financial loss or house fee was applied.",
+    "matchCanceledNoHouseFeeAndFullRefundOfBets": "Match canceled. No house fee and full refund of bets.",
+    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "Match finished without a valid financial winner. Bets must be refunded.",
+    "settlementCompletedAccordingToTheMatchRule": "Settlement completed according to the match rule.",
+    "chooseACoinToInvestIn": "Choose a coin to invest in.",
+    "enterAnAmountGreaterThanZero": "Enter an amount greater than zero.",
+    "theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly": "The match has not been created on-chain on devnet yet. Please try again shortly.",
+    "itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly": "It was not possible to prepare this coin's on-chain position right now. Please try again shortly.",
+    "itWasNotPossibleToCompleteTheInvestmentRightNowPleaseTryAgainShortly": "It was not possible to complete the investment right now. Please try again shortly.",
+    "percentageHistoryThresholdCrossover": "Percentage history (threshold + crossover)",
+    "percentageHistoryCrossover": "Percentage history (crossover)",
+    "percentageHistory": "Percentage history",
+    "crossoverS": "crossover(s)",
+    "scoringBasedOnPercentageCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Scoring based on percentage crossover: a point only appears when one team's line crosses the other's from bottom to top.",
+    "percentageDisplayedForMatchTracking": "Percentage displayed for match tracking.",
+    "volumeHistoryWindowCrossover": "Volume history (window + crossover)",
+    "volumeHistoryCrossover": "Volume history (crossover)",
+    "volumeHistory": "Volume history",
+    "comparisonBasedOnVolumeCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Comparison based on volume crossover: a point only appears when one team's line crosses the other's from bottom to top.",
+    "volumeDisplayedForMatchTracking": "Volume displayed for match tracking.",
+    "crossoverPercent": "Crossover %",
+    "volumeWindow": "Volume window",
+    "volumeCrossover": "Volume crossover",
+    "chartsWillBeDisplayedWhenTheMatchIsLoaded": "Charts will be displayed when the match is loaded.",
+    "thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere": "There are no persisted snapshots for this match yet. After the worker runs and records the captures, the charts will appear here.",
+    "percentageThresholdCardDescription": "The badges above show only upward crossovers on the chart. Threshold points still count toward the score and log: {0} {1} | {2} {3}.",
+    "volumeWindowCardDescription": "The badges above show only upward crossovers on the chart. Points from the 15-minute window still count toward the score and log: {0} {1} | {2} {3}.",
+    "notEnoughPointsToDrawLines": "There are not enough points yet to draw the lines. At least 2 captures per team are required. {0}: {1}. {2}: {3}."
   }
 }
-
-

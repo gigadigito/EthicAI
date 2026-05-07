@@ -1,4 +1,4 @@
-﻿{
+{
   "layout": {
     "topbar": {
       "eyebrow": "CriptoVersus Arena",
@@ -117,34 +117,190 @@
       "nextMilestoneFallbackItem": "Detalhes das próximas entregas serão publicados em breve."
     },
     "brandPillars": [
-      { "icon": "✦", "accent": "purple", "title": "Competição", "subtitle": "Entre ativos digitais" },
-      { "icon": "↗", "accent": "green", "title": "Estratégia", "subtitle": "Performance e timing" },
-      { "icon": "⬢", "accent": "cyan", "title": "Tecnologia", "subtitle": "Infraestrutura blockchain" },
-      { "icon": "🏆", "accent": "gold", "title": "Ranking", "subtitle": "Recompensas e progressão" },
-      { "icon": "◎", "accent": "purple", "title": "Global", "subtitle": "Arena descentralizada" }
+      {
+        "icon": "✦",
+        "accent": "purple",
+        "title": "Competição",
+        "subtitle": "Entre ativos digitais"
+      },
+      {
+        "icon": "↗",
+        "accent": "green",
+        "title": "Estratégia",
+        "subtitle": "Performance e timing"
+      },
+      {
+        "icon": "⬢",
+        "accent": "cyan",
+        "title": "Tecnologia",
+        "subtitle": "Infraestrutura blockchain"
+      },
+      {
+        "icon": "🏆",
+        "accent": "gold",
+        "title": "Ranking",
+        "subtitle": "Recompensas e progressão"
+      },
+      {
+        "icon": "◎",
+        "accent": "purple",
+        "title": "Global",
+        "subtitle": "Arena descentralizada"
+      }
     ],
     "statusCards": [
-      { "title": "Em desenvolvimento ativo", "description": "Plataforma em iteração constante, com novas entregas públicas e refinamento operacional.", "tag": "Ativo" },
-      { "title": "Partidas cripto automatizadas", "description": "Ciclos entre ativos com acompanhamento de mercado, placar e atualização contínua.", "tag": "Automação" },
-      { "title": "Histórico público", "description": "Resultados e contexto de partidas ganham visibilidade crescente para auditoria e consulta.", "tag": "Transparência" },
-      { "title": "Regras em evolução", "description": "Modelos de pontuação e dinâmicas econômicas seguem sendo testados e ajustados.", "tag": "Iteração" },
-      { "title": "Preparado para expansão internacional", "description": "Arquitetura de rotas, SEO e suporte a timezone local pensados para múltiplas regiões.", "tag": "i18n-ready" }
+      {
+        "title": "Em desenvolvimento ativo",
+        "description": "Plataforma em iteração constante, com novas entregas públicas e refinamento operacional.",
+        "tag": "Ativo"
+      },
+      {
+        "title": "Partidas cripto automatizadas",
+        "description": "Ciclos entre ativos com acompanhamento de mercado, placar e atualização contínua.",
+        "tag": "Automação"
+      },
+      {
+        "title": "Histórico público",
+        "description": "Resultados e contexto de partidas ganham visibilidade crescente para auditoria e consulta.",
+        "tag": "Transparência"
+      },
+      {
+        "title": "Regras em evolução",
+        "description": "Modelos de pontuação e dinâmicas econômicas seguem sendo testados e ajustados.",
+        "tag": "Iteração"
+      },
+      {
+        "title": "Preparado para expansão internacional",
+        "description": "Arquitetura de rotas, SEO e suporte a timezone local pensados para múltiplas regiões.",
+        "tag": "i18n-ready"
+      }
     ],
     "phases": [
-      { "phaseLabel": "Fase 1", "title": "Fundação da Plataforma", "status": "InProgress", "description": "Base operacional para partidas públicas, ciclos iniciais e fluxo guiado por mercado.", "items": [ "Criação das partidas entre moedas", "Integração com dados de mercado", "Tela de partidas ao vivo", "Histórico de partidas encerradas", "Registro de resultados e placares" ], "sortOrder": 1 },
-      { "phaseLabel": "Fase 2", "title": "Transparência e Auditabilidade", "status": "InProgress", "description": "Superfícies públicas que explicam como cada partida evolui e como os resultados podem ser revisados.", "items": [ "Página pública de histórico", "Página pública de detalhe da partida", "Exibição clara de placar, desempenho e resultado", "Melhorias em SEO", "Metadados públicos por partida", "Registro de eventos da partida para auditoria futura" ], "sortOrder": 2 },
-      { "phaseLabel": "Fase 3", "title": "Regras Avançadas de Pontuação", "status": "Planned", "description": "Lógica de jogo mais rica, mantendo explicabilidade e leitura orientada a dados.", "items": [ "Pontuação por diferença percentual", "Pontuação por cruzamento de gráficos", "Pontuação por volume em janelas", "Logs de eventos da partida", "Base para narrador IA no futuro" ], "sortOrder": 3 },
-      { "phaseLabel": "Fase 4", "title": "Economia Cíclica", "status": "Planned", "description": "Evolução para um modelo mais próximo de uma pool competitiva experimental.", "items": [ "Participação automática em ciclos futuros", "Melhor controle de saldo", "Redução de perdas bruscas", "Modelo mais próximo de pool competitiva do que aposta tradicional", "Simulações e ajustes antes de produção ampla" ], "sortOrder": 4 },
-      { "phaseLabel": "Fase 5", "title": "Internacionalização", "status": "Planned", "description": "Estrutura de rotas e conteúdo preparada para expansão multilíngue.", "items": [ "Rotas i18n", "Conteúdo em português e inglês", "Hreflang", "SEO internacional", "Timezone local por região" ], "sortOrder": 5 },
-      { "phaseLabel": "Fase 6", "title": "Integração Blockchain", "status": "Experimental", "description": "Camada on-chain experimental focada em auditabilidade e infraestrutura onde fizer sentido.", "items": [ "Integração com Solana Devnet/Mainnet", "Posições e saldos on-chain quando apropriado", "Separação entre lógica off-chain e settlement on-chain", "Maior auditabilidade pública" ], "sortOrder": 6 },
-      { "phaseLabel": "Fase 7", "title": "Narrador IA e Experiência", "status": "Future", "description": "Camada de experiência construída sobre dados verificáveis e histórico público.", "items": [ "Narrador automático de partidas", "Resumos pós-jogo", "Destaques da partida", "Explicações dos eventos decisivos", "Compartilhamento social" ], "sortOrder": 7 }
+      {
+        "phaseLabel": "Fase 1",
+        "title": "Fundação da Plataforma",
+        "status": "InProgress",
+        "description": "Base operacional para partidas públicas, ciclos iniciais e fluxo guiado por mercado.",
+        "items": [
+          "Criação das partidas entre moedas",
+          "Integração com dados de mercado",
+          "Tela de partidas ao vivo",
+          "Histórico de partidas encerradas",
+          "Registro de resultados e placares"
+        ],
+        "sortOrder": 1
+      },
+      {
+        "phaseLabel": "Fase 2",
+        "title": "Transparência e Auditabilidade",
+        "status": "InProgress",
+        "description": "Superfícies públicas que explicam como cada partida evolui e como os resultados podem ser revisados.",
+        "items": [
+          "Página pública de histórico",
+          "Página pública de detalhe da partida",
+          "Exibição clara de placar, desempenho e resultado",
+          "Melhorias em SEO",
+          "Metadados públicos por partida",
+          "Registro de eventos da partida para auditoria futura"
+        ],
+        "sortOrder": 2
+      },
+      {
+        "phaseLabel": "Fase 3",
+        "title": "Regras Avançadas de Pontuação",
+        "status": "Planned",
+        "description": "Lógica de jogo mais rica, mantendo explicabilidade e leitura orientada a dados.",
+        "items": [
+          "Pontuação por diferença percentual",
+          "Pontuação por cruzamento de gráficos",
+          "Pontuação por volume em janelas",
+          "Logs de eventos da partida",
+          "Base para narrador IA no futuro"
+        ],
+        "sortOrder": 3
+      },
+      {
+        "phaseLabel": "Fase 4",
+        "title": "Economia Cíclica",
+        "status": "Planned",
+        "description": "Evolução para um modelo mais próximo de uma pool competitiva experimental.",
+        "items": [
+          "Participação automática em ciclos futuros",
+          "Melhor controle de saldo",
+          "Redução de perdas bruscas",
+          "Modelo mais próximo de pool competitiva do que aposta tradicional",
+          "Simulações e ajustes antes de produção ampla"
+        ],
+        "sortOrder": 4
+      },
+      {
+        "phaseLabel": "Fase 5",
+        "title": "Internacionalização",
+        "status": "Planned",
+        "description": "Estrutura de rotas e conteúdo preparada para expansão multilíngue.",
+        "items": [
+          "Rotas i18n",
+          "Conteúdo em português e inglês",
+          "Hreflang",
+          "SEO internacional",
+          "Timezone local por região"
+        ],
+        "sortOrder": 5
+      },
+      {
+        "phaseLabel": "Fase 6",
+        "title": "Integração Blockchain",
+        "status": "Experimental",
+        "description": "Camada on-chain experimental focada em auditabilidade e infraestrutura onde fizer sentido.",
+        "items": [
+          "Integração com Solana Devnet/Mainnet",
+          "Posições e saldos on-chain quando apropriado",
+          "Separação entre lógica off-chain e settlement on-chain",
+          "Maior auditabilidade pública"
+        ],
+        "sortOrder": 6
+      },
+      {
+        "phaseLabel": "Fase 7",
+        "title": "Narrador IA e Experiência",
+        "status": "Future",
+        "description": "Camada de experiência construída sobre dados verificáveis e histórico público.",
+        "items": [
+          "Narrador automático de partidas",
+          "Resumos pós-jogo",
+          "Destaques da partida",
+          "Explicações dos eventos decisivos",
+          "Compartilhamento social"
+        ],
+        "sortOrder": 7
+      }
     ],
     "principles": [
-      { "title": "Transparência antes de escala", "description": "Explicar como o sistema funciona antes de acelerar distribuição.", "tag": "Princípio" },
-      { "title": "Regras claras antes de monetização", "description": "A evolução do produto precisa permanecer legível antes de ganhar escala maior.", "tag": "Princípio" },
-      { "title": "Segurança antes de automação", "description": "Automatizar apenas fluxos suficientemente validados.", "tag": "Princípio" },
-      { "title": "Histórico público antes de rankings", "description": "Tornar resultados observáveis antes de adicionar camadas competitivas maiores.", "tag": "Princípio" },
-      { "title": "Dados verificáveis antes de narrativa", "description": "Qualquer camada futura de narrativa deve nascer de logs, eventos e resultados.", "tag": "Princípio" }
+      {
+        "title": "Transparência antes de escala",
+        "description": "Explicar como o sistema funciona antes de acelerar distribuição.",
+        "tag": "Princípio"
+      },
+      {
+        "title": "Regras claras antes de monetização",
+        "description": "A evolução do produto precisa permanecer legível antes de ganhar escala maior.",
+        "tag": "Princípio"
+      },
+      {
+        "title": "Segurança antes de automação",
+        "description": "Automatizar apenas fluxos suficientemente validados.",
+        "tag": "Princípio"
+      },
+      {
+        "title": "Histórico público antes de rankings",
+        "description": "Tornar resultados observáveis antes de adicionar camadas competitivas maiores.",
+        "tag": "Princípio"
+      },
+      {
+        "title": "Dados verificáveis antes de narrativa",
+        "description": "Qualquer camada futura de narrativa deve nascer de logs, eventos e resultados.",
+        "tag": "Princípio"
+      }
     ],
     "noticeTitle": "Aviso importante",
     "noticeText": "O CriptoVersus é uma plataforma experimental de partidas cripto baseadas em dados de mercado. Regras, modelos econômicos e integrações podem evoluir com o tempo. Nada nesta página representa promessa de ganho financeiro."
@@ -161,5 +317,143 @@
         "text": "{0} e {1} travam uma batalha intensa no CriptoVersus. Placar atual: {2}. Acompanhe ao vivo: {3}"
       }
     }
+  },
+  "publicHome": {
+    "globalCryptoArena": "Arena cripto global",
+    "exploreLiveMatches": "Explorar partidas ao vivo",
+    "howItWorks": "Como funciona",
+    "platformHighlights": "Destaques da plataforma",
+    "liveMatches": "Partidas ao vivo",
+    "completedIn24h": "Encerradas em 24h",
+    "trackedCoins": "Moedas monitoradas",
+    "homeSections": "Se??es da home",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Acompanhe batalhas cripto em andamento com p?ginas p?blicas rastre?veis que mostram placar, momento e contexto da partida.",
+    "liveBattle": "Batalha ao vivo",
+    "openMatch": "Abrir partida",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "Partidas p?blicas em destaque conectam performance de mercado, regras de pontua??o e contexto hist?rico transparente.",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "O CriptoVersus acompanha a varia??o de mercado entre ativos, converte regras configuradas em eventos de pontua??o e publica p?ginas de partida que podem ser indexadas, compartilhadas e auditadas.",
+    "readTheFullRules": "Ler as regras completas",
+    "publicMatchLogic": "L?gica p?blica das partidas",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Cada partida tem placar, status, volume, varia??o de pre?o e eventos baseados em regra vis?veis na p?gina p?blica.",
+    "arenaStyleExperience": "Experi?ncia estilo arena",
+    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "O produto mistura dados cripto, confronto ao vivo e narrativa pronta para social.",
+    "globalSeoReadyRouting": "Rotas globais prontas para SEO",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Rotas p?blicas localizadas, URLs can?nicas e suporte a hreflang mant?m a descoberta internacional organizada.",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "Um pulso r?pido dos ativos que est?o puxando mais aten??o dentro da arena.",
+    "trackedMarketAsset": "Ativo monitorado",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Ativos em tend?ncia, batalhas em destaque e p?ginas p?blicas de partidas constroem a camada competitiva de ranking da arena.",
+    "exploreTheProduct": "Explore o produto",
+    "howItWorks2": "Como funciona",
+    "featuredMatch": "Partida em destaque",
+    "criptoversusLiveCryptoMatchArena": "CriptoVersus | Arena de Partidas Cripto ao Vivo",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore partidas cripto ao vivo, placares p?blicos, moedas em tend?ncia e batalhas de mercado no CriptoVersus com p?ginas p?blicas prontas para SEO.",
+    "heroTitle": "Batalhas cripto ao vivo em uma arena c?clica gamificada.",
+    "heroDescription": "O CriptoVersus transforma a performance do mercado em batalhas cripto c?clicas onde ativos competem como times. Cada ciclo cria novos confrontos, placares p?blicos, rankings e uma experi?ncia de arena alimentada pelo movimento real do mercado.",
+    "liveMatchRealtimeSummary": "Placar atual {0} x {1}. Movimento de pre?o e sinais p?blicos da partida atualizados em tempo real.",
+    "featuredMatchScoreSummary": "Partida #{0} ? placar {1} x {2}",
+    "structuredDataDescription": "Partida cripto entre {0} e {1} no CriptoVersus."
+  },
+  "matchDetail": {
+    "loadingMatch": "Carregando partida...",
+    "error": "Erro:",
+    "matchNotFound": "Partida n?o encontrada.",
+    "live": "AO VIVO",
+    "invest": "Investir",
+    "bets": "Apostas",
+    "finalResult": "RESULTADO FINAL",
+    "finalScore": "Placar final",
+    "matchClock": "CRON?METRO",
+    "remaining": "Restante",
+    "scoringLog": "Log da pontua??o",
+    "mostRelevantMomentByMomentEventsFromTheMatch": "Momento a momento mais relevante da partida",
+    "eventS": "evento(s)",
+    "noScoringEventsHaveBeenRecordedForThisMatchYet": "Nenhum ponto foi registrado nesta partida at? o momento.",
+    "investmentResponse": "Retorno do investimento",
+    "matchPanel": "Painel da Partida",
+    "elapsed": "Decorrido",
+    "score": "Placar",
+    "match": "Partida",
+    "activeRule": "Regra ativa",
+    "winner": "Vencedor",
+    "noWinner": "Sem vencedor",
+    "settlementReason": "Motivo da liquida??o",
+    "validFinancialDispute": "Disputa financeira v?lida?",
+    "yes": "Sim",
+    "no": "N?o",
+    "betsOnBothSides": "Apostas dos dois lados?",
+    "walletsOnTeamA": "Carteiras no Time A",
+    "walletsOnTeamB": "Carteiras no Time B",
+    "betsOnTeamA": "Apostas no Time A",
+    "betsOnTeamB": "Apostas no Time B",
+    "totalOnTeamA": "Total no Time A",
+    "totalOnTeamB": "Total no Time B",
+    "winningPool": "Pool vencedora",
+    "losingPool": "Pool perdedora",
+    "totalPool": "Total da pool",
+    "houseFee": "Taxa da casa",
+    "totalDistributed": "Total distribu?do",
+    "settlementSummary": "Resumo da liquida??o",
+    "finished": "Finalizada",
+    "actions": "A??es",
+    "copyLink": "Copiar link",
+    "back": "Voltar",
+    "tipShareTheLinkToOpenTheMatchDirectlyInArenaMode": "Dica: compartilhe o link para abrir a partida direto no modo arena.",
+    "matchParticipants": "Participantes da Partida",
+    "participantS": "participante(s)",
+    "bet": "Apostado:",
+    "result": "Resultado:",
+    "received": "Recebido:",
+    "securePosition": "garantir posi??o",
+    "investmentsOpen": "Investimentos abertos",
+    "investmentsClosed": "Investimentos encerrados",
+    "investmentsAreUnavailableForThisMatch": "Investimentos indispon?veis para esta partida.",
+    "status": "Status:",
+    "elapsedTime": "tempo decorrido:",
+    "investIn": "Investir em",
+    "chooseTheAmountInSol": "Escolha o valor em SOL",
+    "close": "Fechar",
+    "investmentIn": "Investimento em",
+    "quickValuesInSol": "Valores r?pidos em SOL",
+    "quickAdjustment": "Ajuste r?pido:",
+    "orEnterAnyAmountInSol": "Ou digite qualquer valor em SOL",
+    "cancel": "Cancelar",
+    "sending": "Enviando...",
+    "gotIt": "Entendi",
+    "completed": "Encerrado",
+    "closing": "Encerrando",
+    "live2": "Ao vivo",
+    "pending": "Pendente",
+    "noWinner2": "SEM VENCEDOR",
+    "scoringEvent": "Evento de pontua??o",
+    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "Partida terminou sem vencedor. N?o houve cobran?a de taxa. Todas as apostas devem ser devolvidas integralmente.",
+    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "Houve vencedor t?cnico no placar, mas n?o existia pool advers?ria v?lida. N?o houve ganho financeiro nem cobran?a de taxa.",
+    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "N?o havia contraparte financeira v?lida. N?o houve perda financeira nem cobran?a de taxa.",
+    "matchCanceledNoHouseFeeAndFullRefundOfBets": "Partida cancelada. Sem taxa da casa e com devolu??o integral das apostas.",
+    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "Partida finalizada sem vencedor financeiro v?lido. As apostas devem ser reembolsadas.",
+    "settlementCompletedAccordingToTheMatchRule": "Liquida??o conclu?da conforme a regra da partida.",
+    "chooseACoinToInvestIn": "Escolha uma moeda para investir.",
+    "enterAnAmountGreaterThanZero": "Informe um valor maior que zero.",
+    "theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly": "A partida ainda não foi criada on-chain na devnet. Tente novamente em instantes.",
+    "itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly": "Nao foi possivel preparar a posicao on-chain dessa moeda agora. Tente novamente em instantes.",
+    "itWasNotPossibleToCompleteTheInvestmentRightNowPleaseTryAgainShortly": "Nao foi possivel concluir o investimento agora. Tente novamente em instantes.",
+    "percentageHistoryThresholdCrossover": "Historico de Percentual (threshold + cruzamento)",
+    "percentageHistoryCrossover": "Historico de Percentual (cruzamento)",
+    "percentageHistory": "Historico de Percentual",
+    "crossoverS": "cruzamento(s)",
+    "scoringBasedOnPercentageCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Pontuacao baseada em cruzamento percentual: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.",
+    "percentageDisplayedForMatchTracking": "Percentual exibido para acompanhamento da partida.",
+    "volumeHistoryWindowCrossover": "Historico de Volume (janela + cruzamento)",
+    "volumeHistoryCrossover": "Historico de Volume (cruzamento)",
+    "volumeHistory": "Historico de Volume",
+    "comparisonBasedOnVolumeCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Comparacao baseada em cruzamento de volume: um ponto so aparece quando a linha de um time cruza a do outro de baixo para cima.",
+    "volumeDisplayedForMatchTracking": "Volume exibido para acompanhamento da partida.",
+    "crossoverPercent": "Cruzamento %",
+    "volumeWindow": "Janela Volume",
+    "volumeCrossover": "Cruzamento Volume",
+    "chartsWillBeDisplayedWhenTheMatchIsLoaded": "Os graficos serao exibidos quando a partida for carregada.",
+    "thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere": "Ainda nao existem snapshots persistidos para esta partida. Depois que o worker rodar e gravar as coletas, os graficos aparecem aqui.",
+    "percentageThresholdCardDescription": "Os selos acima mostram apenas cruzamentos para cima no gr?fico. Pontos por faixa continuam valendo no placar e no log: {0} {1} | {2} {3}.",
+    "volumeWindowCardDescription": "Os selos acima mostram apenas cruzamentos para cima no gr?fico. Pontos por janela de 15 minutos continuam valendo no placar e no log: {0} {1} | {2} {3}.",
+    "notEnoughPointsToDrawLines": "Ainda n?o h? pontos suficientes para desenhar as linhas. S?o necess?rias pelo menos 2 coletas por time. {0}: {1}. {2}: {3}."
   }
 }
