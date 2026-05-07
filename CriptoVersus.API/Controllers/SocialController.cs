@@ -1,3 +1,4 @@
+using CriptoVersus.API.Contracts;
 using CriptoVersus.API.Services;
 using DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -10,10 +11,14 @@ namespace CriptoVersus.API.Controllers;
 public sealed class SocialController : ControllerBase
 {
     private readonly ISocialAutomationService _socialAutomationService;
+    private readonly ISocialVsRenderService _socialVsRenderService;
 
-    public SocialController(ISocialAutomationService socialAutomationService)
+    public SocialController(
+        ISocialAutomationService socialAutomationService,
+        ISocialVsRenderService socialVsRenderService)
     {
         _socialAutomationService = socialAutomationService;
+        _socialVsRenderService = socialVsRenderService;
     }
 
     [AllowAnonymous]
@@ -65,5 +70,45 @@ public sealed class SocialController : ControllerBase
             id = result.Id,
             createdAtUtc = result.CreatedAtUtc
         });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("render-vs")]
+    public async Task<IActionResult> RenderVs([FromBody] SocialVsRenderRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var bytes = await _socialVsRenderService.RenderAsync(request, ct);
+            return File(bytes, "image/png");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("render-vs-test")]
+    public async Task<IActionResult> RenderVsTest(
+        [FromQuery(Name = "left")] string left,
+        [FromQuery(Name = "right")] string right,
+        [FromQuery] string? score,
+        CancellationToken ct)
+    {
+        try
+        {
+            var bytes = await _socialVsRenderService.RenderAsync(new SocialVsRenderRequest
+            {
+                LeftSymbol = left,
+                RightSymbol = right,
+                Score = score
+            }, ct);
+
+            return File(bytes, "image/png");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

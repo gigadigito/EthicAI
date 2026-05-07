@@ -43,7 +43,10 @@ builder.Services.AddScoped<ISystemBalanceWithdrawalService, SystemBalanceWithdra
 builder.Services.AddScoped<ICustodySolTransferService, CustodySolTransferService>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
 builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
+builder.Services.AddSingleton<ISocialVsRenderService, SocialVsRenderService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient(nameof(SocialVsRenderService));
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 builder.Services.Configure<SocialAutomationOptions>(

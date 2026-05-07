@@ -61,7 +61,7 @@ public sealed class RoadmapContentService
                 new RoadmapInfoCard("Partidas cripto automatizadas", "Ciclos entre moedas com acompanhamento de mercado, placar e atualização contínua.", "Automação"),
                 new RoadmapInfoCard("Histórico público", "Resultados, contexto de partidas e visibilidade crescente para auditoria e consulta.", "Transparência"),
                 new RoadmapInfoCard("Regras em evolução", "Modelos de pontuação e dinâmicas econômicas seguem sendo testados e ajustados.", "Iteração"),
-                new RoadmapInfoCard("Preparado para expansão internacional", "Arquitetura de rotas, SEO e timezone local pensados para múltiplos idiomas.", "i18n-ready")
+                new RoadmapInfoCard("Internacionalização concluída", "Rotas localizadas, SEO internacional, hreflang e suporte de idioma já foram entregues para a experiência pública.", "i18n-complete")
             ],
             Phases =
             [
@@ -121,8 +121,8 @@ public sealed class RoadmapContentService
                 new RoadmapPhase(
                     "Fase 5",
                     "Internacionalização",
-                    RoadmapPhaseStatus.Planned,
-                    "Estrutura de conteúdo e rotas preparada para expansão linguística e regional.",
+                    RoadmapPhaseStatus.Completed,
+                    "Estrutura multilíngue entregue com rotas localizadas, conteúdo bilíngue e sinais SEO internacionais ativos.",
                     [
                         "Rotas i18n",
                         "Conteúdo em português e inglês",
@@ -206,7 +206,7 @@ public sealed class RoadmapContentService
                 new RoadmapInfoCard("Automated crypto matches", "Market-based cycles between assets with score tracking and continuous updates.", "Automation"),
                 new RoadmapInfoCard("Public history", "Results and match context are becoming increasingly visible for audit and review.", "Transparency"),
                 new RoadmapInfoCard("Rules in evolution", "Scoring models and economic dynamics are still being tested and refined.", "Iteration"),
-                new RoadmapInfoCard("Ready for international expansion", "Routing, SEO and local timezone support are being shaped for multiple regions.", "i18n-ready")
+                new RoadmapInfoCard("Internationalization completed", "Localized routes, international SEO, hreflang and public language support have already been delivered.", "i18n-complete")
             ],
             Phases =
             [
@@ -243,7 +243,7 @@ public sealed class RoadmapContentService
                     "A model closer to a competitive pool than a traditional bet",
                     "Simulations and tuning before broader production"
                 ], 4),
-                new RoadmapPhase("Phase 5", "Internationalization", RoadmapPhaseStatus.Planned, "Routing and content structure prepared for multilingual expansion.",
+                new RoadmapPhase("Phase 5", "Internationalization", RoadmapPhaseStatus.Completed, "Multilingual routing, bilingual content and international SEO signals are already live in the public experience.",
                 [
                     "i18n routes",
                     "Portuguese and English content",
