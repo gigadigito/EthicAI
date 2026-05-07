@@ -1,4 +1,4 @@
-@page "/roadmap"
+﻿@page "/roadmap"
 @page "/pt/roadmap"
 @page "/en/roadmap"
 @using CriptoVersus.Web.Services
@@ -78,13 +78,13 @@
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--metric">
                         <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Phases mapped" : "Fases mapeadas")</span>
                         <strong class="roadmap-banner__intel-value">@_page.Phases.Count</strong>
-                        <p>@(_page.Culture == "en" ? "Public evolution from foundation to AI commentary." : "Evolucao publica da fundacao ate a experiencia com IA.")</p>
+                        <p>@(_page.Culture == "en" ? "Public evolution from foundation to AI commentary." : "Evolução pública da fundação até a experiência com IA.")</p>
                     </article>
 
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--metric">
                         <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Workstreams active" : "Frentes ativas")</span>
                         <strong class="roadmap-banner__intel-value">@GetTrackedInitiativeCount()</strong>
-                        <p>@(_page.Culture == "en" ? "Status cards, principles and visible roadmap milestones." : "Status cards, principios e marcos visiveis do roadmap.")</p>
+                        <p>@(_page.Culture == "en" ? "Status cards, principles and visible roadmap milestones." : "Status cards, princípios e marcos visíveis do roadmap.")</p>
                     </article>
 
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--focus">
@@ -94,7 +94,7 @@
                     </article>
 
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--next">
-                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Next milestone" : "Proximo marco")</span>
+                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Next milestone" : "Próximo marco")</span>
                         <strong class="roadmap-banner__intel-title">@GetNextMilestoneTitle()</strong>
                         <ul class="roadmap-banner__intel-list">
                             @foreach (var item in GetNextMilestoneItems())
@@ -137,7 +137,7 @@
     <section class="roadmap-section">
         <div class="roadmap-section__head">
             <span>@(_page.Culture == "en" ? "Project status" : "Status geral do projeto")</span>
-            <h2>@(_page.Culture == "en" ? "Current platform direction" : "Direcao atual da plataforma")</h2>
+            <h2>@(_page.Culture == "en" ? "Current platform direction" : "Direção atual da plataforma")</h2>
         </div>
 
         <div class="roadmap-info-grid">
@@ -155,7 +155,7 @@
     <section class="roadmap-section">
         <div class="roadmap-section__head">
             <span>Roadmap</span>
-            <h2>@(_page.Culture == "en" ? "Planned evolution by phase" : "Evolucao planejada por fase")</h2>
+            <h2>@(_page.Culture == "en" ? "Planned evolution by phase" : "Evolução planejada por fase")</h2>
         </div>
 
         <div class="roadmap-timeline">
@@ -188,8 +188,8 @@
 
     <section class="roadmap-section">
         <div class="roadmap-section__head">
-            <span>@(_page.Culture == "en" ? "Guiding principles" : "Principios")</span>
-            <h2>@(_page.Culture == "en" ? "How product decisions are framed" : "Como as decisoes do produto sao guiadas")</h2>
+            <span>@(_page.Culture == "en" ? "Guiding principles" : "Princípios")</span>
+            <h2>@(_page.Culture == "en" ? "How product decisions are framed" : "Como as decisões do produto são guiadas")</h2>
         </div>
 
         <div class="roadmap-info-grid roadmap-info-grid--principles">
@@ -700,3 +700,5 @@
                 ("◎", "purple", "Global", "Arena descentralizada")
             ];
 }
+
+

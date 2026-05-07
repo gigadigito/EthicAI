@@ -1,4 +1,4 @@
-namespace CriptoVersus.Web.Services;
+﻿namespace CriptoVersus.Web.Services;
 
 public sealed class RoadmapContentService
 {
@@ -85,7 +85,7 @@ public sealed class RoadmapContentService
                     "Camada pública para explicar melhor como cada partida evolui e como o resultado pode ser acompanhado.",
                     [
                         "Página pública de histórico",
-                        "Detalhe publico da partida",
+                        "Detalhe público da partida",
                         "Exibição clara de placar, desempenho e resultado",
                         "Melhorias em SEO",
                         "Metadados públicos por partida",
@@ -137,10 +137,10 @@ public sealed class RoadmapContentService
                     RoadmapPhaseStatus.Experimental,
                     "Camada on-chain tratada como extensão experimental da auditabilidade e da infraestrutura.",
                     [
-                        "Integracao com Solana Devnet/Mainnet",
+                        "Integração com Solana Devnet/Mainnet",
                         "Registro de posições e saldos on-chain quando fizer sentido",
                         "Separação entre lógica off-chain e liquidação on-chain",
-                        "Maior auditabilidade publica"
+                        "Maior auditabilidade pública"
                     ],
                     6),
                 new RoadmapPhase(
@@ -350,3 +350,5 @@ public enum RoadmapPhaseStatus
     Future,
     Experimental
 }
+
+

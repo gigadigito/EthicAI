@@ -10,7 +10,7 @@
 @inject RouteLocalizationService RouteLocalization
 @implements IAsyncDisposable
 
-@if (!IsPublicSeoRoute)
+@if (!ShouldHideInitialLoader)
 {
     <InitialBrandLoader IsVisible="_showInitialLoader"
                         Hidden="HandleLoaderHiddenAsync" />
@@ -157,6 +157,8 @@
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool _interactiveChromeReady;
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
+    private bool IsPublicHomeRoute => IsHomeRoute(Nav.Uri);
+    private bool ShouldHideInitialLoader => IsPublicSeoRoute && !IsPublicHomeRoute;
     private bool ShowWalletUi => _interactiveChromeReady;
 
     private bool IsLoggedIn
@@ -321,6 +323,17 @@
             _ => path.StartsWith("/en/match/", StringComparison.Ordinal)
                  || path.StartsWith("/pt/partida/", StringComparison.Ordinal)
         };
+    }
+
+    private static bool IsHomeRoute(string absoluteUri)
+    {
+        if (!Uri.TryCreate(absoluteUri, UriKind.Absolute, out var uri))
+            return true;
+
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+
+        return string.IsNullOrWhiteSpace(path)
+            || path is "" or "/" or "/en" or "/pt";
     }
 
     public async ValueTask DisposeAsync()

@@ -1,9 +1,9 @@
-{
+﻿{
   "layout": {
     "topbar": {
       "eyebrow": "CriptoVersus Arena",
       "title": "Match market",
-      "login": "Connect with Phantom",
+      "login": "Connect",
       "language": "Language",
       "english": "English",
       "portuguese": "Português"
@@ -163,3 +163,5 @@
     }
   }
 }
+
+

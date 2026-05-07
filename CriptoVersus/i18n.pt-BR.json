@@ -1,9 +1,9 @@
-{
+﻿{
   "layout": {
     "topbar": {
       "eyebrow": "CriptoVersus Arena",
       "title": "Mercado de partidas",
-      "login": "Entrar com Phantom",
+      "login": "Conectar",
       "language": "Idioma",
       "english": "English",
       "portuguese": "Português"
