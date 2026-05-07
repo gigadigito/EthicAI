@@ -32,7 +32,7 @@
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
-<section class="home-landing">
+<section class="home-landing public-home-arena">
     <header class="home-hero">
         <div class="home-hero__copy">
             <span class="home-hero__eyebrow">
@@ -89,46 +89,191 @@
             <h2>Live Matches</h2>
             <p>@T("followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext")</p>
         </div>
-        <div class="home-match-grid">
-            @foreach (var match in LiveMatches)
+        <div class="public-home-arena__deck">
+            @if (FeaturedBattle is not null)
             {
-                <article class="home-match-card">
-                    <div class="home-match-card__meta">
-                        <span>@T("liveBattle")</span>
-                        <span>#@match.MatchId</span>
+                var featured = FeaturedBattle!;
+                var featuredEnergyA = GetEnergyPercentA(featured);
+                var featuredEnergyB = 100 - featuredEnergyA;
+
+                <article class="arena-featured-battle @GetArenaLeaderClass(featured)">
+                    <a class="arena-card-hitbox"
+                       href="@GetMatchUrl(featured)"
+                       aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)"></a>
+                    <div class="arena-featured-battle__glow" aria-hidden="true"></div>
+
+                    <div class="arena-featured-battle__hud">
+                        <div class="arena-featured-battle__chips">
+                            <span class="arena-live-pill">
+                                <span class="arena-live-pill__dot" aria-hidden="true"></span>
+                                @ArenaText("live")
+                            </span>
+
+                            @foreach (var badge in GetBattleBadges(featured, isFeatured: true))
+                            {
+                                <span class="arena-chip @GetArenaChipClass(badge.Tone)">@badge.Text</span>
+                            }
+                        </div>
+
+                        <span class="arena-meta">@ArenaText("arenaMatchId", featured.MatchId)</span>
                     </div>
-                    <h3>
-                        <a class="battle-versus battle-versus--live" href="@GetMatchUrl(match)">
-                            <span class="battle-team">
-                                <img class="coin-img"
-                                     src="@GetCoinIconUrl(match.TeamA)"
-                                     width="32"
-                                     alt="@match.TeamA"
-                                     loading="lazy"
-                                     onerror="this.remove();" />
-                                @GetBaseSymbol(match.TeamA)
-                            </span>
 
-                            <span class="battle-vs">VS</span>
+                    <div class="arena-featured-battle__body">
+                        <div class="arena-featured-battle__main">
+                            <span class="arena-overline">@ArenaText("featuredBattle")</span>
 
-                            <span class="battle-team">
-                                <img class="coin-img"
-                                     src="@GetCoinIconUrl(match.TeamB)"
-                                     width="32"
-                                     alt="@match.TeamB"
-                                     loading="lazy"
-                                     onerror="this.remove();" />
-                                @GetBaseSymbol(match.TeamB)
-                            </span>
-                        </a>
-                    </h3>
-                    <p>@T("liveMatchRealtimeSummary", match.ScoreA, match.ScoreB)</p>
-                    <div class="home-match-card__footer">
-                        <span>@FormatPct(match.PctA) / @FormatPct(match.PctB)</span>
-                        <a href="@GetMatchUrl(match)">@T("openMatch")</a>
+                            <div class="arena-featured-battle__scoreboard">
+                                <div class="arena-team-panel @(GetLeaderSide(featured) == BattleLeader.TeamA ? "is-leading" : null)">
+                                    <div class="arena-team-panel__identity">
+                                        <img class="arena-team-panel__logo"
+                                             src="@GetCoinIconUrl(featured.TeamA)"
+                                             width="72"
+                                             height="72"
+                                             alt="@featured.TeamA"
+                                             loading="lazy"
+                                             onerror="this.remove();" />
+                                        <div>
+                                            <strong>@GetBaseSymbol(featured.TeamA)</strong>
+                                            <span>@featured.TeamA</span>
+                                        </div>
+                                    </div>
+
+                                    <span class="arena-team-panel__change @(GetSignedChangeClass(featured.PctA))">@FormatPct(featured.PctA)</span>
+                                </div>
+
+                                <div class="arena-featured-battle__center">
+                                    <span class="arena-status-text">@GetMatchStateLabel(featured)</span>
+                                    <div class="arena-scoreboard arena-scoreboard--featured">
+                                        <strong>@featured.ScoreA</strong>
+                                        <span class="arena-vs-badge">VS</span>
+                                        <strong>@featured.ScoreB</strong>
+                                    </div>
+                                    <span class="arena-status-subtext">@GetMatchClockLabel(featured)</span>
+                                </div>
+
+                                <div class="arena-team-panel @(GetLeaderSide(featured) == BattleLeader.TeamB ? "is-leading" : null)">
+                                    <div class="arena-team-panel__identity">
+                                        <img class="arena-team-panel__logo"
+                                             src="@GetCoinIconUrl(featured.TeamB)"
+                                             width="72"
+                                             height="72"
+                                             alt="@featured.TeamB"
+                                             loading="lazy"
+                                             onerror="this.remove();" />
+                                        <div>
+                                            <strong>@GetBaseSymbol(featured.TeamB)</strong>
+                                            <span>@featured.TeamB</span>
+                                        </div>
+                                    </div>
+
+                                    <span class="arena-team-panel__change @(GetSignedChangeClass(featured.PctB))">@FormatPct(featured.PctB)</span>
+                                </div>
+                            </div>
+
+                            <div class="arena-energy-bar arena-energy-bar--featured" aria-label="@ArenaText("momentumBar")">
+                                <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(featuredEnergyA)"></span>
+                                <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(featuredEnergyB)"></span>
+                            </div>
+                        </div>
+
+                        <aside class="arena-featured-battle__insights">
+                            <div class="arena-stat-chip">
+                                <span>@ArenaText("momentum")</span>
+                                <strong>@GetMomentumLabel(featuredEnergyA)</strong>
+                            </div>
+                            <div class="arena-stat-chip">
+                                <span>@ArenaText("scoreLine")</span>
+                                <strong>@featured.ScoreA x @featured.ScoreB</strong>
+                            </div>
+                            <div class="arena-stat-chip">
+                                <span>@ArenaText("volatility")</span>
+                                <strong>@GetVolatilityLabel(featured)</strong>
+                            </div>
+
+                            <a class="arena-cta-button"
+                               href="@GetMatchUrl(featured)"
+                               aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
+                                @ArenaText("openArena")
+                            </a>
+                        </aside>
                     </div>
                 </article>
             }
+
+            <div class="arena-match-grid">
+                @foreach (var match in ArenaLiveMatches)
+                {
+                    var energyA = GetEnergyPercentA(match);
+                    var energyB = 100 - energyA;
+
+                    <article class="arena-match-card @GetArenaLeaderClass(match)">
+                        <a class="arena-card-hitbox"
+                           href="@GetMatchUrl(match)"
+                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
+                        <div class="arena-match-card__header">
+                            <span class="arena-live-pill arena-live-pill--small">
+                                <span class="arena-live-pill__dot" aria-hidden="true"></span>
+                                @ArenaText("liveNow")
+                            </span>
+
+                            <span class="arena-meta">@ArenaText("arenaMatchId", match.MatchId)</span>
+                        </div>
+
+                        <div class="arena-match-card__body">
+                            <div class="arena-match-card__team @(GetLeaderSide(match) == BattleLeader.TeamA ? "is-leading" : null)">
+                                <img class="arena-match-card__logo"
+                                     src="@GetCoinIconUrl(match.TeamA)"
+                                     width="48"
+                                     height="48"
+                                     alt="@match.TeamA"
+                                     loading="lazy"
+                                     onerror="this.remove();" />
+                                <div class="arena-match-card__team-copy">
+                                    <strong>@GetBaseSymbol(match.TeamA)</strong>
+                                    <span class="@GetSignedChangeClass(match.PctA)">@FormatPct(match.PctA)</span>
+                                </div>
+                            </div>
+
+                            <div class="arena-match-card__center">
+                                <span class="arena-vs-badge arena-vs-badge--compact">VS</span>
+                                <div class="arena-scoreboard arena-scoreboard--card">
+                                    <strong>@match.ScoreA</strong>
+                                    <span>:</span>
+                                    <strong>@match.ScoreB</strong>
+                                </div>
+                            </div>
+
+                            <div class="arena-match-card__team arena-match-card__team--right @(GetLeaderSide(match) == BattleLeader.TeamB ? "is-leading" : null)">
+                                <img class="arena-match-card__logo"
+                                     src="@GetCoinIconUrl(match.TeamB)"
+                                     width="48"
+                                     height="48"
+                                     alt="@match.TeamB"
+                                     loading="lazy"
+                                     onerror="this.remove();" />
+                                <div class="arena-match-card__team-copy">
+                                    <strong>@GetBaseSymbol(match.TeamB)</strong>
+                                    <span class="@GetSignedChangeClass(match.PctB)">@FormatPct(match.PctB)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="arena-energy-bar" aria-hidden="true">
+                            <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(energyA)"></span>
+                            <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(energyB)"></span>
+                        </div>
+
+                        <div class="arena-match-card__footer">
+                            <span class="arena-status-subtext">@GetMatchClockLabel(match)</span>
+                            <a class="arena-cta-link"
+                               href="@GetMatchUrl(match)"
+                               aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                @ArenaText("openArena")
+                            </a>
+                        </div>
+                    </article>
+                }
+            </div>
         </div>
     </section>
 
@@ -138,36 +283,74 @@
             <p>@T("featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext")</p>
         </div>
 
-        <div class="home-battle-list">
-            @foreach (var match in FeaturedMatches)
+        <div class="arena-top-battle-grid">
+            @foreach (var match in TopBattleMatches)
             {
-                <a class="home-battle-link" href="@GetMatchUrl(match)">
-                    <strong class="battle-versus">
-                        <span class="battle-team">
-                            <img class="coin-img"
+                var energyA = GetEnergyPercentA(match);
+                var energyB = 100 - energyA;
+
+                <article class="arena-match-card arena-match-card--compact @GetArenaLeaderClass(match)">
+                    <a class="arena-card-hitbox"
+                       href="@GetMatchUrl(match)"
+                       aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
+                    <div class="arena-match-card__header">
+                        <span class="arena-chip arena-chip--muted">@GetMatchStateLabel(match)</span>
+                        <span class="arena-meta">@ArenaText("arenaMatchId", match.MatchId)</span>
+                    </div>
+
+                    <div class="arena-match-card__body">
+                        <div class="arena-match-card__team @(GetLeaderSide(match) == BattleLeader.TeamA ? "is-leading" : null)">
+                            <img class="arena-match-card__logo"
                                  src="@GetCoinIconUrl(match.TeamA)"
-                                 width="32"
+                                 width="42"
+                                 height="42"
                                  alt="@match.TeamA"
                                  loading="lazy"
                                  onerror="this.remove();" />
-                            @GetBaseSymbol(match.TeamA)
-                        </span>
+                            <div class="arena-match-card__team-copy">
+                                <strong>@GetBaseSymbol(match.TeamA)</strong>
+                                <span class="@GetSignedChangeClass(match.PctA)">@FormatPct(match.PctA)</span>
+                            </div>
+                        </div>
 
-                        <span class="battle-vs">VS</span>
+                        <div class="arena-match-card__center">
+                            <span class="arena-vs-badge arena-vs-badge--compact">VS</span>
+                            <div class="arena-scoreboard arena-scoreboard--card">
+                                <strong>@match.ScoreA</strong>
+                                <span>:</span>
+                                <strong>@match.ScoreB</strong>
+                            </div>
+                        </div>
 
-                        <span class="battle-team">
-                            <img class="coin-img"
+                        <div class="arena-match-card__team arena-match-card__team--right @(GetLeaderSide(match) == BattleLeader.TeamB ? "is-leading" : null)">
+                            <img class="arena-match-card__logo"
                                  src="@GetCoinIconUrl(match.TeamB)"
-                                 width="32"
+                                 width="42"
+                                 height="42"
                                  alt="@match.TeamB"
                                  loading="lazy"
                                  onerror="this.remove();" />
-                            @GetBaseSymbol(match.TeamB)
-                        </span>
-                    </strong>
+                            <div class="arena-match-card__team-copy">
+                                <strong>@GetBaseSymbol(match.TeamB)</strong>
+                                <span class="@GetSignedChangeClass(match.PctB)">@FormatPct(match.PctB)</span>
+                            </div>
+                        </div>
+                    </div>
 
-                    <span>@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
-                </a>
+                    <div class="arena-energy-bar arena-energy-bar--compact" aria-hidden="true">
+                        <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(energyA)"></span>
+                        <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(energyB)"></span>
+                    </div>
+
+                    <div class="arena-match-card__footer">
+                        <span class="arena-status-subtext">@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
+                        <a class="arena-cta-link"
+                           href="@GetMatchUrl(match)"
+                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                            @ArenaText("openBattle")
+                        </a>
+                    </div>
+                </article>
             }
         </div>
     </section>
@@ -265,6 +448,15 @@
         .Select(x => x.First())
         .Take(6)
         .ToList();
+    private MatchDto? FeaturedBattle => SelectFeaturedBattle();
+    private List<MatchDto> ArenaLiveMatches => LiveMatches
+        .Where(x => x.MatchId != FeaturedBattle?.MatchId)
+        .Take(5)
+        .ToList();
+    private List<MatchDto> TopBattleMatches => FeaturedMatches
+        .Where(x => x.MatchId != FeaturedBattle?.MatchId)
+        .Take(6)
+        .ToList();
     private List<CurrencyDto> TrendingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(6).ToList();
     private List<CurrencyDto> RankingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(10).ToList();
     private string GetCoinIconUrl(string pair)
@@ -320,6 +512,205 @@
 
     private static string FormatPct(decimal? value)
         => $"{(value ?? 0):+0.##;-0.##;0.##}%";
+
+    private MatchDto? SelectFeaturedBattle()
+    {
+        var source = LiveMatches.Count > 0 ? LiveMatches : FeaturedMatches;
+        if (source.Count == 0)
+            return null;
+
+        MatchDto? bestByHotScore = null;
+        int? bestHotScore = null;
+
+        foreach (var match in source)
+        {
+            var hotScore = GetOptionalHotScore(match);
+            if (!hotScore.HasValue)
+                continue;
+
+            if (!bestHotScore.HasValue || hotScore.Value > bestHotScore.Value)
+            {
+                bestHotScore = hotScore.Value;
+                bestByHotScore = match;
+            }
+        }
+
+        return bestByHotScore ?? source.FirstOrDefault();
+    }
+
+    private static int? GetOptionalHotScore(MatchDto match)
+    {
+        var property = typeof(MatchDto).GetProperty("HotScore");
+        if (property?.GetValue(match) is int hotScore)
+            return hotScore;
+
+        return null;
+    }
+
+    private string ArenaText(string key, params object?[] args)
+    {
+        var template = key switch
+        {
+            "live" => CurrentCulture == "en" ? "LIVE" : "AO VIVO",
+            "liveNow" => CurrentCulture == "en" ? "LIVE NOW" : "AO VIVO",
+            "featuredBattle" => CurrentCulture == "en" ? "Featured Battle" : "Batalha em destaque",
+            "openArena" => CurrentCulture == "en" ? "Open Arena" : "Abrir arena",
+            "openBattle" => CurrentCulture == "en" ? "Open battle" : "Abrir batalha",
+            "hotMatch" => CurrentCulture == "en" ? "HOT MATCH" : "BATALHA QUENTE",
+            "momentum" => CurrentCulture == "en" ? "MOMENTUM" : "MOMENTUM",
+            "highVolatility" => CurrentCulture == "en" ? "HIGH VOLATILITY" : "ALTA VOLATILIDADE",
+            "volatility" => CurrentCulture == "en" ? "Volatility" : "Volatilidade",
+            "scoreLine" => CurrentCulture == "en" ? "Scoreline" : "Placar",
+            "arenaMatchId" => CurrentCulture == "en" ? "Arena match #{0}" : "Partida da arena #{0}",
+            "openArenaAria" => CurrentCulture == "en" ? "Open arena match {0} versus {1}, match {2}" : "Abrir arena da partida {0} contra {1}, partida {2}",
+            "momentumBar" => CurrentCulture == "en" ? "Momentum balance" : "Equilibrio de momentum",
+            "finalResultShort" => CurrentCulture == "en" ? "Final result" : "Resultado final",
+            "elapsedMinutes" => CurrentCulture == "en" ? "{0}' elapsed" : "{0}' jogados",
+            "startingSoon" => CurrentCulture == "en" ? "Starting soon" : "Comeca em breve",
+            "marketLive" => CurrentCulture == "en" ? "Market pulse live" : "Mercado ao vivo",
+            "momentumEdgeA" => CurrentCulture == "en" ? "{0}% left-side pressure" : "{0}% de pressao do lado esquerdo",
+            "momentumEdgeB" => CurrentCulture == "en" ? "{0}% right-side pressure" : "{0}% de pressao do lado direito",
+            "momentumEdgeNeutral" => CurrentCulture == "en" ? "Balanced arena pressure" : "Pressao equilibrada na arena",
+            "volatilityHigh" => CurrentCulture == "en" ? "High" : "Alta",
+            "volatilityMedium" => CurrentCulture == "en" ? "Medium" : "Media",
+            _ => key
+        };
+
+        return args.Length == 0 ? template : string.Format(template, args);
+    }
+
+    private string GetMatchStateLabel(MatchDto match)
+        => match.IsFinished ? ArenaText("finalResultShort") : ArenaText("liveNow");
+
+    private string GetMatchClockLabel(MatchDto match)
+    {
+        if (match.IsFinished)
+            return ArenaText("finalResultShort");
+
+        if (match.ElapsedMinutes > 0)
+            return ArenaText("elapsedMinutes", match.ElapsedMinutes);
+
+        return match.StartTime.HasValue ? ArenaText("startingSoon") : ArenaText("marketLive");
+    }
+
+    private BattleLeader GetLeaderSide(MatchDto match)
+    {
+        if (match.ScoreA > match.ScoreB)
+            return BattleLeader.TeamA;
+
+        if (match.ScoreB > match.ScoreA)
+            return BattleLeader.TeamB;
+
+        if ((match.PctA ?? 0) > (match.PctB ?? 0))
+            return BattleLeader.TeamA;
+
+        if ((match.PctB ?? 0) > (match.PctA ?? 0))
+            return BattleLeader.TeamB;
+
+        return BattleLeader.Neutral;
+    }
+
+    private string GetArenaLeaderClass(MatchDto match)
+        => GetLeaderSide(match) switch
+        {
+            BattleLeader.TeamA => "is-team-a-leading",
+            BattleLeader.TeamB => "is-team-b-leading",
+            _ => "is-even"
+        };
+
+    private string GetSignedChangeClass(decimal? pct)
+        => (pct ?? 0) switch
+        {
+            > 0 => "is-up",
+            < 0 => "is-down",
+            _ => "is-flat"
+        };
+
+    private double GetEnergyPercentA(MatchDto match)
+    {
+        if (match.ScoreA != match.ScoreB && match.ScoreA + match.ScoreB > 0)
+            return Clamp(100d * match.ScoreA / Math.Max(1, match.ScoreA + match.ScoreB), 18d, 82d);
+
+        var pctEnergy = GetPctEnergy(match);
+        if (pctEnergy.HasValue)
+            return pctEnergy.Value;
+
+        var poolTotal = match.PoolStrengthTeamA + match.PoolStrengthTeamB;
+        if (poolTotal > 0)
+            return Clamp(100d * match.PoolStrengthTeamA / poolTotal, 22d, 78d);
+
+        return 50d;
+    }
+
+    private double? GetPctEnergy(MatchDto match)
+    {
+        if (!match.PctA.HasValue && !match.PctB.HasValue)
+            return null;
+
+        var delta = (double)((match.PctA ?? 0) - (match.PctB ?? 0));
+        if (Math.Abs(delta) < .01d)
+            return 50d;
+
+        return Clamp(50d + (delta * 9d), 18d, 82d);
+    }
+
+    private static double Clamp(double value, double min, double max)
+        => Math.Min(max, Math.Max(min, value));
+
+    private static string BuildEnergyWidthStyle(double width)
+        => $"width:{Clamp(width, 0d, 100d):0.##}%;";
+
+    private string GetMomentumLabel(double energyA)
+    {
+        if (Math.Abs(energyA - 50d) < 4d)
+            return ArenaText("momentumEdgeNeutral");
+
+        return energyA > 50d
+            ? ArenaText("momentumEdgeA", Math.Round(energyA))
+            : ArenaText("momentumEdgeB", Math.Round(100d - energyA));
+    }
+
+    private string GetVolatilityLabel(MatchDto match)
+    {
+        var combined = Math.Abs((double)(match.PctA ?? 0)) + Math.Abs((double)(match.PctB ?? 0));
+        return combined >= 6d ? ArenaText("volatilityHigh") : ArenaText("volatilityMedium");
+    }
+
+    private IEnumerable<ArenaBadge> GetBattleBadges(MatchDto match, bool isFeatured)
+    {
+        if (isFeatured)
+            yield return new ArenaBadge(ArenaText("hotMatch"), "hot");
+
+        if (HasMomentumSignal(match))
+            yield return new ArenaBadge(ArenaText("momentum"), "momentum");
+
+        if (HasHighVolatility(match))
+            yield return new ArenaBadge(ArenaText("highVolatility"), "volatility");
+    }
+
+    private static bool HasMomentumSignal(MatchDto match)
+        => Math.Abs((match.PctA ?? 0) - (match.PctB ?? 0)) >= 1m || Math.Abs(match.ScoreA - match.ScoreB) >= 1;
+
+    private static bool HasHighVolatility(MatchDto match)
+        => Math.Abs(match.PctA ?? 0) + Math.Abs(match.PctB ?? 0) >= 6m;
+
+    private static string GetArenaChipClass(string tone)
+        => tone switch
+        {
+            "hot" => "arena-chip--hot",
+            "momentum" => "arena-chip--momentum",
+            "volatility" => "arena-chip--volatility",
+            _ => "arena-chip--muted"
+        };
+
+    private sealed record ArenaBadge(string Text, string Tone);
+
+    private enum BattleLeader
+    {
+        Neutral,
+        TeamA,
+        TeamB
+    }
 
     private string BuildStructuredDataJson()
     {
@@ -383,88 +774,6 @@
 }
 
 <style>
-
-    .battle-versus {
-        display: flex !important;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        width: 100%;
-    }
-
-    .battle-team {
-        display: inline-flex !important;
-        align-items: center;
-        gap: .45rem;
-        font-size: 1rem;
-        font-weight: 800;
-    }
-
-    .battle-vs {
-        flex-shrink: 0;
-        padding: .2rem .55rem;
-        border-radius: 999px;
-        background: rgba(127,246,223,.08);
-        border: 1px solid rgba(127,246,223,.18);
-        color: #7ff6df;
-        font-size: .68rem;
-        font-weight: 900;
-        letter-spacing: .14em;
-    }
-
-    .battle-versus--live {
-        color: #fff;
-        text-decoration: none;
-    }
-    .home-battle-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: .85rem;
-    }
-
-    .home-battle-link {
-        padding: 1rem !important;
-    }
-
-    .battle-versus {
-        display: flex !important;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        width: 100%;
-    }
-
-    .battle-team {
-        display: inline-flex !important;
-        align-items: center;
-        gap: .45rem;
-        font-size: 1rem;
-        font-weight: 800;
-    }
-
-    .battle-vs {
-        flex-shrink: 0;
-        padding: .2rem .55rem;
-        border-radius: 999px;
-        background: rgba(127,246,223,.08);
-        border: 1px solid rgba(127,246,223,.18);
-        color: #7ff6df;
-        font-size: .68rem;
-        font-weight: 900;
-        letter-spacing: .14em;
-    }
-    .home-battle-link strong {
-        display: flex;
-        align-items: center;
-        gap: .55rem;
-        flex-wrap: wrap;
-    }
-
-        .home-battle-link strong span {
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-        }
     .home-landing {
         display: grid;
         gap: 1.5rem;
@@ -506,7 +815,6 @@
 
     .home-hero p,
     .home-section__header p,
-    .home-match-card p,
     .home-feature-grid p,
     .home-coin-card p {
         color: #b9c7da;
@@ -514,8 +822,7 @@
     }
 
     .home-hero__actions,
-    .home-link-grid,
-    .home-battle-list {
+    .home-link-grid {
         display: flex;
         flex-wrap: wrap;
         gap: .85rem;
@@ -523,8 +830,7 @@
 
     .home-cta,
     .home-inline-link,
-    .home-link-grid a,
-    .home-battle-link {
+    .home-link-grid a {
         text-decoration: none;
     }
 
@@ -544,8 +850,7 @@
     }
 
     .home-cta--secondary,
-    .home-link-grid a,
-    .home-battle-link {
+    .home-link-grid a {
         border: 1px solid rgba(255,255,255,.12);
         color: #eef5ff;
         background: rgba(255,255,255,.03);
@@ -613,7 +918,6 @@
         gap: 1rem;
     }
 
-    .home-match-card,
     .home-coin-card,
     .home-feature-grid article {
         padding: 1.15rem;
@@ -622,8 +926,6 @@
         background: rgba(255,255,255,.025);
     }
 
-    .home-match-card__meta,
-    .home-match-card__footer,
     .home-coin-card__rank {
         color: #8ea0b7;
         font-size: .78rem;
@@ -631,45 +933,15 @@
         letter-spacing: .08em;
     }
 
-    .home-match-card__meta,
-    .home-match-card__footer {
-        display: flex;
-        justify-content: space-between;
-        gap: .75rem;
-    }
-
-    .home-match-card h3,
     .home-coin-card h3,
     .home-feature-grid h3 {
         margin: .7rem 0;
         font-size: 1.2rem;
     }
 
-    .home-match-card h3 a {
-        color: #fff;
-        text-decoration: none;
-    }
-
-    .home-match-card__footer a {
-        color: #7ff6df;
-        text-decoration: none;
-        font-weight: 700;
-    }
-
-    .home-battle-list,
     .home-link-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    }
-
-    .home-battle-link strong,
-    .home-battle-link span {
-        display: block;
-    }
-
-    .home-battle-link span {
-        margin-top: .35rem;
-        color: #afc0d6;
     }
 
     .home-section--split .home-feature-grid {
@@ -705,10 +977,558 @@
         border-bottom: 1px solid rgba(255,255,255,.06);
     }
 
+    .public-home-arena__deck {
+        display: grid;
+        gap: 1.2rem;
+    }
+
+    .arena-featured-battle,
+    .arena-match-card {
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        border-radius: 28px;
+        border: 1px solid rgba(133, 160, 204, 0.22);
+        background:
+            radial-gradient(circle at top left, rgba(127,246,223,.14), transparent 28%),
+            radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%),
+            linear-gradient(180deg, rgba(11,17,28,.98), rgba(6,10,18,.98));
+        box-shadow: 0 24px 60px rgba(0, 0, 0, .32);
+    }
+
+    .arena-featured-battle {
+        padding: 1.5rem;
+    }
+
+    .arena-featured-battle__glow {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 20% 20%, rgba(127,246,223,.14), transparent 32%),
+            radial-gradient(circle at 80% 18%, rgba(190,72,255,.18), transparent 30%),
+            radial-gradient(circle at 50% 100%, rgba(41,214,255,.08), transparent 45%);
+        pointer-events: none;
+    }
+
+    .arena-featured-battle__hud,
+    .arena-match-card__header,
+    .arena-match-card__footer {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .arena-card-hitbox {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        border-radius: inherit;
+        cursor: pointer;
+    }
+
+    .arena-card-hitbox:focus-visible {
+        outline: 2px solid #7ff6df;
+        outline-offset: -4px;
+    }
+
+    .arena-featured-battle__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+    }
+
+    .arena-meta,
+    .arena-status-subtext {
+        color: #93a8c7;
+        font-size: .78rem;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+    }
+
+    .arena-overline {
+        color: #7ff6df;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        font-size: .78rem;
+        font-weight: 900;
+    }
+
+    .arena-live-pill,
+    .arena-chip,
+    .arena-vs-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.05);
+        color: #eff7ff;
+        font-weight: 800;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .arena-live-pill {
+        padding: .55rem .95rem;
+        color: #8affd8;
+        border-color: rgba(127,246,223,.32);
+        background: rgba(7, 29, 25, .72);
+    }
+
+    .arena-live-pill--small {
+        padding: .4rem .7rem;
+        font-size: .68rem;
+    }
+
+    .arena-live-pill__dot {
+        width: .58rem;
+        height: .58rem;
+        border-radius: 50%;
+        background: #4cf38d;
+        box-shadow: 0 0 0 6px rgba(76,243,141,.16);
+    }
+
+    .arena-chip {
+        padding: .48rem .85rem;
+        font-size: .64rem;
+    }
+
+    .arena-chip--hot {
+        color: #091310;
+        background: linear-gradient(135deg, #7ff6df, #4cf38d);
+        border-color: transparent;
+    }
+
+    .arena-chip--momentum {
+        color: #d7fcff;
+        background: rgba(0, 197, 255, .16);
+        border-color: rgba(0, 197, 255, .28);
+    }
+
+    .arena-chip--volatility {
+        color: #ffe8ff;
+        background: rgba(163,92,255,.18);
+        border-color: rgba(163,92,255,.3);
+    }
+
+    .arena-chip--muted {
+        color: #c7d6ea;
+        background: rgba(255,255,255,.04);
+    }
+
+    .arena-featured-battle__body {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(250px, .6fr);
+        gap: 1.25rem;
+        margin-top: 1.15rem;
+    }
+
+    .arena-featured-battle__main {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .arena-featured-battle__scoreboard {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .arena-team-panel,
+    .arena-match-card__team {
+        display: grid;
+        gap: .5rem;
+        min-width: 0;
+    }
+
+    .arena-team-panel {
+        padding: 1rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,.07);
+        background: rgba(255,255,255,.035);
+    }
+
+    .arena-team-panel.is-leading,
+    .arena-match-card__team.is-leading {
+        border-color: rgba(127,246,223,.32);
+        box-shadow: 0 0 0 1px rgba(127,246,223,.14), 0 0 24px rgba(127,246,223,.12);
+    }
+
+    .arena-team-panel__identity,
+    .arena-match-card__team {
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+    }
+
+    .arena-team-panel__logo,
+    .arena-match-card__logo {
+        border-radius: 18px;
+        background: rgba(255,255,255,.06);
+        object-fit: contain;
+        padding: .35rem;
+        flex-shrink: 0;
+    }
+
+    .arena-team-panel__identity strong,
+    .arena-match-card__team-copy strong {
+        display: block;
+        font-size: clamp(1.2rem, 3vw, 2rem);
+        line-height: 1;
+    }
+
+    .arena-team-panel__identity span,
+    .arena-match-card__team-copy span {
+        display: block;
+        color: #b8c8dc;
+        margin-top: .3rem;
+        font-size: .92rem;
+        overflow-wrap: anywhere;
+    }
+
+    .arena-team-panel__change {
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .arena-featured-battle__center,
+    .arena-match-card__center {
+        display: grid;
+        justify-items: center;
+        gap: .55rem;
+        text-align: center;
+    }
+
+    .arena-status-text {
+        color: #8affd8;
+        font-size: .74rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+    }
+
+    .arena-scoreboard {
+        display: inline-flex;
+        align-items: center;
+        gap: .8rem;
+        font-weight: 900;
+        color: #f7fbff;
+    }
+
+    .arena-scoreboard--featured {
+        padding: .85rem 1.35rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(4, 8, 15, .64);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 10px 30px rgba(0,0,0,.24);
+    }
+
+    .arena-scoreboard--featured strong {
+        font-size: clamp(2.6rem, 6vw, 4.6rem);
+        line-height: 1;
+    }
+
+    .arena-scoreboard--card {
+        gap: .45rem;
+        font-size: 1.55rem;
+    }
+
+    .arena-scoreboard--card strong {
+        font-size: 1.9rem;
+        line-height: 1;
+    }
+
+    .arena-vs-badge {
+        min-width: 3.1rem;
+        padding: .55rem .85rem;
+        color: #7ff6df;
+        background: rgba(7, 29, 25, .74);
+        border-color: rgba(127,246,223,.24);
+        box-shadow: 0 0 18px rgba(127,246,223,.1);
+        font-size: .72rem;
+    }
+
+    .arena-vs-badge--compact {
+        min-width: 2.5rem;
+        padding: .38rem .62rem;
+        font-size: .63rem;
+    }
+
+    .arena-energy-bar {
+        position: relative;
+        display: flex;
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,.05);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+    }
+
+    .arena-energy-bar--featured {
+        height: 16px;
+    }
+
+    .arena-energy-bar__side {
+        display: block;
+        height: 100%;
+        transition: width .35s ease;
+    }
+
+    .arena-energy-bar__side--left {
+        background: linear-gradient(90deg, rgba(76,243,141,.42), #4cf38d 75%, #7ff6df);
+    }
+
+    .arena-energy-bar__side--right {
+        margin-left: auto;
+        background: linear-gradient(90deg, #8e57ff, #bf72ff 65%, rgba(255,255,255,.85));
+    }
+
+    .arena-featured-battle__insights {
+        display: grid;
+        align-content: start;
+        gap: .9rem;
+        padding: 1rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.035);
+    }
+
+    .arena-stat-chip {
+        padding: .95rem 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,.06);
+        background: rgba(10,17,29,.72);
+        display: grid;
+        gap: .35rem;
+    }
+
+    .arena-stat-chip span {
+        color: #8ea0b7;
+        text-transform: uppercase;
+        letter-spacing: .09em;
+        font-size: .72rem;
+    }
+
+    .arena-stat-chip strong {
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+
+    .arena-cta-button,
+    .arena-cta-link {
+        position: relative;
+        z-index: 3;
+        text-decoration: none;
+        font-weight: 900;
+        letter-spacing: .08em;
+    }
+
+    .arena-cta-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3.2rem;
+        padding: 0 1.2rem;
+        border-radius: 18px;
+        color: #04120d;
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        box-shadow: 0 16px 34px rgba(76,243,141,.24);
+    }
+
+    .arena-match-grid,
+    .arena-top-battle-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .arena-top-battle-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .arena-match-card {
+        padding: 1rem;
+        display: grid;
+        gap: .9rem;
+        min-width: 0;
+    }
+
+    .arena-match-card__body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: .75rem;
+    }
+
+    .arena-match-card__team--right {
+        justify-content: end;
+        text-align: right;
+    }
+
+    .arena-match-card__team--right .arena-match-card__team-copy {
+        order: -1;
+    }
+
+    .arena-match-card__team-copy {
+        min-width: 0;
+    }
+
+    .arena-match-card__team-copy strong {
+        font-size: 1.05rem;
+        line-height: 1.1;
+    }
+
+    .arena-match-card__footer {
+        padding-top: .2rem;
+        border-top: 1px solid rgba(255,255,255,.06);
+    }
+
+    .arena-cta-link {
+        color: #7ff6df;
+    }
+
+    .arena-match-card.is-team-a-leading {
+        box-shadow: 0 24px 60px rgba(0,0,0,.32), inset 1px 0 0 rgba(127,246,223,.16);
+    }
+
+    .arena-match-card.is-team-b-leading {
+        box-shadow: 0 24px 60px rgba(0,0,0,.32), inset -1px 0 0 rgba(187,114,255,.18);
+    }
+
+    .is-up {
+        color: #68ffb1;
+    }
+
+    .is-down {
+        color: #ff7d9b;
+    }
+
+    .is-flat {
+        color: #cfd9e7;
+    }
+
+    .arena-featured-battle:hover,
+    .arena-match-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(127,246,223,.32);
+        box-shadow: 0 30px 75px rgba(0,0,0,.36);
+    }
+
     @@media (max-width: 980px) {
         .home-hero,
         .home-section--split .home-feature-grid {
             grid-template-columns: 1fr;
+        }
+
+        .arena-featured-battle__body,
+        .arena-match-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .arena-featured-battle,
+        .arena-match-card,
+        .home-section {
+            padding: 1rem;
+        }
+
+        .arena-featured-battle__scoreboard,
+        .arena-match-card__body {
+            grid-template-columns: 1fr;
+            justify-items: stretch;
+        }
+
+        .arena-team-panel,
+        .arena-match-card__team,
+        .arena-match-card__team--right {
+            justify-content: flex-start;
+            text-align: left;
+        }
+
+        .arena-match-card__team--right .arena-match-card__team-copy {
+            order: 0;
+        }
+
+        .arena-featured-battle__center,
+        .arena-match-card__center {
+            order: -1;
+        }
+
+        .arena-scoreboard--featured strong {
+            font-size: clamp(2.2rem, 14vw, 3.3rem);
+        }
+
+        .arena-top-battle-grid,
+        .home-coin-grid,
+        .home-link-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .arena-featured-battle,
+        .arena-match-card,
+        .arena-live-pill__dot,
+        .arena-vs-badge,
+        .arena-energy-bar__side {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+
+    @@media (prefers-reduced-motion: no-preference) {
+        .arena-live-pill__dot {
+            animation: arena-live-pulse 1.7s ease-in-out infinite;
+        }
+
+        .arena-featured-battle {
+            animation: arena-featured-glow 5.8s ease-in-out infinite;
+        }
+
+        .arena-vs-badge {
+            animation: arena-vs-breathe 3.6s ease-in-out infinite;
+        }
+    }
+
+    @@keyframes arena-live-pulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(76,243,141,.22);
+        }
+
+        50% {
+            transform: scale(1.08);
+            box-shadow: 0 0 0 8px rgba(76,243,141,0);
+        }
+    }
+
+    @@keyframes arena-featured-glow {
+        0%, 100% {
+            box-shadow: 0 24px 60px rgba(0,0,0,.32);
+        }
+
+        50% {
+            box-shadow: 0 28px 72px rgba(0,0,0,.36), 0 0 0 1px rgba(127,246,223,.14), 0 0 35px rgba(127,246,223,.08);
+        }
+    }
+
+    @@keyframes arena-vs-breathe {
+        0%, 100% {
+            transform: translateY(0);
+            box-shadow: 0 0 12px rgba(127,246,223,.08);
+        }
+
+        50% {
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(127,246,223,.14);
         }
     }
 </style>
