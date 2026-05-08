@@ -222,7 +222,7 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
         var aspectRatio = brandLogo.Width / (float)brandLogo.Height;
         var targetHeight = targetWidth / aspectRatio;
         var left = (CanvasWidth - targetWidth) / 2f;
-        var top = 54f;
+        var top = 24f;
         var rect = SKRect.Create(left, top, targetWidth, targetHeight);
 
         using var glowPaint = new SKPaint
