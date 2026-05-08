@@ -1,0 +1,1298 @@
+@page "/stats"
+@page "/en/stats"
+@page "/pt/estatisticas"
+@using System.Globalization
+@using System.Text.Json
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="description" content="@MetaDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@CanonicalUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@MetaDescription" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="stats-page">
+    <header class="stats-hero">
+        <div class="stats-hero__copy">
+            <span class="stats-hero__eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p class="stats-hero__lead">@T("hero.subtitle")</p>
+            <p class="stats-hero__seo-copy">@T("hero.seoCopy")</p>
+            <p class="stats-hero__live-note">@T("hero.liveNote")</p>
+            <div class="stats-hero__actions">
+                <a class="stats-pill-link" href="@RouteLocalization.BuildHomePath(CurrentCulture)" aria-label="@T("hero.backToArenaAria")">@T("hero.backToArena")</a>
+                <a class="stats-pill-link stats-pill-link--accent" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)" aria-label="@T("hero.howScoringWorksAria")">@T("hero.howScoringWorks")</a>
+            </div>
+        </div>
+        <div class="stats-hero__panel">
+            <article>
+                <span>@T("hero.coverage")</span>
+                <strong>@DisplayNumber(_stats.TotalMatches)</strong>
+                <small>@T("hero.coverageHint")</small>
+            </article>
+            <article>
+                <span>@T("hero.finishedBattles")</span>
+                <strong>@DisplayNumber(_stats.FinishedMatches)</strong>
+                <small>@T("hero.finishedBattlesHint")</small>
+            </article>
+            <article>
+                <span>@T("hero.lastUpdate")</span>
+                <strong>@DisplayDateTime(_stats.LastUpdatedUtc)</strong>
+                <small>UTC</small>
+            </article>
+        </div>
+    </header>
+
+    @if (_loading)
+    {
+        <section class="stats-feedback">
+            <div class="stats-spinner" aria-hidden="true"></div>
+            <div>
+                <strong>@T("states.loadingTitle")</strong>
+                <p>@T("states.loadingBody")</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <section class="stats-feedback stats-feedback--error" role="alert">
+                <div>
+                    <strong>@T("states.errorTitle")</strong>
+                    <p>@_error</p>
+                </div>
+            </section>
+        }
+
+        if (IsEmptyState)
+        {
+            <section class="stats-feedback stats-feedback--empty">
+                <div>
+                    <strong>@T("states.emptyTitle")</strong>
+                    <p>@T("states.emptyBody")</p>
+                </div>
+            </section>
+        }
+
+        <section class="stats-summary-grid" aria-label="@T("summary.ariaLabel")">
+            @foreach (var card in SummaryCards)
+            {
+                <article class="stats-card">
+                    <span>@card.Label</span>
+                    <strong>@card.Value</strong>
+                    <small>@card.Hint</small>
+                </article>
+            }
+        </section>
+
+        <section class="stats-trending-section" aria-labelledby="stats-trending-heading">
+            <div class="stats-section-head">
+                <div>
+                    <span>@T("trending.eyebrow")</span>
+                    <h2 id="stats-trending-heading">@T("trending.title")</h2>
+                </div>
+                <p>@T("trending.description")</p>
+            </div>
+            <div class="stats-trending-grid">
+                @if (TrendingAssets.Count == 0)
+                {
+                    <div class="stats-feedback stats-feedback--inline">
+                        <div>
+                            <strong>@T("trending.emptyTitle")</strong>
+                            <p>@T("trending.emptyBody")</p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var asset in TrendingAssets)
+                    {
+                        <a class="stats-trending-pill" href="@asset.TeamUrl" aria-label="@T("trending.assetAria", asset.DisplaySymbol)" title="@asset.FullSymbol">
+                            <img src="@GetIconUrl(asset.FullSymbol)" alt="" loading="lazy" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                            <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(asset.DisplaySymbol)</span>
+                            <strong>@asset.DisplaySymbol</strong>
+                            <small>@T("trending.matchesHint", asset.Matches)</small>
+                        </a>
+                    }
+                }
+            </div>
+        </section>
+
+        <section class="stats-chart-grid">
+            <article class="stats-chart-card">
+                <div class="stats-section-head">
+                    <div>
+                        <span>@T("charts.winRate.eyebrow")</span>
+                        <h2>@T("charts.winRate.title")</h2>
+                    </div>
+                    <p>@T("charts.winRate.description")</p>
+                </div>
+                <div class="stats-chart-shell" id="@WinRateChartId" role="img" aria-label="@T("charts.winRate.ariaLabel")"></div>
+            </article>
+
+            <article class="stats-chart-card">
+                <div class="stats-section-head">
+                    <div>
+                        <span>@T("charts.activity.eyebrow")</span>
+                        <h2>@T("charts.activity.title")</h2>
+                    </div>
+                    <p>@T("charts.activity.description")</p>
+                </div>
+                <div class="stats-chart-shell" id="@ActivityChartId" role="img" aria-label="@T("charts.activity.ariaLabel")"></div>
+            </article>
+        </section>
+
+        <section class="stats-table-section">
+            <div class="stats-section-head">
+                <div>
+                    <span>@T("ranking.eyebrow")</span>
+                    <h2>@T("ranking.title")</h2>
+                </div>
+                <p>@T("ranking.description")</p>
+            </div>
+            <div class="stats-table-wrap">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>@T("ranking.columns.rank")</th>
+                            <th>@T("ranking.columns.asset")</th>
+                            <th>@T("ranking.columns.matches")</th>
+                            <th>@T("ranking.columns.wins")</th>
+                            <th>@T("ranking.columns.losses")</th>
+                            <th>@T("ranking.columns.winRate")</th>
+                            <th>@T("ranking.columns.averageScore")</th>
+                            <th>@T("ranking.columns.totalScore")</th>
+                            <th>@T("ranking.columns.lastMatch")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_stats.TopTeams.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="stats-table__empty">@T("ranking.empty")</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var team in _stats.TopTeams)
+                            {
+                                var assetView = BuildAssetView(team.Symbol, team.DisplayName, team.Matches);
+                                <tr>
+                                    <td>@team.Rank</td>
+                                    <td>
+                                        <a class="stats-asset-link" href="@assetView.TeamUrl" aria-label="@T("ranking.assetAria", assetView.DisplaySymbol)" title="@assetView.FullSymbol">
+                                            <img src="@GetIconUrl(assetView.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                            <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(assetView.DisplaySymbol)</span>
+                                            <strong>@assetView.DisplaySymbol</strong>
+                                        </a>
+                                        @if (!string.Equals(assetView.DisplayName, assetView.DisplaySymbol, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="stats-table__muted" title="@team.DisplayName">@assetView.DisplayName</span>
+                                        }
+                                    </td>
+                                    <td>@DisplayNumber(team.Matches)</td>
+                                    <td>@DisplayNumber(team.Wins)</td>
+                                    <td>@DisplayNumber(team.Losses)</td>
+                                    <td>@FormatPercent(team.WinRate)</td>
+                                    <td>@FormatDecimal(team.AverageScore)</td>
+                                    <td>@DisplayNumber(team.TotalScore)</td>
+                                    <td>@DisplayDate(team.LastMatchUtc)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="stats-table-section">
+            <div class="stats-section-head">
+                <div>
+                    <span>@T("latest.eyebrow")</span>
+                    <h2>@T("latest.title")</h2>
+                </div>
+                <p>@T("latest.description")</p>
+            </div>
+            <div class="stats-table-wrap">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>@T("latest.columns.match")</th>
+                            <th>@T("latest.columns.score")</th>
+                            <th>@T("latest.columns.status")</th>
+                            <th>@T("latest.columns.startedAt")</th>
+                            <th>@T("latest.columns.finishedAt")</th>
+                            <th>@T("latest.columns.publicPage")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_stats.LatestMatches.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="stats-table__empty">@T("latest.empty")</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var match in _stats.LatestMatches)
+                            {
+                                var matchUrl = GetMatchUrl(match);
+                                var homeAsset = BuildAssetView(match.HomeSymbol, match.HomeSymbol, 0);
+                                var awayAsset = BuildAssetView(match.AwaySymbol, match.AwaySymbol, 0);
+                                <tr>
+                                    <td>
+                                        <div class="stats-matchup">
+                                            <a class="stats-asset-link" href="@homeAsset.TeamUrl" aria-label="@T("latest.homeAssetAria", homeAsset.DisplaySymbol)" title="@homeAsset.FullSymbol">
+                                                <img src="@GetIconUrl(homeAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(homeAsset.DisplaySymbol)</span>
+                                                <strong>@homeAsset.DisplaySymbol</strong>
+                                            </a>
+                                            <span class="stats-matchup__vs">vs</span>
+                                            <a class="stats-asset-link" href="@awayAsset.TeamUrl" aria-label="@T("latest.awayAssetAria", awayAsset.DisplaySymbol)" title="@awayAsset.FullSymbol">
+                                                <img src="@GetIconUrl(awayAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(awayAsset.DisplaySymbol)</span>
+                                                <strong>@awayAsset.DisplaySymbol</strong>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="stats-scoreline">
+                                            <strong>@match.HomeScore</strong>
+                                            <span>x</span>
+                                            <strong>@match.AwayScore</strong>
+                                        </div>
+                                    </td>
+                                    <td><span class="@GetStatusBadgeClass(match.Status)">@FormatStatus(match.Status)</span></td>
+                                    <td>@DisplayDateTime(match.StartedAtUtc)</td>
+                                    <td>@DisplayDateTime(match.FinishedAtUtc)</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(matchUrl))
+                                        {
+                                            <a class="stats-cta-link" href="@matchUrl" aria-label="@T("latest.openMatchAria", homeAsset.DisplaySymbol, awayAsset.DisplaySymbol)">@T("latest.openMatch")</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="stats-table__muted">@T("latest.unavailable")</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="stats-internal-links">
+            <div class="stats-section-head">
+                <div>
+                    <span>@T("future.eyebrow")</span>
+                    <h2>@T("future.title")</h2>
+                </div>
+                <p>@T("future.description")</p>
+            </div>
+            <div class="stats-link-grid">
+                @foreach (var futureLink in FutureLinks)
+                {
+                    <article class="stats-link-card is-disabled" aria-disabled="true">
+                        <span>@T("future.comingSoon")</span>
+                        <strong>@futureLink.Title</strong>
+                        <p>@futureLink.Description</p>
+                        <code>@futureLink.Path</code>
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="stats-seo-footnote" aria-labelledby="stats-seo-footnote-heading">
+            <h2 id="stats-seo-footnote-heading">@T("footnote.title")</h2>
+            <p>@T("footnote.body")</p>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+
+    private const string WinRateChartId = "stats-win-rate-chart";
+    private const string ActivityChartId = "stats-activity-chart";
+
+    private readonly StatsOverviewDto _stats = new();
+    private bool _loading = true;
+    private bool _chartsPendingRender;
+    private string? _error;
+
+    private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private bool IsEmptyState => _stats.TotalMatches == 0 && _stats.TopTeams.Count == 0 && _stats.LatestMatches.Count == 0;
+    private string PageTitleText => T("seo.title");
+    private string MetaDescription => T("seo.description");
+    private string CanonicalUrl => BuildAbsolute("/stats");
+    private string EnglishUrl => BuildAbsolute("/stats");
+    private string PortugueseUrl => BuildAbsolute("/pt/estatisticas");
+    private string StructuredDataMarkup => BuildStructuredDataMarkup();
+
+    private IReadOnlyList<SummaryCardViewModel> SummaryCards =>
+    [
+        new SummaryCardViewModel(T("summary.totalMatches.label"), DisplayNumber(_stats.TotalMatches), T("summary.totalMatches.hint")),
+        new SummaryCardViewModel(T("summary.finishedMatches.label"), DisplayNumber(_stats.FinishedMatches), T("summary.finishedMatches.hint")),
+        new SummaryCardViewModel(T("summary.activeAssets.label"), DisplayNumber(_stats.ActiveAssets), T("summary.activeAssets.hint")),
+        new SummaryCardViewModel(T("summary.averageScore.label"), FormatDecimal(_stats.AverageScore), T("summary.averageScore.hint")),
+        new SummaryCardViewModel(T("summary.highestScore.label"), DisplayNumber(_stats.HighestScore), T("summary.highestScore.hint")),
+        new SummaryCardViewModel(T("summary.lastUpdated.label"), DisplayDateTime(_stats.LastUpdatedUtc), T("summary.lastUpdated.hint"))
+    ];
+
+    private IReadOnlyList<FutureLinkViewModel> FutureLinks =>
+    [
+        new FutureLinkViewModel(T("future.links.teams.title"), "/stats/teams", T("future.links.teams.description")),
+        new FutureLinkViewModel(T("future.links.matches.title"), "/stats/matches", T("future.links.matches.description")),
+        new FutureLinkViewModel(T("future.links.rankings.title"), "/stats/rankings", T("future.links.rankings.description")),
+        new FutureLinkViewModel(T("future.links.records.title"), "/stats/records", T("future.links.records.description"))
+    ];
+
+    private IReadOnlyList<TrendingAssetViewModel> TrendingAssets =>
+        _stats.TopTeams
+            .OrderByDescending(team => team.Matches)
+            .ThenByDescending(team => team.WinRate)
+            .ThenBy(team => team.Symbol, StringComparer.OrdinalIgnoreCase)
+            .Take(5)
+            .Select(team => BuildAssetView(team.Symbol, team.DisplayName, team.Matches))
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_chartsPendingRender || _loading)
+            return;
+
+        _chartsPendingRender = false;
+
+        await JS.InvokeVoidAsync("criptoVersusStatsCharts.renderWinRateChart", WinRateChartId, _stats.TopTeams.Take(10).ToList());
+        await JS.InvokeVoidAsync("criptoVersusStatsCharts.renderMatchActivityChart", ActivityChartId, _stats.MatchActivity);
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var response = await Api.GetStatsOverviewAsync();
+            if (response is not null)
+            {
+                _stats.TotalMatches = response.TotalMatches;
+                _stats.FinishedMatches = response.FinishedMatches;
+                _stats.ActiveAssets = response.ActiveAssets;
+                _stats.AverageScore = response.AverageScore;
+                _stats.HighestScore = response.HighestScore;
+                _stats.LastUpdatedUtc = response.LastUpdatedUtc;
+
+                _stats.TopTeams.Clear();
+                _stats.TopTeams.AddRange(response.TopTeams ?? []);
+
+                _stats.MatchActivity.Clear();
+                _stats.MatchActivity.AddRange(response.MatchActivity ?? []);
+
+                _stats.LatestMatches.Clear();
+                _stats.LatestMatches.AddRange(response.LatestMatches ?? []);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+
+            Console.WriteLine($"Stats page load error: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+            _chartsPendingRender = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string BuildStructuredDataMarkup()
+    {
+        var title = T("hero.title");
+        var description = T("hero.subtitle");
+
+        var graph = new object[]
+        {
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "WebPage",
+                ["name"] = title,
+                ["description"] = description,
+                ["url"] = CanonicalUrl
+            },
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "Dataset",
+                ["name"] = title,
+                ["description"] = description,
+                ["url"] = CanonicalUrl,
+                ["keywords"] = new[]
+                {
+                    "CriptoVersus statistics",
+                    "crypto battle rankings",
+                    "public match history",
+                    "arena performance"
+                }
+            },
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "BreadcrumbList",
+                ["itemListElement"] = new object[]
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "ListItem",
+                        ["position"] = 1,
+                        ["name"] = "CriptoVersus",
+                        ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "ListItem",
+                        ["position"] = 2,
+                        ["name"] = T("structuredData.breadcrumbStats"),
+                        ["item"] = CanonicalUrl
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(graph);
+    }
+
+    private string GetMatchUrl(StatsLatestMatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol);
+        if (!string.IsNullOrWhiteSpace(slug))
+            return RouteLocalization.BuildBestPath(CurrentCulture, match.MatchId, slug);
+
+        return match.PublicUrl ?? string.Empty;
+    }
+
+    private string FormatStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return T("states.noData");
+
+        return status.Trim().ToLowerInvariant() switch
+        {
+            "completed" => T("status.completed"),
+            "ongoing" => T("status.ongoing"),
+            "pending" => T("status.pending"),
+            "cancelled" => T("status.cancelled"),
+            _ => status
+        };
+    }
+
+    private string GetStatusBadgeClass(string? status)
+    {
+        var suffix = status?.Trim().ToLowerInvariant() switch
+        {
+            "completed" => "is-finished",
+            "ongoing" => "is-live",
+            "pending" => "is-pending",
+            "cancelled" => "is-cancelled",
+            _ => "is-neutral"
+        };
+
+        return $"stats-status-badge {suffix}";
+    }
+
+    private TrendingAssetViewModel BuildAssetView(string? symbol, string? displayName, int matches)
+    {
+        var fullSymbol = string.IsNullOrWhiteSpace(symbol) ? (displayName ?? string.Empty) : symbol.Trim();
+        var cleanSymbol = CleanAssetSymbol(fullSymbol);
+        var effectiveDisplayName = !string.IsNullOrWhiteSpace(displayName) ? displayName.Trim() : cleanSymbol;
+        if (string.Equals(effectiveDisplayName, fullSymbol, StringComparison.OrdinalIgnoreCase))
+            effectiveDisplayName = cleanSymbol;
+
+        return new TrendingAssetViewModel(
+            fullSymbol,
+            cleanSymbol,
+            effectiveDisplayName,
+            matches,
+            $"/stats/teams/{BuildAssetSlug(cleanSymbol)}");
+    }
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "-";
+
+        var normalized = symbol.Trim().ToUpperInvariant();
+        foreach (var suffix in AssetSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string BuildAssetSlug(string symbol)
+    {
+        var buffer = new List<char>(symbol.Length);
+        foreach (var ch in symbol.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(ch))
+                buffer.Add(ch);
+            else if (buffer.Count > 0 && buffer[^1] != '-')
+                buffer.Add('-');
+        }
+
+        return new string(buffer.ToArray()).Trim('-');
+    }
+
+    private string GetIconUrl(string? symbol)
+        => $"/api/icons/binance/{Uri.EscapeDataString(symbol?.Trim().ToUpperInvariant() ?? string.Empty)}";
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var text = symbol.Trim().ToUpperInvariant();
+        return text.Length >= 2 ? text[..2] : text;
+    }
+
+    private static string DisplayNumber(int value)
+        => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    private static string FormatPercent(decimal value)
+        => $"{value:0.##}%";
+
+    private static string FormatDecimal(decimal value)
+        => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private static string DisplayDate(DateTime? value)
+        => value.HasValue
+            ? EnsureUtc(value.Value).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : "-";
+
+    private static string DisplayDateTime(DateTime? value)
+        => value.HasValue
+            ? EnsureUtc(value.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+            : "-";
+
+    private string BuildAbsolute(string path)
+        => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
+
+    private string T(string key, params object?[] args)
+        => L.T($"stats.{key}", CurrentCulture, args);
+
+    private static DateTime EnsureUtc(DateTime value)
+        => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+
+    private static readonly string[] AssetSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusStatsCharts.dispose", WinRateChartId);
+            await JS.InvokeVoidAsync("criptoVersusStatsCharts.dispose", ActivityChartId);
+        }
+        catch
+        {
+        }
+    }
+
+    private sealed class SummaryCardViewModel
+    {
+        public SummaryCardViewModel(string label, string value, string hint)
+        {
+            Label = label;
+            Value = value;
+            Hint = hint;
+        }
+
+        public string Label { get; }
+        public string Value { get; }
+        public string Hint { get; }
+    }
+
+    private sealed class FutureLinkViewModel
+    {
+        public FutureLinkViewModel(string title, string path, string description)
+        {
+            Title = title;
+            Path = path;
+            Description = description;
+        }
+
+        public string Title { get; }
+        public string Path { get; }
+        public string Description { get; }
+    }
+
+    private sealed class TrendingAssetViewModel
+    {
+        public TrendingAssetViewModel(string fullSymbol, string displaySymbol, string displayName, int matches, string teamUrl)
+        {
+            FullSymbol = fullSymbol;
+            DisplaySymbol = displaySymbol;
+            DisplayName = displayName;
+            Matches = matches;
+            TeamUrl = teamUrl;
+        }
+
+        public string FullSymbol { get; }
+        public string DisplaySymbol { get; }
+        public string DisplayName { get; }
+        public int Matches { get; }
+        public string TeamUrl { get; }
+    }
+}
+
+<style>
+    .stats-page {
+        --stats-border: rgba(112, 132, 170, 0.18);
+        --stats-text: #f4f8ff;
+        --stats-muted: #9cb0ca;
+        --stats-green: #7ff6df;
+        --stats-blue: #53c8ff;
+        --stats-yellow: #ffd76e;
+        --stats-red: #ff8585;
+        display: grid;
+        gap: 1.3rem;
+        position: relative;
+        width: min(1680px, 100%);
+        color: var(--stats-text);
+    }
+
+    .stats-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 12% 8%, rgba(163, 92, 255, 0.12), transparent 22%),
+            radial-gradient(circle at 92% 12%, rgba(76, 243, 141, 0.1), transparent 24%),
+            radial-gradient(circle at 50% 100%, rgba(83, 200, 255, 0.06), transparent 30%);
+    }
+
+    .stats-hero,
+    .stats-card,
+    .stats-chart-card,
+    .stats-table-section,
+    .stats-link-card,
+    .stats-feedback {
+        position: relative;
+        border: 1px solid var(--stats-border);
+        border-radius: 26px;
+        background: linear-gradient(180deg, rgba(9, 13, 22, 0.98), rgba(6, 9, 16, 0.99));
+        box-shadow: 0 24px 70px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.03);
+        overflow: hidden;
+    }
+
+    .stats-hero::before,
+    .stats-card::before,
+    .stats-chart-card::before,
+    .stats-table-section::before,
+    .stats-link-card::before,
+    .stats-feedback::before,
+    .stats-trending-section::before,
+    .stats-seo-footnote::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at top left, rgba(163, 92, 255, 0.12), transparent 24%),
+            radial-gradient(circle at bottom right, rgba(76, 243, 141, 0.08), transparent 26%);
+    }
+
+    .stats-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+        gap: 1.2rem;
+        padding: 2.15rem 1.7rem 2rem;
+        background:
+            radial-gradient(circle at top left, rgba(163, 92, 255, 0.2), transparent 26%),
+            radial-gradient(circle at bottom right, rgba(76, 243, 141, 0.14), transparent 26%),
+            linear-gradient(135deg, rgba(10, 14, 25, 0.99), rgba(7, 10, 18, 0.99));
+    }
+
+    .stats-hero__copy,
+    .stats-hero__panel,
+    .stats-chart-card,
+    .stats-table-section,
+    .stats-link-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .stats-hero__eyebrow,
+    .stats-section-head span,
+    .stats-card span,
+    .stats-link-card span {
+        color: var(--stats-green);
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        font-weight: 900;
+        font-size: .76rem;
+    }
+
+    .stats-hero h1 {
+        margin: .65rem 0 .85rem;
+        font-size: clamp(2rem, 2vw + 1rem, 3.4rem);
+        line-height: 1.03;
+        letter-spacing: -.04em;
+    }
+
+    .stats-hero__lead {
+        color: #f8fbff;
+        font-size: 1.06rem;
+        line-height: 1.7;
+        max-width: 60rem;
+        margin: 0;
+    }
+
+    .stats-hero__seo-copy,
+    .stats-section-head p,
+    .stats-feedback p,
+    .stats-link-card p,
+    .stats-card small {
+        color: var(--stats-muted);
+        line-height: 1.65;
+        margin: 0;
+    }
+
+    .stats-hero__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-top: 1.1rem;
+    }
+
+    .stats-hero__live-note {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        margin-top: .95rem;
+        color: #c6d7eb;
+        font-size: .92rem;
+    }
+
+    .stats-hero__live-note::before {
+        content: "";
+        width: .55rem;
+        height: .55rem;
+        border-radius: 50%;
+        background: #4cf38d;
+        box-shadow: 0 0 0 6px rgba(76, 243, 141, 0.12);
+    }
+
+    .stats-pill-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+        padding: 0 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        color: #eef5ff;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .stats-pill-link--accent {
+        color: #03150f;
+        border-color: transparent;
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+    }
+
+    .stats-hero__panel {
+        display: grid;
+        gap: 1px;
+        border-radius: 22px;
+        overflow: hidden;
+        background: rgba(84, 100, 128, 0.18);
+    }
+
+    .stats-hero__panel article {
+        padding: 1.15rem 1.2rem;
+        background: rgba(9, 13, 22, 0.96);
+        display: grid;
+        gap: .28rem;
+    }
+
+    .stats-hero__panel strong,
+    .stats-card strong {
+        font-size: clamp(1.7rem, 1.6vw, 2.35rem);
+        line-height: 1.05;
+        letter-spacing: -.04em;
+    }
+
+    .stats-summary-grid,
+    .stats-chart-grid,
+    .stats-link-grid,
+    .stats-trending-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .stats-summary-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .stats-card {
+        padding: 1.1rem 1.05rem;
+        display: grid;
+        gap: .42rem;
+    }
+
+    .stats-chart-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stats-chart-card,
+    .stats-table-section,
+    .stats-trending-section,
+    .stats-seo-footnote {
+        padding: 1.3rem;
+        display: grid;
+        gap: 1rem;
+    }
+
+    .stats-trending-section,
+    .stats-seo-footnote {
+        position: relative;
+        border: 1px solid var(--stats-border);
+        border-radius: 26px;
+        background: linear-gradient(180deg, rgba(9, 13, 22, 0.98), rgba(6, 9, 16, 0.99));
+        box-shadow: 0 24px 70px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.03);
+        overflow: hidden;
+    }
+
+    .stats-section-head {
+        display: grid;
+        gap: .4rem;
+    }
+
+    .stats-section-head h2 {
+        margin: 0;
+        font-size: 1.45rem;
+        letter-spacing: -.03em;
+    }
+
+    .stats-chart-shell {
+        min-height: 340px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: linear-gradient(180deg, rgba(7, 12, 20, 0.98), rgba(6, 10, 17, 0.98));
+    }
+
+    .stats-trending-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .stats-trending-pill {
+        display: grid;
+        gap: .28rem;
+        padding: .95rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(127, 246, 223, 0.16);
+        background:
+            linear-gradient(180deg, rgba(13, 20, 34, 0.96), rgba(9, 14, 25, 0.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.18);
+        color: var(--stats-text);
+        text-decoration: none;
+        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .stats-trending-pill:hover {
+        transform: translateY(-1px);
+        border-color: rgba(127, 246, 223, 0.32);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 12px 34px rgba(0,0,0,0.22);
+    }
+
+    .stats-trending-pill strong {
+        font-size: 1.02rem;
+        line-height: 1.1;
+    }
+
+    .stats-trending-pill small {
+        color: var(--stats-muted);
+    }
+
+    .stats-table-wrap {
+        overflow-x: auto;
+    }
+
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+    }
+
+    .stats-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: rgba(8, 12, 21, 0.97);
+        backdrop-filter: blur(10px);
+    }
+
+    .stats-table th,
+    .stats-table td {
+        padding: .9rem .8rem;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        vertical-align: top;
+        text-align: left;
+    }
+
+    .stats-table th {
+        color: #d7e4f6;
+        font-size: .78rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .stats-table td {
+        color: #f1f7ff;
+    }
+
+    .stats-table tbody tr {
+        transition: background-color .18s ease, transform .18s ease;
+    }
+
+    .stats-table tbody tr:hover {
+        background: rgba(127, 246, 223, 0.04);
+    }
+
+    .stats-table a {
+        color: var(--stats-green);
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .stats-table__muted {
+        display: block;
+        color: var(--stats-muted);
+        font-size: .83rem;
+        margin-top: .2rem;
+    }
+
+    .stats-table__empty {
+        color: var(--stats-muted);
+        text-align: center;
+    }
+
+    .stats-asset-link,
+    .stats-matchup {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        flex-wrap: wrap;
+    }
+
+    .stats-asset-link {
+        color: #edf6ff;
+        text-decoration: none;
+        cursor: pointer;
+        transition: color .18s ease, opacity .18s ease;
+    }
+
+    .stats-asset-link:hover {
+        color: var(--stats-green);
+    }
+
+    .stats-asset-link img,
+    .stats-trending-pill img {
+        border-radius: 50%;
+        flex: 0 0 auto;
+        background: rgba(255,255,255,0.03);
+    }
+
+    .stats-asset-fallback {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 50%;
+        background: rgba(83, 200, 255, 0.18);
+        color: #cfe9ff;
+        font-size: .58rem;
+        font-weight: 900;
+        letter-spacing: .06em;
+    }
+
+    .stats-asset-fallback.is-visible {
+        display: inline-flex;
+    }
+
+    .stats-matchup {
+        gap: .6rem;
+    }
+
+    .stats-matchup__vs {
+        color: var(--stats-muted);
+        text-transform: uppercase;
+        font-size: .72rem;
+        letter-spacing: .12em;
+    }
+
+    .stats-scoreline {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        min-width: 4.5rem;
+    }
+
+    .stats-scoreline strong {
+        font-size: 1.02rem;
+    }
+
+    .stats-scoreline span {
+        color: var(--stats-muted);
+    }
+
+    .stats-status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 6.2rem;
+        padding: .42rem .68rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.09);
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        background: rgba(255,255,255,0.04);
+    }
+
+    .stats-status-badge.is-live {
+        color: #9cffcf;
+        border-color: rgba(76, 243, 141, 0.28);
+        background: rgba(76, 243, 141, 0.12);
+    }
+
+    .stats-status-badge.is-finished {
+        color: #bcefff;
+        border-color: rgba(83, 200, 255, 0.24);
+        background: rgba(83, 200, 255, 0.12);
+    }
+
+    .stats-status-badge.is-pending {
+        color: #ffe49a;
+        border-color: rgba(255, 215, 110, 0.24);
+        background: rgba(255, 215, 110, 0.11);
+    }
+
+    .stats-status-badge.is-cancelled {
+        color: #ffb3b3;
+        border-color: rgba(255, 133, 133, 0.22);
+        background: rgba(255, 133, 133, 0.11);
+    }
+
+    .stats-status-badge.is-neutral {
+        color: #d8e4f6;
+    }
+
+    .stats-cta-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.3rem;
+        padding: 0 .85rem;
+        border-radius: 999px;
+        border: 1px solid rgba(127, 246, 223, 0.22);
+        background: rgba(127, 246, 223, 0.08);
+        color: var(--stats-green);
+        font-weight: 800;
+        transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+    }
+
+    .stats-cta-link:hover {
+        border-color: rgba(127, 246, 223, 0.38);
+        background: rgba(127, 246, 223, 0.14);
+        transform: translateY(-1px);
+    }
+
+    .stats-feedback {
+        padding: 1.1rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+    }
+
+    .stats-feedback--inline {
+        padding: 1rem 1.05rem;
+    }
+
+    .stats-feedback--error {
+        border-color: rgba(255, 120, 120, 0.28);
+    }
+
+    .stats-feedback--empty {
+        border-color: rgba(127, 246, 223, 0.2);
+    }
+
+    .stats-spinner {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 50%;
+        border: 3px solid rgba(127, 246, 223, 0.16);
+        border-top-color: #7ff6df;
+        animation: stats-spin 1s linear infinite;
+        flex: 0 0 auto;
+    }
+
+    .stats-link-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stats-link-card {
+        padding: 1.15rem;
+        display: grid;
+        gap: .55rem;
+    }
+
+    .stats-link-card strong {
+        font-size: 1.18rem;
+    }
+
+    .stats-link-card code {
+        color: #cdd8e8;
+        background: rgba(255,255,255,0.05);
+        border-radius: 12px;
+        padding: .65rem .75rem;
+        font-size: .85rem;
+    }
+
+    .stats-link-card.is-disabled {
+        opacity: .82;
+    }
+
+    .stats-seo-footnote h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: -.02em;
+    }
+
+    .stats-seo-footnote p {
+        margin: 0;
+        color: var(--stats-muted);
+        line-height: 1.7;
+        max-width: 78ch;
+    }
+
+    @@media (max-width: 1180px) {
+        .stats-summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stats-trending-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .stats-link-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 960px) {
+        .stats-hero,
+        .stats-chart-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-trending-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .stats-page {
+            gap: 1rem;
+        }
+
+        .stats-hero,
+        .stats-chart-card,
+        .stats-table-section,
+        .stats-card,
+        .stats-trending-section,
+        .stats-seo-footnote {
+            padding: 1rem;
+        }
+
+        .stats-summary-grid,
+        .stats-link-grid,
+        .stats-trending-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-chart-shell {
+            min-height: 280px;
+        }
+
+        .stats-table th,
+        .stats-table td {
+            padding: .8rem .7rem;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .stats-spinner,
+        .stats-trending-pill,
+        .stats-cta-link,
+        .stats-table tbody tr {
+            animation: none;
+            transition: none;
+        }
+    }
+
+    @@keyframes stats-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>

@@ -54,6 +54,11 @@ public sealed class RouteLocalizationService
             ? "/pt/como-funciona"
             : "/en/how-it-works";
 
+    public string BuildStatsPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/estatisticas"
+            : "/stats";
+
     public string BuildLegacyMatchPath(string? culture, int id, string slug)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? $"/partida/{id}/{slug}"
@@ -82,6 +87,11 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase))
             return BuildHowItWorksPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/stats", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/stats", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/estatisticas", StringComparison.OrdinalIgnoreCase))
+            return BuildStatsPath(normalizedTarget) + querySuffix;
 
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (segments.Length >= 3)

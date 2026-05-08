@@ -98,6 +98,9 @@ public sealed class CriptoVersusApiClient
     public async Task<TokenomicsDto?> GetTokenomicsAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<TokenomicsDto>("api/tokenomics", ct);
 
+    public async Task<StatsOverviewDto?> GetStatsOverviewAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsOverviewDto>("api/stats/overview", ct);
+
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,
         CancellationToken ct = default)

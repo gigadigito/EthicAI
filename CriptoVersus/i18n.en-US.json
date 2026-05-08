@@ -13,6 +13,7 @@
     "brandSubtitle": "Trading Arena",
     "home": "Home",
     "howItWorks": "How It Works",
+    "stats": "Stats",
     "roadmap": "Roadmap",
     "wallet": "My Wallet",
     "admin": "Admin",
@@ -316,6 +317,131 @@
       "live": {
         "text": "{0} and {1} are trading blows on CriptoVersus. Current score: {2}. Follow live: {3}"
       }
+    }
+  },
+  "stats": {
+    "seo": {
+      "title": "CriptoVersus Statistics - Public Crypto Battle Rankings",
+      "description": "Explore public CriptoVersus statistics, crypto match rankings, win rates, scores, match history and market battle performance insights."
+    },
+    "hero": {
+      "eyebrow": "Public arena intelligence",
+      "title": "CriptoVersus Statistics",
+      "subtitle": "Public crypto battle data, rankings and market performance insights from the CriptoVersus arena.",
+      "seoCopy": "This public statistics page aggregates indexable data about crypto matches, arena rankings, tracked assets, scoreboards and historical performance across the CriptoVersus battleground.",
+      "liveNote": "Updated every 5 minutes",
+      "backToArena": "Back to arena",
+      "backToArenaAria": "Return to the CriptoVersus arena home page",
+      "howScoringWorks": "How scoring works",
+      "howScoringWorksAria": "Read how CriptoVersus arena scoring works",
+      "coverage": "Arena coverage",
+      "coverageHint": "public matches indexed",
+      "finishedBattles": "Finished battles",
+      "finishedBattlesHint": "closed scoreboards",
+      "lastUpdate": "Last update"
+    },
+    "states": {
+      "loadingTitle": "Loading public stats",
+      "loadingBody": "Fetching the latest arena overview and ranking data.",
+      "errorTitle": "Stats temporarily unavailable",
+      "errorBody": "We could not load the public statistics right now. Showing a stable empty board instead.",
+      "emptyTitle": "No public data yet",
+      "emptyBody": "The arena has not published enough completed or tracked matches to fill the statistics board yet. The page stays live and will populate automatically as public match data grows.",
+      "noData": "No data yet"
+    },
+    "summary": {
+      "ariaLabel": "Public stats summary",
+      "totalMatches": { "label": "Total Matches", "hint": "public arena match pages" },
+      "finishedMatches": { "label": "Finished Matches", "hint": "closed scoreboards indexed" },
+      "activeAssets": { "label": "Active Assets", "hint": "symbols seen in public matches" },
+      "averageScore": { "label": "Average Score", "hint": "combined arena score per match" },
+      "highestScore": { "label": "Highest Score", "hint": "best single-side score registered" },
+      "lastUpdated": { "label": "Last Updated", "hint": "public arena refresh time" }
+    },
+    "charts": {
+      "winRate": {
+        "eyebrow": "Win rate board",
+        "title": "Top Crypto Assets by Win Rate",
+        "description": "Best public arena closing records among the most visible assets.",
+        "ariaLabel": "Top Crypto Assets by Win Rate chart"
+      },
+      "activity": {
+        "eyebrow": "Match tempo",
+        "title": "Match Activity Over Time",
+        "description": "Recent public match publishing cadence across the arena timeline.",
+        "ariaLabel": "Match Activity Over Time chart"
+      }
+    },
+    "trending": {
+      "eyebrow": "Arena spotlight",
+      "title": "Trending Assets",
+      "description": "Most active assets based on recent public arena match volume and visibility.",
+      "emptyTitle": "No trending assets yet",
+      "emptyBody": "Trending assets will appear here once the arena records enough public match activity.",
+      "matchesHint": "{0} recent matches",
+      "assetAria": "Open the future stats page for {0}"
+    },
+    "ranking": {
+      "eyebrow": "HTML ranking table",
+      "title": "Top Crypto Assets by Arena Performance",
+      "description": "Top performing crypto assets based on public CriptoVersus arena battles and historical match performance.",
+      "empty": "No ranked assets yet.",
+      "assetAria": "Open the future stats page for asset {0}",
+      "columns": {
+        "rank": "Rank",
+        "asset": "Asset",
+        "matches": "Matches",
+        "wins": "Wins",
+        "losses": "Losses",
+        "winRate": "Win Rate",
+        "averageScore": "Average Score",
+        "totalScore": "Total Score",
+        "lastMatch": "Last Match"
+      }
+    },
+    "latest": {
+      "eyebrow": "Latest scoreboards",
+      "title": "Latest Public Matches",
+      "description": "Most recent public arena match pages available for discovery and audit.",
+      "empty": "No public matches available yet.",
+      "openMatch": "Open match",
+      "openMatchAria": "Open the public match page for {0} versus {1}",
+      "homeAssetAria": "Open the future stats page for asset {0}",
+      "awayAssetAria": "Open the future stats page for asset {0}",
+      "unavailable": "Unavailable",
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "status": "Status",
+        "startedAt": "Started At",
+        "finishedAt": "Finished At",
+        "publicPage": "Public Page"
+      }
+    },
+    "future": {
+      "eyebrow": "Roadmap connectors",
+      "title": "Next public stats hubs",
+      "description": "Reserved destinations for upcoming stats expansions. They are intentionally disabled until the routes go live.",
+      "comingSoon": "Coming soon",
+      "links": {
+        "teams": { "title": "Teams", "description": "Dedicated team-vs-team public leaderboards." },
+        "matches": { "title": "Matches", "description": "Expanded match archive with deeper historical filters." },
+        "rankings": { "title": "Rankings", "description": "Multi-metric ranking boards across public arena categories." },
+        "records": { "title": "Records", "description": "Public arena records, streaks and statistical milestones." }
+      }
+    },
+    "status": {
+      "completed": "Finished",
+      "ongoing": "Live",
+      "pending": "Pending",
+      "cancelled": "Cancelled"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Statistics"
+    },
+    "footnote": {
+      "title": "Public arena data context",
+      "body": "CriptoVersus public statistics track crypto match performance, historical arena battles, win rates, scoreboards and public market competition between digital assets."
     }
   },
   "publicHome": {

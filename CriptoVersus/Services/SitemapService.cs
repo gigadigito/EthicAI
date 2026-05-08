@@ -105,6 +105,8 @@ public sealed class SitemapService
         {
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHomePath("en"), now, "daily", 1.0m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHomePath("pt"), now, "daily", 0.9m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsPath("en"), now, "daily", 0.9m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsPath("pt"), now, "daily", 0.9m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRoadmapPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
@@ -269,6 +271,11 @@ public sealed class SitemapService
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("pt")).AbsoluteUri));
                 return alternates;
+            case "/stats":
+            case "/pt/estatisticas":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsPath("pt")).AbsoluteUri));
+                return alternates;
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri));
@@ -297,6 +304,9 @@ public sealed class SitemapService
             case "/en/roadmap":
             case "/pt/roadmap":
                 return new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri;
+            case "/stats":
+            case "/pt/estatisticas":
+                return new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri;
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 return new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri;
