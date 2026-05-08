@@ -15,21 +15,25 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
 {
     private const int CanvasWidth = 1536;
     private const int CanvasHeight = 1024;
+    private const string BrandAssetPath = "social/compose-brand.png";
 
     private readonly IMemoryCache _cache;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<SocialComposeFinalService> _logger;
 
     public SocialComposeFinalService(
         IMemoryCache cache,
         IHttpClientFactory httpClientFactory,
         IHttpContextAccessor httpContextAccessor,
+        IWebHostEnvironment environment,
         ILogger<SocialComposeFinalService> logger)
     {
         _cache = cache;
         _httpClientFactory = httpClientFactory;
         _httpContextAccessor = httpContextAccessor;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -57,12 +61,14 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
 
         var leftLogoTask = LoadIconAsync(leftSymbol, ct);
         var rightLogoTask = LoadIconAsync(rightSymbol, ct);
-        await Task.WhenAll(leftLogoTask, rightLogoTask);
+        var brandTask = LoadBrandAssetAsync(ct);
+        await Task.WhenAll(leftLogoTask, rightLogoTask, brandTask);
 
         var bytes = RenderPng(
             backgroundBitmap,
             await leftLogoTask,
             await rightLogoTask,
+            await brandTask,
             leftSymbol,
             rightSymbol,
             score);
@@ -107,6 +113,26 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
             _logger.LogWarning(ex, "Could not load compose-final icon for {Symbol}", symbol);
             return null;
         }
+    }
+
+    private async Task<SKBitmap?> LoadBrandAssetAsync(CancellationToken ct)
+    {
+        const string cacheKey = "social-compose:asset:brand";
+        if (_cache.TryGetValue<byte[]>(cacheKey, out var cachedBytes) && cachedBytes is not null)
+            return SKBitmap.Decode(cachedBytes);
+
+        var assetPath = Path.Combine(_environment.WebRootPath ?? string.Empty, BrandAssetPath.Replace('/', Path.DirectorySeparatorChar));
+        if (!File.Exists(assetPath))
+            return null;
+
+        var bytes = await File.ReadAllBytesAsync(assetPath, ct);
+        _cache.Set(cacheKey, bytes, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7),
+            Size = Math.Max(1, bytes.Length / 1024)
+        });
+
+        return SKBitmap.Decode(bytes);
     }
 
     private string BuildIconUrl(string symbol)
@@ -168,6 +194,7 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
         SKBitmap backgroundBitmap,
         SKBitmap? leftLogo,
         SKBitmap? rightLogo,
+        SKBitmap? brandLogo,
         string leftSymbol,
         string rightSymbol,
         string score)
@@ -178,11 +205,41 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
         canvas.Clear(SKColors.Transparent);
 
         DrawBackground(canvas, backgroundBitmap);
+        DrawBrand(canvas, brandLogo);
         DrawHud(canvas, leftLogo, rightLogo, leftSymbol, rightSymbol, score);
 
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
+    }
+
+    private static void DrawBrand(SKCanvas canvas, SKBitmap? brandLogo)
+    {
+        if (brandLogo is null)
+            return;
+
+        var targetWidth = 360f;
+        var aspectRatio = brandLogo.Width / (float)brandLogo.Height;
+        var targetHeight = targetWidth / aspectRatio;
+        var left = (CanvasWidth - targetWidth) / 2f;
+        var top = 54f;
+        var rect = SKRect.Create(left, top, targetWidth, targetHeight);
+
+        using var glowPaint = new SKPaint
+        {
+            IsAntialias = true,
+            Color = new SKColor(72, 255, 158, 36),
+            MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 18)
+        };
+        canvas.DrawRoundRect(new SKRoundRect(new SKRect(rect.Left + 8, rect.Top + 8, rect.Right - 8, rect.Bottom - 8), 24, 24), glowPaint);
+
+        using var logoPaint = new SKPaint
+        {
+            IsAntialias = true,
+            FilterQuality = SKFilterQuality.High,
+            Color = SKColors.White.WithAlpha(244)
+        };
+        canvas.DrawBitmap(brandLogo, rect, logoPaint);
     }
 
     private static void DrawBackground(SKCanvas canvas, SKBitmap backgroundBitmap)
