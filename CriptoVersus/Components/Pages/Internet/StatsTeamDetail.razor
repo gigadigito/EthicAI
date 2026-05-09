@@ -587,7 +587,7 @@
 
             var resolution = await TeamInvestmentContextResolver.ResolveAsync(_detail.Symbol);
 
-            if (!resolution.IsAvailable || resolution.Match is null)
+            if (!resolution.IsAvailable)
 
             {
 
@@ -606,6 +606,8 @@
             _pendingBetTeamName = resolution.TeamName;
 
             _investmentOpponentName = resolution.OpponentName;
+
+            _investmentContextFailureReason = resolution.FailureReason;
 
         }
 
@@ -747,7 +749,10 @@
 
     private bool IsInvestmentBusy => _investmentContextLoading || _isSendingBet;
 
-    private bool IsInvestmentAvailable => _investmentMatch is not null && _investmentTeamId > 0 && PublicInvestmentRules.IsBettingWindowOpen(_investmentMatch);
+    private bool IsInvestmentBlockedByAdvancedLive
+        => string.Equals(_investmentContextFailureReason, "team_match_advanced_live", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsInvestmentAvailable => _investmentTeamId > 0 && !IsInvestmentBlockedByAdvancedLive;
 
     private bool IsInvestmentButtonDisabled => IsInvestmentBusy || !IsInvestmentAvailable;
 
@@ -763,6 +768,12 @@
 
 
 
+        if (IsInvestmentBlockedByAdvancedLive)
+
+            return T("investment.states.blocked");
+
+
+
         if (!IsInvestmentAvailable)
 
             return T("investment.states.unavailable");
@@ -772,6 +783,12 @@
         if (!HasWalletSession)
 
             return T("investment.states.walletRequired");
+
+
+
+        if (_investmentMatch is null)
+
+            return T("investment.states.positionAvailable");
 
 
 
@@ -788,6 +805,12 @@
         if (_investmentContextLoading)
 
             return "is-loading";
+
+
+
+        if (IsInvestmentBlockedByAdvancedLive)
+
+            return "is-blocked";
 
 
 
@@ -819,6 +842,12 @@
 
 
 
+        if (IsInvestmentBlockedByAdvancedLive)
+
+            return T("investment.messages.blockedAdvancedLive");
+
+
+
         if (!IsInvestmentAvailable)
 
         {
@@ -826,12 +855,6 @@
             return _investmentContextFailureReason switch
 
             {
-
-                "team_match_advanced_live" => T("investment.messages.advancedLive"),
-
-                "team_match_missing" => T("investment.messages.noMatch"),
-
-                "team_match_closed" => T("investment.messages.closed"),
 
                 "team_match_lookup_error" => T("investment.messages.error"),
 
@@ -849,7 +872,13 @@
 
 
 
-        return T("investment.messages.available", _detail.DisplaySymbol, _investmentOpponentName);
+        if (_investmentMatch is null)
+
+            return T("investment.messages.positionAvailableNoMatch");
+
+
+
+        return T("investment.messages.positionAvailable", _detail.DisplaySymbol);
 
     }
 
@@ -859,7 +888,7 @@
 
     {
 
-        if (!IsInvestmentAvailable || _investmentMatch is null)
+        if (!IsInvestmentAvailable)
 
             return;
 
@@ -867,7 +896,7 @@
 
         _pendingBetTeamId = _investmentTeamId;
 
-        _pendingBetTeamName = _detail.Symbol;
+        _pendingBetTeamName = !string.IsNullOrWhiteSpace(_detail.DisplaySymbol) ? _detail.DisplaySymbol : _detail.Symbol;
 
         _investmentAmount = 0.1m;
 
@@ -981,7 +1010,7 @@
 
     {
 
-        if (_investmentMatch is null || _pendingBetTeamId <= 0 || string.IsNullOrWhiteSpace(_pendingBetTeamName))
+        if (_pendingBetTeamId <= 0 || string.IsNullOrWhiteSpace(_pendingBetTeamName))
 
         {
 
@@ -1011,13 +1040,13 @@
 
         _showInvestmentAmountModal = false;
 
-        await SendBetAsync(_investmentMatch, _pendingBetTeamId, _pendingBetTeamName, _investmentAmount);
+        await SendPositionAsync(_pendingBetTeamId, _pendingBetTeamName, _investmentAmount);
 
     }
 
 
 
-    private async Task SendBetAsync(MatchDto match, int teamId, string teamName, decimal amountSol)
+    private async Task SendPositionAsync(int teamId, string teamName, decimal amountSol)
 
     {
 
@@ -1053,49 +1082,29 @@
 
 
 
-            var investDiagnostics = await PrepareInvestmentDiagnosticsAsync(match, teamId, teamName, amountSol);
-
-            var payload = new
+            var payload = new CreateTeamPositionRequest
 
             {
 
-                userId = _loggedUserId.Value,
+                TeamId = teamId,
 
-                teamId,
+                Amount = amountSol,
 
-                amount = amountSol,
-
-                onChainSignature = investDiagnostics.Signature,
-
-                onChainAmountLamports = investDiagnostics.AmountLamports
+                AutoCompound = true
 
             };
 
 
 
-            var url = EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/match/{match.MatchId}/bet");
+            var response = await Api.CreateOrIncreasePositionAsync(payload);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, url)
-
-                {
-
-                    Content = JsonContent.Create(payload)
-
-                };
-
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-
-
-            using var response = await Http.SendAsync(request);
-
-            if (response.IsSuccessStatusCode)
+            if (response is not null)
 
             {
 
                 _investmentStatusMessage = T("investment.messages.success", _detail.DisplaySymbol);
 
-                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento de {FmtSolAmount(amountSol)} em {teamName} foi registrado com sucesso.");
+                ShowInvestmentPopup("Posicao confirmada", $"Sua posicao de {FmtSolAmount(amountSol)} em {teamName} foi registrada com sucesso.");
 
                 await ResolveInvestmentContextAsync();
 
@@ -1117,7 +1126,7 @@
 
         {
 
-            _investmentStatusMessage = GetBetPopupExceptionMessage(ex);
+            _investmentStatusMessage = ex.Message;
 
             ShowInvestmentPopup("Investimento não concluído", GetBetPopupExceptionMessage(ex));
 

@@ -101,6 +101,11 @@ public sealed class CriptoVersusApiClient
         CancellationToken ct = default)
         => await PostAsJsonWithBearerAsync<TeamPositionDto>($"api/positions/{positionId}/close", new { }, ct);
 
+    public async Task<TeamPositionDto?> CreateOrIncreasePositionAsync(
+        CreateTeamPositionRequest request,
+        CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<TeamPositionDto>("api/positions", request, ct);
+
     public async Task<UserMatchHistoryPageDto?> GetWalletHistoryMatchesAsync(
         int userId,
         int teamId,

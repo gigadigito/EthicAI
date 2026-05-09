@@ -47,19 +47,25 @@ public sealed class TeamInvestmentContextResolver
             .OrderBy(x => x.BettingCloseTime ?? (x.StartTime.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(x.StartTime.Value, DateTimeKind.Utc)) : DateTimeOffset.MaxValue))
             .FirstOrDefault();
 
-        var selectedMatch = ongoing ?? pending;
-        if (selectedMatch is null)
-            return TeamInvestmentContextResolution.Unavailable("team_match_closed");
+        var contextSource = ongoing
+            ?? pending
+            ?? relatedMatches
+                .OrderByDescending(x => x.StartTime ?? DateTime.MinValue)
+                .FirstOrDefault();
 
-        var teamContext = PublicInvestmentRules.GetTeamContext(selectedMatch, normalizedSymbol);
+        if (contextSource is null)
+            return TeamInvestmentContextResolution.Unavailable("team_context_invalid");
+
+        var teamContext = PublicInvestmentRules.GetTeamContext(contextSource, normalizedSymbol);
         if (teamContext is null)
             return TeamInvestmentContextResolution.Unavailable("team_context_invalid");
 
         return TeamInvestmentContextResolution.Available(
-            selectedMatch,
+            ongoing ?? pending,
             teamContext.Value.TeamId,
             teamContext.Value.TeamName,
-            teamContext.Value.OpponentName);
+            teamContext.Value.OpponentName,
+            (ongoing ?? pending) is null ? "position_available_no_active_match" : string.Empty);
     }
 }
 
@@ -71,8 +77,13 @@ public sealed record TeamInvestmentContextResolution(
     string OpponentName,
     string FailureReason)
 {
-    public static TeamInvestmentContextResolution Available(MatchDto match, int teamId, string teamName, string opponentName)
-        => new(true, match, teamId, teamName, opponentName, string.Empty);
+    public static TeamInvestmentContextResolution Available(
+        MatchDto? match,
+        int teamId,
+        string teamName,
+        string opponentName,
+        string failureReason = "")
+        => new(true, match, teamId, teamName, opponentName, failureReason);
 
     public static TeamInvestmentContextResolution Unavailable(string failureReason)
         => new(false, null, 0, string.Empty, string.Empty, failureReason);

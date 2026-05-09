@@ -631,25 +631,30 @@
       "cta": "Invest in {0}",
       "loadingCta": "Loading market",
       "openMatch": "Open match",
-      "states": {
-        "loading": "Loading",
-        "available": "Available",
-        "walletRequired": "Connect wallet",
-        "unavailable": "Unavailable"
+        "states": {
+          "loading": "Loading",
+          "available": "Available",
+          "positionAvailable": "Position available",
+          "blocked": "Blocked",
+          "walletRequired": "Connect wallet",
+          "unavailable": "Unavailable"
+        },
+        "messages": {
+          "loading": "Looking up the latest investable match or cycle for this team.",
+          "available": "Persistent position available for {0}.",
+          "positionAvailable": "Persistent position available for {0}.",
+          "positionAvailableNoMatch": "You can open a persistent position in this asset. It may automatically participate in future cycles.",
+          "walletRequired": "Connect your wallet to open or increase a persistent position in {0}.",
+          "unavailable": "This team has no public investable market right now.",
+          "noMatch": "We could not find an active public match for this team yet.",
+          "closed": "Recent matches for this team are no longer inside the investment window.",
+          "advancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
+          "blockedAdvancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
+          "error": "We could not validate the investable context right now. Please try again shortly.",
+          "success": "Investment submitted for {0}.",
+          "submitError": "We could not submit the investment for {0} right now."
+        }
       },
-      "messages": {
-        "loading": "Looking up the latest investable match or cycle for this team.",
-        "available": "Market open for {0}. This uses the same public arena investment flow currently active against {1}.",
-        "walletRequired": "An investable match exists for {0}, but you need to connect your wallet to complete the current flow.",
-        "unavailable": "This team has no public investable market right now.",
-        "noMatch": "We could not find an active public match for this team yet.",
-        "closed": "Recent matches for this team are no longer inside the investment window.",
-        "advancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
-        "error": "We could not validate the investable context right now. Please try again shortly.",
-        "success": "Investment submitted for {0}.",
-        "submitError": "We could not submit the investment for {0} right now."
-      }
-    },
     "states": {
       "loadingTitle": "Loading team profile",
       "loadingBody": "Fetching the latest public arena detail for this crypto team.",
