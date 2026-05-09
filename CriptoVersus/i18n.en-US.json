@@ -422,7 +422,9 @@
       "eyebrow": "Roadmap connectors",
       "title": "Next public stats hubs",
       "description": "Reserved destinations for upcoming stats expansions. They are intentionally disabled until the routes go live.",
+      "availableNow": "Available now",
       "comingSoon": "Coming soon",
+      "openAria": "Open {0}",
       "links": {
         "teams": { "title": "Teams", "description": "Dedicated team-vs-team public leaderboards." },
         "matches": { "title": "Matches", "description": "Expanded match archive with deeper historical filters." },
@@ -442,6 +444,199 @@
     "footnote": {
       "title": "Public arena data context",
       "body": "CriptoVersus public statistics track crypto match performance, historical arena battles, win rates, scoreboards and public market competition between digital assets."
+    }
+  },
+  "statsTeams": {
+    "seo": {
+      "title": "Crypto Arena Teams - CriptoVersus Rankings",
+      "description": "Explore public crypto arena teams, historical win rates, rankings and battle statistics across the CriptoVersus ecosystem."
+    },
+    "hero": {
+      "eyebrow": "Arena team directory",
+      "title": "Crypto Arena Teams",
+      "subtitle": "Explore public crypto asset performance across historical CriptoVersus arena battles.",
+      "seoCopy": "CriptoVersus turns crypto assets into public arena teams with historical rankings, relative performance, public statistics and indexable battle records across the ecosystem.",
+      "backToStats": "Back to stats",
+      "backToStatsAria": "Return to the CriptoVersus statistics page",
+      "howArenaWorks": "How the arena works",
+      "howArenaWorksAria": "Read how the CriptoVersus arena works",
+      "liveDirectory": "Live directory",
+      "liveDirectoryHint": "public asset teams indexed",
+      "totalIndexedBattles": "Total battles indexed",
+      "totalIndexedBattlesHint": "completed public match records",
+      "updatedStatus": "Live arena state",
+      "updatedStatusValue": "Public team stats",
+      "updatedStatusHint": "refreshed with the latest public history"
+    },
+    "states": {
+      "loadingTitle": "Loading arena teams",
+      "loadingBody": "Fetching the latest public team directory and ranking data.",
+      "errorTitle": "Teams temporarily unavailable",
+      "errorBody": "We could not load the public arena teams right now. Showing a stable empty board instead.",
+      "emptyTitle": "No public teams yet",
+      "emptyBody": "The arena has not indexed enough completed public battles to build the team directory yet."
+    },
+    "summary": {
+      "ariaLabel": "Arena teams summary",
+      "totalAssets": { "label": "Total Assets", "hint": "public crypto teams tracked" },
+      "mostDominantAsset": { "label": "Most Dominant Asset", "hint": "current top ranked arena leader" },
+      "highestWinRate": { "label": "Highest Win Rate", "hint": "best public closing percentage" },
+      "mostActiveTeam": { "label": "Most Active Team", "hint": "largest public match sample" },
+      "totalBattlesIndexed": { "label": "Total Battles Indexed", "hint": "completed public arena battles" }
+    },
+    "search": {
+      "eyebrow": "Search the directory",
+      "title": "Find a crypto team",
+      "description": "Instantly filter the public arena board by symbol or asset name.",
+      "label": "Search crypto teams",
+      "placeholder": "Search crypto teams...",
+      "ariaLabel": "Search crypto teams",
+      "noResultsTitle": "No matching teams",
+      "noResultsBody": "Try a different symbol or broader search term."
+    },
+    "grid": {
+      "eyebrow": "Competitive board",
+      "title": "Arena team directory",
+      "description": "Premium public cards for the strongest crypto teams based on historical CriptoVersus battle performance.",
+      "rankValue": "Arena Rank #{0}",
+      "viewTeam": "View Team",
+      "viewTeamAria": "Open the future team page for {0}",
+      "metrics": {
+        "winRate": "Win Rate",
+        "matches": "Matches",
+        "goals": "Goals",
+        "averageScore": "Average Score"
+      },
+      "details": {
+        "wins": "Wins",
+        "losses": "Losses",
+        "totalScore": "Total Score",
+        "momentum": "Momentum"
+      }
+    },
+    "table": {
+      "eyebrow": "HTML ranking table",
+      "title": "Top Arena Teams",
+      "description": "Indexable ranking table for public crypto arena teams, historical win rates and battle statistics.",
+      "empty": "No arena teams available yet.",
+      "assetAria": "Open the future team page for {0}",
+      "columns": {
+        "rank": "Rank",
+        "asset": "Asset",
+        "matches": "Matches",
+        "wins": "Wins",
+        "losses": "Losses",
+        "winRate": "Win Rate",
+        "averageScore": "Average Score",
+        "totalScore": "Total Score",
+        "momentum": "Momentum"
+      }
+    },
+    "rivalries": {
+      "eyebrow": "Arena storylines",
+      "title": "Top Rivalries",
+      "description": "Featured competitive pairings built from the strongest public arena teams.",
+      "emptyTitle": "No rivalries yet",
+      "emptyBody": "Rivalries will appear here once the public team board has enough data.",
+      "teamAria": "Open the future team page for {0}"
+    },
+    "momentum": {
+      "dominant": "Dominant",
+      "hot": "Hot",
+      "rising": "Rising",
+      "aggressive": "Aggressive",
+      "veteran": "Veteran",
+      "struggling": "Struggling",
+      "volatile": "Volatile"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Statistics",
+      "breadcrumbTeams": "Teams"
+    }
+  },
+  "statsTeamDetail": {
+    "seo": {
+      "title": "{0} Team Profile - CriptoVersus Arena Stats",
+      "description": "Explore public CriptoVersus arena statistics, recent battles, rivals and historical performance for {0}."
+    },
+    "hero": {
+      "eyebrow": "Arena team profile",
+      "title": "{0} Team Profile",
+      "subtitle": "Public battle history, rivals and arena performance insights for {0}.",
+      "seoCopy": "{0} competes as a public arena team inside CriptoVersus, with historical match results, rankings, win rates and relative performance visible for search and discovery.",
+      "backToTeams": "Back to teams",
+      "backToStats": "Back to stats",
+      "rank": "Arena rank",
+      "rankHint": "current public ranking position",
+      "momentum": "Momentum",
+      "momentumHint": "current arena form label",
+      "lastMatch": "Last match",
+      "lastMatchHint": "latest public battle date"
+    },
+    "states": {
+      "loadingTitle": "Loading team profile",
+      "loadingBody": "Fetching the latest public arena detail for this crypto team.",
+      "errorTitle": "Team profile unavailable",
+      "errorBody": "We could not load this public team profile right now.",
+      "notFoundBody": "This arena team could not be found in the current public directory.",
+      "noData": "No data"
+    },
+    "summary": {
+      "matches": "Matches",
+      "wins": "Wins",
+      "losses": "Losses",
+      "winRate": "Win Rate",
+      "averageScore": "Average Score",
+      "totalScore": "Total Score"
+    },
+    "activity": {
+      "eyebrow": "Arena tempo",
+      "title": "Match Activity Over Time",
+      "description": "Recent public battle cadence for {0} across the CriptoVersus arena timeline.",
+      "ariaLabel": "{0} match activity over time chart"
+    },
+    "rivals": {
+      "eyebrow": "Key opponents",
+      "title": "Top Rivals",
+      "description": "Public rivals that faced this team most often in completed arena battles.",
+      "empty": "No rival data yet.",
+      "openAria": "Open the team profile for {0}",
+      "record": "{0} wins · {1} losses · {2} matches"
+    },
+    "latest": {
+      "eyebrow": "Latest scoreboards",
+      "title": "Latest Public Matches",
+      "description": "Recent public battles featuring {0} inside the CriptoVersus arena.",
+      "empty": "No public matches available yet.",
+      "openMatch": "Open match",
+      "unavailable": "Unavailable",
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "status": "Status",
+        "startedAt": "Started At",
+        "finishedAt": "Finished At",
+        "publicPage": "Public Page"
+      }
+    },
+    "momentum": {
+      "dominant": "Dominant",
+      "hot": "Hot",
+      "rising": "Rising",
+      "aggressive": "Aggressive",
+      "veteran": "Veteran",
+      "struggling": "Struggling",
+      "volatile": "Volatile"
+    },
+    "status": {
+      "completed": "Finished",
+      "ongoing": "Live",
+      "pending": "Pending",
+      "cancelled": "Cancelled"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Statistics",
+      "breadcrumbTeams": "Teams"
     }
   },
   "publicHome": {

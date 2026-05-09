@@ -132,12 +132,24 @@
                 {
                     @foreach (var asset in TrendingAssets)
                     {
-                        <a class="stats-trending-pill" href="@asset.TeamUrl" aria-label="@T("trending.assetAria", asset.DisplaySymbol)" title="@asset.FullSymbol">
-                            <img src="@GetIconUrl(asset.FullSymbol)" alt="" loading="lazy" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
-                            <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(asset.DisplaySymbol)</span>
-                            <strong>@asset.DisplaySymbol</strong>
-                            <small>@T("trending.matchesHint", asset.Matches)</small>
-                        </a>
+                        @if (asset.IsLinkEnabled)
+                        {
+                            <a class="stats-trending-pill" href="@asset.TeamUrl" aria-label="@T("trending.assetAria", asset.DisplaySymbol)" title="@asset.FullSymbol">
+                                <img src="@GetIconUrl(asset.FullSymbol)" alt="" loading="lazy" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(asset.DisplaySymbol)</span>
+                                <strong>@asset.DisplaySymbol</strong>
+                                <small>@T("trending.matchesHint", asset.Matches)</small>
+                            </a>
+                        }
+                        else
+                        {
+                            <article class="stats-trending-pill is-static" title="@asset.FullSymbol">
+                                <img src="@GetIconUrl(asset.FullSymbol)" alt="" loading="lazy" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(asset.DisplaySymbol)</span>
+                                <strong>@asset.DisplaySymbol</strong>
+                                <small>@T("trending.matchesHint", asset.Matches)</small>
+                            </article>
+                        }
                     }
                 }
             </div>
@@ -205,11 +217,22 @@
                                 <tr>
                                     <td>@team.Rank</td>
                                     <td>
-                                        <a class="stats-asset-link" href="@assetView.TeamUrl" aria-label="@T("ranking.assetAria", assetView.DisplaySymbol)" title="@assetView.FullSymbol">
-                                            <img src="@GetIconUrl(assetView.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
-                                            <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(assetView.DisplaySymbol)</span>
-                                            <strong>@assetView.DisplaySymbol</strong>
-                                        </a>
+                                        @if (assetView.IsLinkEnabled)
+                                        {
+                                            <a class="stats-asset-link" href="@assetView.TeamUrl" aria-label="@T("ranking.assetAria", assetView.DisplaySymbol)" title="@assetView.FullSymbol">
+                                                <img src="@GetIconUrl(assetView.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(assetView.DisplaySymbol)</span>
+                                                <strong>@assetView.DisplaySymbol</strong>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="stats-asset-link is-static" title="@assetView.FullSymbol">
+                                                <img src="@GetIconUrl(assetView.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(assetView.DisplaySymbol)</span>
+                                                <strong>@assetView.DisplaySymbol</strong>
+                                            </span>
+                                        }
                                         @if (!string.Equals(assetView.DisplayName, assetView.DisplaySymbol, StringComparison.OrdinalIgnoreCase))
                                         {
                                             <span class="stats-table__muted" title="@team.DisplayName">@assetView.DisplayName</span>
@@ -267,17 +290,39 @@
                                 <tr>
                                     <td>
                                         <div class="stats-matchup">
-                                            <a class="stats-asset-link" href="@homeAsset.TeamUrl" aria-label="@T("latest.homeAssetAria", homeAsset.DisplaySymbol)" title="@homeAsset.FullSymbol">
-                                                <img src="@GetIconUrl(homeAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
-                                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(homeAsset.DisplaySymbol)</span>
-                                                <strong>@homeAsset.DisplaySymbol</strong>
-                                            </a>
+                                            @if (homeAsset.IsLinkEnabled)
+                                            {
+                                                <a class="stats-asset-link" href="@homeAsset.TeamUrl" aria-label="@T("latest.homeAssetAria", homeAsset.DisplaySymbol)" title="@homeAsset.FullSymbol">
+                                                    <img src="@GetIconUrl(homeAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                    <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(homeAsset.DisplaySymbol)</span>
+                                                    <strong>@homeAsset.DisplaySymbol</strong>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="stats-asset-link is-static" title="@homeAsset.FullSymbol">
+                                                    <img src="@GetIconUrl(homeAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                    <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(homeAsset.DisplaySymbol)</span>
+                                                    <strong>@homeAsset.DisplaySymbol</strong>
+                                                </span>
+                                            }
                                             <span class="stats-matchup__vs">vs</span>
-                                            <a class="stats-asset-link" href="@awayAsset.TeamUrl" aria-label="@T("latest.awayAssetAria", awayAsset.DisplaySymbol)" title="@awayAsset.FullSymbol">
-                                                <img src="@GetIconUrl(awayAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
-                                                <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(awayAsset.DisplaySymbol)</span>
-                                                <strong>@awayAsset.DisplaySymbol</strong>
-                                            </a>
+                                            @if (awayAsset.IsLinkEnabled)
+                                            {
+                                                <a class="stats-asset-link" href="@awayAsset.TeamUrl" aria-label="@T("latest.awayAssetAria", awayAsset.DisplaySymbol)" title="@awayAsset.FullSymbol">
+                                                    <img src="@GetIconUrl(awayAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                    <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(awayAsset.DisplaySymbol)</span>
+                                                    <strong>@awayAsset.DisplaySymbol</strong>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="stats-asset-link is-static" title="@awayAsset.FullSymbol">
+                                                    <img src="@GetIconUrl(awayAsset.FullSymbol)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                    <span class="stats-asset-fallback" aria-hidden="true">@GetAssetMonogram(awayAsset.DisplaySymbol)</span>
+                                                    <strong>@awayAsset.DisplaySymbol</strong>
+                                                </span>
+                                            }
                                         </div>
                                     </td>
                                     <td>
@@ -319,12 +364,24 @@
             <div class="stats-link-grid">
                 @foreach (var futureLink in FutureLinks)
                 {
-                    <article class="stats-link-card is-disabled" aria-disabled="true">
-                        <span>@T("future.comingSoon")</span>
-                        <strong>@futureLink.Title</strong>
-                        <p>@futureLink.Description</p>
-                        <code>@futureLink.Path</code>
-                    </article>
+                    if (futureLink.IsEnabled)
+                    {
+                        <a class="stats-link-card stats-link-card--active" href="@futureLink.Path" aria-label="@T("future.openAria", futureLink.Title)">
+                            <span>@T("future.availableNow")</span>
+                            <strong>@futureLink.Title</strong>
+                            <p>@futureLink.Description</p>
+                            <code>@futureLink.Path</code>
+                        </a>
+                    }
+                    else
+                    {
+                        <article class="stats-link-card is-disabled" aria-disabled="true">
+                            <span>@T("future.comingSoon")</span>
+                            <strong>@futureLink.Title</strong>
+                            <p>@futureLink.Description</p>
+                            <code>@futureLink.Path</code>
+                        </article>
+                    }
                 }
             </div>
         </section>
@@ -357,6 +414,10 @@
     private string EnglishUrl => BuildAbsolute("/stats");
     private string PortugueseUrl => BuildAbsolute("/pt/estatisticas");
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
+    private HashSet<string> LinkableTeamSlugs => _stats.TopTeams
+        .Select(team => BuildAssetSlug(CleanAssetSymbol(team.Symbol)))
+        .Where(slug => !string.IsNullOrWhiteSpace(slug))
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private IReadOnlyList<SummaryCardViewModel> SummaryCards =>
     [
@@ -370,7 +431,7 @@
 
     private IReadOnlyList<FutureLinkViewModel> FutureLinks =>
     [
-        new FutureLinkViewModel(T("future.links.teams.title"), "/stats/teams", T("future.links.teams.description")),
+        new FutureLinkViewModel(T("future.links.teams.title"), RouteLocalization.BuildStatsTeamsPath(CurrentCulture), T("future.links.teams.description"), isEnabled: LinkableTeamSlugs.Count > 0),
         new FutureLinkViewModel(T("future.links.matches.title"), "/stats/matches", T("future.links.matches.description")),
         new FutureLinkViewModel(T("future.links.rankings.title"), "/stats/rankings", T("future.links.rankings.description")),
         new FutureLinkViewModel(T("future.links.records.title"), "/stats/records", T("future.links.records.description"))
@@ -545,12 +606,15 @@
         if (string.Equals(effectiveDisplayName, fullSymbol, StringComparison.OrdinalIgnoreCase))
             effectiveDisplayName = cleanSymbol;
 
+        var slug = BuildAssetSlug(cleanSymbol);
+
         return new TrendingAssetViewModel(
             fullSymbol,
             cleanSymbol,
             effectiveDisplayName,
             matches,
-            $"/stats/teams/{BuildAssetSlug(cleanSymbol)}");
+            RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, slug),
+            isLinkEnabled: LinkableTeamSlugs.Contains(slug));
     }
 
     private static string CleanAssetSymbol(string? symbol)
@@ -657,27 +721,30 @@
 
     private sealed class FutureLinkViewModel
     {
-        public FutureLinkViewModel(string title, string path, string description)
+        public FutureLinkViewModel(string title, string path, string description, bool isEnabled = false)
         {
             Title = title;
             Path = path;
             Description = description;
+            IsEnabled = isEnabled;
         }
 
         public string Title { get; }
         public string Path { get; }
         public string Description { get; }
+        public bool IsEnabled { get; }
     }
 
     private sealed class TrendingAssetViewModel
     {
-        public TrendingAssetViewModel(string fullSymbol, string displaySymbol, string displayName, int matches, string teamUrl)
+        public TrendingAssetViewModel(string fullSymbol, string displaySymbol, string displayName, int matches, string teamUrl, bool isLinkEnabled)
         {
             FullSymbol = fullSymbol;
             DisplaySymbol = displaySymbol;
             DisplayName = displayName;
             Matches = matches;
             TeamUrl = teamUrl;
+            IsLinkEnabled = isLinkEnabled;
         }
 
         public string FullSymbol { get; }
@@ -685,6 +752,7 @@
         public string DisplayName { get; }
         public int Matches { get; }
         public string TeamUrl { get; }
+        public bool IsLinkEnabled { get; }
     }
 }
 
@@ -946,6 +1014,10 @@
         transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
 
+    .stats-trending-pill.is-static {
+        cursor: default;
+    }
+
     .stats-trending-pill:hover {
         transform: translateY(-1px);
         border-color: rgba(127, 246, 223, 0.32);
@@ -1041,6 +1113,14 @@
 
     .stats-asset-link:hover {
         color: var(--stats-green);
+    }
+
+    .stats-asset-link.is-static {
+        cursor: default;
+    }
+
+    .stats-asset-link.is-static:hover {
+        color: #edf6ff;
     }
 
     .stats-asset-link img,
@@ -1194,6 +1274,18 @@
         padding: 1.15rem;
         display: grid;
         gap: .55rem;
+    }
+
+    .stats-link-card--active {
+        color: var(--stats-text);
+        text-decoration: none;
+        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .stats-link-card--active:hover {
+        transform: translateY(-1px);
+        border-color: rgba(127, 246, 223, 0.32);
+        box-shadow: 0 18px 50px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.04);
     }
 
     .stats-link-card strong {

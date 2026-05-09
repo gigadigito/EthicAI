@@ -1,0 +1,452 @@
+@page "/stats/teams/{Slug}"
+@page "/en/stats/teams/{Slug}"
+@page "/pt/estatisticas/times/{Slug}"
+@using System.Globalization
+@using System.Net
+@using System.Text.Json
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="description" content="@MetaDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@CanonicalUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="team-detail-page">
+    @if (_loading)
+    {
+        <section class="team-detail-feedback">
+            <div class="team-detail-spinner" aria-hidden="true"></div>
+            <div>
+                <strong>@T("states.loadingTitle")</strong>
+                <p>@T("states.loadingBody")</p>
+            </div>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <section class="team-detail-feedback team-detail-feedback--error" role="alert">
+            <div>
+                <strong>@T("states.errorTitle")</strong>
+                <p>@_error</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        <header class="team-detail-hero">
+            <div class="team-detail-hero__copy">
+                <span class="team-detail-hero__eyebrow">@T("hero.eyebrow")</span>
+                <div class="team-detail-hero__identity">
+                    <img src="@GetIconUrl()" alt="" width="28" height="28" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                    <span class="team-detail__fallback" aria-hidden="true">@GetAssetMonogram(_detail.DisplaySymbol)</span>
+                    <h1>@_detail.DisplaySymbol</h1>
+                </div>
+                <p class="team-detail-hero__lead">@T("hero.subtitle", _detail.DisplaySymbol)</p>
+                <p class="team-detail-hero__seo-copy">@T("hero.seoCopy", _detail.DisplaySymbol)</p>
+                <div class="team-detail-hero__actions">
+                    <a class="team-detail-pill-link" href="@RouteLocalization.BuildStatsTeamsPath(CurrentCulture)">@T("hero.backToTeams")</a>
+                    <a class="team-detail-pill-link team-detail-pill-link--accent" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">@T("hero.backToStats")</a>
+                </div>
+            </div>
+            <div class="team-detail-hero__panel">
+                <article>
+                    <span>@T("hero.rank")</span>
+                    <strong>#@_detail.Rank</strong>
+                    <small>@T("hero.rankHint")</small>
+                </article>
+                <article>
+                    <span>@T("hero.momentum")</span>
+                    <strong>@FormatMomentum(_detail.Momentum)</strong>
+                    <small>@T("hero.momentumHint")</small>
+                </article>
+                <article>
+                    <span>@T("hero.lastMatch")</span>
+                    <strong>@DisplayDate(_detail.LastMatchUtc)</strong>
+                    <small>@T("hero.lastMatchHint")</small>
+                </article>
+            </div>
+        </header>
+
+        <section class="team-detail-summary-grid">
+            <article class="team-detail-card"><span>@T("summary.matches")</span><strong>@DisplayNumber(_detail.Matches)</strong></article>
+            <article class="team-detail-card"><span>@T("summary.wins")</span><strong>@DisplayNumber(_detail.Wins)</strong></article>
+            <article class="team-detail-card"><span>@T("summary.losses")</span><strong>@DisplayNumber(_detail.Losses)</strong></article>
+            <article class="team-detail-card"><span>@T("summary.winRate")</span><strong>@FormatPercent(_detail.WinRate)</strong></article>
+            <article class="team-detail-card"><span>@T("summary.averageScore")</span><strong>@FormatDecimal(_detail.AverageScore)</strong></article>
+            <article class="team-detail-card"><span>@T("summary.totalScore")</span><strong>@DisplayNumber(_detail.TotalScore)</strong></article>
+        </section>
+
+        <section class="team-detail-grid">
+            <article class="team-detail-chart-card">
+                <div class="team-detail-section-head">
+                    <div>
+                        <span>@T("activity.eyebrow")</span>
+                        <h2>@T("activity.title")</h2>
+                    </div>
+                    <p>@T("activity.description", _detail.DisplaySymbol)</p>
+                </div>
+                <div id="@ActivityChartId" class="team-detail-chart-shell" role="img" aria-label="@T("activity.ariaLabel", _detail.DisplaySymbol)"></div>
+            </article>
+
+            <article class="team-detail-rivals-card">
+                <div class="team-detail-section-head">
+                    <div>
+                        <span>@T("rivals.eyebrow")</span>
+                        <h2>@T("rivals.title")</h2>
+                    </div>
+                    <p>@T("rivals.description")</p>
+                </div>
+                <div class="team-detail-rivals-list">
+                    @if (_detail.Rivalries.Count == 0)
+                    {
+                        <p class="team-detail-empty">@T("rivals.empty")</p>
+                    }
+                    else
+                    {
+                        @foreach (var rival in _detail.Rivalries)
+                        {
+                            <a class="team-detail-rival-item" href="@RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, BuildAssetSlug(rival.DisplaySymbol))" aria-label="@T("rivals.openAria", rival.DisplaySymbol)">
+                                <img src="@GetIconUrl(rival.IconUrl, rival.DisplaySymbol)" alt="" width="18" height="18" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                <span class="team-detail__fallback" aria-hidden="true">@GetAssetMonogram(rival.DisplaySymbol)</span>
+                                <strong>@rival.DisplaySymbol</strong>
+                                <small>@T("rivals.record", rival.Wins, rival.Losses, rival.Matches)</small>
+                            </a>
+                        }
+                    }
+                </div>
+            </article>
+        </section>
+
+        <section class="team-detail-table-section">
+            <div class="team-detail-section-head">
+                <div>
+                    <span>@T("latest.eyebrow")</span>
+                    <h2>@T("latest.title")</h2>
+                </div>
+                <p>@T("latest.description", _detail.DisplaySymbol)</p>
+            </div>
+            <div class="team-detail-table-wrap">
+                <table class="team-detail-table">
+                    <thead>
+                        <tr>
+                            <th>@T("latest.columns.match")</th>
+                            <th>@T("latest.columns.score")</th>
+                            <th>@T("latest.columns.status")</th>
+                            <th>@T("latest.columns.startedAt")</th>
+                            <th>@T("latest.columns.finishedAt")</th>
+                            <th>@T("latest.columns.publicPage")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_detail.LatestMatches.Count == 0)
+                        {
+                            <tr><td colspan="6" class="team-detail-empty">@T("latest.empty")</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var match in _detail.LatestMatches)
+                            {
+                                <tr>
+                                    <td>@GetDisplaySymbol(match.HomeSymbol) vs @GetDisplaySymbol(match.AwaySymbol)</td>
+                                    <td>@match.HomeScore x @match.AwayScore</td>
+                                    <td><span class="@GetStatusBadgeClass(match.Status)">@FormatStatus(match.Status)</span></td>
+                                    <td>@DisplayDateTime(match.StartedAtUtc)</td>
+                                    <td>@DisplayDateTime(match.FinishedAtUtc)</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(GetMatchUrl(match)))
+                                        {
+                                            <a class="team-detail-cta-link" href="@GetMatchUrl(match)">@T("latest.openMatch")</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="team-detail-muted">@T("latest.unavailable")</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+    [Parameter] public string? Culture { get; set; }
+
+    private const string ActivityChartId = "team-detail-activity-chart";
+    private readonly StatsArenaTeamDetailDto _detail = new();
+    private bool _loading = true;
+    private bool _chartPendingRender;
+    private string? _error;
+
+    private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private string NormalizedSlug => BuildAssetSlug(Slug);
+    private string PageTitleText => T("seo.title", SeoSymbol);
+    private string MetaDescription => T("seo.description", SeoSymbol);
+    private string CanonicalUrl => BuildAbsolute($"/stats/teams/{NormalizedSlug}");
+    private string EnglishUrl => BuildAbsolute($"/stats/teams/{NormalizedSlug}");
+    private string PortugueseUrl => BuildAbsolute($"/pt/estatisticas/times/{NormalizedSlug}");
+    private string StructuredDataMarkup => BuildStructuredDataMarkup();
+    private string SeoSymbol => !string.IsNullOrWhiteSpace(_detail.DisplaySymbol) ? _detail.DisplaySymbol : NormalizedSlug.ToUpperInvariant();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_chartPendingRender || _loading || !string.IsNullOrWhiteSpace(_error))
+            return;
+
+        _chartPendingRender = false;
+        await JS.InvokeVoidAsync("criptoVersusStatsCharts.renderMatchActivityChart", ActivityChartId, _detail.MatchActivity);
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var response = await Api.GetStatsTeamDetailAsync(NormalizedSlug);
+            if (response is null)
+            {
+                _error = T("states.notFoundBody");
+            }
+            else
+            {
+                _detail.Symbol = response.Symbol;
+                _detail.DisplaySymbol = response.DisplaySymbol;
+                _detail.DisplayName = response.DisplayName;
+                _detail.Rank = response.Rank;
+                _detail.Matches = response.Matches;
+                _detail.Wins = response.Wins;
+                _detail.Losses = response.Losses;
+                _detail.WinRate = response.WinRate;
+                _detail.AverageScore = response.AverageScore;
+                _detail.TotalScore = response.TotalScore;
+                _detail.Momentum = response.Momentum;
+                _detail.IconUrl = response.IconUrl;
+                _detail.LastMatchUtc = response.LastMatchUtc;
+                _detail.MatchActivity.Clear();
+                _detail.MatchActivity.AddRange(response.MatchActivity ?? []);
+                _detail.LatestMatches.Clear();
+                _detail.LatestMatches.AddRange(response.LatestMatches ?? []);
+                _detail.Rivalries.Clear();
+                _detail.Rivalries.AddRange(response.Rivalries ?? []);
+                _chartPendingRender = true;
+            }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _error = T("states.notFoundBody");
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            Console.WriteLine($"Stats team detail page load error: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string BuildStructuredDataMarkup()
+    {
+        var graph = new object[]
+        {
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "WebPage",
+                ["name"] = T("hero.title", SeoSymbol),
+                ["description"] = T("hero.subtitle", SeoSymbol),
+                ["url"] = CanonicalUrl
+            },
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "BreadcrumbList",
+                ["itemListElement"] = new object[]
+                {
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "CriptoVersus", ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture)) },
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 2, ["name"] = T("structuredData.breadcrumbStats"), ["item"] = BuildAbsolute(RouteLocalization.BuildStatsPath(CurrentCulture)) },
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 3, ["name"] = T("structuredData.breadcrumbTeams"), ["item"] = BuildAbsolute(RouteLocalization.BuildStatsTeamsPath(CurrentCulture)) },
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 4, ["name"] = SeoSymbol, ["item"] = CanonicalUrl }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(graph);
+    }
+
+    private string GetIconUrl()
+        => GetIconUrl(_detail.IconUrl, SeoSymbol);
+
+    private static string GetIconUrl(string? explicitUrl, string fallbackSymbol)
+        => !string.IsNullOrWhiteSpace(explicitUrl) ? explicitUrl : $"/api/icons/binance/{fallbackSymbol.Trim().ToUpperInvariant()}";
+
+    private string GetDisplaySymbol(string symbol)
+        => CleanAssetSymbol(symbol);
+
+    private string GetMatchUrl(StatsLatestMatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol);
+        if (!string.IsNullOrWhiteSpace(slug))
+            return RouteLocalization.BuildBestPath(CurrentCulture, match.MatchId, slug);
+
+        return match.PublicUrl ?? string.Empty;
+    }
+
+    private string FormatMomentum(string? momentum)
+        => string.IsNullOrWhiteSpace(momentum) ? T("momentum.volatile") : T($"momentum.{momentum.Trim().ToLowerInvariant()}");
+
+    private string FormatStatus(string? status)
+        => string.IsNullOrWhiteSpace(status)
+            ? T("states.noData")
+            : status.Trim().ToLowerInvariant() switch
+            {
+                "completed" => T("status.completed"),
+                "ongoing" => T("status.ongoing"),
+                "pending" => T("status.pending"),
+                "cancelled" => T("status.cancelled"),
+                _ => status
+            };
+
+    private string GetStatusBadgeClass(string? status)
+    {
+        var suffix = status?.Trim().ToLowerInvariant() switch
+        {
+            "completed" => "is-finished",
+            "ongoing" => "is-live",
+            "pending" => "is-pending",
+            "cancelled" => "is-cancelled",
+            _ => "is-neutral"
+        };
+
+        return $"team-detail-status-badge {suffix}";
+    }
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "-";
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in VisualSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string BuildAssetSlug(string? symbol)
+        => new string((symbol ?? string.Empty).Trim().ToLowerInvariant().Where(char.IsLetterOrDigit).ToArray());
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var normalized = symbol.Trim().ToUpperInvariant();
+        return normalized.Length >= 2 ? normalized[..2] : normalized;
+    }
+
+    private static string DisplayNumber(int value) => value.ToString("N0", CultureInfo.InvariantCulture);
+    private static string FormatPercent(decimal value) => $"{value:0.##}%";
+    private static string FormatDecimal(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+    private static string DisplayDate(DateTime? value) => value.HasValue ? EnsureUtc(value.Value).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "-";
+    private static string DisplayDateTime(DateTime? value) => value.HasValue ? EnsureUtc(value.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-";
+    private string BuildAbsolute(string path) => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
+    private string T(string key, params object?[] args) => L.T($"statsTeamDetail.{key}", CurrentCulture, args);
+    private static DateTime EnsureUtc(DateTime value) => value.Kind switch { DateTimeKind.Utc => value, DateTimeKind.Local => value.ToUniversalTime(), _ => DateTime.SpecifyKind(value, DateTimeKind.Utc) };
+    private static readonly string[] VisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusStatsCharts.dispose", ActivityChartId);
+        }
+        catch
+        {
+        }
+    }
+}
+
+<style>
+    .team-detail-page { --td-border: rgba(112,132,170,.18); --td-text:#f4f8ff; --td-muted:#9cb0ca; --td-green:#7ff6df; display:grid; gap:1.2rem; width:min(1680px,100%); color:var(--td-text); }
+    .team-detail-hero, .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section, .team-detail-feedback { position:relative; border:1px solid var(--td-border); border-radius:26px; background:linear-gradient(180deg, rgba(9,13,22,.98), rgba(6,9,16,.99)); box-shadow:0 24px 70px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.03); overflow:hidden; }
+    .team-detail-hero { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr); gap:1.2rem; padding:2rem 1.7rem 1.9rem; }
+    .team-detail-hero__eyebrow, .team-detail-section-head span, .team-detail-card span { color:var(--td-green); letter-spacing:.12em; text-transform:uppercase; font-weight:900; font-size:.76rem; }
+    .team-detail-hero__identity { display:flex; align-items:center; gap:.75rem; margin:.65rem 0 .85rem; }
+    .team-detail-hero__identity h1, .team-detail-section-head h2 { margin:0; letter-spacing:-.03em; }
+    .team-detail-hero__identity h1 { font-size:clamp(2rem,2vw + 1rem,3rem); }
+    .team-detail-hero__lead, .team-detail-hero__seo-copy, .team-detail-section-head p, .team-detail-feedback p, .team-detail-muted, .team-detail-rival-item small { color:var(--td-muted); margin:0; line-height:1.65; }
+    .team-detail-hero__actions { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:1rem; }
+    .team-detail-pill-link, .team-detail-cta-link { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; font-weight:800; border-radius:999px; }
+    .team-detail-pill-link { min-height:3rem; padding:0 1rem; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:#eef5ff; }
+    .team-detail-pill-link--accent { color:#03150f; border-color:transparent; background:linear-gradient(90deg,#4cf38d,#7ff6df); }
+    .team-detail-hero__panel { display:grid; gap:1px; border-radius:22px; overflow:hidden; background:rgba(84,100,128,.18); }
+    .team-detail-hero__panel article { padding:1.1rem 1.2rem; background:rgba(9,13,22,.96); display:grid; gap:.25rem; }
+    .team-detail-hero__panel strong, .team-detail-card strong { font-size:clamp(1.6rem,1.4vw,2.2rem); line-height:1.05; }
+    .team-detail-summary-grid, .team-detail-grid { display:grid; gap:1rem; }
+    .team-detail-summary-grid { grid-template-columns:repeat(6,minmax(0,1fr)); }
+    .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section { padding:1.15rem 1.2rem; display:grid; gap:.9rem; }
+    .team-detail-grid { grid-template-columns: minmax(0,1.3fr) minmax(280px,.7fr); }
+    .team-detail-chart-shell { min-height:320px; border-radius:20px; border:1px solid rgba(255,255,255,.06); background:linear-gradient(180deg, rgba(7,12,20,.98), rgba(6,10,17,.98)); }
+    .team-detail-rivals-list { display:grid; gap:.75rem; }
+    .team-detail-rival-item { display:grid; gap:.15rem; padding:.85rem .9rem; border-radius:18px; border:1px solid rgba(255,255,255,.08); background:rgba(8,12,21,.94); color:#eef5ff; text-decoration:none; }
+    .team-detail-rival-item strong { font-size:1rem; }
+    .team-detail-table-wrap { overflow-x:auto; }
+    .team-detail-table { width:100%; border-collapse:collapse; min-width:760px; }
+    .team-detail-table th, .team-detail-table td { padding:.9rem .8rem; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; vertical-align:top; }
+    .team-detail-table th { color:#d7e4f6; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; }
+    .team-detail-empty { color:var(--td-muted); text-align:center; }
+    .team-detail-status-badge { display:inline-flex; align-items:center; justify-content:center; min-width:6rem; padding:.4rem .65rem; border-radius:999px; font-size:.72rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.04); }
+    .team-detail-status-badge.is-live { color:#9cffcf; border-color:rgba(76,243,141,.28); background:rgba(76,243,141,.12); }
+    .team-detail-status-badge.is-finished { color:#bcefff; border-color:rgba(83,200,255,.24); background:rgba(83,200,255,.12); }
+    .team-detail-status-badge.is-pending { color:#ffe49a; border-color:rgba(255,215,110,.24); background:rgba(255,215,110,.11); }
+    .team-detail-status-badge.is-cancelled { color:#ffb3b3; border-color:rgba(255,133,133,.22); background:rgba(255,133,133,.11); }
+    .team-detail-cta-link { min-height:2.3rem; padding:0 .85rem; border:1px solid rgba(127,246,223,.22); background:rgba(127,246,223,.08); color:var(--td-green); }
+    .team-detail-feedback { padding:1.1rem 1.2rem; display:flex; align-items:center; gap:.9rem; }
+    .team-detail-feedback--error { border-color:rgba(255,120,120,.28); }
+    .team-detail-spinner { width:2.2rem; height:2.2rem; border-radius:50%; border:3px solid rgba(127,246,223,.16); border-top-color:#7ff6df; animation:team-detail-spin 1s linear infinite; }
+    .team-detail__fallback { display:none; align-items:center; justify-content:center; width:1.2rem; height:1.2rem; border-radius:50%; background:rgba(83,200,255,.18); color:#cfe9ff; font-size:.58rem; font-weight:900; }
+    .team-detail__fallback.is-visible { display:inline-flex; }
+    @@media (max-width: 1180px) { .team-detail-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @@media (max-width: 980px) { .team-detail-hero, .team-detail-grid { grid-template-columns:1fr; } }
+    @@media (max-width: 760px) { .team-detail-summary-grid { grid-template-columns:1fr; } .team-detail-hero, .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section { padding:1rem; } .team-detail-chart-shell { min-height:260px; } }
+    @@keyframes team-detail-spin { to { transform:rotate(360deg); } }
+</style>

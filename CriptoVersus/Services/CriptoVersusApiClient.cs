@@ -1,5 +1,6 @@
 ﻿using DTOs;
 using Blazored.SessionStorage;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -101,6 +102,12 @@ public sealed class CriptoVersusApiClient
     public async Task<StatsOverviewDto?> GetStatsOverviewAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<StatsOverviewDto>("api/stats/overview", ct);
 
+    public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<List<StatsArenaTeamDto>>("api/stats/teams", ct);
+
+    public async Task<StatsArenaTeamDetailDto?> GetStatsTeamDetailAsync(string slug, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsArenaTeamDetailDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}", ct);
+
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,
         CancellationToken ct = default)
@@ -141,7 +148,7 @@ public sealed class CriptoVersusApiClient
         var message = TryReadApiMessage(body)
             ?? $"HTTP {(int)response.StatusCode} calling {response.RequestMessage?.RequestUri}";
 
-        throw new InvalidOperationException(message);
+        throw new HttpRequestException(message, null, response.StatusCode);
     }
 
     private static string? TryReadApiMessage(string body)

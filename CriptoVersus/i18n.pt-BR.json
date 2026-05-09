@@ -422,7 +422,9 @@
       "eyebrow": "Conectores do roadmap",
       "title": "Proximos hubs publicos de estatisticas",
       "description": "Destinos reservados para futuras expansoes de estatisticas. Eles ficam intencionalmente desabilitados ate que as rotas entrem no ar.",
+      "availableNow": "Disponivel agora",
       "comingSoon": "Em breve",
+      "openAria": "Abrir {0}",
       "links": {
         "teams": { "title": "Times", "description": "Leaderboards publicos dedicados a confrontos por time." },
         "matches": { "title": "Partidas", "description": "Arquivo ampliado de partidas com filtros historicos mais profundos." },
@@ -442,6 +444,199 @@
     "footnote": {
       "title": "Contexto dos dados publicos da arena",
       "body": "As estatisticas publicas do CriptoVersus acompanham a performance das partidas cripto, batalhas historicas da arena, taxas de vitoria, placares e a competicao publica de mercado entre ativos digitais."
+    }
+  },
+  "statsTeams": {
+    "seo": {
+      "title": "Times da Arena Cripto - Rankings CriptoVersus",
+      "description": "Explore os times publicos da arena cripto, taxas de vitoria historicas, rankings e estatisticas de batalhas do ecossistema CriptoVersus."
+    },
+    "hero": {
+      "eyebrow": "Diretorio da arena",
+      "title": "Times da Arena Cripto",
+      "subtitle": "Explore a performance publica de ativos cripto nas batalhas historicas da arena CriptoVersus.",
+      "seoCopy": "O CriptoVersus transforma ativos cripto em times publicos da arena com rankings historicos, performance relativa, estatisticas indexaveis e registros de batalhas abertas para descoberta.",
+      "backToStats": "Voltar para estatisticas",
+      "backToStatsAria": "Voltar para a pagina de estatisticas do CriptoVersus",
+      "howArenaWorks": "Como a arena funciona",
+      "howArenaWorksAria": "Ler como funciona a arena CriptoVersus",
+      "liveDirectory": "Diretorio ao vivo",
+      "liveDirectoryHint": "times publicos de ativos indexados",
+      "totalIndexedBattles": "Total de batalhas indexadas",
+      "totalIndexedBattlesHint": "registros publicos de partidas concluidas",
+      "updatedStatus": "Estado da arena",
+      "updatedStatusValue": "Times publicos da arena",
+      "updatedStatusHint": "atualizado com o historico publico mais recente"
+    },
+    "states": {
+      "loadingTitle": "Carregando times da arena",
+      "loadingBody": "Buscando o diretorio publico mais recente e os dados de ranking.",
+      "errorTitle": "Times temporariamente indisponiveis",
+      "errorBody": "Nao foi possivel carregar os times publicos da arena agora. Exibindo um painel vazio e estavel.",
+      "emptyTitle": "Ainda nao ha times publicos",
+      "emptyBody": "A arena ainda nao indexou batalhas publicas concluidas o suficiente para montar o diretorio de times."
+    },
+    "summary": {
+      "ariaLabel": "Resumo dos times da arena",
+      "totalAssets": { "label": "Total de Ativos", "hint": "times cripto publicos monitorados" },
+      "mostDominantAsset": { "label": "Ativo Mais Dominante", "hint": "lider atual do ranking da arena" },
+      "highestWinRate": { "label": "Maior Win Rate", "hint": "melhor percentual publico de vitorias" },
+      "mostActiveTeam": { "label": "Time Mais Ativo", "hint": "maior volume publico de partidas" },
+      "totalBattlesIndexed": { "label": "Total de Batalhas", "hint": "batalhas publicas concluidas da arena" }
+    },
+    "search": {
+      "eyebrow": "Buscar no diretorio",
+      "title": "Encontre um time cripto",
+      "description": "Filtre instantaneamente o quadro publico da arena por simbolo ou nome do ativo.",
+      "label": "Buscar times cripto",
+      "placeholder": "Buscar times cripto...",
+      "ariaLabel": "Buscar times cripto",
+      "noResultsTitle": "Nenhum time encontrado",
+      "noResultsBody": "Tente outro simbolo ou um termo mais amplo."
+    },
+    "grid": {
+      "eyebrow": "Quadro competitivo",
+      "title": "Diretorio de times da arena",
+      "description": "Cards publicos premium para os principais times cripto com base na performance historica das batalhas CriptoVersus.",
+      "rankValue": "Rank da Arena #{0}",
+      "viewTeam": "Ver Time",
+      "viewTeamAria": "Abrir a futura pagina do time {0}",
+      "metrics": {
+        "winRate": "Win Rate",
+        "matches": "Partidas",
+        "goals": "Gols",
+        "averageScore": "Score Medio"
+      },
+      "details": {
+        "wins": "Vitorias",
+        "losses": "Derrotas",
+        "totalScore": "Score Total",
+        "momentum": "Momentum"
+      }
+    },
+    "table": {
+      "eyebrow": "Tabela HTML de ranking",
+      "title": "Top Times da Arena",
+      "description": "Tabela indexavel de ranking para times publicos da arena cripto, win rates historicos e estatisticas de batalhas.",
+      "empty": "Ainda nao ha times da arena disponiveis.",
+      "assetAria": "Abrir a futura pagina do time {0}",
+      "columns": {
+        "rank": "Rank",
+        "asset": "Ativo",
+        "matches": "Partidas",
+        "wins": "Vitorias",
+        "losses": "Derrotas",
+        "winRate": "Win Rate",
+        "averageScore": "Score Medio",
+        "totalScore": "Score Total",
+        "momentum": "Momentum"
+      }
+    },
+    "rivalries": {
+      "eyebrow": "Narrativas da arena",
+      "title": "Principais Rivalidades",
+      "description": "Confrontos em destaque montados a partir dos times publicos mais fortes da arena.",
+      "emptyTitle": "Ainda nao ha rivalidades",
+      "emptyBody": "As rivalidades aparecerao aqui quando o quadro publico de times tiver dados suficientes.",
+      "teamAria": "Abrir a futura pagina do time {0}"
+    },
+    "momentum": {
+      "dominant": "Dominante",
+      "hot": "Quente",
+      "rising": "Em Alta",
+      "aggressive": "Agressivo",
+      "veteran": "Veterano",
+      "struggling": "Em Queda",
+      "volatile": "Volatil"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Estatisticas",
+      "breadcrumbTeams": "Times"
+    }
+  },
+  "statsTeamDetail": {
+    "seo": {
+      "title": "Perfil do Time {0} - Estatisticas da Arena CriptoVersus",
+      "description": "Explore as estatisticas publicas da arena CriptoVersus, batalhas recentes, rivais e performance historica de {0}."
+    },
+    "hero": {
+      "eyebrow": "Perfil do time da arena",
+      "title": "Perfil do Time {0}",
+      "subtitle": "Historico publico de batalhas, rivais e performance de arena de {0}.",
+      "seoCopy": "{0} compete como um time publico dentro do CriptoVersus, com resultados historicos de partidas, rankings, win rates e performance relativa visiveis para busca e descoberta.",
+      "backToTeams": "Voltar para times",
+      "backToStats": "Voltar para estatisticas",
+      "rank": "Rank da arena",
+      "rankHint": "posicao atual no ranking publico",
+      "momentum": "Momentum",
+      "momentumHint": "estado atual de forma na arena",
+      "lastMatch": "Ultima partida",
+      "lastMatchHint": "data da batalha publica mais recente"
+    },
+    "states": {
+      "loadingTitle": "Carregando perfil do time",
+      "loadingBody": "Buscando o detalhe publico mais recente deste time cripto.",
+      "errorTitle": "Perfil indisponivel",
+      "errorBody": "Nao foi possivel carregar este perfil publico agora.",
+      "notFoundBody": "Este time da arena nao foi encontrado no diretorio publico atual.",
+      "noData": "Sem dados"
+    },
+    "summary": {
+      "matches": "Partidas",
+      "wins": "Vitorias",
+      "losses": "Derrotas",
+      "winRate": "Win Rate",
+      "averageScore": "Score Medio",
+      "totalScore": "Score Total"
+    },
+    "activity": {
+      "eyebrow": "Ritmo da arena",
+      "title": "Atividade de Partidas ao Longo do Tempo",
+      "description": "Cadencia recente de batalhas publicas de {0} na linha do tempo da arena CriptoVersus.",
+      "ariaLabel": "Grafico de atividade de partidas de {0} ao longo do tempo"
+    },
+    "rivals": {
+      "eyebrow": "Adversarios chave",
+      "title": "Principais Rivais",
+      "description": "Rivais publicos que mais enfrentaram este time em batalhas concluidas da arena.",
+      "empty": "Ainda nao ha dados de rivais.",
+      "openAria": "Abrir o perfil do time {0}",
+      "record": "{0} vitorias - {1} derrotas - {2} partidas"
+    },
+    "latest": {
+      "eyebrow": "Ultimos placares",
+      "title": "Ultimas Partidas Publicas",
+      "description": "Batalhas publicas recentes com {0} dentro da arena CriptoVersus.",
+      "empty": "Ainda nao ha partidas publicas disponiveis.",
+      "openMatch": "Abrir partida",
+      "unavailable": "Indisponivel",
+      "columns": {
+        "match": "Partida",
+        "score": "Placar",
+        "status": "Status",
+        "startedAt": "Inicio",
+        "finishedAt": "Fim",
+        "publicPage": "Pagina Publica"
+      }
+    },
+    "momentum": {
+      "dominant": "Dominante",
+      "hot": "Quente",
+      "rising": "Em Alta",
+      "aggressive": "Agressivo",
+      "veteran": "Veterano",
+      "struggling": "Em Queda",
+      "volatile": "Volatil"
+    },
+    "status": {
+      "completed": "Encerrada",
+      "ongoing": "Ao vivo",
+      "pending": "Pendente",
+      "cancelled": "Cancelada"
+    },
+    "structuredData": {
+      "breadcrumbStats": "Estatisticas",
+      "breadcrumbTeams": "Times"
     }
   },
   "publicHome": {

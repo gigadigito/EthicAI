@@ -59,6 +59,17 @@ public sealed class RouteLocalizationService
             ? "/pt/estatisticas"
             : "/stats";
 
+    public string BuildStatsTeamsPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/estatisticas/times"
+            : "/stats/teams";
+
+    public string BuildStatsTeamDetailPath(string? culture, string slug)
+    {
+        var normalizedSlug = slug.Trim().ToLowerInvariant();
+        return $"{BuildStatsTeamsPath(culture)}/{normalizedSlug}";
+    }
+
     public string BuildLegacyMatchPath(string? culture, int id, string slug)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? $"/partida/{id}/{slug}"
@@ -93,7 +104,23 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/pt/estatisticas", StringComparison.OrdinalIgnoreCase))
             return BuildStatsPath(normalizedTarget) + querySuffix;
 
+        if (cleanPath.Equals("/stats/teams", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/stats/teams", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/estatisticas/times", StringComparison.OrdinalIgnoreCase))
+            return BuildStatsTeamsPath(normalizedTarget) + querySuffix;
+
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length >= 3)
+        {
+            if (cleanPath.StartsWith("/stats/teams/", StringComparison.OrdinalIgnoreCase)
+                || cleanPath.StartsWith("/en/stats/teams/", StringComparison.OrdinalIgnoreCase)
+                || cleanPath.StartsWith("/pt/estatisticas/times/", StringComparison.OrdinalIgnoreCase))
+            {
+                var slug = segments[^1];
+                return BuildStatsTeamDetailPath(normalizedTarget, slug) + querySuffix;
+            }
+        }
+
         if (segments.Length >= 3)
         {
             var offset = 0;

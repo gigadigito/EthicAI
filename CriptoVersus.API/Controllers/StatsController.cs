@@ -12,7 +12,9 @@ namespace CriptoVersus.API.Controllers;
 public sealed class StatsController : ControllerBase
 {
     private const int MaxTopTeams = 20;
+    private const int MaxDirectoryTeams = 100;
     private const int MaxLatestMatches = 20;
+    private const int MaxTeamRivals = 5;
     private const int ActivityWindowDays = 30;
 
     private readonly EthicAIDbContext _db;
@@ -29,35 +31,7 @@ public sealed class StatsController : ControllerBase
     public async Task<ActionResult<StatsOverviewDto>> GetOverview(CancellationToken ct)
     {
         var activityCutoffUtc = DateTime.UtcNow.Date.AddDays(-(ActivityWindowDays - 1));
-
-        var matches = await _db.Set<Match>()
-            .AsNoTracking()
-            .Include(m => m.TeamA).ThenInclude(t => t.Currency)
-            .Include(m => m.TeamB).ThenInclude(t => t.Currency)
-            .OrderByDescending(m => m.EndTime ?? m.StartTime ?? DateTime.MinValue)
-            .Select(m => new StatsMatchProjection
-            {
-                MatchId = m.MatchId,
-                TeamAId = m.TeamAId,
-                TeamBId = m.TeamBId,
-                TeamASymbol = m.TeamA.Currency.Symbol,
-                TeamBSymbol = m.TeamB.Currency.Symbol,
-                TeamADisplayName = string.IsNullOrWhiteSpace(m.TeamA.Currency.Name) ? m.TeamA.Currency.Symbol : m.TeamA.Currency.Name,
-                TeamBDisplayName = string.IsNullOrWhiteSpace(m.TeamB.Currency.Name) ? m.TeamB.Currency.Symbol : m.TeamB.Currency.Name,
-                ScoreA = m.ScoreA,
-                ScoreB = m.ScoreB,
-                Status = m.Status,
-                WinnerTeamId = m.WinnerTeamId,
-                StartTime = m.StartTime,
-                EndTime = m.EndTime,
-                TeamALastUpdatedUtc = m.TeamA.Currency.LastUpdated,
-                TeamBLastUpdatedUtc = m.TeamB.Currency.LastUpdated
-            })
-            .ToListAsync(ct);
-
-        var visibleMatches = matches
-            .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamASymbol, m.TeamBSymbol, _configuration))
-            .ToList();
+        var visibleMatches = await LoadVisibleMatchesAsync(ct);
 
         var overview = new StatsOverviewDto
         {
@@ -91,7 +65,108 @@ public sealed class StatsController : ControllerBase
         return Ok(overview);
     }
 
+    [AllowAnonymous]
+    [HttpGet("teams")]
+    public async Task<ActionResult<List<StatsArenaTeamDto>>> GetTeams(CancellationToken ct)
+    {
+        var visibleMatches = await LoadVisibleMatchesAsync(ct);
+        return Ok(BuildArenaTeams(visibleMatches, MaxDirectoryTeams));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("teams/{slug}")]
+    public async Task<ActionResult<StatsArenaTeamDetailDto>> GetTeamDetail(string slug, CancellationToken ct)
+    {
+        var normalizedSlug = NormalizeTicker(slug);
+        if (string.IsNullOrWhiteSpace(normalizedSlug))
+            return NotFound();
+
+        var visibleMatches = await LoadVisibleMatchesAsync(ct);
+        var arenaTeams = BuildArenaTeams(visibleMatches);
+        var team = arenaTeams.FirstOrDefault(item => NormalizeTicker(item.Symbol) == normalizedSlug || NormalizeTicker(item.DisplaySymbol) == normalizedSlug);
+        if (team is null)
+            return NotFound();
+
+        var teamMatches = visibleMatches
+            .Where(match => NormalizeTicker(match.TeamASymbol) == normalizedSlug || NormalizeTicker(match.TeamBSymbol) == normalizedSlug)
+            .OrderByDescending(match => match.EndTime ?? match.StartTime ?? DateTime.MinValue)
+            .ToList();
+
+        var activityCutoffUtc = DateTime.UtcNow.Date.AddDays(-(ActivityWindowDays - 1));
+
+        var detail = new StatsArenaTeamDetailDto
+        {
+            Symbol = team.Symbol,
+            DisplaySymbol = team.DisplaySymbol,
+            DisplayName = team.DisplayName,
+            Rank = team.Rank,
+            Matches = team.Matches,
+            Wins = team.Wins,
+            Losses = team.Losses,
+            WinRate = team.WinRate,
+            AverageScore = team.AverageScore,
+            TotalScore = team.TotalScore,
+            Momentum = team.Momentum,
+            IconUrl = team.IconUrl,
+            LastMatchUtc = team.LastMatchUtc,
+            MatchActivity = BuildMatchActivity(teamMatches, activityCutoffUtc),
+            LatestMatches = BuildLatestMatches(teamMatches),
+            Rivalries = BuildRivalries(teamMatches, normalizedSlug)
+        };
+
+        return Ok(detail);
+    }
+
+    private async Task<List<StatsMatchProjection>> LoadVisibleMatchesAsync(CancellationToken ct)
+    {
+        var matches = await _db.Set<Match>()
+            .AsNoTracking()
+            .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+            .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+            .OrderByDescending(m => m.EndTime ?? m.StartTime ?? DateTime.MinValue)
+            .Select(m => new StatsMatchProjection
+            {
+                MatchId = m.MatchId,
+                TeamAId = m.TeamAId,
+                TeamBId = m.TeamBId,
+                TeamASymbol = m.TeamA.Currency.Symbol,
+                TeamBSymbol = m.TeamB.Currency.Symbol,
+                TeamADisplayName = string.IsNullOrWhiteSpace(m.TeamA.Currency.Name) ? m.TeamA.Currency.Symbol : m.TeamA.Currency.Name,
+                TeamBDisplayName = string.IsNullOrWhiteSpace(m.TeamB.Currency.Name) ? m.TeamB.Currency.Symbol : m.TeamB.Currency.Name,
+                ScoreA = m.ScoreA,
+                ScoreB = m.ScoreB,
+                Status = m.Status,
+                WinnerTeamId = m.WinnerTeamId,
+                StartTime = m.StartTime,
+                EndTime = m.EndTime,
+                TeamALastUpdatedUtc = m.TeamA.Currency.LastUpdated,
+                TeamBLastUpdatedUtc = m.TeamB.Currency.LastUpdated
+            })
+            .ToListAsync(ct);
+
+        return matches
+            .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamASymbol, m.TeamBSymbol, _configuration))
+            .ToList();
+    }
+
     private List<StatsAssetPerformanceDto> BuildTopTeams(List<StatsMatchProjection> matches)
+        => BuildArenaTeams(matches, MaxTopTeams)
+            .Select(team => new StatsAssetPerformanceDto
+            {
+                Rank = team.Rank,
+                Symbol = team.Symbol,
+                DisplayName = team.DisplayName,
+                Matches = team.Matches,
+                Wins = team.Wins,
+                Losses = team.Losses,
+                WinRate = team.WinRate,
+                AverageScore = team.AverageScore,
+                TotalScore = team.TotalScore,
+                LastMatchUtc = team.LastMatchUtc
+            })
+            .ToList();
+
+    private List<StatsArenaTeamDto> BuildArenaTeams(List<StatsMatchProjection> matches, int? limit = null)
     {
         var completedMatches = matches
             .Where(m => m.Status == MatchStatus.Completed)
@@ -99,6 +174,8 @@ public sealed class StatsController : ControllerBase
 
         if (completedMatches.Count == 0)
             return [];
+
+        var recentCutoffUtc = DateTime.UtcNow.Date.AddDays(-29);
 
         var teamRows = completedMatches
             .SelectMany(match => new[]
@@ -119,17 +196,24 @@ public sealed class StatsController : ControllerBase
                 var losses = ordered.Count(x => x.IsLoss);
                 var totalMatches = ordered.Count;
                 var totalScore = ordered.Sum(x => x.Score);
+                var winRate = totalMatches == 0 ? 0m : Math.Round((decimal)wins * 100m / totalMatches, 2);
+                var averageScore = totalMatches == 0 ? 0m : Math.Round((decimal)totalScore / totalMatches, 2);
+                var recentMatches = ordered.Count(x => x.MatchUtc.HasValue && x.MatchUtc.Value.Date >= recentCutoffUtc);
+                var displaySymbol = CleanAssetSymbol(group.First().Symbol);
 
-                return new StatsAssetPerformanceDto
+                return new StatsArenaTeamDto
                 {
                     Symbol = group.First().Symbol,
+                    DisplaySymbol = displaySymbol,
                     DisplayName = ordered.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.DisplayName))?.DisplayName ?? group.First().Symbol,
                     Matches = totalMatches,
                     Wins = wins,
                     Losses = losses,
-                    WinRate = totalMatches == 0 ? 0m : Math.Round((decimal)wins * 100m / totalMatches, 2),
-                    AverageScore = totalMatches == 0 ? 0m : Math.Round((decimal)totalScore / totalMatches, 2),
+                    WinRate = winRate,
+                    AverageScore = averageScore,
                     TotalScore = totalScore,
+                    Momentum = ResolveMomentum(winRate, totalMatches, averageScore, totalScore, recentMatches),
+                    IconUrl = $"/api/icons/binance/{displaySymbol}",
                     LastMatchUtc = ordered.FirstOrDefault()?.MatchUtc
                 };
             })
@@ -137,7 +221,7 @@ public sealed class StatsController : ControllerBase
             .ThenByDescending(x => x.Wins)
             .ThenByDescending(x => x.TotalScore)
             .ThenBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
-            .Take(MaxTopTeams)
+            .Take(limit.HasValue ? Math.Max(1, limit.Value) : int.MaxValue)
             .Select((item, index) =>
             {
                 item.Rank = index + 1;
@@ -177,6 +261,50 @@ public sealed class StatsController : ControllerBase
                 FinishedAtUtc = m.EndTime,
                 PublicUrl = BuildPublicMatchUrl(m)
             })
+            .ToList();
+    }
+
+    private List<StatsArenaRivalDto> BuildRivalries(List<StatsMatchProjection> matches, string normalizedSlug)
+    {
+        var completedMatches = matches
+            .Where(match => match.Status == MatchStatus.Completed)
+            .ToList();
+
+        if (completedMatches.Count == 0)
+            return [];
+
+        return completedMatches
+            .Select(match =>
+            {
+                var isTeamA = NormalizeTicker(match.TeamASymbol) == normalizedSlug;
+                var rivalSymbol = isTeamA ? match.TeamBSymbol : match.TeamASymbol;
+                var rivalDisplayName = isTeamA ? match.TeamBDisplayName : match.TeamADisplayName;
+                var winnerTeamId = ResolveWinnerTeamId(match);
+                var teamId = isTeamA ? match.TeamAId : match.TeamBId;
+
+                return new
+                {
+                    RivalSymbol = rivalSymbol,
+                    RivalDisplayName = rivalDisplayName,
+                    IsWin = winnerTeamId.HasValue && winnerTeamId.Value == teamId,
+                    IsLoss = winnerTeamId.HasValue && winnerTeamId.Value != teamId
+                };
+            })
+            .GroupBy(item => item.RivalSymbol, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new StatsArenaRivalDto
+            {
+                Symbol = group.Key,
+                DisplaySymbol = CleanAssetSymbol(group.Key),
+                DisplayName = group.First().RivalDisplayName,
+                Matches = group.Count(),
+                Wins = group.Count(item => item.IsWin),
+                Losses = group.Count(item => item.IsLoss),
+                IconUrl = $"/api/icons/binance/{CleanAssetSymbol(group.Key)}"
+            })
+            .OrderByDescending(item => item.Matches)
+            .ThenByDescending(item => item.Wins)
+            .ThenBy(item => item.Symbol, StringComparer.OrdinalIgnoreCase)
+            .Take(MaxTeamRivals)
             .ToList();
     }
 
@@ -243,6 +371,44 @@ public sealed class StatsController : ControllerBase
         }
 
         return normalized.ToLowerInvariant();
+    }
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "-";
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in QuoteSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string ResolveMomentum(decimal winRate, int matches, decimal averageScore, int totalScore, int recentMatches)
+    {
+        if (winRate >= 70m)
+            return "Dominant";
+
+        if (recentMatches >= 5 && winRate >= 55m)
+            return "Hot";
+
+        if (averageScore >= 4.5m || totalScore >= 200)
+            return "Aggressive";
+
+        if (matches >= 35)
+            return "Veteran";
+
+        if (winRate >= 55m)
+            return "Rising";
+
+        if (winRate < 40m)
+            return "Struggling";
+
+        return "Volatile";
     }
 
     private static readonly string[] QuoteSuffixes =

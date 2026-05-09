@@ -107,6 +107,8 @@ public sealed class SitemapService
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHomePath("pt"), now, "daily", 0.9m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsPath("en"), now, "daily", 0.9m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsPath("pt"), now, "daily", 0.9m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsTeamsPath("en"), now, "daily", 0.8m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsTeamsPath("pt"), now, "daily", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRoadmapPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
@@ -276,6 +278,11 @@ public sealed class SitemapService
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsPath("pt")).AbsoluteUri));
                 return alternates;
+            case "/stats/teams":
+            case "/pt/estatisticas/times":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("pt")).AbsoluteUri));
+                return alternates;
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri));
@@ -307,6 +314,9 @@ public sealed class SitemapService
             case "/stats":
             case "/pt/estatisticas":
                 return new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri;
+            case "/stats/teams":
+            case "/pt/estatisticas/times":
+                return new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("en")).AbsoluteUri;
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 return new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri;

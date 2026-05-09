@@ -1,0 +1,1103 @@
+@page "/stats/teams"
+@page "/en/stats/teams"
+@page "/pt/estatisticas/times"
+@using System.Globalization
+@using System.Text.Json
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@rendermode InteractiveServer
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="description" content="@MetaDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@CanonicalUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@MetaDescription" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="teams-page">
+    <header class="teams-hero">
+        <div class="teams-hero__copy">
+            <span class="teams-hero__eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p class="teams-hero__lead">@T("hero.subtitle")</p>
+            <p class="teams-hero__seo-copy">@T("hero.seoCopy")</p>
+            <div class="teams-hero__actions">
+                <a class="teams-pill-link" href="@RouteLocalization.BuildStatsPath(CurrentCulture)" aria-label="@T("hero.backToStatsAria")">@T("hero.backToStats")</a>
+                <a class="teams-pill-link teams-pill-link--accent" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)" aria-label="@T("hero.howArenaWorksAria")">@T("hero.howArenaWorks")</a>
+            </div>
+        </div>
+        <div class="teams-hero__panel">
+            <article>
+                <span>@T("hero.liveDirectory")</span>
+                <strong>@DisplayNumber(_teams.Count)</strong>
+                <small>@T("hero.liveDirectoryHint")</small>
+            </article>
+            <article>
+                <span>@T("hero.totalIndexedBattles")</span>
+                <strong>@DisplayNumber(TotalBattlesIndexed)</strong>
+                <small>@T("hero.totalIndexedBattlesHint")</small>
+            </article>
+            <article>
+                <span>@T("hero.updatedStatus")</span>
+                <strong>@T("hero.updatedStatusValue")</strong>
+                <small>@T("hero.updatedStatusHint")</small>
+            </article>
+        </div>
+    </header>
+
+    @if (_loading)
+    {
+        <section class="teams-feedback">
+            <div class="teams-spinner" aria-hidden="true"></div>
+            <div>
+                <strong>@T("states.loadingTitle")</strong>
+                <p>@T("states.loadingBody")</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <section class="teams-feedback teams-feedback--error" role="alert">
+                <div>
+                    <strong>@T("states.errorTitle")</strong>
+                    <p>@_error</p>
+                </div>
+            </section>
+        }
+
+        if (IsEmptyState)
+        {
+            <section class="teams-feedback teams-feedback--empty">
+                <div>
+                    <strong>@T("states.emptyTitle")</strong>
+                    <p>@T("states.emptyBody")</p>
+                </div>
+            </section>
+        }
+
+        <section class="teams-summary-grid" aria-label="@T("summary.ariaLabel")">
+            @foreach (var card in SummaryCards)
+            {
+                <article class="teams-card">
+                    <span>@card.Label</span>
+                    <strong>@card.Value</strong>
+                    <small>@card.Hint</small>
+                </article>
+            }
+        </section>
+
+        <section class="teams-search-shell" aria-labelledby="teams-search-heading">
+            <div class="teams-section-head">
+                <div>
+                    <span>@T("search.eyebrow")</span>
+                    <h2 id="teams-search-heading">@T("search.title")</h2>
+                </div>
+                <p>@T("search.description")</p>
+            </div>
+            <label class="teams-search-label" for="teams-search-input">@T("search.label")</label>
+            <input id="teams-search-input"
+                   class="teams-search-input"
+                   type="search"
+                   placeholder="@T("search.placeholder")"
+                   aria-label="@T("search.ariaLabel")"
+                   @bind="_search"
+                   @bind:event="oninput" />
+        </section>
+
+        <section class="teams-grid-section" aria-labelledby="teams-grid-heading">
+            <div class="teams-section-head">
+                <div>
+                    <span>@T("grid.eyebrow")</span>
+                    <h2 id="teams-grid-heading">@T("grid.title")</h2>
+                </div>
+                <p>@T("grid.description")</p>
+            </div>
+
+            @if (FilteredTeams.Count == 0)
+            {
+                <div class="teams-feedback teams-feedback--inline">
+                    <div>
+                        <strong>@T("search.noResultsTitle")</strong>
+                        <p>@T("search.noResultsBody")</p>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="teams-grid">
+                    @foreach (var team in FilteredTeams)
+                    {
+                        <article class="team-card">
+                            <div class="team-card__header">
+                                <a class="team-card__identity" href="@GetTeamUrl(team)" aria-label="@T("grid.viewTeamAria", GetDisplaySymbol(team))" title="@team.Symbol">
+                                    <img src="@GetIconUrl(team)" alt="" loading="lazy" width="22" height="22" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                    <span class="team-card__fallback" aria-hidden="true">@GetAssetMonogram(GetDisplaySymbol(team))</span>
+                                    <div>
+                                        <strong>@GetDisplaySymbol(team)</strong>
+                                        <small>@T("grid.rankValue", team.Rank)</small>
+                                    </div>
+                                </a>
+                                <span class="@GetMomentumClass(team.Momentum)">@FormatMomentum(team.Momentum)</span>
+                            </div>
+
+                            <div class="team-card__stats">
+                                <div><span>@T("grid.metrics.winRate")</span><strong>@FormatPercent(team.WinRate)</strong></div>
+                                <div><span>@T("grid.metrics.matches")</span><strong>@DisplayNumber(team.Matches)</strong></div>
+                                <div><span>@T("grid.metrics.goals")</span><strong>@DisplayNumber(team.TotalScore)</strong></div>
+                                <div><span>@T("grid.metrics.averageScore")</span><strong>@FormatDecimal(team.AverageScore)</strong></div>
+                            </div>
+
+                            <dl class="team-card__meta">
+                                <div><dt>@T("grid.details.wins")</dt><dd>@DisplayNumber(team.Wins)</dd></div>
+                                <div><dt>@T("grid.details.losses")</dt><dd>@DisplayNumber(team.Losses)</dd></div>
+                                <div><dt>@T("grid.details.totalScore")</dt><dd>@DisplayNumber(team.TotalScore)</dd></div>
+                                <div><dt>@T("grid.details.momentum")</dt><dd>@FormatMomentum(team.Momentum)</dd></div>
+                            </dl>
+
+                            <a class="team-card__cta" href="@GetTeamUrl(team)" aria-label="@T("grid.viewTeamAria", GetDisplaySymbol(team))">@T("grid.viewTeam")</a>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="team-table-section">
+            <div class="teams-section-head">
+                <div>
+                    <span>@T("table.eyebrow")</span>
+                    <h2>@T("table.title")</h2>
+                </div>
+                <p>@T("table.description")</p>
+            </div>
+            <div class="team-table-wrap">
+                <table class="team-table">
+                    <thead>
+                        <tr>
+                            <th>@T("table.columns.rank")</th>
+                            <th>@T("table.columns.asset")</th>
+                            <th>@T("table.columns.matches")</th>
+                            <th>@T("table.columns.wins")</th>
+                            <th>@T("table.columns.losses")</th>
+                            <th>@T("table.columns.winRate")</th>
+                            <th>@T("table.columns.averageScore")</th>
+                            <th>@T("table.columns.totalScore")</th>
+                            <th>@T("table.columns.momentum")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredTeams.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="team-table__empty">@T("table.empty")</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var team in FilteredTeams)
+                            {
+                                <tr>
+                                    <td>@team.Rank</td>
+                                    <td>
+                                        <a class="team-table__asset" href="@GetTeamUrl(team)" aria-label="@T("table.assetAria", GetDisplaySymbol(team))" title="@team.Symbol">
+                                            <img src="@GetIconUrl(team)" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                            <span class="team-card__fallback" aria-hidden="true">@GetAssetMonogram(GetDisplaySymbol(team))</span>
+                                            <strong>@GetDisplaySymbol(team)</strong>
+                                        </a>
+                                    </td>
+                                    <td>@DisplayNumber(team.Matches)</td>
+                                    <td>@DisplayNumber(team.Wins)</td>
+                                    <td>@DisplayNumber(team.Losses)</td>
+                                    <td>@FormatPercent(team.WinRate)</td>
+                                    <td>@FormatDecimal(team.AverageScore)</td>
+                                    <td>@DisplayNumber(team.TotalScore)</td>
+                                    <td><span class="@GetMomentumClass(team.Momentum)">@FormatMomentum(team.Momentum)</span></td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="top-rivalries">
+            <div class="teams-section-head">
+                <div>
+                    <span>@T("rivalries.eyebrow")</span>
+                    <h2>@T("rivalries.title")</h2>
+                </div>
+                <p>@T("rivalries.description")</p>
+            </div>
+            <div class="top-rivalries__grid">
+                @if (Rivalries.Count == 0)
+                {
+                    <div class="teams-feedback teams-feedback--inline">
+                        <div>
+                            <strong>@T("rivalries.emptyTitle")</strong>
+                            <p>@T("rivalries.emptyBody")</p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var rivalry in Rivalries)
+                    {
+                        <article class="top-rivalries__card">
+                            <div class="top-rivalries__team">
+                                <img src="@GetIconUrl(rivalry.Left)" alt="" loading="lazy" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                <span class="team-card__fallback" aria-hidden="true">@GetAssetMonogram(GetDisplaySymbol(rivalry.Left))</span>
+                                <a href="@GetTeamUrl(rivalry.Left)" aria-label="@T("rivalries.teamAria", GetDisplaySymbol(rivalry.Left))">@GetDisplaySymbol(rivalry.Left)</a>
+                            </div>
+                            <span class="top-rivalries__vs">vs</span>
+                            <div class="top-rivalries__team">
+                                <img src="@GetIconUrl(rivalry.Right)" alt="" loading="lazy" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                <span class="team-card__fallback" aria-hidden="true">@GetAssetMonogram(GetDisplaySymbol(rivalry.Right))</span>
+                                <a href="@GetTeamUrl(rivalry.Right)" aria-label="@T("rivalries.teamAria", GetDisplaySymbol(rivalry.Right))">@GetDisplaySymbol(rivalry.Right)</a>
+                            </div>
+                        </article>
+                    }
+                }
+            </div>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+
+    private readonly List<StatsArenaTeamDto> _teams = [];
+    private bool _loading = true;
+    private string? _error;
+    private string _search = string.Empty;
+
+    private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private bool IsEmptyState => _teams.Count == 0;
+    private string PageTitleText => T("seo.title");
+    private string MetaDescription => T("seo.description");
+    private string CanonicalUrl => BuildAbsolute("/stats/teams");
+    private string EnglishUrl => BuildAbsolute("/stats/teams");
+    private string PortugueseUrl => BuildAbsolute("/pt/estatisticas/times");
+    private string StructuredDataMarkup => BuildStructuredDataMarkup();
+    private int TotalBattlesIndexed => _teams.Sum(team => team.Matches) / 2;
+
+    private IReadOnlyList<StatsArenaTeamDto> FilteredTeams =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _teams
+            : _teams
+                .Where(team =>
+                    GetDisplaySymbol(team).Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || team.Symbol.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || (!string.IsNullOrWhiteSpace(team.DisplayName) && team.DisplayName.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+    private IReadOnlyList<SummaryCardViewModel> SummaryCards =>
+    [
+        new SummaryCardViewModel(T("summary.totalAssets.label"), DisplayNumber(_teams.Count), T("summary.totalAssets.hint")),
+        new SummaryCardViewModel(T("summary.mostDominantAsset.label"), TopDominantSymbol, T("summary.mostDominantAsset.hint")),
+        new SummaryCardViewModel(T("summary.highestWinRate.label"), HighestWinRateValue, T("summary.highestWinRate.hint")),
+        new SummaryCardViewModel(T("summary.mostActiveTeam.label"), MostActiveSymbol, T("summary.mostActiveTeam.hint")),
+        new SummaryCardViewModel(T("summary.totalBattlesIndexed.label"), DisplayNumber(TotalBattlesIndexed), T("summary.totalBattlesIndexed.hint"))
+    ];
+
+    private IReadOnlyList<RivalryViewModel> Rivalries =>
+        _teams
+            .OrderBy(team => team.Rank)
+            .Take(6)
+            .Chunk(2)
+            .Where(pair => pair.Length == 2)
+            .Select(pair => new RivalryViewModel(pair[0], pair[1]))
+            .ToList();
+
+    private string TopDominantSymbol => _teams.Count == 0 ? "-" : GetDisplaySymbol(_teams.OrderBy(team => team.Rank).First());
+    private string HighestWinRateValue => _teams.Count == 0 ? "-" : $"{GetDisplaySymbol(_teams.OrderByDescending(team => team.WinRate).ThenBy(team => team.Rank).First())} - {FormatPercent(_teams.Max(team => team.WinRate))}";
+    private string MostActiveSymbol => _teams.Count == 0 ? "-" : $"{GetDisplaySymbol(_teams.OrderByDescending(team => team.Matches).ThenBy(team => team.Rank).First())} - {DisplayNumber(_teams.Max(team => team.Matches))}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var response = await Api.GetStatsTeamsAsync();
+            _teams.Clear();
+            if (response is not null)
+                _teams.AddRange(response);
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            Console.WriteLine($"Stats teams page load error: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string BuildStructuredDataMarkup()
+    {
+        var itemList = _teams
+            .Take(12)
+            .Select((team, index) => new Dictionary<string, object?>
+            {
+                ["@type"] = "ListItem",
+                ["position"] = index + 1,
+                ["name"] = GetDisplaySymbol(team),
+                ["url"] = BuildAbsolute(GetTeamUrl(team))
+            })
+            .ToArray();
+
+        var graph = new object[]
+        {
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "WebPage",
+                ["name"] = T("hero.title"),
+                ["description"] = T("hero.subtitle"),
+                ["url"] = CanonicalUrl
+            },
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "ItemList",
+                ["name"] = T("table.title"),
+                ["description"] = T("table.description"),
+                ["itemListElement"] = itemList
+            },
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "BreadcrumbList",
+                ["itemListElement"] = new object[]
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "ListItem",
+                        ["position"] = 1,
+                        ["name"] = "CriptoVersus",
+                        ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "ListItem",
+                        ["position"] = 2,
+                        ["name"] = T("structuredData.breadcrumbStats"),
+                        ["item"] = BuildAbsolute(RouteLocalization.BuildStatsPath(CurrentCulture))
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "ListItem",
+                        ["position"] = 3,
+                        ["name"] = T("structuredData.breadcrumbTeams"),
+                        ["item"] = CanonicalUrl
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(graph);
+    }
+
+    private string GetDisplaySymbol(StatsArenaTeamDto team)
+        => CleanAssetSymbol(!string.IsNullOrWhiteSpace(team.DisplaySymbol) ? team.DisplaySymbol : team.Symbol);
+
+    private string GetIconUrl(StatsArenaTeamDto team)
+    {
+        var candidate = !string.IsNullOrWhiteSpace(team.IconUrl) ? team.IconUrl : $"/api/icons/binance/{GetDisplaySymbol(team)}";
+        return candidate;
+    }
+
+    private string GetTeamUrl(StatsArenaTeamDto team)
+        => RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, BuildAssetSlug(GetDisplaySymbol(team)));
+
+    private string FormatMomentum(string? momentum)
+        => string.IsNullOrWhiteSpace(momentum) ? T("momentum.volatile") : T($"momentum.{momentum.Trim().ToLowerInvariant()}");
+
+    private string GetMomentumClass(string? momentum)
+    {
+        var suffix = momentum?.Trim().ToLowerInvariant() switch
+        {
+            "dominant" => "is-dominant",
+            "hot" => "is-hot",
+            "rising" => "is-rising",
+            "aggressive" => "is-aggressive",
+            "veteran" => "is-veteran",
+            "struggling" => "is-struggling",
+            _ => "is-volatile"
+        };
+
+        return $"team-card__momentum {suffix}";
+    }
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "-";
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in VisualSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string BuildAssetSlug(string symbol)
+    {
+        var buffer = new List<char>(symbol.Length);
+        foreach (var ch in symbol.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(ch))
+                buffer.Add(ch);
+            else if (buffer.Count > 0 && buffer[^1] != '-')
+                buffer.Add('-');
+        }
+
+        return new string(buffer.ToArray()).Trim('-');
+    }
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var normalized = symbol.Trim().ToUpperInvariant();
+        return normalized.Length >= 2 ? normalized[..2] : normalized;
+    }
+
+    private static string DisplayNumber(int value)
+        => value.ToString("N0", CultureInfo.InvariantCulture);
+
+    private static string FormatPercent(decimal value)
+        => $"{value:0.##}%";
+
+    private static string FormatDecimal(decimal value)
+        => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private string BuildAbsolute(string path)
+        => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
+
+    private string T(string key, params object?[] args)
+        => L.T($"statsTeams.{key}", CurrentCulture, args);
+
+    private static readonly string[] VisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+
+    private sealed class SummaryCardViewModel
+    {
+        public SummaryCardViewModel(string label, string value, string hint)
+        {
+            Label = label;
+            Value = value;
+            Hint = hint;
+        }
+
+        public string Label { get; }
+        public string Value { get; }
+        public string Hint { get; }
+    }
+
+    private sealed class RivalryViewModel
+    {
+        public RivalryViewModel(StatsArenaTeamDto left, StatsArenaTeamDto right)
+        {
+            Left = left;
+            Right = right;
+        }
+
+        public StatsArenaTeamDto Left { get; }
+        public StatsArenaTeamDto Right { get; }
+    }
+}
+
+<style>
+    .teams-page {
+        --teams-border: rgba(112, 132, 170, 0.18);
+        --teams-text: #f4f8ff;
+        --teams-muted: #9cb0ca;
+        --teams-green: #7ff6df;
+        display: grid;
+        gap: 1.2rem;
+        position: relative;
+        width: min(1680px, 100%);
+        color: var(--teams-text);
+    }
+
+    .teams-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 10% 6%, rgba(163, 92, 255, 0.12), transparent 22%),
+            radial-gradient(circle at 88% 18%, rgba(76, 243, 141, 0.1), transparent 26%),
+            radial-gradient(circle at 55% 100%, rgba(83, 200, 255, 0.06), transparent 32%);
+    }
+
+    .teams-hero,
+    .teams-card,
+    .teams-search-shell,
+    .team-table-section,
+    .top-rivalries,
+    .teams-feedback,
+    .team-card {
+        position: relative;
+        border: 1px solid var(--teams-border);
+        border-radius: 26px;
+        background: linear-gradient(180deg, rgba(9, 13, 22, 0.98), rgba(6, 9, 16, 0.99));
+        box-shadow: 0 24px 70px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.03);
+        overflow: hidden;
+    }
+
+    .teams-hero::before,
+    .teams-card::before,
+    .teams-search-shell::before,
+    .team-table-section::before,
+    .top-rivalries::before,
+    .teams-feedback::before,
+    .team-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at top left, rgba(163, 92, 255, 0.12), transparent 24%),
+            radial-gradient(circle at bottom right, rgba(76, 243, 141, 0.08), transparent 26%);
+    }
+
+    .teams-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+        gap: 1.2rem;
+        padding: 2rem 1.7rem 1.9rem;
+        background:
+            radial-gradient(circle at top left, rgba(163, 92, 255, 0.2), transparent 26%),
+            radial-gradient(circle at bottom right, rgba(76, 243, 141, 0.14), transparent 26%),
+            linear-gradient(135deg, rgba(10, 14, 25, 0.99), rgba(7, 10, 18, 0.99));
+    }
+
+    .teams-hero__copy,
+    .teams-hero__panel,
+    .teams-search-shell,
+    .team-table-section,
+    .top-rivalries,
+    .team-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .teams-hero__eyebrow,
+    .teams-section-head span,
+    .teams-card span {
+        color: var(--teams-green);
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        font-weight: 900;
+        font-size: .76rem;
+    }
+
+    .teams-hero h1 {
+        margin: .65rem 0 .85rem;
+        font-size: clamp(2rem, 2vw + 1rem, 3.2rem);
+        line-height: 1.03;
+        letter-spacing: -.04em;
+    }
+
+    .teams-hero__lead {
+        color: #f8fbff;
+        font-size: 1.04rem;
+        line-height: 1.7;
+        margin: 0;
+    }
+
+    .teams-hero__seo-copy,
+    .teams-section-head p,
+    .teams-feedback p,
+    .teams-card small,
+    .team-card__identity small,
+    .team-card__stats span,
+    .team-card__meta dt,
+    .team-card__meta dd {
+        color: var(--teams-muted);
+        line-height: 1.65;
+        margin: 0;
+    }
+
+    .teams-hero__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-top: 1.1rem;
+    }
+
+    .teams-pill-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+        padding: 0 1rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        color: #eef5ff;
+        font-weight: 800;
+        text-decoration: none;
+    }
+
+    .teams-pill-link--accent {
+        color: #03150f;
+        border-color: transparent;
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+    }
+
+    .teams-hero__panel {
+        display: grid;
+        gap: 1px;
+        border-radius: 22px;
+        overflow: hidden;
+        background: rgba(84, 100, 128, 0.18);
+    }
+
+    .teams-hero__panel article {
+        padding: 1.15rem 1.2rem;
+        background: rgba(9, 13, 22, 0.96);
+        display: grid;
+        gap: .28rem;
+    }
+
+    .teams-hero__panel strong,
+    .teams-card strong {
+        font-size: clamp(1.7rem, 1.5vw, 2.25rem);
+        line-height: 1.05;
+        letter-spacing: -.04em;
+    }
+
+    .teams-summary-grid,
+    .teams-grid,
+    .top-rivalries__grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .teams-summary-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .teams-card,
+    .teams-search-shell,
+    .team-table-section,
+    .top-rivalries {
+        padding: 1.2rem 1.25rem;
+        display: grid;
+        gap: .95rem;
+    }
+
+    .teams-card {
+        padding: 1.1rem 1.05rem;
+        gap: .42rem;
+    }
+
+    .teams-section-head {
+        display: grid;
+        gap: .4rem;
+    }
+
+    .teams-section-head h2 {
+        margin: 0;
+        font-size: 1.42rem;
+        letter-spacing: -.03em;
+    }
+
+    .teams-search-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .teams-search-input {
+        width: 100%;
+        min-height: 3.25rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(8, 13, 22, 0.96);
+        color: #f1f7ff;
+        padding: 0 1rem;
+        outline: none;
+    }
+
+    .teams-search-input:focus {
+        border-color: rgba(127, 246, 223, 0.35);
+        box-shadow: 0 0 0 4px rgba(127, 246, 223, 0.08);
+    }
+
+    .teams-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .team-card {
+        padding: 1rem;
+        display: grid;
+        gap: .9rem;
+        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .team-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(127, 246, 223, 0.28);
+        box-shadow: 0 28px 80px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .team-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem;
+    }
+
+    .team-card__identity,
+    .team-table__asset,
+    .top-rivalries__team {
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem;
+        color: #eef5ff;
+        text-decoration: none;
+    }
+
+    .team-card__identity strong,
+    .team-table__asset strong {
+        display: block;
+        font-size: 1.12rem;
+        line-height: 1.05;
+    }
+
+    .team-card__identity img,
+    .team-table__asset img,
+    .top-rivalries__team img {
+        border-radius: 50%;
+        background: rgba(255,255,255,0.03);
+        flex: 0 0 auto;
+    }
+
+    .team-card__fallback {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 50%;
+        background: rgba(83, 200, 255, 0.18);
+        color: #cfe9ff;
+        font-size: .58rem;
+        font-weight: 900;
+        letter-spacing: .06em;
+    }
+
+    .team-card__fallback.is-visible {
+        display: inline-flex;
+    }
+
+    .team-card__stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .team-card__stats div,
+    .team-card__meta div {
+        display: grid;
+        gap: .12rem;
+    }
+
+    .team-card__stats strong {
+        font-size: 1.02rem;
+    }
+
+    .team-card__meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .6rem .75rem;
+        margin: 0;
+    }
+
+    .team-card__meta dd {
+        color: #eef6ff;
+        font-weight: 700;
+    }
+
+    .team-card__momentum {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: .38rem .7rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+        border: 1px solid rgba(255,255,255,0.09);
+        background: rgba(255,255,255,0.04);
+    }
+
+    .team-card__momentum.is-dominant {
+        color: #9cffcf;
+        border-color: rgba(76, 243, 141, 0.28);
+        background: rgba(76, 243, 141, 0.12);
+    }
+
+    .team-card__momentum.is-hot {
+        color: #ffe79c;
+        border-color: rgba(255, 215, 110, 0.24);
+        background: rgba(255, 215, 110, 0.11);
+    }
+
+    .team-card__momentum.is-rising,
+    .team-card__momentum.is-veteran {
+        color: #bcefff;
+        border-color: rgba(83, 200, 255, 0.24);
+        background: rgba(83, 200, 255, 0.12);
+    }
+
+    .team-card__momentum.is-aggressive {
+        color: #d9c6ff;
+        border-color: rgba(163, 92, 255, 0.26);
+        background: rgba(163, 92, 255, 0.12);
+    }
+
+    .team-card__momentum.is-struggling {
+        color: #ffb3b3;
+        border-color: rgba(255, 133, 133, 0.22);
+        background: rgba(255, 133, 133, 0.11);
+    }
+
+    .team-card__momentum.is-volatile {
+        color: #d8e4f6;
+    }
+
+    .team-card__cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.7rem;
+        border-radius: 16px;
+        border: 1px solid rgba(127, 246, 223, 0.22);
+        background: rgba(127, 246, 223, 0.08);
+        color: var(--teams-green);
+        font-weight: 800;
+        text-decoration: none;
+        transition: transform .18s ease, border-color .18s ease, background-color .18s ease;
+    }
+
+    .team-card__cta:hover {
+        transform: translateY(-1px);
+        border-color: rgba(127, 246, 223, 0.36);
+        background: rgba(127, 246, 223, 0.14);
+    }
+
+    .team-table-wrap {
+        overflow-x: auto;
+    }
+
+    .team-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 760px;
+    }
+
+    .team-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: rgba(8, 12, 21, 0.97);
+        backdrop-filter: blur(10px);
+    }
+
+    .team-table th,
+    .team-table td {
+        padding: .9rem .8rem;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        vertical-align: top;
+        text-align: left;
+    }
+
+    .team-table th {
+        color: #d7e4f6;
+        font-size: .78rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .team-table td {
+        color: #f1f7ff;
+    }
+
+    .team-table tbody tr {
+        transition: background-color .18s ease;
+    }
+
+    .team-table tbody tr:hover {
+        background: rgba(127, 246, 223, 0.04);
+    }
+
+    .team-table__empty {
+        color: var(--teams-muted);
+        text-align: center;
+    }
+
+    .top-rivalries__grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .top-rivalries__card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(8, 12, 21, 0.95);
+    }
+
+    .top-rivalries__team a {
+        color: #eef5ff;
+        text-decoration: none;
+        font-weight: 800;
+    }
+
+    .top-rivalries__vs {
+        color: var(--teams-muted);
+        font-size: .74rem;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        font-weight: 900;
+    }
+
+    .teams-feedback {
+        padding: 1.1rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+    }
+
+    .teams-feedback--inline {
+        padding: 1rem 1.05rem;
+    }
+
+    .teams-feedback--error {
+        border-color: rgba(255, 120, 120, 0.28);
+    }
+
+    .teams-feedback--empty {
+        border-color: rgba(127, 246, 223, 0.2);
+    }
+
+    .teams-spinner {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 50%;
+        border: 3px solid rgba(127, 246, 223, 0.16);
+        border-top-color: #7ff6df;
+        animation: teams-spin 1s linear infinite;
+        flex: 0 0 auto;
+    }
+
+    @@media (max-width: 1280px) {
+        .teams-summary-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .teams-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 980px) {
+        .teams-hero,
+        .teams-grid,
+        .top-rivalries__grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .teams-page {
+            gap: 1rem;
+        }
+
+        .teams-hero,
+        .teams-card,
+        .teams-search-shell,
+        .team-table-section,
+        .top-rivalries,
+        .team-card {
+            padding: 1rem;
+        }
+
+        .teams-summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .team-card__stats,
+        .team-card__meta {
+            grid-template-columns: 1fr;
+        }
+
+        .team-table th,
+        .team-table td {
+            padding: .8rem .7rem;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .teams-spinner,
+        .team-card,
+        .team-card__cta,
+        .team-table tbody tr {
+            animation: none;
+            transition: none;
+        }
+    }
+
+    @@keyframes teams-spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>

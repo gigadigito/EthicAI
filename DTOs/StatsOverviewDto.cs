@@ -45,3 +45,51 @@ public sealed class StatsLatestMatchDto
     public DateTime? FinishedAtUtc { get; set; }
     public string? PublicUrl { get; set; }
 }
+
+public sealed class StatsArenaTeamDto
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string DisplaySymbol { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public int Matches { get; set; }
+    public int Wins { get; set; }
+    public int Losses { get; set; }
+    public decimal WinRate { get; set; }
+    public decimal AverageScore { get; set; }
+    public int TotalScore { get; set; }
+    public string Momentum { get; set; } = string.Empty;
+    public string IconUrl { get; set; } = string.Empty;
+    public DateTime? LastMatchUtc { get; set; }
+}
+
+public sealed class StatsArenaTeamDetailDto
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string DisplaySymbol { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public int Rank { get; set; }
+    public int Matches { get; set; }
+    public int Wins { get; set; }
+    public int Losses { get; set; }
+    public decimal WinRate { get; set; }
+    public decimal AverageScore { get; set; }
+    public int TotalScore { get; set; }
+    public string Momentum { get; set; } = string.Empty;
+    public string IconUrl { get; set; } = string.Empty;
+    public DateTime? LastMatchUtc { get; set; }
+    public List<StatsMatchActivityDto> MatchActivity { get; set; } = [];
+    public List<StatsLatestMatchDto> LatestMatches { get; set; } = [];
+    public List<StatsArenaRivalDto> Rivalries { get; set; } = [];
+}
+
+public sealed class StatsArenaRivalDto
+{
+    public string Symbol { get; set; } = string.Empty;
+    public string DisplaySymbol { get; set; } = string.Empty;
+    public string DisplayName { get; set; } = string.Empty;
+    public int Matches { get; set; }
+    public int Wins { get; set; }
+    public int Losses { get; set; }
+    public string IconUrl { get; set; } = string.Empty;
+}
