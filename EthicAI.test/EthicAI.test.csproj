@@ -22,10 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Businnes\BLL.csproj" />
+    <ProjectReference Include="..\CriptoVersus\CriptoVersus.Web.csproj" />
     <ProjectReference Include="..\DAL\DAL.csproj" />
     <ProjectReference Include="..\DTOs\DTOs.csproj" />
     <ProjectReference Include="..\CriptoVersus.API\CriptoVersus.API.csproj" />

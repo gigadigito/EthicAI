@@ -13,6 +13,7 @@
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
+@inject IConfiguration Config
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
@@ -647,7 +648,10 @@
     }
 
     private string GetIconUrl(string? symbol)
-        => Api.BuildBinanceIconUrl(symbol);
+    {
+        var baseSymbol = CleanAssetSymbol(symbol);
+        return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+    }
 
     private static string GetAssetMonogram(string? symbol)
     {

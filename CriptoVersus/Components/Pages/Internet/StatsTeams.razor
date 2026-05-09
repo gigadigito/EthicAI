@@ -9,6 +9,7 @@
 @inject NavigationManager Nav
 @inject IHttpContextAccessor HttpContextAccessor
 @inject AppCultureService AppCulture
+@inject IConfiguration Config
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @rendermode InteractiveServer
@@ -430,12 +431,25 @@
     private string GetDisplaySymbol(StatsArenaTeamDto team)
         => CleanAssetSymbol(!string.IsNullOrWhiteSpace(team.DisplaySymbol) ? team.DisplaySymbol : team.Symbol);
 
+
+
     private string GetIconUrl(StatsArenaTeamDto team)
+
     {
-        return !string.IsNullOrWhiteSpace(team.IconUrl)
-            ? Api.BuildApiUrl(team.IconUrl)
-            : Api.BuildBinanceIconUrl(GetDisplaySymbol(team));
+
+        if (!string.IsNullOrWhiteSpace(team.IconUrl))
+
+            return EnvironmentIsolationGuard.BuildApiUrl(Config, team.IconUrl);
+
+
+
+        var baseSymbol = GetDisplaySymbol(team);
+
+        return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+
     }
+
+
 
     private string GetTeamUrl(StatsArenaTeamDto team)
         => RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, BuildAssetSlug(GetDisplaySymbol(team)));

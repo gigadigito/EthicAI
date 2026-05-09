@@ -9,6 +9,18 @@ namespace CriptoVersus.API.Controllers
     [Route("api/[controller]")]
     public class IconsController : ControllerBase
     {
+        private static readonly string[] QuoteSuffixes =
+        [
+            "USDT",
+            "USDC",
+            "BUSD",
+            "FDUSD",
+            "BRL",
+            "EUR",
+            "BTC",
+            "ETH"
+        ];
+
         private static readonly HttpClient _http = new(new HttpClientHandler
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
@@ -27,7 +39,8 @@ namespace CriptoVersus.API.Controllers
             if (symbol.Length == 0 || symbol.Length > 20)
                 return BadRequest();
 
-            var url = $"https://bin.bnbstatic.com/static/assets/logos/{symbol}.png";
+            var baseSymbol = NormalizeToBaseAsset(symbol);
+            var url = $"https://bin.bnbstatic.com/static/assets/logos/{baseSymbol}.png";
 
             using var req = new HttpRequestMessage(HttpMethod.Get, url);
 
@@ -48,6 +61,20 @@ namespace CriptoVersus.API.Controllers
             Response.Headers.CacheControl = "public,max-age=604800";
 
             return File(bytes, contentType);
+        }
+
+        private static string NormalizeToBaseAsset(string symbol)
+        {
+            foreach (var suffix in QuoteSuffixes)
+            {
+                if (symbol.Length > suffix.Length + 1
+                    && symbol.EndsWith(suffix, StringComparison.Ordinal))
+                {
+                    return symbol[..^suffix.Length];
+                }
+            }
+
+            return symbol;
         }
     }
 }

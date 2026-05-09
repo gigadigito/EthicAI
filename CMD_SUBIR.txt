@@ -34,7 +34,24 @@ docker compose down
 docker compose up -d --build
 docker compose logs -f --tail 300 criptoversus-web
 
-
+cd /home/admin/stacks/criptoversus-web/src && \
+echo "=== GIT STATUS ANTES ===" && \
+git status && \
+echo "=== ATUALIZANDO MAIN ===" && \
+git pull --ff-only origin main && \
+echo "=== COMMIT PUBLICADO ===" && \
+git log -1 --oneline && \
+cd /home/admin/stacks/criptoversus-web && \
+echo "=== BUILDANDO E SUBINDO CONTAINER ===" && \
+docker compose up -d --build && \
+echo "=== CONTAINERS ===" && \
+docker compose ps && \
+echo "=== TESTANDO SITE ===" && \
+curl -I -L --max-time 20 https://www.criptoversus.com/ && \
+echo "=== TESTANDO STATS ===" && \
+curl -I -L --max-time 20 https://www.criptoversus.com/stats && \
+echo "=== PUBLICAÇÃO CONCLUÍDA COM SUCESSO ===" && \
+docker compose logs --tail 120 criptoversus-web
 
 
 dotnet run --environment Development
