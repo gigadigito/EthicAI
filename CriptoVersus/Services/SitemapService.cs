@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Xml.Linq;
 using DTOs;
@@ -9,6 +10,7 @@ namespace CriptoVersus.Web.Services;
 public sealed class SitemapService
 {
     private const int SitemapCacheMinutes = 5;
+    private static readonly string[] StatsVisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
     private const string IndexCacheKey = "sitemap::index";
     private const string PagesCacheKey = "sitemap::pages";
     private const string MatchesEnCacheKey = "sitemap::matches::en";
@@ -87,7 +89,7 @@ public sealed class SitemapService
             .Select(path => new XElement(
                 SitemapNamespace + "sitemap",
                 new XElement(SitemapNamespace + "loc", new Uri(baseUri, path).AbsoluteUri),
-                new XElement(SitemapNamespace + "lastmod", now.ToString("yyyy-MM-dd"))));
+                new XElement(SitemapNamespace + "lastmod", FormatSitemapUtc(now))));
 
         var document = new XDocument(
             new XDeclaration("1.0", "UTF-8", null),
@@ -96,26 +98,60 @@ public sealed class SitemapService
         return Task.FromResult(document.ToString(SaveOptions.DisableFormatting));
     }
 
-    private Task<string> BuildPagesSitemapXmlAsync(CancellationToken ct)
+    private async Task<string> BuildPagesSitemapXmlAsync(CancellationToken ct)
     {
         var baseUri = GetPublicBaseUri();
         var now = DateTime.UtcNow;
+        var statsTeams = await GetIndexableStatsTeamsAsync(ct);
+        var statsLastModifiedUtc = statsTeams
+            .Select(team => team.LastMatchUtc)
+            .Where(value => value.HasValue)
+            .Select(value => EnsureUtc(value!.Value))
+            .DefaultIfEmpty(now)
+            .Max();
 
         var entries = new List<SitemapEntry>
         {
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHomePath("en"), now, "daily", 1.0m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHomePath("pt"), now, "daily", 0.9m),
-            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsPath("en"), now, "daily", 0.9m),
-            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsPath("pt"), now, "daily", 0.9m),
-            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsTeamsPath("en"), now, "daily", 0.8m),
-            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsTeamsPath("pt"), now, "daily", 0.8m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsPath("en"), statsLastModifiedUtc, "hourly", 0.85m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsPath("pt"), statsLastModifiedUtc, "hourly", 0.85m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsTeamsPath("en"), statsLastModifiedUtc, "daily", 0.8m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsTeamsPath("pt"), statsLastModifiedUtc, "daily", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRoadmapPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHowItWorksPath("pt"), now, "weekly", 0.8m)
         };
 
-        return Task.FromResult(BuildUrlSet(entries));
+        foreach (var team in statsTeams)
+        {
+            var slug = BuildStatsTeamSlug(team);
+            if (string.IsNullOrWhiteSpace(slug))
+                continue;
+
+            var teamLastModifiedUtc = team.LastMatchUtc.HasValue
+                ? EnsureUtc(team.LastMatchUtc.Value)
+                : statsLastModifiedUtc;
+
+            entries.Add(CreateLocalizedEntry(
+                baseUri,
+                "en",
+                _routeLocalization.BuildStatsTeamDetailPath("en", slug),
+                teamLastModifiedUtc,
+                "daily",
+                0.65m));
+
+            entries.Add(CreateLocalizedEntry(
+                baseUri,
+                "pt",
+                _routeLocalization.BuildStatsTeamDetailPath("pt", slug),
+                teamLastModifiedUtc,
+                "daily",
+                0.65m));
+        }
+
+        return BuildUrlSet(entries);
     }
 
     private async Task<string> BuildMatchSitemapXmlAsync(string culture, CancellationToken ct)
@@ -157,9 +193,9 @@ public sealed class SitemapService
                     SitemapNamespace + "url",
                     new XAttribute(XNamespace.Xmlns + "xhtml", XhtmlNamespace),
                     new XElement(SitemapNamespace + "loc", entry.Location),
-                    new XElement(SitemapNamespace + "lastmod", entry.LastModifiedUtc.ToString("yyyy-MM-dd")),
+                    new XElement(SitemapNamespace + "lastmod", FormatSitemapUtc(entry.LastModifiedUtc)),
                     new XElement(SitemapNamespace + "changefreq", entry.ChangeFrequency),
-                    new XElement(SitemapNamespace + "priority", entry.Priority.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)));
+                    new XElement(SitemapNamespace + "priority", entry.Priority.ToString("0.00", CultureInfo.InvariantCulture)));
 
                 foreach (var alternate in entry.Alternates)
                 {
@@ -202,6 +238,23 @@ public sealed class SitemapService
             .OrderByDescending(GetRelevantTimestampUtc)
             .Take(Math.Max(1, _options.MaxMatchEntriesPerCulture))
             .ToArray();
+    }
+
+    private async Task<IReadOnlyList<StatsArenaTeamDto>> GetIndexableStatsTeamsAsync(CancellationToken ct)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("CriptoVersusApi");
+            var teams = await client.GetFromJsonAsync<List<StatsArenaTeamDto>>("api/stats/teams", ct) ?? [];
+
+            return teams
+                .Where(team => !string.IsNullOrWhiteSpace(BuildStatsTeamSlug(team)))
+                .ToArray();
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private bool IsIndexableMatch(MatchDto match, DateTime cutoffUtc)
@@ -290,6 +343,13 @@ public sealed class SitemapService
                 return alternates;
         }
 
+        if (TryExtractStatsTeamSlug(relativePath, out var statsTeamSlug))
+        {
+            alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("en", statsTeamSlug)).AbsoluteUri));
+            alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("pt", statsTeamSlug)).AbsoluteUri));
+            return alternates;
+        }
+
         var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
         {
@@ -321,6 +381,9 @@ public sealed class SitemapService
             case "/pt/como-funciona":
                 return new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri;
         }
+
+        if (TryExtractStatsTeamSlug(relativePath, out var statsTeamSlug))
+            return new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("en", statsTeamSlug)).AbsoluteUri;
 
         var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
@@ -365,6 +428,69 @@ public sealed class SitemapService
             DateTimeKind.Local => value.ToUniversalTime(),
             _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
         };
+
+    private static string FormatSitemapUtc(DateTime value)
+        => EnsureUtc(value).ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+
+    private static bool TryExtractStatsTeamSlug(string relativePath, out string slug)
+    {
+        slug = string.Empty;
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return false;
+
+        if (relativePath.StartsWith("/stats/teams/", StringComparison.OrdinalIgnoreCase))
+        {
+            slug = relativePath["/stats/teams/".Length..].Trim('/');
+            return !string.IsNullOrWhiteSpace(slug);
+        }
+
+        if (relativePath.StartsWith("/en/stats/teams/", StringComparison.OrdinalIgnoreCase))
+        {
+            slug = relativePath["/en/stats/teams/".Length..].Trim('/');
+            return !string.IsNullOrWhiteSpace(slug);
+        }
+
+        if (relativePath.StartsWith("/pt/estatisticas/times/", StringComparison.OrdinalIgnoreCase))
+        {
+            slug = relativePath["/pt/estatisticas/times/".Length..].Trim('/');
+            return !string.IsNullOrWhiteSpace(slug);
+        }
+
+        return false;
+    }
+
+    private static string BuildStatsTeamSlug(StatsArenaTeamDto team)
+    {
+        var symbol = CleanStatsAssetSymbol(!string.IsNullOrWhiteSpace(team.DisplaySymbol) ? team.DisplaySymbol : team.Symbol);
+        if (string.IsNullOrWhiteSpace(symbol) || symbol == "-")
+            return string.Empty;
+
+        var buffer = new List<char>(symbol.Length);
+        foreach (var ch in symbol.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(ch))
+                buffer.Add(ch);
+            else if (buffer.Count > 0 && buffer[^1] != '-')
+                buffer.Add('-');
+        }
+
+        return new string(buffer.ToArray()).Trim('-');
+    }
+
+    private static string CleanStatsAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "-";
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in StatsVisualSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
 
     private sealed record SitemapAlternate(string HrefLang, string Href);
 
