@@ -1,5 +1,6 @@
 using BLL;
 using BLL.Blockchain;
+using BLL.Positions;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
@@ -19,17 +20,20 @@ public sealed class PositionsController : ControllerBase
 {
     private readonly EthicAIDbContext _context;
     private readonly ILedgerService _ledgerService;
+    private readonly IPositionOrchestrationService _positionService;
     private readonly IConfiguration _configuration;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
 
     public PositionsController(
         EthicAIDbContext context,
         ILedgerService ledgerService,
+        IPositionOrchestrationService positionService,
         IConfiguration configuration,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _ledgerService = ledgerService;
+        _positionService = positionService;
         _configuration = configuration;
         _blockchainOptions = blockchainOptions.Value;
     }
@@ -77,6 +81,18 @@ public sealed class PositionsController : ControllerBase
             if (!teamExists)
                 return NotFound(new { message = "Time nao encontrado." });
 
+            var teamAccessDecision = await EvaluateTeamInvestmentAccessAsync(request.TeamId, ct);
+            if (!teamAccessDecision.CanInvest)
+            {
+                return BadRequest(new
+                {
+                    message = "Este ativo esta em uma partida avancada no momento. Aguarde o proximo ciclo para aumentar sua exposicao.",
+                    reasonCode = teamAccessDecision.ReasonCode,
+                    elapsedMinutes = teamAccessDecision.ElapsedMinutes,
+                    advancedLiveThresholdMinutes = InvestmentAccessPolicy.AdvancedLiveThresholdMinutes
+                });
+            }
+
             var onChainBettingEnabled = _blockchainOptions.IsOnChainDepositFlowEnabled();
             if (onChainBettingEnabled
                 && _blockchainOptions.RequireOnChainConfirmation
@@ -97,6 +113,8 @@ public sealed class PositionsController : ControllerBase
                 await using var transaction = await _context.Database.BeginTransactionAsync(ct);
 
                 var nowUtc = DateTime.UtcNow;
+                var isNewPosition = false;
+                var capitalBefore = 0m;
                 position = await _context.UserTeamPosition
                     .Include(p => p.Team).ThenInclude(t => t.Currency)
                     .FirstOrDefaultAsync(p => p.UserId == user.UserID && p.TeamId == request.TeamId, ct);
@@ -114,6 +132,7 @@ public sealed class PositionsController : ControllerBase
 
                 if (position is null)
                 {
+                    isNewPosition = true;
                     position = new UserTeamPosition
                     {
                         UserId = user.UserID,
@@ -129,6 +148,11 @@ public sealed class PositionsController : ControllerBase
                             ? _blockchainOptions.Cluster
                             : null,
                         CurrentLamports = ParseLamports(request.OnChainAmountLamports),
+                        ExposureMode = PositionExposureMode.MatchRecurring,
+                        BlockchainModeSnapshot = _positionService.BuildBlockchainModeSnapshot(),
+                        TotalPnL = 0m,
+                        TotalWins = 0,
+                        TotalLosses = 0,
                         CreatedAt = nowUtc,
                         UpdatedAt = nowUtc
                     };
@@ -137,6 +161,7 @@ public sealed class PositionsController : ControllerBase
                 }
                 else
                 {
+                    capitalBefore = position.CurrentCapital;
                     position.PrincipalAllocated = RoundMoney(position.PrincipalAllocated + request.Amount);
                     position.CurrentCapital = RoundMoney(position.CurrentCapital + request.Amount);
                     position.AutoCompound = request.AutoCompound;
@@ -149,6 +174,8 @@ public sealed class PositionsController : ControllerBase
                         ? _blockchainOptions.Cluster
                         : position.OnChainCluster;
                     position.CurrentLamports = AddLamports(position.CurrentLamports, ParseLamports(request.OnChainAmountLamports));
+                    position.ExposureMode = PositionExposureMode.MatchRecurring;
+                    position.BlockchainModeSnapshot ??= _positionService.BuildBlockchainModeSnapshot();
                     position.UpdatedAt = nowUtc;
                 }
 
@@ -164,6 +191,19 @@ public sealed class PositionsController : ControllerBase
                     description: onChainBettingEnabled
                         ? $"Posição on-chain criada/aumentada no team {request.TeamId}, signature {request.OnChainSignature}"
                         : $"Posição criada/aumentada no team {request.TeamId}",
+                    ct: ct);
+
+                await _positionService.RecordLifecycleEventAsync(
+                    _context,
+                    position,
+                    isNewPosition ? PositionLifecycleEventType.Opened : PositionLifecycleEventType.Increased,
+                    nowUtc,
+                    amount: request.Amount,
+                    capitalBefore: isNewPosition ? 0m : capitalBefore,
+                    capitalAfter: position.CurrentCapital,
+                    notes: isNewPosition
+                        ? "Persistent position opened from /api/positions."
+                        : "Persistent position capital increased from /api/positions.",
                     ct: ct);
 
                 await transaction.CommitAsync(ct);
@@ -208,6 +248,12 @@ public sealed class PositionsController : ControllerBase
 
                 if (request.AddAmount.HasValue)
                 {
+                    var teamAccessDecision = await EvaluateTeamInvestmentAccessAsync(position.TeamId, ct);
+                    if (!teamAccessDecision.CanInvest)
+                    {
+                        throw new InvalidOperationException("Este ativo esta em uma partida avancada no momento. Aguarde o proximo ciclo para aumentar sua exposicao.");
+                    }
+
                     var amount = RoundMoney(request.AddAmount.Value);
                     if (amount <= 0m)
                         throw new InvalidOperationException("Informe um valor adicional maior que zero.");
@@ -223,10 +269,13 @@ public sealed class PositionsController : ControllerBase
                     if (!onChainBettingEnabled)
                         user.Balance = RoundMoney(user.Balance - amount);
 
+                    var capitalBefore = position.CurrentCapital;
                     position.PrincipalAllocated = RoundMoney(position.PrincipalAllocated + amount);
                     position.CurrentCapital = RoundMoney(position.CurrentCapital + amount);
                     position.Status = TeamPositionStatus.Active;
                     position.ClosedAt = null;
+                    position.ExposureMode = PositionExposureMode.MatchRecurring;
+                    position.BlockchainModeSnapshot ??= _positionService.BuildBlockchainModeSnapshot();
 
                     await _context.SaveChangesAsync(ct);
 
@@ -241,10 +290,39 @@ public sealed class PositionsController : ControllerBase
                             ? $"Aumento on-chain da posição {position.PositionId}"
                             : $"Aumento da posição {position.PositionId}",
                         ct: ct);
+
+                    await _positionService.RecordLifecycleEventAsync(
+                        _context,
+                        position,
+                        PositionLifecycleEventType.Increased,
+                        DateTime.UtcNow,
+                        amount: amount,
+                        capitalBefore: capitalBefore,
+                        capitalAfter: position.CurrentCapital,
+                        notes: "Persistent position increased via PATCH /api/positions/{id}.",
+                        ct: ct);
                 }
 
                 if (request.AutoCompound.HasValue)
+                {
+                    var previousAutoCompound = position.AutoCompound;
                     position.AutoCompound = request.AutoCompound.Value;
+
+                    if (previousAutoCompound != position.AutoCompound)
+                    {
+                        await _positionService.RecordLifecycleEventAsync(
+                            _context,
+                            position,
+                            position.AutoCompound ? PositionLifecycleEventType.Resumed : PositionLifecycleEventType.Paused,
+                            DateTime.UtcNow,
+                            capitalBefore: position.CurrentCapital,
+                            capitalAfter: position.CurrentCapital,
+                            notes: position.AutoCompound
+                                ? "Persistent position resumed for future match exposures."
+                                : "Persistent position paused for future match exposures.",
+                            ct: ct);
+                    }
+                }
 
                 position.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync(ct);
@@ -301,6 +379,16 @@ public sealed class PositionsController : ControllerBase
                 position.AutoCompound = false;
                 position.UpdatedAt = nowUtc;
                 await _context.SaveChangesAsync(ct);
+
+                await _positionService.RecordLifecycleEventAsync(
+                    _context,
+                    position,
+                    PositionLifecycleEventType.ClosingRequested,
+                    nowUtc,
+                    capitalBefore: position.CurrentCapital,
+                    capitalAfter: position.CurrentCapital,
+                    notes: "Close requested while the position still has ongoing match exposure.",
+                    ct: ct);
             }
             else
             {
@@ -340,6 +428,17 @@ public sealed class PositionsController : ControllerBase
                         description: $"Encerramento da posicao {position.PositionId} com liberacao para saldo do sistema.",
                         ct: ct);
                 }
+
+                await _positionService.RecordLifecycleEventAsync(
+                    _context,
+                    position,
+                    PositionLifecycleEventType.Closed,
+                    nowUtc,
+                    amount: releasableAmount,
+                    capitalBefore: releasableAmount,
+                    capitalAfter: position.CurrentCapital,
+                    notes: "Persistent position closed and capital released back to the user balance.",
+                    ct: ct);
             }
 
             await transaction.CommitAsync(ct);
@@ -381,6 +480,31 @@ public sealed class PositionsController : ControllerBase
                     .First());
     }
 
+    private async Task<InvestmentAccessDecision> EvaluateTeamInvestmentAccessAsync(int teamId, CancellationToken ct)
+    {
+        var ongoingMatches = await _context.Match
+            .AsNoTracking()
+            .Where(m =>
+                m.Status == MatchStatus.Ongoing &&
+                (m.TeamAId == teamId || m.TeamBId == teamId))
+            .OrderByDescending(m => m.StartTime ?? DateTime.MinValue)
+            .ToListAsync(ct);
+
+        foreach (var match in ongoingMatches)
+        {
+            var decision = InvestmentAccessPolicy.EvaluatePersistentExposure(
+                match.Status.ToString(),
+                match.StartTime,
+                match.BettingCloseTime,
+                nowUtc: DateTimeOffset.UtcNow);
+
+            if (!decision.CanInvest)
+                return decision;
+        }
+
+        return InvestmentAccessDecision.Allow(0);
+    }
+
     private static TeamPositionDto ToDto(UserTeamPosition position, bool hasOpenBet, string? openBetMatchStatus)
     {
         var currency = position.Team.Currency;
@@ -396,6 +520,11 @@ public sealed class PositionsController : ControllerBase
             CurrentCapital = position.CurrentCapital,
             AutoCompound = position.AutoCompound,
             Status = position.Status.ToString(),
+            ExposureMode = position.ExposureMode.ToString(),
+            BlockchainModeSnapshot = position.BlockchainModeSnapshot,
+            TotalPnL = position.TotalPnL,
+            TotalWins = position.TotalWins,
+            TotalLosses = position.TotalLosses,
             HasOpenBet = hasOpenBet,
             OpenBetMatchStatus = openBetMatchStatus,
             CanCloseNow = !hasOpenBet && position.Status != TeamPositionStatus.Closed,

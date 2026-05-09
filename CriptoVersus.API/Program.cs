@@ -1,5 +1,6 @@
 ﻿using BLL;
 using BLL.Blockchain;
+using BLL.Positions;
 using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
 using EthicAI.EntityModel;
@@ -37,6 +38,7 @@ CriptoVersus.API.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builde
 
 
 builder.Services.AddScoped<ILedgerService, LedgerService>();
+builder.Services.AddScoped<IPositionOrchestrationService, PositionOrchestrationService>();
 builder.Services.AddHttpClient<IOffChainCustodyTransferVerifier, OffChainCustodyTransferVerifier>();
 builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVerifier>();
 builder.Services.AddScoped<ISystemBalanceWithdrawalService, SystemBalanceWithdrawalService>();

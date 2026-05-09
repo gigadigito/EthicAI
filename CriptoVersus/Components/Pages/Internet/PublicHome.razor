@@ -6,12 +6,15 @@
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
+@inject DashboardHubClient HubClient
 @inject IConfiguration Config
 @inject NavigationManager Nav
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
+@rendermode InteractiveServer
+@implements IAsyncDisposable
 
 <PageTitle>@SeoTitle</PageTitle>
 <HeadContent>
@@ -430,6 +433,9 @@
 
 @code {
     private DashboardSnapshotDto? _snapshot;
+    private bool _disposed;
+    private readonly SemaphoreSlim _reloadLock = new(1, 1);
+    private CancellationTokenSource? _debounceCts;
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
@@ -483,13 +489,30 @@
     }
     protected override async Task OnInitializedAsync()
     {
+        HubClient.DashboardChanged += OnDashboardChanged;
+
         try
         {
-            _snapshot = await Api.GetDashboardSnapshotAsync();
+            await ReloadSnapshotAsync(CancellationToken.None);
         }
         catch
         {
             _snapshot = null;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            await HubClient.EnsureStartedAsync();
+        }
+        catch
+        {
+            // A home continua funcional sem o hub; mantemos o snapshot inicial.
         }
     }
 
@@ -853,6 +876,81 @@
     {
         foreach (var key in data.Where(x => x.Value is null).Select(x => x.Key).ToList())
             data.Remove(key);
+    }
+
+    private async Task ReloadSnapshotAsync(CancellationToken ct)
+    {
+        await _reloadLock.WaitAsync(ct);
+        try
+        {
+            _snapshot = await Api.GetDashboardSnapshotAsync(ct);
+        }
+        finally
+        {
+            _reloadLock.Release();
+        }
+    }
+
+    private void OnDashboardChanged(string? payload)
+    {
+        if (_disposed)
+            return;
+
+        _ = DebouncedReloadAsync(250);
+    }
+
+    private Task DebouncedReloadAsync(int delayMs)
+    {
+        try
+        {
+            _debounceCts?.Cancel();
+            _debounceCts?.Dispose();
+        }
+        catch
+        {
+        }
+
+        _debounceCts = new CancellationTokenSource();
+        var ct = _debounceCts.Token;
+
+        return Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delayMs, ct);
+                if (ct.IsCancellationRequested || _disposed)
+                    return;
+
+                await ReloadSnapshotAsync(ct);
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch
+            {
+            }
+        }, ct);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        HubClient.DashboardChanged -= OnDashboardChanged;
+
+        try
+        {
+            _debounceCts?.Cancel();
+        }
+        catch
+        {
+        }
+
+        _debounceCts?.Dispose();
+        _debounceCts = null;
+        _reloadLock.Dispose();
+
+        return ValueTask.CompletedTask;
     }
 }
 

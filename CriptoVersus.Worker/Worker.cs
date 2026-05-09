@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using BLL;
 using BLL.GameRules;
 using BLL.NFTFutebol;
+using BLL.Positions;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
@@ -158,6 +159,7 @@ namespace CriptoVersus.Worker
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
             var scoringEngine = scope.ServiceProvider.GetRequiredService<IMatchScoringEngine>();
             var ledgerService = scope.ServiceProvider.GetRequiredService<ILedgerService>();
+            var positionService = scope.ServiceProvider.GetRequiredService<IPositionOrchestrationService>();
 
             var nowUtc = DateTime.UtcNow;
 
@@ -194,13 +196,13 @@ namespace CriptoVersus.Worker
                 await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
 
             await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
-            await ProcessCompletedMatchSettlementsAsync(db, ledgerService, nowUtc, ct);
+            await ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, ct);
             await SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, ct);
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
             if (hasHealthySnapshot)
                 await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
             await NormalizePendingWindowsAsync(db, nowUtc, ct);
-            await MaterializeRecurringPositionBetsAsync(db, nowUtc, ct);
+            await MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, ct);
 
             await LogPoolStatusAsync(db, nowUtc, ct);
         }
@@ -656,6 +658,7 @@ namespace CriptoVersus.Worker
 
         private async Task MaterializeRecurringPositionBetsAsync(
             EthicAIDbContext db,
+            IPositionOrchestrationService positionService,
             DateTime nowUtc,
             CancellationToken ct)
         {
@@ -718,11 +721,11 @@ namespace CriptoVersus.Worker
                         if (p.Status == TeamPositionStatus.ClosingRequested && match.Status != MatchStatus.Ongoing)
                             return false;
 
-                        var cutoffUtc = match.BettingCloseTime?.UtcDateTime
-                            ?? match.StartTime
-                            ?? nowUtc;
+                        var cutoffUtc = InvestmentAccessPolicy.GetEntryCutoffUtc(
+                            match.Status.ToString(),
+                            match.StartTime);
 
-                        return p.CreatedAt <= cutoffUtc;
+                        return !cutoffUtc.HasValue || p.CreatedAt <= cutoffUtc.Value.UtcDateTime;
                     })
                     .ToList();
 
@@ -745,7 +748,7 @@ namespace CriptoVersus.Worker
                     if (existing.Contains(position.PositionId) || reserved.Contains(position.PositionId))
                         continue;
 
-                    db.Bet.Add(new Bet
+                    var bet = new Bet
                     {
                         MatchId = match.MatchId,
                         TeamId = position.TeamId,
@@ -759,7 +762,9 @@ namespace CriptoVersus.Worker
                         IsWinner = null,
                         PayoutAmount = null,
                         SettledAt = null
-                    });
+                    };
+
+                    db.Bet.Add(bet);
 
                     reserved.Add(position.PositionId);
                     created++;
@@ -770,6 +775,26 @@ namespace CriptoVersus.Worker
                 return;
 
             await db.SaveChangesAsync(ct);
+
+            var createdBets = await db.Bet
+                .Include(b => b.PositionEntry)
+                .Where(b => b.PositionId.HasValue && b.SettledAt == null && b.BetTime == now)
+                .ToListAsync(ct);
+
+            foreach (var bet in createdBets)
+            {
+                if (bet.PositionEntry is null)
+                    continue;
+
+                await positionService.EnsureAllocationAsync(
+                    db,
+                    bet.PositionEntry,
+                    bet,
+                    now,
+                    PositionLifecycleEventType.AutoAllocated,
+                    "Active persistent position auto-allocated into a compatible match.",
+                    ct);
+            }
 
             _logger.LogInformation(
                 "🔁 Recurring positions materializadas: {count} entradas automáticas.",
@@ -1221,6 +1246,7 @@ namespace CriptoVersus.Worker
         private async Task ProcessCompletedMatchSettlementsAsync(
             EthicAIDbContext db,
             ILedgerService ledgerService,
+            IPositionOrchestrationService positionService,
             DateTime nowUtc,
             CancellationToken ct)
         {
@@ -1239,13 +1265,14 @@ namespace CriptoVersus.Worker
 
             foreach (var match in matchesToSettle)
             {
-                await ApplySettlementAsync(db, ledgerService, match, nowUtc, ct);
+                await ApplySettlementAsync(db, ledgerService, positionService, match, nowUtc, ct);
             }
         }
 
         private async Task ApplySettlementAsync(
             EthicAIDbContext db,
             ILedgerService ledgerService,
+            IPositionOrchestrationService positionService,
             Match match,
             DateTime settledAtUtc,
             CancellationToken ct)
@@ -1288,6 +1315,7 @@ namespace CriptoVersus.Worker
                         await SettleNoContestAsync(
                             db,
                             ledgerService,
+                            positionService,
                             bets,
                             settledAtUtc,
                             ct);
@@ -1334,6 +1362,7 @@ namespace CriptoVersus.Worker
                         await SettleNoContestAsync(
                             db,
                             ledgerService,
+                            positionService,
                             bets,
                             settledAtUtc,
                             ct);
@@ -1355,7 +1384,7 @@ namespace CriptoVersus.Worker
                         bet.Claimed = false;
                         bet.ClaimedAt = null;
 
-                        if (await ApplyPositionCapitalAsync(db, ledgerService, bet, loserRefund, settledAtUtc, ct))
+                        if (await ApplyPositionCapitalAsync(db, ledgerService, positionService, bet, loserRefund, settledAtUtc, ct))
                             continue;
                     }
 
@@ -1372,7 +1401,7 @@ namespace CriptoVersus.Worker
                         bet.Claimed = false;
                         bet.ClaimedAt = null;
 
-                        if (await ApplyPositionCapitalAsync(db, ledgerService, bet, payout, settledAtUtc, ct))
+                        if (await ApplyPositionCapitalAsync(db, ledgerService, positionService, bet, payout, settledAtUtc, ct))
                             continue;
                     }
 
@@ -1403,6 +1432,7 @@ namespace CriptoVersus.Worker
         private async Task SettleNoContestAsync(
             EthicAIDbContext db,
             ILedgerService ledgerService,
+            IPositionOrchestrationService positionService,
             IReadOnlyCollection<Bet> bets,
             DateTime settledAtUtc,
             CancellationToken ct)
@@ -1417,7 +1447,7 @@ namespace CriptoVersus.Worker
                 bet.Claimed = false;
                 bet.ClaimedAt = null;
 
-                if (await ApplyPositionCapitalAsync(db, ledgerService, bet, principal, settledAtUtc, ct))
+                if (await ApplyPositionCapitalAsync(db, ledgerService, positionService, bet, principal, settledAtUtc, ct))
                     continue;
             }
 
@@ -1492,6 +1522,7 @@ namespace CriptoVersus.Worker
         private async Task<bool> ApplyPositionCapitalAsync(
             EthicAIDbContext db,
             ILedgerService ledgerService,
+            IPositionOrchestrationService positionService,
             Bet bet,
             decimal capital,
             DateTime settledAtUtc,
@@ -1506,6 +1537,14 @@ namespace CriptoVersus.Worker
             if (position is null)
                 return false;
 
+            await positionService.SyncSettlementAsync(
+                db,
+                position,
+                bet,
+                capital,
+                settledAtUtc,
+                ct);
+
             if (position.Status == TeamPositionStatus.ClosingRequested)
             {
                 await ReleasePositionToSystemAsync(
@@ -1516,6 +1555,19 @@ namespace CriptoVersus.Worker
                     settledAtUtc,
                     $"Encerramento da posicao {position.PositionId} apos liquidacao da partida.",
                     ct);
+
+                await positionService.RecordLifecycleEventAsync(
+                    db,
+                    position,
+                    PositionLifecycleEventType.Closed,
+                    settledAtUtc,
+                    matchId: bet.MatchId,
+                    betId: bet.BetId,
+                    amount: capital,
+                    capitalBefore: capital,
+                    capitalAfter: position.CurrentCapital,
+                    notes: "Persistent position closed after settling its final active match exposure.",
+                    ct: ct);
             }
             else
             {
@@ -1525,6 +1577,18 @@ namespace CriptoVersus.Worker
                 {
                     position.Status = TeamPositionStatus.Paused;
                     position.AutoCompound = false;
+
+                    await positionService.RecordLifecycleEventAsync(
+                        db,
+                        position,
+                        PositionLifecycleEventType.Paused,
+                        settledAtUtc,
+                        matchId: bet.MatchId,
+                        betId: bet.BetId,
+                        capitalBefore: position.CurrentCapital,
+                        capitalAfter: position.CurrentCapital,
+                        notes: "Persistent position paused after capital fell below the minimum threshold.",
+                        ct: ct);
                 }
                 else
                 {
@@ -1881,14 +1945,23 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
         private async Task NotifyDashboardChangedAsync(CancellationToken ct)
         {
+            var notifyUrl = _options.DashboardNotifyUrl?.Trim();
+            if (string.IsNullOrWhiteSpace(notifyUrl))
+            {
+                _logger.LogDebug("Dashboard notify desabilitado: CriptoVersusWorker:DashboardNotifyUrl vazio.");
+                return;
+            }
+
             try
             {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                var http = _httpClientFactory.CreateClient();
+                http.Timeout = TimeSpan.FromSeconds(5);
                 using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
-                var resp = await http.PostAsync("http://criptoversus-api:8080/api/dashboard/notify", content, ct);
+                var resp = await http.PostAsync(notifyUrl, content, ct);
 
                 _logger.LogInformation(
-                    "📣 Notify dashboard_changed -> HTTP {StatusCode}",
+                    "📣 Notify dashboard_changed {NotifyUrl} -> HTTP {StatusCode}",
+                    notifyUrl,
                     (int)resp.StatusCode);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -1896,7 +1969,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed.");
+                _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed em {NotifyUrl}.", notifyUrl);
             }
         }
 

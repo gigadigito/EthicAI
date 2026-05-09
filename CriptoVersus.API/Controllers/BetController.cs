@@ -1,6 +1,7 @@
 ﻿using BLL;
 using BLL.Blockchain;
 using BLL.NFTFutebol;
+using BLL.Positions;
 using CriptoVersus.API.Services;
 using CriptoVersus.API.Hubs;
 using DAL.NftFutebol;
@@ -25,18 +26,18 @@ namespace CriptoVersus.API.Controllers
         private readonly EthicAIDbContext _context;
         private readonly ILogger<BetController> _logger;
         private readonly ILedgerService _ledgerService;
+        private readonly IPositionOrchestrationService _positionService;
         private readonly IHubContext<DashboardHub> _hub;
         private readonly IConfiguration _configuration;
         private readonly ICriptoVersusFundsService _fundsService;
         private readonly CriptoVersusBlockchainOptions _blockchainOptions;
         private readonly IOffChainCustodyTransferVerifier _offChainCustodyTransferVerifier;
 
-        private const int LiveBetMaxMinutes = 45;
-
         public BetController(
             EthicAIDbContext context,
             ILogger<BetController> logger,
             ILedgerService ledgerService,
+            IPositionOrchestrationService positionService,
             IHubContext<DashboardHub> hub,
             IConfiguration configuration,
             ICriptoVersusFundsService fundsService,
@@ -46,6 +47,7 @@ namespace CriptoVersus.API.Controllers
             _context = context;
             _logger = logger;
             _ledgerService = ledgerService;
+            _positionService = positionService;
             _hub = hub;
             _configuration = configuration;
             _fundsService = fundsService;
@@ -138,18 +140,25 @@ namespace CriptoVersus.API.Controllers
                     if (!IsValidMatchTeam(match, request.TeamId))
                         throw new BetHttpException(StatusCodes.Status400BadRequest, "O TeamId informado não pertence a esta partida.");
 
-                    var elapsedMinutes = GetElapsedMinutes(match);
+                    var accessDecision = InvestmentAccessPolicy.EvaluateLegacyMatch(
+                        match.Status.ToString(),
+                        match.StartTime,
+                        match.BettingCloseTime,
+                        nowUtc: DateTimeOffset.UtcNow);
 
-                    if (!IsBettingWindowOpen(match, elapsedMinutes))
+                    if (!accessDecision.CanInvest)
                     {
                         throw new BetHttpPayloadException(StatusCodes.Status400BadRequest, new
                         {
-                            message = "A janela de investimentos desta partida está fechada.",
+                            message = accessDecision.ReasonCode == InvestmentAccessPolicy.AdvancedLiveMatchReason
+                                ? "Este ativo está em uma partida avançada no momento. Aguarde o proximo ciclo para aumentar sua exposicao."
+                                : "A janela de investimentos desta partida esta fechada.",
                             bettingCloseTime = match.BettingCloseTime,
                             matchStartTime = match.StartTime,
                             matchStatus = match.Status.ToString(),
-                            elapsedMinutes,
-                            liveBetMaxMinutes = LiveBetMaxMinutes
+                            elapsedMinutes = accessDecision.ElapsedMinutes,
+                            advancedLiveThresholdMinutes = InvestmentAccessPolicy.AdvancedLiveThresholdMinutes,
+                            reasonCode = accessDecision.ReasonCode
                         });
                     }
 
@@ -207,11 +216,14 @@ namespace CriptoVersus.API.Controllers
                         }
                     }
 
+                    var isNewPosition = false;
+                    var capitalBefore = 0m;
                     var position = await _context.UserTeamPosition
                         .FirstOrDefaultAsync(p => p.UserId == user.UserID && p.TeamId == request.TeamId, cancellationToken);
 
                     if (position is null)
                     {
+                        isNewPosition = true;
                         position = new DAL.NftFutebol.UserTeamPosition
                         {
                             UserId = user.UserID,
@@ -227,6 +239,11 @@ namespace CriptoVersus.API.Controllers
                                 ? _blockchainOptions.Cluster
                                 : null,
                             CurrentLamports = ParseLamports(request.OnChainAmountLamports),
+                            ExposureMode = PositionExposureMode.MatchRecurring,
+                            BlockchainModeSnapshot = _positionService.BuildBlockchainModeSnapshot(),
+                            TotalPnL = 0m,
+                            TotalWins = 0,
+                            TotalLosses = 0,
                             CreatedAt = nowUtc,
                             UpdatedAt = nowUtc
                         };
@@ -235,6 +252,7 @@ namespace CriptoVersus.API.Controllers
                     }
                     else
                     {
+                        capitalBefore = position.CurrentCapital;
                         position.PrincipalAllocated = RoundMoney(position.PrincipalAllocated + request.Amount);
                         position.CurrentCapital = RoundMoney(position.CurrentCapital + request.Amount);
                         position.Status = TeamPositionStatus.Active;
@@ -249,6 +267,8 @@ namespace CriptoVersus.API.Controllers
                         position.CurrentLamports = AddLamports(
                             position.CurrentLamports,
                             ParseLamports(request.OnChainAmountLamports));
+                        position.ExposureMode = PositionExposureMode.MatchRecurring;
+                        position.BlockchainModeSnapshot ??= _positionService.BuildBlockchainModeSnapshot();
                         position.UpdatedAt = nowUtc;
                     }
 
@@ -293,6 +313,28 @@ namespace CriptoVersus.API.Controllers
 
                     await _context.SaveChangesAsync(cancellationToken);
 
+                    await _positionService.RecordLifecycleEventAsync(
+                        _context,
+                        position,
+                        isNewPosition ? PositionLifecycleEventType.Opened : PositionLifecycleEventType.Increased,
+                        nowUtc,
+                        matchId: matchId,
+                        betId: bet.BetId,
+                        amount: request.Amount,
+                        capitalBefore: isNewPosition ? 0m : capitalBefore,
+                        capitalAfter: position.CurrentCapital,
+                        notes: "Persistent position funded through the legacy match investment flow.",
+                        ct: cancellationToken);
+
+                    await _positionService.EnsureAllocationAsync(
+                        _context,
+                        position,
+                        bet,
+                        nowUtc,
+                        lifecycleEventType: null,
+                        lifecycleNotes: null,
+                        ct: cancellationToken);
+
                     if (fundedFromWallet)
                     {
                         var ledgerType = _blockchainOptions.IsOffChainCustodyMode
@@ -325,7 +367,7 @@ namespace CriptoVersus.API.Controllers
                         balanceBefore,
                         user.Balance,
                         match.Status,
-                        elapsedMinutes);
+                        accessDecision.ElapsedMinutes);
 
                     response = new BetCreateResponse
                     {
@@ -459,40 +501,6 @@ namespace CriptoVersus.API.Controllers
                     utc = DateTimeOffset.UtcNow
                 }),
                 cancellationToken);
-        }
-
-        private static bool IsBettingWindowOpen(DAL.NftFutebol.Match match, int elapsedMinutes)
-        {
-            var now = DateTimeOffset.UtcNow;
-
-            if (match.Status == MatchStatus.Pending)
-            {
-                if (match.BettingCloseTime.HasValue)
-                    return now <= match.BettingCloseTime.Value;
-
-                return match.StartTime.HasValue && now < match.StartTime.Value;
-            }
-
-            if (match.Status == MatchStatus.Ongoing)
-            {
-                return elapsedMinutes >= 0 && elapsedMinutes < LiveBetMaxMinutes;
-            }
-
-            return false;
-        }
-
-        private static int GetElapsedMinutes(DAL.NftFutebol.Match match)
-        {
-            if (!match.StartTime.HasValue)
-                return 0;
-
-            var startUtc = match.StartTime.Value.ToUniversalTime();
-            var elapsed = DateTime.UtcNow - startUtc;
-
-            if (elapsed.TotalMinutes < 0)
-                return 0;
-
-            return (int)elapsed.TotalMinutes;
         }
 
         private sealed class BetHttpException : Exception

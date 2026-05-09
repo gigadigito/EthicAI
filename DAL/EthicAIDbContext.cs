@@ -23,6 +23,8 @@ namespace EthicAI.EntityModel
         public DbSet<Currency> Currency { get; set; }
         public DbSet<Bet> Bet { get; set; }
         public DbSet<UserTeamPosition> UserTeamPosition { get; set; }
+        public DbSet<PositionAllocation> PositionAllocation { get; set; }
+        public DbSet<PositionLifecycleEvent> PositionLifecycleEvent { get; set; }
         public DbSet<WorkerStatus> WorkerStatus { get; set; }
         public DbSet<MatchMetricSnapshot> MatchMetricSnapshot { get; set; }
         public DbSet<MatchScoreEvent> MatchScoreEvent { get; set; }
@@ -453,6 +455,28 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.CurrentLamports)
                       .HasColumnName("nr_current_lamports");
 
+                entity.Property(e => e.ExposureMode)
+                      .HasConversion<int>()
+                      .HasColumnName("in_exposure_mode")
+                      .HasDefaultValue(PositionExposureMode.MatchRecurring);
+
+                entity.Property(e => e.BlockchainModeSnapshot)
+                      .HasMaxLength(32)
+                      .HasColumnName("tx_blockchain_mode_snapshot");
+
+                entity.Property(e => e.TotalPnL)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_total_pnl")
+                      .HasDefaultValue(0m);
+
+                entity.Property(e => e.TotalWins)
+                      .HasColumnName("nr_total_wins")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.TotalLosses)
+                      .HasColumnName("nr_total_losses")
+                      .HasDefaultValue(0);
+
                 entity.Property(e => e.CreatedAt)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_created");
@@ -478,6 +502,122 @@ namespace EthicAI.EntityModel
                       .WithMany(t => t.UserPositions)
                       .HasForeignKey(e => e.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PositionAllocation>(entity =>
+            {
+                entity.HasKey(e => e.PositionAllocationId);
+                entity.ToTable("position_allocation");
+
+                entity.Property(e => e.PositionAllocationId).HasColumnName("id_position_allocation");
+                entity.Property(e => e.PositionId).HasColumnName("cd_position");
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.BetId).HasColumnName("cd_bet");
+
+                entity.Property(e => e.AllocatedAmount)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_allocated_amount");
+
+                entity.Property(e => e.ResultAmount)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_result_amount")
+                      .IsRequired(false);
+
+                entity.Property(e => e.PnL)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_pnl")
+                      .IsRequired(false);
+
+                entity.Property(e => e.Status)
+                      .HasConversion<int>()
+                      .HasColumnName("in_status")
+                      .HasDefaultValue(PositionAllocationStatus.Active);
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created");
+
+                entity.Property(e => e.SettledAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_settled")
+                      .IsRequired(false);
+
+                entity.HasIndex(e => new { e.PositionId, e.MatchId })
+                      .IsUnique();
+
+                entity.HasOne(e => e.Position)
+                      .WithMany(p => p.Allocations)
+                      .HasForeignKey(e => e.PositionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Bet)
+                      .WithOne(b => b.AllocationEntry)
+                      .HasForeignKey<PositionAllocation>(e => e.BetId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<PositionLifecycleEvent>(entity =>
+            {
+                entity.HasKey(e => e.PositionLifecycleEventId);
+                entity.ToTable("position_lifecycle_event");
+
+                entity.Property(e => e.PositionLifecycleEventId).HasColumnName("id_position_lifecycle_event");
+                entity.Property(e => e.PositionId).HasColumnName("cd_position");
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.BetId).HasColumnName("cd_bet");
+
+                entity.Property(e => e.EventType)
+                      .HasConversion<int>()
+                      .HasColumnName("in_event_type");
+
+                entity.Property(e => e.Amount)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_amount")
+                      .IsRequired(false);
+
+                entity.Property(e => e.CapitalBefore)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_capital_before")
+                      .IsRequired(false);
+
+                entity.Property(e => e.CapitalAfter)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_capital_after")
+                      .IsRequired(false);
+
+                entity.Property(e => e.PnL)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_pnl")
+                      .IsRequired(false);
+
+                entity.Property(e => e.Notes)
+                      .HasColumnName("tx_notes");
+
+                entity.Property(e => e.CreatedAt)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_created");
+
+                entity.HasIndex(e => new { e.PositionId, e.CreatedAt });
+
+                entity.HasOne(e => e.Position)
+                      .WithMany(p => p.LifecycleEvents)
+                      .HasForeignKey(e => e.PositionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.Bet)
+                      .WithMany()
+                      .HasForeignKey(e => e.BetId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<MatchMetricSnapshot>(entity =>

@@ -7,6 +7,13 @@
       "language": "Idioma",
       "english": "English",
       "portuguese": "Português"
+    },
+    "postLogin": {
+      "eyebrow": "Carteira conectada",
+      "title": "Deseja ir para sua carteira agora?",
+      "body": "Sua carteira foi conectada com sucesso. Voce pode abrir a pagina Minha Carteira agora ou continuar na pagina atual.",
+      "stay": "Ficar nesta pagina",
+      "goToWallet": "Ir para Minha Carteira"
     }
   },
   "nav": {
@@ -351,12 +358,30 @@
     },
     "summary": {
       "ariaLabel": "Resumo publico de estatisticas",
-      "totalMatches": { "label": "Total de Partidas", "hint": "paginas publicas de partidas" },
-      "finishedMatches": { "label": "Partidas Encerradas", "hint": "placares finais indexados" },
-      "activeAssets": { "label": "Ativos Ativos", "hint": "simbolos visiveis em partidas publicas" },
-      "averageScore": { "label": "Score Medio", "hint": "score combinado medio por partida" },
-      "highestScore": { "label": "Maior Score", "hint": "melhor score individual registrado" },
-      "lastUpdated": { "label": "Ultima Atualizacao", "hint": "horario publico de atualizacao" }
+      "totalMatches": {
+        "label": "Total de Partidas",
+        "hint": "paginas publicas de partidas"
+      },
+      "finishedMatches": {
+        "label": "Partidas Encerradas",
+        "hint": "placares finais indexados"
+      },
+      "activeAssets": {
+        "label": "Ativos Ativos",
+        "hint": "simbolos visiveis em partidas publicas"
+      },
+      "averageScore": {
+        "label": "Score Medio",
+        "hint": "score combinado medio por partida"
+      },
+      "highestScore": {
+        "label": "Maior Score",
+        "hint": "melhor score individual registrado"
+      },
+      "lastUpdated": {
+        "label": "Ultima Atualizacao",
+        "hint": "horario publico de atualizacao"
+      }
     },
     "charts": {
       "winRate": {
@@ -426,10 +451,22 @@
       "comingSoon": "Em breve",
       "openAria": "Abrir {0}",
       "links": {
-        "teams": { "title": "Times", "description": "Leaderboards publicos dedicados a confrontos por time." },
-        "matches": { "title": "Partidas", "description": "Arquivo ampliado de partidas com filtros historicos mais profundos." },
-        "rankings": { "title": "Rankings", "description": "Boards de ranking por multiplas metricas da arena publica." },
-        "records": { "title": "Recordes", "description": "Recordes publicos da arena, sequencias e marcos estatisticos." }
+        "teams": {
+          "title": "Times",
+          "description": "Leaderboards publicos dedicados a confrontos por time."
+        },
+        "matches": {
+          "title": "Partidas",
+          "description": "Arquivo ampliado de partidas com filtros historicos mais profundos."
+        },
+        "rankings": {
+          "title": "Rankings",
+          "description": "Boards de ranking por multiplas metricas da arena publica."
+        },
+        "records": {
+          "title": "Recordes",
+          "description": "Recordes publicos da arena, sequencias e marcos estatisticos."
+        }
       }
     },
     "status": {
@@ -478,11 +515,26 @@
     },
     "summary": {
       "ariaLabel": "Resumo dos times da arena",
-      "totalAssets": { "label": "Total de Ativos", "hint": "times cripto publicos monitorados" },
-      "mostDominantAsset": { "label": "Ativo Mais Dominante", "hint": "lider atual do ranking da arena" },
-      "highestWinRate": { "label": "Maior Win Rate", "hint": "melhor percentual publico de vitorias" },
-      "mostActiveTeam": { "label": "Time Mais Ativo", "hint": "maior volume publico de partidas" },
-      "totalBattlesIndexed": { "label": "Total de Batalhas", "hint": "batalhas publicas concluidas da arena" }
+      "totalAssets": {
+        "label": "Total de Ativos",
+        "hint": "times cripto publicos monitorados"
+      },
+      "mostDominantAsset": {
+        "label": "Ativo Mais Dominante",
+        "hint": "lider atual do ranking da arena"
+      },
+      "highestWinRate": {
+        "label": "Maior Win Rate",
+        "hint": "melhor percentual publico de vitorias"
+      },
+      "mostActiveTeam": {
+        "label": "Time Mais Ativo",
+        "hint": "maior volume publico de partidas"
+      },
+      "totalBattlesIndexed": {
+        "label": "Total de Batalhas",
+        "hint": "batalhas publicas concluidas da arena"
+      }
     },
     "search": {
       "eyebrow": "Buscar no diretorio",
@@ -572,6 +624,31 @@
       "momentumHint": "estado atual de forma na arena",
       "lastMatch": "Ultima partida",
       "lastMatchHint": "data da batalha publica mais recente"
+    },
+    "investment": {
+      "eyebrow": "Investimento ao vivo",
+      "title": "Investir em {0}",
+      "cta": "Investir em {0}",
+      "loadingCta": "Carregando mercado",
+      "openMatch": "Abrir partida",
+      "states": {
+        "loading": "Carregando",
+        "available": "Disponivel",
+        "walletRequired": "Conecte a carteira",
+        "unavailable": "Indisponivel"
+      },
+      "messages": {
+        "loading": "Buscando a partida ou ciclo investivel mais atual para este time.",
+        "available": "Mercado aberto para {0}. O fluxo segue a mesma validacao publica usada na arena contra {1}.",
+        "walletRequired": "Existe uma partida investivel para {0}, mas voce precisa conectar a carteira para concluir o fluxo atual.",
+        "unavailable": "Este time nao possui um mercado investivel publico neste momento.",
+        "noMatch": "Ainda nao encontramos uma partida publica ativa para este time.",
+        "closed": "As partidas recentes deste time estao com a janela de investimento encerrada.",
+        "advancedLive": "Este ativo esta em uma partida avancada no momento. Aguarde o proximo ciclo para aumentar sua exposicao.",
+        "error": "Nao foi possivel validar o contexto investivel agora. Tente novamente em instantes.",
+        "success": "Investimento enviado para {0}.",
+        "submitError": "Nao foi possivel enviar o investimento para {0} agora."
+      }
     },
     "states": {
       "loadingTitle": "Carregando perfil do time",

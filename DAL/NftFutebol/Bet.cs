@@ -24,6 +24,7 @@ namespace DAL.NftFutebol
         public virtual Team Team { get; set; }
         public virtual User User { get; set; } // Relacionamento com User
         public virtual UserTeamPosition? PositionEntry { get; set; }
+        public virtual PositionAllocation? AllocationEntry { get; set; }
         public bool Claimed { get; set; }
         public DateTime? ClaimedAt { get; set; }
     }

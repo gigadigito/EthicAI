@@ -1,5 +1,30 @@
 namespace DAL.NftFutebol
 {
+    public enum PositionExposureMode
+    {
+        MatchRecurring = 0
+    }
+
+    public enum PositionLifecycleEventType
+    {
+        Opened = 0,
+        Increased = 1,
+        Reduced = 2,
+        Paused = 3,
+        Resumed = 4,
+        AutoAllocated = 5,
+        MatchSettled = 6,
+        Closed = 7,
+        ClosingRequested = 8
+    }
+
+    public enum PositionAllocationStatus
+    {
+        Active = 0,
+        Settled = 1,
+        Cancelled = 2
+    }
+
     public enum TeamPositionStatus
     {
         Active = 0,
@@ -22,6 +47,11 @@ namespace DAL.NftFutebol
         public string? LastOnChainSignature { get; set; }
         public string? OnChainCluster { get; set; }
         public long? CurrentLamports { get; set; }
+        public PositionExposureMode ExposureMode { get; set; } = PositionExposureMode.MatchRecurring;
+        public string? BlockchainModeSnapshot { get; set; }
+        public decimal TotalPnL { get; set; }
+        public int TotalWins { get; set; }
+        public int TotalLosses { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime? ClosedAt { get; set; }
@@ -29,5 +59,7 @@ namespace DAL.NftFutebol
         public virtual User User { get; set; }
         public virtual Team Team { get; set; }
         public virtual ICollection<Bet> Bets { get; set; } = new List<Bet>();
+        public virtual ICollection<PositionAllocation> Allocations { get; set; } = new List<PositionAllocation>();
+        public virtual ICollection<PositionLifecycleEvent> LifecycleEvents { get; set; } = new List<PositionLifecycleEvent>();
     }
 }

@@ -53,7 +53,15 @@ public sealed class RouteLocalizationService
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/como-funciona"
             : "/en/how-it-works";
+    public string BuildWalletPath(string? culture)
+    => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+        ? "/pt/minha-carteira"
+        : "/en/my-wallet";
 
+    public string BuildAdminPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/admin-sistema"
+            : "/en/admin-system";
     public string BuildStatsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas"

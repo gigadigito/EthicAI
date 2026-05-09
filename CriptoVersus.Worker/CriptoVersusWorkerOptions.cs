@@ -14,6 +14,7 @@ public class CriptoVersusWorkerOptions
     public int DesiredActiveMatches { get; set; }
     public bool AutoEndOngoingMatches { get; set; }
     public int MatchDurationMinutes { get; set; }
+    public string DashboardNotifyUrl { get; set; } = "http://criptoversus-api:8080/api/dashboard/notify";
     public ScoringOptions Scoring { get; set; } = new();
     public SettlementOptions Settlement { get; set; } = new();
 }

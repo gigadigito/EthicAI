@@ -11,6 +11,11 @@ public sealed class TeamPositionDto
     public decimal CurrentCapital { get; set; }
     public bool AutoCompound { get; set; }
     public string Status { get; set; } = "";
+    public string ExposureMode { get; set; } = "";
+    public string? BlockchainModeSnapshot { get; set; }
+    public decimal TotalPnL { get; set; }
+    public int TotalWins { get; set; }
+    public int TotalLosses { get; set; }
     public bool HasOpenBet { get; set; }
     public string? OpenBetMatchStatus { get; set; }
     public bool CanCloseNow { get; set; }

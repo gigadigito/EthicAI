@@ -7,6 +7,13 @@
       "language": "Language",
       "english": "English",
       "portuguese": "Português"
+    },
+    "postLogin": {
+      "eyebrow": "Wallet connected",
+      "title": "Do you want to open your wallet now?",
+      "body": "Your wallet was connected successfully. You can open My Wallet now or stay on the current page.",
+      "stay": "Stay on this page",
+      "goToWallet": "Go to My Wallet"
     }
   },
   "nav": {
@@ -351,12 +358,30 @@
     },
     "summary": {
       "ariaLabel": "Public stats summary",
-      "totalMatches": { "label": "Total Matches", "hint": "public arena match pages" },
-      "finishedMatches": { "label": "Finished Matches", "hint": "closed scoreboards indexed" },
-      "activeAssets": { "label": "Active Assets", "hint": "symbols seen in public matches" },
-      "averageScore": { "label": "Average Score", "hint": "combined arena score per match" },
-      "highestScore": { "label": "Highest Score", "hint": "best single-side score registered" },
-      "lastUpdated": { "label": "Last Updated", "hint": "public arena refresh time" }
+      "totalMatches": {
+        "label": "Total Matches",
+        "hint": "public arena match pages"
+      },
+      "finishedMatches": {
+        "label": "Finished Matches",
+        "hint": "closed scoreboards indexed"
+      },
+      "activeAssets": {
+        "label": "Active Assets",
+        "hint": "symbols seen in public matches"
+      },
+      "averageScore": {
+        "label": "Average Score",
+        "hint": "combined arena score per match"
+      },
+      "highestScore": {
+        "label": "Highest Score",
+        "hint": "best single-side score registered"
+      },
+      "lastUpdated": {
+        "label": "Last Updated",
+        "hint": "public arena refresh time"
+      }
     },
     "charts": {
       "winRate": {
@@ -426,10 +451,22 @@
       "comingSoon": "Coming soon",
       "openAria": "Open {0}",
       "links": {
-        "teams": { "title": "Teams", "description": "Dedicated team-vs-team public leaderboards." },
-        "matches": { "title": "Matches", "description": "Expanded match archive with deeper historical filters." },
-        "rankings": { "title": "Rankings", "description": "Multi-metric ranking boards across public arena categories." },
-        "records": { "title": "Records", "description": "Public arena records, streaks and statistical milestones." }
+        "teams": {
+          "title": "Teams",
+          "description": "Dedicated team-vs-team public leaderboards."
+        },
+        "matches": {
+          "title": "Matches",
+          "description": "Expanded match archive with deeper historical filters."
+        },
+        "rankings": {
+          "title": "Rankings",
+          "description": "Multi-metric ranking boards across public arena categories."
+        },
+        "records": {
+          "title": "Records",
+          "description": "Public arena records, streaks and statistical milestones."
+        }
       }
     },
     "status": {
@@ -478,11 +515,26 @@
     },
     "summary": {
       "ariaLabel": "Arena teams summary",
-      "totalAssets": { "label": "Total Assets", "hint": "public crypto teams tracked" },
-      "mostDominantAsset": { "label": "Most Dominant Asset", "hint": "current top ranked arena leader" },
-      "highestWinRate": { "label": "Highest Win Rate", "hint": "best public closing percentage" },
-      "mostActiveTeam": { "label": "Most Active Team", "hint": "largest public match sample" },
-      "totalBattlesIndexed": { "label": "Total Battles Indexed", "hint": "completed public arena battles" }
+      "totalAssets": {
+        "label": "Total Assets",
+        "hint": "public crypto teams tracked"
+      },
+      "mostDominantAsset": {
+        "label": "Most Dominant Asset",
+        "hint": "current top ranked arena leader"
+      },
+      "highestWinRate": {
+        "label": "Highest Win Rate",
+        "hint": "best public closing percentage"
+      },
+      "mostActiveTeam": {
+        "label": "Most Active Team",
+        "hint": "largest public match sample"
+      },
+      "totalBattlesIndexed": {
+        "label": "Total Battles Indexed",
+        "hint": "completed public arena battles"
+      }
     },
     "search": {
       "eyebrow": "Search the directory",
@@ -572,6 +624,31 @@
       "momentumHint": "current arena form label",
       "lastMatch": "Last match",
       "lastMatchHint": "latest public battle date"
+    },
+    "investment": {
+      "eyebrow": "Live investment",
+      "title": "Invest in {0}",
+      "cta": "Invest in {0}",
+      "loadingCta": "Loading market",
+      "openMatch": "Open match",
+      "states": {
+        "loading": "Loading",
+        "available": "Available",
+        "walletRequired": "Connect wallet",
+        "unavailable": "Unavailable"
+      },
+      "messages": {
+        "loading": "Looking up the latest investable match or cycle for this team.",
+        "available": "Market open for {0}. This uses the same public arena investment flow currently active against {1}.",
+        "walletRequired": "An investable match exists for {0}, but you need to connect your wallet to complete the current flow.",
+        "unavailable": "This team has no public investable market right now.",
+        "noMatch": "We could not find an active public match for this team yet.",
+        "closed": "Recent matches for this team are no longer inside the investment window.",
+        "advancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
+        "error": "We could not validate the investable context right now. Please try again shortly.",
+        "success": "Investment submitted for {0}.",
+        "submitError": "We could not submit the investment for {0} right now."
+      }
     },
     "states": {
       "loadingTitle": "Loading team profile",
@@ -671,7 +748,7 @@
     "heroTitle": "Live crypto battles in a gamified cyclical arena.",
     "heroDescription": "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
-    "featuredMatchScoreSummary": "Match #{0} ? score {1} x {2}",
+    "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
     "structuredDataDescription": "Live crypto match between {0} and {1} on CriptoVersus."
   },
   "matchDetail": {

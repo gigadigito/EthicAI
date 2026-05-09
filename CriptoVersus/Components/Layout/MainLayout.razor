@@ -88,6 +88,26 @@
                       OnSessionChanged="HandleSessionChangedAsync" />
 }
 
+@if (_showPostLoginPrompt)
+{
+    <div class="post-login-overlay" @onclick="StayOnCurrentPage">
+        <div class="post-login-dialog" @onclick:stopPropagation="true" role="dialog" aria-modal="true" aria-labelledby="post-login-title">
+            <span class="post-login-dialog__eyebrow">@PostLoginText("eyebrow")</span>
+            <h2 id="post-login-title">@PostLoginText("title")</h2>
+            <p>@PostLoginText("body")</p>
+
+            <div class="post-login-dialog__actions">
+                <button type="button" class="post-login-dialog__btn post-login-dialog__btn--secondary" @onclick="StayOnCurrentPage">
+                    @PostLoginText("stay")
+                </button>
+                <button type="button" class="post-login-dialog__btn post-login-dialog__btn--primary" @onclick="GoToWalletPage">
+                    @PostLoginText("goToWallet")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @if (_interactiveChromeReady && !IsPublicSeoRoute)
 {
     <div id="blazor-error-ui" data-nosnippet>
@@ -152,6 +172,94 @@
         color: #fff;
         background: rgba(255,255,255,.1);
     }
+
+    .post-login-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+        background: rgba(2, 6, 16, 0.68);
+        backdrop-filter: blur(10px);
+    }
+
+    .post-login-dialog {
+        width: min(100%, 480px);
+        padding: 1.4rem;
+        border-radius: 24px;
+        border: 1px solid rgba(127, 246, 223, 0.18);
+        background:
+            radial-gradient(circle at top left, rgba(76, 243, 141, 0.12), transparent 28%),
+            radial-gradient(circle at top right, rgba(96, 165, 250, 0.1), transparent 26%),
+            linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
+        box-shadow: 0 24px 80px rgba(0,0,0,.42);
+        color: #eef5ff;
+    }
+
+    .post-login-dialog__eyebrow {
+        display: block;
+        color: #7ff6df;
+        font-size: .78rem;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+    }
+
+    .post-login-dialog h2 {
+        margin: .55rem 0 .45rem;
+        font-size: clamp(1.25rem, 2vw, 1.6rem);
+        line-height: 1.1;
+    }
+
+    .post-login-dialog p {
+        margin: 0;
+        color: #b9c7da;
+        line-height: 1.6;
+    }
+
+    .post-login-dialog__actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: .75rem;
+        margin-top: 1.15rem;
+    }
+
+    .post-login-dialog__btn {
+        min-height: 2.9rem;
+        padding: .72rem 1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.12);
+        font-weight: 800;
+        letter-spacing: .03em;
+    }
+
+    .post-login-dialog__btn--secondary {
+        color: #eef5ff;
+        background: rgba(255,255,255,.04);
+    }
+
+    .post-login-dialog__btn--primary {
+        color: #03150f;
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        border-color: rgba(127, 246, 223, 0.35);
+    }
+
+    @@media (max-width: 480px) {
+        .post-login-dialog {
+            padding: 1.15rem;
+            border-radius: 20px;
+        }
+
+        .post-login-dialog__actions {
+            flex-direction: column-reverse;
+        }
+
+        .post-login-dialog__btn {
+            width: 100%;
+        }
+    }
 </style>
 
 @code {
@@ -166,6 +274,7 @@
     private DotNetObjectReference<MainLayout>? _walletObserverRef;
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool _interactiveChromeReady;
+    private bool _showPostLoginPrompt;
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
     private bool IsPublicHomeRoute => IsHomeRoute(Nav.Uri);
     private bool ShouldHideInitialLoader => IsPublicSeoRoute && !IsPublicHomeRoute;
@@ -240,7 +349,8 @@
     {
         await LoadLoginSessionAsync();
         await SyncWalletObserverAsync();
-        Nav.NavigateTo("/minha-carteira");
+        _showPostLoginPrompt = true;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleSessionChangedAsync()
@@ -249,6 +359,20 @@
         await SyncWalletObserverAsync();
     }
 
+    private Task StayOnCurrentPage()
+    {
+        _showPostLoginPrompt = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+
+
+    private void GoToWalletPage()
+    {
+        _showPostLoginPrompt = false;
+        var culture = AppCulture.GetCurrentRouteCulture(Nav);
+        Nav.NavigateTo(RouteLocalization.BuildWalletPath(culture));
+    }
     private async Task SyncWalletObserverAsync()
     {
         _walletActionsModule ??= await JS.InvokeAsync<IJSObjectReference>(
@@ -288,6 +412,7 @@
 
         authToken = null;
         walletPublicKey = null;
+        _showPostLoginPrompt = false;
         WalletState.SetSession(null, null);
 
         if (_walletActionsModule is not null)
@@ -314,6 +439,23 @@
 
     private Task HandleLoaderHiddenAsync()
         => Task.CompletedTask;
+
+    private string PostLoginText(string key)
+    {
+        var isEnglish = string.Equals(CurrentCulture, "en", StringComparison.OrdinalIgnoreCase);
+
+        return key switch
+        {
+            "eyebrow" => isEnglish ? "Wallet connected" : "Carteira conectada",
+            "title" => isEnglish ? "Do you want to open your wallet now?" : "Deseja ir para sua carteira agora?",
+            "body" => isEnglish
+                ? "Your wallet was connected successfully. You can open My Wallet now or stay on the current page."
+                : "Sua carteira foi conectada com sucesso. Voce pode abrir a pagina Minha Carteira agora ou continuar na pagina atual.",
+            "stay" => isEnglish ? "Stay on this page" : "Ficar nesta pagina",
+            "goToWallet" => isEnglish ? "Go to My Wallet" : "Ir para Minha Carteira",
+            _ => key
+        };
+    }
 
     private static string GetWalletAvatarUrl(string wallet)
         => $"https://api.dicebear.com/9.x/identicon/svg?seed={Uri.EscapeDataString(wallet)}";

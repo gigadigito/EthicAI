@@ -1,19 +1,26 @@
 @page "/stats/teams/{Slug}"
 @page "/en/stats/teams/{Slug}"
 @page "/pt/estatisticas/times/{Slug}"
+@using System.Net.Http.Headers
+@using System.Net.Http.Json
 @using System.Globalization
 @using System.Net
 @using System.Text.Json
+@using Blazored.SessionStorage
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject IHttpContextAccessor HttpContextAccessor
+@inject HttpClient Http
+@inject IConfiguration Config
+@inject ISessionStorageService SessionStorage
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
+@inject TeamInvestmentContextResolver TeamInvestmentContextResolver
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
@@ -63,6 +70,28 @@
                 </div>
                 <p class="team-detail-hero__lead">@T("hero.subtitle", _detail.DisplaySymbol)</p>
                 <p class="team-detail-hero__seo-copy">@T("hero.seoCopy", _detail.DisplaySymbol)</p>
+                <div class="team-detail-invest-card">
+                    <div class="team-detail-invest-card__copy">
+                        <span class="team-detail-invest-card__eyebrow">@T("investment.eyebrow")</span>
+                        <strong>@T("investment.title", _detail.DisplaySymbol)</strong>
+                        <p>@GetInvestmentMessage()</p>
+                    </div>
+                    <div class="team-detail-invest-card__actions">
+                        <span class="team-detail-invest-state @GetInvestmentStateClass()">@GetInvestmentStateLabel()</span>
+                        <button class="team-detail-invest-button"
+                                disabled="@IsInvestmentButtonDisabled"
+                                @onclick="OpenInvestmentAmountModal">
+                            @(IsInvestmentBusy ? T("investment.loadingCta") : T("investment.cta", _detail.DisplaySymbol))
+                        </button>
+                        @if (_investmentMatch is not null)
+                        {
+                            <a class="team-detail-invest-link"
+                               href="@BuildMatchUrl(_investmentMatch)">
+                                @T("investment.openMatch")
+                            </a>
+                        }
+                    </div>
+                </div>
                 <div class="team-detail-hero__actions">
                     <a class="team-detail-pill-link" href="@RouteLocalization.BuildStatsTeamsPath(CurrentCulture)">@T("hero.backToTeams")</a>
                     <a class="team-detail-pill-link team-detail-pill-link--accent" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">@T("hero.backToStats")</a>
@@ -192,15 +221,121 @@
     }
 </section>
 
+@if (_showSimplePopup)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">@_simplePopupTitle</h5>
+                    <button type="button" class="btn-close btn-close-white" aria-label="@InvestmentT("close")" @onclick="CloseSimplePopup"></button>
+                </div>
+                <div class="modal-body text-light-emphasis">
+                    <p class="mb-0">@_simplePopupMessage</p>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-primary" @onclick="CloseSimplePopup">@InvestmentT("understood")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showInvestmentAmountModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">@InvestmentT("chooseTheAmountInSol")</h5>
+                    <button type="button" class="btn-close btn-close-white" aria-label="@InvestmentT("close")" @onclick="CloseInvestmentAmountModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="team-detail-amount-modal-team">
+                        <span>@InvestmentT("investmentIn")</span>
+                        <strong><MarketPairText Symbol="@_pendingBetTeamName" /></strong>
+                    </div>
+
+                    <div class="team-detail-amount-quick-grid" aria-label="@InvestmentT("quickValuesInSol")">
+                        @foreach (var amount in QuickInvestmentAmounts)
+                        {
+                            <button type="button"
+                                    class="team-detail-amount-chip @(_investmentAmount == amount ? "team-detail-amount-chip-active" : "")"
+                                    @onclick="() => SetInvestmentAmount(amount)">
+                                @FmtSolAmount(amount)
+                            </button>
+                        }
+                    </div>
+
+                    <label class="form-label mt-3" for="teamStatsInvestmentAmountRange">
+                        @InvestmentT("quickAdjustment") <strong>@FmtSolAmount(_investmentAmount)</strong>
+                    </label>
+                    <input id="teamStatsInvestmentAmountRange"
+                           class="form-range"
+                           type="range"
+                           min="0"
+                           max="@(QuickInvestmentAmounts.Length - 1)"
+                           step="1"
+                           @bind="_investmentAmountRangeIndex"
+                           @bind:event="oninput" />
+
+                    <label class="form-label mt-3" for="teamStatsInvestmentAmountInput">
+                        @InvestmentT("orEnterAnyAmountInSol")
+                    </label>
+                    <input id="teamStatsInvestmentAmountInput"
+                           class="form-control"
+                           type="number"
+                           min="0.00000001"
+                           step="0.00000001"
+                           @bind="_investmentAmount"
+                           @bind:event="oninput" />
+
+                    @if (!string.IsNullOrWhiteSpace(_investmentAmountError))
+                    {
+                        <div class="text-danger small mt-2">@_investmentAmountError</div>
+                    }
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" @onclick="CloseInvestmentAmountModal">@InvestmentT("cancel")</button>
+                    <button type="button" class="btn btn-primary" disabled="@_isSendingBet" @onclick="ConfirmInvestmentAmountAsync">
+                        @(_isSendingBet ? InvestmentT("sending") : $"{InvestmentT("invest")} {FmtSolAmount(_investmentAmount)}")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public string Slug { get; set; } = string.Empty;
     [Parameter] public string? Culture { get; set; }
 
     private const string ActivityChartId = "team-detail-activity-chart";
+    private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.1m, 0.25m, 0.5m, 1m];
     private readonly StatsArenaTeamDetailDto _detail = new();
     private bool _loading = true;
     private bool _chartPendingRender;
     private string? _error;
+    private bool _investmentContextLoading = true;
+    private MatchDto? _investmentMatch;
+    private int _investmentTeamId;
+    private string _investmentOpponentName = string.Empty;
+    private string _investmentContextFailureReason = string.Empty;
+    private int? _loggedUserId;
+    private string? _loggedWalletPublicKey;
+    private IJSObjectReference? _bettingModule;
+    private bool _showSimplePopup;
+    private string _simplePopupTitle = string.Empty;
+    private string _simplePopupMessage = string.Empty;
+    private bool _showInvestmentAmountModal;
+    private bool _isSendingBet;
+    private int _pendingBetTeamId;
+    private string _pendingBetTeamName = string.Empty;
+    private decimal _investmentAmount = 0.1m;
+    private string _investmentAmountError = string.Empty;
+    private string _investmentStatusMessage = string.Empty;
 
     private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
         ? AppCulture.NormalizeRouteCulture(Culture)
@@ -221,6 +356,19 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            try
+            {
+                await RefreshAuthenticatedUserAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+            {
+                _ = ex;
+            }
+        }
+
         if (!_chartPendingRender || _loading || !string.IsNullOrWhiteSpace(_error))
             return;
 
@@ -261,6 +409,7 @@
                 _detail.LatestMatches.AddRange(response.LatestMatches ?? []);
                 _detail.Rivalries.Clear();
                 _detail.Rivalries.AddRange(response.Rivalries ?? []);
+                await ResolveInvestmentContextAsync();
                 _chartPendingRender = true;
             }
         }
@@ -277,6 +426,39 @@
         {
             _loading = false;
             await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ResolveInvestmentContextAsync()
+    {
+        _investmentContextLoading = true;
+        _investmentMatch = null;
+        _investmentTeamId = 0;
+        _investmentOpponentName = string.Empty;
+        _investmentContextFailureReason = string.Empty;
+
+        try
+        {
+            var resolution = await TeamInvestmentContextResolver.ResolveAsync(_detail.Symbol);
+            if (!resolution.IsAvailable || resolution.Match is null)
+            {
+                _investmentContextFailureReason = resolution.FailureReason;
+                return;
+            }
+
+            _investmentMatch = resolution.Match;
+            _investmentTeamId = resolution.TeamId;
+            _pendingBetTeamName = resolution.TeamName;
+            _investmentOpponentName = resolution.OpponentName;
+        }
+        catch (Exception ex)
+        {
+            _investmentContextFailureReason = "team_match_lookup_error";
+            Console.WriteLine($"Stats team investment context error: {ex.Message}");
+        }
+        finally
+        {
+            _investmentContextLoading = false;
         }
     }
 
@@ -326,6 +508,281 @@
 
         return match.PublicUrl ?? string.Empty;
     }
+
+    private string BuildMatchUrl(MatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+        return !string.IsNullOrWhiteSpace(slug)
+            ? RouteLocalization.BuildBestPath(CurrentCulture, match.MatchId, slug)
+            : string.Empty;
+    }
+
+    private async Task RefreshAuthenticatedUserAsync()
+    {
+        _loggedUserId = await SessionStorage.GetItemAsync<int?>("userId");
+        _loggedWalletPublicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+    }
+
+    private bool HasWalletSession => _loggedUserId.GetValueOrDefault() > 0 && !string.IsNullOrWhiteSpace(_loggedWalletPublicKey);
+    private bool IsInvestmentBusy => _investmentContextLoading || _isSendingBet;
+    private bool IsInvestmentAvailable => _investmentMatch is not null && _investmentTeamId > 0 && PublicInvestmentRules.IsBettingWindowOpen(_investmentMatch);
+    private bool IsInvestmentButtonDisabled => IsInvestmentBusy || !IsInvestmentAvailable;
+
+    private string GetInvestmentStateLabel()
+    {
+        if (_investmentContextLoading)
+            return T("investment.states.loading");
+
+        if (!IsInvestmentAvailable)
+            return T("investment.states.unavailable");
+
+        if (!HasWalletSession)
+            return T("investment.states.walletRequired");
+
+        return T("investment.states.available");
+    }
+
+    private string GetInvestmentStateClass()
+    {
+        if (_investmentContextLoading)
+            return "is-loading";
+
+        if (!IsInvestmentAvailable)
+            return "is-unavailable";
+
+        if (!HasWalletSession)
+            return "is-blocked";
+
+        return "is-available";
+    }
+
+    private string GetInvestmentMessage()
+    {
+        if (_investmentContextLoading)
+            return T("investment.messages.loading");
+
+        if (!IsInvestmentAvailable)
+        {
+            return _investmentContextFailureReason switch
+            {
+                "team_match_advanced_live" => T("investment.messages.advancedLive"),
+                "team_match_missing" => T("investment.messages.noMatch"),
+                "team_match_closed" => T("investment.messages.closed"),
+                "team_match_lookup_error" => T("investment.messages.error"),
+                _ => T("investment.messages.unavailable")
+            };
+        }
+
+        if (!HasWalletSession)
+            return T("investment.messages.walletRequired", _detail.DisplaySymbol);
+
+        return T("investment.messages.available", _detail.DisplaySymbol, _investmentOpponentName);
+    }
+
+    private void OpenInvestmentAmountModal()
+    {
+        if (!IsInvestmentAvailable || _investmentMatch is null)
+            return;
+
+        _pendingBetTeamId = _investmentTeamId;
+        _pendingBetTeamName = _detail.Symbol;
+        _investmentAmount = 0.1m;
+        _investmentAmountError = string.Empty;
+        _showSimplePopup = false;
+        _showInvestmentAmountModal = true;
+    }
+
+    private void CloseInvestmentAmountModal()
+    {
+        if (_isSendingBet)
+            return;
+
+        _showInvestmentAmountModal = false;
+        _pendingBetTeamId = 0;
+        _pendingBetTeamName = string.Empty;
+        _investmentAmountError = string.Empty;
+    }
+
+    private void SetInvestmentAmount(decimal amount)
+    {
+        _investmentAmount = amount;
+        _investmentAmountError = string.Empty;
+    }
+
+    private int _investmentAmountRangeIndex
+    {
+        get => GetClosestQuickInvestmentAmountIndex(_investmentAmount);
+        set
+        {
+            if (value < 0 || value >= QuickInvestmentAmounts.Length)
+                return;
+
+            _investmentAmount = QuickInvestmentAmounts[value];
+            _investmentAmountError = string.Empty;
+        }
+    }
+
+    private static int GetClosestQuickInvestmentAmountIndex(decimal amount)
+    {
+        var closestIndex = 0;
+        var closestDistance = decimal.MaxValue;
+
+        for (var i = 0; i < QuickInvestmentAmounts.Length; i++)
+        {
+            var distance = Math.Abs(QuickInvestmentAmounts[i] - amount);
+            if (distance >= closestDistance)
+                continue;
+
+            closestDistance = distance;
+            closestIndex = i;
+        }
+
+        return closestIndex;
+    }
+
+    private async Task ConfirmInvestmentAmountAsync()
+    {
+        if (_investmentMatch is null || _pendingBetTeamId <= 0 || string.IsNullOrWhiteSpace(_pendingBetTeamName))
+        {
+            _investmentAmountError = InvestmentT("chooseACoinToInvestIn");
+            return;
+        }
+
+        _investmentAmount = decimal.Round(_investmentAmount, 8, MidpointRounding.ToZero);
+
+        if (_investmentAmount <= 0)
+        {
+            _investmentAmountError = InvestmentT("enterAnAmountGreaterThanZero");
+            return;
+        }
+
+        _showInvestmentAmountModal = false;
+        await SendBetAsync(_investmentMatch, _pendingBetTeamId, _pendingBetTeamName, _investmentAmount);
+    }
+
+    private async Task SendBetAsync(MatchDto match, int teamId, string teamName, decimal amountSol)
+    {
+        _isSendingBet = true;
+        _investmentStatusMessage = string.Empty;
+        _showSimplePopup = false;
+
+        try
+        {
+            await RefreshAuthenticatedUserAsync();
+            var token = await SessionStorage.GetItemAsync<string>("authToken");
+
+            if (string.IsNullOrWhiteSpace(token) || !_loggedUserId.HasValue || _loggedUserId.Value <= 0)
+            {
+                _investmentStatusMessage = T("investment.messages.walletRequired", _detail.DisplaySymbol);
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com o investimento.");
+                return;
+            }
+
+            var investDiagnostics = await PrepareInvestmentDiagnosticsAsync(match, teamId, teamName, amountSol);
+            var payload = new
+            {
+                userId = _loggedUserId.Value,
+                teamId,
+                amount = amountSol,
+                onChainSignature = investDiagnostics.Signature,
+                onChainAmountLamports = investDiagnostics.AmountLamports
+            };
+
+            var url = EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/match/{match.MatchId}/bet");
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(payload)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                _investmentStatusMessage = T("investment.messages.success", _detail.DisplaySymbol);
+                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento de {FmtSolAmount(amountSol)} em {teamName} foi registrado com sucesso.");
+                await ResolveInvestmentContextAsync();
+            }
+            else
+            {
+                _investmentStatusMessage = T("investment.messages.submitError", _detail.DisplaySymbol);
+                ShowInvestmentPopup("Investimento não concluído", "Não foi possível registrar seu investimento agora. Tente novamente em instantes.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _investmentStatusMessage = GetBetPopupExceptionMessage(ex);
+            ShowInvestmentPopup("Investimento não concluído", GetBetPopupExceptionMessage(ex));
+        }
+        finally
+        {
+            _isSendingBet = false;
+            _pendingBetTeamId = 0;
+            _pendingBetTeamName = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<InvestmentPreparationResult> PrepareInvestmentDiagnosticsAsync(MatchDto match, int teamId, string teamName, decimal amountSol)
+    {
+        var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
+
+        _bettingModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
+
+        var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];
+
+        if (!string.Equals(blockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(programId))
+            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
+
+        return await _bettingModule.InvokeAsync<InvestmentPreparationResult>(
+            "prepareInvestment",
+            new
+            {
+                programId,
+                cluster = Config["CriptoVersusBlockchain:Cluster"] ?? Config["OnChainBetting:Cluster"] ?? "devnet",
+                rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
+                matchId = match.MatchId,
+                teamId,
+                teamName,
+                teamAId = match.TeamAId,
+                teamBId = match.TeamBId,
+                bettingCloseUnix = PublicInvestmentRules.GetOnChainBettingCloseUnix(match),
+                amountSol,
+                mode = blockchainMode,
+                custodyWalletPublicKey = Config["CriptoVersusBlockchain:CustodyWalletPublicKey"],
+                supportsLegacyPositionInvestments = Config.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments")
+            });
+    }
+
+    private void ShowInvestmentPopup(string title, string message)
+    {
+        _simplePopupTitle = title;
+        _simplePopupMessage = message;
+        _showSimplePopup = true;
+    }
+
+    private void CloseSimplePopup()
+    {
+        _showSimplePopup = false;
+    }
+
+    private string GetBetPopupExceptionMessage(Exception ex)
+    {
+        if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
+            return InvestmentT("theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly");
+
+        if (ex.ToString().Contains("TeamId invalido para posicao on-chain.", StringComparison.OrdinalIgnoreCase))
+            return InvestmentT("itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly");
+
+        return InvestmentT("itWasNotPossibleToCompleteTheInvestmentRightNowPleaseTryAgainShortly");
+    }
+
+    private static string FmtSolAmount(decimal value)
+        => $"{value:0.########} SOL";
 
     private string FormatMomentum(string? momentum)
         => string.IsNullOrWhiteSpace(momentum) ? T("momentum.volatile") : T($"momentum.{momentum.Trim().ToLowerInvariant()}");
@@ -390,8 +847,24 @@
     private static string DisplayDateTime(DateTime? value) => value.HasValue ? EnsureUtc(value.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-";
     private string BuildAbsolute(string path) => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
     private string T(string key, params object?[] args) => L.T($"statsTeamDetail.{key}", CurrentCulture, args);
+    private string InvestmentT(string key, params object?[] args) => L.T($"matchDetail.{key}", CurrentCulture, args);
     private static DateTime EnsureUtc(DateTime value) => value.Kind switch { DateTimeKind.Utc => value, DateTimeKind.Local => value.ToUniversalTime(), _ => DateTime.SpecifyKind(value, DateTimeKind.Utc) };
     private static readonly string[] VisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+
+    private sealed class InvestmentPreparationResult
+    {
+        public string? Signature { get; set; }
+        public string? Instruction { get; set; }
+        public string? Result { get; set; }
+        public string? ProgramId { get; set; }
+        public string? UserAccountPda { get; set; }
+        public string? ConfigPda { get; set; }
+        public string? VaultPda { get; set; }
+        public string? PositionPda { get; set; }
+        public bool UserAccountExists { get; set; }
+        public bool PositionExists { get; set; }
+        public string AmountLamports { get; set; } = "";
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -414,6 +887,21 @@
     .team-detail-hero__identity h1, .team-detail-section-head h2 { margin:0; letter-spacing:-.03em; }
     .team-detail-hero__identity h1 { font-size:clamp(2rem,2vw + 1rem,3rem); }
     .team-detail-hero__lead, .team-detail-hero__seo-copy, .team-detail-section-head p, .team-detail-feedback p, .team-detail-muted, .team-detail-rival-item small { color:var(--td-muted); margin:0; line-height:1.65; }
+    .team-detail-invest-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:1rem; margin-top:1.15rem; padding:1rem 1.05rem; border-radius:22px; border:1px solid rgba(127,246,223,.18); background:radial-gradient(circle at top left, rgba(127,246,223,.12), transparent 36%), linear-gradient(180deg, rgba(7,12,20,.92), rgba(6,10,17,.96)); }
+    .team-detail-invest-card__eyebrow { color:var(--td-green); letter-spacing:.12em; text-transform:uppercase; font-weight:900; font-size:.72rem; }
+    .team-detail-invest-card__copy { display:grid; gap:.32rem; min-width:0; }
+    .team-detail-invest-card__copy strong { font-size:clamp(1.05rem,1vw + .8rem,1.28rem); line-height:1.1; }
+    .team-detail-invest-card__copy p { color:var(--td-muted); margin:0; }
+    .team-detail-invest-card__actions { display:grid; gap:.65rem; align-content:center; justify-items:end; min-width:220px; }
+    .team-detail-invest-state { display:inline-flex; align-items:center; justify-content:center; min-height:2rem; padding:0 .8rem; border-radius:999px; font-size:.72rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; border:1px solid rgba(255,255,255,.09); white-space:nowrap; }
+    .team-detail-invest-state.is-loading { color:#d9ecff; background:rgba(83,200,255,.12); border-color:rgba(83,200,255,.24); }
+    .team-detail-invest-state.is-available { color:#9cffcf; background:rgba(76,243,141,.12); border-color:rgba(76,243,141,.26); }
+    .team-detail-invest-state.is-blocked { color:#ffe49a; background:rgba(255,215,110,.11); border-color:rgba(255,215,110,.24); }
+    .team-detail-invest-state.is-unavailable { color:#ffb3b3; background:rgba(255,133,133,.11); border-color:rgba(255,133,133,.22); }
+    .team-detail-invest-button, .team-detail-invest-link { min-height:3rem; width:100%; display:inline-flex; align-items:center; justify-content:center; border-radius:16px; font-weight:900; text-decoration:none; }
+    .team-detail-invest-button { padding:0 1.1rem; border:1px solid rgba(127,246,223,.24); color:#04140f; background:linear-gradient(90deg,#4cf38d,#7ff6df); box-shadow:0 18px 34px rgba(76,243,141,.16); }
+    .team-detail-invest-button:disabled { opacity:.65; cursor:not-allowed; box-shadow:none; }
+    .team-detail-invest-link { padding:0 1rem; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:#eef5ff; }
     .team-detail-hero__actions { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:1rem; }
     .team-detail-pill-link, .team-detail-cta-link { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; font-weight:800; border-radius:999px; }
     .team-detail-pill-link { min-height:3rem; padding:0 1rem; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:#eef5ff; }
@@ -445,8 +933,15 @@
     .team-detail-spinner { width:2.2rem; height:2.2rem; border-radius:50%; border:3px solid rgba(127,246,223,.16); border-top-color:#7ff6df; animation:team-detail-spin 1s linear infinite; }
     .team-detail__fallback { display:none; align-items:center; justify-content:center; width:1.2rem; height:1.2rem; border-radius:50%; background:rgba(83,200,255,.18); color:#cfe9ff; font-size:.58rem; font-weight:900; }
     .team-detail__fallback.is-visible { display:inline-flex; }
+    .team-detail-amount-modal-team { display:grid; gap:.25rem; margin-bottom:1rem; }
+    .team-detail-amount-modal-team span { color:#9ca3af; font-size:.9rem; font-weight:800; }
+    .team-detail-amount-modal-team strong { color:#5eead4; font-size:1.2rem; font-weight:900; }
+    .team-detail-amount-quick-grid { display:grid; gap:.65rem; grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .team-detail-amount-chip { background:#111318; border:1px solid #374151; border-radius:8px; color:#f3f4f6; font-weight:900; min-height:42px; }
+    .team-detail-amount-chip:hover, .team-detail-amount-chip-active { background:rgba(45,212,191,.14); border-color:#2dd4bf; color:#5eead4; }
     @@media (max-width: 1180px) { .team-detail-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-    @@media (max-width: 980px) { .team-detail-hero, .team-detail-grid { grid-template-columns:1fr; } }
-    @@media (max-width: 760px) { .team-detail-summary-grid { grid-template-columns:1fr; } .team-detail-hero, .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section { padding:1rem; } .team-detail-chart-shell { min-height:260px; } }
+    @@media (max-width: 980px) { .team-detail-hero, .team-detail-grid, .team-detail-invest-card { grid-template-columns:1fr; } .team-detail-invest-card__actions { justify-items:stretch; min-width:0; } }
+    @@media (max-width: 760px) { .team-detail-summary-grid { grid-template-columns:1fr; } .team-detail-hero, .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section { padding:1rem; } .team-detail-chart-shell { min-height:260px; } .team-detail-amount-quick-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @@media (max-width: 430px) { .team-detail-invest-card { padding:.92rem; } .team-detail-invest-button, .team-detail-invest-link { min-height:2.85rem; } .team-detail-amount-quick-grid { grid-template-columns:1fr; } }
     @@keyframes team-detail-spin { to { transform:rotate(360deg); } }
 </style>

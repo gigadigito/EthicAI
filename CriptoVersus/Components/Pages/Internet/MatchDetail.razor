@@ -654,22 +654,88 @@
                     }
                     else
                     {
-                        <div class="row g-2">
-                            <div class="col-md-6">
-                                <button class="btn btn-success w-100"
-                                        disabled="@_isSendingBet"
-                                        @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
-                                    @T("investIn") <MarketPairText Symbol="@_match.TeamA" />
-                                </button>
-                            </div>
+                        <div class="match-invest-grid">
+                            <article class="match-invest-option match-invest-option--a">
+                                <div class="match-invest-option__top">
+                                    <div class="coin-wrap coin-wrap--sm match-invest-option__coin" title="@_match.TeamA">
+                                        <div class="coin-skeleton"></div>
+                                        <img class="coin-img coin-img--sm"
+                                             src="@GetCoinIconUrl(_match.TeamA)"
+                                             alt="@_match.TeamA"
+                                             loading="lazy"
+                                             onload="this.previousElementSibling?.classList.add('d-none')"
+                                             onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                        <div class="coin-fallback d-none">@GetInitials(_match.TeamA)</div>
+                                    </div>
 
-                            <div class="col-md-6">
-                                <button class="btn btn-primary w-100"
-                                        disabled="@_isSendingBet"
-                                        @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
-                                    @T("investIn") <MarketPairText Symbol="@_match.TeamB" />
-                                </button>
-                            </div>
+                                    <div class="match-invest-option__identity">
+                                        <div class="match-invest-option__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
+                                        <div class="match-invest-option__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
+                                    </div>
+
+                                    <button class="btn match-invest-option__cta match-invest-option__cta--a"
+                                            disabled="@_isSendingBet"
+                                            @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
+                                        @T("invest")
+                                    </button>
+                                </div>
+
+                                <div class="match-invest-option__metrics">
+                                    <div class="match-invest-option__metric">
+                                        <span>Pool</span>
+                                        <strong>@_match.PoolStrengthTeamA%</strong>
+                                    </div>
+                                    <div class="match-invest-option__metric">
+                                        <span>@T("bets")</span>
+                                        <strong>@_match.BetCountTeamA</strong>
+                                    </div>
+                                    <div class="match-invest-option__metric">
+                                        <span>Volume</span>
+                                        <strong>@FmtSolAmount(_match.TotalAmountTeamA)</strong>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="match-invest-option match-invest-option--b">
+                                <div class="match-invest-option__top">
+                                    <div class="coin-wrap coin-wrap--sm match-invest-option__coin" title="@_match.TeamB">
+                                        <div class="coin-skeleton"></div>
+                                        <img class="coin-img coin-img--sm"
+                                             src="@GetCoinIconUrl(_match.TeamB)"
+                                             alt="@_match.TeamB"
+                                             loading="lazy"
+                                             onload="this.previousElementSibling?.classList.add('d-none')"
+                                             onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                        <div class="coin-fallback d-none">@GetInitials(_match.TeamB)</div>
+                                    </div>
+
+                                    <div class="match-invest-option__identity">
+                                        <div class="match-invest-option__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
+                                        <div class="match-invest-option__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
+                                    </div>
+
+                                    <button class="btn match-invest-option__cta match-invest-option__cta--b"
+                                            disabled="@_isSendingBet"
+                                            @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
+                                        @T("invest")
+                                    </button>
+                                </div>
+
+                                <div class="match-invest-option__metrics">
+                                    <div class="match-invest-option__metric">
+                                        <span>Pool</span>
+                                        <strong>@_match.PoolStrengthTeamB%</strong>
+                                    </div>
+                                    <div class="match-invest-option__metric">
+                                        <span>@T("bets")</span>
+                                        <strong>@_match.BetCountTeamB</strong>
+                                    </div>
+                                    <div class="match-invest-option__metric">
+                                        <span>Volume</span>
+                                        <strong>@FmtSolAmount(_match.TotalAmountTeamB)</strong>
+                                    </div>
+                                </div>
+                            </article>
                         </div>
                     }
                 </div>
@@ -1651,7 +1717,8 @@
     }
 
     .social-share-team-card__top {
-        display: flex;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
         gap: .95rem;
     }
@@ -1680,7 +1747,7 @@
     }
 
     .social-share-team-card__cta {
-        min-width: 108px;
+        min-width: clamp(108px, 22%, 136px);
         padding: .58rem 1rem;
         border-radius: 14px;
         border: 1px solid transparent;
@@ -1690,6 +1757,8 @@
         text-transform: uppercase;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        justify-self: end;
+        white-space: nowrap;
     }
 
     .social-share-team-card__cta:hover:not(:disabled),
@@ -1717,16 +1786,20 @@
 
     .social-share-team-card__metrics {
         display: grid;
-        gap: .15rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .65rem;
+        margin-top: 1rem;
     }
 
     .social-share-team-card__metric-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: .72rem 0;
-        border-top: 1px solid rgba(255,255,255,.08);
+        display: grid;
+        gap: .4rem;
+        align-content: start;
+        min-width: 0;
+        padding: .8rem .85rem;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
     }
 
     .social-share-team-card__metric-row span {
@@ -1741,6 +1814,9 @@
         color: rgba(255,255,255,.96);
         font-size: 1rem;
         font-weight: 900;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .social-share-card__charts {
@@ -1843,6 +1919,106 @@
         font-weight: 700;
     }
 
+    .match-invest-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .85rem;
+    }
+
+    .match-invest-option {
+        min-width: 0;
+        padding: 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,.08);
+        background:
+            radial-gradient(circle at top left, rgba(255,255,255,.05), transparent 48%),
+            linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .match-invest-option__top {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .85rem;
+    }
+
+    .match-invest-option__identity {
+        min-width: 0;
+    }
+
+    .match-invest-option__symbol {
+        color: rgba(255,255,255,.96);
+        font-size: clamp(1rem, 1.2vw, 1.18rem);
+        font-weight: 900;
+        line-height: 1.05;
+    }
+
+    .match-invest-option__pct {
+        margin-top: .28rem;
+        font-size: .95rem;
+        font-weight: 900;
+    }
+
+    .match-invest-option__cta {
+        min-width: clamp(108px, 24vw, 136px);
+        padding: .62rem .95rem;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        font-size: .8rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .match-invest-option__cta--a {
+        color: #eafff5;
+        background: linear-gradient(135deg, rgba(16,185,129,.34), rgba(11,118,86,.2));
+        border-color: rgba(52,211,153,.36);
+    }
+
+    .match-invest-option__cta--b {
+        color: #f7f0ff;
+        background: linear-gradient(135deg, rgba(59,130,246,.34), rgba(37,99,235,.2));
+        border-color: rgba(96,165,250,.34);
+    }
+
+    .match-invest-option__metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .6rem;
+        margin-top: .95rem;
+    }
+
+    .match-invest-option__metric {
+        min-width: 0;
+        display: grid;
+        gap: .38rem;
+        padding: .78rem .82rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.035);
+    }
+
+    .match-invest-option__metric span {
+        color: rgba(255,255,255,.46);
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+    }
+
+    .match-invest-option__metric strong {
+        color: rgba(255,255,255,.96);
+        font-size: clamp(.92rem, 1vw, 1rem);
+        font-weight: 900;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     @@media (max-width: 1199.98px) {
         .social-share-card__hero,
         .social-share-card__stats,
@@ -1856,11 +2032,77 @@
             justify-content: center;
             text-align: center;
         }
+
+        .social-share-team-card__metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .social-share-team-card__metric-row:last-child {
+            grid-column: 1 / -1;
+        }
     }
 
     @@media (max-width: 991.98px) {
         .social-share-card {
             display: none;
+        }
+
+        .match-invest-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .match-invest-option {
+            padding: .92rem;
+        }
+
+        .match-invest-option__metrics {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .match-invest-option__metric:last-child {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @@media (max-width: 430px) {
+        .match-invest-option__top {
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+        }
+
+        .match-invest-option__cta {
+            grid-column: 1 / -1;
+            justify-self: stretch;
+            width: 100%;
+            margin-top: .2rem;
+        }
+
+        .social-share-team-card__top {
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+        }
+
+        .social-share-team-card__cta {
+            grid-column: 1 / -1;
+            justify-self: stretch;
+            width: 100%;
+            margin-top: .2rem;
+        }
+    }
+
+    @@media (max-width: 360px) {
+        .match-invest-option {
+            padding: .82rem;
+        }
+
+        .match-invest-option__top {
+            gap: .72rem;
+        }
+
+        .match-invest-option__metrics {
+            gap: .5rem;
         }
     }
 </style>
@@ -2425,7 +2667,7 @@
                 teamName,
                 teamAId = _match.TeamAId,
                 teamBId = _match.TeamBId,
-                bettingCloseUnix = GetOnChainBettingCloseUnix(_match),
+                bettingCloseUnix = PublicInvestmentRules.GetOnChainBettingCloseUnix(_match),
                 amountSol,
                 mode = blockchainMode,
                 custodyWalletPublicKey = Config["CriptoVersusBlockchain:CustodyWalletPublicKey"],
@@ -2433,31 +2675,8 @@
             });
     }
 
-    private static long GetOnChainBettingCloseUnix(MatchDto match)
-    {
-        var fallbackClose = DateTimeOffset.UtcNow.AddHours(24).ToUnixTimeSeconds();
-        var configuredClose = match.BettingCloseTime?.ToUnixTimeSeconds();
-
-        if (configuredClose is null)
-            return fallbackClose;
-
-        var minimumClose = DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds();
-        return configuredClose.Value > minimumClose ? configuredClose.Value : fallbackClose;
-    }
-
     private bool CanBetOnCurrentMatch()
-    {
-        if (_match is null)
-            return false;
-
-        if (string.Equals(_match.Status, "Pending", StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        if (string.Equals(_match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
-            return _match.ElapsedMinutes >= 0 && _match.ElapsedMinutes < _liveBetMaxMinutes;
-
-        return false;
-    }
+        => PublicInvestmentRules.IsBettingWindowOpen(_match);
 
     private static string PrettyJsonOrRaw(string text)
     {

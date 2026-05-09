@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Npgsql;
 using BLL.NFTFutebol;
 using BLL.GameRules;
+using BLL.Positions;
 using CriptoVersus.Worker;
 using BLL;
 using BLL.Blockchain;
@@ -107,6 +108,7 @@ static async Task<string> BuildConnectionStringWithResolvedHostAsync(
     return csb.ConnectionString;
 }
 builder.Services.AddScoped<ILedgerService, LedgerService>();
+builder.Services.AddScoped<IPositionOrchestrationService, PositionOrchestrationService>();
 builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
 builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();

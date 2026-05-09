@@ -289,7 +289,7 @@ else
                 <div class="match-list-grid">
                     @foreach (var m in bettableMatches)
                     {
-                        var canBetLive = CanBet(m.Status, m.ElapsedMinutes);
+                        var canBetLive = CanBet(m);
                         var disabledA = IsSendingBet || !canBetLive;
                         var disabledB = IsSendingBet || !canBetLive;
 
@@ -1530,17 +1530,20 @@ else
         }
 
         return result
-            .Where(x => CanBet(x.Status, x.ElapsedMinutes))
+            .Where(CanBet)
             .OrderBy(x => x.Status == "Pending" ? 0 : 1)
             .ThenBy(x => x.MatchId)
             .ToList();
     }
 
-    private static bool CanBet(string? status, int elapsedMinutes)
-    {
-        _ = elapsedMinutes;
-        return string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool CanBet(BettableMatchViewModel match)
+        => PublicInvestmentRules.IsBettingWindowOpen(new MatchDto
+        {
+            Status = match.Status,
+            StartTime = match.StartTime,
+            BettingCloseTime = match.BettingCloseTime,
+            ElapsedMinutes = match.ElapsedMinutes
+        });
 
     private static string PrettyJsonOrRaw(string text)
     {
