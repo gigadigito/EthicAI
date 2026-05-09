@@ -494,8 +494,10 @@
     private string GetIconUrl()
         => GetIconUrl(_detail.IconUrl, SeoSymbol);
 
-    private static string GetIconUrl(string? explicitUrl, string fallbackSymbol)
-        => !string.IsNullOrWhiteSpace(explicitUrl) ? explicitUrl : $"/api/icons/binance/{fallbackSymbol.Trim().ToUpperInvariant()}";
+    private string GetIconUrl(string? explicitUrl, string fallbackSymbol)
+        => !string.IsNullOrWhiteSpace(explicitUrl)
+            ? Api.BuildApiUrl(explicitUrl)
+            : Api.BuildBinanceIconUrl(fallbackSymbol);
 
     private string GetDisplaySymbol(string symbol)
         => CleanAssetSymbol(symbol);

@@ -432,8 +432,9 @@
 
     private string GetIconUrl(StatsArenaTeamDto team)
     {
-        var candidate = !string.IsNullOrWhiteSpace(team.IconUrl) ? team.IconUrl : $"/api/icons/binance/{GetDisplaySymbol(team)}";
-        return candidate;
+        return !string.IsNullOrWhiteSpace(team.IconUrl)
+            ? Api.BuildApiUrl(team.IconUrl)
+            : Api.BuildBinanceIconUrl(GetDisplaySymbol(team));
     }
 
     private string GetTeamUrl(StatsArenaTeamDto team)

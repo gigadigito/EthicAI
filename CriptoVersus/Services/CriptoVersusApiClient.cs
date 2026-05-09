@@ -20,6 +20,26 @@ public sealed class CriptoVersusApiClient
         _sessionStorage = sessionStorage;
     }
 
+    public string BuildApiUrl(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return _http.BaseAddress?.ToString() ?? string.Empty;
+
+        if (Uri.TryCreate(relativePath, UriKind.Absolute, out var absoluteUri))
+            return absoluteUri.ToString();
+
+        if (_http.BaseAddress is null)
+            throw new InvalidOperationException("CriptoVersusApi BaseAddress is not configured.");
+
+        return new Uri(_http.BaseAddress, relativePath.TrimStart('/')).ToString();
+    }
+
+    public string BuildBinanceIconUrl(string? symbol)
+    {
+        var normalized = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        return BuildApiUrl($"api/icons/binance/{Uri.EscapeDataString(normalized)}");
+    }
+
     public async Task<DashboardSnapshotDto?> GetDashboardSnapshotAsync(
       CancellationToken ct = default)
     {

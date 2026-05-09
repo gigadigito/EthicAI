@@ -647,7 +647,7 @@
     }
 
     private string GetIconUrl(string? symbol)
-        => $"/api/icons/binance/{Uri.EscapeDataString(symbol?.Trim().ToUpperInvariant() ?? string.Empty)}";
+        => Api.BuildBinanceIconUrl(symbol);
 
     private static string GetAssetMonogram(string? symbol)
     {
