@@ -1,23 +1,134 @@
 const state = {
   sessionToken: localStorage.getItem("cv_mcp_session_token") ?? "",
-  walletAddress: localStorage.getItem("cv_mcp_wallet_address") ?? ""
+  walletAddress: localStorage.getItem("cv_mcp_wallet_address") ?? "",
+  language: resolveInitialLanguage(),
+  tokenList: []
 };
 
 const elements = {
   connectWalletButton: document.getElementById("connectWalletButton"),
   clearSessionButton: document.getElementById("clearSessionButton"),
+  langPtButton: document.getElementById("langPtButton"),
+  langEnButton: document.getElementById("langEnButton"),
   walletStatus: document.getElementById("walletStatus"),
   tokenForm: document.getElementById("tokenForm"),
   tokenName: document.getElementById("tokenName"),
   tokenOutput: document.getElementById("tokenOutput"),
   tokenValue: document.getElementById("tokenValue"),
+  copyTokenButton: document.getElementById("copyTokenButton"),
   authMessage: document.getElementById("authMessage"),
   tokenList: document.getElementById("tokenList"),
   installExample: document.getElementById("installExample")
 };
 
+const translations = {
+  en: {
+    pageTitle: "CriptoVersus MCP",
+    developerAccess: "Developer Access",
+    title: "CriptoVersus MCP",
+    subtitle: "Connect AI agents to live crypto battles, rankings and match statistics.",
+    description:
+      "Authenticate with your Solana wallet, generate a personal Bearer Token, and plug it into Claude, Cursor or OpenHands without exposing any private key.",
+    connectWallet: "Connect Phantom Wallet",
+    disconnectWallet: "Disconnect Wallet",
+    walletNotConnected: "Wallet not connected.",
+    tools: "Tools",
+    features: "Features",
+    authentication: "Authentication",
+    generateToken: "Generate MCP Token",
+    authDescription:
+      "Connect your Solana wallet and generate a Bearer Token for your AI agent. Tokens are hashed server-side and shown only once.",
+    tokenName: "Token name",
+    tokenPlaceholder: "Claude Desktop",
+    newToken: "New token",
+    copyToken: "Copy token",
+    copyTokenNote: "Copy and store this token now. It will not be shown again.",
+    authMessageIdle: "You need an active wallet session before creating or revoking tokens.",
+    install: "Install",
+    configurationExample: "Configuration Example",
+    tokens: "Tokens",
+    yourIssuedTokens: "Your Issued Tokens",
+    connectWalletToManageTokens: "Connect your wallet to list and revoke tokens.",
+    securityNotes: "Security notes",
+    mcpEndpoint: "MCP Endpoint",
+    endpointDescription: "Streamable HTTP endpoint: <code>/mcp</code><br />Health check: <code>/health</code>",
+    securityDescription:
+      "This developer access flow stays read-only. No balances, positions, custody, ledger entries or financial actions are exposed here.",
+    walletConnecting: "Connecting wallet...",
+    walletConnected: "Wallet connected: {wallet}",
+    walletVerified: "Wallet verified. You can now generate and revoke MCP tokens.",
+    tokenCreated: 'Token "{name}" created. It is visible only once.',
+    tokenRevoked: "Token revoked.",
+    localSessionCleared: "Local wallet session cleared.",
+    noTokensYet: "No tokens issued for this wallet yet.",
+    phantomMissing: "Phantom wallet was not detected in this browser.",
+    sessionRequired: "Connect and verify your wallet before managing tokens.",
+    copyTokenSuccess: "Token copied to clipboard.",
+    copyTokenError: "Unable to copy the token automatically.",
+    revokeToken: "Revoke",
+    revokedToken: "Revoked",
+    tokenId: "ID",
+    dailyLimit: "Daily limit",
+    createdAt: "Created at",
+    lastUsedAt: "Last used at",
+    revokedAt: "Revoked at"
+  },
+  pt: {
+    pageTitle: "CriptoVersus MCP",
+    developerAccess: "Acesso para desenvolvedores",
+    title: "CriptoVersus MCP",
+    subtitle: "Conecte agentes de IA a batalhas cripto ao vivo, rankings e estatisticas de partidas.",
+    description:
+      "Autentique com sua carteira Solana, gere um Bearer Token pessoal e conecte ao Claude, Cursor ou OpenHands sem expor nenhuma chave privada.",
+    connectWallet: "Conectar Phantom",
+    disconnectWallet: "Desconectar carteira",
+    walletNotConnected: "Carteira nao conectada.",
+    tools: "Ferramentas",
+    features: "Recursos",
+    authentication: "Autenticacao",
+    generateToken: "Gerar token MCP",
+    authDescription:
+      "Conecte sua carteira Solana e gere um Bearer Token para seu agente de IA. Os tokens sao armazenados com hash no servidor e exibidos apenas uma vez.",
+    tokenName: "Nome do token",
+    tokenPlaceholder: "Claude Desktop",
+    newToken: "Novo token",
+    copyToken: "Copiar token",
+    copyTokenNote: "Copie e guarde este token agora. Ele nao sera exibido novamente.",
+    authMessageIdle: "Voce precisa de uma sessao ativa da carteira antes de criar ou revogar tokens.",
+    install: "Instalacao",
+    configurationExample: "Exemplo de configuracao",
+    tokens: "Tokens",
+    yourIssuedTokens: "Seus tokens emitidos",
+    connectWalletToManageTokens: "Conecte sua carteira para listar e revogar tokens.",
+    securityNotes: "Notas de seguranca",
+    mcpEndpoint: "Endpoint MCP",
+    endpointDescription: "Endpoint Streamable HTTP: <code>/mcp</code><br />Health check: <code>/health</code>",
+    securityDescription:
+      "Este fluxo de acesso para desenvolvedores continua somente leitura. Nenhum saldo, posicao, custody, ledger ou acao financeira e exposta aqui.",
+    walletConnecting: "Conectando carteira...",
+    walletConnected: "Carteira conectada: {wallet}",
+    walletVerified: "Carteira verificada. Agora voce pode gerar e revogar tokens MCP.",
+    tokenCreated: 'Token "{name}" criado. Ele e exibido apenas uma vez.',
+    tokenRevoked: "Token revogado.",
+    localSessionCleared: "Sessao local da carteira removida.",
+    noTokensYet: "Nenhum token emitido para esta carteira ainda.",
+    phantomMissing: "A carteira Phantom nao foi detectada neste navegador.",
+    sessionRequired: "Conecte e verifique sua carteira antes de gerenciar tokens.",
+    copyTokenSuccess: "Token copiado para a area de transferencia.",
+    copyTokenError: "Nao foi possivel copiar o token automaticamente.",
+    revokeToken: "Revogar",
+    revokedToken: "Revogado",
+    tokenId: "ID",
+    dailyLimit: "Limite diario",
+    createdAt: "Criado em",
+    lastUsedAt: "Ultimo uso em",
+    revokedAt: "Revogado em"
+  }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   bindEvents();
+  applyTranslations();
   renderInstallExample();
   renderWalletStatus();
 
@@ -31,19 +142,22 @@ document.addEventListener("DOMContentLoaded", () => {
 function bindEvents() {
   elements.connectWalletButton.addEventListener("click", connectWallet);
   elements.clearSessionButton.addEventListener("click", clearSession);
+  elements.langPtButton.addEventListener("click", () => setLanguage("pt"));
+  elements.langEnButton.addEventListener("click", () => setLanguage("en"));
   elements.tokenForm.addEventListener("submit", handleCreateToken);
+  elements.copyTokenButton.addEventListener("click", copyTokenToClipboard);
 }
 
 async function connectWallet() {
   try {
     ensurePhantom();
-    showWalletStatus("Connecting wallet...");
+    showWalletStatus(t("walletConnecting"));
 
     const response = await window.solana.connect();
     const walletAddress = response.publicKey.toString();
     state.walletAddress = walletAddress;
     localStorage.setItem("cv_mcp_wallet_address", walletAddress);
-    showWalletStatus(`Wallet connected: ${walletAddress}`);
+    showWalletStatus(t("walletConnected", { wallet: walletAddress }));
 
     const challenge = await request("/auth/challenge", {
       method: "POST",
@@ -65,7 +179,7 @@ async function connectWallet() {
 
     state.sessionToken = verified.sessionToken;
     localStorage.setItem("cv_mcp_session_token", state.sessionToken);
-    showAuthMessage("Wallet verified. You can now generate and revoke MCP tokens.");
+    showAuthMessage(t("walletVerified"));
     await loadTokens();
   } catch (error) {
     showWalletStatus(error.message, true);
@@ -88,7 +202,7 @@ async function handleCreateToken(event) {
     elements.tokenValue.textContent = payload.token;
     elements.tokenOutput.classList.remove("hidden");
     renderInstallExample(payload.token);
-    showAuthMessage(`Token "${payload.name}" created. It is visible only once.`);
+    showAuthMessage(t("tokenCreated", { name: payload.name }));
     elements.tokenForm.reset();
     await loadTokens();
   } catch (error) {
@@ -110,7 +224,8 @@ async function loadTokens() {
     renderWalletStatus();
   }
 
-  renderTokenList(payload.tokens ?? []);
+  state.tokenList = payload.tokens ?? [];
+  renderTokenList(state.tokenList);
 }
 
 async function revokeToken(id) {
@@ -120,7 +235,7 @@ async function revokeToken(id) {
       method: "DELETE",
       token: state.sessionToken
     });
-    showAuthMessage("Token revoked.");
+    showAuthMessage(t("tokenRevoked"));
     await loadTokens();
   } catch (error) {
     showAuthMessage(error.message, true);
@@ -129,7 +244,7 @@ async function revokeToken(id) {
 
 function renderTokenList(tokens) {
   if (!Array.isArray(tokens) || tokens.length === 0) {
-    elements.tokenList.innerHTML = "No tokens issued for this wallet yet.";
+    elements.tokenList.innerHTML = t("noTokensYet");
     elements.tokenList.classList.add("empty-state");
     return;
   }
@@ -144,28 +259,28 @@ function renderTokenList(tokens) {
       <div class="token-row__head">
         <strong>${escapeHtml(token.name)}</strong>
         <button class="button button--danger" type="button" data-revoke-id="${token.id}">
-          Revoke
+          ${t("revokeToken")}
         </button>
       </div>
       <dl>
         <div>
-          <dt>ID</dt>
+          <dt>${t("tokenId")}</dt>
           <dd>${token.id}</dd>
         </div>
         <div>
-          <dt>Daily limit</dt>
+          <dt>${t("dailyLimit")}</dt>
           <dd>${token.dailyLimit}</dd>
         </div>
         <div>
-          <dt>Created at</dt>
+          <dt>${t("createdAt")}</dt>
           <dd>${formatDate(token.createdAt)}</dd>
         </div>
         <div>
-          <dt>Last used at</dt>
+          <dt>${t("lastUsedAt")}</dt>
           <dd>${formatDate(token.lastUsedAt)}</dd>
         </div>
         <div>
-          <dt>Revoked at</dt>
+          <dt>${t("revokedAt")}</dt>
           <dd>${formatDate(token.revokedAt)}</dd>
         </div>
       </dl>
@@ -174,7 +289,7 @@ function renderTokenList(tokens) {
     const revokeButton = row.querySelector("[data-revoke-id]");
     if (token.revokedAt) {
       revokeButton.disabled = true;
-      revokeButton.textContent = "Revoked";
+      revokeButton.textContent = t("revokedToken");
     } else {
       revokeButton.addEventListener("click", () => revokeToken(token.id));
     }
@@ -203,9 +318,9 @@ function renderInstallExample(token = "YOUR_TOKEN") {
 
 function renderWalletStatus() {
   if (state.walletAddress) {
-    showWalletStatus(`Wallet connected: ${state.walletAddress}`);
+    showWalletStatus(t("walletConnected", { wallet: state.walletAddress }));
   } else {
-    showWalletStatus("Wallet not connected.");
+    showWalletStatus(t("walletNotConnected"));
   }
 }
 
@@ -224,12 +339,13 @@ function clearSession() {
   localStorage.removeItem("cv_mcp_wallet_address");
   state.sessionToken = "";
   state.walletAddress = "";
+  state.tokenList = [];
   elements.tokenOutput.classList.add("hidden");
   renderInstallExample();
   renderWalletStatus();
-  elements.tokenList.innerHTML = "Connect your wallet to list and revoke tokens.";
+  elements.tokenList.innerHTML = t("connectWalletToManageTokens");
   elements.tokenList.classList.add("empty-state");
-  showAuthMessage("Local wallet session cleared.");
+  showAuthMessage(t("localSessionCleared"));
 }
 
 async function request(url, options) {
@@ -265,13 +381,13 @@ async function request(url, options) {
 
 function ensurePhantom() {
   if (!window.solana?.isPhantom) {
-    throw new Error("Phantom wallet was not detected in this browser.");
+    throw new Error(t("phantomMissing"));
   }
 }
 
 function ensureSession() {
   if (!state.sessionToken) {
-    throw new Error("Connect and verify your wallet before managing tokens.");
+    throw new Error(t("sessionRequired"));
   }
 }
 
@@ -331,4 +447,73 @@ function base58Encode(bytes) {
   }
 
   return output;
+}
+
+async function copyTokenToClipboard() {
+  try {
+    if (!elements.tokenValue.textContent) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(elements.tokenValue.textContent);
+    showAuthMessage(t("copyTokenSuccess"));
+  } catch {
+    showAuthMessage(t("copyTokenError"), true);
+  }
+}
+
+function setLanguage(language) {
+  state.language = language === "pt" ? "pt" : "en";
+  localStorage.setItem("cv_mcp_language", state.language);
+  applyTranslations();
+  renderInstallExample(elements.tokenValue.textContent || "YOUR_TOKEN");
+  renderWalletStatus();
+  renderTokenList(state.tokenList);
+}
+
+function applyTranslations() {
+  const locale = translations[state.language] ?? translations.en;
+  document.documentElement.lang = state.language;
+  document.title = locale.pageTitle;
+
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    const key = element.getAttribute("data-i18n");
+    if (!key || !(key in locale)) {
+      return;
+    }
+
+    element.innerHTML = locale[key];
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+    const key = element.getAttribute("data-i18n-placeholder");
+    if (!key || !(key in locale)) {
+      return;
+    }
+
+    element.setAttribute("placeholder", locale[key]);
+  });
+
+  elements.langPtButton.classList.toggle("is-active", state.language === "pt");
+  elements.langEnButton.classList.toggle("is-active", state.language === "en");
+}
+
+function resolveInitialLanguage() {
+  const saved = localStorage.getItem("cv_mcp_language");
+  if (saved === "pt" || saved === "en") {
+    return saved;
+  }
+
+  return navigator.language?.toLowerCase().startsWith("pt") ? "pt" : "en";
+}
+
+function t(key, replacements = {}) {
+  const locale = translations[state.language] ?? translations.en;
+  const template = locale[key] ?? translations.en[key] ?? key;
+
+  return Object.entries(replacements).reduce(
+    (result, [replacementKey, replacementValue]) =>
+      result.replaceAll(`{${replacementKey}}`, String(replacementValue)),
+    template
+  );
 }

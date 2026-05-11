@@ -121,7 +121,8 @@ public sealed class SitemapService
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRoadmapPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
-            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHowItWorksPath("pt"), now, "weekly", 0.8m)
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHowItWorksPath("pt"), now, "weekly", 0.8m),
+            CreateAbsoluteEntry("https://mcp.criptoversus.com/", now, "weekly", 0.6m)
         };
 
         foreach (var team in statsTeams)
@@ -307,6 +308,25 @@ public sealed class SitemapService
             priority,
             slugAlternates,
             xDefaultHref,
+            true);
+    }
+
+    private static SitemapEntry CreateAbsoluteEntry(
+        string absoluteUrl,
+        DateTime lastModifiedUtc,
+        string changeFrequency,
+        decimal priority)
+    {
+        if (!Uri.TryCreate(absoluteUrl, UriKind.Absolute, out var fullUri))
+            return SitemapEntry.Invalid;
+
+        return new SitemapEntry(
+            fullUri.AbsoluteUri,
+            EnsureUtc(lastModifiedUtc),
+            changeFrequency,
+            priority,
+            [],
+            string.Empty,
             true);
     }
 

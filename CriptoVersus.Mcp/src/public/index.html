@@ -3,30 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CriptoVersus MCP</title>
+    <title data-i18n="pageTitle">CriptoVersus MCP</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <div class="page-shell">
       <header class="hero">
         <div class="hero__copy">
-          <p class="eyebrow">Developer Access</p>
-          <h1>CriptoVersus MCP</h1>
-          <p class="hero__lead">
+          <div class="hero__topbar">
+            <p class="eyebrow" data-i18n="developerAccess">Developer Access</p>
+            <div class="language-switch" aria-label="Language switch">
+              <button id="langPtButton" class="language-switch__button" type="button">PT</button>
+              <button id="langEnButton" class="language-switch__button" type="button">EN</button>
+            </div>
+          </div>
+          <h1 data-i18n="title">CriptoVersus MCP</h1>
+          <p class="hero__lead" data-i18n="subtitle">
             Connect AI agents to live crypto battles, rankings and match stats.
           </p>
-          <p class="hero__support">
+          <p class="hero__support" data-i18n="description">
             Authenticate with your Solana wallet, generate a personal Bearer Token,
             and plug it into Claude, Cursor or OpenHands without exposing any private key.
           </p>
           <div class="hero__actions">
-            <button id="connectWalletButton" class="button button--primary">Connect Phantom Wallet</button>
-            <button id="clearSessionButton" class="button button--ghost" type="button">Clear Local Session</button>
+            <button id="connectWalletButton" class="button button--primary" data-i18n="connectWallet">Connect Phantom Wallet</button>
+            <button id="clearSessionButton" class="button button--ghost" type="button" data-i18n="disconnectWallet">Disconnect Wallet</button>
           </div>
-          <p id="walletStatus" class="status">Wallet not connected.</p>
+          <p id="walletStatus" class="status" data-i18n="walletNotConnected">Wallet not connected.</p>
         </div>
         <aside class="hero__panel">
-          <span>Read-only tools</span>
+          <span data-i18n="tools">Tools</span>
+          <h2 class="hero__panel-title" data-i18n="features">Features</h2>
           <ul class="tool-list">
             <li>get_live_matches</li>
             <li>get_hot_matches</li>
@@ -39,56 +46,59 @@
       <main class="content-grid">
         <section class="card">
           <div class="card__head">
-            <span>Auth</span>
-            <h2>Generate MCP Token</h2>
+            <span data-i18n="authentication">Authentication</span>
+            <h2 data-i18n="generateToken">Generate MCP Token</h2>
           </div>
-          <p>
+          <p data-i18n="authDescription">
             Connect your Solana wallet and generate a Bearer Token for your AI agent.
             Tokens are hashed server-side and shown only once.
           </p>
           <form id="tokenForm" class="token-form">
-            <label for="tokenName">Token name</label>
-            <input id="tokenName" name="tokenName" type="text" maxlength="80" placeholder="Claude Desktop" />
-            <button class="button button--primary" type="submit">Generate Token</button>
+            <label for="tokenName" data-i18n="tokenName">Token name</label>
+            <input id="tokenName" name="tokenName" type="text" maxlength="80" placeholder="Claude Desktop" data-i18n-placeholder="tokenPlaceholder" />
+            <button id="generateTokenButton" class="button button--primary" type="submit" data-i18n="generateToken">Generate MCP Token</button>
           </form>
           <div id="tokenOutput" class="token-output hidden">
-            <span>New token</span>
+            <span data-i18n="newToken">New token</span>
             <code id="tokenValue"></code>
-            <p>Copy and store this token now. It will not be shown again.</p>
+            <div class="token-output__actions">
+              <button id="copyTokenButton" class="button button--ghost" type="button" data-i18n="copyToken">Copy token</button>
+            </div>
+            <p data-i18n="copyTokenNote">Copy and store this token now. It will not be shown again.</p>
           </div>
-          <p id="authMessage" class="status status--muted">
+          <p id="authMessage" class="status status--muted" data-i18n="authMessageIdle">
             You need an active wallet session before creating or revoking tokens.
           </p>
         </section>
 
         <section class="card">
           <div class="card__head">
-            <span>Install</span>
-            <h2>Configuration Example</h2>
+            <span data-i18n="install">Install</span>
+            <h2 data-i18n="configurationExample">Configuration Example</h2>
           </div>
           <pre id="installExample" class="code-block"></pre>
         </section>
 
         <section class="card">
           <div class="card__head">
-            <span>Tokens</span>
-            <h2>Your Issued Tokens</h2>
+            <span data-i18n="tokens">Tokens</span>
+            <h2 data-i18n="yourIssuedTokens">Your Issued Tokens</h2>
           </div>
-          <div id="tokenList" class="token-list empty-state">
+          <div id="tokenList" class="token-list empty-state" data-i18n="connectWalletToManageTokens">
             Connect your wallet to list and revoke tokens.
           </div>
         </section>
 
         <section class="card">
           <div class="card__head">
-            <span>Usage</span>
-            <h2>MCP Endpoint</h2>
+            <span data-i18n="securityNotes">Security notes</span>
+            <h2 data-i18n="mcpEndpoint">MCP Endpoint</h2>
           </div>
-          <p class="usage-copy">
+          <p class="usage-copy" data-i18n="endpointDescription">
             Streamable HTTP endpoint: <code>/mcp</code><br />
             Health check: <code>/health</code>
           </p>
-          <p class="usage-copy">
+          <p class="usage-copy" data-i18n="securityDescription">
             This developer access flow stays read-only. No balances, positions, custody,
             ledger entries or financial actions are exposed here.
           </p>
