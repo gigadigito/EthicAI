@@ -20,6 +20,42 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Itens de Solução", "Itens
 		Itens de Solução\n8n\README-social-x.md = Itens de Solução\n8n\README-social-x.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CriptoVersus.Mcp", "CriptoVersus.Mcp", "{C314B4F2-661A-4AB1-8B67-32B5B505E93A}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\.env.example = CriptoVersus.Mcp\.env.example
+		CriptoVersus.Mcp\DEPLOY_VPS.md = CriptoVersus.Mcp\DEPLOY_VPS.md
+		CriptoVersus.Mcp\docker-compose.yml = CriptoVersus.Mcp\docker-compose.yml
+		CriptoVersus.Mcp\Dockerfile = CriptoVersus.Mcp\Dockerfile
+		CriptoVersus.Mcp\package-lock.json = CriptoVersus.Mcp\package-lock.json
+		CriptoVersus.Mcp\package.json = CriptoVersus.Mcp\package.json
+		CriptoVersus.Mcp\README.md = CriptoVersus.Mcp\README.md
+		CriptoVersus.Mcp\tsconfig.json = CriptoVersus.Mcp\tsconfig.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C627A31D-E5DD-4640-9B10-3CCB62F1040A}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\config.ts = CriptoVersus.Mcp\src\config.ts
+		CriptoVersus.Mcp\src\index.ts = CriptoVersus.Mcp\src\index.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "http", "http", "{D9AB8D28-9E40-4960-A670-05E9E50543D6}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\http\criptoversusClient.ts = CriptoVersus.Mcp\src\http\criptoversusClient.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{A0C8D3E9-ED82-47A2-A239-91D46A9518E0}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\tools\getHotMatches.ts = CriptoVersus.Mcp\src\tools\getHotMatches.ts
+		CriptoVersus.Mcp\src\tools\getLiveMatches.ts = CriptoVersus.Mcp\src\tools\getLiveMatches.ts
+		CriptoVersus.Mcp\src\tools\getMatchStats.ts = CriptoVersus.Mcp\src\tools\getMatchStats.ts
+		CriptoVersus.Mcp\src\tools\getRankings.ts = CriptoVersus.Mcp\src\tools\getRankings.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "utils", "utils", "{7E99DF48-286D-4D43-9DCF-FEEA6A76F299}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\utils\errors.ts = CriptoVersus.Mcp\src\utils\errors.ts
+	EndProjectSection
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Web", "CriptoVersus\CriptoVersus.Web.csproj", "{F357F1FE-B6BB-496D-BCBF-391BC75AD835}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CriptoVersus.Worker", "CriptoVersus.Worker\CriptoVersus.Worker.csproj", "{BBD9F5F8-1D03-429A-B3D4-1901793C9518}"
@@ -75,6 +111,12 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C627A31D-E5DD-4640-9B10-3CCB62F1040A} = {C314B4F2-661A-4AB1-8B67-32B5B505E93A}
+		{D9AB8D28-9E40-4960-A670-05E9E50543D6} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
+		{A0C8D3E9-ED82-47A2-A239-91D46A9518E0} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
+		{7E99DF48-286D-4D43-9DCF-FEEA6A76F299} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F5BC44D3-BB1D-46FC-B586-2C127AF23860}

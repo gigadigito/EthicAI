@@ -1,0 +1,17 @@
+services:
+  criptoversus-mcp:
+    container_name: criptoversus-mcp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    restart: unless-stopped
+    expose:
+      - "8787"
+    networks:
+      - npm_network
+
+networks:
+  npm_network:
+    external: true
