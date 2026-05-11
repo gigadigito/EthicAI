@@ -1,29 +1,95 @@
 # CriptoVersus MCP
 
-CriptoVersus MCP e um servidor MCP read-only para agentes de IA consumirem dados publicos do CriptoVersus via HTTP.
+CriptoVersus MCP is a remote Streamable HTTP MCP server that allows AI agents to consume live public crypto battle, ranking and match data from CriptoVersus.
 
-Esta versao inclui:
+Public developer portal:
 
-- landing page publica em `GET /`
-- health check em `GET /health`
-- transporte MCP Streamable HTTP em `POST /mcp`
-- login com wallet Solana por assinatura de mensagem
-- geracao de tokens MCP por wallet
-- listagem e revogacao de tokens
-- compatibilidade com o `MCP_AUTH_TOKEN` legado
+https://mcp.criptoversus.com
 
-## Garantias desta versao
+---
 
-- Sem acesso direto ao banco principal do CriptoVersus
-- Sem wallet custody
-- Sem private key
-- Sem seed phrase
-- Sem ledger
-- Sem `create_position`
-- Sem `close_position`
-- Sem funcoes financeiras
+## Endpoint
 
-## Estrutura principal
+```text
+https://mcp.criptoversus.com/mcp
+```
+
+---
+
+## Transport
+
+```text
+Streamable HTTP
+```
+
+---
+
+## Authentication
+
+```text
+Bearer Token
+```
+
+Generate your token at:
+
+```text
+https://mcp.criptoversus.com
+```
+
+---
+
+## Features
+
+- Remote MCP Server
+- Streamable HTTP transport
+- Wallet-based authentication
+- MCP token generation
+- Read-only crypto match tools
+- HTTPS public endpoint
+- Solana wallet login
+- MCP token revocation
+- Persistent token storage via SQLite
+
+---
+
+## Current Scope
+
+Current version is intentionally read-only.
+
+No financial actions are exposed.
+
+No custody operations are available.
+
+No blockchain transactions are executed by the MCP server.
+
+---
+
+## This version includes
+
+- Public landing page in `GET /`
+- Health check in `GET /health`
+- MCP Streamable HTTP transport in `POST /mcp`
+- Solana wallet login via signed message
+- MCP token generation per wallet
+- Token listing and revocation
+- Compatibility with legacy `MCP_AUTH_TOKEN`
+
+---
+
+## Security Guarantees
+
+- No direct access to the main CriptoVersus database
+- No wallet custody
+- No private key storage
+- No seed phrase usage
+- No ledger access
+- No `create_position`
+- No `close_position`
+- No financial functions
+
+---
+
+## Main Structure
 
 ```text
 CriptoVersus.Mcp/
@@ -37,7 +103,9 @@ CriptoVersus.Mcp/
     utils/
 ```
 
-## Variaveis de ambiente
+---
+
+## Environment Variables
 
 ```env
 CRIPTO_VERSUS_API_BASE_URL=http://criptoversus-api:8080
@@ -52,13 +120,15 @@ PORT=8787
 NODE_ENV=production
 ```
 
-Notas:
+### Notes
 
-- `MCP_AUTH_TOKEN` continua funcionando como token admin/fallback.
-- Tokens de wallet gerados pela UI passam a funcionar em paralelo no `/mcp`.
-- Se `MCP_AUTH_TOKEN` estiver vazio, o modo aberto continua permitido apenas em desenvolvimento.
+- `MCP_AUTH_TOKEN` continues to work as an admin/fallback token
+- Wallet-generated MCP tokens work in parallel on `/mcp`
+- If `MCP_AUTH_TOKEN` is empty, open mode remains allowed only in development mode
 
-## Instalar localmente
+---
+
+## Install Locally
 
 ```bash
 cd CriptoVersus.Mcp
@@ -66,24 +136,28 @@ cp .env.example .env
 npm install
 ```
 
-## Rodar localmente
+---
 
-Para desenvolvimento:
+## Run Locally
+
+### Development mode
 
 ```bash
 npm run dev
 ```
 
-Para build manual:
+### Manual build
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Teste local sugerido
+---
 
-1. Configure `.env` com:
+## Suggested Local Test
+
+### 1. Configure `.env`
 
 ```env
 NODE_ENV=development
@@ -93,41 +167,47 @@ MCP_AUTH_TOKEN=admin-test-token
 MCP_TOKEN_DB_PATH=./data/criptoversus-mcp.sqlite
 ```
 
-2. Suba a API publica do CriptoVersus, ou um mock local para:
+### 2. Start CriptoVersus public API or a local mock
+
+Required endpoints:
 
 - `GET /api/social/hot-matches`
-- demais endpoints publicos usados pelas tools
+- Other public endpoints used by MCP tools
 
-3. Rode:
+### 3. Run development server
 
 ```bash
 npm run dev
 ```
 
-4. Verifique a landing:
+### 4. Verify landing page
 
 ```bash
 curl http://127.0.0.1:8787/
 ```
 
-5. Verifique o health:
+### 5. Verify health endpoint
 
 ```bash
 curl http://127.0.0.1:8787/health
 ```
 
-6. Abra a pagina no navegador, conecte Phantom e gere um token.
+### 6. Open browser, connect Phantom and generate a token
 
-## Tools disponiveis
+---
+
+## Available Tools
 
 - `get_live_matches`
 - `get_hot_matches`
 - `get_match_stats`
 - `get_rankings`
 
-Todas permanecem read-only.
+All tools remain strictly read-only.
 
-## Exemplo de configuracao MCP
+---
+
+## MCP Configuration Example
 
 ```json
 {
@@ -145,9 +225,13 @@ Todas permanecem read-only.
 }
 ```
 
-## Curl para testar token novo
+---
 
-Troque `YOUR_TOKEN` pelo token gerado na landing page:
+## Test Generated Token
+
+Replace `YOUR_TOKEN` with a token generated from the landing page.
+
+### List available tools
 
 ```bash
 curl -X POST "https://mcp.criptoversus.com/mcp" \
@@ -157,7 +241,7 @@ curl -X POST "https://mcp.criptoversus.com/mcp" \
   -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
 ```
 
-Teste de chamada de tool:
+### Tool execution example
 
 ```bash
 curl -X POST "https://mcp.criptoversus.com/mcp" \
@@ -167,36 +251,40 @@ curl -X POST "https://mcp.criptoversus.com/mcp" \
   -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"get_hot_matches\",\"arguments\":{\"minHotScore\":0,\"limit\":5}}}"
 ```
 
+---
+
 ## Docker
 
-Build:
+### Build
 
 ```bash
 docker compose up -d --build
 ```
 
-Logs:
+### Logs
 
 ```bash
 docker compose logs -f --tail 100 criptoversus-mcp
 ```
 
-Persistencia:
+### Persistence
 
-- SQLite em `/data/criptoversus-mcp.sqlite`
-- volume local mapeado em `./data:/data`
+- SQLite database in `/data/criptoversus-mcp.sqlite`
+- Local volume mounted as `./data:/data`
 
-## Checklist de seguranca
+---
 
-- Tokens MCP sao armazenados apenas como hash SHA-256
-- Session tokens sao armazenados apenas como hash SHA-256
-- O token MCP completo aparece uma unica vez no momento da criacao
-- Nenhuma private key e armazenada
-- Nenhuma seed phrase e solicitada
-- Challenges expiram em 5 minutos
-- Challenges sao de uso unico
-- Sessions expiram em 24 horas
-- Tokens podem ser revogados pela propria wallet
-- Tokens revogados deixam de funcionar no `/mcp`
-- `MCP_AUTH_TOKEN` legado continua suportado
-- Erros retornam mensagens limpas sem stack trace para o cliente
+## Security Checklist
+
+- MCP tokens are stored only as SHA-256 hashes
+- Session tokens are stored only as SHA-256 hashes
+- Full MCP token appears only once during creation
+- No private key is stored
+- No seed phrase is requested
+- Challenges expire after 5 minutes
+- Challenges are single-use
+- Sessions expire after 24 hours
+- Tokens can be revoked by the owning wallet
+- Revoked tokens stop working immediately on `/mcp`
+- Legacy `MCP_AUTH_TOKEN` remains supported
+- Errors return clean messages without stack traces to clients
