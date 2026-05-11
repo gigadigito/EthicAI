@@ -496,6 +496,8 @@ function applyTranslations() {
 
   elements.langPtButton.classList.toggle("is-active", state.language === "pt");
   elements.langEnButton.classList.toggle("is-active", state.language === "en");
+  elements.langPtButton.setAttribute("aria-pressed", state.language === "pt" ? "true" : "false");
+  elements.langEnButton.setAttribute("aria-pressed", state.language === "en" ? "true" : "false");
 }
 
 function resolveInitialLanguage() {
