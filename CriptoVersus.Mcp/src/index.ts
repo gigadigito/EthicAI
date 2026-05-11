@@ -2,20 +2,24 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
+import { createMcpAuthMiddleware } from "./auth/tokenAuth.js";
 import { loadConfig } from "./config.js";
+import { DatabaseStore } from "./db/database.js";
 import { CriptoVersusClient } from "./http/criptoversusClient.js";
+import { registerAuthRoutes } from "./routes/authRoutes.js";
+import { registerTokenRoutes } from "./routes/tokenRoutes.js";
+import { registerWebRoutes } from "./routes/webRoutes.js";
 import { registerGetHotMatchesTool } from "./tools/getHotMatches.js";
 import { registerGetLiveMatchesTool } from "./tools/getLiveMatches.js";
 import { registerGetMatchStatsTool } from "./tools/getMatchStats.js";
 import { registerGetRankingsTool } from "./tools/getRankings.js";
 import {
-  ConfigurationError,
-  UnauthorizedError,
   getPublicErrorMessage,
   getStatusCode
 } from "./utils/errors.js";
 
 const config = loadConfig();
+const store = new DatabaseStore(config);
 const app = express();
 
 app.disable("x-powered-by");
@@ -25,6 +29,8 @@ app.use(
   })
 );
 
+registerWebRoutes(app);
+
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -33,7 +39,10 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.post("/mcp", requireBearerToken, async (req, res, next) => {
+registerAuthRoutes(app, { config, store });
+registerTokenRoutes(app, { config, store });
+
+app.post("/mcp", createMcpAuthMiddleware(config, store), async (req, res, next) => {
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true
@@ -96,28 +105,4 @@ function createServer(): McpServer {
   registerGetRankingsTool(server, client);
 
   return server;
-}
-
-function requireBearerToken(req: Request, _res: Response, next: NextFunction): void {
-  try {
-    if (config.isOpenMode) {
-      next();
-      return;
-    }
-
-    if (!config.authToken) {
-      throw new ConfigurationError("MCP server authentication is not configured.");
-    }
-
-    const authHeader = req.header("authorization") ?? "";
-    const [scheme, token] = authHeader.split(" ", 2);
-
-    if (scheme !== "Bearer" || token !== config.authToken) {
-      throw new UnauthorizedError("Missing or invalid bearer token.");
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
 }

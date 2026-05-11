@@ -1,8 +1,12 @@
 # Deploy manual na VPS
 
-Este projeto foi preparado para deploy manual posterior. Nenhuma alteracao automatica em VPS e realizada por este repositorio.
+Este projeto foi preparado para deploy manual posterior.
 
-## Opcao 1: copiar apenas a pasta do MCP
+Nenhum comando desta entrega acessa ou altera a sua VPS automaticamente.
+
+## 1. Copiar ou atualizar o codigo
+
+Opcao A, copiar apenas a pasta do MCP:
 
 ```bash
 cd /home/admin/stacks
@@ -10,36 +14,36 @@ mkdir -p criptoversus-mcp
 cd criptoversus-mcp
 ```
 
-Copie para esta pasta os arquivos gerados em `CriptoVersus.Mcp/`.
+Depois copie o conteudo de `CriptoVersus.Mcp/`.
 
-## Opcao 2: fazer git pull do repositorio completo
-
-Se a VPS hospedar o repositorio inteiro do CriptoVersus, voce pode atualizar o codigo e entrar na pasta:
+Opcao B, usar o repositorio inteiro:
 
 ```bash
 cd /home/admin/stacks
-# entrar no repositorio existente ou clonar, conforme sua estrutura final
 cd <repositorio>/CriptoVersus.Mcp
 ```
 
-## Configuracao
+## 2. Preparar `.env`
 
 ```bash
 cp .env.example .env
 nano .env
 ```
 
-Ajuste pelo menos:
+Defina pelo menos:
 
-- `CRIPTO_VERSUS_API_BASE_URL`
-- `MCP_AUTH_TOKEN`
-- `NODE_ENV=production`
+```env
+CRIPTO_VERSUS_API_BASE_URL=http://criptoversus-api:8080
+MCP_PUBLIC_BASE_URL=https://mcp.criptoversus.com
+MCP_AUTH_TOKEN=SEU_TOKEN_ADMIN_OPCIONAL
+MCP_TOKEN_DB_PATH=/data/criptoversus-mcp.sqlite
+MCP_TOKEN_PREFIX=cv_mcp_
+MCP_TOKEN_DEFAULT_DAILY_LIMIT=1000
+PORT=8787
+NODE_ENV=production
+```
 
-Observacao:
-
-- Em producao, o servidor nao inicia se `MCP_AUTH_TOKEN` estiver vazio.
-
-## Subir com Docker Compose
+## 3. Subir o container
 
 ```bash
 docker compose up -d --build
@@ -47,20 +51,23 @@ docker compose logs -f --tail 100 criptoversus-mcp
 docker ps
 ```
 
-## Nginx Proxy Manager
+## 4. Persistencia
 
-Configurar proxy reverso com:
+O `docker-compose.yml` monta:
 
-- Domain: `mcp.criptoversus.com`
-- Forward Host: `criptoversus-mcp`
-- Forward Port: `8787`
-- WebSocket Support: `ON`
-- SSL: `Let's Encrypt`
-- Force SSL: `ON`
+```text
+./data:/data
+```
 
-## Validacao rapida
+O banco SQLite de tokens fica em:
 
-Health check esperado:
+```text
+/data/criptoversus-mcp.sqlite
+```
+
+## 5. Validacao manual
+
+Health:
 
 ```bash
 curl http://127.0.0.1:8787/health
@@ -75,3 +82,33 @@ Resposta esperada:
   "version": "0.1.0"
 }
 ```
+
+Teste do token admin legado:
+
+```bash
+curl -X POST "http://127.0.0.1:8787/mcp" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN_OPCIONAL" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}"
+```
+
+## 6. Nginx Proxy Manager
+
+Configurar:
+
+- Domain: `mcp.criptoversus.com`
+- Forward Host: `criptoversus-mcp`
+- Forward Port: `8787`
+- WebSocket Support: `ON`
+- SSL: `Let's Encrypt`
+- Force SSL: `ON`
+
+## 7. Fluxo esperado em producao
+
+- usuario acessa `https://mcp.criptoversus.com/`
+- conecta Phantom
+- assina o challenge
+- gera um token `cv_mcp_*`
+- usa esse token em Claude, Cursor ou OpenHands
+- pode listar e revogar o token depois

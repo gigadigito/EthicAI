@@ -38,9 +38,35 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C627A31D-E5D
 		CriptoVersus.Mcp\src\index.ts = CriptoVersus.Mcp\src\index.ts
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "auth", "auth", "{2F0B0D74-C715-4D9C-9637-6A9B33BDEB0C}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\auth\tokenAuth.ts = CriptoVersus.Mcp\src\auth\tokenAuth.ts
+		CriptoVersus.Mcp\src\auth\walletAuth.ts = CriptoVersus.Mcp\src\auth\walletAuth.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "db", "db", "{9E0C9251-1138-4BF3-8E5E-840F8929EC09}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\db\database.ts = CriptoVersus.Mcp\src\db\database.ts
+		CriptoVersus.Mcp\src\db\migrations.ts = CriptoVersus.Mcp\src\db\migrations.ts
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "http", "http", "{D9AB8D28-9E40-4960-A670-05E9E50543D6}"
 	ProjectSection(SolutionItems) = preProject
 		CriptoVersus.Mcp\src\http\criptoversusClient.ts = CriptoVersus.Mcp\src\http\criptoversusClient.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "public", "public", "{2647A1E7-C7C7-481E-BF23-E925A6B8CCAE}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\public\app.js = CriptoVersus.Mcp\src\public\app.js
+		CriptoVersus.Mcp\src\public\index.html = CriptoVersus.Mcp\src\public\index.html
+		CriptoVersus.Mcp\src\public\styles.css = CriptoVersus.Mcp\src\public\styles.css
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "routes", "routes", "{B877C966-C431-47AF-9F54-FFAA64064D4E}"
+	ProjectSection(SolutionItems) = preProject
+		CriptoVersus.Mcp\src\routes\authRoutes.ts = CriptoVersus.Mcp\src\routes\authRoutes.ts
+		CriptoVersus.Mcp\src\routes\tokenRoutes.ts = CriptoVersus.Mcp\src\routes\tokenRoutes.ts
+		CriptoVersus.Mcp\src\routes\webRoutes.ts = CriptoVersus.Mcp\src\routes\webRoutes.ts
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{A0C8D3E9-ED82-47A2-A239-91D46A9518E0}"
@@ -114,7 +140,11 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C627A31D-E5DD-4640-9B10-3CCB62F1040A} = {C314B4F2-661A-4AB1-8B67-32B5B505E93A}
+		{2F0B0D74-C715-4D9C-9637-6A9B33BDEB0C} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
+		{9E0C9251-1138-4BF3-8E5E-840F8929EC09} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
 		{D9AB8D28-9E40-4960-A670-05E9E50543D6} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
+		{2647A1E7-C7C7-481E-BF23-E925A6B8CCAE} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
+		{B877C966-C431-47AF-9F54-FFAA64064D4E} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
 		{A0C8D3E9-ED82-47A2-A239-91D46A9518E0} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
 		{7E99DF48-286D-4D43-9DCF-FEEA6A76F299} = {C627A31D-E5DD-4640-9B10-3CCB62F1040A}
 	EndGlobalSection

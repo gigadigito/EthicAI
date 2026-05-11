@@ -17,10 +17,14 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "better-sqlite3": "^11.10.0",
+    "bs58": "^6.0.0",
     "express": "^5.1.0",
+    "tweetnacl": "^1.0.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
     "@types/express": "^5.0.3",
     "@types/node": "^24.10.1",
     "cross-env": "^10.1.0",

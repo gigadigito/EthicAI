@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CriptoVersus MCP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero__copy">
+          <p class="eyebrow">Developer Access</p>
+          <h1>CriptoVersus MCP</h1>
+          <p class="hero__lead">
+            Connect AI agents to live crypto battles, rankings and match stats.
+          </p>
+          <p class="hero__support">
+            Authenticate with your Solana wallet, generate a personal Bearer Token,
+            and plug it into Claude, Cursor or OpenHands without exposing any private key.
+          </p>
+          <div class="hero__actions">
+            <button id="connectWalletButton" class="button button--primary">Connect Phantom Wallet</button>
+            <button id="clearSessionButton" class="button button--ghost" type="button">Clear Local Session</button>
+          </div>
+          <p id="walletStatus" class="status">Wallet not connected.</p>
+        </div>
+        <aside class="hero__panel">
+          <span>Read-only tools</span>
+          <ul class="tool-list">
+            <li>get_live_matches</li>
+            <li>get_hot_matches</li>
+            <li>get_match_stats</li>
+            <li>get_rankings</li>
+          </ul>
+        </aside>
+      </header>
+
+      <main class="content-grid">
+        <section class="card">
+          <div class="card__head">
+            <span>Auth</span>
+            <h2>Generate MCP Token</h2>
+          </div>
+          <p>
+            Connect your Solana wallet and generate a Bearer Token for your AI agent.
+            Tokens are hashed server-side and shown only once.
+          </p>
+          <form id="tokenForm" class="token-form">
+            <label for="tokenName">Token name</label>
+            <input id="tokenName" name="tokenName" type="text" maxlength="80" placeholder="Claude Desktop" />
+            <button class="button button--primary" type="submit">Generate Token</button>
+          </form>
+          <div id="tokenOutput" class="token-output hidden">
+            <span>New token</span>
+            <code id="tokenValue"></code>
+            <p>Copy and store this token now. It will not be shown again.</p>
+          </div>
+          <p id="authMessage" class="status status--muted">
+            You need an active wallet session before creating or revoking tokens.
+          </p>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <span>Install</span>
+            <h2>Configuration Example</h2>
+          </div>
+          <pre id="installExample" class="code-block"></pre>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <span>Tokens</span>
+            <h2>Your Issued Tokens</h2>
+          </div>
+          <div id="tokenList" class="token-list empty-state">
+            Connect your wallet to list and revoke tokens.
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <span>Usage</span>
+            <h2>MCP Endpoint</h2>
+          </div>
+          <p class="usage-copy">
+            Streamable HTTP endpoint: <code>/mcp</code><br />
+            Health check: <code>/health</code>
+          </p>
+          <p class="usage-copy">
+            This developer access flow stays read-only. No balances, positions, custody,
+            ledger entries or financial actions are exposed here.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
