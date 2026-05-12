@@ -48,6 +48,10 @@ function errorInvest(stage, error) {
     console.error("[CRYPTOINVEST][ERRO] stack completa:", error);
 }
 
+function logFlowDiag(prefix, payload) {
+    console.log(prefix, payload);
+}
+
 function u64Le(value) {
     const bytes = new Uint8Array(8);
     const view = new DataView(bytes.buffer);
@@ -264,6 +268,19 @@ export async function prepareInvestment(options) {
         const supportsLegacyPositionInvestments = Boolean(options.supportsLegacyPositionInvestments);
         const forceCustodyTransfer = Boolean(options.forceCustodyTransfer);
         const mode = options.mode || "HybridContractCustody";
+        const origin = options.origin || "Unknown";
+        const diagPrefix = origin === "Match" ? "[BET_FLOW_DIAG]" : "[OPEN_POSITION_DIAG]";
+        const resolvedProgramId = typeof options.programId === "string" ? options.programId.trim() : "";
+        const hasValidProgramId = resolvedProgramId.length > 0;
+        const chosenFlow = (forceCustodyTransfer || mode === "OffChainCustody")
+            ? "DIRECT_CUSTODY_TRANSFER"
+            : "PROGRAM_FLOW";
+        const diagDestination = chosenFlow === "DIRECT_CUSTODY_TRANSFER"
+            ? (typeof options.custodyWalletPublicKey === "string" ? options.custodyWalletPublicKey : null)
+            : resolvedProgramId;
+        const diagInstructionType = chosenFlow === "DIRECT_CUSTODY_TRANSFER"
+            ? "offchain_custody_transfer"
+            : "deposit";
 
         logInvest("Iniciando preparação de posição on-chain");
         logInvest("Wallet conectada:", provider.publicKey.toBase58());
@@ -272,11 +289,26 @@ export async function prepareInvestment(options) {
         logInvest("Team/Coin selecionada:", teamName);
         logInvest("Team ID:", teamId);
         logInvest("Valor solicitado:", `${options.amountSol} SOL`);
+        logFlowDiag(diagPrefix, {
+            origin,
+            effectiveMode: mode,
+            programId: hasValidProgramId ? resolvedProgramId : null,
+            forceCustodyTransfer,
+            chosenFlow,
+            destination: diagDestination,
+            amountSol: options.amountSol,
+            instructionType: diagInstructionType,
+            usesSystemProgramTransfer: chosenFlow === "DIRECT_CUSTODY_TRANSFER",
+            usesProgramId: chosenFlow === "PROGRAM_FLOW"
+        });
 
         if (!Number.isInteger(teamId) || teamId <= 0) {
             throw new Error("Team ID invalido para investimento.");
         }
 
+        // Current ProgramId is experimental/devnet.
+        // Production currently uses explicit OffChainCustody flow.
+        // Do not force Program interaction unless a real Mainnet program is active.
         if (forceCustodyTransfer || mode === "OffChainCustody") {
             const custodyWalletPublicKey = options.custodyWalletPublicKey;
 
@@ -299,10 +331,24 @@ export async function prepareInvestment(options) {
             );
 
             logInvest("Transferencia para custody confirmada:", signature);
+            logFlowDiag(diagPrefix, {
+                origin,
+                effectiveMode: mode,
+                programId: hasValidProgramId ? resolvedProgramId : null,
+                forceCustodyTransfer,
+                chosenFlow: "DIRECT_CUSTODY_TRANSFER",
+                destination: custodyWalletPublicKey,
+                amountSol: options.amountSol,
+                instructionType: "offchain_custody_transfer",
+                usesSystemProgramTransfer: true,
+                usesProgramId: false,
+                signature
+            });
 
             return {
                 wallet: provider.publicKey.toBase58(),
                 cluster,
+                programId: hasValidProgramId ? resolvedProgramId : null,
                 teamId,
                 matchId,
                 amountLamports: amountLamports.toString(),
@@ -412,6 +458,19 @@ export async function prepareInvestment(options) {
             logInvest("Transaction signature:", signature);
             logInvest("Confirmação:", "confirmed");
             logInvest("Resultado final:", "Funding on-chain realizado com sucesso. O backend pode registrar a aposta usando o stake vindo direto da wallet.");
+            logFlowDiag(diagPrefix, {
+                origin,
+                effectiveMode: mode,
+                programId: programId.toBase58(),
+                forceCustodyTransfer,
+                chosenFlow: "PROGRAM_FLOW",
+                destination: programId.toBase58(),
+                amountSol: options.amountSol,
+                instructionType: "deposit",
+                usesSystemProgramTransfer: false,
+                usesProgramId: true,
+                signature
+            });
 
             return {
                 wallet: provider.publicKey.toBase58(),
