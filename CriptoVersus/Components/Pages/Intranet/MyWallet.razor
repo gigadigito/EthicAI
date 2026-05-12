@@ -1451,8 +1451,21 @@
     private bool IsOffChainCustodyMode
         => string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
+    private string? WalletInvestmentProgramId
+        => string.Equals(BlockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];
+
+    private bool CanUseProgramPositionFundingFlow
+        => !string.IsNullOrWhiteSpace(WalletInvestmentProgramId);
+
     private bool ShouldUseDirectCustodyFlow
-        => IsOffChainCustodyMode;
+        => IsOffChainCustodyMode && !CanUseProgramPositionFundingFlow;
+
+    private string WalletInvestmentPreparationMode
+        => IsOffChainCustodyMode && CanUseProgramPositionFundingFlow
+            ? "HybridContractCustody"
+            : BlockchainMode;
 
     private string WalletNetworkBalanceLabel
         => T("walletNetworkBalance");
@@ -1777,10 +1790,11 @@
             "import",
             "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
 
-        var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
-        var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
-            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
-            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];
+        var blockchainMode = WalletInvestmentPreparationMode;
+        var programId = WalletInvestmentProgramId;
+
+        if (!ShouldUseDirectCustodyFlow && string.IsNullOrWhiteSpace(programId))
+            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o fluxo de posicao da wallet.");
 
         return await _investmentDiagnosticsModule.InvokeAsync<InvestmentPreparationResult>(
             "prepareInvestment",
