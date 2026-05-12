@@ -66,6 +66,7 @@ public sealed class PositionsController : ControllerBase
     }
 
     [HttpGet("assets")]
+    [HttpGet("/api/wallet/position-assets")]
     public async Task<ActionResult<List<PositionAssetOptionDto>>> GetPositionAssets(
         [FromQuery] string? search,
         [FromQuery] int take = 40,

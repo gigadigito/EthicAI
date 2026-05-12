@@ -118,8 +118,8 @@ public sealed class CriptoVersusApiClient
     {
         var safeTake = Math.Clamp(take, 1, 60);
         var query = string.IsNullOrWhiteSpace(search)
-            ? $"api/positions/assets?take={safeTake}"
-            : $"api/positions/assets?take={safeTake}&search={Uri.EscapeDataString(search)}";
+            ? $"api/wallet/position-assets?take={safeTake}"
+            : $"api/wallet/position-assets?take={safeTake}&search={Uri.EscapeDataString(search)}";
 
         return await GetFromJsonWithBearerAsync<List<PositionAssetOptionDto>>(query, ct);
     }
