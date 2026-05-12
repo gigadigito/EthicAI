@@ -262,6 +262,7 @@ export async function prepareInvestment(options) {
         const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
         const teamName = options.teamName || options.selectedCoin || `Team#${teamId}`;
         const supportsLegacyPositionInvestments = Boolean(options.supportsLegacyPositionInvestments);
+        const forceCustodyTransfer = Boolean(options.forceCustodyTransfer);
         const mode = options.mode || "HybridContractCustody";
 
         logInvest("Iniciando preparação de posição on-chain");
@@ -276,7 +277,7 @@ export async function prepareInvestment(options) {
             throw new Error("Team ID invalido para investimento.");
         }
 
-        if (mode === "OffChainCustody") {
+        if (forceCustodyTransfer || mode === "OffChainCustody") {
             const custodyWalletPublicKey = options.custodyWalletPublicKey;
 
             if (!custodyWalletPublicKey) {
@@ -284,7 +285,7 @@ export async function prepareInvestment(options) {
             }
 
             stage.current = "offchain-custody-transfer";
-            logInvest("Modo OffChainCustody detectado.");
+            logInvest(forceCustodyTransfer ? "Fluxo direto para custody habilitado." : "Modo OffChainCustody detectado.");
             logInvest("Carteira de custodia:", custodyWalletPublicKey);
 
             const signature = await sendSolToCustody(
@@ -424,6 +425,7 @@ export async function prepareInvestment(options) {
                 configPda: configPda.toBase58(),
                 vaultPda: vaultPda.toBase58(),
                 positionPda: legacyPositionPda.toBase58(),
+                positionVaultPda: legacyPositionVaultPda.toBase58(),
                 positionExists: legacyPositionInfo !== null,
                 legacyMatchPda: legacyMatchPda?.toBase58() ?? null,
                 legacyBetPda: legacyBetPda?.toBase58() ?? null,

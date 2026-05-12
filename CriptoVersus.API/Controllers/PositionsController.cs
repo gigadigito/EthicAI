@@ -8,8 +8,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.SignalR;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
+using CriptoVersus.API.Hubs;
 
 namespace CriptoVersus.API.Controllers;
 
@@ -23,19 +26,22 @@ public sealed class PositionsController : ControllerBase
     private readonly IPositionOrchestrationService _positionService;
     private readonly IConfiguration _configuration;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
+    private readonly IHubContext<DashboardHub> _hub;
 
     public PositionsController(
         EthicAIDbContext context,
         ILedgerService ledgerService,
         IPositionOrchestrationService positionService,
         IConfiguration configuration,
-        IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
+        IOptions<CriptoVersusBlockchainOptions> blockchainOptions,
+        IHubContext<DashboardHub> hub)
     {
         _context = context;
         _ledgerService = ledgerService;
         _positionService = positionService;
         _configuration = configuration;
         _blockchainOptions = blockchainOptions.Value;
+        _hub = hub;
     }
 
     [HttpGet]
@@ -57,6 +63,193 @@ public sealed class PositionsController : ControllerBase
             p,
             openBetStatuses.TryGetValue(p.PositionId, out var matchStatus),
             matchStatus)).ToList());
+    }
+
+    [HttpGet("assets")]
+    public async Task<ActionResult<List<PositionAssetOptionDto>>> GetPositionAssets(
+        [FromQuery] string? search,
+        [FromQuery] int take = 40,
+        CancellationToken ct = default)
+    {
+        var user = await GetAuthenticatedUserAsync(ct);
+        if (user is null)
+            return Unauthorized(new { message = "Token sem wallet valida." });
+
+        take = Math.Clamp(take, 1, 60);
+        var normalizedSearch = search?.Trim();
+        var nowUtc = DateTime.UtcNow;
+        var rankingMinUtc = nowUtc.AddMinutes(-20);
+        var workerMinUtc = nowUtc.AddHours(-6);
+        var recentMatchMinUtc = nowUtc.AddDays(-14);
+
+        var rankingSymbols = await _context.Set<Currency>()
+            .AsNoTracking()
+            .Where(c => EF.Functions.ILike(c.Symbol, "%USDT"))
+            .Where(c => c.LastUpdated >= rankingMinUtc)
+            .OrderByDescending(c => c.PercentageChange)
+            .ThenByDescending(c => c.LastUpdated)
+            .Select(c => c.Symbol)
+            .Take(40)
+            .ToListAsync(ct);
+        var rankingSymbolSet = rankingSymbols
+            .Where(symbol => !MatchPairRules.IsForbiddenStablecoin(symbol, _configuration))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var liveMatchQuery = _context.Match
+            .AsNoTracking()
+            .Where(m => m.Status == MatchStatus.Ongoing);
+        var liveTeamIds = await liveMatchQuery
+            .Select(m => m.TeamAId)
+            .Union(liveMatchQuery.Select(m => m.TeamBId))
+            .Distinct()
+            .ToListAsync(ct);
+        var liveTeamIdSet = liveTeamIds.ToHashSet();
+
+        var upcomingMatchQuery = _context.Match
+            .AsNoTracking()
+            .Where(m => m.Status == MatchStatus.Pending)
+            .Where(m =>
+                (m.BettingCloseTime.HasValue && m.BettingCloseTime.Value > nowUtc) ||
+                (!m.BettingCloseTime.HasValue && m.StartTime.HasValue && m.StartTime.Value > nowUtc));
+        var upcomingTeamIds = await upcomingMatchQuery
+            .Select(m => m.TeamAId)
+            .Union(upcomingMatchQuery.Select(m => m.TeamBId))
+            .Distinct()
+            .ToListAsync(ct);
+        var upcomingTeamIdSet = upcomingTeamIds.ToHashSet();
+
+        var recentMatchQuery = _context.Match
+            .AsNoTracking()
+            .Where(m =>
+                (m.StartTime.HasValue && m.StartTime.Value >= recentMatchMinUtc) ||
+                (m.EndTime.HasValue && m.EndTime.Value >= recentMatchMinUtc) ||
+                m.Status == MatchStatus.Pending ||
+                m.Status == MatchStatus.Ongoing);
+        var recentMatchTeamIds = await recentMatchQuery
+            .Select(m => m.TeamAId)
+            .Union(recentMatchQuery.Select(m => m.TeamBId))
+            .Distinct()
+            .ToListAsync(ct);
+        var recentMatchTeamIdSet = recentMatchTeamIds.ToHashSet();
+
+        var candidateMatchRows = await recentMatchQuery
+            .Select(m => new
+            {
+                m.MatchId,
+                m.TeamAId,
+                m.TeamBId,
+                Status = m.Status.ToString(),
+                m.StartTime,
+                m.BettingCloseTime
+            })
+            .ToListAsync(ct);
+
+        var matchContextByTeamId = candidateMatchRows
+            .SelectMany(m => new[]
+            {
+                new AssetMatchContext(m.MatchId, m.TeamAId, m.Status, m.StartTime, m.BettingCloseTime),
+                new AssetMatchContext(m.MatchId, m.TeamBId, m.Status, m.StartTime, m.BettingCloseTime)
+            })
+            .GroupBy(x => x.TeamId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(x => string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+                    .ThenByDescending(x => string.Equals(x.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                    .ThenByDescending(x => x.StartTimeUtc ?? DateTime.MinValue)
+                    .First());
+
+        var workerTeamIds = await _context.MatchMetricSnapshot
+            .AsNoTracking()
+            .Where(s => s.CapturedAtUtc >= workerMinUtc)
+            .Select(s => s.TeamId)
+            .Distinct()
+            .ToListAsync(ct);
+        var workerTeamIdSet = workerTeamIds.ToHashSet();
+
+        var openPositionTeamIds = await _context.UserTeamPosition
+            .AsNoTracking()
+            .Where(p => p.UserId == user.UserID && p.Status != TeamPositionStatus.Closed)
+            .Select(p => p.TeamId)
+            .Distinct()
+            .ToListAsync(ct);
+        var openPositionTeamIdSet = openPositionTeamIds.ToHashSet();
+
+        var candidateTeams = await _context.Team
+            .AsNoTracking()
+            .Include(t => t.Currency)
+            .Where(t => t.Currency != null)
+            .Where(t =>
+                recentMatchTeamIdSet.Contains(t.TeamId) ||
+                workerTeamIdSet.Contains(t.TeamId) ||
+                rankingSymbolSet.Contains(t.Currency.Symbol))
+            .Where(t =>
+                string.IsNullOrWhiteSpace(normalizedSearch) ||
+                EF.Functions.ILike(t.Currency.Symbol, $"%{normalizedSearch}%") ||
+                EF.Functions.ILike(t.Currency.Name, $"%{normalizedSearch}%"))
+            .ToListAsync(ct);
+
+        var items = candidateTeams
+            .Where(t => !MatchPairRules.IsForbiddenStablecoin(t.Currency.Symbol, _configuration))
+            .Select(t =>
+            {
+                var pct = decimal.Round((decimal)t.Currency.PercentageChange, 4, MidpointRounding.AwayFromZero);
+                matchContextByTeamId.TryGetValue(t.TeamId, out var matchContext);
+                var accessDecision = matchContext is null
+                    ? InvestmentAccessDecision.Allow(0)
+                    : InvestmentAccessPolicy.EvaluatePersistentExposure(
+                        matchContext.Status,
+                        matchContext.StartTimeUtc,
+                        matchContext.BettingCloseTimeUtc,
+                        nowUtc: nowUtc);
+
+                return new
+                {
+                    Team = t,
+                    Score =
+                        (accessDecision.CanInvest ? 2200 : 0) +
+                        (liveTeamIdSet.Contains(t.TeamId) ? 1000 : 0) +
+                        (upcomingTeamIdSet.Contains(t.TeamId) ? 450 : 0) +
+                        (workerTeamIdSet.Contains(t.TeamId) ? 225 : 0) +
+                        (rankingSymbolSet.Contains(t.Currency.Symbol) ? 125 : 0) +
+                        (openPositionTeamIdSet.Contains(t.TeamId) ? 25 : 0),
+                    PercentageChange = pct,
+                    AccessDecision = accessDecision,
+                    MatchContext = matchContext
+                };
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => Math.Abs(x.PercentageChange))
+            .ThenByDescending(x => x.Team.Currency.LastUpdated)
+            .ThenBy(x => x.Team.Currency.Symbol)
+            .Take(take)
+            .Select(x => new PositionAssetOptionDto
+            {
+                TeamId = x.Team.TeamId,
+                Symbol = x.Team.Currency.Symbol,
+                CurrencyName = string.IsNullOrWhiteSpace(x.Team.Currency.Name) ? x.Team.Currency.Symbol : x.Team.Currency.Name,
+                PercentageChange = x.PercentageChange,
+                LastUpdatedUtc = x.Team.Currency.LastUpdated,
+                CurrentPriceDisplay = null,
+                HasLiveMatch = liveTeamIdSet.Contains(x.Team.TeamId),
+                HasUpcomingMatch = upcomingTeamIdSet.Contains(x.Team.TeamId),
+                IsRankingAsset = rankingSymbolSet.Contains(x.Team.Currency.Symbol),
+                IsWorkerAsset = workerTeamIdSet.Contains(x.Team.TeamId),
+                HasOpenPosition = openPositionTeamIdSet.Contains(x.Team.TeamId),
+                TrendDirection = x.PercentageChange > 0m ? "up" : x.PercentageChange < 0m ? "down" : "flat",
+                CanInvestNow = x.AccessDecision.CanInvest,
+                AccessReasonCode = x.AccessDecision.ReasonCode,
+                AccessMessage = BuildAccessMessage(x.AccessDecision, x.MatchContext),
+                MatchStatus = x.MatchContext?.Status,
+                MatchId = x.MatchContext?.MatchId,
+                MatchElapsedMinutes = x.AccessDecision.ElapsedMinutes,
+                MatchStartTimeUtc = x.MatchContext?.StartTimeUtc,
+                EntryCutoffUtc = x.MatchContext is null
+                    ? null
+                    : InvestmentAccessPolicy.GetEntryCutoffUtc(x.MatchContext.Status, x.MatchContext.StartTimeUtc)
+            })
+            .ToList();
+
+        return Ok(items);
     }
 
     [HttpPost]
@@ -86,7 +279,7 @@ public sealed class PositionsController : ControllerBase
             {
                 return BadRequest(new
                 {
-                    message = "Este ativo esta em uma partida avancada no momento. Aguarde o proximo ciclo para aumentar sua exposicao.",
+                    message = BuildAccessMessage(teamAccessDecision, await GetAssetMatchContextAsync(request.TeamId, ct)),
                     reasonCode = teamAccessDecision.ReasonCode,
                     elapsedMinutes = teamAccessDecision.ElapsedMinutes,
                     advancedLiveThresholdMinutes = InvestmentAccessPolicy.AdvancedLiveThresholdMinutes
@@ -211,6 +404,7 @@ public sealed class PositionsController : ControllerBase
 
             await _context.Entry(position!).Reference(p => p.Team).LoadAsync(ct);
             await _context.Entry(position!.Team).Reference(t => t.Currency).LoadAsync(ct);
+            await NotifyPositionChangedAsync(position!, user.UserID, ct);
 
             return Ok(ToDto(position!, hasOpenBet: false, openBetMatchStatus: null));
         }
@@ -251,7 +445,8 @@ public sealed class PositionsController : ControllerBase
                     var teamAccessDecision = await EvaluateTeamInvestmentAccessAsync(position.TeamId, ct);
                     if (!teamAccessDecision.CanInvest)
                     {
-                        throw new InvalidOperationException("Este ativo esta em uma partida avancada no momento. Aguarde o proximo ciclo para aumentar sua exposicao.");
+                        throw new InvalidOperationException(
+                            BuildAccessMessage(teamAccessDecision, await GetAssetMatchContextAsync(position.TeamId, ct)));
                     }
 
                     var amount = RoundMoney(request.AddAmount.Value);
@@ -504,6 +699,91 @@ public sealed class PositionsController : ControllerBase
 
         return InvestmentAccessDecision.Allow(0);
     }
+
+    private async Task<AssetMatchContext?> GetAssetMatchContextAsync(int teamId, CancellationToken ct)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var recentMatchMinUtc = nowUtc.AddDays(-14);
+
+        var match = await _context.Match
+            .AsNoTracking()
+            .Where(m =>
+                (m.TeamAId == teamId || m.TeamBId == teamId) &&
+                (
+                    (m.StartTime.HasValue && m.StartTime.Value >= recentMatchMinUtc) ||
+                    (m.EndTime.HasValue && m.EndTime.Value >= recentMatchMinUtc) ||
+                    m.Status == MatchStatus.Pending ||
+                    m.Status == MatchStatus.Ongoing
+                ))
+            .Select(m => new AssetMatchContext(
+                m.MatchId,
+                teamId,
+                m.Status.ToString(),
+                m.StartTime,
+                m.BettingCloseTime))
+            .ToListAsync(ct);
+
+        return match
+            .OrderByDescending(x => string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(x => string.Equals(x.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(x => x.StartTimeUtc ?? DateTime.MinValue)
+            .FirstOrDefault();
+    }
+
+    private static string BuildAccessMessage(InvestmentAccessDecision decision, AssetMatchContext? matchContext)
+    {
+        if (decision.CanInvest)
+        {
+            if (matchContext is null)
+                return "Ativo disponivel para abrir posicao agora.";
+
+            var status = string.Equals(matchContext.Status, "Ongoing", StringComparison.OrdinalIgnoreCase)
+                ? "Partida em andamento"
+                : string.Equals(matchContext.Status, "Pending", StringComparison.OrdinalIgnoreCase)
+                    ? "Partida pendente"
+                    : $"Status {matchContext.Status}";
+
+            return $"{status} na partida #{matchContext.MatchId}. Entrada liberada no momento.";
+        }
+
+        if (string.Equals(decision.ReasonCode, InvestmentAccessPolicy.AdvancedLiveMatchReason, StringComparison.OrdinalIgnoreCase))
+        {
+            var matchLabel = matchContext is null ? "este ativo" : $"a partida #{matchContext.MatchId}";
+            var cutoffMinute = InvestmentAccessPolicy.AdvancedLiveThresholdMinutes;
+            return $"Nao e possivel aumentar exposicao agora: {matchLabel} esta em fase avancada. Status={(matchContext?.Status ?? "desconhecido")}, tempo decorrido={decision.ElapsedMinutes} min, limite de entrada={cutoffMinute} min.";
+        }
+
+        if (string.Equals(decision.ReasonCode, InvestmentAccessPolicy.MatchNotOpenReason, StringComparison.OrdinalIgnoreCase))
+        {
+            return matchContext is null
+                ? "Este ativo nao esta em uma partida aberta no momento, mas continua disponivel para posicao persistente quando entrar em novo ciclo."
+                : $"A partida #{matchContext.MatchId} nao esta aberta para nova exposicao agora. Status={matchContext.Status}.";
+        }
+
+        return "Este ativo nao esta disponivel para nova exposicao no momento.";
+    }
+
+    private Task NotifyPositionChangedAsync(UserTeamPosition position, int userId, CancellationToken ct)
+    {
+        return _hub.Clients.All.SendAsync(
+            "dashboard_changed",
+            JsonSerializer.Serialize(new
+            {
+                reason = "position_upsert",
+                positionId = position.PositionId,
+                position.TeamId,
+                userId,
+                utc = DateTimeOffset.UtcNow
+            }),
+            ct);
+    }
+
+    private sealed record AssetMatchContext(
+        int MatchId,
+        int TeamId,
+        string Status,
+        DateTime? StartTimeUtc,
+        DateTimeOffset? BettingCloseTimeUtc);
 
     private static TeamPositionDto ToDto(UserTeamPosition position, bool hasOpenBet, string? openBetMatchStatus)
     {

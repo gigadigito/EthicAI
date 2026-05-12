@@ -29,6 +29,30 @@ public sealed class TeamPositionDto
     public DateTime? ClosedAt { get; set; }
 }
 
+public sealed class PositionAssetOptionDto
+{
+    public int TeamId { get; set; }
+    public string Symbol { get; set; } = "";
+    public string CurrencyName { get; set; } = "";
+    public decimal? PercentageChange { get; set; }
+    public DateTime? LastUpdatedUtc { get; set; }
+    public string? CurrentPriceDisplay { get; set; }
+    public bool HasLiveMatch { get; set; }
+    public bool HasUpcomingMatch { get; set; }
+    public bool IsRankingAsset { get; set; }
+    public bool IsWorkerAsset { get; set; }
+    public bool HasOpenPosition { get; set; }
+    public string TrendDirection { get; set; } = "flat";
+    public bool CanInvestNow { get; set; } = true;
+    public string? AccessReasonCode { get; set; }
+    public string? AccessMessage { get; set; }
+    public string? MatchStatus { get; set; }
+    public int? MatchId { get; set; }
+    public int? MatchElapsedMinutes { get; set; }
+    public DateTime? MatchStartTimeUtc { get; set; }
+    public DateTimeOffset? EntryCutoffUtc { get; set; }
+}
+
 public sealed class CreateTeamPositionRequest
 {
     public int TeamId { get; set; }

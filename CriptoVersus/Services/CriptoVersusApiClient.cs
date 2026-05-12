@@ -106,6 +106,24 @@ public sealed class CriptoVersusApiClient
         CancellationToken ct = default)
         => await PostAsJsonWithBearerAsync<TeamPositionDto>("api/positions", request, ct);
 
+    public async Task<OpenDirectPositionResultDto?> OpenDirectPositionAsync(
+        OpenDirectPositionRequest request,
+        CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<OpenDirectPositionResultDto>("api/wallet/open-position-direct", request, ct);
+
+    public async Task<List<PositionAssetOptionDto>?> GetPositionAssetsAsync(
+        string? search = null,
+        int take = 40,
+        CancellationToken ct = default)
+    {
+        var safeTake = Math.Clamp(take, 1, 60);
+        var query = string.IsNullOrWhiteSpace(search)
+            ? $"api/positions/assets?take={safeTake}"
+            : $"api/positions/assets?take={safeTake}&search={Uri.EscapeDataString(search)}";
+
+        return await GetFromJsonWithBearerAsync<List<PositionAssetOptionDto>>(query, ct);
+    }
+
     public async Task<UserMatchHistoryPageDto?> GetWalletHistoryMatchesAsync(
         int userId,
         int teamId,

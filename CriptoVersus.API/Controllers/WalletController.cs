@@ -1,16 +1,21 @@
+using BLL.Blockchain;
+using BLL;
+using BLL.Positions;
+using CriptoVersus.API.Services;
+using CriptoVersus.API.Hubs;
 using DAL;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
-using BLL.Blockchain;
-using CriptoVersus.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace CriptoVersus.API.Controllers;
 
@@ -23,21 +28,37 @@ public sealed class WalletController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<WalletController> _logger;
     private readonly ISystemBalanceWithdrawalService _systemBalanceWithdrawalService;
+    private readonly ILedgerService _ledgerService;
+    private readonly IPositionOrchestrationService _positionService;
+    private readonly IOffChainCustodyTransferVerifier _offChainCustodyTransferVerifier;
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
+    private readonly IHubContext<DashboardHub> _hub;
 
     public WalletController(
         EthicAIDbContext context,
         IConfiguration configuration,
         ILogger<WalletController> logger,
         ISystemBalanceWithdrawalService systemBalanceWithdrawalService,
+        ILedgerService ledgerService,
+        IPositionOrchestrationService positionService,
+        IOffChainCustodyTransferVerifier offChainCustodyTransferVerifier,
+        IHubContext<DashboardHub> hub,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
         _logger = logger;
         _systemBalanceWithdrawalService = systemBalanceWithdrawalService;
+        _ledgerService = ledgerService;
+        _positionService = positionService;
+        _offChainCustodyTransferVerifier = offChainCustodyTransferVerifier;
+        _hub = hub;
         _blockchainOptions = blockchainOptions.Value;
     }
+
+    private const string DirectPositionPendingLedgerType = "POSDIR_REQ";
+    private const string DirectPositionCompletedLedgerType = "POSDIR_OPEN";
+    private const string DirectPositionFailedLedgerType = "POSDIR_FAIL";
 
     [HttpGet("me")]
     public async Task<ActionResult<MyWalletDto>> GetMyWallet(CancellationToken cancellationToken)
@@ -256,6 +277,300 @@ public sealed class WalletController : ControllerBase
                 detail = "Nao foi possivel concluir o saque com seguranca."
             });
         }
+    }
+
+    [HttpPost("open-position-direct")]
+    public async Task<ActionResult<OpenDirectPositionResultDto>> OpenPositionDirect(
+        [FromBody] OpenDirectPositionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var authenticatedWallet = GetAuthenticatedWallet();
+        if (string.IsNullOrWhiteSpace(authenticatedWallet))
+            return Unauthorized(new { message = "Token sem wallet valida." });
+
+        if (request is null)
+            return BadRequest(new { message = "Requisicao invalida." });
+
+        var normalizedSymbol = request.Symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        var normalizedWalletAddress = request.WalletAddress?.Trim() ?? string.Empty;
+        var normalizedSignature = request.Signature?.Trim() ?? string.Empty;
+        var amountSol = RoundMoney(request.AmountSol);
+
+        if (string.IsNullOrWhiteSpace(normalizedSymbol))
+            return BadRequest(new { message = "Symbol invalido." });
+
+        if (amountSol <= 0m)
+            return BadRequest(new { message = "Informe um valor maior que zero." });
+
+        if (string.IsNullOrWhiteSpace(normalizedSignature))
+            return BadRequest(new { message = "A assinatura da transacao on-chain e obrigatoria." });
+
+        if (string.IsNullOrWhiteSpace(normalizedWalletAddress))
+            return BadRequest(new { message = "WalletAddress invalido." });
+
+        if (!string.Equals(normalizedWalletAddress, authenticatedWallet, StringComparison.Ordinal))
+        {
+            return BadRequest(new
+            {
+                message = "A wallet conectada e diferente da conta autenticada."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(_blockchainOptions.CustodyWalletPublicKey))
+        {
+            return BadRequest(new
+            {
+                message = "Carteira de custodia nao configurada para abertura direta de posicao."
+            });
+        }
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        OpenDirectPositionResultDto? response = null;
+
+        try
+        {
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+                try
+                {
+                    var user = await _context.User
+                        .FirstOrDefaultAsync(x => x.Wallet == authenticatedWallet, cancellationToken);
+
+                    if (user is null)
+                        throw new WalletFlowException(StatusCodes.Status401Unauthorized, "UNAUTHENTICATED", "Usuario autenticado nao encontrado.");
+
+                    var team = await _context.Team
+                        .Include(t => t.Currency)
+                        .FirstOrDefaultAsync(
+                            t => t.Currency != null && t.Currency.Symbol.ToUpper() == normalizedSymbol,
+                            cancellationToken);
+
+                    if (team is null)
+                        throw new WalletFlowException(StatusCodes.Status404NotFound, "TEAM_NOT_FOUND", "Ativo nao encontrado para abertura de posicao.");
+
+                    var accessDecision = await EvaluateTeamInvestmentAccessAsync(team.TeamId, cancellationToken);
+                    var matchContext = await GetAssetMatchContextAsync(team.TeamId, cancellationToken);
+
+                    if (!accessDecision.CanInvest)
+                    {
+                        throw new WalletFlowException(
+                            StatusCodes.Status400BadRequest,
+                            accessDecision.ReasonCode ?? "ASSET_BLOCKED",
+                            BuildAccessMessage(accessDecision, matchContext));
+                    }
+
+                    if (await HasDirectPositionSignatureBeenUsedAsync(normalizedSignature, cancellationToken))
+                    {
+                        throw new WalletFlowException(
+                            StatusCodes.Status409Conflict,
+                            "DUPLICATE_SIGNATURE",
+                            "Essa assinatura ja foi utilizada para abrir uma posicao.");
+                    }
+
+                    await _ledgerService.AddEntryAsync(
+                        user,
+                        DirectPositionPendingLedgerType,
+                        0m,
+                        user.Balance,
+                        user.Balance,
+                        description: BuildDirectPositionLedgerDescription(
+                            normalizedSignature,
+                            normalizedSymbol,
+                            amountSol,
+                            normalizedWalletAddress,
+                            _blockchainOptions.CustodyWalletPublicKey,
+                            "requested",
+                            extra: null),
+                        ct: cancellationToken);
+
+                    var expectedLamports = ParseRequiredLamports(amountSol);
+                    var verification = await _offChainCustodyTransferVerifier.VerifyAsync(
+                        normalizedSignature,
+                        normalizedWalletAddress,
+                        _blockchainOptions.CustodyWalletPublicKey,
+                        expectedLamports,
+                        cancellationToken);
+
+                    if (!verification.Succeeded)
+                    {
+                        throw new WalletFlowException(
+                            StatusCodes.Status400BadRequest,
+                            "ONCHAIN_TRANSFER_INVALID",
+                            verification.Message);
+                    }
+
+                    if (await HasDirectPositionSignatureBeenUsedAsync(normalizedSignature, cancellationToken))
+                    {
+                        throw new WalletFlowException(
+                            StatusCodes.Status409Conflict,
+                            "DUPLICATE_SIGNATURE",
+                            "Essa assinatura ja foi utilizada para abrir uma posicao.");
+                    }
+
+                    var nowUtc = DateTime.UtcNow;
+                    var capitalBefore = 0m;
+                    var isNewPosition = false;
+
+                    var position = await _context.UserTeamPosition
+                        .Include(p => p.Team).ThenInclude(t => t.Currency)
+                        .FirstOrDefaultAsync(
+                            p => p.UserId == user.UserID && p.TeamId == team.TeamId,
+                            cancellationToken);
+
+                    if (position is null)
+                    {
+                        isNewPosition = true;
+                        position = new UserTeamPosition
+                        {
+                            UserId = user.UserID,
+                            TeamId = team.TeamId,
+                            PrincipalAllocated = amountSol,
+                            CurrentCapital = amountSol,
+                            AutoCompound = true,
+                            Status = TeamPositionStatus.Active,
+                            LastOnChainSignature = NormalizeAddress(normalizedSignature),
+                            OnChainCluster = _blockchainOptions.Cluster,
+                            CurrentLamports = expectedLamports,
+                            ExposureMode = PositionExposureMode.MatchRecurring,
+                            BlockchainModeSnapshot = _positionService.BuildBlockchainModeSnapshot(),
+                            TotalPnL = 0m,
+                            TotalWins = 0,
+                            TotalLosses = 0,
+                            CreatedAt = nowUtc,
+                            UpdatedAt = nowUtc
+                        };
+
+                        _context.UserTeamPosition.Add(position);
+                    }
+                    else
+                    {
+                        capitalBefore = position.CurrentCapital;
+                        position.PrincipalAllocated = RoundMoney(position.PrincipalAllocated + amountSol);
+                        position.CurrentCapital = RoundMoney(position.CurrentCapital + amountSol);
+                        position.AutoCompound = true;
+                        position.Status = TeamPositionStatus.Active;
+                        position.ClosedAt = null;
+                        position.LastOnChainSignature = NormalizeAddress(normalizedSignature);
+                        position.OnChainCluster = _blockchainOptions.Cluster;
+                        position.CurrentLamports = AddLamports(position.CurrentLamports, expectedLamports);
+                        position.ExposureMode = PositionExposureMode.MatchRecurring;
+                        position.BlockchainModeSnapshot ??= _positionService.BuildBlockchainModeSnapshot();
+                        position.UpdatedAt = nowUtc;
+                    }
+
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    await _ledgerService.AddEntryAsync(
+                        user,
+                        DirectPositionCompletedLedgerType,
+                        0m,
+                        user.Balance,
+                        user.Balance,
+                        referenceId: position.PositionId,
+                        description: BuildDirectPositionLedgerDescription(
+                            normalizedSignature,
+                            normalizedSymbol,
+                            amountSol,
+                            normalizedWalletAddress,
+                            _blockchainOptions.CustodyWalletPublicKey,
+                            "confirmed",
+                            $"teamId={team.TeamId}; lamports={expectedLamports}; cluster={_blockchainOptions.Cluster}"),
+                        ct: cancellationToken);
+
+                    await _positionService.RecordLifecycleEventAsync(
+                        _context,
+                        position,
+                        isNewPosition ? PositionLifecycleEventType.Opened : PositionLifecycleEventType.Increased,
+                        nowUtc,
+                        amount: amountSol,
+                        capitalBefore: isNewPosition ? 0m : capitalBefore,
+                        capitalAfter: position.CurrentCapital,
+                        notes: "Persistent position funded directly from the connected wallet to custody.",
+                        ct: cancellationToken);
+
+                    await transaction.CommitAsync(cancellationToken);
+
+                    _logger.LogInformation(
+                        "[DIRECT_POSITION_OPEN] UserId={UserId} Wallet={Wallet} Symbol={Symbol} TeamId={TeamId} AmountSol={AmountSol} Signature={Signature} CustodyWallet={CustodyWallet}",
+                        user.UserID,
+                        user.Wallet,
+                        normalizedSymbol,
+                        team.TeamId,
+                        amountSol,
+                        normalizedSignature,
+                        _blockchainOptions.CustodyWalletPublicKey);
+
+                    response = new OpenDirectPositionResultDto
+                    {
+                        Symbol = normalizedSymbol,
+                        AmountSol = amountSol,
+                        Signature = normalizedSignature,
+                        WalletAddress = normalizedWalletAddress,
+                        CustodyWalletPublicKey = _blockchainOptions.CustodyWalletPublicKey,
+                        Message = "Posicao aberta com pagamento on-chain confirmado.",
+                        Position = ToPositionDto(position, hasOpenBet: false, openBetMatchStatus: null)
+                    };
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            if (response is not null)
+            {
+                await NotifyPositionChangedAsync(response.Position.PositionId, response.Position.TeamId, response.Position.UserId, cancellationToken);
+                return Ok(response);
+            }
+        }
+        catch (WalletFlowException ex)
+        {
+            await TryRegisterDirectPositionFailureAsync(
+                authenticatedWallet,
+                normalizedSignature,
+                normalizedSymbol,
+                amountSol,
+                normalizedWalletAddress,
+                ex.Code,
+                ex.Message,
+                cancellationToken);
+
+            return StatusCode(ex.StatusCode, new { message = ex.Message, code = ex.Code });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "[DIRECT_POSITION_OPEN][ERROR] Wallet={Wallet} Symbol={Symbol} AmountSol={AmountSol} Signature={Signature}",
+                authenticatedWallet,
+                normalizedSymbol,
+                amountSol,
+                normalizedSignature);
+
+            await TryRegisterDirectPositionFailureAsync(
+                authenticatedWallet,
+                normalizedSignature,
+                normalizedSymbol,
+                amountSol,
+                normalizedWalletAddress,
+                "DIRECT_POSITION_UNEXPECTED_FAILURE",
+                ex.Message,
+                cancellationToken);
+
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Nao foi possivel abrir a posicao com seguranca apos validar a transferencia on-chain.",
+                code = "DIRECT_POSITION_UNEXPECTED_FAILURE"
+            });
+        }
+
+        return StatusCode(StatusCodes.Status500InternalServerError, new
+        {
+            message = "Nao foi possivel concluir a abertura da posicao."
+        });
     }
 
     [HttpGet("/api/users/{userId:int}/wallet-history/{teamId:int}/matches")]
@@ -520,6 +835,179 @@ public sealed class WalletController : ControllerBase
 
         return await _context.User
             .FirstOrDefaultAsync(u => u.Wallet == wallet, cancellationToken);
+    }
+
+    private async Task<bool> HasDirectPositionSignatureBeenUsedAsync(string signature, CancellationToken ct)
+    {
+        var marker = BuildDirectPositionSignatureMarker(signature);
+        return await _context.Ledger
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.Type == DirectPositionCompletedLedgerType &&
+                x.Description != null &&
+                EF.Functions.Like(x.Description, $"%{marker}%"), ct)
+            || await _context.UserTeamPosition
+                .AsNoTracking()
+                .AnyAsync(x => x.LastOnChainSignature == signature, ct);
+    }
+
+    private async Task TryRegisterDirectPositionFailureAsync(
+        string authenticatedWallet,
+        string signature,
+        string symbol,
+        decimal amountSol,
+        string connectedWallet,
+        string code,
+        string message,
+        CancellationToken ct)
+    {
+        try
+        {
+            var user = await _context.User.FirstOrDefaultAsync(x => x.Wallet == authenticatedWallet, ct);
+            if (user is null)
+                return;
+
+            await _ledgerService.AddEntryAsync(
+                user,
+                DirectPositionFailedLedgerType,
+                0m,
+                user.Balance,
+                user.Balance,
+                description: BuildDirectPositionLedgerDescription(
+                    signature,
+                    symbol,
+                    amountSol,
+                    connectedWallet,
+                    _blockchainOptions.CustodyWalletPublicKey ?? string.Empty,
+                    "failed",
+                    $"code={code}; detail={message}"),
+                ct: ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[DIRECT_POSITION_OPEN][FAIL_LOG] Nao foi possivel registrar falha em ledger.");
+        }
+    }
+
+    private static string BuildDirectPositionSignatureMarker(string signature)
+        => $"directPositionSignature={signature};";
+
+    private static string BuildDirectPositionLedgerDescription(
+        string signature,
+        string symbol,
+        decimal amountSol,
+        string connectedWallet,
+        string custodyWallet,
+        string status,
+        string? extra)
+    {
+        var amountText = amountSol.ToString("0.########", System.Globalization.CultureInfo.InvariantCulture);
+        var description = $"{BuildDirectPositionSignatureMarker(signature)} symbol={symbol}; amountSol={amountText}; connectedWallet={connectedWallet}; custodyWallet={custodyWallet}; status={status};";
+        return string.IsNullOrWhiteSpace(extra)
+            ? description
+            : $"{description} {extra.Trim()};";
+    }
+
+    private async Task<InvestmentAccessDecision> EvaluateTeamInvestmentAccessAsync(int teamId, CancellationToken ct)
+    {
+        var ongoingMatches = await _context.Match
+            .AsNoTracking()
+            .Where(m =>
+                m.Status == MatchStatus.Ongoing &&
+                (m.TeamAId == teamId || m.TeamBId == teamId))
+            .OrderByDescending(m => m.StartTime ?? DateTime.MinValue)
+            .ToListAsync(ct);
+
+        foreach (var match in ongoingMatches)
+        {
+            var decision = InvestmentAccessPolicy.EvaluatePersistentExposure(
+                match.Status.ToString(),
+                match.StartTime,
+                match.BettingCloseTime,
+                nowUtc: DateTimeOffset.UtcNow);
+
+            if (!decision.CanInvest)
+                return decision;
+        }
+
+        return InvestmentAccessDecision.Allow(0);
+    }
+
+    private async Task<AssetMatchContext?> GetAssetMatchContextAsync(int teamId, CancellationToken ct)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var recentMatchMinUtc = nowUtc.AddDays(-14);
+
+        var matches = await _context.Match
+            .AsNoTracking()
+            .Where(m =>
+                (m.TeamAId == teamId || m.TeamBId == teamId) &&
+                (
+                    (m.StartTime.HasValue && m.StartTime.Value >= recentMatchMinUtc) ||
+                    (m.EndTime.HasValue && m.EndTime.Value >= recentMatchMinUtc) ||
+                    m.Status == MatchStatus.Pending ||
+                    m.Status == MatchStatus.Ongoing
+                ))
+            .Select(m => new AssetMatchContext(
+                m.MatchId,
+                teamId,
+                m.Status.ToString(),
+                m.StartTime,
+                m.BettingCloseTime))
+            .ToListAsync(ct);
+
+        return matches
+            .OrderByDescending(x => string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(x => string.Equals(x.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(x => x.StartTimeUtc ?? DateTime.MinValue)
+            .FirstOrDefault();
+    }
+
+    private static string BuildAccessMessage(InvestmentAccessDecision decision, AssetMatchContext? matchContext)
+    {
+        if (decision.CanInvest)
+        {
+            if (matchContext is null)
+                return "Ativo disponivel para abrir posicao agora.";
+
+            var status = string.Equals(matchContext.Status, "Ongoing", StringComparison.OrdinalIgnoreCase)
+                ? "Partida em andamento"
+                : string.Equals(matchContext.Status, "Pending", StringComparison.OrdinalIgnoreCase)
+                    ? "Partida pendente"
+                    : $"Status {matchContext.Status}";
+
+            return $"{status} na partida #{matchContext.MatchId}. Entrada liberada no momento.";
+        }
+
+        if (string.Equals(decision.ReasonCode, InvestmentAccessPolicy.AdvancedLiveMatchReason, StringComparison.OrdinalIgnoreCase))
+        {
+            var matchLabel = matchContext is null ? "este ativo" : $"a partida #{matchContext.MatchId}";
+            return $"Nao e possivel aumentar exposicao agora: {matchLabel} esta em fase avancada. Status={(matchContext?.Status ?? "desconhecido")}, tempo decorrido={decision.ElapsedMinutes} min, limite de entrada={InvestmentAccessPolicy.AdvancedLiveThresholdMinutes} min.";
+        }
+
+        if (string.Equals(decision.ReasonCode, InvestmentAccessPolicy.MatchNotOpenReason, StringComparison.OrdinalIgnoreCase))
+        {
+            return matchContext is null
+                ? "Este ativo nao esta em uma partida aberta no momento."
+                : $"A partida #{matchContext.MatchId} nao esta aberta para nova exposicao agora. Status={matchContext.Status}.";
+        }
+
+        return "Este ativo nao esta disponivel para nova exposicao no momento.";
+    }
+
+    private Task NotifyPositionChangedAsync(int positionId, int teamId, int userId, CancellationToken ct)
+    {
+        return _hub.Clients.All.SendAsync(
+            "dashboard_changed",
+            JsonSerializer.Serialize(new
+            {
+                reason = "wallet_direct_position_opened",
+                positionId,
+                teamId,
+                userId,
+                utc = DateTimeOffset.UtcNow
+            }),
+            ct);
     }
 
     private string? GetAuthenticatedWallet()
@@ -793,6 +1281,21 @@ public sealed class WalletController : ControllerBase
     private static decimal RoundMoney(decimal value)
         => Math.Round(value, 8, MidpointRounding.ToZero);
 
+    private static long ParseRequiredLamports(decimal amount)
+    {
+        var lamports = RoundMoney(amount) * 1_000_000_000m;
+        if (lamports <= 0m || lamports > long.MaxValue)
+            throw new WalletFlowException(StatusCodes.Status400BadRequest, "INVALID_LAMPORTS", "Valor invalido para transferencia on-chain.");
+
+        return decimal.ToInt64(decimal.Round(lamports, 0, MidpointRounding.AwayFromZero));
+    }
+
+    private static long? AddLamports(long? current, long? added)
+        => added.HasValue ? (current ?? 0L) + added.Value : current;
+
+    private static string? NormalizeAddress(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private async Task AddLedgerEntrySafeAsync(
         User user,
         string type,
@@ -844,6 +1347,26 @@ public sealed class WalletController : ControllerBase
         bool IsCancelled = false,
         bool IsDraw = false,
         bool IsPartialLoss = false);
+
+    private sealed record AssetMatchContext(
+        int MatchId,
+        int TeamId,
+        string Status,
+        DateTime? StartTimeUtc,
+        DateTimeOffset? BettingCloseTimeUtc);
+
+    private sealed class WalletFlowException : Exception
+    {
+        public int StatusCode { get; }
+        public string Code { get; }
+
+        public WalletFlowException(int statusCode, string code, string message)
+            : base(message)
+        {
+            StatusCode = statusCode;
+            Code = code;
+        }
+    }
 
     private static bool HasValidFinancialDispute(
         Match match,

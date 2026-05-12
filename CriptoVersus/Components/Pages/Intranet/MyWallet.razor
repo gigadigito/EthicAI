@@ -10,18 +10,22 @@
 @inject IJSRuntime JS
 @inject BrowserTimeZoneService BrowserTimeZone
 @inject WalletSessionState WalletState
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject DashboardHubClient HubClient
 @implements IAsyncDisposable
 
 <section class="wallet-page">
     <div class="wallet-heading">
-        <span>Minha Carteira</span>
-        <h2>Seus investimentos</h2>
-        <p>Acompanhe o saldo do sistema, as moedas em que voce investiu e o retorno de cada posicao.</p>
+        <span>@T("heading.eyebrow")</span>
+        <h2>@T("heading.title")</h2>
+        <p>@T("heading.body")</p>
     </div>
 
     @if (_loading)
     {
-        <div class="wallet-message">Carregando sua carteira...</div>
+        <div class="wallet-message">@T("states.loading")</div>
     }
     else if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -30,7 +34,7 @@
     else if (_wallet is null)
     {
         <div class="wallet-message">
-            Faca login com sua carteira Solana para ver seus investimentos.
+            @T("states.walletRequired")
         </div>
     }
     else
@@ -138,6 +142,12 @@
                 Para liberar saldo para saque, finalize uma posicao fora de jogo. Se ela ainda estiver vinculada a uma partida em andamento, a saida fica solicitada e o saldo volta automaticamente para o sistema quando essa partida for liquidada.
             </div>
             <div class="wallet-actions-buttons">
+                <button type="button"
+                        class="wallet-history-button wallet-open-position-trigger"
+                        disabled="@_openPositionBusy"
+                        @onclick="OpenPositionModalAsync">
+                    @T("openPosition.cta")
+                </button>
                 @if (_wallet.SystemBalance > 0m)
                 {
                     <button type="button"
@@ -155,14 +165,14 @@
         </div>
 
         <div class="wallet-section-title">
-            <h3>Posicoes ativas</h3>
-            <span>@_wallet.ActivePositions.Count alocadas</span>
+            <h3>@T("openPositions.title")</h3>
+            <span>@T("openPositions.count", _wallet.ActivePositions.Count)</span>
         </div>
 
         @if (_wallet.ActivePositions.Count == 0)
         {
             <div class="wallet-empty">
-                Voce ainda nao tem posicoes recorrentes. Ao investir em um ativo, o capital passa a acompanhar os proximos ciclos desse time.
+                @T("openPositions.empty")
             </div>
         }
         else
@@ -186,25 +196,30 @@
                         </div>
 
                         <div class="investment-data">
-                            <span>Capital atual</span>
-                            <strong>@FmtSol(position.CurrentCapital)</strong>
-                        </div>
-
-                        <div class="investment-data">
-                            <span>Total alocado</span>
+                            <span>@T("openPositions.invested")</span>
                             <strong>@FmtSol(position.PrincipalAllocated)</strong>
                         </div>
 
                         <div class="investment-data">
-                            <span>Status</span>
-                            <strong>@FmtPositionStatus(position.Status)</strong>
+                            <span>@T("openPositions.entry")</span>
+                            <strong>@FmtDate(position.CreatedAt)</strong>
+                        </div>
+
+                        <div class="investment-data">
+                            <span>@T("openPositions.pnl")</span>
+                            <strong class="@GetPayoutClass(GetSimplePnl(position))">@FmtSignedSol(GetSimplePnl(position))</strong>
                         </div>
 
                         <div class="investment-data investment-data-action">
-                            <span>Acao</span>
+                            <span>@T("openPositions.time")</span>
+                            <strong>@FmtElapsed(position.CreatedAt)</strong>
+                        </div>
+
+                        <div class="investment-data investment-data-action">
+                            <span>@T("openPositions.action")</span>
                             @if (string.Equals(position.Status, "ClosingRequested", StringComparison.OrdinalIgnoreCase))
                             {
-                                <strong>Saida solicitada</strong>
+                                <strong>@T("openPositions.exitRequested")</strong>
                             }
                             else
                             {
@@ -212,7 +227,7 @@
                                         class="wallet-history-button"
                                         disabled="@_actionBusy"
                                         @onclick="() => RequestClosePositionAsync(position)">
-                                    @(position.CanCloseNow ? "Finalizar posicao" : "Solicitar saida")
+                                    @(position.CanCloseNow ? T("openPositions.closeNow") : T("openPositions.requestExit"))
                                 </button>
                             }
                         </div>
@@ -243,6 +258,224 @@
         }
     }
 </section>
+
+@if (_showOpenPositionModal)
+{
+    <div class="wallet-modal-backdrop" @onclick="ClosePositionModal"></div>
+    <div class="wallet-modal-shell" role="dialog" aria-modal="true" aria-labelledby="wallet-open-position-title">
+        <div class="wallet-modal-card" @onclick:stopPropagation="true">
+            <div class="wallet-modal-header">
+                <div>
+                    <span class="wallet-modal-kicker">CRYPTO ARENA</span>
+                    <h3 id="wallet-open-position-title">
+                        @(_selectedAsset is null ? T("openPosition.modalTitle") : T("openPosition.amountTitle"))
+                    </h3>
+                </div>
+                <div class="wallet-modal-header-actions">
+                    @if (_selectedAsset is not null)
+                    {
+                        <button type="button" class="wallet-modal-icon-btn" @onclick="BackToAssetSelection">
+                            @T("openPosition.back")
+                        </button>
+                    }
+                    <button type="button" class="wallet-modal-icon-btn" @onclick="ClosePositionModal">
+                        @T("openPosition.close")
+                    </button>
+                </div>
+            </div>
+
+            @if (_selectedAsset is null)
+            {
+                <div class="wallet-modal-body wallet-modal-body--asset-step">
+                    <div class="wallet-search-sticky">
+                        <label class="wallet-modal-label" for="wallet-position-search">@T("openPosition.searchLabel")</label>
+                        <input id="wallet-position-search"
+                               class="wallet-search-input"
+                               type="search"
+                               value="@_assetSearchTerm"
+                               placeholder="@T("openPosition.searchPlaceholder")"
+                               @oninput="HandleAssetSearchInput" />
+                    </div>
+
+                    @if (_assetSearchLoading)
+                    {
+                        <div class="wallet-empty">@T("openPosition.loadingAssets")</div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(_assetSearchError))
+                    {
+                        <div class="wallet-message wallet-message-danger">@_assetSearchError</div>
+                    }
+                    else if (_positionAssets.Count == 0)
+                    {
+                        <div class="wallet-empty">@T("openPosition.emptyAssets")</div>
+                    }
+                    else
+                    {
+                        <div class="wallet-asset-list">
+                            @foreach (var asset in _positionAssets)
+                            {
+                                <button type="button"
+                                        class="wallet-asset-item @(asset.CanInvestNow ? string.Empty : "wallet-asset-item--blocked")"
+                                        @onclick="() => SelectAsset(asset)">
+                                    <div class="wallet-asset-main">
+                                        <span class="coin-symbol" title="@asset.Symbol">
+                                            <img src="@GetCoinIconUrl(asset.Symbol)"
+                                                 alt="@asset.Symbol"
+                                                 loading="lazy"
+                                                 onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                            <span class="coin-symbol-fallback d-none">@GetInitials(asset.Symbol)</span>
+                                        </span>
+                                        <div>
+                                            <strong>@asset.Symbol</strong>
+                                            <span>@asset.CurrencyName</span>
+                                        </div>
+                                    </div>
+                                    <div class="wallet-asset-meta">
+                                        @if (!string.IsNullOrWhiteSpace(asset.CurrentPriceDisplay))
+                                        {
+                                            <strong>@asset.CurrentPriceDisplay</strong>
+                                        }
+                                        else
+                                        {
+                                            <strong>@T("openPosition.priceUnavailable")</strong>
+                                        }
+                                        <span class="wallet-trend @(GetTrendClass(asset.TrendDirection))">
+                                            @FmtPercentage(asset.PercentageChange)
+                                        </span>
+                                        <span class="wallet-asset-status @(asset.CanInvestNow ? "wallet-asset-status--ok" : "wallet-asset-status--blocked")">
+                                            @GetAssetAvailabilityLabel(asset)
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(asset.AccessMessage))
+                                        {
+                                            <small class="wallet-asset-status-detail">@asset.AccessMessage</small>
+                                        }
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="wallet-modal-body">
+                    <div class="wallet-selected-asset-card">
+                        <div class="investment-main">
+                            <span class="coin-symbol" title="@_selectedAsset.Symbol">
+                                <img src="@GetCoinIconUrl(_selectedAsset.Symbol)"
+                                     alt="@_selectedAsset.Symbol"
+                                     loading="lazy"
+                                     onerror="this.remove(); this.nextElementSibling?.classList.remove('d-none');" />
+                                <span class="coin-symbol-fallback d-none">@GetInitials(_selectedAsset.Symbol)</span>
+                            </span>
+                            <div>
+                                <strong>@_selectedAsset.Symbol</strong>
+                                <span>@_selectedAsset.CurrencyName</span>
+                            </div>
+                        </div>
+                        <div class="wallet-selected-asset-copy">
+                            <strong>@(_selectedAsset.CurrentPriceDisplay ?? T("openPosition.priceUnavailable"))</strong>
+                            <span>@T("openPosition.openingOn", _selectedAsset.Symbol)</span>
+                        </div>
+                    </div>
+
+                    <div class="wallet-investment-copy">
+                        <span>@T("openPosition.investmentIn", _selectedAsset.Symbol)</span>
+                        <strong>@T("openPosition.valueInSol")</strong>
+                    </div>
+
+                    <div class="wallet-balance-callout">
+                        <div>
+                            <span class="wallet-modal-label">@T("openPosition.walletBalanceLabel")</span>
+                            <strong>@OnChainBalanceText</strong>
+                        </div>
+                        <div>
+                            <span class="wallet-modal-label">@T("openPosition.custodyWalletLabel")</span>
+                            <strong class="wallet-custody-address" title="@GetCustodyWalletDisplayValue()">@GetCustodyWalletDisplayValue()</strong>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_selectedAsset.AccessMessage))
+                    {
+                        <div class="wallet-asset-access-callout @(_selectedAsset.CanInvestNow ? "wallet-asset-access-callout--ok" : "wallet-asset-access-callout--warn")">
+                            @_selectedAsset.AccessMessage
+                        </div>
+                    }
+
+                    <div class="wallet-direct-funding-copy">
+                        <strong>@T("openPosition.directFundingTitle")</strong>
+                        <span>@T("openPosition.directFundingLine1")</span>
+                        <span>@T("openPosition.directFundingLine2")</span>
+                    </div>
+
+                    <label class="wallet-modal-label">@T("openPosition.chooseAmount")</label>
+                    <div class="wallet-quick-grid" aria-label="@T("openPosition.quickValues")">
+                        @foreach (var amount in QuickInvestmentAmounts)
+                        {
+                            <button type="button"
+                                    class="wallet-quick-chip @(IsSelectedQuickAmount(amount) ? "wallet-quick-chip--active" : string.Empty)"
+                                    @onclick="() => SetInvestmentAmount(amount)">
+                                @FmtSolCompact(amount)
+                            </button>
+                        }
+                    </div>
+
+                    <label class="wallet-modal-label" for="walletInvestmentRange">
+                        @T("openPosition.sliderLabel")
+                    </label>
+                    <input id="walletInvestmentRange"
+                           class="form-range wallet-range"
+                           type="range"
+                           min="0"
+                           max="@(QuickInvestmentAmounts.Length - 1)"
+                           step="1"
+                           value="@_investmentAmountRangeIndex"
+                           @oninput="HandleRangeInput" />
+
+                    <label class="wallet-modal-label" for="walletInvestmentAmount">@T("openPosition.amountInputLabel")</label>
+                    <input id="walletInvestmentAmount"
+                           class="form-control wallet-amount-input"
+                           type="text"
+                           inputmode="decimal"
+                           value="@_investmentAmountInput"
+                           @oninput="HandleAmountInput" />
+
+                    @if (!string.IsNullOrWhiteSpace(_investmentAmountError))
+                    {
+                        <div class="text-danger small">@_investmentAmountError</div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(_openPositionStatusText) || !string.IsNullOrWhiteSpace(_openPositionTransactionHash))
+                    {
+                        <div class="wallet-open-position-status @OpenPositionStatusClass">
+                            @if (!string.IsNullOrWhiteSpace(_openPositionStatusText))
+                            {
+                                <strong>@_openPositionStatusText</strong>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(_openPositionTransactionHash))
+                            {
+                                <span>@T("openPosition.transactionHash", ShortTxHash(_openPositionTransactionHash))</span>
+                                <small class="wallet-custody-address" title="@_openPositionTransactionHash">@_openPositionTransactionHash</small>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="wallet-modal-footer">
+                    <button type="button" class="wallet-history-button" @onclick="ClosePositionModal">
+                        @T("openPosition.cancel")
+                    </button>
+                    <button type="button"
+                            class="wallet-history-button is-primary wallet-invest-submit"
+                            disabled="@_openPositionBusy"
+                            @onclick="ConfirmOpenPositionAsync">
+                        @(_openPositionBusy ? T("openPosition.investing") : T("openPosition.investCta", FmtSolCompact(_parsedInvestmentAmount)))
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
 
 <style>
     .wallet-page {
@@ -353,6 +586,22 @@
         background: linear-gradient(180deg, rgba(15, 118, 110, .14), rgba(17, 22, 29, .96));
     }
 
+    .wallet-open-position-trigger {
+        background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+        border-color: rgba(103, 232, 249, .9);
+        box-shadow: 0 0 0 1px rgba(103, 232, 249, .28), 0 14px 30px rgba(20, 184, 166, .2);
+        color: #f8feff;
+        font-size: .98rem;
+        font-weight: 900;
+        padding-inline: 1.2rem;
+    }
+
+    .wallet-open-position-trigger:hover {
+        background: linear-gradient(135deg, #22d3ee, #14b8a6);
+        border-color: rgba(165, 243, 252, 1);
+        color: #f8feff;
+    }
+
     .wallet-actions-summary,
     .wallet-actions-buttons {
         display: flex;
@@ -416,13 +665,362 @@
 
     .position-row {
         display: grid;
-        grid-template-columns: minmax(220px, 1.6fr) repeat(4, minmax(130px, 1fr));
+        grid-template-columns: minmax(220px, 1.6fr) repeat(5, minmax(120px, 1fr));
         gap: 14px;
         align-items: center;
         padding: 16px;
         border: 1px solid #303741;
         border-radius: 8px;
         background: #181b21;
+    }
+
+    .wallet-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1190;
+        background:
+            radial-gradient(circle at top, rgba(34, 197, 94, .08), transparent 22%),
+            rgba(3, 7, 18, .82);
+        backdrop-filter: blur(12px);
+    }
+
+    .wallet-modal-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        display: grid;
+        align-items: start;
+        justify-items: center;
+        padding: 20px;
+        overflow: auto;
+    }
+
+    .wallet-modal-card {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 0;
+        width: min(100%, 840px);
+        max-height: min(92vh, 920px);
+        overflow: hidden;
+        border: 1px solid rgba(45, 212, 191, .24);
+        border-radius: 24px;
+        background:
+            radial-gradient(circle at top left, rgba(34, 211, 238, .12), transparent 24%),
+            radial-gradient(circle at top right, rgba(16, 185, 129, .12), transparent 26%),
+            linear-gradient(180deg, rgba(10, 13, 21, .98), rgba(5, 8, 16, .98));
+        box-shadow: 0 34px 100px rgba(0, 0, 0, .48);
+    }
+
+    .wallet-modal-header,
+    .wallet-modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(148, 163, 184, .12);
+    }
+
+    .wallet-modal-footer {
+        border-bottom: 0;
+        border-top: 1px solid rgba(148, 163, 184, .12);
+        background: linear-gradient(180deg, rgba(6, 10, 18, .96), rgba(6, 10, 18, .99));
+        padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .wallet-modal-header h3 {
+        margin: 4px 0 0;
+        font-size: clamp(1.15rem, 2vw, 1.5rem);
+        font-weight: 900;
+    }
+
+    .wallet-modal-kicker {
+        color: #67e8f9;
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+    }
+
+    .wallet-modal-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .wallet-modal-icon-btn {
+        min-height: 2.5rem;
+        padding: .58rem .85rem;
+        border: 1px solid rgba(148, 163, 184, .2);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, .56);
+        color: #e2e8f0;
+        font-weight: 800;
+    }
+
+    .wallet-modal-body {
+        display: grid;
+        gap: 16px;
+        padding: 20px;
+        overflow: auto;
+        min-height: 0;
+    }
+
+    .wallet-modal-body--asset-step {
+        padding-top: 0;
+    }
+
+    .wallet-search-sticky {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        display: grid;
+        gap: 10px;
+        padding: 20px 20px 10px;
+        margin: 0 -20px;
+        background: linear-gradient(180deg, rgba(7, 10, 18, .98), rgba(7, 10, 18, .92));
+        border-bottom: 1px solid rgba(148, 163, 184, .08);
+    }
+
+    .wallet-modal-label {
+        color: #9fb3c8;
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .wallet-search-input,
+    .wallet-amount-input {
+        width: 100%;
+        min-height: 3rem;
+        padding: .85rem 1rem;
+        border: 1px solid rgba(45, 212, 191, .2);
+        border-radius: 16px;
+        background: rgba(8, 15, 28, .92);
+        color: #f8fafc;
+    }
+
+    .wallet-search-input:focus,
+    .wallet-amount-input:focus {
+        outline: none;
+        border-color: rgba(45, 212, 191, .72);
+        box-shadow: 0 0 0 .2rem rgba(45, 212, 191, .16);
+    }
+
+    .wallet-asset-list {
+        display: grid;
+        gap: 12px;
+        padding-top: 8px;
+    }
+
+    .wallet-asset-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        width: 100%;
+        padding: 16px;
+        border: 1px solid rgba(148, 163, 184, .16);
+        border-radius: 18px;
+        background:
+            linear-gradient(180deg, rgba(17, 24, 39, .84), rgba(9, 14, 24, .94));
+        color: inherit;
+        text-align: left;
+    }
+
+    .wallet-asset-item:hover {
+        border-color: rgba(45, 212, 191, .48);
+        transform: translateY(-1px);
+    }
+
+    .wallet-asset-item--blocked {
+        border-color: rgba(248, 113, 113, .24);
+    }
+
+    .wallet-asset-main,
+    .wallet-asset-meta,
+    .wallet-selected-asset-copy,
+    .wallet-investment-copy {
+        display: grid;
+        gap: 6px;
+    }
+
+    .wallet-asset-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .wallet-asset-main div {
+        display: grid;
+        gap: 4px;
+    }
+
+    .wallet-asset-main span:last-child,
+    .wallet-asset-meta,
+    .wallet-selected-asset-copy span {
+        color: #9fb3c8;
+    }
+
+    .wallet-asset-meta {
+        justify-items: end;
+        text-align: right;
+    }
+
+    .wallet-asset-status-detail {
+        color: #9fb3c8;
+        display: block;
+        font-size: .72rem;
+        max-width: 280px;
+    }
+
+    .wallet-asset-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 1.6rem;
+        padding: .12rem .55rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 900;
+    }
+
+    .wallet-asset-status--ok {
+        color: #86efac;
+        background: rgba(34, 197, 94, .12);
+        border: 1px solid rgba(34, 197, 94, .28);
+    }
+
+    .wallet-asset-status--blocked {
+        color: #fda4af;
+        background: rgba(244, 63, 94, .12);
+        border: 1px solid rgba(244, 63, 94, .28);
+    }
+
+    .wallet-trend {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 1.8rem;
+        padding: .2rem .65rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, .2);
+        background: rgba(148, 163, 184, .08);
+        font-size: .78rem;
+        font-weight: 900;
+    }
+
+    .wallet-trend.is-up {
+        color: #86efac;
+        border-color: rgba(34, 197, 94, .35);
+        background: rgba(34, 197, 94, .12);
+    }
+
+    .wallet-trend.is-down {
+        color: #fda4af;
+        border-color: rgba(244, 63, 94, .35);
+        background: rgba(244, 63, 94, .12);
+    }
+
+    .wallet-selected-asset-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 16px;
+        border: 1px solid rgba(45, 212, 191, .22);
+        border-radius: 18px;
+        background: rgba(7, 18, 28, .9);
+    }
+
+    .wallet-balance-callout {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .wallet-balance-callout > div,
+    .wallet-system-balance-hint,
+    .wallet-asset-access-callout {
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, .14);
+        background: rgba(10, 17, 30, .8);
+    }
+
+    .wallet-asset-access-callout--ok {
+        border-color: rgba(34, 197, 94, .28);
+        color: #bbf7d0;
+    }
+
+    .wallet-asset-access-callout--warn {
+        border-color: rgba(244, 63, 94, .28);
+        color: #fda4af;
+    }
+
+    .wallet-system-balance-hint {
+        color: #cbd5e1;
+    }
+
+    .wallet-direct-funding-copy,
+    .wallet-open-position-status {
+        display: grid;
+        gap: 6px;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(45, 212, 191, .18);
+        background: rgba(10, 17, 30, .8);
+        color: #dbeafe;
+    }
+
+    .wallet-open-position-status {
+        border-color: rgba(56, 189, 248, .28);
+    }
+
+    .wallet-open-position-status.status-success {
+        border-color: rgba(45, 212, 191, .4);
+        box-shadow: 0 0 0 1px rgba(45, 212, 191, .12);
+    }
+
+    .wallet-open-position-status.status-pending {
+        border-color: rgba(56, 189, 248, .34);
+    }
+
+    .wallet-custody-address {
+        overflow-wrap: anywhere;
+    }
+
+    .wallet-quick-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .wallet-quick-chip {
+        min-height: 3rem;
+        padding: .8rem .9rem;
+        border: 1px solid rgba(148, 163, 184, .18);
+        border-radius: 16px;
+        background: rgba(15, 23, 42, .7);
+        color: #e5eef8;
+        font-weight: 900;
+    }
+
+    .wallet-quick-chip--active {
+        border-color: rgba(34, 211, 238, .72);
+        background: linear-gradient(135deg, rgba(8, 145, 178, .28), rgba(20, 184, 166, .26));
+        color: #effcff;
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, .24) inset;
+    }
+
+    .wallet-range {
+        margin: 0;
+    }
+
+    .wallet-invest-submit {
+        min-width: 180px;
     }
 
     .investment-group {
@@ -754,26 +1352,87 @@
             display: grid;
             align-items: start;
         }
+
+        .wallet-modal-shell {
+            padding: 0;
+        }
+
+        .wallet-modal-card {
+            width: 100%;
+            height: 100dvh;
+            max-height: none;
+            border-radius: 0;
+        }
+
+        .wallet-modal-header,
+        .wallet-modal-footer,
+        .wallet-selected-asset-card,
+        .wallet-balance-callout {
+            display: grid;
+        }
+
+        .wallet-asset-item,
+        .wallet-selected-asset-card {
+            align-items: start;
+        }
+
+        .wallet-asset-meta {
+            justify-items: start;
+            text-align: left;
+        }
+
+        .wallet-quick-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .wallet-modal-footer {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .wallet-modal-footer .wallet-history-button,
+        .wallet-invest-submit {
+            width: 100%;
+            justify-content: center;
+        }
     }
 </style>
 
 @code {
+    private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.10m, 0.25m, 0.50m, 1m];
+
     private MyWalletDto? _wallet;
     private bool _loading = true;
     private string? _error;
     private string? _actionMessage;
     private bool _actionBusy;
+    private bool _hubStarted;
     private IJSObjectReference? _walletBalanceModule;
     private IJSObjectReference? _walletActionsModule;
+    private IJSObjectReference? _investmentDiagnosticsModule;
     private double? _onChainBalance;
     private bool _onChainBalanceLoading;
     private string? _onChainBalanceError;
     private string? _copyMessage;
+    private bool _showOpenPositionModal;
+    private bool _assetSearchLoading;
+    private bool _openPositionBusy;
+    private string? _assetSearchError;
+    private string _assetSearchTerm = string.Empty;
+    private string _investmentAmountInput = "0.10";
+    private string _investmentAmountError = string.Empty;
+    private string? _openPositionStatusKey;
+    private string? _openPositionTransactionHash;
+    private List<PositionAssetOptionDto> _positionAssets = [];
+    private PositionAssetOptionDto? _selectedAsset;
+    private CancellationTokenSource? _assetSearchDebounceCts;
+
+    private string CurrentCulture
+        => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
 
     private string DisplayName
         => !string.IsNullOrWhiteSpace(_wallet?.Name)
             ? _wallet.Name!
-            : $"Usuario #{_wallet?.UserId}";
+            : T("fallbackUser", _wallet?.UserId ?? 0);
 
     private string BlockchainMode
         => Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
@@ -793,11 +1452,11 @@
         => string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
     private string WalletNetworkBalanceLabel
-        => "Saldo on-chain";
+        => T("walletNetworkBalance");
 
     private string OnChainBalanceText
         => _onChainBalanceLoading
-            ? "Carregando..."
+            ? T("states.loadingShort")
             : _onChainBalanceError is not null
                 ? "-"
                 : _onChainBalance.HasValue
@@ -807,34 +1466,68 @@
     private string OnChainBalanceTitle
         => _onChainBalanceError is not null
             ? _onChainBalanceError
-            : $"Saldo real na rede {OnChainCluster}";
+            : T("onChainBalanceTitle", OnChainCluster);
+
+    private decimal _parsedInvestmentAmount
+        => ParseAmountOrDefault(_investmentAmountInput);
+
+    private string? _openPositionStatusText
+        => _openPositionStatusKey switch
+        {
+            "awaitingSignature" => T("openPosition.statusAwaitingSignature"),
+            "confirmingBlockchain" => T("openPosition.statusConfirmingBlockchain"),
+            "openingPosition" => T("openPosition.statusOpeningPosition"),
+            "positionOpened" => T("openPosition.statusPositionOpened"),
+            _ => null
+        };
+
+    private string OpenPositionStatusClass
+        => _openPositionStatusKey == "positionOpened"
+            ? "status-success"
+            : string.IsNullOrWhiteSpace(_openPositionStatusKey)
+                ? string.Empty
+                : "status-pending";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (firstRender)
+        {
+            try
+            {
+                await BrowserTimeZone.EnsureInitializedAsync();
+                await LoadWalletAsync();
+                await LoadOnChainBalanceAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+            {
+                // Fluxo depende de SessionStorage/JS e será repetido no render interativo.
+            }
+        }
+
+        if (_hubStarted)
             return;
 
         try
         {
-            await BrowserTimeZone.EnsureInitializedAsync();
-            await LoadWalletAsync();
-            await LoadOnChainBalanceAsync();
-            await InvokeAsync(StateHasChanged);
+            await HubClient.EnsureStartedAsync();
+            _hubStarted = true;
         }
-        catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
+        catch
         {
-            // Fluxo depende de SessionStorage/JS e será repetido no render interativo.
+            // Wallet continua funcional sem realtime.
         }
     }
 
     protected override void OnInitialized()
     {
         WalletState.Changed += HandleWalletStateChanged;
+        HubClient.DashboardChanged += HandleDashboardChanged;
     }
 
-    private async Task LoadWalletAsync()
+    private async Task LoadWalletAsync(bool showLoadingState = true)
     {
-        _loading = true;
+        _loading = showLoadingState;
         _error = null;
         _copyMessage = null;
         await InvokeAsync(StateHasChanged);
@@ -869,6 +1562,223 @@
             _loading = false;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task OpenPositionModalAsync()
+    {
+        _showOpenPositionModal = true;
+        _selectedAsset = null;
+        _investmentAmountInput = "0.10";
+        _investmentAmountError = string.Empty;
+        _assetSearchTerm = string.Empty;
+        ResetOpenPositionFeedback();
+        await LoadPositionAssetsAsync();
+    }
+
+    private void ClosePositionModal()
+    {
+        _showOpenPositionModal = false;
+        _selectedAsset = null;
+        _assetSearchError = null;
+        _investmentAmountError = string.Empty;
+        _openPositionBusy = false;
+        ResetOpenPositionFeedback();
+    }
+
+    private void BackToAssetSelection()
+    {
+        _selectedAsset = null;
+        _investmentAmountError = string.Empty;
+        _openPositionBusy = false;
+        ResetOpenPositionFeedback();
+    }
+
+    private async Task LoadPositionAssetsAsync(CancellationToken ct = default)
+    {
+        _assetSearchLoading = true;
+        _assetSearchError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            _positionAssets = await Api.GetPositionAssetsAsync(_assetSearchTerm, 40, ct) ?? [];
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            _positionAssets = [];
+            _assetSearchError = $"{T("openPosition.loadAssetsError")} {ex.Message}";
+        }
+        finally
+        {
+            _assetSearchLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandleAssetSearchInput(ChangeEventArgs args)
+    {
+        _assetSearchTerm = args.Value?.ToString() ?? string.Empty;
+        _assetSearchDebounceCts?.Cancel();
+        _assetSearchDebounceCts?.Dispose();
+        _assetSearchDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(250, _assetSearchDebounceCts.Token);
+            await LoadPositionAssetsAsync(_assetSearchDebounceCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void SelectAsset(PositionAssetOptionDto asset)
+    {
+        _selectedAsset = asset;
+        _investmentAmountInput = "0.10";
+        _investmentAmountError = string.Empty;
+        ResetOpenPositionFeedback();
+    }
+
+    private void SetInvestmentAmount(decimal amount)
+    {
+        _investmentAmountInput = amount.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        _investmentAmountError = string.Empty;
+        ResetOpenPositionFeedback(clearHashOnly: true);
+    }
+
+    private void HandleAmountInput(ChangeEventArgs args)
+    {
+        _investmentAmountInput = args.Value?.ToString() ?? string.Empty;
+        _investmentAmountError = string.Empty;
+        ResetOpenPositionFeedback(clearHashOnly: true);
+    }
+
+    private void HandleRangeInput(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var index))
+            return;
+
+        if (index < 0 || index >= QuickInvestmentAmounts.Length)
+            return;
+
+        SetInvestmentAmount(QuickInvestmentAmounts[index]);
+    }
+
+    private int _investmentAmountRangeIndex
+        => GetClosestQuickInvestmentAmountIndex(_parsedInvestmentAmount);
+
+    private static int GetClosestQuickInvestmentAmountIndex(decimal amount)
+    {
+        var closestIndex = 0;
+        var closestDistance = decimal.MaxValue;
+
+        for (var i = 0; i < QuickInvestmentAmounts.Length; i++)
+        {
+            var distance = Math.Abs(QuickInvestmentAmounts[i] - amount);
+            if (distance >= closestDistance)
+                continue;
+
+            closestDistance = distance;
+            closestIndex = i;
+        }
+
+        return closestIndex;
+    }
+
+    private bool IsSelectedQuickAmount(decimal amount)
+        => TryParseAmount(_investmentAmountInput, out var parsed)
+           && decimal.Round(parsed, 8, MidpointRounding.ToZero) == decimal.Round(amount, 8, MidpointRounding.ToZero);
+
+    private async Task ConfirmOpenPositionAsync()
+    {
+        if (_wallet is null || _selectedAsset is null)
+            return;
+
+        if (!_selectedAsset.CanInvestNow)
+        {
+            _investmentAmountError = _selectedAsset.AccessMessage ?? T("openPosition.assetBlocked");
+            return;
+        }
+
+        if (!TryParseAmount(_investmentAmountInput, out var amount) || amount <= 0m)
+        {
+            _investmentAmountError = T("openPosition.invalidAmount");
+            return;
+        }
+
+        amount = decimal.Round(amount, 8, MidpointRounding.ToZero);
+        _openPositionBusy = true;
+        _investmentAmountError = string.Empty;
+        _openPositionStatusKey = "awaitingSignature";
+        _openPositionTransactionHash = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var selectedSymbol = _selectedAsset.Symbol;
+            var preparation = await PrepareInvestmentDiagnosticsAsync(_selectedAsset, amount);
+            _openPositionTransactionHash = preparation.Signature;
+            _openPositionStatusKey = "confirmingBlockchain";
+            await InvokeAsync(StateHasChanged);
+
+            _openPositionStatusKey = "openingPosition";
+            await Api.OpenDirectPositionAsync(new OpenDirectPositionRequest
+            {
+                Symbol = selectedSymbol,
+                AmountSol = amount,
+                Signature = preparation.Signature ?? string.Empty,
+                WalletAddress = preparation.Wallet ?? _wallet.Wallet
+            });
+
+            _actionMessage = T("openPosition.successInline", selectedSymbol, FmtSolCompact(amount));
+            _openPositionStatusKey = "positionOpened";
+            await LoadWalletAsync(false);
+            await LoadOnChainBalanceAsync();
+            await ShowToastAsync(T("openPosition.successToast", selectedSymbol, FmtSolCompact(amount)), "success");
+        }
+        catch (Exception ex)
+        {
+            _investmentAmountError = NormalizeInvestmentError(ex.Message);
+        }
+        finally
+        {
+            _openPositionBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<InvestmentPreparationResult> PrepareInvestmentDiagnosticsAsync(PositionAssetOptionDto asset, decimal amountSol)
+    {
+        _investmentDiagnosticsModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/solanaInvestDiagnostics.js?v=20260505-rpc-config");
+
+        var blockchainMode = Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
+        var programId = string.Equals(blockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"]
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"];
+
+        return await _investmentDiagnosticsModule.InvokeAsync<InvestmentPreparationResult>(
+            "prepareInvestment",
+            new
+            {
+                programId,
+                cluster = Config["CriptoVersusBlockchain:Cluster"] ?? Config["OnChainBetting:Cluster"] ?? "devnet",
+                rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
+                matchId = (int?)null,
+                teamId = asset.TeamId,
+                teamName = asset.Symbol,
+                amountSol,
+                mode = blockchainMode,
+                forceCustodyTransfer = true,
+                custodyWalletPublicKey = Config["CriptoVersusBlockchain:CustodyWalletPublicKey"],
+                supportsLegacyPositionInvestments = Config.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments")
+            });
     }
 
     private async Task WithdrawSystemBalanceAsync()
@@ -1089,6 +1999,12 @@
                 ? $"-{Math.Abs(value):0.########} SOL"
                 : "0 SOL";
 
+    private static string FmtSolCompact(decimal value)
+        => $"{value:0.##} SOL";
+
+    private static string FmtPercentage(decimal? value)
+        => value.HasValue ? $"{value.Value:+0.##;-0.##;0.##}%" : "--";
+
     private static string GetPayoutClass(decimal value)
         => value > 0m
             ? "payout-positive"
@@ -1100,7 +2016,27 @@
         => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
 
     private string FmtDate(DateTime? value)
-        => BrowserTimeZone.FormatDateTime(value, "pt-BR");
+        => BrowserTimeZone.FormatDateTime(value, CurrentCulture == "en" ? "en-US" : "pt-BR");
+
+    private string FmtElapsed(DateTime value)
+    {
+        var elapsed = DateTime.UtcNow - value;
+
+        if (elapsed.TotalDays >= 1)
+            return CurrentCulture == "en"
+                ? $"{(int)elapsed.TotalDays}d live"
+                : $"{(int)elapsed.TotalDays}d aberta";
+
+        if (elapsed.TotalHours >= 1)
+            return CurrentCulture == "en"
+                ? $"{(int)elapsed.TotalHours}h live"
+                : $"{(int)elapsed.TotalHours}h aberta";
+
+        var minutes = Math.Max(1, (int)elapsed.TotalMinutes);
+        return CurrentCulture == "en"
+            ? $"{minutes}m live"
+            : $"{minutes}m aberta";
+    }
 
     private static string FmtPositionStatus(string status)
         => status switch
@@ -1114,6 +2050,11 @@
 
     private int CountPositionsByStatus(string status)
         => _wallet?.ActivePositions.Count(p => string.Equals(p.Status, status, StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+    private static decimal GetSimplePnl(TeamPositionDto position)
+        => position.TotalPnL != 0m
+            ? position.TotalPnL
+            : decimal.Round(position.CurrentCapital - position.PrincipalAllocated, 8, MidpointRounding.ToZero);
 
     private static string GetBaseSymbol(string pair)
     {
@@ -1146,15 +2087,100 @@
         return symbol.Length <= 3 ? symbol : symbol[..3];
     }
 
+    private static bool TryParseAmount(string? raw, out decimal value)
+    {
+        var normalized = (raw ?? string.Empty).Trim().Replace(',', '.');
+        return decimal.TryParse(
+            normalized,
+            System.Globalization.NumberStyles.AllowDecimalPoint,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out value);
+    }
+
+    private static decimal ParseAmountOrDefault(string? raw)
+        => TryParseAmount(raw, out var value) ? value : 0m;
+
+    private static string GetTrendClass(string direction)
+        => direction switch
+        {
+            "up" => "is-up",
+            "down" => "is-down",
+            _ => string.Empty
+        };
+
+    private string GetAssetAvailabilityLabel(PositionAssetOptionDto asset)
+        => asset.CanInvestNow ? T("openPosition.availableNow") : T("openPosition.blockedNow");
+
+    private string NormalizeInvestmentError(string message)
+    {
+        var normalized = (message ?? string.Empty).ToLowerInvariant();
+
+        if (normalized.Contains("valor do investimento invalido"))
+            return T("openPosition.invalidAmount");
+
+        if (normalized.Contains("user rejected") || normalized.Contains("rejected") || normalized.Contains("cancel"))
+            return T("openPosition.phantomRejected");
+
+        if (normalized.Contains("wallet conectada e diferente") || normalized.Contains("does not match"))
+            return T("openPosition.walletMismatch");
+
+        if (normalized.Contains("carteira solana nao encontrada") || normalized.Contains("wallet"))
+            return T("openPosition.walletFundingRequired");
+
+        if (normalized.Contains("ja foi utilizada") || normalized.Contains("already used"))
+            return T("openPosition.duplicateSignature");
+
+        if (normalized.Contains("fase avancada") || normalized.Contains("advanced"))
+            return _selectedAsset?.AccessMessage ?? message;
+
+        return message;
+    }
+
+    private void ResetOpenPositionFeedback(bool clearHashOnly = false)
+    {
+        _openPositionStatusKey = null;
+        if (!clearHashOnly)
+            _openPositionTransactionHash = null;
+    }
+
+    private static string ShortTxHash(string? hash)
+    {
+        if (string.IsNullOrWhiteSpace(hash) || hash.Length <= 18)
+            return hash ?? string.Empty;
+
+        return $"{hash[..10]}...{hash[^8..]}";
+    }
+
+    private string T(string key, params object?[] args)
+        => L.T($"walletPage.{key}", CurrentCulture, args);
+
+    private async Task ShowToastAsync(string message, string type)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("html5Toast.show", message, type, 3200);
+        }
+        catch
+        {
+            // Feedback inline permanece em _actionMessage.
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         WalletState.Changed -= HandleWalletStateChanged;
+        HubClient.DashboardChanged -= HandleDashboardChanged;
+        _assetSearchDebounceCts?.Cancel();
+        _assetSearchDebounceCts?.Dispose();
 
         if (_walletBalanceModule is not null)
             await _walletBalanceModule.DisposeAsync();
 
         if (_walletActionsModule is not null)
             await _walletActionsModule.DisposeAsync();
+
+        if (_investmentDiagnosticsModule is not null)
+            await _investmentDiagnosticsModule.DisposeAsync();
     }
     private sealed class ChainWithdrawResult
     {
@@ -1164,6 +2190,16 @@
         public string? confirmationStatus { get; set; }
         public string? proofMessage { get; set; }
         public string? proofSignature { get; set; }
+    }
+
+    private sealed class InvestmentPreparationResult
+    {
+        public string? Signature { get; set; }
+        public string? Wallet { get; set; }
+        public string? Result { get; set; }
+        public string AmountLamports { get; set; } = "";
+        public string? PositionPda { get; set; }
+        public string? PositionVaultPda { get; set; }
     }
 
     private static string ResolveWithdrawErrorMessage(Exception ex)
@@ -1201,5 +2237,20 @@
         _copyMessage = null;
 
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleDashboardChanged(string? payload)
+    {
+        _ = payload;
+
+        if (_wallet is null)
+            return;
+
+        _ = InvokeAsync(async () =>
+        {
+            await LoadWalletAsync(false);
+            await LoadOnChainBalanceAsync();
+            StateHasChanged();
+        });
     }
 }
