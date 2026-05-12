@@ -1451,6 +1451,9 @@
     private bool IsOffChainCustodyMode
         => string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
+    private bool ShouldUseDirectCustodyFlow
+        => IsOffChainCustodyMode;
+
     private string WalletNetworkBalanceLabel
         => T("walletNetworkBalance");
 
@@ -1727,13 +1730,29 @@
             await InvokeAsync(StateHasChanged);
 
             _openPositionStatusKey = "openingPosition";
-            await Api.OpenDirectPositionAsync(new OpenDirectPositionRequest
+            if (ShouldUseDirectCustodyFlow)
             {
-                Symbol = selectedSymbol,
-                AmountSol = amount,
-                Signature = preparation.Signature ?? string.Empty,
-                WalletAddress = preparation.Wallet ?? _wallet.Wallet
-            });
+                await Api.OpenDirectPositionAsync(new OpenDirectPositionRequest
+                {
+                    Symbol = selectedSymbol,
+                    AmountSol = amount,
+                    Signature = preparation.Signature ?? string.Empty,
+                    WalletAddress = preparation.Wallet ?? _wallet.Wallet
+                });
+            }
+            else
+            {
+                await Api.CreateOrIncreasePositionAsync(new CreateTeamPositionRequest
+                {
+                    TeamId = _selectedAsset.TeamId,
+                    Amount = amount,
+                    AutoCompound = true,
+                    OnChainPositionAccount = preparation.PositionPda,
+                    OnChainPositionVault = preparation.PositionVaultPda,
+                    OnChainSignature = preparation.Signature,
+                    OnChainAmountLamports = preparation.AmountLamports
+                });
+            }
 
             _actionMessage = T("openPosition.successInline", selectedSymbol, FmtSolCompact(amount));
             _openPositionStatusKey = "positionOpened";
@@ -1775,7 +1794,7 @@
                 teamName = asset.Symbol,
                 amountSol,
                 mode = blockchainMode,
-                forceCustodyTransfer = true,
+                forceCustodyTransfer = ShouldUseDirectCustodyFlow,
                 custodyWalletPublicKey = Config["CriptoVersusBlockchain:CustodyWalletPublicKey"],
                 supportsLegacyPositionInvestments = Config.GetValue<bool>("OnChainBetting:EnableLegacyPositionInvestments")
             });
