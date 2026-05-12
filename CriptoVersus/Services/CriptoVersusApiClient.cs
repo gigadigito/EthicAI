@@ -117,11 +117,29 @@ public sealed class CriptoVersusApiClient
         CancellationToken ct = default)
     {
         var safeTake = Math.Clamp(take, 1, 60);
-        var query = string.IsNullOrWhiteSpace(search)
-            ? $"api/wallet/position-assets?take={safeTake}"
-            : $"api/wallet/position-assets?take={safeTake}&search={Uri.EscapeDataString(search)}";
+        var queries = new[]
+        {
+            string.IsNullOrWhiteSpace(search)
+                ? $"api/wallet/position-assets?take={safeTake}"
+                : $"api/wallet/position-assets?take={safeTake}&search={Uri.EscapeDataString(search)}",
+            string.IsNullOrWhiteSpace(search)
+                ? $"api/positions/assets?take={safeTake}"
+                : $"api/positions/assets?take={safeTake}&search={Uri.EscapeDataString(search)}"
+        };
 
-        return await GetFromJsonWithBearerAsync<List<PositionAssetOptionDto>>(query, ct);
+        foreach (var query in queries)
+        {
+            try
+            {
+                return await GetFromJsonWithBearerAsync<List<PositionAssetOptionDto>>(query, ct);
+            }
+            catch (HttpRequestException ex) when (IsRoutingFallbackStatus(ex.StatusCode))
+            {
+                continue;
+            }
+        }
+
+        return await BuildPositionAssetsFallbackFromMatchesAsync(search, safeTake, ct);
     }
 
     public async Task<UserMatchHistoryPageDto?> GetWalletHistoryMatchesAsync(
@@ -193,6 +211,148 @@ public sealed class CriptoVersusApiClient
 
         throw new HttpRequestException(message, null, response.StatusCode);
     }
+
+    private async Task<List<PositionAssetOptionDto>> BuildPositionAssetsFallbackFromMatchesAsync(
+        string? search,
+        int take,
+        CancellationToken ct)
+    {
+        var matches = await GetMatchesAsync(ct) ?? [];
+        var normalizedSearch = search?.Trim();
+        const int advancedLiveThresholdMinutes = 15;
+        var assetMap = new Dictionary<int, PositionAssetOptionDto>();
+
+        foreach (var match in matches)
+        {
+            AddMatchAsset(
+                assetMap,
+                match.TeamAId,
+                match.TeamA,
+                match.PctA,
+                match.Status,
+                match.MatchId,
+                match.ElapsedMinutes,
+                match.StartTime,
+                match.BettingCloseTime);
+
+            AddMatchAsset(
+                assetMap,
+                match.TeamBId,
+                match.TeamB,
+                match.PctB,
+                match.Status,
+                match.MatchId,
+                match.ElapsedMinutes,
+                match.StartTime,
+                match.BettingCloseTime);
+        }
+
+        return assetMap.Values
+            .Where(x =>
+                string.IsNullOrWhiteSpace(normalizedSearch) ||
+                x.Symbol.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase) ||
+                x.CurrencyName.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+            .Select(x =>
+            {
+                if (x.HasLiveMatch && (x.MatchElapsedMinutes ?? 0) >= advancedLiveThresholdMinutes)
+                {
+                    x.CanInvestNow = false;
+                    x.AccessReasonCode = "ADVANCED_LIVE_MATCH";
+                    x.AccessMessage = $"Nao e possivel aumentar exposicao agora: a partida #{x.MatchId} esta em fase avancada. Status={x.MatchStatus}, tempo decorrido={x.MatchElapsedMinutes} min, limite de entrada={advancedLiveThresholdMinutes} min.";
+                }
+                else if (x.HasLiveMatch || x.HasUpcomingMatch)
+                {
+                    x.CanInvestNow = true;
+                    x.AccessMessage = x.MatchId.HasValue
+                        ? $"Partida {(x.HasLiveMatch ? "em andamento" : "pendente")} na partida #{x.MatchId}. Entrada liberada no momento."
+                        : "Ativo disponivel para abrir posicao agora.";
+                }
+                else
+                {
+                    x.CanInvestNow = true;
+                    x.AccessMessage = "Ativo disponivel para abrir posicao agora.";
+                }
+
+                return x;
+            })
+            .OrderByDescending(x => x.CanInvestNow)
+            .ThenByDescending(x => x.HasLiveMatch)
+            .ThenByDescending(x => x.HasUpcomingMatch)
+            .ThenByDescending(x => Math.Abs(x.PercentageChange ?? 0m))
+            .ThenBy(x => x.Symbol)
+            .Take(take)
+            .ToList();
+    }
+
+    private static void AddMatchAsset(
+        Dictionary<int, PositionAssetOptionDto> assetMap,
+        int teamId,
+        string symbol,
+        decimal? percentageChange,
+        string? matchStatus,
+        int matchId,
+        int elapsedMinutes,
+        DateTime? startTime,
+        DateTimeOffset? bettingCloseTime)
+    {
+        if (teamId <= 0 || string.IsNullOrWhiteSpace(symbol))
+            return;
+
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+        var hasLiveMatch = string.Equals(matchStatus, "Ongoing", StringComparison.OrdinalIgnoreCase);
+        var hasUpcomingMatch = string.Equals(matchStatus, "Pending", StringComparison.OrdinalIgnoreCase);
+        var trendDirection = (percentageChange ?? 0m) > 0m
+            ? "up"
+            : (percentageChange ?? 0m) < 0m
+                ? "down"
+                : "flat";
+
+        if (!assetMap.TryGetValue(teamId, out var current))
+        {
+            assetMap[teamId] = new PositionAssetOptionDto
+            {
+                TeamId = teamId,
+                Symbol = normalizedSymbol,
+                CurrencyName = normalizedSymbol,
+                PercentageChange = percentageChange,
+                LastUpdatedUtc = startTime,
+                CurrentPriceDisplay = null,
+                HasLiveMatch = hasLiveMatch,
+                HasUpcomingMatch = hasUpcomingMatch,
+                IsRankingAsset = false,
+                IsWorkerAsset = false,
+                HasOpenPosition = false,
+                TrendDirection = trendDirection,
+                MatchStatus = matchStatus,
+                MatchId = matchId,
+                MatchElapsedMinutes = elapsedMinutes,
+                MatchStartTimeUtc = startTime,
+                EntryCutoffUtc = bettingCloseTime
+            };
+            return;
+        }
+
+        current.HasLiveMatch |= hasLiveMatch;
+        current.HasUpcomingMatch |= hasUpcomingMatch;
+
+        if (current.MatchId is null || hasLiveMatch || (!current.HasLiveMatch && hasUpcomingMatch))
+        {
+            current.MatchStatus = matchStatus;
+            current.MatchId = matchId;
+            current.MatchElapsedMinutes = elapsedMinutes;
+            current.MatchStartTimeUtc = startTime;
+            current.EntryCutoffUtc = bettingCloseTime;
+        }
+
+        if (percentageChange.HasValue && (!current.PercentageChange.HasValue || Math.Abs(percentageChange.Value) > Math.Abs(current.PercentageChange.Value)))
+        {
+            current.PercentageChange = percentageChange;
+            current.TrendDirection = trendDirection;
+        }
+    }
+
+    private static bool IsRoutingFallbackStatus(HttpStatusCode? statusCode)
+        => statusCode is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed;
 
     private static string? TryReadApiMessage(string body)
     {
