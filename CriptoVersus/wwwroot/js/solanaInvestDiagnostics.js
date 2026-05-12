@@ -1,8 +1,8 @@
 function getProvider() {
-    const provider = window.solana;
+    const provider = window.criptoVersusWallet?.getActiveProvider?.() ?? window.solana;
 
-    if (!provider?.isPhantom) {
-        throw new Error("Phantom nao encontrada.");
+    if (!provider || typeof provider.connect !== "function") {
+        throw new Error("Carteira Solana nao encontrada.");
     }
 
     return provider;

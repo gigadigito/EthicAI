@@ -63,12 +63,7 @@
                     else
                     {
                         <button class="wallet-button" @onclick="AbrirLoginAsync">
-                            <span class="phantom-button-content">
-                                <span class="phantom-mark" aria-hidden="true">
-                                    <img src="/img/phantom-logo.png" alt="" />
-                                </span>
-                                <span>@L.T("layout.topbar.login", CurrentCulture)</span>
-                            </span>
+                            <span class="wallet-button-label">Connect Wallet</span>
                         </button>
                     }
                 }
@@ -83,9 +78,9 @@
 
 @if (ShowWalletUi)
 {
-    <SolanaLoginModal @ref="loginModal"
-                      OnLoginSucceeded="HandleLoginSucceededAsync"
-                      OnSessionChanged="HandleSessionChangedAsync" />
+    <SolanaWalletModal @ref="loginModal"
+                       OnLoginSucceeded="HandleLoginSucceededAsync"
+                       OnSessionChanged="HandleSessionChangedAsync" />
 }
 
 @if (_showPostLoginPrompt)
@@ -118,27 +113,11 @@
 }
 
 <style>
-    .phantom-button-content {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        line-height: 1;
-    }
-
-    .phantom-mark {
+    .wallet-button-label {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 20px;
-        flex: 0 0 32px;
-    }
-
-    .phantom-mark img {
-        width: 100%;
-        height: 100%;
-        display: block;
-        object-fit: contain;
+        line-height: 1;
     }
 
     .topbar-tools {
@@ -263,7 +242,7 @@
 </style>
 
 @code {
-    private SolanaLoginModal? loginModal;
+    private SolanaWalletModal? loginModal;
     private string? authToken;
     private string? walletPublicKey;
     private bool _showInitialLoader = true;

@@ -1,0 +1,722 @@
+@using CriptoVersus.Web.Services
+@inject IJSRuntime JS
+@inject IHttpClientFactory HttpFactory
+@inject Blazored.SessionStorage.ISessionStorageService SessionStorage
+@inject WalletSessionState WalletState
+@inject IConfiguration Config
+@using Microsoft.AspNetCore.Components
+
+@if (isOpen)
+{
+    <div class="cv-wallet-modal-overlay" @onclick="Close"></div>
+
+    <div class="cv-wallet-modal-shell" role="dialog" aria-modal="true" aria-labelledby="cv-wallet-modal-title">
+        <div class="cv-wallet-modal-card" @onclick:stopPropagation="true">
+            <div class="cv-wallet-modal-header">
+                <div>
+                    <div class="cv-wallet-modal-kicker">Solana</div>
+                    <h5 id="cv-wallet-modal-title" class="cv-wallet-modal-title">Connect a wallet on Solana to continue</h5>
+                </div>
+                <button type="button" class="btn-close cv-wallet-modal-close" aria-label="Close" @onclick="Close"></button>
+            </div>
+
+            <div class="cv-wallet-modal-body">
+                @if (!string.IsNullOrWhiteSpace(publicKey))
+                {
+                    <div class="cv-wallet-alert cv-wallet-alert-success">
+                        <strong>@(string.IsNullOrWhiteSpace(activeWalletName) ? "Wallet connected" : $"{activeWalletName} connected")</strong>
+                        <div class="cv-wallet-key">@publicKey</div>
+                    </div>
+                }
+                else
+                {
+                    <p class="cv-wallet-modal-helper">
+                        Choose a supported wallet to connect and sign in without changing the current API flow.
+                    </p>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(status))
+                {
+                    <div class="cv-wallet-alert @GetStatusClass()">
+                        <strong>@statusTitle</strong>
+                        <div>@status</div>
+                    </div>
+                }
+
+                <div class="cv-wallet-list" aria-live="polite">
+                    @foreach (var wallet in wallets)
+                    {
+                        <button type="button"
+                                class="cv-wallet-option"
+                                disabled="@isBusy"
+                                @onclick="() => HandleWalletClickAsync(wallet)">
+                            <span class="cv-wallet-option__icon" aria-hidden="true">
+                                @if (wallet.Name == "Phantom")
+                                {
+                                    <svg viewBox="0 0 48 48" class="cv-wallet-glyph cv-wallet-glyph--phantom" role="img" focusable="false" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="cv-wallet-phantom-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#8b5cf6" />
+                                                <stop offset="100%" stop-color="#38bdf8" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect x="3" y="3" width="42" height="42" rx="14" fill="url(#cv-wallet-phantom-gradient)" opacity="0.24" />
+                                        <path d="M15 28c0-6.6 4.4-11 11-11 5.3 0 8.6 2 8.6 5.4 0 4.9-5.8 6.6-11.3 6.6H20.8c.7 1.9 2.5 3.1 5.3 3.1 1.8 0 3.4-.4 5.4-1.6l1.9 3.4c-2.2 1.5-5.1 2.4-8.1 2.4-6.3 0-10.3-3.3-10.3-8.3Zm7-2.2h2c3.8 0 6.1-.8 6.1-2.8 0-1.4-1.4-2.3-4-2.3-2.3 0-4.1 1-5 3.3Z" fill="#f8fafc" />
+                                    </svg>
+                                }
+                                else if (wallet.Name == "Solflare")
+                                {
+                                    <svg viewBox="0 0 48 48" class="cv-wallet-glyph cv-wallet-glyph--solflare" role="img" focusable="false" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="cv-wallet-solflare-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#fb7185" />
+                                                <stop offset="100%" stop-color="#f59e0b" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect x="3" y="3" width="42" height="42" rx="14" fill="url(#cv-wallet-solflare-gradient)" opacity="0.24" />
+                                        <circle cx="24" cy="24" r="10" fill="none" stroke="#fef3c7" stroke-width="3.2" />
+                                        <path d="M24 10v7m0 14v7m14-14h-7M17 24h-7m24.4-9.4-4.9 4.9m-10.9 10.9-4.9 4.9m20.7 0-4.9-4.9M18.6 19.5l-4.9-4.9" stroke="#fff7ed" stroke-width="2.8" stroke-linecap="round" />
+                                    </svg>
+                                }
+                                else if (wallet.Name == "Backpack")
+                                {
+                                    <svg viewBox="0 0 48 48" class="cv-wallet-glyph cv-wallet-glyph--backpack" role="img" focusable="false" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="cv-wallet-backpack-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#34d399" />
+                                                <stop offset="100%" stop-color="#0ea5e9" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect x="3" y="3" width="42" height="42" rx="14" fill="url(#cv-wallet-backpack-gradient)" opacity="0.24" />
+                                        <rect x="15" y="14" width="18" height="21" rx="6" fill="none" stroke="#ecfeff" stroke-width="3" />
+                                        <path d="M20 14.5c0-2.5 1.8-4.5 4-4.5s4 2 4 4.5" fill="none" stroke="#ecfeff" stroke-width="3" stroke-linecap="round" />
+                                        <path d="M18.5 24h11" stroke="#ecfeff" stroke-width="3" stroke-linecap="round" />
+                                    </svg>
+                                }
+                                else if (wallet.Name == "Glow")
+                                {
+                                    <svg viewBox="0 0 48 48" class="cv-wallet-glyph cv-wallet-glyph--glow" role="img" focusable="false" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="cv-wallet-glow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#facc15" />
+                                                <stop offset="100%" stop-color="#fb7185" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect x="3" y="3" width="42" height="42" rx="14" fill="url(#cv-wallet-glow-gradient)" opacity="0.24" />
+                                        <circle cx="24" cy="24" r="8.5" fill="#fff7ed" opacity="0.95" />
+                                        <path d="M24 10.5v4.2m0 18.6v4.2m13.5-13.5h-4.2M14.7 24h-4.2m22.8-8.3-3 3m-12.6 12.6-3 3m18.6 0-3-3m-12.6-12.6-3-3" stroke="#fff7ed" stroke-width="2.8" stroke-linecap="round" />
+                                    </svg>
+                                }
+                                else if (wallet.Name == "Coinbase Wallet")
+                                {
+                                    <svg viewBox="0 0 48 48" class="cv-wallet-glyph cv-wallet-glyph--coinbase" role="img" focusable="false" aria-hidden="true">
+                                        <defs>
+                                            <linearGradient id="cv-wallet-coinbase-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#2563eb" />
+                                                <stop offset="100%" stop-color="#06b6d4" />
+                                            </linearGradient>
+                                        </defs>
+                                        <rect x="3" y="3" width="42" height="42" rx="14" fill="url(#cv-wallet-coinbase-gradient)" opacity="0.24" />
+                                        <circle cx="24" cy="24" r="11" fill="none" stroke="#eff6ff" stroke-width="4" />
+                                        <path d="M28.5 19.5a7 7 0 1 0 0 9" fill="none" stroke="#eff6ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                }
+                                else
+                                {
+                                    <svg viewBox="0 0 48 48" class="cv-wallet-glyph cv-wallet-glyph--default" role="img" focusable="false" aria-hidden="true">
+                                        <rect x="3" y="3" width="42" height="42" rx="14" fill="rgba(127,246,223,0.18)" />
+                                        <path d="M15 18h18a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H15a3 3 0 0 1-3-3V21a3 3 0 0 1 3-3Zm0 4h21" fill="none" stroke="#edf5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                }
+                            </span>
+                            <span class="cv-wallet-option__content">
+                                <span class="cv-wallet-option__name">@wallet.Name</span>
+                                <span class="cv-wallet-option__subtitle">
+                                    @(wallet.Detected ? "Available in this browser" : "Open official install page")
+                                </span>
+                            </span>
+                            <span class="cv-wallet-option__status @(wallet.Detected ? "cv-wallet-option__status--detected" : "cv-wallet-option__status--install")">
+                                @(wallet.Detected ? "Detected" : "Install")
+                            </span>
+                        </button>
+                    }
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(publicKey))
+                {
+                    <button type="button"
+                            class="cv-wallet-disconnect"
+                            disabled="@isBusy"
+                            @onclick="DisconnectAsync">
+                        Disconnect
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventCallback OnLoginSucceeded { get; set; }
+    [Parameter] public EventCallback OnSessionChanged { get; set; }
+
+    private sealed class LoginResponse
+    {
+        public string Token { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
+        public int UserId { get; set; }
+        public int ExpiresInMinutes { get; set; }
+    }
+
+    private sealed class WalletViewModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool Detected { get; set; }
+        public string InstallUrl { get; set; } = string.Empty;
+    }
+
+    private sealed class WalletConnectResult
+    {
+        public bool Success { get; set; }
+        public string WalletName { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
+        public string Error { get; set; } = string.Empty;
+    }
+
+    private sealed class SignedResult
+    {
+        public string PublicKey { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Signature { get; set; } = string.Empty;
+    }
+
+    private sealed class NonceResponse
+    {
+        public string PublicKey { get; set; } = string.Empty;
+        public string Nonce { get; set; } = string.Empty;
+        public int ExpiresInMinutes { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+    private sealed class OnChainOnboardingResult
+    {
+        public string Wallet { get; set; } = string.Empty;
+        public string Cluster { get; set; } = string.Empty;
+        public string ProgramId { get; set; } = string.Empty;
+        public string UserAccountPda { get; set; } = string.Empty;
+        public bool Exists { get; set; }
+        public bool Created { get; set; }
+        public string? InitSignature { get; set; }
+        public string SystemBalanceLamports { get; set; } = "0";
+        public string TotalClaimedLamports { get; set; } = "0";
+        public string TotalWithdrawnLamports { get; set; } = "0";
+    }
+
+    private IJSObjectReference? walletActionsModule;
+    private bool isOpen;
+    private bool isBusy;
+    private string? publicKey;
+    private string? activeWalletName;
+    private string? status;
+    private string statusTitle = string.Empty;
+    private string statusKind = "info";
+    private List<WalletViewModel> wallets = new();
+
+    private string BlockchainMode
+        => Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
+
+    private string OnChainCluster
+        => Config["CriptoVersusBlockchain:Cluster"] ?? Config["OnChainBetting:Cluster"] ?? "devnet";
+
+    private string OnChainProgramId
+        => string.Equals(BlockchainMode, "FullOnChain", StringComparison.OrdinalIgnoreCase)
+            ? Config["CriptoVersusBlockchain:FutureFullOnChainProgramId"] ?? string.Empty
+            : Config["CriptoVersusBlockchain:CurrentHybridProgramId"] ?? Config["OnChainBetting:ProgramId"] ?? string.Empty;
+
+    private bool ShouldEnsureOnChainAccount
+        => !string.Equals(BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
+
+    public async Task OpenAsync()
+    {
+        isOpen = true;
+        publicKey = await SessionStorage.GetItemAsync<string>("walletPublicKey");
+        activeWalletName = await SessionStorage.GetItemAsync<string>("walletName");
+        await LoadWalletsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Close()
+    {
+        isOpen = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadWalletsAsync()
+    {
+        var detectedWallets = await JS.InvokeAsync<WalletViewModel[]>("criptoVersusWallet.detectWallets");
+        wallets = detectedWallets?.ToList() ?? new List<WalletViewModel>();
+    }
+
+    private async Task HandleWalletClickAsync(WalletViewModel wallet)
+    {
+        ClearStatus();
+
+        if (!wallet.Detected)
+        {
+            await JS.InvokeVoidAsync("criptoVersusWallet.openInstall", wallet.Name);
+            SetStatus("Install required", $"Open the official {wallet.Name} page and install the wallet to continue.", "info");
+            return;
+        }
+
+        isBusy = true;
+        SetStatus("Connecting wallet", $"Waiting for {wallet.Name} approval in your browser.", "info");
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var result = await JS.InvokeAsync<WalletConnectResult>("criptoVersusWallet.connect", wallet.Name);
+            if (!result.Success)
+            {
+                SetStatus("Connection failed", NormalizeWalletError(result.Error), "warning");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(result.PublicKey))
+            {
+                SetStatus("Missing public key", "The wallet connected, but no public key was returned.", "warning");
+                return;
+            }
+
+            publicKey = result.PublicKey;
+            activeWalletName = result.WalletName;
+            SetStatus("Wallet connected", "Wallet connected. Finishing authentication...", "success");
+
+            await SignLoginAsync();
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Connection failed", NormalizeWalletError(ex.Message), "warning");
+        }
+        finally
+        {
+            isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        isBusy = true;
+
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusWallet.disconnect");
+            await SessionStorage.RemoveItemAsync("authToken");
+            await SessionStorage.RemoveItemAsync("userId");
+            await SessionStorage.RemoveItemAsync("walletPublicKey");
+            await SessionStorage.RemoveItemAsync("walletName");
+            WalletState.SetSession(null, null);
+
+            publicKey = null;
+            activeWalletName = null;
+            SetStatus("Wallet disconnected", "You can connect any supported Solana wallet again at any time.", "info");
+            await OnSessionChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Disconnect failed", NormalizeWalletError(ex.Message), "warning");
+        }
+        finally
+        {
+            isBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SignLoginAsync()
+    {
+        if (string.IsNullOrWhiteSpace(publicKey))
+        {
+            SetStatus("Connect a wallet", "Choose a Solana wallet before continuing.", "warning");
+            return;
+        }
+
+        try
+        {
+            var http = HttpFactory.CreateClient("CriptoVersusApi");
+
+            var nonceResponse = await http.GetFromJsonAsync<NonceResponse>(
+                $"api/Login/solana/nonce?publicKey={Uri.EscapeDataString(publicKey)}");
+
+            if (nonceResponse is null || string.IsNullOrWhiteSpace(nonceResponse.Message))
+            {
+                SetStatus("Login unavailable", "Could not prepare the login signature right now. Please try again.", "warning");
+                return;
+            }
+
+            SetStatus("Awaiting signature", "Approve the signature request in your wallet to finish login.", "info");
+
+            var signed = await JS.InvokeAsync<SignedResult>(
+                "criptoVersusWallet.signMessage",
+                nonceResponse.Message);
+
+            var payload = new
+            {
+                publicKey = signed.PublicKey,
+                message = signed.Message,
+                signature = signed.Signature
+            };
+
+            var response = await http.PostAsJsonAsync("api/Login/solana", payload);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                SetStatus("Login rejected", "Could not validate your wallet signature. Please try again.", "warning");
+                return;
+            }
+
+            var loginResult = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+            if (loginResult is null || string.IsNullOrWhiteSpace(loginResult.Token))
+            {
+                SetStatus("Incomplete login", "The API confirmed the login, but no session token was returned.", "warning");
+                return;
+            }
+
+            await SessionStorage.SetItemAsync("authToken", loginResult.Token);
+            await SessionStorage.SetItemAsync("userId", loginResult.UserId);
+            await SessionStorage.SetItemAsync("walletPublicKey", loginResult.PublicKey);
+            await SessionStorage.SetItemAsync("walletName", activeWalletName);
+            WalletState.SetSession(loginResult.Token, loginResult.PublicKey);
+
+            if (ShouldEnsureOnChainAccount)
+            {
+                await EnsureOnChainAccountAsync();
+                SetStatus("Login complete", "Your wallet was authenticated and the on-chain account was validated.", "success");
+            }
+            else
+            {
+                SetStatus("Login complete", "Your wallet was authenticated successfully.", "success");
+            }
+
+            await OnLoginSucceeded.InvokeAsync();
+            await OnSessionChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            SetStatus("Could not complete login", NormalizeWalletError(ex.Message), "warning");
+        }
+    }
+
+    private async Task LoadWalletActionsAsync()
+    {
+        if (walletActionsModule is null)
+        {
+            walletActionsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletActions.js?v=20260511-wallet-modal");
+        }
+    }
+
+    private async Task EnsureOnChainAccountAsync()
+    {
+        if (!ShouldEnsureOnChainAccount)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(OnChainProgramId))
+        {
+            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
+        }
+
+        await LoadWalletActionsAsync();
+
+        SetStatus("Preparing on-chain account", "Validating the current wallet account in the active Solana program.", "info");
+
+        var result = await walletActionsModule!.InvokeAsync<OnChainOnboardingResult>(
+            "ensureUserOnchainAccount",
+            new
+            {
+                programId = OnChainProgramId,
+                cluster = OnChainCluster,
+                rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"]
+            });
+
+        SetStatus("On-chain account ready", $"PDA: {result.UserAccountPda}", "success");
+    }
+
+    private void ClearStatus()
+    {
+        status = null;
+        statusTitle = string.Empty;
+        statusKind = "info";
+    }
+
+    private void SetStatus(string title, string message, string kind)
+    {
+        statusTitle = title;
+        status = message;
+        statusKind = kind;
+    }
+
+    private string GetStatusClass()
+        => statusKind switch
+        {
+            "success" => "cv-wallet-alert-success",
+            "warning" => "cv-wallet-alert-warning",
+            _ => "cv-wallet-alert-info"
+        };
+
+    private static string NormalizeWalletError(string? error)
+    {
+        var message = string.IsNullOrWhiteSpace(error)
+            ? "Something unexpected happened. Please try again."
+            : error.Trim();
+
+        if (message.Contains("canceled", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("cancelled", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("rejected", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("denied", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Connection was canceled in the wallet.";
+        }
+
+        if (message.Contains("provider not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Wallet provider not found in this browser.";
+        }
+
+        if (message.Contains("public key", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The wallet did not return a valid public key.";
+        }
+
+        return message;
+    }
+
+}
+
+<style>
+    .cv-wallet-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        background: rgba(3, 8, 18, 0.78);
+        backdrop-filter: blur(8px);
+    }
+
+    .cv-wallet-modal-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 1201;
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+    }
+
+    .cv-wallet-modal-card {
+        width: min(100%, 560px);
+        border-radius: 24px;
+        border: 1px solid rgba(125, 211, 252, 0.16);
+        background:
+            radial-gradient(circle at top right, rgba(45, 212, 191, 0.12), transparent 24%),
+            radial-gradient(circle at top left, rgba(96, 165, 250, 0.12), transparent 20%),
+            linear-gradient(180deg, rgba(10, 14, 24, 0.98), rgba(5, 8, 15, 0.99));
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.46);
+        color: #edf5ff;
+        overflow: hidden;
+    }
+
+    .cv-wallet-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.35rem 1.35rem 0.9rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .cv-wallet-modal-kicker {
+        color: #7ff6df;
+        font-size: 0.74rem;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .cv-wallet-modal-title {
+        margin: 0.35rem 0 0;
+        font-size: clamp(1.18rem, 2vw, 1.65rem);
+        font-weight: 900;
+        line-height: 1.12;
+    }
+
+    .cv-wallet-modal-close {
+        filter: invert(1) grayscale(1);
+        opacity: 0.82;
+    }
+
+    .cv-wallet-modal-body {
+        display: grid;
+        gap: 1rem;
+        padding: 1.15rem 1.35rem 1.35rem;
+    }
+
+    .cv-wallet-modal-helper {
+        margin: 0;
+        color: #b7c5d8;
+        line-height: 1.6;
+    }
+
+    .cv-wallet-list {
+        display: grid;
+        gap: 0.8rem;
+    }
+
+    .cv-wallet-option {
+        display: flex;
+        align-items: center;
+        gap: 0.95rem;
+        width: 100%;
+        min-height: 72px;
+        padding: 0.95rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.035);
+        color: inherit;
+        text-align: left;
+        transition: transform 140ms ease, border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .cv-wallet-option:hover:not(:disabled) {
+        transform: translateY(-1px);
+        border-color: rgba(127, 246, 223, 0.24);
+        background: rgba(255, 255, 255, 0.055);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+    }
+
+    .cv-wallet-option:disabled {
+        opacity: 0.72;
+        cursor: wait;
+    }
+
+    .cv-wallet-option__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+    }
+
+    .cv-wallet-glyph {
+        width: 46px;
+        height: 46px;
+        display: block;
+    }
+
+    .cv-wallet-option__content {
+        display: grid;
+        gap: 0.18rem;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .cv-wallet-option__name {
+        font-weight: 800;
+        font-size: 1rem;
+    }
+
+    .cv-wallet-option__subtitle {
+        color: #93a5bc;
+        font-size: 0.86rem;
+    }
+
+    .cv-wallet-option__status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 88px;
+        padding: 0.48rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+    }
+
+    .cv-wallet-option__status--detected {
+        color: #c9fff4;
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.18);
+    }
+
+    .cv-wallet-option__status--install {
+        color: #d8e4f5;
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .cv-wallet-alert {
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.95rem 1rem;
+    }
+
+    .cv-wallet-alert strong {
+        display: block;
+        margin-bottom: 0.22rem;
+    }
+
+    .cv-wallet-alert-info {
+        background: rgba(45, 212, 191, 0.1);
+        border-color: rgba(45, 212, 191, 0.2);
+    }
+
+    .cv-wallet-alert-success {
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.2);
+    }
+
+    .cv-wallet-alert-warning {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.22);
+    }
+
+    .cv-wallet-key {
+        color: #c7d6ea;
+        overflow-wrap: anywhere;
+    }
+
+    .cv-wallet-disconnect {
+        min-height: 3rem;
+        border-radius: 16px;
+        border: 1px solid rgba(248, 113, 113, 0.28);
+        background: rgba(127, 29, 29, 0.18);
+        color: #ffe3e3;
+        font-weight: 800;
+    }
+
+    @@media (max-width: 640px) {
+        .cv-wallet-modal-card {
+            width: 100%;
+            border-radius: 20px;
+        }
+
+        .cv-wallet-modal-header,
+        .cv-wallet-modal-body {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .cv-wallet-option {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .cv-wallet-option__status {
+            min-width: 0;
+            margin-left: 3.9rem;
+        }
+    }
+</style>

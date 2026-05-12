@@ -10,8 +10,11 @@
         } = window.solanaWeb3;
 
         const connection = new Connection(clusterApiUrl('testnet'));
-       
-        const wallet = window.solana;
+
+        const wallet = window.criptoVersusWallet?.getActiveProvider?.() ?? window.solana;
+        if (!wallet || typeof wallet.connect !== 'function') {
+            throw new Error('Solana wallet not found.');
+        }
 
         // Solicita conexão com a carteira se não estiver conectada
         if (!wallet.isConnected) {
