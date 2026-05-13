@@ -1,0 +1,1482 @@
+@using System.Globalization
+@using System.Text
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject LocalizationService L
+@inject IConfiguration Config
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (HasLiveMatch)
+{
+    <section class="tv-stage tv-stage--live">
+        <div class="tv-stage__backdrop"></div>
+        <div class="tv-stage__aurora"></div>
+        <div class="tv-stage__fog"></div>
+        <div class="tv-stage__gridlines"></div>
+        <div class="tv-stage__particles"></div>
+
+        @if (_isEventVisible && _activeEvent is not null)
+        {
+            <div class="tv-event-overlay is-visible" aria-live="polite" aria-atomic="true">
+                <div class="tv-event-overlay__card" style="@GetEventAccentStyle(_activeEvent.AccentHex)">
+                    <span>@_activeEvent.Kicker</span>
+                    <strong>@_activeEvent.Title</strong>
+                    <small>@_activeEvent.Body</small>
+                </div>
+            </div>
+        }
+
+        <header class="tv-stage__topbar">
+            <div>
+                <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
+                <h1>@T("hero.title")</h1>
+            </div>
+
+            <div class="tv-stage__badges">
+                <span class="tv-pill tv-pill--live">
+                    <span class="tv-pill__dot"></span>
+                    @T("labels.liveArena")
+                </span>
+                <span class="tv-pill">@T("labels.automaticBroadcast")</span>
+                <span class="tv-pill tv-pill--signal">@T("labels.signalStable")</span>
+                <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
+            </div>
+        </header>
+
+        <div class="tv-stage__grid">
+            <article class="tv-match-card">
+                <div class="tv-match-card__meta">
+                    <span>@T("labels.hotMatch")</span>
+                    <strong>@DisplayRemainingTime()</strong>
+                </div>
+
+                <div class="tv-match-card__arena">
+                    <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
+                        <div class="tv-team__halo"></div>
+                        <div class="tv-team__logo-shell">
+                            <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
+                        </div>
+                        <span class="tv-team__symbol">@DisplayLeftSymbol()</span>
+                        <strong>@DisplayLeftName()</strong>
+                    </div>
+
+                    <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                        <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
+                        <div class="tv-scoreboard__score">
+                            <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                            <span class="tv-scoreboard__versus">VS</span>
+                            <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                        </div>
+                        <small>@DisplayScoreContext()</small>
+                    </div>
+
+                    <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
+                        <div class="tv-team__halo"></div>
+                        <div class="tv-team__logo-shell">
+                            <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
+                        </div>
+                        <span class="tv-team__symbol">@DisplayRightSymbol()</span>
+                        <strong>@DisplayRightName()</strong>
+                    </div>
+                </div>
+            </article>
+
+            <aside class="tv-telemetry">
+                <article>
+                    <span>@T("labels.volume")</span>
+                    <strong>@DisplayVolume()</strong>
+                    <small>@T("labels.competitivePool")</small>
+                </article>
+                <article>
+                    <span>@T("labels.momentum")</span>
+                    <strong>@DisplayMomentum()</strong>
+                    <small>@DisplayMomentumSupportLine()</small>
+                </article>
+                <article>
+                    <span>@T("labels.remainingTime")</span>
+                    <strong>@DisplayRemainingTime()</strong>
+                    <small>@T("labels.arenaCycle")</small>
+                </article>
+                <article>
+                    <span>@T("labels.reason")</span>
+                    <strong>@T("labels.liveRewardDynamics")</strong>
+                    <small>@DisplayReason()</small>
+                </article>
+            </aside>
+        </div>
+
+        <section class="tv-event-strip">
+            <article class="tv-event-strip__card">
+                <span>@T("labels.eventZone")</span>
+                <strong>@DisplayEventHeadline()</strong>
+                <p>@DisplayReason()</p>
+            </article>
+            <article class="tv-event-strip__card tv-event-strip__card--accent">
+                <span>@T("labels.marketDrivenArena")</span>
+                <strong>@DisplayPressureHeadline()</strong>
+                <p>@DisplayPressureBody()</p>
+            </article>
+        </section>
+
+        @if (_tickerItems.Count > 0)
+        {
+            <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
+                <div class="tv-ticker__track">
+                    @for (var repetition = 0; repetition < 2; repetition++)
+                    {
+                        <div class="tv-ticker__lane">
+                            @foreach (var item in _tickerItems)
+                            {
+                                <span class="tv-ticker__item">@item</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    </section>
+}
+else
+{
+    <section class="tv-stage tv-stage--waiting">
+        <div class="tv-stage__backdrop"></div>
+        <div class="tv-stage__aurora"></div>
+        <div class="tv-stage__fog"></div>
+        <div class="tv-stage__gridlines"></div>
+        <div class="tv-stage__particles"></div>
+
+        <header class="tv-waiting-hero">
+            <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p class="tv-waiting-hero__lead">@T("states.waitingForNextHotBattle")</p>
+            <p class="tv-waiting-hero__sublead">@GetAlternateLanguageLine()</p>
+            <div class="tv-stage__badges">
+                <span class="tv-pill">@T("labels.automaticBroadcast")</span>
+                <span class="tv-pill tv-pill--signal">@T("states.noHotMatchRightNow")</span>
+            </div>
+        </header>
+
+        <div class="tv-waiting-grid">
+            <article class="tv-panel">
+                <div class="tv-panel__head">
+                    <span>@T("waiting.topCoinsEyebrow")</span>
+                    <h2>@T("waiting.topCoins")</h2>
+                </div>
+                <div class="tv-ranking-list">
+                    @foreach (var team in TopTeams)
+                    {
+                        <div class="tv-ranking-row">
+                            <strong>#{team.Rank}</strong>
+                            <div>
+                                <span>@team.Symbol</span>
+                                <small>@team.DisplayName</small>
+                            </div>
+                            <em>@FormatPercent(team.WinRate)</em>
+                        </div>
+                    }
+                </div>
+            </article>
+
+            <article class="tv-panel">
+                <div class="tv-panel__head">
+                    <span>@T("waiting.statsEyebrow")</span>
+                    <h2>@T("waiting.latestBattles")</h2>
+                </div>
+                <div class="tv-latest-list">
+                    @foreach (var match in LatestMatches)
+                    {
+                        <div class="tv-latest-row">
+                            <div>
+                                <strong>@match.HomeSymbol vs @match.AwaySymbol</strong>
+                                <small>@FormatStatus(match.Status)</small>
+                            </div>
+                            <em>@match.HomeScore:@match.AwayScore</em>
+                        </div>
+                    }
+                </div>
+            </article>
+
+            <article class="tv-panel">
+                <div class="tv-panel__head">
+                    <span>@T("waiting.gainersEyebrow")</span>
+                    <h2>@T("waiting.marketPulse")</h2>
+                </div>
+                <div class="tv-gainers-list">
+                    @foreach (var asset in TopGainers)
+                    {
+                        <div class="tv-gainer-row">
+                            <span>@asset.Symbol</span>
+                            <strong>@FormatSignedPercent(asset.PercentageChange)</strong>
+                        </div>
+                    }
+                </div>
+            </article>
+        </div>
+
+        @if (_tickerItems.Count > 0)
+        {
+            <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
+                <div class="tv-ticker__track">
+                    @for (var repetition = 0; repetition < 2; repetition++)
+                    {
+                        <div class="tv-ticker__lane">
+                            @foreach (var item in _tickerItems)
+                            {
+                                <span class="tv-ticker__item">@item</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    </section>
+}
+
+@code {
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public TvHotMatchDto? HotMatch { get; set; }
+    [Parameter] public MatchDto? Match { get; set; }
+    [Parameter] public StatsOverviewDto? Stats { get; set; }
+    [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
+
+    private IJSObjectReference? _tvModule;
+    private BroadcastSnapshot? _previousSnapshot;
+    private CancellationTokenSource? _eventCts;
+    private CancellationTokenSource? _pulseCts;
+    private TvOverlayEvent? _activeEvent;
+    private bool _isEventVisible;
+    private bool _pulseLeftScore;
+    private bool _pulseRightScore;
+    private bool _pulseScoreboard;
+    private bool _pulseHotScore;
+    private string _tickerSignature = string.Empty;
+    private IReadOnlyList<string> _tickerItems = [];
+
+    private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
+    private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
+    private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
+    private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
+
+    protected override void OnParametersSet()
+    {
+        BuildTickerItems();
+        ProcessBroadcastState();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js");
+        await LogAsync("TV_MOTION", "motion system ready");
+        if (_tickerItems.Count > 0)
+            await LogAsync("TV_TICKER", "updated", _tickerItems);
+    }
+
+    private void ProcessBroadcastState()
+    {
+        var current = CaptureSnapshot();
+        if (current is null)
+        {
+            _previousSnapshot = null;
+            return;
+        }
+
+        if (_previousSnapshot is null)
+        {
+            _ = TriggerEventAsync(CreateEvent("hotMatchDetected"));
+            _previousSnapshot = current;
+            return;
+        }
+
+        var hasScoreChange = current.LeftScore != _previousSnapshot.LeftScore || current.RightScore != _previousSnapshot.RightScore;
+        var scoreLeaderChanged = current.LeaderSymbol != _previousSnapshot.LeaderSymbol && !string.IsNullOrWhiteSpace(_previousSnapshot.LeaderSymbol);
+        var hotScoreSpike = current.HotScore >= _previousSnapshot.HotScore + 8;
+        var reversalDetected = current.HasRecentReversal && !_previousSnapshot.HasRecentReversal;
+        var fearSpike = current.HasFearSignal && !_previousSnapshot.HasFearSignal;
+        var finalMoments = current.RemainingSeconds <= 300 && _previousSnapshot.RemainingSeconds > 300;
+
+        if (hasScoreChange)
+        {
+            _ = PulseScoreAsync(current.LeftScore > _previousSnapshot.LeftScore, current.RightScore > _previousSnapshot.RightScore, hotScoreSpike);
+            _ = TriggerEventAsync(CreateGoalEvent(current));
+        }
+        else if (scoreLeaderChanged)
+        {
+            _ = TriggerEventAsync(CreateLeaderEvent(current));
+        }
+        else if (reversalDetected)
+        {
+            _ = TriggerEventAsync(CreateEvent("momentumReversal"));
+        }
+        else if (fearSpike)
+        {
+            _ = TriggerEventAsync(CreateEvent("fearSurge"));
+        }
+        else if (hotScoreSpike)
+        {
+            _ = PulseScoreAsync(false, false, true);
+            _ = TriggerEventAsync(CreateEvent("hotScoreSpike"));
+        }
+        else if (finalMoments)
+        {
+            _ = TriggerEventAsync(CreateEvent("finalMoments"));
+        }
+
+        _previousSnapshot = current;
+    }
+
+    private BroadcastSnapshot? CaptureSnapshot()
+    {
+        if (!HasLiveMatch)
+            return null;
+
+        return new BroadcastSnapshot(
+            DisplayLeftScore(),
+            DisplayRightScore(),
+            DisplayLeftSymbol(),
+            DisplayRightSymbol(),
+            ResolveLeaderSymbol(),
+            HotMatch?.HotScore ?? 0,
+            ParseRemainingSeconds(DisplayRemainingTime()),
+            HotMatch?.HasRecentReversal == true,
+            HasFearSignal());
+    }
+
+    private async Task TriggerEventAsync(TvOverlayEvent? overlayEvent)
+    {
+        if (overlayEvent is null)
+            return;
+
+        _eventCts?.Cancel();
+        _eventCts?.Dispose();
+        _eventCts = new CancellationTokenSource();
+        var ct = _eventCts.Token;
+
+        _activeEvent = overlayEvent;
+        _isEventVisible = true;
+        await LogAsync("TV_EVENT", overlayEvent.Key);
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        _isEventVisible = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PulseScoreAsync(bool pulseLeft, bool pulseRight, bool pulseHotScore)
+    {
+        _pulseCts?.Cancel();
+        _pulseCts?.Dispose();
+        _pulseCts = new CancellationTokenSource();
+        var ct = _pulseCts.Token;
+
+        _pulseLeftScore = pulseLeft;
+        _pulseRightScore = pulseRight;
+        _pulseScoreboard = pulseLeft || pulseRight;
+        _pulseHotScore = pulseHotScore;
+        if (_pulseScoreboard || _pulseHotScore)
+        {
+            await LogAsync("TV_MOTION", "score pulse", new
+            {
+                pulseLeft,
+                pulseRight,
+                pulseHotScore
+            });
+        }
+
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2.2), ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        _pulseLeftScore = false;
+        _pulseRightScore = false;
+        _pulseScoreboard = false;
+        _pulseHotScore = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void BuildTickerItems()
+    {
+        var items = new List<string>();
+
+        if (HasLiveMatch)
+        {
+            items.Add(T("ticker.hotMatchDetected"));
+            items.Add(T("ticker.liveCryptoBattle"));
+            items.Add(T("ticker.arenaPressureRising"));
+            items.Add(T("ticker.marketVolatilityIncreasing"));
+
+            if (HotMatch?.HasRecentReversal == true)
+                items.Add(T("ticker.momentumShift"));
+
+            if (HasFearSignal())
+                items.Add(T("ticker.fearSurge"));
+
+            var leader = ResolveLeaderSymbol();
+            var trailer = leader == DisplayLeftSymbol() ? DisplayRightSymbol() : DisplayLeftSymbol();
+            items.Add(T("ticker.dominating", leader));
+            items.Add(T("ticker.recovering", trailer));
+
+            if (ParseRemainingSeconds(DisplayRemainingTime()) <= 600)
+                items.Add(T("ticker.finalMinutes"));
+
+            if ((HotMatch?.HotScore ?? 0) >= 90)
+                items.Add(T("ticker.crowdEnergySpike"));
+        }
+        else
+        {
+            items.Add(T("states.waitingForNextHotBattle"));
+            items.Add(T("labels.automaticBroadcast"));
+
+            var topCoin = TopTeams.FirstOrDefault()?.Symbol;
+            if (!string.IsNullOrWhiteSpace(topCoin))
+                items.Add(T("ticker.nextBattleAround", topCoin));
+
+            var topMover = TopGainers.FirstOrDefault()?.Symbol;
+            if (!string.IsNullOrWhiteSpace(topMover))
+                items.Add(T("ticker.marketPulseAround", topMover));
+        }
+
+        _tickerItems = items.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+        var signature = string.Join("||", _tickerItems);
+        if (signature != _tickerSignature)
+        {
+            _tickerSignature = signature;
+            _ = LogAsync("TV_TICKER", "updated", _tickerItems);
+        }
+    }
+
+    private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current)
+    {
+        var scorer = current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
+        return new TvOverlayEvent("goal", T("events.goalKicker"), T("events.goalTitle", scorer), DisplayScoreContext(), GetAccentColor(scorer));
+    }
+
+    private TvOverlayEvent CreateLeaderEvent(BroadcastSnapshot current)
+        => new("leaderChange", T("events.leaderChangeKicker"), T("events.leaderChangeTitle", current.LeaderSymbol), T("events.leaderChangeBody"), GetAccentColor(current.LeaderSymbol));
+
+    private TvOverlayEvent? CreateEvent(string key)
+        => key switch
+        {
+            "hotMatchDetected" => new TvOverlayEvent("hotMatchDetected", T("events.hotMatchKicker"), T("events.hotMatchTitle"), T("events.hotMatchBody"), GetAccentColor(ResolveLeaderSymbol())),
+            "momentumReversal" => new TvOverlayEvent("momentumReversal", T("events.momentumReversalKicker"), T("events.momentumReversalTitle"), T("events.momentumReversalBody"), "#7ff6df"),
+            "fearSurge" => new TvOverlayEvent("fearSurge", T("events.fearSurgeKicker"), T("events.fearSurgeTitle"), T("events.fearSurgeBody"), "#ffd76e"),
+            "hotScoreSpike" => new TvOverlayEvent("hotScoreSpike", T("events.hotScoreSpikeKicker"), T("events.hotScoreSpikeTitle"), T("events.hotScoreSpikeBody"), "#53c8ff"),
+            "finalMoments" => new TvOverlayEvent("finalMoments", T("events.finalMomentsKicker"), T("events.finalMomentsTitle"), T("events.finalMomentsBody"), "#ff8e8e"),
+            _ => null
+        };
+
+    private string T(string key, params object?[] args)
+        => L.T($"tv.{key}", Culture, args);
+
+    private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
+    private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
+    private string DisplayLeftName() => HotMatch?.LeftName ?? Match?.TeamA ?? "-";
+    private string DisplayRightName() => HotMatch?.RightName ?? Match?.TeamB ?? "-";
+    private int DisplayLeftScore() => HotMatch?.LeftScore ?? Match?.ScoreA ?? 0;
+    private int DisplayRightScore() => HotMatch?.RightScore ?? Match?.ScoreB ?? 0;
+    private string DisplayLeftLogoUrl() => HotMatch?.LeftLogoUrl ?? $"/api/icons/binance/{DisplayLeftSymbol()}";
+    private string DisplayRightLogoUrl() => HotMatch?.RightLogoUrl ?? $"/api/icons/binance/{DisplayRightSymbol()}";
+    private string DisplayRemainingTime() => HotMatch?.RemainingTimeLabel ?? BuildRemainingTimeFallback();
+    private string DisplayVolume() => HotMatch?.VolumeLabel ?? BuildVolumeFallback();
+    private string DisplayMomentum() => HotMatch?.MomentumLabel ?? BuildMomentumFallback();
+    private string DisplayReason() => HotMatch?.Reason ?? BuildReasonFallback();
+    private string DisplayHotScore() => (HotMatch?.HotScore ?? 0).ToString(CultureInfo.InvariantCulture);
+
+    private string DisplayScoreContext()
+    {
+        var diff = Math.Abs(DisplayLeftScore() - DisplayRightScore());
+        return diff switch
+        {
+            0 => T("labels.tiePressure"),
+            1 => T("labels.onePointBattle"),
+            _ => T("labels.liveRewardDynamics")
+        };
+    }
+
+    private string DisplayMomentumSupportLine()
+        => HotMatch?.HasRecentReversal == true
+            ? T("labels.reversalDetected")
+            : T("labels.sideCompetition");
+
+    private string DisplayEventHeadline()
+        => _activeEvent?.Title
+            ?? (HotMatch?.HasRecentReversal == true
+                ? T("labels.reversalDetected")
+                : T("labels.nextBattle"));
+
+    private string DisplayPressureHeadline()
+        => $"{DisplayLeftSymbol()} vs {DisplayRightSymbol()}";
+
+    private string DisplayPressureBody()
+        => $"{T("labels.competitivePool")} • {DisplayVolume()} • {DisplayRemainingTime()}";
+
+    private string BuildRemainingTimeFallback()
+    {
+        var remaining = Match?.RemainingMinutes ?? 0;
+        return $"{Math.Max(0, remaining):00}:00";
+    }
+
+    private string BuildVolumeFallback()
+    {
+        var totalPool = (Match?.TotalAmountTeamA ?? 0m) + (Match?.TotalAmountTeamB ?? 0m);
+        return $"{totalPool:0.##} SOL";
+    }
+
+    private string BuildMomentumFallback()
+    {
+        if (Match is null)
+            return T("labels.momentum");
+
+        var leader = (Match.PctA ?? 0m) >= (Match.PctB ?? 0m) ? Match.TeamA : Match.TeamB;
+        return string.Format(CultureInfo.InvariantCulture, T("labels.pressureRising"), leader);
+    }
+
+    private string BuildReasonFallback()
+    {
+        if (Match is null)
+            return T("states.noHotMatchRightNow");
+
+        if (Math.Abs(Match.ScoreA - Match.ScoreB) <= 1)
+            return T("fallback.closeMatchReason");
+
+        return T("fallback.liveArenaReason");
+    }
+
+    private string GetAlternateLanguageLine()
+        => Culture == AppCultureService.SecondaryRouteCulture
+            ? L.T("tv.states.waitingForNextHotBattle", AppCultureService.DefaultRouteCulture)
+            : L.T("tv.states.waitingForNextHotBattle", AppCultureService.SecondaryRouteCulture);
+
+    private string GetLogoUrl(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        if (Uri.TryCreate(value, UriKind.Absolute, out _))
+            return value;
+
+        return EnvironmentIsolationGuard.BuildApiUrl(Config, value);
+    }
+
+    private string GetTeamStyle(string symbol, bool isLeft)
+    {
+        var accent = GetAccentColor(symbol);
+        var shadow = isLeft ? "rgba(83, 200, 255, 0.28)" : "rgba(127, 246, 223, 0.24)";
+        return $"--team-accent:{accent}; --team-shadow:{shadow};";
+    }
+
+    private string GetEventAccentStyle(string accentHex)
+        => $"--event-accent:{accentHex};";
+
+    private string GetAccentColor(string? symbol)
+    {
+        var normalized = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        return normalized switch
+        {
+            "BTC" => "#f5b942",
+            "ETH" => "#7f8df6",
+            "SOL" => "#55f5bf",
+            "BNB" => "#f2d56b",
+            "XRP" => "#71d1ff",
+            "ADA" => "#5dd8ff",
+            "DOGE" => "#efc166",
+            _ => HashAccent(normalized)
+        };
+    }
+
+    private static string HashAccent(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "#53c8ff";
+
+        var seed = value.Sum(ch => ch);
+        var hue = seed % 360;
+        return $"hsl({hue} 78% 64%)";
+    }
+
+    private string ResolveLeaderSymbol()
+    {
+        if (DisplayLeftScore() == DisplayRightScore())
+            return HotMatch?.HasRecentReversal == true
+                ? ResolveMomentumLeader()
+                : DisplayLeftSymbol();
+
+        return DisplayLeftScore() > DisplayRightScore() ? DisplayLeftSymbol() : DisplayRightSymbol();
+    }
+
+    private string ResolveMomentumLeader()
+    {
+        var momentum = DisplayMomentum();
+        if (momentum.Contains(DisplayLeftSymbol(), StringComparison.OrdinalIgnoreCase))
+            return DisplayLeftSymbol();
+
+        if (momentum.Contains(DisplayRightSymbol(), StringComparison.OrdinalIgnoreCase))
+            return DisplayRightSymbol();
+
+        return DisplayLeftSymbol();
+    }
+
+    private bool HasFearSignal()
+    {
+        var text = $"{DisplayMomentum()} {DisplayReason()}";
+        return text.Contains("fear", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("medo", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("surge", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int ParseRemainingSeconds(string value)
+    {
+        if (TimeSpan.TryParseExact(value, @"mm\:ss", CultureInfo.InvariantCulture, out var mmss))
+            return (int)mmss.TotalSeconds;
+
+        return 0;
+    }
+
+    private string FormatPercent(decimal value)
+        => $"{value:0.#}%";
+
+    private string FormatSignedPercent(decimal value)
+        => value >= 0m ? $"+{value:0.##}%" : $"{value:0.##}%";
+
+    private string FormatStatus(string? status)
+        => string.Equals(status, "Ongoing", StringComparison.OrdinalIgnoreCase)
+            ? T("labels.liveArena")
+            : string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase)
+                ? T("labels.completed")
+                : T("labels.nextBattle");
+
+    private async Task LogAsync(string prefix, string eventName, object? payload = null)
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("log", prefix, eventName, payload);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _eventCts?.Cancel();
+        _eventCts?.Dispose();
+        _pulseCts?.Cancel();
+        _pulseCts?.Dispose();
+
+        if (_tvModule is not null)
+            await _tvModule.DisposeAsync();
+    }
+
+    private sealed record BroadcastSnapshot(
+        int LeftScore,
+        int RightScore,
+        string LeftSymbol,
+        string RightSymbol,
+        string LeaderSymbol,
+        int HotScore,
+        int RemainingSeconds,
+        bool HasRecentReversal,
+        bool HasFearSignal);
+
+    private sealed record TvOverlayEvent(
+        string Key,
+        string Kicker,
+        string Title,
+        string Body,
+        string AccentHex);
+}
+
+<style>
+    .tv-stage {
+        --tv-text: #f3f7ff;
+        --tv-muted: #9cb4d1;
+        --tv-green: #7ff6df;
+        --tv-blue: #53c8ff;
+        --tv-yellow: #ffd76e;
+        --tv-border: rgba(118, 143, 190, 0.16);
+        position: relative;
+        min-height: 100vh;
+        overflow: hidden;
+        color: var(--tv-text);
+        padding: clamp(20px, 2vw, 34px);
+        background:
+            linear-gradient(180deg, rgba(4, 8, 18, 0.95), rgba(3, 7, 15, 0.98)),
+            radial-gradient(circle at top left, rgba(83, 200, 255, 0.18), transparent 24%),
+            radial-gradient(circle at top right, rgba(76, 243, 141, 0.18), transparent 18%);
+    }
+
+    .tv-stage__backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 12% 18%, rgba(83, 200, 255, 0.22), transparent 22%),
+            radial-gradient(circle at 84% 16%, rgba(76, 243, 141, 0.2), transparent 18%),
+            radial-gradient(circle at 50% 100%, rgba(255, 215, 110, 0.08), transparent 24%);
+        pointer-events: none;
+        animation: tvGlow 8s ease-in-out infinite alternate;
+    }
+
+    .tv-stage__aurora,
+    .tv-stage__fog,
+    .tv-stage__gridlines,
+    .tv-stage__particles {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .tv-stage__aurora {
+        background: linear-gradient(120deg, rgba(83, 200, 255, 0.06), transparent 36%, rgba(76, 243, 141, 0.08) 64%, transparent 84%);
+        background-size: 180% 180%;
+        mix-blend-mode: screen;
+        opacity: .7;
+        animation: tvAurora 18s ease-in-out infinite;
+    }
+
+    .tv-stage__fog {
+        background:
+            radial-gradient(circle at 22% 76%, rgba(255,255,255,0.05), transparent 18%),
+            radial-gradient(circle at 76% 72%, rgba(83, 200, 255, 0.05), transparent 16%);
+        filter: blur(40px);
+        opacity: .72;
+        animation: tvFog 20s ease-in-out infinite alternate;
+    }
+
+    .tv-stage__gridlines {
+        background-image:
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 120px 120px;
+        mask-image: linear-gradient(180deg, rgba(0,0,0,0.72), transparent 84%);
+        opacity: .24;
+        animation: tvGridDrift 24s linear infinite;
+    }
+
+    .tv-stage__particles {
+        background:
+            radial-gradient(circle, rgba(255,255,255,0.14) 0 1px, transparent 1.4px) 0 0/160px 160px,
+            radial-gradient(circle, rgba(127, 246, 223, 0.1) 0 1px, transparent 1.5px) 80px 32px/190px 190px;
+        opacity: .55;
+        animation: tvParticles 26s linear infinite;
+    }
+
+    .tv-stage__topbar,
+    .tv-stage__grid,
+    .tv-event-strip,
+    .tv-waiting-hero,
+    .tv-waiting-grid,
+    .tv-ticker {
+        position: relative;
+        z-index: 1;
+    }
+
+    .tv-stage__topbar,
+    .tv-waiting-hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+    }
+
+    .tv-stage__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--tv-green);
+        text-transform: uppercase;
+        letter-spacing: .18em;
+        font-size: .78rem;
+        font-weight: 900;
+    }
+
+    .tv-stage__eyebrow::before,
+    .tv-pill__dot {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #4cf38d;
+        box-shadow: 0 0 0 8px rgba(76, 243, 141, 0.08);
+        animation: tvLivePulse 2.8s ease-in-out infinite;
+    }
+
+    .tv-stage h1,
+    .tv-waiting-hero h1 {
+        margin: 10px 0 0;
+        font-size: clamp(2rem, 4vw, 3.8rem);
+        line-height: 1;
+        letter-spacing: -.05em;
+    }
+
+    .tv-stage__badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .tv-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 42px;
+        padding: 0 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.05);
+        color: #eef5ff;
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        backdrop-filter: blur(14px);
+    }
+
+    .tv-pill--live {
+        border-color: rgba(76, 243, 141, 0.26);
+        background: rgba(76, 243, 141, 0.14);
+        color: #abffd7;
+    }
+
+    .tv-pill--score {
+        border-color: rgba(83, 200, 255, 0.24);
+        background: rgba(83, 200, 255, 0.12);
+    }
+
+    .tv-pill--signal {
+        border-color: rgba(83, 200, 255, 0.22);
+        background: rgba(83, 200, 255, 0.1);
+    }
+
+    .tv-pill--score.is-pulsing {
+        animation: tvHudPulse 2s ease;
+    }
+
+    .tv-stage__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(320px, .72fr);
+        gap: 18px;
+        align-items: stretch;
+    }
+
+    .tv-match-card,
+    .tv-telemetry,
+    .tv-event-strip__card,
+    .tv-panel {
+        border: 1px solid var(--tv-border);
+        border-radius: 28px;
+        background: linear-gradient(180deg, rgba(8, 12, 21, 0.96), rgba(5, 9, 18, 0.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 24px 60px rgba(0,0,0,0.25);
+    }
+
+    .tv-match-card {
+        padding: 22px;
+        display: grid;
+        gap: 18px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tv-match-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+        transform: translateX(-100%);
+        animation: tvSweep 10s ease-in-out infinite;
+    }
+
+    .tv-match-card__meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        color: var(--tv-muted);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-weight: 800;
+        font-size: .78rem;
+    }
+
+    .tv-match-card__meta strong {
+        color: var(--tv-yellow);
+        font-size: 1rem;
+    }
+
+    .tv-match-card__arena {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: 16px;
+        align-items: center;
+        min-height: 430px;
+    }
+
+    .tv-team {
+        --team-accent: #53c8ff;
+        --team-shadow: rgba(83, 200, 255, 0.24);
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 12px;
+        text-align: center;
+        padding: 22px 12px;
+        animation: tvTeamFloat 12s ease-in-out infinite;
+    }
+
+    .tv-team--right {
+        animation-delay: -5s;
+    }
+
+    .tv-team__halo {
+        position: absolute;
+        inset: auto 14% 30% 14%;
+        height: 44%;
+        border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--team-accent) 24%, transparent), transparent 68%);
+        filter: blur(30px);
+        opacity: .95;
+        animation: tvHaloBreathe 8s ease-in-out infinite;
+    }
+
+    .tv-team__logo-shell {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: clamp(132px, 13vw, 180px);
+        height: clamp(132px, 13vw, 180px);
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.08);
+        background:
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 48%),
+            linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 18px 50px var(--team-shadow);
+        overflow: hidden;
+    }
+
+    .tv-team__logo-shell::before {
+        content: "";
+        position: absolute;
+        inset: 10%;
+        border-radius: 50%;
+        border: 1px solid color-mix(in srgb, var(--team-accent) 24%, transparent);
+        opacity: .7;
+        animation: tvRingPulse 6s ease-in-out infinite;
+    }
+
+    .tv-team img {
+        width: clamp(96px, 10vw, 144px);
+        height: clamp(96px, 10vw, 144px);
+        object-fit: contain;
+        filter: drop-shadow(0 0 20px color-mix(in srgb, var(--team-accent) 20%, transparent));
+        animation: tvLogoBreathe 7s ease-in-out infinite;
+    }
+
+    .tv-team__symbol {
+        color: color-mix(in srgb, var(--team-accent) 72%, white);
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        font-size: .9rem;
+        font-weight: 900;
+    }
+
+    .tv-team strong {
+        font-size: clamp(1.6rem, 2.3vw, 2.8rem);
+        line-height: 1.04;
+        letter-spacing: -.04em;
+        text-shadow: 0 10px 30px rgba(0,0,0,.32);
+    }
+
+    .tv-scoreboard {
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+        padding: 22px 20px;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background:
+            radial-gradient(circle at top, rgba(83, 200, 255, 0.12), transparent 46%),
+            linear-gradient(180deg, rgba(10, 15, 27, 0.98), rgba(6, 10, 18, 0.98));
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24);
+    }
+
+    .tv-scoreboard.is-pulsing {
+        animation: tvScoreShellPulse 2.2s ease;
+    }
+
+    .tv-scoreboard__status {
+        color: var(--tv-muted);
+        text-transform: uppercase;
+        letter-spacing: .16em;
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .tv-scoreboard__score {
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        font-size: clamp(2.5rem, 5.5vw, 5.5rem);
+        font-weight: 900;
+        letter-spacing: -.08em;
+    }
+
+    .tv-score-value {
+        transition: transform .45s ease, filter .45s ease, text-shadow .45s ease;
+    }
+
+    .tv-score-value--pulse {
+        animation: tvScoreValuePulse 1.8s ease;
+    }
+
+    .tv-scoreboard__versus {
+        color: rgba(255,255,255,0.52);
+        font-size: clamp(.9rem, 1vw, 1.15rem);
+        letter-spacing: .32em;
+        text-indent: .32em;
+        text-transform: uppercase;
+        transform: translateY(2px);
+    }
+
+    .tv-scoreboard small {
+        color: var(--tv-muted);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: .75rem;
+        font-weight: 800;
+    }
+
+    .tv-telemetry {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+    }
+
+    .tv-telemetry article,
+    .tv-panel {
+        padding: 16px;
+    }
+
+    .tv-telemetry article {
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.025);
+        display: grid;
+        gap: 8px;
+        animation: tvHudFloat 14s ease-in-out infinite;
+    }
+
+    .tv-telemetry article:nth-child(2) {
+        animation-delay: -3s;
+    }
+
+    .tv-telemetry article:nth-child(3) {
+        animation-delay: -6s;
+    }
+
+    .tv-telemetry article:nth-child(4) {
+        animation-delay: -9s;
+    }
+
+    .tv-telemetry span,
+    .tv-panel__head span,
+    .tv-event-strip__card span {
+        color: var(--tv-green);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: .74rem;
+        font-weight: 900;
+    }
+
+    .tv-telemetry strong,
+    .tv-event-strip__card strong {
+        font-size: clamp(1.2rem, 1.6vw, 1.7rem);
+        line-height: 1.1;
+        letter-spacing: -.03em;
+    }
+
+    .tv-telemetry small,
+    .tv-event-strip__card p,
+    .tv-ranking-row small,
+    .tv-latest-row small {
+        color: var(--tv-muted);
+        line-height: 1.55;
+        margin: 0;
+    }
+
+    .tv-event-strip {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .tv-event-strip__card {
+        padding: 18px;
+        display: grid;
+        gap: 10px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tv-event-strip__card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent);
+        transform: translateX(-100%);
+        animation: tvSweep 12s ease-in-out infinite;
+    }
+
+    .tv-event-strip__card--accent {
+        border-color: rgba(255, 215, 110, 0.16);
+        background:
+            radial-gradient(circle at top right, rgba(255, 215, 110, 0.1), transparent 28%),
+            linear-gradient(180deg, rgba(11, 15, 27, 0.98), rgba(7, 10, 18, 0.98));
+    }
+
+    .tv-waiting-hero {
+        display: grid;
+        gap: 14px;
+        justify-items: start;
+    }
+
+    .tv-waiting-hero__lead {
+        margin: 0;
+        font-size: clamp(1.2rem, 2vw, 1.8rem);
+        color: #f5fbff;
+        font-weight: 700;
+    }
+
+    .tv-waiting-hero__sublead {
+        margin: 0;
+        color: var(--tv-muted);
+        font-size: 1rem;
+    }
+
+    .tv-waiting-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .tv-panel {
+        display: grid;
+        gap: 14px;
+    }
+
+    .tv-panel__head {
+        display: grid;
+        gap: 6px;
+    }
+
+    .tv-panel__head h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        letter-spacing: -.03em;
+    }
+
+    .tv-ranking-list,
+    .tv-latest-list,
+    .tv-gainers-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .tv-ranking-row,
+    .tv-latest-row,
+    .tv-gainer-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: center;
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.025);
+    }
+
+    .tv-ranking-row strong,
+    .tv-latest-row strong,
+    .tv-gainer-row strong {
+        font-size: 1rem;
+    }
+
+    .tv-ranking-row div,
+    .tv-latest-row div {
+        display: grid;
+        gap: 4px;
+        flex: 1;
+    }
+
+    .tv-ranking-row em,
+    .tv-latest-row em,
+    .tv-gainer-row strong {
+        color: var(--tv-yellow);
+        font-style: normal;
+        font-weight: 900;
+        letter-spacing: -.02em;
+    }
+
+    .tv-event-overlay {
+        position: absolute;
+        top: 28px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-12px);
+        z-index: 3;
+        opacity: 0;
+        transition: opacity .5s ease, transform .5s ease;
+        pointer-events: none;
+    }
+
+    .tv-event-overlay.is-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .tv-event-overlay__card {
+        --event-accent: #53c8ff;
+        min-width: min(76vw, 520px);
+        padding: 16px 20px;
+        border-radius: 22px;
+        border: 1px solid color-mix(in srgb, var(--event-accent) 28%, rgba(255,255,255,0.08));
+        background:
+            linear-gradient(180deg, rgba(7, 11, 20, 0.96), rgba(6, 9, 17, 0.98)),
+            radial-gradient(circle at top, color-mix(in srgb, var(--event-accent) 14%, transparent), transparent 64%);
+        box-shadow: 0 28px 80px rgba(0,0,0,.35), 0 0 32px color-mix(in srgb, var(--event-accent) 18%, transparent);
+        display: grid;
+        gap: 6px;
+        text-align: center;
+        backdrop-filter: blur(16px);
+    }
+
+    .tv-event-overlay__card span {
+        color: color-mix(in srgb, var(--event-accent) 76%, white);
+        text-transform: uppercase;
+        letter-spacing: .16em;
+        font-size: .72rem;
+        font-weight: 900;
+    }
+
+    .tv-event-overlay__card strong {
+        font-size: clamp(1.2rem, 2vw, 2rem);
+        letter-spacing: -.04em;
+    }
+
+    .tv-event-overlay__card small {
+        color: var(--tv-muted);
+        font-size: .92rem;
+    }
+
+    .tv-ticker {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        background:
+            linear-gradient(90deg, rgba(6, 11, 20, 0.96), rgba(10, 15, 27, 0.98)),
+            radial-gradient(circle at top, rgba(83, 200, 255, 0.08), transparent 52%);
+        backdrop-filter: blur(12px);
+    }
+
+    .tv-ticker__track {
+        display: flex;
+        width: max-content;
+        animation: tvTicker 30s linear infinite;
+        will-change: transform;
+    }
+
+    .tv-ticker__lane {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 14px 20px;
+        white-space: nowrap;
+    }
+
+    .tv-ticker__item {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 22px;
+        color: #dbe8f7;
+        font-size: .84rem;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+
+    .tv-ticker__item::after {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(127, 246, 223, 0.64);
+        box-shadow: 0 0 0 6px rgba(127, 246, 223, 0.08);
+    }
+
+    @@media (max-width: 1280px) {
+        .tv-stage__grid,
+        .tv-waiting-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-match-card__arena {
+            min-height: 0;
+        }
+    }
+
+    @@media (max-width: 860px) {
+        .tv-stage {
+            padding: 16px 16px 92px;
+        }
+
+        .tv-stage__topbar {
+            display: grid;
+        }
+
+        .tv-match-card__arena {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-event-strip {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-event-overlay {
+            top: 18px;
+            width: calc(100% - 32px);
+        }
+
+        .tv-event-overlay__card {
+            min-width: 0;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .tv-stage__backdrop,
+        .tv-stage__aurora,
+        .tv-stage__fog,
+        .tv-stage__gridlines,
+        .tv-stage__particles,
+        .tv-team,
+        .tv-team__halo,
+        .tv-team__logo-shell::before,
+        .tv-team img,
+        .tv-telemetry article,
+        .tv-match-card::after,
+        .tv-event-strip__card::before,
+        .tv-ticker__track {
+            animation: none;
+        }
+    }
+
+    @@keyframes tvGlow {
+        from {
+            opacity: .78;
+            transform: scale(1);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1.04);
+        }
+    }
+
+    @@keyframes tvAurora {
+        0% { background-position: 0% 50%; opacity: .48; }
+        50% { background-position: 100% 40%; opacity: .72; }
+        100% { background-position: 0% 60%; opacity: .48; }
+    }
+
+    @@keyframes tvFog {
+        from { transform: translate3d(-1.5%, 0, 0); opacity: .52; }
+        to { transform: translate3d(1.5%, -1%, 0); opacity: .78; }
+    }
+
+    @@keyframes tvGridDrift {
+        from { transform: translate3d(0, 0, 0); }
+        to { transform: translate3d(-24px, -24px, 0); }
+    }
+
+    @@keyframes tvParticles {
+        from { transform: translate3d(0, 0, 0); }
+        to { transform: translate3d(-32px, 20px, 0); }
+    }
+
+    @@keyframes tvLivePulse {
+        0%, 100% { transform: scale(1); opacity: .9; }
+        50% { transform: scale(1.18); opacity: 1; }
+    }
+
+    @@keyframes tvTeamFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+    }
+
+    @@keyframes tvHaloBreathe {
+        0%, 100% { transform: scale(.96); opacity: .72; }
+        50% { transform: scale(1.08); opacity: 1; }
+    }
+
+    @@keyframes tvRingPulse {
+        0%, 100% { transform: scale(.98); opacity: .5; }
+        50% { transform: scale(1.04); opacity: .95; }
+    }
+
+    @@keyframes tvLogoBreathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.035); }
+    }
+
+    @@keyframes tvHudFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+
+    @@keyframes tvSweep {
+        0%, 15% { transform: translateX(-110%); }
+        45%, 100% { transform: translateX(120%); }
+    }
+
+    @@keyframes tvScoreShellPulse {
+        0% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24); }
+        35% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 20px 60px rgba(0,0,0,0.28), 0 0 42px rgba(83, 200, 255, 0.16); }
+        100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24); }
+    }
+
+    @@keyframes tvScoreValuePulse {
+        0% { transform: scale(1); text-shadow: none; }
+        30% { transform: scale(1.08); text-shadow: 0 0 24px rgba(255,255,255,0.18); }
+        100% { transform: scale(1); text-shadow: none; }
+    }
+
+    @@keyframes tvHudPulse {
+        0% { transform: translateY(0); }
+        30% { transform: translateY(-2px); box-shadow: 0 0 0 8px rgba(83, 200, 255, 0.08); }
+        100% { transform: translateY(0); }
+    }
+
+    @@keyframes tvTicker {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+    }
+</style>

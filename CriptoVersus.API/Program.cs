@@ -46,6 +46,7 @@ builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVeri
 builder.Services.AddScoped<ISystemBalanceWithdrawalService, SystemBalanceWithdrawalService>();
 builder.Services.AddScoped<ICustodySolTransferService, CustodySolTransferService>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
+builder.Services.AddScoped<ITvHotMatchService, TvHotMatchService>();
 builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
 builder.Services.AddSingleton<ISocialVsRenderService, SocialVsRenderService>();
 builder.Services.AddSingleton<ISocialComposeFinalService, SocialComposeFinalService>();

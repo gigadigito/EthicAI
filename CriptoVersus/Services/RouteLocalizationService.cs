@@ -78,6 +78,12 @@ public sealed class RouteLocalizationService
         return $"{BuildStatsTeamsPath(culture)}/{normalizedSlug}";
     }
 
+    public string BuildTvPath()
+        => "/tv";
+
+    public string BuildTvMatchPath(int id, string slug)
+        => $"/tv/match/{id}/{slug.Trim().ToLowerInvariant()}";
+
     public string BuildLegacyMatchPath(string? culture, int id, string slug)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? $"/partida/{id}/{slug}"
@@ -118,6 +124,15 @@ public sealed class RouteLocalizationService
             return BuildStatsTeamsPath(normalizedTarget) + querySuffix;
 
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase))
+            return BuildTvPath() + querySuffix;
+
+        if (segments.Length >= 4
+            && segments[0].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[1].Equals("match", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var tvMatchId))
+            return BuildTvMatchPath(tvMatchId, segments[3]) + querySuffix;
         if (segments.Length >= 3)
         {
             if (cleanPath.StartsWith("/stats/teams/", StringComparison.OrdinalIgnoreCase)

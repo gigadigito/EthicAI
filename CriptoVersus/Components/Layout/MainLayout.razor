@@ -17,6 +17,14 @@
                         Hidden="HandleLoaderHiddenAsync" />
 }
 
+@if (IsTvRoute)
+{
+    <main class="tv-layout-shell">
+        @Body
+    </main>
+}
+else
+{
 <div class="app-shell">
     <input type="hidden"
            id="cv-published-version"
@@ -82,6 +90,7 @@
         }
     </main>
 </div>
+}
 
 @if (ShowWalletUi)
 {
@@ -124,6 +133,15 @@
 </div>
 
 <style>
+    .tv-layout-shell {
+        min-height: 100vh;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at top left, rgba(83, 200, 255, 0.12), transparent 24%),
+            radial-gradient(circle at top right, rgba(76, 243, 141, 0.14), transparent 22%),
+            linear-gradient(180deg, #02060f, #050914 52%, #040812);
+    }
+
     .wallet-button-label {
         display: inline-flex;
         align-items: center;
@@ -286,8 +304,9 @@
     private bool _showPostLoginPrompt;
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
     private bool IsPublicHomeRoute => IsHomeRoute(Nav.Uri);
-    private bool ShouldHideInitialLoader => IsPublicSeoRoute && !IsPublicHomeRoute;
-    private bool ShowWalletUi => _interactiveChromeReady;
+    private bool IsTvRoute => IsTvModeRoute(Nav.Uri);
+    private bool ShouldHideInitialLoader => IsTvRoute || (IsPublicSeoRoute && !IsPublicHomeRoute);
+    private bool ShowWalletUi => _interactiveChromeReady && !IsTvRoute;
 
     private bool IsLoggedIn
         => !string.IsNullOrWhiteSpace(authToken)
@@ -507,6 +526,15 @@
 
         return string.IsNullOrWhiteSpace(path)
             || path is "" or "/" or "/en" or "/pt";
+    }
+
+    private static bool IsTvModeRoute(string absoluteUri)
+    {
+        if (!Uri.TryCreate(absoluteUri, UriKind.Absolute, out var uri))
+            return false;
+
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+        return path == "/tv" || path.StartsWith("/tv/match/", StringComparison.Ordinal);
     }
 
     public async ValueTask DisposeAsync()

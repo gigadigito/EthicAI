@@ -1,0 +1,203 @@
+@page "/tv"
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject AppCultureService AppCulture
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IJSRuntime JS
+@inject LocalizationService L
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>@L.T("tv.seo.title", _culture)</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="description" content="@L.T("tv.seo.description", _culture)" />
+</HeadContent>
+
+<TvStage Culture="@_culture"
+         HotMatch="@_selectedHotMatch"
+         Stats="@_stats"
+         Snapshot="@_snapshot" />
+
+@code {
+    private const int RefreshIntervalSeconds = 15;
+    private const int SwitchCooldownSeconds = 60;
+    private const int SwitchThreshold = 10;
+
+    private string _culture = AppCultureService.DefaultRouteCulture;
+    private TvHotMatchDto? _selectedHotMatch;
+    private StatsOverviewDto? _stats;
+    private DashboardSnapshotDto? _snapshot;
+    private IJSObjectReference? _tvModule;
+    private CancellationTokenSource? _refreshCts;
+    private Task? _refreshLoopTask;
+    private DateTime _lastSwitchUtc = DateTime.MinValue;
+
+    protected override void OnInitialized()
+    {
+        _culture = AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js");
+        await LogAsync("loaded");
+        await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+
+        _refreshCts = new CancellationTokenSource();
+        _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
+    }
+
+    private async Task RunRefreshLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshIntervalSeconds));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await RefreshAsync(forceInitialSelection: false, ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RefreshAsync(bool forceInitialSelection, CancellationToken ct)
+    {
+        try
+        {
+            var hotTask = Api.GetTvHotMatchAsync(ct);
+            var statsTask = Api.GetStatsOverviewAsync(ct);
+            var snapshotTask = Api.GetDashboardSnapshotAsync(ct);
+
+            await Task.WhenAll(hotTask, statsTask, snapshotTask);
+
+            _stats = statsTask.Result ?? _stats;
+            _snapshot = snapshotTask.Result ?? _snapshot;
+
+            var hotMatch = hotTask.Result;
+            if (hotMatch?.HasMatch == true)
+            {
+                await LogAsync("hot match refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.Reason });
+                await ResolveHotMatchSelectionAsync(hotMatch, forceInitialSelection, ct);
+            }
+            else
+            {
+                await LogAsync("no hot match available");
+
+                if (_selectedHotMatch?.HasMatch == true)
+                {
+                    var currentFinished = await IsSelectedMatchFinishedAsync(ct);
+                    if (currentFinished)
+                        _selectedHotMatch = null;
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            await LogAsync("refresh error", ex.Message);
+        }
+    }
+
+    private async Task ResolveHotMatchSelectionAsync(TvHotMatchDto hotMatch, bool forceInitialSelection, CancellationToken ct)
+    {
+        if (forceInitialSelection || _selectedHotMatch is null || !_selectedHotMatch.HasMatch)
+        {
+            await SwitchToMatchAsync(hotMatch);
+            return;
+        }
+
+        if (_selectedHotMatch.MatchId == hotMatch.MatchId)
+        {
+            _selectedHotMatch = hotMatch;
+            return;
+        }
+
+        var currentFinished = await IsSelectedMatchFinishedAsync(ct);
+        if (currentFinished)
+        {
+            await SwitchToMatchAsync(hotMatch);
+            return;
+        }
+
+        if (hotMatch.HotScore < _selectedHotMatch.HotScore + SwitchThreshold)
+            return;
+
+        if (IsSwitchCooldownActive())
+        {
+            await LogAsync("cooldown active", new
+            {
+                currentMatchId = _selectedHotMatch.MatchId,
+                candidateMatchId = hotMatch.MatchId,
+                secondsRemaining = Math.Max(0, SwitchCooldownSeconds - (int)(DateTime.UtcNow - _lastSwitchUtc).TotalSeconds)
+            });
+            return;
+        }
+
+        await SwitchToMatchAsync(hotMatch);
+    }
+
+    private async Task<bool> IsSelectedMatchFinishedAsync(CancellationToken ct)
+    {
+        if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
+            return true;
+
+        var current = await Api.GetMatchByIdAsync(_selectedHotMatch.MatchId, ct);
+        return current is null
+            || current.IsFinished
+            || string.Equals(current.Status, "Completed", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(current.Status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsSwitchCooldownActive()
+        => DateTime.UtcNow - _lastSwitchUtc < TimeSpan.FromSeconds(SwitchCooldownSeconds);
+
+    private async Task SwitchToMatchAsync(TvHotMatchDto hotMatch)
+    {
+        _selectedHotMatch = hotMatch;
+        _lastSwitchUtc = DateTime.UtcNow;
+        await LogAsync("switching match", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.WatchUrl });
+    }
+
+    private async Task LogAsync(string message, object? payload = null)
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("log", "TV_MODE", message, payload);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_refreshCts is not null)
+        {
+            _refreshCts.Cancel();
+            _refreshCts.Dispose();
+        }
+
+        if (_refreshLoopTask is not null)
+        {
+            try
+            {
+                await _refreshLoopTask;
+            }
+            catch
+            {
+            }
+        }
+
+        if (_tvModule is not null)
+            await _tvModule.DisposeAsync();
+    }
+}

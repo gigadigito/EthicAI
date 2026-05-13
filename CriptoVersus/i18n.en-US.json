@@ -914,6 +914,94 @@
     "arenaExtremeGreed": "Extreme Greed",
     "arenaInsufficientData": "Insufficient data"
   },
+  "tv": {
+    "seo": {
+      "title": "CriptoVersus TV | Automatic live crypto battle broadcast",
+      "description": "Automatic no-login broadcast for OBS Studio featuring the hottest live CriptoVersus match or a waiting screen with arena rankings and market stats.",
+      "matchDescription": "CriptoVersus TV live arena scene optimized for browser-source broadcast in OBS Studio."
+    },
+    "hero": {
+      "eyebrow": "Automatic broadcast",
+      "title": "CriptoVersus TV"
+    },
+    "states": {
+      "waitingForNextHotBattle": "Waiting for the next hot battle",
+      "noHotMatchRightNow": "No hot match right now"
+    },
+    "labels": {
+      "liveArena": "Live Arena",
+      "automaticBroadcast": "Automatic broadcast",
+      "hotMatch": "Hot match",
+      "volume": "Volume",
+      "momentum": "Momentum",
+      "reversalDetected": "Reversal detected",
+      "nextBattle": "Next battle",
+      "hotScore": "HotScore",
+      "remainingTime": "Remaining time",
+      "reason": "Reason",
+      "competitivePool": "Competitive pool",
+      "arenaCycle": "Arena cycle",
+      "eventZone": "Event zone",
+      "marketDrivenArena": "Market-driven arena",
+      "liveRewardDynamics": "Live reward dynamics",
+      "sideCompetition": "Side competition",
+      "tiePressure": "Balanced arena pressure",
+      "onePointBattle": "One-point live battle",
+      "completed": "Completed",
+      "pressureRising": "{0} pressure rising",
+      "signalStable": "Signal stable",
+      "matchArena": "Match arena",
+      "broadcastTicker": "Broadcast ticker"
+    },
+    "waiting": {
+      "topCoinsEyebrow": "Arena ranking",
+      "topCoins": "Top coins",
+      "statsEyebrow": "Arena feed",
+      "latestBattles": "Latest battles",
+      "gainersEyebrow": "Market pulse",
+      "marketPulse": "Top movers"
+    },
+    "fallback": {
+      "closeMatchReason": "Close live crypto battle with active arena pressure.",
+      "liveArenaReason": "Market-driven arena battle selected for the live broadcast."
+    },
+    "ticker": {
+      "hotMatchDetected": "HOT MATCH DETECTED",
+      "momentumShift": "MOMENTUM SHIFT",
+      "fearSurge": "FEAR SURGE",
+      "arenaPressureRising": "ARENA PRESSURE RISING",
+      "liveCryptoBattle": "LIVE CRYPTO BATTLE",
+      "marketVolatilityIncreasing": "MARKET VOLATILITY INCREASING",
+      "dominating": "{0} DOMINATING",
+      "recovering": "{0} RECOVERING",
+      "finalMinutes": "FINAL MINUTES",
+      "crowdEnergySpike": "CROWD ENERGY SPIKE",
+      "nextBattleAround": "NEXT BATTLE AROUND {0}",
+      "marketPulseAround": "MARKET PULSE AROUND {0}"
+    },
+    "events": {
+      "goalKicker": "Goal event",
+      "goalTitle": "GOAL {0}",
+      "leaderChangeKicker": "Leader change",
+      "leaderChangeTitle": "{0} TAKES THE LEAD",
+      "leaderChangeBody": "The arena scoreboard just changed sides.",
+      "hotMatchKicker": "Live curation",
+      "hotMatchTitle": "HOT MATCH DETECTED",
+      "hotMatchBody": "The broadcast locked onto the strongest live arena battle.",
+      "momentumReversalKicker": "Momentum signal",
+      "momentumReversalTitle": "MOMENTUM REVERSAL",
+      "momentumReversalBody": "Pressure flipped and the arena flow is changing.",
+      "fearSurgeKicker": "Risk signal",
+      "fearSurgeTitle": "FEAR SURGE DETECTED",
+      "fearSurgeBody": "Volatility and caution just spiked on the live board.",
+      "hotScoreSpikeKicker": "Heat signal",
+      "hotScoreSpikeTitle": "HOT SCORE SPIKE",
+      "hotScoreSpikeBody": "Arena intensity accelerated into a stronger broadcast window.",
+      "finalMomentsKicker": "Clock alert",
+      "finalMomentsTitle": "FINAL MINUTES",
+      "finalMomentsBody": "The battle is entering its closing stretch."
+    }
+  },
   "walletPage": {
     "heading": {
       "eyebrow": "My Wallet",

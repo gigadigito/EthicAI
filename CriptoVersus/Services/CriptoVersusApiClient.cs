@@ -89,6 +89,9 @@ public sealed class CriptoVersusApiClient
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<MatchDto>>("api/Matches", ct);
 
+    public async Task<TvHotMatchDto?> GetTvHotMatchAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<TvHotMatchDto>("api/tv/hot-match", ct);
+
     public async Task<WorkerStatusDto?> GetWorkerStatusAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<WorkerStatusDto>("api/Worker/status", ct);
 

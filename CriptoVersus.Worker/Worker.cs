@@ -75,6 +75,7 @@ namespace CriptoVersus.Worker
         {
             await WaitForPostgresAsync(stoppingToken);
             await EnsureWorkerStatusTableAsync(stoppingToken);
+            await EnsureArenaPressureScoreStateColumnsAsync(stoppingToken);
 
             await WriteWorkerStatusAsync(
                 status: "starting",
@@ -1888,6 +1889,33 @@ namespace CriptoVersus.Worker
                   in_status           varchar(20) NOT NULL,
                   dt_updated_at       timestamptz NOT NULL DEFAULT now()
                 );";
+
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+        }
+
+        private async Task EnsureArenaPressureScoreStateColumnsAsync(CancellationToken ct)
+        {
+            using var scope = _sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+
+            var sql = @"
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'match_score_state'
+    ) THEN
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_pressure_charges_a integer NOT NULL DEFAULT 0;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_pressure_charges_b integer NOT NULL DEFAULT 0;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_pressure_goals_awarded integer NOT NULL DEFAULT 0;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS cd_last_pressure_leader integer NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_pressure_leader_cycles integer NOT NULL DEFAULT 0;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_a timestamp with time zone NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_b timestamp with time zone NULL;
+    END IF;
+END $$;";
 
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }

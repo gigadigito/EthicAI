@@ -914,6 +914,94 @@
     "arenaExtremeGreed": "Extreme Greed",
     "arenaInsufficientData": "Insufficient data"
   },
+  "tv": {
+    "seo": {
+      "title": "CriptoVersus TV | Transmissao automatica das melhores batalhas cripto",
+      "description": "Transmissao publica para OBS Studio sem login, exibindo a partida mais quente do CriptoVersus ou uma tela de espera com ranking e estatisticas da arena.",
+      "matchDescription": "Cena ao vivo do CriptoVersus TV otimizada para Browser Source no OBS Studio."
+    },
+    "hero": {
+      "eyebrow": "Transmissao automatica",
+      "title": "CriptoVersus TV"
+    },
+    "states": {
+      "waitingForNextHotBattle": "Aguardando a proxima grande batalha",
+      "noHotMatchRightNow": "Sem partida quente agora"
+    },
+    "labels": {
+      "liveArena": "Arena ao vivo",
+      "automaticBroadcast": "Transmissao automatica",
+      "hotMatch": "Partida quente",
+      "volume": "Volume",
+      "momentum": "Momentum",
+      "reversalDetected": "Virada detectada",
+      "nextBattle": "Proxima batalha",
+      "hotScore": "HotScore",
+      "remainingTime": "Tempo restante",
+      "reason": "Motivo",
+      "competitivePool": "Pool competitivo",
+      "arenaCycle": "Ciclo da arena",
+      "eventZone": "Zona de evento",
+      "marketDrivenArena": "Arena guiada pelo mercado",
+      "liveRewardDynamics": "Dinamica viva de recompensas",
+      "sideCompetition": "Competicao entre lados",
+      "tiePressure": "Pressao equilibrada na arena",
+      "onePointBattle": "Batalha ao vivo por um ponto",
+      "completed": "Encerrada",
+      "pressureRising": "Pressao de {0} subindo",
+      "signalStable": "Sinal estavel",
+      "matchArena": "Arena da partida",
+      "broadcastTicker": "Ticker da transmissao"
+    },
+    "waiting": {
+      "topCoinsEyebrow": "Ranking da arena",
+      "topCoins": "Top moedas",
+      "statsEyebrow": "Feed da arena",
+      "latestBattles": "Ultimas batalhas",
+      "gainersEyebrow": "Pulso do mercado",
+      "marketPulse": "Maiores movimentos"
+    },
+    "fallback": {
+      "closeMatchReason": "Batalha cripto ao vivo equilibrada com pressao competitiva na arena.",
+      "liveArenaReason": "Batalha de arena guiada pelo mercado selecionada para a transmissao."
+    },
+    "ticker": {
+      "hotMatchDetected": "PARTIDA QUENTE DETECTADA",
+      "momentumShift": "MUDANCA DE MOMENTUM",
+      "fearSurge": "PICO DE FEAR",
+      "arenaPressureRising": "PRESSAO DA ARENA SUBINDO",
+      "liveCryptoBattle": "BATALHA CRIPTO AO VIVO",
+      "marketVolatilityIncreasing": "VOLATILIDADE DE MERCADO EM ALTA",
+      "dominating": "{0} DOMINANDO",
+      "recovering": "{0} REAGINDO",
+      "finalMinutes": "MINUTOS FINAIS",
+      "crowdEnergySpike": "PICO DE ENERGIA DA ARENA",
+      "nextBattleAround": "PROXIMA BATALHA EM TORNO DE {0}",
+      "marketPulseAround": "PULSO DE MERCADO EM TORNO DE {0}"
+    },
+    "events": {
+      "goalKicker": "Evento de ponto",
+      "goalTitle": "PONTO {0}",
+      "leaderChangeKicker": "Mudanca de lideranca",
+      "leaderChangeTitle": "{0} ASSUME A FRENTE",
+      "leaderChangeBody": "O placar da arena acabou de mudar de lado.",
+      "hotMatchKicker": "Curadoria ao vivo",
+      "hotMatchTitle": "PARTIDA QUENTE DETECTADA",
+      "hotMatchBody": "A transmissao travou na batalha mais forte da arena ao vivo.",
+      "momentumReversalKicker": "Sinal de momentum",
+      "momentumReversalTitle": "REVERSAO DE MOMENTUM",
+      "momentumReversalBody": "A pressao virou e o fluxo da arena mudou de direcao.",
+      "fearSurgeKicker": "Sinal de risco",
+      "fearSurgeTitle": "PICO DE FEAR DETECTADO",
+      "fearSurgeBody": "Volatilidade e cautela acabaram de subir no painel ao vivo.",
+      "hotScoreSpikeKicker": "Sinal de calor",
+      "hotScoreSpikeTitle": "PICO DE HOT SCORE",
+      "hotScoreSpikeBody": "A intensidade da arena acelerou para uma janela ainda mais forte de transmissao.",
+      "finalMomentsKicker": "Alerta de relogio",
+      "finalMomentsTitle": "MINUTOS FINAIS",
+      "finalMomentsBody": "A batalha entrou em sua reta final."
+    }
+  },
   "walletPage": {
     "heading": {
       "eyebrow": "My Wallet",
