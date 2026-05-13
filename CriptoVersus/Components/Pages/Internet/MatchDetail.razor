@@ -46,6 +46,13 @@
     }
     else
     {
+        <section class="match-semantic-summary">
+            <h2>@GetSemanticSummaryTitle()</h2>
+            <p>@GetSemanticSummaryIntro()</p>
+            <p>@GetSemanticSummaryPools()</p>
+            <p>@GetSemanticSummaryRewards()</p>
+        </section>
+
         <section id="social-share-card" class="social-share-card mb-4" aria-label="Social share card">
             <div class="social-share-card__bg"></div>
             <div class="social-share-card__shell">
@@ -405,7 +412,7 @@
                                                  Score="@_arenaSentimentA?.Score"
                                                  Classification="@_arenaSentimentA?.Classification"
                                                  ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                 IsLoading="@_arenaSentimentLoading"
+                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentA is null)"
                                                  Size="250"
                                                  ShowLabel="true"
                                                  LabelText="@T("arenaPressureLabel")" />
@@ -414,7 +421,7 @@
                                                  Score="@_arenaSentimentB?.Score"
                                                  Classification="@_arenaSentimentB?.Classification"
                                                  ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                 IsLoading="@_arenaSentimentLoading"
+                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentB is null)"
                                                  Size="250"
                                                  ShowLabel="true"
                                                  LabelText="@T("arenaPressureLabel")" />
@@ -1651,6 +1658,18 @@
         box-shadow: 0 28px 90px rgba(0,0,0,.42);
     }
 
+    .match-semantic-summary {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
     .social-share-card__bg {
         position: absolute;
         inset: 0;
@@ -2612,6 +2631,31 @@
         };
     }
 
+    private string GetSemanticSummaryTitle()
+        => IsEnglish
+            ? "Competitive crypto arena context"
+            : "Contexto da arena competitiva cripto";
+
+    private string GetSemanticSummaryIntro()
+    {
+        if (_match is null)
+            return string.Empty;
+
+        return IsEnglish
+            ? $"This public CriptoVersus battle lets users open positions on either side of the live arena between {GetDisplayTeamName(_match.TeamA)} and {GetDisplayTeamName(_match.TeamB)}, using real market performance instead of a static scoreboard."
+            : $"Esta batalha publica do CriptoVersus permite que usuarios abram posicoes em qualquer lado da arena ao vivo entre {GetDisplayTeamName(_match.TeamA)} e {GetDisplayTeamName(_match.TeamB)}, usando desempenho real de mercado em vez de um placar estatico.";
+    }
+
+    private string GetSemanticSummaryPools()
+        => IsEnglish
+            ? "Each side concentrates a competitive pool with live reward dynamics, side selection, cyclical arena participation and staking-style exposure that can continue across future battle cycles."
+            : "Cada lado concentra um pool competitivo com dinamica de recompensas ao vivo, selecao de lado, participacao ciclica na arena e exposicao em estilo staking que pode continuar em ciclos futuros de batalha.";
+
+    private string GetSemanticSummaryRewards()
+        => IsEnglish
+            ? "Reward redistribution follows the match rule, the relative market performance of both assets and the arena cycle status, preserving the sports-style battle framing while exposing the economic layer for search engines and AI systems."
+            : "A redistribuicao de recompensas segue a regra da partida, a performance relativa de mercado dos dois ativos e o status do ciclo da arena, preservando o enquadramento esportivo da batalha enquanto expoe a camada economica para mecanismos de busca e sistemas de IA.";
+
     private async Task CopyLink()
     {
         var url = Nav.Uri;
@@ -3250,7 +3294,7 @@
 
         var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(_match.MatchId, 500, ct);
         var scoreEventsTask = Api.GetMatchScoreEventsAsync(_match.MatchId, ct);
-        _arenaSentimentLoading = true;
+        _arenaSentimentLoading = _arenaSentimentA is null && _arenaSentimentB is null;
         var arenaSentimentTask = Api.GetMatchArenaSentimentAsync(_match.MatchId, ct);
 
         await Task.WhenAll(snapshotsTask, scoreEventsTask, arenaSentimentTask);

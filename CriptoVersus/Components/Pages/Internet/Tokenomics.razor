@@ -11,6 +11,7 @@
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
+@using System.Text.Json
 
 <PageTitle>@L.T("howItWorks.seo.title", CurrentCulture)</PageTitle>
 <HeadContent>
@@ -27,6 +28,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <meta name="twitter:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
 <section class="tokenomics-page">
@@ -74,6 +76,33 @@
             </article>
         </div>
 
+        <section class="semantic-band">
+            <article>
+                <span>@(IsEnglish ? "Open positions" : "Posicoes abertas")</span>
+                <p>
+                    @(IsEnglish
+                        ? "CriptoVersus is not only a scoreboard. Users open positions on one side of a live crypto arena and keep competitive staking-style exposure across cyclical battle pools."
+                        : "O CriptoVersus nao e apenas um placar. Usuarios abrem posicoes em um lado da arena cripto ao vivo e mantem exposicao em estilo staking competitivo ao longo de pools ciclicos de batalha.")
+                </p>
+            </article>
+            <article>
+                <span>@(IsEnglish ? "Cyclical pools" : "Pools ciclicos")</span>
+                <p>
+                    @(IsEnglish
+                        ? "Each arena cycle groups side selection, market performance, pool competition and recurring participation, so assets return to the battleground as new cycles open."
+                        : "Cada ciclo da arena agrupa selecao de lado, performance de mercado, competicao entre pools e participacao recorrente, para que os ativos retornem ao campo quando novos ciclos se abrem.")
+                </p>
+            </article>
+            <article>
+                <span>@(IsEnglish ? "Reward redistribution" : "Redistribuicao de recompensas")</span>
+                <p>
+                    @(IsEnglish
+                        ? "Rewards are redistributed according to real market performance, side-based pool mechanics and settlement rules, reinforcing a competitive crypto arena instead of a simple list of prices."
+                        : "As recompensas sao redistribuidas de acordo com a performance real de mercado, com as mecanicas de pools por lado e com as regras de liquidacao, reforcando uma arena competitiva cripto em vez de uma simples lista de precos.")
+                </p>
+            </article>
+        </section>
+
         <section class="topic-callout">
             <div>
                 <span>@(IsEnglish ? "Special topic" : "Topico especial")</span>
@@ -93,8 +122,8 @@
                 <h3>@(IsEnglish ? "How it works" : "Como funciona")</h3>
                 <p>
                     @(IsEnglish
-                        ? "Choose an asset, deposit SOL and keep your position active to automatically participate in new cycles whenever that asset returns. This way, you do not need to repeat the manual entry every round and your capital stays ready for the next game."
-                        : "Escolha um ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e seu capital continua pronto para seguir no jogo.")
+                        ? "Choose an asset, select a side through that asset, deposit SOL and keep your position active to automatically participate in new cycles whenever that asset returns. This way, you do not need to repeat the manual entry every round and your capital stays ready for the next competitive arena cycle."
+                        : "Escolha um ativo, selecione um lado por meio desse ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e seu capital continua pronto para o proximo ciclo competitivo da arena.")
                 </p>
                 <div class="flow-line">
                     <strong>@(IsEnglish ? "Deposit SOL" : "Depositar SOL")</strong>
@@ -109,8 +138,8 @@
                 <h3>@(IsEnglish ? "Positions" : "Posicoes")</h3>
                 <p>
                     @(IsEnglish
-                        ? "Each position belongs to a wallet and a specific asset. Current capital can grow after winning cycles, suffer controlled erosion in losing cycles or move into an exit process when the user requests to close the position."
-                        : "Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario solicitar encerramento da posicao.")
+                        ? "Each position belongs to a wallet and a specific asset. Current capital can grow after winning cycles, suffer controlled erosion in losing cycles or move into an exit process when the user requests to close the position, while still behaving like part of a larger cyclical arena pool."
+                        : "Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario solicitar encerramento da posicao, enquanto continua se comportando como parte de um pool ciclico maior da arena.")
                 </p>
                 <dl>
                     <div><dt>@(IsEnglish ? "Active" : "Ativas")</dt><dd>@_data.ActivePositions</dd></div>
@@ -138,8 +167,8 @@
                 <h3>@(IsEnglish ? "Cycles" : "Ciclos")</h3>
                 <p>
                     @(IsEnglish
-                        ? "Each match represents a market cycle with an entry window, a tracking period and settlement. If automatic re-entry is enabled, recurring positions return to the game when the asset appears again, as long as the position remains active and above the minimum operational capital."
-                        : "Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao. Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece, desde que a posicao siga ativa e acima do capital minimo operacional.")
+                        ? "Each match represents a market cycle with an entry window, a tracking period and settlement. If automatic re-entry is enabled, recurring positions return to the game when the asset appears again, as long as the position remains active and above the minimum operational capital, creating cyclical participation instead of a one-off entry."
+                        : "Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao. Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece, desde que a posicao siga ativa e acima do capital minimo operacional, criando participacao ciclica em vez de uma entrada unica.")
                 </p>
                 <dl>
                     <div><dt>@(IsEnglish ? "Target duration" : "Duracao alvo")</dt><dd>@_data.MatchDurationMinutes min</dd></div>
@@ -152,8 +181,8 @@
                 <h3>@(IsEnglish ? "Settlement" : "Liquidacao")</h3>
                 <p>
                     @(IsEnglish
-                        ? "The winning side receives a proportional gain from the distributable share generated by the losing side. The losing side preserves most of its capital, reducing fast elimination and reinforcing a dynamic closer to a rotating pool than a classic single-round bet."
-                        : "O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais parecida com pool rotativa do que com aposta classica de rodada unica.")
+                        ? "The winning side receives a proportional gain from the distributable share generated by the losing side. The losing side preserves most of its capital, reducing fast elimination and reinforcing a dynamic closer to a rotating pool with reward redistribution than a classic single-round bet."
+                        : "O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais parecida com pool rotativa com redistribuicao de recompensas do que com aposta classica de rodada unica.")
                 </p>
                 <div class="settlement-chart" aria-label="@(IsEnglish ? "Settlement distribution" : "Distribuicao da liquidacao")">
                     <div class="settlement-chart__pie" @ref="_settlementPieRef"></div>
@@ -302,6 +331,7 @@
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool IsEnglish => CurrentCulture == "en";
+    private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
 
     private string BuildAbsolute(string relativePath)
     {
@@ -406,6 +436,73 @@
         return value.Length <= start + end + 3
             ? value
             : $"{value[..start]}...{value[^end..]}";
+    }
+
+    private string BuildStructuredDataJson()
+    {
+        var pageUrl = BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture));
+        var description = L.T("howItWorks.seo.description", CurrentCulture);
+        var about = IsEnglish
+            ? new[]
+            {
+                "open positions",
+                "cyclical pools",
+                "reward redistribution",
+                "side selection",
+                "competitive staking",
+                "market performance"
+            }
+            : new[]
+            {
+                "abertura de posicoes",
+                "pools ciclicos",
+                "redistribuicao de recompensas",
+                "selecao de lado",
+                "staking competitivo",
+                "performance de mercado"
+            };
+
+        return JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@graph"] = new object[]
+            {
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "WebPage",
+                    ["name"] = L.T("howItWorks.seo.title", CurrentCulture),
+                    ["url"] = pageUrl,
+                    ["description"] = description,
+                    ["abstract"] = IsEnglish
+                        ? "How CriptoVersus handles positions, cyclical pools, side selection, reward redistribution and competitive staking across live crypto arena cycles."
+                        : "Como o CriptoVersus trata posicoes, pools ciclicos, selecao de lado, redistribuicao de recompensas e staking competitivo ao longo de ciclos da arena cripto ao vivo.",
+                    ["about"] = about,
+                    ["keywords"] = about,
+                    ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture)
+                },
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "BreadcrumbList",
+                    ["itemListElement"] = new object[]
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "ListItem",
+                            ["position"] = 1,
+                            ["name"] = "CriptoVersus",
+                            ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "ListItem",
+                            ["position"] = 2,
+                            ["name"] = IsEnglish ? "How It Works" : "Como funciona",
+                            ["item"] = pageUrl
+                        }
+                    }
+                }
+            }
+        });
     }
 }
 
@@ -614,6 +711,35 @@
 
     .metrics-band small {
         color: var(--tk-muted);
+    }
+
+    .semantic-band {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .semantic-band article {
+        padding: 1rem 1.05rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(12, 16, 26, 0.88);
+    }
+
+    .semantic-band span {
+        display: block;
+        margin-bottom: .55rem;
+        color: var(--tk-green);
+        font-size: .8rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .semantic-band p {
+        margin: 0;
+        color: var(--tk-muted);
+        line-height: 1.7;
     }
 
     .topic-callout {
@@ -1043,6 +1169,10 @@
         }
 
         .topic-callout {
+            grid-template-columns: 1fr;
+        }
+
+        .semantic-band {
             grid-template-columns: 1fr;
         }
 

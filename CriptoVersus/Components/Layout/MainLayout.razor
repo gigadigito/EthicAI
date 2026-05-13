@@ -73,6 +73,13 @@
         <article class="app-content">
             @Body
         </article>
+
+        @if (IsPublicSeoRoute)
+        {
+            <footer class="app-footer app-footer--public">
+                <p>@L.T("layout.footer.semanticDescription", CurrentCulture)</p>
+            </footer>
+        }
     </main>
 </div>
 
@@ -229,6 +236,21 @@
         border-color: rgba(127, 246, 223, 0.35);
     }
 
+    .app-footer--public {
+        margin: 0 1.4rem 1.4rem;
+        padding: 1rem 1.15rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.03);
+        color: #b8c7d8;
+    }
+
+    .app-footer--public p {
+        margin: 0;
+        line-height: 1.65;
+        font-size: .95rem;
+    }
+
     @@media (max-width: 480px) {
         .post-login-dialog {
             padding: 1.15rem;
@@ -241,6 +263,10 @@
 
         .post-login-dialog__btn {
             width: 100%;
+        }
+
+        .app-footer--public {
+            margin: 0 1rem 1rem;
         }
     }
 </style>

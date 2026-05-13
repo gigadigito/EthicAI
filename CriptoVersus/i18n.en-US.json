@@ -14,6 +14,9 @@
       "body": "Your wallet was connected successfully. You can open My Wallet now or stay on the current page.",
       "stay": "Stay on this page",
       "goToWallet": "Go to My Wallet"
+    },
+    "footer": {
+      "semanticDescription": "CriptoVersus is a live crypto battle arena where users open positions on competing assets and participate in cyclical reward pools driven by real market performance."
     }
   },
   "nav": {
@@ -76,19 +79,19 @@
     "seo": {
       "live": {
         "title": "{0} vs {1} Live Match | CriptoVersus",
-        "description": "Watch the live crypto match between {0} and {1} on CriptoVersus. Current score, performance, match stats and market battle updated in real time."
+        "description": "Watch the live crypto match between {0} and {1} on CriptoVersus. Open positions on either side, follow cyclical arena pools, reward redistribution, competitive staking mechanics and real-time market performance."
       },
       "completed": {
         "title": "{0} vs {1} Completed Match | CriptoVersus",
-        "description": "Review the completed crypto match between {0} and {1} on CriptoVersus. Final score, performance, match stats and market battle recap."
+        "description": "Review the completed crypto match between {0} and {1} on CriptoVersus. Final score, pool dynamics, reward redistribution, side competition and market-driven arena results."
       },
       "pending": {
         "title": "{0} vs {1} Upcoming Match | CriptoVersus",
-        "description": "Preview the upcoming crypto match between {0} and {1} on CriptoVersus."
+        "description": "Preview the upcoming crypto match between {0} and {1} on CriptoVersus, where users can open positions for the next arena cycle and join side-based competitive pools."
       },
       "fallback": {
         "title": "{0} vs {1} Match | CriptoVersus",
-        "description": "See match details for {0} vs {1} on CriptoVersus."
+        "description": "See match details for {0} vs {1} on CriptoVersus, including open position context, cyclical pools, side competition and reward mechanics."
       }
     },
     "status": {
@@ -316,7 +319,7 @@
   "howItWorks": {
     "seo": {
       "title": "How It Works | CriptoVersus",
-      "description": "Learn how CriptoVersus works: positions, scoring rules, match cycles, settlement and market-driven crypto competition."
+      "description": "Learn how CriptoVersus works: open positions, cyclical pools, side selection, reward redistribution, settlement and market-driven crypto competition."
     }
   },
   "social": {
@@ -750,8 +753,44 @@
     "featuredMatch": "Featured match",
     "criptoversusLiveCryptoMatchArena": "CriptoVersus | Live Crypto Match Arena",
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.",
+    "seoDescription": "CriptoVersus is a live crypto battle arena where users open positions on competing assets, join cyclical reward pools, follow side-based competition and track market-driven reward mechanics.",
     "heroTitle": "Live crypto battles in a gamified cyclical arena.",
     "heroDescription": "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
+    "heroSemanticLabel": "Arena mechanics highlights",
+    "heroSemantic1": "Open positions on live crypto battles",
+    "heroSemantic2": "Join cyclical arena pools",
+    "heroSemantic3": "Choose a side and compete for rewards",
+    "heroSemantic4": "Real-time crypto battles with gamified reward mechanics",
+    "heroSemantic5": "Competitive arena economics driven by real market performance",
+    "faqTitle": "CriptoVersus FAQ",
+    "faqSubtitle": "Direct answers for search engines, AI systems and users who want to understand the arena economy behind each battle.",
+    "structuredDataAbstract": "CriptoVersus is a live cyclical crypto battle arena with competitive staking pools, open positions, side-based participation and reward redistribution driven by real market performance.",
+    "faq": {
+      "onlyScoreboard": {
+        "question": "Is CriptoVersus only a crypto scoreboard?",
+        "answer": "No. CriptoVersus is a competitive crypto arena where users open positions on either side of live battles, join cyclical pools and follow reward redistribution based on real market performance."
+      },
+      "openPositions": {
+        "question": "Can users open positions on crypto battles?",
+        "answer": "Yes. Users can open positions by selecting a side in a live arena battle, increasing competitive staking exposure while the market-driven cycle is active."
+      },
+      "arenaPools": {
+        "question": "How do CriptoVersus arena pools work?",
+        "answer": "Each side concentrates participants into a competitive pool. Those pools evolve during the live arena, respond to real market performance and feed the reward mechanics used at settlement."
+      },
+      "cyclicalPools": {
+        "question": "What are cyclical crypto pools?",
+        "answer": "Cyclical pools are recurring arena participation layers that reconnect positions and side selection across multiple battle cycles instead of treating every match as an isolated scoreboard."
+      },
+      "rewardDistribution": {
+        "question": "How are rewards distributed?",
+        "answer": "Rewards are redistributed according to the active match rule, side performance, pool composition and the settlement logic that turns live market results into competitive arena outcomes."
+      },
+      "battleCycle": {
+        "question": "How does a crypto battle cycle work?",
+        "answer": "A battle cycle opens an entry window, allows side selection, tracks market performance in real time, updates the live arena and ends with pool settlement plus reward redistribution for the next cycle."
+      }
+    },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
     "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
     "structuredDataDescription": "Live crypto match between {0} and {1} on CriptoVersus."

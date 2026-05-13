@@ -46,6 +46,13 @@
 
             <p>@T("heroDescription")</p>
 
+            <ul class="home-hero__semantic-list" aria-label="@T("heroSemanticLabel")">
+                @foreach (var item in HeroSemanticHighlights)
+                {
+                    <li>@item</li>
+                }
+            </ul>
+
 
             <div class="home-hero__actions">
                 <a class="home-cta home-cta--primary" href="#live-matches">
@@ -414,6 +421,22 @@
         </ol>
     </section>
 
+    <section id="arena-faq" class="home-section home-section--faq">
+        <div class="home-section__header">
+            <h2>@T("faqTitle")</h2>
+            <p>@T("faqSubtitle")</p>
+        </div>
+        <div class="home-faq-grid">
+            @foreach (var item in FaqItems)
+            {
+                <article class="home-faq-card">
+                    <h3>@item.Question</h3>
+                    <p>@item.Answer</p>
+                </article>
+            }
+        </div>
+    </section>
+
     <section class="home-section home-section--compact">
         <div class="home-section__header">
             <h2>@T("exploreTheProduct")</h2>
@@ -439,11 +462,28 @@
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
-    private string SeoDescription => T("exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages");
+    private string SeoDescription => T("seoDescription");
     private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
     private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildHomePath("en"));
     private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildHomePath("pt"));
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
+    private IReadOnlyList<string> HeroSemanticHighlights => new[]
+    {
+        T("heroSemantic1"),
+        T("heroSemantic2"),
+        T("heroSemantic3"),
+        T("heroSemantic4"),
+        T("heroSemantic5")
+    };
+    private IReadOnlyList<FaqItem> FaqItems => new[]
+    {
+        new FaqItem(T("faq.onlyScoreboard.question"), T("faq.onlyScoreboard.answer")),
+        new FaqItem(T("faq.openPositions.question"), T("faq.openPositions.answer")),
+        new FaqItem(T("faq.arenaPools.question"), T("faq.arenaPools.answer")),
+        new FaqItem(T("faq.cyclicalPools.question"), T("faq.cyclicalPools.answer")),
+        new FaqItem(T("faq.rewardDistribution.question"), T("faq.rewardDistribution.answer")),
+        new FaqItem(T("faq.battleCycle.question"), T("faq.battleCycle.answer"))
+    };
 
     private List<MatchDto> LiveMatches => (_snapshot?.Matches.OngoingList ?? []).Take(6).ToList();
     private List<MatchDto> FeaturedMatches => (_snapshot?.Matches.OngoingList ?? [])
@@ -727,6 +767,7 @@
         };
 
     private sealed record ArenaBadge(string Text, string Tone);
+    private sealed record FaqItem(string Question, string Answer);
 
     private enum BattleLeader
     {
@@ -769,6 +810,18 @@
 
         graph.Add(new Dictionary<string, object?>
         {
+            ["@type"] = "WebPage",
+            ["name"] = SeoTitle,
+            ["url"] = CanonicalUrl,
+            ["description"] = SeoDescription,
+            ["abstract"] = T("structuredDataAbstract"),
+            ["about"] = GetStructuredAbout(),
+            ["keywords"] = GetStructuredKeywords(),
+            ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture)
+        });
+
+        graph.Add(new Dictionary<string, object?>
+        {
             ["@type"] = "BreadcrumbList",
             ["itemListElement"] = new[]
             {
@@ -805,12 +858,29 @@
                 ["competitor"] = competitors,
                 ["performer"] = competitors,
                 ["image"] = new[] { GetSchemaImageUrl(match, slug) },
-                ["description"] = GetStructuredEventDescription(match)
+                ["description"] = GetStructuredEventDescription(match),
+                ["about"] = GetStructuredAbout(),
+                ["keywords"] = GetStructuredKeywords()
             };
 
             RemoveNullValues(sportsEvent);
             graph.Add(sportsEvent);
         }
+
+        graph.Add(new Dictionary<string, object?>
+        {
+            ["@type"] = "FAQPage",
+            ["mainEntity"] = FaqItems.Select(item => new Dictionary<string, object?>
+            {
+                ["@type"] = "Question",
+                ["name"] = item.Question,
+                ["acceptedAnswer"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "Answer",
+                    ["text"] = item.Answer
+                }
+            }).ToArray()
+        });
 
         return JsonSerializer.Serialize(new Dictionary<string, object?>
         {
@@ -869,8 +939,58 @@
 
     private string GetStructuredEventDescription(MatchDto match)
         => CurrentCulture == "en"
-            ? $"Live crypto battle between {match.TeamA} and {match.TeamB} on CriptoVersus, featuring real-time score, momentum and market performance."
-            : $"Batalha cripto ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, com placar em tempo real, momentum e performance de mercado.";
+            ? $"Live crypto battle between {match.TeamA} and {match.TeamB} on CriptoVersus, where users can open positions on either side, join cyclical arena pools and follow reward redistribution driven by real market performance."
+            : $"Batalha cripto ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, onde usuarios podem abrir posicoes em qualquer lado, participar de pools ciclicos da arena e acompanhar a redistribuicao de recompensas baseada em desempenho real de mercado.";
+
+    private string[] GetStructuredAbout()
+        => CurrentCulture == "en"
+            ?
+            [
+                "live crypto battle arena",
+                "cyclical reward pools",
+                "open positions",
+                "competitive staking",
+                "side-based arena mechanics",
+                "crypto performance battles",
+                "reward redistribution",
+                "gamified crypto competition"
+            ]
+            :
+            [
+                "arena competitiva de criptomoedas ao vivo",
+                "pools ciclicos de recompensas",
+                "abertura de posicoes",
+                "staking competitivo",
+                "mecanicas de lados da arena",
+                "batalhas de performance cripto",
+                "redistribuicao de recompensas",
+                "competicao cripto gamificada"
+            ];
+
+    private string[] GetStructuredKeywords()
+        => CurrentCulture == "en"
+            ?
+            [
+                "live crypto battle arena",
+                "cyclical reward pools",
+                "open positions",
+                "competitive staking",
+                "side-based arena mechanics",
+                "crypto performance battles",
+                "reward redistribution",
+                "gamified crypto competition"
+            ]
+            :
+            [
+                "arena competitiva de criptomoedas ao vivo",
+                "pools ciclicos de recompensas",
+                "abertura de posicoes",
+                "staking competitivo",
+                "mecanicas de lados da arena",
+                "batalhas de performance cripto",
+                "redistribuicao de recompensas",
+                "competicao cripto gamificada"
+            ];
 
     private static void RemoveNullValues(Dictionary<string, object?> data)
     {
@@ -1007,6 +1127,25 @@
         display: flex;
         flex-wrap: wrap;
         gap: .85rem;
+    }
+
+    .home-hero__semantic-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .65rem;
+    }
+
+    .home-hero__semantic-list li {
+        padding: .7rem .95rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: rgba(255,255,255,.04);
+        color: #d9e4f2;
+        font-size: .86rem;
+        line-height: 1.4;
     }
 
     .home-cta,
@@ -1571,6 +1710,32 @@
         border-top: 1px solid rgba(255,255,255,.06);
     }
 
+    .home-faq-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .home-faq-card {
+        padding: 1.1rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,.07);
+        background: rgba(8,14,24,.76);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    }
+
+    .home-faq-card h3 {
+        margin: 0 0 .65rem;
+        font-size: 1.02rem;
+        line-height: 1.35;
+    }
+
+    .home-faq-card p {
+        margin: 0;
+        color: #b8c7d8;
+        line-height: 1.7;
+    }
+
     .arena-cta-link {
         color: #7ff6df;
     }
@@ -1648,6 +1813,7 @@
         }
 
         .arena-top-battle-grid,
+        .home-faq-grid,
         .home-coin-grid,
         .home-link-grid {
             grid-template-columns: 1fr;

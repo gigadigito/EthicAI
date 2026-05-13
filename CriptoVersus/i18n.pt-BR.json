@@ -14,6 +14,9 @@
       "body": "Your wallet was connected successfully. You can open My Wallet now or stay on the current page.",
       "stay": "Stay on this page",
       "goToWallet": "Go to My Wallet"
+    },
+    "footer": {
+      "semanticDescription": "CriptoVersus e uma arena competitiva de criptomoedas onde usuarios abrem posicoes em ativos concorrentes e participam de pools ciclicos de recompensas baseados em desempenho real de mercado."
     }
   },
   "nav": {
@@ -76,19 +79,19 @@
     "seo": {
       "live": {
         "title": "{0} vs {1} Live Match | CriptoVersus",
-        "description": "Watch the live crypto match between {0} and {1} on CriptoVersus. Current score, performance, match stats and market battle updated in real time."
+        "description": "Acompanhe a batalha cripto ao vivo entre {0} e {1} no CriptoVersus. Abra posicoes em qualquer lado, acompanhe pools ciclicos da arena, redistribuicao de recompensas, mecanicas de staking competitivo e performance de mercado em tempo real."
       },
       "completed": {
         "title": "{0} vs {1} Completed Match | CriptoVersus",
-        "description": "Review the completed crypto match between {0} and {1} on CriptoVersus. Final score, performance, match stats and market battle recap."
+        "description": "Revise a batalha cripto concluida entre {0} e {1} no CriptoVersus. Veja placar final, dinamica dos pools, redistribuicao de recompensas, competicao entre lados e resultado guiado pelo mercado."
       },
       "pending": {
         "title": "{0} vs {1} Upcoming Match | CriptoVersus",
-        "description": "Preview the upcoming crypto match between {0} and {1} on CriptoVersus."
+        "description": "Veja a previa da proxima batalha cripto entre {0} e {1} no CriptoVersus, onde usuarios podem abrir posicoes para o proximo ciclo da arena e entrar em pools competitivos por lado."
       },
       "fallback": {
         "title": "{0} vs {1} Match | CriptoVersus",
-        "description": "See match details for {0} vs {1} on CriptoVersus."
+        "description": "Veja os detalhes da partida {0} vs {1} no CriptoVersus, incluindo contexto de posicoes abertas, pools ciclicos, competicao por lado e mecanicas de recompensa."
       }
     },
     "status": {
@@ -316,7 +319,7 @@
   "howItWorks": {
     "seo": {
       "title": "How It Works | CriptoVersus",
-      "description": "Learn how CriptoVersus works: positions, scoring rules, match cycles, settlement and market-driven crypto competition."
+      "description": "Entenda como o CriptoVersus funciona: posicoes abertas, pools ciclicos, selecao de lado, redistribuicao de recompensas, liquidacao e competicao cripto guiada pelo mercado."
     }
   },
   "social": {
@@ -750,8 +753,44 @@
     "featuredMatch": "Featured match",
     "criptoversusLiveCryptoMatchArena": "CriptoVersus | Live Crypto Match Arena",
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.",
+    "seoDescription": "CriptoVersus e uma arena cripto ao vivo onde usuarios abrem posicoes em ativos concorrentes, entram em pools ciclicos de recompensa, acompanham competicao entre lados e seguem mecanicas de recompensa guiadas pelo mercado.",
     "heroTitle": "Live crypto battles in a gamified cyclical arena.",
     "heroDescription": "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
+    "heroSemanticLabel": "Destaques da mecanica da arena",
+    "heroSemantic1": "Abra posicoes em batalhas cripto ao vivo",
+    "heroSemantic2": "Participe de pools ciclicos da arena",
+    "heroSemantic3": "Escolha um lado e dispute recompensas",
+    "heroSemantic4": "Batalhas cripto em tempo real com mecanicas gamificadas de recompensa",
+    "heroSemantic5": "Economia competitiva da arena baseada em desempenho real de mercado",
+    "faqTitle": "FAQ do CriptoVersus",
+    "faqSubtitle": "Respostas diretas para buscadores, sistemas de IA e usuarios que querem entender a economia competitiva por tras de cada batalha.",
+    "structuredDataAbstract": "CriptoVersus e uma arena ciclica de batalhas cripto ao vivo com pools competitivos de staking, abertura de posicoes, participacao por lado e redistribuicao de recompensas guiada pelo desempenho real de mercado.",
+    "faq": {
+      "onlyScoreboard": {
+        "question": "O CriptoVersus e apenas um placar de criptomoedas?",
+        "answer": "Nao. O CriptoVersus e uma arena competitiva cripto onde usuarios abrem posicoes em qualquer lado de batalhas ao vivo, entram em pools ciclicos e acompanham a redistribuicao de recompensas baseada em desempenho real de mercado."
+      },
+      "openPositions": {
+        "question": "Usuarios podem abrir posicoes nas batalhas?",
+        "answer": "Sim. Usuarios podem abrir posicoes ao selecionar um lado em uma batalha da arena ao vivo, aumentando a exposicao competitiva em estilo staking enquanto o ciclo guiado pelo mercado esta ativo."
+      },
+      "arenaPools": {
+        "question": "Como funcionam os pools da arena?",
+        "answer": "Cada lado concentra participantes em um pool competitivo. Esses pools evoluem durante a arena ao vivo, respondem ao desempenho real de mercado e alimentam as mecanicas de recompensa usadas na liquidacao."
+      },
+      "cyclicalPools": {
+        "question": "O que sao pools ciclicos?",
+        "answer": "Pools ciclicos sao camadas recorrentes de participacao na arena que reconectam posicoes e selecao de lado ao longo de varios ciclos de batalha, em vez de tratar cada partida como um placar isolado."
+      },
+      "rewardDistribution": {
+        "question": "Como as recompensas sao distribuidas?",
+        "answer": "As recompensas sao redistribuidas de acordo com a regra ativa da partida, a performance de cada lado, a composicao dos pools e a logica de liquidacao que transforma o mercado ao vivo em resultado competitivo de arena."
+      },
+      "battleCycle": {
+        "question": "Como funciona o ciclo de uma batalha?",
+        "answer": "Um ciclo de batalha abre uma janela de entrada, permite a selecao de lado, acompanha a performance de mercado em tempo real, atualiza a arena ao vivo e termina com a liquidacao dos pools e a redistribuicao de recompensas para o proximo ciclo."
+      }
+    },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
     "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
     "structuredDataDescription": "Live crypto match between {0} and {1} on CriptoVersus."

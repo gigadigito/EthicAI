@@ -2,6 +2,7 @@ using DTOs;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace CriptoVersus.Web.Services;
 
@@ -91,6 +92,7 @@ public sealed class MatchSeoService
             Description = string.IsNullOrWhiteSpace(description)
                 ? _localizationService.T("match.seo.fallback.description", normalizedCulture, FormatCoinLabel(match.TeamA), FormatCoinLabel(match.TeamB))
                 : description,
+            Keywords = string.Join(", ", BuildKeywordList(normalizedCulture)),
             CanonicalUrl = canonicalUrl,
             AlternateLinks = alternateLinks,
             OpenGraphTitle = ogTitle,
@@ -104,7 +106,8 @@ public sealed class MatchSeoService
             TwitterTitle = BuildTitle(match, normalizedCulture),
             TwitterDescription = description,
             XDefaultUrl = BuildAbsoluteUrl(_routeLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, match.MatchId, slug), fallbackBaseUri),
-            TwitterCard = "summary_large_image"
+            TwitterCard = "summary_large_image",
+            StructuredDataMarkup = BuildStructuredDataMarkup(match, normalizedCulture, canonicalUrl, socialImageUrl)
         };
     }
 
@@ -240,6 +243,125 @@ public sealed class MatchSeoService
     private static string EscapeXml(string? value)
         => WebUtility.HtmlEncode(value ?? string.Empty);
 
+    private string BuildStructuredDataMarkup(MatchDto match, string culture, string canonicalUrl, string socialImageUrl)
+    {
+        var description = BuildDescription(match, culture);
+        var abstractText = BuildAbstract(match, culture);
+        var keywords = BuildKeywordList(culture);
+        var competitors = new object[]
+        {
+            new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = FormatCoinLabel(match.TeamA) },
+            new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = FormatCoinLabel(match.TeamB) }
+        };
+
+        var webPage = new Dictionary<string, object?>
+        {
+            ["@type"] = "WebPage",
+            ["name"] = BuildTitle(match, culture),
+            ["description"] = description,
+            ["abstract"] = abstractText,
+            ["about"] = keywords,
+            ["keywords"] = keywords,
+            ["url"] = canonicalUrl,
+            ["inLanguage"] = _appCultureService.ToHrefLang(culture)
+        };
+
+        var sportsEvent = new Dictionary<string, object?>
+        {
+            ["@type"] = "SportsEvent",
+            ["name"] = $"{FormatCoinLabel(match.TeamA)} vs {FormatCoinLabel(match.TeamB)}",
+            ["description"] = description,
+            ["abstract"] = abstractText,
+            ["about"] = keywords,
+            ["keywords"] = keywords,
+            ["eventStatus"] = NormalizeStatus(match.Status) switch
+            {
+                MatchSeoStatus.Completed => "https://schema.org/EventCompleted",
+                MatchSeoStatus.Ongoing => "https://schema.org/EventInProgress",
+                _ => "https://schema.org/EventScheduled"
+            },
+            ["startDate"] = FormatSchemaDate(match.StartTime),
+            ["endDate"] = NormalizeStatus(match.Status) == MatchSeoStatus.Completed ? FormatSchemaDate(match.EndTime) : null,
+            ["url"] = canonicalUrl,
+            ["location"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "VirtualLocation",
+                ["url"] = canonicalUrl
+            },
+            ["organizer"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "Organization",
+                ["name"] = "CriptoVersus",
+                ["url"] = BuildAbsoluteUrl(_routeLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture), canonicalUrl)
+            },
+            ["competitor"] = competitors,
+            ["performer"] = competitors,
+            ["image"] = new[] { socialImageUrl }
+        };
+
+        RemoveNullValues(webPage);
+        RemoveNullValues(sportsEvent);
+
+        return JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@graph"] = new object[] { webPage, sportsEvent }
+        });
+    }
+
+    private string BuildAbstract(MatchDto match, string culture)
+    {
+        var coinA = FormatCoinLabel(match.TeamA);
+        var coinB = FormatCoinLabel(match.TeamB);
+
+        return string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
+            ? $"CriptoVersus e uma arena competitiva de criptomoedas onde usuarios podem abrir posicoes em {coinA} ou {coinB}, participar de pools ciclicos, acompanhar mecanicas de staking competitivo e receber recompensas redistribuidas com base no desempenho real de mercado."
+            : $"CriptoVersus is a live crypto battle arena where users can open positions on {coinA} or {coinB}, join cyclical pools, follow competitive staking mechanics and receive redistributed rewards based on real market performance.";
+    }
+
+    private string[] BuildKeywordList(string culture)
+        => string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
+            ?
+            [
+                "arena competitiva de criptomoedas",
+                "abertura de posicoes",
+                "pools ciclicos",
+                "staking competitivo",
+                "mecanicas de lados",
+                "redistribuicao de recompensas",
+                "batalhas de performance de mercado",
+                "competicao cripto gamificada"
+            ]
+            :
+            [
+                "live crypto battle arena",
+                "open positions",
+                "cyclical reward pools",
+                "competitive staking",
+                "side-based arena mechanics",
+                "reward redistribution",
+                "crypto performance battles",
+                "gamified crypto competition"
+            ];
+
+    private static string? FormatSchemaDate(DateTime? value)
+    {
+        if (!value.HasValue)
+            return null;
+
+        var normalized = value.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+            : value.Value;
+
+        return normalized.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    }
+
+    private static void RemoveNullValues(Dictionary<string, object?> data)
+    {
+        foreach (var key in data.Where(x => x.Value is null).Select(x => x.Key).ToList())
+            data.Remove(key);
+    }
+
     private static MatchSeoStatus NormalizeStatus(string? status)
         => status?.Trim().ToLowerInvariant() switch
         {
@@ -256,6 +378,7 @@ public sealed class MatchSeoMetadata
 {
     public string Title { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
+    public string Keywords { get; init; } = string.Empty;
     public string CanonicalUrl { get; init; } = string.Empty;
     public IReadOnlyList<AlternateLink> AlternateLinks { get; init; } = [];
     public string OpenGraphTitle { get; init; } = string.Empty;
@@ -270,6 +393,7 @@ public sealed class MatchSeoMetadata
     public string SocialImageAlt { get; init; } = string.Empty;
     public string XDefaultUrl { get; init; } = string.Empty;
     public string TwitterCard { get; init; } = "summary_large_image";
+    public string StructuredDataMarkup { get; init; } = string.Empty;
 }
 
 public enum MatchSeoStatus
