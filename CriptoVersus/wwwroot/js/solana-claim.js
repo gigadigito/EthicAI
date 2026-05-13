@@ -5,9 +5,9 @@
     }
 
     const connection = new solanaWeb3.Connection(rpcUrl, "confirmed");
-    const wallet = window.criptoVersusWallet?.getActiveProvider?.() ?? window.solana;
-    if (!wallet || typeof wallet.connect !== "function") {
-        throw new Error("Carteira Solana nao encontrada.");
+    const wallet = window.criptoVersusWallet?.getRequiredActiveProviderForTransaction?.("CLAIM_FLOW");
+    if (!wallet) {
+        throw new Error("Selecione e conecte uma wallet antes de continuar.");
     }
 
     // Solicita conexão com a carteira

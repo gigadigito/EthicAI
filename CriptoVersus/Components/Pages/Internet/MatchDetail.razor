@@ -272,6 +272,38 @@
                     </div>
                 </div>
 
+                <div class="social-share-card__sentiment">
+                    <div class="card match-panel social-share-sentiment-panel p-3">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div>
+                                <div class="fw-bold">@T("arenaPressureTitle")</div>
+                                <div class="small text-muted">@T("arenaPressureSubtitle")</div>
+                            </div>
+                            <span class="badge rounded-pill text-bg-dark border border-secondary-subtle">@T("marketPulse")</span>
+                        </div>
+
+                        <div class="social-share-sentiment-grid">
+                            <ArenaSentimentGauge Symbol="@_match.TeamA"
+                                                 Score="@_arenaSentimentA?.Score"
+                                                 Classification="@_arenaSentimentA?.Classification"
+                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
+                                                 IsLoading="@_arenaSentimentLoading"
+                                                 Size="250"
+                                                 ShowLabel="true"
+                                                 LabelText="@T("arenaPressureLabel")" />
+
+                            <ArenaSentimentGauge Symbol="@_match.TeamB"
+                                                 Score="@_arenaSentimentB?.Score"
+                                                 Classification="@_arenaSentimentB?.Classification"
+                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
+                                                 IsLoading="@_arenaSentimentLoading"
+                                                 Size="250"
+                                                 ShowLabel="true"
+                                                 LabelText="@T("arenaPressureLabel")" />
+                        </div>
+                    </div>
+                </div>
+
                 <div class="social-share-card__charts">
                     <div class="card match-panel social-share-panel p-3">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -1713,6 +1745,7 @@
 
     .social-share-clock-card {
         min-height: 0;
+        max-height:250px;
         height: auto;
     }
 
@@ -1820,6 +1853,20 @@
     }
 
     .social-share-card__charts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .9rem;
+    }
+
+    .social-share-card__sentiment {
+        margin-top: .9rem;
+    }
+
+    .social-share-sentiment-panel {
+        border-radius: 24px;
+    }
+
+    .social-share-sentiment-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: .9rem;
@@ -2022,6 +2069,7 @@
     @@media (max-width: 1199.98px) {
         .social-share-card__hero,
         .social-share-card__stats,
+        .social-share-sentiment-grid,
         .social-share-card__charts,
         .social-share-events-list {
             grid-template-columns: minmax(0, 1fr);
@@ -2461,6 +2509,7 @@
             "PercentageCrossover" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) on an upward percentage crossover.",
             "VolumeWindow" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) by leading the volume window.",
             "VolumeCrossover" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) on an upward volume crossover.",
+            "ArenaPressure" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) through Arena Pressure dominance.",
             _ => string.IsNullOrWhiteSpace(scoreEvent.Description)
                 ? $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s)."
                 : scoreEvent.Description
@@ -2997,6 +3046,9 @@
 
     private List<MatchMetricSnapshotDto> _metricSnapshots = new();
     private List<MatchScoreEventDto> _scoreEvents = new();
+    private ArenaSentimentDto? _arenaSentimentA;
+    private ArenaSentimentDto? _arenaSentimentB;
+    private bool _arenaSentimentLoading;
     private ChartSeriesState _percentageChart = ChartSeriesState.Empty;
     private ChartSeriesState _volumeChart = ChartSeriesState.Empty;
 
@@ -3006,6 +3058,8 @@
         {
             _metricSnapshots = new();
             _scoreEvents = new();
+            _arenaSentimentA = null;
+            _arenaSentimentB = null;
             _percentageChart = ChartSeriesState.Empty;
             _volumeChart = ChartSeriesState.Empty;
             return;
@@ -3013,11 +3067,14 @@
 
         var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(_match.MatchId, 500, ct);
         var scoreEventsTask = Api.GetMatchScoreEventsAsync(_match.MatchId, ct);
+        _arenaSentimentLoading = true;
+        var arenaSentimentTask = Api.GetMatchArenaSentimentAsync(_match.MatchId, ct);
 
-        await Task.WhenAll(snapshotsTask, scoreEventsTask);
+        await Task.WhenAll(snapshotsTask, scoreEventsTask, arenaSentimentTask);
 
         var snapshots = snapshotsTask.Result ?? [];
         var scoreEvents = scoreEventsTask.Result ?? [];
+        var arenaSentiment = arenaSentimentTask.Result;
 
         var orderedSnapshots = snapshots
             .OrderBy(x => x.CapturedAtUtc)
@@ -3031,6 +3088,9 @@
 
         _metricSnapshots = orderedSnapshots;
         _scoreEvents = orderedScoreEvents;
+        _arenaSentimentA = arenaSentiment?.TeamA;
+        _arenaSentimentB = arenaSentiment?.TeamB;
+        _arenaSentimentLoading = false;
 
         _percentageChart = BuildChartState(
             _metricSnapshots,
@@ -3043,6 +3103,22 @@
             x => x.QuoteVolume,
             ensureZeroLine: false,
             minimumPadding: 1d);
+    }
+
+    private string GetArenaSentimentLabel(ArenaSentimentDto? sentiment)
+    {
+        var code = sentiment?.Classification ?? "Neutral";
+
+        return code switch
+        {
+            "ExtremeFear" => T("arenaExtremeFear"),
+            "Fear" => T("arenaFear"),
+            "Neutral" => T("arenaNeutral"),
+            "Greed" => T("arenaGreed"),
+            "ExtremeGreed" => T("arenaExtremeGreed"),
+            "InsufficientData" => T("arenaInsufficientData"),
+            _ => code
+        };
     }
 
     private ChartSeriesState BuildChartState(

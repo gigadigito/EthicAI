@@ -50,6 +50,18 @@
         return null;
     }
 
+    function getProviderFlags(provider) {
+        return {
+            isPhantom: !!provider?.isPhantom,
+            isSolflare: !!provider?.isSolflare,
+            isBackpack: !!provider?.isBackpack
+        };
+    }
+
+    function logProviderDiag(payload) {
+        console.log("[WALLET_PROVIDER_DIAG]", payload);
+    }
+
     function toFriendlyError(error, fallbackMessage) {
         if (!error) {
             return fallbackMessage;
@@ -227,6 +239,35 @@
         return readProviderPublicKey(activeProvider);
     }
 
+    function getRequiredActiveProviderForTransaction(source) {
+        const provider = activeProvider;
+        const publicKey = readProviderPublicKey(provider);
+        const walletName = activeWalletName;
+        const flags = getProviderFlags(provider);
+
+        if (!provider || typeof provider.connect !== "function" || !walletName || !publicKey) {
+            logProviderDiag({
+                source,
+                resolution: "FALLBACK_BLOCKED",
+                activeWalletName: walletName || null,
+                publicKey: publicKey || null,
+                ...flags
+            });
+
+            throw new Error("Selecione e conecte uma wallet antes de continuar.");
+        }
+
+        logProviderDiag({
+            source,
+            resolution: "ACTIVE_PROVIDER",
+            activeWalletName: walletName,
+            publicKey,
+            ...flags
+        });
+
+        return provider;
+    }
+
     window.criptoVersusWallet = {
         detectWallets,
         connect,
@@ -235,6 +276,7 @@
         openInstall,
         getActiveProvider,
         getActiveWalletName,
-        getPublicKey
+        getPublicKey,
+        getRequiredActiveProviderForTransaction
     };
 })();

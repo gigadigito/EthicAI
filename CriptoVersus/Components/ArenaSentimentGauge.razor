@@ -1,0 +1,246 @@
+<div class="arena-sentiment-gauge @(IsLoading ? "arena-sentiment-gauge--loading" : string.Empty)" style="@($"--gauge-size:{NormalizedSize}px; --gauge-accent:{GaugeColor}; --needle-rotation:{NeedleRotation}deg;")">
+    @if (IsLoading)
+    {
+        <div class="arena-sentiment-gauge__skeleton"></div>
+    }
+    else
+    {
+        <div class="arena-sentiment-gauge__header">
+            <span class="arena-sentiment-gauge__symbol">@Symbol</span>
+            @if (ShowLabel)
+            {
+                <span class="arena-sentiment-gauge__label">@LabelText</span>
+            }
+        </div>
+
+        <div class="arena-sentiment-gauge__dial">
+            <svg viewBox="0 0 220 140" class="arena-sentiment-gauge__svg" aria-hidden="true">
+                <path d="M20 120 A90 90 0 0 1 200 120" class="arena-sentiment-gauge__track" />
+                <path d="M20 120 A90 90 0 0 1 65 42" class="arena-sentiment-gauge__band arena-sentiment-gauge__band--fear" />
+                <path d="M65 42 A90 90 0 0 1 155 42" class="arena-sentiment-gauge__band arena-sentiment-gauge__band--neutral" />
+                <path d="M155 42 A90 90 0 0 1 200 120" class="arena-sentiment-gauge__band arena-sentiment-gauge__band--greed" />
+            </svg>
+
+            <div class="arena-sentiment-gauge__ticks">
+                @foreach (var tick in TickItems)
+                {
+                    <span class="arena-sentiment-gauge__tick" style="@($"left:{tick.Left}%; top:{tick.Top}%;")">@tick.Label</span>
+                }
+            </div>
+
+            <div class="arena-sentiment-gauge__needle-wrap">
+                <span class="arena-sentiment-gauge__needle"></span>
+                <span class="arena-sentiment-gauge__hub"></span>
+            </div>
+
+            <div class="arena-sentiment-gauge__center">
+                <strong>@DisplayScore</strong>
+                <span>@CenterLabel</span>
+            </div>
+        </div>
+
+        <div class="arena-sentiment-gauge__footer">@DisplayClassificationLabel</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Symbol { get; set; } = string.Empty;
+    [Parameter] public int? Score { get; set; }
+    [Parameter] public string? Classification { get; set; }
+    [Parameter] public string? ClassificationLabel { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public int Size { get; set; } = 260;
+    [Parameter] public bool ShowLabel { get; set; } = true;
+    [Parameter] public string LabelText { get; set; } = "Arena Pressure";
+
+    private int NormalizedSize => Math.Clamp(Size, 180, 360);
+    private int DisplayScore => Math.Clamp(Score ?? 50, 0, 100);
+    private string DisplayClassification => string.IsNullOrWhiteSpace(Classification) ? "Neutral" : Classification!;
+    private string DisplayClassificationLabel => string.IsNullOrWhiteSpace(ClassificationLabel) ? DisplayClassification : ClassificationLabel!;
+    private string CenterLabel => ShowLabel ? LabelText : DisplayClassificationLabel;
+    private double NeedleRotation => -90d + (DisplayScore * 1.8d);
+
+    private string GaugeColor => DisplayClassification switch
+    {
+        "ExtremeFear" or "Fear" => "#ff5d7a",
+        "Greed" or "ExtremeGreed" => "#8b5cf6",
+        "InsufficientData" => "#6ee7f9",
+        _ => "#19d3ff"
+    };
+
+    private static readonly IReadOnlyList<TickItem> TickItems =
+    [
+        new("0", 7, 79),
+        new("20", 18, 34),
+        new("40", 35, 9),
+        new("60", 57, 9),
+        new("80", 74, 34),
+        new("100", 84, 79)
+    ];
+
+    private sealed record TickItem(string Label, double Left, double Top);
+}
+
+<style>
+    .arena-sentiment-gauge {
+        position: relative;
+        width: min(100%, var(--gauge-size));
+        padding: 1rem 1rem 0.9rem;
+        border-radius: 24px;
+        border: 1px solid color-mix(in srgb, var(--gauge-accent) 45%, #17304a);
+        background:
+            radial-gradient(circle at top, color-mix(in srgb, var(--gauge-accent) 18%, transparent), transparent 42%),
+            linear-gradient(180deg, rgba(5, 15, 29, 0.96), rgba(8, 12, 24, 0.98));
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255,255,255,0.03);
+        overflow: hidden;
+    }
+
+    .arena-sentiment-gauge__header,
+    .arena-sentiment-gauge__footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .arena-sentiment-gauge__symbol {
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: #f8fbff;
+    }
+
+    .arena-sentiment-gauge__label,
+    .arena-sentiment-gauge__footer {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: rgba(204, 224, 255, 0.72);
+    }
+
+    .arena-sentiment-gauge__dial {
+        position: relative;
+        aspect-ratio: 1.42 / 1;
+        margin-top: 0.45rem;
+    }
+
+    .arena-sentiment-gauge__svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .arena-sentiment-gauge__track,
+    .arena-sentiment-gauge__band {
+        fill: none;
+        stroke-linecap: round;
+        stroke-width: 16;
+    }
+
+    .arena-sentiment-gauge__track {
+        stroke: rgba(255, 255, 255, 0.06);
+    }
+
+    .arena-sentiment-gauge__band--fear {
+        stroke: #ff5d7a;
+    }
+
+    .arena-sentiment-gauge__band--neutral {
+        stroke: #19d3ff;
+    }
+
+    .arena-sentiment-gauge__band--greed {
+        stroke: #8b5cf6;
+    }
+
+    .arena-sentiment-gauge__ticks {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .arena-sentiment-gauge__tick {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        font-size: 0.72rem;
+        color: rgba(214, 232, 255, 0.76);
+    }
+
+    .arena-sentiment-gauge__needle-wrap {
+        position: absolute;
+        left: 50%;
+        bottom: 20%;
+        width: 0;
+        height: 0;
+        transform: rotate(var(--needle-rotation));
+        transform-origin: center center;
+        transition: transform 0.55s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .arena-sentiment-gauge__needle {
+        position: absolute;
+        left: -2px;
+        bottom: -4px;
+        width: 4px;
+        height: calc(var(--gauge-size) * 0.23);
+        border-radius: 999px;
+        background: linear-gradient(180deg, #ffffff, var(--gauge-accent));
+        box-shadow: 0 0 16px color-mix(in srgb, var(--gauge-accent) 65%, transparent);
+    }
+
+    .arena-sentiment-gauge__hub {
+        position: absolute;
+        left: -10px;
+        bottom: -10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ffffff 0%, var(--gauge-accent) 55%, #08111f 100%);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--gauge-accent) 55%, transparent);
+    }
+
+    .arena-sentiment-gauge__center {
+        position: absolute;
+        left: 50%;
+        bottom: 12%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+        min-width: 92px;
+        text-align: center;
+    }
+
+    .arena-sentiment-gauge__center strong {
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        line-height: 1;
+        color: #ffffff;
+        text-shadow: 0 0 18px rgba(255,255,255,0.14);
+    }
+
+    .arena-sentiment-gauge__center span {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: rgba(214, 232, 255, 0.72);
+    }
+
+    .arena-sentiment-gauge__footer {
+        justify-content: center;
+        margin-top: 0.35rem;
+        color: var(--gauge-accent);
+        font-weight: 700;
+    }
+
+    .arena-sentiment-gauge__skeleton {
+        height: calc(var(--gauge-size) * 0.74);
+        border-radius: 18px;
+        background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+        background-size: 200% 100%;
+        animation: arenaGaugeShimmer 1.4s linear infinite;
+    }
+
+    @@keyframes arenaGaugeShimmer {
+        from { background-position: 200% 0; }
+        to { background-position: -200% 0; }
+    }
+</style>

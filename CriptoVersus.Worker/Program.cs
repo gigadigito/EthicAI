@@ -8,6 +8,7 @@ using Npgsql;
 using BLL.NFTFutebol;
 using BLL.GameRules;
 using BLL.Positions;
+using BLL.ArenaSentiment;
 using CriptoVersus.Worker;
 using BLL;
 using BLL.Blockchain;
@@ -46,8 +47,12 @@ Console.WriteLine("=================================");
 Console.ResetColor();
 
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>();
 builder.Services.Configure<CriptoVersusWorkerOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker"));
+builder.Services.Configure<ArenaSentimentOptions>(
+    builder.Configuration.GetSection(ArenaSentimentOptions.ConfigSection));
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
 

@@ -1,8 +1,8 @@
 function getProvider() {
-    const provider = window.criptoVersusWallet?.getActiveProvider?.() ?? window.solana;
+    const provider = window.criptoVersusWallet?.getRequiredActiveProviderForTransaction?.("WALLET_ACTIONS");
 
-    if (!provider || typeof provider.connect !== "function") {
-        throw new Error("Carteira Solana nao encontrada.");
+    if (!provider) {
+        throw new Error("Selecione e conecte uma wallet antes de continuar.");
     }
 
     return provider;
@@ -162,7 +162,7 @@ export function unregisterWalletObserver() {
 export function registerWalletObserver(dotNetRef, options) {
     unregisterWalletObserver();
 
-    const provider = window.criptoVersusWallet?.getActiveProvider?.() ?? window.solana;
+    const provider = window.criptoVersusWallet?.getActiveProvider?.() ?? null;
     if (!provider || typeof dotNetRef?.invokeMethodAsync !== "function") {
         return false;
     }

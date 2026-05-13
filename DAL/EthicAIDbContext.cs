@@ -29,6 +29,7 @@ namespace EthicAI.EntityModel
         public DbSet<MatchMetricSnapshot> MatchMetricSnapshot { get; set; }
         public DbSet<MatchScoreEvent> MatchScoreEvent { get; set; }
         public DbSet<MatchScoreState> MatchScoreState { get; set; }
+        public DbSet<ArenaSentimentSnapshot> ArenaSentimentSnapshot { get; set; }
         public DbSet<SocialPostHistory> SocialPostHistory { get; set; }
         public DbSet<FinancialMigrationBatch> FinancialMigrationBatch { get; set; }
         public DbSet<FundMigrationCheckpoint> FundMigrationCheckpoint { get; set; }
@@ -775,6 +776,34 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_last_snapshot_at");
 
+                entity.Property(e => e.TeamAPressureCharges)
+                      .HasColumnName("nr_pressure_charges_a")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.TeamBPressureCharges)
+                      .HasColumnName("nr_pressure_charges_b")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.TotalPressureGoalsAwarded)
+                      .HasColumnName("nr_pressure_goals_awarded")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastPressureLeaderTeamId)
+                      .HasColumnName("cd_last_pressure_leader")
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastPressureLeaderCycles)
+                      .HasColumnName("nr_last_pressure_leader_cycles")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastPressureGoalTeamAAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_pressure_goal_a");
+
+                entity.Property(e => e.LastPressureGoalTeamBAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_pressure_goal_b");
+
                 entity.Property(e => e.CreatedAtUtc)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_created_at");
@@ -782,6 +811,64 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.UpdatedAtUtc)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_updated_at");
+            });
+
+            modelBuilder.Entity<ArenaSentimentSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("arena_sentiment_snapshot");
+
+                entity.Property(e => e.Id)
+                      .HasColumnName("id")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.Symbol)
+                      .HasColumnName("symbol")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.Score)
+                      .HasColumnName("score");
+
+                entity.Property(e => e.Classification)
+                      .HasColumnName("classification")
+                      .HasMaxLength(40);
+
+                entity.Property(e => e.PriceMomentumScore)
+                      .HasColumnName("price_momentum_score")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.VolumeScore)
+                      .HasColumnName("volume_score")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.OrderBookScore)
+                      .HasColumnName("order_book_score")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.FundingScore)
+                      .HasColumnName("funding_score")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.LongShortScore)
+                      .HasColumnName("long_short_score")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.VolatilityScore)
+                      .HasColumnName("volatility_score")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.DataCoverage)
+                      .HasColumnName("data_coverage")
+                      .HasColumnType("numeric(10,2)");
+
+                entity.Property(e => e.HasSufficientData)
+                      .HasColumnName("has_sufficient_data");
+
+                entity.Property(e => e.CalculatedAt)
+                      .HasColumnName("calculated_at")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => new { e.Symbol, e.CalculatedAt });
             });
 
             modelBuilder.Entity<SocialPostHistory>(entity =>

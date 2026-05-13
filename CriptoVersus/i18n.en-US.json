@@ -631,30 +631,30 @@
       "cta": "Invest in {0}",
       "loadingCta": "Loading market",
       "openMatch": "Open match",
-        "states": {
-          "loading": "Loading",
-          "available": "Available",
-          "positionAvailable": "Position available",
-          "blocked": "Blocked",
-          "walletRequired": "Connect wallet",
-          "unavailable": "Unavailable"
-        },
-        "messages": {
-          "loading": "Looking up the latest investable match or cycle for this team.",
-          "available": "Persistent position available for {0}.",
-          "positionAvailable": "Persistent position available for {0}.",
-          "positionAvailableNoMatch": "You can open a persistent position in this asset. It may automatically participate in future cycles.",
-          "walletRequired": "Connect your wallet to open or increase a persistent position in {0}.",
-          "unavailable": "This team has no public investable market right now.",
-          "noMatch": "We could not find an active public match for this team yet.",
-          "closed": "Recent matches for this team are no longer inside the investment window.",
-          "advancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
-          "blockedAdvancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
-          "error": "We could not validate the investable context right now. Please try again shortly.",
-          "success": "Investment submitted for {0}.",
-          "submitError": "We could not submit the investment for {0} right now."
-        }
+      "states": {
+        "loading": "Loading",
+        "available": "Available",
+        "positionAvailable": "Position available",
+        "blocked": "Blocked",
+        "walletRequired": "Connect wallet",
+        "unavailable": "Unavailable"
       },
+      "messages": {
+        "loading": "Looking up the latest investable match or cycle for this team.",
+        "available": "Persistent position available for {0}.",
+        "positionAvailable": "Persistent position available for {0}.",
+        "positionAvailableNoMatch": "You can open a persistent position in this asset. It may automatically participate in future cycles.",
+        "walletRequired": "Connect your wallet to open or increase a persistent position in {0}.",
+        "unavailable": "This team has no public investable market right now.",
+        "noMatch": "We could not find an active public match for this team yet.",
+        "closed": "Recent matches for this team are no longer inside the investment window.",
+        "advancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
+        "blockedAdvancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
+        "error": "We could not validate the investable context right now. Please try again shortly.",
+        "success": "Investment submitted for {0}.",
+        "submitError": "We could not submit the investment for {0} right now."
+      }
+    },
     "states": {
       "loadingTitle": "Loading team profile",
       "loadingBody": "Fetching the latest public arena detail for this crypto team.",
@@ -857,7 +857,17 @@
     "thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere": "There are no persisted snapshots for this match yet. After the worker runs and records the captures, the charts will appear here.",
     "percentageThresholdCardDescription": "The badges above show only upward crossovers on the chart. Threshold points still count toward the score and log: {0} {1} | {2} {3}.",
     "volumeWindowCardDescription": "The badges above show only upward crossovers on the chart. Points from the 15-minute window still count toward the score and log: {0} {1} | {2} {3}.",
-    "notEnoughPointsToDrawLines": "There are not enough points yet to draw the lines. At least 2 captures per team are required. {0}: {1}. {2}: {3}."
+    "notEnoughPointsToDrawLines": "There are not enough points yet to draw the lines. At least 2 captures per team are required. {0}: {1}. {2}: {3}.",
+    "arenaPressureTitle": "Arena Pressure",
+    "arenaPressureSubtitle": "Proprietary pressure and sentiment gauge calculated only from Binance market data.",
+    "marketPulse": "Market Pulse",
+    "arenaPressureLabel": "Arena Pressure",
+    "arenaExtremeFear": "Extreme Fear",
+    "arenaFear": "Fear",
+    "arenaNeutral": "Neutral",
+    "arenaGreed": "Greed",
+    "arenaExtremeGreed": "Extreme Greed",
+    "arenaInsufficientData": "Insufficient data"
   },
   "walletPage": {
     "heading": {

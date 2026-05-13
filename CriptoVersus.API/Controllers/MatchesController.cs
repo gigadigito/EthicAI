@@ -10,6 +10,7 @@ using System.Text.Json;
 using EthicAI.EntityModel;
 using DAL.NftFutebol;
 using CriptoVersus.API.Services;
+using BLL.ArenaSentiment;
 
 namespace CriptoVersus.API.Controllers
 {
@@ -21,17 +22,20 @@ namespace CriptoVersus.API.Controllers
         private readonly IHubContext<DashboardHub> _hub;
         private readonly IMatchScoreRebuildService _matchScoreRebuildService;
         private readonly IConfiguration _configuration;
+        private readonly IArenaSentimentService _arenaSentimentService;
 
         public MatchesController(
             EthicAIDbContext db,
             IHubContext<DashboardHub> hub,
             IMatchScoreRebuildService matchScoreRebuildService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IArenaSentimentService arenaSentimentService)
         {
             _db = db;
             _hub = hub;
             _matchScoreRebuildService = matchScoreRebuildService;
             _configuration = configuration;
+            _arenaSentimentService = arenaSentimentService;
         }
 
         // =========================
@@ -216,6 +220,28 @@ namespace CriptoVersus.API.Controllers
                 .ToListAsync(ct);
 
             return Ok(items.OrderBy(x => x.CapturedAtUtc).ToList());
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{id:int}/arena-sentiment")]
+        public async Task<ActionResult<ArenaSentimentPairDto>> GetArenaSentiment(int id, CancellationToken ct)
+        {
+            var match = await _db.Set<Match>()
+                .AsNoTracking()
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .FirstOrDefaultAsync(m => m.MatchId == id, ct);
+
+            if (match is null || match.TeamA?.Currency is null || match.TeamB?.Currency is null)
+                return NotFound();
+
+            if (MatchPairRules.IsForbiddenPair(match.TeamA.Currency.Symbol, match.TeamB.Currency.Symbol, _configuration))
+                return NotFound();
+
+            return Ok(await _arenaSentimentService.GetArenaSentimentForMatchAsync(
+                match.TeamA.Currency.Symbol,
+                match.TeamB.Currency.Symbol,
+                ct));
         }
 
         [HttpPost("{id:int}/rebuild-score-events")]

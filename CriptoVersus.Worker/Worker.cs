@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using BLL;
+using BLL.ArenaSentiment;
 using BLL.GameRules;
 using BLL.NFTFutebol;
 using BLL.Positions;
@@ -158,6 +159,7 @@ namespace CriptoVersus.Worker
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
             var scoringEngine = scope.ServiceProvider.GetRequiredService<IMatchScoringEngine>();
+            var arenaSentimentService = scope.ServiceProvider.GetRequiredService<IArenaSentimentService>();
             var ledgerService = scope.ServiceProvider.GetRequiredService<ILedgerService>();
             var positionService = scope.ServiceProvider.GetRequiredService<IPositionOrchestrationService>();
 
@@ -195,7 +197,7 @@ namespace CriptoVersus.Worker
             if (hasHealthySnapshot)
                 await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
 
-            await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
+            await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, arenaSentimentService, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
             await ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, ct);
             await SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, ct);
             await EnsureOngoingPoolAsync(db, nowUtc, ct);
@@ -1003,6 +1005,7 @@ namespace CriptoVersus.Worker
             EthicAIDbContext db,
             IMatchRuleEngine ruleEngine,
             IMatchScoringEngine scoringEngine,
+            IArenaSentimentService arenaSentimentService,
             List<GainerEntry> snapshot,
             DateTime snapshotUtc,
             HashSet<string> allowed,
@@ -1155,6 +1158,8 @@ namespace CriptoVersus.Worker
                         scoreEvent.EventType,
                         scoreEvent.Description);
                 }
+
+                await arenaSentimentService.CalculateArenaPressureGoalAsync(match.MatchId, ct);
 
                 var decisionOngoing = ruleEngine.EvaluateOngoing(
                     teamAId: match.TeamAId,

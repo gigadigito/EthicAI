@@ -1,5 +1,6 @@
 ﻿using BLL;
 using BLL.Blockchain;
+using BLL.ArenaSentiment;
 using BLL.Positions;
 using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
@@ -38,6 +39,7 @@ CriptoVersus.API.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builde
 
 
 builder.Services.AddScoped<ILedgerService, LedgerService>();
+builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>();
 builder.Services.AddScoped<IPositionOrchestrationService, PositionOrchestrationService>();
 builder.Services.AddHttpClient<IOffChainCustodyTransferVerifier, OffChainCustodyTransferVerifier>();
 builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVerifier>();
@@ -53,6 +55,8 @@ builder.Services.AddHttpClient(nameof(SocialVsRenderService));
 builder.Services.AddHttpClient(nameof(SocialComposeFinalService));
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
     builder.Configuration.GetSection(CriptoVersusBlockchainOptions.SectionName));
+builder.Services.Configure<ArenaSentimentOptions>(
+    builder.Configuration.GetSection(ArenaSentimentOptions.ConfigSection));
 builder.Services.Configure<SocialAutomationOptions>(
     builder.Configuration.GetSection(SocialAutomationOptions.SectionName));
 builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();

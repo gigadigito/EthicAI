@@ -16,6 +16,7 @@ public class CriptoVersusWorkerOptions
     public int MatchDurationMinutes { get; set; }
     public string DashboardNotifyUrl { get; set; } = "http://criptoversus-api:8080/api/dashboard/notify";
     public ScoringOptions Scoring { get; set; } = new();
+    public SentimentOptions Sentiment { get; set; } = new();
     public SettlementOptions Settlement { get; set; } = new();
 }
 
@@ -34,4 +35,14 @@ public class SettlementOptions
     public decimal LoserRefundRate { get; set; } = 0.94m;
     public bool AutoReenterEnabled { get; set; } = true;
     public decimal MinPositionCapital { get; set; } = 0.00000001m;
+}
+
+public class SentimentOptions
+{
+    public decimal MinimumCoverage { get; set; } = 0.55m;
+    public int MinScoreDiff { get; set; } = 10;
+    public int RequiredCycles { get; set; } = 2;
+    public int GoalCooldownMinutes { get; set; } = 15;
+    public int MaxGoalsPerMatch { get; set; } = 2;
+    public int BlockFirstMinutes { get; set; } = 3;
 }
