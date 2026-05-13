@@ -46,6 +46,15 @@
     transaction.feePayer = userPubkey;
     transaction.recentBlockhash = (await connection.getRecentBlockhash()).blockhash;
 
+    const validation = await window.criptoVersusWallet.validateWalletHasEnoughSol(0, {
+        rpcUrl,
+        flowName: "CLAIM_FLOW"
+    });
+
+    if (!validation.ok) {
+        throw new Error(validation.message || "Saldo insuficiente na carteira.");
+    }
+
     // Solicita assinatura da transação pela carteira
     const signedTransaction = await wallet.signTransaction(transaction);
 

@@ -163,7 +163,7 @@
                             <button class="btn social-share-team-card__cta social-share-team-card__cta--a"
                                     type="button"
                                     disabled="@(!CanBetOnCurrentMatch() || _isSendingBet)"
-                                    @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
+                                    @onclick="() => OpenInvestmentAmountModalAsync(_match.TeamAId, _match.TeamA)">
                                 @T("invest")
                             </button>
                         </div>
@@ -250,7 +250,7 @@
                             <button class="btn social-share-team-card__cta social-share-team-card__cta--b"
                                     type="button"
                                     disabled="@(!CanBetOnCurrentMatch() || _isSendingBet)"
-                                    @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
+                                    @onclick="() => OpenInvestmentAmountModalAsync(_match.TeamBId, _match.TeamB)">
                                 @T("invest")
                             </button>
                         </div>
@@ -707,7 +707,7 @@
 
                                     <button class="btn match-invest-option__cta match-invest-option__cta--a"
                                             disabled="@_isSendingBet"
-                                            @onclick="() => OpenInvestmentAmountModal(_match.TeamAId, _match.TeamA)">
+                                            @onclick="() => OpenInvestmentAmountModalAsync(_match.TeamAId, _match.TeamA)">
                                         @T("invest")
                                     </button>
                                 </div>
@@ -748,7 +748,7 @@
 
                                     <button class="btn match-invest-option__cta match-invest-option__cta--b"
                                             disabled="@_isSendingBet"
-                                            @onclick="() => OpenInvestmentAmountModal(_match.TeamBId, _match.TeamB)">
+                                            @onclick="() => OpenInvestmentAmountModalAsync(_match.TeamBId, _match.TeamB)">
                                         @T("invest")
                                     </button>
                                 </div>
@@ -790,6 +790,17 @@
                                 <strong><MarketPairText Symbol="@_pendingBetTeamName" /></strong>
                             </div>
 
+                            <div class="wallet-guard-summary">
+                                <div>
+                                    <span>@T("walletBalanceGuardWalletBalance")</span>
+                                    <strong>@WalletBalanceText</strong>
+                                </div>
+                                <div>
+                                    <span>@T("walletBalanceGuardMaximumAvailable")</span>
+                                    <strong>@WalletMaxSpendableText</strong>
+                                </div>
+                            </div>
+
                             <div class="amount-quick-grid" aria-label="@T("quickValuesInSol")">
                                 @foreach (var amount in QuickInvestmentAmounts)
                                 {
@@ -823,16 +834,25 @@
                                    step="0.00000001"
                                    @bind="_investmentAmount"
                                    @bind:event="oninput" />
+                            <div class="wallet-guard-actions">
+                                <span>@T("walletBalanceGuardFeeReserve")</span>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-light"
+                                        disabled="@(_walletBalanceLoading || !_walletMaxSpendableSol.HasValue || WalletMaxSpendableAmount <= 0m)"
+                                        @onclick="UseMaxInvestmentAmount">
+                                    @T("walletBalanceGuardUseMax")
+                                </button>
+                            </div>
 
-                            @if (!string.IsNullOrWhiteSpace(_investmentAmountError))
+                            @if (!string.IsNullOrWhiteSpace(CurrentInvestmentAmountError))
                             {
-                                <div class="text-danger small mt-2">@_investmentAmountError</div>
+                                <div class="text-danger small mt-2">@CurrentInvestmentAmountError</div>
                             }
                         </div>
                         <div class="modal-footer border-secondary">
                             <button type="button" class="btn btn-outline-light" @onclick="CloseInvestmentAmountModal">@T("cancel")</button>
-                            <button type="button" class="btn btn-primary" disabled="@_isSendingBet" @onclick="ConfirmInvestmentAmountAsync">
-                                @(_isSendingBet ? T("sending") : $"{T("invest")} {FmtSolAmount(_investmentAmount)}")
+                            <button type="button" class="btn btn-primary" disabled="@(_isSendingBet || _walletBalanceLoading || !IsInvestmentAmountValid)" @onclick="ConfirmInvestmentAmountAsync">
+                                @InvestmentPrimaryButtonText
                             </button>
                         </div>
                     </div>
@@ -1176,6 +1196,32 @@
         color: #9ca3af;
         font-size: .9rem;
         font-weight: 800;
+    }
+
+    .wallet-guard-summary {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-bottom: 1rem;
+    }
+
+    .wallet-guard-summary span,
+    .wallet-guard-actions span {
+        color: #9ca3af;
+        font-size: .85rem;
+        font-weight: 700;
+    }
+
+    .wallet-guard-summary strong {
+        display: block;
+    }
+
+    .wallet-guard-actions {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-top: .75rem;
     }
 
     .amount-quick-grid {
@@ -2180,6 +2226,11 @@
     private string _pendingBetTeamName = "";
     private decimal _investmentAmount = 0.1m;
     private string _investmentAmountError = "";
+    private IJSObjectReference? _walletBalanceModule;
+    private double? _walletBalanceSol;
+    private double? _walletMaxSpendableSol;
+    private bool _walletBalanceLoading;
+    private string _walletBalanceLoadError = "";
     private const int _liveBetMaxMinutes = 45;
     private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.1m, 0.25m, 0.5m, 1m];
     private int? _loggedUserId;
@@ -2198,6 +2249,51 @@
     private bool CanSeeInvestmentDebug
         => IsConfiguredWallet(_loggedWalletPublicKey, Config["CriptoVersus:AdminWallet"])
             || IsConfiguredWallet(_loggedWalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
+
+    private decimal WalletMaxSpendableAmount
+        => _walletMaxSpendableSol.HasValue
+            ? decimal.Round((decimal)Math.Max(0d, _walletMaxSpendableSol.Value), 8, MidpointRounding.ToZero)
+            : 0m;
+
+    private string WalletBalanceText
+        => _walletBalanceLoading
+            ? (IsEnglish ? "Loading..." : "Carregando...")
+            : _walletBalanceSol.HasValue
+                ? FmtSolAmount((decimal)_walletBalanceSol.Value)
+                : "-";
+
+    private string WalletMaxSpendableText
+        => _walletBalanceLoading
+            ? (IsEnglish ? "Loading..." : "Carregando...")
+            : _walletMaxSpendableSol.HasValue
+                ? FmtSolAmount((decimal)_walletMaxSpendableSol.Value)
+                : "-";
+
+    private bool IsInvestmentAmountInsufficient
+        => _walletMaxSpendableSol.HasValue
+           && _investmentAmount > 0m
+           && _investmentAmount > WalletMaxSpendableAmount;
+
+    private bool IsInvestmentAmountValid
+        => _walletMaxSpendableSol.HasValue
+           && _investmentAmount > 0m
+           && _investmentAmount <= WalletMaxSpendableAmount;
+
+    private string? CurrentInvestmentAmountError
+        => !string.IsNullOrWhiteSpace(_investmentAmountError)
+            ? _investmentAmountError
+            : !string.IsNullOrWhiteSpace(_walletBalanceLoadError)
+                ? _walletBalanceLoadError
+                : IsInvestmentAmountInsufficient
+                    ? T("walletBalanceGuardInsufficientMessage", WalletMaxSpendableText)
+                    : null;
+
+    private string InvestmentPrimaryButtonText
+        => _isSendingBet
+            ? T("sending")
+            : IsInvestmentAmountInsufficient
+                ? T("walletBalanceGuardInsufficient")
+                : $"{T("invest")} {FmtSolAmount(_investmentAmount)}";
 
     private int _investmentAmountRangeIndex
     {
@@ -2527,12 +2623,13 @@
         Nav.NavigateTo("/intranet/dashboard");
     }
 
-    private void OpenInvestmentAmountModal(int teamId, string teamName)
+    private async Task OpenInvestmentAmountModalAsync(int teamId, string teamName)
     {
         _pendingBetTeamId = teamId;
         _pendingBetTeamName = teamName;
         _investmentAmount = 0.1m;
         _investmentAmountError = "";
+        await LoadWalletGuardSnapshotAsync();
         _showInvestmentAmountModal = true;
     }
 
@@ -2551,6 +2648,11 @@
     {
         _investmentAmount = amount;
         _investmentAmountError = "";
+    }
+
+    private void UseMaxInvestmentAmount()
+    {
+        SetInvestmentAmount(WalletMaxSpendableAmount);
     }
 
     private static int GetClosestQuickInvestmentAmountIndex(decimal amount)
@@ -2587,8 +2689,85 @@
             return;
         }
 
+        if (!_walletMaxSpendableSol.HasValue)
+        {
+            _investmentAmountError = _walletBalanceLoadError;
+            return;
+        }
+
+        if (_investmentAmount > WalletMaxSpendableAmount)
+        {
+            _investmentAmountError = T("walletBalanceGuardInsufficientMessage", WalletMaxSpendableText);
+            return;
+        }
+
+        var validation = await ValidateWalletBalanceBeforeSendAsync(_investmentAmount);
+        if (!validation.ok)
+        {
+            _investmentAmountError = validation.message ?? T("walletBalanceGuardInsufficientMessage", WalletMaxSpendableText);
+            await LoadWalletGuardSnapshotAsync();
+            return;
+        }
+
         _showInvestmentAmountModal = false;
         await SendBet(_match.MatchId, _pendingBetTeamId, _pendingBetTeamName, _investmentAmount);
+    }
+
+    private async Task LoadWalletGuardSnapshotAsync()
+    {
+        _walletBalanceLoading = true;
+        _walletBalanceLoadError = "";
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+
+            var result = await _walletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
+                "getMaxSpendableSol",
+                new
+                {
+                    rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
+                    locale = CurrentCulture == "en" ? "en-US" : "pt-BR",
+                    flowName = "MATCH_DETAIL_MODAL"
+                });
+
+            _walletBalanceSol = result.balanceSol;
+            _walletMaxSpendableSol = result.maxSpendableSol;
+            _walletBalanceLoadError = result.ok || string.Equals(result.code, "INSUFFICIENT_BALANCE", StringComparison.OrdinalIgnoreCase)
+                ? ""
+                : result.message ?? "";
+        }
+        catch (Exception ex)
+        {
+            _walletBalanceSol = null;
+            _walletMaxSpendableSol = null;
+            _walletBalanceLoadError = ex.Message;
+        }
+        finally
+        {
+            _walletBalanceLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<WalletBalanceGuardResult> ValidateWalletBalanceBeforeSendAsync(decimal amountSol)
+    {
+        _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
+
+        return await _walletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
+            "validateWalletHasEnoughSol",
+            amountSol,
+            new
+            {
+                rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
+                locale = CurrentCulture == "en" ? "en-US" : "pt-BR",
+                flowName = "MATCH_DETAIL_CONFIRM"
+            });
     }
 
     private static string FmtSolAmount(decimal value)
@@ -2764,6 +2943,10 @@
 
     private string GetBetPopupExceptionMessage(Exception ex)
     {
+        if (ex.Message.Contains("Insufficient wallet balance", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("Saldo insuficiente na carteira", StringComparison.OrdinalIgnoreCase))
+            return ex.Message;
+
         if (ex.ToString().Contains("ONCHAIN_MATCH_NOT_INITIALIZED", StringComparison.OrdinalIgnoreCase))
             return T("theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly");
 
@@ -3487,5 +3670,15 @@
         public bool UserAccountExists { get; set; }
         public bool PositionExists { get; set; }
         public string AmountLamports { get; set; } = "";
+    }
+
+    private sealed class WalletBalanceGuardResult
+    {
+        public bool ok { get; set; }
+        public string? code { get; set; }
+        public double balanceSol { get; set; }
+        public double requiredSol { get; set; }
+        public double maxSpendableSol { get; set; }
+        public string? message { get; set; }
     }
 }

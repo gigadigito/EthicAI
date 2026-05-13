@@ -21,8 +21,17 @@
             await wallet.connect();
         }
 
+        const validation = await window.criptoVersusWallet.validateWalletHasEnoughSol(amount, {
+            rpcUrl: connection.rpcEndpoint || connection._rpcEndpoint,
+            flowName: "TRANSFER_FLOW"
+        });
+
+        if (!validation.ok) {
+            throw new Error(validation.message || "Insufficient wallet balance.");
+        }
+
         // Converte o valor para lamports
-        const lamports = amount * LAMPORTS_PER_SOL;
+        const lamports = Number(window.criptoVersusWallet.solToLamportsSafe(amount));
 
         // Cria a transação
         const transaction = new Transaction().add(

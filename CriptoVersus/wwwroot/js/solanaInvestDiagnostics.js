@@ -88,17 +88,28 @@ function concatBytes(...parts) {
     return result;
 }
 
-function solToLamports(amountSol, lamportsPerSol) {
+function solToLamports(amountSol) {
     const normalized = Number(amountSol);
 
     if (!Number.isFinite(normalized) || normalized <= 0) {
         throw new Error("Valor do investimento invalido.");
     }
 
-    return BigInt(Math.round(normalized * lamportsPerSol));
+    return window.criptoVersusWallet.solToLamportsSafe(amountSol);
 }
 
-async function sendAndConfirm(connection, provider, transaction) {
+async function ensureWalletBalance(requiredSol, options) {
+    const validation = await window.criptoVersusWallet.validateWalletHasEnoughSol(requiredSol, options);
+    if (!validation.ok) {
+        throw new Error(validation.message || "Saldo insuficiente na carteira.");
+    }
+}
+
+async function sendAndConfirm(connection, provider, transaction, balanceOptions = {}) {
+    await ensureWalletBalance(balanceOptions.requiredSol ?? 0, {
+        ...balanceOptions,
+        rpcUrl: balanceOptions.rpcUrl || connection.rpcEndpoint || connection._rpcEndpoint
+    });
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
     transaction.feePayer = provider.publicKey;
     transaction.recentBlockhash = blockhash;
@@ -140,7 +151,11 @@ async function sendSolToCustody(connection, provider, destinationPublicKey, lamp
         })
     );
 
-    return await sendAndConfirm(connection, provider, transaction);
+    return await sendAndConfirm(connection, provider, transaction, {
+        requiredSol: window.criptoVersusWallet.lamportsToSol(lamports),
+        rpcUrl: connection.rpcEndpoint,
+        flowName: "DIRECT_CUSTODY_TRANSFER"
+    });
 }
 
 function lamportsToSolString(lamports, decimals = 9) {
@@ -263,13 +278,14 @@ export async function prepareInvestment(options) {
         const connection = new Connection(endpoint, "confirmed");
         const teamId = Number(options.teamId);
         const matchId = options.matchId ?? null;
-        const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
+        const amountLamports = solToLamports(options.amountSol);
         const teamName = options.teamName || options.selectedCoin || `Team#${teamId}`;
         const supportsLegacyPositionInvestments = Boolean(options.supportsLegacyPositionInvestments);
         const forceCustodyTransfer = Boolean(options.forceCustodyTransfer);
         const mode = options.mode || "HybridContractCustody";
         const origin = options.origin || "Unknown";
         const diagPrefix = origin === "Match" ? "[BET_FLOW_DIAG]" : "[OPEN_POSITION_DIAG]";
+        const guardFlowName = origin === "Match" ? "MATCH_BET" : "OPEN_POSITION";
         const resolvedProgramId = typeof options.programId === "string" ? options.programId.trim() : "";
         const hasValidProgramId = resolvedProgramId.length > 0;
         const chosenFlow = (forceCustodyTransfer || mode === "OffChainCustody")
@@ -453,7 +469,11 @@ export async function prepareInvestment(options) {
             stage.current = "deposit";
 
             const transaction = new Transaction().add(instruction);
-            const signature = await sendAndConfirm(connection, provider, transaction);
+            const signature = await sendAndConfirm(connection, provider, transaction, {
+                requiredSol: options.amountSol,
+                rpcUrl,
+                flowName: guardFlowName
+            });
 
             logInvest("Transaction signature:", signature);
             logInvest("Confirmação:", "confirmed");

@@ -49,17 +49,26 @@ function concatBytes(...parts) {
     return result;
 }
 
-function solToLamports(amountSol, lamportsPerSol) {
+function solToLamports(amountSol) {
     const normalized = Number(amountSol);
 
     if (!Number.isFinite(normalized) || normalized <= 0) {
         throw new Error("Valor do investimento inválido.");
     }
 
-    return BigInt(Math.round(normalized * lamportsPerSol));
+    return window.criptoVersusWallet.solToLamportsSafe(amountSol);
 }
 
-async function sendAndConfirm(connection, provider, transaction) {
+async function sendAndConfirm(connection, provider, transaction, balanceOptions = {}) {
+    const validation = await window.criptoVersusWallet.validateWalletHasEnoughSol(balanceOptions.requiredSol ?? 0, {
+        rpcUrl: connection.rpcEndpoint || connection._rpcEndpoint,
+        flowName: balanceOptions.flowName || "LEGACY_BET_FLOW"
+    });
+
+    if (!validation.ok) {
+        throw new Error(validation.message || "Saldo insuficiente na carteira.");
+    }
+
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
     transaction.feePayer = provider.publicKey;
     transaction.recentBlockhash = blockhash;
@@ -161,7 +170,7 @@ export async function depositPosition(options) {
     }
     const connection = new Connection(rpcUrl, "confirmed");
     const teamId = Number(options.teamId);
-    const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
+    const amountLamports = solToLamports(options.amountSol);
 
     if (!Number.isInteger(teamId) || teamId <= 0 || teamId > 255) {
         throw new Error("TeamId invalido para posicao on-chain.");
@@ -199,7 +208,10 @@ export async function depositPosition(options) {
     });
 
     const transaction = new Transaction().add(instruction);
-    const signature = await sendAndConfirm(connection, provider, transaction);
+    const signature = await sendAndConfirm(connection, provider, transaction, {
+        requiredSol: options.amountSol,
+        flowName: "LEGACY_POSITION_FLOW"
+    });
 
     return {
         signature,
@@ -236,7 +248,7 @@ export async function placeLegacyMatchBet(options) {
     const connection = new Connection(rpcUrl, "confirmed");
     const matchId = BigInt(options.matchId);
     const teamId = Number(options.teamId);
-    const amountLamports = solToLamports(options.amountSol, LAMPORTS_PER_SOL);
+    const amountLamports = solToLamports(options.amountSol);
 
     const matchSeed = u64Le(matchId);
     const [matchAccount] = PublicKey.findProgramAddressSync(
@@ -296,7 +308,10 @@ export async function placeLegacyMatchBet(options) {
     });
 
     const transaction = new Transaction().add(instruction);
-    const signature = await sendAndConfirm(connection, provider, transaction);
+    const signature = await sendAndConfirm(connection, provider, transaction, {
+        requiredSol: options.amountSol,
+        flowName: "LEGACY_MATCH_BET_FLOW"
+    });
 
     return {
         signature,

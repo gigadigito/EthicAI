@@ -203,6 +203,15 @@ export function registerWalletObserver(dotNetRef, options) {
 }
 
 async function sendAndConfirm(connection, provider, transaction) {
+    const validation = await window.criptoVersusWallet.validateWalletHasEnoughSol(0, {
+        rpcUrl: connection.rpcEndpoint || connection._rpcEndpoint,
+        flowName: "WITHDRAW_SYSTEM_BALANCE"
+    });
+
+    if (!validation.ok) {
+        throw new Error(validation.message || "Saldo insuficiente na carteira.");
+    }
+
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
     transaction.feePayer = provider.publicKey;
     transaction.recentBlockhash = blockhash;
@@ -442,7 +451,7 @@ export async function withdrawSystemBalance(options) {
         };
     }
 
-    const amountLamports = BigInt(Math.round(amountSol * LAMPORTS_PER_SOL));
+    const amountLamports = window.criptoVersusWallet.solToLamportsSafe(amountSol);
     const programId = new PublicKey(options.programId);
     if (!rpcUrl) {
         throw new Error(`RpcUrl nao configurada para saque em ${cluster}.`);

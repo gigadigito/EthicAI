@@ -6,6 +6,14 @@ function getWeb3() {
     return window.solanaWeb3;
 }
 
+function getWalletInterop() {
+    if (!window.criptoVersusWallet) {
+        throw new Error("solanaWalletInterop nao foi carregado.");
+    }
+
+    return window.criptoVersusWallet;
+}
+
 export async function getSolBalance(publicKey, cluster, rpcUrl) {
     if (!publicKey) {
         throw new Error("Carteira nao informada.");
@@ -26,4 +34,25 @@ export async function getSolBalance(publicKey, cluster, rpcUrl) {
     const lamports = await connection.getBalance(new PublicKey(publicKey), "confirmed");
 
     return lamports / LAMPORTS_PER_SOL;
+}
+
+export async function getConnectedWalletBalanceLamports(options) {
+    const walletInterop = getWalletInterop();
+    const lamports = await walletInterop.getConnectedWalletBalanceLamports(options || {});
+    return lamports.toString();
+}
+
+export async function getConnectedWalletBalanceSol(options) {
+    const walletInterop = getWalletInterop();
+    return await walletInterop.getConnectedWalletBalanceSol(options || {});
+}
+
+export async function validateWalletHasEnoughSol(requiredSol, options) {
+    const walletInterop = getWalletInterop();
+    return await walletInterop.validateWalletHasEnoughSol(requiredSol, options || {});
+}
+
+export async function getMaxSpendableSol(options) {
+    const walletInterop = getWalletInterop();
+    return await walletInterop.getMaxSpendableSol(options || {});
 }

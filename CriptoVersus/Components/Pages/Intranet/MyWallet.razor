@@ -152,9 +152,9 @@
                 {
                     <button type="button"
                             class="wallet-history-button is-primary"
-                            disabled="@_actionBusy"
+                            disabled="@(_actionBusy || !CanWithdrawToWallet)"
                             @onclick="WithdrawSystemBalanceAsync">
-                        Resgatar para minha carteira
+                        @(CanWithdrawToWallet ? "Resgatar para minha carteira" : T("openPosition.insufficientBalance"))
                     </button>
                 }
             </div>
@@ -390,6 +390,10 @@
                             <strong>@OnChainBalanceText</strong>
                         </div>
                         <div>
+                            <span class="wallet-modal-label">@T("openPosition.maximumAvailableLabel")</span>
+                            <strong>@MaxSpendableText</strong>
+                        </div>
+                        <div>
                             <span class="wallet-modal-label">@T("openPosition.custodyWalletLabel")</span>
                             <strong class="wallet-custody-address" title="@GetCustodyWalletDisplayValue()">@GetCustodyWalletDisplayValue()</strong>
                         </div>
@@ -439,10 +443,19 @@
                            inputmode="decimal"
                            value="@_investmentAmountInput"
                            @oninput="HandleAmountInput" />
+                    <div class="wallet-max-row">
+                        <span>@T("openPosition.networkFeeReserve")</span>
+                        <button type="button"
+                                class="wallet-history-button"
+                                disabled="@(_onChainBalanceLoading || !_maxSpendableSol.HasValue || MaxSpendableInvestmentAmount <= 0m)"
+                                @onclick="UseMaxInvestmentAmount">
+                            @T("openPosition.useMax")
+                        </button>
+                    </div>
 
-                    @if (!string.IsNullOrWhiteSpace(_investmentAmountError))
+                    @if (!string.IsNullOrWhiteSpace(CurrentOpenPositionAmountError))
                     {
-                        <div class="text-danger small">@_investmentAmountError</div>
+                        <div class="text-danger small">@CurrentOpenPositionAmountError</div>
                     }
 
                     @if (!string.IsNullOrWhiteSpace(_openPositionStatusText) || !string.IsNullOrWhiteSpace(_openPositionTransactionHash))
@@ -467,9 +480,9 @@
                     </button>
                     <button type="button"
                             class="wallet-history-button is-primary wallet-invest-submit"
-                            disabled="@_openPositionBusy"
+                            disabled="@(_openPositionBusy || _onChainBalanceLoading || !IsOpenPositionAmountValid)"
                             @onclick="ConfirmOpenPositionAsync">
-                        @(_openPositionBusy ? T("openPosition.investing") : T("openPosition.investCta", FmtSolCompact(_parsedInvestmentAmount)))
+                        @OpenPositionPrimaryButtonText
                     </button>
                 </div>
             }
@@ -513,6 +526,15 @@
         margin: 0;
         max-width: 760px;
         color: #cbd5e1;
+    }
+
+    .wallet-max-row {
+        align-items: center;
+        color: #9ca3af;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        margin-top: 10px;
     }
 
     .wallet-profile,
@@ -1410,6 +1432,7 @@
     private IJSObjectReference? _walletActionsModule;
     private IJSObjectReference? _investmentDiagnosticsModule;
     private double? _onChainBalance;
+    private double? _maxSpendableSol;
     private bool _onChainBalanceLoading;
     private string? _onChainBalanceError;
     private string? _copyMessage;
@@ -1473,6 +1496,50 @@
 
     private decimal _parsedInvestmentAmount
         => ParseAmountOrDefault(_investmentAmountInput);
+
+    private decimal MaxSpendableInvestmentAmount
+        => _maxSpendableSol.HasValue
+            ? decimal.Round((decimal)Math.Max(0d, _maxSpendableSol.Value), 8, MidpointRounding.ToZero)
+            : 0m;
+
+    private string MaxSpendableText
+        => _onChainBalanceLoading
+            ? T("states.loadingShort")
+            : _maxSpendableSol.HasValue
+                ? FmtSol(_maxSpendableSol.Value)
+                : "-";
+
+    private bool IsOpenPositionAmountInsufficient
+        => TryParseAmount(_investmentAmountInput, out var amount)
+           && amount > 0m
+           && _maxSpendableSol.HasValue
+           && amount > MaxSpendableInvestmentAmount;
+
+    private bool IsOpenPositionAmountValid
+        => TryParseAmount(_investmentAmountInput, out var amount)
+           && amount > 0m
+           && _maxSpendableSol.HasValue
+           && amount <= MaxSpendableInvestmentAmount;
+
+    private string OpenPositionPrimaryButtonText
+        => _openPositionBusy
+            ? T("openPosition.investing")
+            : IsOpenPositionAmountInsufficient
+                ? T("openPosition.insufficientBalance")
+                : T("openPosition.investCta", FmtSolCompact(_parsedInvestmentAmount));
+
+    private string? CurrentOpenPositionAmountError
+        => !string.IsNullOrWhiteSpace(_investmentAmountError)
+            ? _investmentAmountError
+            : IsOpenPositionAmountInsufficient
+                ? T("openPosition.insufficientBalanceMessage", MaxSpendableText)
+                : null;
+
+    private bool CanWithdrawToWallet
+        => _wallet?.SystemBalance > 0m
+           && !_onChainBalanceLoading
+           && _onChainBalance.HasValue
+           && _onChainBalance.Value >= 0.00001d;
 
     private string? _openPositionStatusText
         => _openPositionStatusKey switch
@@ -1575,6 +1642,7 @@
         _investmentAmountError = string.Empty;
         _assetSearchTerm = string.Empty;
         ResetOpenPositionFeedback();
+        await LoadOnChainBalanceAsync();
         await LoadPositionAssetsAsync();
     }
 
@@ -1654,6 +1722,11 @@
         ResetOpenPositionFeedback(clearHashOnly: true);
     }
 
+    private void UseMaxInvestmentAmount()
+    {
+        SetInvestmentAmount(MaxSpendableInvestmentAmount);
+    }
+
     private void HandleAmountInput(ChangeEventArgs args)
     {
         _investmentAmountInput = args.Value?.ToString() ?? string.Empty;
@@ -1715,6 +1788,18 @@
         }
 
         amount = decimal.Round(amount, 8, MidpointRounding.ToZero);
+        if (!_maxSpendableSol.HasValue)
+        {
+            _investmentAmountError = T("openPosition.walletFundingRequired");
+            return;
+        }
+
+        if (amount > MaxSpendableInvestmentAmount)
+        {
+            _investmentAmountError = T("openPosition.insufficientBalanceMessage", MaxSpendableText);
+            return;
+        }
+
         _openPositionBusy = true;
         _investmentAmountError = string.Empty;
         _openPositionStatusKey = "awaitingSignature";
@@ -1938,17 +2023,26 @@
         {
             _walletBalanceModule ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/solanaWalletBalance.js?v=20260505-rpc-config");
+                "./js/solanaWalletBalance.js?v=20260513-wallet-guard");
 
-            _onChainBalance = await _walletBalanceModule.InvokeAsync<double>(
-                "getSolBalance",
-                _wallet.Wallet,
-                OnChainCluster,
-                Config["CriptoVersusBlockchain:RpcUrl"]);
+            var guard = await _walletBalanceModule.InvokeAsync<WalletBalanceGuardResult>(
+                "getMaxSpendableSol",
+                new
+                {
+                    rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
+                    locale = CurrentCulture == "en" ? "en-US" : "pt-BR",
+                    flowName = "MY_WALLET_BALANCE"
+                });
+
+            _onChainBalance = guard.balanceSol;
+            _maxSpendableSol = guard.maxSpendableSol;
+            if (!guard.ok && !string.Equals(guard.code, "INSUFFICIENT_BALANCE", StringComparison.OrdinalIgnoreCase))
+                _onChainBalanceError = guard.message;
         }
         catch (Exception ex)
         {
             _onChainBalance = null;
+            _maxSpendableSol = null;
             _onChainBalanceError = $"Nao foi possivel consultar o saldo on-chain: {ex.Message}";
         }
         finally
@@ -2154,6 +2248,9 @@
         if (normalized.Contains("ja foi utilizada") || normalized.Contains("already used"))
             return T("openPosition.duplicateSignature");
 
+        if (normalized.Contains("insufficient wallet balance") || normalized.Contains("saldo insuficiente na carteira"))
+            return message;
+
         if (normalized.Contains("fase avancada") || normalized.Contains("advanced"))
             return _selectedAsset?.AccessMessage ?? message;
 
@@ -2216,6 +2313,16 @@
         public string? proofSignature { get; set; }
     }
 
+    private sealed class WalletBalanceGuardResult
+    {
+        public bool ok { get; set; }
+        public string? code { get; set; }
+        public double balanceSol { get; set; }
+        public double requiredSol { get; set; }
+        public double maxSpendableSol { get; set; }
+        public string? message { get; set; }
+    }
+
     private sealed class InvestmentPreparationResult
     {
         public string? Signature { get; set; }
@@ -2236,6 +2343,9 @@
 
         if (normalized.Contains("carteira diferente da conta"))
             return "A carteira conectada e diferente da conta logada.";
+
+        if (normalized.Contains("insufficient wallet balance") || normalized.Contains("saldo insuficiente na carteira"))
+            return message;
 
         if (normalized.Contains("saldo insuficiente"))
             return "Saldo insuficiente.";
