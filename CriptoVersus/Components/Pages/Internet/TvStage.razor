@@ -492,8 +492,21 @@ else
     private string DisplayRightName() => HotMatch?.RightName ?? Match?.TeamB ?? "-";
     private int DisplayLeftScore() => HotMatch?.LeftScore ?? Match?.ScoreA ?? 0;
     private int DisplayRightScore() => HotMatch?.RightScore ?? Match?.ScoreB ?? 0;
-    private string DisplayLeftLogoUrl() => HotMatch?.LeftLogoUrl ?? $"/api/icons/binance/{DisplayLeftSymbol()}";
-    private string DisplayRightLogoUrl() => HotMatch?.RightLogoUrl ?? $"/api/icons/binance/{DisplayRightSymbol()}";
+
+    private string DisplayLeftLogoUrl()
+
+     => HotMatch?.LeftLogoUrl
+
+        ?? $"/api/icons/binance/{GetBaseSymbol(DisplayLeftSymbol())}";
+
+
+
+    private string DisplayRightLogoUrl()
+
+        => HotMatch?.RightLogoUrl
+
+           ?? $"/api/icons/binance/{GetBaseSymbol(DisplayRightSymbol())}";
+
     private string DisplayRemainingTime() => HotMatch?.RemainingTimeLabel ?? BuildRemainingTimeFallback();
     private string DisplayVolume() => HotMatch?.VolumeLabel ?? BuildVolumeFallback();
     private string DisplayMomentum() => HotMatch?.MomentumLabel ?? BuildMomentumFallback();
@@ -632,6 +645,57 @@ else
             return DisplayRightSymbol();
 
         return DisplayLeftSymbol();
+    }
+
+    private static string GetBaseSymbol(string? symbol)
+
+    {
+
+        if (string.IsNullOrWhiteSpace(symbol))
+
+            return string.Empty;
+
+
+
+        var upper = symbol.Trim().ToUpperInvariant();
+
+
+
+        string[] quoteAssets =
+
+        [
+
+            "USDT",
+    "USDC",
+    "BUSD",
+    "FDUSD",
+    "BTC",
+    "ETH"
+
+        ];
+
+
+
+        foreach (var quote in quoteAssets)
+
+        {
+
+            if (upper.EndsWith(quote, StringComparison.OrdinalIgnoreCase)
+
+                && upper.Length > quote.Length)
+
+            {
+
+                return upper[..^quote.Length];
+
+            }
+
+        }
+
+
+
+        return upper;
+
     }
 
     private bool HasFearSignal()
