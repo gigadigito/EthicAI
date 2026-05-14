@@ -288,8 +288,17 @@ public sealed class TvHotMatchService : ITvHotMatchService
         return new string(buffer.ToArray()).Trim('-');
     }
 
-    private static string BuildLogoUrl(string? symbol)
-        => $"/api/icons/binance/{Uri.EscapeDataString(GetBaseSymbol(symbol))}";
+    private string BuildLogoUrl(string? symbol)
+        => $"{ResolveApiBaseUrl()}/api/icons/binance/{Uri.EscapeDataString(GetBaseSymbol(symbol))}";
+
+    private string ResolveApiBaseUrl()
+    {
+        var configured = _configuration["Api:PublicBaseUrl"]?.Trim()
+            ?? _configuration["Api:BaseUrl"]?.Trim()
+            ?? "https://api.criptoversus.com";
+
+        return configured.TrimEnd('/');
+    }
 
     private static string GetBaseSymbol(string? symbol)
     {

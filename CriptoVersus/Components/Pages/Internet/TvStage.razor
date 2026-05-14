@@ -583,11 +583,23 @@ else
         if (string.IsNullOrWhiteSpace(value))
             return string.Empty;
 
-        if (Uri.TryCreate(value, UriKind.Absolute, out _))
-            return value;
+        if (Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
+        {
+            var sanitizedAbsolute = NormalizeAbsoluteIconUrl(absoluteUri);
+            return sanitizedAbsolute ?? value;
+        }
 
         var sanitized = NormalizeIconRoute(value);
         return EnvironmentIsolationGuard.BuildApiUrl(Config, sanitized);
+    }
+
+    private string? NormalizeAbsoluteIconUrl(Uri value)
+    {
+        var sanitizedPath = NormalizeIconRoute(value.AbsolutePath);
+        if (string.Equals(sanitizedPath, value.AbsolutePath, StringComparison.Ordinal))
+            return value.ToString();
+
+        return EnvironmentIsolationGuard.BuildApiUrl(Config, sanitizedPath);
     }
 
     private static string NormalizeIconRoute(string value)
