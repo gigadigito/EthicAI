@@ -31,6 +31,7 @@ namespace EthicAI.EntityModel
         public DbSet<MatchScoreState> MatchScoreState { get; set; }
         public DbSet<ArenaSentimentSnapshot> ArenaSentimentSnapshot { get; set; }
         public DbSet<SocialPostHistory> SocialPostHistory { get; set; }
+        public DbSet<MatchAiNarrationHistory> MatchAiNarrationHistory { get; set; }
         public DbSet<FinancialMigrationBatch> FinancialMigrationBatch { get; set; }
         public DbSet<FundMigrationCheckpoint> FundMigrationCheckpoint { get; set; }
 
@@ -904,6 +905,70 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone");
 
                 entity.HasIndex(e => new { e.MatchId, e.Platform, e.CreatedAt });
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MatchAiNarrationHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("match_ai_narration_history");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.MatchId).HasColumnName("match_id");
+
+                entity.Property(e => e.EventType)
+                      .HasColumnName("event_type")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.Culture)
+                      .HasColumnName("culture")
+                      .HasMaxLength(20);
+
+                entity.Property(e => e.Text)
+                      .HasColumnName("text");
+
+                entity.Property(e => e.PromptHash)
+                      .HasColumnName("prompt_hash")
+                      .HasMaxLength(128);
+
+                entity.Property(e => e.ContextHash)
+                      .HasColumnName("context_hash")
+                      .HasMaxLength(128);
+
+                entity.Property(e => e.Source)
+                      .HasColumnName("source")
+                      .HasMaxLength(20);
+
+                entity.Property(e => e.Model)
+                      .HasColumnName("model")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.CreatedAtUtc)
+                      .HasColumnName("created_at_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.HotScoreSnapshot)
+                      .HasColumnName("hot_score_snapshot");
+
+                entity.Property(e => e.LeftScoreSnapshot)
+                      .HasColumnName("left_score_snapshot");
+
+                entity.Property(e => e.RightScoreSnapshot)
+                      .HasColumnName("right_score_snapshot");
+
+                entity.Property(e => e.LeaderSymbolSnapshot)
+                      .HasColumnName("leader_symbol_snapshot")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.MetadataJson)
+                      .HasColumnName("metadata_json");
+
+                entity.HasIndex(e => new { e.MatchId, e.CreatedAtUtc });
+                entity.HasIndex(e => new { e.MatchId, e.EventType, e.ContextHash });
 
                 entity.HasOne(e => e.Match)
                       .WithMany()

@@ -92,6 +92,12 @@ public sealed class CriptoVersusApiClient
     public async Task<TvHotMatchDto?> GetTvHotMatchAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<TvHotMatchDto>("api/tv/hot-match", ct);
 
+    public async Task<TvNarrationResponse?> GenerateTvNarrationAsync(
+        int matchId,
+        TvNarrationRequest request,
+        CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<TvNarrationResponse>($"api/tv/narration/{matchId}", request, ct);
+
     public async Task<WorkerStatusDto?> GetWorkerStatusAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<WorkerStatusDto>("api/Worker/status", ct);
 

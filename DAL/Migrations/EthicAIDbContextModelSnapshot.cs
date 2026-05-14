@@ -371,6 +371,91 @@ namespace DAL.Migrations
                     b.ToTable("arena_sentiment_snapshot", (string)null);
                 });
 
+            modelBuilder.Entity("DAL.NftFutebol.MatchAiNarrationHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContextHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("context_hash");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Culture")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("culture");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("event_type");
+
+                    b.Property<int?>("HotScoreSnapshot")
+                        .HasColumnType("integer")
+                        .HasColumnName("hot_score_snapshot");
+
+                    b.Property<string>("LeaderSymbolSnapshot")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("leader_symbol_snapshot");
+
+                    b.Property<int?>("LeftScoreSnapshot")
+                        .HasColumnType("integer")
+                        .HasColumnName("left_score_snapshot");
+
+                    b.Property<int>("MatchId")
+                        .HasColumnType("integer")
+                        .HasColumnName("match_id");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("text")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("model");
+
+                    b.Property<string>("PromptHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("prompt_hash");
+
+                    b.Property<int?>("RightScoreSnapshot")
+                        .HasColumnType("integer")
+                        .HasColumnName("right_score_snapshot");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchId", "CreatedAtUtc");
+
+                    b.HasIndex("MatchId", "EventType", "ContextHash");
+
+                    b.ToTable("match_ai_narration_history", (string)null);
+                });
+
             modelBuilder.Entity("DAL.User", b =>
                 {
                     b.Property<int>("UserID")

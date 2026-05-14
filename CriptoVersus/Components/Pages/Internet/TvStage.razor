@@ -3,6 +3,7 @@
 @using CriptoVersus.Components.Shared
 @using DTOs
 @using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
 @inject LocalizationService L
 @inject IConfiguration Config
 @inject IJSRuntime JS
@@ -99,6 +100,17 @@
                         <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
                     </div>
                 </div>
+
+                <section class="tv-ai-commentary">
+                    <div class="tv-ai-commentary__header">
+                        <span>AI COMMENTARY</span>
+                        <small>@DisplayAiCommentaryMeta()</small>
+                    </div>
+
+                    <div class="tv-ai-commentary__text">
+                        @DisplayAiCommentaryText()
+                    </div>
+                </section>
             </article>
 
             <aside class="tv-telemetry">
@@ -290,6 +302,7 @@ else
         {
             <button type="button" @onclick="() => TriggerDevNarrationAsync(animation)">@animation</button>
         }
+        <button type="button" @onclick="TriggerDevAiNarrationAsync">test ai narration</button>
     </aside>
 }
 
@@ -330,6 +343,12 @@ else
     private bool _pulseScoreboard;
     private bool _pulseHotScore;
     private bool _narrationDebugDemoStarted;
+    private bool _isAiNarrationLoading;
+    private DateTime? _lastAiNarrationAtUtc;
+    private int? _lastAiNarrationMatchId;
+    private string _currentAiNarration = string.Empty;
+    private string _aiNarrationSource = "template";
+    private string _lastAiNarrationRequestSignature = string.Empty;
     private string _clockDebugSignature = string.Empty;
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
@@ -391,13 +410,23 @@ else
         if (current is null)
         {
             _previousSnapshot = null;
+            _lastAiNarrationMatchId = null;
+            _currentAiNarration = string.Empty;
             return;
+        }
+
+        if (_lastAiNarrationMatchId != current.MatchId)
+        {
+            _lastAiNarrationMatchId = current.MatchId;
+            _lastAiNarrationRequestSignature = string.Empty;
+            _currentAiNarration = string.Empty;
         }
 
         if (_previousSnapshot is null)
         {
             _ = TriggerEventAsync(CreateEvent("hotMatchDetected"));
             _ = QueueNarrationAsync(CreateNarrationEvent("hotMatchDetected", current));
+            _ = MaybeRefreshAiNarrationAsync("initial");
             _previousSnapshot = current;
             return;
         }
@@ -414,32 +443,38 @@ else
             _ = PulseScoreAsync(current.LeftScore > _previousSnapshot.LeftScore, current.RightScore > _previousSnapshot.RightScore, hotScoreSpike);
             _ = TriggerEventAsync(CreateGoalEvent(current));
             _ = QueueNarrationAsync(CreateGoalNarration(current));
+            _ = MaybeRefreshAiNarrationAsync("goal");
         }
         else if (scoreLeaderChanged)
         {
             _ = TriggerEventAsync(CreateLeaderEvent(current));
             _ = QueueNarrationAsync(CreateLeaderNarration(current));
+            _ = MaybeRefreshAiNarrationAsync("leader-change");
         }
         else if (reversalDetected)
         {
             _ = TriggerEventAsync(CreateEvent("momentumReversal"));
             _ = QueueNarrationAsync(CreateNarrationEvent("momentumReversal", current));
+            _ = MaybeRefreshAiNarrationAsync("momentum-shift");
         }
         else if (fearSpike)
         {
             _ = TriggerEventAsync(CreateEvent("fearSurge"));
             _ = QueueNarrationAsync(CreateNarrationEvent("fearSurge", current));
+            _ = MaybeRefreshAiNarrationAsync("fear-spike");
         }
         else if (hotScoreSpike)
         {
             _ = PulseScoreAsync(false, false, true);
             _ = TriggerEventAsync(CreateEvent("hotScoreSpike"));
             _ = QueueNarrationAsync(CreateNarrationEvent("hotScoreSpike", current));
+            _ = MaybeRefreshAiNarrationAsync("massive-breakout");
         }
         else if (finalMoments)
         {
             _ = TriggerEventAsync(CreateEvent("finalMoments"));
             _ = QueueNarrationAsync(CreateNarrationEvent("finalMoments", current));
+            _ = MaybeRefreshAiNarrationAsync("final-minutes");
         }
 
         _previousSnapshot = current;
@@ -451,6 +486,7 @@ else
             return null;
 
         return new BroadcastSnapshot(
+            HotMatch?.MatchId ?? Match?.MatchId ?? 0,
             DisplayLeftScore(),
             DisplayRightScore(),
             DisplayLeftSymbol(),
@@ -537,6 +573,7 @@ else
             CooldownMs = 250,
             Side = "center"
         });
+        await MaybeRefreshAiNarrationAsync("goal", true);
 
         await Task.Delay(TimeSpan.FromSeconds(4));
         await QueueNarrationAsync(new TvNarrationEvent
@@ -550,6 +587,7 @@ else
             CooldownMs = 250,
             Side = "center"
         });
+        await MaybeRefreshAiNarrationAsync("momentum-shift", true);
 
         await Task.Delay(TimeSpan.FromSeconds(4));
         await QueueNarrationAsync(new TvNarrationEvent
@@ -563,10 +601,14 @@ else
             CooldownMs = 250,
             Side = "center"
         });
+        await MaybeRefreshAiNarrationAsync("massive-breakout", true);
     }
 
     private Task TriggerDevNarrationAsync(string animation)
         => QueueNarrationAsync(CreateDevNarrationEvent(animation));
+
+    private Task TriggerDevAiNarrationAsync()
+        => MaybeRefreshAiNarrationAsync("manual-test", true);
 
     private async Task PulseScoreAsync(bool pulseLeft, bool pulseRight, bool pulseHotScore)
     {
@@ -980,6 +1022,74 @@ else
 
     private string DisplayPressureBody()
         => $"{T("labels.competitivePool")} • {DisplayVolume()} • {DisplayRemainingTime()}";
+
+    private string DisplayAiCommentaryText()
+        => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
+            ? "AI narrator is calibrating the arena feed."
+            : !string.IsNullOrWhiteSpace(_currentAiNarration)
+                ? _currentAiNarration
+                : "AI narrator is tracking the live flow for the next call.";
+
+    private string DisplayAiCommentaryMeta()
+    {
+        if (_isAiNarrationLoading)
+            return "Generating";
+
+        if (_lastAiNarrationAtUtc.HasValue)
+            return $"{_aiNarrationSource.ToUpperInvariant()} • {_lastAiNarrationAtUtc.Value:HH:mm:ss} UTC";
+
+        return "Live narrator";
+    }
+
+    private async Task MaybeRefreshAiNarrationAsync(string eventType, bool forceRefresh = false)
+    {
+        var matchId = HotMatch?.MatchId ?? Match?.MatchId ?? 0;
+        if (matchId <= 0 || _isAiNarrationLoading)
+            return;
+
+        var signature = string.Join("|",
+            matchId,
+            eventType,
+            DisplayLeftScore(),
+            DisplayRightScore(),
+            DisplayLeaderSymbol(),
+            DisplayPressureSymbol(),
+            DisplayHotScore(),
+            DisplayRemainingTime());
+
+        if (!forceRefresh && string.Equals(signature, _lastAiNarrationRequestSignature, StringComparison.Ordinal))
+            return;
+
+        _isAiNarrationLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await Api.GenerateTvNarrationAsync(matchId, new TvNarrationRequest
+            {
+                EventType = eventType,
+                Culture = Culture,
+                ForceRefresh = forceRefresh
+            });
+
+            if (response is not null && !string.IsNullOrWhiteSpace(response.Text))
+            {
+                _currentAiNarration = response.Text;
+                _aiNarrationSource = response.Source;
+                _lastAiNarrationAtUtc = response.GeneratedAtUtc;
+                _lastAiNarrationRequestSignature = signature;
+            }
+        }
+        catch (Exception ex)
+        {
+            await LogAsync("TV_AI_COMMENTARY", "refresh error", ex.Message);
+        }
+        finally
+        {
+            _isAiNarrationLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     private string BuildRemainingTimeFallback()
     {
@@ -1415,6 +1525,7 @@ else
     }
 
     private sealed record BroadcastSnapshot(
+        int MatchId,
         int LeftScore,
         int RightScore,
         string LeftSymbol,
@@ -1739,12 +1850,12 @@ else
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         gap: 16px;
         align-items: center;
-        min-height: 430px;
+        min-height: 360px;
     }
 
     .tv-center-hud {
         display: grid;
-        gap: 14px;
+        gap: 10px;
         align-content: center;
         justify-items: center;
         width: min(100%, 320px);
@@ -1758,8 +1869,51 @@ else
         justify-items: center;
         gap: 12px;
         text-align: center;
-        padding: 22px 12px;
+        padding: 14px 12px;
         animation: tvTeamFloat 12s ease-in-out infinite;
+    }
+
+    .tv-ai-commentary {
+        margin-top: 16px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(127,246,223,.16);
+        background:
+            radial-gradient(circle at top left, rgba(127,246,223,.08), transparent 36%),
+            rgba(255,255,255,.025);
+        min-height: 120px;
+        display: grid;
+        align-content: start;
+        gap: 8px;
+    }
+
+    .tv-ai-commentary__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 2px;
+    }
+
+    .tv-ai-commentary__header span {
+        color: var(--tv-green);
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-size: .74rem;
+        font-weight: 900;
+    }
+
+    .tv-ai-commentary__header small {
+        color: var(--tv-muted);
+        font-size: .78rem;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+    }
+
+    .tv-ai-commentary__text {
+        color: #dbe8f7;
+        font-size: clamp(.95rem, 1.1vw, 1.2rem);
+        line-height: 1.55;
+        font-weight: 600;
     }
 
     .tv-team--right {

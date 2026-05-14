@@ -8,6 +8,7 @@ namespace CriptoVersus.API.Services;
 public interface ITvHotMatchService
 {
     Task<TvHotMatchDto> GetHotMatchAsync(CancellationToken ct);
+    Task<TvHotMatchDto?> GetMatchBroadcastAsync(int matchId, CancellationToken ct);
 }
 
 public sealed class TvHotMatchService : ITvHotMatchService
@@ -79,6 +80,46 @@ public sealed class TvHotMatchService : ITvHotMatchService
             return BuildEmpty("No hot match available right now");
 
         return best.Dto;
+    }
+
+    public async Task<TvHotMatchDto?> GetMatchBroadcastAsync(int matchId, CancellationToken ct)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var match = await _db.Set<Match>()
+            .AsNoTracking()
+            .Include(x => x.TeamA).ThenInclude(x => x.Currency)
+            .Include(x => x.TeamB).ThenInclude(x => x.Currency)
+            .SingleOrDefaultAsync(x => x.MatchId == matchId, ct);
+
+        if (match is null)
+            return null;
+
+        var recentBetCutoff = nowUtc.AddMinutes(-15);
+        var reversalCutoff = nowUtc.AddMinutes(-20);
+
+        var aggregates = await _db.Set<Bet>()
+            .AsNoTracking()
+            .Where(x => x.MatchId == matchId)
+            .GroupBy(x => new { x.MatchId, x.TeamId })
+            .Select(g => new MatchSideAggregate
+            {
+                MatchId = g.Key.MatchId,
+                TeamId = g.Key.TeamId,
+                TotalAmount = g.Sum(x => x.Amount),
+                BetCount = g.Count(),
+                RecentBetCount = g.Count(x => x.BetTime >= recentBetCutoff)
+            })
+            .ToListAsync(ct);
+
+        var recentEvents = await _db.Set<MatchScoreEvent>()
+            .AsNoTracking()
+            .Include(x => x.Team).ThenInclude(x => x.Currency)
+            .Where(x => x.MatchId == matchId && x.EventTimeUtc >= reversalCutoff)
+            .OrderByDescending(x => x.EventTimeUtc)
+            .ThenByDescending(x => x.EventSequence)
+            .ToListAsync(ct);
+
+        return BuildCandidate(match, aggregates, recentEvents, nowUtc)?.Dto;
     }
 
     private HotMatchCandidate? BuildCandidate(
