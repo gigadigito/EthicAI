@@ -19,5 +19,12 @@ public sealed class TvHotMatchDto
     public string VolumeLabel { get; set; } = string.Empty;
     public string MomentumLabel { get; set; } = string.Empty;
     public string RemainingTimeLabel { get; set; } = string.Empty;
+    public int? RemainingSeconds { get; set; }
+    public DateTime? MatchStartTimeUtc { get; set; }
+    public decimal? LeftChangePercent { get; set; }
+    public decimal? RightChangePercent { get; set; }
+    public string LeaderSymbol { get; set; } = string.Empty;
+    public string PressureSymbol { get; set; } = string.Empty;
+    public string PoolStatusLabel { get; set; } = string.Empty;
     public bool HasRecentReversal { get; set; }
 }

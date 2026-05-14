@@ -1,0 +1,179 @@
+@using System.Collections.Generic
+@using System.Diagnostics
+@using System.Threading
+@using CriptoVersus.Components.Shared
+@inject IJSRuntime JS
+@namespace CriptoVersus.Components.Shared
+@implements IAsyncDisposable
+
+@if (_visibleEvents.Count > 0)
+{
+    <div class="tv-narration-overlay" aria-live="polite" aria-atomic="true">
+        @foreach (var narrationEvent in _visibleEvents)
+        {
+            <article class="tv-narration-event @SeverityClass(narrationEvent) @SideClass(narrationEvent)"
+                     data-tv-narration-id="@narrationEvent.Id"
+                     data-severity="@NormalizeToken(narrationEvent.Severity, "medium")"
+                     data-animation="@NormalizeToken(narrationEvent.Animation, "grow")">
+                <div class="tv-narration-backglow"></div>
+                <div class="tv-narration-flare"></div>
+                <div class="tv-narration-streaks"></div>
+                <div class="tv-narration-scanlines"></div>
+                <div class="tv-narration-chromatic" aria-hidden="true">@narrationEvent.Text</div>
+                <h2 class="tv-narration-title">@narrationEvent.Text</h2>
+                @if (!string.IsNullOrWhiteSpace(narrationEvent.Subtitle))
+                {
+                    <p class="tv-narration-subtitle">@narrationEvent.Subtitle</p>
+                }
+            </article>
+        }
+    </div>
+}
+
+@code {
+    private readonly Queue<TvNarrationEvent> _queue = new();
+    private readonly object _queueLock = new();
+    private readonly List<TvNarrationEvent> _visibleEvents = [];
+    private CancellationTokenSource? _playbackCts;
+    private Task? _playbackTask;
+    private TvNarrationEvent? _pendingAnimationEvent;
+    private DateTime _lastCompletedUtc = DateTime.MinValue;
+
+    public ValueTask EnqueueAsync(TvNarrationEvent narrationEvent)
+    {
+        if (string.IsNullOrWhiteSpace(narrationEvent.Text))
+            return ValueTask.CompletedTask;
+
+        if (string.IsNullOrWhiteSpace(narrationEvent.Id))
+            narrationEvent.Id = $"tvn-{Guid.NewGuid():N}";
+
+        Debug.WriteLine($"TV narration event fired: {narrationEvent.Text}");
+
+        lock (_queueLock)
+        {
+            _queue.Enqueue(narrationEvent);
+            if (_playbackTask is null || _playbackTask.IsCompleted)
+            {
+                _playbackCts?.Dispose();
+                _playbackCts = new CancellationTokenSource();
+                _playbackTask = RunQueueAsync(_playbackCts.Token);
+            }
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        Debug.WriteLine("TV narration overlay mounted");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingAnimationEvent is null)
+            return;
+
+        var narrationEvent = _pendingAnimationEvent;
+        _pendingAnimationEvent = null;
+
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusTvNarration.play", narrationEvent.Id, narrationEvent.Severity, narrationEvent.Animation);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task RunQueueAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            TvNarrationEvent? nextEvent;
+            lock (_queueLock)
+            {
+                nextEvent = _queue.Count > 0 ? _queue.Dequeue() : null;
+            }
+
+            if (nextEvent is null)
+                return;
+
+            var cooldownElapsed = DateTime.UtcNow - _lastCompletedUtc;
+            var cooldownRemaining = nextEvent.CooldownMs - (int)cooldownElapsed.TotalMilliseconds;
+            if (cooldownRemaining > 0)
+            {
+                try
+                {
+                    await Task.Delay(cooldownRemaining, ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+            }
+
+            _visibleEvents.Clear();
+            _visibleEvents.Add(nextEvent);
+            _pendingAnimationEvent = nextEvent;
+            await InvokeAsync(StateHasChanged);
+
+            try
+            {
+                await Task.Delay(Math.Max(900, nextEvent.DurationMs), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            _visibleEvents.RemoveAll(static evt => true);
+            _lastCompletedUtc = DateTime.UtcNow;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string SeverityClass(TvNarrationEvent narrationEvent)
+        => $"tv-narration-{NormalizeToken(narrationEvent.Severity, "medium")}";
+
+    private static string SideClass(TvNarrationEvent narrationEvent)
+        => $"tv-side-{NormalizeToken(narrationEvent.Side, "center")}";
+
+    private static string NormalizeToken(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        return value.Trim().ToLowerInvariant().Replace(' ', '-');
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_playbackCts is not null)
+        {
+            _playbackCts.Cancel();
+            _playbackCts.Dispose();
+        }
+
+        if (_playbackTask is not null)
+        {
+            try
+            {
+                await _playbackTask;
+            }
+            catch
+            {
+            }
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusTvNarration.clear");
+        }
+        catch
+        {
+        }
+    }
+}

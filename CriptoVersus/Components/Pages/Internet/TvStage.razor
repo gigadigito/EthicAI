@@ -1,10 +1,12 @@
 @using System.Globalization
 @using System.Text
+@using CriptoVersus.Components.Shared
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
 @inject IConfiguration Config
 @inject IJSRuntime JS
+@inject IWebHostEnvironment Environment
 @implements IAsyncDisposable
 
 @if (HasLiveMatch)
@@ -15,6 +17,7 @@
         <div class="tv-stage__fog"></div>
         <div class="tv-stage__gridlines"></div>
         <div class="tv-stage__particles"></div>
+        <TvNarrationOverlay @ref="_narrationOverlay" />
 
         @if (_isEventVisible && _activeEvent is not null)
         {
@@ -59,16 +62,31 @@
                         </div>
                         <span class="tv-team__symbol">@DisplayLeftSymbol()</span>
                         <strong>@DisplayLeftName()</strong>
+                        <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
                     </div>
 
-                    <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
-                        <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
-                        <div class="tv-scoreboard__score">
-                            <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
-                            <span class="tv-scoreboard__versus">VS</span>
-                            <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                    <div class="tv-center-hud">
+                        <div class="tv-broadcast-clock">
+                            <div class="tv-broadcast-clock__header">
+                                <span>@T("labels.matchClock")</span>
+                                @if (IsClockLive())
+                                {
+                                    <span class="tv-broadcast-clock__live">@T("labels.live")</span>
+                                }
+                            </div>
+                            <strong>@DisplayClockPrimary()</strong>
+                            <small>@DisplayClockPhaseLabel()</small>
                         </div>
-                        <small>@DisplayScoreContext()</small>
+
+                        <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                            <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
+                            <div class="tv-scoreboard__score">
+                                <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                                <span class="tv-scoreboard__versus">VS</span>
+                                <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                            </div>
+                            <small>@DisplayScoreContext()</small>
+                        </div>
                     </div>
 
                     <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
@@ -78,6 +96,7 @@
                         </div>
                         <span class="tv-team__symbol">@DisplayRightSymbol()</span>
                         <strong>@DisplayRightName()</strong>
+                        <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
                     </div>
                 </div>
             </article>
@@ -102,6 +121,36 @@
                     <span>@T("labels.reason")</span>
                     <strong>@T("labels.liveRewardDynamics")</strong>
                     <small>@DisplayReason()</small>
+                </article>
+                <article>
+                    <span>@T("labels.leader")</span>
+                    <strong>@DisplayLeaderSymbol()</strong>
+                    <small>@T("labels.assetPerformance")</small>
+                </article>
+                <article>
+                    <span>@T("labels.pressure")</span>
+                    <strong>@DisplayPressureSymbol()</strong>
+                    <small>@DisplayPoolStatus()</small>
+                </article>
+                <article>
+                    <span>@T("labels.leftAssetChange")</span>
+                    <strong class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</strong>
+                    <small>@DisplayLeftSymbol()</small>
+                </article>
+                <article>
+                    <span>@T("labels.rightAssetChange")</span>
+                    <strong class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</strong>
+                    <small>@DisplayRightSymbol()</small>
+                </article>
+                <article>
+                    <span>@T("labels.competitiveness")</span>
+                    <strong>@DisplayHotScore()</strong>
+                    <small>@DisplayScoreContext()</small>
+                </article>
+                <article>
+                    <span>@T("labels.poolStatus")</span>
+                    <strong>@DisplayPoolStatus()</strong>
+                    <small>@DisplayVolume()</small>
                 </article>
             </aside>
         </div>
@@ -145,6 +194,7 @@ else
         <div class="tv-stage__fog"></div>
         <div class="tv-stage__gridlines"></div>
         <div class="tv-stage__particles"></div>
+        <TvNarrationOverlay @ref="_narrationOverlay" />
 
         <header class="tv-waiting-hero">
             <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
@@ -233,6 +283,16 @@ else
     </section>
 }
 
+@if (Environment.IsDevelopment())
+{
+    <aside class="tv-dev-narration-panel">
+        @foreach (var animation in NarrationDebugAnimations)
+        {
+            <button type="button" @onclick="() => TriggerDevNarrationAsync(animation)">@animation</button>
+        }
+    </aside>
+}
+
 @code {
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
@@ -240,19 +300,40 @@ else
     [Parameter] public StatsOverviewDto? Stats { get; set; }
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
 
+    // Temporary debug demo to validate the cinematic narration overlay visually.
+    private const bool EnableNarrationDebugDemo = true;
+    private static readonly string[] NarrationDebugAnimations =
+    [
+        "grow",
+        "zoom-burst",
+        "glitch",
+        "neon-flash",
+        "shockwave",
+        "screen-impact",
+        "diagonal-swipe",
+        "split-reveal",
+        "hologram-reveal",
+        "pulse"
+    ];
+
     private IJSObjectReference? _tvModule;
     private BroadcastSnapshot? _previousSnapshot;
     private CancellationTokenSource? _eventCts;
     private CancellationTokenSource? _pulseCts;
+    private CancellationTokenSource? _clockCts;
+    private Task? _clockLoopTask;
     private TvOverlayEvent? _activeEvent;
+    private TvNarrationOverlay? _narrationOverlay;
     private bool _isEventVisible;
     private bool _pulseLeftScore;
     private bool _pulseRightScore;
     private bool _pulseScoreboard;
     private bool _pulseHotScore;
+    private bool _narrationDebugDemoStarted;
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
-
+    private DateTime _clockAnchorUtc = DateTime.UtcNow;
+    private double _clockAnchorRemainingMilliseconds;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
@@ -260,6 +341,7 @@ else
 
     protected override void OnParametersSet()
     {
+        SyncClockAnchor();
         BuildTickerItems();
         ProcessBroadcastState();
     }
@@ -273,6 +355,31 @@ else
         await LogAsync("TV_MOTION", "motion system ready");
         if (_tickerItems.Count > 0)
             await LogAsync("TV_TICKER", "updated", _tickerItems);
+
+        _clockCts = new CancellationTokenSource();
+        _clockLoopTask = RunClockLoopAsync(_clockCts.Token);
+
+        if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
+        {
+            _narrationDebugDemoStarted = true;
+            _ = RunNarrationDebugDemoAsync();
+        }
+    }
+
+    private async Task RunClockLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(75));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private void ProcessBroadcastState()
@@ -287,6 +394,7 @@ else
         if (_previousSnapshot is null)
         {
             _ = TriggerEventAsync(CreateEvent("hotMatchDetected"));
+            _ = QueueNarrationAsync(CreateNarrationEvent("hotMatchDetected", current));
             _previousSnapshot = current;
             return;
         }
@@ -302,27 +410,33 @@ else
         {
             _ = PulseScoreAsync(current.LeftScore > _previousSnapshot.LeftScore, current.RightScore > _previousSnapshot.RightScore, hotScoreSpike);
             _ = TriggerEventAsync(CreateGoalEvent(current));
+            _ = QueueNarrationAsync(CreateGoalNarration(current));
         }
         else if (scoreLeaderChanged)
         {
             _ = TriggerEventAsync(CreateLeaderEvent(current));
+            _ = QueueNarrationAsync(CreateLeaderNarration(current));
         }
         else if (reversalDetected)
         {
             _ = TriggerEventAsync(CreateEvent("momentumReversal"));
+            _ = QueueNarrationAsync(CreateNarrationEvent("momentumReversal", current));
         }
         else if (fearSpike)
         {
             _ = TriggerEventAsync(CreateEvent("fearSurge"));
+            _ = QueueNarrationAsync(CreateNarrationEvent("fearSurge", current));
         }
         else if (hotScoreSpike)
         {
             _ = PulseScoreAsync(false, false, true);
             _ = TriggerEventAsync(CreateEvent("hotScoreSpike"));
+            _ = QueueNarrationAsync(CreateNarrationEvent("hotScoreSpike", current));
         }
         else if (finalMoments)
         {
             _ = TriggerEventAsync(CreateEvent("finalMoments"));
+            _ = QueueNarrationAsync(CreateNarrationEvent("finalMoments", current));
         }
 
         _previousSnapshot = current;
@@ -372,6 +486,84 @@ else
         _isEventVisible = false;
         await InvokeAsync(StateHasChanged);
     }
+
+    private async Task QueueNarrationAsync(TvNarrationEvent? narrationEvent)
+    {
+        if (narrationEvent is null || _narrationOverlay is null)
+            return;
+
+        if (IsImpactSeverity(narrationEvent.Severity))
+            _ = TriggerStageImpactAsync(narrationEvent.DurationMs);
+
+        await LogAsync("TV_NARRATION", narrationEvent.Type, new
+        {
+            narrationEvent.Severity,
+            narrationEvent.Text,
+            narrationEvent.Asset,
+            narrationEvent.Side,
+            narrationEvent.Animation
+        });
+
+        await _narrationOverlay.EnqueueAsync(narrationEvent);
+    }
+
+    private async Task TriggerStageImpactAsync(int durationMs)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusTvNarration.impact");
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task RunNarrationDebugDemoAsync()
+    {
+        await LogAsync("TV_NARRATION", "debug-demo-started");
+
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        await QueueNarrationAsync(new TvNarrationEvent
+        {
+            Type = "debug-goal-kite",
+            Severity = "extreme",
+            Text = "GOAL KITE",
+            Subtitle = "Arena pressure converted into score",
+            Animation = "zoom-burst",
+            DurationMs = 4000,
+            CooldownMs = 250,
+            Side = "center"
+        });
+
+        await Task.Delay(TimeSpan.FromSeconds(4));
+        await QueueNarrationAsync(new TvNarrationEvent
+        {
+            Type = "debug-momentum-shift",
+            Severity = "high",
+            Text = "MOMENTUM SHIFT",
+            Subtitle = "PARTIUSDT reversal pressure rising",
+            Animation = "glitch",
+            DurationMs = 3500,
+            CooldownMs = 250,
+            Side = "center"
+        });
+
+        await Task.Delay(TimeSpan.FromSeconds(4));
+        await QueueNarrationAsync(new TvNarrationEvent
+        {
+            Type = "debug-massive-breakout",
+            Severity = "extreme",
+            Text = "MASSIVE BREAKOUT",
+            Subtitle = "The arena is detonating into pressure time",
+            Animation = "screen-impact",
+            DurationMs = 3600,
+            CooldownMs = 250,
+            Side = "center"
+        });
+    }
+
+    private Task TriggerDevNarrationAsync(string animation)
+        => QueueNarrationAsync(CreateDevNarrationEvent(animation));
 
     private async Task PulseScoreAsync(bool pulseLeft, bool pulseRight, bool pulseHotScore)
     {
@@ -469,8 +661,220 @@ else
         return new TvOverlayEvent("goal", T("events.goalKicker"), T("events.goalTitle", scorer), DisplayScoreContext(), GetAccentColor(scorer));
     }
 
+    private TvNarrationEvent CreateGoalNarration(BroadcastSnapshot current)
+    {
+        var scorer = current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
+        var opposing = scorer == current.LeftSymbol ? current.RightSymbol : current.LeftSymbol;
+        return new TvNarrationEvent
+        {
+            Type = "goal",
+            Severity = "high",
+            Text = $"{scorer} BREAKS THE DEFENSE",
+            Subtitle = $"{DisplayScoreContext()} against {opposing}",
+            Asset = scorer,
+            Side = scorer == current.LeftSymbol ? "left" : "right",
+            Animation = "zoom-burst",
+            DurationMs = 3400,
+            CooldownMs = 300
+        };
+    }
+
     private TvOverlayEvent CreateLeaderEvent(BroadcastSnapshot current)
         => new("leaderChange", T("events.leaderChangeKicker"), T("events.leaderChangeTitle", current.LeaderSymbol), T("events.leaderChangeBody"), GetAccentColor(current.LeaderSymbol));
+
+    private TvNarrationEvent CreateLeaderNarration(BroadcastSnapshot current)
+        => new()
+        {
+            Type = "leader-change",
+            Severity = "high",
+            Text = $"{current.LeaderSymbol} DOMINATING",
+            Subtitle = "Leader changed after a fresh arena swing",
+            Asset = current.LeaderSymbol,
+            Side = current.LeaderSymbol == current.LeftSymbol ? "left" : "right",
+            Animation = "screen-impact",
+            DurationMs = 3200,
+            CooldownMs = 250
+        };
+
+    private TvNarrationEvent CreateDevNarrationEvent(string animation)
+    {
+        var normalized = animation.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "grow" => new TvNarrationEvent
+            {
+                Type = "dev-grow",
+                Severity = "medium",
+                Text = "PRESSURE RISING",
+                Subtitle = "Broadcast demo for grow animation",
+                Animation = normalized,
+                DurationMs = 3000,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            "zoom-burst" => new TvNarrationEvent
+            {
+                Type = "dev-zoom-burst",
+                Severity = "extreme",
+                Text = "GOAL KITE",
+                Subtitle = "Arena pressure converted into score",
+                Animation = normalized,
+                DurationMs = 4000,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            "glitch" => new TvNarrationEvent
+            {
+                Type = "dev-glitch",
+                Severity = "high",
+                Text = "MOMENTUM SHIFT",
+                Subtitle = "PARTIUSDT reversal pressure rising",
+                Animation = normalized,
+                DurationMs = 3500,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            "neon-flash" => new TvNarrationEvent
+            {
+                Type = "dev-neon-flash",
+                Severity = "high",
+                Text = "LIQUIDITY SURGE",
+                Subtitle = "Neon flash diagnostic event",
+                Animation = normalized,
+                DurationMs = 3200,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            "shockwave" => new TvNarrationEvent
+            {
+                Type = "dev-shockwave",
+                Severity = "high",
+                Text = "FINAL MINUTES",
+                Subtitle = "The arena is entering pressure time",
+                Animation = normalized,
+                DurationMs = 3200,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            "screen-impact" => new TvNarrationEvent
+            {
+                Type = "dev-screen-impact",
+                Severity = "extreme",
+                Text = "MASSIVE BREAKOUT",
+                Subtitle = "Full impact cinematic stress test",
+                Animation = normalized,
+                DurationMs = 3600,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            "diagonal-swipe" => new TvNarrationEvent
+            {
+                Type = "dev-diagonal-swipe",
+                Severity = "medium",
+                Text = "BTC BREAKS THE DEFENSE",
+                Subtitle = "Diagonal entry test",
+                Animation = normalized,
+                DurationMs = 3200,
+                CooldownMs = 180,
+                Side = "left"
+            },
+            "split-reveal" => new TvNarrationEvent
+            {
+                Type = "dev-split-reveal",
+                Severity = "high",
+                Text = "COMEBACK STARTED",
+                Subtitle = "Split reveal diagnostic event",
+                Animation = normalized,
+                DurationMs = 3200,
+                CooldownMs = 180,
+                Side = "right"
+            },
+            "hologram-reveal" => new TvNarrationEvent
+            {
+                Type = "dev-hologram-reveal",
+                Severity = "medium",
+                Text = "HOT MATCH DETECTED",
+                Subtitle = "Hologram reveal diagnostic event",
+                Animation = normalized,
+                DurationMs = 3200,
+                CooldownMs = 180,
+                Side = "center"
+            },
+            _ => new TvNarrationEvent
+            {
+                Type = "dev-pulse",
+                Severity = "medium",
+                Text = "ARENA UNSTABLE",
+                Subtitle = "Pulse diagnostic event",
+                Animation = "pulse",
+                DurationMs = 3000,
+                CooldownMs = 180,
+                Side = "center"
+            }
+        };
+    }
+
+    private TvNarrationEvent? CreateNarrationEvent(string key, BroadcastSnapshot current)
+        => key switch
+        {
+            "hotMatchDetected" => new TvNarrationEvent
+            {
+                Type = "hot-match",
+                Severity = "medium",
+                Text = "HOT MATCH DETECTED",
+                Subtitle = $"{current.LeftSymbol} vs {current.RightSymbol} just lit up the arena",
+                Side = "center",
+                Animation = "hologram-reveal",
+                DurationMs = 2800,
+                CooldownMs = 200
+            },
+            "momentumReversal" => new TvNarrationEvent
+            {
+                Type = "momentum-shift",
+                Severity = "high",
+                Text = "MOMENTUM SHIFT",
+                Subtitle = $"{ResolveTrailerSymbol(current)} comeback started",
+                Asset = ResolveTrailerSymbol(current),
+                Side = ResolveTrailerSymbol(current) == current.LeftSymbol ? "left" : "right",
+                Animation = "split-reveal",
+                DurationMs = 3200,
+                CooldownMs = 250
+            },
+            "fearSurge" => new TvNarrationEvent
+            {
+                Type = "fear-spike",
+                Severity = "extreme",
+                Text = "ARENA UNSTABLE",
+                Subtitle = "Fear spike detected across the live order flow",
+                Side = "center",
+                Animation = "glitch",
+                DurationMs = 3800,
+                CooldownMs = 350
+            },
+            "hotScoreSpike" => new TvNarrationEvent
+            {
+                Type = "hot-score-spike",
+                Severity = "high",
+                Text = "LIQUIDITY SURGE",
+                Subtitle = $"Hot score climbing to {current.HotScore}",
+                Side = "center",
+                Animation = "shockwave",
+                DurationMs = 3100,
+                CooldownMs = 250
+            },
+            "finalMoments" => new TvNarrationEvent
+            {
+                Type = "final-minute-push",
+                Severity = "medium",
+                Text = "FINAL MINUTE PUSH",
+                Subtitle = $"{DisplayClockPrimary()} remaining in the live cycle",
+                Side = "center",
+                Animation = "diagonal-swipe",
+                DurationMs = 2800,
+                CooldownMs = 250
+            },
+            _ => null
+        };
 
     private TvOverlayEvent? CreateEvent(string key)
         => key switch
@@ -485,6 +889,15 @@ else
 
     private string T(string key, params object?[] args)
         => L.T($"tv.{key}", Culture, args);
+
+    private static bool IsImpactSeverity(string? severity)
+        => severity?.Equals("high", StringComparison.OrdinalIgnoreCase) == true
+           || severity?.Equals("extreme", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static string ResolveTrailerSymbol(BroadcastSnapshot current)
+        => string.Equals(current.LeaderSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase)
+            ? current.RightSymbol
+            : current.LeftSymbol;
 
     private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
     private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
@@ -512,6 +925,20 @@ else
     private string DisplayMomentum() => HotMatch?.MomentumLabel ?? BuildMomentumFallback();
     private string DisplayReason() => HotMatch?.Reason ?? BuildReasonFallback();
     private string DisplayHotScore() => (HotMatch?.HotScore ?? 0).ToString(CultureInfo.InvariantCulture);
+    private decimal? DisplayLeftChangePercent() => HotMatch?.LeftChangePercent ?? Match?.PctA;
+    private decimal? DisplayRightChangePercent() => HotMatch?.RightChangePercent ?? Match?.PctB;
+    private string DisplayLeaderSymbol() => HotMatch?.LeaderSymbol ?? ResolveLeaderSymbol();
+    private string DisplayPressureSymbol() => HotMatch?.PressureSymbol ?? ResolvePressureSymbolFallback();
+    private string DisplayPoolStatus() => TranslatePoolStatus(HotMatch?.PoolStatusLabel) ?? BuildPoolStatusFallback();
+    private string DisplayClockPrimary()
+    {
+        var remaining = ResolvePreciseRemainingTime();
+        return remaining is null ? "--:--.---" : FormatPreciseClock(remaining.Value);
+    }
+
+    private string DisplayClockPhaseLabel() => $"Remaining ({DisplayClockPrimary()})";
+
+    private bool IsClockLive() => ResolvePreciseRemainingTime() is TimeSpan remaining && remaining > TimeSpan.Zero;
 
     private string DisplayScoreContext()
     {
@@ -547,6 +974,91 @@ else
         return $"{Math.Max(0, remaining):00}:00";
     }
 
+    private static string FormatClock(int totalSeconds)
+    {
+        if (totalSeconds < 0)
+            return "--:--";
+
+        var minutes = totalSeconds / 60;
+        var seconds = totalSeconds % 60;
+        return $"{minutes:00}:{seconds:00}";
+    }
+
+    private static string FormatPreciseClock(TimeSpan remaining)
+    {
+        var safe = remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
+        var totalMinutes = (int)Math.Floor(safe.TotalMinutes);
+        return $"{totalMinutes:00}:{safe.Seconds:00}.{safe.Milliseconds:000}";
+    }
+
+    private void SyncClockAnchor()
+    {
+        _clockAnchorRemainingMilliseconds = ResolveRemainingMillisecondsSeed();
+        _clockAnchorUtc = DateTime.UtcNow;
+    }
+
+    private double ResolveRemainingMillisecondsSeed()
+    {
+        if (HotMatch?.RemainingSeconds is int explicitRemainingSeconds)
+            return Math.Max(0, explicitRemainingSeconds) * 1000d;
+
+        var parsed = ParseRemainingSeconds(DisplayRemainingTime());
+        if (parsed > 0)
+            return parsed * 1000d;
+
+        return Math.Max(0, (Match?.RemainingMinutes ?? 0) * 60) * 1000d;
+    }
+
+    private TimeSpan? ResolvePreciseRemainingTime()
+    {
+        if (_clockAnchorRemainingMilliseconds <= 0d)
+            return null;
+
+        var elapsedMs = Math.Max(0d, (DateTime.UtcNow - _clockAnchorUtc).TotalMilliseconds);
+        var remainingMs = Math.Max(0d, _clockAnchorRemainingMilliseconds - elapsedMs);
+        return TimeSpan.FromMilliseconds(remainingMs);
+    }
+
+    private TvClockState ResolveClockState()
+    {
+        var startUtc = ResolveMatchStartUtc();
+        if (startUtc is null)
+            return BuildFallbackClockState();
+
+        var elapsedSeconds = Math.Max(0, (int)Math.Floor((DateTime.UtcNow - startUtc.Value).TotalSeconds));
+        const int firstHalfSeconds = 45 * 60;
+        const int halfTimeEndSeconds = 60 * 60;
+        const int secondHalfEndSeconds = 105 * 60;
+
+        if (elapsedSeconds < firstHalfSeconds)
+            return new TvClockState(TvClockPhase.FirstHalf, elapsedSeconds);
+
+        if (elapsedSeconds < halfTimeEndSeconds)
+            return new TvClockState(TvClockPhase.HalfTime, firstHalfSeconds);
+
+        if (elapsedSeconds < secondHalfEndSeconds)
+            return new TvClockState(TvClockPhase.SecondHalf, elapsedSeconds - (15 * 60));
+
+        return new TvClockState(TvClockPhase.Final, 90 * 60);
+    }
+
+    private DateTime? ResolveMatchStartUtc()
+        => HotMatch?.MatchStartTimeUtc ?? Match?.StartTime;
+
+    private TvClockState BuildFallbackClockState()
+    {
+        var fallbackRemainingSeconds = HotMatch?.RemainingSeconds ?? ParseRemainingSeconds(DisplayRemainingTime());
+        if (fallbackRemainingSeconds > 0)
+        {
+            var elapsed = Math.Max(0, (90 * 60) - fallbackRemainingSeconds);
+            return elapsed < 45 * 60
+                ? new TvClockState(TvClockPhase.FirstHalf, elapsed)
+                : new TvClockState(TvClockPhase.SecondHalf, Math.Min(90 * 60, elapsed));
+        }
+
+        return new TvClockState(TvClockPhase.FirstHalf, 0);
+    }
+
     private string BuildVolumeFallback()
     {
         var totalPool = (Match?.TotalAmountTeamA ?? 0m) + (Match?.TotalAmountTeamB ?? 0m);
@@ -572,6 +1084,43 @@ else
 
         return T("fallback.liveArenaReason");
     }
+
+    private string ResolvePressureSymbolFallback()
+    {
+        if (Match is null)
+            return DisplayLeaderSymbol();
+
+        var poolA = Match.TotalAmountTeamA;
+        var poolB = Match.TotalAmountTeamB;
+        if (poolA == poolB)
+            return ResolveMomentumLeader();
+
+        return poolA > poolB ? DisplayLeftSymbol() : DisplayRightSymbol();
+    }
+
+    private string BuildPoolStatusFallback()
+    {
+        if (Match is null)
+            return T("labels.poolStatusIdle");
+
+        if (Match.TotalPool > 0m && Math.Abs(DisplayLeftScore() - DisplayRightScore()) <= 1)
+            return T("labels.poolStatusBalanced");
+
+        if (Match.TotalPool > 0m)
+            return T("labels.poolStatusOpen");
+
+        return T("labels.poolStatusIdle");
+    }
+
+    private string? TranslatePoolStatus(string? code)
+        => code switch
+        {
+            "activeFlow" => T("labels.poolStatusActiveFlow"),
+            "balanced" => T("labels.poolStatusBalanced"),
+            "open" => T("labels.poolStatusOpen"),
+            "idle" => T("labels.poolStatusIdle"),
+            _ => null
+        };
 
     private string GetAlternateLanguageLine()
         => Culture == AppCultureService.SecondaryRouteCulture
@@ -738,6 +1287,22 @@ else
         return 0;
     }
 
+    private string FormatChangePercent(decimal? value)
+        => value.HasValue
+            ? value.Value > 0m
+                ? $"+{value.Value:0.00}%"
+                : $"{value.Value:0.00}%"
+            : "--";
+
+    private string GetChangeClass(decimal? value)
+        => value switch
+        {
+            > 0m => "tv-change tv-change--positive",
+            < 0m => "tv-change tv-change--negative",
+            0m => "tv-change tv-change--neutral",
+            _ => "tv-change tv-change--missing"
+        };
+
     private string FormatPercent(decimal value)
         => $"{value:0.#}%";
 
@@ -761,10 +1326,30 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        if (_clockCts is not null)
+        {
+            _clockCts.Cancel();
+            _clockCts.Dispose();
+        }
+
+        if (_clockLoopTask is not null)
+        {
+            try
+            {
+                await _clockLoopTask;
+            }
+            catch
+            {
+            }
+        }
+
         _eventCts?.Cancel();
         _eventCts?.Dispose();
         _pulseCts?.Cancel();
         _pulseCts?.Dispose();
+
+        if (_narrationOverlay is not null)
+            await _narrationOverlay.DisposeAsync();
 
         if (_tvModule is not null)
             await _tvModule.DisposeAsync();
@@ -780,6 +1365,16 @@ else
         int RemainingSeconds,
         bool HasRecentReversal,
         bool HasFearSignal);
+
+    private sealed record TvClockState(TvClockPhase Phase, int DisplaySeconds);
+
+    private enum TvClockPhase
+    {
+        FirstHalf,
+        HalfTime,
+        SecondHalf,
+        Final
+    }
 
     private sealed record TvOverlayEvent(
         string Key,
@@ -806,6 +1401,11 @@ else
             linear-gradient(180deg, rgba(4, 8, 18, 0.95), rgba(3, 7, 15, 0.98)),
             radial-gradient(circle at top left, rgba(83, 200, 255, 0.18), transparent 24%),
             radial-gradient(circle at top right, rgba(76, 243, 141, 0.18), transparent 18%);
+        transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+    }
+
+    .tv-stage-impact-active {
+        box-shadow: inset 0 0 0 1px rgba(127, 246, 223, 0.16), 0 0 48px rgba(127, 246, 223, 0.12);
     }
 
     .tv-stage__backdrop {
@@ -1008,12 +1608,87 @@ else
         font-size: 1rem;
     }
 
+    .tv-broadcast-clock {
+        display: grid;
+        gap: 6px;
+        justify-items: center;
+        width: min(100%, 300px);
+        margin: 0 auto;
+        padding: 12px 14px;
+        border-radius: 20px;
+        border: 1px solid rgba(76, 243, 141, 0.18);
+        background:
+            radial-gradient(circle at top, rgba(76, 243, 141, 0.08), transparent 58%),
+            linear-gradient(180deg, rgba(7, 15, 16, 0.98), rgba(5, 11, 14, 0.98));
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 14px 36px rgba(0,0,0,0.18);
+        backdrop-filter: blur(16px);
+    }
+
+    .tv-broadcast-clock__header {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        color: var(--tv-muted);
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-size: .68rem;
+        font-weight: 900;
+    }
+
+    .tv-broadcast-clock__live {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(255, 84, 84, 0.16);
+        border: 1px solid rgba(255, 84, 84, 0.24);
+        color: #ff9f9f;
+    }
+
+    .tv-broadcast-clock__live::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ff5454;
+        box-shadow: 0 0 0 8px rgba(255, 84, 84, 0.08);
+        animation: tvLivePulse 2.2s ease-in-out infinite;
+    }
+
+    .tv-broadcast-clock strong {
+        font-size: clamp(1.8rem, 3.4vw, 2.9rem);
+        line-height: 1;
+        letter-spacing: -.05em;
+        color: #59ffac;
+        text-shadow: 0 0 18px rgba(89, 255, 172, 0.18);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tv-broadcast-clock small {
+        color: #b8fbd5;
+        font-size: .74rem;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+
     .tv-match-card__arena {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         gap: 16px;
         align-items: center;
         min-height: 430px;
+    }
+
+    .tv-center-hud {
+        display: grid;
+        gap: 14px;
+        align-content: center;
+        justify-items: center;
+        width: min(100%, 320px);
     }
 
     .tv-team {
@@ -1091,6 +1766,44 @@ else
         text-shadow: 0 10px 30px rgba(0,0,0,.32);
     }
 
+    .tv-change {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        font-size: .94rem;
+        font-weight: 900;
+        letter-spacing: .04em;
+    }
+
+    .tv-change--positive {
+        color: #70ffb3;
+        border-color: rgba(112, 255, 179, 0.22);
+        background: rgba(112, 255, 179, 0.08);
+    }
+
+    .tv-change--negative {
+        color: #ff8fba;
+        border-color: rgba(255, 143, 186, 0.24);
+        background: rgba(255, 143, 186, 0.08);
+    }
+
+    .tv-change--neutral {
+        color: #dbe8f7;
+        border-color: rgba(219, 232, 247, 0.14);
+        background: rgba(219, 232, 247, 0.04);
+    }
+
+    .tv-change--missing {
+        color: var(--tv-muted);
+        border-color: rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.03);
+    }
+
     .tv-scoreboard {
         display: grid;
         gap: 12px;
@@ -1153,6 +1866,7 @@ else
     .tv-telemetry {
         padding: 16px;
         display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
     }
 
@@ -1180,6 +1894,30 @@ else
 
     .tv-telemetry article:nth-child(4) {
         animation-delay: -9s;
+    }
+
+    .tv-telemetry article:nth-child(5) {
+        animation-delay: -12s;
+    }
+
+    .tv-telemetry article:nth-child(6) {
+        animation-delay: -15s;
+    }
+
+    .tv-telemetry article:nth-child(7) {
+        animation-delay: -18s;
+    }
+
+    .tv-telemetry article:nth-child(8) {
+        animation-delay: -21s;
+    }
+
+    .tv-telemetry article:nth-child(9) {
+        animation-delay: -24s;
+    }
+
+    .tv-telemetry article:nth-child(10) {
+        animation-delay: -27s;
     }
 
     .tv-telemetry span,
@@ -1322,55 +2060,282 @@ else
         letter-spacing: -.02em;
     }
 
-    .tv-event-overlay {
-        position: absolute;
-        top: 28px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-12px);
-        z-index: 3;
+  .tv-event-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity .35s ease,
+        visibility .35s ease;
+}
+
+.tv-event-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tv-event-overlay::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background:
+        radial-gradient(circle at center,
+            rgba(83,200,255,.22) 0%,
+            rgba(83,200,255,.12) 18%,
+            rgba(127,246,223,.08) 28%,
+            transparent 60%);
+    filter: blur(60px);
+    animation: tvOverlayPulse 2.8s ease-in-out infinite;
+}
+
+.tv-event-overlay__card {
+    --event-accent: #53c8ff;
+
+    position: relative;
+
+    width: min(92vw, 1400px);
+    max-width: 1400px;
+
+    padding:
+        clamp(24px, 3vw, 42px)
+        clamp(28px, 5vw, 70px);
+
+    border-radius: 38px;
+
+    display: grid;
+    gap: 14px;
+
+    text-align: center;
+
+    border:
+        1px solid color-mix(
+            in srgb,
+            var(--event-accent) 44%,
+            rgba(255,255,255,.12)
+        );
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(4,7,16,.72),
+            rgba(3,5,12,.84)
+        );
+
+    backdrop-filter:
+        blur(28px)
+        saturate(160%);
+
+    overflow: hidden;
+
+    box-shadow:
+        0 0 140px rgba(0,0,0,.82),
+        0 0 80px color-mix(
+            in srgb,
+            var(--event-accent) 26%,
+            transparent
+        ),
+        inset 0 0 0 1px rgba(255,255,255,.04);
+
+    animation:
+        tvOverlayEntrance .65s cubic-bezier(.22,1,.36,1),
+        tvOverlayGlow 3.5s ease-in-out infinite;
+}
+
+.tv-event-overlay__card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background:
+        linear-gradient(
+            115deg,
+            transparent 0%,
+            rgba(255,255,255,.06) 32%,
+            transparent 58%
+        );
+
+    transform: translateX(-140%);
+    animation: tvOverlaySweep 4.5s linear infinite;
+}
+
+.tv-event-overlay__card::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+
+    border-radius: inherit;
+
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--event-accent) 65%, white),
+            transparent 24%,
+            transparent 76%,
+            color-mix(in srgb, var(--event-accent) 45%, white)
+        );
+
+    opacity: .35;
+
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+
+    padding: 1px;
+
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+
+    pointer-events: none;
+}
+
+.tv-event-overlay__card span {
+    position: relative;
+
+    color:
+        color-mix(
+            in srgb,
+            var(--event-accent) 82%,
+            white
+        );
+
+    text-transform: uppercase;
+
+    letter-spacing: .38em;
+
+    font-size:
+        clamp(.8rem, 1vw, 1.2rem);
+
+    font-weight: 900;
+
+    text-shadow:
+        0 0 18px color-mix(
+            in srgb,
+            var(--event-accent) 50%,
+            transparent
+        );
+}
+
+.tv-event-overlay__card strong {
+    position: relative;
+
+    font-size:
+        clamp(4rem, 10vw, 12rem);
+
+    line-height: .9;
+
+    font-weight: 1000;
+
+    letter-spacing: -.08em;
+
+    text-transform: uppercase;
+
+    color: #ffffff;
+
+    text-shadow:
+        0 0 12px rgba(255,255,255,.18),
+        0 0 34px color-mix(
+            in srgb,
+            var(--event-accent) 55%,
+            transparent
+        ),
+        0 0 90px color-mix(
+            in srgb,
+            var(--event-accent) 24%,
+            transparent
+        );
+
+    filter:
+        drop-shadow(0 10px 24px rgba(0,0,0,.55));
+}
+
+.tv-event-overlay__card small {
+    position: relative;
+
+    color: rgba(230,240,255,.82);
+
+    font-size:
+        clamp(1rem, 2vw, 2.4rem);
+
+    line-height: 1.4;
+
+    font-weight: 700;
+
+    letter-spacing: .02em;
+
+    text-shadow:
+        0 0 16px rgba(255,255,255,.08);
+}
+
+@@keyframes tvOverlayEntrance {
+    0% {
         opacity: 0;
-        transition: opacity .5s ease, transform .5s ease;
-        pointer-events: none;
+        transform:
+            scale(.78)
+            translateY(80px);
+        filter:
+            blur(26px);
     }
 
-    .tv-event-overlay.is-visible {
+    60% {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform:
+            scale(1.04)
+            translateY(-6px);
+        filter:
+            blur(0);
     }
 
-    .tv-event-overlay__card {
-        --event-accent: #53c8ff;
-        min-width: min(76vw, 520px);
-        padding: 16px 20px;
-        border-radius: 22px;
-        border: 1px solid color-mix(in srgb, var(--event-accent) 28%, rgba(255,255,255,0.08));
-        background:
-            linear-gradient(180deg, rgba(7, 11, 20, 0.96), rgba(6, 9, 17, 0.98)),
-            radial-gradient(circle at top, color-mix(in srgb, var(--event-accent) 14%, transparent), transparent 64%);
-        box-shadow: 0 28px 80px rgba(0,0,0,.35), 0 0 32px color-mix(in srgb, var(--event-accent) 18%, transparent);
-        display: grid;
-        gap: 6px;
-        text-align: center;
-        backdrop-filter: blur(16px);
+    100% {
+        opacity: 1;
+        transform:
+            scale(1)
+            translateY(0);
+        filter:
+            blur(0);
+    }
+}
+
+@@keyframes tvOverlayGlow {
+    0%,100% {
+        transform: scale(1);
     }
 
-    .tv-event-overlay__card span {
-        color: color-mix(in srgb, var(--event-accent) 76%, white);
-        text-transform: uppercase;
-        letter-spacing: .16em;
-        font-size: .72rem;
-        font-weight: 900;
+    50% {
+        transform: scale(1.015);
+    }
+}
+
+@@keyframes tvOverlayPulse {
+    0%,100% {
+        transform: scale(1);
+        opacity: .7;
     }
 
-    .tv-event-overlay__card strong {
-        font-size: clamp(1.2rem, 2vw, 2rem);
-        letter-spacing: -.04em;
+    50% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+}
+
+@@keyframes tvOverlaySweep {
+    0% {
+        transform: translateX(-140%);
     }
 
-    .tv-event-overlay__card small {
-        color: var(--tv-muted);
-        font-size: .92rem;
+    100% {
+        transform: translateX(140%);
     }
+}
 
     .tv-ticker {
         position: absolute;
@@ -1421,6 +2386,42 @@ else
         box-shadow: 0 0 0 6px rgba(127, 246, 223, 0.08);
     }
 
+    .tv-dev-narration-panel {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 10010;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-width: min(92vw, 560px);
+        padding: 10px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(7, 12, 22, 0.78);
+        backdrop-filter: blur(12px);
+        pointer-events: auto;
+    }
+
+    .tv-dev-narration-panel button {
+        border: 1px solid rgba(127, 246, 223, 0.18);
+        background: rgba(14, 26, 38, 0.92);
+        color: #dffeff;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: .75rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+
+    .tv-dev-narration-panel button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(127, 246, 223, 0.34);
+        background: rgba(20, 38, 56, 0.96);
+    }
+
     @@media (max-width: 1280px) {
         .tv-stage__grid,
         .tv-waiting-grid {
@@ -1442,6 +2443,23 @@ else
         }
 
         .tv-match-card__arena {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-center-hud {
+            width: 100%;
+        }
+
+        .tv-broadcast-clock {
+            width: min(100%, 220px);
+            padding: 10px 12px;
+        }
+
+        .tv-broadcast-clock strong {
+            font-size: clamp(1.45rem, 7vw, 2rem);
+        }
+
+        .tv-telemetry {
             grid-template-columns: 1fr;
         }
 
@@ -1567,4 +2585,5 @@ else
         from { transform: translateX(0); }
         to { transform: translateX(-50%); }
     }
+
 </style>

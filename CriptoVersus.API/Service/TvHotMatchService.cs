@@ -168,6 +168,9 @@ public sealed class TvHotMatchService : ITvHotMatchService
         var momentumLabel = hasRecentReversal
             ? $"{leaderSymbol} reversal pressure rising"
             : $"{leaderSymbol} pressure rising";
+        var pressureSymbol = hasRecentReversal
+            ? leaderSymbol
+            : ResolvePressureSymbol(match, left?.TotalAmount ?? 0m, right?.TotalAmount ?? 0m);
 
         var slug = $"{Slugify(match.TeamA.Currency.Symbol)}-vs-{Slugify(match.TeamB.Currency.Symbol)}";
         var publicBaseUrl = ResolvePublicBaseUrl();
@@ -190,6 +193,13 @@ public sealed class TvHotMatchService : ITvHotMatchService
             VolumeLabel = $"{totalPool:0.##} SOL",
             MomentumLabel = momentumLabel,
             RemainingTimeLabel = FormatRemainingTime(remainingTime),
+            RemainingSeconds = Math.Max(0, (int)Math.Floor(remainingTime.TotalSeconds)),
+            MatchStartTimeUtc = match.StartTime,
+            LeftChangePercent = Convert.ToDecimal(match.TeamA.Currency.PercentageChange),
+            RightChangePercent = Convert.ToDecimal(match.TeamB.Currency.PercentageChange),
+            LeaderSymbol = leaderSymbol,
+            PressureSymbol = pressureSymbol,
+            PoolStatusLabel = BuildPoolStatusLabel(totalPool, totalRecentBetCount, scoreDiff),
             HasRecentReversal = hasRecentReversal
         };
 
@@ -246,6 +256,30 @@ public sealed class TvHotMatchService : ITvHotMatchService
             return "Late-cycle crypto battle with tight score pressure";
 
         return "Balanced crypto battle with competitive staking pool momentum";
+    }
+
+    private static string ResolvePressureSymbol(Match match, decimal leftPool, decimal rightPool)
+    {
+        if (leftPool == rightPool)
+            return ResolveMomentumLeader(match);
+
+        return leftPool > rightPool
+            ? match.TeamA.Currency?.Symbol ?? "Arena"
+            : match.TeamB.Currency?.Symbol ?? "Arena";
+    }
+
+    private static string BuildPoolStatusLabel(decimal totalPool, int recentBets, int scoreDiff)
+    {
+        if (recentBets >= 6)
+            return "activeFlow";
+
+        if (scoreDiff <= 1 && totalPool > 0m)
+            return "balanced";
+
+        if (totalPool > 0m)
+            return "open";
+
+        return "idle";
     }
 
     private string ResolvePublicBaseUrl()
