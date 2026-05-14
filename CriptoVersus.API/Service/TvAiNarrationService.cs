@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
@@ -284,7 +285,7 @@ Escreva uma nova narração curta para a TV.
                 return null;
 
             return new NarrationDraft(
-                sanitized,
+                NormalizeCommentaryText(sanitized),
                 "ai",
                 _options.NarrationModel,
                 ComputeHash(systemPrompt + userPrompt),
@@ -363,7 +364,7 @@ Escreva uma nova narração curta para a TV.
             _ => $"{hotMatch.LeftSymbol} e {hotMatch.RightSymbol} seguem em confronto ao vivo, com {hotMatch.LeaderSymbol} puxando a narrativa da arena neste momento."
         };
 
-        return new NarrationDraft(SanitizeNarration(text, _options.NarrationMaxChars), "template", null, null, null);
+        return new NarrationDraft(NormalizeCommentaryText(SanitizeNarration(text, _options.NarrationMaxChars)), "template", null, null, null);
     }
 
     private static bool ShouldUseAi(string eventType)
@@ -417,11 +418,18 @@ Escreva uma nova narração curta para a TV.
         return cleaned[..Math.Min(maxChars, cleaned.Length)].TrimEnd();
     }
 
+    private static string NormalizeCommentaryText(string value)
+        => Regex.Replace(
+            value,
+            @"\b([A-Z0-9]{2,})USDT\b",
+            static match => match.Groups[1].Value,
+            RegexOptions.CultureInvariant);
+
     private TvNarrationResponse MapResponse(MatchAiNarrationHistory entity, string source)
         => new()
         {
             MatchId = entity.MatchId,
-            Text = entity.Text,
+            Text = NormalizeCommentaryText(entity.Text),
             Source = source,
             GeneratedAtUtc = entity.CreatedAtUtc,
             HistoryId = entity.Id
