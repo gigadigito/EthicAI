@@ -586,7 +586,19 @@ else
         if (Uri.TryCreate(value, UriKind.Absolute, out _))
             return value;
 
-        return EnvironmentIsolationGuard.BuildApiUrl(Config, value);
+        var sanitized = NormalizeIconRoute(value);
+        return EnvironmentIsolationGuard.BuildApiUrl(Config, sanitized);
+    }
+
+    private static string NormalizeIconRoute(string value)
+    {
+        const string prefix = "/api/icons/binance/";
+        if (!value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return value;
+
+        var symbol = value[prefix.Length..];
+        var normalized = GetBaseSymbol(Uri.UnescapeDataString(symbol));
+        return $"{prefix}{Uri.EscapeDataString(normalized)}";
     }
 
     private string GetTeamStyle(string symbol, bool isLeft)

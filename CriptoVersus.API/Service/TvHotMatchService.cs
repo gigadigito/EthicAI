@@ -182,8 +182,8 @@ public sealed class TvHotMatchService : ITvHotMatchService
             RightName = match.TeamB.Currency.Name,
             LeftScore = match.ScoreA,
             RightScore = match.ScoreB,
-            LeftLogoUrl = $"/api/icons/binance/{Uri.EscapeDataString(match.TeamA.Currency.Symbol.ToUpperInvariant())}",
-            RightLogoUrl = $"/api/icons/binance/{Uri.EscapeDataString(match.TeamB.Currency.Symbol.ToUpperInvariant())}",
+            LeftLogoUrl = BuildLogoUrl(match.TeamA.Currency.Symbol),
+            RightLogoUrl = BuildLogoUrl(match.TeamB.Currency.Symbol),
             HotScore = Math.Max(0, hotScore),
             Reason = reason,
             WatchUrl = $"{publicBaseUrl}/tv/match/{match.MatchId}/{slug}",
@@ -286,6 +286,26 @@ public sealed class TvHotMatchService : ITvHotMatchService
         }
 
         return new string(buffer.ToArray()).Trim('-');
+    }
+
+    private static string BuildLogoUrl(string? symbol)
+        => $"/api/icons/binance/{Uri.EscapeDataString(GetBaseSymbol(symbol))}";
+
+    private static string GetBaseSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = symbol.Trim().ToUpperInvariant();
+        string[] quoteAssets = ["USDT", "USDC", "BUSD", "FDUSD", "BRL", "EUR", "BTC", "ETH"];
+
+        foreach (var quote in quoteAssets)
+        {
+            if (normalized.Length > quote.Length && normalized.EndsWith(quote, StringComparison.OrdinalIgnoreCase))
+                return normalized[..^quote.Length];
+        }
+
+        return normalized;
     }
 
     private sealed record HotMatchCandidate(TvHotMatchDto Dto, int HotScore, int RemainingMinutes);
