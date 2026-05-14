@@ -165,6 +165,12 @@ builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
 
+using (var scope = host.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+    context.Database.Migrate();
+}
+
 host.Services.GetRequiredService<ILoggerFactory>()
     .CreateLogger("Startup")
     .LogInformation("✅ Worker host iniciado. Env={env}", builder.Environment.EnvironmentName);

@@ -13,51 +13,28 @@ namespace DAL.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "nr_pressure_charges_a",
-                table: "match_score_state",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
+            migrationBuilder.Sql("""
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS nr_pressure_charges_a integer NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<int>(
-                name: "nr_pressure_charges_b",
-                table: "match_score_state",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS nr_pressure_charges_b integer NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<int>(
-                name: "nr_pressure_goals_awarded",
-                table: "match_score_state",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS nr_pressure_goals_awarded integer NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<int>(
-                name: "cd_last_pressure_leader",
-                table: "match_score_state",
-                type: "integer",
-                nullable: true);
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS cd_last_pressure_leader integer NULL;
 
-            migrationBuilder.AddColumn<int>(
-                name: "nr_last_pressure_leader_cycles",
-                table: "match_score_state",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS nr_last_pressure_leader_cycles integer NOT NULL DEFAULT 0;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "dt_last_pressure_goal_a",
-                table: "match_score_state",
-                type: "timestamp with time zone",
-                nullable: true);
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_a timestamp with time zone NULL;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "dt_last_pressure_goal_b",
-                table: "match_score_state",
-                type: "timestamp with time zone",
-                nullable: true);
+                ALTER TABLE match_score_state
+                    ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_b timestamp with time zone NULL;
+                """);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

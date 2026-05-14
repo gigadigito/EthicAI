@@ -303,6 +303,74 @@ namespace DAL.Migrations
                     b.ToTable("pre_sale_purchase", (string)null);
                 });
 
+            modelBuilder.Entity("DAL.NftFutebol.ArenaSentimentSnapshot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("calculated_at");
+
+                    b.Property<string>("Classification")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("classification");
+
+                    b.Property<decimal>("DataCoverage")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("data_coverage");
+
+                    b.Property<decimal?>("FundingScore")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("funding_score");
+
+                    b.Property<bool>("HasSufficientData")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_sufficient_data");
+
+                    b.Property<decimal?>("LongShortScore")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("long_short_score");
+
+                    b.Property<decimal?>("OrderBookScore")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("order_book_score");
+
+                    b.Property<decimal?>("PriceMomentumScore")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price_momentum_score");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("symbol");
+
+                    b.Property<decimal?>("VolatilityScore")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("volatility_score");
+
+                    b.Property<decimal?>("VolumeScore")
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("volume_score");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Symbol", "CalculatedAt");
+
+                    b.ToTable("arena_sentiment_snapshot", (string)null);
+                });
+
             modelBuilder.Entity("DAL.User", b =>
                 {
                     b.Property<int>("UserID")

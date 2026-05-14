@@ -157,6 +157,13 @@ builder.Services.AddDbContextFactory<EthicAIDbContext>(opt => opt.UseNpgsql(conn
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<EthicAIDbContext>>();
+    using var context = dbContextFactory.CreateDbContext();
+    context.Database.Migrate();
+}
+
 var blockchainOptions = app.Services
     .GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>()
     .Value;
