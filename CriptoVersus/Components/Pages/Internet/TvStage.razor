@@ -330,6 +330,7 @@ else
     private bool _pulseScoreboard;
     private bool _pulseHotScore;
     private bool _narrationDebugDemoStarted;
+    private string _clockDebugSignature = string.Empty;
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
     private DateTime _clockAnchorUtc = DateTime.UtcNow;
@@ -364,6 +365,8 @@ else
             _narrationDebugDemoStarted = true;
             _ = RunNarrationDebugDemoAsync();
         }
+
+        await LogClockDebugAsync();
     }
 
     private async Task RunClockLoopAsync(CancellationToken ct)
@@ -933,7 +936,17 @@ else
     private string DisplayClockPrimary()
     {
         var remaining = ResolvePreciseRemainingTime();
-        return remaining is null ? "--:--.---" : FormatPreciseClock(remaining.Value);
+        if (remaining is not null)
+            return FormatPreciseClock(remaining.Value);
+
+        var parsedSeconds = ParseRemainingSeconds(DisplayRemainingTime());
+        if (parsedSeconds > 0)
+            return FormatClock(parsedSeconds);
+
+        var fallbackMinutes = Match?.RemainingMinutes;
+        return fallbackMinutes.HasValue && fallbackMinutes.Value >= 0
+            ? FormatClock(fallbackMinutes.Value * 60)
+            : "--:--";
     }
 
     private string DisplayClockPhaseLabel() => $"Remaining ({DisplayClockPrimary()})";
@@ -988,7 +1001,7 @@ else
     {
         var safe = remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
         var totalMinutes = (int)Math.Floor(safe.TotalMinutes);
-        return $"{totalMinutes:00}:{safe.Seconds:00}.{safe.Milliseconds:000}";
+        return $"{totalMinutes:00}:{safe.Seconds:00}";
     }
 
     private void SyncClockAnchor()
@@ -1279,10 +1292,56 @@ else
             || text.Contains("surge", StringComparison.OrdinalIgnoreCase);
     }
 
+    private async Task LogClockDebugAsync()
+    {
+        if (!Environment.IsDevelopment() || _tvModule is null)
+            return;
+
+        var payload = new
+        {
+            HotMatchRemainingSeconds = HotMatch?.RemainingSeconds,
+            HotMatchRemainingTimeLabel = HotMatch?.RemainingTimeLabel,
+            MatchRemainingMinutes = Match?.RemainingMinutes,
+            SeedMilliseconds = ResolveRemainingMillisecondsSeed(),
+            DisplayRemainingTime = DisplayRemainingTime(),
+            DisplayClockPrimary = DisplayClockPrimary()
+        };
+
+        var signature = string.Join("|",
+            payload.HotMatchRemainingSeconds?.ToString(CultureInfo.InvariantCulture) ?? "null",
+            payload.HotMatchRemainingTimeLabel ?? "null",
+            payload.MatchRemainingMinutes?.ToString(CultureInfo.InvariantCulture) ?? "null",
+            payload.SeedMilliseconds.ToString("0", CultureInfo.InvariantCulture),
+            payload.DisplayRemainingTime,
+            payload.DisplayClockPrimary);
+
+        if (signature == _clockDebugSignature)
+            return;
+
+        _clockDebugSignature = signature;
+        await LogAsync("TV_CLOCK_DEBUG", "state", payload);
+    }
+
     private static int ParseRemainingSeconds(string value)
     {
-        if (TimeSpan.TryParseExact(value, @"mm\:ss", CultureInfo.InvariantCulture, out var mmss))
-            return (int)mmss.TotalSeconds;
+        if (string.IsNullOrWhiteSpace(value))
+            return 0;
+
+        var cleaned = value.Trim();
+        var start = cleaned.IndexOfAny("0123456789".ToCharArray());
+        if (start > 0)
+            cleaned = cleaned[start..];
+
+        var parts = cleaned.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 2
+            && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes)
+            && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds)
+            && minutes >= 0
+            && seconds >= 0
+            && seconds < 60)
+        {
+            return (minutes * 60) + seconds;
+        }
 
         return 0;
     }
