@@ -311,6 +311,15 @@ Escreva uma nova narração curta para a TV.
         if (root.TryGetProperty("output_text", out var outputTextElement) && outputTextElement.ValueKind == JsonValueKind.String)
             return outputTextElement.GetString() ?? string.Empty;
 
+        if (root.TryGetProperty("output_text", out outputTextElement) && outputTextElement.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in outputTextElement.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+                    return item.GetString() ?? string.Empty;
+            }
+        }
+
         if (!root.TryGetProperty("output", out var outputElement) || outputElement.ValueKind != JsonValueKind.Array)
             return string.Empty;
 
@@ -323,6 +332,17 @@ Escreva uma nova narração curta para a TV.
             {
                 if (contentItem.TryGetProperty("text", out var textElement) && textElement.ValueKind == JsonValueKind.String)
                     return textElement.GetString() ?? string.Empty;
+
+                if (contentItem.TryGetProperty("text", out textElement)
+                    && textElement.ValueKind == JsonValueKind.Object
+                    && textElement.TryGetProperty("value", out var valueElement)
+                    && valueElement.ValueKind == JsonValueKind.String)
+                {
+                    return valueElement.GetString() ?? string.Empty;
+                }
+
+                if (contentItem.TryGetProperty("value", out var directValueElement) && directValueElement.ValueKind == JsonValueKind.String)
+                    return directValueElement.GetString() ?? string.Empty;
             }
         }
 
