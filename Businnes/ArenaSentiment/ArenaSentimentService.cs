@@ -16,6 +16,8 @@ namespace BLL.ArenaSentiment;
 public sealed class ArenaSentimentService : IArenaSentimentService
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(45);
+    private static readonly TimeSpan FuturesExchangeInfoCacheDuration = TimeSpan.FromMinutes(30);
+    private const string FuturesExchangeInfoCacheKey = "arena-sentiment:futures-exchange-info";
     private const decimal PriceMomentumWeight = 0.30m;
     private const decimal VolumeWeight = 0.20m;
     private const decimal OrderBookWeight = 0.15m;
@@ -266,11 +268,31 @@ public sealed class ArenaSentimentService : IArenaSentimentService
             var kline15mTask = GetFromBinanceAsync<List<List<JsonElement>>>($"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=8", ct, required: true);
             var kline1hTask = GetFromBinanceAsync<List<List<JsonElement>>>($"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=1h&limit=8", ct, required: true);
             var depthTask = GetFromBinanceAsync<BinanceDepth>($"https://api.binance.com/api/v3/depth?symbol={symbol}&limit=20", ct, required: false);
-            var fundingTask = GetFromBinanceAsync<List<BinanceFundingRate>>($"https://fapi.binance.com/fapi/v1/fundingRate?symbol={symbol}&limit=1", ct, required: false);
-            var oiTask = GetFromBinanceAsync<BinanceOpenInterest>($"https://fapi.binance.com/fapi/v1/openInterest?symbol={symbol}", ct, required: false);
-            var oiHistTask = GetFromBinanceAsync<List<BinanceOpenInterestHist>>($"https://fapi.binance.com/futures/data/openInterestHist?symbol={symbol}&period=5m&limit=2", ct, required: false);
-            var longShortTask = GetFromBinanceAsync<List<BinanceLongShortRatio>>($"https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol={symbol}&period=5m&limit=1", ct, required: false);
-            var takerTask = GetFromBinanceAsync<List<BinanceTakerLongShortRatio>>($"https://fapi.binance.com/futures/data/takerlongshortRatio?symbol={symbol}&period=5m&limit=1", ct, required: false);
+            var futuresSupported = await IsFuturesSymbolAsync(symbol, ct);
+
+            Task<List<BinanceFundingRate>?> fundingTask;
+            Task<BinanceOpenInterest?> oiTask;
+            Task<List<BinanceOpenInterestHist>?> oiHistTask;
+            Task<List<BinanceLongShortRatio>?> longShortTask;
+            Task<List<BinanceTakerLongShortRatio>?> takerTask;
+
+            if (futuresSupported)
+            {
+                fundingTask = GetFromBinanceAsync<List<BinanceFundingRate>>($"https://fapi.binance.com/fapi/v1/fundingRate?symbol={symbol}&limit=1", ct, required: false, symbol: symbol, futuresEndpoint: true);
+                oiTask = GetFromBinanceAsync<BinanceOpenInterest>($"https://fapi.binance.com/fapi/v1/openInterest?symbol={symbol}", ct, required: false, symbol: symbol, futuresEndpoint: true);
+                oiHistTask = GetFromBinanceAsync<List<BinanceOpenInterestHist>>($"https://fapi.binance.com/futures/data/openInterestHist?symbol={symbol}&period=5m&limit=2", ct, required: false, symbol: symbol, futuresEndpoint: true);
+                longShortTask = GetFromBinanceAsync<List<BinanceLongShortRatio>>($"https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol={symbol}&period=5m&limit=1", ct, required: false, symbol: symbol, futuresEndpoint: true);
+                takerTask = GetFromBinanceAsync<List<BinanceTakerLongShortRatio>>($"https://fapi.binance.com/futures/data/takerlongshortRatio?symbol={symbol}&period=5m&limit=1", ct, required: false, symbol: symbol, futuresEndpoint: true);
+            }
+            else
+            {
+                _logger.LogInformation("[FUTURES_UNAVAILABLE] {Symbol}", symbol);
+                fundingTask = Task.FromResult<List<BinanceFundingRate>?>(default);
+                oiTask = Task.FromResult<BinanceOpenInterest?>(default);
+                oiHistTask = Task.FromResult<List<BinanceOpenInterestHist>?>(default);
+                longShortTask = Task.FromResult<List<BinanceLongShortRatio>?>(default);
+                takerTask = Task.FromResult<List<BinanceTakerLongShortRatio>?>(default);
+            }
 
             await Task.WhenAll(tickerTask, kline5mTask, kline15mTask, kline1hTask, depthTask, fundingTask, oiTask, oiHistTask, longShortTask, takerTask);
 
@@ -393,23 +415,134 @@ public sealed class ArenaSentimentService : IArenaSentimentService
 
     private static string NormalizeSymbol(string? symbol) => (symbol ?? string.Empty).Trim().ToUpperInvariant();
 
-    private async Task<T?> GetFromBinanceAsync<T>(string url, CancellationToken ct, bool required)
+    private async Task<bool> IsFuturesSymbolAsync(string symbol, CancellationToken ct)
+    {
+        var normalizedSymbol = NormalizeSymbol(symbol);
+        if (string.IsNullOrWhiteSpace(normalizedSymbol))
+            return false;
+
+        var futuresCatalog = await GetFuturesPerpetualSymbolsAsync(ct);
+        if (!futuresCatalog.IsAvailable)
+        {
+            _logger.LogWarning(
+                "[FUTURES_CHECK] symbol={Symbol} supported=unknown source=fapi/exchangeInfo-unavailable fallback=allow",
+                normalizedSymbol);
+            return true;
+        }
+
+        var supported = futuresCatalog.Symbols.Contains(normalizedSymbol);
+
+        _logger.LogInformation(
+            "[FUTURES_CHECK] symbol={Symbol} supported={Supported} source=fapi/exchangeInfo",
+            normalizedSymbol,
+            supported);
+
+        return supported;
+    }
+
+    private async Task<FuturesPerpetualCatalog> GetFuturesPerpetualSymbolsAsync(CancellationToken ct)
+    {
+        return await _cache.GetOrCreateAsync(FuturesExchangeInfoCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = FuturesExchangeInfoCacheDuration;
+
+            var exchangeInfo = await GetFromBinanceAsync<BinanceFuturesExchangeInfo>(
+                "https://fapi.binance.com/fapi/v1/exchangeInfo",
+                ct,
+                required: false,
+                futuresEndpoint: true);
+
+            if (exchangeInfo?.Symbols is null || exchangeInfo.Symbols.Count == 0)
+            {
+                _logger.LogWarning("[FUTURES_CHECK] exchangeInfo unavailable. Falling back to allow unknown symbols.");
+                return new FuturesPerpetualCatalog(false, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            var symbols = exchangeInfo.Symbols
+                .Where(x => string.Equals(x.ContractType, "PERPETUAL", StringComparison.OrdinalIgnoreCase))
+                .Where(x => string.Equals(x.Status, "TRADING", StringComparison.OrdinalIgnoreCase))
+                .Where(x => string.Equals(x.QuoteAsset, "USDT", StringComparison.OrdinalIgnoreCase))
+                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+                .Select(x => NormalizeSymbol(x.Symbol))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return new FuturesPerpetualCatalog(true, symbols);
+        }) ?? new FuturesPerpetualCatalog(false, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+    }
+
+    private async Task<T?> GetFromBinanceAsync<T>(
+        string url,
+        CancellationToken ct,
+        bool required,
+        string? symbol = null,
+        bool futuresEndpoint = false)
     {
         using var response = await _httpClient.GetAsync(url, ct);
         if (!response.IsSuccessStatusCode)
         {
-            if (required)
-            {
-                response.EnsureSuccessStatusCode();
-            }
+            var responseBody = await SafeReadBodyAsync(response, ct);
+            LogBinanceHttpFailure(response, url, symbol, required, futuresEndpoint, responseBody);
 
-            if (response.StatusCode == HttpStatusCode.NotFound || response.StatusCode == HttpStatusCode.BadRequest)
-                return default;
+            if (required)
+                response.EnsureSuccessStatusCode();
 
             return default;
         }
 
         return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+    }
+
+    private void LogBinanceHttpFailure(HttpResponseMessage response, string url, string? symbol, bool required, bool futuresEndpoint, string? responseBody)
+    {
+        if (!futuresEndpoint)
+        {
+            if (required)
+                _logger.LogWarning("Binance HTTP failure. statusCode={StatusCode} url={Url}", (int)response.StatusCode, url);
+
+            return;
+        }
+
+        var uri = new Uri(url);
+        var normalizedSymbol = NormalizeSymbol(symbol);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            _logger.LogWarning(
+                "[FUTURES_HTTP_400] symbol={Symbol} endpoint={Endpoint} query={Query} response={Response}",
+                normalizedSymbol,
+                uri.AbsolutePath,
+                uri.Query.TrimStart('?'),
+                Truncate(responseBody, 512));
+            return;
+        }
+
+        _logger.LogWarning(
+            "[FUTURES_HTTP_FAILURE] symbol={Symbol} endpoint={Endpoint} statusCode={StatusCode} query={Query} response={Response}",
+            normalizedSymbol,
+            uri.AbsolutePath,
+            (int)response.StatusCode,
+            uri.Query.TrimStart('?'),
+            Truncate(responseBody, 512));
+    }
+
+    private static async Task<string?> SafeReadBodyAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            return await response.Content.ReadAsStringAsync(ct);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? Truncate(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length <= maxLength)
+            return value;
+
+        return value[..maxLength];
     }
 
     private static List<KlinePoint> ParseKlines(List<List<JsonElement>>? rows)
@@ -726,6 +859,29 @@ public sealed class ArenaSentimentService : IArenaSentimentService
         [JsonPropertyName("buySellRatio")]
         public string BuySellRatio { get; set; } = "1";
     }
+
+    private sealed class BinanceFuturesExchangeInfo
+    {
+        [JsonPropertyName("symbols")]
+        public List<BinanceFuturesExchangeInfoSymbol> Symbols { get; set; } = [];
+    }
+
+    private sealed class BinanceFuturesExchangeInfoSymbol
+    {
+        [JsonPropertyName("symbol")]
+        public string Symbol { get; set; } = string.Empty;
+
+        [JsonPropertyName("quoteAsset")]
+        public string QuoteAsset { get; set; } = string.Empty;
+
+        [JsonPropertyName("contractType")]
+        public string ContractType { get; set; } = string.Empty;
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+    }
+
+    private sealed record FuturesPerpetualCatalog(bool IsAvailable, HashSet<string> Symbols);
 
     private sealed class KlinePoint
     {
