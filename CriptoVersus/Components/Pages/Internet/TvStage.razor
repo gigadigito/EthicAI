@@ -418,7 +418,7 @@ else
     {
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260515-2");
             await LogAsync("TV_MOTION", "motion system ready");
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
@@ -1219,8 +1219,17 @@ else
         if (_tvModule is null || !ShouldRenderCrowdAudio)
             return;
 
-        await _tvModule.InvokeVoidAsync("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
-        _broadcastAudioInitialized = true;
+        try
+        {
+            await _tvModule.InvokeVoidAsync("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+            _broadcastAudioInitialized = true;
+        }
+        catch (JSException)
+        {
+            // Fallback for stale browser caches or module resolution mismatches.
+            await JS.InvokeVoidAsync("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+            _broadcastAudioInitialized = true;
+        }
     }
 
     private async Task ToggleCrowdAudioAsync()
@@ -1228,7 +1237,16 @@ else
         _isCrowdAudioMuted = !_isCrowdAudioMuted;
 
         if (_tvModule is not null)
-            await _tvModule.InvokeVoidAsync("setBroadcastAudioMuted", "tv-broadcast-crowd", _isCrowdAudioMuted, (double)ResolveCrowdAudioVolume());
+        {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("setBroadcastAudioMuted", "tv-broadcast-crowd", _isCrowdAudioMuted, (double)ResolveCrowdAudioVolume());
+            }
+            catch (JSException)
+            {
+                await JS.InvokeVoidAsync("setBroadcastAudioMuted", "tv-broadcast-crowd", _isCrowdAudioMuted, (double)ResolveCrowdAudioVolume());
+            }
+        }
     }
 
     private string DisplayCrowdAudioLabel()

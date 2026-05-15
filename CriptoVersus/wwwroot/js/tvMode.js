@@ -53,3 +53,8 @@ export function setBroadcastAudioMuted(elementId, muted, volume) {
         audio.play().catch(() => {});
     }
 }
+
+if (typeof globalThis !== "undefined") {
+    globalThis.initBroadcastAudio = initBroadcastAudio;
+    globalThis.setBroadcastAudioMuted = setBroadcastAudioMuted;
+}
