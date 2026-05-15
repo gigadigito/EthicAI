@@ -22,6 +22,7 @@ public sealed class CriptoVersusAiOptions
     public const string SectionName = "CriptoVersusAI";
 
     public bool Enabled { get; set; } = true;
+    public bool TvNarrationEnabled { get; set; } = false;
     public string NarrationModel { get; set; } = "gpt-5-mini";
     public int NarrationCooldownSeconds { get; set; } = 90;
     public int NarrationMaxChars { get; set; } = 280;
@@ -183,7 +184,7 @@ public sealed class TvAiNarrationService : ITvAiNarrationService
         string contextHash,
         CancellationToken ct)
     {
-        if (!_options.Enabled || !ShouldUseAi(eventType))
+        if (!_options.Enabled || !_options.TvNarrationEnabled || !ShouldUseAi(eventType))
             return null;
 
         var apiKey = ResolveApiKey();

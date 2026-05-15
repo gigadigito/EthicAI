@@ -918,8 +918,10 @@
     "seo": {
       "title": "CriptoVersus TV | Automatic live crypto battle broadcast",
       "description": "Automatic no-login broadcast for OBS Studio featuring the hottest live CriptoVersus match or a waiting screen with arena rankings and market stats.",
+      "broadcastTitle": "CriptoVersus TV Broadcast | OBS-ready live crypto arena feed",
+      "broadcastDescription": "Broadcast-ready CriptoVersus TV scene for YouTube and OBS with rotating hot arenas, deterministic commentary, ticker and ambient crowd audio support.",
       "matchTitle": "{0} vs {1} | CriptoVersus TV",
-      "matchDescription": "Watch {0} vs {1} on CriptoVersus TV with the live arena overlay, AI narration and market-driven match telemetry.",
+      "matchDescription": "Watch {0} vs {1} on CriptoVersus TV with the live arena overlay, arena commentary and market-driven match telemetry.",
       "matchDescriptionFallback": "CriptoVersus TV live arena scene optimized for browser-source broadcast in OBS Studio."
     },
     "title": "CriptoVersus TV",
@@ -948,7 +950,9 @@
       "noHotMatchRightNow": "No hot match right now",
       "availableInOtherLanguage": "Also available in another language: {0}",
       "aiCalibrating": "AI narrator is calibrating the arena feed.",
-      "aiTracking": "AI narrator is tracking the live flow for the next call."
+      "aiTracking": "AI narrator is tracking the live flow for the next call.",
+      "commentaryLoading": "Arena commentary is refreshing from the latest market state.",
+      "commentaryStandby": "Arena commentary is waiting for the next relevant movement."
     },
     "labels": {
       "liveArena": "Live Arena",
@@ -997,7 +1001,168 @@
       "remainingWithClock": "Remaining ({0})",
       "pressureSummary": "Competitive pool | {0} | {1}",
       "liveNarrator": "Live narrator",
-      "aiMetaTimestamp": "{0} | {1} UTC"
+      "aiMetaTimestamp": "{0} | {1} UTC",
+      "commentaryMetaTimestamp": "{0} | {1} UTC"
+    },
+    "broadcast": {
+      "switchingArena": "Switching to the next hot arena...",
+      "nextHotArena": "Live rotation is moving to a stronger arena window."
+    },
+    "audio": {
+      "crowdEnabled": "Crowd audio on",
+      "crowdMuted": "Crowd audio muted"
+    },
+    "commentary": {
+      "title": "Arena commentary",
+      "fallback": "{0} and {1} stay active on the live board while the arena waits for the next move.",
+      "source": {
+        "template": "Template engine",
+        "aiDisabled": "AI disabled"
+      },
+      "momentumEven": "Balanced momentum",
+      "momentumFor": "Momentum for {0}",
+      "templates": {
+        "balanced": [
+          "{2} and {3} are still neck and neck, but momentum is starting to lean toward {0}.",
+          "The scoreboard is tight and the arena is still open, with {0} holding only a fragile edge.",
+          "This match is locked in place for now, yet one clean move can swing the pressure toward {0}.",
+          "{2} versus {3} remains balanced, and the next market push could completely rewrite the read.",
+          "Neither side has broken the arena open, and that keeps {0} under constant pressure.",
+          "A narrow scoreboard and close percentages keep this arena alive on every tick.",
+          "There is almost nothing between these two sides right now, which makes the next swing critical.",
+          "{0} has the edge on paper, but this arena is still trading like a one-move battle."
+        ],
+        "comeback": [
+          "The lead has changed sides and {0} suddenly owns the momentum of the arena.",
+          "{0} has flipped the match around, and the broadcast now feels like a live comeback story.",
+          "What looked stable a moment ago is now a reversal, with {0} taking the front line.",
+          "{0} just turned pressure into control and changed the tone of the match.",
+          "The arena has a new leader, and {0} is now forcing {1} to react.",
+          "{0} has taken the advantage back, giving this battle the shape of a comeback.",
+          "A leadership swing just landed, and {0} now carries the stronger narrative.",
+          "{1} had control, but {0} pushed back and stole the lead."
+        ],
+        "pressureRising": [
+          "{0} is starting to press forward, and the arena is beginning to follow that rhythm.",
+          "The market pulse is leaning harder toward {0}, even with the scoreboard still under pressure.",
+          "{0} is building a better sequence and forcing the arena to respect that climb.",
+          "This match is tightening around {0}, who is now pushing the pace of the board.",
+          "Pressure is growing on the side of {0}, and the next move could turn that into scoreboard damage.",
+          "{0} is stacking the stronger reactions right now and pulling the match into its lane.",
+          "The rhythm is shifting toward {0}, and {1} needs an answer quickly.",
+          "{0} is accelerating at the right time, which is changing the feeling of the arena."
+        ],
+        "dominance": [
+          "{0} is playing from the front and keeping this arena under clear control.",
+          "The scoreboard gap is growing, and {0} is now turning pressure into command.",
+          "{0} has opened real distance in this match and is dictating the pace.",
+          "This is a controlled arena right now, with {0} sustaining a strong lead.",
+          "{1} still has time, but {0} is making this board look one-sided.",
+          "{0} is not just leading; it is controlling the structure of the match.",
+          "The edge is becoming substantial, and {0} is now operating from a position of comfort.",
+          "{0} keeps the advantage wide enough to make this arena look increasingly controlled."
+        ],
+        "quietPool": [
+          "{2} and {3} are still waiting for real pool volume, so one entry can reset the pace instantly.",
+          "The arena is technically live, but the pool remains quiet and the next signal matters more than ever.",
+          "Low activity is keeping this match sober for now, even though the board can wake up quickly.",
+          "There is not much pool aggression yet, which leaves this arena open to a sudden shift.",
+          "This battle is still breathing lightly, with limited volume and a cautious rhythm.",
+          "The pool is slow, the board is patient, and one decisive move can suddenly change the tone.",
+          "Volume has not opened up yet, so the arena is still waiting for a stronger trigger.",
+          "The live board is calm for now, but that often means the next push lands harder."
+        ],
+        "heatedPool": [
+          "This arena is heating up fast, with hotScore at {8} and real pressure building on both sides.",
+          "Pool intensity is rising, and this match is starting to look like one of the hottest windows on air.",
+          "The arena has real heat now, with pressure, volume and competitiveness all climbing together.",
+          "With hotScore at {8}, this match is earning premium broadcast attention.",
+          "This is no longer a quiet board; the arena is now trading with visible heat.",
+          "Volume and tension are climbing together, turning this into a hotter live rotation.",
+          "The room is getting louder around this match, and the metrics back it up.",
+          "This board is heating into a major broadcast spot, with the arena fully awake."
+        ],
+        "finalThriller": [
+          "The clock is down to {10}, the gap is tiny, and this arena is alive until the final swing.",
+          "Only {10} remain, and one clean move can still turn this entire board around.",
+          "The closing stretch is here, and the narrow margin keeps every second dangerous.",
+          "This arena is entering pressure time with almost nothing separating the two sides.",
+          "Late clock, short gap, live tension: this match still refuses to settle.",
+          "The finish is getting dramatic, because this board is still close enough to flip.",
+          "There is no breathing room left in this arena, only {10} and one more swing.",
+          "The match is reaching its sharpest phase, and the next movement can rewrite the ending."
+        ],
+        "finalControlled": [
+          "The clock is short at {10}, but {0} still holds enough space to manage the finish.",
+          "{0} enters the closing stretch with control, forcing {1} to chase late.",
+          "Time is running down and {0} has built the kind of lead that changes the final script.",
+          "This late arena still belongs to {0}, who is protecting a meaningful cushion.",
+          "{1} needs something immediate, because {0} is carrying structure into the final minutes.",
+          "The endgame is on, and {0} remains in command of the closing window.",
+          "{0} is taking a steady lead into the final phase, making the comeback path thinner.",
+          "With only {10} left, {0} has the kind of control that can close a live board out."
+        ],
+        "opening": [
+          "The match is still young, and both sides are feeling out the first rhythm of the arena.",
+          "Early in the cycle, {2} and {3} are still writing the opening chapter of this board.",
+          "This arena is just getting started, with enough time left for several narrative swings.",
+          "The opening phase remains cautious, and both assets are still testing the live pace.",
+          "There is plenty of time left, which keeps this early board wide open.",
+          "The first stretch is underway, and neither side has fully imposed itself yet.",
+          "This opening window is more about positioning than separation, at least for now.",
+          "The arena is still in its early read, and the pressure map can change quickly."
+        ],
+        "bothDown": [
+          "Both assets are under pressure, but {0} is falling less and turning resistance into an edge.",
+          "It is a defensive battle right now, and {0} is absorbing the market hit better.",
+          "Neither side is green, yet {0} is surviving the downturn with more control.",
+          "This arena is being decided in the red, where {0} is holding up more cleanly.",
+          "Both charts are sliding, but {0} is resisting that slide better than {1}.",
+          "The market is leaning negative on both sides, and {0} is making the better of it.",
+          "Even under joint pressure, {0} is protecting more value on the board.",
+          "This is a battle of damage control, and {0} is currently doing that job better."
+        ],
+        "bothUp": [
+          "Both assets are climbing, but {0} is accelerating harder and turning growth into pressure.",
+          "This is an aggressive board with both sides green, and {0} is still finding more lift.",
+          "The arena has upside on both sides right now, yet {0} is extracting more from it.",
+          "Both charts are positive, but {0} is pushing the better expansion line.",
+          "This live battle has strength on both ends, and {0} is currently converting more of it.",
+          "The board is green across the matchup, with {0} still taking the stronger route upward.",
+          "It is a rising market duel, and {0} is winning the acceleration race for now.",
+          "Both sides are moving up, but {0} is driving the sharper climb."
+        ],
+        "relativeLead": [
+          "Even with pressure on both sides, {0} is handling the market better and staying in front.",
+          "{0} does not need a clean rally here; resisting better is enough to hold the lead.",
+          "This arena is being won by relative performance right now, and {0} is the better survivor.",
+          "{0} is making resilience look like control on this board.",
+          "The market is not offering easy conditions, but {0} is still defending the lead with better balance.",
+          "Relative strength is carrying this match, and {0} currently owns that advantage.",
+          "{0} is not breaking away; it is simply enduring better than {1}.",
+          "The edge belongs to {0}, who is turning steadier resistance into scoreboard pressure."
+        ],
+        "goalRecent": [
+          "{0} just struck the scoreboard and injected fresh energy into the arena.",
+          "A new point lands for {0}, and the whole tone of this broadcast shifts immediately.",
+          "{0} converts the latest swing into scoreboard impact, forcing {1} to respond.",
+          "That point changes the live texture of the match, and {0} now has the pulse.",
+          "{0} just made the arena react with a clean scoreboard hit.",
+          "The board moves again, and {0} is the side celebrating the latest impact.",
+          "{0} cashes in on the moment with a point that raises the pressure on {1}.",
+          "Fresh scoreboard damage for {0}, and the arena gets louder around this match."
+        ],
+        "cycleEnding": [
+          "This arena is approaching its closing cycle, and the current shape of the board is becoming final.",
+          "The match is winding down, with the live narrative starting to settle around {0}.",
+          "The arena is closing its final window now, and every remaining signal carries extra weight.",
+          "This cycle is nearing the end, which makes the current advantage even more meaningful.",
+          "The board is transitioning toward its finish, with little time left to rewrite the script.",
+          "The live cycle is almost closed, and the arena is preparing for the next transition.",
+          "This match is reaching its final breath, with the scoreboard now doing most of the talking.",
+          "The end of the cycle is in sight, and the current pressure map is almost locked in."
+        ]
+      }
     },
     "waiting": {
       "topCoinsEyebrow": "Arena ranking",
@@ -1018,6 +1183,10 @@
       "arenaPressureRising": "ARENA PRESSURE RISING",
       "liveCryptoBattle": "LIVE CRYPTO BATTLE",
       "marketVolatilityIncreasing": "MARKET VOLATILITY INCREASING",
+      "visitSite": "VISIT CRIPTOVERSUS.COM",
+      "liveBattles": "LIVE CRYPTO BATTLES AT CRIPTOVERSUS.COM",
+      "rankings": "RANKINGS AND LIVE ARENAS AT CRIPTOVERSUS.COM",
+      "matchMarkets": "WATCH LIVE ARENAS, RANKINGS AND MATCH MARKETS AT CRIPTOVERSUS.COM",
       "dominating": "{0} DOMINATING",
       "recovering": "{0} RECOVERING",
       "finalMinutes": "FINAL MINUTES",

@@ -81,6 +81,9 @@ public sealed class RouteLocalizationService
     public string BuildTvPath(string? culture)
         => $"/{NormalizeCulture(culture)}/tv";
 
+    public string BuildTvBroadcastPath(string? culture)
+        => $"{BuildTvPath(culture)}/broadcast";
+
     public string BuildTvMatchPath(string? culture, int id, string slug)
         => $"{BuildTvPath(culture)}/match/{id}/{slug.Trim().ToLowerInvariant()}";
 
@@ -136,6 +139,13 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase))
         {
             return BuildTvPath(normalizedTarget) + querySuffix;
+        }
+
+        if (cleanPath.Equals("/tv/broadcast", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/tv/broadcast", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/tv/broadcast", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildTvBroadcastPath(normalizedTarget) + querySuffix;
         }
 
         if (segments.Length >= 4

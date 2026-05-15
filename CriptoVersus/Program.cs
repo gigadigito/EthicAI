@@ -53,9 +53,12 @@ builder.Services.AddScoped<RouteLocalizationService>();
 builder.Services.AddScoped<MatchSeoService>();
 builder.Services.AddScoped<RoadmapContentService>();
 builder.Services.AddScoped<SitemapService>();
+builder.Services.AddScoped<TvArenaCommentaryService>();
 builder.Services.AddScoped<TeamInvestmentContextResolver>();
 builder.Services.Configure<SitemapOptions>(
     builder.Configuration.GetSection(SitemapOptions.SectionName));
+builder.Services.Configure<TvBroadcastOptions>(
+    builder.Configuration.GetSection(TvBroadcastOptions.SectionName));
 builder.Services.AddSingleton<MatchRouteRedirectResolver>();
 builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(

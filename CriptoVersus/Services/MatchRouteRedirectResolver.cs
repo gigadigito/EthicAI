@@ -27,6 +27,9 @@ public sealed class MatchRouteRedirectResolver
         if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildTvPath(preferredCulture), queryString);
 
+        if (cleanPath.Equals("/tv/broadcast", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildTvBroadcastPath(preferredCulture), queryString);
+
         if (cleanPath.Equals("/en/tv", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase))
         {
@@ -34,6 +37,19 @@ public sealed class MatchRouteRedirectResolver
                 ?? preferredCulture;
 
             var canonicalTvPath = routeLocalization.BuildTvPath(explicitCulture);
+            if (!cleanPath.Equals(canonicalTvPath, StringComparison.OrdinalIgnoreCase))
+                return AppendQueryString(canonicalTvPath, queryString);
+
+            return null;
+        }
+
+        if (cleanPath.Equals("/en/tv/broadcast", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/tv/broadcast", StringComparison.OrdinalIgnoreCase))
+        {
+            var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
+                ?? preferredCulture;
+
+            var canonicalTvPath = routeLocalization.BuildTvBroadcastPath(explicitCulture);
             if (!cleanPath.Equals(canonicalTvPath, StringComparison.OrdinalIgnoreCase))
                 return AppendQueryString(canonicalTvPath, queryString);
 

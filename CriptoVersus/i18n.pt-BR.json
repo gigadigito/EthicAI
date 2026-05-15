@@ -918,8 +918,10 @@
     "seo": {
       "title": "CriptoVersus TV | Transmissao automatica das melhores batalhas cripto",
       "description": "Transmissao publica para OBS Studio sem login, exibindo a partida mais quente do CriptoVersus ou uma tela de espera com ranking e estatisticas da arena.",
+      "broadcastTitle": "CriptoVersus TV Broadcast | Feed ao vivo pronto para OBS",
+      "broadcastDescription": "Cena pronta para YouTube e OBS com rotacao entre arenas quentes, comentario deterministico, ticker visivel e suporte a audio ambiente de torcida.",
       "matchTitle": "{0} vs {1} | CriptoVersus TV",
-      "matchDescription": "Assista {0} vs {1} na CriptoVersus TV com overlay ao vivo da arena, narracao por IA e telemetria guiada pelo mercado.",
+      "matchDescription": "Assista {0} vs {1} na CriptoVersus TV com overlay ao vivo da arena, comentario da arena e telemetria guiada pelo mercado.",
       "matchDescriptionFallback": "Cena ao vivo do CriptoVersus TV otimizada para Browser Source no OBS Studio."
     },
     "title": "CriptoVersus TV",
@@ -948,7 +950,9 @@
       "noHotMatchRightNow": "Sem partida quente agora",
       "availableInOtherLanguage": "Tambem disponivel em outro idioma: {0}",
       "aiCalibrating": "O narrador por IA esta calibrando o feed da arena.",
-      "aiTracking": "O narrador por IA esta acompanhando o fluxo ao vivo para a proxima chamada."
+      "aiTracking": "O narrador por IA esta acompanhando o fluxo ao vivo para a proxima chamada.",
+      "commentaryLoading": "O comentario da arena esta atualizando com base no estado mais recente do mercado.",
+      "commentaryStandby": "O comentario da arena esta aguardando o proximo movimento relevante."
     },
     "labels": {
       "liveArena": "Arena ao vivo",
@@ -997,7 +1001,168 @@
       "remainingWithClock": "Restante ({0})",
       "pressureSummary": "Pool competitivo | {0} | {1}",
       "liveNarrator": "Narrador ao vivo",
-      "aiMetaTimestamp": "{0} | {1} UTC"
+      "aiMetaTimestamp": "{0} | {1} UTC",
+      "commentaryMetaTimestamp": "{0} | {1} UTC"
+    },
+    "broadcast": {
+      "switchingArena": "Mudando para a proxima arena quente...",
+      "nextHotArena": "A rotacao ao vivo esta indo para uma janela mais forte da arena."
+    },
+    "audio": {
+      "crowdEnabled": "Audio da torcida ligado",
+      "crowdMuted": "Audio da torcida mutado"
+    },
+    "commentary": {
+      "title": "Comentario da arena",
+      "fallback": "{0} e {1} seguem ativos no painel ao vivo enquanto a arena espera o proximo movimento.",
+      "source": {
+        "template": "Motor de templates",
+        "aiDisabled": "IA desabilitada"
+      },
+      "momentumEven": "Momentum equilibrado",
+      "momentumFor": "Momentum para {0}",
+      "templates": {
+        "balanced": [
+          "{2} e {3} seguem colados, mas o momentum comeca a pender para {0}.",
+          "O placar continua apertado e a arena ainda esta aberta, com {0} segurando uma vantagem fragil.",
+          "A partida esta travada por enquanto, mas uma oscilacao limpa pode jogar a pressao para {0}.",
+          "{2} contra {3} segue equilibrada, e o proximo empurrao do mercado pode mudar toda a leitura.",
+          "Nenhum lado conseguiu rasgar a arena ainda, e isso mantem {0} sob pressao constante.",
+          "Placar curto e percentuais proximos deixam essa arena viva a cada tick.",
+          "Quase nada separa esses dois lados agora, e isso torna o proximo movimento decisivo.",
+          "{0} aparece levemente na frente, mas essa arena continua com cara de batalha por um lance."
+        ],
+        "comeback": [
+          "A lideranca mudou de lado e {0} agora carrega o momentum da arena.",
+          "{0} virou a partida e a transmissao ganhou cara de reacao ao vivo.",
+          "O que parecia estavel agora virou reversao, com {0} assumindo a linha de frente.",
+          "{0} acabou de transformar pressao em controle e mudou o tom da partida.",
+          "A arena tem um novo lider, e {0} agora obriga {1} a responder.",
+          "{0} retomou a vantagem e deu a essa disputa a cara de virada.",
+          "A mudanca de lideranca caiu no placar, e {0} passa a comandar a narrativa.",
+          "{1} controlava a leitura, mas {0} reagiu e roubou a frente."
+        ],
+        "pressureRising": [
+          "{0} comeca a empurrar a partida, e a arena passa a seguir esse ritmo.",
+          "O pulso do mercado pesa mais para {0}, mesmo com o placar ainda sob tensao.",
+          "{0} monta uma sequencia melhor e obriga a arena a respeitar essa subida.",
+          "A partida comeca a se fechar em torno de {0}, que agora dita mais o ritmo do painel.",
+          "A pressao cresce do lado de {0}, e o proximo movimento pode virar dano no placar.",
+          "{0} emenda as melhores reacoes e puxa a disputa para o proprio corredor.",
+          "O ritmo esta mudando para {0}, e {1} precisa responder rapido.",
+          "{0} acelera na hora certa e muda a sensacao da arena."
+        ],
+        "dominance": [
+          "{0} joga na frente e mantem essa arena sob controle claro.",
+          "A diferenca no placar aumenta, e {0} transforma pressao em comando.",
+          "{0} abriu distancia real na partida e dita o ritmo da disputa.",
+          "A arena esta controlada neste momento, com {0} sustentando boa vantagem.",
+          "{1} ainda tem tempo, mas {0} faz o painel parecer cada vez mais de um lado so.",
+          "{0} nao esta apenas vencendo; esta controlando a estrutura da partida.",
+          "A vantagem ja e relevante, e {0} trabalha agora em zona de conforto.",
+          "{0} mantem o placar em faixa segura e deixa essa arena com cara de controle."
+        ],
+        "quietPool": [
+          "{2} e {3} ainda esperam volume real de pool, entao uma entrada pode mudar o ritmo instantaneamente.",
+          "A arena esta ao vivo, mas o pool continua quieto e o proximo sinal fica ainda mais importante.",
+          "A atividade baixa deixa a partida mais sobria por enquanto, mesmo com chance de despertar rapido.",
+          "Ainda nao ha muita agressao de pool, o que deixa essa arena aberta para uma virada brusca.",
+          "A batalha respira leve neste momento, com pouco volume e ritmo cauteloso.",
+          "O pool esta lento, o painel paciente, e um movimento firme pode mudar o tom de uma vez.",
+          "O volume ainda nao abriu de verdade, entao a arena espera um gatilho mais forte.",
+          "O painel ao vivo esta calmo por agora, mas isso muitas vezes antecede um empurrao mais duro."
+        ],
+        "heatedPool": [
+          "Essa arena esta esquentando rapido, com hotScore em {8} e pressao real dos dois lados.",
+          "A intensidade do pool sobe, e essa partida comeca a parecer uma das janelas mais quentes no ar.",
+          "A arena ganhou calor de verdade, com pressao, volume e competitividade subindo juntos.",
+          "Com hotScore em {8}, essa disputa esta conquistando espaco nobre na transmissao.",
+          "Esse painel deixou de ser frio; a arena agora negocia com calor visivel.",
+          "Volume e tensao crescem juntos e empurram essa disputa para uma rotacao mais quente.",
+          "O clima fica mais alto em torno dessa partida, e as metricas sustentam isso.",
+          "Esse painel esta entrando em faixa forte de transmissao, com a arena totalmente acordada."
+        ],
+        "finalThriller": [
+          "O relogio caiu para {10}, a diferenca e minima, e essa arena segue viva ate a ultima oscilacao.",
+          "Restam so {10}, e um movimento limpo ainda pode virar todo esse painel.",
+          "A reta final chegou, e a margem curta deixa cada segundo perigoso.",
+          "Essa arena entrou em tempo de pressao com quase nada separando os dois lados.",
+          "Relogio curto, gap pequeno, tensao ao vivo: essa partida ainda se recusa a fechar.",
+          "O final fica dramatico porque esse painel continua perto o bastante para virar.",
+          "Nao existe espaco para respirar nessa arena, apenas {10} e mais uma oscilacao.",
+          "A partida entra em sua fase mais aguda, e o proximo movimento pode reescrever o final."
+        ],
+        "finalControlled": [
+          "O relogio marca {10}, mas {0} ainda tem espaco suficiente para administrar o fim.",
+          "{0} entra na reta final com controle e obriga {1} a correr atras tarde.",
+          "O tempo aperta e {0} construiu a vantagem que muda o roteiro do encerramento.",
+          "Essa arena tardia ainda pertence a {0}, que protege uma gordura importante.",
+          "{1} precisa de algo imediato, porque {0} leva estrutura para os minutos finais.",
+          "O fim de jogo esta ligado, e {0} continua no comando da janela decisiva.",
+          "{0} carrega boa vantagem para a fase final e afina o caminho da reacao.",
+          "Com apenas {10} no relogio, {0} tem o tipo de controle que pode fechar o painel."
+        ],
+        "opening": [
+          "A partida ainda esta no comeco, e os dois lados testam o primeiro ritmo da arena.",
+          "No inicio do ciclo, {2} e {3} ainda escrevem o primeiro capitulo desse painel.",
+          "Essa arena esta apenas começando, com tempo suficiente para varias viradas de narrativa.",
+          "A fase inicial segue cautelosa, e os dois ativos ainda calibram o ritmo ao vivo.",
+          "Ainda ha muito tempo no relogio, o que deixa esse painel inicial bem aberto.",
+          "O primeiro trecho esta em andamento, e nenhum lado se impôs por completo ainda.",
+          "Essa janela de abertura fala mais de posicionamento do que de separacao, pelo menos por enquanto.",
+          "A arena ainda esta em leitura inicial, e o mapa de pressao pode mudar rapido."
+        ],
+        "bothDown": [
+          "Os dois ativos sofrem pressao, mas {0} cai menos e transforma resistencia em vantagem.",
+          "A batalha e defensiva agora, e {0} absorve melhor o impacto do mercado.",
+          "Nenhum lado esta no verde, mas {0} atravessa a queda com mais controle.",
+          "Essa arena esta sendo decidida no vermelho, e {0} segura melhor a pancada.",
+          "Os dois graficos escorregam, mas {0} resiste mais do que {1}.",
+          "O mercado pesa negativamente dos dois lados, e {0} faz melhor uso desse contexto.",
+          "Mesmo sob pressao conjunta, {0} protege mais valor no painel.",
+          "Essa e uma batalha de controle de dano, e {0} executa melhor esse trabalho."
+        ],
+        "bothUp": [
+          "Os dois ativos sobem, mas {0} acelera mais e converte alta em pressao.",
+          "O painel esta agressivo com ambos no verde, e {0} ainda encontra mais tracao.",
+          "A arena tem upside dos dois lados agora, mas {0} extrai mais desse movimento.",
+          "Os dois graficos trabalham positivos, mas {0} empurra a expansao mais forte.",
+          "Essa batalha ao vivo tem forca nos dois extremos, e {0} esta convertendo mais disso.",
+          "O painel esta verde em todo o confronto, com {0} escolhendo a rota mais forte para cima.",
+          "E um duelo de mercado em alta, e {0} vence a corrida de aceleracao por enquanto.",
+          "Os dois lados avancam, mas {0} conduz a subida mais aguda."
+        ],
+        "relativeLead": [
+          "Mesmo com pressao dos dois lados, {0} lida melhor com o mercado e segue na frente.",
+          "{0} nao precisa de uma arrancada limpa aqui; resistir melhor ja basta para manter a ponta.",
+          "Essa arena esta sendo vencida por performance relativa, e {0} e quem sobrevive melhor.",
+          "{0} transforma resiliencia em controle neste painel.",
+          "O mercado nao oferece conforto, mas {0} ainda defende a lideranca com melhor equilibrio.",
+          "A forca relativa carrega essa disputa, e {0} e quem possui essa vantagem agora.",
+          "{0} nao esta disparando; esta simplesmente suportando melhor do que {1}.",
+          "A vantagem pertence a {0}, que converte resistencia mais estavel em pressao de placar."
+        ],
+        "goalRecent": [
+          "{0} acaba de bater no placar e injeta energia nova na arena.",
+          "Um novo ponto cai para {0}, e o tom dessa transmissao muda na hora.",
+          "{0} converte a ultima oscilacao em impacto de placar e obriga {1} a responder.",
+          "Esse ponto muda a textura ao vivo da partida, e {0} fica com o pulso da arena.",
+          "{0} faz a arena reagir com uma pancada limpa no placar.",
+          "O painel se move de novo, e {0} e o lado que comemora o impacto mais recente.",
+          "{0} aproveita o momento com um ponto que aumenta a pressao sobre {1}.",
+          "Dano novo no placar para {0}, e a arena fica mais alta em torno dessa partida."
+        ],
+        "cycleEnding": [
+          "Essa arena se aproxima do fim do ciclo, e o desenho atual do painel comeca a ficar definitivo.",
+          "A partida caminha para o encerramento, com a narrativa ao vivo se assentando em torno de {0}.",
+          "A arena fecha sua ultima janela agora, e cada sinal restante passa a valer mais.",
+          "O ciclo entra na reta final, e isso torna a vantagem atual ainda mais importante.",
+          "O painel faz a transicao para o fim, com pouco tempo para reescrever o roteiro.",
+          "O ciclo ao vivo esta quase encerrado, e a arena ja prepara a proxima transicao.",
+          "A partida chega ao ultimo suspiro, com o placar fazendo quase todo o discurso.",
+          "O fim do ciclo esta no horizonte, e o mapa atual de pressao fica perto de travar."
+        ]
+      }
     },
     "waiting": {
       "topCoinsEyebrow": "Ranking da arena",
@@ -1018,6 +1183,10 @@
       "arenaPressureRising": "PRESSAO DA ARENA SUBINDO",
       "liveCryptoBattle": "BATALHA CRIPTO AO VIVO",
       "marketVolatilityIncreasing": "VOLATILIDADE DE MERCADO EM ALTA",
+      "visitSite": "VISITE CRIPTOVERSUS.COM",
+      "liveBattles": "BATALHAS CRIPTO AO VIVO EM CRIPTOVERSUS.COM",
+      "rankings": "RANKINGS E ARENAS AO VIVO EM CRIPTOVERSUS.COM",
+      "matchMarkets": "ASSISTA ARENAS AO VIVO, RANKINGS E MERCADOS DE PARTIDA EM CRIPTOVERSUS.COM",
       "dominating": "{0} DOMINANDO",
       "recovering": "{0} REAGINDO",
       "finalMinutes": "MINUTOS FINAIS",

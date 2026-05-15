@@ -1,5 +1,7 @@
 @page "/tv"
 @page "/{Culture}/tv"
+@page "/tv/broadcast"
+@page "/{Culture}/tv/broadcast"
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
@@ -7,6 +9,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
 @inject LocalizationService L
+@inject MatchSlugHelper MatchSlugHelper
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
 @rendermode InteractiveServer
@@ -31,7 +34,9 @@
 </HeadContent>
 
 <TvStage Culture="@_culture"
+         IsBroadcastMode="@_isBroadcastMode"
          HotMatch="@_selectedHotMatch"
+         Match="@_selectedMatch"
          Stats="@_stats"
          Snapshot="@_snapshot" />
 
@@ -43,19 +48,29 @@
     [Parameter] public string? Culture { get; set; }
 
     private string _culture = AppCultureService.DefaultRouteCulture;
+    private bool _isBroadcastMode;
     private TvHotMatchDto? _selectedHotMatch;
+    private MatchDto? _selectedMatch;
     private StatsOverviewDto? _stats;
     private DashboardSnapshotDto? _snapshot;
+    private IReadOnlyList<MatchDto> _matches = [];
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
     private DateTime _lastSwitchUtc = DateTime.MinValue;
+    private DateTime _lastBroadcastRotationUtc = DateTime.MinValue;
 
-    private string PageTitleText => L.T("tv.seo.title", _culture);
-    private string MetaDescription => L.T("tv.seo.description", _culture);
-    private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildTvPath(_culture));
-    private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildTvPath(AppCultureService.DefaultRouteCulture));
-    private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTvPath(AppCultureService.SecondaryRouteCulture));
+    private string PageTitleText => L.T(_isBroadcastMode ? "tv.seo.broadcastTitle" : "tv.seo.title", _culture);
+    private string MetaDescription => L.T(_isBroadcastMode ? "tv.seo.broadcastDescription" : "tv.seo.description", _culture);
+    private string CanonicalUrl => BuildAbsolute(_isBroadcastMode
+        ? RouteLocalization.BuildTvBroadcastPath(_culture)
+        : RouteLocalization.BuildTvPath(_culture));
+    private string EnglishUrl => BuildAbsolute(_isBroadcastMode
+        ? RouteLocalization.BuildTvBroadcastPath(AppCultureService.DefaultRouteCulture)
+        : RouteLocalization.BuildTvPath(AppCultureService.DefaultRouteCulture));
+    private string PortugueseUrl => BuildAbsolute(_isBroadcastMode
+        ? RouteLocalization.BuildTvBroadcastPath(AppCultureService.SecondaryRouteCulture)
+        : RouteLocalization.BuildTvPath(AppCultureService.SecondaryRouteCulture));
 
     protected override void OnParametersSet()
     {
@@ -64,7 +79,10 @@
             : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
 
         var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
-        var expectedPath = RouteLocalization.BuildTvPath(_culture);
+        _isBroadcastMode = currentPath.EndsWith("/tv/broadcast", StringComparison.OrdinalIgnoreCase);
+        var expectedPath = _isBroadcastMode
+            ? RouteLocalization.BuildTvBroadcastPath(_culture)
+            : RouteLocalization.BuildTvPath(_culture);
         if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
             Nav.NavigateTo(expectedPath, replace: true);
     }
@@ -103,17 +121,23 @@
             var hotTask = Api.GetTvHotMatchAsync(ct);
             var statsTask = Api.GetStatsOverviewAsync(ct);
             var snapshotTask = Api.GetDashboardSnapshotAsync(ct);
+            var matchesTask = Api.GetMatchesAsync(ct);
 
-            await Task.WhenAll(hotTask, statsTask, snapshotTask);
+            await Task.WhenAll(hotTask, statsTask, snapshotTask, matchesTask);
 
             _stats = statsTask.Result ?? _stats;
             _snapshot = snapshotTask.Result ?? _snapshot;
+            _matches = matchesTask.Result ?? [];
 
             var hotMatch = hotTask.Result;
-            if (hotMatch?.HasMatch == true)
+            if (_isBroadcastMode)
+            {
+                await ResolveBroadcastSelectionAsync(hotMatch, _matches, forceInitialSelection, ct);
+            }
+            else if (hotMatch?.HasMatch == true)
             {
                 await LogAsync("hot match refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.Reason });
-                await ResolveHotMatchSelectionAsync(hotMatch, forceInitialSelection, ct);
+                await ResolveHotMatchSelectionAsync(hotMatch, _matches, forceInitialSelection, ct);
             }
             else
             {
@@ -123,10 +147,14 @@
                 {
                     var currentFinished = await IsSelectedMatchFinishedAsync(ct);
                     if (currentFinished)
+                    {
                         _selectedHotMatch = null;
+                        _selectedMatch = null;
+                    }
                 }
             }
 
+            await RefreshSelectedMatchAsync(_matches, ct);
             await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException)
@@ -138,24 +166,25 @@
         }
     }
 
-    private async Task ResolveHotMatchSelectionAsync(TvHotMatchDto hotMatch, bool forceInitialSelection, CancellationToken ct)
+    private async Task ResolveHotMatchSelectionAsync(TvHotMatchDto hotMatch, IReadOnlyList<MatchDto> matches, bool forceInitialSelection, CancellationToken ct)
     {
         if (forceInitialSelection || _selectedHotMatch is null || !_selectedHotMatch.HasMatch)
         {
-            await SwitchToMatchAsync(hotMatch);
+            await SwitchToMatchAsync(hotMatch, FindMatch(matches, hotMatch.MatchId));
             return;
         }
 
         if (_selectedHotMatch.MatchId == hotMatch.MatchId)
         {
             _selectedHotMatch = hotMatch;
+            _selectedMatch = FindMatch(matches, hotMatch.MatchId) ?? _selectedMatch;
             return;
         }
 
         var currentFinished = await IsSelectedMatchFinishedAsync(ct);
         if (currentFinished)
         {
-            await SwitchToMatchAsync(hotMatch);
+            await SwitchToMatchAsync(hotMatch, FindMatch(matches, hotMatch.MatchId));
             return;
         }
 
@@ -173,7 +202,7 @@
             return;
         }
 
-        await SwitchToMatchAsync(hotMatch);
+        await SwitchToMatchAsync(hotMatch, FindMatch(matches, hotMatch.MatchId));
     }
 
     private async Task<bool> IsSelectedMatchFinishedAsync(CancellationToken ct)
@@ -191,10 +220,14 @@
     private bool IsSwitchCooldownActive()
         => DateTime.UtcNow - _lastSwitchUtc < TimeSpan.FromSeconds(SwitchCooldownSeconds);
 
-    private async Task SwitchToMatchAsync(TvHotMatchDto hotMatch)
+    private async Task SwitchToMatchAsync(TvHotMatchDto hotMatch, MatchDto? match = null, bool broadcastRotation = false)
     {
         _selectedHotMatch = hotMatch;
+        _selectedMatch = match;
         _lastSwitchUtc = DateTime.UtcNow;
+        if (broadcastRotation)
+            _lastBroadcastRotationUtc = DateTime.UtcNow;
+
         await LogAsync("switching match", new
         {
             hotMatch.MatchId,
@@ -202,6 +235,185 @@
             LocalizedWatchUrl = RouteLocalization.BuildTvMatchPath(_culture, hotMatch.MatchId, hotMatch.Slug)
         });
     }
+
+    private async Task ResolveBroadcastSelectionAsync(TvHotMatchDto? hotMatch, IReadOnlyList<MatchDto> matches, bool forceInitialSelection, CancellationToken ct)
+    {
+        await LogAsync("TV_BROADCAST_ROTATION_STARTED", new
+        {
+            forceInitialSelection,
+            candidateCount = matches.Count
+        });
+
+        var rankedCandidates = BuildBroadcastCandidates(matches, hotMatch).ToList();
+        if (rankedCandidates.Count == 0)
+        {
+            if (hotMatch?.HasMatch == true)
+                await SwitchToMatchAsync(hotMatch, FindMatch(matches, hotMatch.MatchId), broadcastRotation: true);
+
+            await LogAsync("TV_BROADCAST_ROTATION_COMPLETED", new { selectedMatchId = _selectedHotMatch?.MatchId ?? 0 });
+            return;
+        }
+
+        var shouldRotate = forceInitialSelection
+            || _selectedMatch is null
+            || _selectedMatch.IsFinished
+            || DateTime.UtcNow - _lastBroadcastRotationUtc >= TimeSpan.FromMinutes(5);
+
+        if (!shouldRotate && _selectedMatch is not null)
+        {
+            _selectedMatch = FindMatch(matches, _selectedMatch.MatchId) ?? _selectedMatch;
+            _selectedHotMatch = MergeHotMatchState(_selectedMatch, hotMatch);
+            await LogAsync("TV_BROADCAST_ROTATION_COMPLETED", new { selectedMatchId = _selectedHotMatch?.MatchId ?? 0, rotated = false });
+            return;
+        }
+
+        var currentMatchId = _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0;
+        var selected = rankedCandidates
+            .FirstOrDefault(x => x.Match.MatchId != currentMatchId)
+            ?? rankedCandidates[0];
+
+        await LogAsync("TV_BROADCAST_MATCH_SELECTED", new
+        {
+            selected.Match.MatchId,
+            selected.Score,
+            selected.Match.Status
+        });
+
+        await SwitchToMatchAsync(MergeHotMatchState(selected.Match, hotMatch), selected.Match, broadcastRotation: true);
+        await LogAsync("TV_BROADCAST_ROTATION_COMPLETED", new { selectedMatchId = selected.Match.MatchId, rotated = true });
+    }
+
+    private IEnumerable<BroadcastCandidate> BuildBroadcastCandidates(IReadOnlyList<MatchDto> matches, TvHotMatchDto? hotMatch)
+    {
+        foreach (var match in matches)
+        {
+            if (match.IsFinished || string.Equals(match.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            {
+                _ = LogAsync("TV_BROADCAST_MATCH_SKIPPED_ENDED", new { match.MatchId, match.Status });
+                continue;
+            }
+
+            yield return new BroadcastCandidate(match, ScoreBroadcastCandidate(match, hotMatch));
+        }
+    }
+
+    private decimal ScoreBroadcastCandidate(MatchDto match, TvHotMatchDto? hotMatch)
+    {
+        var scoreGap = Math.Abs(match.ScoreA - match.ScoreB);
+        var pctGap = Math.Abs((match.PctA ?? 0m) - (match.PctB ?? 0m));
+        var baseScore = 0m;
+
+        if (string.Equals(match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            baseScore += 120m;
+
+        if (!match.IsFinished)
+            baseScore += 40m;
+
+        if (hotMatch?.HasMatch == true && hotMatch.MatchId == match.MatchId)
+            baseScore += 60m + hotMatch.HotScore;
+
+        baseScore += Math.Max(0, 28 - (scoreGap * 8));
+        baseScore += Math.Max(0, 20 - (pctGap * 22m));
+        baseScore += Math.Min(30m, match.TotalPoolAmount / 50m);
+        baseScore += Math.Min(18m, match.TotalPool / 50m);
+        baseScore += match.HasBetsOnBothSides ? 12m : 0m;
+        baseScore += match.RemainingMinutes switch
+        {
+            > 2 and < 50 => 14m,
+            >= 50 => 8m,
+            _ => 2m
+        };
+
+        return baseScore;
+    }
+
+    private async Task RefreshSelectedMatchAsync(IReadOnlyList<MatchDto> matches, CancellationToken ct)
+    {
+        var selectedMatchId = _selectedHotMatch?.MatchId ?? _selectedMatch?.MatchId ?? 0;
+        if (selectedMatchId <= 0)
+            return;
+
+        _selectedMatch = FindMatch(matches, selectedMatchId) ?? _selectedMatch;
+        _selectedMatch ??= await Api.GetMatchByIdAsync(selectedMatchId, ct);
+        if (_selectedMatch is not null)
+            _selectedHotMatch = MergeHotMatchState(_selectedMatch, _selectedHotMatch);
+    }
+
+    private TvHotMatchDto MergeHotMatchState(MatchDto match, TvHotMatchDto? hotMatch)
+    {
+        if (hotMatch?.HasMatch == true && hotMatch.MatchId == match.MatchId)
+            return hotMatch;
+
+        var scoreGap = Math.Abs(match.ScoreA - match.ScoreB);
+        var competitiveness = Math.Clamp(100 - (scoreGap * 18) - (int)(Math.Abs((match.PctA ?? 0m) - (match.PctB ?? 0m)) * 10m), 40, 96);
+        var leader = ResolveLeaderSymbol(match);
+
+        return new TvHotMatchDto
+        {
+            HasMatch = true,
+            MatchId = match.MatchId,
+            Slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB),
+            LeftSymbol = match.TeamA,
+            RightSymbol = match.TeamB,
+            LeftName = match.TeamA,
+            RightName = match.TeamB,
+            LeftScore = match.ScoreA,
+            RightScore = match.ScoreB,
+            LeftLogoUrl = Api.BuildBinanceIconUrl(match.TeamA),
+            RightLogoUrl = Api.BuildBinanceIconUrl(match.TeamB),
+            HotScore = competitiveness,
+            Reason = scoreGap <= 1
+                ? L.T("tv.fallback.closeMatchReason", _culture)
+                : L.T("tv.fallback.liveArenaReason", _culture),
+            WatchUrl = RouteLocalization.BuildTvMatchPath(_culture, match.MatchId, MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB)),
+            VolumeLabel = FormatPoolVolume(match),
+            MomentumLabel = BuildMomentumLabel(match),
+            RemainingTimeLabel = $"{Math.Max(0, match.RemainingMinutes):00}:00",
+            RemainingSeconds = Math.Max(0, match.RemainingMinutes) * 60,
+            MatchStartTimeUtc = match.StartTime?.ToUniversalTime(),
+            LeftChangePercent = match.PctA,
+            RightChangePercent = match.PctB,
+            LeaderSymbol = leader,
+            PressureSymbol = leader,
+            PoolStatusLabel = match.HasBetsOnBothSides
+                ? L.T("tv.labels.poolStatusBalanced", _culture)
+                : L.T("tv.labels.poolStatusIdle", _culture),
+            HasRecentReversal = scoreGap <= 1 && Math.Abs((match.PctA ?? 0m) - (match.PctB ?? 0m)) <= 0.5m
+        };
+    }
+
+    private string BuildMomentumLabel(MatchDto match)
+    {
+        var delta = (match.PctA ?? 0m) - (match.PctB ?? 0m);
+        if (Math.Abs(delta) <= 0.2m)
+            return L.T("tv.commentary.momentumEven", _culture);
+
+        return delta > 0m
+            ? L.T("tv.commentary.momentumFor", _culture, match.TeamA)
+            : L.T("tv.commentary.momentumFor", _culture, match.TeamB);
+    }
+
+    private static string ResolveLeaderSymbol(MatchDto match)
+    {
+        if (match.ScoreA != match.ScoreB)
+            return match.ScoreA > match.ScoreB ? match.TeamA : match.TeamB;
+
+        if ((match.PctA ?? 0m) != (match.PctB ?? 0m))
+            return (match.PctA ?? 0m) > (match.PctB ?? 0m) ? match.TeamA : match.TeamB;
+
+        return match.TeamA;
+    }
+
+    private static string FormatPoolVolume(MatchDto match)
+    {
+        var total = match.TotalPoolAmount > 0m ? match.TotalPoolAmount : match.TotalPool;
+        return total > 0m ? total.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "0";
+    }
+
+    private static MatchDto? FindMatch(IReadOnlyList<MatchDto> matches, int matchId)
+        => matches.FirstOrDefault(x => x.MatchId == matchId);
+
+    private sealed record BroadcastCandidate(MatchDto Match, decimal Score);
 
     private string BuildAbsolute(string path)
         => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";

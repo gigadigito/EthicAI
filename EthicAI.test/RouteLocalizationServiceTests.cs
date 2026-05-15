@@ -37,4 +37,11 @@ public sealed class RouteLocalizationServiceTests
         Assert.Equal("/pt/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("pt", 39, "ada-vs-bnb"));
         Assert.Equal("/en/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("en", 39, "ada-vs-bnb"));
     }
+
+    [Fact]
+    public void BuildTvBroadcastPath_UsesLocalizedCulturePrefix()
+    {
+        Assert.Equal("/pt/tv/broadcast", _service.BuildTvBroadcastPath("pt"));
+        Assert.Equal("/en/tv/broadcast", _service.BuildTvBroadcastPath("en"));
+    }
 }

@@ -10,11 +10,12 @@
 @inject IWebHostEnvironment Environment
 @inject MatchSlugHelper MatchSlugHelper
 @inject RouteLocalizationService RouteLocalization
+@inject TvArenaCommentaryService ArenaCommentary
 @implements IAsyncDisposable
 
 @if (HasLiveMatch)
 {
-    <section class="tv-stage tv-stage--live">
+    <section class="tv-stage tv-stage--live @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)">
         <div class="tv-stage__backdrop"></div>
         <div class="tv-stage__aurora"></div>
         <div class="tv-stage__fog"></div>
@@ -33,6 +34,14 @@
             </div>
         }
 
+        @if (IsBroadcastSwitchNoticeVisible)
+        {
+            <div class="tv-broadcast-notice" aria-live="polite" aria-atomic="true">
+                <strong>@T("broadcast.switchingArena")</strong>
+                <span>@T("broadcast.nextHotArena")</span>
+            </div>
+        }
+
         <header class="tv-stage__topbar">
             <div>
                 <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
@@ -47,6 +56,10 @@
                 <span class="tv-pill">@T("labels.automaticBroadcast")</span>
                 <span class="tv-pill tv-pill--signal">@T("labels.signalStable")</span>
                 <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
+                @if (ShouldRenderCrowdAudio)
+                {
+                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                }
             </div>
         </header>
 
@@ -105,12 +118,12 @@
 
                 <section class="tv-ai-commentary">
                     <div class="tv-ai-commentary__header">
-                        <span>@T("labels.aiCommentary")</span>
-                        <small>@DisplayAiCommentaryMeta()</small>
+                        <span>@T("commentary.title")</span>
+                        <small>@DisplayCommentaryMeta()</small>
                     </div>
 
                     <div class="tv-ai-commentary__text">
-                        @DisplayAiCommentaryText()
+                        @DisplayCommentaryText()
                     </div>
                 </section>
 
@@ -209,7 +222,7 @@
 }
 else
 {
-    <section class="tv-stage tv-stage--waiting">
+    <section class="tv-stage tv-stage--waiting @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)">
         <div class="tv-stage__backdrop"></div>
         <div class="tv-stage__aurora"></div>
         <div class="tv-stage__fog"></div>
@@ -225,6 +238,10 @@ else
             <div class="tv-stage__badges">
                 <span class="tv-pill">@T("labels.automaticBroadcast")</span>
                 <span class="tv-pill tv-pill--signal">@T("states.noHotMatchRightNow")</span>
+                @if (ShouldRenderCrowdAudio)
+                {
+                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                }
             </div>
         </header>
 
@@ -310,6 +327,11 @@ else
     </section>
 }
 
+@if (ShouldRenderCrowdAudio)
+{
+    <audio id="tv-broadcast-crowd" class="tv-crowd-audio" src="/audio/tv/stadium-crowd-loop.mp3" preload="auto" loop></audio>
+}
+
 @if (Environment.IsDevelopment())
 {
     <aside class="tv-dev-narration-panel">
@@ -317,12 +339,13 @@ else
         {
             <button type="button" @onclick="() => TriggerDevNarrationAsync(animation)">@animation</button>
         }
-        <button type="button" @onclick="TriggerDevAiNarrationAsync">test ai narration</button>
+        <button type="button" @onclick="TriggerDevAiNarrationAsync">test commentary</button>
     </aside>
 }
 
 @code {
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public bool IsBroadcastMode { get; set; }
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
     [Parameter] public MatchDto? Match { get; set; }
     [Parameter] public StatsOverviewDto? Stats { get; set; }
@@ -364,12 +387,18 @@ else
     private string _currentAiNarration = string.Empty;
     private string _aiNarrationSource = "template";
     private string _lastAiNarrationRequestSignature = string.Empty;
+    private List<string> _commentaryHistory = [];
     private string _clockDebugSignature = string.Empty;
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
     private DateTime _clockAnchorUtc = DateTime.UtcNow;
     private double _clockAnchorRemainingMilliseconds;
+    private DateTime _broadcastNoticeUntilUtc = DateTime.MinValue;
+    private bool _isCrowdAudioMuted;
+    private bool _broadcastAudioInitialized;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
+    private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
+    private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
@@ -377,31 +406,37 @@ else
 
     protected override void OnParametersSet()
     {
+        if (!ShouldRenderCrowdAudio)
+            _broadcastAudioInitialized = false;
+
         SyncClockAnchor();
-        BuildTickerItems();
         ProcessBroadcastState();
+        BuildTickerItems();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
-            return;
-
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js");
-        await LogAsync("TV_MOTION", "motion system ready");
-        if (_tickerItems.Count > 0)
-            await LogAsync("TV_TICKER", "updated", _tickerItems);
-
-        _clockCts = new CancellationTokenSource();
-        _clockLoopTask = RunClockLoopAsync(_clockCts.Token);
-
-        if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
+        if (firstRender)
         {
-            _narrationDebugDemoStarted = true;
-            _ = RunNarrationDebugDemoAsync();
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js");
+            await LogAsync("TV_MOTION", "motion system ready");
+            if (_tickerItems.Count > 0)
+                await LogAsync("TV_TICKER", "updated", _tickerItems);
+
+            _clockCts = new CancellationTokenSource();
+            _clockLoopTask = RunClockLoopAsync(_clockCts.Token);
+
+            if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
+            {
+                _narrationDebugDemoStarted = true;
+                _ = RunNarrationDebugDemoAsync();
+            }
+
+            await LogClockDebugAsync();
         }
 
-        await LogClockDebugAsync();
+        if (ShouldRenderCrowdAudio && !_broadcastAudioInitialized)
+            await EnsureBroadcastAudioAsync();
     }
 
     private async Task RunClockLoopAsync(CancellationToken ct)
@@ -428,14 +463,19 @@ else
             _previousSnapshot = null;
             _lastAiNarrationMatchId = null;
             _currentAiNarration = string.Empty;
+            _commentaryHistory = [];
             return;
         }
 
         if (_lastAiNarrationMatchId != current.MatchId)
         {
+            if (IsBroadcastMode && _lastAiNarrationMatchId.HasValue)
+                _broadcastNoticeUntilUtc = DateTime.UtcNow.AddSeconds(4);
+
             _lastAiNarrationMatchId = current.MatchId;
             _lastAiNarrationRequestSignature = string.Empty;
             _currentAiNarration = string.Empty;
+            _commentaryHistory = [];
         }
 
         if (_previousSnapshot is null)
@@ -671,6 +711,11 @@ else
 
         if (HasLiveMatch)
         {
+            items.Add("https://criptoversus.com");
+            items.Add(T("ticker.visitSite"));
+            items.Add(T("ticker.liveBattles"));
+            items.Add(T("ticker.matchMarkets"));
+            items.Add(T("ticker.rankings"));
             items.Add(T("ticker.hotMatchDetected"));
             items.Add(T("ticker.liveCryptoBattle"));
             items.Add(T("ticker.arenaPressureRising"));
@@ -692,11 +737,17 @@ else
 
             if ((HotMatch?.HotScore ?? 0) >= 90)
                 items.Add(T("ticker.crowdEnergySpike"));
+
+            foreach (var commentary in _commentaryHistory.TakeLast(4))
+                items.Add(commentary);
         }
         else
         {
             items.Add(T("states.waitingForNextHotBattle"));
             items.Add(T("labels.automaticBroadcast"));
+            items.Add("https://criptoversus.com");
+            items.Add(T("ticker.visitSite"));
+            items.Add(T("ticker.liveBattles"));
 
             var topCoin = TopTeams.FirstOrDefault()?.Symbol;
             if (!string.IsNullOrWhiteSpace(topCoin))
@@ -1063,22 +1114,22 @@ else
     private string DisplayPressureBody()
         => T("labels.pressureSummary", DisplayVolume(), DisplayRemainingTime());
 
-    private string DisplayAiCommentaryText()
+    private string DisplayCommentaryText()
         => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
-            ? T("states.aiCalibrating")
+            ? T("states.commentaryLoading")
             : !string.IsNullOrWhiteSpace(_currentAiNarration)
                 ? _currentAiNarration
-                : T("states.aiTracking");
+                : T("states.commentaryStandby");
 
-    private string DisplayAiCommentaryMeta()
+    private string DisplayCommentaryMeta()
     {
         if (_isAiNarrationLoading)
             return T("refreshing");
 
         if (_lastAiNarrationAtUtc.HasValue)
-            return T("labels.aiMetaTimestamp", _aiNarrationSource.ToUpperInvariant(), _lastAiNarrationAtUtc.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture));
+            return T("labels.commentaryMetaTimestamp", T("commentary.source.aiDisabled"), _lastAiNarrationAtUtc.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture));
 
-        return T("labels.liveNarrator");
+        return T("commentary.source.template");
     }
 
     private async Task MaybeRefreshAiNarrationAsync(string eventType, bool forceRefresh = false)
@@ -1105,24 +1156,20 @@ else
 
         try
         {
-            var response = await Api.GenerateTvNarrationAsync(matchId, new TvNarrationRequest
-            {
-                EventType = eventType,
-                Culture = Culture,
-                ForceRefresh = forceRefresh
-            });
+            var response = ArenaCommentary.Generate(BuildCommentaryContext(eventType));
 
-            if (response is not null && !string.IsNullOrWhiteSpace(response.Text))
+            if (!string.IsNullOrWhiteSpace(response.Text))
             {
                 _currentAiNarration = response.Text;
                 _aiNarrationSource = response.Source;
                 _lastAiNarrationAtUtc = response.GeneratedAtUtc;
+                _commentaryHistory = response.History.ToList();
                 _lastAiNarrationRequestSignature = signature;
             }
         }
         catch (Exception ex)
         {
-            await LogAsync("TV_AI_COMMENTARY", "refresh error", ex.Message);
+            await LogAsync("TV_ARENA_COMMENTARY", "refresh error", ex.Message);
         }
         finally
         {
@@ -1130,6 +1177,64 @@ else
             await InvokeAsync(StateHasChanged);
         }
     }
+
+    private TvArenaCommentaryContext BuildCommentaryContext(string eventType)
+    {
+        var teamA = DisplayLeftSymbol();
+        var teamB = DisplayRightSymbol();
+        var leader = DisplayLeaderSymbol();
+        var remainingSeconds = ParseRemainingSeconds(DisplayRemainingTime());
+        var remainingTime = TimeSpan.FromSeconds(Math.Max(0, remainingSeconds));
+        var totalPool = Match?.TotalPoolAmount > 0m
+            ? Match.TotalPoolAmount
+            : Match?.TotalPool > 0m
+                ? Match.TotalPool
+                : 0m;
+        var competitiveness = Math.Clamp(100 - (Math.Abs(DisplayLeftScore() - DisplayRightScore()) * 18) - (int)(Math.Abs((DisplayLeftChangePercent() ?? 0m) - (DisplayRightChangePercent() ?? 0m)) * 10m), 30, 98);
+
+        return new TvArenaCommentaryContext(
+            MatchId: HotMatch?.MatchId ?? Match?.MatchId ?? 0,
+            Culture: Culture,
+            TeamA: teamA,
+            TeamB: teamB,
+            ScoreA: DisplayLeftScore(),
+            ScoreB: DisplayRightScore(),
+            PercentA: DisplayLeftChangePercent() ?? 0m,
+            PercentB: DisplayRightChangePercent() ?? 0m,
+            Momentum: DisplayMomentum(),
+            Leader: leader,
+            RemainingTime: remainingTime,
+            HotScore: HotMatch?.HotScore ?? competitiveness,
+            PoolVolume: totalPool,
+            Competitiveness: competitiveness,
+            EventType: eventType,
+            IsFinished: string.Equals(Match?.Status, "Completed", StringComparison.OrdinalIgnoreCase) || Match?.IsFinished == true);
+    }
+
+    private decimal ResolveCrowdAudioVolume()
+        => Math.Clamp(Config.GetValue<decimal?>("CriptoVersusTV:CrowdAudioVolume") ?? 0.10m, 0.02m, 0.30m);
+
+    private async Task EnsureBroadcastAudioAsync()
+    {
+        if (_tvModule is null || !ShouldRenderCrowdAudio)
+            return;
+
+        await _tvModule.InvokeVoidAsync("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+        _broadcastAudioInitialized = true;
+    }
+
+    private async Task ToggleCrowdAudioAsync()
+    {
+        _isCrowdAudioMuted = !_isCrowdAudioMuted;
+
+        if (_tvModule is not null)
+            await _tvModule.InvokeVoidAsync("setBroadcastAudioMuted", "tv-broadcast-crowd", _isCrowdAudioMuted, (double)ResolveCrowdAudioVolume());
+    }
+
+    private string DisplayCrowdAudioLabel()
+        => _isCrowdAudioMuted
+            ? T("audio.crowdMuted")
+            : T("audio.crowdEnabled");
 
     private string BuildRemainingTimeFallback()
     {
@@ -1618,6 +1723,10 @@ else
         box-shadow: inset 0 0 0 1px rgba(127, 246, 223, 0.16), 0 0 48px rgba(127, 246, 223, 0.12);
     }
 
+    .tv-stage--broadcast {
+        padding: clamp(14px, 1.2vw, 20px);
+    }
+
     .tv-stage__backdrop {
         position: absolute;
         inset: 0;
@@ -1763,8 +1872,44 @@ else
         background: rgba(83, 200, 255, 0.1);
     }
 
+    .tv-pill--audio {
+        cursor: pointer;
+        border-color: rgba(255,255,255,0.14);
+    }
+
     .tv-pill--score.is-pulsing {
         animation: tvHudPulse 2s ease;
+    }
+
+    .tv-broadcast-notice {
+        position: absolute;
+        left: 50%;
+        top: 72px;
+        transform: translateX(-50%);
+        z-index: 3;
+        display: grid;
+        justify-items: center;
+        gap: 4px;
+        min-width: min(560px, calc(100% - 48px));
+        padding: 12px 18px;
+        border-radius: 18px;
+        border: 1px solid rgba(127, 246, 223, 0.18);
+        background: linear-gradient(180deg, rgba(5, 13, 18, 0.95), rgba(8, 12, 21, 0.98));
+        box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+        text-align: center;
+        backdrop-filter: blur(14px);
+    }
+
+    .tv-broadcast-notice strong {
+        font-size: .88rem;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: var(--tv-green);
+    }
+
+    .tv-broadcast-notice span {
+        color: var(--tv-muted);
+        font-size: .82rem;
     }
 
     .tv-stage__grid {
@@ -1954,6 +2099,10 @@ else
         font-size: clamp(.95rem, 1.1vw, 1.2rem);
         line-height: 1.55;
         font-weight: 600;
+    }
+
+    .tv-crowd-audio {
+        display: none;
     }
 
     .tv-team--right {
@@ -2637,6 +2786,95 @@ else
         border-radius: 50%;
         background: rgba(127, 246, 223, 0.64);
         box-shadow: 0 0 0 6px rgba(127, 246, 223, 0.08);
+    }
+
+    .tv-stage--broadcast .tv-stage__topbar,
+    .tv-stage--broadcast .tv-waiting-hero {
+        margin-bottom: 12px;
+    }
+
+    .tv-stage--broadcast h1,
+    .tv-stage--broadcast .tv-waiting-hero h1 {
+        font-size: clamp(1.7rem, 3vw, 2.8rem);
+    }
+
+    .tv-stage--broadcast .tv-stage__badges {
+        gap: 8px;
+    }
+
+    .tv-stage--broadcast .tv-pill {
+        min-height: 34px;
+        padding: 0 12px;
+        font-size: .72rem;
+    }
+
+    .tv-stage--broadcast .tv-stage__grid {
+        gap: 12px;
+    }
+
+    .tv-stage--broadcast .tv-match-card {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .tv-stage--broadcast .tv-match-card__meta {
+        font-size: .7rem;
+    }
+
+    .tv-stage--broadcast .tv-match-card__arena {
+        gap: 12px;
+    }
+
+    .tv-stage--broadcast .tv-broadcast-clock {
+        padding: 10px 12px;
+    }
+
+    .tv-stage--broadcast .tv-ai-commentary {
+        min-height: 0;
+        padding: 14px 16px;
+    }
+
+    .tv-stage--broadcast .tv-ai-commentary__text {
+        font-size: .95rem;
+        line-height: 1.55;
+    }
+
+    .tv-stage--broadcast .tv-telemetry {
+        gap: 8px;
+    }
+
+    .tv-stage--broadcast .tv-telemetry article {
+        min-height: 76px;
+        padding: 10px 12px;
+    }
+
+    .tv-stage--broadcast .tv-telemetry strong,
+    .tv-stage--broadcast .tv-event-strip__card strong {
+        font-size: 1rem;
+    }
+
+    .tv-stage--broadcast .tv-telemetry small,
+    .tv-stage--broadcast .tv-event-strip__card p {
+        font-size: .78rem;
+    }
+
+    .tv-stage--broadcast .tv-event-strip {
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .tv-stage--broadcast .tv-event-strip__card {
+        padding: 14px 16px;
+    }
+
+    .tv-stage--broadcast .tv-ticker__lane {
+        gap: 18px;
+        padding: 11px 16px;
+    }
+
+    .tv-stage--broadcast .tv-ticker__item {
+        gap: 18px;
+        font-size: .76rem;
     }
 
     .tv-dev-narration-panel {
