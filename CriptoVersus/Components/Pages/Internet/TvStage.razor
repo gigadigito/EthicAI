@@ -3546,6 +3546,29 @@ else
         font-size: .76rem;
     }
 
+    @@media (max-width: 1700px) {
+        .tv-stage--broadcast .tv-stage__grid {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-stage--broadcast .tv-match-card {
+            order: 1;
+        }
+
+        .tv-stage--broadcast .tv-telemetry {
+            order: 2;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .tv-stage--broadcast .tv-event-strip {
+            order: 3;
+        }
+
+        .tv-stage--broadcast .tv-football-layout {
+            grid-template-columns: minmax(160px, 210px) minmax(0, 1fr) minmax(160px, 210px);
+        }
+    }
+
     .tv-dev-narration-panel {
         position: fixed;
         left: 16px;
@@ -3588,22 +3611,39 @@ else
             grid-template-columns: 1fr;
         }
 
+        .tv-stage__topbar {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .tv-stage__badges {
+            justify-content: flex-start;
+        }
+
         .tv-match-card__arena {
             min-height: 0;
         }
 
         .tv-football-layout {
             grid-template-columns: 1fr;
+            gap: 14px;
         }
 
         .tv-football-side,
         .tv-football-side--right {
             justify-items: center;
             text-align: center;
+            min-height: 0;
+            padding: 14px 12px;
         }
 
         .tv-football-scoreboard {
             margin-bottom: 0;
+        }
+
+        .tv-telemetry,
+        .tv-stage--broadcast .tv-telemetry {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 
@@ -3617,21 +3657,56 @@ else
             display: grid;
         }
 
+        .tv-stage__headline {
+            font-size: .78rem;
+            letter-spacing: .14em;
+        }
+
         .tv-match-card__arena {
             grid-template-columns: 1fr;
         }
 
         .tv-football-layout {
             grid-template-columns: 1fr;
-            gap: 14px;
+            gap: 10px;
         }
 
         .tv-football-side {
             order: 2;
+            width: 100%;
+            padding: 10px 8px;
+            gap: 6px;
         }
 
         .tv-football-center {
             order: 1;
+        }
+
+        .tv-football-side__logo {
+            width: 86px;
+            height: 86px;
+        }
+
+        .tv-football-side strong {
+            font-size: clamp(1.6rem, 8vw, 2.2rem);
+        }
+
+        .tv-football-side small {
+            font-size: .76rem;
+        }
+
+        .tv-football-side__change {
+            font-size: 1rem;
+        }
+
+        .tv-football-scoreboard {
+            width: 100%;
+            padding: 12px 14px;
+        }
+
+        .tv-football-scoreboard__score {
+            gap: 14px;
+            font-size: clamp(1.9rem, 11vw, 3rem);
         }
 
         .tv-center-hud {
@@ -3647,12 +3722,42 @@ else
             font-size: clamp(1.45rem, 7vw, 2rem);
         }
 
-        .tv-telemetry {
+        .tv-telemetry,
+        .tv-stage--broadcast .tv-telemetry {
             grid-template-columns: 1fr;
+        }
+
+        .tv-match-card,
+        .tv-stage--broadcast .tv-match-card {
+            padding: 14px;
+        }
+
+        .tv-telemetry article,
+        .tv-telemetry__match-link,
+        .tv-stage--broadcast .tv-telemetry article,
+        .tv-stage--broadcast .tv-telemetry__match-link {
+            min-height: 0;
+            padding: 12px;
         }
 
         .tv-event-strip {
             grid-template-columns: 1fr;
+        }
+
+        .tv-ai-commentary {
+            padding: 12px 14px;
+        }
+
+        .tv-ticker__lane,
+        .tv-stage--broadcast .tv-ticker__lane {
+            padding: 9px 12px;
+            gap: 14px;
+        }
+
+        .tv-ticker__item,
+        .tv-stage--broadcast .tv-ticker__item {
+            gap: 14px;
+            font-size: .7rem;
         }
 
         .tv-event-overlay {
@@ -3662,6 +3767,33 @@ else
 
         .tv-event-overlay__card {
             min-width: 0;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .tv-stage {
+            padding: 12px;
+        }
+
+        .tv-stage h1,
+        .tv-stage--broadcast h1 {
+            font-size: clamp(1.8rem, 8vw, 2.4rem);
+        }
+
+        .tv-pill,
+        .tv-stage--broadcast .tv-pill {
+            min-height: 32px;
+            padding: 0 10px;
+            font-size: .66rem;
+        }
+
+        .tv-football-side__logo {
+            width: 74px;
+            height: 74px;
+        }
+
+        .tv-match-card__meta {
+            font-size: .64rem;
         }
     }
 
