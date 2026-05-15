@@ -485,13 +485,11 @@
         new FaqItem(T("faq.battleCycle.question"), T("faq.battleCycle.answer"))
     };
 
-    private List<MatchDto> LiveMatches => (_snapshot?.Matches.OngoingList ?? []).Take(6).ToList();
-    private List<MatchDto> FeaturedMatches => (_snapshot?.Matches.OngoingList ?? [])
-        .Concat(_snapshot?.Matches.Upcoming ?? [])
-        .Concat(_snapshot?.Matches.CompletedList ?? [])
-        .Where(x => x.MatchId > 0)
-        .GroupBy(x => x.MatchId)
-        .Select(x => x.First())
+    private List<MatchDto> LiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? []).Take(6).ToList();
+    private List<MatchDto> FeaturedMatches => RankHomeMatches(
+            (_snapshot?.Matches.OngoingList ?? [])
+                .Concat(_snapshot?.Matches.Upcoming ?? [])
+                .Concat(_snapshot?.Matches.CompletedList ?? []))
         .Take(6)
         .ToList();
     private MatchDto? FeaturedBattle => SelectFeaturedBattle();
@@ -505,6 +503,11 @@
         .ToList();
     private List<CurrencyDto> TrendingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(6).ToList();
     private List<CurrencyDto> RankingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(10).ToList();
+    private Dictionary<string, int> TopGainerRankMap => (_snapshot?.TopGainers ?? [])
+        .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+        .OrderBy(x => x.Rank)
+        .GroupBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(x => x.Key, x => x.First().Rank, StringComparer.OrdinalIgnoreCase);
     private string GetCoinIconUrl(string pair)
     {
         var baseSymbol = GetBaseSymbol(pair);
@@ -571,6 +574,117 @@
         return string.IsNullOrWhiteSpace(slug)
             ? RouteLocalization.BuildHomePath(CurrentCulture)
             : RouteLocalization.BuildLocalizedPath(CurrentCulture, match.MatchId, slug);
+    }
+
+    private List<MatchDto> RankHomeMatches(IEnumerable<MatchDto> source)
+    {
+        var distinctMatches = source
+            .Where(x => x.MatchId > 0)
+            .GroupBy(x => x.MatchId)
+            .Select(x => x.First())
+            .ToList();
+
+        if (distinctMatches.Count <= 1)
+            return distinctMatches;
+
+        var preferredPairs = BuildPreferredTopPairs();
+
+        return distinctMatches
+            .OrderBy(x => GetPreferredPairIndex(x, preferredPairs))
+            .ThenBy(x => GetTopGainerCoverageRank(x))
+            .ThenBy(x => GetTopGainerDistanceRank(x))
+            .ThenBy(x => GetTopGainerSumRank(x))
+            .ThenBy(x => GetHomeStatusRank(x))
+            .ThenByDescending(x => GetOptionalHotScore(x) ?? int.MinValue)
+            .ThenByDescending(x => x.StartTime ?? DateTime.MinValue)
+            .ToList();
+    }
+
+    private List<string> BuildPreferredTopPairs()
+    {
+        var rankedSymbols = (_snapshot?.TopGainers ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+            .OrderBy(x => x.Rank)
+            .Select(x => x.Symbol)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var result = new List<string>();
+        for (var i = 0; i + 1 < rankedSymbols.Count; i += 2)
+            result.Add(BuildPairKey(rankedSymbols[i], rankedSymbols[i + 1]));
+
+        return result;
+    }
+
+    private static string BuildPairKey(string? teamA, string? teamB)
+    {
+        var a = (teamA ?? string.Empty).Trim().ToUpperInvariant();
+        var b = (teamB ?? string.Empty).Trim().ToUpperInvariant();
+        return string.CompareOrdinal(a, b) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
+    }
+
+    private int GetPreferredPairIndex(MatchDto match, List<string> preferredPairs)
+    {
+        var key = BuildPairKey(match.TeamA, match.TeamB);
+        var index = preferredPairs.FindIndex(x => string.Equals(x, key, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 ? index : int.MaxValue;
+    }
+
+    private int GetTopGainerCoverageRank(MatchDto match)
+    {
+        var teamARank = GetTopGainerRank(match.TeamA);
+        var teamBRank = GetTopGainerRank(match.TeamB);
+        var coverage = (teamARank.HasValue ? 1 : 0) + (teamBRank.HasValue ? 1 : 0);
+
+        return coverage switch
+        {
+            2 => 0,
+            1 => 1,
+            _ => 2
+        };
+    }
+
+    private int GetTopGainerDistanceRank(MatchDto match)
+    {
+        var teamARank = GetTopGainerRank(match.TeamA);
+        var teamBRank = GetTopGainerRank(match.TeamB);
+
+        if (teamARank.HasValue && teamBRank.HasValue)
+            return Math.Abs(teamARank.Value - teamBRank.Value);
+
+        return int.MaxValue;
+    }
+
+    private int GetTopGainerSumRank(MatchDto match)
+    {
+        var teamARank = GetTopGainerRank(match.TeamA);
+        var teamBRank = GetTopGainerRank(match.TeamB);
+
+        if (teamARank.HasValue && teamBRank.HasValue)
+            return teamARank.Value + teamBRank.Value;
+
+        if (teamARank.HasValue)
+            return 10_000 + teamARank.Value;
+
+        if (teamBRank.HasValue)
+            return 10_000 + teamBRank.Value;
+
+        return int.MaxValue;
+    }
+
+    private int? GetTopGainerRank(string? symbol)
+        => !string.IsNullOrWhiteSpace(symbol) && TopGainerRankMap.TryGetValue(symbol, out var rank)
+            ? rank
+            : null;
+
+    private static int GetHomeStatusRank(MatchDto match)
+    {
+        if (match.IsFinished)
+            return 2;
+
+        return match.StartTime.HasValue && match.StartTime.Value > DateTime.UtcNow
+            ? 1
+            : 0;
     }
 
     private static string FormatPct(decimal? value)
