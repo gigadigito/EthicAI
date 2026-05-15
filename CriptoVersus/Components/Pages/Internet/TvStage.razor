@@ -42,193 +42,195 @@
             </div>
         }
 
-        <header class="tv-stage__topbar">
-            <div>
-                <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
-                <h1>@DisplayMatchHeadline()</h1>
-            </div>
-
-            <div class="tv-stage__badges">
-                <span class="tv-pill tv-pill--live">
-                    <span class="tv-pill__dot"></span>
-                    @T("labels.liveArena")
-                </span>
-                <span class="tv-pill">@T("labels.automaticBroadcast")</span>
-                <span class="tv-pill tv-pill--signal">@T("labels.signalStable")</span>
-                <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
-                @if (ShouldRenderCrowdAudio)
-                {
-                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
-                }
-            </div>
-        </header>
-
-        <div class="tv-stage__grid">
-            <article class="tv-match-card">
-                <div class="tv-match-card__meta">
-                    <span>@T("labels.hotMatch")</span>
-                    <strong>@DisplayRemainingTime()</strong>
+        <div class="tv-stage__broadcast-shell @(IsBroadcastFlipActive ? "is-match-switching" : string.Empty)">
+            <header class="tv-stage__topbar">
+                <div>
+                    <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
+                    <h1>@DisplayStageTitle()</h1>
                 </div>
 
-                <div class="tv-match-card__arena">
-                    <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
-                        <div class="tv-team__halo"></div>
-                        <div class="tv-team__logo-shell">
-                            <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
-                        </div>
-                        <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
-                        <strong>@DisplayLeftName()</strong>
-                        <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
-                    </div>
-
-                    <div class="tv-center-hud">
-                        <div class="tv-broadcast-clock">
-                            <div class="tv-broadcast-clock__header">
-                                <span>@T("labels.matchClock")</span>
-                                @if (IsClockLive())
-                                {
-                                    <span class="tv-broadcast-clock__live">@T("labels.live")</span>
-                                }
-                            </div>
-                            <strong>@DisplayClockPrimary()</strong>
-                            <small>@DisplayClockPhaseLabel()</small>
-                        </div>
-
-                        <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
-                            <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
-                            <div class="tv-scoreboard__score">
-                                <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
-                                <span class="tv-scoreboard__versus">@T("vs")</span>
-                                <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
-                            </div>
-                            <small>@DisplayScoreContext()</small>
-                        </div>
-                    </div>
-
-                    <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
-                        <div class="tv-team__halo"></div>
-                        <div class="tv-team__logo-shell">
-                            <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
-                        </div>
-                        <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
-                        <strong>@DisplayRightName()</strong>
-                        <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
-                    </div>
-                </div>
-
-                <section class="tv-ai-commentary">
-                    <div class="tv-ai-commentary__header">
-                        <span>@T("commentary.title")</span>
-                        <small>@DisplayCommentaryMeta()</small>
-                    </div>
-
-                    <div class="tv-ai-commentary__text">
-                        @DisplayCommentaryText()
-                    </div>
-                </section>
-
-                @if (!string.IsNullOrWhiteSpace(CurrentMatchUrl))
-                {
-                    <div class="tv-match-card__footer">
-                        <a class="tv-watch-link" href="@CurrentMatchUrl">@T("watchMatch")</a>
-                    </div>
-                }
-            </article>
-
-            <aside class="tv-telemetry">
-                @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
-                {
-                    <a class="tv-telemetry__match-link" href="@CurrentRealMatchUrl">
-                        <span>@T("labels.realMatch")</span>
-                        <strong>@DisplayPressureHeadline()</strong>
-                        <small>@T("labels.matchIdValue", DisplayMatchId())</small>
-                    </a>
-                }
-                else
-                {
-                    <article>
-                        <span>@T("labels.realMatch")</span>
-                        <strong>@DisplayPressureHeadline()</strong>
-                        <small>@T("labels.matchIdValue", DisplayMatchId())</small>
-                    </article>
-                }
-                <article>
-                    <span>@T("labels.momentum")</span>
-                    <strong>@DisplayMomentum()</strong>
-                    <small>@DisplayMomentumSupportLine()</small>
-                </article>
-                <article>
-                    <span>@T("labels.remainingTime")</span>
-                    <strong>@DisplayRemainingTime()</strong>
-                    <small>@T("labels.arenaCycle")</small>
-                </article>
-                <article>
-                    <span>@T("labels.reason")</span>
-                    <strong>@T("labels.liveRewardDynamics")</strong>
-                    <small>@DisplayReason()</small>
-                </article>
-                <article>
-                    <span>@T("labels.leader")</span>
-                    <strong>@DisplayLeaderSymbol()</strong>
-                    <small>@T("labels.assetPerformance")</small>
-                </article>
-                <article>
-                    <span>@T("labels.pressure")</span>
-                    <strong>@DisplayPressureSymbol()</strong>
-                    <small>@DisplayPoolStatus()</small>
-                </article>
-                <article>
-                    <span>@T("labels.leftAssetChange")</span>
-                    <strong class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</strong>
-                    <small>@DisplayLeftSymbol()</small>
-                </article>
-                <article>
-                    <span>@T("labels.rightAssetChange")</span>
-                    <strong class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</strong>
-                    <small>@DisplayRightSymbol()</small>
-                </article>
-                <article>
-                    <span>@T("labels.competitiveness")</span>
-                    <strong>@DisplayHotScore()</strong>
-                    <small>@DisplayScoreContext()</small>
-                </article>
-                <article>
-                    <span>@T("labels.poolStatus")</span>
-                    <strong>@DisplayPoolStatus()</strong>
-                    <small>@DisplayVolume()</small>
-                </article>
-            </aside>
-        </div>
-
-        <section class="tv-event-strip">
-            <article class="tv-event-strip__card">
-                <span>@T("labels.eventZone")</span>
-                <strong>@DisplayEventHeadline()</strong>
-                <p>@DisplayReason()</p>
-            </article>
-            <article class="tv-event-strip__card tv-event-strip__card--accent">
-                <span>@T("labels.marketDrivenArena")</span>
-                <strong>@DisplayPressureHeadline()</strong>
-                <p>@DisplayPressureBody()</p>
-            </article>
-        </section>
-
-        @if (_tickerItems.Count > 0)
-        {
-            <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
-                <div class="tv-ticker__track">
-                    @for (var repetition = 0; repetition < 2; repetition++)
+                <div class="tv-stage__badges">
+                    <span class="tv-pill tv-pill--live">
+                        <span class="tv-pill__dot"></span>
+                        @T("labels.liveArena")
+                    </span>
+                    <span class="tv-pill">@T("labels.automaticBroadcast")</span>
+                    <span class="tv-pill tv-pill--signal">@T("labels.signalStable")</span>
+                    <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
+                    @if (ShouldRenderCrowdAudio)
                     {
-                        <div class="tv-ticker__lane">
-                            @foreach (var item in _tickerItems)
-                            {
-                                <span class="tv-ticker__item">@item</span>
-                            }
-                        </div>
+                        <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
                     }
                 </div>
+            </header>
+
+            <div class="tv-stage__grid">
+                <article class="tv-match-card">
+                    <div class="tv-match-card__meta">
+                        <span>@T("labels.hotMatch")</span>
+                        <strong>@DisplayRemainingTime()</strong>
+                    </div>
+
+                    <div class="tv-match-card__arena">
+                        <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
+                            <div class="tv-team__halo"></div>
+                            <div class="tv-team__logo-shell">
+                                <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
+                            </div>
+                            <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
+                            <strong>@DisplayLeftName()</strong>
+                            <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
+                        </div>
+
+                        <div class="tv-center-hud">
+                            <div class="tv-broadcast-clock">
+                                <div class="tv-broadcast-clock__header">
+                                    <span>@T("labels.matchClock")</span>
+                                    @if (IsClockLive())
+                                    {
+                                        <span class="tv-broadcast-clock__live">@T("labels.live")</span>
+                                    }
+                                </div>
+                                <strong>@DisplayClockPrimary()</strong>
+                                <small>@DisplayClockPhaseLabel()</small>
+                            </div>
+
+                            <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                                <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
+                                <div class="tv-scoreboard__score">
+                                    <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                                    <span class="tv-scoreboard__versus">@T("vs")</span>
+                                    <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                                </div>
+                                <small>@DisplayScoreContext()</small>
+                            </div>
+                        </div>
+
+                        <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
+                            <div class="tv-team__halo"></div>
+                            <div class="tv-team__logo-shell">
+                                <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
+                            </div>
+                            <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
+                            <strong>@DisplayRightName()</strong>
+                            <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                        </div>
+                    </div>
+
+                    <section class="tv-ai-commentary">
+                        <div class="tv-ai-commentary__header">
+                            <span>@T("commentary.title")</span>
+                            <small>@DisplayCommentaryMeta()</small>
+                        </div>
+
+                        <div class="tv-ai-commentary__text">
+                            @DisplayCommentaryText()
+                        </div>
+                    </section>
+
+                    @if (!string.IsNullOrWhiteSpace(CurrentMatchUrl))
+                    {
+                        <div class="tv-match-card__footer">
+                            <a class="tv-watch-link" href="@CurrentMatchUrl">@T("watchMatch")</a>
+                        </div>
+                    }
+                </article>
+
+                <aside class="tv-telemetry">
+                    @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+                    {
+                        <a class="tv-telemetry__match-link" href="@CurrentRealMatchUrl">
+                            <span>@T("labels.realMatch")</span>
+                            <strong>@DisplayPressureHeadline()</strong>
+                            <small>@T("labels.matchIdValue", DisplayMatchId())</small>
+                        </a>
+                    }
+                    else
+                    {
+                        <article>
+                            <span>@T("labels.realMatch")</span>
+                            <strong>@DisplayPressureHeadline()</strong>
+                            <small>@T("labels.matchIdValue", DisplayMatchId())</small>
+                        </article>
+                    }
+                    <article>
+                        <span>@T("labels.momentum")</span>
+                        <strong>@DisplayMomentum()</strong>
+                        <small>@DisplayMomentumSupportLine()</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.remainingTime")</span>
+                        <strong>@DisplayRemainingTime()</strong>
+                        <small>@T("labels.arenaCycle")</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.reason")</span>
+                        <strong>@T("labels.liveRewardDynamics")</strong>
+                        <small>@DisplayReason()</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.leader")</span>
+                        <strong>@DisplayLeaderSymbol()</strong>
+                        <small>@T("labels.assetPerformance")</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.pressure")</span>
+                        <strong>@DisplayPressureSymbol()</strong>
+                        <small>@DisplayPoolStatus()</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.leftAssetChange")</span>
+                        <strong class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</strong>
+                        <small>@DisplayLeftSymbol()</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.rightAssetChange")</span>
+                        <strong class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</strong>
+                        <small>@DisplayRightSymbol()</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.competitiveness")</span>
+                        <strong>@DisplayHotScore()</strong>
+                        <small>@DisplayScoreContext()</small>
+                    </article>
+                    <article>
+                        <span>@T("labels.poolStatus")</span>
+                        <strong>@DisplayPoolStatus()</strong>
+                        <small>@DisplayVolume()</small>
+                    </article>
+                </aside>
+            </div>
+
+            <section class="tv-event-strip">
+                <article class="tv-event-strip__card">
+                    <span>@T("labels.eventZone")</span>
+                    <strong>@DisplayEventHeadline()</strong>
+                    <p>@DisplayReason()</p>
+                </article>
+                <article class="tv-event-strip__card tv-event-strip__card--accent">
+                    <span>@T("labels.marketDrivenArena")</span>
+                    <strong>@DisplayPressureHeadline()</strong>
+                    <p>@DisplayPressureBody()</p>
+                </article>
             </section>
-        }
+
+            @if (_tickerItems.Count > 0)
+            {
+                <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
+                    <div class="tv-ticker__track">
+                        @for (var repetition = 0; repetition < 2; repetition++)
+                        {
+                            <div class="tv-ticker__lane">
+                                @foreach (var item in _tickerItems)
+                                {
+                                    <span class="tv-ticker__item">@item</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
     </section>
 }
 else
@@ -412,6 +414,8 @@ else
     private DateTime _broadcastNoticeUntilUtc = DateTime.MinValue;
     private bool _isCrowdAudioMuted;
     private bool _broadcastAudioInitialized;
+    private bool _isBroadcastFlipActive;
+    private CancellationTokenSource? _broadcastFlipCts;
     private bool _pendingScoreEventProbe;
     private bool _isScoreEventProbeRunning;
     private int? _lastScoreEventMatchId;
@@ -420,6 +424,7 @@ else
     private string _lastGoalTriggerSignature = string.Empty;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
+    private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
     private bool ShouldRenderGoalAudio => Config.GetValue<bool?>("CriptoVersusTV:EnableGoalAudio") != false;
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
@@ -501,7 +506,10 @@ else
         if (_lastAiNarrationMatchId != current.MatchId)
         {
             if (IsBroadcastMode && _lastAiNarrationMatchId.HasValue)
+            {
                 _broadcastNoticeUntilUtc = DateTime.UtcNow.AddSeconds(4);
+                _ = TriggerBroadcastFlipAsync();
+            }
 
             _lastAiNarrationMatchId = current.MatchId;
             _lastAiNarrationRequestSignature = string.Empty;
@@ -1158,6 +1166,9 @@ else
     private string DisplayMatchId()
         => (Match?.MatchId ?? HotMatch?.MatchId ?? 0).ToString(CultureInfo.InvariantCulture);
 
+    private string DisplayStageTitle()
+        => $"{T("hero.title")}, {DisplayMatchHeadline()}";
+
     private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
     private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
     private string DisplayLeftTickerLabel() => FormatTickerLabel(DisplayLeftSymbol());
@@ -1234,13 +1245,36 @@ else
                 : T("labels.nextBattle"));
 
     private string DisplayMatchHeadline()
-        => $"{DisplayLeftName()} {T("vs")} {DisplayRightName()}";
+        => $"{DisplayLeftName()} VS {DisplayRightName()}";
 
     private string DisplayPressureHeadline()
         => DisplayMatchHeadline();
 
     private string DisplayPressureBody()
         => T("labels.pressureSummary", DisplayVolume(), DisplayRemainingTime());
+
+    private async Task TriggerBroadcastFlipAsync()
+    {
+        _broadcastFlipCts?.Cancel();
+        _broadcastFlipCts?.Dispose();
+        _broadcastFlipCts = new CancellationTokenSource();
+        var ct = _broadcastFlipCts.Token;
+
+        _isBroadcastFlipActive = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(1350, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        _isBroadcastFlipActive = false;
+        await InvokeAsync(StateHasChanged);
+    }
 
     private static string FormatPrimaryAssetName(string? value)
     {
@@ -1896,6 +1930,8 @@ else
         _eventCts?.Dispose();
         _pulseCts?.Cancel();
         _pulseCts?.Dispose();
+        _broadcastFlipCts?.Cancel();
+        _broadcastFlipCts?.Dispose();
 
         if (_narrationOverlay is not null)
             await _narrationOverlay.DisposeAsync();
@@ -2031,6 +2067,25 @@ else
     .tv-ticker {
         position: relative;
         z-index: 1;
+    }
+
+    .tv-stage__broadcast-shell {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: inherit;
+        transform-style: preserve-3d;
+        transform-origin: center center;
+        backface-visibility: hidden;
+        will-change: transform, opacity, filter;
+    }
+
+    .tv-stage--broadcast {
+        perspective: 2200px;
+    }
+
+    .tv-stage__broadcast-shell.is-match-switching {
+        animation: tvBroadcastCubeTurn 1.35s cubic-bezier(.22,.82,.28,1);
     }
 
     .tv-stage__topbar,
@@ -3338,6 +3393,53 @@ else
     @@keyframes tvTicker {
         from { transform: translateX(0); }
         to { transform: translateX(-50%); }
+    }
+
+    @@keyframes tvBroadcastCubeTurn {
+        0% {
+            opacity: 1;
+            transform:
+                translateZ(0)
+                rotateY(0deg)
+                scale(1);
+            filter: blur(0);
+        }
+
+        24% {
+            opacity: .94;
+            transform:
+                translateZ(-22px)
+                rotateY(-18deg)
+                scale(.992);
+            filter: blur(.6px);
+        }
+
+        50% {
+            opacity: .6;
+            transform:
+                translateZ(-80px)
+                rotateY(-92deg)
+                scale(.968);
+            filter: blur(2px);
+        }
+
+        76% {
+            opacity: .96;
+            transform:
+                translateZ(-18px)
+                rotateY(-12deg)
+                scale(.994);
+            filter: blur(.4px);
+        }
+
+        100% {
+            opacity: 1;
+            transform:
+                translateZ(0)
+                rotateY(0deg)
+                scale(1);
+            filter: blur(0);
+        }
     }
 
 </style>
