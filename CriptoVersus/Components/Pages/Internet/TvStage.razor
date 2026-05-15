@@ -3667,8 +3667,9 @@ else
         }
 
         .tv-football-layout {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
+            align-items: start;
         }
 
         .tv-football-side {
@@ -3676,10 +3677,12 @@ else
             width: 100%;
             padding: 10px 8px;
             gap: 6px;
+            min-width: 0;
         }
 
         .tv-football-center {
             order: 1;
+            grid-column: 1 / -1;
         }
 
         .tv-football-side__logo {
@@ -3697,6 +3700,11 @@ else
 
         .tv-football-side__change {
             font-size: 1rem;
+        }
+
+        .tv-football-side__symbol {
+            font-size: .66rem;
+            letter-spacing: .12em;
         }
 
         .tv-football-scoreboard {
@@ -3787,9 +3795,28 @@ else
             font-size: .66rem;
         }
 
+        .tv-football-layout {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .tv-football-side {
+            padding: 8px 6px;
+            border-radius: 20px;
+        }
+
         .tv-football-side__logo {
             width: 74px;
             height: 74px;
+        }
+
+        .tv-football-side strong {
+            font-size: clamp(1.45rem, 8vw, 1.9rem);
+        }
+
+        .tv-football-side small {
+            font-size: .68rem;
+            letter-spacing: .08em;
         }
 
         .tv-match-card__meta {

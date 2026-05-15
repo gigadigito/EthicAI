@@ -238,3 +238,41 @@
         transform: translate(-50%, -50%) scale(1.08);
     }
 }
+
+@media (max-width: 860px) {
+    .tv-field__surface {
+        width: 100%;
+        border-radius: 22px;
+    }
+
+    .tv-field__possession-bar {
+        gap: 8px;
+        font-size: .92rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .tv-field {
+        gap: 10px;
+    }
+
+    .tv-field__surface {
+        border-radius: 18px;
+    }
+
+    .tv-field__player {
+        width: 30px;
+        height: 30px;
+    }
+
+    .tv-field__possession-bar {
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+        text-align: center;
+        gap: 6px;
+    }
+
+    .tv-field__possession-track {
+        order: 2;
+    }
+}
