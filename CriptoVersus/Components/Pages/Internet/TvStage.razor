@@ -45,7 +45,7 @@
         <header class="tv-stage__topbar">
             <div>
                 <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
-                <h1>@T("hero.title")</h1>
+                <h1>@DisplayMatchHeadline()</h1>
             </div>
 
             <div class="tv-stage__badges">
@@ -76,7 +76,7 @@
                         <div class="tv-team__logo-shell">
                             <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
                         </div>
-                        <span class="tv-team__symbol">@DisplayLeftSymbol()</span>
+                        <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
                         <strong>@DisplayLeftName()</strong>
                         <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
                     </div>
@@ -110,7 +110,7 @@
                         <div class="tv-team__logo-shell">
                             <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
                         </div>
-                        <span class="tv-team__symbol">@DisplayRightSymbol()</span>
+                        <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
                         <strong>@DisplayRightName()</strong>
                         <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
                     </div>
@@ -136,11 +136,22 @@
             </article>
 
             <aside class="tv-telemetry">
-                <article>
-                    <span>@T("labels.volume")</span>
-                    <strong>@DisplayVolume()</strong>
-                    <small>@T("labels.competitivePool")</small>
-                </article>
+                @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+                {
+                    <a class="tv-telemetry__match-link" href="@CurrentRealMatchUrl">
+                        <span>@T("labels.realMatch")</span>
+                        <strong>@DisplayPressureHeadline()</strong>
+                        <small>@T("labels.matchIdValue", DisplayMatchId())</small>
+                    </a>
+                }
+                else
+                {
+                    <article>
+                        <span>@T("labels.realMatch")</span>
+                        <strong>@DisplayPressureHeadline()</strong>
+                        <small>@T("labels.matchIdValue", DisplayMatchId())</small>
+                    </article>
+                }
                 <article>
                     <span>@T("labels.momentum")</span>
                     <strong>@DisplayMomentum()</strong>
@@ -332,6 +343,11 @@ else
     <audio id="tv-broadcast-crowd" class="tv-crowd-audio" src="/audio/tv/stadium-crowd-loop.mp3?v=20260515-1" preload="auto" loop></audio>
 }
 
+@if (ShouldRenderGoalAudio)
+{
+    <audio id="tv-goal-sting" class="tv-crowd-audio" src="/audio/tv/goal-sting.mp3?v=20260515-1" preload="auto"></audio>
+}
+
 @if (Environment.IsDevelopment())
 {
     <aside class="tv-dev-narration-panel">
@@ -396,13 +412,21 @@ else
     private DateTime _broadcastNoticeUntilUtc = DateTime.MinValue;
     private bool _isCrowdAudioMuted;
     private bool _broadcastAudioInitialized;
+    private bool _pendingScoreEventProbe;
+    private bool _isScoreEventProbeRunning;
+    private int? _lastScoreEventMatchId;
+    private long? _lastSeenScoreEventId;
+    private long? _lastTriggeredGoalEventId;
+    private string _lastGoalTriggerSignature = string.Empty;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
+    private bool ShouldRenderGoalAudio => Config.GetValue<bool?>("CriptoVersusTV:EnableGoalAudio") != false;
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
     private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
+    private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
 
     protected override void OnParametersSet()
     {
@@ -412,6 +436,7 @@ else
         SyncClockAnchor();
         ProcessBroadcastState();
         BuildTickerItems();
+        QueueScoreEventProbe();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -437,6 +462,12 @@ else
 
         if (ShouldRenderCrowdAudio && !_broadcastAudioInitialized)
             await EnsureBroadcastAudioAsync();
+
+        if (_pendingScoreEventProbe && !_isScoreEventProbeRunning)
+        {
+            _pendingScoreEventProbe = false;
+            await DetectRecentScoreEventsAsync();
+        }
     }
 
     private async Task RunClockLoopAsync(CancellationToken ct)
@@ -476,6 +507,10 @@ else
             _lastAiNarrationRequestSignature = string.Empty;
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
+            _lastScoreEventMatchId = current.MatchId;
+            _lastSeenScoreEventId = null;
+            _lastTriggeredGoalEventId = null;
+            _lastGoalTriggerSignature = string.Empty;
         }
 
         if (_previousSnapshot is null)
@@ -499,7 +534,9 @@ else
             _ = PulseScoreAsync(current.LeftScore > _previousSnapshot.LeftScore, current.RightScore > _previousSnapshot.RightScore, hotScoreSpike);
             _ = TriggerEventAsync(CreateGoalEvent(current));
             _ = QueueNarrationAsync(CreateGoalNarration(current));
+            _ = PlayGoalAudioAsync();
             _ = MaybeRefreshAiNarrationAsync("goal");
+            MarkGoalTrigger(current);
         }
         else if (scoreLeaderChanged)
         {
@@ -580,6 +617,77 @@ else
 
         _isEventVisible = false;
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void QueueScoreEventProbe()
+    {
+        if (!HasLiveMatch)
+            return;
+
+        _pendingScoreEventProbe = true;
+    }
+
+    private async Task DetectRecentScoreEventsAsync()
+    {
+        var matchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+        if (matchId <= 0)
+            return;
+
+        _isScoreEventProbeRunning = true;
+
+        try
+        {
+            var events = await Api.GetMatchScoreEventsAsync(matchId) ?? [];
+            var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
+
+            if (_lastScoreEventMatchId != matchId || !_lastSeenScoreEventId.HasValue)
+            {
+                _lastScoreEventMatchId = matchId;
+                _lastSeenScoreEventId = latestEventId;
+                return;
+            }
+
+            var newEvents = events
+                .Where(x => x.MatchScoreEventId > _lastSeenScoreEventId.Value)
+                .OrderBy(x => x.MatchScoreEventId)
+                .ToList();
+
+            if (newEvents.Count == 0)
+                return;
+
+            _lastSeenScoreEventId = latestEventId;
+
+            var latest = newEvents[^1];
+            if (_lastTriggeredGoalEventId.HasValue && latest.MatchScoreEventId <= _lastTriggeredGoalEventId.Value)
+                return;
+
+            var current = CaptureSnapshot();
+            if (current is null)
+                return;
+
+            var currentGoalSignature = BuildGoalTriggerSignature(current);
+            if (string.Equals(currentGoalSignature, _lastGoalTriggerSignature, StringComparison.Ordinal))
+                return;
+
+            _lastTriggeredGoalEventId = latest.MatchScoreEventId;
+            await PulseScoreAsync(
+                string.Equals(latest.TeamSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase),
+                string.Equals(latest.TeamSymbol, current.RightSymbol, StringComparison.OrdinalIgnoreCase),
+                false);
+            await TriggerEventAsync(CreateGoalEvent(current, latest.TeamSymbol));
+            await QueueNarrationAsync(CreateGoalNarration(current, latest.TeamSymbol));
+            await PlayGoalAudioAsync();
+            MarkGoalTrigger(current);
+            _ = MaybeRefreshAiNarrationAsync("goal");
+        }
+        catch (Exception ex)
+        {
+            await LogAsync("TV_SCORE_EVENT_PROBE", "error", ex.Message);
+        }
+        finally
+        {
+            _isScoreEventProbeRunning = false;
+        }
     }
 
     private async Task QueueNarrationAsync(TvNarrationEvent? narrationEvent)
@@ -786,20 +894,32 @@ else
         return RouteLocalization.BuildTvMatchPath(Culture, matchId, slug);
     }
 
+    private string BuildRealMatchUrl(int matchId, string? slug)
+    {
+        if (matchId <= 0 || string.IsNullOrWhiteSpace(slug))
+            return string.Empty;
+
+        return RouteLocalization.BuildLocalizedPath(Culture, matchId, slug.Trim().ToLowerInvariant());
+    }
+
     private string BuildMatchUrl(StatsLatestMatchDto match)
         => match.MatchId <= 0
             ? string.Empty
             : BuildMatchUrl(match.MatchId, MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol));
 
-    private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current)
+    private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current, string? scorerOverride = null)
     {
-        var scorer = current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
+        var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
+            ? scorerOverride
+            : current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
         return new TvOverlayEvent("goal", T("events.goalKicker"), T("events.goalTitle", scorer), DisplayScoreContext(), GetAccentColor(scorer));
     }
 
-    private TvNarrationEvent CreateGoalNarration(BroadcastSnapshot current)
+    private TvNarrationEvent CreateGoalNarration(BroadcastSnapshot current, string? scorerOverride = null)
     {
-        var scorer = current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
+        var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
+            ? scorerOverride
+            : current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
         var opposing = scorer == current.LeftSymbol ? current.RightSymbol : current.LeftSymbol;
         return new TvNarrationEvent
         {
@@ -1035,10 +1155,15 @@ else
             ? current.RightSymbol
             : current.LeftSymbol;
 
+    private string DisplayMatchId()
+        => (Match?.MatchId ?? HotMatch?.MatchId ?? 0).ToString(CultureInfo.InvariantCulture);
+
     private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
     private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
-    private string DisplayLeftName() => HotMatch?.LeftName ?? Match?.TeamA ?? "-";
-    private string DisplayRightName() => HotMatch?.RightName ?? Match?.TeamB ?? "-";
+    private string DisplayLeftTickerLabel() => FormatTickerLabel(DisplayLeftSymbol());
+    private string DisplayRightTickerLabel() => FormatTickerLabel(DisplayRightSymbol());
+    private string DisplayLeftName() => FormatPrimaryAssetName(HotMatch?.LeftName ?? Match?.TeamA ?? DisplayLeftSymbol());
+    private string DisplayRightName() => FormatPrimaryAssetName(HotMatch?.RightName ?? Match?.TeamB ?? DisplayRightSymbol());
     private int DisplayLeftScore() => HotMatch?.LeftScore ?? Match?.ScoreA ?? 0;
     private int DisplayRightScore() => HotMatch?.RightScore ?? Match?.ScoreB ?? 0;
 
@@ -1108,11 +1233,69 @@ else
                 ? T("labels.reversalDetected")
                 : T("labels.nextBattle"));
 
+    private string DisplayMatchHeadline()
+        => $"{DisplayLeftName()} {T("vs")} {DisplayRightName()}";
+
     private string DisplayPressureHeadline()
-        => $"{DisplayLeftSymbol()} {T("vs")} {DisplayRightSymbol()}";
+        => DisplayMatchHeadline();
 
     private string DisplayPressureBody()
         => T("labels.pressureSummary", DisplayVolume(), DisplayRemainingTime());
+
+    private static string FormatPrimaryAssetName(string? value)
+    {
+        var normalized = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            return "-";
+
+        return TrySplitUsdtPair(normalized, out var baseAsset)
+            ? baseAsset
+            : normalized;
+    }
+
+    private static string FormatTickerLabel(string? value)
+    {
+        var normalized = (value ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            return "-";
+
+        return TrySplitUsdtPair(normalized, out var baseAsset)
+            ? $"{baseAsset} - USDT"
+            : normalized;
+    }
+
+    private static bool TrySplitUsdtPair(string value, out string baseAsset)
+    {
+        const string quote = "USDT";
+
+        var normalized = value.Trim();
+        if (normalized.EndsWith($"-{quote}", StringComparison.OrdinalIgnoreCase))
+        {
+            baseAsset = normalized[..^($@"-{quote}".Length)].Trim();
+            return !string.IsNullOrWhiteSpace(baseAsset);
+        }
+
+        if (normalized.EndsWith($"/{quote}", StringComparison.OrdinalIgnoreCase))
+        {
+            baseAsset = normalized[..^($@"/{quote}".Length)].Trim();
+            return !string.IsNullOrWhiteSpace(baseAsset);
+        }
+
+        if (normalized.EndsWith($" {quote}", StringComparison.OrdinalIgnoreCase))
+        {
+            baseAsset = normalized[..^($" {quote}".Length)].Trim();
+            return !string.IsNullOrWhiteSpace(baseAsset);
+        }
+
+        if (normalized.EndsWith(quote, StringComparison.OrdinalIgnoreCase) && normalized.Length > quote.Length)
+        {
+            baseAsset = normalized[..^quote.Length].Trim('-', '/', ' ');
+            return !string.IsNullOrWhiteSpace(baseAsset);
+        }
+
+        baseAsset = string.Empty;
+        return false;
+    }
 
     private string DisplayCommentaryText()
         => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
@@ -1231,6 +1414,40 @@ else
             _broadcastAudioInitialized = true;
         }
     }
+
+    private async Task PlayGoalAudioAsync()
+    {
+        if (!ShouldRenderGoalAudio)
+            return;
+
+        if (_tvModule is not null)
+        {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("playAudioCue", "tv-goal-sting");
+                return;
+            }
+            catch (JSException)
+            {
+            }
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("playAudioCue", "tv-goal-sting");
+        }
+        catch
+        {
+        }
+    }
+
+    private void MarkGoalTrigger(BroadcastSnapshot current)
+    {
+        _lastGoalTriggerSignature = BuildGoalTriggerSignature(current);
+    }
+
+    private static string BuildGoalTriggerSignature(BroadcastSnapshot current)
+        => $"{current.MatchId}|{current.LeftScore}|{current.RightScore}|{current.LeaderSymbol}";
 
     private async Task ToggleCrowdAudioAsync()
     {
@@ -2301,13 +2518,28 @@ else
         padding: 16px;
     }
 
-    .tv-telemetry article {
+    .tv-telemetry article,
+    .tv-telemetry__match-link {
         border-radius: 22px;
         border: 1px solid rgba(255,255,255,0.06);
         background: rgba(255,255,255,0.025);
         display: grid;
         gap: 8px;
         animation: tvHudFloat 14s ease-in-out infinite;
+    }
+
+    .tv-telemetry__match-link {
+        padding: 16px;
+        color: inherit;
+        text-decoration: none;
+        transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .tv-telemetry__match-link:hover {
+        transform: translateY(-2px);
+        border-color: rgba(127, 246, 223, 0.34);
+        background: rgba(14, 28, 34, 0.72);
+        box-shadow: 0 12px 26px rgba(0,0,0,0.22);
     }
 
     .tv-telemetry article:nth-child(2) {
@@ -2866,6 +3098,11 @@ else
     }
 
     .tv-stage--broadcast .tv-telemetry article {
+        min-height: 70px;
+        padding: 9px 11px;
+    }
+
+    .tv-stage--broadcast .tv-telemetry__match-link {
         min-height: 70px;
         padding: 9px 11px;
     }

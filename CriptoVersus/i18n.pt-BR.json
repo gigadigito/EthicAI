@@ -959,6 +959,8 @@
       "automaticBroadcast": "Transmissao automatica",
       "hotMatch": "Partida quente",
       "volume": "Volume",
+      "realMatch": "Partida real",
+      "matchIdValue": "Partida #{0}",
       "momentum": "Momentum",
       "reversalDetected": "Virada detectada",
       "nextBattle": "Proxima batalha",

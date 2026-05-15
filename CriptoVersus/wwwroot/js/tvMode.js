@@ -54,7 +54,22 @@ export function setBroadcastAudioMuted(elementId, muted, volume) {
     }
 }
 
+export function playAudioCue(elementId) {
+    const audio = document.getElementById(elementId);
+    if (!audio) {
+        return;
+    }
+
+    try {
+        audio.currentTime = 0;
+    } catch {
+    }
+
+    audio.play().catch(() => {});
+}
+
 if (typeof globalThis !== "undefined") {
     globalThis.initBroadcastAudio = initBroadcastAudio;
     globalThis.setBroadcastAudioMuted = setBroadcastAudioMuted;
+    globalThis.playAudioCue = playAudioCue;
 }

@@ -959,6 +959,8 @@
       "automaticBroadcast": "Automatic broadcast",
       "hotMatch": "Hot match",
       "volume": "Volume",
+      "realMatch": "Real match",
+      "matchIdValue": "Match #{0}",
       "momentum": "Momentum",
       "reversalDetected": "Reversal detected",
       "nextBattle": "Next battle",
