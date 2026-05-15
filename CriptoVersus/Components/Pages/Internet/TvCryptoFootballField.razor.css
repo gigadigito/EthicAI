@@ -1,11 +1,13 @@
 .tv-field {
     display: grid;
-    gap: 12px;
+    gap: 14px;
 }
 
 .tv-field__surface {
     position: relative;
-    aspect-ratio: 16 / 8.4;
+    width: min(100%, 920px);
+    margin: 0 auto;
+    aspect-ratio: 16 / 8;
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(127, 246, 223, 0.18);
@@ -35,14 +37,12 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: saturate(1.05) brightness(0.96);
+    filter: saturate(1.08) brightness(0.94);
 }
 
 .tv-field__overlay {
-    position: relative;
+    position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
     z-index: 2;
 }
 
@@ -118,8 +118,8 @@
 
 .tv-field__player {
     position: absolute;
-    width: clamp(28px, 2.1vw, 42px);
-    height: clamp(28px, 2.1vw, 42px);
+    width: clamp(32px, 2.2vw, 46px);
+    height: clamp(32px, 2.2vw, 46px);
     transform: translate(-50%, -50%);
     border-radius: 50%;
     display: grid;
@@ -132,14 +132,15 @@
         filter .4s ease;
     border: 2px solid rgba(255,255,255,0.14);
     backdrop-filter: blur(8px);
+    z-index: 3;
 }
 
 .tv-field__player img,
 .tv-field__player span {
-    width: 72%;
-    height: 72%;
+    width: 74%;
+    height: 74%;
     object-fit: contain;
-    font-size: .62rem;
+    font-size: .64rem;
     font-weight: 900;
     color: #ffffff;
     display: grid;
@@ -191,7 +192,7 @@
     color: #a7ffea;
     text-transform: uppercase;
     letter-spacing: .18em;
-    font-size: .72rem;
+    font-size: .76rem;
     font-weight: 900;
     text-align: center;
 }
@@ -208,7 +209,7 @@
 .tv-field__possession-track {
     position: relative;
     display: flex;
-    height: 12px;
+    height: 14px;
     overflow: hidden;
     border-radius: 999px;
     background: rgba(255,255,255,0.08);

@@ -534,7 +534,22 @@ else
             return false;
 
         var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
-        return path == "/tv" || path.StartsWith("/tv/match/", StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        if (path == "/tv"
+            || path == "/tv/broadcast"
+            || path.StartsWith("/tv/match/", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return path == "/en/tv"
+            || path == "/pt/tv"
+            || path == "/en/tv/broadcast"
+            || path == "/pt/tv/broadcast"
+            || path.StartsWith("/en/tv/match/", StringComparison.Ordinal)
+            || path.StartsWith("/pt/tv/match/", StringComparison.Ordinal);
     }
 
     public async ValueTask DisposeAsync()

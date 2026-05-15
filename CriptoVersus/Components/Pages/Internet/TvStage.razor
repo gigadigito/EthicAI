@@ -48,6 +48,10 @@
                 <div>
                     <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
                     <h1>@DisplayStageTitle()</h1>
+                    @if (UseFootballFieldLayout)
+                    {
+                        <p class="tv-stage__headline">@DisplayMatchHeadline()</p>
+                    }
                 </div>
 
                 <div class="tv-stage__badges">
@@ -66,7 +70,7 @@
             </header>
 
             <div class="tv-stage__grid">
-                <article class="tv-match-card">
+                <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
                     <div class="tv-match-card__meta">
                         <span>@T("labels.hotMatch")</span>
                         <strong>@DisplayRemainingTime()</strong>
@@ -80,9 +84,9 @@
                                     <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
                                 </div>
                                 <span class="tv-football-side__symbol">@DisplayLeftTickerLabel()</span>
-                                <strong>@DisplayLeftName()</strong>
-                                <small>@DisplayLeftSymbol()</small>
-                                <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
+                                <strong>@DisplayLeftHeroLabel()</strong>
+                                <small>@DisplayLeftName()</small>
+                                <span class="tv-football-side__change @GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
                             </section>
 
                             <section class="tv-football-center">
@@ -107,9 +111,9 @@
                                     <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
                                 </div>
                                 <span class="tv-football-side__symbol">@DisplayRightTickerLabel()</span>
-                                <strong>@DisplayRightName()</strong>
-                                <small>@DisplayRightSymbol()</small>
-                                <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                                <strong>@DisplayRightHeroLabel()</strong>
+                                <small>@DisplayRightName()</small>
+                                <span class="tv-football-side__change @GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
                             </section>
                         </div>
                     }
@@ -181,7 +185,7 @@
                     }
                 </article>
 
-                <aside class="tv-telemetry">
+                <aside class="tv-telemetry @(UseFootballFieldLayout ? "tv-telemetry--football" : string.Empty)">
                     @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
                     {
                         <a class="tv-telemetry__match-link" href="@CurrentRealMatchUrl">
@@ -265,7 +269,7 @@
                 </aside>
             </div>
 
-            <section class="tv-event-strip">
+            <section class="tv-event-strip @(UseFootballFieldLayout ? "tv-event-strip--football" : string.Empty)">
                 <article class="tv-event-strip__card">
                     <span>@(UseFootballFieldLayout ? T("field.eventZone") : T("labels.eventZone"))</span>
                     <strong>@DisplayEventHeadline()</strong>
@@ -1242,12 +1246,16 @@ else
         => (Match?.MatchId ?? HotMatch?.MatchId ?? 0).ToString(CultureInfo.InvariantCulture);
 
     private string DisplayStageTitle()
-        => $"{T("hero.title")} - {DisplayMatchHeadline()}.";
+        => UseFootballFieldLayout
+            ? T("hero.title")
+            : $"{T("hero.title")} - {DisplayMatchHeadline()}.";
 
     private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
     private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
     private string DisplayLeftTickerLabel() => FormatTickerLabel(DisplayLeftSymbol());
     private string DisplayRightTickerLabel() => FormatTickerLabel(DisplayRightSymbol());
+    private string DisplayLeftHeroLabel() => GetBaseSymbol(DisplayLeftSymbol());
+    private string DisplayRightHeroLabel() => GetBaseSymbol(DisplayRightSymbol());
     private string DisplayLeftName() => FormatPrimaryAssetName(HotMatch?.LeftName ?? Match?.TeamA ?? DisplayLeftSymbol());
     private string DisplayRightName() => FormatPrimaryAssetName(HotMatch?.RightName ?? Match?.TeamB ?? DisplayRightSymbol());
     private int DisplayLeftScore() => HotMatch?.LeftScore ?? Match?.ScoreA ?? 0;
@@ -2202,6 +2210,15 @@ else
         letter-spacing: -.05em;
     }
 
+    .tv-stage__headline {
+        margin: 8px 0 0;
+        color: rgba(223, 245, 255, 0.82);
+        font-size: .94rem;
+        font-weight: 800;
+        letter-spacing: .22em;
+        text-transform: uppercase;
+    }
+
     .tv-stage__badges {
         display: flex;
         flex-wrap: wrap;
@@ -2285,8 +2302,8 @@ else
 
     .tv-stage__grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(320px, .72fr);
-        gap: 14px;
+        grid-template-columns: minmax(0, 1.66fr) minmax(340px, .78fr);
+        gap: 16px;
         align-items: stretch;
     }
 
@@ -2303,9 +2320,14 @@ else
     .tv-match-card {
         padding: 22px;
         display: grid;
-        gap: 16px;
+        gap: 14px;
         position: relative;
         overflow: hidden;
+    }
+
+    .tv-match-card--football {
+        padding: 18px 20px 16px;
+        gap: 12px;
     }
 
     .tv-match-card::after {
@@ -2419,8 +2441,8 @@ else
 
     .tv-football-layout {
         display: grid;
-        grid-template-columns: minmax(150px, .88fr) minmax(0, 2.2fr) minmax(150px, .88fr);
-        gap: 12px;
+        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(180px, 220px);
+        gap: 20px;
         align-items: center;
         min-height: 0;
     }
@@ -2428,15 +2450,35 @@ else
     .tv-football-side {
         position: relative;
         display: grid;
-        justify-items: center;
+        justify-items: start;
+        align-content: center;
         gap: 10px;
-        text-align: center;
-        padding: 12px 8px;
+        text-align: left;
+        min-height: 100%;
+        padding: 18px 14px;
+        border-radius: 28px;
+        border: 1px solid rgba(255,255,255,0.05);
+        background: linear-gradient(180deg, rgba(8, 14, 24, 0.92), rgba(7, 11, 18, 0.84));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .tv-football-side--left {
+        background:
+            radial-gradient(circle at 0% 50%, rgba(255, 166, 0, 0.12), transparent 42%),
+            linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
+    }
+
+    .tv-football-side--right {
+        justify-items: end;
+        text-align: right;
+        background:
+            radial-gradient(circle at 100% 50%, rgba(42, 201, 255, 0.12), transparent 42%),
+            linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
     }
 
     .tv-football-side__logo {
-        width: clamp(92px, 8vw, 128px);
-        height: clamp(92px, 8vw, 128px);
+        width: clamp(110px, 9vw, 148px);
+        height: clamp(110px, 9vw, 148px);
         border-radius: 50%;
         display: grid;
         place-items: center;
@@ -2458,40 +2500,54 @@ else
         color: var(--tv-green);
         letter-spacing: .16em;
         text-transform: uppercase;
-        font-size: .78rem;
+        font-size: .74rem;
         font-weight: 900;
     }
 
     .tv-football-side strong {
-        font-size: clamp(1.4rem, 2vw, 2.6rem);
-        line-height: 1.02;
+        font-size: clamp(2.2rem, 2.8vw, 3.6rem);
+        line-height: .92;
         letter-spacing: -.04em;
+        text-transform: uppercase;
     }
 
     .tv-football-side small {
-        color: var(--tv-muted);
+        color: #f7fcff;
         text-transform: uppercase;
         letter-spacing: .12em;
-        font-size: .72rem;
+        font-size: .88rem;
         font-weight: 800;
+        opacity: .82;
+    }
+
+    .tv-football-side__change {
+        font-size: clamp(1.2rem, 1.4vw, 1.6rem);
+        font-weight: 900;
+        letter-spacing: -.03em;
+        margin-top: 4px;
     }
 
     .tv-football-center {
         display: grid;
-        gap: 12px;
+        gap: 0;
         min-width: 0;
+        position: relative;
     }
 
     .tv-football-scoreboard {
         display: grid;
         justify-items: center;
         gap: 8px;
-        padding: 14px 18px;
-        border-radius: 22px;
+        width: min(100%, 420px);
+        margin: 0 auto -24px;
+        padding: 14px 22px 18px;
+        border-radius: 24px;
         border: 1px solid rgba(255,255,255,0.08);
         background:
-            radial-gradient(circle at top, rgba(88, 255, 196, 0.08), transparent 44%),
-            linear-gradient(180deg, rgba(9, 14, 24, 0.96), rgba(7, 10, 18, 0.98));
+            radial-gradient(circle at top, rgba(88, 255, 196, 0.1), transparent 44%),
+            linear-gradient(180deg, rgba(9, 14, 24, 0.97), rgba(7, 10, 18, 0.99));
+        box-shadow: 0 20px 44px rgba(0,0,0,0.3);
+        z-index: 3;
     }
 
     .tv-football-scoreboard > span,
@@ -2506,8 +2562,8 @@ else
     .tv-football-scoreboard__score {
         display: inline-flex;
         align-items: center;
-        gap: 18px;
-        font-size: clamp(2rem, 4vw, 4.3rem);
+        gap: 20px;
+        font-size: clamp(2.4rem, 4.4vw, 4.6rem);
         font-weight: 900;
         letter-spacing: -.08em;
     }
@@ -2740,9 +2796,15 @@ else
     }
 
     .tv-telemetry {
-        padding: 16px;
+        padding: 14px;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-content: start;
+    }
+
+    .tv-telemetry--football {
+        padding: 12px;
         gap: 10px;
     }
 
@@ -2758,7 +2820,17 @@ else
         background: rgba(255,255,255,0.025);
         display: grid;
         gap: 8px;
+        align-content: start;
         animation: tvHudFloat 14s ease-in-out infinite;
+    }
+
+    .tv-telemetry--football article,
+    .tv-telemetry--football .tv-telemetry__match-link {
+        min-height: 124px;
+        padding: 14px 16px;
+        gap: 10px;
+        background:
+            linear-gradient(180deg, rgba(9, 16, 28, 0.92), rgba(6, 10, 18, 0.88));
     }
 
     .tv-telemetry__match-link {
@@ -2778,6 +2850,10 @@ else
     .tv-telemetry__events {
         grid-column: 1 / -1;
         align-content: start;
+    }
+
+    .tv-telemetry--football .tv-telemetry__events {
+        min-height: 0;
     }
 
     .tv-telemetry__events-list {
@@ -2877,6 +2953,10 @@ else
         letter-spacing: -.03em;
     }
 
+    .tv-telemetry--football strong {
+        font-size: clamp(1.5rem, 1.8vw, 2.2rem);
+    }
+
     .tv-telemetry small,
     .tv-event-strip__card p,
     .tv-ranking-row small,
@@ -2890,6 +2970,10 @@ else
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 14px;
+    }
+
+    .tv-event-strip--football {
+        gap: 12px;
     }
 
     .tv-event-strip__card {
@@ -3331,7 +3415,7 @@ else
 
     .tv-stage--broadcast h1,
     .tv-stage--broadcast .tv-waiting-hero h1 {
-        font-size: clamp(1.7rem, 3vw, 2.8rem);
+        font-size: clamp(2rem, 3vw, 3rem);
     }
 
     .tv-stage--broadcast .tv-stage__badges {
@@ -3345,40 +3429,43 @@ else
     }
 
     .tv-stage--broadcast .tv-stage__grid {
-        gap: 10px;
+        grid-template-columns: minmax(0, 1.72fr) minmax(340px, .76fr);
+        gap: 12px;
     }
 
     .tv-stage--broadcast .tv-match-card {
-        padding: 15px;
+        padding: 16px;
         gap: 10px;
     }
 
     .tv-stage--broadcast .tv-football-layout {
-        grid-template-columns: minmax(128px, .82fr) minmax(0, 2.35fr) minmax(128px, .82fr);
-        gap: 10px;
+        grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(170px, 220px);
+        gap: 16px;
     }
 
     .tv-stage--broadcast .tv-football-side {
         gap: 8px;
-        padding: 8px 6px;
+        padding: 14px 12px;
     }
 
     .tv-stage--broadcast .tv-football-side__logo {
-        width: clamp(72px, 7vw, 106px);
-        height: clamp(72px, 7vw, 106px);
+        width: clamp(92px, 7vw, 126px);
+        height: clamp(92px, 7vw, 126px);
     }
 
     .tv-stage--broadcast .tv-football-side strong {
-        font-size: clamp(1.1rem, 1.7vw, 2rem);
+        font-size: clamp(2rem, 2.6vw, 3rem);
     }
 
     .tv-stage--broadcast .tv-football-scoreboard {
-        padding: 12px 14px;
+        width: min(100%, 390px);
+        margin-bottom: -18px;
+        padding: 12px 16px 16px;
         gap: 6px;
     }
 
     .tv-stage--broadcast .tv-football-scoreboard__score {
-        font-size: clamp(1.65rem, 3vw, 3.2rem);
+        font-size: clamp(2.1rem, 3.6vw, 3.9rem);
     }
 
     .tv-stage--broadcast .tv-match-card__meta {
@@ -3404,22 +3491,22 @@ else
     }
 
     .tv-stage--broadcast .tv-telemetry {
-        gap: 7px;
+        gap: 8px;
     }
 
     .tv-stage--broadcast .tv-telemetry article {
-        min-height: 70px;
-        padding: 9px 11px;
+        min-height: 108px;
+        padding: 12px 14px;
     }
 
     .tv-stage--broadcast .tv-telemetry__match-link {
-        min-height: 70px;
-        padding: 9px 11px;
+        min-height: 108px;
+        padding: 12px 14px;
     }
 
     .tv-stage--broadcast .tv-telemetry strong,
     .tv-stage--broadcast .tv-event-strip__card strong {
-        font-size: 1rem;
+        font-size: 1.35rem;
     }
 
     .tv-stage--broadcast .tv-telemetry__events-item {
@@ -3507,6 +3594,16 @@ else
 
         .tv-football-layout {
             grid-template-columns: 1fr;
+        }
+
+        .tv-football-side,
+        .tv-football-side--right {
+            justify-items: center;
+            text-align: center;
+        }
+
+        .tv-football-scoreboard {
+            margin-bottom: 0;
         }
     }
 
