@@ -238,17 +238,36 @@
 
     private async Task ResolveBroadcastSelectionAsync(TvHotMatchDto? hotMatch, IReadOnlyList<MatchDto> matches, bool forceInitialSelection, CancellationToken ct)
     {
+        var liveMatches = matches.Where(IsBroadcastEligibleMatch).ToList();
+
         await LogAsync("TV_BROADCAST_ROTATION_STARTED", new
         {
             forceInitialSelection,
-            candidateCount = matches.Count
+            candidateCount = liveMatches.Count,
+            totalMatches = matches.Count
         });
 
-        var rankedCandidates = BuildBroadcastCandidates(matches, hotMatch).ToList();
+        if (_selectedMatch is not null && !IsBroadcastEligibleMatch(_selectedMatch))
+        {
+            await LogAsync("TV_BROADCAST_CURRENT_MATCH_SKIPPED", new
+            {
+                _selectedMatch.MatchId,
+                _selectedMatch.Status
+            });
+
+            _selectedMatch = null;
+            _selectedHotMatch = null;
+        }
+
+        var rankedCandidates = BuildBroadcastCandidates(liveMatches, hotMatch).ToList();
         if (rankedCandidates.Count == 0)
         {
             if (hotMatch?.HasMatch == true)
-                await SwitchToMatchAsync(hotMatch, FindMatch(matches, hotMatch.MatchId), broadcastRotation: true);
+            {
+                var hotMatchEntity = FindMatch(matches, hotMatch.MatchId);
+                if (hotMatchEntity is not null && IsBroadcastEligibleMatch(hotMatchEntity))
+                    await SwitchToMatchAsync(hotMatch, hotMatchEntity, broadcastRotation: true);
+            }
 
             await LogAsync("TV_BROADCAST_ROTATION_COMPLETED", new { selectedMatchId = _selectedHotMatch?.MatchId ?? 0 });
             return;
@@ -256,6 +275,7 @@
 
         var shouldRotate = forceInitialSelection
             || _selectedMatch is null
+            || !IsBroadcastEligibleMatch(_selectedMatch)
             || _selectedMatch.IsFinished
             || DateTime.UtcNow - _lastBroadcastRotationUtc >= TimeSpan.FromMinutes(5);
 
@@ -287,9 +307,9 @@
     {
         foreach (var match in matches)
         {
-            if (match.IsFinished || string.Equals(match.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            if (!IsBroadcastEligibleMatch(match))
             {
-                _ = LogAsync("TV_BROADCAST_MATCH_SKIPPED_ENDED", new { match.MatchId, match.Status });
+                _ = LogAsync("TV_BROADCAST_MATCH_SKIPPED_NOT_LIVE", new { match.MatchId, match.Status });
                 continue;
             }
 
@@ -335,6 +355,19 @@
 
         _selectedMatch = FindMatch(matches, selectedMatchId) ?? _selectedMatch;
         _selectedMatch ??= await Api.GetMatchByIdAsync(selectedMatchId, ct);
+        if (_isBroadcastMode && _selectedMatch is not null && !IsBroadcastEligibleMatch(_selectedMatch))
+        {
+            await LogAsync("TV_BROADCAST_REFRESH_SKIPPED_NOT_LIVE", new
+            {
+                _selectedMatch.MatchId,
+                _selectedMatch.Status
+            });
+
+            _selectedMatch = null;
+            _selectedHotMatch = null;
+            return;
+        }
+
         if (_selectedMatch is not null)
             _selectedHotMatch = MergeHotMatchState(_selectedMatch, _selectedHotMatch);
     }
@@ -412,6 +445,11 @@
 
     private static MatchDto? FindMatch(IReadOnlyList<MatchDto> matches, int matchId)
         => matches.FirstOrDefault(x => x.MatchId == matchId);
+
+    private static bool IsBroadcastEligibleMatch(MatchDto? match)
+        => match is not null
+            && !match.IsFinished
+            && string.Equals(match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase);
 
     private sealed record BroadcastCandidate(MatchDto Match, decimal Score);
 
