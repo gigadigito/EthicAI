@@ -918,15 +918,37 @@
     "seo": {
       "title": "CriptoVersus TV | Transmissao automatica das melhores batalhas cripto",
       "description": "Transmissao publica para OBS Studio sem login, exibindo a partida mais quente do CriptoVersus ou uma tela de espera com ranking e estatisticas da arena.",
-      "matchDescription": "Cena ao vivo do CriptoVersus TV otimizada para Browser Source no OBS Studio."
+      "matchTitle": "{0} vs {1} | CriptoVersus TV",
+      "matchDescription": "Assista {0} vs {1} na CriptoVersus TV com overlay ao vivo da arena, narracao por IA e telemetria guiada pelo mercado.",
+      "matchDescriptionFallback": "Cena ao vivo do CriptoVersus TV otimizada para Browser Source no OBS Studio."
     },
+    "title": "CriptoVersus TV",
+    "subtitle": "Transmissao automatica da arena cripto ao vivo",
+    "liveNow": "Ao vivo",
+    "startingSoon": "Comecando em breve",
+    "ended": "Encerrada",
+    "watchMatch": "Assistir partida",
+    "matchNotFound": "Partida nao encontrada na CriptoVersus TV.",
+    "loading": "Carregando transmissao da TV...",
+    "offline": "Transmissao offline",
+    "vs": "VS",
+    "score": "Placar",
+    "momentum": "Momentum",
+    "goals": "Pontos",
+    "refreshing": "Atualizando",
+    "liveArena": "Arena ao vivo",
+    "poweredBy": "Powered by CriptoVersus",
+    "noMatches": "Nenhuma partida disponivel agora.",
     "hero": {
       "eyebrow": "Transmissao automatica",
       "title": "CriptoVersus TV"
     },
     "states": {
       "waitingForNextHotBattle": "Aguardando a proxima grande batalha",
-      "noHotMatchRightNow": "Sem partida quente agora"
+      "noHotMatchRightNow": "Sem partida quente agora",
+      "availableInOtherLanguage": "Tambem disponivel em outro idioma: {0}",
+      "aiCalibrating": "O narrador por IA esta calibrando o feed da arena.",
+      "aiTracking": "O narrador por IA esta acompanhando o fluxo ao vivo para a proxima chamada."
     },
     "labels": {
       "liveArena": "Arena ao vivo",
@@ -970,7 +992,12 @@
       "pressureRising": "Pressao de {0} subindo",
       "signalStable": "Sinal estavel",
       "matchArena": "Arena da partida",
-      "broadcastTicker": "Ticker da transmissao"
+      "broadcastTicker": "Ticker da transmissao",
+      "aiCommentary": "Comentario por IA",
+      "remainingWithClock": "Restante ({0})",
+      "pressureSummary": "Pool competitivo | {0} | {1}",
+      "liveNarrator": "Narrador ao vivo",
+      "aiMetaTimestamp": "{0} | {1} UTC"
     },
     "waiting": {
       "topCoinsEyebrow": "Ranking da arena",
@@ -1019,6 +1046,43 @@
       "finalMomentsKicker": "Alerta de relogio",
       "finalMomentsTitle": "MINUTOS FINAIS",
       "finalMomentsBody": "A batalha entrou em sua reta final."
+    },
+    "narration": {
+      "goalText": "{0} ROMPE A DEFESA",
+      "goalSubtitle": "{0} contra {1}",
+      "leaderText": "{0} DOMINANDO",
+      "leaderSubtitle": "A lideranca mudou depois de uma nova virada da arena",
+      "devGrowText": "PRESSAO SUBINDO",
+      "devGrowSubtitle": "Demo de transmissao para a animacao grow",
+      "devZoomBurstText": "GOLPE NO PLACAR",
+      "devZoomBurstSubtitle": "A pressao da arena virou ponto",
+      "devGlitchText": "MUDANCA DE MOMENTUM",
+      "devGlitchSubtitle": "A pressao de reversao esta subindo rapido",
+      "devNeonFlashText": "SURTO DE LIQUIDEZ",
+      "devNeonFlashSubtitle": "Evento de diagnostico neon flash",
+      "devShockwaveText": "MINUTOS FINAIS",
+      "devShockwaveSubtitle": "A arena entrou em modo de pressao",
+      "devScreenImpactText": "ROMPIMENTO MASSIVO",
+      "devScreenImpactSubtitle": "Teste cinematografico completo de impacto",
+      "devMassiveBreakoutSubtitle": "A arena esta explodindo em tempo de pressao",
+      "devDiagonalSwipeText": "BTC ROMPE A DEFESA",
+      "devDiagonalSwipeSubtitle": "Teste de entrada diagonal",
+      "devSplitRevealText": "REACAO INICIADA",
+      "devSplitRevealSubtitle": "Evento de diagnostico split reveal",
+      "devHologramRevealText": "PARTIDA QUENTE DETECTADA",
+      "devHologramRevealSubtitle": "Evento de diagnostico hologram reveal",
+      "devPulseText": "ARENA INSTAVEL",
+      "devPulseSubtitle": "Evento de diagnostico pulse",
+      "hotMatchDetectedText": "PARTIDA QUENTE DETECTADA",
+      "hotMatchDetectedSubtitle": "{0} vs {1} acabou de acender a arena",
+      "momentumShiftText": "MUDANCA DE MOMENTUM",
+      "momentumShiftSubtitle": "{0} iniciou a reacao",
+      "fearSpikeText": "ARENA INSTAVEL",
+      "fearSpikeSubtitle": "Pico de fear detectado no fluxo ao vivo",
+      "hotScoreSpikeText": "SURTO DE LIQUIDEZ",
+      "hotScoreSpikeSubtitle": "Hot score subindo para {0}",
+      "finalMinutePushText": "PRESSAO FINAL",
+      "finalMinutePushSubtitle": "{0} restantes no ciclo ao vivo"
     }
   },
   "walletPage": {

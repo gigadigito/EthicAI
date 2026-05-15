@@ -918,15 +918,37 @@
     "seo": {
       "title": "CriptoVersus TV | Automatic live crypto battle broadcast",
       "description": "Automatic no-login broadcast for OBS Studio featuring the hottest live CriptoVersus match or a waiting screen with arena rankings and market stats.",
-      "matchDescription": "CriptoVersus TV live arena scene optimized for browser-source broadcast in OBS Studio."
+      "matchTitle": "{0} vs {1} | CriptoVersus TV",
+      "matchDescription": "Watch {0} vs {1} on CriptoVersus TV with the live arena overlay, AI narration and market-driven match telemetry.",
+      "matchDescriptionFallback": "CriptoVersus TV live arena scene optimized for browser-source broadcast in OBS Studio."
     },
+    "title": "CriptoVersus TV",
+    "subtitle": "Automatic live crypto arena broadcast",
+    "liveNow": "Live now",
+    "startingSoon": "Starting soon",
+    "ended": "Ended",
+    "watchMatch": "Watch match",
+    "matchNotFound": "Match not found on CriptoVersus TV.",
+    "loading": "Loading TV broadcast...",
+    "offline": "Broadcast offline",
+    "vs": "VS",
+    "score": "Score",
+    "momentum": "Momentum",
+    "goals": "Goals",
+    "refreshing": "Refreshing",
+    "liveArena": "Live arena",
+    "poweredBy": "Powered by CriptoVersus",
+    "noMatches": "No matches available right now.",
     "hero": {
       "eyebrow": "Automatic broadcast",
       "title": "CriptoVersus TV"
     },
     "states": {
       "waitingForNextHotBattle": "Waiting for the next hot battle",
-      "noHotMatchRightNow": "No hot match right now"
+      "noHotMatchRightNow": "No hot match right now",
+      "availableInOtherLanguage": "Also available in another language: {0}",
+      "aiCalibrating": "AI narrator is calibrating the arena feed.",
+      "aiTracking": "AI narrator is tracking the live flow for the next call."
     },
     "labels": {
       "liveArena": "Live Arena",
@@ -970,7 +992,12 @@
       "pressureRising": "{0} pressure rising",
       "signalStable": "Signal stable",
       "matchArena": "Match arena",
-      "broadcastTicker": "Broadcast ticker"
+      "broadcastTicker": "Broadcast ticker",
+      "aiCommentary": "AI commentary",
+      "remainingWithClock": "Remaining ({0})",
+      "pressureSummary": "Competitive pool | {0} | {1}",
+      "liveNarrator": "Live narrator",
+      "aiMetaTimestamp": "{0} | {1} UTC"
     },
     "waiting": {
       "topCoinsEyebrow": "Arena ranking",
@@ -1019,6 +1046,43 @@
       "finalMomentsKicker": "Clock alert",
       "finalMomentsTitle": "FINAL MINUTES",
       "finalMomentsBody": "The battle is entering its closing stretch."
+    },
+    "narration": {
+      "goalText": "{0} BREAKS THE DEFENSE",
+      "goalSubtitle": "{0} against {1}",
+      "leaderText": "{0} DOMINATING",
+      "leaderSubtitle": "Leader changed after a fresh arena swing",
+      "devGrowText": "PRESSURE RISING",
+      "devGrowSubtitle": "Broadcast demo for grow animation",
+      "devZoomBurstText": "GOAL KITE",
+      "devZoomBurstSubtitle": "Arena pressure converted into score",
+      "devGlitchText": "MOMENTUM SHIFT",
+      "devGlitchSubtitle": "Reversal pressure is climbing fast",
+      "devNeonFlashText": "LIQUIDITY SURGE",
+      "devNeonFlashSubtitle": "Neon flash diagnostic event",
+      "devShockwaveText": "FINAL MINUTES",
+      "devShockwaveSubtitle": "The arena is entering pressure time",
+      "devScreenImpactText": "MASSIVE BREAKOUT",
+      "devScreenImpactSubtitle": "Full impact cinematic stress test",
+      "devMassiveBreakoutSubtitle": "The arena is detonating into pressure time",
+      "devDiagonalSwipeText": "BTC BREAKS THE DEFENSE",
+      "devDiagonalSwipeSubtitle": "Diagonal entry test",
+      "devSplitRevealText": "COMEBACK STARTED",
+      "devSplitRevealSubtitle": "Split reveal diagnostic event",
+      "devHologramRevealText": "HOT MATCH DETECTED",
+      "devHologramRevealSubtitle": "Hologram reveal diagnostic event",
+      "devPulseText": "ARENA UNSTABLE",
+      "devPulseSubtitle": "Pulse diagnostic event",
+      "hotMatchDetectedText": "HOT MATCH DETECTED",
+      "hotMatchDetectedSubtitle": "{0} vs {1} just lit up the arena",
+      "momentumShiftText": "MOMENTUM SHIFT",
+      "momentumShiftSubtitle": "{0} comeback started",
+      "fearSpikeText": "ARENA UNSTABLE",
+      "fearSpikeSubtitle": "Fear spike detected across the live order flow",
+      "hotScoreSpikeText": "LIQUIDITY SURGE",
+      "hotScoreSpikeSubtitle": "Hot score climbing to {0}",
+      "finalMinutePushText": "FINAL MINUTE PUSH",
+      "finalMinutePushSubtitle": "{0} remaining in the live cycle"
     }
   },
   "walletPage": {

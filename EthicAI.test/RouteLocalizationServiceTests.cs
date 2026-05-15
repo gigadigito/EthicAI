@@ -4,7 +4,7 @@ namespace EthicAI.test;
 
 public sealed class RouteLocalizationServiceTests
 {
-    private readonly RouteLocalizationService _service = new();
+    private readonly RouteLocalizationService _service = new(new AppCultureService());
 
     [Fact]
     public void BuildLocalizedPath_ForPortugueseRoute_UsesPartidaSegment()
@@ -21,6 +21,20 @@ public sealed class RouteLocalizationServiceTests
     [Fact]
     public void BuildBestPath_WithoutCulture_FallsBackToCanonicalRoute()
     {
-        Assert.Equal("/match/39/ada-vs-bnb", _service.BuildBestPath(null, 39, "ada-vs-bnb"));
+        Assert.Equal("/en/match/39/ada-vs-bnb", _service.BuildBestPath(null, 39, "ada-vs-bnb"));
+    }
+
+    [Fact]
+    public void BuildTvPath_UsesLocalizedCulturePrefix()
+    {
+        Assert.Equal("/pt/tv", _service.BuildTvPath("pt"));
+        Assert.Equal("/en/tv", _service.BuildTvPath("en"));
+    }
+
+    [Fact]
+    public void BuildTvMatchPath_UsesLocalizedCulturePrefix()
+    {
+        Assert.Equal("/pt/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("pt", 39, "ada-vs-bnb"));
+        Assert.Equal("/en/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("en", 39, "ada-vs-bnb"));
     }
 }

@@ -78,10 +78,16 @@ public sealed class RouteLocalizationService
         return $"{BuildStatsTeamsPath(culture)}/{normalizedSlug}";
     }
 
-    public string BuildTvPath()
+    public string BuildTvPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/tv";
+
+    public string BuildTvMatchPath(string? culture, int id, string slug)
+        => $"{BuildTvPath(culture)}/match/{id}/{slug.Trim().ToLowerInvariant()}";
+
+    public string BuildLegacyTvPath()
         => "/tv";
 
-    public string BuildTvMatchPath(int id, string slug)
+    public string BuildLegacyTvMatchPath(int id, string slug)
         => $"/tv/match/{id}/{slug.Trim().ToLowerInvariant()}";
 
     public string BuildLegacyMatchPath(string? culture, int id, string slug)
@@ -125,14 +131,27 @@ public sealed class RouteLocalizationService
 
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase))
-            return BuildTvPath() + querySuffix;
+        if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/tv", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildTvPath(normalizedTarget) + querySuffix;
+        }
 
         if (segments.Length >= 4
-            && segments[0].Equals("tv", StringComparison.OrdinalIgnoreCase)
-            && segments[1].Equals("match", StringComparison.OrdinalIgnoreCase)
-            && int.TryParse(segments[2], out var tvMatchId))
-            return BuildTvMatchPath(tvMatchId, segments[3]) + querySuffix;
+            && cleanPath.StartsWith("/tv/match/", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var legacyTvMatchId))
+        {
+            return BuildTvMatchPath(normalizedTarget, legacyTvMatchId, segments[3]) + querySuffix;
+        }
+
+        if (segments.Length >= 5
+            && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("match", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[3], out var localizedTvMatchId))
+        {
+            return BuildTvMatchPath(normalizedTarget, localizedTvMatchId, segments[4]) + querySuffix;
+        }
         if (segments.Length >= 3)
         {
             if (cleanPath.StartsWith("/stats/teams/", StringComparison.OrdinalIgnoreCase)

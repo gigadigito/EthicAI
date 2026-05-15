@@ -8,6 +8,8 @@
 @inject IConfiguration Config
 @inject IJSRuntime JS
 @inject IWebHostEnvironment Environment
+@inject MatchSlugHelper MatchSlugHelper
+@inject RouteLocalizationService RouteLocalization
 @implements IAsyncDisposable
 
 @if (HasLiveMatch)
@@ -83,7 +85,7 @@
                             <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
                             <div class="tv-scoreboard__score">
                                 <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
-                                <span class="tv-scoreboard__versus">VS</span>
+                                <span class="tv-scoreboard__versus">@T("vs")</span>
                                 <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
                             </div>
                             <small>@DisplayScoreContext()</small>
@@ -103,7 +105,7 @@
 
                 <section class="tv-ai-commentary">
                     <div class="tv-ai-commentary__header">
-                        <span>AI COMMENTARY</span>
+                        <span>@T("labels.aiCommentary")</span>
                         <small>@DisplayAiCommentaryMeta()</small>
                     </div>
 
@@ -111,6 +113,13 @@
                         @DisplayAiCommentaryText()
                     </div>
                 </section>
+
+                @if (!string.IsNullOrWhiteSpace(CurrentMatchUrl))
+                {
+                    <div class="tv-match-card__footer">
+                        <a class="tv-watch-link" href="@CurrentMatchUrl">@T("watchMatch")</a>
+                    </div>
+                }
             </article>
 
             <aside class="tv-telemetry">
@@ -250,10 +259,16 @@ else
                     {
                         <div class="tv-latest-row">
                             <div>
-                                <strong>@match.HomeSymbol vs @match.AwaySymbol</strong>
+                                <strong>@match.HomeSymbol @T("vs") @match.AwaySymbol</strong>
                                 <small>@FormatStatus(match.Status)</small>
                             </div>
-                            <em>@match.HomeScore:@match.AwayScore</em>
+                            <div class="tv-latest-row__meta">
+                                <em>@match.HomeScore:@match.AwayScore</em>
+                                @if (!string.IsNullOrWhiteSpace(BuildMatchUrl(match)))
+                                {
+                                    <a class="tv-inline-link" href="@BuildMatchUrl(match)">@T("watchMatch")</a>
+                                }
+                            </div>
                         </div>
                     }
                 </div>
@@ -358,6 +373,7 @@ else
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
+    private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
 
     protected override void OnParametersSet()
     {
@@ -566,8 +582,8 @@ else
         {
             Type = "debug-goal-kite",
             Severity = "extreme",
-            Text = "GOAL KITE",
-            Subtitle = "Arena pressure converted into score",
+            Text = T("narration.devZoomBurstText"),
+            Subtitle = T("narration.devZoomBurstSubtitle"),
             Animation = "zoom-burst",
             DurationMs = 4000,
             CooldownMs = 250,
@@ -580,8 +596,8 @@ else
         {
             Type = "debug-momentum-shift",
             Severity = "high",
-            Text = "MOMENTUM SHIFT",
-            Subtitle = "PARTIUSDT reversal pressure rising",
+            Text = T("narration.devGlitchText"),
+            Subtitle = T("narration.devGlitchSubtitle"),
             Animation = "glitch",
             DurationMs = 3500,
             CooldownMs = 250,
@@ -594,8 +610,8 @@ else
         {
             Type = "debug-massive-breakout",
             Severity = "extreme",
-            Text = "MASSIVE BREAKOUT",
-            Subtitle = "The arena is detonating into pressure time",
+            Text = T("narration.devScreenImpactText"),
+            Subtitle = T("narration.devMassiveBreakoutSubtitle"),
             Animation = "screen-impact",
             DurationMs = 3600,
             CooldownMs = 250,
@@ -700,6 +716,30 @@ else
         }
     }
 
+    private string MatchSlugOrHotSlug()
+    {
+        if (!string.IsNullOrWhiteSpace(HotMatch?.Slug))
+            return HotMatch!.Slug;
+
+        if (!string.IsNullOrWhiteSpace(Match?.TeamA) && !string.IsNullOrWhiteSpace(Match?.TeamB))
+            return MatchSlugHelper.BuildSlug(Match.TeamA, Match.TeamB);
+
+        return string.Empty;
+    }
+
+    private string BuildMatchUrl(int matchId, string? slug)
+    {
+        if (matchId <= 0 || string.IsNullOrWhiteSpace(slug))
+            return string.Empty;
+
+        return RouteLocalization.BuildTvMatchPath(Culture, matchId, slug);
+    }
+
+    private string BuildMatchUrl(StatsLatestMatchDto match)
+        => match.MatchId <= 0
+            ? string.Empty
+            : BuildMatchUrl(match.MatchId, MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol));
+
     private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current)
     {
         var scorer = current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
@@ -714,8 +754,8 @@ else
         {
             Type = "goal",
             Severity = "high",
-            Text = $"{scorer} BREAKS THE DEFENSE",
-            Subtitle = $"{DisplayScoreContext()} against {opposing}",
+            Text = T("narration.goalText", scorer),
+            Subtitle = T("narration.goalSubtitle", DisplayScoreContext(), opposing),
             Asset = scorer,
             Side = scorer == current.LeftSymbol ? "left" : "right",
             Animation = "zoom-burst",
@@ -732,8 +772,8 @@ else
         {
             Type = "leader-change",
             Severity = "high",
-            Text = $"{current.LeaderSymbol} DOMINATING",
-            Subtitle = "Leader changed after a fresh arena swing",
+            Text = T("narration.leaderText", current.LeaderSymbol),
+            Subtitle = T("narration.leaderSubtitle"),
             Asset = current.LeaderSymbol,
             Side = current.LeaderSymbol == current.LeftSymbol ? "left" : "right",
             Animation = "screen-impact",
@@ -750,8 +790,8 @@ else
             {
                 Type = "dev-grow",
                 Severity = "medium",
-                Text = "PRESSURE RISING",
-                Subtitle = "Broadcast demo for grow animation",
+                Text = T("narration.devGrowText"),
+                Subtitle = T("narration.devGrowSubtitle"),
                 Animation = normalized,
                 DurationMs = 3000,
                 CooldownMs = 180,
@@ -761,8 +801,8 @@ else
             {
                 Type = "dev-zoom-burst",
                 Severity = "extreme",
-                Text = "GOAL KITE",
-                Subtitle = "Arena pressure converted into score",
+                Text = T("narration.devZoomBurstText"),
+                Subtitle = T("narration.devZoomBurstSubtitle"),
                 Animation = normalized,
                 DurationMs = 4000,
                 CooldownMs = 180,
@@ -772,8 +812,8 @@ else
             {
                 Type = "dev-glitch",
                 Severity = "high",
-                Text = "MOMENTUM SHIFT",
-                Subtitle = "PARTIUSDT reversal pressure rising",
+                Text = T("narration.devGlitchText"),
+                Subtitle = T("narration.devGlitchSubtitle"),
                 Animation = normalized,
                 DurationMs = 3500,
                 CooldownMs = 180,
@@ -783,8 +823,8 @@ else
             {
                 Type = "dev-neon-flash",
                 Severity = "high",
-                Text = "LIQUIDITY SURGE",
-                Subtitle = "Neon flash diagnostic event",
+                Text = T("narration.devNeonFlashText"),
+                Subtitle = T("narration.devNeonFlashSubtitle"),
                 Animation = normalized,
                 DurationMs = 3200,
                 CooldownMs = 180,
@@ -794,8 +834,8 @@ else
             {
                 Type = "dev-shockwave",
                 Severity = "high",
-                Text = "FINAL MINUTES",
-                Subtitle = "The arena is entering pressure time",
+                Text = T("narration.devShockwaveText"),
+                Subtitle = T("narration.devShockwaveSubtitle"),
                 Animation = normalized,
                 DurationMs = 3200,
                 CooldownMs = 180,
@@ -805,8 +845,8 @@ else
             {
                 Type = "dev-screen-impact",
                 Severity = "extreme",
-                Text = "MASSIVE BREAKOUT",
-                Subtitle = "Full impact cinematic stress test",
+                Text = T("narration.devScreenImpactText"),
+                Subtitle = T("narration.devScreenImpactSubtitle"),
                 Animation = normalized,
                 DurationMs = 3600,
                 CooldownMs = 180,
@@ -816,8 +856,8 @@ else
             {
                 Type = "dev-diagonal-swipe",
                 Severity = "medium",
-                Text = "BTC BREAKS THE DEFENSE",
-                Subtitle = "Diagonal entry test",
+                Text = T("narration.devDiagonalSwipeText"),
+                Subtitle = T("narration.devDiagonalSwipeSubtitle"),
                 Animation = normalized,
                 DurationMs = 3200,
                 CooldownMs = 180,
@@ -827,8 +867,8 @@ else
             {
                 Type = "dev-split-reveal",
                 Severity = "high",
-                Text = "COMEBACK STARTED",
-                Subtitle = "Split reveal diagnostic event",
+                Text = T("narration.devSplitRevealText"),
+                Subtitle = T("narration.devSplitRevealSubtitle"),
                 Animation = normalized,
                 DurationMs = 3200,
                 CooldownMs = 180,
@@ -838,8 +878,8 @@ else
             {
                 Type = "dev-hologram-reveal",
                 Severity = "medium",
-                Text = "HOT MATCH DETECTED",
-                Subtitle = "Hologram reveal diagnostic event",
+                Text = T("narration.devHologramRevealText"),
+                Subtitle = T("narration.devHologramRevealSubtitle"),
                 Animation = normalized,
                 DurationMs = 3200,
                 CooldownMs = 180,
@@ -849,8 +889,8 @@ else
             {
                 Type = "dev-pulse",
                 Severity = "medium",
-                Text = "ARENA UNSTABLE",
-                Subtitle = "Pulse diagnostic event",
+                Text = T("narration.devPulseText"),
+                Subtitle = T("narration.devPulseSubtitle"),
                 Animation = "pulse",
                 DurationMs = 3000,
                 CooldownMs = 180,
@@ -866,8 +906,8 @@ else
             {
                 Type = "hot-match",
                 Severity = "medium",
-                Text = "HOT MATCH DETECTED",
-                Subtitle = $"{current.LeftSymbol} vs {current.RightSymbol} just lit up the arena",
+                Text = T("narration.hotMatchDetectedText"),
+                Subtitle = T("narration.hotMatchDetectedSubtitle", current.LeftSymbol, current.RightSymbol),
                 Side = "center",
                 Animation = "hologram-reveal",
                 DurationMs = 2800,
@@ -877,8 +917,8 @@ else
             {
                 Type = "momentum-shift",
                 Severity = "high",
-                Text = "MOMENTUM SHIFT",
-                Subtitle = $"{ResolveTrailerSymbol(current)} comeback started",
+                Text = T("narration.momentumShiftText"),
+                Subtitle = T("narration.momentumShiftSubtitle", ResolveTrailerSymbol(current)),
                 Asset = ResolveTrailerSymbol(current),
                 Side = ResolveTrailerSymbol(current) == current.LeftSymbol ? "left" : "right",
                 Animation = "split-reveal",
@@ -889,8 +929,8 @@ else
             {
                 Type = "fear-spike",
                 Severity = "extreme",
-                Text = "ARENA UNSTABLE",
-                Subtitle = "Fear spike detected across the live order flow",
+                Text = T("narration.fearSpikeText"),
+                Subtitle = T("narration.fearSpikeSubtitle"),
                 Side = "center",
                 Animation = "glitch",
                 DurationMs = 3800,
@@ -900,8 +940,8 @@ else
             {
                 Type = "hot-score-spike",
                 Severity = "high",
-                Text = "LIQUIDITY SURGE",
-                Subtitle = $"Hot score climbing to {current.HotScore}",
+                Text = T("narration.hotScoreSpikeText"),
+                Subtitle = T("narration.hotScoreSpikeSubtitle", current.HotScore),
                 Side = "center",
                 Animation = "shockwave",
                 DurationMs = 3100,
@@ -911,8 +951,8 @@ else
             {
                 Type = "final-minute-push",
                 Severity = "medium",
-                Text = "FINAL MINUTE PUSH",
-                Subtitle = $"{DisplayClockPrimary()} remaining in the live cycle",
+                Text = T("narration.finalMinutePushText"),
+                Subtitle = T("narration.finalMinutePushSubtitle", DisplayClockPrimary()),
                 Side = "center",
                 Animation = "diagonal-swipe",
                 DurationMs = 2800,
@@ -991,7 +1031,7 @@ else
             : "--:--";
     }
 
-    private string DisplayClockPhaseLabel() => $"Remaining ({DisplayClockPrimary()})";
+    private string DisplayClockPhaseLabel() => T("labels.remainingWithClock", DisplayClockPrimary());
 
     private bool IsClockLive() => ResolvePreciseRemainingTime() is TimeSpan remaining && remaining > TimeSpan.Zero;
 
@@ -1018,27 +1058,27 @@ else
                 : T("labels.nextBattle"));
 
     private string DisplayPressureHeadline()
-        => $"{DisplayLeftSymbol()} vs {DisplayRightSymbol()}";
+        => $"{DisplayLeftSymbol()} {T("vs")} {DisplayRightSymbol()}";
 
     private string DisplayPressureBody()
-        => $"{T("labels.competitivePool")} • {DisplayVolume()} • {DisplayRemainingTime()}";
+        => T("labels.pressureSummary", DisplayVolume(), DisplayRemainingTime());
 
     private string DisplayAiCommentaryText()
         => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
-            ? "AI narrator is calibrating the arena feed."
+            ? T("states.aiCalibrating")
             : !string.IsNullOrWhiteSpace(_currentAiNarration)
                 ? _currentAiNarration
-                : "AI narrator is tracking the live flow for the next call.";
+                : T("states.aiTracking");
 
     private string DisplayAiCommentaryMeta()
     {
         if (_isAiNarrationLoading)
-            return "Generating";
+            return T("refreshing");
 
         if (_lastAiNarrationAtUtc.HasValue)
-            return $"{_aiNarrationSource.ToUpperInvariant()} • {_lastAiNarrationAtUtc.Value:HH:mm:ss} UTC";
+            return T("labels.aiMetaTimestamp", _aiNarrationSource.ToUpperInvariant(), _lastAiNarrationAtUtc.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture));
 
-        return "Live narrator";
+        return T("labels.liveNarrator");
     }
 
     private async Task MaybeRefreshAiNarrationAsync(string eventType, bool forceRefresh = false)
@@ -1247,8 +1287,8 @@ else
 
     private string GetAlternateLanguageLine()
         => Culture == AppCultureService.SecondaryRouteCulture
-            ? L.T("tv.states.waitingForNextHotBattle", AppCultureService.DefaultRouteCulture)
-            : L.T("tv.states.waitingForNextHotBattle", AppCultureService.SecondaryRouteCulture);
+            ? T("states.availableInOtherLanguage", L.T("tv.states.waitingForNextHotBattle", AppCultureService.DefaultRouteCulture))
+            : T("states.availableInOtherLanguage", L.T("tv.states.waitingForNextHotBattle", AppCultureService.SecondaryRouteCulture));
 
     private string GetLogoUrl(string value)
     {

@@ -1,4 +1,5 @@
 @page "/tv/match/{MatchId:int}/{Slug}"
+@page "/{Culture}/tv/match/{MatchId:int}/{Slug}"
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
@@ -6,14 +7,36 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
 @inject LocalizationService L
+@inject NavigationManager Nav
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
 <PageTitle>@PageTitleText</PageTitle>
 <HeadContent>
-    <meta name="robots" content="noindex,nofollow,noarchive" />
-    <meta name="description" content="@L.T("tv.seo.matchDescription", _culture)" />
+    <meta name="description" content="@MetaDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(_culture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(_culture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@MetaDescription" />
 </HeadContent>
+
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <section class="container py-4">
+        <div class="alert alert-warning" role="alert">@_error</div>
+    </section>
+}
 
 @if (_match is not null)
 {
@@ -29,6 +52,7 @@ else
 @code {
     private const int RefreshIntervalSeconds = 15;
 
+    [Parameter] public string? Culture { get; set; }
     [Parameter] public int MatchId { get; set; }
     [Parameter] public string? Slug { get; set; }
 
@@ -38,14 +62,27 @@ else
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
+    private string? _error;
     private string PageTitleText
         => _match is null
             ? L.T("tv.seo.title", _culture)
-            : $"{L.T("tv.hero.title", _culture)} | {_match.TeamA} vs {_match.TeamB}";
+            : L.T("tv.seo.matchTitle", _culture, _match.TeamA, _match.TeamB);
+    private string MetaDescription
+        => _match is null
+            ? L.T("tv.seo.matchDescriptionFallback", _culture)
+            : L.T("tv.seo.matchDescription", _culture, _match.TeamA, _match.TeamB);
+    private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(_culture, MatchId, ResolvedSlug));
+    private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(AppCultureService.DefaultRouteCulture, MatchId, ResolvedSlug));
+    private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(AppCultureService.SecondaryRouteCulture, MatchId, ResolvedSlug));
+    private string ResolvedSlug => !string.IsNullOrWhiteSpace(_match?.TeamA) && !string.IsNullOrWhiteSpace(_match?.TeamB)
+        ? MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB)
+        : Slug?.Trim().ToLowerInvariant() ?? "match";
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
-        _culture = AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+        _culture = !string.IsNullOrWhiteSpace(Culture)
+            ? AppCulture.NormalizeRouteCulture(Culture)
+            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -81,11 +118,27 @@ else
     {
         try
         {
+            _error = null;
             var matchTask = Api.GetMatchByIdAsync(MatchId, ct);
             var hotTask = Api.GetTvHotMatchAsync(ct);
             await Task.WhenAll(matchTask, hotTask);
 
             _match = matchTask.Result;
+            if (_match is null)
+            {
+                _error = L.T("tv.matchNotFound", _culture);
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var expectedPath = RouteLocalization.BuildTvMatchPath(_culture, _match.MatchId, MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB));
+            var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+            if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo(expectedPath, replace: true);
+                return;
+            }
+
             var hotMatch = hotTask.Result;
 
             if (hotMatch?.HasMatch == true && hotMatch.MatchId == MatchId)
@@ -105,9 +158,13 @@ else
         }
         catch (Exception ex)
         {
+            _error = ex.Message;
             await LogAsync("refresh error", ex.Message);
         }
     }
+
+    private string BuildAbsolute(string path)
+        => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";
 
     private async Task LogAsync(string message, object? payload = null)
     {

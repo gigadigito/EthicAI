@@ -97,7 +97,7 @@ public sealed class TvAiNarrationService : ITvAiNarrationService
         var hotMatch = await _tvHotMatchService.GetMatchBroadcastAsync(matchId, ct)
             ?? throw new InvalidOperationException($"No TV broadcast context found for match {matchId}.");
 
-        var culture = string.IsNullOrWhiteSpace(request.Culture) ? "pt-BR" : request.Culture.Trim();
+        var culture = NormalizeNarrationCulture(request.Culture);
         var eventType = NormalizeEventType(request.EventType);
         var nowUtc = DateTime.UtcNow;
         var contextHash = BuildContextHash(matchId, eventType, hotMatch);
@@ -136,9 +136,9 @@ public sealed class TvAiNarrationService : ITvAiNarrationService
         }
 
         var narration = ShouldUseTemplate(eventType)
-            ? BuildTemplateNarration(eventType, hotMatch)
+            ? BuildTemplateNarration(eventType, hotMatch, culture)
             : await TryGenerateAiNarrationAsync(matchId, hotMatch, recentHistory, eventType, culture, contextHash, ct)
-                ?? BuildTemplateNarration(eventType, hotMatch);
+                ?? BuildTemplateNarration(eventType, hotMatch, culture);
 
         var entity = new MatchAiNarrationHistory
         {
@@ -196,24 +196,44 @@ public sealed class TvAiNarrationService : ITvAiNarrationService
             .Select(x => $"- {x.Text}")
             .ToArray();
 
-        var systemPrompt = """
-Você é um narrador esportivo da CriptoVersus TV, uma arena de batalhas cripto em tempo real.
+        var usePortuguese = IsPortugueseCulture(culture);
+        var systemPrompt = usePortuguese
+            ? """
+Voce e um narrador esportivo da CriptoVersus TV, uma arena de batalhas cripto em tempo real.
 
-Escreva uma narração curta, empolgante e clara para aparecer na transmissão.
+Escreva uma narracao curta, empolgante e clara para aparecer na transmissao.
 
 Use somente os dados fornecidos.
 
-Não invente preço, volume, placar ou fatos.
-Não dê recomendação financeira.
-Não prometa ganhos.
-Não use emojis.
-Não repita frases ou ideias das narrações anteriores.
-Máximo 2 frases.
-Máximo 280 caracteres.
+Nao invente preco, volume, placar ou fatos.
+Nao de recomendacao financeira.
+Nao prometa ganhos.
+Nao use emojis.
+Nao repita frases ou ideias das narracoes anteriores.
+Maximo 2 frases.
+Maximo 280 caracteres.
+Responda em portugues do Brasil.
+"""
+            : """
+You are a sports-style commentator for CriptoVersus TV, a real-time crypto battle arena.
+
+Write a short, exciting and clear narration for the broadcast overlay.
+
+Use only the provided data.
+
+Do not invent price, volume, score or facts.
+Do not give financial advice.
+Do not promise gains.
+Do not use emojis.
+Do not repeat phrases or ideas from earlier narrations.
+Maximum 2 sentences.
+Maximum 280 characters.
+Respond in English.
 """;
 
-        var userPrompt = $"""
-Gerar narração para a partida:
+        var userPrompt = usePortuguese
+            ? $"""
+Gerar narracao para a partida:
 
 Culture: {culture}
 EventType: {eventType}
@@ -224,7 +244,7 @@ Partida:
 Placar:
 {hotMatch.LeftScore} x {hotMatch.RightScore}
 
-Variação:
+Variacao:
 {hotMatch.LeftChangePercent:0.##}% vs {hotMatch.RightChangePercent:0.##}%
 
 Tempo:
@@ -242,16 +262,57 @@ Momentum:
 Motivo:
 {hotMatch.Reason}
 
-Líder:
+Lider:
 {hotMatch.LeaderSymbol}
 
-Pressão:
+Pressao:
 {hotMatch.PressureSymbol}
 
-Últimas narrações:
+Ultimas narracoes:
 {string.Join(Environment.NewLine, recentNarrations)}
 
-Escreva uma nova narração curta para a TV.
+Escreva uma nova narracao curta para a TV.
+"""
+            : $"""
+Generate narration for the match:
+
+Culture: {culture}
+EventType: {eventType}
+
+Match:
+{hotMatch.LeftSymbol} vs {hotMatch.RightSymbol}
+
+Score:
+{hotMatch.LeftScore} x {hotMatch.RightScore}
+
+Change:
+{hotMatch.LeftChangePercent:0.##}% vs {hotMatch.RightChangePercent:0.##}%
+
+Time:
+{hotMatch.RemainingTimeLabel}
+
+Pool:
+{hotMatch.VolumeLabel}
+
+HotScore:
+{hotMatch.HotScore}
+
+Momentum:
+{hotMatch.MomentumLabel}
+
+Reason:
+{hotMatch.Reason}
+
+Leader:
+{hotMatch.LeaderSymbol}
+
+Pressure:
+{hotMatch.PressureSymbol}
+
+Latest narrations:
+{string.Join(Environment.NewLine, recentNarrations)}
+
+Write a fresh short narration for TV.
 """;
 
         var requestPayload = new
@@ -350,19 +411,31 @@ Escreva uma nova narração curta para a TV.
         return string.Empty;
     }
 
-    private NarrationDraft BuildTemplateNarration(string eventType, TvHotMatchDto hotMatch)
+    private NarrationDraft BuildTemplateNarration(string eventType, TvHotMatchDto hotMatch, string culture)
     {
-        var text = eventType switch
-        {
-            "goal" => $"{hotMatch.LeaderSymbol} converteu a pressão em ponto e a arena segue em ebulição. {hotMatch.LeftScore} x {hotMatch.RightScore} com {hotMatch.RemainingTimeLabel} no relógio.",
-            "leader-change" => $"{hotMatch.LeaderSymbol} assumiu o controle da disputa enquanto o fluxo ao vivo muda de lado. A batalha continua aberta em {hotMatch.RemainingTimeLabel}.",
-            "momentum-shift" => $"Momentum shift detectado: {hotMatch.PressureSymbol} reagiu e mudou o peso da arena. O duelo segue travado em {hotMatch.LeftScore} x {hotMatch.RightScore}.",
-            "fear-spike" => $"A arena ficou instável e o fluxo entrou em zona de cautela. {hotMatch.LeaderSymbol} ainda sustenta a frente neste {hotMatch.Reason.ToLowerInvariant()}.",
-            "hot-score-spike" => $"Liquidez em alta: o hot score saltou para {hotMatch.HotScore} e a partida esquentou. {hotMatch.LeftSymbol} e {hotMatch.RightSymbol} seguem trocando pressão.",
-            "final-minutes" => $"Final minutes na CriptoVersus TV: restam {hotMatch.RemainingTimeLabel} para definir quem sustenta a liderança. Qualquer reversão agora muda a transmissão inteira.",
-            "manual-test" => $"Teste de narração AI ativo para {hotMatch.LeftSymbol} vs {hotMatch.RightSymbol}. O card já está pronto para exibir comentários persistidos.",
-            _ => $"{hotMatch.LeftSymbol} e {hotMatch.RightSymbol} seguem em confronto ao vivo, com {hotMatch.LeaderSymbol} puxando a narrativa da arena neste momento."
-        };
+        var text = IsPortugueseCulture(culture)
+            ? eventType switch
+            {
+                "goal" => $"{hotMatch.LeaderSymbol} converteu a pressao em ponto e a arena segue em ebulicao. {hotMatch.LeftScore} x {hotMatch.RightScore} com {hotMatch.RemainingTimeLabel} no relogio.",
+                "leader-change" => $"{hotMatch.LeaderSymbol} assumiu o controle da disputa enquanto o fluxo ao vivo muda de lado. A batalha continua aberta em {hotMatch.RemainingTimeLabel}.",
+                "momentum-shift" => $"Mudanca de momentum detectada: {hotMatch.PressureSymbol} reagiu e mudou o peso da arena. O duelo segue travado em {hotMatch.LeftScore} x {hotMatch.RightScore}.",
+                "fear-spike" => $"A arena ficou instavel e o fluxo entrou em zona de cautela. {hotMatch.LeaderSymbol} ainda sustenta a frente neste {hotMatch.Reason.ToLowerInvariant()}.",
+                "hot-score-spike" => $"Liquidez em alta: o hot score saltou para {hotMatch.HotScore} e a partida esquentou. {hotMatch.LeftSymbol} e {hotMatch.RightSymbol} seguem trocando pressao.",
+                "final-minutes" => $"Minutos finais na CriptoVersus TV: restam {hotMatch.RemainingTimeLabel} para definir quem sustenta a lideranca. Qualquer reversao agora muda a transmissao inteira.",
+                "manual-test" => $"Teste de narracao AI ativo para {hotMatch.LeftSymbol} vs {hotMatch.RightSymbol}. O card ja esta pronto para exibir comentarios persistidos.",
+                _ => $"{hotMatch.LeftSymbol} e {hotMatch.RightSymbol} seguem em confronto ao vivo, com {hotMatch.LeaderSymbol} puxando a narrativa da arena neste momento."
+            }
+            : eventType switch
+            {
+                "goal" => $"{hotMatch.LeaderSymbol} turned pressure into a point and the arena is still boiling. {hotMatch.LeftScore} x {hotMatch.RightScore} with {hotMatch.RemainingTimeLabel} on the clock.",
+                "leader-change" => $"{hotMatch.LeaderSymbol} just took control while the live flow swings to a new side. The battle stays open with {hotMatch.RemainingTimeLabel} remaining.",
+                "momentum-shift" => $"Momentum shift detected: {hotMatch.PressureSymbol} reacted and changed the weight of the arena. The duel remains tight at {hotMatch.LeftScore} x {hotMatch.RightScore}.",
+                "fear-spike" => $"The arena turned unstable and the flow moved into caution territory. {hotMatch.LeaderSymbol} still holds the edge in this {hotMatch.Reason.ToLowerInvariant()}.",
+                "hot-score-spike" => $"Liquidity is surging: hot score jumped to {hotMatch.HotScore} and the match heated up fast. {hotMatch.LeftSymbol} and {hotMatch.RightSymbol} keep trading pressure.",
+                "final-minutes" => $"Final minutes on CriptoVersus TV: {hotMatch.RemainingTimeLabel} left to decide who keeps the lead. Any reversal now could flip the whole broadcast.",
+                "manual-test" => $"AI narration test is active for {hotMatch.LeftSymbol} vs {hotMatch.RightSymbol}. The overlay card is ready to display persisted commentary.",
+                _ => $"{hotMatch.LeftSymbol} and {hotMatch.RightSymbol} remain locked in a live clash, with {hotMatch.LeaderSymbol} driving the arena narrative right now."
+            };
 
         return new NarrationDraft(NormalizeCommentaryText(SanitizeNarration(text, _options.NarrationMaxChars)), "template", null, null, null);
     }
@@ -380,6 +453,18 @@ Escreva uma nova narração curta para a TV.
 
         return eventType.Trim().ToLowerInvariant();
     }
+
+    private static string NormalizeNarrationCulture(string? culture)
+    {
+        if (string.IsNullOrWhiteSpace(culture))
+            return "en-US";
+
+        return IsPortugueseCulture(culture) ? "pt-BR" : "en-US";
+    }
+
+    private static bool IsPortugueseCulture(string? culture)
+        => !string.IsNullOrWhiteSpace(culture)
+           && culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase);
 
     private static string BuildContextHash(int matchId, string eventType, TvHotMatchDto hotMatch)
     {

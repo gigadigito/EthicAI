@@ -24,6 +24,22 @@ public sealed class MatchRouteRedirectResolver
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildHowItWorksPath(preferredCulture), queryString);
 
+        if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildTvPath(preferredCulture), queryString);
+
+        if (cleanPath.Equals("/en/tv", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase))
+        {
+            var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
+                ?? preferredCulture;
+
+            var canonicalTvPath = routeLocalization.BuildTvPath(explicitCulture);
+            if (!cleanPath.Equals(canonicalTvPath, StringComparison.OrdinalIgnoreCase))
+                return AppendQueryString(canonicalTvPath, queryString);
+
+            return null;
+        }
+
         if (cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase))
         {
@@ -39,6 +55,38 @@ public sealed class MatchRouteRedirectResolver
 
         var segments = path
             .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (segments.Length == 4
+            && segments[0].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[1].Equals("match", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var legacyTvMatchId))
+        {
+            return await BuildRedirectIfMismatchAsync(
+                requestedPath: $"/tv/match/{segments[2]}/{segments[3]}",
+                expectedPathFactory: slug => routeLocalization.BuildTvMatchPath(preferredCulture, legacyTvMatchId, slug),
+                requestedSlug: segments[3],
+                matchId: legacyTvMatchId,
+                queryString,
+                matchRouteLookup,
+                cancellationToken);
+        }
+
+        if (segments.Length == 5
+            && segments[1].Equals("tv", StringComparison.OrdinalIgnoreCase)
+            && segments[2].Equals("match", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[3], out var localizedTvMatchId))
+        {
+            var normalizedCulture = routeLocalization.NormalizeCulture(segments[0]);
+
+            return await BuildRedirectIfMismatchAsync(
+                requestedPath: $"/{segments[0]}/tv/match/{segments[3]}/{segments[4]}",
+                expectedPathFactory: slug => routeLocalization.BuildTvMatchPath(normalizedCulture, localizedTvMatchId, slug),
+                requestedSlug: segments[4],
+                matchId: localizedTvMatchId,
+                queryString,
+                matchRouteLookup,
+                cancellationToken);
+        }
 
         if (segments.Length is < 3 or > 4)
             return null;
