@@ -1167,7 +1167,7 @@ else
         => (Match?.MatchId ?? HotMatch?.MatchId ?? 0).ToString(CultureInfo.InvariantCulture);
 
     private string DisplayStageTitle()
-        => $"{T("hero.title")}, {DisplayMatchHeadline()}";
+        => $"{T("hero.title")} - {DisplayMatchHeadline()}.";
 
     private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
     private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
