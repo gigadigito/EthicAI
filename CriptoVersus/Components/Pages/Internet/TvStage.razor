@@ -11,6 +11,7 @@
 @inject MatchSlugHelper MatchSlugHelper
 @inject RouteLocalizationService RouteLocalization
 @inject TvArenaCommentaryService ArenaCommentary
+@inject TvFieldPositionService FieldPositionService
 @implements IAsyncDisposable
 
 @if (HasLiveMatch)
@@ -71,55 +72,99 @@
                         <strong>@DisplayRemainingTime()</strong>
                     </div>
 
-                    <div class="tv-match-card__arena">
-                        <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
-                            <div class="tv-team__halo"></div>
-                            <div class="tv-team__logo-shell">
-                                <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
-                            </div>
-                            <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
-                            <strong>@DisplayLeftName()</strong>
-                            <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
-                        </div>
-
-                        <div class="tv-center-hud">
-                            <div class="tv-broadcast-clock">
-                                <div class="tv-broadcast-clock__header">
-                                    <span>@T("labels.matchClock")</span>
-                                    @if (IsClockLive())
-                                    {
-                                        <span class="tv-broadcast-clock__live">@T("labels.live")</span>
-                                    }
+                    @if (UseFootballFieldLayout && CurrentFieldState is not null)
+                    {
+                        <div class="tv-football-layout">
+                            <section class="tv-football-side tv-football-side--left">
+                                <div class="tv-football-side__logo">
+                                    <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
                                 </div>
-                                <strong>@DisplayClockPrimary()</strong>
-                                <small>@DisplayClockPhaseLabel()</small>
-                            </div>
+                                <span class="tv-football-side__symbol">@DisplayLeftTickerLabel()</span>
+                                <strong>@DisplayLeftName()</strong>
+                                <small>@DisplayLeftSymbol()</small>
+                                <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
+                            </section>
 
-                            <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
-                                <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
-                                <div class="tv-scoreboard__score">
-                                    <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
-                                    <span class="tv-scoreboard__versus">@T("vs")</span>
-                                    <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                            <section class="tv-football-center">
+                                <div class="tv-football-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                                    <span>@T("field.scoreboard")</span>
+                                    <div class="tv-football-scoreboard__score">
+                                        <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                                        <em>@T("vs")</em>
+                                        <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                                    </div>
+                                    <small>@T("field.remainingTime"): @DisplayClockPrimary()</small>
                                 </div>
-                                <small>@DisplayScoreContext()</small>
-                            </div>
-                        </div>
 
-                        <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
-                            <div class="tv-team__halo"></div>
-                            <div class="tv-team__logo-shell">
-                                <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
-                            </div>
-                            <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
-                            <strong>@DisplayRightName()</strong>
-                            <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                                <TvCryptoFootballField Culture="@Culture"
+                                                      FieldState="@CurrentFieldState"
+                                                      TeamALogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                      TeamBLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />
+                            </section>
+
+                            <section class="tv-football-side tv-football-side--right">
+                                <div class="tv-football-side__logo">
+                                    <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
+                                </div>
+                                <span class="tv-football-side__symbol">@DisplayRightTickerLabel()</span>
+                                <strong>@DisplayRightName()</strong>
+                                <small>@DisplayRightSymbol()</small>
+                                <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                            </section>
                         </div>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="tv-match-card__arena">
+                            <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
+                                <div class="tv-team__halo"></div>
+                                <div class="tv-team__logo-shell">
+                                    <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
+                                </div>
+                                <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
+                                <strong>@DisplayLeftName()</strong>
+                                <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
+                            </div>
+
+                            <div class="tv-center-hud">
+                                <div class="tv-broadcast-clock">
+                                    <div class="tv-broadcast-clock__header">
+                                        <span>@T("labels.matchClock")</span>
+                                        @if (IsClockLive())
+                                        {
+                                            <span class="tv-broadcast-clock__live">@T("labels.live")</span>
+                                        }
+                                    </div>
+                                    <strong>@DisplayClockPrimary()</strong>
+                                    <small>@DisplayClockPhaseLabel()</small>
+                                </div>
+
+                                <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                                    <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
+                                    <div class="tv-scoreboard__score">
+                                        <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                                        <span class="tv-scoreboard__versus">@T("vs")</span>
+                                        <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                                    </div>
+                                    <small>@DisplayScoreContext()</small>
+                                </div>
+                            </div>
+
+                            <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
+                                <div class="tv-team__halo"></div>
+                                <div class="tv-team__logo-shell">
+                                    <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
+                                </div>
+                                <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
+                                <strong>@DisplayRightName()</strong>
+                                <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                            </div>
+                        </div>
+                    }
 
                     <section class="tv-ai-commentary">
                         <div class="tv-ai-commentary__header">
-                            <span>@T("commentary.title")</span>
+                            <span>@(UseFootballFieldLayout ? T("field.arenaCommentary") : T("commentary.title"))</span>
                             <small>@DisplayCommentaryMeta()</small>
                         </div>
 
@@ -198,17 +243,36 @@
                         <strong>@DisplayPoolStatus()</strong>
                         <small>@DisplayVolume()</small>
                     </article>
+                    @if (UseFootballFieldLayout && CurrentFieldState is not null)
+                    {
+                        <article class="tv-telemetry__events">
+                            <span>@T("field.recentEvents")</span>
+                            <div class="tv-telemetry__events-list">
+                                @foreach (var item in CurrentFieldState.RecentEvents.Take(4))
+                                {
+                                    <div class="tv-telemetry__events-item @(item.IsHighlight ? "is-highlighted" : string.Empty)">
+                                        <strong>@item.ClockLabel</strong>
+                                        <div>
+                                            <span>@item.TeamSymbol</span>
+                                            <small>@item.Description</small>
+                                        </div>
+                                        <em>@item.ScoreLabel</em>
+                                    </div>
+                                }
+                            </div>
+                        </article>
+                    }
                 </aside>
             </div>
 
             <section class="tv-event-strip">
                 <article class="tv-event-strip__card">
-                    <span>@T("labels.eventZone")</span>
+                    <span>@(UseFootballFieldLayout ? T("field.eventZone") : T("labels.eventZone"))</span>
                     <strong>@DisplayEventHeadline()</strong>
                     <p>@DisplayReason()</p>
                 </article>
                 <article class="tv-event-strip__card tv-event-strip__card--accent">
-                    <span>@T("labels.marketDrivenArena")</span>
+                    <span>@(UseFootballFieldLayout ? T("field.marketGuidedArena") : T("labels.marketDrivenArena"))</span>
                     <strong>@DisplayPressureHeadline()</strong>
                     <p>@DisplayPressureBody()</p>
                 </article>
@@ -409,6 +473,7 @@ else
     private string _clockDebugSignature = string.Empty;
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
+    private IReadOnlyList<MatchScoreEventDto> _recentScoreEvents = [];
     private DateTime _clockAnchorUtc = DateTime.UtcNow;
     private double _clockAnchorRemainingMilliseconds;
     private DateTime _broadcastNoticeUntilUtc = DateTime.MinValue;
@@ -423,6 +488,7 @@ else
     private long? _lastTriggeredGoalEventId;
     private string _lastGoalTriggerSignature = string.Empty;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
+    private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
@@ -430,6 +496,9 @@ else
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
+    private TvFieldStateDto? CurrentFieldState => UseFootballFieldLayout && HasLiveMatch
+        ? FieldPositionService.BuildFieldState(Match, HotMatch, _recentScoreEvents, Culture)
+        : null;
     private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
 
@@ -500,6 +569,7 @@ else
             _lastAiNarrationMatchId = null;
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
+            _recentScoreEvents = [];
             return;
         }
 
@@ -515,6 +585,7 @@ else
             _lastAiNarrationRequestSignature = string.Empty;
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
+            _recentScoreEvents = [];
             _lastScoreEventMatchId = current.MatchId;
             _lastSeenScoreEventId = null;
             _lastTriggeredGoalEventId = null;
@@ -646,6 +717,10 @@ else
         try
         {
             var events = await Api.GetMatchScoreEventsAsync(matchId) ?? [];
+            _recentScoreEvents = events
+                .OrderByDescending(x => x.MatchScoreEventId)
+                .Take(5)
+                .ToList();
             var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
 
             if (_lastScoreEventMatchId != matchId || !_lastSeenScoreEventId.HasValue)
@@ -2342,6 +2417,109 @@ else
         width: min(100%, 320px);
     }
 
+    .tv-football-layout {
+        display: grid;
+        grid-template-columns: minmax(150px, .88fr) minmax(0, 2.2fr) minmax(150px, .88fr);
+        gap: 12px;
+        align-items: center;
+        min-height: 0;
+    }
+
+    .tv-football-side {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 10px;
+        text-align: center;
+        padding: 12px 8px;
+    }
+
+    .tv-football-side__logo {
+        width: clamp(92px, 8vw, 128px);
+        height: clamp(92px, 8vw, 128px);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        border: 1px solid rgba(255,255,255,0.08);
+        background:
+            radial-gradient(circle at 28% 28%, rgba(255,255,255,0.14), transparent 44%),
+            linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        box-shadow: 0 16px 38px rgba(0,0,0,0.24);
+        overflow: hidden;
+    }
+
+    .tv-football-side__logo img {
+        width: 72%;
+        height: 72%;
+        object-fit: contain;
+    }
+
+    .tv-football-side__symbol {
+        color: var(--tv-green);
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        font-size: .78rem;
+        font-weight: 900;
+    }
+
+    .tv-football-side strong {
+        font-size: clamp(1.4rem, 2vw, 2.6rem);
+        line-height: 1.02;
+        letter-spacing: -.04em;
+    }
+
+    .tv-football-side small {
+        color: var(--tv-muted);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .tv-football-center {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .tv-football-scoreboard {
+        display: grid;
+        justify-items: center;
+        gap: 8px;
+        padding: 14px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background:
+            radial-gradient(circle at top, rgba(88, 255, 196, 0.08), transparent 44%),
+            linear-gradient(180deg, rgba(9, 14, 24, 0.96), rgba(7, 10, 18, 0.98));
+    }
+
+    .tv-football-scoreboard > span,
+    .tv-football-scoreboard small {
+        color: var(--tv-muted);
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-size: .72rem;
+        font-weight: 800;
+    }
+
+    .tv-football-scoreboard__score {
+        display: inline-flex;
+        align-items: center;
+        gap: 18px;
+        font-size: clamp(2rem, 4vw, 4.3rem);
+        font-weight: 900;
+        letter-spacing: -.08em;
+    }
+
+    .tv-football-scoreboard__score em {
+        color: rgba(255,255,255,0.46);
+        font-style: normal;
+        font-size: .48em;
+        letter-spacing: .24em;
+        text-indent: .24em;
+    }
+
     .tv-team {
         --team-accent: #53c8ff;
         --team-shadow: rgba(83, 200, 255, 0.24);
@@ -2595,6 +2773,55 @@ else
         border-color: rgba(127, 246, 223, 0.34);
         background: rgba(14, 28, 34, 0.72);
         box-shadow: 0 12px 26px rgba(0,0,0,0.22);
+    }
+
+    .tv-telemetry__events {
+        grid-column: 1 / -1;
+        align-content: start;
+    }
+
+    .tv-telemetry__events-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .tv-telemetry__events-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.03);
+    }
+
+    .tv-telemetry__events-item.is-highlighted {
+        border-color: rgba(127, 246, 223, 0.22);
+        background: rgba(11, 23, 32, 0.72);
+    }
+
+    .tv-telemetry__events-item strong,
+    .tv-telemetry__events-item em {
+        font-size: .78rem;
+        color: #eef8ff;
+        font-style: normal;
+        letter-spacing: .04em;
+    }
+
+    .tv-telemetry__events-item div {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .tv-telemetry__events-item span {
+        font-size: .68rem;
+    }
+
+    .tv-telemetry__events-item small {
+        line-height: 1.3;
+        font-size: .75rem;
     }
 
     .tv-telemetry article:nth-child(2) {
@@ -3126,6 +3353,34 @@ else
         gap: 10px;
     }
 
+    .tv-stage--broadcast .tv-football-layout {
+        grid-template-columns: minmax(128px, .82fr) minmax(0, 2.35fr) minmax(128px, .82fr);
+        gap: 10px;
+    }
+
+    .tv-stage--broadcast .tv-football-side {
+        gap: 8px;
+        padding: 8px 6px;
+    }
+
+    .tv-stage--broadcast .tv-football-side__logo {
+        width: clamp(72px, 7vw, 106px);
+        height: clamp(72px, 7vw, 106px);
+    }
+
+    .tv-stage--broadcast .tv-football-side strong {
+        font-size: clamp(1.1rem, 1.7vw, 2rem);
+    }
+
+    .tv-stage--broadcast .tv-football-scoreboard {
+        padding: 12px 14px;
+        gap: 6px;
+    }
+
+    .tv-stage--broadcast .tv-football-scoreboard__score {
+        font-size: clamp(1.65rem, 3vw, 3.2rem);
+    }
+
     .tv-stage--broadcast .tv-match-card__meta {
         font-size: .7rem;
     }
@@ -3165,6 +3420,16 @@ else
     .tv-stage--broadcast .tv-telemetry strong,
     .tv-stage--broadcast .tv-event-strip__card strong {
         font-size: 1rem;
+    }
+
+    .tv-stage--broadcast .tv-telemetry__events-item {
+        padding: 8px 10px;
+    }
+
+    .tv-stage--broadcast .tv-telemetry__events-item strong,
+    .tv-stage--broadcast .tv-telemetry__events-item em,
+    .tv-stage--broadcast .tv-telemetry__events-item small {
+        font-size: .72rem;
     }
 
     .tv-stage--broadcast .tv-telemetry small,
@@ -3239,6 +3504,10 @@ else
         .tv-match-card__arena {
             min-height: 0;
         }
+
+        .tv-football-layout {
+            grid-template-columns: 1fr;
+        }
     }
 
     @@media (max-width: 860px) {
@@ -3253,6 +3522,19 @@ else
 
         .tv-match-card__arena {
             grid-template-columns: 1fr;
+        }
+
+        .tv-football-layout {
+            grid-template-columns: 1fr;
+            gap: 14px;
+        }
+
+        .tv-football-side {
+            order: 2;
+        }
+
+        .tv-football-center {
+            order: 1;
         }
 
         .tv-center-hud {

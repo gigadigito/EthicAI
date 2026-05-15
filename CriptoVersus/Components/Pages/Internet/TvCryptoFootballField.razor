@@ -1,0 +1,96 @@
+@using System.Globalization
+@using CriptoVersus.Web.Services
+@inject IWebHostEnvironment Environment
+@inject LocalizationService L
+
+<div class="tv-field">
+    <div class="tv-field__surface tv-field__surface--@(HasFieldAsset ? "asset" : "fallback")">
+        @if (HasFieldAsset)
+        {
+            <img class="tv-field__asset" src="@FieldAssetPath" alt="" />
+        }
+
+        <div class="tv-field__overlay">
+            @if (!HasFieldAsset)
+            {
+                <div class="tv-field__line tv-field__line--frame"></div>
+                <div class="tv-field__line tv-field__line--mid"></div>
+                <div class="tv-field__circle"></div>
+                <div class="tv-field__box tv-field__box--left"></div>
+                <div class="tv-field__box tv-field__box--right"></div>
+                <div class="tv-field__goal tv-field__goal--left"></div>
+                <div class="tv-field__goal tv-field__goal--right"></div>
+            }
+
+            @foreach (var player in FieldState.PlayerPositions)
+            {
+                var isLeftTeam = string.Equals(player.TeamSymbol, FieldState.TeamA, StringComparison.OrdinalIgnoreCase);
+                <div class="tv-field__player @(isLeftTeam ? "is-left" : "is-right") @(player.IsHighlighted ? "is-highlighted" : string.Empty) @(player.HasBall ? "has-ball" : string.Empty) @(IsMomentumPlayer(player) ? "has-momentum" : string.Empty)"
+                     style="left:@player.XPercent.ToString("0.##", CultureInfo.InvariantCulture)%; top:@player.YPercent.ToString("0.##", CultureInfo.InvariantCulture)%;">
+                    @if (HasTeamLogo(player))
+                    {
+                        <img src="@ResolveTeamLogo(player)" alt="" />
+                    }
+                    else
+                    {
+                        <span>@ResolveTeamText(player)</span>
+                    }
+
+                    @if (player.HasBall)
+                    {
+                        <i class="tv-field__ball"></i>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="tv-field__possession">
+        <span class="tv-field__label">@T("field.possession")</span>
+        <div class="tv-field__possession-bar">
+            <strong>@FieldState.TeamA @FieldState.PossessionA%</strong>
+            <div class="tv-field__possession-track">
+                <i class="tv-field__possession-fill tv-field__possession-fill--left" style="width:@FieldState.PossessionA%;"></i>
+                <i class="tv-field__possession-fill tv-field__possession-fill--right" style="width:@FieldState.PossessionB%;"></i>
+            </div>
+            <strong>@FieldState.TeamB @FieldState.PossessionB%</strong>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public TvFieldStateDto FieldState { get; set; } = new();
+    [Parameter] public string TeamALogoUrl { get; set; } = string.Empty;
+    [Parameter] public string TeamBLogoUrl { get; set; } = string.Empty;
+    [Parameter] public string FieldAssetPath { get; set; } = "/images/tv/campo.png";
+
+    private bool HasFieldAsset
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Environment.WebRootPath) || string.IsNullOrWhiteSpace(FieldAssetPath))
+                return false;
+
+            var relativePath = FieldAssetPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            return File.Exists(Path.Combine(Environment.WebRootPath, relativePath));
+        }
+    }
+
+    private bool HasTeamLogo(TvFieldPlayerPosition player)
+        => !string.IsNullOrWhiteSpace(ResolveTeamLogo(player));
+
+    private string ResolveTeamLogo(TvFieldPlayerPosition player)
+        => string.Equals(player.TeamSymbol, FieldState.TeamA, StringComparison.OrdinalIgnoreCase)
+            ? TeamALogoUrl
+            : TeamBLogoUrl;
+
+    private string ResolveTeamText(TvFieldPlayerPosition player)
+        => player.TeamSymbol.Length <= 4 ? player.TeamSymbol : player.TeamSymbol[..Math.Min(3, player.TeamSymbol.Length)];
+
+    private bool IsMomentumPlayer(TvFieldPlayerPosition player)
+        => string.Equals(player.TeamSymbol, FieldState.MomentumOwner, StringComparison.OrdinalIgnoreCase);
+
+    private string T(string key, params object?[] args)
+        => L.T($"tv.{key}", Culture, args);
+}

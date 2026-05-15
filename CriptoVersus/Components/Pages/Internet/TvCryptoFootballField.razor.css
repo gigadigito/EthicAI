@@ -1,0 +1,239 @@
+.tv-field {
+    display: grid;
+    gap: 12px;
+}
+
+.tv-field__surface {
+    position: relative;
+    aspect-ratio: 16 / 8.4;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(127, 246, 223, 0.18);
+    background:
+        radial-gradient(circle at center, rgba(127, 246, 223, 0.08), transparent 44%),
+        linear-gradient(180deg, rgba(6, 15, 10, 0.96), rgba(4, 10, 8, 0.98));
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.02),
+        0 24px 70px rgba(0,0,0,0.38);
+}
+
+.tv-field__surface--asset::before,
+.tv-field__surface--fallback::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 8% 50%, rgba(255, 164, 31, 0.2), transparent 32%),
+        radial-gradient(circle at 92% 50%, rgba(44, 238, 255, 0.18), transparent 32%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.tv-field__asset {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(1.05) brightness(0.96);
+}
+
+.tv-field__overlay {
+    position: relative;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+
+.tv-field__surface--fallback {
+    background:
+        linear-gradient(90deg, rgba(255, 166, 0, 0.08), transparent 12%, transparent 88%, rgba(0, 255, 249, 0.08)),
+        repeating-linear-gradient(
+            90deg,
+            rgba(46, 108, 54, 0.92) 0%,
+            rgba(46, 108, 54, 0.92) 8%,
+            rgba(34, 86, 41, 0.96) 8%,
+            rgba(34, 86, 41, 0.96) 16%
+        );
+}
+
+.tv-field__line,
+.tv-field__circle,
+.tv-field__box,
+.tv-field__goal {
+    position: absolute;
+    border: 2px solid rgba(219, 255, 239, 0.76);
+    opacity: 0.8;
+}
+
+.tv-field__line--frame {
+    inset: 6% 5%;
+    border-radius: 26px;
+}
+
+.tv-field__line--mid {
+    top: 6%;
+    bottom: 6%;
+    left: 50%;
+    width: 0;
+    border-width: 0 0 0 2px;
+}
+
+.tv-field__circle {
+    top: 31%;
+    left: 41%;
+    width: 18%;
+    height: 38%;
+    border-radius: 50%;
+}
+
+.tv-field__box {
+    top: 22%;
+    width: 12%;
+    height: 56%;
+}
+
+.tv-field__box--left {
+    left: 5%;
+}
+
+.tv-field__box--right {
+    right: 5%;
+}
+
+.tv-field__goal {
+    top: 35%;
+    width: 2%;
+    height: 30%;
+}
+
+.tv-field__goal--left {
+    left: 3%;
+}
+
+.tv-field__goal--right {
+    right: 3%;
+}
+
+.tv-field__player {
+    position: absolute;
+    width: clamp(28px, 2.1vw, 42px);
+    height: clamp(28px, 2.1vw, 42px);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition:
+        left 1s ease,
+        top 1s ease,
+        transform 1s ease,
+        box-shadow .4s ease,
+        filter .4s ease;
+    border: 2px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(8px);
+}
+
+.tv-field__player img,
+.tv-field__player span {
+    width: 72%;
+    height: 72%;
+    object-fit: contain;
+    font-size: .62rem;
+    font-weight: 900;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+}
+
+.tv-field__player.is-left {
+    background: radial-gradient(circle at 32% 30%, rgba(255, 201, 112, 0.96), rgba(255, 140, 0, 0.86));
+    box-shadow: 0 0 0 4px rgba(255, 166, 0, 0.08), 0 0 22px rgba(255, 166, 0, 0.32);
+}
+
+.tv-field__player.is-right {
+    background: radial-gradient(circle at 32% 30%, rgba(120, 255, 252, 0.96), rgba(63, 81, 255, 0.84));
+    box-shadow: 0 0 0 4px rgba(32, 226, 255, 0.08), 0 0 22px rgba(32, 226, 255, 0.3);
+}
+
+.tv-field__player.has-momentum {
+    animation: tvFieldPulse 2.4s ease-in-out infinite;
+}
+
+.tv-field__player.is-highlighted {
+    filter: saturate(1.15) brightness(1.08);
+    transform: translate(-50%, -50%) scale(1.12);
+}
+
+.tv-field__player.has-ball {
+    box-shadow:
+        0 0 0 4px rgba(255,255,255,0.08),
+        0 0 32px rgba(255,255,255,0.24);
+}
+
+.tv-field__ball {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff, #d8e6ef);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.16);
+}
+
+.tv-field__possession {
+    display: grid;
+    gap: 8px;
+}
+
+.tv-field__label {
+    color: #a7ffea;
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    font-size: .72rem;
+    font-weight: 900;
+    text-align: center;
+}
+
+.tv-field__possession-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px;
+    align-items: center;
+    color: #ecf8ff;
+    font-weight: 900;
+}
+
+.tv-field__possession-track {
+    position: relative;
+    display: flex;
+    height: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.tv-field__possession-fill {
+    display: block;
+    height: 100%;
+}
+
+.tv-field__possession-fill--left {
+    background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
+}
+
+.tv-field__possession-fill--right {
+    background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
+}
+
+@keyframes tvFieldPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(1.08);
+    }
+}
