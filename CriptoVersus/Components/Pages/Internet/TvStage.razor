@@ -1708,10 +1708,14 @@ else
         --tv-yellow: #ffd76e;
         --tv-border: rgba(118, 143, 190, 0.16);
         position: relative;
-        min-height: 100vh;
+        display: grid;
+        align-content: start;
+        grid-auto-rows: max-content;
+        gap: 12px;
+        min-height: 100svh;
         overflow: hidden;
         color: var(--tv-text);
-        padding: clamp(20px, 2vw, 34px);
+        padding: clamp(18px, 1.8vw, 30px);
         background:
             linear-gradient(180deg, rgba(4, 8, 18, 0.95), rgba(3, 7, 15, 0.98)),
             radial-gradient(circle at top left, rgba(83, 200, 255, 0.18), transparent 24%),
@@ -1724,7 +1728,9 @@ else
     }
 
     .tv-stage--broadcast {
-        padding: clamp(14px, 1.2vw, 20px);
+        gap: 10px;
+        min-height: 100svh;
+        padding: clamp(12px, 1vw, 18px);
     }
 
     .tv-stage__backdrop {
@@ -1798,7 +1804,7 @@ else
         justify-content: space-between;
         gap: 16px;
         align-items: flex-start;
-        margin-bottom: 18px;
+        margin-bottom: 0;
     }
 
     .tv-stage__eyebrow {
@@ -1915,7 +1921,7 @@ else
     .tv-stage__grid {
         display: grid;
         grid-template-columns: minmax(0, 1.5fr) minmax(320px, .72fr);
-        gap: 18px;
+        gap: 14px;
         align-items: stretch;
     }
 
@@ -1932,7 +1938,7 @@ else
     .tv-match-card {
         padding: 22px;
         display: grid;
-        gap: 18px;
+        gap: 16px;
         position: relative;
         overflow: hidden;
     }
@@ -2269,7 +2275,7 @@ else
         padding: 16px;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
     }
 
     .tv-telemetry article,
@@ -2349,10 +2355,9 @@ else
     }
 
     .tv-event-strip {
-        margin-top: 18px;
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
+        gap: 14px;
     }
 
     .tv-event-strip__card {
@@ -2401,7 +2406,7 @@ else
     .tv-waiting-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
+        gap: 14px;
     }
 
     .tv-panel {
@@ -2740,12 +2745,11 @@ else
 }
 
     .tv-ticker {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        position: relative;
+        margin-top: 2px;
         overflow: hidden;
         border-top: 1px solid rgba(255,255,255,0.08);
+        border-radius: 22px;
         background:
             linear-gradient(90deg, rgba(6, 11, 20, 0.96), rgba(10, 15, 27, 0.98)),
             radial-gradient(circle at top, rgba(83, 200, 255, 0.08), transparent 52%);
@@ -2790,7 +2794,7 @@ else
 
     .tv-stage--broadcast .tv-stage__topbar,
     .tv-stage--broadcast .tv-waiting-hero {
-        margin-bottom: 12px;
+        margin-bottom: 0;
     }
 
     .tv-stage--broadcast h1,
@@ -2809,12 +2813,12 @@ else
     }
 
     .tv-stage--broadcast .tv-stage__grid {
-        gap: 12px;
+        gap: 10px;
     }
 
     .tv-stage--broadcast .tv-match-card {
-        padding: 16px;
-        gap: 12px;
+        padding: 15px;
+        gap: 10px;
     }
 
     .tv-stage--broadcast .tv-match-card__meta {
@@ -2822,7 +2826,7 @@ else
     }
 
     .tv-stage--broadcast .tv-match-card__arena {
-        gap: 12px;
+        gap: 10px;
     }
 
     .tv-stage--broadcast .tv-broadcast-clock {
@@ -2840,12 +2844,12 @@ else
     }
 
     .tv-stage--broadcast .tv-telemetry {
-        gap: 8px;
+        gap: 7px;
     }
 
     .tv-stage--broadcast .tv-telemetry article {
-        min-height: 76px;
-        padding: 10px 12px;
+        min-height: 70px;
+        padding: 9px 11px;
     }
 
     .tv-stage--broadcast .tv-telemetry strong,
@@ -2859,17 +2863,20 @@ else
     }
 
     .tv-stage--broadcast .tv-event-strip {
-        gap: 10px;
-        margin-top: 10px;
+        gap: 8px;
     }
 
     .tv-stage--broadcast .tv-event-strip__card {
-        padding: 14px 16px;
+        padding: 12px 14px;
+    }
+
+    .tv-stage--broadcast .tv-ticker {
+        margin-top: 0;
     }
 
     .tv-stage--broadcast .tv-ticker__lane {
-        gap: 18px;
-        padding: 11px 16px;
+        gap: 16px;
+        padding: 10px 14px;
     }
 
     .tv-stage--broadcast .tv-ticker__item {
@@ -2926,7 +2933,8 @@ else
 
     @@media (max-width: 860px) {
         .tv-stage {
-            padding: 16px 16px 92px;
+            gap: 10px;
+            padding: 16px;
         }
 
         .tv-stage__topbar {
