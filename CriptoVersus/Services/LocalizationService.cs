@@ -70,8 +70,31 @@ public sealed class LocalizationService
         foreach (var filePath in Directory.GetFiles(contentRootPath, "i18n.*.json", SearchOption.TopDirectoryOnly))
         {
             var fileName = Path.GetFileNameWithoutExtension(filePath);
-            var cultureCode = fileName["i18n.".Length..];
+            var segments = fileName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length != 2 || !segments[0].Equals("i18n", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var cultureCode = segments[1];
             result[cultureCode] = JsonNode.Parse(File.ReadAllText(filePath));
+        }
+
+        foreach (var filePath in Directory.GetFiles(contentRootPath, "i18n.*.*.json", SearchOption.TopDirectoryOnly))
+        {
+            var fileName = Path.GetFileNameWithoutExtension(filePath);
+            var segments = fileName.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (segments.Length != 3 || !segments[0].Equals("i18n", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var sectionName = segments[1];
+            var cultureCode = segments[2];
+            if (!result.TryGetValue(cultureCode, out var root) || root is not JsonObject rootObject)
+                continue;
+
+            var extensionRoot = JsonNode.Parse(File.ReadAllText(filePath));
+            if (extensionRoot is null)
+                continue;
+
+            rootObject[sectionName] = extensionRoot;
         }
 
         return result;
