@@ -206,7 +206,7 @@ public sealed class TvFieldPositionService
         // Future versions can replace this with movement driven by snapshots/candles.
         var heatFactor = Math.Clamp((hotScore - 50d) / 50d, 0d, 1d);
         var balanceFactor = Math.Clamp((competitiveness - 60d) / 40d, 0d, 1d);
-        var possessionPush = ((possession - 50d) / 15d) * 5.5d;
+        var possessionPush = ((possession - 50d) / 15d) * 10.5d;
         var variationPush = (double)(variation ?? 0m) * 1.8d;
         var leadPush = string.Equals(leader, teamSymbol, StringComparison.OrdinalIgnoreCase) ? 3.2d : -2.8d;
         var momentumPush = string.Equals(momentumOwner, teamSymbol, StringComparison.OrdinalIgnoreCase) ? 2.8d : -1.1d;
@@ -222,9 +222,10 @@ public sealed class TvFieldPositionService
             var rowAttackWeight = i switch
             {
                 0 => 0d,
-                1 or 2 or 3 => 0.45d,
-                4 or 5 => 0.8d,
-                _ => 1d
+                1 => 0.35d,
+                2 or 3 => 0.55d,
+                4 or 5 => 1.05d,
+                _ => 1.35d
             };
 
             var xBase = leftBase + (xLines[i] * leftDirection);
@@ -343,7 +344,8 @@ public sealed class TvFieldPositionService
 
     private static double BuildJitter(string teamSymbol, int index, int hotScore, bool isXAxis)
     {
-        var seed = $"{teamSymbol}:{index}:{(isXAxis ? "x" : "y")}";
+        var tick = DateTime.UtcNow.Second / 4;
+        var seed = $"{teamSymbol}:{index}:{(isXAxis ? "x" : "y")}:{tick}";
         var hash = seed.Aggregate(17, (current, ch) => (current * 31) + ch);
         var normalized = Math.Sin(hash) * 0.5d + 0.5d;
         var amplitude = hotScore >= 75 ? 2.6d : 1.2d;

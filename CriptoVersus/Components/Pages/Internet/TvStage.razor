@@ -97,7 +97,10 @@
                                         <em>@T("vs")</em>
                                         <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
                                     </div>
-                                    <small>@T("field.remainingTime"): @DisplayClockPrimary()</small>
+                                    <div class="tv-football-scoreboard__clock">
+                                        <strong>@DisplayClockPrimary()</strong>
+                                        <span>@T("field.remainingTime")</span>
+                                    </div>
                                 </div>
 
                                 <TvCryptoFootballField Culture="@Culture"
@@ -207,21 +210,13 @@
                         <strong>@DisplayMomentum()</strong>
                         <small>@DisplayMomentumSupportLine()</small>
                     </article>
-                    <article>
-                        <span>@T("labels.remainingTime")</span>
-                        <strong>@DisplayRemainingTime()</strong>
-                        <small>@T("labels.arenaCycle")</small>
-                    </article>
+                
                     <article>
                         <span>@T("labels.reason")</span>
                         <strong>@T("labels.liveRewardDynamics")</strong>
                         <small>@DisplayReason()</small>
                     </article>
-                    <article>
-                        <span>@T("labels.leader")</span>
-                        <strong>@DisplayLeaderSymbol()</strong>
-                        <small>@T("labels.assetPerformance")</small>
-                    </article>
+                
                     <article>
                         <span>@T("labels.pressure")</span>
                         <strong>@DisplayPressureSymbol()</strong>
@@ -283,15 +278,38 @@
             </section>
 
             @if (_tickerItems.Count > 0)
+
             {
                 <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
                     <div class="tv-ticker__track">
                         @for (var repetition = 0; repetition < 2; repetition++)
+
                         {
                             <div class="tv-ticker__lane">
+                                <span class="tv-ticker__live">AO VIVO</span>
+
                                 @foreach (var item in _tickerItems)
+
                                 {
-                                    <span class="tv-ticker__item">@item</span>
+                                    <span class="tv-ticker__dot"></span>
+                                    @if (item.Contains("CRIPTOVERSUS.COM", StringComparison.OrdinalIgnoreCase))
+
+                                    {
+
+                                        var parts = item.Split("CRIPTOVERSUS.COM", StringSplitOptions.None);
+
+                                        <span class="tv-ticker__item">
+                                            @parts[0]
+                                            <span class="tv-ticker__highlight">CRIPTOVERSUS.COM</span>
+                                            @(parts.Length > 1 ? parts[1] : string.Empty)
+                                        </span>
+                                    }
+
+                                    else
+
+                                    {
+                                        <span class="tv-ticker__item">@item</span>
+                                    }
                                 }
                             </div>
                         }
@@ -2054,6 +2072,37 @@ else
 }
 
 <style>
+.tv-field__ball {
+    position: absolute;
+    right: -10px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 35% 30%, #ffffff 0 18%, #dff6ff 19% 42%, #111827 43% 48%, #f8fbff 49% 100%);
+    box-shadow:
+        0 0 10px rgba(255,255,255,.75),
+        0 8px 12px rgba(0,0,0,.35);
+    animation: tvBallBounce .55s ease-in-out infinite;
+}
+
+@@keyframes tvBallBounce {
+    0%, 100% {
+        transform: translateY(0) scaleX(1.08) scaleY(.92);
+    }
+
+    45% {
+        transform: translateY(-18px) scaleX(.92) scaleY(1.08);
+    }
+
+    70% {
+        transform: translateY(-6px) scaleX(1) scaleY(1);
+    }
+}
+    .tv-field__player {
+        transition: left 1.2s ease, top 1.2s ease, transform .25s ease;
+    }
     .tv-stage {
         --tv-text: #f3f7ff;
         --tv-muted: #9cb4d1;
@@ -2152,6 +2201,11 @@ else
         z-index: 1;
     }
 
+    .tv-ticker__highlight {
+        color: #ffb400;
+        font-weight: 1000;
+        text-shadow: 0 0 10px rgba(255, 180, 0, .55), 0 0 20px rgba(255, 180, 0, .28);
+    }
     .tv-stage__broadcast-shell {
         position: relative;
         z-index: 1;
@@ -2439,6 +2493,34 @@ else
         width: min(100%, 320px);
     }
 
+    .tv-football-scoreboard small {
+        display: none;
+    }
+
+    .tv-football-scoreboard__clock {
+        display: grid;
+        justify-items: center;
+        gap: 2px;
+        margin-top: -4px;
+    }
+
+        .tv-football-scoreboard__clock strong {
+            color: #35ff7a;
+            font-size: clamp(1.5rem, 2.2vw, 2.2rem);
+            line-height: 1;
+            font-weight: 1000;
+            letter-spacing: -.04em;
+            font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 16px rgba(53, 255, 122, .35);
+        }
+
+        .tv-football-scoreboard__clock span {
+            color: rgba(235, 245, 255, .72);
+            font-size: .72rem;
+            font-weight: 900;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
     .tv-football-layout {
         display: grid;
         grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(180px, 220px);
@@ -3372,52 +3454,78 @@ else
 }
 
     .tv-ticker {
-        position: relative;
-        margin-top: 2px;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        height: 34px;
+        margin: 0;
         overflow: hidden;
-        border-top: 1px solid rgba(255,255,255,0.08);
-        border-radius: 22px;
-        background:
-            linear-gradient(90deg, rgba(6, 11, 20, 0.96), rgba(10, 15, 27, 0.98)),
-            radial-gradient(circle at top, rgba(83, 200, 255, 0.08), transparent 52%);
-        backdrop-filter: blur(12px);
+        border-radius: 0;
+        border-top: 1px solid rgba(83, 200, 255, .16);
+        background: rgba(2, 7, 14, .98);
+        backdrop-filter: blur(10px);
     }
 
     .tv-ticker__track {
+        height: 100%;
         display: flex;
         width: max-content;
-        animation: tvTicker 30s linear infinite;
-        will-change: transform;
+        animation: tvTicker 42s linear infinite;
     }
 
+    .tv-ticker__item.is-highlight {
+        color: #ffb400;
+        font-weight: 1000;
+        letter-spacing: .08em;
+        text-shadow: 0 0 12px rgba(255, 196, 0, .65), 0 0 24px rgba(255, 196, 0, .35);
+    }
     .tv-ticker__lane {
+        height: 100%;
         display: flex;
         align-items: center;
-        gap: 22px;
-        padding: 14px 20px;
+        gap: 10px;
+        padding: 0 12px;
         white-space: nowrap;
     }
 
-    .tv-ticker__item {
-        position: relative;
+    .tv-ticker__live {
         display: inline-flex;
         align-items: center;
-        gap: 22px;
-        color: #dbe8f7;
-        font-size: .84rem;
-        letter-spacing: .14em;
+        height: 24px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #ff3045;
+        color: #fff;
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .06em;
         text-transform: uppercase;
-        font-weight: 800;
     }
 
-    .tv-ticker__item::after {
-        content: "";
-        width: 6px;
-        height: 6px;
+    .tv-ticker__dot {
+        width: 4px;
+        height: 4px;
         border-radius: 50%;
-        background: rgba(127, 246, 223, 0.64);
-        box-shadow: 0 0 0 6px rgba(127, 246, 223, 0.08);
+        background: #19d8a8;
+        box-shadow: 0 0 8px rgba(25, 216, 168, .8);
+        flex: 0 0 auto;
     }
+
+    .tv-ticker__item {
+        display: inline-flex;
+        align-items: center;
+        color: #f2f7ff;
+        font-size: .76rem;
+        font-weight: 900;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
+
+        .tv-ticker__item::after {
+            content: none;
+        }
 
     .tv-stage--broadcast .tv-stage__topbar,
     .tv-stage--broadcast .tv-waiting-hero {
