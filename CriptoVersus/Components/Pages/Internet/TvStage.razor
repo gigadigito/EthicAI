@@ -2542,11 +2542,9 @@ else
         margin: 0 auto -24px;
         padding: 14px 22px 18px;
         border-radius: 24px;
-        border: 1px solid rgba(255,255,255,0.08);
-        background:
-            radial-gradient(circle at top, rgba(88, 255, 196, 0.1), transparent 44%),
-            linear-gradient(180deg, rgba(9, 14, 24, 0.97), rgba(7, 10, 18, 0.99));
-        box-shadow: 0 20px 44px rgba(0,0,0,0.3);
+        border: none;
+        background: transparent;
+        box-shadow: none;
         z-index: 3;
     }
 
@@ -2576,6 +2574,19 @@ else
         text-indent: .24em;
     }
 
+        .tv-football-scoreboard__score strong:first-child {
+            color: #ff9100;
+            text-shadow: 0 0 24px rgba(255, 145, 0, .45);
+        }
+
+        .tv-football-scoreboard__score strong:last-child {
+            color: #18d8d2;
+            text-shadow: 0 0 24px rgba(24, 216, 210, .45);
+        }
+
+        .tv-football-scoreboard__score em {
+            color: rgba(180, 190, 210, .45);
+        }
     .tv-team {
         --team-accent: #53c8ff;
         --team-shadow: rgba(83, 200, 255, 0.24);
