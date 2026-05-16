@@ -89,7 +89,7 @@
     display: block;
 }
 
-@media (min-width: 641px) {
+@media (min-width: 1181px) {
     .navbar-toggler {
         display: none;
     }
@@ -278,7 +278,7 @@
     padding-bottom: 4rem;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
     .brand-block {
         padding-right: 5.25rem;
     }
@@ -293,7 +293,7 @@
     }
 }
 
-@media (min-width: 641px) and (max-width: 900px) {
+@media (min-width: 641px) and (max-width: 1180px) {
     .nav-scrollable {
         height: auto;
         max-height: none;
