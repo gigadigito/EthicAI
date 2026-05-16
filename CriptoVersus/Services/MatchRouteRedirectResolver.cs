@@ -21,6 +21,9 @@ public sealed class MatchRouteRedirectResolver
         if (cleanPath.Equals("/roadmap", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildRoadmapPath(preferredCulture), queryString);
 
+        if (cleanPath.Equals("/faq", StringComparison.OrdinalIgnoreCase))
+            return AppendQueryString(routeLocalization.BuildFaqPath(preferredCulture), queryString);
+
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase))
             return AppendQueryString(routeLocalization.BuildHowItWorksPath(preferredCulture), queryString);
 
@@ -65,6 +68,19 @@ public sealed class MatchRouteRedirectResolver
             var canonicalHowItWorksPath = routeLocalization.BuildHowItWorksPath(explicitCulture);
             if (!cleanPath.Equals(canonicalHowItWorksPath, StringComparison.OrdinalIgnoreCase))
                 return AppendQueryString(canonicalHowItWorksPath, queryString);
+
+            return null;
+        }
+
+        if (cleanPath.Equals("/en/faq", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase))
+        {
+            var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
+                ?? preferredCulture;
+
+            var canonicalFaqPath = routeLocalization.BuildFaqPath(explicitCulture);
+            if (!cleanPath.Equals(canonicalFaqPath, StringComparison.OrdinalIgnoreCase))
+                return AppendQueryString(canonicalFaqPath, queryString);
 
             return null;
         }

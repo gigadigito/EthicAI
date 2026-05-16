@@ -1,0 +1,95 @@
+﻿{
+  "seo": {
+    "title": "CriptoVersus FAQ | Strategic Arena Guide",
+    "description": "Understand how CriptoVersus works as a gamified crypto arena: positions, risk, score, pools, momentum, fear gauge, volatility and strategic match reading."
+  },
+  "hero": {
+    "eyebrow": "Strategic understanding hub",
+    "title": "CriptoVersus FAQ",
+    "description": "A fast strategic manual for reading the arena, understanding positions, respecting risk and following market-driven matches without treating the system like a casino.",
+    "chipsLabel": "Strategic topics",
+    "chips": {
+      "strategy": "Strategy",
+      "risk": "Risk",
+      "momentum": "Momentum",
+      "poolDynamics": "Pool dynamics",
+      "liveReading": "Live reading"
+    },
+    "cards": {
+      "liveReadingLabel": "Live reading",
+      "liveReadingTitle": "The arena follows market behavior",
+      "liveReadingBody": "Score, pressure and narrative come from relative asset performance, not from random spins.",
+      "riskLabel": "Risk",
+      "riskTitle": "Volatility remains real",
+      "riskBody": "A strong asset can still lose a cycle, and bad reading can erode capital over time.",
+      "strategyLabel": "Strategy",
+      "strategyTitle": "Read the match before choosing a side",
+      "strategyBody": "Momentum, pool behavior, volatility and fear can all change the quality of an entry."
+    }
+  },
+  "summary": {
+    "quickStartLabel": "Quick start",
+    "quickStartTitle": "Pick a side, not a promise",
+    "quickStartBody": "Opening a position means taking exposure to one side of a market-driven arena cycle.",
+    "marketLogicLabel": "Market logic",
+    "marketLogicTitle": "The scoreboard abstracts relative performance",
+    "marketLogicBody": "Assets behave like rivals because the system translates comparative moves into pressure and score.",
+    "noPromiseLabel": "No promises",
+    "noPromiseTitle": "There is no guaranteed profit",
+    "noPromiseBody": "CriptoVersus is strategic, but assets remain volatile and poor positioning can still hurt."
+  },
+  "sections": {
+    "basics": {
+      "eyebrow": "Core questions",
+      "title": "How the arena works in practice",
+      "description": "Short answers for beginners who need to understand positions, score, pools and risk quickly."
+    },
+    "deep": {
+      "eyebrow": "Deeper reading",
+      "title": "Advanced strategic questions",
+      "description": "A more conceptual view for users who want to think in terms of market structure, reversals and sentiment."
+    }
+  },
+  "structuredData": {
+    "breadcrumbFaq": "FAQ"
+  },
+  "footnote": {
+    "title": "Important context",
+    "body": "CriptoVersus is a gamified arena built on real asset performance. It is not a promise of profit, and it should not be treated as risk-free exposure."
+  },
+  "items": [
+    { "id": "betting-team", "group": "basics", "category": "Positions", "icon": "S", "tone": "green", "question": "What does it mean to bet on a team?", "answer": "In CriptoVersus, a team is an asset side inside a live arena. Opening a position means taking strategic exposure to that asset inside a cycle, expecting it to outperform its rival on the metrics that drive the match." },
+    { "id": "score-calculated", "group": "basics", "category": "Score", "icon": "9", "tone": "cyan", "question": "How is the scoreboard calculated?", "answer": "The scoreboard is not random. It is derived from relative market behavior, using the configured match rules to convert comparative performance, pressure and event logic into points." },
+    { "id": "lose-all", "group": "basics", "category": "Risk", "icon": "R", "tone": "gold", "question": "Can I lose my full value?", "answer": "You should assume real risk. Depending on the active rules and how long you stay exposed, losses can accumulate. The arena is built around redistribution and competition, but volatility is still market volatility." },
+    { "id": "team-wins", "group": "basics", "category": "Settlement", "icon": "W", "tone": "green", "question": "What happens when my team wins?", "answer": "If your side wins the cycle, your position can receive proportional benefit from the arena settlement logic. The exact outcome depends on pool dynamics, current rules and how much competitive capital was on each side." },
+    { "id": "momentum-meaning", "group": "basics", "category": "Reading", "icon": "M", "tone": "purple", "question": "What does momentum mean?", "answer": "Momentum is the sense that one side is dictating the pace of the arena. It usually appears when market pressure, score events and short-term relative performance begin leaning consistently toward one asset." },
+    { "id": "fear-gauge", "group": "basics", "category": "Sentiment", "icon": "F", "tone": "gold", "question": "What is Fear Gauge?", "answer": "Fear Gauge is a sentiment-style lens for market stress. It helps you read whether the arena is trading in panic, caution or emotional excess, which can change how clean or dangerous an entry looks." },
+    { "id": "choose-side", "group": "basics", "category": "Strategy", "icon": "C", "tone": "green", "question": "How do I choose a better side?", "answer": "Look for relative strength, not just hype. Compare momentum, volatility, fear, score pressure, time left in the cycle and whether the pool is crowded or still inefficient." },
+    { "id": "not-casino", "group": "basics", "category": "Model", "icon": "A", "tone": "cyan", "question": "Is CriptoVersus a casino?", "answer": "No in the traditional sense. The arena is gamified, but its mechanics are anchored in real asset performance and strategic reading, not in pure chance or slot-style randomness." },
+    { "id": "strategy-exists", "group": "basics", "category": "Strategy", "icon": "X", "tone": "purple", "question": "Is there real strategy?", "answer": "Yes, but strategy here means reading markets better, sizing exposure and understanding cycles. It does not eliminate risk, and it does not guarantee a positive result." },
+    { "id": "pools-work", "group": "basics", "category": "Pools", "icon": "P", "tone": "cyan", "question": "How do pools work?", "answer": "Pools represent the competitive capital structure around the match. They matter because a thin or crowded side changes settlement quality, pressure and the risk-reward texture of the arena." },
+    { "id": "losers-happen", "group": "basics", "category": "Settlement", "icon": "L", "tone": "gold", "question": "What happens to the losing side?", "answer": "The losing side absorbs the negative side of the cycle according to the active rules. The arena is not about magical protection; poor relative performance can reduce capital over time." },
+    { "id": "redistribution", "group": "basics", "category": "Settlement", "icon": "D", "tone": "green", "question": "How does redistribution work?", "answer": "Redistribution means the cycle resolves competitively across sides rather than acting like a static wallet balance. Who gains and who gives up value depends on the rules, side performance and the pool structure." },
+    { "id": "favorite-underdog", "group": "basics", "category": "Strategy", "icon": "U", "tone": "purple", "question": "Is it better to back favorites or underdogs?", "answer": "Neither side is automatically better. Favorites may have cleaner trend confirmation, while underdogs may offer stronger reversal asymmetry if the market is overconfident." },
+    { "id": "volatility-match", "group": "basics", "category": "Volatility", "icon": "V", "tone": "gold", "question": "What does volatility mean in a match?", "answer": "Volatility is the intensity and instability of price movement around the arena. High volatility creates opportunity, but it also makes bad entries and late reactions more expensive." },
+    { "id": "market-influences-score", "group": "basics", "category": "Score", "icon": "G", "tone": "cyan", "question": "How does the market influence the scoreboard?", "answer": "The market is the source material of the match. Relative performance, pressure changes and event rules transform price behavior into the game layer you see as score and momentum." },
+    { "id": "balanced-match", "group": "basics", "category": "Reading", "icon": "B", "tone": "green", "question": "What is a balanced match?", "answer": "A balanced match is one where neither side has clean control. Score is narrow, pressure is still contestable and small changes in flow can quickly flip the narrative." },
+    { "id": "identify-reversals", "group": "basics", "category": "Momentum", "icon": "T", "tone": "purple", "question": "How can I identify reversals?", "answer": "Watch for fading leader pressure, compressed score gaps, sentiment extremes and a shift in short-term relative performance. Reversals often begin before the scoreboard fully reflects them." },
+    { "id": "volume-influences", "group": "basics", "category": "Volume", "icon": "O", "tone": "cyan", "question": "How does volume influence the game?", "answer": "Volume helps show whether a move has conviction or is just noise. Thin conditions can create fake stability, while strong volume can validate pressure and make momentum more trustworthy." },
+    { "id": "cycles", "group": "basics", "category": "Cycles", "icon": "Y", "tone": "green", "question": "What are cycles?", "answer": "Cycles are the repeated battle windows of the arena. They define when positions compete, when score matters for settlement and when a new strategic environment begins." },
+    { "id": "position-persistence", "group": "basics", "category": "Positions", "icon": "H", "tone": "cyan", "question": "How does position persistence work?", "answer": "A persistent position is not just a one-click bet that disappears instantly. It can remain exposed across the arena flow according to the operational rules, which makes timing and risk management more important." },
+    { "id": "bet-vs-invest", "group": "basics", "category": "Model", "icon": "I", "tone": "gold", "question": "What is the difference between betting and investing here?", "answer": "In CriptoVersus, the two ideas overlap through gamified market exposure. You are not buying a passive long-term thesis only; you are choosing competitive timing and side selection inside a live arena." },
+    { "id": "rankings", "group": "basics", "category": "Rankings", "icon": "K", "tone": "purple", "question": "How do rankings work?", "answer": "Rankings summarize who has been performing better across the arena logic. They are useful context, but they are not a shortcut that removes the need for live reading." },
+    { "id": "ai-usage", "group": "basics", "category": "System", "icon": "N", "tone": "cyan", "question": "Does the system use AI?", "answer": "The arena can use automation and commentary layers, but the match core should still be understood through market rules, score formation and observable asset behavior." },
+    { "id": "live-follow", "group": "basics", "category": "Broadcast", "icon": "Q", "tone": "green", "question": "Can I follow matches live?", "answer": "Yes. Live scoreboards, TV views and public match pages are part of the experience, so users can track momentum, score and context as the arena evolves." },
+    { "id": "history-replay", "group": "basics", "category": "History", "icon": "J", "tone": "purple", "question": "How do replay and history work?", "answer": "The historical layer lets you revisit completed matches, score behavior and public context. This matters because strategic learning improves when you review how pressure actually resolved." },
+    { "id": "rival-assets", "group": "deep", "category": "Theory", "icon": "Z", "tone": "purple", "question": "Why can two coins behave like rival teams?", "answer": "Because CriptoVersus turns relative market competition into a readable arena structure. The rivalry is a strategic abstraction: two assets fighting for performance leadership in the same cycle." },
+    { "id": "three-bodies", "group": "deep", "category": "Theory", "icon": "3", "tone": "gold", "question": "What does it mean to abstract the financial three-body problem?", "answer": "It means simplifying chaotic market interactions into a competitive frame that humans can read. The arena does not remove complexity, but it compresses it into score, pressure, pools and timing." },
+    { "id": "momentum-battle", "group": "deep", "category": "Momentum", "icon": "!", "tone": "green", "question": "What is a momentum battle?", "answer": "A momentum battle is a match where control matters more than static snapshots. One side may not be dominant yet, but if it keeps winning the short-term flow, the arena can tilt fast." },
+    { "id": "market-manipulate", "group": "deep", "category": "Risk", "icon": "?", "tone": "gold", "question": "Can the market manipulate a match?", "answer": "The arena inherits market reality, so distortions, crowd behavior and external shocks can influence outcomes. That is why no single signal should be treated as certainty." },
+    { "id": "euphoria", "group": "deep", "category": "Sentiment", "icon": "E", "tone": "cyan", "question": "How do I identify excessive euphoria?", "answer": "Look for one-sided confidence, stretched momentum, crowded positioning and weak tolerance for bad news. In arenas, euphoria often looks strongest right before the market starts demanding confirmation." },
+    { "id": "fear-opportunity", "group": "deep", "category": "Sentiment", "icon": "Y", "tone": "green", "question": "Can extreme fear become opportunity?", "answer": "Sometimes, yes. Extreme fear can create mispricing and violent rebounds, but only if the underlying side starts stabilizing. Fear alone is not a buy signal; it is context." },
+    { "id": "strong-assets-lose", "group": "deep", "category": "Relative performance", "icon": "S", "tone": "purple", "question": "Why do strong assets sometimes lose?", "answer": "Because matches are relative, not absolute. A strong asset can still lose if its rival is stronger in that cycle, if timing is worse or if the market had already priced too much optimism in." },
+    { "id": "global-events", "group": "deep", "category": "Macro", "icon": "G", "tone": "cyan", "question": "How do global events affect matches?", "answer": "Macro shocks, policy headlines, exchange stress and liquidity shifts can all reprice the arena quickly. Global context changes not only direction, but also tempo, fear and reversal probability." }
+  ]
+}

@@ -48,6 +48,20 @@
             </NavLink>
         </div>
 
+        <div class="nav-item">
+            <NavLink class="nav-link" href="@RouteLocalization.BuildFaqPath(CurrentCulture)">
+                <span class="nav-icon">F</span>
+                <span>@L.T("nav.faq", CurrentCulture)</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">
+                <span class="nav-icon">V</span>
+                <span>@L.T("nav.tvBroadcast", CurrentCulture)</span>
+            </NavLink>
+        </div>
+
         @if (IsLoggedIn)
 
         {

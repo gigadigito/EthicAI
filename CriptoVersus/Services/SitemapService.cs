@@ -114,6 +114,12 @@ public sealed class SitemapService
         {
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHomePath("en"), now, "daily", 1.0m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHomePath("pt"), now, "daily", 0.9m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildFaqPath("en"), now, "weekly", 0.86m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildFaqPath("pt"), now, "weekly", 0.86m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildTvPath("en"), now, "hourly", 0.9m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildTvPath("pt"), now, "hourly", 0.9m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildTvBroadcastPath("en"), now, "hourly", 0.95m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildTvBroadcastPath("pt"), now, "hourly", 0.95m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsPath("en"), statsLastModifiedUtc, "hourly", 0.85m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsPath("pt"), statsLastModifiedUtc, "hourly", 0.85m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsTeamsPath("en"), statsLastModifiedUtc, "daily", 0.8m),
@@ -346,6 +352,21 @@ public sealed class SitemapService
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("pt")).AbsoluteUri));
                 return alternates;
+            case "/en/faq":
+            case "/pt/faq":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildFaqPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildFaqPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/en/tv":
+            case "/pt/tv":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildTvPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildTvPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/en/tv/broadcast":
+            case "/pt/tv/broadcast":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildTvBroadcastPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildTvBroadcastPath("pt")).AbsoluteUri));
+                return alternates;
             case "/stats":
             case "/pt/estatisticas":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri));
@@ -391,6 +412,15 @@ public sealed class SitemapService
             case "/en/roadmap":
             case "/pt/roadmap":
                 return new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri;
+            case "/en/faq":
+            case "/pt/faq":
+                return new Uri(baseUri, _routeLocalization.BuildFaqPath("en")).AbsoluteUri;
+            case "/en/tv":
+            case "/pt/tv":
+                return new Uri(baseUri, _routeLocalization.BuildTvPath("en")).AbsoluteUri;
+            case "/en/tv/broadcast":
+            case "/pt/tv/broadcast":
+                return new Uri(baseUri, _routeLocalization.BuildTvBroadcastPath("en")).AbsoluteUri;
             case "/stats":
             case "/pt/estatisticas":
                 return new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri;

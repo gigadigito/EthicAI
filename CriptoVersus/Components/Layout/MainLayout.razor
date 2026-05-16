@@ -511,7 +511,7 @@ else
 
         return path switch
         {
-            "" or "/" or "/en" or "/pt" or "/en/roadmap" or "/pt/roadmap" or "/en/how-it-works" or "/pt/como-funciona" => true,
+            "" or "/" or "/en" or "/pt" or "/en/roadmap" or "/pt/roadmap" or "/en/how-it-works" or "/pt/como-funciona" or "/en/faq" or "/pt/faq" => true,
             _ => path.StartsWith("/en/match/", StringComparison.Ordinal)
                  || path.StartsWith("/pt/partida/", StringComparison.Ordinal)
         };

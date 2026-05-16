@@ -49,6 +49,9 @@ public sealed class RouteLocalizationService
     public string BuildRoadmapPath(string? culture)
         => $"/{NormalizeCulture(culture)}/roadmap";
 
+    public string BuildFaqPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/faq";
+
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/como-funciona"
@@ -116,6 +119,11 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/en/roadmap", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/roadmap", StringComparison.OrdinalIgnoreCase))
             return BuildRoadmapPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/faq", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/faq", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase))
+            return BuildFaqPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)

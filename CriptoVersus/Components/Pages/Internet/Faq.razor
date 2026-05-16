@@ -1,0 +1,530 @@
+@page "/faq"
+@page "/en/faq"
+@page "/pt/faq"
+@rendermode InteractiveServer
+@using System.Text.Json
+@using CriptoVersus.Web.Services
+@inject NavigationManager Nav
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+
+<PageTitle>@T("seo.title")</PageTitle>
+<HeadContent>
+    <meta name="description" content="@T("seo.description")" />
+    <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture))" />
+    <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("en"))" />
+    <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("pt"))" />
+    <link rel="alternate" hreflang="x-default" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("en"))" />
+    <meta property="og:title" content="@T("seo.title")" />
+    <meta property="og:description" content="@T("seo.description")" />
+    <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture))" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@T("seo.title")" />
+    <meta name="twitter:description" content="@T("seo.description")" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="faq-arena">
+    <header class="faq-hero">
+        <div class="faq-hero__copy">
+            <span class="faq-hero__eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p>@T("hero.description")</p>
+
+            <div class="faq-hero__chips" aria-label="@T("hero.chipsLabel")">
+                @foreach (var chipKey in HeroChipKeys)
+                {
+                    <span class="faq-chip">@T($"hero.chips.{chipKey}")</span>
+                }
+            </div>
+        </div>
+
+        <aside class="faq-hero__intel">
+            <article class="faq-intel-card">
+                <span>@T("hero.cards.liveReadingLabel")</span>
+                <strong>@T("hero.cards.liveReadingTitle")</strong>
+                <p>@T("hero.cards.liveReadingBody")</p>
+            </article>
+            <article class="faq-intel-card">
+                <span>@T("hero.cards.riskLabel")</span>
+                <strong>@T("hero.cards.riskTitle")</strong>
+                <p>@T("hero.cards.riskBody")</p>
+            </article>
+            <article class="faq-intel-card faq-intel-card--accent">
+                <span>@T("hero.cards.strategyLabel")</span>
+                <strong>@T("hero.cards.strategyTitle")</strong>
+                <p>@T("hero.cards.strategyBody")</p>
+            </article>
+        </aside>
+    </header>
+
+    <section class="faq-strip">
+        <article class="faq-strip__card">
+            <span>@T("summary.quickStartLabel")</span>
+            <strong>@T("summary.quickStartTitle")</strong>
+            <p>@T("summary.quickStartBody")</p>
+        </article>
+        <article class="faq-strip__card">
+            <span>@T("summary.marketLogicLabel")</span>
+            <strong>@T("summary.marketLogicTitle")</strong>
+            <p>@T("summary.marketLogicBody")</p>
+        </article>
+        <article class="faq-strip__card">
+            <span>@T("summary.noPromiseLabel")</span>
+            <strong>@T("summary.noPromiseTitle")</strong>
+            <p>@T("summary.noPromiseBody")</p>
+        </article>
+    </section>
+
+    <section class="faq-section">
+        <div class="faq-section__head">
+            <span>@T("sections.basics.eyebrow")</span>
+            <h2>@T("sections.basics.title")</h2>
+            <p>@T("sections.basics.description")</p>
+        </div>
+
+        <div class="faq-accordion">
+            @foreach (var item in BasicsItems)
+            {
+                <article class="faq-item @(IsOpen(item.Id) ? "is-open" : null)">
+                    <button type="button"
+                            class="faq-item__toggle"
+                            @onclick="() => Toggle(item.Id)"
+                            aria-expanded="@IsOpen(item.Id)">
+                        <span class="faq-item__icon faq-item__icon--@item.Tone">@item.Icon</span>
+                        <span class="faq-item__title-wrap">
+                            <span class="faq-item__category">@item.Category</span>
+                            <strong>@item.Question</strong>
+                        </span>
+                        <span class="faq-item__chevron" aria-hidden="true">+</span>
+                    </button>
+
+                    <div class="faq-item__answer" hidden="@(!IsOpen(item.Id))">
+                        <p>@item.Answer</p>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section class="faq-section">
+        <div class="faq-section__head">
+            <span>@T("sections.deep.eyebrow")</span>
+            <h2>@T("sections.deep.title")</h2>
+            <p>@T("sections.deep.description")</p>
+        </div>
+
+        <div class="faq-accordion faq-accordion--deep">
+            @foreach (var item in DeepItems)
+            {
+                <article class="faq-item @(IsOpen(item.Id) ? "is-open" : null)">
+                    <button type="button"
+                            class="faq-item__toggle"
+                            @onclick="() => Toggle(item.Id)"
+                            aria-expanded="@IsOpen(item.Id)">
+                        <span class="faq-item__icon faq-item__icon--@item.Tone">@item.Icon</span>
+                        <span class="faq-item__title-wrap">
+                            <span class="faq-item__category">@item.Category</span>
+                            <strong>@item.Question</strong>
+                        </span>
+                        <span class="faq-item__chevron" aria-hidden="true">+</span>
+                    </button>
+
+                    <div class="faq-item__answer" hidden="@(!IsOpen(item.Id))">
+                        <p>@item.Answer</p>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section class="faq-footnote">
+        <span>@T("footnote.title")</span>
+        <p>@T("footnote.body")</p>
+    </section>
+</section>
+
+@code {
+    private readonly HashSet<string> _openIds = [];
+    private IReadOnlyList<FaqEntry> _items = [];
+
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private IEnumerable<FaqEntry> BasicsItems => _items.Where(item => string.Equals(item.Group, "basics", StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<FaqEntry> DeepItems => _items.Where(item => string.Equals(item.Group, "deep", StringComparison.OrdinalIgnoreCase));
+
+    private string StructuredDataMarkup => BuildStructuredData();
+    private static readonly string[] HeroChipKeys =
+    [
+        "strategy",
+        "risk",
+        "momentum",
+        "poolDynamics",
+        "liveReading"
+    ];
+
+    protected override void OnParametersSet()
+    {
+        _items = L.GetSection<List<FaqEntry>>("faq.items", CurrentCulture) ?? [];
+
+        if (_items.Count > 0 && _openIds.Count == 0)
+        {
+            foreach (var item in _items.Take(3))
+                _openIds.Add(item.Id);
+        }
+    }
+
+    private string T(string key, params object?[] args)
+        => L.T($"faq.{key}", CurrentCulture, args);
+
+    private string BuildAbsolute(string relativePath)
+        => new Uri(new Uri(Nav.BaseUri), relativePath.TrimStart('/')).ToString();
+
+    private void Toggle(string id)
+    {
+        if (!_openIds.Add(id))
+            _openIds.Remove(id);
+    }
+
+    private bool IsOpen(string id)
+        => _openIds.Contains(id);
+
+    private string BuildStructuredData()
+    {
+        var pageUrl = BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture));
+        var homeUrl = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
+
+        var schema = new object[]
+        {
+            new Dictionary<string, object?>
+            {
+                ["@context"] = "https://schema.org",
+                ["@graph"] = new object[]
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "WebPage",
+                        ["@id"] = $"{pageUrl}#webpage",
+                        ["url"] = pageUrl,
+                        ["name"] = T("seo.title"),
+                        ["description"] = T("seo.description"),
+                        ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture)
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "BreadcrumbList",
+                        ["itemListElement"] = new object[]
+                        {
+                            new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "CriptoVersus", ["item"] = homeUrl },
+                            new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 2, ["name"] = T("structuredData.breadcrumbFaq"), ["item"] = pageUrl }
+                        }
+                    },
+                    new Dictionary<string, object?>
+                    {
+                        ["@type"] = "FAQPage",
+                        ["mainEntity"] = _items.Select(item => new Dictionary<string, object?>
+                        {
+                            ["@type"] = "Question",
+                            ["name"] = item.Question,
+                            ["acceptedAnswer"] = new Dictionary<string, object?>
+                            {
+                                ["@type"] = "Answer",
+                                ["text"] = item.Answer
+                            }
+                        }).ToArray()
+                    }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(schema[0]);
+    }
+
+    private sealed class FaqEntry
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Group { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Icon { get; set; } = "?";
+        public string Tone { get; set; } = "cyan";
+        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
+    }
+}
+
+<style>
+    .faq-arena {
+        --faq-bg: #070a12;
+        --faq-panel: rgba(10, 14, 23, 0.96);
+        --faq-panel-soft: rgba(12, 18, 29, 0.88);
+        --faq-border: rgba(118, 131, 164, .18);
+        --faq-text: #edf5ff;
+        --faq-muted: #a9b8cc;
+        --faq-green: #4cf38d;
+        --faq-cyan: #7ff6df;
+        --faq-blue: #53c8ff;
+        --faq-purple: #9f5cff;
+        --faq-gold: #f6c85f;
+        display: grid;
+        gap: 1.35rem;
+        width: min(1420px, 100%);
+        color: var(--faq-text);
+    }
+
+    .faq-hero,
+    .faq-strip__card,
+    .faq-item,
+    .faq-footnote {
+        position: relative;
+        overflow: hidden;
+        border-radius: 28px;
+        border: 1px solid var(--faq-border);
+        background:
+            radial-gradient(circle at top left, rgba(76,243,141,.09), transparent 24%),
+            radial-gradient(circle at top right, rgba(159,92,255,.1), transparent 28%),
+            linear-gradient(180deg, rgba(10,14,23,.98), rgba(7,10,18,.99));
+        box-shadow: 0 24px 70px rgba(0,0,0,.28);
+    }
+
+    .faq-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(300px, .85fr);
+        gap: 1.25rem;
+        padding: 1.6rem;
+    }
+
+    .faq-hero__eyebrow,
+    .faq-section__head span,
+    .faq-item__category,
+    .faq-footnote span,
+    .faq-intel-card span,
+    .faq-strip__card span {
+        color: var(--faq-cyan);
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-size: .74rem;
+        font-weight: 900;
+    }
+
+    .faq-hero h1,
+    .faq-section__head h2 {
+        margin: .6rem 0 .75rem;
+        line-height: 1.02;
+        letter-spacing: -.04em;
+    }
+
+    .faq-hero h1 {
+        font-size: clamp(2rem, 3vw, 3.5rem);
+        max-width: 13ch;
+    }
+
+    .faq-hero p,
+    .faq-section__head p,
+    .faq-intel-card p,
+    .faq-strip__card p,
+    .faq-item__answer p,
+    .faq-footnote p {
+        margin: 0;
+        color: var(--faq-muted);
+        line-height: 1.72;
+    }
+
+    .faq-hero__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .68rem;
+        margin-top: 1.1rem;
+    }
+
+    .faq-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.4rem;
+        padding: 0 .9rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.09);
+        background: rgba(255,255,255,.04);
+        color: #dbe8f8;
+        font-weight: 800;
+        font-size: .82rem;
+    }
+
+    .faq-hero__intel {
+        display: grid;
+        gap: .9rem;
+    }
+
+    .faq-intel-card,
+    .faq-strip__card {
+        position: relative;
+        padding: 1rem 1.05rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: var(--faq-panel-soft);
+    }
+
+    .faq-intel-card strong,
+    .faq-strip__card strong {
+        display: block;
+        margin: .45rem 0;
+        color: #f8fbff;
+        font-size: 1.12rem;
+    }
+
+    .faq-intel-card--accent {
+        box-shadow: inset 0 0 0 1px rgba(127,246,223,.12), 0 0 28px rgba(127,246,223,.08);
+    }
+
+    .faq-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .faq-section {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .faq-section__head {
+        display: grid;
+        gap: .35rem;
+    }
+
+    .faq-section__head h2 {
+        font-size: clamp(1.45rem, 2vw, 2.35rem);
+    }
+
+    .faq-accordion {
+        display: grid;
+        gap: .9rem;
+    }
+
+    .faq-item {
+        transition: border-color .22s ease, transform .22s ease, box-shadow .22s ease;
+    }
+
+    .faq-item.is-open {
+        border-color: rgba(127,246,223,.28);
+        box-shadow: 0 26px 76px rgba(0,0,0,.32), 0 0 0 1px rgba(127,246,223,.1);
+    }
+
+    .faq-item__toggle {
+        width: 100%;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 1rem;
+        align-items: start;
+        text-align: left;
+        padding: 1.15rem 1.2rem;
+        border: 0;
+        background: transparent;
+        color: inherit;
+    }
+
+    .faq-item__icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        font-size: 1.2rem;
+        font-weight: 900;
+        border: 1px solid rgba(255,255,255,.1);
+        background: rgba(255,255,255,.04);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .faq-item__icon--green {
+        color: var(--faq-green);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 22px rgba(76,243,141,.1);
+    }
+
+    .faq-item__icon--cyan {
+        color: var(--faq-blue);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 22px rgba(83,200,255,.1);
+    }
+
+    .faq-item__icon--purple {
+        color: #c49bff;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 22px rgba(159,92,255,.12);
+    }
+
+    .faq-item__icon--gold {
+        color: var(--faq-gold);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 0 22px rgba(246,200,95,.12);
+    }
+
+    .faq-item__title-wrap strong {
+        display: block;
+        margin-top: .35rem;
+        color: #f8fbff;
+        font-size: clamp(1rem, 1vw + .85rem, 1.18rem);
+        line-height: 1.35;
+    }
+
+    .faq-item__chevron {
+        font-size: 1.7rem;
+        color: var(--faq-cyan);
+        line-height: 1;
+        transition: transform .22s ease;
+    }
+
+    .faq-item.is-open .faq-item__chevron {
+        transform: rotate(45deg);
+    }
+
+    .faq-item__answer {
+        padding: 0 1.2rem 1.2rem 5.2rem;
+    }
+
+    .faq-footnote {
+        padding: 1.25rem 1.2rem;
+        border-color: rgba(246,200,95,.18);
+        background:
+            radial-gradient(circle at top left, rgba(246,200,95,.08), transparent 24%),
+            linear-gradient(180deg, rgba(14,16,24,.98), rgba(9,12,18,.99));
+    }
+
+    @@media (max-width: 1080px) {
+        .faq-hero,
+        .faq-strip {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 760px) {
+        .faq-arena {
+            gap: 1rem;
+        }
+
+        .faq-hero,
+        .faq-strip__card,
+        .faq-item,
+        .faq-footnote {
+            border-radius: 22px;
+        }
+
+        .faq-hero {
+            padding: 1.1rem;
+        }
+
+        .faq-item__toggle {
+            grid-template-columns: auto minmax(0, 1fr);
+            padding: 1rem;
+        }
+
+        .faq-item__chevron {
+            grid-column: 2;
+            justify-self: end;
+            margin-top: -.2rem;
+        }
+
+        .faq-item__answer {
+            padding: 0 1rem 1rem 1rem;
+        }
+    }
+</style>
