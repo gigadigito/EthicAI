@@ -259,7 +259,7 @@ main {
     top: .85rem;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1366px) {
     .app-shell {
         grid-template-columns: 1fr;
     }
