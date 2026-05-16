@@ -1415,6 +1415,8 @@
 
     .public-home-arena__deck {
         display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
         gap: 1.2rem;
     }
 
@@ -1434,6 +1436,7 @@
 
     .arena-featured-battle {
         padding: 1.5rem;
+        min-height: 100%;
     }
 
     .arena-featured-battle__glow {
@@ -1781,8 +1784,9 @@
     .arena-match-grid,
     .arena-top-battle-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
+        align-content: start;
     }
 
     .arena-top-battle-grid {
@@ -1885,7 +1889,8 @@
 
     @@media (max-width: 980px) {
         .home-hero,
-        .home-section--split .home-feature-grid {
+        .home-section--split .home-feature-grid,
+        .public-home-arena__deck {
             grid-template-columns: 1fr;
         }
 
