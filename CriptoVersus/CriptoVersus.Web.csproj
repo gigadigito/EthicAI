@@ -19,7 +19,11 @@
   <PackageReference Include="TimeZoneConverter" Version="6.1.0" />
 </ItemGroup>
 
-
+<ItemGroup>
+  <Content Update="Components\Pages\Internet\Faq.razor.css">
+    <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Businnes\BLL.csproj" />
     <ProjectReference Include="..\DAL\DAL.csproj" />

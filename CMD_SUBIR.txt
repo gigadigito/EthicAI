@@ -35,6 +35,18 @@ docker compose up -d --build
 docker compose logs -f --tail 300 criptoversus-web
 
 
+cd /home/admin/stacks/criptoversus-web/src
+
+git status
+git pull origin main
+git log -1 --oneline
+
+cd /home/admin/stacks/criptoversus-web
+
+docker compose up -d --build
+docker compose logs -f --tail 300 criptoversus-web
+
+
 cd /home/admin/stacks/criptoversus-mcp
 git fetch origin
 git restore CriptoVersus.Mcp/docker-compose.yml

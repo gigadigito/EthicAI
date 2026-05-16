@@ -48,6 +48,36 @@
       "eyebrow": "Leitura profunda",
       "title": "Perguntas estratégicas avançadas",
       "description": "Uma camada mais conceitual para quem quer pensar em estrutura de mercado, reversão e sentimento."
+    },
+    "betting": {
+      "eyebrow": "Apostas da arena",
+      "title": "Posições e exposição competitiva",
+      "description": "Entenda como abertura de posições, timing e redistribuição funcionam dentro das batalhas de mercado."
+    },
+    "score": {
+      "eyebrow": "Motor do placar",
+      "title": "Como o placar se comporta",
+      "description": "Entenda pressão, momentum, gols, força relativa e fluxo da partida."
+    },
+    "wallet": {
+      "eyebrow": "Carteira e custódia",
+      "title": "Como carteiras e saldo funcionam",
+      "description": "Aprenda como depósitos, custódia, claims e saques interagem com a arena."
+    },
+    "risk": {
+      "eyebrow": "Gestão de risco",
+      "title": "Volatilidade e exposição",
+      "description": "A arena é estratégica, mas risco, timing e volatilidade continuam reais."
+    },
+    "tv": {
+      "eyebrow": "Transmissão ao vivo",
+      "title": "TV, comentários e arena live",
+      "description": "Acompanhe partidas ao vivo, narração IA, placares públicos e viradas de momentum."
+    },
+    "stats": {
+      "eyebrow": "Inteligência da arena",
+      "title": "Estatísticas e rankings",
+      "description": "Performance histórica, rankings, tendências e camadas estratégicas de dados."
     }
   },
   "structuredData": {
@@ -354,6 +384,222 @@
       "tone": "cyan",
       "question": "Como eventos globais afetam partidas?",
       "answer": "Choques macro, política monetária, estresse em exchanges e mudanças de liquidez podem reprecificar a arena rapidamente. O contexto global altera não só direção, mas também tempo, fear e chance de reversão."
+    },
+    {
+      "id": "betting-entry-timing",
+      "group": "betting",
+      "category": "Posições",
+      "icon": "T",
+      "tone": "green",
+      "question": "O timing de entrada importa?",
+      "answer": "Sim. Entrar tarde demais em um momentum eufórico pode gerar assimetria ruim, enquanto entrar cedo demais sem confirmação pode expor você a volatilidade desnecessária."
+    },
+    {
+      "id": "betting-pool-imbalance",
+      "group": "betting",
+      "category": "Pools",
+      "icon": "P",
+      "tone": "cyan",
+      "question": "O que acontece quando um lado fica superlotado?",
+      "answer": "Um lado superlotado pode criar uma relação risco-retorno instável. Quando capital demais se concentra em uma direção, reversões e efeitos de redistribuição podem ficar mais agressivos."
+    },
+    {
+      "id": "betting-cycle-end",
+      "group": "betting",
+      "category": "Liquidação",
+      "icon": "C",
+      "tone": "gold",
+      "question": "O que acontece quando um ciclo termina?",
+      "answer": "No fim do ciclo, a arena resolve o estado competitivo entre os lados conforme a lógica de liquidação ativa, comportamento do placar e regras de redistribuição."
+    },
+    {
+      "id": "betting-side-selection",
+      "group": "betting",
+      "category": "Estratégia",
+      "icon": "S",
+      "tone": "purple",
+      "question": "Por que escolher o lado certo é importante?",
+      "answer": "CriptoVersus não trata apenas direção de mercado. Escolher o lado relativamente mais forte dentro da estrutura da arena é uma das decisões estratégicas mais importantes."
+    },
+    {
+      "id": "score-pressure",
+      "group": "score",
+      "category": "Pressão",
+      "icon": "!",
+      "tone": "green",
+      "question": "O que é pressão de placar?",
+      "answer": "Pressão é a sensação de que um lado está impondo o ritmo da arena. Ela pode aparecer antes mesmo de grandes diferenças no placar."
+    },
+    {
+      "id": "score-comeback",
+      "group": "score",
+      "category": "Momentum",
+      "icon": "R",
+      "tone": "purple",
+      "question": "Um lado perdendo pode se recuperar?",
+      "answer": "Sim. A arena é dinâmica. Mudanças de momentum, compressão de fear e reversões de força relativa podem transformar completamente a narrativa da partida."
+    },
+    {
+      "id": "score-relative-strength",
+      "group": "score",
+      "category": "Performance relativa",
+      "icon": "G",
+      "tone": "cyan",
+      "question": "Por que força relativa importa mais que preço absoluto?",
+      "answer": "Porque a arena compara ativos entre si. Um ativo pode subir de preço e ainda assim perder se o rival estiver performando de forma mais agressiva."
+    },
+    {
+      "id": "score-goals",
+      "group": "score",
+      "category": "Eventos",
+      "icon": "9",
+      "tone": "gold",
+      "question": "O que cria gols dentro da arena?",
+      "answer": "Os gols são abstrações geradas por eventos de mercado configurados, movimentos comparativos e lógica de momentum definida pelas regras da partida."
+    },
+    {
+      "id": "wallet-custody",
+      "group": "wallet",
+      "category": "Custódia",
+      "icon": "W",
+      "tone": "green",
+      "question": "Como funciona a custódia?",
+      "answer": "Dependendo do modo operacional, a arena pode usar fluxos via carteira, lógica de custódia ou sistemas híbridos para depósitos, claims e saques."
+    },
+    {
+      "id": "wallet-withdrawals",
+      "group": "wallet",
+      "category": "Saques",
+      "icon": "D",
+      "tone": "cyan",
+      "question": "Posso sacar depois do ciclo?",
+      "answer": "Se as condições operacionais permitirem e o saldo estiver disponível, os saques podem ser executados conforme o modelo de custódia ativo."
+    },
+    {
+      "id": "wallet-phantom",
+      "group": "wallet",
+      "category": "Carteiras",
+      "icon": "P",
+      "tone": "purple",
+      "question": "Posso usar Phantom Wallet?",
+      "answer": "Sim. O CriptoVersus suporta fluxos modernos de carteiras Solana e pode interagir com wallets compatíveis dependendo da configuração do ambiente."
+    },
+    {
+      "id": "wallet-security",
+      "group": "wallet",
+      "category": "Segurança",
+      "icon": "L",
+      "tone": "gold",
+      "question": "Devo confiar em links aleatórios pedindo aprovação da carteira?",
+      "answer": "Não. Sempre verifique domínio, intenção da transação e prompts da wallet cuidadosamente. A segurança da carteira continua sendo responsabilidade do usuário."
+    },
+    {
+      "id": "risk-overconfidence",
+      "group": "risk",
+      "category": "Psicologia",
+      "icon": "X",
+      "tone": "gold",
+      "question": "Por que excesso de confiança é perigoso?",
+      "answer": "O mercado pune certeza emocional. Confiança excessiva normalmente leva a tamanho de posição ruim, entradas atrasadas e dificuldade em reagir quando a arena muda de direção."
+    },
+    {
+      "id": "risk-revenge",
+      "group": "risk",
+      "category": "Comportamento",
+      "icon": "V",
+      "tone": "purple",
+      "question": "O que é posicionamento de vingança?",
+      "answer": "É a tentativa emocional de recuperar perdas imediatamente através de exposição impulsiva. Esse comportamento normalmente aumenta instabilidade e degrada a qualidade das decisões."
+    },
+    {
+      "id": "risk-sizing",
+      "group": "risk",
+      "category": "Exposição",
+      "icon": "E",
+      "tone": "green",
+      "question": "Por que o tamanho da exposição importa?",
+      "answer": "Mesmo leituras fortes podem falhar. Um dimensionamento correto evita que um ciclo ruim destrua sua sobrevivência estratégica no longo prazo."
+    },
+    {
+      "id": "risk-volatility-expansion",
+      "group": "risk",
+      "category": "Volatilidade",
+      "icon": "M",
+      "tone": "cyan",
+      "question": "O que é expansão de volatilidade?",
+      "answer": "Expansão de volatilidade acontece quando a intensidade do movimento acelera rapidamente. Isso pode criar oportunidades explosivas, mas também reversões caóticas."
+    },
+    {
+      "id": "tv-live-arena",
+      "group": "tv",
+      "category": "Broadcast",
+      "icon": "Q",
+      "tone": "green",
+      "question": "O que é a TV da arena ao vivo?",
+      "answer": "A camada TV transforma competição de mercado em uma experiência assistível com placar, momentum, comentários e atmosfera de partida ao vivo."
+    },
+    {
+      "id": "tv-ai-commentary",
+      "group": "tv",
+      "category": "IA",
+      "icon": "A",
+      "tone": "purple",
+      "question": "Como funciona a narração por IA?",
+      "answer": "A narração IA interpreta eventos de mercado, mudanças de momentum e comportamento do placar para gerar cobertura narrativa das partidas."
+    },
+    {
+      "id": "tv-hot-matches",
+      "group": "tv",
+      "category": "Momentum",
+      "icon": "H",
+      "tone": "gold",
+      "question": "O que torna uma partida quente?",
+      "answer": "Uma partida quente normalmente combina grandes oscilações de momentum, pressão no placar, comportamento emocional da multidão e mudanças competitivas rápidas."
+    },
+    {
+      "id": "tv-public-matches",
+      "group": "tv",
+      "category": "Visibilidade",
+      "icon": "B",
+      "tone": "cyan",
+      "question": "As partidas são públicas?",
+      "answer": "Sim. Páginas públicas de partida, placares e visualizações TV fazem parte da experiência da arena."
+    },
+    {
+      "id": "stats-history",
+      "group": "stats",
+      "category": "Histórico",
+      "icon": "J",
+      "tone": "green",
+      "question": "Por que análise histórica importa?",
+      "answer": "Revisar partidas anteriores ajuda a identificar estruturas recorrentes de momentum, comportamento de reversão e erros estratégicos."
+    },
+    {
+      "id": "stats-rankings",
+      "group": "stats",
+      "category": "Rankings",
+      "icon": "K",
+      "tone": "purple",
+      "question": "Rankings conseguem prever vencedores?",
+      "answer": "Não necessariamente. Rankings resumem performance relativa passada, mas a arena pode mudar rapidamente quando o momentum vira."
+    },
+    {
+      "id": "stats-pressure-reading",
+      "group": "stats",
+      "category": "Pressão",
+      "icon": "F",
+      "tone": "cyan",
+      "question": "Dados de pressão ajudam nas decisões?",
+      "answer": "Leituras de pressão ajudam a perceber se um movimento possui convicção real ou se o mercado está enfraquecendo internamente."
+    },
+    {
+      "id": "stats-cycle-patterns",
+      "group": "stats",
+      "category": "Ciclos",
+      "icon": "Y",
+      "tone": "gold",
+      "question": "Os ciclos repetem padrões?",
+      "answer": "Mercados frequentemente repetem estruturas emocionais. Nenhum ciclo é idêntico, mas padrões recorrentes de pressão e momentum podem surgir ao longo do tempo."
     }
   ]
 }
