@@ -485,21 +485,23 @@
         new FaqItem(T("faq.battleCycle.question"), T("faq.battleCycle.answer"))
     };
 
-    private List<MatchDto> LiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? []).Take(6).ToList();
+    private const int HomeMatchLimit = 10;
+
+    private List<MatchDto> LiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? []).Take(HomeMatchLimit).ToList();
     private List<MatchDto> FeaturedMatches => RankHomeMatches(
             (_snapshot?.Matches.OngoingList ?? [])
                 .Concat(_snapshot?.Matches.Upcoming ?? [])
                 .Concat(_snapshot?.Matches.CompletedList ?? []))
-        .Take(6)
+        .Take(HomeMatchLimit)
         .ToList();
     private MatchDto? FeaturedBattle => SelectFeaturedBattle();
     private List<MatchDto> ArenaLiveMatches => LiveMatches
         .Where(x => x.MatchId != FeaturedBattle?.MatchId)
-        .Take(5)
+        .Take(HomeMatchLimit - 1)
         .ToList();
     private List<MatchDto> TopBattleMatches => FeaturedMatches
         .Where(x => x.MatchId != FeaturedBattle?.MatchId)
-        .Take(6)
+        .Take(HomeMatchLimit)
         .ToList();
     private List<CurrencyDto> TrendingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(6).ToList();
     private List<CurrencyDto> RankingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(10).ToList();
