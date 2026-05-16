@@ -1,53 +1,53 @@
-﻿{
+{
   "seo": {
-    "title": "FAQ CriptoVersus | Manual Estrategico da Arena",
-    "description": "Entenda como o CriptoVersus funciona como arena cripto gamificada: posicoes, risco, placar, pools, momentum, fear gauge, volatilidade e leitura estrategica das partidas."
+    "title": "FAQ CriptoVersus | Manual Estratégico da Arena",
+    "description": "Entenda como o CriptoVersus funciona como arena cripto gamificada: posições, risco, placar, pools, momentum, fear gauge, volatilidade e leitura estratégica das partidas."
   },
   "hero": {
-    "eyebrow": "Central de entendimento estrategico",
+    "eyebrow": "Central de entendimento estratégico",
     "title": "FAQ CriptoVersus",
-    "description": "Um manual rapido para ler a arena, entender posicoes, respeitar risco e acompanhar partidas guiadas pelo mercado sem tratar o sistema como cassino.",
-    "chipsLabel": "Topicos estrategicos",
+    "description": "Um manual rápido para ler a arena, entender posições, respeitar risco e acompanhar partidas guiadas pelo mercado sem tratar o sistema como cassino.",
+    "chipsLabel": "Tópicos estratégicos",
     "chips": {
-      "strategy": "Estrategia",
+      "strategy": "Estratégia",
       "risk": "Risco",
       "momentum": "Momentum",
-      "poolDynamics": "Dinamica dos pools",
+      "poolDynamics": "Dinâmica dos pools",
       "liveReading": "Leitura ao vivo"
     },
     "cards": {
       "liveReadingLabel": "Leitura ao vivo",
       "liveReadingTitle": "A arena segue o comportamento do mercado",
-      "liveReadingBody": "Placar, pressao e narrativa nascem da performance relativa dos ativos, nao de giros aleatorios.",
+      "liveReadingBody": "Placar, pressão e narrativa nascem da performance relativa dos ativos, não de giros aleatórios.",
       "riskLabel": "Risco",
       "riskTitle": "A volatilidade continua real",
       "riskBody": "Um ativo forte ainda pode perder um ciclo, e uma leitura ruim pode desgastar capital ao longo do tempo.",
-      "strategyLabel": "Estrategia",
+      "strategyLabel": "Estratégia",
       "strategyTitle": "Leia a partida antes de escolher um lado",
       "strategyBody": "Momentum, pools, volatilidade e fear mudam a qualidade da entrada."
     }
   },
   "summary": {
-    "quickStartLabel": "Inicio rapido",
-    "quickStartTitle": "Escolha um lado, nao uma promessa",
-    "quickStartBody": "Abrir uma posicao significa assumir exposicao estrategica a um lado da arena dentro de um ciclo.",
-    "marketLogicLabel": "Logica de mercado",
+    "quickStartLabel": "Início rápido",
+    "quickStartTitle": "Escolha um lado, não uma promessa",
+    "quickStartBody": "Abrir uma posição significa assumir exposição estratégica a um lado da arena dentro de um ciclo.",
+    "marketLogicLabel": "Lógica de mercado",
     "marketLogicTitle": "O placar abstrai performance relativa",
-    "marketLogicBody": "Os ativos viram rivais porque o sistema converte movimentos comparativos em pressao e placar.",
+    "marketLogicBody": "Os ativos viram rivais porque o sistema converte movimentos comparativos em pressão e placar.",
     "noPromiseLabel": "Sem promessa",
-    "noPromiseTitle": "Nao existe lucro garantido",
-    "noPromiseBody": "O CriptoVersus e estrategico, mas os ativos continuam volateis e um mau posicionamento ainda pode machucar."
+    "noPromiseTitle": "Não existe lucro garantido",
+    "noPromiseBody": "O CriptoVersus é estratégico, mas os ativos continuam voláteis e um mau posicionamento ainda pode machucar."
   },
   "sections": {
     "basics": {
       "eyebrow": "Perguntas centrais",
-      "title": "Como a arena funciona na pratica",
-      "description": "Respostas curtas para iniciantes entenderem posicoes, placar, pools e risco rapidamente."
+      "title": "Como a arena funciona na prática",
+      "description": "Respostas curtas para iniciantes entenderem posições, placar, pools e risco rapidamente."
     },
     "deep": {
       "eyebrow": "Leitura profunda",
-      "title": "Perguntas estrategicas avancadas",
-      "description": "Uma camada mais conceitual para quem quer pensar em estrutura de mercado, reversao e sentimento."
+      "title": "Perguntas estratégicas avançadas",
+      "description": "Uma camada mais conceitual para quem quer pensar em estrutura de mercado, reversão e sentimento."
     }
   },
   "structuredData": {
@@ -55,41 +55,305 @@
   },
   "footnote": {
     "title": "Contexto importante",
-    "body": "CriptoVersus e uma arena gamificada baseada em performance real de ativos. Isso nao e promessa de lucro e nao deve ser tratado como exposicao sem risco."
+    "body": "CriptoVersus é uma arena gamificada baseada em performance real de ativos. Isso não é promessa de lucro e não deve ser tratado como exposição sem risco."
   },
   "items": [
-    { "id": "betting-team", "group": "basics", "category": "Posicoes", "icon": "S", "tone": "green", "question": "O que significa apostar em um time?", "answer": "No CriptoVersus, um time e um lado representado por um ativo dentro da arena. Abrir uma posicao significa assumir exposicao estrategica a esse ativo, esperando que ele supere o rival nos sinais que movem a partida." },
-    { "id": "score-calculated", "group": "basics", "category": "Placar", "icon": "9", "tone": "cyan", "question": "Como o placar e calculado?", "answer": "O placar nao e aleatorio. Ele nasce da leitura relativa do mercado, usando as regras configuradas da partida para transformar performance comparativa, pressao e eventos em pontos." },
-    { "id": "lose-all", "group": "basics", "category": "Risco", "icon": "R", "tone": "gold", "question": "Posso perder todo o valor?", "answer": "Assuma risco real. Dependendo das regras ativas e do tempo de exposicao, perdas podem se acumular. A arena trabalha com redistribuicao e competicao, mas a volatilidade continua sendo volatilidade de mercado." },
-    { "id": "team-wins", "group": "basics", "category": "Liquidacao", "icon": "W", "tone": "green", "question": "O que acontece quando meu time vence?", "answer": "Se o seu lado vence o ciclo, sua posicao pode receber beneficio proporcional pela logica de liquidacao da arena. O resultado exato depende da dinamica dos pools, das regras ativas e do capital competitivo em cada lado." },
-    { "id": "momentum-meaning", "group": "basics", "category": "Leitura", "icon": "M", "tone": "purple", "question": "O que significa momentum?", "answer": "Momentum e a sensacao de que um lado esta ditando o ritmo da arena. Ele aparece quando pressao, eventos de placar e performance relativa de curto prazo comecam a pender com consistencia para um ativo." },
-    { "id": "fear-gauge", "group": "basics", "category": "Sentimento", "icon": "F", "tone": "gold", "question": "O que e Fear Gauge?", "answer": "Fear Gauge e uma lente de sentimento para ler estresse de mercado. Ele ajuda a perceber se a arena esta negociando em panico, cautela ou excesso emocional, o que muda a qualidade e o perigo da entrada." },
-    { "id": "choose-side", "group": "basics", "category": "Estrategia", "icon": "C", "tone": "green", "question": "Como escolher um lado melhor?", "answer": "Procure forca relativa, nao apenas hype. Compare momentum, volatilidade, fear, pressao de placar, tempo restante do ciclo e se o pool esta lotado ou ainda ineficiente." },
-    { "id": "not-casino", "group": "basics", "category": "Modelo", "icon": "A", "tone": "cyan", "question": "O CriptoVersus e cassino?", "answer": "Nao no sentido tradicional. A arena e gamificada, mas a mecanica esta ancorada em performance real de ativos e leitura estrategica, nao em sorte pura ou randomizacao estilo slot." },
-    { "id": "strategy-exists", "group": "basics", "category": "Estrategia", "icon": "X", "tone": "purple", "question": "Existe estrategia?", "answer": "Sim, mas estrategia aqui significa ler melhor o mercado, dimensionar exposicao e entender ciclos. Ela nao elimina risco e nao garante resultado positivo." },
-    { "id": "pools-work", "group": "basics", "category": "Pools", "icon": "P", "tone": "cyan", "question": "Como funcionam os pools?", "answer": "Os pools representam a estrutura competitiva de capital em volta da partida. Eles importam porque um lado vazio ou superlotado muda liquidacao, pressao e a textura risco-retorno da arena." },
-    { "id": "losers-happen", "group": "basics", "category": "Liquidacao", "icon": "L", "tone": "gold", "question": "O que acontece com quem perde?", "answer": "O lado perdedor absorve o lado negativo do ciclo conforme as regras ativas. A arena nao existe para protecao magica; desempenho relativo ruim pode reduzir capital ao longo do tempo." },
-    { "id": "redistribution", "group": "basics", "category": "Liquidacao", "icon": "D", "tone": "green", "question": "Como funciona a redistribuicao?", "answer": "Redistribuicao significa que o ciclo resolve a competicao entre lados, em vez de agir como saldo parado. Quem ganha e quem cede valor depende das regras, da performance e da estrutura dos pools." },
-    { "id": "favorite-underdog", "group": "basics", "category": "Estrategia", "icon": "U", "tone": "purple", "question": "Vale mais apostar em favoritos ou azaroes?", "answer": "Nenhum lado e automaticamente melhor. Favoritos podem trazer confirmacao mais limpa de tendencia, enquanto azaroes podem oferecer assimetria melhor quando o mercado esta confiante demais." },
-    { "id": "volatility-match", "group": "basics", "category": "Volatilidade", "icon": "V", "tone": "gold", "question": "O que significa volatilidade em uma partida?", "answer": "Volatilidade e a intensidade e instabilidade do movimento ao redor da arena. Ela cria oportunidade, mas tambem faz entradas ruins e reacoes atrasadas custarem mais caro." },
-    { "id": "market-influences-score", "group": "basics", "category": "Placar", "icon": "G", "tone": "cyan", "question": "Como o mercado influencia o placar?", "answer": "O mercado e a materia-prima da partida. Performance relativa, mudancas de pressao e regras de evento transformam comportamento de preco na camada de jogo que voce enxerga como placar e momentum." },
-    { "id": "balanced-match", "group": "basics", "category": "Leitura", "icon": "B", "tone": "green", "question": "O que e uma partida equilibrada?", "answer": "E uma partida em que nenhum lado tem controle limpo. O placar esta curto, a pressao ainda pode virar e pequenas mudancas no fluxo conseguem trocar a narrativa rapidamente." },
-    { "id": "identify-reversals", "group": "basics", "category": "Momentum", "icon": "T", "tone": "purple", "question": "Como identificar reversoes?", "answer": "Observe pressao do lider enfraquecendo, placar comprimido, sentimento extremo e mudanca na performance relativa de curto prazo. Reversoes costumam comecar antes de o placar refletir tudo." },
-    { "id": "volume-influences", "group": "basics", "category": "Volume", "icon": "O", "tone": "cyan", "question": "Como o volume influencia o jogo?", "answer": "Volume ajuda a mostrar se um movimento tem conviccao ou e apenas ruido. Em condicoes fracas, a arena pode parecer calma sem estar estavel; com volume forte, o momentum tende a ficar mais confiavel." },
-    { "id": "cycles", "group": "basics", "category": "Ciclos", "icon": "Y", "tone": "green", "question": "O que sao ciclos?", "answer": "Ciclos sao as janelas repetidas de batalha da arena. Eles definem quando as posicoes competem, quando o placar vale para liquidacao e quando um novo ambiente estrategico comeca." },
-    { "id": "position-persistence", "group": "basics", "category": "Posicoes", "icon": "H", "tone": "cyan", "question": "Como funciona a persistencia de posicoes?", "answer": "Uma posicao persistente nao e apenas um clique isolado que desaparece logo depois. Ela pode continuar exposta ao fluxo da arena conforme as regras operacionais, o que torna timing e gestao de risco ainda mais importantes." },
-    { "id": "bet-vs-invest", "group": "basics", "category": "Modelo", "icon": "I", "tone": "gold", "question": "Qual a diferenca entre apostar e investir?", "answer": "No CriptoVersus, as duas ideias se cruzam pela exposicao gamificada ao mercado. Voce nao esta apenas comprando uma tese passiva de longo prazo; esta escolhendo timing e lado dentro de uma arena competitiva." },
-    { "id": "rankings", "group": "basics", "category": "Rankings", "icon": "K", "tone": "purple", "question": "Como funcionam os rankings?", "answer": "Os rankings resumem quem vem performando melhor dentro da logica da arena. Eles ajudam como contexto, mas nao substituem leitura ao vivo da partida." },
-    { "id": "ai-usage", "group": "basics", "category": "Sistema", "icon": "N", "tone": "cyan", "question": "O sistema usa IA?", "answer": "A arena pode ter camadas de automacao e comentario, mas o nucleo da partida deve ser entendido por regras de mercado, formacao do placar e comportamento observavel dos ativos." },
-    { "id": "live-follow", "group": "basics", "category": "Broadcast", "icon": "Q", "tone": "green", "question": "Posso acompanhar partidas ao vivo?", "answer": "Sim. Placar ao vivo, TV e paginas publicas de partida fazem parte da experiencia, para que o usuario acompanhe momentum, score e contexto enquanto a arena evolui." },
-    { "id": "history-replay", "group": "basics", "category": "Historico", "icon": "J", "tone": "purple", "question": "Como funciona o replay/historico?", "answer": "A camada historica permite revisitar partidas concluidas, comportamento do placar e contexto publico. Isso importa porque aprender estrategia exige rever como a pressao realmente se resolveu." },
-    { "id": "rival-assets", "group": "deep", "category": "Teoria", "icon": "Z", "tone": "purple", "question": "Por que duas moedas podem se comportar como times rivais?", "answer": "Porque o CriptoVersus transforma competicao relativa de mercado em estrutura de arena legivel. A rivalidade e uma abstracao estrategica: dois ativos disputando lideranca de performance no mesmo ciclo." },
-    { "id": "three-bodies", "group": "deep", "category": "Teoria", "icon": "3", "tone": "gold", "question": "O que significa abstrair o problema dos 3 corpos financeiros?", "answer": "Significa comprimir interacoes caoticas de mercado em um quadro competitivo que humanos consigam ler. A arena nao remove a complexidade, mas a traduz em placar, pressao, pools e timing." },
-    { "id": "momentum-battle", "group": "deep", "category": "Momentum", "icon": "!", "tone": "green", "question": "O que e uma batalha de momentum?", "answer": "E uma partida em que o controle do fluxo importa mais do que snapshots estaticos. Um lado pode ainda nao estar dominante no placar, mas se estiver vencendo o curto prazo, a arena pode inclinar rapido." },
-    { "id": "market-manipulate", "group": "deep", "category": "Risco", "icon": "?", "tone": "gold", "question": "O mercado pode manipular uma partida?", "answer": "A arena herda a realidade do mercado, entao distorcoes, comportamento de manada e choques externos podem influenciar resultado. Por isso nenhum sinal isolado deve ser tratado como certeza." },
-    { "id": "euphoria", "group": "deep", "category": "Sentimento", "icon": "E", "tone": "cyan", "question": "Como identificar excesso de euforia?", "answer": "Procure confianca de um lado so, momentum esticado, posicionamento lotado e pouca tolerancia a noticia ruim. Na arena, a euforia costuma parecer mais forte pouco antes de o mercado exigir confirmacao." },
-    { "id": "fear-opportunity", "group": "deep", "category": "Sentimento", "icon": "Y", "tone": "green", "question": "Fear extremo pode virar oportunidade?", "answer": "As vezes sim. Fear extremo pode gerar distorcao e repiques violentos, mas apenas se o lado comecar a estabilizar de verdade. Fear sozinho nao e sinal de compra; e contexto." },
-    { "id": "strong-assets-lose", "group": "deep", "category": "Performance relativa", "icon": "S", "tone": "purple", "question": "Por que ativos fortes as vezes perdem?", "answer": "Porque a partida e relativa, nao absoluta. Um ativo forte ainda pode perder se o rival estiver ainda mais forte naquele ciclo, se o timing for pior ou se o mercado ja tiver precificado otimismo demais." },
-    { "id": "global-events", "group": "deep", "category": "Macro", "icon": "G", "tone": "cyan", "question": "Como eventos globais afetam partidas?", "answer": "Choques macro, politica monetaria, estresse em exchanges e mudancas de liquidez podem reprecificar a arena rapidamente. O contexto global altera nao so direcao, mas tambem tempo, fear e chance de reversao." }
+    {
+      "id": "betting-team",
+      "group": "basics",
+      "category": "Posições",
+      "icon": "S",
+      "tone": "green",
+      "question": "O que significa apostar em um time?",
+      "answer": "No CriptoVersus, um time é um lado representado por um ativo dentro da arena. Abrir uma posição significa assumir exposição estratégica a esse ativo, esperando que ele supere o rival nos sinais que movem a partida."
+    },
+    {
+      "id": "score-calculated",
+      "group": "basics",
+      "category": "Placar",
+      "icon": "9",
+      "tone": "cyan",
+      "question": "Como o placar é calculado?",
+      "answer": "O placar não é aleatório. Ele nasce da leitura relativa do mercado, usando as regras configuradas da partida para transformar performance comparativa, pressão e eventos em pontos."
+    },
+    {
+      "id": "lose-all",
+      "group": "basics",
+      "category": "Risco",
+      "icon": "R",
+      "tone": "gold",
+      "question": "Posso perder todo o valor?",
+      "answer": "Assuma risco real. Dependendo das regras ativas e do tempo de exposição, perdas podem se acumular. A arena trabalha com redistribuição e competição, mas a volatilidade continua sendo volatilidade de mercado."
+    },
+    {
+      "id": "team-wins",
+      "group": "basics",
+      "category": "Liquidação",
+      "icon": "W",
+      "tone": "green",
+      "question": "O que acontece quando meu time vence?",
+      "answer": "Se o seu lado vence o ciclo, sua posição pode receber benefício proporcional pela lógica de liquidação da arena. O resultado exato depende da dinâmica dos pools, das regras ativas e do capital competitivo em cada lado."
+    },
+    {
+      "id": "momentum-meaning",
+      "group": "basics",
+      "category": "Leitura",
+      "icon": "M",
+      "tone": "purple",
+      "question": "O que significa momentum?",
+      "answer": "Momentum é a sensação de que um lado está ditando o ritmo da arena. Ele aparece quando pressão, eventos de placar e performance relativa de curto prazo começam a pender com consistência para um ativo."
+    },
+    {
+      "id": "fear-gauge",
+      "group": "basics",
+      "category": "Sentimento",
+      "icon": "F",
+      "tone": "gold",
+      "question": "O que é Fear Gauge?",
+      "answer": "Fear Gauge é uma lente de sentimento para ler estresse de mercado. Ele ajuda a perceber se a arena está negociando em pânico, cautela ou excesso emocional, o que muda a qualidade e o perigo da entrada."
+    },
+    {
+      "id": "choose-side",
+      "group": "basics",
+      "category": "Estratégia",
+      "icon": "C",
+      "tone": "green",
+      "question": "Como escolher um lado melhor?",
+      "answer": "Procure força relativa, não apenas hype. Compare momentum, volatilidade, fear, pressão de placar, tempo restante do ciclo e se o pool está lotado ou ainda ineficiente."
+    },
+    {
+      "id": "not-casino",
+      "group": "basics",
+      "category": "Modelo",
+      "icon": "A",
+      "tone": "cyan",
+      "question": "O CriptoVersus é cassino?",
+      "answer": "Não no sentido tradicional. A arena é gamificada, mas a mecânica está ancorada em performance real de ativos e leitura estratégica, não em sorte pura ou randomização estilo slot."
+    },
+    {
+      "id": "strategy-exists",
+      "group": "basics",
+      "category": "Estratégia",
+      "icon": "X",
+      "tone": "purple",
+      "question": "Existe estratégia?",
+      "answer": "Sim, mas estratégia aqui significa ler melhor o mercado, dimensionar exposição e entender ciclos. Ela não elimina risco e não garante resultado positivo."
+    },
+    {
+      "id": "pools-work",
+      "group": "basics",
+      "category": "Pools",
+      "icon": "P",
+      "tone": "cyan",
+      "question": "Como funcionam os pools?",
+      "answer": "Os pools representam a estrutura competitiva de capital em volta da partida. Eles importam porque um lado vazio ou superlotado muda liquidação, pressão e a textura risco-retorno da arena."
+    },
+    {
+      "id": "losers-happen",
+      "group": "basics",
+      "category": "Liquidação",
+      "icon": "L",
+      "tone": "gold",
+      "question": "O que acontece com quem perde?",
+      "answer": "O lado perdedor absorve o lado negativo do ciclo conforme as regras ativas. A arena não existe para proteção mágica; desempenho relativo ruim pode reduzir capital ao longo do tempo."
+    },
+    {
+      "id": "redistribution",
+      "group": "basics",
+      "category": "Liquidação",
+      "icon": "D",
+      "tone": "green",
+      "question": "Como funciona a redistribuição?",
+      "answer": "Redistribuição significa que o ciclo resolve a competição entre lados, em vez de agir como saldo parado. Quem ganha e quem cede valor depende das regras, da performance e da estrutura dos pools."
+    },
+    {
+      "id": "favorite-underdog",
+      "group": "basics",
+      "category": "Estratégia",
+      "icon": "U",
+      "tone": "purple",
+      "question": "Vale mais apostar em favoritos ou azarões?",
+      "answer": "Nenhum lado é automaticamente melhor. Favoritos podem trazer confirmação mais limpa de tendência, enquanto azarões podem oferecer assimetria melhor quando o mercado está confiante demais."
+    },
+    {
+      "id": "volatility-match",
+      "group": "basics",
+      "category": "Volatilidade",
+      "icon": "V",
+      "tone": "gold",
+      "question": "O que significa volatilidade em uma partida?",
+      "answer": "Volatilidade é a intensidade e instabilidade do movimento ao redor da arena. Ela cria oportunidade, mas também faz entradas ruins e reações atrasadas custarem mais caro."
+    },
+    {
+      "id": "market-influences-score",
+      "group": "basics",
+      "category": "Placar",
+      "icon": "G",
+      "tone": "cyan",
+      "question": "Como o mercado influencia o placar?",
+      "answer": "O mercado é a matéria-prima da partida. Performance relativa, mudanças de pressão e regras de evento transformam comportamento de preço na camada de jogo que você enxerga como placar e momentum."
+    },
+    {
+      "id": "balanced-match",
+      "group": "basics",
+      "category": "Leitura",
+      "icon": "B",
+      "tone": "green",
+      "question": "O que é uma partida equilibrada?",
+      "answer": "É uma partida em que nenhum lado tem controle limpo. O placar está curto, a pressão ainda pode virar e pequenas mudanças no fluxo conseguem trocar a narrativa rapidamente."
+    },
+    {
+      "id": "identify-reversals",
+      "group": "basics",
+      "category": "Momentum",
+      "icon": "T",
+      "tone": "purple",
+      "question": "Como identificar reversões?",
+      "answer": "Observe pressão do líder enfraquecendo, placar comprimido, sentimento extremo e mudança na performance relativa de curto prazo. Reversões costumam começar antes de o placar refletir tudo."
+    },
+    {
+      "id": "volume-influences",
+      "group": "basics",
+      "category": "Volume",
+      "icon": "O",
+      "tone": "cyan",
+      "question": "Como o volume influencia o jogo?",
+      "answer": "Volume ajuda a mostrar se um movimento tem convicção ou é apenas ruído. Em condições fracas, a arena pode parecer calma sem estar estável; com volume forte, o momentum tende a ficar mais confiável."
+    },
+    {
+      "id": "cycles",
+      "group": "basics",
+      "category": "Ciclos",
+      "icon": "Y",
+      "tone": "green",
+      "question": "O que são ciclos?",
+      "answer": "Ciclos são as janelas repetidas de batalha da arena. Eles definem quando as posições competem, quando o placar vale para liquidação e quando um novo ambiente estratégico começa."
+    },
+    {
+      "id": "position-persistence",
+      "group": "basics",
+      "category": "Posições",
+      "icon": "H",
+      "tone": "cyan",
+      "question": "Como funciona a persistência de posições?",
+      "answer": "Uma posição persistente não é apenas um clique isolado que desaparece logo depois. Ela pode continuar exposta ao fluxo da arena conforme as regras operacionais, o que torna timing e gestão de risco ainda mais importantes."
+    },
+    {
+      "id": "bet-vs-invest",
+      "group": "basics",
+      "category": "Modelo",
+      "icon": "I",
+      "tone": "gold",
+      "question": "Qual a diferença entre apostar e investir?",
+      "answer": "No CriptoVersus, as duas ideias se cruzam pela exposição gamificada ao mercado. Você não está apenas comprando uma tese passiva de longo prazo; está escolhendo timing e lado dentro de uma arena competitiva."
+    },
+    {
+      "id": "rankings",
+      "group": "basics",
+      "category": "Rankings",
+      "icon": "K",
+      "tone": "purple",
+      "question": "Como funcionam os rankings?",
+      "answer": "Os rankings resumem quem vem performando melhor dentro da lógica da arena. Eles ajudam como contexto, mas não substituem leitura ao vivo da partida."
+    },
+    {
+      "id": "ai-usage",
+      "group": "basics",
+      "category": "Sistema",
+      "icon": "N",
+      "tone": "cyan",
+      "question": "O sistema usa IA?",
+      "answer": "A arena pode ter camadas de automação e comentário, mas o núcleo da partida deve ser entendido por regras de mercado, formação do placar e comportamento observável dos ativos."
+    },
+    {
+      "id": "live-follow",
+      "group": "basics",
+      "category": "Broadcast",
+      "icon": "Q",
+      "tone": "green",
+      "question": "Posso acompanhar partidas ao vivo?",
+      "answer": "Sim. Placar ao vivo, TV e páginas públicas de partida fazem parte da experiência, para que o usuário acompanhe momentum, score e contexto enquanto a arena evolui."
+    },
+    {
+      "id": "history-replay",
+      "group": "basics",
+      "category": "Histórico",
+      "icon": "J",
+      "tone": "purple",
+      "question": "Como funciona o replay/histórico?",
+      "answer": "A camada histórica permite revisitar partidas concluídas, comportamento do placar e contexto público. Isso importa porque aprender estratégia exige rever como a pressão realmente se resolveu."
+    },
+    {
+      "id": "rival-assets",
+      "group": "deep",
+      "category": "Teoria",
+      "icon": "Z",
+      "tone": "purple",
+      "question": "Por que duas moedas podem se comportar como times rivais?",
+      "answer": "Porque o CriptoVersus transforma competição relativa de mercado em estrutura de arena legível. A rivalidade é uma abstração estratégica: dois ativos disputando liderança de performance no mesmo ciclo."
+    },
+    {
+      "id": "three-bodies",
+      "group": "deep",
+      "category": "Teoria",
+      "icon": "3",
+      "tone": "gold",
+      "question": "O que significa abstrair o problema dos 3 corpos financeiros?",
+      "answer": "Significa comprimir interações caóticas de mercado em um quadro competitivo que humanos consigam ler. A arena não remove a complexidade, mas a traduz em placar, pressão, pools e timing."
+    },
+    {
+      "id": "momentum-battle",
+      "group": "deep",
+      "category": "Momentum",
+      "icon": "!",
+      "tone": "green",
+      "question": "O que é uma batalha de momentum?",
+      "answer": "É uma partida em que o controle do fluxo importa mais do que snapshots estáticos. Um lado pode ainda não estar dominante no placar, mas se estiver vencendo o curto prazo, a arena pode inclinar rápido."
+    },
+    {
+      "id": "market-manipulate",
+      "group": "deep",
+      "category": "Risco",
+      "icon": "?",
+      "tone": "gold",
+      "question": "O mercado pode manipular uma partida?",
+      "answer": "A arena herda a realidade do mercado, então distorções, comportamento de manada e choques externos podem influenciar resultado. Por isso nenhum sinal isolado deve ser tratado como certeza."
+    },
+    {
+      "id": "euphoria",
+      "group": "deep",
+      "category": "Sentimento",
+      "icon": "E",
+      "tone": "cyan",
+      "question": "Como identificar excesso de euforia?",
+      "answer": "Procure confiança de um lado só, momentum esticado, posicionamento lotado e pouca tolerância a notícia ruim. Na arena, a euforia costuma parecer mais forte pouco antes de o mercado exigir confirmação."
+    },
+    {
+      "id": "fear-opportunity",
+      "group": "deep",
+      "category": "Sentimento",
+      "icon": "Y",
+      "tone": "green",
+      "question": "Fear extremo pode virar oportunidade?",
+      "answer": "Às vezes sim. Fear extremo pode gerar distorção e repiques violentos, mas apenas se o lado começar a estabilizar de verdade. Fear sozinho não é sinal de compra; é contexto."
+    },
+    {
+      "id": "strong-assets-lose",
+      "group": "deep",
+      "category": "Performance relativa",
+      "icon": "S",
+      "tone": "purple",
+      "question": "Por que ativos fortes às vezes perdem?",
+      "answer": "Porque a partida é relativa, não absoluta. Um ativo forte ainda pode perder se o rival estiver ainda mais forte naquele ciclo, se o timing for pior ou se o mercado já tiver precificado otimismo demais."
+    },
+    {
+      "id": "global-events",
+      "group": "deep",
+      "category": "Macro",
+      "icon": "G",
+      "tone": "cyan",
+      "question": "Como eventos globais afetam partidas?",
+      "answer": "Choques macro, política monetária, estresse em exchanges e mudanças de liquidez podem reprecificar a arena rapidamente. O contexto global altera não só direção, mas também tempo, fear e chance de reversão."
+    }
   ]
 }
