@@ -174,13 +174,23 @@
 
 .tv-field__ball {
     position: absolute;
-    right: -3px;
-    bottom: -3px;
-    width: 11px;
-    height: 11px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ffffff, #d8e6ef);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.16);
+    background: radial-gradient(circle at 35% 30%, #ffffff 0 18%, #dff6ff 19% 42%, #111827 43% 48%, #f8fbff 49% 100%);
+    box-shadow: 0 0 10px rgba(255,255,255,.75), 0 8px 12px rgba(0,0,0,.35);
+    animation: tvBallBounce .55s ease-in-out infinite;
+}
+
+.tv-field__player.is-left .tv-field__ball {
+    right: -10px;
+    left: auto;
+}
+
+.tv-field__player.is-right .tv-field__ball {
+    left: -10px;
+    right: auto;
 }
 
 .tv-field__possession {

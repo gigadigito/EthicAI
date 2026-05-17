@@ -263,7 +263,59 @@
                     }
                 </aside>
             </div>
+            @if (_tickerItems.Count > 0)
 
+
+
+            {
+                <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
+                    <div class="tv-ticker__track">
+                        @for (var repetition = 0; repetition < 2; repetition++)
+
+
+
+                        {
+                            <div class="tv-ticker__lane">
+                                <span class="tv-ticker__live">AO VIVO</span>
+
+                                @foreach (var item in _tickerItems)
+
+
+
+                                {
+                                    <span class="tv-ticker__dot"></span>
+                                    @if (item.Contains("CRIPTOVERSUS.COM", StringComparison.OrdinalIgnoreCase))
+
+
+
+                                    {
+
+
+
+                                        var parts = item.Split("CRIPTOVERSUS.COM", StringSplitOptions.None);
+
+                                        <span class="tv-ticker__item">
+                                            @parts[0]
+                                            <span class="tv-ticker__highlight">CRIPTOVERSUS.COM</span>
+                                            @(parts.Length > 1 ? parts[1] : string.Empty)
+                                        </span>
+                                    }
+
+
+
+                                    else
+
+
+
+                                    {
+                                        <span class="tv-ticker__item">@item</span>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
             <section class="tv-event-strip @(UseFootballFieldLayout ? "tv-event-strip--football" : string.Empty)">
                 <article class="tv-event-strip__card">
                     <span>@(UseFootballFieldLayout ? T("field.eventZone") : T("labels.eventZone"))</span>
@@ -277,45 +329,7 @@
                 </article>
             </section>
 
-            @if (_tickerItems.Count > 0)
-
-            {
-                <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
-                    <div class="tv-ticker__track">
-                        @for (var repetition = 0; repetition < 2; repetition++)
-
-                        {
-                            <div class="tv-ticker__lane">
-                                <span class="tv-ticker__live">AO VIVO</span>
-
-                                @foreach (var item in _tickerItems)
-
-                                {
-                                    <span class="tv-ticker__dot"></span>
-                                    @if (item.Contains("CRIPTOVERSUS.COM", StringComparison.OrdinalIgnoreCase))
-
-                                    {
-
-                                        var parts = item.Split("CRIPTOVERSUS.COM", StringSplitOptions.None);
-
-                                        <span class="tv-ticker__item">
-                                            @parts[0]
-                                            <span class="tv-ticker__highlight">CRIPTOVERSUS.COM</span>
-                                            @(parts.Length > 1 ? parts[1] : string.Empty)
-                                        </span>
-                                    }
-
-                                    else
-
-                                    {
-                                        <span class="tv-ticker__item">@item</span>
-                                    }
-                                }
-                            </div>
-                        }
-                    </div>
-                </section>
-            }
+           
         </div>
     </section>
 }
@@ -456,7 +470,7 @@ else
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
 
     // Temporary debug demo to validate the cinematic narration overlay visually.
-    private const bool EnableNarrationDebugDemo = true;
+    private const bool EnableNarrationDebugDemo = false;
     private static readonly string[] NarrationDebugAnimations =
     [
         "grow",
@@ -1002,38 +1016,48 @@ else
     {
         var items = new List<string>();
 
+
+
+
+
+
+
         if (HasLiveMatch)
         {
-            items.Add("https://criptoversus.com");
-            items.Add(T("ticker.visitSite"));
-            items.Add(T("ticker.liveBattles"));
-            items.Add(T("ticker.matchMarkets"));
-            items.Add(T("ticker.rankings"));
-            items.Add(T("ticker.hotMatchDetected"));
-            items.Add(T("ticker.liveCryptoBattle"));
-            items.Add(T("ticker.arenaPressureRising"));
-            items.Add(T("ticker.marketVolatilityIncreasing"));
 
             if (HotMatch?.HasRecentReversal == true)
                 items.Add(T("ticker.momentumShift"));
 
+
+
             if (HasFearSignal())
                 items.Add(T("ticker.fearSurge"));
 
-            var leader = ResolveLeaderSymbol();
-            var trailer = leader == DisplayLeftSymbol() ? DisplayRightSymbol() : DisplayLeftSymbol();
-            items.Add(T("ticker.dominating", leader));
-            items.Add(T("ticker.recovering", trailer));
+
 
             if (ParseRemainingSeconds(DisplayRemainingTime()) <= 600)
                 items.Add(T("ticker.finalMinutes"));
 
+
+
             if ((HotMatch?.HotScore ?? 0) >= 90)
                 items.Add(T("ticker.crowdEnergySpike"));
 
-            foreach (var commentary in _commentaryHistory.TakeLast(4))
+
+
+            foreach (var commentary in _commentaryHistory.TakeLast(2))
                 items.Add(commentary);
+
+
+
+            if (items.Count == 0)
+
+                items.Add(T("ticker.liveCryptoBattle"));
+
         }
+
+
+
         else
         {
             items.Add(T("states.waitingForNextHotBattle"));
@@ -2171,7 +2195,6 @@ else
 <style>
 .tv-field__ball {
     position: absolute;
-    right: -10px;
     bottom: -6px;
     width: 12px;
     height: 12px;
@@ -2182,6 +2205,16 @@ else
         0 0 10px rgba(255,255,255,.75),
         0 8px 12px rgba(0,0,0,.35);
     animation: tvBallBounce .55s ease-in-out infinite;
+}
+
+.tv-field__player.is-left .tv-field__ball {
+    right: -10px;
+    left: auto;
+}
+
+.tv-field__player.is-right .tv-field__ball {
+    left: -10px;
+    right: auto;
 }
 
 @@keyframes tvBallBounce {
@@ -2292,10 +2325,22 @@ else
     .tv-stage__grid,
     .tv-event-strip,
     .tv-waiting-hero,
-    .tv-waiting-grid,
-    .tv-ticker {
+    .tv-waiting-grid {
         position: relative;
         z-index: 1;
+    }
+
+    .tv-ticker {
+        position: relative;
+        z-index: 2;
+        height: 34px;
+        width: 100%;
+        margin: 0;
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid rgba(83, 200, 255, .16);
+        background: rgba(2, 7, 14, .88);
+        backdrop-filter: blur(10px);
     }
 
     .tv-ticker__highlight {
@@ -2642,13 +2687,14 @@ else
     }
 
     .tv-football-side--left {
+        justify-items: center;
         background:
             radial-gradient(circle at 0% 50%, rgba(255, 166, 0, 0.12), transparent 42%),
             linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
     }
 
     .tv-football-side--right {
-        justify-items: end;
+        justify-items: center;
         text-align: right;
         background:
             radial-gradient(circle at 100% 50%, rgba(42, 201, 255, 0.12), transparent 42%),
@@ -3550,20 +3596,6 @@ else
     }
 }
 
-    .tv-ticker {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 50;
-        height: 34px;
-        margin: 0;
-        overflow: hidden;
-        border-radius: 0;
-        border-top: 1px solid rgba(83, 200, 255, .16);
-        background: rgba(2, 7, 14, .98);
-        backdrop-filter: blur(10px);
-    }
 
     .tv-ticker__track {
         height: 100%;
@@ -3658,7 +3690,20 @@ else
         grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(170px, 220px);
         gap: 16px;
     }
+    .tv-stage--broadcast .tv-football-side--left {
+    justify-self: start;
+}
 
+.tv-stage--broadcast .tv-football-side--right {
+    justify-self: end;
+}
+
+    .tv-stage--broadcast .tv-football-layout {
+        display: grid;
+        grid-template-columns: minmax(170px, 220px) minmax(760px, 1fr) minmax(170px, 220px);
+        align-items: stretch;
+        gap: 18px;
+    }
     .tv-stage--broadcast .tv-football-side {
         gap: 8px;
         padding: 14px 12px;
