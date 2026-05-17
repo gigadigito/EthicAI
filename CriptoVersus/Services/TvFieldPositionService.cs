@@ -274,8 +274,10 @@ public sealed class TvFieldPositionService
         var leftBase = isLeft ? 17d : 83d;
         var leftDirection = isLeft ? 1d : -1d;
 
-        var territorialAdvance = flow.TerritorialAdvance * 10.0d;
-        var teamShift = (possessionPush * 0.22d) + (territorialAdvance * 0.35d);
+        var territorialAdvance = flow.TerritorialAdvance * 5.5d;
+        var teamShift =
+        (possessionPush * 0.42d)
+        + (territorialAdvance * 0.24d);
 
         if (TvLog.ShouldLog($"territory:{matchId}:{teamSymbol}", 2500))
             Console.WriteLine($"[TV_TERRITORY] {teamSymbol} possession={possession}% territorial={territorialIntensity:F2} teamShift={teamShift:F2}");
@@ -684,10 +686,33 @@ public sealed class TvFieldPositionService
 
     private static double CalculateTerritorialPressure(int possession, double territorialAdvance)
     {
-        // Possession anchors the overall territory. Snapshots can add short bursts but shouldn't invalidate the bar.
-        var basePressure = Math.Clamp((possession - 50d) / 15d, -1d, 1d);
-        var flowBoost = Math.Clamp(territorialAdvance, -2d, 2d) * 0.70d;
-        return Math.Clamp(basePressure + flowBoost, -1d, 1d);
+        // Posse manda no território.
+        // Flow só adiciona intensidade contextual.
+
+        var possessionTerritory =
+            Math.Clamp((possession - 50d) / 15d, -1d, 1d);
+
+        var marketThreat =
+            Math.Clamp(territorialAdvance / 2d, -1d, 1d);
+
+        // Posse domina.
+        var territory =
+          (possessionTerritory * 0.64d)
++ (marketThreat * 0.36d);
+
+        // Sem posse não pode dominar campo inteiro.
+        if (possession < 50 && marketThreat > 0)
+        {
+            territory = Math.Min(territory, 0.34d);
+        }
+
+        // Com posse alta, deixa avançar mais.
+        if (possession > 60 && marketThreat > 0)
+        {
+            territory += marketThreat * 0.12d;
+        }
+
+        return Math.Clamp(territory, -1d, 1d);
     }
 
     private static double CalculateAttackIntensity(double attackIntensity, double pressure)
