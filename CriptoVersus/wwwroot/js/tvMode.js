@@ -61,6 +61,9 @@ export function playAudioCue(elementId) {
     }
 
     try {
+        // Always play cues as a one-shot, even if the element was previously modified by the browser.
+        audio.loop = false;
+        audio.pause();
         audio.currentTime = 0;
     } catch {
     }

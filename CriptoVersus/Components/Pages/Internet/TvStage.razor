@@ -526,6 +526,8 @@ else
     private long? _lastSeenScoreEventId;
     private long? _lastTriggeredGoalEventId;
     private string _lastGoalTriggerSignature = string.Empty;
+    private string _lastGoalAudioSignature = string.Empty;
+    private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
@@ -703,6 +705,8 @@ else
             _lastSeenScoreEventId = null;
             _lastTriggeredGoalEventId = null;
             _lastGoalTriggerSignature = string.Empty;
+            _lastGoalAudioSignature = string.Empty;
+            _lastGoalAudioAtUtc = DateTime.MinValue;
         }
 
         if (_previousSnapshot is null)
@@ -726,9 +730,9 @@ else
             _ = PulseScoreAsync(current.LeftScore > _previousSnapshot.LeftScore, current.RightScore > _previousSnapshot.RightScore, hotScoreSpike);
             _ = TriggerEventAsync(CreateGoalEvent(current));
             _ = QueueNarrationAsync(CreateGoalNarration(current));
-            _ = PlayGoalAudioAsync();
             _ = MaybeRefreshAiNarrationAsync("goal");
             MarkGoalTrigger(current);
+            _ = TryPlayGoalAudioAsync(current);
         }
         else if (scoreLeaderChanged)
         {
@@ -872,8 +876,8 @@ else
                 false);
             await TriggerEventAsync(CreateGoalEvent(current, latest.TeamSymbol));
             await QueueNarrationAsync(CreateGoalNarration(current, latest.TeamSymbol));
-            await PlayGoalAudioAsync();
             MarkGoalTrigger(current);
+            await TryPlayGoalAudioAsync(current);
             _ = MaybeRefreshAiNarrationAsync("goal");
         }
         catch (Exception ex)
@@ -1699,10 +1703,23 @@ else
         }
     }
 
-    private async Task PlayGoalAudioAsync()
+    private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current)
     {
         if (!ShouldRenderGoalAudio)
             return;
+
+        var signature = BuildGoalTriggerSignature(current);
+
+        // Hard de-dupe: the score event probe and the hot snapshot pipeline can see the same goal.
+        if (string.Equals(signature, _lastGoalAudioSignature, StringComparison.Ordinal))
+            return;
+
+        // Anti-loop guard: if some upstream signal oscillates, never spam the sting.
+        if (_lastGoalAudioAtUtc != DateTime.MinValue && DateTime.UtcNow - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(6))
+            return;
+
+        _lastGoalAudioSignature = signature;
+        _lastGoalAudioAtUtc = DateTime.UtcNow;
 
         if (_tvModule is not null)
         {
