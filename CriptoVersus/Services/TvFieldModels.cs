@@ -41,3 +41,12 @@ public sealed class TvFieldStateDto
     public IReadOnlyList<TvFieldPlayerPosition> PlayerPositions { get; set; } = [];
     public IReadOnlyList<TvFieldRecentEvent> RecentEvents { get; set; } = [];
 }
+
+public sealed class MarketFlowState
+{
+    public double Pressure { get; set; }
+    public double AttackIntensity { get; set; }
+    public double DefensiveRetreat { get; set; }
+    public double MomentumAcceleration { get; set; }
+    public double TerritorialAdvance { get; set; }
+}

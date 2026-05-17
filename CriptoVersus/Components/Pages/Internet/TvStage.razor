@@ -354,7 +354,7 @@ else
                     @foreach (var team in TopTeams)
                     {
                         <div class="tv-ranking-row">
-                            <strong>#{team.Rank}</strong>
+                            <strong>#@team.Rank</strong>
                             <div>
                                 <span>@team.Symbol</span>
                                 <small>@team.DisplayName</small>
@@ -496,6 +496,12 @@ else
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
     private IReadOnlyList<MatchScoreEventDto> _recentScoreEvents = [];
+    private IReadOnlyList<MatchMetricSnapshotDto> _metricSnapshots = [];
+    private CancellationTokenSource? _metricSnapshotCts;
+    private Task? _metricSnapshotLoopTask;
+    private int _metricSnapshotMatchId;
+    private long _metricSnapshotLastId;
+    private long _metricSnapshotLastLogTick;
     private DateTime _clockAnchorUtc = DateTime.UtcNow;
     private double _clockAnchorRemainingMilliseconds;
     private DateTime _broadcastNoticeUntilUtc = DateTime.MinValue;
@@ -519,7 +525,7 @@ else
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
     private TvFieldStateDto? CurrentFieldState => UseFootballFieldLayout && HasLiveMatch
-        ? FieldPositionService.BuildFieldState(Match, HotMatch, _recentScoreEvents, Culture)
+        ? FieldPositionService.BuildFieldState(Match, HotMatch, _recentScoreEvents, _metricSnapshots, Culture)
         : null;
     private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
@@ -546,6 +552,9 @@ else
 
             _clockCts = new CancellationTokenSource();
             _clockLoopTask = RunClockLoopAsync(_clockCts.Token);
+
+            _metricSnapshotCts = new CancellationTokenSource();
+            _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
 
             if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
             {
@@ -575,6 +584,77 @@ else
             while (await timer.WaitForNextTickAsync(ct))
             {
                 await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RunMetricSnapshotLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                var matchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+                if (matchId <= 0)
+                {
+                    _metricSnapshotMatchId = 0;
+                    _metricSnapshotLastId = 0;
+                    _metricSnapshots = [];
+                    continue;
+                }
+
+                if (_metricSnapshotMatchId != matchId)
+                {
+                    _metricSnapshotMatchId = matchId;
+                    _metricSnapshotLastId = 0;
+                    _metricSnapshots = [];
+                }
+
+                List<MatchMetricSnapshotDto> snapshots;
+                try
+                {
+                    snapshots = await Api.GetMatchMetricSnapshotsAsync(matchId, 160, ct) ?? [];
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    await LogAsync("TV_SNAPSHOTS", "error", ex.Message);
+                    continue;
+                }
+
+                var latestId = snapshots.Count == 0 ? 0 : snapshots.Max(x => x.MatchMetricSnapshotId);
+                if (latestId == _metricSnapshotLastId && _metricSnapshots.Count > 0)
+                    continue;
+
+                _metricSnapshotLastId = latestId;
+                _metricSnapshots = snapshots
+                    .OrderByDescending(x => x.CapturedAtUtc)
+                    .Take(160)
+                    .ToList();
+
+
+
+
+
+
+
+                var nowTick = System.Environment.TickCount64;
+
+
+
+                if (nowTick - _metricSnapshotLastLogTick >= 4000)
+                {
+                    _metricSnapshotLastLogTick = nowTick;
+                    Console.WriteLine($"[TV_SNAPSHOTS] match={matchId} count={_metricSnapshots.Count} latestId={_metricSnapshotLastId}");
+                }
             }
         }
         catch (OperationCanceledException)
@@ -2016,11 +2096,28 @@ else
             _clockCts.Dispose();
         }
 
+        if (_metricSnapshotCts is not null)
+        {
+            _metricSnapshotCts.Cancel();
+            _metricSnapshotCts.Dispose();
+        }
+
         if (_clockLoopTask is not null)
         {
             try
             {
                 await _clockLoopTask;
+            }
+            catch
+            {
+            }
+        }
+
+        if (_metricSnapshotLoopTask is not null)
+        {
+            try
+            {
+                await _metricSnapshotLoopTask;
             }
             catch
             {
