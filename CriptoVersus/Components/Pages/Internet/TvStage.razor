@@ -264,9 +264,6 @@
                 </aside>
             </div>
             @if (_tickerItems.Count > 0)
-
-
-
             {
                 <section class="tv-ticker" aria-label="@T("labels.broadcastTicker")">
                     <div class="tv-ticker__track">
@@ -1022,39 +1019,87 @@ else
 
 
 
+
+
+
+
+
+
+
+
         if (HasLiveMatch)
+
         {
 
+            items.Add("https://criptoversus.com");
+
+            items.Add(T("ticker.visitSite"));
+
+            items.Add(T("ticker.liveBattles"));
+
+            items.Add(T("ticker.matchMarkets"));
+
+            items.Add(T("ticker.rankings"));
+
+            items.Add(T("ticker.hotMatchDetected"));
+
+            items.Add(T("ticker.liveCryptoBattle"));
+
+            items.Add(T("ticker.arenaPressureRising"));
+
+            items.Add(T("ticker.marketVolatilityIncreasing"));
+
+
+
             if (HotMatch?.HasRecentReversal == true)
+
                 items.Add(T("ticker.momentumShift"));
 
 
 
             if (HasFearSignal())
+
                 items.Add(T("ticker.fearSurge"));
 
 
 
+            var leader = ResolveLeaderSymbol();
+
+            var trailer = leader == DisplayLeftSymbol()
+
+                ? DisplayRightSymbol()
+
+                : DisplayLeftSymbol();
+
+
+
+            items.Add(T("ticker.dominating", leader));
+
+            items.Add(T("ticker.recovering", trailer));
+
+
+
             if (ParseRemainingSeconds(DisplayRemainingTime()) <= 600)
+
                 items.Add(T("ticker.finalMinutes"));
 
 
 
             if ((HotMatch?.HotScore ?? 0) >= 90)
+
                 items.Add(T("ticker.crowdEnergySpike"));
 
 
 
-            foreach (var commentary in _commentaryHistory.TakeLast(2))
+            foreach (var commentary in _commentaryHistory.TakeLast(4))
+
                 items.Add(commentary);
 
-
-
-            if (items.Count == 0)
-
-                items.Add(T("ticker.liveCryptoBattle"));
-
         }
+
+
+
+
 
 
 
