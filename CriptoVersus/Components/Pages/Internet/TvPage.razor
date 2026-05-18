@@ -92,7 +92,7 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260518-1");
         await LogAsync("loaded");
         await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
 

@@ -189,77 +189,79 @@
                 </article>
 
                 <aside class="tv-telemetry @(UseFootballFieldLayout ? "tv-telemetry--football" : string.Empty)">
-                    @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+                    @if (EnableTelemetryCube)
                     {
-                        <a class="tv-telemetry__match-link" href="@CurrentRealMatchUrl">
-                            <span>@T("labels.realMatch")</span>
-                            <strong>@DisplayPressureHeadline()</strong>
-                            <small>@T("labels.matchIdValue", DisplayMatchId())</small>
-                        </a>
+                        <div id="tv-telemetry-cube-shell"
+                             class="tv-telemetry-cube-shell"
+                             data-interval-seconds="@TelemetryCubeIntervalSeconds">
+                            <div id="tv-telemetry-cube" class="tv-telemetry-cube is-face-0">
+                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--front">
+                                    <div class="tv-telemetry-cube__inner">
+                                        <div class="tv-telemetry-cube__telemetry-grid">
+                                            @TelemetryPanelContent()
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--right">
+                                    <div class="tv-telemetry-cube__inner">
+                                        <header class="tv-telemetry-face-header">
+                                            <span class="tv-telemetry-face-header__kicker">@T("labels.leftAssetChange")</span>
+                                            <div class="tv-telemetry-face-header__row">
+                                                <strong>@DisplayLeftTickerLabel()</strong>
+                                                <em class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</em>
+                                            </div>
+                                            <small>@DisplayMomentumSupportLine()</small>
+                                        </header>
+                                        <div id="tv-telemetry-chart-left" class="tv-telemetry-chart-shell" aria-label="chart ativo A"></div>
+                                        <div class="tv-telemetry-face-footer">
+                                            <span>@T("labels.momentum")</span>
+                                            <strong>@DisplayMomentum()</strong>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
+                                    <div class="tv-telemetry-cube__inner">
+                                        <header class="tv-telemetry-face-header">
+                                            <span class="tv-telemetry-face-header__kicker">Market battle flow</span>
+                                            <div class="tv-telemetry-face-header__row">
+                                                <strong>@DisplayLeftTickerLabel() <span class="tv-telemetry-face-header__vs">@T("vs")</span> @DisplayRightTickerLabel()</strong>
+                                                <em>@DisplayPressureSymbol()</em>
+                                            </div>
+                                            <small>@DisplayPressureHeadline()</small>
+                                        </header>
+                                        <div id="tv-telemetry-chart-compare" class="tv-telemetry-chart-shell" aria-label="chart comparativo"></div>
+                                        <div class="tv-telemetry-face-footer">
+                                            <span>@T("labels.pressure")</span>
+                                            <strong>@DisplayPoolStatus()</strong>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--left">
+                                    <div class="tv-telemetry-cube__inner">
+                                        <header class="tv-telemetry-face-header">
+                                            <span class="tv-telemetry-face-header__kicker">@T("labels.rightAssetChange")</span>
+                                            <div class="tv-telemetry-face-header__row">
+                                                <strong>@DisplayRightTickerLabel()</strong>
+                                                <em class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</em>
+                                            </div>
+                                            <small>@DisplayMomentumSupportLine()</small>
+                                        </header>
+                                        <div id="tv-telemetry-chart-right" class="tv-telemetry-chart-shell" aria-label="chart ativo B"></div>
+                                        <div class="tv-telemetry-face-footer">
+                                            <span>@T("labels.momentum")</span>
+                                            <strong>@DisplayMomentum()</strong>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
                     }
                     else
                     {
-                        <article>
-                            <span>@T("labels.realMatch")</span>
-                            <strong>@DisplayPressureHeadline()</strong>
-                            <small>@T("labels.matchIdValue", DisplayMatchId())</small>
-                        </article>
-                    }
-                    <article>
-                        <span>@T("labels.momentum")</span>
-                        <strong>@DisplayMomentum()</strong>
-                        <small>@DisplayMomentumSupportLine()</small>
-                    </article>
-                
-                    <article>
-                        <span>@T("labels.reason")</span>
-                        <strong>@T("labels.liveRewardDynamics")</strong>
-                        <small>@DisplayReason()</small>
-                    </article>
-                
-                    <article>
-                        <span>@T("labels.pressure")</span>
-                        <strong>@DisplayPressureSymbol()</strong>
-                        <small>@DisplayPoolStatus()</small>
-                    </article>
-                    <article>
-                        <span>@T("labels.leftAssetChange")</span>
-                        <strong class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</strong>
-                        <small>@DisplayLeftSymbol()</small>
-                    </article>
-                    <article>
-                        <span>@T("labels.rightAssetChange")</span>
-                        <strong class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</strong>
-                        <small>@DisplayRightSymbol()</small>
-                    </article>
-                    <article>
-                        <span>@T("labels.competitiveness")</span>
-                        <strong>@DisplayHotScore()</strong>
-                        <small>@DisplayScoreContext()</small>
-                    </article>
-                    <article>
-                        <span>@T("labels.poolStatus")</span>
-                        <strong>@DisplayPoolStatus()</strong>
-                        <small>@DisplayVolume()</small>
-                    </article>
-                    @if (UseFootballFieldLayout && CurrentFieldState is not null)
-                    {
-                        <article class="tv-telemetry__events">
-                            <span>@T("field.recentEvents")</span>
-                            <div class="tv-telemetry__events-list">
-                                @foreach (var item in CurrentFieldState.RecentEvents.Take(4))
-                                {
-                                    <div class="tv-telemetry__events-item @(item.IsHighlight ? "is-highlighted" : string.Empty)">
-                                        <strong>@item.ClockLabel</strong>
-                                        <div>
-                                            <span>@item.TeamSymbol</span>
-                                            <small>@item.Description</small>
-                                        </div>
-                                        <em>@item.ScoreLabel</em>
-                                    </div>
-                                }
-                            </div>
-                        </article>
+                        @TelemetryPanelContent()
                     }
                 </aside>
             </div>
@@ -530,6 +532,9 @@ else
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
+    private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
+    private int TelemetryCubeIntervalSeconds
+        => Math.Clamp(Config.GetValue<int?>("CriptoVersusTV:TelemetryCubeIntervalSeconds") ?? 12, 8, 20);
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
@@ -558,7 +563,7 @@ else
     {
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260515-2");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-1");
             await LogAsync("TV_MOTION", "motion system ready");
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
@@ -578,6 +583,12 @@ else
             await LogClockDebugAsync();
         }
 
+        if (EnableTelemetryCube && _tvModule is not null)
+        {
+            await EnsureTelemetryCubeAsync();
+            await SyncTelemetryChartsAsync();
+        }
+
         if (ShouldRenderCrowdAudio && !_broadcastAudioInitialized)
             await EnsureBroadcastAudioAsync();
 
@@ -587,6 +598,137 @@ else
             await DetectRecentScoreEventsAsync();
         }
     }
+
+    private bool _telemetryCubeInitialized;
+    private long _telemetryCubeLastSnapshotId;
+    private long _telemetryCubeLastMissingLogTick;
+
+    private async Task EnsureTelemetryCubeAsync()
+    {
+        if (_telemetryCubeInitialized || _tvModule is null)
+            return;
+
+        _telemetryCubeInitialized = true;
+        await _tvModule.InvokeVoidAsync("initTelemetryCube", "tv-telemetry-cube-shell", TelemetryCubeIntervalSeconds * 1000);
+        await LogAsync("TV_CUBE", "initialized");
+    }
+
+    private async Task SyncTelemetryChartsAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        var latestId = _metricSnapshots.Count == 0 ? 0 : _metricSnapshots.Max(x => x.MatchMetricSnapshotId);
+        if (latestId == _telemetryCubeLastSnapshotId && latestId != 0)
+            return;
+
+        _telemetryCubeLastSnapshotId = latestId;
+
+        if (_metricSnapshots.Count == 0)
+        {
+            var nowTick = System.Environment.TickCount64;
+            if (nowTick - _telemetryCubeLastMissingLogTick >= 6000)
+            {
+                _telemetryCubeLastMissingLogTick = nowTick;
+                await LogAsync("TV_CHART", "missing snapshots");
+            }
+            await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new { left = Array.Empty<object>(), right = Array.Empty<object>() });
+            return;
+        }
+
+        var leftSymbol = DisplayLeftSymbol();
+        var rightSymbol = DisplayRightSymbol();
+
+        static IEnumerable<object> BuildPoints(IReadOnlyList<MatchMetricSnapshotDto> snapshots, string teamSymbol)
+            => snapshots
+                .Where(x => string.Equals(x.TeamSymbol, teamSymbol, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(x => x.CapturedAtUtc)
+                .Select(x => new
+                {
+                    time = new DateTimeOffset(x.CapturedAtUtc, TimeSpan.Zero).ToUnixTimeSeconds(),
+                    value = (double)x.PercentageChange
+                });
+
+        var leftPoints = BuildPoints(_metricSnapshots, leftSymbol).ToArray();
+        var rightPoints = BuildPoints(_metricSnapshots, rightSymbol).ToArray();
+
+        await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new { left = leftPoints, right = rightPoints });
+    }
+
+    private RenderFragment TelemetryPanelContent() => @<text>
+        @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+        {
+            <a class="tv-telemetry__match-link" href="@CurrentRealMatchUrl">
+                <span>@T("labels.realMatch")</span>
+                <strong>@DisplayPressureHeadline()</strong>
+                <small>@T("labels.matchIdValue", DisplayMatchId())</small>
+            </a>
+        }
+        else
+        {
+            <article>
+                <span>@T("labels.realMatch")</span>
+                <strong>@DisplayPressureHeadline()</strong>
+                <small>@T("labels.matchIdValue", DisplayMatchId())</small>
+            </article>
+        }
+        <article>
+            <span>@T("labels.momentum")</span>
+            <strong>@DisplayMomentum()</strong>
+            <small>@DisplayMomentumSupportLine()</small>
+        </article>
+
+        <article>
+            <span>@T("labels.reason")</span>
+            <strong>@T("labels.liveRewardDynamics")</strong>
+            <small>@DisplayReason()</small>
+        </article>
+
+        <article>
+            <span>@T("labels.pressure")</span>
+            <strong>@DisplayPressureSymbol()</strong>
+            <small>@DisplayPoolStatus()</small>
+        </article>
+        <article>
+            <span>@T("labels.leftAssetChange")</span>
+            <strong class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</strong>
+            <small>@DisplayLeftSymbol()</small>
+        </article>
+        <article>
+            <span>@T("labels.rightAssetChange")</span>
+            <strong class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</strong>
+            <small>@DisplayRightSymbol()</small>
+        </article>
+        <article>
+            <span>@T("labels.competitiveness")</span>
+            <strong>@DisplayHotScore()</strong>
+            <small>@DisplayScoreContext()</small>
+        </article>
+        <article>
+            <span>@T("labels.poolStatus")</span>
+            <strong>@DisplayPoolStatus()</strong>
+            <small>@DisplayVolume()</small>
+        </article>
+        @if (UseFootballFieldLayout && CurrentFieldState is not null)
+        {
+            <article class="tv-telemetry__events">
+                <span>@T("field.recentEvents")</span>
+                <div class="tv-telemetry__events-list">
+                    @foreach (var item in CurrentFieldState.RecentEvents.Take(4))
+                    {
+                        <div class="tv-telemetry__events-item @(item.IsHighlight ? "is-highlighted" : string.Empty)">
+                            <strong>@item.ClockLabel</strong>
+                            <div>
+                                <span>@item.TeamSymbol</span>
+                                <small>@item.Description</small>
+                            </div>
+                            <em>@item.ScoreLabel</em>
+                        </div>
+                    }
+                </div>
+            </article>
+        }
+    </text>;
 
     private async Task RunClockLoopAsync(CancellationToken ct)
     {
@@ -805,6 +947,16 @@ else
         _activeEvent = overlayEvent;
         _isEventVisible = true;
         await LogAsync("TV_EVENT", overlayEvent.Key);
+        if (EnableTelemetryCube && _tvModule is not null)
+        {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("notifyTelemetryCubeEvent", overlayEvent.Key);
+            }
+            catch
+            {
+            }
+        }
         await InvokeAsync(StateHasChanged);
 
         try
@@ -3267,6 +3419,189 @@ else
         color: var(--tv-muted);
         line-height: 1.55;
         margin: 0;
+    }
+
+    .tv-telemetry-cube-shell {
+        grid-column: 1 / -1;
+        position: relative;
+        height: clamp(520px, 56vh, 720px);
+        perspective: 1600px;
+        perspective-origin: 50% 44%;
+        isolation: isolate;
+    }
+
+    .tv-telemetry-cube-shell.is-paused::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 26px;
+        box-shadow: 0 0 0 1px rgba(127, 246, 223, 0.14), 0 0 30px rgba(127, 246, 223, 0.08);
+        pointer-events: none;
+        opacity: .9;
+    }
+
+    .tv-telemetry-cube {
+        position: absolute;
+        inset: 0;
+        transform-style: preserve-3d;
+        transition: transform 1.1s cubic-bezier(.22,.82,.28,1);
+        will-change: transform;
+        --tv-cube-depth: 280px;
+    }
+
+    .tv-telemetry-cube.is-face-0 { transform: rotateY(0deg); }
+    .tv-telemetry-cube.is-face-1 { transform: rotateY(-90deg); }
+    .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
+    .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
+
+    .tv-telemetry-cube__face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        border-radius: 26px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background:
+            radial-gradient(circle at 10% 10%, rgba(127, 246, 223, 0.10), transparent 58%),
+            linear-gradient(180deg, rgba(10, 16, 28, 0.90), rgba(6, 10, 18, 0.92));
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 22px 55px rgba(0,0,0,0.28);
+        overflow: hidden;
+    }
+
+    .tv-telemetry-cube__face::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% -10%, rgba(83, 200, 255, 0.16), transparent 62%);
+        opacity: .9;
+        pointer-events: none;
+    }
+
+    .tv-telemetry-cube__face--front { transform: rotateY(0deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--right { transform: rotateY(90deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--back { transform: rotateY(180deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--left { transform: rotateY(-90deg) translateZ(var(--tv-cube-depth)); }
+
+    .tv-telemetry-cube__inner {
+        position: relative;
+        height: 100%;
+        padding: 14px;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 12px;
+    }
+
+    .tv-telemetry-cube__telemetry-grid {
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-content: start;
+    }
+
+    .tv-telemetry-cube__face--front .tv-telemetry__match-link,
+    .tv-telemetry-cube__face--front article {
+        animation: none;
+    }
+
+    .tv-telemetry-face-header {
+        position: relative;
+        display: grid;
+        gap: 8px;
+        padding: 14px 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.025);
+    }
+
+    .tv-telemetry-face-header__kicker {
+        color: var(--tv-green);
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-size: .72rem;
+        font-weight: 900;
+    }
+
+    .tv-telemetry-face-header__row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .tv-telemetry-face-header__row strong {
+        font-size: clamp(1.2rem, 1.4vw, 1.6rem);
+        letter-spacing: -.02em;
+    }
+
+    .tv-telemetry-face-header__row em {
+        font-style: normal;
+        font-weight: 900;
+        letter-spacing: .04em;
+    }
+
+    .tv-telemetry-face-header__vs {
+        opacity: .7;
+        font-weight: 900;
+        margin: 0 10px;
+    }
+
+    .tv-telemetry-chart-shell {
+        position: relative;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.02);
+        overflow: hidden;
+    }
+
+    .tv-telemetry-face-footer {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.02);
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .tv-telemetry-cube-shell {
+            perspective: none;
+            height: auto;
+        }
+
+        .tv-telemetry-cube {
+            position: static;
+            transform: none !important;
+            transition: none;
+        }
+
+        .tv-telemetry-cube__face {
+            position: static;
+            transform: none !important;
+            margin-bottom: 10px;
+        }
+    }
+
+    @@media (max-width: 1080px) {
+        .tv-telemetry-cube-shell {
+            perspective: none;
+            height: auto;
+        }
+
+        .tv-telemetry-cube {
+            position: static;
+            transform: none !important;
+        }
+
+        .tv-telemetry-cube__face {
+            position: static;
+            transform: none !important;
+        }
+
+        .tv-telemetry-cube__face:not(.tv-telemetry-cube__face--front) {
+            display: none;
+        }
     }
 
     .tv-event-strip {
