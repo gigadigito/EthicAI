@@ -14,6 +14,18 @@
 
 let telemetryCubeState = null;
 let telemetryChartsState = null;
+let fieldFreedomState = null;
+
+// Field freedom tuning (broadcast-friendly, no jitter)
+const FIELD_FREEDOM = {
+    FREEDOM_RADIUS_MULTIPLIER: 1.0,
+    PLAYER_SPEED_MULTIPLIER: 1.08,
+    SWAY_INTENSITY: 0.72, // px (scaled per-player + gait)
+    SWAY_SPEED: 1.22,
+    TARGET_PAUSE_MIN: 70,
+    TARGET_PAUSE_MAX: 420,
+    OVERSHOOT_STRENGTH: 0.12 // 0..0.25
+};
 
 function isReducedMotion() {
     return typeof window !== "undefined"
@@ -88,6 +100,340 @@ function telemetryChartLog(message, payload) {
     }
 
     console.log(`[TV_CHART] ${message}`, payload);
+}
+
+export function initFieldSway(rootId = "tv-crypto-field") {
+    const root = document.getElementById(rootId);
+    if (!root) {
+        return;
+    }
+
+    if (isReducedMotion()) {
+        return;
+    }
+
+    const overlay = root.querySelector(".tv-field__overlay");
+    if (!overlay) {
+        return;
+    }
+
+    if (fieldFreedomState?.root === root) {
+        return;
+    }
+
+    if (fieldFreedomState?.rafId) {
+        cancelAnimationFrame(fieldFreedomState.rafId);
+    }
+
+    fieldFreedomState = {
+        root,
+        overlay,
+        players: collectFreedomPlayers(root),
+        startedAt: performance.now(),
+        lastNow: 0,
+        rafId: 0
+    };
+
+    const tick = (now) => {
+        if (!fieldFreedomState || fieldFreedomState.root !== root) {
+            return;
+        }
+
+        // Refresh nodes occasionally (Blazor updates) without heavy work.
+        if (!fieldFreedomState._lastRefreshAt || now - fieldFreedomState._lastRefreshAt > 900) {
+            fieldFreedomState.players = collectFreedomPlayers(root, fieldFreedomState.players);
+            fieldFreedomState._lastRefreshAt = now;
+        }
+
+        applyFreedomMotion(fieldFreedomState, now);
+        fieldFreedomState.rafId = requestAnimationFrame(tick);
+    };
+
+    fieldFreedomState.rafId = requestAnimationFrame(tick);
+}
+
+function collectFreedomPlayers(root, previousPlayers = []) {
+    const prevByKey = new Map(previousPlayers.map((p) => [p.key, p]));
+    const nodes = Array.from(root.querySelectorAll(".tv-field__player"));
+    const players = [];
+
+    const ensureTuning = (player) => {
+        // Per-player rhythm (stable across refreshes)
+        if (!Number.isFinite(player.phase)) {
+            player.phase = randomFloat01(player.seed + 19) * Math.PI * 2;
+        }
+
+        if (!Number.isFinite(player.speedMultiplier)) {
+            // Slight spread in walking speed
+            player.speedMultiplier = 0.82 + randomFloat01(player.seed + 23) * 0.52; // 0.82..1.34
+        }
+
+        if (!Number.isFinite(player.swayIntensity)) {
+            player.swayIntensity = 0.85 + randomFloat01(player.seed + 29) * 0.55; // 0.85..1.40
+        }
+
+        if (!Number.isFinite(player.swaySpeed)) {
+            player.swaySpeed = 0.78 + randomFloat01(player.seed + 31) * 0.74; // 0.78..1.52
+        }
+
+        if (!Number.isFinite(player.pauseMultiplier)) {
+            // Some players "scan" more, others keep moving
+            player.pauseMultiplier = 0.72 + randomFloat01(player.seed + 37) * 0.78; // 0.72..1.50
+        }
+
+        return player;
+    };
+
+    for (const node of nodes) {
+        const seed = Number(node.dataset?.swaySeed);
+        const stableSeed = Number.isFinite(seed) ? seed : Math.floor(Math.random() * 10000);
+        const playerIndex = Number(node.dataset?.playerIndex);
+        const key = `${stableSeed}:${Number.isFinite(playerIndex) ? playerIndex : -1}:${node.classList.contains("is-left") ? "L" : "R"}`;
+
+        const existing = prevByKey.get(key);
+        if (existing) {
+            existing.node = node;
+            existing.seed = stableSeed;
+            ensureTuning(existing);
+            node.classList.add("is-free-walking");
+            players.push(existing);
+            continue;
+        }
+
+        const radius = resolveFreedomRadiusPx(node, playerIndex);
+        const initial = randomPointInCircle(radius, stableSeed);
+        const target = randomPointInCircle(radius, stableSeed + 31);
+
+        node.classList.add("is-free-walking");
+        node.style.setProperty("--tv-free-x", `${initial.x.toFixed(2)}px`);
+        node.style.setProperty("--tv-free-y", `${initial.y.toFixed(2)}px`);
+
+        players.push(ensureTuning({
+            key,
+            node,
+            seed: stableSeed,
+            playerIndex,
+            radius,
+            ox: initial.x,
+            oy: initial.y,
+            tx: target.x,
+            ty: target.y,
+            vx: 0,
+            vy: 0,
+            waitUntil: performance.now() + randomRangeMs(
+                FIELD_FREEDOM.TARGET_PAUSE_MIN,
+                FIELD_FREEDOM.TARGET_PAUSE_MAX,
+                stableSeed + 7
+            )
+        }));
+    }
+
+    return players;
+}
+
+function resolveFreedomRadiusPx(node, playerIndex) {
+    // Role approximation by index: 0 GK; 1-2 defenders; 3 mid; 4-6 attackers
+    let base = 2.2;
+    if (playerIndex === 0) base = 0.65;
+    else if (playerIndex <= 2) base = 1.6;
+    else if (playerIndex === 3) base = 2.2;
+    else if (playerIndex <= 5) base = 3.0;
+    else base = 2.6;
+
+    // Dynamic: slightly larger for attacking situations, smaller for deep defending.
+    if (node.classList.contains("has-ball")) base += 0.7;
+    if (node.classList.contains("is-attacking")) base += 0.35;
+    if (node.classList.contains("is-defending")) base -= 0.2;
+    if (node.classList.contains("has-momentum")) base += 0.25;
+
+    // Requested scaling
+    let multiplier = 1.0;
+    if (playerIndex === 0) multiplier = 1.0;
+    else if (playerIndex <= 2) multiplier = 1.15;
+    else if (playerIndex === 3) multiplier = 1.25;
+    else multiplier = 1.30;
+    if (node.classList.contains("has-ball")) multiplier *= 1.35;
+
+    const scaled = base * multiplier * FIELD_FREEDOM.FREEDOM_RADIUS_MULTIPLIER;
+    return Math.max(0.5, Math.min(6.2, scaled));
+}
+
+function randomRangeMs(min, max, seed) {
+    const t = Math.sin(seed * 999) * 10000;
+    const frac = t - Math.floor(t);
+    return min + (max - min) * frac;
+}
+
+function randomFloat01(seed) {
+    const t = Math.sin(seed * 12.9898) * 43758.5453;
+    const frac = t - Math.floor(t);
+    return frac < 0 ? frac + 1 : frac;
+}
+
+function randomPointInCircle(radius, seed) {
+    const a = (Math.sin(seed * 12.9898) * 43758.5453) % (Math.PI * 2);
+    const r = Math.sqrt(Math.abs(Math.sin(seed * 78.233))) * radius;
+    return { x: Math.cos(a) * r, y: Math.sin(a) * r };
+}
+
+function clampOffsetToField(player, overlayRect, playerRect) {
+    // Keep the transformed player fully inside the overlay.
+    const halfW = playerRect.width / 2;
+    const halfH = playerRect.height / 2;
+    const centerX = playerRect.left - overlayRect.left + halfW;
+    const centerY = playerRect.top - overlayRect.top + halfH;
+
+    const minX = halfW;
+    const maxX = overlayRect.width - halfW;
+    const minY = halfH;
+    const maxY = overlayRect.height - halfH;
+
+    let ox = player.ox;
+    let oy = player.oy;
+
+    if (centerX < minX) ox += (minX - centerX);
+    if (centerX > maxX) ox -= (centerX - maxX);
+    if (centerY < minY) oy += (minY - centerY);
+    if (centerY > maxY) oy -= (centerY - maxY);
+
+    player.ox = ox;
+    player.oy = oy;
+}
+
+function applyFreedomMotion(state, now) {
+    const dt = Math.min(0.05, state.lastNow ? (now - state.lastNow) / 1000 : 1 / 60);
+    state.lastNow = now;
+
+    const overlayRect = state.overlay.getBoundingClientRect();
+
+    // Step 1: move each player towards its current target (offsets only)
+    for (const player of state.players) {
+        const node = player.node;
+        if (!node?.isConnected) {
+            continue;
+        }
+
+        // Update radius dynamically (role + game state)
+        player.radius = resolveFreedomRadiusPx(node, player.playerIndex);
+
+        // Pick a new target when "arrived" and after a small pause.
+        const dxT = player.tx - player.ox;
+        const dyT = player.ty - player.oy;
+        const distT = Math.hypot(dxT, dyT);
+
+        if (now >= player.waitUntil && distT < 0.60) {
+            // Tactical bias: slight forward/back shift based on context.
+            const isLeft = node.classList.contains("is-left");
+            const dir = isLeft ? 1 : -1;
+            let biasX = 0;
+            let biasY = 0;
+
+            if (node.classList.contains("has-ball")) biasX += dir * player.radius * 0.55;
+            else if (node.classList.contains("is-attacking")) biasX += dir * player.radius * 0.25;
+            else if (node.classList.contains("is-defending")) biasX -= dir * player.radius * 0.18;
+
+            // Keep lanes: small tendency towards central lanes.
+            biasY += (Math.sin((now / 1000) + player.seed) * 0.08) * player.radius;
+
+            const rnd = randomPointInCircle(player.radius, player.seed + Math.floor(now / 650));
+            player.tx = rnd.x + biasX;
+            player.ty = rnd.y + biasY;
+            const pauseMult = Number.isFinite(player.pauseMultiplier) ? player.pauseMultiplier : 1.0;
+            player.waitUntil = now + randomRangeMs(
+                FIELD_FREEDOM.TARGET_PAUSE_MIN * pauseMult,
+                FIELD_FREEDOM.TARGET_PAUSE_MAX * pauseMult,
+                player.seed + Math.floor(now / 1000)
+            );
+        }
+
+        // Inertia smoothing towards target offset (no jitter).
+        // Slightly "looser" spring for elastic walk (with controlled overshoot).
+        const playerSpeed = (player.speedMultiplier ?? 1.0) * FIELD_FREEDOM.PLAYER_SPEED_MULTIPLIER;
+        const stiffness = 8.9 * playerSpeed;
+        const damping = 6.3 * playerSpeed;
+        const maxSpeed = 22 * playerSpeed;
+
+        // Overshoot: push slightly past target, then correct naturally.
+        const oxTarget = player.tx + player.vx * FIELD_FREEDOM.OVERSHOOT_STRENGTH;
+        const oyTarget = player.ty + player.vy * FIELD_FREEDOM.OVERSHOOT_STRENGTH;
+
+        player.vx += (oxTarget - player.ox) * stiffness * dt;
+        player.vy += (oyTarget - player.oy) * stiffness * dt;
+        player.vx *= Math.exp(-damping * dt);
+        player.vy *= Math.exp(-damping * dt);
+
+        const speed = Math.hypot(player.vx, player.vy);
+        if (speed > maxSpeed) {
+            const s = maxSpeed / speed;
+            player.vx *= s;
+            player.vy *= s;
+        }
+
+        player.ox += player.vx * dt;
+        player.oy += player.vy * dt;
+
+        // Lateral walking sway (zig-zag) based on movement direction & speed.
+        const gait = Math.min(1, speed / 14);
+        const swayAmp = (player.swayIntensity ?? 1.0) * FIELD_FREEDOM.SWAY_INTENSITY * (0.45 + 0.85 * gait);
+        const phase = Number.isFinite(player.phase) ? player.phase : 0;
+        const swayPhase = (now / 1000) * (FIELD_FREEDOM.SWAY_SPEED * (player.swaySpeed ?? 1.0)) + phase;
+        // Perpendicular vector to current velocity to simulate footwork zig-zag
+        const vx = player.vx;
+        const vy = player.vy;
+        const vmag = Math.hypot(vx, vy) || 1;
+        const px = -vy / vmag;
+        const py = vx / vmag;
+        const lateral = Math.sin(swayPhase) * swayAmp;
+
+        const visualX = player.ox + px * lateral;
+        const visualY = player.oy + py * lateral * 0.85;
+
+        node.style.setProperty("--tv-free-x", `${visualX.toFixed(2)}px`);
+        node.style.setProperty("--tv-free-y", `${visualY.toFixed(2)}px`);
+    }
+
+    // Step 2: separation to avoid coins sticking together (soft repulsion).
+    // Uses current DOM rects (includes transform).
+    const rects = state.players.map((p) => ({ p, rect: p.node?.getBoundingClientRect?.() })).filter((x) => x.rect);
+    const minDist = 26;
+    for (let i = 0; i < rects.length; i++) {
+        const a = rects[i];
+        const ax = a.rect.left + a.rect.width / 2;
+        const ay = a.rect.top + a.rect.height / 2;
+
+        for (let j = i + 1; j < rects.length; j++) {
+            const b = rects[j];
+            const bx = b.rect.left + b.rect.width / 2;
+            const by = b.rect.top + b.rect.height / 2;
+
+            const dx = bx - ax;
+            const dy = by - ay;
+            const d = Math.hypot(dx, dy);
+            if (d <= 0.001 || d >= minDist) continue;
+
+            const push = (minDist - d) / minDist;
+            const nx = dx / d;
+            const ny = dy / d;
+
+            // Apply tiny opposing impulses (offset space)
+            a.p.ox -= nx * push * 0.35;
+            a.p.oy -= ny * push * 0.35;
+            b.p.ox += nx * push * 0.35;
+            b.p.oy += ny * push * 0.35;
+
+            a.p.node.style.setProperty("--tv-free-x", `${a.p.ox.toFixed(2)}px`);
+            a.p.node.style.setProperty("--tv-free-y", `${a.p.oy.toFixed(2)}px`);
+            b.p.node.style.setProperty("--tv-free-x", `${b.p.ox.toFixed(2)}px`);
+            b.p.node.style.setProperty("--tv-free-y", `${b.p.oy.toFixed(2)}px`);
+        }
+    }
+
+    // Step 3: clamp to field bounds
+    for (const entry of rects) {
+        clampOffsetToField(entry.p, overlayRect, entry.rect);
+        entry.p.node.style.setProperty("--tv-free-x", `${entry.p.ox.toFixed(2)}px`);
+        entry.p.node.style.setProperty("--tv-free-y", `${entry.p.oy.toFixed(2)}px`);
+    }
 }
 
 function setCubeFace(faceIndex, reason) {
@@ -849,6 +1195,7 @@ if (typeof globalThis !== "undefined") {
     globalThis.criptoVersusTvCharts = {
         initTelemetryCube,
         notifyTelemetryCubeEvent,
-        updateTelemetryCharts
+        updateTelemetryCharts,
+        initFieldSway
     };
 }

@@ -593,7 +593,7 @@ else
     {
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-5");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-9");
             await LogAsync("TV_MOTION", "motion system ready");
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
@@ -617,6 +617,17 @@ else
         {
             await EnsureTelemetryCubeAsync();
             await SyncTelemetryChartsAsync();
+        }
+
+        if (UseFootballFieldLayout && CurrentFieldState is not null && _tvModule is not null)
+        {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("initFieldSway", "tv-crypto-field");
+            }
+            catch
+            {
+            }
         }
 
         if (ShouldRenderCrowdAudio && !_broadcastAudioInitialized)

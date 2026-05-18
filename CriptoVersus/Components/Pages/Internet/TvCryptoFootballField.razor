@@ -3,7 +3,7 @@
 @inject IWebHostEnvironment Environment
 @inject LocalizationService L
 
-<div class="tv-field">
+<div id="tv-crypto-field" class="tv-field">
     <div class="tv-field__surface tv-field__surface--@(HasFieldAsset ? "asset" : "fallback")">
         @if (HasFieldAsset)
         {
@@ -22,10 +22,14 @@
                 <div class="tv-field__goal tv-field__goal--right"></div>
             }
 
-            @foreach (var player in FieldState.PlayerPositions)
+            @foreach (var tuple in FieldState.PlayerPositions.Select((p, i) => (Player: p, Index: i)))
             {
+                var player = tuple.Player;
                 var isLeftTeam = string.Equals(player.TeamSymbol, FieldState.TeamA, StringComparison.OrdinalIgnoreCase);
-                <div class="tv-field__player @(isLeftTeam ? "is-left" : "is-right") @(player.IsHighlighted ? "is-highlighted" : string.Empty) @(player.HasBall ? "has-ball" : string.Empty) @(IsMomentumPlayer(player) ? "has-momentum" : string.Empty)"
+                <div class="tv-field__player @(isLeftTeam ? "is-left" : "is-right") @(player.IsAttacking ? "is-attacking" : string.Empty) @(player.IsDefending ? "is-defending" : string.Empty) @(player.IsHighlighted ? "is-highlighted" : string.Empty) @(player.HasBall ? "has-ball" : string.Empty) @(IsMomentumPlayer(player) ? "has-momentum" : string.Empty)"
+                     data-sway-seed="@tuple.Index"
+                     data-player-index="@player.PlayerIndex"
+                     data-pressure="@player.Pressure.ToString("0.###", CultureInfo.InvariantCulture)"
                      style="left:@player.XPercent.ToString("0.##", CultureInfo.InvariantCulture)%; top:@player.YPercent.ToString("0.##", CultureInfo.InvariantCulture)%;">
                     @if (HasTeamLogo(player))
                     {
