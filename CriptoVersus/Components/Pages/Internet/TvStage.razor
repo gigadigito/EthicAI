@@ -707,6 +707,11 @@ else
             _lastGoalTriggerSignature = string.Empty;
             _lastGoalAudioSignature = string.Empty;
             _lastGoalAudioAtUtc = DateTime.MinValue;
+
+            // Treat this as a fresh match: don't compare scores against the previous match snapshot,
+            // otherwise we'll fire a "goal" (and goal audio) just because the match switched.
+            _previousSnapshot = current;
+            return;
         }
 
         if (_previousSnapshot is null)
