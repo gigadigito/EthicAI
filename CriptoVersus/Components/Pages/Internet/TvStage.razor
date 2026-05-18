@@ -222,7 +222,7 @@
                                 </section>
 
                                 <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
-                                    <div class="tv-telemetry-cube__inner">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">Market battle flow</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -235,6 +235,35 @@
                                         <div class="tv-telemetry-face-footer">
                                             <span>@T("labels.pressure")</span>
                                             <strong>@DisplayPoolStatus()</strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split">
+                                        <header class="tv-telemetry-face-header">
+                                            <span class="tv-telemetry-face-header__kicker">Asset Variation Split</span>
+                                            <div class="tv-telemetry-face-header__row">
+                                                <strong>@DisplayLeftTickerLabel() <span class="tv-telemetry-face-header__vs">@T("vs")</span> @DisplayRightTickerLabel()</strong>
+                                                <em class="tv-telemetry-face-header__muted">@T("labels.momentum")</em>
+                                            </div>
+                                            <small>@DisplayPressureHeadline()</small>
+                                        </header>
+
+                                        <div class="tv-telemetry-split">
+                                            <section class="tv-telemetry-split__panel">
+                                                <div class="tv-telemetry-split__meta">
+                                                    <strong>@DisplayLeftTickerLabel()</strong>
+                                                    <em class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</em>
+                                                </div>
+                                                <div id="tv-telemetry-chart-split-left" class="tv-telemetry-chart-shell tv-telemetry-chart-shell--split" aria-label="chart split ativo A"></div>
+                                            </section>
+
+                                            <section class="tv-telemetry-split__panel">
+                                                <div class="tv-telemetry-split__meta">
+                                                    <strong>@DisplayRightTickerLabel()</strong>
+                                                    <em class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</em>
+                                                </div>
+                                                <div id="tv-telemetry-chart-split-right" class="tv-telemetry-chart-shell tv-telemetry-chart-shell--split" aria-label="chart split ativo B"></div>
+                                            </section>
                                         </div>
                                     </div>
                                 </section>
@@ -256,6 +285,7 @@
                                         </div>
                                     </div>
                                 </section>
+
                             </div>
                         </div>
                     }
@@ -563,7 +593,7 @@ else
     {
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-5");
             await LogAsync("TV_MOTION", "motion system ready");
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
@@ -601,7 +631,9 @@ else
 
     private bool _telemetryCubeInitialized;
     private long _telemetryCubeLastSnapshotId;
+    private int _telemetryCubeLastSnapshotCount;
     private long _telemetryCubeLastMissingLogTick;
+    private long _telemetryCubeLastRawLogTick;
 
     private async Task EnsureTelemetryCubeAsync()
     {
@@ -613,47 +645,218 @@ else
         await LogAsync("TV_CUBE", "initialized");
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     private async Task SyncTelemetryChartsAsync()
     {
         if (_tvModule is null)
             return;
 
         var latestId = _metricSnapshots.Count == 0 ? 0 : _metricSnapshots.Max(x => x.MatchMetricSnapshotId);
-        if (latestId == _telemetryCubeLastSnapshotId && latestId != 0)
+        if (latestId == _telemetryCubeLastSnapshotId && _metricSnapshots.Count == _telemetryCubeLastSnapshotCount && latestId != 0)
             return;
 
         _telemetryCubeLastSnapshotId = latestId;
+        _telemetryCubeLastSnapshotCount = _metricSnapshots.Count;
 
         if (_metricSnapshots.Count == 0)
         {
-            var nowTick = System.Environment.TickCount64;
-            if (nowTick - _telemetryCubeLastMissingLogTick >= 6000)
+            var nowMissingTick = System.Environment.TickCount64;
+            if (nowMissingTick - _telemetryCubeLastMissingLogTick >= 6000)
             {
-                _telemetryCubeLastMissingLogTick = nowTick;
+                _telemetryCubeLastMissingLogTick = nowMissingTick;
                 await LogAsync("TV_CHART", "missing snapshots");
             }
             await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new { left = Array.Empty<object>(), right = Array.Empty<object>() });
             return;
         }
 
-        var leftSymbol = DisplayLeftSymbol();
-        var rightSymbol = DisplayRightSymbol();
+        var nowTick = System.Environment.TickCount64;
+        if (nowTick - _telemetryCubeLastRawLogTick >= 8000)
+        {
+            _telemetryCubeLastRawLogTick = nowTick;
+            await LogAsync("TV_CHART_RAW", "snapshot-sample", new
+            {
+                count = _metricSnapshots.Count,
+                first = _metricSnapshots
+                    .OrderByDescending(x => x.CapturedAtUtc)
+                    .Take(5)
+                    .Select(x => new
+                    {
+                        x.MatchMetricSnapshotId,
+                        x.MatchId,
+                        x.TeamId,
+                        x.TeamSymbol,
+                        x.CapturedAtUtc,
+                        x.PercentageChange,
+                        x.QuoteVolume,
+                        x.TradeCount
+                    })
+                    .ToArray()
+            });
+        }
 
-        static IEnumerable<object> BuildPoints(IReadOnlyList<MatchMetricSnapshotDto> snapshots, string teamSymbol)
+        static string NormalizeTelemetrySymbol(string? symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+                return string.Empty;
+
+            var upper = symbol.Trim().ToUpperInvariant();
+            upper = upper.Replace("/", string.Empty, StringComparison.Ordinal)
+                .Replace("-", string.Empty, StringComparison.Ordinal)
+                .Replace("_", string.Empty, StringComparison.Ordinal)
+                .Replace(" ", string.Empty, StringComparison.Ordinal);
+
+            return GetBaseSymbol(upper);
+        }
+
+        static object[] BuildPoints(IEnumerable<MatchMetricSnapshotDto> snapshots)
             => snapshots
-                .Where(x => string.Equals(x.TeamSymbol, teamSymbol, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(x => x.CapturedAtUtc)
                 .Select(x => new
                 {
-                    time = new DateTimeOffset(x.CapturedAtUtc, TimeSpan.Zero).ToUnixTimeSeconds(),
+                    time = new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
                     value = (double)x.PercentageChange
-                });
+                })
+                .Cast<object>()
+                .ToArray();
 
-        var leftPoints = BuildPoints(_metricSnapshots, leftSymbol).ToArray();
-        var rightPoints = BuildPoints(_metricSnapshots, rightSymbol).ToArray();
+        var normalizedLeft = NormalizeTelemetrySymbol(DisplayLeftSymbol());
+        var normalizedRight = NormalizeTelemetrySymbol(DisplayRightSymbol());
+
+        var leftSnapshots = _metricSnapshots
+            .Where(x => NormalizeTelemetrySymbol(x.TeamSymbol) == normalizedLeft)
+            .ToList();
+
+        var rightSnapshots = _metricSnapshots
+            .Where(x => NormalizeTelemetrySymbol(x.TeamSymbol) == normalizedRight)
+            .ToList();
+
+        var mappingStrategy = "symbol-normalized";
+
+        if (leftSnapshots.Count == 0 && rightSnapshots.Count == 0 && Match is not null && Match.TeamAId > 0 && Match.TeamBId > 0)
+        {
+            leftSnapshots = _metricSnapshots.Where(x => x.TeamId == Match.TeamAId).ToList();
+            rightSnapshots = _metricSnapshots.Where(x => x.TeamId == Match.TeamBId).ToList();
+            if (leftSnapshots.Count > 0 || rightSnapshots.Count > 0)
+                mappingStrategy = "teamId";
+        }
+
+        if (leftSnapshots.Count == 0 && rightSnapshots.Count == 0)
+        {
+            // Fallback: pick the two most frequent snapshot symbols so the charts never stay empty.
+            var groups = _metricSnapshots
+                .Where(x => !string.IsNullOrWhiteSpace(x.TeamSymbol))
+                .GroupBy(x => NormalizeTelemetrySymbol(x.TeamSymbol))
+                .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                .OrderByDescending(g => g.Count())
+                .ToList();
+
+            leftSnapshots = groups.ElementAtOrDefault(0)?.ToList() ?? [];
+            rightSnapshots = groups.ElementAtOrDefault(1)?.ToList() ?? [];
+            mappingStrategy = "top-symbols";
+        }
+
+        if (leftSnapshots.Count == 0 && rightSnapshots.Count == 0)
+        {
+            // Last resort: if TeamSymbol is empty everywhere, group by TeamId.
+            var idGroups = _metricSnapshots
+                .Where(x => x.TeamId > 0)
+                .GroupBy(x => x.TeamId)
+                .OrderByDescending(g => g.Count())
+                .ToList();
+
+            leftSnapshots = idGroups.ElementAtOrDefault(0)?.ToList() ?? [];
+            rightSnapshots = idGroups.ElementAtOrDefault(1)?.ToList() ?? [];
+            mappingStrategy = "top-teamIds";
+        }
+
+        var leftPoints = BuildPoints(leftSnapshots);
+        var rightPoints = BuildPoints(rightSnapshots);
+
+        await LogAsync("TV_CHART_PAYLOAD", "final", new
+        {
+            mappingStrategy,
+            normalizedLeft,
+            normalizedRight,
+            matchLeftTeamId = Match?.TeamAId,
+            matchRightTeamId = Match?.TeamBId,
+            leftPoints = leftPoints.Length,
+            rightPoints = rightPoints.Length,
+            leftPreview = leftPoints.Take(3).ToArray(),
+            rightPreview = rightPoints.Take(3).ToArray()
+        });
 
         await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new { left = leftPoints, right = rightPoints });
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     private RenderFragment TelemetryPanelContent() => @<text>
         @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
@@ -2512,7 +2715,17 @@ else
         opacity: .7;
         animation: tvAurora 18s ease-in-out infinite;
     }
+    .tv-telemetry-chart-shell {
+    position: relative;
+    min-height: 260px;
+    height: 100%;
+}
 
+.tv-telemetry-chart-shell canvas {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+}
     .tv-stage__fog {
         background:
             radial-gradient(circle at 22% 76%, rgba(255,255,255,0.05), transparent 18%),
@@ -3453,6 +3666,7 @@ else
     .tv-telemetry-cube.is-face-1 { transform: rotateY(-90deg); }
     .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
     .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
+    .tv-telemetry-cube.is-face-4 { transform: rotateY(-180deg); }
 
     .tv-telemetry-cube__face {
         position: absolute;
@@ -3480,6 +3694,24 @@ else
     .tv-telemetry-cube__face--right { transform: rotateY(90deg) translateZ(var(--tv-cube-depth)); }
     .tv-telemetry-cube__face--back { transform: rotateY(180deg) translateZ(var(--tv-cube-depth)); }
     .tv-telemetry-cube__face--left { transform: rotateY(-90deg) translateZ(var(--tv-cube-depth)); }
+
+    /* Virtual 5th face: reuse the back face, but swap content (compare vs split) */
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+        height: 100%;
+    }
+
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+        display: none;
+    }
+
+    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare {
+        display: none;
+    }
+
+    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+        display: grid;
+    }
 
     .tv-telemetry-cube__inner {
         position: relative;
@@ -3545,12 +3777,60 @@ else
         margin: 0 10px;
     }
 
+    .tv-telemetry-face-header__muted {
+        color: rgba(219, 232, 247, 0.72);
+        font-style: normal;
+        font-weight: 900;
+        letter-spacing: .04em;
+    }
+
     .tv-telemetry-chart-shell {
         position: relative;
+        min-height: 260px;
+        height: 100%;
         border-radius: 22px;
         border: 1px solid rgba(255,255,255,0.06);
         background: rgba(255,255,255,0.02);
         overflow: hidden;
+    }
+
+    .tv-telemetry-split {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 12px;
+        min-height: 0;
+    }
+
+    .tv-telemetry-split__panel {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 10px;
+        min-height: 0;
+    }
+
+    .tv-telemetry-split__meta {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.02);
+    }
+
+    .tv-telemetry-split__meta strong {
+        font-size: .98rem;
+        letter-spacing: .04em;
+    }
+
+    .tv-telemetry-split__meta em {
+        font-style: normal;
+        font-weight: 900;
+    }
+
+    .tv-telemetry-chart-shell--split {
+        min-height: 0;
     }
 
     .tv-telemetry-face-footer {
@@ -4153,6 +4433,29 @@ else
         line-height: 1.55;
     }
 
+    .tv-stage--broadcast .tv-telemetry {
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+    }
+
+    .tv-telemetry-cube-shell {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        height: 100%;
+        min-height: 620px;
+    }
+
+    .tv-telemetry-cube {
+        inset: 0;
+        --tv-cube-depth: 0px;
+    }
+
+    .tv-telemetry-cube__face {
+        width: 100%;
+        max-width: 100%;
+    }
     .tv-stage--broadcast .tv-telemetry {
         gap: 8px;
     }
