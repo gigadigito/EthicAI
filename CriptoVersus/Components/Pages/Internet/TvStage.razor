@@ -224,7 +224,7 @@
                                 <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare">
                                         <header class="tv-telemetry-face-header">
-                                            <span class="tv-telemetry-face-header__kicker">Market battle flow</span>
+                                            <span class="tv-telemetry-face-header__kicker">@T("labels.marketBattleFlow")</span>
                                             <div class="tv-telemetry-face-header__row">
                                                 <strong>@DisplayLeftTickerLabel() <span class="tv-telemetry-face-header__vs">@T("vs")</span> @DisplayRightTickerLabel()</strong>
                                                 <em>@DisplayPressureSymbol()</em>
@@ -240,7 +240,7 @@
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split">
                                         <header class="tv-telemetry-face-header">
-                                            <span class="tv-telemetry-face-header__kicker">Asset Variation Split</span>
+                                            <span class="tv-telemetry-face-header__kicker">@T("labels.assetVariationSplit")</span>
                                             <div class="tv-telemetry-face-header__row">
                                                 <strong>@DisplayLeftTickerLabel() <span class="tv-telemetry-face-header__vs">@T("vs")</span> @DisplayRightTickerLabel()</strong>
                                                 <em class="tv-telemetry-face-header__muted">@T("labels.momentum")</em>
@@ -486,7 +486,7 @@ else
         {
             <button type="button" @onclick="() => TriggerDevNarrationAsync(animation)">@animation</button>
         }
-        <button type="button" @onclick="TriggerDevAiNarrationAsync">test commentary</button>
+        <button type="button" @onclick="TriggerDevAiNarrationAsync">@T("labels.testCommentary")</button>
     </aside>
 }
 
@@ -1878,7 +1878,7 @@ else
                 : T("labels.nextBattle"));
 
     private string DisplayMatchHeadline()
-        => $"{DisplayLeftName()} VS {DisplayRightName()}";
+        => $"{DisplayLeftName()} {T("vs")} {DisplayRightName()}";
 
     private string DisplayPressureHeadline()
         => DisplayMatchHeadline();

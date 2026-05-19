@@ -5,6 +5,7 @@
 @inject NavigationManager Nav
 @inject RoadmapContentService RoadmapContentService
 @inject AppCultureService AppCulture
+@inject LocalizationService L
 
 <PageTitle>@_page.PageTitle</PageTitle>
 
@@ -76,25 +77,25 @@
 
                 <div class="roadmap-banner__intel">
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--metric">
-                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Phases mapped" : "Fases mapeadas")</span>
+                        <span class="roadmap-banner__intel-label">@T("labels.phasesMapped")</span>
                         <strong class="roadmap-banner__intel-value">@_page.Phases.Count</strong>
-                        <p>@(_page.Culture == "en" ? "Public evolution from foundation to AI commentary." : "Evolução pública da fundação até a experiência com IA.")</p>
+                        <p>@T("labels.publicEvolution")</p>
                     </article>
 
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--metric">
-                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Workstreams active" : "Frentes ativas")</span>
+                        <span class="roadmap-banner__intel-label">@T("labels.workstreamsActive")</span>
                         <strong class="roadmap-banner__intel-value">@GetTrackedInitiativeCount()</strong>
-                        <p>@(_page.Culture == "en" ? "Status cards, principles and visible roadmap milestones." : "Status cards, princípios e marcos visíveis do roadmap.")</p>
+                        <p>@T("labels.workstreamsDescription")</p>
                     </article>
 
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--focus">
-                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Current focus" : "Foco atual")</span>
+                        <span class="roadmap-banner__intel-label">@T("labels.currentFocus")</span>
                         <strong class="roadmap-banner__intel-title">@GetCurrentFocusTitle()</strong>
                         <p>@GetCurrentFocusDescription()</p>
                     </article>
 
                     <article class="roadmap-banner__intel-card roadmap-banner__intel-card--next">
-                        <span class="roadmap-banner__intel-label">@(_page.Culture == "en" ? "Next milestone" : "Próximo marco")</span>
+                        <span class="roadmap-banner__intel-label">@T("labels.nextMilestone")</span>
                         <strong class="roadmap-banner__intel-title">@GetNextMilestoneTitle()</strong>
                         <ul class="roadmap-banner__intel-list">
                             @foreach (var item in GetNextMilestoneItems())
@@ -108,7 +109,7 @@
         </div>
     </div>
 
-    <section class="roadmap-strip" aria-label="@(_page.Culture == "en" ? "Brand pillars" : "Pilares da marca")">
+    <section class="roadmap-strip" aria-label="@T("labels.brandPillars")">
         <article class="roadmap-strip__item roadmap-strip__item--status">
             <div class="roadmap-strip__icon roadmap-strip__icon--purple" aria-hidden="true">◈</div>
             <div>
@@ -136,8 +137,8 @@
 
     <section class="roadmap-section">
         <div class="roadmap-section__head">
-            <span>@(_page.Culture == "en" ? "Project status" : "Status geral do projeto")</span>
-            <h2>@(_page.Culture == "en" ? "Current platform direction" : "Direção atual da plataforma")</h2>
+            <span>@T("section.projectStatus")</span>
+            <h2>@T("section.currentPlatformDirection")</h2>
         </div>
 
         <div class="roadmap-info-grid">
@@ -154,8 +155,8 @@
 
     <section class="roadmap-section">
         <div class="roadmap-section__head">
-            <span>Roadmap</span>
-            <h2>@(_page.Culture == "en" ? "Planned evolution by phase" : "Evolução planejada por fase")</h2>
+            <span>@T("section.roadmap")</span>
+            <h2>@T("section.plannedEvolutionByPhase")</h2>
         </div>
 
         <div class="roadmap-timeline">
@@ -188,8 +189,8 @@
 
     <section class="roadmap-section">
         <div class="roadmap-section__head">
-            <span>@(_page.Culture == "en" ? "Guiding principles" : "Princípios")</span>
-            <h2>@(_page.Culture == "en" ? "How product decisions are framed" : "Como as decisões do produto são guiadas")</h2>
+            <span>@T("section.guidingPrinciples")</span>
+            <h2>@T("section.howProductDecisionsAreFramed")</h2>
         </div>
 
         <div class="roadmap-info-grid roadmap-info-grid--principles">
@@ -617,10 +618,11 @@
     private string BuildAbsolute(string relativePath)
         => new Uri(new Uri(Nav.BaseUri), relativePath.TrimStart('/')).ToString();
 
+    private string T(string key, params object?[] args)
+        => L.T($"roadmap.{key}", _page.Culture, args);
+
     private string GetStatusSummary()
-        => _page.Culture == "en"
-            ? "Experimental platform roadmap"
-            : "Roadmap de plataforma experimental";
+        => T("labels.statusSummary");
 
     private int GetTrackedInitiativeCount()
         => _page.StatusCards.Count + _page.Principles.Count + _page.Phases.Count(x => x.Status is RoadmapPhaseStatus.InProgress or RoadmapPhaseStatus.Experimental);
@@ -640,7 +642,7 @@
 
     private string GetCurrentFocusTitle()
         => GetCurrentFocusPhase()?.Title
-           ?? (_page.Culture == "en" ? "Active roadmap execution" : "Execucao ativa do roadmap");
+           ?? T("labels.currentFocusFallback");
 
     private string GetCurrentFocusDescription()
         => GetCurrentFocusPhase()?.Description
@@ -648,27 +650,20 @@
 
     private string GetNextMilestoneTitle()
         => GetNextMilestonePhase()?.Title
-           ?? (_page.Culture == "en" ? "Roadmap in expansion" : "Roadmap em expansao");
+           ?? T("labels.nextMilestoneFallback");
 
     private IReadOnlyList<string> GetNextMilestoneItems()
         => GetNextMilestonePhase()?.Items.Take(3).ToArray()
-           ?? (_page.Culture == "en"
-               ? ["Upcoming delivery details will be published soon."]
-               : ["Detalhes das proximas entregas serao publicados em breve."]);
+           ?? [T("labels.nextMilestoneFallbackItem")];
 
     private string GetStatusLabel(RoadmapPhaseStatus status)
-        => (_page.Culture, status) switch
+        => status switch
         {
-            ("en", RoadmapPhaseStatus.Completed) => "Completed",
-            ("en", RoadmapPhaseStatus.InProgress) => "In progress",
-            ("en", RoadmapPhaseStatus.Planned) => "Planned",
-            ("en", RoadmapPhaseStatus.Future) => "Future",
-            ("en", RoadmapPhaseStatus.Experimental) => "Experimental",
-            (_, RoadmapPhaseStatus.Completed) => "Concluido",
-            (_, RoadmapPhaseStatus.InProgress) => "Em andamento",
-            (_, RoadmapPhaseStatus.Planned) => "Planejado",
-            (_, RoadmapPhaseStatus.Future) => "Futuro",
-            _ => "Experimental"
+            RoadmapPhaseStatus.Completed => T("status.completed"),
+            RoadmapPhaseStatus.InProgress => T("status.inProgress"),
+            RoadmapPhaseStatus.Planned => T("status.planned"),
+            RoadmapPhaseStatus.Future => T("status.future"),
+            _ => T("status.experimental")
         };
 
     private static string GetStatusCssClass(RoadmapPhaseStatus status)
@@ -682,23 +677,13 @@
         };
 
     private IReadOnlyList<(string Icon, string Accent, string Title, string Subtitle)> GetBrandPillars()
-        => _page.Culture == "en"
-            ?
-            [
-                ("✦", "purple", "Competition", "Between digital assets"),
-                ("↗", "green", "Strategy", "Performance and timing"),
-                ("⬢", "cyan", "Technology", "Blockchain infrastructure"),
-                ("🏆", "gold", "Ranking", "Rewards and progression"),
-                ("◎", "purple", "Global", "Decentralized arena")
-            ]
-            :
-            [
-                ("✦", "purple", "Competição", "Entre ativos digitais"),
-                ("↗", "green", "Estratégia", "Performance e timing"),
-                ("⬢", "cyan", "Tecnologia", "Infraestrutura blockchain"),
-                ("🏆", "gold", "Ranking", "Recompensas e progressão"),
-                ("◎", "purple", "Global", "Arena descentralizada")
-            ];
+        => [
+            ("✦", "purple", T("pillars.competition.title"), T("pillars.competition.subtitle")),
+            ("↗", "green", T("pillars.strategy.title"), T("pillars.strategy.subtitle")),
+            ("⬢", "cyan", T("pillars.technology.title"), T("pillars.technology.subtitle")),
+            ("🏆", "gold", T("pillars.ranking.title"), T("pillars.ranking.subtitle")),
+            ("◎", "purple", T("pillars.global.title"), T("pillars.global.subtitle"))
+        ];
 }
 
 

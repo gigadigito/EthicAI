@@ -1,3 +1,7 @@
+@using System.Globalization
+@using CriptoVersus.Web.Services
+@inject LocalizationService L
+
 <div class="arena-sentiment-gauge @(IsLoading ? "arena-sentiment-gauge--loading" : string.Empty)" style="@($"--gauge-size:{NormalizedSize}px; --gauge-accent:{GaugeColor}; --needle-rotation:{NeedleRotation}deg;")">
     @if (IsLoading)
     {
@@ -51,13 +55,15 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public int Size { get; set; } = 260;
     [Parameter] public bool ShowLabel { get; set; } = true;
-    [Parameter] public string LabelText { get; set; } = "Arena Pressure";
+    [Parameter] public string LabelText { get; set; } = string.Empty;
 
     private int NormalizedSize => Math.Clamp(Size, 180, 360);
     private int DisplayScore => Math.Clamp(Score ?? 50, 0, 100);
+    private string CurrentCulture => CultureInfo.CurrentUICulture.Name;
     private string DisplayClassification => string.IsNullOrWhiteSpace(Classification) ? "Neutral" : Classification!;
-    private string DisplayClassificationLabel => string.IsNullOrWhiteSpace(ClassificationLabel) ? DisplayClassification : ClassificationLabel!;
-    private string CenterLabel => ShowLabel ? LabelText : DisplayClassificationLabel;
+    private string DisplayClassificationLabel => string.IsNullOrWhiteSpace(ClassificationLabel) ? L.T("arenaNeutral", CurrentCulture) : ClassificationLabel!;
+    private string DisplayLabelText => string.IsNullOrWhiteSpace(LabelText) ? L.T("arenaPressureLabel", CurrentCulture) : LabelText;
+    private string CenterLabel => ShowLabel ? DisplayLabelText : DisplayClassificationLabel;
     private double NeedleRotation => -90d + (DisplayScore * 1.8d);
 
     private string GaugeColor => DisplayClassification switch

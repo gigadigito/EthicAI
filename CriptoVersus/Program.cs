@@ -3,6 +3,7 @@ using Blazored.SessionStorage;
 using BLL.Blockchain;
 using CriptoVersus.Web.Components;
 using CriptoVersus.Web.Services;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,6 +101,28 @@ if (!app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+var appCultureService = app.Services.GetRequiredService<AppCultureService>();
+app.Use(async (context, next) =>
+{
+    var routeCulture = appCultureService.DetectPreferredRouteCulture(context);
+    var cultureCode = appCultureService.ToCultureCode(routeCulture);
+    var cultureInfo = CultureInfo.GetCultureInfo(cultureCode);
+
+    CultureInfo.CurrentCulture = cultureInfo;
+    CultureInfo.CurrentUICulture = cultureInfo;
+
+    if (app.Environment.IsDevelopment())
+    {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("CriptoVersus.Web.I18N");
+        logger.LogDebug("[I18N_DEBUG] path={Path} routeCulture={RouteCulture} currentCulture={CurrentCulture} currentUICulture={CurrentUICulture}",
+            context.Request.Path.Value,
+            routeCulture,
+            CultureInfo.CurrentCulture.Name,
+            CultureInfo.CurrentUICulture.Name);
+    }
+
+    await next();
+});
 app.UseMiddleware<MatchRouteRedirectMiddleware>();
 
 app.UseStaticFiles();

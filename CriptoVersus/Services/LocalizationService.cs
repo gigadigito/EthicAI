@@ -1,12 +1,16 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Globalization;
+using Microsoft.Extensions.Logging;
 
 namespace CriptoVersus.Web.Services;
 
 public sealed class LocalizationService
 {
     private readonly AppCultureService _appCultureService;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<LocalizationService> _logger;
     private readonly IReadOnlyDictionary<string, JsonNode?> _resources;
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
@@ -14,17 +18,50 @@ public sealed class LocalizationService
         Converters = { new JsonStringEnumConverter() }
     };
 
-    public LocalizationService(IWebHostEnvironment environment, AppCultureService appCultureService)
+    public LocalizationService(
+        IWebHostEnvironment environment,
+        AppCultureService appCultureService,
+        ILogger<LocalizationService> logger)
     {
+        _environment = environment;
         _appCultureService = appCultureService;
+        _logger = logger;
         _resources = LoadResources(environment.ContentRootPath);
+
+        if (_environment.IsDevelopment())
+        {
+            var loadedCultures = string.Join(", ", _resources.Keys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase));
+            _logger.LogDebug("[I18N_DEBUG] loaded resource cultures: {Cultures}", loadedCultures);
+        }
     }
 
     public string T(string key, string? culture = null, params object?[] args)
     {
-        var template = GetString(key, culture)
-            ?? GetString(key, AppCultureService.DefaultRouteCulture)
+        var requestedCulture = culture ?? CultureInfo.CurrentUICulture.Name;
+        var normalizedCulture = _appCultureService.ToCultureCode(requestedCulture);
+        var translated = GetString(key, normalizedCulture);
+        var fallback = translated is null ? GetString(key, AppCultureService.DefaultRouteCulture) : null;
+
+        var template = translated
+            ?? fallback
             ?? key;
+
+        if (_environment.IsDevelopment())
+        {
+            var sourceCulture = translated is not null
+                ? normalizedCulture
+                : fallback is not null
+                    ? AppCultureService.DefaultCultureCode
+                    : "key";
+
+            _logger.LogDebug(
+                "[I18N_DEBUG] culture={Culture} uiCulture={UICulture} key={Key} source={Source} value={Value}",
+                normalizedCulture,
+                CultureInfo.CurrentUICulture.Name,
+                key,
+                sourceCulture,
+                template);
+        }
 
         return args.Length == 0
             ? template
@@ -33,7 +70,7 @@ public sealed class LocalizationService
 
     public string? GetString(string key, string? culture = null)
     {
-        var node = GetNode(key, culture);
+        var node = GetNode(key, culture ?? CultureInfo.CurrentUICulture.Name);
         if (node is JsonValue value && value.TryGetValue<string>(out var text))
             return text;
 
@@ -42,7 +79,7 @@ public sealed class LocalizationService
 
     public T? GetSection<T>(string key, string? culture = null)
     {
-        var node = GetNode(key, culture) ?? GetNode(key, AppCultureService.DefaultRouteCulture);
+        var node = GetNode(key, culture ?? CultureInfo.CurrentUICulture.Name) ?? GetNode(key, AppCultureService.DefaultRouteCulture);
         return node is null ? default : node.Deserialize<T>(_serializerOptions);
     }
 

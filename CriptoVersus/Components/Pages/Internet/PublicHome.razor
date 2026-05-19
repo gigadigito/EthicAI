@@ -66,7 +66,7 @@
 
                 <a class="home-cta home-cta--secondary"
                    href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
-                    Roadmap
+                    @T("roadmap")
                 </a>
             </div>
         </div>
@@ -87,16 +87,16 @@
     </header>
 
     <nav class="home-anchor-nav" aria-label="@T("homeSections")">
-        <a href="#live-matches">Live Matches</a>
-        <a href="#top-battles">Top Crypto Battles</a>
-        <a href="#how-it-works">How It Works</a>
-        <a href="#trending-coins">Trending Coins</a>
-        <a href="#rankings">Crypto Arena Rankings</a>
+        <a href="#live-matches">@T("liveMatches")</a>
+        <a href="#top-battles">@T("topCryptoBattles")</a>
+        <a href="#how-it-works">@T("howItWorks")</a>
+        <a href="#trending-coins">@T("trendingCoins")</a>
+        <a href="#rankings">@T("cryptoArenaRankings")</a>
     </nav>
 
     <section id="live-matches" class="home-section">
         <div class="home-section__header">
-            <h2>Live Matches</h2>
+            <h2>@T("liveMatches")</h2>
             <p>@T("followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext")</p>
         </div>
         <div class="public-home-arena__deck">
@@ -155,7 +155,7 @@
                                     <span class="arena-status-text">@GetMatchStateLabel(featured)</span>
                                     <div class="arena-scoreboard arena-scoreboard--featured">
                                         <strong>@featured.ScoreA</strong>
-                                        <span class="arena-vs-badge">VS</span>
+                                        <span class="arena-vs-badge">@T("vs")</span>
                                         <strong>@featured.ScoreB</strong>
                                     </div>
                                     <span class="arena-status-subtext">@GetMatchClockLabel(featured)</span>
@@ -245,7 +245,7 @@
                             </div>
 
                             <div class="arena-match-card__center">
-                                <span class="arena-vs-badge arena-vs-badge--compact">VS</span>
+                                <span class="arena-vs-badge arena-vs-badge--compact">@T("vs")</span>
                                 <div class="arena-scoreboard arena-scoreboard--card">
                                     <strong>@match.ScoreA</strong>
                                     <span>:</span>
@@ -289,7 +289,7 @@
 
     <section id="top-battles" class="home-section">
         <div class="home-section__header">
-            <h2>Top Crypto Battles</h2>
+            <h2>@T("topCryptoBattles")</h2>
             <p>@T("featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext")</p>
         </div>
 
@@ -324,7 +324,7 @@
                         </div>
 
                         <div class="arena-match-card__center">
-                            <span class="arena-vs-badge arena-vs-badge--compact">VS</span>
+                            <span class="arena-vs-badge arena-vs-badge--compact">@T("vs")</span>
                             <div class="arena-scoreboard arena-scoreboard--card">
                                 <strong>@match.ScoreA</strong>
                                 <span>:</span>
@@ -367,7 +367,7 @@
 
     <section id="how-it-works" class="home-section home-section--split">
         <div class="home-section__header">
-            <h2>How It Works</h2>
+            <h2>@T("howItWorks")</h2>
             <p>@T("criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited")</p>
             <a class="home-inline-link" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@T("readTheFullRules")</a>
         </div>
@@ -389,7 +389,7 @@
 
     <section id="trending-coins" class="home-section">
         <div class="home-section__header">
-            <h2>Trending Coins</h2>
+            <h2>@T("trendingCoins")</h2>
             <p>@T("aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena")</p>
         </div>
         <div class="home-coin-grid">
@@ -407,7 +407,7 @@
 
     <section id="rankings" class="home-section">
         <div class="home-section__header">
-            <h2>Crypto Arena Rankings</h2>
+            <h2>@T("cryptoArenaRankings")</h2>
             <p>@T("trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena")</p>
         </div>
         <ol class="home-ranking-list">
@@ -442,13 +442,13 @@
             <h2>@T("exploreTheProduct")</h2>
         </div>
         <div class="home-link-grid">
-            <a href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">Roadmap</a>
+            <a href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">@T("roadmap")</a>
             <a href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">@T("howItWorks2")</a>
             @if (FeaturedMatches.Count > 0)
             {
                 <a href="@GetMatchUrl(FeaturedMatches[0])">@T("featuredMatch")</a>
             }
-            <a href="#rankings">Rankings</a>
+            <a href="#rankings">@T("rankings")</a>
         </div>
     </section>
 
@@ -749,7 +749,7 @@
             "marketLive" => CurrentCulture == "en" ? "Market pulse live" : "Mercado ao vivo",
             "momentumEdgeA" => CurrentCulture == "en" ? "{0}% left-side pressure" : "{0}% de pressao do lado esquerdo",
             "momentumEdgeB" => CurrentCulture == "en" ? "{0}% right-side pressure" : "{0}% de pressao do lado direito",
-            "momentumEdgeNeutral" => CurrentCulture == "en" ? "Balanced arena pressure" : "Pressao equilibrada na arena",
+            "momentumEdgeNeutral" => ArenaText("tiePressure"),
             "volatilityHigh" => CurrentCulture == "en" ? "High" : "Alta",
             "volatilityMedium" => CurrentCulture == "en" ? "Medium" : "Media",
             _ => key

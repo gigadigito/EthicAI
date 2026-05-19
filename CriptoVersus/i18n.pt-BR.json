@@ -4,6 +4,7 @@
       "eyebrow": "CriptoVersus Arena",
       "title": "Match market",
       "login": "Connect",
+      "connectWallet": "Conectar carteira",
       "language": "Language",
       "english": "English",
       "portuguese": "Português"
@@ -22,14 +23,14 @@
   "nav": {
     "brandSubtitle": "Trading Arena",
     "home": "Home",
-    "howItWorks": "How It Works",
-    "stats": "Stats",
-    "roadmap": "Roadmap",
+    "howItWorks": "Como funciona",
+    "stats": "Estatísticas",
+    "roadmap": "Roteiro",
     "faq": "FAQ",
-    "tvBroadcast": "TV Broadcast",
+    "tvBroadcast": "Transmissão TV",
     "wallet": "My Wallet",
     "admin": "Admin",
-    "connected": "Connected environment"
+    "connected": "Ambiente conectado"
   },
   "home": {
     "seo": {
@@ -118,47 +119,85 @@
       "secondaryCtaLabel": "Read the rules"
     },
     "labels": {
-      "phasesMapped": "Phases mapped",
-      "workstreamsActive": "Workstreams active",
-      "workstreamsDescription": "Status cards, principles and visible roadmap milestones.",
-      "currentFocus": "Current focus",
-      "nextMilestone": "Next milestone",
-      "brandPillars": "Brand pillars",
-      "statusSummary": "Experimental platform roadmap",
-      "currentFocusFallback": "Active roadmap execution",
-      "nextMilestoneFallback": "Roadmap in expansion",
-      "nextMilestoneFallbackItem": "Upcoming delivery details will be published soon."
+      "phasesMapped": "Fases mapeadas",
+      "workstreamsActive": "Frentes ativas",
+      "workstreamsDescription": "Status cards, princípios e marcos visíveis do roadmap.",
+      "publicEvolution": "Evolução pública da fundação até a experiência com IA.",
+      "currentFocus": "Foco atual",
+      "nextMilestone": "Próximo marco",
+      "brandPillars": "Pilares da marca",
+      "statusSummary": "Roadmap experimental da plataforma",
+      "currentFocusFallback": "Execução ativa do roadmap",
+      "nextMilestoneFallback": "Roadmap em expansão",
+      "nextMilestoneFallbackItem": "Detalhes das próximas entregas serão publicados em breve."
+    },
+    "section": {
+      "roadmap": "Roadmap",
+      "projectStatus": "Status do projeto",
+      "currentPlatformDirection": "Direção atual da plataforma",
+      "plannedEvolutionByPhase": "Evolução planejada por fase",
+      "guidingPrinciples": "Princípios orientadores",
+      "howProductDecisionsAreFramed": "Como as decisões do produto são guiadas"
+    },
+    "status": {
+      "completed": "Concluído",
+      "inProgress": "Em andamento",
+      "planned": "Planejado",
+      "future": "Futuro",
+      "experimental": "Experimental"
+    },
+    "pillars": {
+      "competition": {
+        "title": "Competição",
+        "subtitle": "Entre ativos digitais"
+      },
+      "strategy": {
+        "title": "Estratégia",
+        "subtitle": "Performance e timing"
+      },
+      "technology": {
+        "title": "Tecnologia",
+        "subtitle": "Infraestrutura blockchain"
+      },
+      "ranking": {
+        "title": "Ranking",
+        "subtitle": "Recompensas e progressão"
+      },
+      "global": {
+        "title": "Global",
+        "subtitle": "Arena descentralizada"
+      }
     },
     "brandPillars": [
       {
         "icon": "✦",
         "accent": "purple",
-        "title": "Competition",
-        "subtitle": "Between digital assets"
+        "title": "Competição",
+        "subtitle": "Entre ativos digitais"
       },
       {
         "icon": "↗",
         "accent": "green",
-        "title": "Strategy",
-        "subtitle": "Performance and timing"
+        "title": "Estratégia",
+        "subtitle": "Performance e timing"
       },
       {
         "icon": "⬢",
         "accent": "cyan",
-        "title": "Technology",
-        "subtitle": "Blockchain infrastructure"
+        "title": "Tecnologia",
+        "subtitle": "Infraestrutura blockchain"
       },
       {
         "icon": "🏆",
         "accent": "gold",
         "title": "Ranking",
-        "subtitle": "Rewards and progression"
+        "subtitle": "Recompensas e progressão"
       },
       {
         "icon": "◎",
         "accent": "purple",
         "title": "Global",
-        "subtitle": "Decentralized arena"
+        "subtitle": "Arena descentralizada"
       }
     ],
     "statusCards": [
@@ -727,46 +766,51 @@
     }
   },
   "publicHome": {
-    "globalCryptoArena": "Global crypto arena",
-    "exploreLiveMatches": "Explore live matches",
-    "howItWorks": "How it works",
-    "platformHighlights": "Platform highlights",
-    "liveMatches": "Live matches",
-    "completedIn24h": "Completed in 24h",
-    "trackedCoins": "Tracked coins",
-    "homeSections": "Home sections",
-    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Follow ongoing crypto battles with crawlable public pages that show score, momentum and match context.",
-    "liveBattle": "Live battle",
-    "openMatch": "Open match",
-    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "Featured public match pages connect market performance, scoring rules and transparent historical context.",
-    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus tracks market variation between assets, converts configured rules into score events and publishes match pages that can be indexed, shared and audited.",
-    "readTheFullRules": "Read the full rules",
-    "publicMatchLogic": "Public match logic",
-    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Each match has score, status, volume, price variation and rule-based events visible on the public page.",
-    "arenaStyleExperience": "Arena-style experience",
-    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "The product blends crypto data, live confrontation and social-ready storytelling.",
-    "globalSeoReadyRouting": "Global SEO-ready routing",
-    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Localized public routes, canonical URLs and hreflang support keep international discovery clean.",
-    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "A quick pulse of the assets currently drawing the strongest attention inside the arena.",
-    "trackedMarketAsset": "Tracked market asset",
-    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Trending assets, featured battles and public match pages build the competitive ranking layer of the arena.",
-    "exploreTheProduct": "Explore the product",
-    "howItWorks2": "How It Works",
-    "featuredMatch": "Featured match",
-    "criptoversusLiveCryptoMatchArena": "CriptoVersus | Live Crypto Match Arena",
-    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.",
+    "globalCryptoArena": "Arena cripto global",
+    "exploreLiveMatches": "Explorar partidas ao vivo",
+    "howItWorks": "Como funciona",
+    "platformHighlights": "Destaques da plataforma",
+    "liveMatches": "Partidas ao vivo",
+    "completedIn24h": "Concluídas em 24h",
+    "trackedCoins": "Moedas monitoradas",
+    "homeSections": "Seções da página inicial",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Acompanhe as batalhas cripto em andamento com páginas públicas indexáveis que mostram placar, momentum e contexto da partida.",
+    "roadmap": "Roteiro",
+    "liveBattle": "Batalha ao vivo",
+    "openMatch": "Abrir partida",
+    "topCryptoBattles": "Principais batalhas cripto",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "As páginas públicas em destaque conectam performance de mercado, regras de pontuação e contexto histórico transparente.",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus acompanha a variação de mercado entre ativos, converte regras configuradas em eventos de pontuação e publica páginas de partidas que podem ser indexadas, compartilhadas e auditadas.",
+    "readTheFullRules": "Leia as regras completas",
+    "publicMatchLogic": "Lógica pública da partida",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Cada partida tem placar, status, volume, variação de preço e eventos baseados em regras visíveis na página pública.",
+    "arenaStyleExperience": "Experiência em estilo arena",
+    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "O produto mistura dados cripto, confronto ao vivo e narrativa pronta para social.",
+    "globalSeoReadyRouting": "Roteamento global pronto para SEO",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Rotas públicas localizadas, URLs canônicas e suporte a hreflang mantêm a descoberta internacional limpa.",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "Um pulso rápido dos ativos que mais atraem atenção dentro da arena.",
+    "trackedMarketAsset": "Ativo de mercado monitorado",
+    "trendingCoins": "Moedas em alta",
+    "cryptoArenaRankings": "Rankings da arena cripto",
+    "rankings": "Rankings",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Ativos em destaque, batalhas exibidas e páginas públicas de partidas formam a camada de ranking competitivo da arena.",
+    "exploreTheProduct": "Explore o produto",
+    "howItWorks2": "Como funciona",
+    "featuredMatch": "Partida em destaque",
+    "criptoversusLiveCryptoMatchArena": "CriptoVersus | Arena de partidas cripto ao vivo",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore partidas cripto ao vivo, placares públicos, moedas em alta e batalhas de mercado no CriptoVersus com páginas públicas prontas para SEO.",
     "seoDescription": "CriptoVersus e uma arena cripto ao vivo onde usuarios abrem posicoes em ativos concorrentes, entram em pools ciclicos de recompensa, acompanham competicao entre lados e seguem mecanicas de recompensa guiadas pelo mercado.",
-    "heroTitle": "Live crypto battles in a gamified cyclical arena.",
-    "heroDescription": "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
-    "heroSemanticLabel": "Destaques da mecanica da arena",
-    "heroSemantic1": "Abra posicoes em batalhas cripto ao vivo",
-    "heroSemantic2": "Participe de pools ciclicos da arena",
+    "heroTitle": "Batalhas cripto ao vivo em uma arena cíclica gamificada.",
+    "heroDescription": "CriptoVersus transforma a performance do mercado ao vivo em batalhas cripto cíclicas onde ativos competem como times. Cada ciclo cria novos confrontos, placares públicos, rankings e uma narrativa em estilo arena guiada pelo movimento real do mercado.",
+    "heroSemanticLabel": "Destaques da mecânica da arena",
+    "heroSemantic1": "Abra posições em batalhas cripto ao vivo",
+    "heroSemantic2": "Participe de pools cíclicos da arena",
     "heroSemantic3": "Escolha um lado e dispute recompensas",
-    "heroSemantic4": "Batalhas cripto em tempo real com mecanicas gamificadas de recompensa",
+    "heroSemantic4": "Batalhas cripto em tempo real com mecânicas gamificadas de recompensa",
     "heroSemantic5": "Economia competitiva da arena baseada em desempenho real de mercado",
     "faqTitle": "FAQ do CriptoVersus",
-    "faqSubtitle": "Respostas diretas para buscadores, sistemas de IA e usuarios que querem entender a economia competitiva por tras de cada batalha.",
-    "structuredDataAbstract": "CriptoVersus e uma arena ciclica de batalhas cripto ao vivo com pools competitivos de staking, abertura de posicoes, participacao por lado e redistribuicao de recompensas guiada pelo desempenho real de mercado.",
+    "faqSubtitle": "Respostas diretas para buscadores, sistemas de IA e usuários que querem entender a economia competitiva por trás de cada batalha.",
+    "structuredDataAbstract": "CriptoVersus é uma arena cíclica de batalhas cripto ao vivo com pools competitivos de staking, abertura de posições, participação por lado e redistribuição de recompensas guiada pelo desempenho real de mercado.",
     "faq": {
       "onlyScoreboard": {
         "question": "O CriptoVersus e apenas um placar de criptomoedas?",
@@ -1004,6 +1048,9 @@
       "aiCommentary": "Comentario por IA",
       "remainingWithClock": "Restante ({0})",
       "pressureSummary": "Pool competitivo | {0} | {1}",
+      "marketBattleFlow": "Fluxo da batalha do mercado",
+      "assetVariationSplit": "Divisao da variacao dos ativos",
+      "testCommentary": "Teste de comentario",
       "liveNarrator": "Narrador ao vivo",
       "aiMetaTimestamp": "{0} | {1} UTC",
       "commentaryMetaTimestamp": "{0} | {1} UTC"

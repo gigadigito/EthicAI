@@ -4,6 +4,7 @@
       "eyebrow": "CriptoVersus Arena",
       "title": "Match market",
       "login": "Connect",
+      "connectWallet": "Connect Wallet",
       "language": "Language",
       "english": "English",
       "portuguese": "Português"
@@ -121,6 +122,7 @@
       "phasesMapped": "Phases mapped",
       "workstreamsActive": "Workstreams active",
       "workstreamsDescription": "Status cards, principles and visible roadmap milestones.",
+      "publicEvolution": "Public evolution from foundation to AI commentary.",
       "currentFocus": "Current focus",
       "nextMilestone": "Next milestone",
       "brandPillars": "Brand pillars",
@@ -128,6 +130,43 @@
       "currentFocusFallback": "Active roadmap execution",
       "nextMilestoneFallback": "Roadmap in expansion",
       "nextMilestoneFallbackItem": "Upcoming delivery details will be published soon."
+    },
+    "section": {
+      "roadmap": "Roadmap",
+      "projectStatus": "Project status",
+      "currentPlatformDirection": "Current platform direction",
+      "plannedEvolutionByPhase": "Planned evolution by phase",
+      "guidingPrinciples": "Guiding principles",
+      "howProductDecisionsAreFramed": "How product decisions are framed"
+    },
+    "status": {
+      "completed": "Completed",
+      "inProgress": "In progress",
+      "planned": "Planned",
+      "future": "Future",
+      "experimental": "Experimental"
+    },
+    "pillars": {
+      "competition": {
+        "title": "Competition",
+        "subtitle": "Between digital assets"
+      },
+      "strategy": {
+        "title": "Strategy",
+        "subtitle": "Performance and timing"
+      },
+      "technology": {
+        "title": "Technology",
+        "subtitle": "Blockchain infrastructure"
+      },
+      "ranking": {
+        "title": "Ranking",
+        "subtitle": "Rewards and progression"
+      },
+      "global": {
+        "title": "Global",
+        "subtitle": "Decentralized arena"
+      }
     },
     "brandPillars": [
       {
@@ -736,8 +775,10 @@
     "trackedCoins": "Tracked coins",
     "homeSections": "Home sections",
     "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Follow ongoing crypto battles with crawlable public pages that show score, momentum and match context.",
+    "roadmap": "Roadmap",
     "liveBattle": "Live battle",
     "openMatch": "Open match",
+    "topCryptoBattles": "Top Crypto Battles",
     "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "Featured public match pages connect market performance, scoring rules and transparent historical context.",
     "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus tracks market variation between assets, converts configured rules into score events and publishes match pages that can be indexed, shared and audited.",
     "readTheFullRules": "Read the full rules",
@@ -749,6 +790,9 @@
     "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Localized public routes, canonical URLs and hreflang support keep international discovery clean.",
     "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "A quick pulse of the assets currently drawing the strongest attention inside the arena.",
     "trackedMarketAsset": "Tracked market asset",
+    "trendingCoins": "Trending Coins",
+    "cryptoArenaRankings": "Crypto Arena Rankings",
+    "rankings": "Rankings",
     "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Trending assets, featured battles and public match pages build the competitive ranking layer of the arena.",
     "exploreTheProduct": "Explore the product",
     "howItWorks2": "How It Works",
@@ -1004,6 +1048,9 @@
       "aiCommentary": "AI commentary",
       "remainingWithClock": "Remaining ({0})",
       "pressureSummary": "Competitive pool | {0} | {1}",
+      "marketBattleFlow": "Market battle flow",
+      "assetVariationSplit": "Asset variation split",
+      "testCommentary": "Test commentary",
       "liveNarrator": "Live narrator",
       "aiMetaTimestamp": "{0} | {1} UTC",
       "commentaryMetaTimestamp": "{0} | {1} UTC"
