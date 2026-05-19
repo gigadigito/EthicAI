@@ -1415,11 +1415,33 @@
 
     .public-home-arena__deck {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: 1fr;
         align-items: start;
         gap: 1.2rem;
     }
 
+    .arena-featured-battle {
+        width: 100%;
+        align-self: start;
+        min-height: unset;
+        height: auto;
+    }
+
+    .arena-match-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .public-home-arena__deck {
+        align-items: start;
+    }
+
+    .arena-featured-battle {
+        height: auto;
+        align-self: start;
+    }
     .arena-featured-battle,
     .arena-match-card {
         position: relative;
@@ -1436,7 +1458,8 @@
 
     .arena-featured-battle {
         padding: 1.5rem;
-        min-height: 100%;
+        min-height: unset;
+        height: auto;
     }
 
     .arena-featured-battle__glow {
@@ -1887,7 +1910,7 @@
         box-shadow: 0 30px 75px rgba(0,0,0,.36);
     }
 
-    @@media (max-width: 980px) {
+    @@media (max-width: 1199.98px) {
         .home-hero,
         .home-section--split .home-feature-grid,
         .public-home-arena__deck {
@@ -1899,7 +1922,23 @@
             grid-template-columns: 1fr;
         }
     }
+    @@media (max-width: 1199.98px) {
+    .public-home-arena__deck {
+        grid-template-columns: 1fr;
+    }
 
+    .arena-featured-battle {
+        width: 100%;
+    }
+
+    .arena-featured-battle__body {
+        grid-template-columns: 1fr;
+    }
+
+    .arena-match-grid {
+        grid-template-columns: 1fr;
+    }
+}
     @@media (max-width: 760px) {
         .arena-featured-battle,
         .arena-match-card,
