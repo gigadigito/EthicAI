@@ -593,7 +593,7 @@ else
     {
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-9");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-10");
             await LogAsync("TV_MOTION", "motion system ready");
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
@@ -1023,6 +1023,14 @@ else
                 {
                     _metricSnapshotLastLogTick = nowTick;
                     Console.WriteLine($"[TV_SNAPSHOTS] match={matchId} count={_metricSnapshots.Count} latestId={_metricSnapshotLastId}");
+                }
+
+                try
+                {
+                    await InvokeAsync(SyncTelemetryChartsAsync);
+                }
+                catch
+                {
                 }
             }
         }

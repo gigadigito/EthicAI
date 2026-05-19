@@ -449,8 +449,10 @@ function setCubeFace(faceIndex, reason) {
     telemetryCubeLog(`face changed ${normalized}`, reason ? { reason } : undefined);
 
     // 3D transforms can cause LightweightCharts to miss a resize; force-fit after the face is applied.
+    window.setTimeout(() => resizeTelemetryCharts(), 0);
     window.setTimeout(() => resizeTelemetryCharts(), 80);
     window.setTimeout(() => resizeTelemetryCharts(), 350);
+    window.setTimeout(() => resizeTelemetryCharts(), 1100);
 }
 
 function resumeCubeRotation() {
@@ -1099,7 +1101,9 @@ export async function updateTelemetryCharts(payload) {
             fitChart(splitRight.chart);
         }
 
+        window.requestAnimationFrame(() => resizeTelemetryCharts());
         window.setTimeout(() => resizeTelemetryCharts(), 80);
+        window.setTimeout(() => resizeTelemetryCharts(), 350);
 
         telemetryChartLog("rendered candles left/right + compare", {
             leftCandles: leftCandles.length,

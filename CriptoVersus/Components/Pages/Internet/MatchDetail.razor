@@ -397,77 +397,79 @@
                     </div>
                 </div>
 
-                <div class="social-share-card__sentiment">
-                    <div class="card match-panel social-share-sentiment-panel p-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                            <div>
-                                <div class="fw-bold">@T("arenaPressureTitle")</div>
-                                <div class="small text-muted">@T("arenaPressureSubtitle")</div>
+                <div class="social-share-card__insights">
+                    <div class="social-share-card__sentiment">
+                        <div class="card match-panel social-share-sentiment-panel p-3">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div>
+                                    <div class="fw-bold">@T("arenaPressureTitle")</div>
+                                    <div class="small text-muted">@T("arenaPressureSubtitle")</div>
+                                </div>
+                                <span class="badge rounded-pill text-bg-dark border border-secondary-subtle">@T("marketPulse")</span>
                             </div>
-                            <span class="badge rounded-pill text-bg-dark border border-secondary-subtle">@T("marketPulse")</span>
-                        </div>
 
-                        <div class="social-share-sentiment-grid">
-                            <ArenaSentimentGauge Symbol="@_match.TeamA"
-                                                 Score="@_arenaSentimentA?.Score"
-                                                 Classification="@_arenaSentimentA?.Classification"
-                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentA is null)"
-                                                 Size="250"
-                                                 ShowLabel="true"
-                                                 LabelText="@T("arenaPressureLabel")" />
+                            <div class="social-share-sentiment-grid">
+                                <ArenaSentimentGauge Symbol="@RemoveTrailingUsdt(_match.TeamA)"
+                                                     Score="@_arenaSentimentA?.Score"
+                                                     Classification="@_arenaSentimentA?.Classification"
+                                                     ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
+                                                     IsLoading="@(_arenaSentimentLoading && _arenaSentimentA is null)"
+                                                     Size="250"
+                                                     ShowLabel="true"
+                                                     LabelText="@T("arenaPressureLabel")" />
 
-                            <ArenaSentimentGauge Symbol="@_match.TeamB"
-                                                 Score="@_arenaSentimentB?.Score"
-                                                 Classification="@_arenaSentimentB?.Classification"
-                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentB is null)"
-                                                 Size="250"
-                                                 ShowLabel="true"
-                                                 LabelText="@T("arenaPressureLabel")" />
+                                <ArenaSentimentGauge Symbol="@RemoveTrailingUsdt(_match.TeamB)"
+                                                     Score="@_arenaSentimentB?.Score"
+                                                     Classification="@_arenaSentimentB?.Classification"
+                                                     ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
+                                                     IsLoading="@(_arenaSentimentLoading && _arenaSentimentB is null)"
+                                                     Size="250"
+                                                     ShowLabel="true"
+                                                     LabelText="@T("arenaPressureLabel")" />
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="social-share-card__events">
-                    <div class="card match-panel social-share-events-panel p-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div>
-                                <div class="social-share-events-panel__title">@T("scoringLog")</div>
-                                <div class="social-share-events-panel__subtitle">@T("mostRelevantMomentByMomentEventsFromTheMatch")</div>
+                    <div class="social-share-card__events">
+                        <div class="card match-panel social-share-events-panel p-3">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <div class="social-share-events-panel__title">@T("scoringLog")</div>
+                                    <div class="social-share-events-panel__subtitle">@T("mostRelevantMomentByMomentEventsFromTheMatch")</div>
+                                </div>
+                                <div class="small text-muted">@_scoreEvents.Count @T("eventS")</div>
                             </div>
-                            <div class="small text-muted">@_scoreEvents.Count @T("eventS")</div>
-                        </div>
 
-                        @if (_scoreEvents.Count == 0)
-                        {
-                            <div class="social-share-events-empty mt-3">
-                                @T("noScoringEventsHaveBeenRecordedForThisMatchYet")
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="social-share-events-list mt-3">
-                                @foreach (var scoreEvent in _scoreEvents.OrderByDescending(x => x.EventSequence).Take(4))
-                                {
-                                    <article class="social-share-event-item">
-                                        <div class="social-share-event-item__meta">
-                                            <div class="social-share-event-item__badges">
-                                                <span class="match-score-event__icon" title="@GetScoreEventIconTitle(scoreEvent)">
-                                                    @GetScoreEventIcon(scoreEvent)
-                                                </span>
-                                                <span class="badge text-bg-dark border border-secondary-subtle">#@scoreEvent.EventSequence</span>
-                                                <span class="badge @GetTeamEventBadgeClass(scoreEvent.TeamId)">@scoreEvent.TeamSymbol</span>
-                                                <span class="badge text-bg-dark border border-secondary-subtle">@GetRuleLabel(scoreEvent.RuleType)</span>
-                                                <span class="badge match-score-event__points">+@scoreEvent.Points</span>
+                            @if (_scoreEvents.Count == 0)
+                            {
+                                <div class="social-share-events-empty mt-3">
+                                    @T("noScoringEventsHaveBeenRecordedForThisMatchYet")
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="social-share-events-list mt-3">
+                                    @foreach (var scoreEvent in _scoreEvents.OrderByDescending(x => x.EventSequence).Take(4))
+                                    {
+                                        <article class="social-share-event-item">
+                                            <div class="social-share-event-item__meta">
+                                                <div class="social-share-event-item__badges">
+                                                    <span class="match-score-event__icon" title="@GetScoreEventIconTitle(scoreEvent)">
+                                                        @GetScoreEventIcon(scoreEvent)
+                                                    </span>
+                                                    <span class="badge text-bg-dark border border-secondary-subtle">#@scoreEvent.EventSequence</span>
+                                                    <span class="badge @GetTeamEventBadgeClass(scoreEvent.TeamId)">@scoreEvent.TeamSymbol</span>
+                                                    <span class="badge text-bg-dark border border-secondary-subtle">@GetRuleLabel(scoreEvent.RuleType)</span>
+                                                    <span class="badge match-score-event__points">+@scoreEvent.Points</span>
+                                                </div>
+                                                <div class="social-share-event-item__time">@FormatEventTime(scoreEvent.EventTimeUtc)</div>
                                             </div>
-                                            <div class="social-share-event-item__time">@FormatEventTime(scoreEvent.EventTimeUtc)</div>
-                                        </div>
-                                        <div class="social-share-event-item__description">@GetLocalizedScoreEventDescription(scoreEvent)</div>
-                                    </article>
-                                }
-                            </div>
-                        }
+                                            <div class="social-share-event-item__description">@GetLocalizedScoreEventDescription(scoreEvent)</div>
+                                        </article>
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
 
@@ -1923,18 +1925,34 @@
         gap: .9rem;
     }
 
-    .social-share-card__sentiment {
+    .social-share-card__insights {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: .9rem;
+        align-items: stretch;
+        min-height: 0;
         margin-top: .9rem;
+    }
+
+    .social-share-card__sentiment,
+    .social-share-card__events {
+        display: flex;
+        min-width: 0;
+        min-height: 0;
     }
 
     .social-share-sentiment-panel {
         border-radius: 24px;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
     }
 
     .social-share-sentiment-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .9rem;
+        gap: .75rem;
+        align-items: stretch;
     }
 
     .social-share-chart-wrap {
@@ -1944,6 +1962,12 @@
 
     .social-share-events-panel {
         border-radius: 24px;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     .social-share-events-panel__title {
@@ -1962,8 +1986,14 @@
 
     .social-share-events-list {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .8rem;
+        grid-template-columns: 1fr;
+        gap: .7rem;
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding-right: .2rem;
+        scrollbar-gutter: stable;
+        overscroll-behavior: contain;
     }
 
     .social-share-event-item {
@@ -2004,6 +2034,7 @@
     }
 
     .social-share-events-empty {
+        flex: 1 1 auto;
         display: grid;
         place-items: center;
         min-height: 96px;
@@ -2131,12 +2162,15 @@
         text-overflow: ellipsis;
     }
 
-    @@media (max-width: 1199.98px) {
+    @@media (max-width: 1023.98px) {
+        .social-share-card__insights {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
         .social-share-card__hero,
         .social-share-card__stats,
-        .social-share-sentiment-grid,
         .social-share-card__charts,
-        .social-share-events-list {
+        .social-share-sentiment-grid {
             grid-template-columns: minmax(0, 1fr);
         }
 
@@ -2153,11 +2187,20 @@
         .social-share-team-card__metric-row:last-child {
             grid-column: 1 / -1;
         }
+
+        .social-share-events-list {
+            max-height: 320px;
+        }
     }
 
     @@media (max-width: 991.98px) {
         .social-share-card {
-            display: none;
+            min-height: 0;
+        }
+
+        .social-share-card__shell {
+            padding: 1.1rem;
+            gap: .95rem;
         }
 
         .match-invest-grid {
@@ -2166,6 +2209,20 @@
     }
 
     @@media (max-width: 767.98px) {
+        .social-share-card__insights {
+            gap: .75rem;
+        }
+
+        .social-share-card__stats,
+        .social-share-card__charts,
+        .social-share-sentiment-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .social-share-events-list {
+            max-height: 260px;
+        }
+
         .match-invest-option {
             padding: .92rem;
         }
@@ -2477,6 +2534,16 @@
         }
 
         return normalized;
+    }
+
+    private static string RemoveTrailingUsdt(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        return symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase)
+            ? symbol[..^4]
+            : symbol;
     }
 
     private static bool IsOngoing(string? status)
