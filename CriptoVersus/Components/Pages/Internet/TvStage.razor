@@ -649,8 +649,11 @@ else
     private bool _didVictoryMoment;
     private bool _didKickoff;
     private bool _didBroadcastDiagnostics;
+    private int _broadcastRotationIndex;
+    private DateTime _lastBroadcastFocusChangeUtc = DateTime.MinValue;
 
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
+    private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
     private sealed record BroadcastSignalDefinition(
         string Key,
         int Priority,
@@ -1428,6 +1431,9 @@ else
                 if (current is null)
                     continue;
 
+                var fieldState = CurrentFieldState;
+                await AdvanceBroadcastFocusAsync(current, fieldState);
+
                 if (Environment.IsDevelopment())
                 {
                     await LogAsync("TV_DIAGNOSTICS", "heartbeat", new
@@ -1437,7 +1443,8 @@ else
                         current.RightScore,
                         current.HotScore,
                         focus = BroadcastFocusKey,
-                        progress = BroadcastFocusProgress
+                        progress = BroadcastFocusProgress,
+                        focusUntil = _broadcastFocusUntilUtc == DateTime.MinValue ? null : _broadcastFocusUntilUtc.ToString("O", CultureInfo.InvariantCulture)
                     });
                 }
             }
@@ -1445,6 +1452,163 @@ else
         catch (OperationCanceledException)
         {
         }
+    }
+
+    private async Task AdvanceBroadcastFocusAsync(BroadcastSnapshot current, TvFieldStateDto? fieldState)
+    {
+        if (_isDisposed)
+            return;
+
+        if (DateTime.UtcNow < _broadcastFocusUntilUtc)
+            return;
+
+        var next = ResolveBroadcastFocusState(current, fieldState);
+        if (string.Equals(next.Key, "replay", StringComparison.OrdinalIgnoreCase))
+        {
+            if (await TryPlayAutoReplayAsync(current, next))
+            {
+                _lastBroadcastFocusChangeUtc = DateTime.UtcNow;
+            }
+
+            return;
+        }
+
+        if (string.Equals(next.Key, _broadcastFocusKey, StringComparison.OrdinalIgnoreCase)
+            && DateTime.UtcNow - _lastBroadcastFocusChangeUtc < TimeSpan.FromSeconds(Math.Max(2, next.DurationMs / 1000)))
+        {
+            return;
+        }
+
+        await SetBroadcastFocusAsync(next.Key, next.Label, next.Color, next.DurationMs);
+        _lastBroadcastFocusChangeUtc = DateTime.UtcNow;
+    }
+
+    private BroadcastFocusState ResolveBroadcastFocusState(BroadcastSnapshot current, TvFieldStateDto? fieldState)
+    {
+        var replayReady = current.LeftScore + current.RightScore > 0 && DateTime.UtcNow >= _nextAutoReplayAtUtc;
+        if (replayReady)
+        {
+            var replaySide = ResolveAutoReplaySide(current);
+            return new BroadcastFocusState("replay", "Last goal replay", GetAccentColor(replaySide), 4800);
+        }
+
+        if (fieldState is not null)
+        {
+            if (fieldState.TeamPressureA >= 2.1 || fieldState.TeamPressureB >= 2.1 || current.HotScore >= 74)
+            {
+                var pressureSide = fieldState.TeamPressureA >= fieldState.TeamPressureB ? fieldState.TeamA : fieldState.TeamB;
+                return new BroadcastFocusState("pressure", "Big pressure", GetAccentColor(pressureSide), 4200);
+            }
+
+            if (fieldState.PossessionA >= 62 || fieldState.PossessionB >= 62)
+            {
+                var owningSide = fieldState.PossessionA >= fieldState.PossessionB ? fieldState.TeamA : fieldState.TeamB;
+                return new BroadcastFocusState(owningSide == current.LeftSymbol ? "left" : "right", $"{owningSide} focus", GetAccentColor(owningSide), 4200);
+            }
+        }
+
+        var cycle = new[]
+        {
+            new BroadcastFocusState("wide", "Wide camera", "#53c8ff", 3800),
+            new BroadcastFocusState("left", $"{current.LeftSymbol} focus", GetAccentColor(current.LeftSymbol), 3600),
+            new BroadcastFocusState("overview", "Overview", "#8bc8ff", 3600),
+            new BroadcastFocusState("right", $"{current.RightSymbol} focus", GetAccentColor(current.RightSymbol), 3600)
+        };
+
+        var index = Math.Abs(_broadcastRotationIndex++) % cycle.Length;
+        return cycle[index];
+    }
+
+    private async Task<bool> TryPlayAutoReplayAsync(BroadcastSnapshot current, BroadcastFocusState focusState)
+    {
+        if (_isDisposed)
+            return false;
+
+        if (DateTime.UtcNow < _nextAutoReplayAtUtc)
+            return false;
+
+        if (current.LeftScore + current.RightScore <= 0)
+            return false;
+
+        var replaySide = ResolveAutoReplaySide(current);
+        var scoreEvent = ResolveAutoReplayScoreEvent(current, replaySide);
+        if (scoreEvent is null)
+            return false;
+
+        _lastAutoReplaySide = replaySide;
+        _nextAutoReplayAtUtc = DateTime.UtcNow.AddSeconds(18);
+
+        await SetBroadcastFocusAsync(focusState.Key, focusState.Label, focusState.Color, focusState.DurationMs);
+        await EnsureReplayEngineAsync();
+
+        await LogAsync("TV_REPLAY", "auto-trigger", new
+        {
+            side = replaySide,
+            scoreLine = $"{current.LeftScore} vs {current.RightScore}",
+            eventType = scoreEvent.EventType,
+            ruleType = scoreEvent.RuleType
+        });
+
+        await PlayReplayAsync(CreateScoreReplayEvent(current, scoreEvent));
+        return true;
+    }
+
+    private MatchScoreEventDto? ResolveAutoReplayScoreEvent(BroadcastSnapshot current, string replaySide)
+    {
+        var matchingEvent = _recentScoreEvents
+            .FirstOrDefault(x => string.Equals(x.TeamSymbol, replaySide, StringComparison.OrdinalIgnoreCase));
+
+        if (matchingEvent is not null)
+            return matchingEvent;
+
+        var latestEvent = _recentScoreEvents.FirstOrDefault();
+        if (latestEvent is not null)
+            return latestEvent;
+
+        return new MatchScoreEventDto
+        {
+            MatchId = current.MatchId,
+            TeamSymbol = replaySide,
+            RuleType = "THRESHOLD_8",
+            EventType = "THRESHOLD_8",
+            Points = 1,
+            Description = "Auto replay fallback",
+            EventTimeUtc = DateTime.UtcNow
+        };
+    }
+
+    private string ResolveAutoReplaySide(BroadcastSnapshot current)
+    {
+        if (current.LeftScore <= 0 && current.RightScore > 0)
+            return current.RightSymbol;
+
+        if (current.RightScore <= 0 && current.LeftScore > 0)
+            return current.LeftSymbol;
+
+        if (string.Equals(_lastAutoReplaySide, current.LeftSymbol, StringComparison.OrdinalIgnoreCase))
+            return current.RightSymbol;
+
+        return current.LeftSymbol;
+    }
+
+    private async Task SetBroadcastFocusAsync(string key, string label, string color, int durationMs)
+    {
+        var normalizedKey = string.IsNullOrWhiteSpace(key) ? "wide" : key.Trim().ToLowerInvariant();
+        var safeDuration = Math.Max(500, durationMs);
+
+        _broadcastFocusKey = normalizedKey;
+        _broadcastFocusLabel = string.IsNullOrWhiteSpace(label) ? "Wide camera" : label;
+        _broadcastFocusColor = string.IsNullOrWhiteSpace(color) ? "#53c8ff" : color;
+        _broadcastFocusDurationMs = safeDuration;
+        _broadcastFocusUntilUtc = DateTime.UtcNow.AddMilliseconds(safeDuration);
+
+        await LogAsync("TV_BROADCAST", "focus-change", new
+        {
+            key = _broadcastFocusKey,
+            label = _broadcastFocusLabel,
+            color = _broadcastFocusColor,
+            durationMs = _broadcastFocusDurationMs
+        });
     }
 
     private BroadcastSnapshot? CaptureSnapshot()
@@ -1695,6 +1859,7 @@ else
 
         try
         {
+            await EnsureReplayEngineAsync();
             await JS.InvokeVoidAsync("criptoVersusReplay.playReplay", replayEvent);
         }
         catch (ObjectDisposedException)
