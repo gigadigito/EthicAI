@@ -23,6 +23,7 @@
         <div class="tv-stage__gridlines"></div>
         <div class="tv-stage__particles"></div>
         <TvNarrationOverlay @ref="_narrationOverlay" />
+        <div id="tv-replay-root" class="tv-replay-root" aria-hidden="true"></div>
 
         @if (_isEventVisible && _activeEvent is not null)
         {
@@ -515,6 +516,10 @@ else
             <button type="button" @onclick="() => TriggerDevNarrationAsync(animation)">@animation</button>
         }
         <button type="button" @onclick="TriggerDevAiNarrationAsync">@T("labels.testCommentary")</button>
+        @foreach (var replay in ReplayDebugPresets)
+        {
+            <button type="button" @onclick="() => TriggerDevReplayAsync(replay.EventType)">@replay.Label</button>
+        }
     </aside>
 }
 
@@ -528,6 +533,18 @@ else
 
     // Temporary debug demo to validate the cinematic narration overlay visually.
     private const bool EnableNarrationDebugDemo = false;
+    private const string ReplayRootId = "tv-replay-root";
+    private const string DefaultReplayAnimation = "POWER_SHOT";
+    private static readonly ReplayDebugPreset[] ReplayDebugPresets =
+    [
+        new("POWER_SHOT replay", "THRESHOLD_8", "POWER_SHOT", "Superou 8% de diferenca"),
+        new("Escanteio", "FEAR_DOMINANCE", "CORNER_GOAL", "Pressao virou escanteio"),
+        new("Bicicleta", "CROSSOVER_UP", "BICYCLE_KICK", "Cruzou a linha para cima"),
+        new("Penalti", "PENALTY_KICK", "PENALTY_KICK", "Reacao de penalidade"),
+        new("Cabeceio", "VOLUME_SPIKE", "HEADER_GOAL", "Volume explodiu na area"),
+        new("Gol Cinematico", "THRESHOLD_16", "CINEMATIC_SUPER_GOAL", "Superou 16% de diferenca"),
+        new("Shot Simples", "THRESHOLD_2", "SIMPLE_SHOT", "Superou 2% de diferenca")
+    ];
     private static readonly string[] NarrationDebugAnimations =
     [
         "grow",
@@ -556,6 +573,7 @@ else
     private bool _pulseScoreboard;
     private bool _pulseHotScore;
     private bool _narrationDebugDemoStarted;
+    private bool _replayEngineInitialized;
     private bool _isAiNarrationLoading;
     private DateTime? _lastAiNarrationAtUtc;
     private int? _lastAiNarrationMatchId;
@@ -589,6 +607,8 @@ else
     private string _lastGoalTriggerSignature = string.Empty;
     private string _lastGoalAudioSignature = string.Empty;
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
+
+    private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
@@ -631,6 +651,7 @@ else
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-10");
             await LogAsync("TV_MOTION", "motion system ready");
+            await EnsureReplayEngineAsync();
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
 
@@ -1411,6 +1432,7 @@ else
                 false);
             await TriggerEventAsync(CreateGoalEvent(current, latest.TeamSymbol));
             await QueueNarrationAsync(CreateGoalNarration(current, latest.TeamSymbol));
+            _ = PlayReplayAsync(CreateScoreReplayEvent(current, latest));
             MarkGoalTrigger(current);
             await TryPlayGoalAudioAsync(current);
             _ = MaybeRefreshAiNarrationAsync("goal");
@@ -1508,6 +1530,238 @@ else
 
     private Task TriggerDevAiNarrationAsync()
         => MaybeRefreshAiNarrationAsync("manual-test", true);
+
+    private async Task TriggerDevReplayAsync(string eventType = "THRESHOLD_8")
+    {
+        await EnsureReplayEngineAsync();
+        await PlayReplayAsync(CreateDevReplayEvent(eventType));
+    }
+
+    private async Task EnsureReplayEngineAsync()
+    {
+        if (_isDisposed || _replayEngineInitialized)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusReplay.init", ReplayRootId);
+            _replayEngineInitialized = true;
+            await LogAsync("TV_REPLAY", "engine-ready");
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task PlayReplayAsync(object replayEvent)
+    {
+        if (_isDisposed)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusReplay.playReplay", replayEvent);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch
+        {
+        }
+    }
+
+    private object CreateDevReplayEvent(string eventType)
+    {
+        var leftSymbol = DisplayLeftSymbol();
+        var rightSymbol = DisplayRightSymbol();
+        var leaderSymbol = ResolveLeaderSymbol();
+        var attackerIsLeft = !string.Equals(leaderSymbol, rightSymbol, StringComparison.OrdinalIgnoreCase);
+
+        var attackerSymbol = attackerIsLeft ? leftSymbol : rightSymbol;
+        var opponentSymbol = attackerIsLeft ? rightSymbol : leftSymbol;
+
+        var leftChange = DisplayLeftChangePercent();
+        var rightChange = DisplayRightChangePercent();
+        var difference = leftChange.HasValue && rightChange.HasValue
+            ? Math.Abs(leftChange.Value - rightChange.Value)
+            : (decimal?)null;
+
+        var minute = DisplayClockPrimary();
+        if (string.IsNullOrWhiteSpace(minute) || minute == "--:--")
+            minute = "43:27";
+
+        var leftScore = DisplayLeftScore();
+        var rightScore = DisplayRightScore();
+        var scoreAfterAttack = attackerIsLeft
+            ? $"{leftScore + 1} vs {rightScore}"
+            : $"{leftScore} vs {rightScore + 1}";
+
+        var preset = ReplayDebugPresets.FirstOrDefault(x => string.Equals(x.EventType, eventType, StringComparison.OrdinalIgnoreCase))
+            ?? ReplayDebugPresets[0];
+
+        return new
+        {
+            eventType = preset.EventType,
+            team = attackerSymbol,
+            opponent = opponentSymbol,
+            animation = preset.Animation,
+            reason = preset.Reason,
+            value = difference.HasValue && difference.Value > 0m ? (double)difference.Value : 8.24,
+            minute,
+            teamLogo = GetLogoUrl(attackerIsLeft ? DisplayLeftLogoUrl() : DisplayRightLogoUrl()),
+            opponentLogo = GetLogoUrl(attackerIsLeft ? DisplayRightLogoUrl() : DisplayLeftLogoUrl()),
+            teamColor = GetAccentColor(attackerSymbol),
+            opponentColor = GetAccentColor(opponentSymbol),
+            intensity = 0.8,
+            scoreLine = scoreAfterAttack
+        };
+    }
+
+    private object CreateScoreReplayEvent(BroadcastSnapshot current, MatchScoreEventDto scoreEvent)
+    {
+        var eventType = NormalizeReplayEventType(scoreEvent);
+        var animation = ResolveReplayAnimation(eventType, scoreEvent.RuleType);
+        var scorerIsLeft = string.Equals(scoreEvent.TeamSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase);
+        var teamSymbol = scorerIsLeft ? current.LeftSymbol : current.RightSymbol;
+        var opponentSymbol = scorerIsLeft ? current.RightSymbol : current.LeftSymbol;
+        var leftScore = current.LeftScore;
+        var rightScore = current.RightScore;
+
+        return new
+        {
+            eventType,
+            team = teamSymbol,
+            opponent = opponentSymbol,
+            animation,
+            reason = BuildReplayReason(scoreEvent),
+            value = ResolveReplayValue(scoreEvent),
+            minute = DisplayClockPrimary(),
+            teamLogo = GetLogoUrl(scorerIsLeft ? DisplayLeftLogoUrl() : DisplayRightLogoUrl()),
+            opponentLogo = GetLogoUrl(scorerIsLeft ? DisplayRightLogoUrl() : DisplayLeftLogoUrl()),
+            teamColor = GetAccentColor(teamSymbol),
+            opponentColor = GetAccentColor(opponentSymbol),
+            intensity = ResolveReplayIntensity(scoreEvent),
+            scoreLine = $"{leftScore} vs {rightScore}"
+        };
+    }
+
+    private static string NormalizeReplayEventType(MatchScoreEventDto scoreEvent)
+    {
+        var candidates = new[]
+        {
+            scoreEvent.EventType,
+            scoreEvent.RuleType,
+            scoreEvent.ReasonCode
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(candidate))
+                continue;
+
+            var normalized = candidate.Trim().ToUpperInvariant();
+            if (normalized.Contains("PENAL"))
+                return "PENALTY_KICK";
+            if (normalized.Contains("CROSS"))
+                return "CROSSOVER_UP";
+            if (normalized.Contains("VOLUME") && normalized.Contains("SPIKE"))
+                return "VOLUME_SPIKE";
+            if (normalized.Contains("FEAR"))
+                return "FEAR_DOMINANCE";
+            if (normalized.Contains("THRESHOLD") && normalized.Contains("16"))
+                return "THRESHOLD_16";
+            if (normalized.Contains("THRESHOLD") && normalized.Contains("8"))
+                return "THRESHOLD_8";
+            if (normalized.Contains("THRESHOLD") && normalized.Contains("2"))
+                return "THRESHOLD_2";
+            if (normalized.Contains("VOLUME") && normalized.Contains("WINDOW"))
+                return "VOLUME_SPIKE";
+            if (normalized.Contains("HEADER"))
+                return "VOLUME_SPIKE";
+            if (normalized.Contains("CORNER"))
+                return "FEAR_DOMINANCE";
+        }
+
+        return "THRESHOLD_8";
+    }
+
+    private static string ResolveReplayAnimation(string eventType, string? ruleType)
+    {
+        var normalizedEventType = (eventType ?? string.Empty).Trim().ToUpperInvariant();
+        var normalizedRuleType = (ruleType ?? string.Empty).Trim().ToUpperInvariant();
+
+        if (normalizedEventType.Contains("PENAL"))
+            return "PENALTY_KICK";
+        if (normalizedEventType.Contains("CROSS"))
+            return "BICYCLE_KICK";
+        if (normalizedEventType.Contains("VOLUME") && normalizedEventType.Contains("SPIKE"))
+            return "HEADER_GOAL";
+        if (normalizedEventType.Contains("FEAR"))
+            return "CORNER_GOAL";
+        if (normalizedEventType.Contains("THRESHOLD") && normalizedEventType.Contains("16"))
+            return "CINEMATIC_SUPER_GOAL";
+        if (normalizedEventType.Contains("THRESHOLD") && normalizedEventType.Contains("8"))
+            return "POWER_SHOT";
+        if (normalizedEventType.Contains("THRESHOLD") && normalizedEventType.Contains("2"))
+            return "SIMPLE_SHOT";
+
+        if (normalizedRuleType.Contains("PERCENTAGECROSSOVER"))
+            return "BICYCLE_KICK";
+        if (normalizedRuleType.Contains("VOLUMEWINDOW") || normalizedRuleType.Contains("VOLUMECROSSOVER"))
+            return "HEADER_GOAL";
+        if (normalizedRuleType.Contains("ARENAPRESSURE"))
+            return "CORNER_GOAL";
+        if (normalizedRuleType.Contains("PERCENTTHRESHOLD"))
+            return "POWER_SHOT";
+
+        return "POWER_SHOT";
+    }
+
+    private static string BuildReplayReason(MatchScoreEventDto scoreEvent)
+        => !string.IsNullOrWhiteSpace(scoreEvent.Description)
+            ? scoreEvent.Description
+            : !string.IsNullOrWhiteSpace(scoreEvent.ReasonCode)
+                ? scoreEvent.ReasonCode!
+                : scoreEvent.RuleType switch
+                {
+                    "PercentThreshold" => "Superou o limiar percentual",
+                    "PercentageCrossover" => "Cruzou a linha com impulso",
+                    "VolumeWindow" => "Dominou a janela de volume",
+                    "VolumeCrossover" => "Virou o volume a favor",
+                    "ArenaPressure" => "Pressao de arena convertida",
+                    _ => "Evento de pontuacao detectado"
+                };
+
+    private static double ResolveReplayValue(MatchScoreEventDto scoreEvent)
+    {
+        var candidates = new decimal?[]
+        {
+            scoreEvent.TeamPercentageChange,
+            scoreEvent.MetricDelta
+        };
+
+        foreach (var candidate in candidates)
+        {
+            if (candidate.HasValue)
+                return (double)candidate.Value;
+        }
+
+        return scoreEvent.Points > 0 ? scoreEvent.Points : 8.24;
+    }
+
+    private static double ResolveReplayIntensity(MatchScoreEventDto scoreEvent)
+    {
+        var value = Math.Abs(scoreEvent.TeamPercentageChange ?? scoreEvent.MetricDelta ?? 8.24m);
+        var normalized = Math.Clamp((double)(value / 16m), 0.35, 1.0);
+        if (string.Equals(scoreEvent.RuleType, "ArenaPressure", StringComparison.OrdinalIgnoreCase))
+            normalized = Math.Min(1.0, normalized + 0.15);
+        if (string.Equals(scoreEvent.RuleType, "PercentageCrossover", StringComparison.OrdinalIgnoreCase))
+            normalized = Math.Min(1.0, normalized + 0.10);
+        return normalized;
+    }
 
     private async Task PulseScoreAsync(bool pulseLeft, bool pulseRight, bool pulseHotScore)
     {
@@ -2785,6 +3039,17 @@ else
         if (_narrationOverlay is not null)
             await _narrationOverlay.DisposeAsync();
 
+        try
+        {
+            await JS.InvokeVoidAsync("criptoVersusReplay.dispose");
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch
+        {
+        }
+
         if (_tvModule is not null)
         {
             await _tvModule.DisposeAsync();
@@ -2954,6 +3219,879 @@ else
 
     .tv-stage-impact-active {
         box-shadow: inset 0 0 0 1px rgba(127, 246, 223, 0.16), 0 0 48px rgba(127, 246, 223, 0.12);
+    }
+
+    .tv-replay-root {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 28;
+        pointer-events: none;
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .tv-replay-stage {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 0;
+        transform-origin: center center;
+        transition: opacity .24s ease, transform .24s ease;
+    }
+
+    .tv-replay-stage.is-visible {
+        opacity: 1;
+    }
+
+    .replay-field-bg {
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(5, 10, 18, 0.96) 0%, rgba(6, 12, 20, 0.90) 18%, rgba(5, 14, 20, 0.72) 34%, rgba(7, 28, 22, 0.30) 43%, rgba(10, 56, 30, 0.90) 44%, rgba(8, 45, 26, 0.98) 100%),
+            radial-gradient(circle at 50% 15%, rgba(83, 200, 255, 0.16), transparent 18%),
+            radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.10), transparent 9%),
+            radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.08), transparent 8%);
+        background-size: cover;
+        background-position: center;
+        transform: scale(1.02);
+        filter: saturate(1.08) contrast(1.04);
+    }
+
+    .replay-field-bg::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 46%;
+        background:
+            radial-gradient(circle at 50% 18%, rgba(127, 246, 223, 0.16), transparent 24%),
+            linear-gradient(180deg, rgba(2, 8, 14, 0.92), rgba(6, 12, 20, 0.28));
+        box-shadow: inset 0 -36px 34px -34px rgba(127, 246, 223, 0.28);
+        opacity: .95;
+        pointer-events: none;
+    }
+
+    .replay-field-bg::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 58%;
+        background:
+            linear-gradient(180deg, rgba(12, 82, 45, 0.98), rgba(8, 44, 24, 0.98)),
+            repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 100px),
+            linear-gradient(120deg, transparent 0 35%, rgba(255,255,255,0.08) 35% 36%, transparent 36% 100%);
+        clip-path: polygon(0 14%, 100% 0, 100% 100%, 0 100%);
+        box-shadow: inset 0 26px 30px -28px rgba(127, 246, 223, 0.24);
+        pointer-events: none;
+    }
+
+    .replay-field-bg.has-asset {
+        background-size: cover;
+        background-position: center;
+    }
+
+    .replay-field-glow {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 16% 20%, rgba(83, 200, 255, 0.12), transparent 20%),
+            radial-gradient(circle at 78% 18%, rgba(127, 246, 223, 0.1), transparent 18%),
+            linear-gradient(180deg, rgba(1, 4, 12, 0.02), rgba(1, 4, 12, 0.16));
+        mix-blend-mode: screen;
+    }
+
+    .replay-goal {
+        position: absolute;
+        right: 6%;
+        top: 58%;
+        width: min(34vw, 520px);
+        height: min(38vh, 330px);
+        transform: translateY(-50%);
+        transform-origin: center center;
+        opacity: 0.98;
+        background:
+            radial-gradient(circle at 50% 46%, rgba(220, 255, 248, 0.04), transparent 42%),
+            linear-gradient(90deg, rgba(172, 228, 255, 0.08), rgba(172, 228, 255, 0.02));
+        display: grid;
+        place-items: center;
+        filter: drop-shadow(0 0 18px rgba(127, 246, 223, 0.15));
+        overflow: visible;
+    }
+
+    .replay-goal.has-asset {
+        background: transparent;
+    }
+
+    .replay-goal__image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center right;
+        display: block;
+        pointer-events: none;
+        filter: drop-shadow(0 0 10px rgba(127, 246, 223, 0.14));
+    }
+
+    .replay-goal__post,
+    .replay-goal__bar {
+        position: absolute;
+        background: linear-gradient(180deg, #e6f4ff, #91c6ff);
+        box-shadow: 0 0 16px rgba(127, 246, 223, 0.22);
+        border-radius: 999px;
+    }
+
+    .replay-goal__post--left {
+        left: 12%;
+        bottom: 10%;
+        width: 8px;
+        height: 72%;
+    }
+
+    .replay-goal__post--right {
+        right: 16%;
+        bottom: 10%;
+        width: 8px;
+        height: 72%;
+    }
+
+    .replay-goal__bar {
+        left: 12%;
+        top: 18%;
+        width: 64%;
+        height: 8px;
+    }
+
+    .replay-goal__net {
+        position: absolute;
+        left: 20%;
+        top: 23%;
+        width: 56%;
+        height: 55%;
+        background-image:
+            linear-gradient(90deg, rgba(190, 244, 255, 0.28) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(190, 244, 255, 0.2) 1px, transparent 1px);
+        background-size: 18px 18px;
+        transform: skewY(1deg);
+        opacity: 0.35;
+        clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+    }
+
+    .replay-goal.has-asset .replay-goal__post,
+    .replay-goal.has-asset .replay-goal__bar,
+    .replay-goal.has-asset .replay-goal__net {
+        opacity: 0;
+    }
+
+    .replay-player {
+        position: absolute;
+        width: 138px;
+        height: 138px;
+        transform-origin: center center;
+        z-index: 20;
+        --player-tilt: 0deg;
+        --player-scale: 1;
+        transform: translate(-50%, -50%) scale(var(--player-scale, 1)) rotate(var(--player-tilt, 0deg));
+        filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.34));
+        transition: opacity .18s ease;
+    }
+
+    .replay-player .replay-player__shadow {
+        position: absolute;
+        left: 50%;
+        bottom: -5px;
+        width: 76px;
+        height: 18px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0, 0, 0, 0.42), transparent 72%);
+        transform: translateX(-50%);
+        opacity: .76;
+    }
+
+    .replay-player__body {
+        position: absolute;
+        inset: 18px 20px auto;
+        width: 98px;
+        height: 98px;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 50% 35%, rgba(255,255,255,0.3), transparent 22%),
+            linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.14));
+        border: 2px solid rgba(255,255,255,0.18);
+        box-shadow:
+            inset 0 0 0 1px rgba(255,255,255,0.05),
+            0 0 22px color-mix(in srgb, var(--team-accent, #53c8ff) 42%, white);
+    }
+
+    .replay-player-logo {
+        position: absolute;
+        inset: 12px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        background:
+            radial-gradient(circle at 45% 35%, rgba(255,255,255,0.24), transparent 24%),
+            linear-gradient(180deg, rgba(12, 18, 28, 0.62), rgba(4, 8, 14, 0.82));
+        color: #fff;
+        font-weight: 900;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    .replay-player-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .replay-player-logo span {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+        line-height: 1;
+        text-shadow: 0 1px 0 rgba(0,0,0,0.28);
+    }
+
+    .replay-arm,
+    .replay-leg {
+        position: absolute;
+        transform-origin: top center;
+    }
+
+    .replay-arm {
+        top: 52px;
+        width: 16px;
+        height: 60px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .replay-arm::after,
+    .replay-leg::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .replay-arm .replay-hand {
+        position: absolute;
+        left: 50%;
+        bottom: -8px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.2));
+        box-shadow: 0 0 10px rgba(255,255,255,0.14);
+    }
+
+    .replay-leg {
+        top: 92px;
+        width: 18px;
+        height: 56px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .replay-leg .replay-foot {
+        position: absolute;
+        left: 50%;
+        bottom: -7px;
+        width: 20px;
+        height: 10px;
+        border-radius: 999px;
+        transform: translateX(-50%);
+        background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3));
+        box-shadow: 0 0 10px rgba(255,255,255,0.12);
+    }
+
+    .replay-arm--left {
+        left: 8px;
+        transform: rotate(-18deg);
+    }
+
+    .replay-arm--right {
+        right: 8px;
+        transform: rotate(20deg);
+    }
+
+    .replay-leg--left {
+        left: 34px;
+        transform: rotate(10deg);
+    }
+
+    .replay-leg--right {
+        right: 34px;
+        transform: rotate(-10deg);
+    }
+
+    .replay-player.attacker .replay-player__body {
+        background:
+            radial-gradient(circle at 50% 35%, rgba(255,255,255,0.3), transparent 22%),
+            linear-gradient(180deg, rgba(255, 190, 117, 0.82), rgba(135, 82, 26, 0.88));
+    }
+
+    .replay-player.defender .replay-player__body {
+        background:
+            radial-gradient(circle at 50% 35%, rgba(255,255,255,0.22), transparent 22%),
+            linear-gradient(180deg, rgba(115, 255, 208, 0.76), rgba(24, 105, 81, 0.92));
+    }
+
+    .replay-ball {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 35% 30%, rgba(255,255,255,0.96), rgba(255,255,255,0.76) 24%, rgba(230, 236, 242, 0.98) 45%, rgba(198, 205, 217, 0.98) 100%);
+        border: 1px solid rgba(255,255,255,0.2);
+        box-shadow:
+            0 0 12px rgba(255,255,255,0.16),
+            0 6px 18px rgba(0,0,0,0.22);
+        background-size: cover;
+        background-position: center;
+        z-index: 110;
+        pointer-events: none;
+    }
+
+    .replay-ball.has-asset {
+        background-size: cover;
+        background-position: center;
+    }
+
+    .replay-ball::before {
+        content: "";
+        position: absolute;
+        inset: 4px;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(20, 25, 32, 0.92) 44% 46%, transparent 48%),
+            radial-gradient(circle at 50% 15%, rgba(20, 25, 32, 0.92) 0 20%, transparent 22%),
+            radial-gradient(circle at 18% 63%, rgba(20, 25, 32, 0.92) 0 14%, transparent 16%);
+        opacity: 0.85;
+    }
+
+    .replay-ball-trail {
+        position: absolute;
+        height: 4px;
+        border-radius: 999px;
+        transform-origin: left center;
+        background: linear-gradient(90deg, rgba(127, 246, 223, 0), rgba(127, 246, 223, 0.9), rgba(83, 200, 255, 0.1));
+        filter: blur(0.3px);
+        box-shadow: 0 0 18px rgba(127, 246, 223, 0.18);
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .replay-impact {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 120;
+    }
+
+    .replay-impact__particle {
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        box-shadow: 0 0 16px rgba(255,255,255,0.22);
+        opacity: 0;
+        transform: translate3d(0, 0, 0);
+    }
+
+    .replay-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: clamp(18px, 6vh, 56px) 16px 16px;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 16% 16%, rgba(83, 200, 255, 0.10), transparent 24%),
+            linear-gradient(180deg, rgba(1, 4, 10, 0.02), rgba(1, 4, 10, 0.14));
+        opacity: 0;
+        transition: opacity .22s ease;
+    }
+
+    .replay-overlay__panel {
+        width: min(560px, calc(100vw - 28px));
+        display: grid;
+        gap: 8px;
+        padding: 14px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background:
+            linear-gradient(135deg, rgba(10, 16, 28, 0.86), rgba(6, 10, 20, 0.58));
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+        backdrop-filter: blur(16px);
+        margin-top: clamp(2px, 4vh, 48px);
+    }
+
+    .replay-overlay[data-animation="POWER_SHOT"] .replay-overlay__panel {
+        box-shadow:
+            0 18px 48px rgba(0, 0, 0, 0.34),
+            0 0 34px rgba(83, 200, 255, 0.12);
+    }
+
+    .replay-overlay[data-animation="SIMPLE_SHOT"] .replay-overlay__panel {
+        border-color: rgba(125, 246, 163, 0.16);
+        box-shadow:
+            0 18px 48px rgba(0, 0, 0, 0.34),
+            0 0 28px rgba(125, 246, 163, 0.14);
+    }
+
+    .replay-overlay[data-animation="BICYCLE_KICK"] .replay-overlay__panel {
+        border-color: rgba(255, 190, 117, 0.22);
+        background:
+            linear-gradient(135deg, rgba(31, 13, 9, 0.88), rgba(18, 8, 13, 0.66));
+        box-shadow:
+            0 18px 48px rgba(0, 0, 0, 0.42),
+            0 0 36px rgba(255, 190, 117, 0.16);
+    }
+
+    .replay-overlay[data-animation="HEADER_GOAL"] .replay-overlay__panel {
+        border-color: rgba(127, 246, 223, 0.20);
+        background:
+            linear-gradient(135deg, rgba(8, 22, 24, 0.88), rgba(6, 10, 20, 0.60));
+    }
+
+    .replay-overlay[data-animation="CORNER_GOAL"] .replay-overlay__panel {
+        border-color: rgba(162, 123, 255, 0.20);
+        box-shadow:
+            0 18px 48px rgba(0, 0, 0, 0.40),
+            0 0 32px rgba(162, 123, 255, 0.14);
+    }
+
+    .replay-overlay[data-animation="PENALTY_KICK"] .replay-overlay__panel {
+        border-color: rgba(255, 96, 135, 0.22);
+        background:
+            linear-gradient(135deg, rgba(32, 10, 18, 0.90), rgba(12, 8, 18, 0.68));
+        box-shadow:
+            0 18px 48px rgba(0, 0, 0, 0.40),
+            0 0 30px rgba(255, 96, 135, 0.16);
+    }
+
+    .replay-overlay[data-animation="CINEMATIC_SUPER_GOAL"] .replay-overlay__panel {
+        border-color: rgba(255, 215, 128, 0.22);
+        background:
+            linear-gradient(135deg, rgba(20, 14, 6, 0.92), rgba(6, 10, 20, 0.62));
+        box-shadow:
+            0 20px 64px rgba(0, 0, 0, 0.46),
+            0 0 38px rgba(255, 215, 128, 0.18);
+    }
+
+    .replay-overlay[data-animation="BICYCLE_KICK"] .replay-overlay__title,
+    .replay-overlay[data-animation="CINEMATIC_SUPER_GOAL"] .replay-overlay__title {
+        letter-spacing: .12em;
+    }
+
+    .replay-overlay[data-animation="PENALTY_KICK"] .replay-overlay__title,
+    .replay-overlay[data-animation="CORNER_GOAL"] .replay-overlay__title {
+        color: #fff2fb;
+    }
+
+    .replay-overlay[data-animation="HEADER_GOAL"] .replay-overlay__eyebrow,
+    .replay-overlay[data-animation="CORNER_GOAL"] .replay-overlay__eyebrow,
+    .replay-overlay[data-animation="PENALTY_KICK"] .replay-overlay__eyebrow {
+        letter-spacing: .3em;
+    }
+
+    .replay-overlay__eyebrow {
+        color: #b9dfff;
+        text-transform: uppercase;
+        letter-spacing: .26em;
+        font-size: .92rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .replay-overlay__title {
+        margin: 0;
+        font-size: clamp(1.3rem, 2vw, 1.9rem);
+        line-height: 1;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        font-weight: 1000;
+        color: #f7fbff;
+    }
+
+    .replay-overlay__teams {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        color: rgba(236, 244, 255, 0.92);
+        font-size: .92rem;
+        font-weight: 700;
+    }
+
+    .replay-overlay__vs {
+        opacity: .74;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-size: .74rem;
+    }
+
+    .replay-overlay__team {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .replay-overlay__team-badge {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--team-accent, #53c8ff);
+        box-shadow: 0 0 14px color-mix(in srgb, var(--team-accent, #53c8ff) 76%, white);
+    }
+
+    .replay-overlay__reason {
+        color: rgba(222, 236, 255, 0.86);
+        font-size: .88rem;
+    }
+
+    .replay-overlay__metrics {
+        display: grid;
+        gap: 6px;
+    }
+
+    .replay-overlay__metric-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: rgba(201, 220, 245, 0.8);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: .76rem;
+        font-weight: 800;
+    }
+
+    .replay-overlay__bar {
+        height: 10px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .replay-overlay__bar-fill {
+        display: block;
+        width: 100%;
+        height: 100%;
+        transform-origin: left center;
+        transform: scaleX(.8);
+        background: linear-gradient(90deg, var(--team-accent, #53c8ff), #7ff6df);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--team-accent, #53c8ff) 42%, white);
+    }
+
+    .replay-overlay__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .replay-overlay__chip {
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(237, 245, 255, 0.9);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: .68rem;
+        font-weight: 800;
+    }
+
+    .replay-goal-text {
+        font-size: clamp(1.8rem, 4vw, 4rem);
+        line-height: .92;
+        font-weight: 1000;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        color: #fff;
+        text-shadow:
+            0 0 20px rgba(83, 200, 255, 0.3),
+            0 0 48px rgba(127, 246, 223, 0.22);
+        opacity: 0;
+        transform: translateY(10px) scale(.96);
+        transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .tv-replay-scene {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .22s ease, visibility .22s ease;
+    }
+
+    .tv-replay-scene.is-visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .tv-replay-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 1;
+    }
+
+    .tv-replay-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: clamp(10px, 1.4vw, 18px);
+        background:
+            radial-gradient(circle at 14% 18%, rgba(83, 200, 255, 0.12), transparent 22%),
+            radial-gradient(circle at 36% 18%, rgba(127, 246, 223, 0.08), transparent 18%),
+            linear-gradient(180deg, rgba(2, 6, 16, 0.04), rgba(2, 6, 16, 0.22));
+        opacity: 0;
+        transform: translateY(12px) scale(.99);
+        transition: opacity .24s ease, transform .24s ease;
+    }
+
+    .tv-replay-overlay.is-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    .tv-replay-overlay__panel {
+        display: grid;
+        gap: 8px;
+        align-content: start;
+        width: min(100%, 460px);
+        padding: 12px 14px 12px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background:
+            linear-gradient(135deg, rgba(10, 16, 28, 0.86), rgba(6, 10, 20, 0.58));
+        box-shadow:
+            0 20px 80px rgba(0,0,0,0.42),
+            inset 0 0 0 1px rgba(255,255,255,0.03);
+        backdrop-filter: blur(18px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .tv-replay-overlay__panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.08) 45%, transparent 60%);
+        transform: translateX(-130%);
+        animation: tvReplaySweep 2.6s linear infinite;
+        opacity: .45;
+        pointer-events: none;
+    }
+
+    .tv-replay-overlay__eyebrow,
+    .tv-replay-overlay__meta {
+        position: relative;
+        z-index: 1;
+        text-transform: uppercase;
+        letter-spacing: .18em;
+        font-size: .7rem;
+        font-weight: 900;
+    }
+
+    .tv-replay-overlay__eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #b9dfff;
+    }
+
+    .tv-replay-overlay__eyebrow::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: radial-gradient(circle, #fff 0%, #8ef7ff 28%, #53c8ff 70%);
+        box-shadow: 0 0 20px rgba(83, 200, 255, 0.65);
+    }
+
+    .tv-replay-overlay__title {
+        position: relative;
+        z-index: 1;
+        margin: 0;
+        font-size: clamp(1.35rem, 2.2vw, 2.1rem);
+        line-height: .96;
+        font-weight: 1000;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #f6fbff;
+        text-shadow:
+            0 0 14px rgba(83, 200, 255, 0.25),
+            0 0 32px rgba(127, 246, 223, 0.16);
+    }
+
+    .tv-replay-overlay__goal {
+        position: relative;
+        z-index: 1;
+        margin: 4px 0 0;
+        font-size: clamp(2rem, 4vw, 4rem);
+        line-height: .86;
+        font-weight: 1000;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #fff;
+        opacity: 0;
+        transform: translateY(10px) scale(.96);
+        transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .tv-replay-overlay[data-phase="goal"] .tv-replay-overlay__goal {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    .tv-replay-overlay__teams {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        align-items: center;
+        color: rgba(236, 244, 255, 0.92);
+        font-size: .98rem;
+        font-weight: 700;
+    }
+
+    .tv-replay-overlay__team {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+    }
+
+    .tv-replay-overlay__team-badge {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: var(--team-accent, #53c8ff);
+        box-shadow: 0 0 16px color-mix(in srgb, var(--team-accent, #53c8ff) 76%, white);
+    }
+
+    .tv-replay-overlay__reason,
+    .tv-replay-overlay__meta {
+        position: relative;
+        z-index: 1;
+        color: rgba(222, 236, 255, 0.84);
+        font-size: .92rem;
+    }
+
+    .tv-replay-overlay__metrics {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .tv-replay-overlay__metric-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: .8rem;
+        color: rgba(201, 220, 245, 0.8);
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-weight: 800;
+    }
+
+    .tv-replay-overlay__bar {
+        position: relative;
+        height: 12px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .tv-replay-overlay__bar-fill {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        transform-origin: left center;
+        transform: scaleX(.75);
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--team-accent, #53c8ff), #7ff6df);
+        box-shadow: 0 0 22px color-mix(in srgb, var(--team-accent, #53c8ff) 42%, white);
+    }
+
+    .tv-replay-overlay__bar::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.26), transparent);
+        transform: translateX(-120%);
+        animation: tvReplayBarSweep 2s linear infinite;
+    }
+
+    .tv-replay-overlay__chips {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .tv-replay-overlay__chip {
+        padding: 7px 11px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        color: rgba(240,248,255,0.88);
+        font-size: .74rem;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-weight: 800;
+    }
+
+    @@keyframes tvReplaySweep {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(120%); }
+    }
+
+    @@keyframes tvReplayBarSweep {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(120%); }
     }
 
     .tv-stage--broadcast {
