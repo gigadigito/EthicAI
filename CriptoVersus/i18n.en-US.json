@@ -1054,11 +1054,23 @@
       "testCommentary": "Test commentary",
       "liveNarrator": "Live narrator",
       "aiMetaTimestamp": "{0} | {1} UTC",
-      "commentaryMetaTimestamp": "{0} | {1} UTC"
+      "commentaryMetaTimestamp": "{0} | {1} UTC",
+      "activity": {
+        "eyebrow": "Arena tempo",
+        "title": "Match activity over time",
+        "description": "Recent public battle volume from the arena.",
+        "ariaLabel": "Match activity over time chart"
+      }
     },
     "broadcast": {
       "switchingArena": "Switching to the next hot arena...",
-      "nextHotArena": "Live rotation is moving to a stronger arena window."
+      "nextHotArena": "Live rotation is moving to a stronger arena window.",
+      "mainMatchEyebrow": "Featured broadcast match",
+      "mainMatchDescription": "Open the fixed version of this match to watch the full broadcast without losing live context.",
+      "mainMatchCta": "Enter Broadcast",
+      "openBroadcastAria": "Open the fixed broadcast for {0}",
+      "overlayTitle": "Watch Broadcast",
+      "overlaySubtitle": "Live now"
     },
     "audio": {
       "crowdEnabled": "Crowd audio on",

@@ -21,7 +21,11 @@ internal static class EnvironmentIsolationGuard
     public static string BuildApiUrl(IConfiguration configuration, string relativePath)
     {
         var baseUri = GetRequiredApiBaseUri(configuration);
-        return new Uri(baseUri, relativePath.TrimStart('/')).ToString();
+
+        if (Uri.TryCreate(relativePath, UriKind.Absolute, out var absoluteUri))
+            return NormalizeSecureUri(absoluteUri).ToString();
+
+        return NormalizeSecureUri(new Uri(baseUri, relativePath.TrimStart('/'))).ToString();
     }
 
     public static Uri GetRequiredApiBaseUri(IConfiguration configuration)
@@ -59,6 +63,22 @@ internal static class EnvironmentIsolationGuard
         => host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
             || host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
             || host.Equals("::1", StringComparison.OrdinalIgnoreCase);
+
+    private static Uri NormalizeSecureUri(Uri uri)
+    {
+        if (uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) && !IsLoopbackHost(uri.Host))
+        {
+            var builder = new UriBuilder(uri)
+            {
+                Scheme = Uri.UriSchemeHttps,
+                Port = uri.IsDefaultPort ? -1 : uri.Port
+            };
+
+            return builder.Uri;
+        }
+
+        return uri;
+    }
 
     private static string AppendTrailingSlash(string url)
         => url.EndsWith("/", StringComparison.Ordinal) ? url : url + "/";

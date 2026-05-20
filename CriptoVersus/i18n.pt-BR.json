@@ -1054,11 +1054,23 @@
       "testCommentary": "Teste de comentario",
       "liveNarrator": "Narrador ao vivo",
       "aiMetaTimestamp": "{0} | {1} UTC",
-      "commentaryMetaTimestamp": "{0} | {1} UTC"
+      "commentaryMetaTimestamp": "{0} | {1} UTC",
+      "activity": {
+        "eyebrow": "Arena tempo",
+        "title": "Atividade da partida ao longo do tempo",
+        "description": "Volume recente de partidas publicas da arena.",
+        "ariaLabel": "Grafico de atividade da partida ao longo do tempo"
+      }
     },
     "broadcast": {
       "switchingArena": "Mudando para a proxima arena quente...",
-      "nextHotArena": "A rotacao ao vivo esta indo para uma janela mais forte da arena."
+      "nextHotArena": "A rotacao ao vivo esta indo para uma janela mais forte da arena.",
+      "mainMatchEyebrow": "Partida principal da transmissao",
+      "mainMatchDescription": "Abra a versao fixa desta partida para acompanhar o broadcast completo sem perder o contexto ao vivo.",
+      "mainMatchCta": "Entrar no Broadcast",
+      "openBroadcastAria": "Abrir o broadcast fixo de {0}",
+      "overlayTitle": "Assistir Broadcast",
+      "overlaySubtitle": "Ao vivo agora"
     },
     "audio": {
       "crowdEnabled": "Audio da torcida ligado",
