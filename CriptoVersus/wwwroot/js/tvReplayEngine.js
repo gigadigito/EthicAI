@@ -586,17 +586,17 @@
             CORNER_GOAL: {
                 attacker: { x: width * 0.82, y: height * 0.70, scale: 0.88 },
                 defender: { x: width * 0.20, y: height * 0.58, scale: 0.76 },
-            goal: { x: width * 0.22, y: height * 0.58, scale: 1.62 },
-            ballStart: { x: width * 0.76, y: height * 0.64 },
-            ballControl: { x: width * 0.52, y: height * 0.32 },
-            ballEnd: { x: width * 0.21, y: height * 0.54 },
-            ballScale: 0.78,
-            trailStrength: 0.58,
-            goalImageUrl: "/img/tv-replay/goal-penalty.png",
-            goalImagePosition: "center center",
-            timings: { prep: 300, kick: 640, shot: 960, follow: 1450, impact: 1970, goal: 2480, fade: 3540 },
-            stage: { dx: 10, dy: -5, zoom: 1.05 }
-        },
+                goal: { x: width * 0.22, y: height * 0.58, scale: 1.68 },
+                ballStart: { x: width * 0.74, y: height * 0.67 },
+                ballControl: { x: width * 0.50, y: height * 0.36 },
+                ballEnd: { x: width * 0.21, y: height * 0.56 },
+                ballScale: 0.78,
+                trailStrength: 0.58,
+                goalImageUrl: "/img/tv-replay/goal-penalty.png",
+                goalImagePosition: "center center",
+                timings: { prep: 300, kick: 640, shot: 960, follow: 1450, impact: 1970, goal: 2480, fade: 3540 },
+                stage: { dx: 10, dy: -5, zoom: 1.05 }
+            },
             PENALTY_KICK: {
                 attacker: { x: width * 0.44, y: height * 0.74, scale: 0.98 },
                 defender: { x: width * 0.79, y: height * 0.45, scale: 0.78 },

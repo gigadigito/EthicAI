@@ -44,6 +44,28 @@
             </div>
         }
 
+        @if (IsBroadcastMode)
+        {
+            <div class="tv-broadcast-focus-bar" style="--tv-focus-color:@BroadcastFocusColor; --tv-focus-progress:@BroadcastFocusProgressCss;">
+                <span class="tv-broadcast-focus-bar__label">@BroadcastFocusLabel</span>
+                <div class="tv-broadcast-focus-bar__track" aria-hidden="true">
+                    <i class="tv-broadcast-focus-bar__fill" style="width:@BroadcastFocusWidthCss%;"></i>
+                </div>
+            </div>
+
+            @if (EnableTvDebugOverlay)
+            {
+                <div class="tv-debug-overlay" aria-hidden="true">
+                    <span>EVENT: @_activeEvent?.Key</span>
+                    <span>CAMERA: @BroadcastFocusKey</span>
+                    <span>REPLAY: @_lastAutoReplaySide</span>
+                    <span>AUDIO: @(ShouldRenderCrowdAudio ? ( _isCrowdAudioMuted ? "muted" : "on") : "off")</span>
+                    <span>FOCUS: @BroadcastFocusLabel</span>
+                    <span>COOLDOWN: @((BroadcastFocusProgress * 100).ToString("0") + "%")</span>
+                </div>
+            }
+        }
+
         <div class="tv-stage__broadcast-shell @(IsBroadcastFlipActive ? "is-match-switching" : string.Empty)">
         <header class="tv-stage__topbar">
             <div>
@@ -565,6 +587,8 @@ else
     private CancellationTokenSource? _pulseCts;
     private CancellationTokenSource? _clockCts;
     private Task? _clockLoopTask;
+    private CancellationTokenSource? _broadcastAutomationCts;
+    private Task? _broadcastAutomationLoopTask;
     private TvOverlayEvent? _activeEvent;
     private TvNarrationOverlay? _narrationOverlay;
     private bool _isEventVisible;
@@ -607,17 +631,53 @@ else
     private string _lastGoalTriggerSignature = string.Empty;
     private string _lastGoalAudioSignature = string.Empty;
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
+    private readonly Dictionary<string, DateTime> _broadcastCooldownUntilUtc = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _broadcastLastSignatures = new(StringComparer.Ordinal);
+    private BroadcastSnapshot? _automationPreviousSnapshot;
+    private TvFieldStateDto? _automationPreviousFieldState;
+    private string _broadcastFocusKey = "wide";
+    private string _broadcastFocusLabel = "Wide camera";
+    private string _broadcastFocusColor = "#53c8ff";
+    private DateTime _broadcastFocusUntilUtc = DateTime.MinValue;
+    private int _broadcastFocusDurationMs = 4000;
+    private DateTime _nextAutoReplayAtUtc = DateTime.MinValue;
+    private string _lastAutoReplaySide = string.Empty;
+    private string _lastBroadcastStateSignature = string.Empty;
+    private bool _didMatchStart;
+    private bool _didHalftime;
+    private bool _didMatchEnding;
+    private bool _didVictoryMoment;
+    private bool _didKickoff;
+    private bool _didBroadcastDiagnostics;
 
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
+    private sealed record BroadcastSignalDefinition(
+        string Key,
+        int Priority,
+        int CooldownMs,
+        string? AudioKey = null,
+        bool AllowReplay = false,
+        string? FocusKey = null,
+        string? FocusLabel = null,
+        string? FocusColor = null);
     private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
+    private bool EnableTvDebugOverlay => Config.GetValue<bool?>("CriptoVersusTV:EnableDebugOverlay") == true;
     private int TelemetryCubeIntervalSeconds
         => Math.Clamp(Config.GetValue<int?>("CriptoVersusTV:TelemetryCubeIntervalSeconds") ?? 12, 8, 20);
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
     private bool ShouldRenderGoalAudio => Config.GetValue<bool?>("CriptoVersusTV:EnableGoalAudio") != false;
+    private double BroadcastFocusProgress => _broadcastFocusUntilUtc <= DateTime.UtcNow
+        ? 0d
+        : Math.Clamp(1d - ((double)(_broadcastFocusUntilUtc - DateTime.UtcNow).TotalMilliseconds / Math.Max(1, _broadcastFocusDurationMs)), 0d, 1d);
+    private string BroadcastFocusProgressCss => BroadcastFocusProgress.ToString("0.###", CultureInfo.InvariantCulture);
+    private string BroadcastFocusWidthCss => (BroadcastFocusProgress * 100d).ToString("0.##", CultureInfo.InvariantCulture);
+    private string BroadcastFocusLabel => _broadcastFocusLabel;
+    private string BroadcastFocusKey => _broadcastFocusKey;
+    private string BroadcastFocusColor => _broadcastFocusColor;
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
@@ -649,14 +709,18 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260518-10");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260520-4");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
+            await InitializeTvAudioManagerAsync();
             if (_tickerItems.Count > 0)
                 await LogAsync("TV_TICKER", "updated", _tickerItems);
 
             _clockCts = new CancellationTokenSource();
             _clockLoopTask = RunClockLoopAsync(_clockCts.Token);
+
+            _broadcastAutomationCts = new CancellationTokenSource();
+            _broadcastAutomationLoopTask = RunBroadcastAutomationLoopAsync(_broadcastAutomationCts.Token);
 
             _metricSnapshotCts = new CancellationTokenSource();
             _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
@@ -1313,6 +1377,74 @@ else
         }
 
         _previousSnapshot = current;
+    }
+
+    private async Task InitializeTvAudioManagerAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        try
+        {
+            await _tvModule.InvokeVoidAsync("initTvAudioManager", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+            await LogAsync("TV_AUDIO", "manager-ready", new
+            {
+                volume = ResolveCrowdAudioVolume(),
+                muted = _isCrowdAudioMuted
+            });
+        }
+        catch (JSException)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("initTvAudioManager", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+                await LogAsync("TV_AUDIO", "manager-ready-fallback", new
+                {
+                    volume = ResolveCrowdAudioVolume(),
+                    muted = _isCrowdAudioMuted
+                });
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private async Task RunBroadcastAutomationLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                if (_isDisposed)
+                    return;
+
+                var current = CaptureSnapshot();
+                if (current is null)
+                    continue;
+
+                if (Environment.IsDevelopment())
+                {
+                    await LogAsync("TV_DIAGNOSTICS", "heartbeat", new
+                    {
+                        current.MatchId,
+                        current.LeftScore,
+                        current.RightScore,
+                        current.HotScore,
+                        focus = BroadcastFocusKey,
+                        progress = BroadcastFocusProgress
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private BroadcastSnapshot? CaptureSnapshot()
@@ -2523,7 +2655,13 @@ else
         {
             try
             {
-                await _tvModule.InvokeVoidAsync("playAudioCue", "tv-goal-sting");
+                await _tvModule.InvokeVoidAsync("playTvAudioCue", "goal", new
+                {
+                    priority = 100,
+                    cooldownMs = 6500,
+                    volume = (double)ResolveCrowdAudioVolume(),
+                    muted = _isCrowdAudioMuted
+                });
                 return;
             }
             catch (JSException)
@@ -2536,7 +2674,13 @@ else
 
         try
         {
-            await JS.InvokeVoidAsync("playAudioCue", "tv-goal-sting");
+            await JS.InvokeVoidAsync("playTvAudioCue", "goal", new
+            {
+                priority = 100,
+                cooldownMs = 6500,
+                volume = (double)ResolveCrowdAudioVolume(),
+                muted = _isCrowdAudioMuted
+            });
         }
         catch
         {
@@ -2748,33 +2892,74 @@ else
 
         if (Uri.TryCreate(value, UriKind.Absolute, out var absoluteUri))
         {
-            var sanitizedAbsolute = NormalizeAbsoluteIconUrl(absoluteUri);
-            return sanitizedAbsolute ?? value;
+            if (absoluteUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                || absoluteUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+            {
+                return absoluteUri.ToString();
+            }
+
+            if (absoluteUri.IsFile)
+            {
+                var filePath = absoluteUri.AbsolutePath.Replace('\\', '/');
+                var symbol = ExtractIconSymbol(filePath);
+                return string.IsNullOrWhiteSpace(symbol)
+                    ? string.Empty
+                    : Api.BuildBinanceIconUrl(symbol);
+            }
         }
 
         var sanitized = NormalizeIconRoute(value);
-        return EnvironmentIsolationGuard.BuildApiUrl(Config, sanitized);
+        var normalizedSymbol = ExtractIconSymbol(sanitized);
+        return string.IsNullOrWhiteSpace(normalizedSymbol)
+            ? Api.BuildApiUrl(sanitized)
+            : Api.BuildBinanceIconUrl(normalizedSymbol);
     }
 
-    private string? NormalizeAbsoluteIconUrl(Uri value)
+    private static string? NormalizeAbsoluteIconUrl(Uri value)
     {
-        var sanitizedPath = NormalizeIconRoute(value.AbsolutePath);
-        var rebuilt = string.Equals(sanitizedPath, value.AbsolutePath, StringComparison.Ordinal)
-            ? value.ToString()
-            : EnvironmentIsolationGuard.BuildApiUrl(Config, sanitizedPath);
+        if (value.IsFile)
+            return null;
 
-        return EnvironmentIsolationGuard.BuildApiUrl(Config, rebuilt);
+        if (value.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            || value.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return value.ToString();
+        }
+
+        return null;
     }
 
     private static string NormalizeIconRoute(string value)
     {
-        const string prefix = "/api/icons/binance/";
-        if (!value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            return value;
+        var normalized = value.Trim().Replace('\\', '/');
+        if (normalized.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized["file://".Length..].TrimStart('/');
 
-        var symbol = value[prefix.Length..];
-        var normalized = GetBaseSymbol(Uri.UnescapeDataString(symbol));
-        return $"{prefix}{Uri.EscapeDataString(normalized)}";
+        var symbol = ExtractIconSymbol(normalized);
+        return string.IsNullOrWhiteSpace(symbol)
+            ? normalized
+            : $"/api/icons/binance/{Uri.EscapeDataString(GetBaseSymbol(symbol))}";
+    }
+
+    private static string? ExtractIconSymbol(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var normalized = value.Trim().Replace('\\', '/');
+        const string prefix = "/api/icons/binance/";
+
+        if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            return Uri.UnescapeDataString(normalized[prefix.Length..]).Trim();
+
+        var marker = normalized.IndexOf("/api/icons/binance/", StringComparison.OrdinalIgnoreCase);
+        if (marker >= 0)
+            return Uri.UnescapeDataString(normalized[(marker + prefix.Length)..]).Trim();
+
+        if (normalized.Contains('/'))
+            return normalized[(normalized.LastIndexOf('/') + 1)..].Trim();
+
+        return normalized.Trim();
     }
 
     private string GetTeamStyle(string symbol, bool isLeft)
@@ -4338,6 +4523,66 @@ else
     .tv-broadcast-notice span {
         color: var(--tv-muted);
         font-size: .82rem;
+    }
+
+    .tv-broadcast-focus-bar {
+        position: absolute;
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+        z-index: 6;
+        display: grid;
+        gap: 6px;
+        width: min(44vw, 560px);
+        pointer-events: none;
+    }
+
+    .tv-broadcast-focus-bar__label {
+        justify-self: start;
+        color: rgba(232, 245, 255, 0.82);
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .22em;
+        text-transform: uppercase;
+        text-shadow: 0 0 14px rgba(0,0,0,.48);
+    }
+
+    .tv-broadcast-focus-bar__track {
+        position: relative;
+        height: 6px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.08);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 0 18px rgba(0,0,0,0.2);
+    }
+
+    .tv-broadcast-focus-bar__fill {
+        display: block;
+        height: 100%;
+        min-width: 12px;
+        border-radius: inherit;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--tv-focus-color) 72%, white), var(--tv-focus-color));
+        box-shadow: 0 0 18px color-mix(in srgb, var(--tv-focus-color) 52%, transparent);
+        transition: width .22s linear;
+    }
+
+    .tv-debug-overlay {
+        position: absolute;
+        right: 16px;
+        bottom: 30px;
+        z-index: 7;
+        display: grid;
+        gap: 4px;
+        min-width: 260px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(127, 246, 223, 0.14);
+        background: rgba(5, 10, 18, 0.72);
+        backdrop-filter: blur(10px);
+        color: rgba(231, 244, 255, 0.84);
+        font-size: .67rem;
+        letter-spacing: .08em;
+        text-transform: uppercase;
     }
 
     .tv-broadcast-promo {

@@ -102,6 +102,255 @@ function telemetryChartLog(message, payload) {
     console.log(`[TV_CHART] ${message}`, payload);
 }
 
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+const tvAudioMap = {
+    goal: "/audio/tv/goal-sting.mp3",
+    nearGoal: "/audio/tv/near-goal.mp3",
+    pressure: "/audio/tv/pressure-rise.mp3",
+    comeback: "/audio/tv/comeback.mp3",
+    equalizer: "/audio/tv/equalizer.mp3",
+    momentum: "/audio/tv/momentum-swing.mp3",
+    fearSpike: "/audio/tv/fear-spike.mp3",
+    fearCollapse: "/audio/tv/fear-collapse.mp3",
+    finalMinutes: "/audio/tv/final-minutes.mp3",
+    victory: "/audio/tv/victory.mp3",
+    replay: "/audio/tv/replay-vinyl.mp3",
+    switchSide: "/audio/tv/switch-side.mp3",
+    crowdRise: "/audio/tv/stadium-crowd-loop.mp3",
+    whistle: "/audio/tv/whistle.mp3",
+    kickoff: "/audio/tv/kickoff.mp3",
+    halftime: "/audio/tv/halftime.mp3",
+    lastMinute: "/audio/tv/last-minute.mp3",
+    counterAttack: "/audio/tv/counter-attack.mp3",
+    marketCrash: "/audio/tv/market-crash.mp3",
+    marketPump: "/audio/tv/market-pump.mp3",
+    clutchSave: "/audio/tv/clutch-save.mp3",
+    bigCandleMovement: "/audio/tv/big-candle-movement.mp3",
+    ballRecovery: "/audio/tv/ball-recovery.mp3",
+    highlightMoment: "/audio/tv/highlight-moment.mp3",
+    suddenReversal: "/audio/tv/sudden-reversal.mp3"
+};
+
+const tvAudioPriority = {
+    goal: 100,
+    victory: 95,
+    equalizer: 92,
+    comeback: 88,
+    clutchSave: 86,
+    replay: 82,
+    suddenReversal: 78,
+    counterAttack: 76,
+    momentum: 72,
+    nearGoal: 68,
+    pressure: 66,
+    highlightMoment: 64,
+    finalMinutes: 62,
+    fearSpike: 60,
+    fearCollapse: 58,
+    bigCandleMovement: 56,
+    marketCrash: 55,
+    marketPump: 55,
+    ballRecovery: 52,
+    switchSide: 48,
+    halftime: 45,
+    kickoff: 40,
+    whistle: 40,
+    lastMinute: 38,
+    crowdRise: 20
+};
+
+const tvAudioCooldownDefaults = {
+    goal: 6500,
+    replay: 12000,
+    victory: 12000,
+    equalizer: 9000,
+    comeback: 9000,
+    clutchSave: 7000,
+    suddenReversal: 6500,
+    counterAttack: 6000,
+    momentum: 5500,
+    nearGoal: 4000,
+    pressure: 4500,
+    highlightMoment: 5500,
+    finalMinutes: 8000,
+    fearSpike: 6000,
+    fearCollapse: 6000,
+    bigCandleMovement: 6500,
+    marketCrash: 6500,
+    marketPump: 6500,
+    ballRecovery: 4000,
+    switchSide: 8000,
+    halftime: 12000,
+    kickoff: 12000,
+    whistle: 12000,
+    lastMinute: 5000,
+    crowdRise: 3000
+};
+
+let tvAudioManagerState = null;
+
+function logTvAudio(message, payload) {
+    if (typeof payload === "undefined") {
+        console.log(`[TV_AUDIO] ${message}`);
+        return;
+    }
+
+    console.log(`[TV_AUDIO] ${message}`, payload);
+}
+
+function ensureTvAudioManager() {
+    if (tvAudioManagerState) {
+        return tvAudioManagerState;
+    }
+
+    tvAudioManagerState = {
+        volume: 0.22,
+        muted: false,
+        activeKey: null,
+        activePriority: -1,
+        preload: new Map(),
+        lastPlayedAt: new Map(),
+        diagnostics: {
+            loaded: [],
+            queued: [],
+            played: []
+        }
+    };
+
+    return tvAudioManagerState;
+}
+
+function resolveTvAudioUrl(key) {
+    return tvAudioMap[key] ?? null;
+}
+
+function preloadTvAudio(key) {
+    const manager = ensureTvAudioManager();
+    const url = resolveTvAudioUrl(key);
+    if (!url) {
+        return null;
+    }
+
+    if (manager.preload.has(key)) {
+        return manager.preload.get(key);
+    }
+
+    const audio = new Audio(url);
+    audio.preload = "auto";
+    audio.loop = false;
+    audio.volume = manager.volume;
+    audio.muted = manager.muted;
+    try {
+        audio.load();
+    } catch {
+    }
+
+    manager.preload.set(key, audio);
+    if (!manager.diagnostics.loaded.includes(key)) {
+        manager.diagnostics.loaded.push(key);
+    }
+    logTvAudio("preloaded", { key, url });
+    return audio;
+}
+
+function preloadAllTvAudio() {
+    Object.keys(tvAudioMap).forEach((key) => preloadTvAudio(key));
+}
+
+function playTvAudio(key, options = {}) {
+    const manager = ensureTvAudioManager();
+    const url = resolveTvAudioUrl(key);
+    if (!url) {
+        logTvAudio("missing asset", key);
+        return false;
+    }
+
+    const priority = Number.isFinite(options.priority) ? options.priority : (tvAudioPriority[key] ?? 10);
+    const cooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : (tvAudioCooldownDefaults[key] ?? 2500);
+    const now = Date.now();
+    const lastPlayed = manager.lastPlayedAt.get(key) ?? 0;
+    if (now - lastPlayed < cooldownMs) {
+        return false;
+    }
+
+    if (priority < manager.activePriority && manager.activeKey && now - (manager.lastPlayedAt.get(manager.activeKey) ?? 0) < 900) {
+        return false;
+    }
+
+    const audio = preloadTvAudio(key) ?? new Audio(url);
+    audio.volume = Math.min(1, Math.max(0, typeof options.volume === "number" ? options.volume : manager.volume));
+    audio.muted = Boolean(options.muted ?? manager.muted);
+    audio.loop = Boolean(options.loop);
+
+    try {
+        if (!audio.loop) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+    } catch {
+    }
+
+    const playback = audio.play();
+    manager.lastPlayedAt.set(key, now);
+    manager.activeKey = key;
+    manager.activePriority = priority;
+    manager.diagnostics.queued.push({ key, at: now, priority });
+
+    if (playback && typeof playback.catch === "function") {
+        playback
+            .then(() => {
+                manager.diagnostics.played.push({ key, at: Date.now(), priority });
+                logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
+            })
+            .catch((error) => {
+                logTvAudio("play failed", { key, error: error?.message ?? String(error) });
+            });
+    } else {
+        manager.diagnostics.played.push({ key, at: Date.now(), priority });
+        logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
+    }
+
+    if (!audio.loop) {
+        const timer = window.setTimeout(() => {
+            if (manager.activeKey === key) {
+                manager.activeKey = null;
+                manager.activePriority = -1;
+            }
+        }, 1200);
+        manager.diagnostics.cleanupTimer = timer;
+    }
+
+    return true;
+}
+
+function setTvAudioSettings(volume, muted) {
+    const manager = ensureTvAudioManager();
+    manager.volume = Math.min(1, Math.max(0, Number(volume) || manager.volume));
+    manager.muted = Boolean(muted);
+    manager.preload.forEach((audio) => {
+        audio.volume = manager.volume;
+        audio.muted = manager.muted;
+    });
+}
+
+function diagnoseTvAudio() {
+    const manager = ensureTvAudioManager();
+    const state = {
+        volume: manager.volume,
+        muted: manager.muted,
+        loaded: [...manager.diagnostics.loaded],
+        queued: manager.diagnostics.queued.slice(-20),
+        played: manager.diagnostics.played.slice(-20),
+        activeKey: manager.activeKey,
+        activePriority: manager.activePriority
+    };
+    console.log("[TV_AUDIO]", state);
+    return state;
+}
+
 export function initFieldSway(rootId = "tv-crypto-field") {
     const root = document.getElementById(rootId);
     if (!root) {
@@ -1135,12 +1384,14 @@ export async function initBroadcastAudio(elementId, volume, muted) {
     const audio = document.getElementById(elementId);
 
     if (!audio) {
+        setTvAudioSettings(volume, muted);
         return;
     }
 
     audio.loop = true;
     audio.volume = typeof volume === "number" ? volume : 0.1;
     audio.muted = Boolean(muted);
+    setTvAudioSettings(volume, muted);
 
     try {
         await audio.play();
@@ -1164,11 +1415,13 @@ export function setBroadcastAudioMuted(elementId, muted, volume) {
     const audio = document.getElementById(elementId);
 
     if (!audio) {
+        setTvAudioSettings(volume, muted);
         return;
     }
 
     audio.volume = typeof volume === "number" ? volume : audio.volume;
     audio.muted = Boolean(muted);
+    setTvAudioSettings(volume, muted);
 
     if (!audio.muted) {
         audio.play().catch(() => { });
@@ -1176,9 +1429,15 @@ export function setBroadcastAudioMuted(elementId, muted, volume) {
 }
 
 export function playAudioCue(elementId) {
+    if (typeof elementId === "string" && Object.prototype.hasOwnProperty.call(tvAudioMap, elementId)) {
+        playTvAudio(elementId);
+        return;
+    }
+
     const audio = document.getElementById(elementId);
 
     if (!audio) {
+        playTvAudio("goal");
         return;
     }
 
@@ -1192,10 +1451,49 @@ export function playAudioCue(elementId) {
     audio.play().catch(() => { });
 }
 
+export function initTvAudioManager(volume, muted) {
+    const manager = ensureTvAudioManager();
+    if (typeof volume === "number") {
+        manager.volume = Math.min(1, Math.max(0, volume));
+    }
+    manager.muted = Boolean(muted);
+    preloadAllTvAudio();
+    return diagnoseTvAudio();
+}
+
+export function playTvAudioCue(key, options) {
+    return playTvAudio(key, options);
+}
+
+export function stopTvAudioCue(key) {
+    const manager = ensureTvAudioManager();
+    const audio = manager.preload.get(key);
+    if (!audio) {
+        return;
+    }
+
+    try {
+        audio.pause();
+        audio.currentTime = 0;
+    } catch {
+    }
+}
+
 if (typeof globalThis !== "undefined") {
     globalThis.initBroadcastAudio = initBroadcastAudio;
     globalThis.setBroadcastAudioMuted = setBroadcastAudioMuted;
     globalThis.playAudioCue = playAudioCue;
+    globalThis.initTvAudioManager = initTvAudioManager;
+    globalThis.playTvAudioCue = playTvAudioCue;
+    globalThis.stopTvAudioCue = stopTvAudioCue;
+    globalThis.tvAudioMap = tvAudioMap;
+    globalThis.criptoVersusTvAudioManager = {
+        init: initTvAudioManager,
+        play: playTvAudioCue,
+        stop: stopTvAudioCue,
+        setSettings: setTvAudioSettings,
+        diagnose: diagnoseTvAudio
+    };
     globalThis.criptoVersusTvCharts = {
         initTelemetryCube,
         notifyTelemetryCubeEvent,
