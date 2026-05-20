@@ -19,6 +19,10 @@
         0 24px 70px rgba(0,0,0,0.38);
 }
 
+.tv-field__surface--asset {
+    overflow: hidden;
+}
+
 .tv-field__surface--asset::before,
 .tv-field__surface--fallback::before {
     content: "";
