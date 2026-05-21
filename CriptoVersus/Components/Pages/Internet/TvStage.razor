@@ -859,6 +859,8 @@ else
     private int _telemetryCubeLastSnapshotCount;
     private long _telemetryCubeLastMissingLogTick;
     private long _telemetryCubeLastRawLogTick;
+    private decimal? _telemetryCubeLastLeftLiveValue;
+    private decimal? _telemetryCubeLastRightLiveValue;
 
     private async Task EnsureTelemetryCubeAsync()
     {
@@ -930,11 +932,59 @@ else
             return;
 
         var latestId = _metricSnapshots.Count == 0 ? 0 : _metricSnapshots.Max(x => x.MatchMetricSnapshotId);
-        if (latestId == _telemetryCubeLastSnapshotId && _metricSnapshots.Count == _telemetryCubeLastSnapshotCount && latestId != 0)
+        var currentLeftLiveValue = DisplayLeftChangePercent();
+        var currentRightLiveValue = DisplayRightChangePercent();
+        if (latestId == _telemetryCubeLastSnapshotId
+            && _metricSnapshots.Count == _telemetryCubeLastSnapshotCount
+            && Nullable.Equals(currentLeftLiveValue, _telemetryCubeLastLeftLiveValue)
+            && Nullable.Equals(currentRightLiveValue, _telemetryCubeLastRightLiveValue)
+            && (latestId != 0 || _metricSnapshots.Count == 0))
             return;
 
         _telemetryCubeLastSnapshotId = latestId;
         _telemetryCubeLastSnapshotCount = _metricSnapshots.Count;
+        _telemetryCubeLastLeftLiveValue = currentLeftLiveValue;
+        _telemetryCubeLastRightLiveValue = currentRightLiveValue;
+
+        static long ToUnixSeconds(DateTime capturedAtUtc)
+            => new DateTimeOffset(DateTime.SpecifyKind(capturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds();
+
+        static bool ShouldAppendLivePoint((long Time, double Value)? lastPoint, decimal liveValue, long nowUnixSeconds)
+        {
+            if (!lastPoint.HasValue)
+                return true;
+
+            if (Math.Abs(lastPoint.Value.Value - (double)liveValue) > 0.0001d)
+                return true;
+
+            return nowUnixSeconds - lastPoint.Value.Time >= 12;
+        }
+
+        object[] BuildPoints(IEnumerable<MatchMetricSnapshotDto> snapshots, decimal? liveValue)
+        {
+            var points = snapshots
+                .OrderBy(x => x.CapturedAtUtc)
+                .Select(x => (
+                    Time: ToUnixSeconds(x.CapturedAtUtc),
+                    Value: (double)x.PercentageChange))
+                .ToList();
+
+            if (liveValue.HasValue)
+            {
+                var nowUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                var lastPoint = points.Count == 0 ? ((long Time, double Value)?)null : points[^1];
+
+                if (ShouldAppendLivePoint(lastPoint, liveValue.Value, nowUnixSeconds))
+                {
+                    points.Add((nowUnixSeconds, (double)liveValue.Value));
+                }
+            }
+
+            return points
+                .Select(x => new { time = x.Time, value = x.Value })
+                .Cast<object>()
+                .ToArray();
+        }
 
         if (_metricSnapshots.Count == 0)
         {
@@ -946,7 +996,11 @@ else
             }
             try
             {
-                await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new { left = Array.Empty<object>(), right = Array.Empty<object>() });
+                await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new
+                {
+                    left = BuildPoints([], currentLeftLiveValue),
+                    right = BuildPoints([], currentRightLiveValue)
+                });
             }
             catch (ObjectDisposedException)
             {
@@ -993,17 +1047,6 @@ else
 
             return GetBaseSymbol(upper);
         }
-
-        static object[] BuildPoints(IEnumerable<MatchMetricSnapshotDto> snapshots)
-            => snapshots
-                .OrderBy(x => x.CapturedAtUtc)
-                .Select(x => new
-                {
-                    time = new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
-                    value = (double)x.PercentageChange
-                })
-                .Cast<object>()
-                .ToArray();
 
         var normalizedLeft = NormalizeTelemetrySymbol(DisplayLeftSymbol());
         var normalizedRight = NormalizeTelemetrySymbol(DisplayRightSymbol());
@@ -1092,8 +1135,8 @@ else
             }
         }
 
-        var leftPoints = BuildPoints(leftSnapshots);
-        var rightPoints = BuildPoints(rightSnapshots);
+        var leftPoints = BuildPoints(leftSnapshots, currentLeftLiveValue);
+        var rightPoints = BuildPoints(rightSnapshots, currentRightLiveValue);
 
         await LogAsync("TV_CHART_PAYLOAD", "final", new
         {
@@ -1380,14 +1423,14 @@ else
                 }
 
                 var latestId = snapshots.Count == 0 ? 0 : snapshots.Max(x => x.MatchMetricSnapshotId);
-                if (latestId == _metricSnapshotLastId && _metricSnapshots.Count > 0)
-                    continue;
-
-                _metricSnapshotLastId = latestId;
-                _metricSnapshots = snapshots
-                    .OrderByDescending(x => x.CapturedAtUtc)
-                    .Take(160)
-                    .ToList();
+                if (latestId != _metricSnapshotLastId || _metricSnapshots.Count == 0)
+                {
+                    _metricSnapshotLastId = latestId;
+                    _metricSnapshots = snapshots
+                        .OrderByDescending(x => x.CapturedAtUtc)
+                        .Take(160)
+                        .ToList();
+                }
 
 
 
