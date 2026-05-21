@@ -2404,7 +2404,10 @@
     private string GetCoinIconUrl(string pair)
     {
         var baseSymbol = GetBaseSymbol(pair);
-        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+        if (string.IsNullOrWhiteSpace(baseSymbol))
+            return string.Empty;
+
+        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{Uri.EscapeDataString(baseSymbol)}");
     }
 
     private async Task RefreshAuthenticatedUserAsync()

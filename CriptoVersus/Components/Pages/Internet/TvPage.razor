@@ -392,8 +392,8 @@
             RightName = match.TeamB,
             LeftScore = match.ScoreA,
             RightScore = match.ScoreB,
-            LeftLogoUrl = Api.BuildBinanceIconUrl(match.TeamA),
-            RightLogoUrl = Api.BuildBinanceIconUrl(match.TeamB),
+            LeftLogoUrl = BuildBinanceIconUrl(match.TeamA),
+            RightLogoUrl = BuildBinanceIconUrl(match.TeamB),
             HotScore = competitiveness,
             Reason = scoreGap <= 1
                 ? L.T("tv.fallback.closeMatchReason", _culture)
@@ -455,6 +455,9 @@
 
     private string BuildAbsolute(string path)
         => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";
+
+    private string BuildBinanceIconUrl(string? symbol)
+        => Api.BuildBinanceIconUrl(symbol);
 
     private async Task LogAsync(string message, object? payload = null)
     {

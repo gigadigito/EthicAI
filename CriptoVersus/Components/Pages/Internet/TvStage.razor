@@ -714,7 +714,7 @@ else
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
     private IReadOnlyList<ActivityChartPoint> ActivityChartPoints => BuildActivityChartPoints();
-    private string ActivityChartLinePoints => string.Join(" ", ActivityChartPoints.Select(point => $"{point.X:0.##},{point.Y:0.##}"));
+    private string ActivityChartLinePoints => string.Join(" ", ActivityChartPoints.Select(point => FormattableString.Invariant($"{point.X:0.##},{point.Y:0.##}")));
     private string ActivityChartAreaPath => BuildActivityChartAreaPath(ActivityChartPoints);
     private bool HasActivityChart => ActivityChartPoints.Count > 1;
     private TvFieldStateDto? CurrentFieldState => UseFootballFieldLayout && HasLiveMatch
@@ -1197,12 +1197,12 @@ else
         var last = points[^1];
         var baseY = 200d;
         var builder = new System.Text.StringBuilder();
-        builder.Append($"M {first.X:0.##} {baseY:0.##} L {first.X:0.##} {first.Y:0.##} ");
+        builder.Append(FormattableString.Invariant($"M {first.X:0.##} {baseY:0.##} L {first.X:0.##} {first.Y:0.##} "));
 
         foreach (var point in points.Skip(1))
-            builder.Append($"L {point.X:0.##} {point.Y:0.##} ");
+            builder.Append(FormattableString.Invariant($"L {point.X:0.##} {point.Y:0.##} "));
 
-        builder.Append($"L {last.X:0.##} {baseY:0.##} Z");
+        builder.Append(FormattableString.Invariant($"L {last.X:0.##} {baseY:0.##} Z"));
         return builder.ToString();
     }
 
@@ -3161,6 +3161,9 @@ else
     private string BuildIconUrlFromSymbol(string? symbol)
     {
         var baseSymbol = GetBaseSymbol(symbol ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(baseSymbol))
+            return string.Empty;
+
         return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{Uri.EscapeDataString(baseSymbol)}");
     }
 
