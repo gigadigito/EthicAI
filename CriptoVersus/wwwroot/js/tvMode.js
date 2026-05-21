@@ -1037,6 +1037,16 @@ function setCubeFace(faceIndex, reason) {
     window.setTimeout(() => resizeTelemetryCharts(), 80);
     window.setTimeout(() => resizeTelemetryCharts(), 350);
     window.setTimeout(() => resizeTelemetryCharts(), 1100);
+
+    if (telemetryChartsState?.lastPayload) {
+        window.setTimeout(() => {
+            updateTelemetryCharts(telemetryChartsState.lastPayload);
+
+            if (throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
+                telemetryChartLog("refresh from state", { reason: `face-${normalized}` });
+            }
+        }, 120);
+    }
 }
 
 function resumeCubeRotation() {

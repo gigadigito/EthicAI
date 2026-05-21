@@ -802,7 +802,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-3");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-4");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -1008,51 +1008,88 @@ else
         var normalizedLeft = NormalizeTelemetrySymbol(DisplayLeftSymbol());
         var normalizedRight = NormalizeTelemetrySymbol(DisplayRightSymbol());
 
-        var leftSnapshots = _metricSnapshots
+        List<MatchMetricSnapshotDto> leftSnapshots = _metricSnapshots
             .Where(x => NormalizeTelemetrySymbol(x.TeamSymbol) == normalizedLeft)
             .ToList();
 
-        var rightSnapshots = _metricSnapshots
+        List<MatchMetricSnapshotDto> rightSnapshots = _metricSnapshots
             .Where(x => NormalizeTelemetrySymbol(x.TeamSymbol) == normalizedRight)
             .ToList();
 
-        var mappingStrategy = "symbol-normalized";
+        var mappingNotes = new List<string> { "symbol-normalized" };
 
-        if (leftSnapshots.Count == 0 && rightSnapshots.Count == 0 && Match is not null && Match.TeamAId > 0 && Match.TeamBId > 0)
+        if (Match is not null && Match.TeamAId > 0 && leftSnapshots.Count == 0)
         {
             leftSnapshots = _metricSnapshots.Where(x => x.TeamId == Match.TeamAId).ToList();
+            if (leftSnapshots.Count > 0)
+                mappingNotes.Add("left-teamId");
+        }
+
+        if (Match is not null && Match.TeamBId > 0 && rightSnapshots.Count == 0)
+        {
             rightSnapshots = _metricSnapshots.Where(x => x.TeamId == Match.TeamBId).ToList();
-            if (leftSnapshots.Count > 0 || rightSnapshots.Count > 0)
-                mappingStrategy = "teamId";
+            if (rightSnapshots.Count > 0)
+                mappingNotes.Add("right-teamId");
         }
 
-        if (leftSnapshots.Count == 0 && rightSnapshots.Count == 0)
-        {
-            // Fallback: pick the two most frequent snapshot symbols so the charts never stay empty.
-            var groups = _metricSnapshots
-                .Where(x => !string.IsNullOrWhiteSpace(x.TeamSymbol))
-                .GroupBy(x => NormalizeTelemetrySymbol(x.TeamSymbol))
-                .Where(g => !string.IsNullOrWhiteSpace(g.Key))
-                .OrderByDescending(g => g.Count())
-                .ToList();
+        var symbolGroups = _metricSnapshots
+            .Where(x => !string.IsNullOrWhiteSpace(x.TeamSymbol))
+            .GroupBy(x => NormalizeTelemetrySymbol(x.TeamSymbol))
+            .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+            .OrderByDescending(g => g.Count())
+            .ToList();
 
-            leftSnapshots = groups.ElementAtOrDefault(0)?.ToList() ?? [];
-            rightSnapshots = groups.ElementAtOrDefault(1)?.ToList() ?? [];
-            mappingStrategy = "top-symbols";
+        if (leftSnapshots.Count == 0)
+        {
+            leftSnapshots = symbolGroups
+                .FirstOrDefault(g => !g.Any(item => rightSnapshots.Contains(item)))
+                ?.ToList()
+                ?? [];
+
+            if (leftSnapshots.Count > 0)
+                mappingNotes.Add("left-top-symbol");
         }
 
-        if (leftSnapshots.Count == 0 && rightSnapshots.Count == 0)
+        if (rightSnapshots.Count == 0)
         {
-            // Last resort: if TeamSymbol is empty everywhere, group by TeamId.
+            rightSnapshots = symbolGroups
+                .FirstOrDefault(g => !g.Any(item => leftSnapshots.Contains(item)))
+                ?.ToList()
+                ?? [];
+
+            if (rightSnapshots.Count > 0)
+                mappingNotes.Add("right-top-symbol");
+        }
+
+        if (leftSnapshots.Count == 0 || rightSnapshots.Count == 0)
+        {
             var idGroups = _metricSnapshots
                 .Where(x => x.TeamId > 0)
                 .GroupBy(x => x.TeamId)
                 .OrderByDescending(g => g.Count())
                 .ToList();
 
-            leftSnapshots = idGroups.ElementAtOrDefault(0)?.ToList() ?? [];
-            rightSnapshots = idGroups.ElementAtOrDefault(1)?.ToList() ?? [];
-            mappingStrategy = "top-teamIds";
+            if (leftSnapshots.Count == 0)
+            {
+                leftSnapshots = idGroups
+                    .FirstOrDefault(g => !g.Any(item => rightSnapshots.Contains(item)))
+                    ?.ToList()
+                    ?? [];
+
+                if (leftSnapshots.Count > 0)
+                    mappingNotes.Add("left-top-teamId");
+            }
+
+            if (rightSnapshots.Count == 0)
+            {
+                rightSnapshots = idGroups
+                    .FirstOrDefault(g => !g.Any(item => leftSnapshots.Contains(item)))
+                    ?.ToList()
+                    ?? [];
+
+                if (rightSnapshots.Count > 0)
+                    mappingNotes.Add("right-top-teamId");
+            }
         }
 
         var leftPoints = BuildPoints(leftSnapshots);
@@ -1060,13 +1097,17 @@ else
 
         await LogAsync("TV_CHART_PAYLOAD", "final", new
         {
-            mappingStrategy,
+            mappingStrategy = string.Join("|", mappingNotes),
             normalizedLeft,
             normalizedRight,
             matchLeftTeamId = Match?.TeamAId,
             matchRightTeamId = Match?.TeamBId,
             leftPoints = leftPoints.Length,
             rightPoints = rightPoints.Length,
+            leftTeamIds = leftSnapshots.Select(x => x.TeamId).Distinct().ToArray(),
+            rightTeamIds = rightSnapshots.Select(x => x.TeamId).Distinct().ToArray(),
+            leftSymbols = leftSnapshots.Select(x => x.TeamSymbol).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray(),
+            rightSymbols = rightSnapshots.Select(x => x.TeamSymbol).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray(),
             leftPreview = leftPoints.Take(3).ToArray(),
             rightPreview = rightPoints.Take(3).ToArray()
         });
@@ -6304,14 +6345,22 @@ else
         .tv-telemetry-cube {
             position: static;
             transform: none !important;
+            display: grid;
+            gap: 10px;
         }
 
         .tv-telemetry-cube__face {
             position: static;
             transform: none !important;
+            display: block;
+            min-height: 0;
         }
 
-        .tv-telemetry-cube__face:not(.tv-telemetry-cube__face--front) {
+        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare {
+            display: grid;
+        }
+
+        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
             display: none;
         }
     }
