@@ -164,6 +164,10 @@ main {
     padding: .18rem .5rem;
 }
 
+.topbar-tools :deep(.community-links--header) {
+    display: flex;
+}
+
 .wallet-button {
     background: linear-gradient(180deg, #4b146b 0%, #2e0943 100%);
     border: 1px solid #a78bfa;
@@ -240,6 +244,21 @@ main {
     padding: 1.25rem !important;
 }
 
+.app-footer--public {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.9fr);
+    align-items: start;
+}
+
+.app-footer__summary {
+    min-width: 0;
+}
+
+.app-footer--public :deep(.community-links--footer) {
+    min-width: 0;
+}
+
 #blazor-error-ui {
     background: #7f1d1d;
     border-top: 1px solid #fca5a5;
@@ -276,6 +295,10 @@ main {
         position: relative;
     }
 
+    .topbar-tools :deep(.community-links--header) {
+        display: none;
+    }
+
     .wallet-button {
         width: 100%;
     }
@@ -289,5 +312,9 @@ main {
 @media (max-width: 576px) {
     .app-content {
         padding: .85rem !important;
+    }
+
+    .app-footer--public {
+        grid-template-columns: 1fr;
     }
 }

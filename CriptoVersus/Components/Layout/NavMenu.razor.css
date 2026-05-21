@@ -257,6 +257,20 @@
     right: 0;
 }
 
+.nav-community {
+    border-top: 1px solid #2b3138;
+    padding: 0.9rem 0.85rem 4.6rem;
+}
+
+.nav-community :deep(.community-links__heading) {
+    margin-bottom: 0.15rem;
+}
+
+.nav-community :deep(.community-links__heading span) {
+    color: #9ca3af;
+    font-size: 0.72rem;
+}
+
 .live-dot {
     background: #22c55e;
     border-radius: 999px;
@@ -298,5 +312,11 @@
         height: auto;
         max-height: none;
         overflow-y: visible;
+    }
+}
+
+@media (min-width: 1367px) {
+    .nav-community {
+        display: none;
     }
 }

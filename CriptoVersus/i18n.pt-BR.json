@@ -32,6 +32,30 @@
     "admin": "Admin",
     "connected": "Ambiente conectado"
   },
+  "community": {
+    "title": "Comunidade",
+    "kicker": "Rede da arena",
+    "joinArena": "Entre na Arena",
+    "description": "Fique perto da torcida ao vivo, do ritmo da transmissao e das atualizacoes das partidas pelos canais oficiais do CriptoVersus.",
+    "twitch": {
+      "name": "Twitch",
+      "action": "Assistir ao vivo",
+      "cta": "Assistir na Twitch",
+      "aria": "Abrir o canal oficial do CriptoVersus na Twitch"
+    },
+    "x": {
+      "name": "X",
+      "action": "Acompanhar novidades",
+      "cta": "Seguir no X",
+      "aria": "Abrir o perfil oficial do CriptoVersus no X"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "action": "Entrar na comunidade",
+      "cta": "Entrar no Telegram",
+      "aria": "Abrir a comunidade oficial do CriptoVersus no Telegram"
+    }
+  },
   "home": {
     "seo": {
       "title": "CriptoVersus | Live Crypto Match Arena",
@@ -1001,6 +1025,12 @@
       "commentaryLoading": "O comentario da arena esta atualizando com base no estado mais recente do mercado.",
       "commentaryStandby": "O comentario da arena esta aguardando o proximo movimento relevante."
     },
+    "activity": {
+      "eyebrow": "Atividade ao vivo",
+      "title": "Movimentação da partida",
+      "description": "Eventos, pressao, momentum e mudancas taticas acontecendo em tempo real.",
+      "ariaLabel": "Grafico de atividade da partida ao longo do tempo"
+    },
     "labels": {
       "liveArena": "Arena ao vivo",
       "automaticBroadcast": "Transmissao automatica",
@@ -1056,15 +1086,17 @@
       "aiMetaTimestamp": "{0} | {1} UTC",
       "commentaryMetaTimestamp": "{0} | {1} UTC",
       "activity": {
-        "eyebrow": "Arena tempo",
-        "title": "Atividade da partida ao longo do tempo",
-        "description": "Volume recente de partidas publicas da arena.",
+        "eyebrow": "Atividade ao vivo",
+        "title": "Movimentação da partida",
+        "description": "Eventos, pressao, momentum e mudancas taticas acontecendo em tempo real.",
         "ariaLabel": "Grafico de atividade da partida ao longo do tempo"
       }
     },
     "broadcast": {
       "switchingArena": "Mudando para a proxima arena quente...",
       "nextHotArena": "A rotacao ao vivo esta indo para uma janela mais forte da arena.",
+      "rotationGaugeLabel": "Rotacao da transmissao",
+      "rotationGaugeTitle": "Proxima troca de arena em {0} min",
       "mainMatchEyebrow": "Partida principal da transmissao",
       "mainMatchDescription": "Abra a versao fixa desta partida para acompanhar o broadcast completo sem perder o contexto ao vivo.",
       "mainMatchCta": "Entrar no Broadcast",

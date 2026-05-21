@@ -53,6 +53,20 @@
                 </div>
             </div>
 
+            @if (ShouldShowBroadcastRotationGauge)
+            {
+                <div class="tv-broadcast-rotation-gauge" aria-live="polite" aria-atomic="true">
+                    <div class="tv-broadcast-rotation-gauge__copy">
+                        <span>@T("broadcast.rotationGaugeLabel")</span>
+                        <strong>@DisplayBroadcastRotationRemaining()</strong>
+                        <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
+                    </div>
+                    <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
+                        <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
+                    </div>
+                </div>
+            }
+
             @if (EnableTvDebugOverlay)
             {
                 <div class="tv-debug-overlay" aria-hidden="true">
@@ -411,6 +425,16 @@
                 </article>
             </section>
 
+            <section class="tv-community-callout" aria-labelledby="tv-community-heading">
+                <div class="tv-community-callout__copy">
+                    <span>@T("community.kicker")</span>
+                    <h2 id="tv-community-heading">@T("community.joinArena")</h2>
+                    <p>@T("community.description")</p>
+                </div>
+                <CommunityLinks Culture="@Culture"
+                                Variant="tv" />
+            </section>
+
            
         </div>
     </section>
@@ -441,6 +465,16 @@ else
         </header>
 
         <div class="tv-waiting-grid">
+            <article class="tv-panel tv-panel--community">
+                <div class="tv-panel__head">
+                    <span>@T("community.kicker")</span>
+                    <h2>@T("community.joinArena")</h2>
+                </div>
+                <p class="tv-community-callout__description">@T("community.description")</p>
+                <CommunityLinks Culture="@Culture"
+                                Variant="tv" />
+            </article>
+
             <article class="tv-panel">
                 <div class="tv-panel__head">
                     <span>@T("waiting.topCoinsEyebrow")</span>
@@ -524,12 +558,12 @@ else
 
 @if (ShouldRenderCrowdAudio)
 {
-    <audio id="tv-broadcast-crowd" class="tv-crowd-audio" src="/audio/tv/stadium-crowd-loop.mp3?v=20260515-1" preload="auto" loop></audio>
+    <audio id="tv-broadcast-crowd" class="tv-crowd-audio" data-tv-audio-role="ambient" src="/audio/tv/stadium-crowd-loop.mp3?v=20260521-1" preload="auto" loop></audio>
 }
 
 @if (ShouldRenderGoalAudio)
 {
-    <audio id="tv-goal-sting" class="tv-crowd-audio" src="/audio/tv/goal-sting.mp3?v=20260515-1" preload="auto"></audio>
+    <audio id="tv-goal-sting" class="tv-crowd-audio" data-tv-audio-role="fx" src="/audio/tv/goal-sting.mp3?v=20260521-1" preload="auto"></audio>
 }
 
 @if (Environment.IsDevelopment())
@@ -554,6 +588,9 @@ else
     [Parameter] public MatchDto? Match { get; set; }
     [Parameter] public StatsOverviewDto? Stats { get; set; }
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
+    [Parameter] public int BroadcastRotationMinutes { get; set; }
+    [Parameter] public int BroadcastRotationRemainingSeconds { get; set; }
+    [Parameter] public double BroadcastRotationProgress { get; set; }
 
     // Temporary debug demo to validate the cinematic narration overlay visually.
     private const bool EnableNarrationDebugDemo = false;
@@ -646,6 +683,8 @@ else
     private string _lastAutoReplaySide = string.Empty;
     private int _autoReplayRemainingPlays;
     private string _autoReplaySignature = string.Empty;
+    private readonly Queue<PendingReplayRequest> _pendingAutoReplayQueue = new();
+    private readonly HashSet<string> _armedAutoReplaySignatures = new(StringComparer.Ordinal);
     private string _lastBroadcastStateSignature = string.Empty;
     private bool _didMatchStart;
     private bool _didHalftime;
@@ -658,6 +697,7 @@ else
 
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
     private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
+    private sealed record PendingReplayRequest(string Signature, string Side, int ScoreValue, DateTime ReadyAtUtc, MatchScoreEventDto? ScoreEvent = null);
     private sealed record BroadcastSignalDefinition(
         string Key,
         int Priority,
@@ -682,6 +722,8 @@ else
         : Math.Clamp(1d - ((double)(_broadcastFocusUntilUtc - DateTime.UtcNow).TotalMilliseconds / Math.Max(1, _broadcastFocusDurationMs)), 0d, 1d);
     private string BroadcastFocusProgressCss => BroadcastFocusProgress.ToString("0.###", CultureInfo.InvariantCulture);
     private string BroadcastFocusWidthCss => (BroadcastFocusProgress * 100d).ToString("0.##", CultureInfo.InvariantCulture);
+    private bool ShouldShowBroadcastRotationGauge => IsBroadcastMode && BroadcastRotationMinutes > 0;
+    private string BroadcastRotationWidthCss => (Math.Clamp(BroadcastRotationProgress, 0d, 1d) * 100d).ToString("0.##", CultureInfo.InvariantCulture);
     private string BroadcastFocusLabel => _broadcastFocusLabel;
     private string BroadcastFocusKey => _broadcastFocusKey;
     private string BroadcastFocusColor => _broadcastFocusColor;
@@ -741,7 +783,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260520-4");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-1");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -1348,6 +1390,8 @@ else
             _autoReplaySignature = string.Empty;
             _nextAutoReplayAtUtc = DateTime.MinValue;
             _lastAutoReplaySide = string.Empty;
+            _pendingAutoReplayQueue.Clear();
+            _armedAutoReplaySignatures.Clear();
 
             // Treat this as a fresh match: don't compare scores against the previous match snapshot,
             // otherwise we'll fire a "goal" (and goal audio) just because the match switched.
@@ -1378,7 +1422,7 @@ else
             _ = QueueNarrationAsync(CreateGoalNarration(current));
             _ = MaybeRefreshAiNarrationAsync("goal");
             MarkGoalTrigger(current);
-            ArmAutoReplay(current);
+            ArmAutoReplay(current, _previousSnapshot);
             _ = TryPlayGoalAudioAsync(current);
         }
         else if (scoreLeaderChanged)
@@ -1521,10 +1565,11 @@ else
     {
         var replayReady = _autoReplayRemainingPlays > 0
             && current.LeftScore + current.RightScore > 0
+            && _pendingAutoReplayQueue.Count > 0
             && DateTime.UtcNow >= _nextAutoReplayAtUtc;
         if (replayReady)
         {
-            var replaySide = ResolveAutoReplaySide(current);
+            var replaySide = _pendingAutoReplayQueue.Peek().Side;
             return new BroadcastFocusState("replay", "Last goal replay", GetAccentColor(replaySide), 4800);
         }
 
@@ -1569,15 +1614,23 @@ else
         if (current.LeftScore + current.RightScore <= 0)
             return false;
 
-        var replaySide = ResolveAutoReplaySide(current);
-        var scoreEvent = ResolveAutoReplayScoreEvent(current, replaySide);
+        if (_pendingAutoReplayQueue.Count == 0)
+            return false;
+
+        var pendingReplay = _pendingAutoReplayQueue.Peek();
+        if (DateTime.UtcNow < pendingReplay.ReadyAtUtc)
+            return false;
+
+        var replaySide = pendingReplay.Side;
+        var scoreEvent = pendingReplay.ScoreEvent ?? ResolveAutoReplayScoreEvent(current, replaySide);
         if (scoreEvent is null)
             return false;
 
+        _pendingAutoReplayQueue.Dequeue();
         _lastAutoReplaySide = replaySide;
         _autoReplayRemainingPlays = Math.Max(0, _autoReplayRemainingPlays - 1);
-        _nextAutoReplayAtUtc = _autoReplayRemainingPlays > 0
-            ? DateTime.UtcNow.AddSeconds(12)
+        _nextAutoReplayAtUtc = _pendingAutoReplayQueue.Count > 0
+            ? _pendingAutoReplayQueue.Peek().ReadyAtUtc
             : DateTime.MaxValue;
 
         await SetBroadcastFocusAsync(focusState.Key, focusState.Label, focusState.Color, focusState.DurationMs);
@@ -1619,15 +1672,22 @@ else
         };
     }
 
-    private void ArmAutoReplay(BroadcastSnapshot current)
+    private void ArmAutoReplay(BroadcastSnapshot current, BroadcastSnapshot? previousSnapshot = null, IEnumerable<MatchScoreEventDto>? scoreEvents = null)
     {
-        var signature = BuildGoalTriggerSignature(current);
-        if (string.Equals(_autoReplaySignature, signature, StringComparison.Ordinal))
-            return;
+        var previousLeftScore = previousSnapshot?.LeftScore ?? Math.Max(0, current.LeftScore - 1);
+        var previousRightScore = previousSnapshot?.RightScore ?? Math.Max(0, current.RightScore - 1);
+        var latestBySide = (scoreEvents ?? _recentScoreEvents)
+            .GroupBy(x => x.TeamSymbol ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.MatchScoreEventId).First(), StringComparer.OrdinalIgnoreCase);
 
-        _autoReplaySignature = signature;
-        _autoReplayRemainingPlays = 1;
-        _nextAutoReplayAtUtc = DateTime.UtcNow.AddSeconds(12);
+        EnqueuePendingReplays(current, current.LeftSymbol, previousLeftScore, current.LeftScore, latestBySide);
+        EnqueuePendingReplays(current, current.RightSymbol, previousRightScore, current.RightScore, latestBySide);
+
+        _autoReplaySignature = BuildGoalTriggerSignature(current);
+        _autoReplayRemainingPlays = _pendingAutoReplayQueue.Count;
+        _nextAutoReplayAtUtc = _pendingAutoReplayQueue.Count > 0
+            ? _pendingAutoReplayQueue.Peek().ReadyAtUtc
+            : DateTime.MaxValue;
     }
 
     private string ResolveAutoReplaySide(BroadcastSnapshot current)
@@ -1642,6 +1702,73 @@ else
             return current.RightSymbol;
 
         return current.LeftSymbol;
+    }
+
+    private void EnqueuePendingReplays(
+        BroadcastSnapshot current,
+        string side,
+        int previousScore,
+        int currentScore,
+        IReadOnlyDictionary<string, MatchScoreEventDto> latestBySide)
+    {
+        if (string.IsNullOrWhiteSpace(side) || currentScore <= previousScore)
+            return;
+
+        for (var scoreValue = Math.Max(1, previousScore + 1); scoreValue <= currentScore; scoreValue++)
+        {
+            var signature = $"{current.MatchId}|{side}|{scoreValue}";
+            if (!_armedAutoReplaySignatures.Add(signature))
+                continue;
+
+            latestBySide.TryGetValue(side, out var scoreEvent);
+            var readyAtUtc = DateTime.UtcNow.AddSeconds(12 + (_pendingAutoReplayQueue.Count * 12));
+            _pendingAutoReplayQueue.Enqueue(new PendingReplayRequest(signature, side, scoreValue, readyAtUtc, scoreEvent));
+        }
+    }
+
+    private void ArmAutoReplayForEvents(BroadcastSnapshot current, IEnumerable<MatchScoreEventDto> scoreEvents)
+    {
+        var events = scoreEvents?.ToList() ?? [];
+        if (events.Count == 0)
+            return;
+
+        foreach (var scoreEvent in events)
+        {
+            var side = scoreEvent.TeamSymbol ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(side))
+                continue;
+
+            var scoreValue = string.Equals(side, current.LeftSymbol, StringComparison.OrdinalIgnoreCase)
+                ? current.LeftScore
+                : string.Equals(side, current.RightSymbol, StringComparison.OrdinalIgnoreCase)
+                    ? current.RightScore
+                    : 0;
+
+            if (scoreValue <= 0)
+                continue;
+
+            var signature = $"{current.MatchId}|{side}|{scoreValue}";
+            if (!_armedAutoReplaySignatures.Add(signature))
+                continue;
+
+            var readyAtUtc = DateTime.UtcNow.AddSeconds(12 + (_pendingAutoReplayQueue.Count * 12));
+            _pendingAutoReplayQueue.Enqueue(new PendingReplayRequest(signature, side, scoreValue, readyAtUtc, scoreEvent));
+        }
+
+        _autoReplaySignature = BuildGoalTriggerSignature(current);
+        _autoReplayRemainingPlays = _pendingAutoReplayQueue.Count;
+        _nextAutoReplayAtUtc = _pendingAutoReplayQueue.Count > 0
+            ? _pendingAutoReplayQueue.Peek().ReadyAtUtc
+            : DateTime.MaxValue;
+    }
+
+    private string DisplayBroadcastRotationRemaining()
+    {
+        if (BroadcastRotationRemainingSeconds <= 0)
+            return "00:00";
+
+        var remaining = TimeSpan.FromSeconds(BroadcastRotationRemainingSeconds);
+        return $"{Math.Max(0, (int)remaining.TotalMinutes):00}:{remaining.Seconds:00}";
     }
 
     private async Task SetBroadcastFocusAsync(string key, string label, string color, int durationMs)
@@ -1791,7 +1918,7 @@ else
             await QueueNarrationAsync(CreateGoalNarration(current, latest.TeamSymbol));
             _ = PlayReplayAsync(CreateScoreReplayEvent(current, latest));
             MarkGoalTrigger(current);
-            ArmAutoReplay(current);
+            ArmAutoReplayForEvents(current, newEvents);
             await TryPlayGoalAudioAsync(current);
             _ = MaybeRefreshAiNarrationAsync("goal");
         }
@@ -2827,7 +2954,7 @@ else
     }
 
     private decimal ResolveCrowdAudioVolume()
-        => Math.Clamp(Config.GetValue<decimal?>("CriptoVersusTV:CrowdAudioVolume") ?? 0.10m, 0.02m, 0.30m);
+        => Math.Clamp(Config.GetValue<decimal?>("CriptoVersusTV:CrowdAudioVolume") ?? 0.24m, 0.12m, 0.45m);
 
     private async Task EnsureBroadcastAudioAsync()
     {
@@ -4818,6 +4945,68 @@ else
         transition: width .22s linear;
     }
 
+    .tv-broadcast-rotation-gauge {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        z-index: 6;
+        display: grid;
+        gap: 8px;
+        width: min(320px, calc(100vw - 36px));
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(83, 200, 255, 0.18);
+        background: linear-gradient(180deg, rgba(5, 13, 18, 0.92), rgba(8, 12, 21, 0.96));
+        box-shadow: 0 20px 40px rgba(0,0,0,0.22);
+        backdrop-filter: blur(16px);
+        pointer-events: none;
+    }
+
+    .tv-broadcast-rotation-gauge__copy {
+        display: grid;
+        gap: 2px;
+    }
+
+    .tv-broadcast-rotation-gauge__copy span {
+        color: rgba(139, 200, 255, 0.9);
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+    }
+
+    .tv-broadcast-rotation-gauge__copy strong {
+        color: #eef7ff;
+        font-size: 1.1rem;
+        font-weight: 1000;
+        letter-spacing: .04em;
+    }
+
+    .tv-broadcast-rotation-gauge__copy small {
+        color: rgba(223, 245, 255, 0.72);
+        font-size: .74rem;
+        font-weight: 700;
+    }
+
+    .tv-broadcast-rotation-gauge__track {
+        position: relative;
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.08);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+    }
+
+    .tv-broadcast-rotation-gauge__fill {
+        display: block;
+        height: 100%;
+        min-width: 10px;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #53c8ff, #7ff6df);
+        box-shadow: 0 0 20px rgba(83, 200, 255, 0.28);
+        transition: width .9s linear;
+    }
+
     .tv-debug-overlay {
         position: absolute;
         right: 16px;
@@ -6029,6 +6218,52 @@ else
         gap: 14px;
     }
 
+    .tv-community-callout {
+        display: grid;
+        gap: 18px;
+        margin-top: 16px;
+        padding: 20px 22px;
+        border: 1px solid rgba(127, 246, 223, 0.16);
+        border-radius: 28px;
+        background:
+            radial-gradient(circle at top right, rgba(127, 246, 223, 0.08), transparent 22%),
+            radial-gradient(circle at top left, rgba(167, 139, 250, 0.08), transparent 24%),
+            linear-gradient(180deg, rgba(8, 12, 21, 0.96), rgba(5, 9, 18, 0.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 24px 60px rgba(0,0,0,0.24);
+    }
+
+    .tv-community-callout__copy {
+        display: grid;
+        gap: 8px;
+    }
+
+    .tv-community-callout__copy span {
+        color: #7ff6df;
+        font-size: .76rem;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+    }
+
+    .tv-community-callout__copy h2,
+    .tv-panel--community h2 {
+        margin: 0;
+        font-size: clamp(1.2rem, 2vw, 1.7rem);
+        letter-spacing: -.03em;
+    }
+
+    .tv-community-callout__copy p,
+    .tv-community-callout__description {
+        margin: 0;
+        color: var(--tv-muted);
+        line-height: 1.6;
+    }
+
+    .tv-community-callout :deep(.community-links--tv),
+    .tv-panel--community :deep(.community-links--tv) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .tv-panel {
         display: grid;
         gap: 14px;
@@ -6663,6 +6898,11 @@ else
             grid-template-columns: 1fr;
         }
 
+        .tv-community-callout :deep(.community-links--tv),
+        .tv-panel--community :deep(.community-links--tv) {
+            grid-template-columns: 1fr;
+        }
+
         .tv-stage__topbar {
             grid-template-columns: 1fr;
             gap: 14px;
@@ -6703,6 +6943,13 @@ else
         .tv-stage {
             gap: 10px;
             padding: 16px;
+        }
+
+        .tv-broadcast-rotation-gauge {
+            top: 14px;
+            right: 14px;
+            width: min(280px, calc(100vw - 28px));
+            padding: 11px 12px;
         }
 
         .tv-stage__topbar {
@@ -6850,6 +7097,17 @@ else
     @@media (max-width: 640px) {
         .tv-stage {
             padding: 12px;
+        }
+
+        .tv-broadcast-rotation-gauge {
+            top: 10px;
+            left: 12px;
+            right: 12px;
+            width: auto;
+        }
+
+        .tv-broadcast-rotation-gauge__copy strong {
+            font-size: 1rem;
         }
 
         .tv-stage h1,

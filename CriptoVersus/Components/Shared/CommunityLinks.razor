@@ -1,0 +1,119 @@
+@using CriptoVersus.Web.Services
+@inject LocalizationService L
+@namespace CriptoVersus.Components.Shared
+
+<section class="@RootClass" aria-label="@T("community.title")">
+    @if (ShowHeading)
+    {
+        <div class="community-links__heading">
+            <span>@HeadingText</span>
+            @if (!string.IsNullOrWhiteSpace(DescriptionText))
+            {
+                <small>@DescriptionText</small>
+            }
+        </div>
+    }
+
+    @foreach (var link in CommunityItems)
+    {
+        @switch (Variant)
+        {
+            case "header":
+                <a class="community-links__icon-link"
+                   href="@link.Url"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="@link.AriaLabel"
+                   title="@link.Name">
+                    <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                </a>
+                break;
+            case "footer":
+                <a class="community-links__row"
+                   href="@link.Url"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="@link.AriaLabel">
+                    <span class="community-links__row-brand">
+                        <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                        <strong>@link.Name</strong>
+                    </span>
+                    <small>@link.ActionLabel</small>
+                </a>
+                break;
+            case "tv":
+                <a class="community-links__cta community-links__cta--@link.Key"
+                   href="@link.Url"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="@link.AriaLabel">
+                    <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                    <span>@link.CtaLabel</span>
+                </a>
+                break;
+            default:
+                <a class="community-links__nav-link"
+                   href="@link.Url"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="@link.AriaLabel">
+                    <span class="community-links__row-brand">
+                        <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                        <strong>@link.Name</strong>
+                    </span>
+                    <small>@link.ActionLabel</small>
+                </a>
+                break;
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public string Variant { get; set; } = "header";
+    [Parameter] public bool ShowHeading { get; set; }
+    [Parameter] public string? HeadingKey { get; set; }
+    [Parameter] public string? DescriptionKey { get; set; }
+
+    private string RootClass => $"community-links community-links--{Variant}";
+    private string HeadingText => string.IsNullOrWhiteSpace(HeadingKey) ? string.Empty : T(HeadingKey!);
+    private string? DescriptionText => string.IsNullOrWhiteSpace(DescriptionKey) ? null : T(DescriptionKey!);
+
+    private CommunityItem[] CommunityItems => [
+        new(
+            "twitch",
+            "Tw",
+            "https://www.twitch.tv/criptoversus",
+            T("community.twitch.name"),
+            T("community.twitch.action"),
+            T("community.twitch.cta"),
+            T("community.twitch.aria")),
+        new(
+            "x",
+            "X",
+            "https://x.com/criptoversus",
+            T("community.x.name"),
+            T("community.x.action"),
+            T("community.x.cta"),
+            T("community.x.aria")),
+        new(
+            "telegram",
+            "TG",
+            "https://t.me/criptoversus",
+            T("community.telegram.name"),
+            T("community.telegram.action"),
+            T("community.telegram.cta"),
+            T("community.telegram.aria"))
+    ];
+
+    private string T(string key) => L.T(key, Culture);
+
+    private sealed record CommunityItem(
+        string Key,
+        string ShortLabel,
+        string Url,
+        string Name,
+        string ActionLabel,
+        string CtaLabel,
+        string AriaLabel);
+}

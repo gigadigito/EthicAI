@@ -32,6 +32,30 @@
     "admin": "Admin",
     "connected": "Connected environment"
   },
+  "community": {
+    "title": "Community",
+    "kicker": "Arena Network",
+    "joinArena": "Join the Arena",
+    "description": "Stay close to the live crowd, broadcast rhythm and match updates across the official CriptoVersus channels.",
+    "twitch": {
+      "name": "Twitch",
+      "action": "Watch Live",
+      "cta": "Watch Live on Twitch",
+      "aria": "Open the official CriptoVersus Twitch channel"
+    },
+    "x": {
+      "name": "X",
+      "action": "Follow Updates",
+      "cta": "Follow on X",
+      "aria": "Open the official CriptoVersus X profile"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "action": "Join Community",
+      "cta": "Join Telegram",
+      "aria": "Open the official CriptoVersus Telegram community"
+    }
+  },
   "home": {
     "seo": {
       "title": "CriptoVersus | Live Crypto Match Arena",
@@ -1001,6 +1025,12 @@
       "commentaryLoading": "Arena commentary is refreshing from the latest market state.",
       "commentaryStandby": "Arena commentary is waiting for the next relevant movement."
     },
+    "activity": {
+      "eyebrow": "Live Activity",
+      "title": "Match Activity",
+      "description": "Events, pressure, momentum and tactical changes happening in real time.",
+      "ariaLabel": "Match activity over time chart"
+    },
     "labels": {
       "liveArena": "Live Arena",
       "automaticBroadcast": "Automatic broadcast",
@@ -1056,15 +1086,17 @@
       "aiMetaTimestamp": "{0} | {1} UTC",
       "commentaryMetaTimestamp": "{0} | {1} UTC",
       "activity": {
-        "eyebrow": "Arena tempo",
-        "title": "Match activity over time",
-        "description": "Recent public battle volume from the arena.",
+        "eyebrow": "Live Activity",
+        "title": "Match Activity",
+        "description": "Events, pressure, momentum and tactical changes happening in real time.",
         "ariaLabel": "Match activity over time chart"
       }
     },
     "broadcast": {
       "switchingArena": "Switching to the next hot arena...",
       "nextHotArena": "Live rotation is moving to a stronger arena window.",
+      "rotationGaugeLabel": "Match rotation",
+      "rotationGaugeTitle": "Next arena switch in {0} min",
       "mainMatchEyebrow": "Featured broadcast match",
       "mainMatchDescription": "Open the fixed version of this match to watch the full broadcast without losing live context.",
       "mainMatchCta": "Enter Broadcast",

@@ -18,6 +18,7 @@
     const fadeOutMs = 3500;
     const threeModuleUrl = "/js/vendor/three.module.min.js?v=20260520-2";
     const logoImageCache = new Map();
+    const ballAssetUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Cdefs%3E%3CradialGradient id='g' cx='32%25' cy='28%25' r='72%25'%3E%3Cstop offset='0%25' stop-color='%23ffffff'/%3E%3Cstop offset='68%25' stop-color='%23f2f6fb'/%3E%3Cstop offset='100%25' stop-color='%23cbd5e1'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='64' cy='64' r='58' fill='url(%23g)'/%3E%3Ccircle cx='64' cy='64' r='58' fill='none' stroke='%230f172a' stroke-width='6'/%3E%3Cpath d='M64 30l18 13-7 21H53l-7-21 18-13z' fill='%23111827'/%3E%3Cpath d='M46 43l-17 12 6 22h18l-7-34zM82 43l17 12-6 22H75l7-34zM53 77l11 21 11-21H53z' fill='%231f2937'/%3E%3C/svg%3E";
 
     let state = null;
     let threeModulePromise = null;
@@ -491,7 +492,7 @@
         const { fieldBg, goal, goalImage, ball } = state.dom;
         preloadBackgroundAsset(fieldBg, "/img/tv-replay/field-replay-bg.png");
         preloadDomImage(goalImage, goal, profile.goalImageUrl || "/img/tv-replay/goal-right.png", "has-asset");
-        preloadBackgroundAsset(ball, "/img/tv-replay/ball.png");
+        preloadBackgroundAsset(ball, ballAssetUrl);
     }
 
     function computeDomLayout() {

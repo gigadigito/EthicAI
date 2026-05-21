@@ -134,6 +134,34 @@ const tvAudioMap = {
     suddenReversal: "/audio/tv/sudden-reversal.mp3"
 };
 
+const tvAudioChannelMap = {
+    crowdRise: "ambient",
+    goal: "fx",
+    nearGoal: "fx",
+    pressure: "fx",
+    comeback: "fx",
+    equalizer: "fx",
+    momentum: "fx",
+    fearSpike: "fx",
+    fearCollapse: "fx",
+    finalMinutes: "fx",
+    victory: "fx",
+    replay: "fx",
+    switchSide: "fx",
+    whistle: "ui",
+    kickoff: "ui",
+    halftime: "ui",
+    lastMinute: "ui",
+    counterAttack: "fx",
+    marketCrash: "fx",
+    marketPump: "fx",
+    clutchSave: "fx",
+    bigCandleMovement: "fx",
+    ballRecovery: "fx",
+    highlightMoment: "fx",
+    suddenReversal: "fx"
+};
+
 const tvAudioPriority = {
     goal: 100,
     victory: 95,
@@ -209,6 +237,14 @@ function ensureTvAudioManager() {
     tvAudioManagerState = {
         volume: 0.22,
         muted: false,
+        ambientElementId: null,
+        ambientTargetVolume: 0.22,
+        context: null,
+        masterGain: null,
+        channelGains: new Map(),
+        sourceNodes: new WeakMap(),
+        instanceGains: new WeakMap(),
+        fadeTimers: new Map(),
         activeKey: null,
         activePriority: -1,
         preload: new Map(),
@@ -221,6 +257,183 @@ function ensureTvAudioManager() {
     };
 
     return tvAudioManagerState;
+}
+
+function resolveTvAudioChannel(key) {
+    return tvAudioChannelMap[key] ?? "fx";
+}
+
+function getTvAudioContext() {
+    const manager = ensureTvAudioManager();
+
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+        return null;
+    }
+
+    if (manager.context && manager.context.state !== "closed") {
+        return manager.context;
+    }
+
+    try {
+        const context = new AudioContextCtor();
+        const masterGain = context.createGain();
+        masterGain.gain.value = 1;
+        masterGain.connect(context.destination);
+
+        manager.context = context;
+        manager.masterGain = masterGain;
+        manager.channelGains = new Map();
+        return context;
+    } catch {
+        return null;
+    }
+}
+
+function getChannelGain(channel) {
+    const manager = ensureTvAudioManager();
+    const context = getTvAudioContext();
+    if (!context || !manager.masterGain) {
+        return null;
+    }
+
+    if (manager.channelGains.has(channel)) {
+        return manager.channelGains.get(channel);
+    }
+
+    const gain = context.createGain();
+    const defaults = {
+        ambient: 1,
+        fx: 0.92,
+        ui: 0.82
+    };
+
+    gain.gain.value = defaults[channel] ?? 0.9;
+    gain.connect(manager.masterGain);
+    manager.channelGains.set(channel, gain);
+    return gain;
+}
+
+function connectAudioElement(audio, channel) {
+    const manager = ensureTvAudioManager();
+    const context = getTvAudioContext();
+    if (!context) {
+        return null;
+    }
+
+    if (manager.sourceNodes.has(audio)) {
+        return manager.sourceNodes.get(audio);
+    }
+
+    try {
+        const source = context.createMediaElementSource(audio);
+        const instanceGain = context.createGain();
+        const channelGain = getChannelGain(channel);
+
+        if (!channelGain) {
+            source.connect(context.destination);
+        } else {
+            instanceGain.connect(channelGain);
+            source.connect(instanceGain);
+        }
+
+        manager.sourceNodes.set(audio, source);
+        manager.instanceGains.set(audio, instanceGain);
+        return source;
+    } catch {
+        return null;
+    }
+}
+
+function fadeGainTo(gainNode, target, durationMs = 1200) {
+    if (!gainNode || typeof window === "undefined") {
+        return;
+    }
+
+    const manager = ensureTvAudioManager();
+    const key = gainNode;
+    const previous = manager.fadeTimers.get(key);
+    if (previous) {
+        window.cancelAnimationFrame(previous);
+    }
+
+    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const initial = typeof gainNode.gain?.value === "number" ? gainNode.gain.value : 0;
+    const safeTarget = clamp(Number(target) || 0, 0, 1);
+    const safeDuration = Math.max(0, durationMs);
+
+    if (safeDuration === 0) {
+        gainNode.gain.value = safeTarget;
+        return;
+    }
+
+    const tick = (now) => {
+        const elapsed = Math.max(0, now - start);
+        const progress = Math.min(1, elapsed / safeDuration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        gainNode.gain.value = initial + ((safeTarget - initial) * eased);
+
+        if (progress < 1) {
+            const rafId = window.requestAnimationFrame(tick);
+            manager.fadeTimers.set(key, rafId);
+        } else {
+            manager.fadeTimers.delete(key);
+            gainNode.gain.value = safeTarget;
+        }
+    };
+
+    const rafId = window.requestAnimationFrame(tick);
+    manager.fadeTimers.set(key, rafId);
+}
+
+function createPlaybackAudio(url, channel, volume, muted) {
+    const audio = new Audio(url);
+    audio.preload = "auto";
+    audio.loop = false;
+    audio.volume = 1;
+    audio.muted = Boolean(muted);
+    connectAudioElement(audio, channel);
+
+    const manager = ensureTvAudioManager();
+    const instanceGain = manager.instanceGains.get(audio);
+    if (instanceGain) {
+        instanceGain.gain.value = clamp(Number(volume) || manager.volume, 0, 1);
+        if (muted) {
+            instanceGain.gain.value = 0;
+        }
+    }
+
+    audio.addEventListener("ended", () => {
+        try {
+            audio.pause();
+        } catch {
+        }
+
+        const gain = manager.instanceGains.get(audio);
+        if (gain) {
+            try {
+                gain.disconnect();
+            } catch {
+            }
+        }
+
+        const source = manager.sourceNodes.get(audio);
+        if (source) {
+            try {
+                source.disconnect();
+            } catch {
+            }
+        }
+
+        manager.instanceGains.delete(audio);
+        manager.sourceNodes.delete(audio);
+    }, { once: true });
+
+    return audio;
 }
 
 function resolveTvAudioUrl(key) {
@@ -241,7 +454,7 @@ function preloadTvAudio(key) {
     const audio = new Audio(url);
     audio.preload = "auto";
     audio.loop = false;
-    audio.volume = manager.volume;
+    audio.volume = 1;
     audio.muted = manager.muted;
     try {
         audio.load();
@@ -280,8 +493,8 @@ function playTvAudio(key, options = {}) {
         return false;
     }
 
-    const audio = preloadTvAudio(key) ?? new Audio(url);
-    audio.volume = Math.min(1, Math.max(0, typeof options.volume === "number" ? options.volume : manager.volume));
+    const channel = options.channel ?? resolveTvAudioChannel(key);
+    const audio = createPlaybackAudio(url, channel, typeof options.volume === "number" ? options.volume : manager.volume, Boolean(options.muted ?? manager.muted));
     audio.muted = Boolean(options.muted ?? manager.muted);
     audio.loop = Boolean(options.loop);
 
@@ -291,6 +504,14 @@ function playTvAudio(key, options = {}) {
             audio.currentTime = 0;
         }
     } catch {
+    }
+
+    if (channel === "ambient" && audio.loop) {
+        audio.volume = 1;
+        const ambientGain = ensureTvAudioManager().instanceGains.get(audio);
+        if (ambientGain) {
+            ambientGain.gain.value = 0;
+        }
     }
 
     const playback = audio.play();
@@ -331,9 +552,13 @@ function setTvAudioSettings(volume, muted) {
     manager.volume = Math.min(1, Math.max(0, Number(volume) || manager.volume));
     manager.muted = Boolean(muted);
     manager.preload.forEach((audio) => {
-        audio.volume = manager.volume;
+        audio.volume = 1;
         audio.muted = manager.muted;
     });
+
+    if (manager.masterGain) {
+        manager.masterGain.gain.value = manager.muted ? 0 : 1;
+    }
 }
 
 function diagnoseTvAudio() {
@@ -1382,23 +1607,53 @@ export async function updateTelemetryCharts(payload) {
 
 export async function initBroadcastAudio(elementId, volume, muted) {
     const audio = document.getElementById(elementId);
+    const manager = ensureTvAudioManager();
+    const safeVolume = clamp(Number(volume) || manager.volume, 0, 1);
+    const context = getTvAudioContext();
 
     if (!audio) {
-        setTvAudioSettings(volume, muted);
+        manager.ambientElementId = elementId;
+        manager.ambientTargetVolume = safeVolume;
+        setTvAudioSettings(safeVolume, muted);
         return;
     }
 
+    if (context && context.state === "suspended") {
+        try {
+            await context.resume();
+        } catch {
+        }
+    }
+
+    manager.ambientElementId = elementId;
+    manager.ambientTargetVolume = safeVolume;
+    audio.preload = "auto";
     audio.loop = true;
-    audio.volume = typeof volume === "number" ? volume : 0.1;
+    audio.volume = 1;
     audio.muted = Boolean(muted);
-    setTvAudioSettings(volume, muted);
+    connectAudioElement(audio, "ambient");
+    setTvAudioSettings(safeVolume, muted);
 
     try {
         await audio.play();
+        const ambientGain = manager.instanceGains.get(audio);
+        if (ambientGain) {
+            ambientGain.gain.value = 0;
+            fadeGainTo(ambientGain, muted ? 0 : safeVolume, 1800);
+        } else {
+            audio.volume = muted ? 0 : safeVolume;
+        }
     } catch {
         const resume = async () => {
             try {
                 await audio.play();
+                const ambientGain = manager.instanceGains.get(audio);
+                if (ambientGain) {
+                    ambientGain.gain.value = 0;
+                    fadeGainTo(ambientGain, muted ? 0 : safeVolume, 1800);
+                } else {
+                    audio.volume = muted ? 0 : safeVolume;
+                }
             } catch {
             }
 
@@ -1413,15 +1668,34 @@ export async function initBroadcastAudio(elementId, volume, muted) {
 
 export function setBroadcastAudioMuted(elementId, muted, volume) {
     const audio = document.getElementById(elementId);
+    const manager = ensureTvAudioManager();
+    const safeVolume = clamp(Number(volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
+    const context = getTvAudioContext();
 
     if (!audio) {
-        setTvAudioSettings(volume, muted);
+        manager.ambientElementId = elementId;
+        manager.ambientTargetVolume = safeVolume;
+        setTvAudioSettings(safeVolume, muted);
         return;
     }
 
-    audio.volume = typeof volume === "number" ? volume : audio.volume;
+    if (context && context.state === "suspended") {
+        context.resume().catch(() => { });
+    }
+
+    manager.ambientElementId = elementId;
+    manager.ambientTargetVolume = safeVolume;
+    audio.loop = true;
     audio.muted = Boolean(muted);
-    setTvAudioSettings(volume, muted);
+    audio.volume = 1;
+    setTvAudioSettings(safeVolume, muted);
+
+    const ambientGain = manager.instanceGains.get(audio);
+    if (ambientGain) {
+        fadeGainTo(ambientGain, muted ? 0 : safeVolume, 700);
+    } else {
+        audio.volume = muted ? 0 : safeVolume;
+    }
 
     if (!audio.muted) {
         audio.play().catch(() => { });
@@ -1443,8 +1717,6 @@ export function playAudioCue(elementId) {
 
     try {
         audio.loop = false;
-        audio.pause();
-        audio.currentTime = 0;
     } catch {
     }
 
@@ -1462,6 +1734,10 @@ export function initTvAudioManager(volume, muted) {
 }
 
 export function playTvAudioCue(key, options) {
+    const context = getTvAudioContext();
+    if (context && context.state === "suspended") {
+        context.resume().catch(() => { });
+    }
     return playTvAudio(key, options);
 }
 

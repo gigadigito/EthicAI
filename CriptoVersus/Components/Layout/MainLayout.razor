@@ -1,5 +1,6 @@
 ﻿@using CriptoVersus.Web.Components.Pages.Internet
 @using CriptoVersus.Web.Services
+@using CriptoVersus.Components.Shared
 @inherits LayoutComponentBase
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject WalletSessionState WalletState
@@ -46,6 +47,9 @@ else
             </div>
 
             <div class="topbar-tools">
+                <CommunityLinks Culture="@CurrentCulture"
+                                Variant="header" />
+
                 <div class="language-switcher" role="group" aria-label="@L.T("layout.topbar.language", CurrentCulture)">
                     <button type="button"
                             class="language-switcher__btn @(CurrentCulture == "en" ? "language-switcher__btn--active" : string.Empty)"
@@ -85,7 +89,13 @@ else
         @if (IsPublicSeoRoute)
         {
             <footer class="app-footer app-footer--public">
-                <p>@L.T("layout.footer.semanticDescription", CurrentCulture)</p>
+                <div class="app-footer__summary">
+                    <p>@L.T("layout.footer.semanticDescription", CurrentCulture)</p>
+                </div>
+                <CommunityLinks Culture="@CurrentCulture"
+                                Variant="footer"
+                                ShowHeading="true"
+                                HeadingKey="community.title" />
             </footer>
         }
     </main>

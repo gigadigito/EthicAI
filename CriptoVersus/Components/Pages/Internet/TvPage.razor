@@ -6,6 +6,7 @@
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
 @inject AppCultureService AppCulture
+@inject IConfiguration Config
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
 @inject LocalizationService L
@@ -38,7 +39,10 @@
          HotMatch="@_selectedHotMatch"
          Match="@_selectedMatch"
          Stats="@_stats"
-         Snapshot="@_snapshot" />
+         Snapshot="@_snapshot"
+         BroadcastRotationMinutes="@BroadcastRotationMinutes"
+         BroadcastRotationRemainingSeconds="@BroadcastRotationRemainingSeconds"
+         BroadcastRotationProgress="@BroadcastRotationProgress" />
 
 @code {
     private const int RefreshIntervalSeconds = 15;
@@ -59,6 +63,7 @@
     private Task? _refreshLoopTask;
     private DateTime _lastSwitchUtc = DateTime.MinValue;
     private DateTime _lastBroadcastRotationUtc = DateTime.MinValue;
+    private DateTime _nextRefreshAtUtc = DateTime.MinValue;
 
     private string PageTitleText => L.T(_isBroadcastMode ? "tv.seo.broadcastTitle" : "tv.seo.title", _culture);
     private string MetaDescription => L.T(_isBroadcastMode ? "tv.seo.broadcastDescription" : "tv.seo.description", _culture);
@@ -71,6 +76,31 @@
     private string PortugueseUrl => BuildAbsolute(_isBroadcastMode
         ? RouteLocalization.BuildTvBroadcastPath(AppCultureService.SecondaryRouteCulture)
         : RouteLocalization.BuildTvPath(AppCultureService.SecondaryRouteCulture));
+    private int BroadcastRotationMinutes
+        => Math.Clamp(Config.GetValue<int?>("CriptoVersusTV:BroadcastRotationMinutes") ?? 5, 1, 30);
+    private int BroadcastRotationRemainingSeconds
+    {
+        get
+        {
+            if (!_isBroadcastMode || _lastBroadcastRotationUtc == DateTime.MinValue)
+                return 0;
+
+            var remaining = TimeSpan.FromMinutes(BroadcastRotationMinutes) - (DateTime.UtcNow - _lastBroadcastRotationUtc);
+            return Math.Max(0, (int)Math.Ceiling(remaining.TotalSeconds));
+        }
+    }
+    private double BroadcastRotationProgress
+    {
+        get
+        {
+            if (!_isBroadcastMode || _lastBroadcastRotationUtc == DateTime.MinValue)
+                return 0d;
+
+            var totalSeconds = Math.Max(1d, TimeSpan.FromMinutes(BroadcastRotationMinutes).TotalSeconds);
+            var elapsedSeconds = Math.Clamp((DateTime.UtcNow - _lastBroadcastRotationUtc).TotalSeconds, 0d, totalSeconds);
+            return elapsedSeconds / totalSeconds;
+        }
+    }
 
     protected override void OnParametersSet()
     {
@@ -92,9 +122,10 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260520-4");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260521-1");
         await LogAsync("loaded");
         await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+        _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
 
         _refreshCts = new CancellationTokenSource();
         _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
@@ -102,12 +133,28 @@
 
     private async Task RunRefreshLoopAsync(CancellationToken ct)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshIntervalSeconds));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
 
         try
         {
             while (await timer.WaitForNextTickAsync(ct))
-                await RefreshAsync(forceInitialSelection: false, ct);
+            {
+                var now = DateTime.UtcNow;
+                var rotationDue = _isBroadcastMode
+                    && _selectedMatch is not null
+                    && _lastBroadcastRotationUtc != DateTime.MinValue
+                    && now - _lastBroadcastRotationUtc >= TimeSpan.FromMinutes(BroadcastRotationMinutes);
+
+                if (rotationDue || now >= _nextRefreshAtUtc)
+                {
+                    await RefreshAsync(forceInitialSelection: false, ct);
+                    _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
+                    continue;
+                }
+
+                if (_isBroadcastMode)
+                    await InvokeAsync(StateHasChanged);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -277,7 +324,7 @@
             || _selectedMatch is null
             || !IsBroadcastEligibleMatch(_selectedMatch)
             || _selectedMatch.IsFinished
-            || DateTime.UtcNow - _lastBroadcastRotationUtc >= TimeSpan.FromMinutes(5);
+            || DateTime.UtcNow - _lastBroadcastRotationUtc >= TimeSpan.FromMinutes(BroadcastRotationMinutes);
 
         if (!shouldRotate && _selectedMatch is not null)
         {
