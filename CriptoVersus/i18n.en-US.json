@@ -1104,6 +1104,10 @@
       "overlayTitle": "Watch Broadcast",
       "overlaySubtitle": "Live now"
     },
+    "promo": {
+      "chooseSide": "CHOOSE A SIDE!",
+      "site": "CRIPTOVERSUS.COM"
+    },
     "audio": {
       "crowdEnabled": "Crowd audio on",
       "crowdMuted": "Crowd audio muted"

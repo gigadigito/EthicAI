@@ -596,6 +596,7 @@ else
     private const bool EnableNarrationDebugDemo = false;
     private const string ReplayRootId = "tv-replay-root";
     private const string DefaultReplayAnimation = "POWER_SHOT";
+    private static readonly TimeSpan BroadcastPromoDelay = TimeSpan.FromMinutes(2);
     private static readonly ReplayDebugPreset[] ReplayDebugPresets =
     [
         new("POWER_SHOT replay", "THRESHOLD_8", "POWER_SHOT", "Superou 8% de diferenca"),
@@ -694,6 +695,9 @@ else
     private bool _didBroadcastDiagnostics;
     private int _broadcastRotationIndex;
     private DateTime _lastBroadcastFocusChangeUtc = DateTime.MinValue;
+    private DateTime _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
+    private int? _scheduledBroadcastPromoMatchId;
+    private int? _lastBroadcastPromoMatchId;
 
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
     private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
@@ -783,7 +787,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-2");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -846,13 +850,18 @@ else
         if (_isDisposed || _telemetryCubeInitialized || _tvModule is null)
             return;
 
-        _telemetryCubeInitialized = true;
         try
         {
             await _tvModule.InvokeVoidAsync("initTelemetryCube", "tv-telemetry-cube-shell", TelemetryCubeIntervalSeconds * 1000);
+            _telemetryCubeInitialized = true;
         }
         catch (ObjectDisposedException)
         {
+            return;
+        }
+        catch
+        {
+            _telemetryCubeInitialized = false;
             return;
         }
         await LogAsync("TV_CUBE", "initialized");
@@ -1364,12 +1373,14 @@ else
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
             _recentScoreEvents = [];
+            ResetBroadcastPromoState();
             return;
         }
 
         if (_lastAiNarrationMatchId != current.MatchId)
         {
-            if (IsBroadcastMode && _lastAiNarrationMatchId.HasValue)
+            var hadPreviousMatch = _lastAiNarrationMatchId.HasValue;
+            if (IsBroadcastMode && hadPreviousMatch)
             {
                 _broadcastNoticeUntilUtc = DateTime.UtcNow.AddSeconds(4);
                 _ = TriggerBroadcastFlipAsync();
@@ -1392,6 +1403,10 @@ else
             _lastAutoReplaySide = string.Empty;
             _pendingAutoReplayQueue.Clear();
             _armedAutoReplaySignatures.Clear();
+            if (IsBroadcastMode && hadPreviousMatch)
+                ScheduleBroadcastPromo(current.MatchId);
+            else
+                ResetBroadcastPromoState(current.MatchId);
 
             // Treat this as a fresh match: don't compare scores against the previous match snapshot,
             // otherwise we'll fire a "goal" (and goal audio) just because the match switched.
@@ -1511,6 +1526,7 @@ else
 
                 var fieldState = CurrentFieldState;
                 await AdvanceBroadcastFocusAsync(current, fieldState);
+                await MaybeTriggerBroadcastPromoAsync(current);
 
                 if (Environment.IsDevelopment())
                 {
@@ -1559,6 +1575,51 @@ else
 
         await SetBroadcastFocusAsync(next.Key, next.Label, next.Color, next.DurationMs);
         _lastBroadcastFocusChangeUtc = DateTime.UtcNow;
+    }
+
+    private void ScheduleBroadcastPromo(int matchId)
+    {
+        _scheduledBroadcastPromoMatchId = matchId;
+        _scheduledBroadcastPromoAtUtc = DateTime.UtcNow.Add(BroadcastPromoDelay);
+        _lastBroadcastPromoMatchId = null;
+        _ = LogAsync("TV_PROMO", "scheduled", new
+        {
+            matchId,
+            triggerAtUtc = _scheduledBroadcastPromoAtUtc.ToString("O", CultureInfo.InvariantCulture)
+        });
+    }
+
+    private void ResetBroadcastPromoState(int? currentMatchId = null)
+    {
+        _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
+        _scheduledBroadcastPromoMatchId = null;
+        _lastBroadcastPromoMatchId = currentMatchId;
+    }
+
+    private async Task MaybeTriggerBroadcastPromoAsync(BroadcastSnapshot current)
+    {
+        if (_isDisposed
+            || !IsBroadcastMode
+            || _scheduledBroadcastPromoMatchId != current.MatchId
+            || _lastBroadcastPromoMatchId == current.MatchId
+            || DateTime.UtcNow < _scheduledBroadcastPromoAtUtc)
+        {
+            return;
+        }
+
+        _lastBroadcastPromoMatchId = current.MatchId;
+        _scheduledBroadcastPromoMatchId = null;
+        _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
+
+        await LogAsync("TV_PROMO", "triggered", new
+        {
+            current.MatchId,
+            current.LeftSymbol,
+            current.RightSymbol
+        });
+
+        foreach (var promoEvent in CreateBroadcastPromoNarrationSequence())
+            await QueueNarrationAsync(promoEvent);
     }
 
     private BroadcastFocusState ResolveBroadcastFocusState(BroadcastSnapshot current, TvFieldStateDto? fieldState)
@@ -2484,6 +2545,30 @@ else
             DurationMs = 3200,
             CooldownMs = 250
         };
+
+    private IReadOnlyList<TvNarrationEvent> CreateBroadcastPromoNarrationSequence()
+        => [
+            new TvNarrationEvent
+            {
+                Type = "broadcast-promo-choose-side",
+                Severity = "extreme",
+                Text = T("promo.chooseSide"),
+                Side = "center",
+                Animation = "screen-impact",
+                DurationMs = 2200,
+                CooldownMs = 220
+            },
+            new TvNarrationEvent
+            {
+                Type = "broadcast-promo-site",
+                Severity = "extreme",
+                Text = T("promo.site"),
+                Side = "center",
+                Animation = "screen-impact",
+                DurationMs = 2200,
+                CooldownMs = 120
+            }
+        ];
 
     private TvNarrationEvent CreateDevNarrationEvent(string animation)
     {

@@ -1222,8 +1222,25 @@ function ensureResizeObserver(container, chart) {
 
     telemetryChartsState.charts.set(container.id, {
         ...existing,
+        container,
         resizeObserver
     });
+}
+
+function disposeChartEntry(entry) {
+    if (!entry) {
+        return;
+    }
+
+    try {
+        entry.resizeObserver?.disconnect?.();
+    } catch {
+    }
+
+    try {
+        entry.chart?.remove?.();
+    } catch {
+    }
 }
 
 function addLineSeriesCompat(LightweightCharts, chart, options) {
@@ -1254,15 +1271,26 @@ async function ensureCandlestickChart(containerId) {
     telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
 
     const existing = telemetryChartsState.charts.get(containerId);
-
-    if (existing?.chart && existing?.series && existing.kind === "candlestick") {
-        return existing;
-    }
-
     const container = document.getElementById(containerId);
 
     if (!container) {
         throw new Error(`missing container ${containerId}`);
+    }
+
+    if (existing?.container && existing.container !== container) {
+        disposeChartEntry(existing);
+        telemetryChartsState.charts.delete(containerId);
+    }
+
+    const active = telemetryChartsState.charts.get(containerId);
+
+    if (active?.chart && active?.series && active.kind === "candlestick") {
+        ensureResizeObserver(container, active.chart);
+        return active;
+    }
+
+    if (!container.isConnected) {
+        throw new Error(`detached container ${containerId}`);
     }
 
     const LightweightCharts = await ensureLightweightChartsLoaded();
@@ -1307,6 +1335,7 @@ async function ensureCandlestickChart(containerId) {
 
     const state = {
         kind: "candlestick",
+        container,
         chart,
         series,
         resizeObserver: null
@@ -1322,15 +1351,26 @@ async function ensureCompareChart(containerId) {
     telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
 
     const existing = telemetryChartsState.charts.get(containerId);
-
-    if (existing?.chart && existing?.leftSeries && existing?.rightSeries) {
-        return existing;
-    }
-
     const container = document.getElementById(containerId);
 
     if (!container) {
         throw new Error(`missing container ${containerId}`);
+    }
+
+    if (existing?.container && existing.container !== container) {
+        disposeChartEntry(existing);
+        telemetryChartsState.charts.delete(containerId);
+    }
+
+    const active = telemetryChartsState.charts.get(containerId);
+
+    if (active?.chart && active?.leftSeries && active?.rightSeries) {
+        ensureResizeObserver(container, active.chart);
+        return active;
+    }
+
+    if (!container.isConnected) {
+        throw new Error(`detached container ${containerId}`);
     }
 
     const LightweightCharts = await ensureLightweightChartsLoaded();
@@ -1360,6 +1400,7 @@ async function ensureCompareChart(containerId) {
 
     const state = {
         kind: "compare",
+        container,
         chart,
         leftSeries,
         rightSeries,

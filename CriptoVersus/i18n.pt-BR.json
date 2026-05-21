@@ -1104,6 +1104,10 @@
       "overlayTitle": "Assistir Broadcast",
       "overlaySubtitle": "Ao vivo agora"
     },
+    "promo": {
+      "chooseSide": "ESCOLHA UM LADO!",
+      "site": "CRIPTOVERSUS.COM"
+    },
     "audio": {
       "crowdEnabled": "Audio da torcida ligado",
       "crowdMuted": "Audio da torcida mutado"
