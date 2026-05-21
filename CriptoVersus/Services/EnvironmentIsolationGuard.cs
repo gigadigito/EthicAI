@@ -2,6 +2,8 @@ namespace CriptoVersus.Web.Services;
 
 internal static class EnvironmentIsolationGuard
 {
+    private const string PublicIconApiBaseUrl = "https://api.criptoversus.com/api/icons/binance/";
+
     private static readonly string[] ProductionUrlMarkers =
     [
         "criptoversus.com",
@@ -26,6 +28,15 @@ internal static class EnvironmentIsolationGuard
             return NormalizeSecureUri(absoluteUri).ToString();
 
         return NormalizeSecureUri(new Uri(baseUri, relativePath.TrimStart('/'))).ToString();
+    }
+
+    public static string BuildBinanceIconUrl(string? symbol)
+    {
+        var normalized = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
+        return $"{PublicIconApiBaseUrl}{Uri.EscapeDataString(normalized)}";
     }
 
     public static Uri GetRequiredApiBaseUri(IConfiguration configuration)

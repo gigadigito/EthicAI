@@ -650,7 +650,7 @@
     private string GetIconUrl(string? symbol)
     {
         var baseSymbol = CleanAssetSymbol(symbol);
-        return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+        return EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
     }
 
     private static string GetAssetMonogram(string? symbol)

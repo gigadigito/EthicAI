@@ -407,7 +407,7 @@
     }
 
     private string GetCoinIconUrl(string symbol)
-        => CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{symbol.Trim().ToUpperInvariant()}");
+        => CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildBinanceIconUrl(symbol.Trim().ToUpperInvariant());
 
     private static string GetPositionTitleClass(string pair)
     {

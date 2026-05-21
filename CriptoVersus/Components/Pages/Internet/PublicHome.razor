@@ -513,7 +513,7 @@
     private string GetCoinIconUrl(string pair)
     {
         var baseSymbol = GetBaseSymbol(pair);
-        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
     }
 
     private static string GetBaseSymbol(string pair)

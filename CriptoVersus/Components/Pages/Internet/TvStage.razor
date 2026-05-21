@@ -3164,7 +3164,7 @@ else
         if (string.IsNullOrWhiteSpace(baseSymbol))
             return string.Empty;
 
-        return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{Uri.EscapeDataString(baseSymbol)}");
+        return EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
     }
 
     private static string? NormalizeAbsoluteIconUrl(Uri value)

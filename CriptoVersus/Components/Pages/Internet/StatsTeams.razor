@@ -438,14 +438,19 @@
     {
 
         if (!string.IsNullOrWhiteSpace(team.IconUrl))
+        {
+            var iconSymbol = CleanAssetSymbol(team.IconUrl[(team.IconUrl.LastIndexOf('/') + 1)..]);
+            if (!string.IsNullOrWhiteSpace(iconSymbol))
+                return EnvironmentIsolationGuard.BuildBinanceIconUrl(iconSymbol);
 
             return EnvironmentIsolationGuard.BuildApiUrl(Config, team.IconUrl);
+        }
 
 
 
         var baseSymbol = GetDisplaySymbol(team);
 
-        return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{baseSymbol}");
+        return EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
 
     }
 

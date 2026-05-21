@@ -36,8 +36,7 @@ public sealed class CriptoVersusApiClient
 
     public string BuildBinanceIconUrl(string? symbol)
     {
-        var normalized = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
-        return BuildApiUrl($"api/icons/binance/{Uri.EscapeDataString(normalized)}");
+        return EnvironmentIsolationGuard.BuildBinanceIconUrl(symbol);
     }
 
     public async Task<DashboardSnapshotDto?> GetDashboardSnapshotAsync(

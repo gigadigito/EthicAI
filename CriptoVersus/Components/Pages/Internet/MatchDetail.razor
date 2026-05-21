@@ -2407,7 +2407,7 @@
         if (string.IsNullOrWhiteSpace(baseSymbol))
             return string.Empty;
 
-        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{Uri.EscapeDataString(baseSymbol)}");
+        return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
     }
 
     private async Task RefreshAuthenticatedUserAsync()
