@@ -122,7 +122,7 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260521-4");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260521-5");
         await LogAsync("loaded");
         await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
         _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);

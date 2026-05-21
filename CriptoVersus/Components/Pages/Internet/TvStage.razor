@@ -731,6 +731,25 @@ else
     private bool EnableTvDebugOverlay => Config.GetValue<bool?>("CriptoVersusTV:EnableDebugOverlay") == true;
     private int TelemetryCubeIntervalSeconds
         => Math.Clamp(Config.GetValue<int?>("CriptoVersusTV:TelemetryCubeIntervalSeconds") ?? 12, 8, 20);
+    private bool FieldMovementEnabled => Config.GetValue<bool?>("CriptoVersusTV:MovementEnabled") != false;
+    private bool TacticalFieldMovementEnabled => Config.GetValue<bool?>("CriptoVersusTV:TacticalMovementEnabled") != false;
+    private bool EnableFieldMovementDebug => Config.GetValue<bool?>("CriptoVersusTV:EnableFieldMovementDebug") == true;
+    private double FieldFreedomRadiusMultiplier
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:FreedomRadiusMultiplier") ?? 1.0d, 0.4d, 2.8d);
+    private double FieldCollisionRadiusMultiplier
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:CollisionRadiusMultiplier") ?? 1.0d, 0.5d, 2.0d);
+    private double FieldCollisionStrength
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:CollisionStrength") ?? 1.0d, 0.1d, 3.0d);
+    private double FieldSeparationStrength
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:SeparationStrength") ?? 1.0d, 0.1d, 3.0d);
+    private double FieldWanderStrength
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:WanderStrength") ?? 0.9d, 0.0d, 3.0d);
+    private double FieldMomentumPushStrength
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:MomentumPushStrength") ?? 1.0d, 0.1d, 3.0d);
+    private double FieldDefensiveCompactness
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:DefensiveCompactness") ?? 1.0d, 0.2d, 3.0d);
+    private double FieldAnimationSpeed
+        => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:AnimationSpeed") ?? 1.0d, 0.3d, 2.5d);
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
@@ -802,7 +821,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-4");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-5");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -837,7 +856,7 @@ else
         {
             try
             {
-                await _tvModule.InvokeVoidAsync("initFieldSway", "tv-crypto-field");
+                await _tvModule.InvokeVoidAsync("initFieldSway", "tv-crypto-field", BuildFieldMovementOptions());
             }
             catch
             {
@@ -3789,6 +3808,22 @@ else
         }
     }
 
+    private object BuildFieldMovementOptions()
+        => new
+        {
+            movementEnabled = FieldMovementEnabled,
+            tacticalMovementEnabled = TacticalFieldMovementEnabled,
+            freedomRadiusMultiplier = FieldFreedomRadiusMultiplier,
+            collisionRadiusMultiplier = FieldCollisionRadiusMultiplier,
+            collisionStrength = FieldCollisionStrength,
+            separationStrength = FieldSeparationStrength,
+            wanderStrength = FieldWanderStrength,
+            momentumPushStrength = FieldMomentumPushStrength,
+            defensiveCompactness = FieldDefensiveCompactness,
+            animationSpeed = FieldAnimationSpeed,
+            debug = EnableFieldMovementDebug
+        };
+
     public async ValueTask DisposeAsync()
     {
         _isDisposed = true;
@@ -3850,6 +3885,17 @@ else
 
         if (_tvModule is not null)
         {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("destroyFieldSway", "tv-crypto-field");
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch
+            {
+            }
+
             await _tvModule.DisposeAsync();
             _tvModule = null;
         }

@@ -690,8 +690,6 @@ const FIELD_MOVEMENT_DEFAULTS = {
     movementEnabled: true,
     tacticalMovementEnabled: true,
     freedomRadiusMultiplier: 1,
-    collisionRadiusMultiplier: 1,
-    collisionStrength: 1,
     separationStrength: 1,
     wanderStrength: 0.9,
     momentumPushStrength: 1,
@@ -715,8 +713,6 @@ function normalizeFieldMovementOptions(options) {
         movementEnabled: options?.movementEnabled !== false,
         tacticalMovementEnabled: options?.tacticalMovementEnabled !== false,
         freedomRadiusMultiplier: clamp(Number(options?.freedomRadiusMultiplier) || 1, 0.4, 2.8),
-        collisionRadiusMultiplier: clamp(Number(options?.collisionRadiusMultiplier) || 1, 0.5, 2),
-        collisionStrength: clamp(Number(options?.collisionStrength) || 1, 0.1, 3),
         separationStrength: clamp(Number(options?.separationStrength) || 1, 0.1, 3),
         wanderStrength: clamp(Number(options?.wanderStrength) || 0.9, 0, 3),
         momentumPushStrength: clamp(Number(options?.momentumPushStrength) || 1, 0.1, 3),
@@ -954,7 +950,6 @@ function hydratePlayerFlags(player) {
 
 function primeTacticalPlayer(player, state) {
     player.freedomRadius = resolveTacticalFreedomRadiusPx(player, state);
-    player.collisionRadius = resolveTacticalCollisionRadiusPx(player, state);
     player.maxSpeed = resolveTacticalMaxSpeed(player);
     player.maxForce = resolveTacticalMaxForce(player);
     return player;
@@ -987,21 +982,6 @@ function resolveTacticalFreedomRadiusPx(player, state) {
     if (player.hasMomentum) base += 4;
 
     return clamp(base * options.freedomRadiusMultiplier, player.role === "goalkeeper" ? 8 : 14, 72);
-}
-
-function resolveTacticalCollisionRadiusPx(player, state) {
-    const options = state?.options ?? FIELD_MOVEMENT_DEFAULTS;
-    const rect = player.node?.getBoundingClientRect?.();
-    const visualRadius = rect ? Math.max(rect.width, rect.height) * 0.38 : 14;
-    const roleBias = player.role === "goalkeeper"
-        ? 0.92
-        : player.role === "defender"
-            ? 1.04
-            : player.role === "midfielder"
-                ? 1.0
-                : 0.98;
-
-    return clamp(visualRadius * roleBias * options.collisionRadiusMultiplier, 10, 26);
 }
 
 function resolveTacticalMaxSpeed(player) {
@@ -1210,14 +1190,6 @@ function applyTacticalFieldMotion(state, now) {
 
         player.position.x += player.velocity.x * dt;
         player.position.y += player.velocity.y * dt;
-    }
-
-    resolvePlayerCollisions(state.players, overlayRect, state.options.collisionStrength);
-
-    for (const player of state.players) {
-        if (!player?.node?.isConnected) {
-            continue;
-        }
 
         clampPlayerToFreedomRadius(player);
         clampPlayerToOverlay(player, overlayRect);
@@ -1476,55 +1448,6 @@ function applySteeringForce(player, force, weight = 1) {
 
     player.acceleration.x += force.x * weight;
     player.acceleration.y += force.y * weight;
-}
-
-function resolvePlayerCollisions(players, overlayRect, strength) {
-    const activePlayers = players.filter((player) => player?.node?.isConnected);
-    const count = activePlayers.length;
-
-    for (let i = 0; i < count; i += 1) {
-        const a = activePlayers[i];
-        const aWorld = toTacticalWorldPoint(a, overlayRect);
-
-        for (let j = i + 1; j < count; j += 1) {
-            const b = activePlayers[j];
-            const bWorld = toTacticalWorldPoint(b, overlayRect);
-            let dx = bWorld.x - aWorld.x;
-            let dy = bWorld.y - aWorld.y;
-            let distance = Math.hypot(dx, dy);
-            const minDistance = (a.collisionRadius ?? 14) + (b.collisionRadius ?? 14);
-
-            if (distance >= minDistance) {
-                continue;
-            }
-
-            if (distance <= 0.0001) {
-                const angle = randomFloat01((a.seed + 1) * (b.seed + 1)) * Math.PI * 2;
-                dx = Math.cos(angle);
-                dy = Math.sin(angle);
-                distance = 1;
-            }
-
-            const nx = dx / distance;
-            const ny = dy / distance;
-            const overlap = (minDistance - distance) * 0.5 * strength;
-            const aWeight = a.role === "goalkeeper" ? 0.32 : a.role === "defender" ? 0.46 : 0.5;
-            const bWeight = b.role === "goalkeeper" ? 0.32 : b.role === "defender" ? 0.46 : 0.5;
-
-            a.position.x -= nx * overlap * aWeight;
-            a.position.y -= ny * overlap * aWeight;
-            b.position.x += nx * overlap * bWeight;
-            b.position.y += ny * overlap * bWeight;
-
-            a.velocity.x -= nx * overlap * 0.26;
-            a.velocity.y -= ny * overlap * 0.26;
-            b.velocity.x += nx * overlap * 0.26;
-            b.velocity.y += ny * overlap * 0.26;
-
-            limitVectorMagnitude(a.velocity, a.maxSpeed);
-            limitVectorMagnitude(b.velocity, b.maxSpeed);
-        }
-    }
 }
 
 function resolveTacticalVisualOffset(player, now) {

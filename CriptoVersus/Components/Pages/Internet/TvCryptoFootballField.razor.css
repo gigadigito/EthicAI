@@ -150,6 +150,35 @@
         filter .4s ease;
 }
 
+.tv-field--movement-debug .tv-field__player::before,
+.tv-field--movement-debug .tv-field__player::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+}
+
+.tv-field--movement-debug .tv-field__player::before {
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(127, 246, 223, 0.95);
+    box-shadow: 0 0 10px rgba(127, 246, 223, 0.65);
+    transform: translate(calc(-50% + var(--tv-debug-target-x, 0px)), calc(-50% + var(--tv-debug-target-y, 0px)));
+}
+
+.tv-field--movement-debug .tv-field__player::after {
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(83, 200, 255, 0.95);
+    box-shadow: 0 0 8px rgba(83, 200, 255, 0.48);
+    transform: translate(calc(-50% + var(--tv-debug-vel-x, 0px) * 0.08), calc(-50% + var(--tv-debug-vel-y, 0px) * 0.08));
+}
+
 .tv-field__player img,
 .tv-field__player span {
     width: 74%;
