@@ -1110,7 +1110,8 @@
     },
     "audio": {
       "crowdEnabled": "Audio da torcida ligado",
-      "crowdMuted": "Audio da torcida mutado"
+      "crowdMuted": "Audio da torcida mutado",
+      "startBroadcast": "Ativar audio do broadcast"
     },
     "field": {
       "scoreboard": "Placar da arena",

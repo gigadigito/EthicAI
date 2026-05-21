@@ -1110,7 +1110,8 @@
     },
     "audio": {
       "crowdEnabled": "Crowd audio on",
-      "crowdMuted": "Crowd audio muted"
+      "crowdMuted": "Crowd audio muted",
+      "startBroadcast": "Start Broadcast Audio"
     },
     "field": {
       "scoreboard": "Arena scoreboard",

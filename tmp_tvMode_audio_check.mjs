@@ -1,4 +1,4 @@
-﻿export function log(prefixOrEventName, eventNameOrPayload, maybePayload) {
+export function log(prefixOrEventName, eventNameOrPayload, maybePayload) {
     const hasExplicitPrefix = typeof maybePayload !== "undefined";
     const prefix = hasExplicitPrefix ? prefixOrEventName : "TV_MODE";
     const eventName = hasExplicitPrefix ? eventNameOrPayload : prefixOrEventName;

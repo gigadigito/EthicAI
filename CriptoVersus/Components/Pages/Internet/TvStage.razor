@@ -102,6 +102,10 @@
                     @if (ShouldRenderCrowdAudio)
                     {
                         <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                        @if (ShouldShowAudioUnlockButton)
+                        {
+                            <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
+                        }
                     }
                 </div>
             </header>
@@ -460,6 +464,10 @@ else
                 @if (ShouldRenderCrowdAudio)
                 {
                     <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                    @if (ShouldShowAudioUnlockButton)
+                    {
+                        <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
+                    }
                 }
             </div>
         </header>
@@ -665,6 +673,9 @@ else
     private bool _isBroadcastFlipActive;
     private CancellationTokenSource? _broadcastFlipCts;
     private bool _isDisposed;
+    private bool _showAudioUnlockButton;
+    private bool _audioUnlocked;
+    private bool _audioAutoplayBlocked;
     private bool _pendingScoreEventProbe;
     private bool _isScoreEventProbeRunning;
     private int? _lastScoreEventMatchId;
@@ -704,6 +715,7 @@ else
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
     private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
     private sealed record PendingReplayRequest(string Signature, string Side, int ScoreValue, DateTime ReadyAtUtc, MatchScoreEventDto? ScoreEvent = null);
+    private sealed record TvAudioInteropState(bool Unlocked, bool AutoplayBlocked, bool AmbientStarted, bool Muted, string? ContextState, int InitCount, string? AmbientElementId, string? LastError);
     private sealed record BroadcastSignalDefinition(
         string Key,
         int Priority,
@@ -723,6 +735,7 @@ else
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
     private bool ShouldRenderGoalAudio => Config.GetValue<bool?>("CriptoVersusTV:EnableGoalAudio") != false;
+    private bool ShouldShowAudioUnlockButton => ShouldRenderCrowdAudio && _showAudioUnlockButton && !_audioUnlocked;
     private double BroadcastFocusProgress => _broadcastFocusUntilUtc <= DateTime.UtcNow
         ? 0d
         : Math.Clamp(1d - ((double)(_broadcastFocusUntilUtc - DateTime.UtcNow).TotalMilliseconds / Math.Max(1, _broadcastFocusDurationMs)), 0d, 1d);
@@ -789,7 +802,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-2");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-3");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -2190,22 +2203,24 @@ else
         var scorerIsLeft = string.Equals(scoreEvent.TeamSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase);
         var teamSymbol = scorerIsLeft ? current.LeftSymbol : current.RightSymbol;
         var opponentSymbol = scorerIsLeft ? current.RightSymbol : current.LeftSymbol;
+        var displayTeamSymbol = GetBaseSymbol(teamSymbol);
+        var displayOpponentSymbol = GetBaseSymbol(opponentSymbol);
         var leftScore = current.LeftScore;
         var rightScore = current.RightScore;
 
         return new
         {
             eventType,
-            team = teamSymbol,
-            opponent = opponentSymbol,
+            team = displayTeamSymbol,
+            opponent = displayOpponentSymbol,
             animation,
             reason = BuildReplayReason(scoreEvent),
             value = ResolveReplayValue(scoreEvent),
             minute = DisplayClockPrimary(),
             teamLogo = GetLogoUrl(scorerIsLeft ? DisplayLeftLogoUrl() : DisplayRightLogoUrl()),
             opponentLogo = GetLogoUrl(scorerIsLeft ? DisplayRightLogoUrl() : DisplayLeftLogoUrl()),
-            teamColor = GetAccentColor(teamSymbol),
-            opponentColor = GetAccentColor(opponentSymbol),
+            teamColor = GetAccentColor(displayTeamSymbol),
+            opponentColor = GetAccentColor(displayOpponentSymbol),
             intensity = ResolveReplayIntensity(scoreEvent),
             scoreLine = $"{leftScore} vs {rightScore}"
         };
@@ -2522,7 +2537,8 @@ else
         var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
             ? scorerOverride
             : current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
-        return new TvOverlayEvent("goal", T("events.goalKicker"), T("events.goalTitle", scorer), DisplayScoreContext(), GetAccentColor(scorer));
+        var displayScorer = GetBaseSymbol(scorer);
+        return new TvOverlayEvent("goal", T("events.goalKicker"), T("events.goalTitle", displayScorer), DisplayScoreContext(), GetAccentColor(displayScorer));
     }
 
     private TvNarrationEvent CreateGoalNarration(BroadcastSnapshot current, string? scorerOverride = null)
@@ -2530,14 +2546,16 @@ else
         var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
             ? scorerOverride
             : current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
+        var displayScorer = GetBaseSymbol(scorer);
         var opposing = scorer == current.LeftSymbol ? current.RightSymbol : current.LeftSymbol;
+        var displayOpposing = GetBaseSymbol(opposing);
         return new TvNarrationEvent
         {
             Type = "goal",
             Severity = "high",
-            Text = T("narration.goalText", scorer),
-            Subtitle = T("narration.goalSubtitle", DisplayScoreContext(), opposing),
-            Asset = scorer,
+            Text = T("narration.goalText", displayScorer),
+            Subtitle = T("narration.goalSubtitle", DisplayScoreContext(), displayOpposing),
+            Asset = displayScorer,
             Side = scorer == current.LeftSymbol ? "left" : "right",
             Animation = "zoom-burst",
             DurationMs = 3400,
@@ -3064,7 +3082,8 @@ else
 
         try
         {
-            await _tvModule.InvokeVoidAsync("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+            var state = await _tvModule.InvokeAsync<TvAudioInteropState>("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+            ApplyAudioInteropState(state);
             _broadcastAudioInitialized = true;
         }
         catch (JSException)
@@ -3072,12 +3091,32 @@ else
             // Fallback for stale browser caches or module resolution mismatches.
             try
             {
-                await JS.InvokeVoidAsync("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+                var state = await JS.InvokeAsync<TvAudioInteropState>("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+                ApplyAudioInteropState(state);
                 _broadcastAudioInitialized = true;
             }
             catch (ObjectDisposedException)
             {
             }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private async Task EnableBroadcastAudioAsync()
+    {
+        try
+        {
+            if (_tvModule is not null)
+            {
+                var state = await _tvModule.InvokeAsync<TvAudioInteropState>("unlockBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+                ApplyAudioInteropState(state);
+                return;
+            }
+
+            var fallbackState = await JS.InvokeAsync<TvAudioInteropState>("unlockBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
+            ApplyAudioInteropState(fallbackState);
         }
         catch (ObjectDisposedException)
         {
@@ -3176,6 +3215,16 @@ else
         => _isCrowdAudioMuted
             ? T("audio.crowdMuted")
             : T("audio.crowdEnabled");
+
+    private void ApplyAudioInteropState(TvAudioInteropState? state)
+    {
+        if (state is null)
+            return;
+
+        _audioUnlocked = state.Unlocked || state.AmbientStarted;
+        _audioAutoplayBlocked = state.AutoplayBlocked;
+        _showAudioUnlockButton = state.AutoplayBlocked || (!state.Unlocked && !state.AmbientStarted && !_isCrowdAudioMuted);
+    }
 
     private string BuildRemainingTimeFallback()
     {
@@ -4968,6 +5017,13 @@ else
     .tv-pill--audio {
         cursor: pointer;
         border-color: rgba(255,255,255,0.14);
+    }
+
+    .tv-pill--audio-unlock {
+        border-color: rgba(127, 246, 223, 0.34);
+        background: linear-gradient(180deg, rgba(127, 246, 223, 0.2), rgba(9, 28, 24, 0.92));
+        color: #abffd7;
+        box-shadow: 0 0 0 1px rgba(127, 246, 223, 0.08), 0 10px 24px rgba(0,0,0,0.18);
     }
 
     .tv-pill--score.is-pulsing {
