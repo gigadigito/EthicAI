@@ -596,6 +596,8 @@ else
     private const bool EnableNarrationDebugDemo = false;
     private const string ReplayRootId = "tv-replay-root";
     private const string DefaultReplayAnimation = "POWER_SHOT";
+    private static readonly TimeSpan AutoReplayInitialDelay = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan AutoReplaySpacing = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan BroadcastPromoDelay = TimeSpan.FromMinutes(2);
     private static readonly ReplayDebugPreset[] ReplayDebugPresets =
     [
@@ -1777,13 +1779,8 @@ else
 
         for (var scoreValue = Math.Max(1, previousScore + 1); scoreValue <= currentScore; scoreValue++)
         {
-            var signature = $"{current.MatchId}|{side}|{scoreValue}";
-            if (!_armedAutoReplaySignatures.Add(signature))
-                continue;
-
             latestBySide.TryGetValue(side, out var scoreEvent);
-            var readyAtUtc = DateTime.UtcNow.AddSeconds(12 + (_pendingAutoReplayQueue.Count * 12));
-            _pendingAutoReplayQueue.Enqueue(new PendingReplayRequest(signature, side, scoreValue, readyAtUtc, scoreEvent));
+            EnqueueAutoReplayPair(current, side, scoreValue, scoreEvent);
         }
     }
 
@@ -1808,12 +1805,7 @@ else
             if (scoreValue <= 0)
                 continue;
 
-            var signature = $"{current.MatchId}|{side}|{scoreValue}";
-            if (!_armedAutoReplaySignatures.Add(signature))
-                continue;
-
-            var readyAtUtc = DateTime.UtcNow.AddSeconds(12 + (_pendingAutoReplayQueue.Count * 12));
-            _pendingAutoReplayQueue.Enqueue(new PendingReplayRequest(signature, side, scoreValue, readyAtUtc, scoreEvent));
+            EnqueueAutoReplayPair(current, side, scoreValue, scoreEvent);
         }
 
         _autoReplaySignature = BuildGoalTriggerSignature(current);
@@ -1821,6 +1813,30 @@ else
         _nextAutoReplayAtUtc = _pendingAutoReplayQueue.Count > 0
             ? _pendingAutoReplayQueue.Peek().ReadyAtUtc
             : DateTime.MaxValue;
+    }
+
+    private void EnqueueAutoReplayPair(BroadcastSnapshot current, string side, int scoreValue, MatchScoreEventDto? scoreEvent)
+    {
+        var baseSignature = $"{current.MatchId}|{side}|{scoreValue}";
+        var firstSignature = $"{baseSignature}|1";
+        var secondSignature = $"{baseSignature}|2";
+
+        var firstAdded = _armedAutoReplaySignatures.Add(firstSignature);
+        var secondAdded = _armedAutoReplaySignatures.Add(secondSignature);
+        if (!firstAdded && !secondAdded)
+            return;
+
+        if (firstAdded)
+        {
+            var firstReadyAtUtc = DateTime.UtcNow.Add(AutoReplayInitialDelay);
+            _pendingAutoReplayQueue.Enqueue(new PendingReplayRequest(firstSignature, side, scoreValue, firstReadyAtUtc, scoreEvent));
+        }
+
+        if (secondAdded)
+        {
+            var secondReadyAtUtc = DateTime.UtcNow.Add(AutoReplayInitialDelay + AutoReplaySpacing);
+            _pendingAutoReplayQueue.Enqueue(new PendingReplayRequest(secondSignature, side, scoreValue, secondReadyAtUtc, scoreEvent));
+        }
     }
 
     private string DisplayBroadcastRotationRemaining()
