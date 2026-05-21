@@ -2581,18 +2581,14 @@ else
     private int DisplayRightScore() => HotMatch?.RightScore ?? Match?.ScoreB ?? 0;
 
     private string DisplayLeftLogoUrl()
-
-     => HotMatch?.LeftLogoUrl
-
-        ?? $"/api/icons/binance/{GetBaseSymbol(DisplayLeftSymbol())}";
-
-
+        => BuildSafeIconUrl(
+            HotMatch?.LeftLogoUrl,
+            DisplayLeftSymbol());
 
     private string DisplayRightLogoUrl()
-
-        => HotMatch?.RightLogoUrl
-
-           ?? $"/api/icons/binance/{GetBaseSymbol(DisplayRightSymbol())}";
+        => BuildSafeIconUrl(
+            HotMatch?.RightLogoUrl,
+            DisplayRightSymbol());
 
     private string DisplayRemainingTime() => HotMatch?.RemainingTimeLabel ?? BuildRemainingTimeFallback();
     private string DisplayVolume() => HotMatch?.VolumeLabel ?? BuildVolumeFallback();
@@ -3131,15 +3127,41 @@ else
                 var symbol = ExtractIconSymbol(filePath);
                 return string.IsNullOrWhiteSpace(symbol)
                     ? string.Empty
-                    : Api.BuildBinanceIconUrl(symbol);
+                    : BuildIconUrlFromSymbol(symbol);
             }
         }
 
         var sanitized = NormalizeIconRoute(value);
         var normalizedSymbol = ExtractIconSymbol(sanitized);
         return string.IsNullOrWhiteSpace(normalizedSymbol)
-            ? Api.BuildApiUrl(sanitized)
-            : Api.BuildBinanceIconUrl(normalizedSymbol);
+            ? EnvironmentIsolationGuard.BuildApiUrl(Config, sanitized)
+            : BuildIconUrlFromSymbol(normalizedSymbol);
+    }
+
+    private string BuildSafeIconUrl(string? rawValue, string fallbackSymbol)
+    {
+        if (!string.IsNullOrWhiteSpace(rawValue))
+        {
+            var normalized = NormalizeIconRoute(rawValue);
+            var symbol = ExtractIconSymbol(normalized);
+            if (!string.IsNullOrWhiteSpace(symbol))
+                return BuildIconUrlFromSymbol(symbol);
+
+            if (Uri.TryCreate(rawValue, UriKind.Absolute, out var absoluteUri))
+            {
+                var secureUri = NormalizeAbsoluteIconUrl(absoluteUri);
+                if (!string.IsNullOrWhiteSpace(secureUri))
+                    return secureUri;
+            }
+        }
+
+        return BuildIconUrlFromSymbol(fallbackSymbol);
+    }
+
+    private string BuildIconUrlFromSymbol(string? symbol)
+    {
+        var baseSymbol = GetBaseSymbol(symbol ?? string.Empty);
+        return EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{Uri.EscapeDataString(baseSymbol)}");
     }
 
     private static string? NormalizeAbsoluteIconUrl(Uri value)
