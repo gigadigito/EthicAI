@@ -3,11 +3,47 @@
     gap: 14px;
 }
 
-.tv-field__surface {
+.tv-field__broadcast-shell {
     position: relative;
     width: min(100%, 920px);
     margin: 0 auto;
     aspect-ratio: 16 / 8;
+    border-radius: 28px;
+}
+
+.tv-camera-viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+}
+
+.tv-camera-layer {
+    position: absolute;
+    inset: 0;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+.tv-field-scene {
+    position: absolute;
+    inset: 0;
+}
+
+.tv-hud-layer {
+    display: none;
+}
+
+.tv-camera-test-button {
+    display: none;
+}
+
+.tv-field__surface {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    margin: 0;
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(127, 246, 223, 0.18);
@@ -48,6 +84,34 @@
     position: absolute;
     inset: 0;
     z-index: 2;
+}
+
+.tv-field__camera-target {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tv-field__camera-target--left-attack {
+    left: 28%;
+    top: 50%;
+}
+
+.tv-field__camera-target--right-attack {
+    left: 72%;
+    top: 50%;
+}
+
+.tv-field__camera-target--left-goal-area {
+    left: 12%;
+    top: 50%;
+}
+
+.tv-field__camera-target--right-goal-area {
+    left: 88%;
+    top: 50%;
 }
 
 .tv-field__surface--fallback {
@@ -294,8 +358,11 @@
 }
 
 @media (max-width: 860px) {
+    .tv-field__broadcast-shell {
+        border-radius: 22px;
+    }
+
     .tv-field__surface {
-        width: 100%;
         border-radius: 22px;
     }
 
@@ -308,6 +375,10 @@
 @media (max-width: 640px) {
     .tv-field {
         gap: 10px;
+    }
+
+    .tv-field__broadcast-shell {
+        border-radius: 18px;
     }
 
     .tv-field__surface {

@@ -1,0 +1,2855 @@
+﻿export function log(prefixOrEventName, eventNameOrPayload, maybePayload) {
+    const hasExplicitPrefix = typeof maybePayload !== "undefined";
+    const prefix = hasExplicitPrefix ? prefixOrEventName : "TV_MODE";
+    const eventName = hasExplicitPrefix ? eventNameOrPayload : prefixOrEventName;
+    const payload = hasExplicitPrefix ? maybePayload : eventNameOrPayload;
+
+    if (typeof payload === "undefined") {
+        console.log(`[${prefix}] ${eventName}`);
+        return;
+    }
+
+    console.log(`[${prefix}] ${eventName}`, payload);
+}
+
+let telemetryCubeState = null;
+let telemetryChartsState = null;
+let fieldFreedomState = null;
+
+// Field freedom tuning (broadcast-friendly, no jitter)
+const FIELD_FREEDOM = {
+    FREEDOM_RADIUS_MULTIPLIER: 1.0,
+    PLAYER_SPEED_MULTIPLIER: 1.08,
+    SWAY_INTENSITY: 0.72, // px (scaled per-player + gait)
+    SWAY_SPEED: 1.22,
+    TARGET_PAUSE_MIN: 70,
+    TARGET_PAUSE_MAX: 420,
+    OVERSHOOT_STRENGTH: 0.12 // 0..0.25
+};
+
+function isReducedMotion() {
+    return typeof window !== "undefined"
+        && typeof window.matchMedia === "function"
+        && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+async function ensureLightweightChartsLoaded() {
+    if (typeof window === "undefined") {
+        throw new Error("missing window");
+    }
+
+    if (window.LightweightCharts) {
+        return window.LightweightCharts;
+    }
+
+    if (telemetryChartsState?.libPromise) {
+        return telemetryChartsState.libPromise;
+    }
+
+    const libPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = `/js/vendor/lightweight-charts.standalone.production.js?v=20260518-1`;
+        script.async = true;
+        script.onload = () => {
+            if (window.LightweightCharts) {
+                resolve(window.LightweightCharts);
+                return;
+            }
+
+            reject(new Error("LightweightCharts not found after load"));
+        };
+        script.onerror = () => reject(new Error("failed to load lightweight-charts"));
+        document.head.appendChild(script);
+    });
+
+    telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
+    telemetryChartsState.libPromise = libPromise;
+    return libPromise;
+}
+
+const tvLogState = {
+    last: new Map()
+};
+
+function throttleKey(prefix, key, minIntervalMs) {
+    const mapKey = `${prefix}:${key}`;
+    const now = Date.now();
+    const last = tvLogState.last.get(mapKey) ?? 0;
+
+    if (now - last < minIntervalMs) {
+        return false;
+    }
+
+    tvLogState.last.set(mapKey, now);
+    return true;
+}
+
+function telemetryCubeLog(message, payload) {
+    if (typeof payload === "undefined") {
+        console.log(`[TV_CUBE] ${message}`);
+        return;
+    }
+
+    console.log(`[TV_CUBE] ${message}`, payload);
+}
+
+function telemetryChartLog(message, payload) {
+    if (typeof payload === "undefined") {
+        console.log(`[TV_CHART] ${message}`);
+        return;
+    }
+
+    console.log(`[TV_CHART] ${message}`, payload);
+}
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+const tvAudioMap = {
+    goal: "/audio/tv/goal-sting.mp3",
+    nearGoal: "/audio/tv/near-goal.mp3",
+    pressure: "/audio/tv/pressure-rise.mp3",
+    comeback: "/audio/tv/comeback.mp3",
+    equalizer: "/audio/tv/equalizer.mp3",
+    momentum: "/audio/tv/momentum-swing.mp3",
+    fearSpike: "/audio/tv/fear-spike.mp3",
+    fearCollapse: "/audio/tv/fear-collapse.mp3",
+    finalMinutes: "/audio/tv/final-minutes.mp3",
+    victory: "/audio/tv/victory.mp3",
+    replay: "/audio/tv/replay-vinyl.mp3",
+    switchSide: "/audio/tv/switch-side.mp3",
+    crowdRise: "/audio/tv/stadium-crowd-loop.mp3",
+    whistle: "/audio/tv/whistle.mp3",
+    kickoff: "/audio/tv/kickoff.mp3",
+    halftime: "/audio/tv/halftime.mp3",
+    lastMinute: "/audio/tv/last-minute.mp3",
+    counterAttack: "/audio/tv/counter-attack.mp3",
+    marketCrash: "/audio/tv/market-crash.mp3",
+    marketPump: "/audio/tv/market-pump.mp3",
+    clutchSave: "/audio/tv/clutch-save.mp3",
+    bigCandleMovement: "/audio/tv/big-candle-movement.mp3",
+    ballRecovery: "/audio/tv/ball-recovery.mp3",
+    highlightMoment: "/audio/tv/highlight-moment.mp3",
+    suddenReversal: "/audio/tv/sudden-reversal.mp3"
+};
+
+const tvAudioChannelMap = {
+    crowdRise: "ambient",
+    goal: "fx",
+    nearGoal: "fx",
+    pressure: "fx",
+    comeback: "fx",
+    equalizer: "fx",
+    momentum: "fx",
+    fearSpike: "fx",
+    fearCollapse: "fx",
+    finalMinutes: "fx",
+    victory: "fx",
+    replay: "fx",
+    switchSide: "fx",
+    whistle: "ui",
+    kickoff: "ui",
+    halftime: "ui",
+    lastMinute: "ui",
+    counterAttack: "fx",
+    marketCrash: "fx",
+    marketPump: "fx",
+    clutchSave: "fx",
+    bigCandleMovement: "fx",
+    ballRecovery: "fx",
+    highlightMoment: "fx",
+    suddenReversal: "fx"
+};
+
+const tvAudioPriority = {
+    goal: 100,
+    victory: 95,
+    equalizer: 92,
+    comeback: 88,
+    clutchSave: 86,
+    replay: 82,
+    suddenReversal: 78,
+    counterAttack: 76,
+    momentum: 72,
+    nearGoal: 68,
+    pressure: 66,
+    highlightMoment: 64,
+    finalMinutes: 62,
+    fearSpike: 60,
+    fearCollapse: 58,
+    bigCandleMovement: 56,
+    marketCrash: 55,
+    marketPump: 55,
+    ballRecovery: 52,
+    switchSide: 48,
+    halftime: 45,
+    kickoff: 40,
+    whistle: 40,
+    lastMinute: 38,
+    crowdRise: 20
+};
+
+const tvAudioCooldownDefaults = {
+    goal: 6500,
+    replay: 12000,
+    victory: 12000,
+    equalizer: 9000,
+    comeback: 9000,
+    clutchSave: 7000,
+    suddenReversal: 6500,
+    counterAttack: 6000,
+    momentum: 5500,
+    nearGoal: 4000,
+    pressure: 4500,
+    highlightMoment: 5500,
+    finalMinutes: 8000,
+    fearSpike: 6000,
+    fearCollapse: 6000,
+    bigCandleMovement: 6500,
+    marketCrash: 6500,
+    marketPump: 6500,
+    ballRecovery: 4000,
+    switchSide: 8000,
+    halftime: 12000,
+    kickoff: 12000,
+    whistle: 12000,
+    lastMinute: 5000,
+    crowdRise: 3000
+};
+
+let tvAudioManagerState = null;
+
+function logTvAudio(message, payload) {
+    if (typeof payload === "undefined") {
+        console.log(`[TV_AUDIO] ${message}`);
+        return;
+    }
+
+    console.log(`[TV_AUDIO] ${message}`, payload);
+}
+
+function consoleAudio(label, payload) {
+    if (typeof payload === "undefined") {
+        console.log(label);
+        return;
+    }
+
+    console.log(label, payload);
+}
+
+function normalizeAudioError(error) {
+    if (!error) {
+        return { message: "unknown error" };
+    }
+
+    return {
+        name: error.name ?? "Error",
+        message: error.message ?? String(error)
+    };
+}
+
+function ensureTvAudioManager() {
+    if (tvAudioManagerState) {
+        return tvAudioManagerState;
+    }
+
+    tvAudioManagerState = {
+        volume: 0.22,
+        muted: false,
+        ambientElementId: null,
+        ambientTargetVolume: 0.22,
+        context: null,
+        masterGain: null,
+        channelGains: new Map(),
+        sourceNodes: new WeakMap(),
+        instanceGains: new WeakMap(),
+        fadeTimers: new Map(),
+        activeKey: null,
+        activePriority: -1,
+        preload: new Map(),
+        lastPlayedAt: new Map(),
+        unlocked: false,
+        autoplayBlocked: false,
+        unlockListenersAttached: false,
+        initCount: 0,
+        ambientStarted: false,
+        lastError: null,
+        lastUnlockSource: null,
+        diagnostics: {
+            loaded: [],
+            queued: [],
+            played: []
+        }
+    };
+
+    return tvAudioManagerState;
+}
+
+function resolveTvAudioChannel(key) {
+    return tvAudioChannelMap[key] ?? "fx";
+}
+
+function getTvAudioContext() {
+    const manager = ensureTvAudioManager();
+
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+        return null;
+    }
+
+    if (manager.context && manager.context.state !== "closed") {
+        return manager.context;
+    }
+
+    try {
+        const context = new AudioContextCtor();
+        const masterGain = context.createGain();
+        masterGain.gain.value = 1;
+        masterGain.connect(context.destination);
+
+        manager.context = context;
+        manager.masterGain = masterGain;
+        manager.channelGains = new Map();
+        consoleAudio("AUDIO_INIT", { contextState: context.state });
+        return context;
+    } catch {
+        return null;
+    }
+}
+
+function getChannelGain(channel) {
+    const manager = ensureTvAudioManager();
+    const context = getTvAudioContext();
+    if (!context || !manager.masterGain) {
+        return null;
+    }
+
+    if (manager.channelGains.has(channel)) {
+        return manager.channelGains.get(channel);
+    }
+
+    const gain = context.createGain();
+    const defaults = {
+        ambient: 1,
+        fx: 0.92,
+        ui: 0.82
+    };
+
+    gain.gain.value = defaults[channel] ?? 0.9;
+    gain.connect(manager.masterGain);
+    manager.channelGains.set(channel, gain);
+    return gain;
+}
+
+function connectAudioElement(audio, channel) {
+    const manager = ensureTvAudioManager();
+    const context = getTvAudioContext();
+    if (!context) {
+        return null;
+    }
+
+    if (manager.sourceNodes.has(audio)) {
+        return manager.sourceNodes.get(audio);
+    }
+
+    try {
+        const source = context.createMediaElementSource(audio);
+        const instanceGain = context.createGain();
+        const channelGain = getChannelGain(channel);
+
+        if (!channelGain) {
+            source.connect(context.destination);
+        } else {
+            instanceGain.connect(channelGain);
+            source.connect(instanceGain);
+        }
+
+        manager.sourceNodes.set(audio, source);
+        manager.instanceGains.set(audio, instanceGain);
+        return source;
+    } catch {
+        return null;
+    }
+}
+
+function fadeGainTo(gainNode, target, durationMs = 1200) {
+    if (!gainNode || typeof window === "undefined") {
+        return;
+    }
+
+    const manager = ensureTvAudioManager();
+    const key = gainNode;
+    const previous = manager.fadeTimers.get(key);
+    if (previous) {
+        window.cancelAnimationFrame(previous);
+    }
+
+    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const initial = typeof gainNode.gain?.value === "number" ? gainNode.gain.value : 0;
+    const safeTarget = clamp(Number(target) || 0, 0, 1);
+    const safeDuration = Math.max(0, durationMs);
+
+    if (safeDuration === 0) {
+        gainNode.gain.value = safeTarget;
+        return;
+    }
+
+    const tick = (now) => {
+        const elapsed = Math.max(0, now - start);
+        const progress = Math.min(1, elapsed / safeDuration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        gainNode.gain.value = initial + ((safeTarget - initial) * eased);
+
+        if (progress < 1) {
+            const rafId = window.requestAnimationFrame(tick);
+            manager.fadeTimers.set(key, rafId);
+        } else {
+            manager.fadeTimers.delete(key);
+            gainNode.gain.value = safeTarget;
+        }
+    };
+
+    const rafId = window.requestAnimationFrame(tick);
+    manager.fadeTimers.set(key, rafId);
+}
+
+function createPlaybackAudio(url, channel, volume, muted) {
+    const audio = new Audio(url);
+    audio.preload = "auto";
+    audio.loop = false;
+    audio.volume = 1;
+    audio.muted = Boolean(muted);
+    connectAudioElement(audio, channel);
+
+    const manager = ensureTvAudioManager();
+    const instanceGain = manager.instanceGains.get(audio);
+    if (instanceGain) {
+        instanceGain.gain.value = clamp(Number(volume) || manager.volume, 0, 1);
+        if (muted) {
+            instanceGain.gain.value = 0;
+        }
+    }
+
+    audio.addEventListener("ended", () => {
+        try {
+            audio.pause();
+        } catch {
+        }
+
+        const gain = manager.instanceGains.get(audio);
+        if (gain) {
+            try {
+                gain.disconnect();
+            } catch {
+            }
+        }
+
+        const source = manager.sourceNodes.get(audio);
+        if (source) {
+            try {
+                source.disconnect();
+            } catch {
+            }
+        }
+
+        manager.instanceGains.delete(audio);
+        manager.sourceNodes.delete(audio);
+    }, { once: true });
+
+    return audio;
+}
+
+function resolveTvAudioUrl(key) {
+    return tvAudioMap[key] ?? null;
+}
+
+function preloadTvAudio(key) {
+    const manager = ensureTvAudioManager();
+    const url = resolveTvAudioUrl(key);
+    if (!url) {
+        return null;
+    }
+
+    if (manager.preload.has(key)) {
+        return manager.preload.get(key);
+    }
+
+    const audio = new Audio(url);
+    audio.preload = "auto";
+    audio.loop = false;
+    audio.volume = 1;
+    audio.muted = manager.muted;
+    try {
+        audio.load();
+    } catch {
+    }
+
+    manager.preload.set(key, audio);
+    if (!manager.diagnostics.loaded.includes(key)) {
+        manager.diagnostics.loaded.push(key);
+    }
+    logTvAudio("preloaded", { key, url });
+    return audio;
+}
+
+function preloadAllTvAudio() {
+    Object.keys(tvAudioMap).forEach((key) => preloadTvAudio(key));
+}
+
+function playTvAudio(key, options = {}) {
+    const manager = ensureTvAudioManager();
+    const url = resolveTvAudioUrl(key);
+    if (!url) {
+        logTvAudio("missing asset", key);
+        return false;
+    }
+
+    const priority = Number.isFinite(options.priority) ? options.priority : (tvAudioPriority[key] ?? 10);
+    const cooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : (tvAudioCooldownDefaults[key] ?? 2500);
+    const now = Date.now();
+    const lastPlayed = manager.lastPlayedAt.get(key) ?? 0;
+    if (now - lastPlayed < cooldownMs) {
+        return false;
+    }
+
+    if (priority < manager.activePriority && manager.activeKey && now - (manager.lastPlayedAt.get(manager.activeKey) ?? 0) < 900) {
+        return false;
+    }
+
+    const channel = options.channel ?? resolveTvAudioChannel(key);
+    const audio = createPlaybackAudio(url, channel, typeof options.volume === "number" ? options.volume : manager.volume, Boolean(options.muted ?? manager.muted));
+    audio.muted = Boolean(options.muted ?? manager.muted);
+    audio.loop = Boolean(options.loop);
+    consoleAudio("AUDIO_EVENT_TRIGGERED", { key, channel, priority, loop: audio.loop });
+
+    try {
+        if (!audio.loop) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+    } catch {
+    }
+
+    if (channel === "ambient" && audio.loop) {
+        audio.volume = 1;
+        const ambientGain = ensureTvAudioManager().instanceGains.get(audio);
+        if (ambientGain) {
+            ambientGain.gain.value = 0;
+        }
+    }
+
+    consoleAudio("AUDIO_PLAY_REQUEST", { key, channel, loop: audio.loop, muted: audio.muted });
+    const playback = audio.play();
+    manager.lastPlayedAt.set(key, now);
+    manager.activeKey = key;
+    manager.activePriority = priority;
+    manager.diagnostics.queued.push({ key, at: now, priority });
+
+    if (playback && typeof playback.catch === "function") {
+        playback
+            .then(() => {
+                manager.unlocked = true;
+                manager.autoplayBlocked = false;
+                manager.diagnostics.played.push({ key, at: Date.now(), priority });
+                consoleAudio("AUDIO_PLAY_OK", { key, channel, loop: audio.loop });
+                logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
+                if (channel === "ambient" && audio.loop) {
+                    manager.ambientStarted = true;
+                    consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key });
+                }
+            })
+            .catch((error) => {
+                const normalized = normalizeAudioError(error);
+                manager.lastError = normalized;
+                manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+                consoleAudio("AUDIO_PLAY_FAIL", { key, channel, ...normalized });
+                logTvAudio("play failed", { key, error: error?.message ?? String(error) });
+            });
+    } else {
+        manager.unlocked = true;
+        manager.autoplayBlocked = false;
+        manager.diagnostics.played.push({ key, at: Date.now(), priority });
+        consoleAudio("AUDIO_PLAY_OK", { key, channel, loop: audio.loop });
+        logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
+        if (channel === "ambient" && audio.loop) {
+            manager.ambientStarted = true;
+            consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key });
+        }
+    }
+
+    if (!audio.loop) {
+        const timer = window.setTimeout(() => {
+            if (manager.activeKey === key) {
+                manager.activeKey = null;
+                manager.activePriority = -1;
+            }
+        }, 1200);
+        manager.diagnostics.cleanupTimer = timer;
+    }
+
+    return true;
+}
+
+async function unlockTvAudioContext(source = "manual") {
+    const manager = ensureTvAudioManager();
+    const context = getTvAudioContext();
+
+    if (!context) {
+        return false;
+    }
+
+    try {
+        if (context.state === "suspended") {
+            await context.resume();
+        }
+
+        manager.unlocked = context.state === "running";
+        manager.autoplayBlocked = false;
+        manager.lastUnlockSource = source;
+        consoleAudio("AUDIO_UNLOCKED", { source, contextState: context.state });
+        return manager.unlocked;
+    } catch (error) {
+        const normalized = normalizeAudioError(error);
+        manager.lastError = normalized;
+        consoleAudio("AUDIO_PLAY_FAIL", { key: "context-resume", source, ...normalized });
+        return false;
+    }
+}
+
+function ensureAudioUnlockListeners() {
+    const manager = ensureTvAudioManager();
+    if (typeof document === "undefined" || manager.unlockListenersAttached) {
+        return;
+    }
+
+    const resume = async (event) => {
+        const source = event?.type ?? "interaction";
+        await unlockTvAudioContext(source);
+
+        if (manager.ambientElementId && !manager.muted) {
+            await initBroadcastAudio(manager.ambientElementId, manager.ambientTargetVolume, manager.muted);
+        }
+    };
+
+    manager.unlockListenersAttached = true;
+    document.addEventListener("pointerdown", resume, { passive: true });
+    document.addEventListener("keydown", resume, { passive: true });
+    document.addEventListener("touchstart", resume, { passive: true });
+}
+
+function getTvAudioState() {
+    const manager = ensureTvAudioManager();
+    const context = getTvAudioContext();
+    return {
+        unlocked: Boolean(manager.unlocked),
+        autoplayBlocked: Boolean(manager.autoplayBlocked),
+        ambientStarted: Boolean(manager.ambientStarted),
+        muted: Boolean(manager.muted),
+        contextState: context?.state ?? "none",
+        initCount: manager.initCount,
+        ambientElementId: manager.ambientElementId,
+        lastError: manager.lastError?.message ?? null
+    };
+}
+
+function setTvAudioSettings(volume, muted) {
+    const manager = ensureTvAudioManager();
+    manager.volume = Math.min(1, Math.max(0, Number(volume) || manager.volume));
+    manager.muted = Boolean(muted);
+    manager.preload.forEach((audio) => {
+        audio.volume = 1;
+        audio.muted = manager.muted;
+    });
+
+    if (manager.masterGain) {
+        manager.masterGain.gain.value = manager.muted ? 0 : 1;
+    }
+}
+
+function diagnoseTvAudio() {
+    const manager = ensureTvAudioManager();
+    const state = {
+        volume: manager.volume,
+        muted: manager.muted,
+        loaded: [...manager.diagnostics.loaded],
+        queued: manager.diagnostics.queued.slice(-20),
+        played: manager.diagnostics.played.slice(-20),
+        activeKey: manager.activeKey,
+        activePriority: manager.activePriority
+    };
+    console.log("[TV_AUDIO]", state);
+    return state;
+}
+
+const FIELD_MOVEMENT_DEFAULTS = {
+    movementEnabled: true,
+    tacticalMovementEnabled: true,
+    freedomRadiusMultiplier: 1,
+    collisionRadiusMultiplier: 1,
+    collisionStrength: 1,
+    separationStrength: 1,
+    wanderStrength: 0.9,
+    momentumPushStrength: 1,
+    defensiveCompactness: 1,
+    animationSpeed: 1,
+    debug: false
+};
+
+const TACTICAL_STATES = {
+    Idle: "Idle",
+    SupportAttack: "SupportAttack",
+    PressBall: "PressBall",
+    DefendZone: "DefendZone",
+    MarkOpponent: "MarkOpponent",
+    RunIntoSpace: "RunIntoSpace",
+    ReturnToFormation: "ReturnToFormation"
+};
+
+function normalizeFieldMovementOptions(options) {
+    return {
+        movementEnabled: options?.movementEnabled !== false,
+        tacticalMovementEnabled: options?.tacticalMovementEnabled !== false,
+        freedomRadiusMultiplier: clamp(Number(options?.freedomRadiusMultiplier) || 1, 0.4, 2.8),
+        collisionRadiusMultiplier: clamp(Number(options?.collisionRadiusMultiplier) || 1, 0.5, 2),
+        collisionStrength: clamp(Number(options?.collisionStrength) || 1, 0.1, 3),
+        separationStrength: clamp(Number(options?.separationStrength) || 1, 0.1, 3),
+        wanderStrength: clamp(Number(options?.wanderStrength) || 0.9, 0, 3),
+        momentumPushStrength: clamp(Number(options?.momentumPushStrength) || 1, 0.1, 3),
+        defensiveCompactness: clamp(Number(options?.defensiveCompactness) || 1, 0.2, 3),
+        animationSpeed: clamp(Number(options?.animationSpeed) || 1, 0.3, 2.5),
+        debug: Boolean(options?.debug)
+    };
+}
+
+function readFieldMovementContext(root) {
+    const teamA = root.dataset?.teamA || "";
+    const teamB = root.dataset?.teamB || "";
+    const ballCarrier = root.querySelector(".tv-field__player.has-ball");
+
+    return {
+        teamA,
+        teamB,
+        possessionA: clamp(Number(root.dataset?.possessionA) || 50, 0, 100),
+        possessionB: clamp(Number(root.dataset?.possessionB) || 50, 0, 100),
+        pressureA: clamp(Number(root.dataset?.pressureA) || 0, -4, 4),
+        pressureB: clamp(Number(root.dataset?.pressureB) || 0, -4, 4),
+        momentumOwner: root.dataset?.momentumOwner || "",
+        leader: root.dataset?.leader || "",
+        ballOwner: ballCarrier?.dataset?.teamSymbol || ""
+    };
+}
+
+function stringEquals(a, b) {
+    return String(a || "").toLowerCase() === String(b || "").toLowerCase();
+}
+
+function addVector(a, b) {
+    return { x: a.x + b.x, y: a.y + b.y };
+}
+
+function subtractVector(a, b) {
+    return { x: a.x - b.x, y: a.y - b.y };
+}
+
+function scaleVector(vector, scalar) {
+    return { x: vector.x * scalar, y: vector.y * scalar };
+}
+
+function vectorMagnitude(vector) {
+    return Math.hypot(vector.x, vector.y);
+}
+
+function normalizeVector(vector) {
+    const length = vectorMagnitude(vector);
+    if (length <= 0.00001) {
+        return { x: 0, y: 0 };
+    }
+
+    return { x: vector.x / length, y: vector.y / length };
+}
+
+function limitVectorMagnitude(vector, max) {
+    const length = vectorMagnitude(vector);
+    if (length <= max || length <= 0.00001) {
+        return vector;
+    }
+
+    const factor = max / length;
+    vector.x *= factor;
+    vector.y *= factor;
+    return vector;
+}
+
+export function destroyFieldSway(rootId = "tv-crypto-field") {
+    if (!fieldFreedomState) {
+        return;
+    }
+
+    if (rootId && fieldFreedomState.rootId && fieldFreedomState.rootId !== rootId) {
+        return;
+    }
+
+    if (fieldFreedomState.rafId) {
+        cancelAnimationFrame(fieldFreedomState.rafId);
+    }
+
+    for (const player of fieldFreedomState.players ?? []) {
+        if (!player?.node?.isConnected) {
+            continue;
+        }
+
+        player.node.classList.remove("is-free-walking");
+        player.node.style.setProperty("--tv-free-x", "0px");
+        player.node.style.setProperty("--tv-free-y", "0px");
+        player.node.style.removeProperty("--tv-debug-target-x");
+        player.node.style.removeProperty("--tv-debug-target-y");
+        player.node.style.removeProperty("--tv-debug-vel-x");
+        player.node.style.removeProperty("--tv-debug-vel-y");
+    }
+
+    fieldFreedomState.root?.classList.remove("tv-field--movement-debug");
+    fieldFreedomState = null;
+}
+
+export function initFieldSway(rootId = "tv-crypto-field", options = {}) {
+    const root = document.getElementById(rootId);
+    if (!root) {
+        return;
+    }
+
+    const overlay = root.querySelector(".tv-field__overlay");
+    if (!overlay) {
+        return;
+    }
+
+    if (isReducedMotion()) {
+        destroyFieldSway(rootId);
+        return;
+    }
+
+    const normalizedOptions = normalizeFieldMovementOptions(options);
+    root.classList.toggle("tv-field--movement-debug", normalizedOptions.debug);
+
+    if (!normalizedOptions.movementEnabled) {
+        destroyFieldSway(rootId);
+        return;
+    }
+
+    if (fieldFreedomState?.root === root) {
+        fieldFreedomState.rootId = rootId;
+        fieldFreedomState.options = normalizedOptions;
+        fieldFreedomState.context = readFieldMovementContext(root);
+        fieldFreedomState.players = collectTacticalPlayers(root, fieldFreedomState);
+        return;
+    }
+
+    destroyFieldSway(rootId);
+
+    fieldFreedomState = {
+        rootId,
+        root,
+        overlay,
+        options: normalizedOptions,
+        context: readFieldMovementContext(root),
+        players: [],
+        startedAt: performance.now(),
+        lastNow: 0,
+        rafId: 0,
+        refreshAt: 0
+    };
+
+    fieldFreedomState.players = collectTacticalPlayers(root, fieldFreedomState);
+
+    const tick = (now) => {
+        if (!fieldFreedomState || fieldFreedomState.root !== root) {
+            return;
+        }
+
+        if (!fieldFreedomState.refreshAt || now - fieldFreedomState.refreshAt > 700) {
+            fieldFreedomState.context = readFieldMovementContext(root);
+            fieldFreedomState.players = collectTacticalPlayers(root, fieldFreedomState);
+            fieldFreedomState.refreshAt = now;
+        }
+
+        applyTacticalFieldMotion(fieldFreedomState, now);
+        fieldFreedomState.rafId = requestAnimationFrame(tick);
+    };
+
+    fieldFreedomState.rafId = requestAnimationFrame(tick);
+}
+
+function collectTacticalPlayers(root, state) {
+    const previousPlayers = state?.players ?? [];
+    const prevByKey = new Map(previousPlayers.map((player) => [player.key, player]));
+    const players = [];
+
+    for (const node of Array.from(root.querySelectorAll(".tv-field__player"))) {
+        const seed = Number(node.dataset?.swaySeed);
+        const stableSeed = Number.isFinite(seed) ? seed : Math.floor(Math.random() * 10000);
+        const playerIndex = Number(node.dataset?.playerIndex);
+        const side = node.dataset?.side || (node.classList.contains("is-left") ? "left" : "right");
+        const key = `${side}:${Number.isFinite(playerIndex) ? playerIndex : -1}:${stableSeed}`;
+        const baseXPercent = Number(node.dataset?.baseX);
+        const baseYPercent = Number(node.dataset?.baseY);
+        const role = resolveFieldRole(node, playerIndex);
+        const existing = prevByKey.get(key);
+
+        if (existing) {
+            existing.node = node;
+            existing.teamSymbol = node.dataset?.teamSymbol || existing.teamSymbol;
+            existing.side = side;
+            existing.role = role;
+            existing.baseXPercent = Number.isFinite(baseXPercent) ? baseXPercent : existing.baseXPercent;
+            existing.baseYPercent = Number.isFinite(baseYPercent) ? baseYPercent : existing.baseYPercent;
+            hydratePlayerFlags(existing);
+            node.classList.add("is-free-walking");
+            players.push(primeTacticalPlayer(existing, state));
+            continue;
+        }
+
+        const player = {
+            key,
+            node,
+            seed: stableSeed,
+            playerIndex,
+            teamSymbol: node.dataset?.teamSymbol || "",
+            side,
+            role,
+            baseXPercent: Number.isFinite(baseXPercent) ? baseXPercent : 50,
+            baseYPercent: Number.isFinite(baseYPercent) ? baseYPercent : 50,
+            position: { x: 0, y: 0 },
+            velocity: { x: 0, y: 0 },
+            acceleration: { x: 0, y: 0 },
+            target: { x: 0, y: 0 },
+            tacticalState: TACTICAL_STATES.Idle,
+            freedomRadius: 0,
+            maxSpeed: 0,
+            maxForce: 0,
+            wanderAngle: randomFloat01(stableSeed + 11) * Math.PI * 2,
+            phase: randomFloat01(stableSeed + 17) * Math.PI * 2,
+            stride: 0.84 + randomFloat01(stableSeed + 23) * 0.54,
+            sway: 0.82 + randomFloat01(stableSeed + 29) * 0.44
+        };
+
+        hydratePlayerFlags(player);
+        node.classList.add("is-free-walking");
+        players.push(primeTacticalPlayer(player, state));
+    }
+
+    return players;
+}
+
+function hydratePlayerFlags(player) {
+    player.hasBall = player.node.classList.contains("has-ball");
+    player.isAttacking = player.node.classList.contains("is-attacking");
+    player.isDefending = player.node.classList.contains("is-defending");
+    player.hasMomentum = player.node.classList.contains("has-momentum");
+    return player;
+}
+
+function primeTacticalPlayer(player, state) {
+    player.freedomRadius = resolveTacticalFreedomRadiusPx(player, state);
+    player.collisionRadius = resolveTacticalCollisionRadiusPx(player, state);
+    player.maxSpeed = resolveTacticalMaxSpeed(player);
+    player.maxForce = resolveTacticalMaxForce(player);
+    return player;
+}
+
+function resolveFieldRole(node, playerIndex) {
+    if (node.dataset?.role) {
+        return node.dataset.role;
+    }
+
+    if (playerIndex === 0) return "goalkeeper";
+    if (playerIndex <= 2) return "defender";
+    if (playerIndex === 3) return "midfielder";
+    return "attacker";
+}
+
+function resolveTacticalFreedomRadiusPx(player, state) {
+    const options = state?.options ?? FIELD_MOVEMENT_DEFAULTS;
+    let base = player.role === "goalkeeper"
+        ? 12
+        : player.role === "defender"
+            ? 22
+            : player.role === "midfielder"
+                ? 32
+                : 40;
+
+    if (player.hasBall) base += 12;
+    if (player.isAttacking) base += 6;
+    if (player.isDefending) base -= 4;
+    if (player.hasMomentum) base += 4;
+
+    return clamp(base * options.freedomRadiusMultiplier, player.role === "goalkeeper" ? 8 : 14, 72);
+}
+
+function resolveTacticalCollisionRadiusPx(player, state) {
+    const options = state?.options ?? FIELD_MOVEMENT_DEFAULTS;
+    const rect = player.node?.getBoundingClientRect?.();
+    const visualRadius = rect ? Math.max(rect.width, rect.height) * 0.38 : 14;
+    const roleBias = player.role === "goalkeeper"
+        ? 0.92
+        : player.role === "defender"
+            ? 1.04
+            : player.role === "midfielder"
+                ? 1.0
+                : 0.98;
+
+    return clamp(visualRadius * roleBias * options.collisionRadiusMultiplier, 10, 26);
+}
+
+function resolveTacticalMaxSpeed(player) {
+    const base = player.role === "goalkeeper"
+        ? 18
+        : player.role === "defender"
+            ? 30
+            : player.role === "midfielder"
+                ? 36
+                : 42;
+    return base * (0.9 + randomFloat01(player.seed + 41) * 0.28);
+}
+
+function resolveTacticalMaxForce(player) {
+    const base = player.role === "goalkeeper"
+        ? 30
+        : player.role === "defender"
+            ? 42
+            : player.role === "midfielder"
+                ? 50
+                : 56;
+    return base * (0.92 + randomFloat01(player.seed + 47) * 0.24);
+}
+
+function collectFreedomPlayers(root, previousPlayers = []) {
+    const prevByKey = new Map(previousPlayers.map((p) => [p.key, p]));
+    const nodes = Array.from(root.querySelectorAll(".tv-field__player"));
+    const players = [];
+
+    const ensureTuning = (player) => {
+        // Per-player rhythm (stable across refreshes)
+        if (!Number.isFinite(player.phase)) {
+            player.phase = randomFloat01(player.seed + 19) * Math.PI * 2;
+        }
+
+        if (!Number.isFinite(player.speedMultiplier)) {
+            // Slight spread in walking speed
+            player.speedMultiplier = 0.82 + randomFloat01(player.seed + 23) * 0.52; // 0.82..1.34
+        }
+
+        if (!Number.isFinite(player.swayIntensity)) {
+            player.swayIntensity = 0.85 + randomFloat01(player.seed + 29) * 0.55; // 0.85..1.40
+        }
+
+        if (!Number.isFinite(player.swaySpeed)) {
+            player.swaySpeed = 0.78 + randomFloat01(player.seed + 31) * 0.74; // 0.78..1.52
+        }
+
+        if (!Number.isFinite(player.pauseMultiplier)) {
+            // Some players "scan" more, others keep moving
+            player.pauseMultiplier = 0.72 + randomFloat01(player.seed + 37) * 0.78; // 0.72..1.50
+        }
+
+        return player;
+    };
+
+    for (const node of nodes) {
+        const seed = Number(node.dataset?.swaySeed);
+        const stableSeed = Number.isFinite(seed) ? seed : Math.floor(Math.random() * 10000);
+        const playerIndex = Number(node.dataset?.playerIndex);
+        const key = `${stableSeed}:${Number.isFinite(playerIndex) ? playerIndex : -1}:${node.classList.contains("is-left") ? "L" : "R"}`;
+
+        const existing = prevByKey.get(key);
+        if (existing) {
+            existing.node = node;
+            existing.seed = stableSeed;
+            ensureTuning(existing);
+            node.classList.add("is-free-walking");
+            players.push(existing);
+            continue;
+        }
+
+        const radius = resolveFreedomRadiusPx(node, playerIndex);
+        const initial = randomPointInCircle(radius, stableSeed);
+        const target = randomPointInCircle(radius, stableSeed + 31);
+
+        node.classList.add("is-free-walking");
+        node.style.setProperty("--tv-free-x", `${initial.x.toFixed(2)}px`);
+        node.style.setProperty("--tv-free-y", `${initial.y.toFixed(2)}px`);
+
+        players.push(ensureTuning({
+            key,
+            node,
+            seed: stableSeed,
+            playerIndex,
+            radius,
+            ox: initial.x,
+            oy: initial.y,
+            tx: target.x,
+            ty: target.y,
+            vx: 0,
+            vy: 0,
+            waitUntil: performance.now() + randomRangeMs(
+                FIELD_FREEDOM.TARGET_PAUSE_MIN,
+                FIELD_FREEDOM.TARGET_PAUSE_MAX,
+                stableSeed + 7
+            )
+        }));
+    }
+
+    return players;
+}
+
+function resolveFreedomRadiusPx(node, playerIndex) {
+    // Role approximation by index: 0 GK; 1-2 defenders; 3 mid; 4-6 attackers
+    let base = 2.2;
+    if (playerIndex === 0) base = 0.65;
+    else if (playerIndex <= 2) base = 1.6;
+    else if (playerIndex === 3) base = 2.2;
+    else if (playerIndex <= 5) base = 3.0;
+    else base = 2.6;
+
+    // Dynamic: slightly larger for attacking situations, smaller for deep defending.
+    if (node.classList.contains("has-ball")) base += 0.7;
+    if (node.classList.contains("is-attacking")) base += 0.35;
+    if (node.classList.contains("is-defending")) base -= 0.2;
+    if (node.classList.contains("has-momentum")) base += 0.25;
+
+    // Requested scaling
+    let multiplier = 1.0;
+    if (playerIndex === 0) multiplier = 1.0;
+    else if (playerIndex <= 2) multiplier = 1.15;
+    else if (playerIndex === 3) multiplier = 1.25;
+    else multiplier = 1.30;
+    if (node.classList.contains("has-ball")) multiplier *= 1.35;
+
+    const scaled = base * multiplier * FIELD_FREEDOM.FREEDOM_RADIUS_MULTIPLIER;
+    return Math.max(0.5, Math.min(6.2, scaled));
+}
+
+function randomRangeMs(min, max, seed) {
+    const t = Math.sin(seed * 999) * 10000;
+    const frac = t - Math.floor(t);
+    return min + (max - min) * frac;
+}
+
+function randomFloat01(seed) {
+    const t = Math.sin(seed * 12.9898) * 43758.5453;
+    const frac = t - Math.floor(t);
+    return frac < 0 ? frac + 1 : frac;
+}
+
+function randomPointInCircle(radius, seed) {
+    const a = (Math.sin(seed * 12.9898) * 43758.5453) % (Math.PI * 2);
+    const r = Math.sqrt(Math.abs(Math.sin(seed * 78.233))) * radius;
+    return { x: Math.cos(a) * r, y: Math.sin(a) * r };
+}
+
+function clampOffsetToField(player, overlayRect, playerRect) {
+    // Keep the transformed player fully inside the overlay.
+    const halfW = playerRect.width / 2;
+    const halfH = playerRect.height / 2;
+    const centerX = playerRect.left - overlayRect.left + halfW;
+    const centerY = playerRect.top - overlayRect.top + halfH;
+
+    const minX = halfW;
+    const maxX = overlayRect.width - halfW;
+    const minY = halfH;
+    const maxY = overlayRect.height - halfH;
+
+    let ox = player.ox;
+    let oy = player.oy;
+
+    if (centerX < minX) ox += (minX - centerX);
+    if (centerX > maxX) ox -= (centerX - maxX);
+    if (centerY < minY) oy += (minY - centerY);
+    if (centerY > maxY) oy -= (centerY - maxY);
+
+    player.ox = ox;
+    player.oy = oy;
+}
+
+function applyTacticalFieldMotion(state, now) {
+    const dt = Math.min(0.05, state.lastNow ? (now - state.lastNow) / 1000 : 1 / 60);
+    state.lastNow = now;
+
+    if (!state.options.movementEnabled || dt <= 0) {
+        return;
+    }
+
+    const overlayRect = state.overlay.getBoundingClientRect();
+    const ballInfo = resolveTacticalBallInfo(state, overlayRect);
+
+    for (const player of state.players) {
+        if (!player?.node?.isConnected) {
+            continue;
+        }
+
+        primeTacticalPlayer(player, state);
+        player.tacticalState = resolveTacticalState(player, state, ballInfo, overlayRect);
+        player.target = resolveTacticalTarget(player, state, ballInfo, overlayRect, now);
+        player.acceleration = { x: 0, y: 0 };
+
+        applySteeringForce(player, arriveSteeringForce(player, player.target), 1.1);
+        applySteeringForce(player, separationSteeringForce(player, state.players, overlayRect, state.options.separationStrength), 1.2);
+        applySteeringForce(player, avoidCrowdingForce(player, state.players, overlayRect), 0.9);
+        applySteeringForce(player, returnToFormationForce(player), 0.85);
+
+        if (state.options.tacticalMovementEnabled) {
+            applySteeringForce(player, wanderSteeringForce(player, dt, state.options.wanderStrength), 0.55);
+        }
+
+        player.velocity.x += player.acceleration.x * dt;
+        player.velocity.y += player.acceleration.y * dt;
+        limitVectorMagnitude(player.velocity, Math.max(12, player.maxSpeed * state.options.animationSpeed));
+
+        player.position.x += player.velocity.x * dt;
+        player.position.y += player.velocity.y * dt;
+    }
+
+    resolvePlayerCollisions(state.players, overlayRect, state.options.collisionStrength);
+
+    for (const player of state.players) {
+        if (!player?.node?.isConnected) {
+            continue;
+        }
+
+        clampPlayerToFreedomRadius(player);
+        clampPlayerToOverlay(player, overlayRect);
+
+        const visual = resolveTacticalVisualOffset(player, now);
+        player.node.style.setProperty("--tv-free-x", `${visual.x.toFixed(2)}px`);
+        player.node.style.setProperty("--tv-free-y", `${visual.y.toFixed(2)}px`);
+
+        if (state.options.debug) {
+            player.node.style.setProperty("--tv-debug-target-x", `${(player.target.x - player.position.x).toFixed(2)}px`);
+            player.node.style.setProperty("--tv-debug-target-y", `${(player.target.y - player.position.y).toFixed(2)}px`);
+            player.node.style.setProperty("--tv-debug-vel-x", `${player.velocity.x.toFixed(2)}px`);
+            player.node.style.setProperty("--tv-debug-vel-y", `${player.velocity.y.toFixed(2)}px`);
+        }
+    }
+}
+
+function resolveTacticalBallInfo(state, overlayRect) {
+    const carrier = state.players.find((player) => player.hasBall) ?? null;
+
+    if (!carrier) {
+        return {
+            carrier: null,
+            x: overlayRect.width / 2,
+            y: overlayRect.height / 2,
+            owner: state.context.ballOwner || state.context.momentumOwner || state.context.leader || state.context.teamA
+        };
+    }
+
+    const world = toTacticalWorldPoint(carrier, overlayRect);
+    return {
+        carrier,
+        x: world.x,
+        y: world.y,
+        owner: carrier.teamSymbol
+    };
+}
+
+function resolveTacticalState(player, state, ballInfo, overlayRect) {
+    if (player.role === "goalkeeper") {
+        return TACTICAL_STATES.Idle;
+    }
+
+    if (!state.options.tacticalMovementEnabled) {
+        return TACTICAL_STATES.Idle;
+    }
+
+    const inPossession = stringEquals(player.teamSymbol, ballInfo.owner);
+    const nearBall = tacticalDistanceToBall(player, ballInfo, overlayRect) < player.freedomRadius * 1.9;
+
+    if (!inPossession && nearBall) {
+        return TACTICAL_STATES.PressBall;
+    }
+
+    if (!inPossession && player.role === "defender") {
+        return nearBall ? TACTICAL_STATES.MarkOpponent : TACTICAL_STATES.DefendZone;
+    }
+
+    if (inPossession && (player.hasBall || player.role === "attacker")) {
+        return TACTICAL_STATES.RunIntoSpace;
+    }
+
+    if (inPossession && (player.role === "midfielder" || player.isAttacking)) {
+        return TACTICAL_STATES.SupportAttack;
+    }
+
+    if (!inPossession && player.role === "midfielder") {
+        return TACTICAL_STATES.MarkOpponent;
+    }
+
+    return TACTICAL_STATES.ReturnToFormation;
+}
+
+function resolveTacticalTarget(player, state, ballInfo, overlayRect, now) {
+    const context = state.context;
+    const dir = player.side === "left" ? 1 : -1;
+    const possession = stringEquals(player.teamSymbol, context.teamA) ? context.possessionA : context.possessionB;
+    const pressure = stringEquals(player.teamSymbol, context.teamA) ? context.pressureA : context.pressureB;
+    const inPossession = stringEquals(player.teamSymbol, ballInfo.owner);
+    const momentumBoost = stringEquals(player.teamSymbol, context.momentumOwner) ? 1 : 0;
+    const radius = player.freedomRadius;
+    const compactness = state.options.defensiveCompactness;
+    const momentumPush = state.options.momentumPushStrength;
+    const shapeBias = clamp((possession - 50) / 50, -1, 1);
+    const wanderSeed = player.seed + Math.floor(now / 520);
+    const wander = randomPointInCircle(radius * (0.22 + state.options.wanderStrength * 0.16), wanderSeed);
+    let target = { x: 0, y: 0 };
+
+    switch (player.tacticalState) {
+        case TACTICAL_STATES.PressBall:
+            target = {
+                x: dir * radius * (0.34 + shapeBias * 0.18),
+                y: clamp(((ballInfo.y / overlayRect.height) - 0.5) * radius * 0.6, -radius * 0.45, radius * 0.45)
+            };
+            break;
+        case TACTICAL_STATES.DefendZone:
+            target = {
+                x: -dir * radius * (0.24 + compactness * 0.1),
+                y: clamp(-player.position.y * 0.24, -radius * 0.32, radius * 0.32)
+            };
+            break;
+        case TACTICAL_STATES.MarkOpponent:
+            target = {
+                x: -dir * radius * 0.08,
+                y: clamp(((ballInfo.y / overlayRect.height) - 0.5) * radius * 0.72, -radius * 0.42, radius * 0.42)
+            };
+            break;
+        case TACTICAL_STATES.SupportAttack:
+            target = {
+                x: dir * radius * (0.24 + (shapeBias * 0.18) + (momentumBoost * 0.08 * momentumPush)),
+                y: wander.y * 0.7
+            };
+            break;
+        case TACTICAL_STATES.RunIntoSpace:
+            target = {
+                x: dir * radius * (0.42 + (shapeBias * 0.12) + (Math.max(0, pressure) * 0.06 * momentumPush)),
+                y: clamp(wander.y + Math.sin((now / 900) + player.phase) * radius * 0.16, -radius * 0.5, radius * 0.5)
+            };
+            break;
+        case TACTICAL_STATES.ReturnToFormation:
+            target = {
+                x: inPossession ? dir * radius * 0.06 : -dir * radius * 0.06 * compactness,
+                y: -player.position.y * 0.18
+            };
+            break;
+        default:
+            target = { x: wander.x * 0.55, y: wander.y * 0.55 };
+            break;
+    }
+
+    if (player.role === "goalkeeper") {
+        target.x = clamp(target.x, -dir * radius * 0.12, dir * radius * 0.12);
+        target.y = clamp(((ballInfo.y / overlayRect.height) - 0.5) * radius * 0.28, -radius * 0.2, radius * 0.2);
+    }
+
+    if (!inPossession) {
+        target.x += -dir * radius * 0.08 * compactness;
+    }
+
+    if (player.role === "attacker" && inPossession) {
+        target.x += dir * radius * 0.08 * momentumPush;
+    }
+
+    return clampTacticalTarget(target, radius);
+}
+
+function arriveSteeringForce(player, target) {
+    const desired = subtractVector(target, player.position);
+    const distance = vectorMagnitude(desired);
+    if (distance <= 0.001) {
+        return { x: 0, y: 0 };
+    }
+
+    const slowingRadius = Math.max(18, player.freedomRadius * 0.75);
+    let speed = player.maxSpeed;
+    if (distance < slowingRadius) {
+        speed *= distance / slowingRadius;
+    }
+
+    const steer = scaleVector(normalizeVector(desired), speed);
+    steer.x -= player.velocity.x;
+    steer.y -= player.velocity.y;
+    return limitVectorMagnitude(steer, player.maxForce);
+}
+
+function wanderSteeringForce(player, dt, strength) {
+    player.wanderAngle += ((randomFloat01(player.seed + performance.now() * 0.001) - 0.5) * 2) * dt * 2.2;
+    const circleDistance = player.freedomRadius * 0.24;
+    const circleRadius = player.freedomRadius * 0.16 * strength;
+    const heading = vectorMagnitude(player.velocity) > 0.001 ? normalizeVector(player.velocity) : { x: player.side === "left" ? 1 : -1, y: 0 };
+    const circleCenter = scaleVector(heading, circleDistance);
+    const displacement = {
+        x: Math.cos(player.wanderAngle) * circleRadius,
+        y: Math.sin(player.wanderAngle) * circleRadius
+    };
+
+    return limitVectorMagnitude(addVector(circleCenter, displacement), player.maxForce * 0.42);
+}
+
+function separationSteeringForce(player, players, overlayRect, strength) {
+    const desiredSeparation = player.role === "goalkeeper" ? 18 : 28;
+    let steer = { x: 0, y: 0 };
+    let count = 0;
+    const ownPos = toTacticalWorldPoint(player, overlayRect);
+
+    for (const other of players) {
+        if (other === player || !stringEquals(other.teamSymbol, player.teamSymbol)) {
+            continue;
+        }
+
+        const otherPos = toTacticalWorldPoint(other, overlayRect);
+        const dx = ownPos.x - otherPos.x;
+        const dy = ownPos.y - otherPos.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= 0.001 || distance >= desiredSeparation) {
+            continue;
+        }
+
+        steer.x += dx / distance;
+        steer.y += dy / distance;
+        count += 1;
+    }
+
+    if (count <= 0) {
+        return steer;
+    }
+
+    steer.x /= count;
+    steer.y /= count;
+    steer = scaleVector(normalizeVector(steer), player.maxSpeed);
+    steer.x -= player.velocity.x;
+    steer.y -= player.velocity.y;
+    return limitVectorMagnitude(scaleVector(steer, strength), player.maxForce * 1.1);
+}
+
+function avoidCrowdingForce(player, players, overlayRect) {
+    let steer = { x: 0, y: 0 };
+    const ownPos = toTacticalWorldPoint(player, overlayRect);
+
+    for (const other of players) {
+        if (other === player) {
+            continue;
+        }
+
+        const otherPos = toTacticalWorldPoint(other, overlayRect);
+        const dx = ownPos.x - otherPos.x;
+        const dy = ownPos.y - otherPos.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= 0.001 || distance > 22) {
+            continue;
+        }
+
+        steer.x += dx / distance;
+        steer.y += dy / distance;
+    }
+
+    return limitVectorMagnitude(steer, player.maxForce * 0.6);
+}
+
+function returnToFormationForce(player) {
+    const distance = vectorMagnitude(player.position);
+    if (distance < player.freedomRadius * 0.65) {
+        return { x: 0, y: 0 };
+    }
+
+    const desired = scaleVector(normalizeVector(scaleVector(player.position, -1)), player.maxSpeed * 0.55);
+    desired.x -= player.velocity.x;
+    desired.y -= player.velocity.y;
+    return limitVectorMagnitude(desired, player.maxForce * 0.7);
+}
+
+function applySteeringForce(player, force, weight = 1) {
+    if (!force) {
+        return;
+    }
+
+    player.acceleration.x += force.x * weight;
+    player.acceleration.y += force.y * weight;
+}
+
+function resolvePlayerCollisions(players, overlayRect, strength) {
+    const activePlayers = players.filter((player) => player?.node?.isConnected);
+    const count = activePlayers.length;
+
+    for (let i = 0; i < count; i += 1) {
+        const a = activePlayers[i];
+        const aWorld = toTacticalWorldPoint(a, overlayRect);
+
+        for (let j = i + 1; j < count; j += 1) {
+            const b = activePlayers[j];
+            const bWorld = toTacticalWorldPoint(b, overlayRect);
+            let dx = bWorld.x - aWorld.x;
+            let dy = bWorld.y - aWorld.y;
+            let distance = Math.hypot(dx, dy);
+            const minDistance = (a.collisionRadius ?? 14) + (b.collisionRadius ?? 14);
+
+            if (distance >= minDistance) {
+                continue;
+            }
+
+            if (distance <= 0.0001) {
+                const angle = randomFloat01((a.seed + 1) * (b.seed + 1)) * Math.PI * 2;
+                dx = Math.cos(angle);
+                dy = Math.sin(angle);
+                distance = 1;
+            }
+
+            const nx = dx / distance;
+            const ny = dy / distance;
+            const overlap = (minDistance - distance) * 0.5 * strength;
+            const aWeight = a.role === "goalkeeper" ? 0.32 : a.role === "defender" ? 0.46 : 0.5;
+            const bWeight = b.role === "goalkeeper" ? 0.32 : b.role === "defender" ? 0.46 : 0.5;
+
+            a.position.x -= nx * overlap * aWeight;
+            a.position.y -= ny * overlap * aWeight;
+            b.position.x += nx * overlap * bWeight;
+            b.position.y += ny * overlap * bWeight;
+
+            a.velocity.x -= nx * overlap * 0.26;
+            a.velocity.y -= ny * overlap * 0.26;
+            b.velocity.x += nx * overlap * 0.26;
+            b.velocity.y += ny * overlap * 0.26;
+
+            limitVectorMagnitude(a.velocity, a.maxSpeed);
+            limitVectorMagnitude(b.velocity, b.maxSpeed);
+        }
+    }
+}
+
+function resolveTacticalVisualOffset(player, now) {
+    const speed = vectorMagnitude(player.velocity);
+    const gait = Math.min(1, speed / Math.max(1, player.maxSpeed));
+    const swayPhase = (now / 1000) * (FIELD_FREEDOM.SWAY_SPEED * player.stride) + player.phase;
+    const lateral = Math.sin(swayPhase) * FIELD_FREEDOM.SWAY_INTENSITY * player.sway * (0.4 + gait * 0.95);
+    const heading = speed > 0.001 ? normalizeVector(player.velocity) : { x: 0, y: 1 };
+    const perpendicular = { x: -heading.y, y: heading.x };
+
+    return {
+        x: player.position.x + perpendicular.x * lateral,
+        y: player.position.y + perpendicular.y * lateral * 0.82
+    };
+}
+
+function clampPlayerToFreedomRadius(player) {
+    const distance = vectorMagnitude(player.position);
+    if (distance <= player.freedomRadius) {
+        return;
+    }
+
+    const normalized = normalizeVector(player.position);
+    player.position.x = normalized.x * player.freedomRadius;
+    player.position.y = normalized.y * player.freedomRadius;
+    player.velocity.x *= 0.78;
+    player.velocity.y *= 0.78;
+}
+
+function clampPlayerToOverlay(player, overlayRect) {
+    const rect = player.node.getBoundingClientRect();
+    const halfW = rect.width / 2;
+    const halfH = rect.height / 2;
+    const baseX = (player.baseXPercent / 100) * overlayRect.width;
+    const baseY = (player.baseYPercent / 100) * overlayRect.height;
+    const worldX = baseX + player.position.x;
+    const worldY = baseY + player.position.y;
+    const clampedX = clamp(worldX, halfW, overlayRect.width - halfW);
+    const clampedY = clamp(worldY, halfH, overlayRect.height - halfH);
+
+    player.position.x += clampedX - worldX;
+    player.position.y += clampedY - worldY;
+}
+
+function tacticalDistanceToBall(player, ballInfo, overlayRect) {
+    const world = toTacticalWorldPoint(player, overlayRect);
+    return Math.hypot(world.x - ballInfo.x, world.y - ballInfo.y);
+}
+
+function toTacticalWorldPoint(player, overlayRect) {
+    return {
+        x: (player.baseXPercent / 100) * overlayRect.width + player.position.x,
+        y: (player.baseYPercent / 100) * overlayRect.height + player.position.y
+    };
+}
+
+function clampTacticalTarget(target, radius) {
+    const distance = vectorMagnitude(target);
+    if (distance <= radius) {
+        return target;
+    }
+
+    const normalized = normalizeVector(target);
+    return {
+        x: normalized.x * radius,
+        y: normalized.y * radius
+    };
+}
+
+let broadcastCameraState = null;
+
+const BroadcastStateManager = {
+    normalize(payload) {
+        return {
+            state: String(payload?.state || "NormalBroadcast"),
+            side: String(payload?.side || "center"),
+            durationMs: Math.max(600, Number(payload?.durationMs) || 4200),
+            remainingMs: Math.max(0, Number(payload?.remainingMs) || 0),
+            pushInEnabled: payload?.pushInEnabled !== false,
+            pushInStrength: clamp(Number(payload?.pushInStrength) || 1, 0.3, 2.5),
+            cameraSmoothness: clamp(Number(payload?.cameraSmoothness) || 0.18, 0.04, 0.45),
+            focusZoomScale: clamp(Number(payload?.focusZoomScale) || 1.08, 1, 1.4),
+            goalZoomScale: clamp(Number(payload?.goalZoomScale) || 1.18, 1.05, 1.55),
+            transitionSpeed: clamp(Number(payload?.transitionSpeed) || 900, 600, 1200),
+            hudFadeEnabled: payload?.hudFadeEnabled !== false,
+            hidePanels: Boolean(payload?.hidePanels),
+            leftSymbol: String(payload?.leftSymbol || ""),
+            rightSymbol: String(payload?.rightSymbol || ""),
+            hotScore: Number(payload?.hotScore) || 0,
+            fear: Boolean(payload?.fear),
+            possessionA: Number(payload?.possessionA) || 50,
+            possessionB: Number(payload?.possessionB) || 50
+        };
+    }
+};
+
+const CameraDirector = {
+    resolveTarget(payload) {
+        const sideBias = payload.side === "left" ? -1 : payload.side === "right" ? 1 : 0;
+        const baseFocusScale = payload.focusZoomScale * (0.98 + ((payload.pushInStrength - 1) * 0.08));
+        const baseGoalScale = payload.goalZoomScale * (0.98 + ((payload.pushInStrength - 1) * 0.1));
+
+        switch (payload.state) {
+            case "FieldFocus":
+                return { scale: baseFocusScale, x: `${sideBias * 1.5}%`, y: "0.6%", hud: payload.hudFadeEnabled ? 0.72 : 1, hudScale: 0.96 };
+            case "AttackFocus":
+                return { scale: baseFocusScale + 0.04, x: `${sideBias * 2.8}%`, y: "1.2%", hud: payload.hudFadeEnabled ? 0.56 : 1, hudScale: 0.94 };
+            case "GoalFocus":
+                return { scale: baseGoalScale, x: `${sideBias * 4.4}%`, y: "1.8%", hud: payload.hudFadeEnabled ? 0.08 : 1, hudScale: 0.9 };
+            case "ReplayFocus":
+                return { scale: Math.max(1.08, baseGoalScale - 0.04), x: `${sideBias * 3.2}%`, y: "1.4%", hud: payload.hudFadeEnabled ? 0.1 : 1, hudScale: 0.92 };
+            case "ScoreboardFocus":
+                return { scale: 1.04, x: "0%", y: "-1.2%", hud: 0.92, hudScale: 1.02 };
+            case "ReturnToBroadcast":
+                return { scale: 1, x: "0%", y: "0%", hud: 1, hudScale: 1 };
+            default:
+                return { scale: 1, x: "0%", y: "0%", hud: 1, hudScale: 1 };
+        }
+    }
+};
+
+const CinematicTransitionController = {
+    apply(shell, current) {
+        shell.style.setProperty("--tv-cam-scale", String(current.scale));
+        shell.style.setProperty("--tv-cam-x", current.x);
+        shell.style.setProperty("--tv-cam-y", current.y);
+        shell.style.setProperty("--tv-cam-hud-opacity", String(current.hud));
+        shell.style.setProperty("--tv-cam-hud-scale", String(current.hudScale));
+    }
+};
+
+export function initBroadcastCamera(rootId = "tv-broadcast-camera-shell") {
+    const shell = document.getElementById(rootId);
+    if (!shell) {
+        return;
+    }
+
+    if (broadcastCameraState?.rafId) {
+        cancelAnimationFrame(broadcastCameraState.rafId);
+    }
+
+    broadcastCameraState = {
+        rootId,
+        shell,
+        current: { scale: 1, x: "0%", y: "0%", hud: 1, hudScale: 1 },
+        target: { scale: 1, x: "0%", y: "0%", hud: 1, hudScale: 1 },
+        smoothness: 0.18,
+        rafId: 0,
+        lastNow: 0
+    };
+
+    const tick = (now) => {
+        if (!broadcastCameraState || broadcastCameraState.shell !== shell) {
+            return;
+        }
+
+        const dt = Math.min(0.05, broadcastCameraState.lastNow ? (now - broadcastCameraState.lastNow) / 1000 : 1 / 60);
+        broadcastCameraState.lastNow = now;
+        const ease = clamp(dt / Math.max(0.001, broadcastCameraState.smoothness), 0.04, 0.24);
+
+        broadcastCameraState.current.scale += (broadcastCameraState.target.scale - broadcastCameraState.current.scale) * ease;
+        broadcastCameraState.current.hud += (broadcastCameraState.target.hud - broadcastCameraState.current.hud) * ease;
+        broadcastCameraState.current.hudScale += (broadcastCameraState.target.hudScale - broadcastCameraState.current.hudScale) * ease;
+        broadcastCameraState.current.x = lerpPercent(broadcastCameraState.current.x, broadcastCameraState.target.x, ease);
+        broadcastCameraState.current.y = lerpPercent(broadcastCameraState.current.y, broadcastCameraState.target.y, ease);
+
+        CinematicTransitionController.apply(shell, broadcastCameraState.current);
+        broadcastCameraState.rafId = requestAnimationFrame(tick);
+    };
+
+    broadcastCameraState.rafId = requestAnimationFrame(tick);
+}
+
+export function updateBroadcastCamera(payload) {
+    const normalized = BroadcastStateManager.normalize(payload);
+    if (!normalized.pushInEnabled) {
+        return;
+    }
+
+    if (!broadcastCameraState?.shell?.isConnected) {
+        initBroadcastCamera("tv-broadcast-camera-shell");
+    }
+
+    if (!broadcastCameraState?.shell) {
+        return;
+    }
+
+    broadcastCameraState.smoothness = normalized.cameraSmoothness;
+    broadcastCameraState.target = CameraDirector.resolveTarget(normalized);
+    broadcastCameraState.shell.classList.toggle("is-cinematic-active", normalized.state !== "NormalBroadcast" && normalized.state !== "ReturnToBroadcast");
+    broadcastCameraState.shell.classList.toggle("is-cinematic-goal", normalized.state === "GoalFocus");
+    broadcastCameraState.shell.classList.toggle("is-cinematic-replay", normalized.state === "ReplayFocus");
+    broadcastCameraState.shell.classList.toggle("is-cinematic-scoreboard", normalized.state === "ScoreboardFocus");
+    broadcastCameraState.shell.classList.toggle("is-cinematic-returning", normalized.state === "ReturnToBroadcast");
+    broadcastCameraState.shell.classList.toggle("is-cinematic-hud-hidden", normalized.hudFadeEnabled);
+    broadcastCameraState.shell.classList.toggle("is-cinematic-panels-hidden", normalized.hidePanels);
+}
+
+export function destroyBroadcastCamera(rootId = "tv-broadcast-camera-shell") {
+    if (!broadcastCameraState) {
+        return;
+    }
+
+    if (rootId && broadcastCameraState.rootId !== rootId) {
+        return;
+    }
+
+    if (broadcastCameraState.rafId) {
+        cancelAnimationFrame(broadcastCameraState.rafId);
+    }
+
+    if (broadcastCameraState.shell?.isConnected) {
+        broadcastCameraState.shell.style.removeProperty("--tv-cam-scale");
+        broadcastCameraState.shell.style.removeProperty("--tv-cam-x");
+        broadcastCameraState.shell.style.removeProperty("--tv-cam-y");
+        broadcastCameraState.shell.style.removeProperty("--tv-cam-hud-opacity");
+        broadcastCameraState.shell.style.removeProperty("--tv-cam-hud-scale");
+        broadcastCameraState.shell.classList.remove("is-cinematic-active", "is-cinematic-goal", "is-cinematic-replay", "is-cinematic-scoreboard", "is-cinematic-returning", "is-cinematic-hud-hidden", "is-cinematic-panels-hidden");
+    }
+
+    broadcastCameraState = null;
+}
+
+function lerpPercent(from, to, t) {
+    const fromValue = Number(String(from).replace("%", "")) || 0;
+    const toValue = Number(String(to).replace("%", "")) || 0;
+    return `${fromValue + ((toValue - fromValue) * t)}%`;
+}
+
+function applyFreedomMotion(state, now) {
+    const dt = Math.min(0.05, state.lastNow ? (now - state.lastNow) / 1000 : 1 / 60);
+    state.lastNow = now;
+
+    const overlayRect = state.overlay.getBoundingClientRect();
+
+    // Step 1: move each player towards its current target (offsets only)
+    for (const player of state.players) {
+        const node = player.node;
+        if (!node?.isConnected) {
+            continue;
+        }
+
+        // Update radius dynamically (role + game state)
+        player.radius = resolveFreedomRadiusPx(node, player.playerIndex);
+
+        // Pick a new target when "arrived" and after a small pause.
+        const dxT = player.tx - player.ox;
+        const dyT = player.ty - player.oy;
+        const distT = Math.hypot(dxT, dyT);
+
+        if (now >= player.waitUntil && distT < 0.60) {
+            // Tactical bias: slight forward/back shift based on context.
+            const isLeft = node.classList.contains("is-left");
+            const dir = isLeft ? 1 : -1;
+            let biasX = 0;
+            let biasY = 0;
+
+            if (node.classList.contains("has-ball")) biasX += dir * player.radius * 0.55;
+            else if (node.classList.contains("is-attacking")) biasX += dir * player.radius * 0.25;
+            else if (node.classList.contains("is-defending")) biasX -= dir * player.radius * 0.18;
+
+            // Keep lanes: small tendency towards central lanes.
+            biasY += (Math.sin((now / 1000) + player.seed) * 0.08) * player.radius;
+
+            const rnd = randomPointInCircle(player.radius, player.seed + Math.floor(now / 650));
+            player.tx = rnd.x + biasX;
+            player.ty = rnd.y + biasY;
+            const pauseMult = Number.isFinite(player.pauseMultiplier) ? player.pauseMultiplier : 1.0;
+            player.waitUntil = now + randomRangeMs(
+                FIELD_FREEDOM.TARGET_PAUSE_MIN * pauseMult,
+                FIELD_FREEDOM.TARGET_PAUSE_MAX * pauseMult,
+                player.seed + Math.floor(now / 1000)
+            );
+        }
+
+        // Inertia smoothing towards target offset (no jitter).
+        // Slightly "looser" spring for elastic walk (with controlled overshoot).
+        const playerSpeed = (player.speedMultiplier ?? 1.0) * FIELD_FREEDOM.PLAYER_SPEED_MULTIPLIER;
+        const stiffness = 8.9 * playerSpeed;
+        const damping = 6.3 * playerSpeed;
+        const maxSpeed = 22 * playerSpeed;
+
+        // Overshoot: push slightly past target, then correct naturally.
+        const oxTarget = player.tx + player.vx * FIELD_FREEDOM.OVERSHOOT_STRENGTH;
+        const oyTarget = player.ty + player.vy * FIELD_FREEDOM.OVERSHOOT_STRENGTH;
+
+        player.vx += (oxTarget - player.ox) * stiffness * dt;
+        player.vy += (oyTarget - player.oy) * stiffness * dt;
+        player.vx *= Math.exp(-damping * dt);
+        player.vy *= Math.exp(-damping * dt);
+
+        const speed = Math.hypot(player.vx, player.vy);
+        if (speed > maxSpeed) {
+            const s = maxSpeed / speed;
+            player.vx *= s;
+            player.vy *= s;
+        }
+
+        player.ox += player.vx * dt;
+        player.oy += player.vy * dt;
+
+        // Lateral walking sway (zig-zag) based on movement direction & speed.
+        const gait = Math.min(1, speed / 14);
+        const swayAmp = (player.swayIntensity ?? 1.0) * FIELD_FREEDOM.SWAY_INTENSITY * (0.45 + 0.85 * gait);
+        const phase = Number.isFinite(player.phase) ? player.phase : 0;
+        const swayPhase = (now / 1000) * (FIELD_FREEDOM.SWAY_SPEED * (player.swaySpeed ?? 1.0)) + phase;
+        // Perpendicular vector to current velocity to simulate footwork zig-zag
+        const vx = player.vx;
+        const vy = player.vy;
+        const vmag = Math.hypot(vx, vy) || 1;
+        const px = -vy / vmag;
+        const py = vx / vmag;
+        const lateral = Math.sin(swayPhase) * swayAmp;
+
+        const visualX = player.ox + px * lateral;
+        const visualY = player.oy + py * lateral * 0.85;
+
+        node.style.setProperty("--tv-free-x", `${visualX.toFixed(2)}px`);
+        node.style.setProperty("--tv-free-y", `${visualY.toFixed(2)}px`);
+    }
+
+    // Step 2: separation to avoid coins sticking together (soft repulsion).
+    // Uses current DOM rects (includes transform).
+    const rects = state.players.map((p) => ({ p, rect: p.node?.getBoundingClientRect?.() })).filter((x) => x.rect);
+    const minDist = 26;
+    for (let i = 0; i < rects.length; i++) {
+        const a = rects[i];
+        const ax = a.rect.left + a.rect.width / 2;
+        const ay = a.rect.top + a.rect.height / 2;
+
+        for (let j = i + 1; j < rects.length; j++) {
+            const b = rects[j];
+            const bx = b.rect.left + b.rect.width / 2;
+            const by = b.rect.top + b.rect.height / 2;
+
+            const dx = bx - ax;
+            const dy = by - ay;
+            const d = Math.hypot(dx, dy);
+            if (d <= 0.001 || d >= minDist) continue;
+
+            const push = (minDist - d) / minDist;
+            const nx = dx / d;
+            const ny = dy / d;
+
+            // Apply tiny opposing impulses (offset space)
+            a.p.ox -= nx * push * 0.35;
+            a.p.oy -= ny * push * 0.35;
+            b.p.ox += nx * push * 0.35;
+            b.p.oy += ny * push * 0.35;
+
+            a.p.node.style.setProperty("--tv-free-x", `${a.p.ox.toFixed(2)}px`);
+            a.p.node.style.setProperty("--tv-free-y", `${a.p.oy.toFixed(2)}px`);
+            b.p.node.style.setProperty("--tv-free-x", `${b.p.ox.toFixed(2)}px`);
+            b.p.node.style.setProperty("--tv-free-y", `${b.p.oy.toFixed(2)}px`);
+        }
+    }
+
+    // Step 3: clamp to field bounds
+    for (const entry of rects) {
+        clampOffsetToField(entry.p, overlayRect, entry.rect);
+        entry.p.node.style.setProperty("--tv-free-x", `${entry.p.ox.toFixed(2)}px`);
+        entry.p.node.style.setProperty("--tv-free-y", `${entry.p.oy.toFixed(2)}px`);
+    }
+}
+
+function setCubeFace(faceIndex, reason) {
+    if (!telemetryCubeState?.cube) {
+        return;
+    }
+
+    const normalized = ((faceIndex % 5) + 5) % 5;
+    telemetryCubeState.faceIndex = normalized;
+    telemetryCubeState.cube.classList.remove("is-face-0", "is-face-1", "is-face-2", "is-face-3", "is-face-4");
+    telemetryCubeState.cube.classList.add(`is-face-${normalized}`);
+
+    telemetryCubeLog(`face changed ${normalized}`, reason ? { reason } : undefined);
+
+    // 3D transforms can cause LightweightCharts to miss a resize; force-fit after the face is applied.
+    window.setTimeout(() => resizeTelemetryCharts(), 0);
+    window.setTimeout(() => resizeTelemetryCharts(), 80);
+    window.setTimeout(() => resizeTelemetryCharts(), 350);
+    window.setTimeout(() => resizeTelemetryCharts(), 1100);
+
+    if (telemetryChartsState?.lastPayload) {
+        window.setTimeout(() => {
+            updateTelemetryCharts(telemetryChartsState.lastPayload);
+
+            if (throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
+                telemetryChartLog("refresh from state", { reason: `face-${normalized}` });
+            }
+        }, 120);
+    }
+}
+
+function resumeCubeRotation() {
+    if (!telemetryCubeState) {
+        return;
+    }
+
+    if (telemetryCubeState.disabled || telemetryCubeState.paused) {
+        return;
+    }
+
+    if (telemetryCubeState.timerId) {
+        return;
+    }
+
+    telemetryCubeState.timerId = window.setInterval(() => {
+        setCubeFace(telemetryCubeState.faceIndex + 1, "interval");
+    }, telemetryCubeState.intervalMs);
+}
+
+function resizeTelemetryCharts() {
+    if (!telemetryChartsState?.charts) {
+        return;
+    }
+
+    telemetryChartsState.charts.forEach((entry, id) => {
+        const container = document.getElementById(id);
+        if (!container) {
+            return;
+        }
+
+        const rect = container.getBoundingClientRect();
+        const width = Math.floor(rect.width);
+        const height = Math.floor(rect.height);
+
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        const chart = entry?.chart;
+        if (!chart) {
+            return;
+        }
+
+        try {
+            chart.applyOptions({ width, height });
+            chart.timeScale().fitContent();
+        } catch {
+        }
+
+        if (throttleKey("TV_CHART", `resize:${id}:${width}x${height}`, 1200)) {
+            telemetryChartLog("resize", { id, width, height });
+        }
+    });
+}
+
+function pauseCubeRotation(reason) {
+    if (!telemetryCubeState) {
+        return;
+    }
+
+    if (telemetryCubeState.timerId) {
+        window.clearInterval(telemetryCubeState.timerId);
+        telemetryCubeState.timerId = null;
+    }
+
+    telemetryCubeState.shell?.classList.toggle("is-paused", telemetryCubeState.paused);
+
+    if (throttleKey("TV_CUBE", `paused:${reason ?? "unknown"}`, 2000)) {
+        telemetryCubeLog("paused", reason);
+    }
+}
+
+function hasChartContainers() {
+    return Boolean(
+        document.getElementById("tv-telemetry-chart-left")
+        && document.getElementById("tv-telemetry-chart-right")
+        && document.getElementById("tv-telemetry-chart-compare")
+    );
+}
+
+function scheduleContainerRetry(reason) {
+    telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
+
+    if (telemetryChartsState.containerRetryId) {
+        return;
+    }
+
+    telemetryChartsState.containerRetryId = window.setTimeout(() => {
+        telemetryChartsState.containerRetryId = null;
+
+        if (hasChartContainers()) {
+            telemetryChartLog("containers ready");
+
+            if (telemetryChartsState.lastPayload) {
+                updateTelemetryCharts(telemetryChartsState.lastPayload);
+            }
+
+            return;
+        }
+
+        if (throttleKey("TV_CHART", "waiting containers", 1500)) {
+            telemetryChartLog("waiting containers", reason);
+        }
+
+        scheduleContainerRetry(reason);
+    }, 450);
+}
+
+export function initTelemetryCube(shellId, intervalMs) {
+    const tryInit = (attempt) => {
+        const shell = document.getElementById(shellId);
+        const cube = shell?.querySelector?.(".tv-telemetry-cube");
+
+        if (!shell || !cube) {
+            if (attempt < 10) {
+                window.setTimeout(() => tryInit(attempt + 1), 300);
+            }
+
+            return;
+        }
+
+        const resolvedIntervalMs = typeof intervalMs === "number" && intervalMs >= 3000
+            ? intervalMs
+            : Math.max(3000, (Number(shell.dataset.intervalSeconds) || 12) * 1000);
+
+        telemetryCubeState = {
+            shell,
+            cube,
+            intervalMs: resolvedIntervalMs,
+            timerId: null,
+            faceIndex: 0,
+            paused: false,
+            disabled: false,
+            holdUntil: 0
+        };
+
+        const disabled = isReducedMotion()
+            || (typeof window !== "undefined" && window.innerWidth <= 720);
+
+        telemetryCubeState.disabled = disabled;
+
+        if (disabled) {
+            setCubeFace(0, "disabled");
+            telemetryCubeLog("initialized (disabled)");
+            return;
+        }
+
+        shell.addEventListener("mouseenter", () => {
+            telemetryCubeState.paused = true;
+            pauseCubeRotation("hover");
+        });
+
+        shell.addEventListener("mouseleave", () => {
+            telemetryCubeState.paused = false;
+            resumeCubeRotation();
+        });
+
+        window.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                pauseCubeRotation("hidden");
+                return;
+            }
+
+            resumeCubeRotation();
+        });
+
+        setCubeFace(0, "init");
+        telemetryCubeLog("initialized", { intervalMs: resolvedIntervalMs });
+        resumeCubeRotation();
+
+        if (hasChartContainers()) {
+            telemetryChartLog("containers ready");
+        } else {
+            telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
+            scheduleContainerRetry("initTelemetryCube");
+        }
+    };
+
+    tryInit(0);
+}
+
+export function notifyTelemetryCubeEvent(eventKey) {
+    if (!telemetryCubeState || telemetryCubeState.disabled) {
+        return;
+    }
+
+    const key = String(eventKey || "").toLowerCase();
+
+    if (!key) {
+        return;
+    }
+
+    if (key.includes("goal")) {
+        setCubeFace(0, "goal");
+
+        const now = Date.now();
+        telemetryCubeState.holdUntil = now + 7000;
+
+        pauseCubeRotation("goal-hold");
+
+        window.setTimeout(() => {
+            if (!telemetryCubeState) {
+                return;
+            }
+
+            if (Date.now() < telemetryCubeState.holdUntil) {
+                return;
+            }
+
+            telemetryCubeState.paused = false;
+            resumeCubeRotation();
+        }, 7200);
+
+        return;
+    }
+
+    if (key.includes("momentum") || key.includes("reversal") || key.includes("fear")) {
+        setCubeFace(2, "momentum-shift");
+    }
+}
+
+function applyChartTheme(LightweightCharts, chart) {
+    const solidType = LightweightCharts?.ColorType?.Solid ?? 0;
+
+    chart.applyOptions({
+        layout: {
+            background: { type: solidType, color: "transparent" },
+            textColor: "rgba(219, 232, 247, 0.72)",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif"
+        },
+        grid: {
+            vertLines: { color: "rgba(255,255,255,0.04)" },
+            horzLines: { color: "rgba(255,255,255,0.035)" }
+        },
+        rightPriceScale: {
+            visible: false,
+            borderVisible: false
+        },
+        leftPriceScale: {
+            visible: false,
+            borderVisible: false
+        },
+        timeScale: {
+            visible: false,
+            borderVisible: false,
+            barSpacing: 22
+        },
+        crosshair: {
+            vertLine: { visible: false },
+            horzLine: { visible: false }
+        },
+        handleScroll: {
+            mouseWheel: false,
+            pressedMouseMove: false,
+            horzTouchDrag: false,
+            vertTouchDrag: false
+        },
+        handleScale: {
+            axisPressedMouseMove: { time: false, price: false },
+            mouseWheel: false,
+            pinch: false
+        }
+    });
+}
+
+function ensureResizeObserver(container, chart) {
+    if (!telemetryChartsState) {
+        return;
+    }
+
+    const existing = telemetryChartsState.charts.get(container.id);
+
+    if (existing?.resizeObserver) {
+        return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+        const rect = container.getBoundingClientRect();
+
+        chart.applyOptions({
+            width: Math.max(1, Math.floor(rect.width)),
+            height: Math.max(1, Math.floor(rect.height))
+        });
+
+        try {
+            chart.timeScale().fitContent();
+        } catch {
+        }
+    });
+
+    resizeObserver.observe(container);
+
+    telemetryChartsState.charts.set(container.id, {
+        ...existing,
+        container,
+        resizeObserver
+    });
+}
+
+function disposeChartEntry(entry) {
+    if (!entry) {
+        return;
+    }
+
+    try {
+        entry.resizeObserver?.disconnect?.();
+    } catch {
+    }
+
+    try {
+        entry.chart?.remove?.();
+    } catch {
+    }
+}
+
+function addLineSeriesCompat(LightweightCharts, chart, options) {
+    if (typeof chart.addLineSeries === "function") {
+        return chart.addLineSeries(options);
+    }
+
+    if (typeof chart.addSeries === "function" && LightweightCharts?.LineSeries) {
+        return chart.addSeries(LightweightCharts.LineSeries, options);
+    }
+
+    throw new Error("no supported LineSeries API");
+}
+
+function addCandlestickSeriesCompat(LightweightCharts, chart, options) {
+    if (typeof chart.addCandlestickSeries === "function") {
+        return chart.addCandlestickSeries(options);
+    }
+
+    if (typeof chart.addSeries === "function" && LightweightCharts?.CandlestickSeries) {
+        return chart.addSeries(LightweightCharts.CandlestickSeries, options);
+    }
+
+    throw new Error("no supported CandlestickSeries API");
+}
+
+async function ensureCandlestickChart(containerId) {
+    telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
+
+    const existing = telemetryChartsState.charts.get(containerId);
+    const container = document.getElementById(containerId);
+
+    if (!container) {
+        throw new Error(`missing container ${containerId}`);
+    }
+
+    if (existing?.container && existing.container !== container) {
+        disposeChartEntry(existing);
+        telemetryChartsState.charts.delete(containerId);
+    }
+
+    const active = telemetryChartsState.charts.get(containerId);
+
+    if (active?.chart && active?.series && active.kind === "candlestick") {
+        ensureResizeObserver(container, active.chart);
+        return active;
+    }
+
+    if (!container.isConnected) {
+        throw new Error(`detached container ${containerId}`);
+    }
+
+    const LightweightCharts = await ensureLightweightChartsLoaded();
+    const rect = container.getBoundingClientRect();
+
+    const chart = LightweightCharts.createChart(container, {
+        autoSize: true,
+        width: Math.max(1, Math.floor(rect.width)),
+        height: Math.max(1, Math.floor(rect.height))
+    });
+
+    applyChartTheme(LightweightCharts, chart);
+
+    // Make candles feel like a broadcast terminal: thicker bars and more vertical breathing room.
+    try {
+        chart.applyOptions({
+            timeScale: {
+                barSpacing: 22
+            },
+            rightPriceScale: {
+                scaleMargins: { top: 0.15, bottom: 0.15 }
+            },
+            leftPriceScale: {
+                scaleMargins: { top: 0.15, bottom: 0.15 }
+            }
+        });
+    } catch {
+    }
+
+    const series = addCandlestickSeriesCompat(LightweightCharts, chart, {
+        upColor: "#70ffb3",
+        downColor: "#ff4f7b",
+        borderUpColor: "#70ffb3",
+        borderDownColor: "#ff4f7b",
+        wickUpColor: "rgba(112, 255, 179, 0.95)",
+        wickDownColor: "rgba(255, 79, 123, 0.95)",
+        wickVisible: true,
+        borderVisible: true,
+        priceLineVisible: false,
+        lastValueVisible: false
+    });
+
+    const state = {
+        kind: "candlestick",
+        container,
+        chart,
+        series,
+        resizeObserver: null
+    };
+
+    telemetryChartsState.charts.set(containerId, state);
+    ensureResizeObserver(container, chart);
+
+    return state;
+}
+
+async function ensureCompareChart(containerId) {
+    telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
+
+    const existing = telemetryChartsState.charts.get(containerId);
+    const container = document.getElementById(containerId);
+
+    if (!container) {
+        throw new Error(`missing container ${containerId}`);
+    }
+
+    if (existing?.container && existing.container !== container) {
+        disposeChartEntry(existing);
+        telemetryChartsState.charts.delete(containerId);
+    }
+
+    const active = telemetryChartsState.charts.get(containerId);
+
+    if (active?.chart && active?.leftSeries && active?.rightSeries) {
+        ensureResizeObserver(container, active.chart);
+        return active;
+    }
+
+    if (!container.isConnected) {
+        throw new Error(`detached container ${containerId}`);
+    }
+
+    const LightweightCharts = await ensureLightweightChartsLoaded();
+    const rect = container.getBoundingClientRect();
+
+    const chart = LightweightCharts.createChart(container, {
+        autoSize: true,
+        width: Math.max(1, Math.floor(rect.width)),
+        height: Math.max(1, Math.floor(rect.height))
+    });
+
+    applyChartTheme(LightweightCharts, chart);
+
+    const leftSeries = addLineSeriesCompat(LightweightCharts, chart, {
+        color: "rgba(255, 215, 110, 0.96)",
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false
+    });
+
+    const rightSeries = addLineSeriesCompat(LightweightCharts, chart, {
+        color: "rgba(134, 201, 255, 0.92)",
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false
+    });
+
+    const state = {
+        kind: "compare",
+        container,
+        chart,
+        leftSeries,
+        rightSeries,
+        resizeObserver: null
+    };
+
+    telemetryChartsState.charts.set(containerId, state);
+    ensureResizeObserver(container, chart);
+
+    return state;
+}
+
+function normalizePoints(points) {
+    if (!Array.isArray(points)) {
+        return [];
+    }
+
+    return points
+        .map((p) => {
+            if (!p) {
+                return null;
+            }
+
+            const time = Number(p.time);
+            const value = Number(p.value);
+
+            if (!Number.isFinite(time) || !Number.isFinite(value)) {
+                return null;
+            }
+
+            return { time, value };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.time - b.time);
+}
+
+function normalizeCompareLine(points) {
+    return normalizePoints(points)
+        .map((point) => ({
+            time: point.time,
+            value: point.value
+        }));
+}
+
+function buildSyntheticCandles(points, bucketSeconds = 30) {
+    const normalized = normalizePoints(points);
+    const buckets = new Map();
+
+    for (const point of normalized) {
+        const bucketTime = Math.floor(point.time / bucketSeconds) * bucketSeconds;
+
+        if (!buckets.has(bucketTime)) {
+            buckets.set(bucketTime, []);
+        }
+
+        buckets.get(bucketTime).push(point);
+    }
+
+    let previousClose = null;
+
+    let candles = Array.from(buckets.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([time, bucket]) => {
+            bucket.sort((a, b) => a.time - b.time);
+
+            const current = bucket[bucket.length - 1].value;
+            const open = previousClose ?? bucket[0].value;
+            const close = current;
+            previousClose = close;
+
+            let high = Math.max(...bucket.map((x) => x.value));
+            let low = Math.min(...bucket.map((x) => x.value));
+
+            const delta = close - open;
+            const baseRange = high - low;
+
+            // Cinematic synthetic volatility: ensures visible bodies/wicks even when pct changes are small.
+            let volatility = Math.max(Math.abs(delta) * 0.45, Math.abs(baseRange) * 0.35, 0.12);
+            volatility = Math.min(volatility, 1.8);
+
+            high = Math.max(high, open, close) + volatility;
+            low = Math.min(low, open, close) - volatility;
+
+            return {
+                time,
+                open,
+                high,
+                low,
+                close
+            };
+        });
+
+    if (candles.length === 1) {
+        const only = candles[0];
+        const previousTime = only.time - bucketSeconds;
+        const padding = Math.max(Math.abs(only.close) * 0.006, 0.05);
+
+        candles = [
+            {
+                time: previousTime,
+                open: only.open - padding,
+                high: only.high,
+                low: only.low - padding,
+                close: only.open
+            },
+            only
+        ];
+    }
+
+    return candles;
+}
+
+function setChartEmptyState(containerId, isEmpty, message = "coletando candles") {
+    const container = document.getElementById(containerId);
+
+    if (!container) {
+        return;
+    }
+
+    let badge = container.querySelector(".tv-chart-empty-state");
+
+    if (!isEmpty) {
+        badge?.remove();
+        return;
+    }
+
+    if (!badge) {
+        badge = document.createElement("div");
+        badge.className = "tv-chart-empty-state";
+        badge.style.position = "absolute";
+        badge.style.inset = "0";
+        badge.style.display = "grid";
+        badge.style.placeItems = "center";
+        badge.style.color = "rgba(219, 232, 247, 0.60)";
+        badge.style.fontSize = "0.76rem";
+        badge.style.fontWeight = "900";
+        badge.style.letterSpacing = "0.12em";
+        badge.style.textTransform = "uppercase";
+        badge.style.pointerEvents = "none";
+        badge.style.zIndex = "2";
+        container.appendChild(badge);
+    }
+
+    badge.textContent = message;
+}
+
+function fitChart(chart) {
+    try {
+        chart.timeScale().fitContent();
+    } catch {
+    }
+}
+
+export async function updateTelemetryCharts(payload) {
+    telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
+    telemetryChartsState.lastPayload = payload;
+
+    if (!hasChartContainers()) {
+        if (throttleKey("TV_CHART", "waiting containers", 1500)) {
+            telemetryChartLog("waiting containers");
+        }
+
+        scheduleContainerRetry("updateTelemetryCharts");
+        return;
+    }
+
+    try {
+        const leftPoints = normalizePoints(payload?.left);
+        const rightPoints = normalizePoints(payload?.right);
+
+        const leftCandles = buildSyntheticCandles(leftPoints, 30);
+        const rightCandles = buildSyntheticCandles(rightPoints, 30);
+
+        const left = await ensureCandlestickChart("tv-telemetry-chart-left");
+        const right = await ensureCandlestickChart("tv-telemetry-chart-right");
+        const compare = await ensureCompareChart("tv-telemetry-chart-compare");
+
+        left.series.setData(leftCandles);
+        right.series.setData(rightCandles);
+
+        // Split charts live inside a "virtual face"; render them only if containers exist.
+        let splitLeft = null;
+        let splitRight = null;
+        if (document.getElementById("tv-telemetry-chart-split-left")) {
+            splitLeft = await ensureCandlestickChart("tv-telemetry-chart-split-left");
+            splitLeft.series.setData(leftCandles);
+        }
+        if (document.getElementById("tv-telemetry-chart-split-right")) {
+            splitRight = await ensureCandlestickChart("tv-telemetry-chart-split-right");
+            splitRight.series.setData(rightCandles);
+        }
+
+        compare.leftSeries.setData(normalizeCompareLine(leftPoints));
+        compare.rightSeries.setData(normalizeCompareLine(rightPoints));
+
+        setChartEmptyState("tv-telemetry-chart-left", leftCandles.length < 2);
+        setChartEmptyState("tv-telemetry-chart-right", rightCandles.length < 2);
+        setChartEmptyState("tv-telemetry-chart-compare", leftPoints.length < 2 && rightPoints.length < 2, "coletando fluxo");
+        if (splitLeft) {
+            setChartEmptyState("tv-telemetry-chart-split-left", leftCandles.length < 2);
+        }
+        if (splitRight) {
+            setChartEmptyState("tv-telemetry-chart-split-right", rightCandles.length < 2);
+        }
+
+        fitChart(left.chart);
+        fitChart(right.chart);
+        fitChart(compare.chart);
+        if (splitLeft) {
+            fitChart(splitLeft.chart);
+        }
+        if (splitRight) {
+            fitChart(splitRight.chart);
+        }
+
+        window.requestAnimationFrame(() => resizeTelemetryCharts());
+        window.setTimeout(() => resizeTelemetryCharts(), 80);
+        window.setTimeout(() => resizeTelemetryCharts(), 350);
+
+        telemetryChartLog("rendered candles left/right + compare", {
+            leftCandles: leftCandles.length,
+            rightCandles: rightCandles.length,
+            leftPoints: leftPoints.length,
+            rightPoints: rightPoints.length
+        });
+
+        if (splitLeft || splitRight) {
+            telemetryChartLog("rendered split variation", {
+                leftPoints: leftPoints.length,
+                rightPoints: rightPoints.length,
+                leftCandles: leftCandles.length,
+                rightCandles: rightCandles.length
+            });
+        }
+    } catch (err) {
+        const message = err?.message ?? String(err);
+
+        if (throttleKey("TV_CHART", `error:${message}`, 4000)) {
+            telemetryChartLog("error", message);
+        }
+
+        setCubeFace(0, "chart-error");
+    }
+}
+
+export async function initBroadcastAudio(elementId, volume, muted) {
+    const audio = document.getElementById(elementId);
+    const manager = ensureTvAudioManager();
+    const safeVolume = clamp(Number(volume) || manager.volume, 0, 1);
+    const context = getTvAudioContext();
+    manager.initCount += 1;
+    consoleAudio("AUDIO_INIT", {
+        initCount: manager.initCount,
+        elementId,
+        hasElement: Boolean(audio),
+        contextState: context?.state ?? "none",
+        muted: Boolean(muted),
+        volume: safeVolume
+    });
+
+    if (!audio) {
+        manager.ambientElementId = elementId;
+        manager.ambientTargetVolume = safeVolume;
+        setTvAudioSettings(safeVolume, muted);
+        return getTvAudioState();
+    }
+
+    ensureAudioUnlockListeners();
+    await unlockTvAudioContext("initBroadcastAudio");
+
+    manager.ambientElementId = elementId;
+    manager.ambientTargetVolume = safeVolume;
+    audio.preload = "auto";
+    audio.loop = true;
+    audio.volume = 1;
+    audio.muted = Boolean(muted);
+    try {
+        audio.load();
+    } catch {
+    }
+    connectAudioElement(audio, "ambient");
+    setTvAudioSettings(safeVolume, muted);
+
+    consoleAudio("AUDIO_PLAY_REQUEST", { key: "crowdRise", channel: "ambient", loop: true, elementId });
+    try {
+        await audio.play();
+        manager.unlocked = true;
+        manager.autoplayBlocked = false;
+        manager.ambientStarted = true;
+        const ambientGain = manager.instanceGains.get(audio);
+        if (ambientGain) {
+            ambientGain.gain.value = 0;
+            fadeGainTo(ambientGain, muted ? 0 : safeVolume, 1800);
+        } else {
+            audio.volume = muted ? 0 : safeVolume;
+        }
+        consoleAudio("AUDIO_PLAY_OK", { key: "crowdRise", channel: "ambient", loop: true });
+        consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key: "crowdRise", elementId });
+    } catch (error) {
+        const normalized = normalizeAudioError(error);
+        manager.lastError = normalized;
+        manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+        consoleAudio("AUDIO_PLAY_FAIL", { key: "crowdRise", channel: "ambient", elementId, ...normalized });
+    }
+
+    return getTvAudioState();
+}
+
+export function setBroadcastAudioMuted(elementId, muted, volume) {
+    const audio = document.getElementById(elementId);
+    const manager = ensureTvAudioManager();
+    const safeVolume = clamp(Number(volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
+    const context = getTvAudioContext();
+
+    if (!audio) {
+        manager.ambientElementId = elementId;
+        manager.ambientTargetVolume = safeVolume;
+        setTvAudioSettings(safeVolume, muted);
+        return;
+    }
+
+    if (context && context.state === "suspended") {
+        unlockTvAudioContext("setBroadcastAudioMuted").catch(() => { });
+    }
+
+    manager.ambientElementId = elementId;
+    manager.ambientTargetVolume = safeVolume;
+    audio.loop = true;
+    audio.muted = Boolean(muted);
+    audio.volume = 1;
+    setTvAudioSettings(safeVolume, muted);
+
+    const ambientGain = manager.instanceGains.get(audio);
+    if (ambientGain) {
+        fadeGainTo(ambientGain, muted ? 0 : safeVolume, 700);
+    } else {
+        audio.volume = muted ? 0 : safeVolume;
+    }
+
+    if (!audio.muted) {
+        consoleAudio("AUDIO_PLAY_REQUEST", { key: "crowdRise", channel: "ambient", reason: "setBroadcastAudioMuted" });
+        audio.play()
+            .then(() => {
+                manager.unlocked = true;
+                manager.autoplayBlocked = false;
+                manager.ambientStarted = true;
+                consoleAudio("AUDIO_PLAY_OK", { key: "crowdRise", channel: "ambient", reason: "setBroadcastAudioMuted" });
+            })
+            .catch((error) => {
+                const normalized = normalizeAudioError(error);
+                manager.lastError = normalized;
+                manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+                consoleAudio("AUDIO_PLAY_FAIL", { key: "crowdRise", channel: "ambient", reason: "setBroadcastAudioMuted", ...normalized });
+            });
+    }
+}
+
+export function playAudioCue(elementId) {
+    if (typeof elementId === "string" && Object.prototype.hasOwnProperty.call(tvAudioMap, elementId)) {
+        playTvAudio(elementId);
+        return;
+    }
+
+    const audio = document.getElementById(elementId);
+
+    if (!audio) {
+        playTvAudio("goal");
+        return;
+    }
+
+    try {
+        audio.loop = false;
+    } catch {
+    }
+
+    audio.play().catch(() => { });
+}
+
+export function initTvAudioManager(volume, muted) {
+    const manager = ensureTvAudioManager();
+    if (typeof volume === "number") {
+        manager.volume = Math.min(1, Math.max(0, volume));
+    }
+    manager.muted = Boolean(muted);
+    ensureAudioUnlockListeners();
+    preloadAllTvAudio();
+    consoleAudio("AUDIO_INIT", {
+        volume: manager.volume,
+        muted: manager.muted,
+        preloadCount: Object.keys(tvAudioMap).length
+    });
+    return diagnoseTvAudio();
+}
+
+export function playTvAudioCue(key, options) {
+    const context = getTvAudioContext();
+    if (context && context.state === "suspended") {
+        unlockTvAudioContext(`playTvAudioCue:${key}`).catch(() => { });
+    }
+    return playTvAudio(key, options);
+}
+
+export async function unlockBroadcastAudio(elementId, volume, muted) {
+    const unlocked = await unlockTvAudioContext("manual-button");
+    if (elementId) {
+        await initBroadcastAudio(elementId, volume, muted);
+    }
+
+    const state = getTvAudioState();
+    state.unlocked = Boolean(state.unlocked || unlocked);
+    return state;
+}
+
+export function stopTvAudioCue(key) {
+    const manager = ensureTvAudioManager();
+    const audio = manager.preload.get(key);
+    if (!audio) {
+        return;
+    }
+
+    try {
+        audio.pause();
+        audio.currentTime = 0;
+    } catch {
+    }
+}
+
+if (typeof globalThis !== "undefined") {
+    globalThis.initBroadcastAudio = initBroadcastAudio;
+    globalThis.setBroadcastAudioMuted = setBroadcastAudioMuted;
+    globalThis.playAudioCue = playAudioCue;
+    globalThis.initTvAudioManager = initTvAudioManager;
+    globalThis.playTvAudioCue = playTvAudioCue;
+    globalThis.stopTvAudioCue = stopTvAudioCue;
+    globalThis.unlockBroadcastAudio = unlockBroadcastAudio;
+    globalThis.getTvAudioState = getTvAudioState;
+    globalThis.tvAudioMap = tvAudioMap;
+    globalThis.criptoVersusTvAudioManager = {
+        init: initTvAudioManager,
+        play: playTvAudioCue,
+        stop: stopTvAudioCue,
+        setSettings: setTvAudioSettings,
+        diagnose: diagnoseTvAudio,
+        unlock: unlockBroadcastAudio,
+        state: getTvAudioState
+    };
+    globalThis.criptoVersusTvCharts = {
+        initTelemetryCube,
+        notifyTelemetryCubeEvent,
+        updateTelemetryCharts,
+        initFieldSway,
+        destroyFieldSway
+    };
+    globalThis.criptoVersusTvCamera = {
+        init: initBroadcastCamera,
+        update: updateBroadcastCamera,
+        destroy: destroyBroadcastCamera,
+        director: CameraDirector,
+        stateManager: BroadcastStateManager,
+        transitionController: CinematicTransitionController
+    };
+}

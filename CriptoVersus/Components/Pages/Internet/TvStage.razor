@@ -11,7 +11,7 @@
 @inject MatchSlugHelper MatchSlugHelper
 @inject RouteLocalizationService RouteLocalization
 @inject TvArenaCommentaryService ArenaCommentary
-@inject TvFieldPositionService FieldPositionService
+@inject TvFieldStateService FieldPositionService
 @implements IAsyncDisposable
 
 @if (HasLiveMatch)
@@ -127,8 +127,8 @@
             }
 
             <div class="tv-stage__grid">
-                <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty) @(!string.IsNullOrWhiteSpace(CurrentMatchUrl) ? "tv-match-card--link" : string.Empty)">
-                    @if (!string.IsNullOrWhiteSpace(CurrentMatchUrl))
+                <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty) @(ShouldRenderMatchCardOverlayLink ? "tv-match-card--link" : string.Empty)">
+                    @if (ShouldRenderMatchCardOverlayLink)
                     {
                         <a class="tv-match-card__overlay-link"
                            href="@CurrentMatchUrl"
@@ -251,7 +251,7 @@
                         </div>
                     </section>
 
-                    @if (!string.IsNullOrWhiteSpace(CurrentMatchUrl))
+                    @if (ShouldRenderMatchCardOverlayLink)
                     {
                         <div class="tv-match-card__footer">
                             <span class="tv-watch-link tv-watch-link--strong">@T("broadcast.mainMatchCta")</span>
@@ -632,6 +632,7 @@ else
     ];
 
     private IJSObjectReference? _tvModule;
+    private IJSObjectReference? _tvCameraModule;
     private BroadcastSnapshot? _previousSnapshot;
     private CancellationTokenSource? _eventCts;
     private CancellationTokenSource? _pulseCts;
@@ -762,34 +763,11 @@ else
     private string BroadcastFocusWidthCss => (BroadcastFocusProgress * 100d).ToString("0.##", CultureInfo.InvariantCulture);
     private bool ShouldShowBroadcastRotationGauge => IsBroadcastMode && BroadcastRotationMinutes > 0;
     private string BroadcastRotationWidthCss => (Math.Clamp(BroadcastRotationProgress, 0d, 1d) * 100d).ToString("0.##", CultureInfo.InvariantCulture);
+    private bool ShouldRenderMatchCardOverlayLink => IsBroadcastMode && !string.IsNullOrWhiteSpace(CurrentMatchUrl);
     private string BroadcastFocusLabel => _broadcastFocusLabel;
     private string BroadcastFocusKey => _broadcastFocusKey;
     private string BroadcastFocusColor => _broadcastFocusColor;
     private int _broadcastFocusVariantIndex;
-    private string BroadcastFieldCameraStyle => BuildBroadcastFieldCameraStyle();
-
-    private string BuildBroadcastFieldCameraStyle()
-    {
-        var variant = Math.Abs(_broadcastFocusVariantIndex) % 3;
-        return (BroadcastFocusKey, variant) switch
-        {
-            ("replay", 0) => "--tv-field-camera-duration: 8.8s;--tv-field-camera-scale-from: 1.03;--tv-field-camera-scale-mid1: 1.08;--tv-field-camera-scale-mid2: 1.13;--tv-field-camera-scale-to: 1.16;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -0.8%;--tv-field-camera-x-mid2: 1.1%;--tv-field-camera-x-to: 0.6%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.2%;--tv-field-camera-y-mid2: 0.8%;--tv-field-camera-y-to: 1.0%;",
-            ("replay", 1) => "--tv-field-camera-duration: 9.6s;--tv-field-camera-scale-from: 1.02;--tv-field-camera-scale-mid1: 1.06;--tv-field-camera-scale-mid2: 1.11;--tv-field-camera-scale-to: 1.14;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 1.0%;--tv-field-camera-x-mid2: -1.4%;--tv-field-camera-x-to: -0.5%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: -0.1%;--tv-field-camera-y-mid2: 0.6%;--tv-field-camera-y-to: 0.7%;",
-            ("replay", _) => "--tv-field-camera-duration: 10.4s;--tv-field-camera-scale-from: 1.01;--tv-field-camera-scale-mid1: 1.05;--tv-field-camera-scale-mid2: 1.09;--tv-field-camera-scale-to: 1.12;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -1.1%;--tv-field-camera-x-mid2: 0.9%;--tv-field-camera-x-to: 1.2%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.3%;--tv-field-camera-y-mid2: 0.9%;--tv-field-camera-y-to: 0.5%;",
-            ("pressure", 0) => "--tv-field-camera-duration: 7.8s;--tv-field-camera-scale-from: 1.02;--tv-field-camera-scale-mid1: 1.07;--tv-field-camera-scale-mid2: 1.12;--tv-field-camera-scale-to: 1.15;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -1.6%;--tv-field-camera-x-mid2: 1.0%;--tv-field-camera-x-to: 1.8%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.2%;--tv-field-camera-y-mid2: -0.4%;--tv-field-camera-y-to: 0.7%;",
-            ("pressure", 1) => "--tv-field-camera-duration: 8.4s;--tv-field-camera-scale-from: 1.03;--tv-field-camera-scale-mid1: 1.09;--tv-field-camera-scale-mid2: 1.15;--tv-field-camera-scale-to: 1.19;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 1.2%;--tv-field-camera-x-mid2: -1.0%;--tv-field-camera-x-to: -0.8%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.4%;--tv-field-camera-y-mid2: 0.0%;--tv-field-camera-y-to: 1.0%;",
-            ("pressure", _) => "--tv-field-camera-duration: 9.0s;--tv-field-camera-scale-from: 1.01;--tv-field-camera-scale-mid1: 1.08;--tv-field-camera-scale-mid2: 1.14;--tv-field-camera-scale-to: 1.17;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -1.0%;--tv-field-camera-x-mid2: 1.4%;--tv-field-camera-x-to: 0.4%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: -0.2%;--tv-field-camera-y-mid2: 0.7%;--tv-field-camera-y-to: 0.9%;",
-            ("left", 0) => "--tv-field-camera-duration: 9.8s;--tv-field-camera-scale-from: 1.01;--tv-field-camera-scale-mid1: 1.05;--tv-field-camera-scale-mid2: 1.09;--tv-field-camera-scale-to: 1.11;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -1.4%;--tv-field-camera-x-mid2: -2.1%;--tv-field-camera-x-to: -2.8%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.0%;--tv-field-camera-y-mid2: 0.4%;--tv-field-camera-y-to: 0.6%;",
-            ("left", 1) => "--tv-field-camera-duration: 10.6s;--tv-field-camera-scale-from: 1.00;--tv-field-camera-scale-mid1: 1.04;--tv-field-camera-scale-mid2: 1.08;--tv-field-camera-scale-to: 1.12;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 0.8%;--tv-field-camera-x-mid2: -1.8%;--tv-field-camera-x-to: -3.2%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.3%;--tv-field-camera-y-mid2: -0.2%;--tv-field-camera-y-to: 0.8%;",
-            ("left", _) => "--tv-field-camera-duration: 11.0s;--tv-field-camera-scale-from: 1.02;--tv-field-camera-scale-mid1: 1.06;--tv-field-camera-scale-mid2: 1.10;--tv-field-camera-scale-to: 1.13;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -0.6%;--tv-field-camera-x-mid2: -2.2%;--tv-field-camera-x-to: -3.5%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: -0.1%;--tv-field-camera-y-mid2: 0.2%;--tv-field-camera-y-to: 0.6%;",
-            ("right", 0) => "--tv-field-camera-duration: 9.8s;--tv-field-camera-scale-from: 1.01;--tv-field-camera-scale-mid1: 1.05;--tv-field-camera-scale-mid2: 1.09;--tv-field-camera-scale-to: 1.11;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 1.4%;--tv-field-camera-x-mid2: 2.1%;--tv-field-camera-x-to: 2.8%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.0%;--tv-field-camera-y-mid2: 0.4%;--tv-field-camera-y-to: 0.6%;",
-            ("right", 1) => "--tv-field-camera-duration: 10.6s;--tv-field-camera-scale-from: 1.00;--tv-field-camera-scale-mid1: 1.04;--tv-field-camera-scale-mid2: 1.08;--tv-field-camera-scale-to: 1.12;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -0.8%;--tv-field-camera-x-mid2: 1.8%;--tv-field-camera-x-to: 3.2%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.3%;--tv-field-camera-y-mid2: -0.2%;--tv-field-camera-y-to: 0.8%;",
-            ("right", _) => "--tv-field-camera-duration: 11.0s;--tv-field-camera-scale-from: 1.02;--tv-field-camera-scale-mid1: 1.06;--tv-field-camera-scale-mid2: 1.10;--tv-field-camera-scale-to: 1.13;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 0.6%;--tv-field-camera-x-mid2: 2.2%;--tv-field-camera-x-to: 3.5%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: -0.1%;--tv-field-camera-y-mid2: 0.2%;--tv-field-camera-y-to: 0.6%;",
-            ("overview", 0) => "--tv-field-camera-duration: 13.2s;--tv-field-camera-scale-from: 0.96;--tv-field-camera-scale-mid1: 0.98;--tv-field-camera-scale-mid2: 1.01;--tv-field-camera-scale-to: 1.03;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 0.0%;--tv-field-camera-x-mid2: 0.3%;--tv-field-camera-x-to: -0.2%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: -0.2%;--tv-field-camera-y-mid2: 0.2%;--tv-field-camera-y-to: 0.3%;",
-            ("overview", 1) => "--tv-field-camera-duration: 12.4s;--tv-field-camera-scale-from: 0.97;--tv-field-camera-scale-mid1: 0.99;--tv-field-camera-scale-mid2: 1.02;--tv-field-camera-scale-to: 1.04;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: -0.4%;--tv-field-camera-x-mid2: 0.4%;--tv-field-camera-x-to: 0.0%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.1%;--tv-field-camera-y-mid2: -0.1%;--tv-field-camera-y-to: 0.2%;",
-            _ => "--tv-field-camera-duration: 12.0s;--tv-field-camera-scale-from: 0.96;--tv-field-camera-scale-mid1: 0.99;--tv-field-camera-scale-mid2: 1.02;--tv-field-camera-scale-to: 1.04;--tv-field-camera-x-from: 0%;--tv-field-camera-x-mid1: 0.2%;--tv-field-camera-x-mid2: -0.2%;--tv-field-camera-x-to: 0.0%;--tv-field-camera-y-from: 0%;--tv-field-camera-y-mid1: 0.0%;--tv-field-camera-y-mid2: 0.0%;--tv-field-camera-y-to: 0.2%;"
-        };
-    }
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
@@ -822,6 +800,7 @@ else
         if (firstRender)
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-5");
+            _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -857,6 +836,28 @@ else
             try
             {
                 await _tvModule.InvokeVoidAsync("initFieldSway", "tv-crypto-field", BuildFieldMovementOptions());
+            }
+            catch
+            {
+            }
+        }
+
+        if (UseFootballFieldLayout && CurrentFieldState is not null && _tvCameraModule is not null)
+        {
+            try
+            {
+                await _tvCameraModule.InvokeVoidAsync("initTvCamera", "tv-crypto-field", new
+                {
+                    minZoom = 1d,
+                    maxZoom = 1.72d,
+                    overviewZoom = 1.04d,
+                    ballZoom = 1.22d,
+                    attackZoom = 1.34d,
+                    goalZoom = 1.48d,
+                    autoResetDelayMs = 0,
+                    directorIntervalMs = 5600,
+                    autoDirectorEnabled = true
+                });
             }
             catch
             {
@@ -3898,6 +3899,23 @@ else
 
             await _tvModule.DisposeAsync();
             _tvModule = null;
+        }
+
+        if (_tvCameraModule is not null)
+        {
+            try
+            {
+                await _tvCameraModule.InvokeVoidAsync("destroyTvCamera", "tv-crypto-field");
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch
+            {
+            }
+
+            await _tvCameraModule.DisposeAsync();
+            _tvCameraModule = null;
         }
     }
 

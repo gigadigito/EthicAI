@@ -56,6 +56,7 @@ builder.Services.AddScoped<RoadmapContentService>();
 builder.Services.AddScoped<SitemapService>();
 builder.Services.AddScoped<TvArenaCommentaryService>();
 builder.Services.AddScoped<TvFieldPositionService>();
+builder.Services.AddScoped<TvFieldStateService>();
 builder.Services.AddScoped<TeamInvestmentContextResolver>();
 builder.Services.Configure<SitemapOptions>(
     builder.Configuration.GetSection(SitemapOptions.SectionName));

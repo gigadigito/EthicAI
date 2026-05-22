@@ -13,55 +13,69 @@
      data-pressure-b="@FieldState.TeamPressureB.ToString("0.###", CultureInfo.InvariantCulture)"
      data-momentum-owner="@FieldState.MomentumOwner"
      data-leader="@FieldState.Leader">
-    <div class="tv-field__surface tv-field__surface--@(HasFieldAsset ? "asset" : "fallback")">
-        @if (HasFieldAsset)
-        {
-            <img class="tv-field__asset" src="@FieldAssetPath" alt="" />
-        }
+    <div class="tv-field__broadcast-shell">
+        <div class="tv-camera-viewport">
+            <div class="tv-camera-layer">
+                <div class="tv-field-scene">
+                    <div class="tv-field__surface tv-field__surface--@(HasFieldAsset ? "asset" : "fallback")">
+                        @if (HasFieldAsset)
+                        {
+                            <img class="tv-field__asset" src="@FieldAssetPath" alt="" />
+                        }
 
-        <div class="tv-field__overlay">
-            @if (!HasFieldAsset)
-            {
-                <div class="tv-field__line tv-field__line--frame"></div>
-                <div class="tv-field__line tv-field__line--mid"></div>
-                <div class="tv-field__circle"></div>
-                <div class="tv-field__box tv-field__box--left"></div>
-                <div class="tv-field__box tv-field__box--right"></div>
-                <div class="tv-field__goal tv-field__goal--left"></div>
-                <div class="tv-field__goal tv-field__goal--right"></div>
-            }
+                        <div class="tv-field__overlay">
+                            @if (!HasFieldAsset)
+                            {
+                                <div class="tv-field__line tv-field__line--frame"></div>
+                                <div class="tv-field__line tv-field__line--mid"></div>
+                                <div class="tv-field__circle"></div>
+                                <div class="tv-field__box tv-field__box--left"></div>
+                                <div class="tv-field__box tv-field__box--right"></div>
+                                <div class="tv-field__goal tv-field__goal--left"></div>
+                                <div class="tv-field__goal tv-field__goal--right"></div>
+                            }
 
-            @foreach (var tuple in FieldState.PlayerPositions.Select((p, i) => (Player: p, Index: i)))
-            {
-                var player = tuple.Player;
-                var isLeftTeam = string.Equals(player.TeamSymbol, FieldState.TeamA, StringComparison.OrdinalIgnoreCase);
-                var role = ResolvePlayerRole(player.PlayerIndex);
-                <div class="tv-field__player @(isLeftTeam ? "is-left" : "is-right") @(player.IsAttacking ? "is-attacking" : string.Empty) @(player.IsDefending ? "is-defending" : string.Empty) @(player.IsHighlighted ? "is-highlighted" : string.Empty) @(player.HasBall ? "has-ball" : string.Empty) @(IsMomentumPlayer(player) ? "has-momentum" : string.Empty)"
-                     data-sway-seed="@tuple.Index"
-                     data-player-index="@player.PlayerIndex"
-                     data-role="@role"
-                     data-team-symbol="@player.TeamSymbol"
-                     data-side="@(isLeftTeam ? "left" : "right")"
-                     data-base-x="@player.XPercent.ToString("0.##", CultureInfo.InvariantCulture)"
-                     data-base-y="@player.YPercent.ToString("0.##", CultureInfo.InvariantCulture)"
-                     data-pressure="@player.Pressure.ToString("0.###", CultureInfo.InvariantCulture)"
-                     style="left:@player.XPercent.ToString("0.##", CultureInfo.InvariantCulture)%; top:@player.YPercent.ToString("0.##", CultureInfo.InvariantCulture)%;">
-                    @if (HasTeamLogo(player))
-                    {
-                        <img src="@ResolveTeamLogo(player)" alt="" />
-                    }
-                    else
-                    {
-                        <span>@ResolveTeamText(player)</span>
-                    }
+                            <div class="tv-field__camera-target tv-field__camera-target--left-attack"></div>
+                            <div class="tv-field__camera-target tv-field__camera-target--right-attack"></div>
+                            <div class="tv-field__camera-target tv-field__camera-target--left-goal-area"></div>
+                            <div class="tv-field__camera-target tv-field__camera-target--right-goal-area"></div>
 
-                    @if (player.HasBall)
-                    {
-                        <i class="tv-field__ball"></i>
-                    }
+                            @foreach (var tuple in FieldState.PlayerPositions.Select((p, i) => (Player: p, Index: i)))
+                            {
+                                var player = tuple.Player;
+                                var isLeftTeam = string.Equals(player.TeamSymbol, FieldState.TeamA, StringComparison.OrdinalIgnoreCase);
+                                var role = ResolvePlayerRole(player.PlayerIndex);
+                                <div class="tv-field__player @(isLeftTeam ? "is-left" : "is-right") @(player.IsAttacking ? "is-attacking" : string.Empty) @(player.IsDefending ? "is-defending" : string.Empty) @(player.IsHighlighted ? "is-highlighted" : string.Empty) @(player.HasBall ? "has-ball" : string.Empty) @(IsMomentumPlayer(player) ? "has-momentum" : string.Empty)"
+                                     data-sway-seed="@tuple.Index"
+                                     data-player-index="@player.PlayerIndex"
+                                     data-role="@role"
+                                     data-team-symbol="@player.TeamSymbol"
+                                     data-side="@(isLeftTeam ? "left" : "right")"
+                                     data-base-x="@player.XPercent.ToString("0.##", CultureInfo.InvariantCulture)"
+                                     data-base-y="@player.YPercent.ToString("0.##", CultureInfo.InvariantCulture)"
+                                     data-pressure="@player.Pressure.ToString("0.###", CultureInfo.InvariantCulture)"
+                                     style="left:@player.XPercent.ToString("0.##", CultureInfo.InvariantCulture)%; top:@player.YPercent.ToString("0.##", CultureInfo.InvariantCulture)%;">
+                                    @if (HasTeamLogo(player))
+                                    {
+                                        <img src="@ResolveTeamLogo(player)" alt="" />
+                                    }
+                                    else
+                                    {
+                                        <span>@ResolveTeamText(player)</span>
+                                    }
+
+                                    @if (player.HasBall)
+                                    {
+                                        <i class="tv-field__ball"></i>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
-            }
+            </div>
         </div>
+
     </div>
 
     <div class="tv-field__possession">
