@@ -57,7 +57,7 @@
     [Parameter] public bool ShowLabel { get; set; } = true;
     [Parameter] public string LabelText { get; set; } = string.Empty;
 
-    private int NormalizedSize => Math.Clamp(Size, 180, 360);
+    private int NormalizedSize => Math.Clamp(Size, 220, 520);
     private int DisplayScore => Math.Clamp(Score ?? 50, 0, 100);
     private string CurrentCulture => CultureInfo.CurrentUICulture.Name;
     private string DisplayClassification => string.IsNullOrWhiteSpace(Classification) ? "Neutral" : Classification!;
@@ -90,8 +90,14 @@
 <style>
     .arena-sentiment-gauge {
         position: relative;
-        width: min(100%, var(--gauge-size));
-        padding: 1rem 1rem 0.9rem;
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        min-height: 0;
+        padding: 1rem 1rem 1.1rem;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 0.65rem;
         border-radius: 24px;
         border: 1px solid color-mix(in srgb, var(--gauge-accent) 38%, #1e1b4b);
         background:
@@ -113,11 +119,12 @@
         font-weight: 900;
         letter-spacing: 0.08em;
         color: #f8fbff;
+        font-size: clamp(0.95rem, 1.2vw, 1.22rem);
     }
 
     .arena-sentiment-gauge__label,
     .arena-sentiment-gauge__footer {
-        font-size: 0.82rem;
+        font-size: clamp(0.82rem, 0.9vw, 0.98rem);
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: rgba(191, 219, 254, 0.76);
@@ -125,8 +132,11 @@
 
     .arena-sentiment-gauge__dial {
         position: relative;
+        width: min(100%, var(--gauge-size));
+        min-height: calc(var(--gauge-size) * 0.66);
         aspect-ratio: 1.42 / 1;
-        margin-top: 0.45rem;
+        margin: 0 auto;
+        align-self: start;
     }
 
     .arena-sentiment-gauge__svg {
@@ -166,7 +176,7 @@
     .arena-sentiment-gauge__tick {
         position: absolute;
         transform: translate(-50%, -50%);
-        font-size: 0.72rem;
+        font-size: clamp(0.74rem, 0.8vw, 0.92rem);
         color: rgba(214, 232, 255, 0.76);
     }
 
@@ -217,14 +227,14 @@
     }
 
     .arena-sentiment-gauge__center strong {
-        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        font-size: clamp(2.1rem, 4.8vw, 3.1rem);
         line-height: 1;
         color: #ffffff;
         text-shadow: 0 0 10px rgba(255,255,255,0.08);
     }
 
     .arena-sentiment-gauge__center span {
-        font-size: 0.72rem;
+        font-size: clamp(0.78rem, 0.84vw, 0.94rem);
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: rgba(214, 232, 255, 0.72);

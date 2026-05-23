@@ -624,7 +624,7 @@
       "metrics": {
         "winRate": "Win Rate",
         "matches": "Matches",
-        "goals": "Goals",
+        "goals": "Gols",
         "averageScore": "Average Score"
       },
       "details": {
@@ -974,16 +974,16 @@
     "percentageThresholdCardDescription": "The badges above show only upward crossovers on the chart. Threshold points still count toward the score and log: {0} {1} | {2} {3}.",
     "volumeWindowCardDescription": "The badges above show only upward crossovers on the chart. Points from the 15-minute window still count toward the score and log: {0} {1} | {2} {3}.",
     "notEnoughPointsToDrawLines": "There are not enough points yet to draw the lines. At least 2 captures per team are required. {0}: {1}. {2}: {3}.",
-    "arenaPressureTitle": "Arena Pressure",
-    "arenaPressureSubtitle": "Proprietary pressure and sentiment gauge calculated only from Binance market data.",
-    "marketPulse": "Market Pulse",
-    "arenaPressureLabel": "Arena Pressure",
-    "arenaExtremeFear": "Extreme Fear",
+    "arenaPressureTitle": "Pressao da Arena",
+    "arenaPressureSubtitle": "Gauge proprietario de pressao e sentimento calculado apenas com dados de mercado da Binance.",
+    "marketPulse": "Pulso de Mercado",
+    "arenaPressureLabel": "Pressao da Arena",
+    "arenaExtremeFear": "Fear extremo",
     "arenaFear": "Fear",
-    "arenaNeutral": "Neutral",
+    "arenaNeutral": "Neutro",
     "arenaGreed": "Greed",
-    "arenaExtremeGreed": "Extreme Greed",
-    "arenaInsufficientData": "Insufficient data"
+    "arenaExtremeGreed": "Greed extremo",
+    "arenaInsufficientData": "Dados insuficientes"
   },
   "tv": {
     "seo": {
@@ -1096,7 +1096,9 @@
       "switchingArena": "Mudando para a proxima arena quente...",
       "nextHotArena": "A rotacao ao vivo esta indo para uma janela mais forte da arena.",
       "rotationGaugeLabel": "Rotacao da transmissao",
+      "focusGaugeLabel": "Foco da camera",
       "rotationGaugeTitle": "Proxima troca de arena em {0} min",
+      "goalLogEmpty": "Sem gols recentes nesta partida.",
       "mainMatchEyebrow": "Partida principal da transmissao",
       "mainMatchDescription": "Abra a versao fixa desta partida para acompanhar o broadcast completo sem perder o contexto ao vivo.",
       "mainMatchCta": "Entrar no Broadcast",
@@ -1138,6 +1140,11 @@
       "arenaCommentary": "Comentario da arena",
       "recentEventsFallbackTight": "Arena equilibrada no meio do campo.",
       "recentEventsFallbackLead": "A lideranca segue pressionando a arena."
+    },
+    "grid": {
+      "metrics": {
+        "goals": "Gols"
+      }
     },
     "commentary": {
       "title": "Comentario da arena",

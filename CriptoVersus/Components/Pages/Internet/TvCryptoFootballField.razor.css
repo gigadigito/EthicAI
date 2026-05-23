@@ -245,6 +245,8 @@
 
 .tv-field__player img,
 .tv-field__player span {
+    position: relative;
+    z-index: 1;
     width: 74%;
     height: 74%;
     object-fit: contain;
@@ -275,6 +277,7 @@
 }
 
 .tv-field__player.has-ball {
+    z-index: 8;
     box-shadow:
         0 0 0 4px rgba(255,255,255,0.08),
         0 0 32px rgba(255,255,255,0.24);
@@ -283,6 +286,7 @@
 .tv-field__ball {
     position: absolute;
     bottom: -6px;
+    z-index: 4;
     width: 12px;
     height: 12px;
     border-radius: 50%;

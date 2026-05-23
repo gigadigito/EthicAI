@@ -1731,31 +1731,40 @@ function applyFreedomMotion(state, now) {
 }
 
 function setCubeFace(faceIndex, reason) {
-    if (!telemetryCubeState?.cube) {
-        return;
-    }
+    try {
+        if (!telemetryCubeState?.cube) {
+            return;
+        }
 
-    const normalized = ((faceIndex % 5) + 5) % 5;
-    telemetryCubeState.faceIndex = normalized;
-    telemetryCubeState.cube.classList.remove("is-face-0", "is-face-1", "is-face-2", "is-face-3", "is-face-4");
-    telemetryCubeState.cube.classList.add(`is-face-${normalized}`);
+        const faceCount = telemetryCubeState.faceCount || 7;
+        const normalized = ((faceIndex % faceCount) + faceCount) % faceCount;
+        telemetryCubeState.faceIndex = normalized;
+        telemetryCubeState.cube.classList.remove("is-face-0", "is-face-1", "is-face-2", "is-face-3", "is-face-4", "is-face-5", "is-face-6");
+        telemetryCubeState.cube.classList.add(`is-face-${normalized}`);
 
-    telemetryCubeLog(`face changed ${normalized}`, reason ? { reason } : undefined);
+        telemetryCubeLog(`face changed ${normalized}`, reason ? { reason } : undefined);
 
-    // 3D transforms can cause LightweightCharts to miss a resize; force-fit after the face is applied.
-    window.setTimeout(() => resizeTelemetryCharts(), 0);
-    window.setTimeout(() => resizeTelemetryCharts(), 80);
-    window.setTimeout(() => resizeTelemetryCharts(), 350);
-    window.setTimeout(() => resizeTelemetryCharts(), 1100);
+        // 3D transforms can cause LightweightCharts to miss a resize; force-fit after the face is applied.
+        window.setTimeout(() => resizeTelemetryCharts(), 0);
+        window.setTimeout(() => resizeTelemetryCharts(), 80);
+        window.setTimeout(() => resizeTelemetryCharts(), 350);
+        window.setTimeout(() => resizeTelemetryCharts(), 1100);
 
-    if (telemetryChartsState?.lastPayload) {
-        window.setTimeout(() => {
-            updateTelemetryCharts(telemetryChartsState.lastPayload);
+        if (telemetryChartsState?.lastPayload) {
+            window.setTimeout(() => {
+                try {
+                    updateTelemetryCharts(telemetryChartsState.lastPayload);
 
-            if (throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
-                telemetryChartLog("refresh from state", { reason: `face-${normalized}` });
-            }
-        }, 120);
+                    if (throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
+                        telemetryChartLog("refresh from state", { reason: `face-${normalized}` });
+                    }
+                } catch (error) {
+                    telemetryCubeLog("chart refresh failed", error?.message || String(error));
+                }
+            }, 120);
+        }
+    } catch (error) {
+        telemetryCubeLog("setCubeFace failed", error?.message || String(error));
     }
 }
 
@@ -1773,7 +1782,11 @@ function resumeCubeRotation() {
     }
 
     telemetryCubeState.timerId = window.setInterval(() => {
-        setCubeFace(telemetryCubeState.faceIndex + 1, "interval");
+        try {
+            setCubeFace(telemetryCubeState.faceIndex + 1, "interval");
+        } catch (error) {
+            telemetryCubeLog("interval failed", error?.message || String(error));
+        }
     }, telemetryCubeState.intervalMs);
 }
 
@@ -1883,12 +1896,22 @@ export function initTelemetryCube(shellId, intervalMs) {
             ? intervalMs
             : Math.max(3000, (Number(shell.dataset.intervalSeconds) || 12) * 1000);
 
+        if (telemetryCubeState?.shell === shell && telemetryCubeState?.cube === cube) {
+            telemetryCubeState.intervalMs = resolvedIntervalMs;
+            telemetryCubeState.disabled = isReducedMotion()
+                || (typeof window !== "undefined" && window.innerWidth <= 720);
+            return;
+        }
+
+        pauseCubeRotation("reinit");
+
         telemetryCubeState = {
             shell,
             cube,
             intervalMs: resolvedIntervalMs,
             timerId: null,
             faceIndex: 0,
+            faceCount: 7,
             paused: false,
             disabled: false,
             holdUntil: 0
@@ -1905,24 +1928,36 @@ export function initTelemetryCube(shellId, intervalMs) {
             return;
         }
 
-        shell.addEventListener("mouseenter", () => {
-            telemetryCubeState.paused = true;
-            pauseCubeRotation("hover");
-        });
+        if (!shell.dataset.tvCubeBound) {
+            shell.dataset.tvCubeBound = "1";
 
-        shell.addEventListener("mouseleave", () => {
-            telemetryCubeState.paused = false;
-            resumeCubeRotation();
-        });
+            shell.addEventListener("mouseenter", () => {
+                telemetryCubeState.paused = true;
+                pauseCubeRotation("hover");
+            });
 
-        window.addEventListener("visibilitychange", () => {
-            if (document.hidden) {
-                pauseCubeRotation("hidden");
-                return;
-            }
+            shell.addEventListener("mouseleave", () => {
+                telemetryCubeState.paused = false;
+                resumeCubeRotation();
+            });
+        }
 
-            resumeCubeRotation();
-        });
+        if (!window.__tvTelemetryCubeVisibilityBound) {
+            window.__tvTelemetryCubeVisibilityBound = true;
+
+            window.addEventListener("visibilitychange", () => {
+                if (document.hidden) {
+                    pauseCubeRotation("hidden");
+                    return;
+                }
+
+                if (telemetryCubeState) {
+                    telemetryCubeState.paused = false;
+                }
+
+                resumeCubeRotation();
+            });
+        }
 
         setCubeFace(0, "init");
         telemetryCubeLog("initialized", { intervalMs: resolvedIntervalMs });
@@ -1951,12 +1986,36 @@ export function notifyTelemetryCubeEvent(eventKey) {
     }
 
     if (key.includes("goal")) {
-        setCubeFace(0, "goal");
+        setCubeFace(5, "goal");
 
         const now = Date.now();
         telemetryCubeState.holdUntil = now + 7000;
 
         pauseCubeRotation("goal-hold");
+
+        window.setTimeout(() => {
+            if (!telemetryCubeState) {
+                return;
+            }
+
+            if (Date.now() < telemetryCubeState.holdUntil) {
+                return;
+            }
+
+            telemetryCubeState.paused = false;
+            resumeCubeRotation();
+        }, 7200);
+
+        return;
+    }
+
+    if (key.includes("fear")) {
+        setCubeFace(6, "fear");
+
+        const now = Date.now();
+        telemetryCubeState.holdUntil = now + 7000;
+
+        pauseCubeRotation("fear-hold");
 
         window.setTimeout(() => {
             if (!telemetryCubeState) {

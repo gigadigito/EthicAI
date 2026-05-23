@@ -1096,7 +1096,9 @@
       "switchingArena": "Switching to the next hot arena...",
       "nextHotArena": "Live rotation is moving to a stronger arena window.",
       "rotationGaugeLabel": "Match rotation",
+      "focusGaugeLabel": "Camera focus",
       "rotationGaugeTitle": "Next arena switch in {0} min",
+      "goalLogEmpty": "No recent goals in this match.",
       "mainMatchEyebrow": "Featured broadcast match",
       "mainMatchDescription": "Open the fixed version of this match to watch the full broadcast without losing live context.",
       "mainMatchCta": "Enter Broadcast",
@@ -1138,6 +1140,11 @@
       "arenaCommentary": "Arena commentary",
       "recentEventsFallbackTight": "The arena is still locked in midfield.",
       "recentEventsFallbackLead": "The leader keeps pushing the arena forward."
+    },
+    "grid": {
+      "metrics": {
+        "goals": "Goals"
+      }
     },
     "commentary": {
       "title": "Arena commentary",

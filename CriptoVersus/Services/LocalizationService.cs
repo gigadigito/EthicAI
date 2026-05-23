@@ -8,10 +8,12 @@ namespace CriptoVersus.Web.Services;
 
 public sealed class LocalizationService
 {
+    private readonly object _resourceLock = new();
     private readonly AppCultureService _appCultureService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<LocalizationService> _logger;
-    private readonly IReadOnlyDictionary<string, JsonNode?> _resources;
+    private IReadOnlyDictionary<string, JsonNode?> _resources;
+    private DateTime _resourcesLastWriteUtc;
     private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -27,6 +29,7 @@ public sealed class LocalizationService
         _appCultureService = appCultureService;
         _logger = logger;
         _resources = LoadResources(environment.ContentRootPath);
+        _resourcesLastWriteUtc = GetResourcesLastWriteUtc(environment.ContentRootPath);
 
         if (_environment.IsDevelopment())
         {
@@ -37,6 +40,8 @@ public sealed class LocalizationService
 
     public string T(string key, string? culture = null, params object?[] args)
     {
+        RefreshResourcesIfNeeded();
+
         var requestedCulture = culture ?? CultureInfo.CurrentUICulture.Name;
         var normalizedCulture = _appCultureService.ToCultureCode(requestedCulture);
         var translated = GetString(key, normalizedCulture);
@@ -70,6 +75,8 @@ public sealed class LocalizationService
 
     public string? GetString(string key, string? culture = null)
     {
+        RefreshResourcesIfNeeded();
+
         var node = GetNode(key, culture ?? CultureInfo.CurrentUICulture.Name);
         if (node is JsonValue value && value.TryGetValue<string>(out var text))
             return text;
@@ -79,8 +86,33 @@ public sealed class LocalizationService
 
     public T? GetSection<T>(string key, string? culture = null)
     {
+        RefreshResourcesIfNeeded();
+
         var node = GetNode(key, culture ?? CultureInfo.CurrentUICulture.Name) ?? GetNode(key, AppCultureService.DefaultRouteCulture);
         return node is null ? default : node.Deserialize<T>(_serializerOptions);
+    }
+
+    private void RefreshResourcesIfNeeded()
+    {
+        if (!_environment.IsDevelopment())
+            return;
+
+        var currentStamp = GetResourcesLastWriteUtc(_environment.ContentRootPath);
+        if (currentStamp <= _resourcesLastWriteUtc)
+            return;
+
+        lock (_resourceLock)
+        {
+            currentStamp = GetResourcesLastWriteUtc(_environment.ContentRootPath);
+            if (currentStamp <= _resourcesLastWriteUtc)
+                return;
+
+            _resources = LoadResources(_environment.ContentRootPath);
+            _resourcesLastWriteUtc = currentStamp;
+
+            var loadedCultures = string.Join(", ", _resources.Keys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase));
+            _logger.LogDebug("[I18N_DEBUG] reloaded resource cultures: {Cultures}", loadedCultures);
+        }
     }
 
     private JsonNode? GetNode(string key, string? culture)
@@ -136,4 +168,24 @@ public sealed class LocalizationService
 
         return result;
     }
+
+    private static DateTime GetResourcesLastWriteUtc(string contentRootPath)
+    {
+        var latest = DateTime.MinValue;
+
+        foreach (var filePath in Directory.GetFiles(contentRootPath, "i18n.*.json", SearchOption.TopDirectoryOnly))
+        {
+            latest = MaxUtc(latest, File.GetLastWriteTimeUtc(filePath));
+        }
+
+        foreach (var filePath in Directory.GetFiles(contentRootPath, "i18n.*.*.json", SearchOption.TopDirectoryOnly))
+        {
+            latest = MaxUtc(latest, File.GetLastWriteTimeUtc(filePath));
+        }
+
+        return latest;
+    }
+
+    private static DateTime MaxUtc(DateTime left, DateTime right)
+        => left >= right ? left : right;
 }

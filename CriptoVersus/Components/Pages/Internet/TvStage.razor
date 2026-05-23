@@ -337,6 +337,74 @@
                                             </section>
                                         </div>
                                     </div>
+
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals">
+                                        <header class="tv-telemetry-face-header">
+                                            <span class="tv-telemetry-face-header__kicker">@RootT("grid.metrics.goals")</span>
+                                            <div class="tv-telemetry-face-header__row">
+                                                <strong>@DisplayScoreContext()</strong>
+                                                <em>@(_recentScoreEvents.Count > 0 ? _recentScoreEvents[0].TeamSymbol : DisplayPressureSymbol())</em>
+                                            </div>
+                                            <small>@DisplayGoalLogHeadline()</small>
+                                        </header>
+
+                                        <div class="tv-goal-log">
+                                            @if (_recentScoreEvents.Count > 0)
+                                            {
+                                                <div class="tv-goal-log__list">
+                                                    @foreach (var item in _recentScoreEvents.Take(5))
+                                                    {
+                                                        <article class="tv-goal-log__item">
+                                                            <strong>@FormatGoalLogTime(item)</strong>
+                                                            <div>
+                                                                <span>@item.TeamSymbol</span>
+                                                                <small>@DescribeGoalLog(item)</small>
+                                                            </div>
+                                                            <em>+@item.Points</em>
+                                                        </article>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="tv-goal-log__empty">
+                                                    <strong>@RootT("grid.metrics.goals")</strong>
+                                                    <small>@DisplayGoalLogEmptyState()</small>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
+                                        <header class="tv-telemetry-face-header">
+                                            <span class="tv-telemetry-face-header__kicker">@RootT("arenaPressureTitle")</span>
+                                            <div class="tv-telemetry-face-header__row">
+                                                <strong>@RootT("arenaPressureSubtitle")</strong>
+                                                <em>@T("labels.signalStable")</em>
+                                            </div>
+                                            <small>@RootT("arenaPressureLabel")</small>
+                                        </header>
+
+                                        <div class="tv-telemetry__sentiment-grid">
+                                            <ArenaSentimentGauge Symbol="@DisplayLeftHeroLabel()"
+                                                                 Score="@_arenaSentimentA?.Score"
+                                                                 Classification="@_arenaSentimentA?.Classification"
+                                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
+                                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentA is null)"
+                                                                 Size="420"
+                                                                 ShowLabel="true"
+                                                                 LabelText="@RootT("arenaPressureLabel")" />
+
+                                            <ArenaSentimentGauge Symbol="@DisplayRightHeroLabel()"
+                                                                 Score="@_arenaSentimentB?.Score"
+                                                                 Classification="@_arenaSentimentB?.Classification"
+                                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
+                                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentB is null)"
+                                                                 Size="420"
+                                                                 ShowLabel="true"
+                                                                 LabelText="@RootT("arenaPressureLabel")" />
+                                        </div>
+                                    </div>
                                 </section>
 
                                 <section class="tv-telemetry-cube__face tv-telemetry-cube__face--left">
@@ -661,11 +729,15 @@ else
     private IReadOnlyList<string> _tickerItems = [];
     private IReadOnlyList<MatchScoreEventDto> _recentScoreEvents = [];
     private IReadOnlyList<MatchMetricSnapshotDto> _metricSnapshots = [];
+    private ArenaSentimentDto? _arenaSentimentA;
+    private ArenaSentimentDto? _arenaSentimentB;
+    private bool _arenaSentimentLoading;
     private CancellationTokenSource? _metricSnapshotCts;
     private Task? _metricSnapshotLoopTask;
     private int _metricSnapshotMatchId;
     private long _metricSnapshotLastId;
     private long _metricSnapshotLastLogTick;
+    private DateTime _lastArenaSentimentFetchUtc = DateTime.MinValue;
     private DateTime _clockAnchorUtc = DateTime.UtcNow;
     private double _clockAnchorRemainingMilliseconds;
     private DateTime _broadcastNoticeUntilUtc = DateTime.MinValue;
@@ -726,7 +798,7 @@ else
         string? FocusKey = null,
         string? FocusLabel = null,
         string? FocusColor = null);
-    private bool HasLiveMatch => HotMatch?.HasMatch == true || Match is not null;
+    private bool HasLiveMatch => (HotMatch?.HasMatch == true || Match is not null) && !IsMatchFinishedForStage();
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private bool EnableTvDebugOverlay => Config.GetValue<bool?>("CriptoVersusTV:EnableDebugOverlay") == true;
@@ -891,6 +963,7 @@ else
         {
             await _tvModule.InvokeVoidAsync("initTelemetryCube", "tv-telemetry-cube-shell", TelemetryCubeIntervalSeconds * 1000);
             _telemetryCubeInitialized = true;
+            await LogAsync("TV_CUBE", "initialized");
         }
         catch (ObjectDisposedException)
         {
@@ -901,7 +974,6 @@ else
             _telemetryCubeInitialized = false;
             return;
         }
-        await LogAsync("TV_CUBE", "initialized");
     }
 
 
@@ -1289,6 +1361,35 @@ else
             <strong>@DisplayPoolStatus()</strong>
             <small>@DisplayVolume()</small>
         </article>
+        @if (IsBroadcastMode)
+        {
+            <article class="tv-telemetry__gauges">
+                <span>@T("labels.signalStable")</span>
+                <strong>@BroadcastFocusLabel</strong>
+                <div class="tv-telemetry__gauge-stack">
+                    <div class="tv-telemetry__gauge">
+                        <div class="tv-telemetry__gauge-copy">
+                            <small>@T("broadcast.rotationGaugeLabel")</small>
+                            <em>@DisplayBroadcastRotationRemaining()</em>
+                        </div>
+                        <div class="tv-telemetry__gauge-track" aria-hidden="true">
+                            <i class="tv-telemetry__gauge-fill tv-telemetry__gauge-fill--rotation" style="width:@BroadcastRotationWidthCss%;"></i>
+                        </div>
+                    </div>
+
+                    <div class="tv-telemetry__gauge">
+                        <div class="tv-telemetry__gauge-copy">
+                            <small>@T("broadcast.focusGaugeLabel")</small>
+                            <em>@((BroadcastFocusProgress * 100d).ToString("0", CultureInfo.InvariantCulture))%</em>
+                        </div>
+                        <div class="tv-telemetry__gauge-track" aria-hidden="true">
+                            <i class="tv-telemetry__gauge-fill tv-telemetry__gauge-fill--focus"
+                               style="width:@BroadcastFocusWidthCss%; --tv-focus-color:@BroadcastFocusColor;"></i>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        }
         @if (UseFootballFieldLayout && CurrentFieldState is not null)
         {
             <article class="tv-telemetry__events">
@@ -1417,6 +1518,10 @@ else
                     _metricSnapshotMatchId = 0;
                     _metricSnapshotLastId = 0;
                     _metricSnapshots = [];
+                    _arenaSentimentA = null;
+                    _arenaSentimentB = null;
+                    _arenaSentimentLoading = false;
+                    _lastArenaSentimentFetchUtc = DateTime.MinValue;
                     continue;
                 }
 
@@ -1425,6 +1530,9 @@ else
                     _metricSnapshotMatchId = matchId;
                     _metricSnapshotLastId = 0;
                     _metricSnapshots = [];
+                    _arenaSentimentA = null;
+                    _arenaSentimentB = null;
+                    _lastArenaSentimentFetchUtc = DateTime.MinValue;
                 }
 
                 List<MatchMetricSnapshotDto> snapshots;
@@ -1450,6 +1558,35 @@ else
                         .OrderByDescending(x => x.CapturedAtUtc)
                         .Take(160)
                         .ToList();
+                }
+
+                var shouldRefreshSentiment =
+                    _arenaSentimentA is null
+                    || _arenaSentimentB is null
+                    || DateTime.UtcNow - _lastArenaSentimentFetchUtc >= TimeSpan.FromSeconds(12);
+
+                if (shouldRefreshSentiment)
+                {
+                    try
+                    {
+                        _arenaSentimentLoading = _arenaSentimentA is null && _arenaSentimentB is null;
+                        var sentiment = await Api.GetMatchArenaSentimentAsync(matchId, ct);
+                        _arenaSentimentA = sentiment?.TeamA;
+                        _arenaSentimentB = sentiment?.TeamB;
+                        _lastArenaSentimentFetchUtc = DateTime.UtcNow;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        await LogAsync("TV_SENTIMENT", "error", ex.Message);
+                    }
+                    finally
+                    {
+                        _arenaSentimentLoading = false;
+                    }
                 }
 
 
@@ -2968,7 +3105,16 @@ else
 
     private string DisplayClockPhaseLabel() => T("labels.remainingWithClock", DisplayClockPrimary());
 
-    private bool IsClockLive() => ResolvePreciseRemainingTime() is TimeSpan remaining && remaining > TimeSpan.Zero;
+    private bool IsClockLive()
+    {
+        if (IsMatchFinishedForStage())
+            return false;
+
+        if (ResolvePreciseRemainingTime() is TimeSpan remaining)
+            return remaining > TimeSpan.Zero;
+
+        return (HotMatch?.RemainingSeconds ?? ParseRemainingSeconds(DisplayRemainingTime())) > 0;
+    }
 
     private string DisplayScoreContext()
     {
@@ -3381,8 +3527,41 @@ else
         return TimeSpan.FromMilliseconds(remainingMs);
     }
 
+    private bool IsMatchFinishedForStage()
+    {
+        if (Match?.IsFinished == true)
+            return true;
+
+        if (string.Equals(Match?.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (Match?.EndTime is not null)
+            return true;
+
+        if (ResolvePreciseRemainingTime() is TimeSpan preciseRemaining)
+            return preciseRemaining <= TimeSpan.Zero;
+
+        var startUtc = ResolveMatchStartUtc();
+        if (startUtc is not null)
+            return DateTime.UtcNow >= startUtc.Value.AddMinutes(105);
+
+        var fallbackRemainingSeconds = HotMatch?.RemainingSeconds ?? ParseRemainingSeconds(DisplayRemainingTime());
+        var hasExplicitClockSignal =
+            HotMatch?.RemainingSeconds.HasValue == true
+            || !string.IsNullOrWhiteSpace(HotMatch?.RemainingTimeLabel)
+            || (Match?.ElapsedMinutes ?? 0) > 0
+            || (Match?.RemainingMinutes ?? 0) > 0;
+
+        return (HotMatch?.HasMatch == true || Match is not null)
+            && hasExplicitClockSignal
+            && fallbackRemainingSeconds <= 0;
+    }
+
     private TvClockState ResolveClockState()
     {
+        if (IsMatchFinishedForStage())
+            return new TvClockState(TvClockPhase.Final, 90 * 60);
+
         var startUtc = ResolveMatchStartUtc();
         if (startUtc is null)
             return BuildFallbackClockState();
@@ -3418,7 +3597,57 @@ else
                 : new TvClockState(TvClockPhase.SecondHalf, Math.Min(90 * 60, elapsed));
         }
 
-        return new TvClockState(TvClockPhase.FirstHalf, 0);
+        return new TvClockState(TvClockPhase.Final, 90 * 60);
+    }
+
+    private string DisplayGoalLogHeadline()
+    {
+        if (_recentScoreEvents.Count == 0)
+            return DisplayGoalLogEmptyState();
+
+        var latest = _recentScoreEvents[0];
+        return string.IsNullOrWhiteSpace(latest.Description)
+            ? T("events.goalTitle", latest.TeamSymbol)
+            : latest.Description;
+    }
+
+    private string DescribeGoalLog(MatchScoreEventDto item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.Description))
+            return item.Description;
+
+        return T("events.goalTitle", item.TeamSymbol);
+    }
+
+    private string FormatGoalLogTime(MatchScoreEventDto item)
+    {
+        var timestamp = item.EventTimeUtc.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(item.EventTimeUtc, DateTimeKind.Utc)
+            : item.EventTimeUtc.ToUniversalTime();
+
+        return TimeZoneInfo.ConvertTimeFromUtc(timestamp, TimeZoneInfo.Local).ToString("HH:mm", CultureInfo.InvariantCulture);
+    }
+
+    private string DisplayGoalLogEmptyState()
+        => T("broadcast.goalLogEmpty");
+
+    private string RootT(string key, params object?[] args)
+        => L.T(key, Culture, args);
+
+    private string GetArenaSentimentLabel(ArenaSentimentDto? sentiment)
+    {
+        var code = sentiment?.Classification ?? "Neutral";
+
+        return code switch
+        {
+            "ExtremeFear" => RootT("arenaExtremeFear"),
+            "Fear" => RootT("arenaFear"),
+            "Neutral" => RootT("arenaNeutral"),
+            "Greed" => RootT("arenaGreed"),
+            "ExtremeGreed" => RootT("arenaExtremeGreed"),
+            "InsufficientData" => RootT("arenaInsufficientData"),
+            _ => code
+        };
     }
 
     private string BuildVolumeFallback()
@@ -6049,6 +6278,7 @@ else
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
         align-content: start;
+        min-height: 0;
     }
 
     .tv-telemetry--football {
@@ -6148,6 +6378,85 @@ else
         font-size: .75rem;
     }
 
+    .tv-telemetry__gauges {
+        grid-column: 1 / -1;
+        min-height: 0;
+        gap: 12px;
+    }
+
+    .tv-telemetry__sentiment-card {
+        grid-column: 1 / -1;
+        min-height: 0;
+        gap: 12px;
+    }
+
+    .tv-telemetry__sentiment-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        align-items: start;
+    }
+
+    .tv-telemetry__gauge-stack {
+        display: grid;
+        gap: 10px;
+    }
+
+    .tv-telemetry__gauge {
+        display: grid;
+        gap: 6px;
+    }
+
+    .tv-telemetry__gauge-copy {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .tv-telemetry__gauge-copy small {
+        color: rgba(223, 245, 255, 0.72);
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    .tv-telemetry__gauge-copy em {
+        color: #eef7ff;
+        font-style: normal;
+        font-weight: 900;
+        letter-spacing: .04em;
+    }
+
+    .tv-telemetry__gauge-track {
+        position: relative;
+        height: 8px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255,255,255,0.08);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+    }
+
+    .tv-telemetry__gauge-fill {
+        display: block;
+        height: 100%;
+        min-width: 10px;
+        border-radius: inherit;
+    }
+
+    .tv-telemetry__gauge-fill--rotation {
+        background: linear-gradient(90deg, #53c8ff, #7ff6df);
+        box-shadow: 0 0 20px rgba(83, 200, 255, 0.28);
+        transition: width .9s linear;
+    }
+
+    .tv-telemetry__gauge-fill--focus {
+        background: linear-gradient(90deg, color-mix(in srgb, var(--tv-focus-color) 72%, white), var(--tv-focus-color));
+        box-shadow: 0 0 18px color-mix(in srgb, var(--tv-focus-color) 52%, transparent);
+        transition: width .22s linear;
+    }
+
     .tv-telemetry article:nth-child(2) {
         animation-delay: -3s;
     }
@@ -6218,6 +6527,7 @@ else
         grid-column: 1 / -1;
         position: relative;
         height: clamp(520px, 56vh, 720px);
+        min-height: 0;
         perspective: 1600px;
         perspective-origin: 50% 44%;
         isolation: isolate;
@@ -6247,6 +6557,8 @@ else
     .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
     .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
     .tv-telemetry-cube.is-face-4 { transform: rotateY(-180deg); }
+    .tv-telemetry-cube.is-face-5 { transform: rotateY(-180deg); }
+    .tv-telemetry-cube.is-face-6 { transform: rotateY(-180deg); }
 
     .tv-telemetry-cube__face {
         position: absolute;
@@ -6277,11 +6589,15 @@ else
 
     /* Virtual 5th face: reuse the back face, but swap content (compare vs split) */
     .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
         height: 100%;
     }
 
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
         display: none;
     }
 
@@ -6293,13 +6609,40 @@ else
         display: grid;
     }
 
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+        display: none;
+    }
+
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals {
+        display: grid;
+    }
+
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals {
+        display: none;
+    }
+
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+        display: grid;
+    }
+
     .tv-telemetry-cube__inner {
         position: relative;
         height: 100%;
+        min-height: 0;
         padding: 14px;
         display: grid;
-        grid-template-rows: auto 1fr auto;
+        grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 12px;
+    }
+
+    .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube__inner--goals,
+    .tv-telemetry-cube__inner--sentiment {
+        align-self: stretch;
     }
 
     .tv-telemetry-cube__telemetry-grid {
@@ -6366,7 +6709,7 @@ else
 
     .tv-telemetry-chart-shell {
         position: relative;
-        min-height: 260px;
+        min-height: 0;
         height: 100%;
         border-radius: 22px;
         border: 1px solid rgba(255,255,255,0.06);
@@ -6376,7 +6719,8 @@ else
 
     .tv-telemetry-split {
         display: grid;
-        grid-template-rows: 1fr 1fr;
+        height: 100%;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
         gap: 12px;
         min-height: 0;
     }
@@ -6397,6 +6741,72 @@ else
         border-radius: 18px;
         border: 1px solid rgba(255,255,255,0.05);
         background: rgba(255,255,255,0.02);
+    }
+
+    .tv-goal-log {
+        min-height: 0;
+        height: 100%;
+        padding: 4px 2px 0;
+    }
+
+    .tv-goal-log__list {
+        min-height: 100%;
+        display: grid;
+        grid-auto-rows: minmax(0, 1fr);
+        gap: 10px;
+        align-content: stretch;
+    }
+
+    .tv-goal-log__item,
+    .tv-goal-log__empty {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
+    }
+
+    .tv-goal-log__item strong,
+    .tv-goal-log__empty strong {
+        font-size: 1rem;
+        letter-spacing: .03em;
+    }
+
+    .tv-goal-log__item div,
+    .tv-goal-log__empty {
+        display: grid;
+        gap: 4px;
+    }
+
+    .tv-goal-log__item span {
+        color: var(--tv-green);
+        font-size: .74rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .tv-goal-log__item small,
+    .tv-goal-log__empty small {
+        color: var(--tv-muted);
+        line-height: 1.45;
+    }
+
+    .tv-goal-log__item em {
+        font-style: normal;
+        font-weight: 900;
+        color: #7ff6df;
+        letter-spacing: .04em;
+    }
+
+    .tv-goal-log__empty {
+        grid-template-columns: 1fr;
+        min-height: 220px;
+        place-content: center;
+        text-align: center;
     }
 
     .tv-telemetry-split__meta strong {
@@ -7071,6 +7481,8 @@ else
         position: relative;
         overflow: hidden;
         min-width: 0;
+        height: 100%;
+        align-content: stretch;
     }
 
     .tv-telemetry-cube-shell {
@@ -7089,6 +7501,28 @@ else
     .tv-telemetry-cube__face {
         width: 100%;
         max-width: 100%;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube-shell,
+    .tv-stage--broadcast .tv-telemetry-cube,
+    .tv-stage--broadcast .tv-telemetry-cube__face {
+        height: 100%;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner,
+    .tv-stage--broadcast .tv-telemetry-split,
+    .tv-stage--broadcast .tv-goal-log,
+    .tv-stage--broadcast .tv-telemetry__sentiment-grid {
+        height: 100%;
+        min-height: 0;
+    }
+
+    .tv-stage--broadcast .tv-telemetry__sentiment-grid {
+        align-items: stretch;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube-shell {
+        min-height: 0;
     }
     .tv-stage--broadcast .tv-telemetry {
         gap: 8px;
