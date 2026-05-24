@@ -376,34 +376,19 @@
                                     </div>
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
-                                        <header class="tv-telemetry-face-header">
-                                            <span class="tv-telemetry-face-header__kicker">@RootT("arenaPressureTitle")</span>
-                                            <div class="tv-telemetry-face-header__row">
-                                                <strong>@RootT("arenaPressureSubtitle")</strong>
-                                                <em>@T("labels.signalStable")</em>
-                                            </div>
-                                            <small>@RootT("arenaPressureLabel")</small>
-                                        </header>
-
-                                        <div class="tv-telemetry__sentiment-grid">
-                                            <ArenaSentimentGauge Symbol="@DisplayLeftHeroLabel()"
-                                                                 Score="@_arenaSentimentA?.Score"
-                                                                 Classification="@_arenaSentimentA?.Classification"
-                                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentA is null)"
-                                                                 Size="420"
-                                                                 ShowLabel="true"
-                                                                 LabelText="@RootT("arenaPressureLabel")" />
-
-                                            <ArenaSentimentGauge Symbol="@DisplayRightHeroLabel()"
-                                                                 Score="@_arenaSentimentB?.Score"
-                                                                 Classification="@_arenaSentimentB?.Classification"
-                                                                 ClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                                 IsLoading="@(_arenaSentimentLoading && _arenaSentimentB is null)"
-                                                                 Size="420"
-                                                                 ShowLabel="true"
-                                                                 LabelText="@RootT("arenaPressureLabel")" />
-                                        </div>
+                                        <ArenaPressurePanel LeftSymbol="@DisplayLeftHeroLabel()"
+                                                            RightSymbol="@DisplayRightHeroLabel()"
+                                                            LeftSentiment="@_arenaSentimentA"
+                                                            RightSentiment="@_arenaSentimentB"
+                                                            LeftClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
+                                                            RightClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
+                                                            IsLoading="@_arenaSentimentLoading"
+                                                            GaugeSize="280"
+                                                            TitleText="@MatchGaugeT("arenaPressureTitle")"
+                                                            SubtitleText="@MatchGaugeT("arenaPressureSubtitle")"
+                                                            GaugeLabelText="@MatchGaugeT("arenaPressureLabel")"
+                                                            BadgeText="@MatchGaugeT("marketPulse")"
+                                                            AdditionalClass="arena-pressure-panel--tv" />
                                     </div>
                                 </section>
 
@@ -3634,18 +3619,21 @@ else
     private string RootT(string key, params object?[] args)
         => L.T(key, Culture, args);
 
+    private string MatchGaugeT(string key, params object?[] args)
+        => L.T($"matchDetail.{key}", Culture, args);
+
     private string GetArenaSentimentLabel(ArenaSentimentDto? sentiment)
     {
         var code = sentiment?.Classification ?? "Neutral";
 
         return code switch
         {
-            "ExtremeFear" => RootT("arenaExtremeFear"),
-            "Fear" => RootT("arenaFear"),
-            "Neutral" => RootT("arenaNeutral"),
-            "Greed" => RootT("arenaGreed"),
-            "ExtremeGreed" => RootT("arenaExtremeGreed"),
-            "InsufficientData" => RootT("arenaInsufficientData"),
+            "ExtremeFear" => MatchGaugeT("arenaExtremeFear"),
+            "Fear" => MatchGaugeT("arenaFear"),
+            "Neutral" => MatchGaugeT("arenaNeutral"),
+            "Greed" => MatchGaugeT("arenaGreed"),
+            "ExtremeGreed" => MatchGaugeT("arenaExtremeGreed"),
+            "InsufficientData" => MatchGaugeT("arenaInsufficientData"),
             _ => code
         };
     }

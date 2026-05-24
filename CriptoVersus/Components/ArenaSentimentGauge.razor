@@ -92,7 +92,8 @@
         position: relative;
         width: 100%;
         max-width: none;
-        height: 100%;
+        height: auto;
+        max-height: 100%;
         min-height: 0;
         padding: 1rem 1rem 1.1rem;
         display: grid;
@@ -105,6 +106,7 @@
             linear-gradient(180deg, rgba(13, 16, 36, 0.98), rgba(8, 11, 26, 0.98));
         box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(255,255,255,0.03);
         overflow: hidden;
+        margin-inline: auto;
     }
 
     .arena-sentiment-gauge__header,
@@ -134,6 +136,7 @@
         position: relative;
         width: min(100%, var(--gauge-size));
         min-height: calc(var(--gauge-size) * 0.66);
+        max-width: 100%;
         aspect-ratio: 1.42 / 1;
         margin: 0 auto;
         align-self: start;

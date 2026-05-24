@@ -1,0 +1,160 @@
+<div class="arena-pressure-panel @AdditionalClass">
+    <div class="arena-pressure-panel__head">
+        <div class="arena-pressure-panel__copy">
+            <div class="arena-pressure-panel__title">@TitleText</div>
+            <div class="arena-pressure-panel__subtitle">@SubtitleText</div>
+        </div>
+
+        @if (ShowBadge)
+        {
+            <span class="badge rounded-pill text-bg-dark border border-secondary-subtle arena-pressure-panel__badge">@BadgeText</span>
+        }
+    </div>
+
+    <div class="arena-pressure-panel__grid">
+        <div class="arena-pressure-panel__gauge-shell">
+            <ArenaSentimentGauge Symbol="@LeftSymbol"
+                                 Score="@LeftSentiment?.Score"
+                                 Classification="@LeftSentiment?.Classification"
+                                 ClassificationLabel="@LeftClassificationLabel"
+                                 IsLoading="@(IsLoading && LeftSentiment is null)"
+                                 Size="@GaugeSize"
+                                 ShowLabel="true"
+                                 LabelText="@GaugeLabelText" />
+        </div>
+
+        <div class="arena-pressure-panel__gauge-shell">
+            <ArenaSentimentGauge Symbol="@RightSymbol"
+                                 Score="@RightSentiment?.Score"
+                                 Classification="@RightSentiment?.Classification"
+                                 ClassificationLabel="@RightClassificationLabel"
+                                 IsLoading="@(IsLoading && RightSentiment is null)"
+                                 Size="@GaugeSize"
+                                 ShowLabel="true"
+                                 LabelText="@GaugeLabelText" />
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string LeftSymbol { get; set; } = string.Empty;
+    [Parameter] public string RightSymbol { get; set; } = string.Empty;
+    [Parameter] public ArenaSentimentDto? LeftSentiment { get; set; }
+    [Parameter] public ArenaSentimentDto? RightSentiment { get; set; }
+    [Parameter] public string LeftClassificationLabel { get; set; } = string.Empty;
+    [Parameter] public string RightClassificationLabel { get; set; } = string.Empty;
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public int GaugeSize { get; set; } = 250;
+    [Parameter] public string TitleText { get; set; } = string.Empty;
+    [Parameter] public string SubtitleText { get; set; } = string.Empty;
+    [Parameter] public string GaugeLabelText { get; set; } = string.Empty;
+    [Parameter] public bool ShowBadge { get; set; } = true;
+    [Parameter] public string BadgeText { get; set; } = string.Empty;
+    [Parameter] public string AdditionalClass { get; set; } = string.Empty;
+}
+
+<style>
+    .arena-pressure-panel {
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    .arena-pressure-panel__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .arena-pressure-panel__copy {
+        display: grid;
+        gap: 0.2rem;
+    }
+
+    .arena-pressure-panel__title {
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #f8fafc;
+    }
+
+    .arena-pressure-panel__subtitle {
+        font-size: 0.875rem;
+        line-height: 1.45;
+        color: rgba(148, 163, 184, 0.95);
+        max-width: 60ch;
+    }
+
+    .arena-pressure-panel__badge {
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .arena-pressure-panel__grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        min-height: 0;
+        align-items: stretch;
+    }
+
+    .arena-pressure-panel__gauge-shell {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .arena-pressure-panel--tv {
+        align-content: start;
+    }
+
+    .arena-pressure-panel--tv .arena-pressure-panel__grid {
+        height: 100%;
+        align-items: center;
+    }
+
+    .arena-pressure-panel--tv .arena-pressure-panel__gauge-shell {
+        height: 100%;
+        align-items: center;
+        width: min(100%, clamp(220px, 30vw, 320px));
+        margin-inline: auto;
+    }
+
+    .arena-pressure-panel--tv .arena-sentiment-gauge {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .arena-pressure-panel--tv .arena-sentiment-gauge__dial {
+        width: min(100%, 320px);
+        aspect-ratio: 1.42 / 1;
+    }
+
+    @@media (max-width: 991.98px) {
+        .arena-pressure-panel--tv .arena-pressure-panel__gauge-shell {
+            width: min(100%, clamp(210px, 38vw, 300px));
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .arena-pressure-panel__grid {
+            grid-template-columns: 1fr;
+        }
+
+        .arena-pressure-panel--tv .arena-pressure-panel__grid {
+            align-content: center;
+        }
+
+        .arena-pressure-panel--tv .arena-pressure-panel__gauge-shell {
+            width: min(100%, clamp(220px, 72vw, 300px));
+        }
+    }
+</style>

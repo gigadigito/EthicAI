@@ -109,32 +109,41 @@ public sealed class TokenMarketSnapshotService : ITokenMarketSnapshotService
                     "live",
                     attempts);
 
-            var birdeyeTradeAttempt = await TryBirdeyeTradeDataAsync(resolvedAddress, ct);
-            attempts.Add(birdeyeTradeAttempt.Attempt);
-            if (birdeyeTradeAttempt.Snapshot is not null)
-                return new TokenMarketProbeResult(
-                    birdeyeTradeAttempt.Snapshot,
-                    checkedAtUtc,
-                    "live",
-                    attempts);
+            if (!IsRateLimitedAttempt(birdeyeAttempt.Attempt))
+            {
+                var birdeyeTradeAttempt = await TryBirdeyeTradeDataAsync(resolvedAddress, ct);
+                attempts.Add(birdeyeTradeAttempt.Attempt);
+                if (birdeyeTradeAttempt.Snapshot is not null)
+                    return new TokenMarketProbeResult(
+                        birdeyeTradeAttempt.Snapshot,
+                        checkedAtUtc,
+                        "live",
+                        attempts);
 
-            var birdeyeMarketsAttempt = await TryBirdeyeMarketsAsync(resolvedAddress, ct);
-            attempts.Add(birdeyeMarketsAttempt.Attempt);
-            if (birdeyeMarketsAttempt.Snapshot is not null)
-                return new TokenMarketProbeResult(
-                    birdeyeMarketsAttempt.Snapshot,
-                    checkedAtUtc,
-                    "live",
-                    attempts);
+                if (!IsRateLimitedAttempt(birdeyeTradeAttempt.Attempt))
+                {
+                    var birdeyeMarketsAttempt = await TryBirdeyeMarketsAsync(resolvedAddress, ct);
+                    attempts.Add(birdeyeMarketsAttempt.Attempt);
+                    if (birdeyeMarketsAttempt.Snapshot is not null)
+                        return new TokenMarketProbeResult(
+                            birdeyeMarketsAttempt.Snapshot,
+                            checkedAtUtc,
+                            "live",
+                            attempts);
 
-            var birdeyeSearchAttempt = await TryBirdeyeSearchAsync(resolvedAddress, ct);
-            attempts.Add(birdeyeSearchAttempt.Attempt);
-            if (birdeyeSearchAttempt.Snapshot is not null)
-                return new TokenMarketProbeResult(
-                    birdeyeSearchAttempt.Snapshot,
-                    checkedAtUtc,
-                    "live",
-                    attempts);
+                    if (!IsRateLimitedAttempt(birdeyeMarketsAttempt.Attempt))
+                    {
+                        var birdeyeSearchAttempt = await TryBirdeyeSearchAsync(resolvedAddress, ct);
+                        attempts.Add(birdeyeSearchAttempt.Attempt);
+                        if (birdeyeSearchAttempt.Snapshot is not null)
+                            return new TokenMarketProbeResult(
+                                birdeyeSearchAttempt.Snapshot,
+                                checkedAtUtc,
+                                "live",
+                                attempts);
+                    }
+                }
+            }
 
             var heliusAttempt = await TryHeliusAsync(resolvedAddress, ct);
             attempts.Add(heliusAttempt.Attempt);
@@ -369,7 +378,7 @@ public sealed class TokenMarketSnapshotService : ITokenMarketSnapshotService
             using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
             {
-                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, "HTTP failure", startedAt);
+                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, BuildHttpFailureMessage(response.StatusCode), startedAt);
                 LogAttempt(attempt);
                 return new ExternalSnapshotProbeResult(null, attempt);
             }
@@ -482,7 +491,7 @@ public sealed class TokenMarketSnapshotService : ITokenMarketSnapshotService
             using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
             {
-                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, "HTTP failure", startedAt);
+                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, BuildHttpFailureMessage(response.StatusCode), startedAt);
                 LogAttempt(attempt);
                 return new ExternalSnapshotProbeResult(null, attempt);
             }
@@ -590,7 +599,7 @@ public sealed class TokenMarketSnapshotService : ITokenMarketSnapshotService
             using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
             {
-                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, "HTTP failure", startedAt);
+                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, BuildHttpFailureMessage(response.StatusCode), startedAt);
                 LogAttempt(attempt);
                 return new ExternalSnapshotProbeResult(null, attempt);
             }
@@ -691,7 +700,7 @@ public sealed class TokenMarketSnapshotService : ITokenMarketSnapshotService
             using var response = await _httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode)
             {
-                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, "HTTP failure", startedAt);
+                var attempt = CreateAttempt(source, requestUrl, (int)response.StatusCode, false, false, BuildHttpFailureMessage(response.StatusCode), startedAt);
                 LogAttempt(attempt);
                 return new ExternalSnapshotProbeResult(null, attempt);
             }
@@ -1026,6 +1035,18 @@ public sealed class TokenMarketSnapshotService : ITokenMarketSnapshotService
             attempt.Message,
             attempt.Url);
     }
+
+    private static bool IsRateLimitedAttempt(TokenMarketProbeAttempt attempt)
+        => attempt.HttpStatusCode == 429;
+
+    private static string BuildHttpFailureMessage(System.Net.HttpStatusCode statusCode)
+        => statusCode switch
+        {
+            System.Net.HttpStatusCode.TooManyRequests => "Rate limited by provider",
+            System.Net.HttpStatusCode.Forbidden => "Forbidden by provider",
+            System.Net.HttpStatusCode.Unauthorized => "Unauthorized or invalid API key",
+            _ => "HTTP failure"
+        };
 
     private string? ResolveApiKey(params string[] keys)
     {
