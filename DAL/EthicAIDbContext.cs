@@ -31,6 +31,7 @@ namespace EthicAI.EntityModel
         public DbSet<MatchScoreState> MatchScoreState { get; set; }
         public DbSet<ArenaSentimentSnapshot> ArenaSentimentSnapshot { get; set; }
         public DbSet<SocialPostHistory> SocialPostHistory { get; set; }
+        public DbSet<CoinSocialProfile> CoinSocialProfile { get; set; }
         public DbSet<MatchAiNarrationHistory> MatchAiNarrationHistory { get; set; }
         public DbSet<FinancialMigrationBatch> FinancialMigrationBatch { get; set; }
         public DbSet<FundMigrationCheckpoint> FundMigrationCheckpoint { get; set; }
@@ -910,6 +911,57 @@ namespace EthicAI.EntityModel
                       .WithMany()
                       .HasForeignKey(e => e.MatchId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CoinSocialProfile>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("coin_social_profile");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.Property(e => e.Symbol)
+                      .HasColumnName("symbol")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.CoinGeckoId)
+                      .HasColumnName("coingecko_id")
+                      .HasMaxLength(120);
+
+                entity.Property(e => e.ContractAddress)
+                      .HasColumnName("contract_address")
+                      .HasMaxLength(200);
+
+                entity.Property(e => e.TwitterHandle)
+                      .HasColumnName("twitter_handle")
+                      .HasMaxLength(120);
+
+                entity.Property(e => e.TelegramUrl)
+                      .HasColumnName("telegram_url")
+                      .HasMaxLength(500);
+
+                entity.Property(e => e.WebsiteUrl)
+                      .HasColumnName("website_url")
+                      .HasMaxLength(500);
+
+                entity.Property(e => e.Source)
+                      .HasColumnName("source")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.LastCheckedUtc)
+                      .HasColumnName("last_checked_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.CreatedAtUtc)
+                      .HasColumnName("created_at_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.UpdatedAtUtc)
+                      .HasColumnName("updated_at_utc")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => e.Symbol)
+                      .IsUnique();
             });
 
             modelBuilder.Entity<MatchAiNarrationHistory>(entity =>

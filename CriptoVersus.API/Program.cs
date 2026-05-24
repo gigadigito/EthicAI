@@ -4,6 +4,7 @@ using BLL.ArenaSentiment;
 using BLL.Positions;
 using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
+using CriptoVersus.API.Swagger;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -150,6 +151,8 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    c.OperationFilter<AuthorizationOperationFilter>();
 });
 builder.Services.AddSignalR();
 
