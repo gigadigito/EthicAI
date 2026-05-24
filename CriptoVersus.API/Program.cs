@@ -40,6 +40,11 @@ CriptoVersus.API.EnvironmentIsolationGuard.AssertDevelopmentConfiguration(builde
 
 builder.Services.AddScoped<ILedgerService, LedgerService>();
 builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>();
+builder.Services.AddHttpClient<ITokenMarketSnapshotService, TokenMarketSnapshotService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.dexscreener.com/");
+    client.Timeout = TimeSpan.FromSeconds(12);
+});
 builder.Services.AddScoped<IPositionOrchestrationService, PositionOrchestrationService>();
 builder.Services.AddHttpClient<IOffChainCustodyTransferVerifier, OffChainCustodyTransferVerifier>();
 builder.Services.AddHttpClient<IOnChainWithdrawalVerifier, OnChainWithdrawalVerifier>();

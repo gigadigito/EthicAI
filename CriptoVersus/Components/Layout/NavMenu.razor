@@ -36,6 +36,13 @@
         </div>
 
         <div class="nav-item">
+            <NavLink class="nav-link" href="@RouteLocalization.BuildTokenPath(CurrentCulture)">
+                <span class="nav-icon">K</span>
+                <span>@L.T("nav.token", CurrentCulture)</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item">
             <NavLink class="nav-link" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">
                 <span class="nav-icon">S</span>
                 <span>@L.T("nav.stats", CurrentCulture)</span>

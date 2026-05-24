@@ -81,6 +81,9 @@ public sealed class RouteLocalizationService
         return $"{BuildStatsTeamsPath(culture)}/{normalizedSlug}";
     }
 
+    public string BuildTokenPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/token";
+
     public string BuildTvPath(string? culture)
         => $"/{NormalizeCulture(culture)}/tv";
 
@@ -139,6 +142,11 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/en/stats/teams", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/estatisticas/times", StringComparison.OrdinalIgnoreCase))
             return BuildStatsTeamsPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/token", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/token", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/token", StringComparison.OrdinalIgnoreCase))
+            return BuildTokenPath(normalizedTarget) + querySuffix;
 
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

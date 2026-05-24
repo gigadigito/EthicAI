@@ -1,0 +1,1018 @@
+@page "/token"
+@page "/en/token"
+@page "/pt/token"
+@rendermode InteractiveServer
+@using System.Globalization
+@using System.Text.Json
+@using Microsoft.JSInterop
+@using CriptoVersus.Web.Services
+@inject AppCultureService AppCulture
+@inject IJSRuntime JS
+@inject LocalizationService L
+@inject NavigationManager Nav
+@inject RouteLocalizationService RouteLocalization
+@inject TokenMarketService TokenMarket
+
+<PageTitle>@SeoTitle</PageTitle>
+<HeadContent>
+    <meta name="description" content="@SeoDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@SeoTitle" />
+    <meta property="og:description" content="@SeoDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@HeroImageAbsoluteUrl" />
+    <meta property="og:image:alt" content="@L.T("token.hero.title", CurrentCulture)" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@SeoTitle" />
+    <meta name="twitter:description" content="@SeoDescription" />
+    <meta name="twitter:image" content="@HeroImageAbsoluteUrl" />
+    <meta name="twitter:image:alt" content="@L.T("token.hero.title", CurrentCulture)" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="token-arena-page">
+    <div class="token-arena-page__backdrop token-arena-page__backdrop--red"></div>
+    <div class="token-arena-page__backdrop token-arena-page__backdrop--blue"></div>
+    <div class="token-arena-page__grid">
+        <section class="token-arena-hero token-arena-card">
+            <div class="token-arena-hero__copy">
+                <span class="token-arena-eyebrow">@L.T("token.hero.badge", CurrentCulture)</span>
+                <h1>@L.T("token.hero.title", CurrentCulture)</h1>
+                <h2>@L.T("token.hero.subtitle", CurrentCulture)</h2>
+                <p>@L.T("token.hero.description", CurrentCulture)</p>
+
+                <div class="token-arena-actions">
+                    <a class="token-arena-button token-arena-button--primary"
+                       href="@PumpFunUrl"
+                       target="_blank"
+                       rel="noopener noreferrer">@L.T("token.action.buy", CurrentCulture)</a>
+                    <a class="token-arena-button token-arena-button--ghost"
+                       href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">@L.T("token.action.watch", CurrentCulture)</a>
+                    <button type="button"
+                            class="token-arena-button token-arena-button--outline"
+                            @onclick="CopyContractAsync"
+                            disabled="@(!_isInteractive)">@CopyButtonText</button>
+                    <a class="token-arena-button token-arena-button--outline"
+                       href="@PumpFunUrl"
+                       target="_blank"
+                       rel="noopener noreferrer">@L.T("token.action.viewPump", CurrentCulture)</a>
+                </div>
+            </div>
+
+            <div class="token-arena-visual">
+                <div class="token-arena-visual__frame">
+                    <div class="token-arena-visual__frame-glow"></div>
+                    <img class="token-arena-visual__image"
+                         src="@HeroImagePath"
+                         alt="@L.T("token.hero.title", CurrentCulture)" />
+                    <div class="token-arena-visual__overlay"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="token-arena-contract token-arena-card">
+            <div class="token-arena-contract__layout">
+                <div class="token-arena-contract__main">
+                    <div class="token-arena-card__head">
+                        <div>
+                            <span class="token-arena-kicker">@L.T("token.contract.kicker", CurrentCulture)</span>
+                            <h3>@L.T("token.contract.title", CurrentCulture)</h3>
+                        </div>
+                        <button type="button"
+                                class="token-arena-button token-arena-button--outline token-arena-button--small"
+                                @onclick="CopyContractAsync"
+                                disabled="@(!_isInteractive)">@CopyButtonText</button>
+                    </div>
+
+                    <div class="token-arena-market-status @MarketStatusCssClass" role="status" aria-live="polite">
+                        <strong>@MarketStatusTitle</strong>
+                        <span>@MarketStatusBody</span>
+                        @if (ShowNotIndexedBadge)
+                        {
+                            <span class="token-arena-market-badge">@L.T("token.market.notIndexedYet", CurrentCulture)</span>
+                        }
+                    </div>
+
+                    <div class="token-arena-contract__address">@(MarketSnapshot?.ContractAddress ?? TokenMarketService.OfficialContractAddress)</div>
+
+                    <div class="token-arena-contract__meta">
+                        <article>
+                            <span>@L.T("token.contract.network", CurrentCulture)</span>
+                            <strong>@(MarketSnapshot?.Network ?? TokenMarketService.OfficialNetwork)</strong>
+                        </article>
+                        <article>
+                            <span>@L.T("token.contract.buyTax", CurrentCulture)</span>
+                            <strong>@FormatPercent(MarketSnapshot?.BuyTaxPercent)</strong>
+                        </article>
+                        <article>
+                            <span>@L.T("token.contract.sellTax", CurrentCulture)</span>
+                            <strong>@FormatPercent(MarketSnapshot?.SellTaxPercent)</strong>
+                        </article>
+                    </div>
+                </div>
+
+                <aside class="token-arena-qr token-arena-card">
+                    <span class="token-arena-kicker">@L.T("token.contract.qrKicker", CurrentCulture)</span>
+                    <div class="token-arena-qr__code-shell">
+                        <img class="token-arena-qr__image"
+                             src="@QrCodeUrl"
+                             alt="@L.T("token.contract.qrAlt", CurrentCulture)"
+                             loading="lazy" />
+                    </div>
+                    <p class="token-arena-qr__copy">@L.T("token.contract.qrDescription", CurrentCulture)</p>
+                    <a class="token-arena-button token-arena-button--primary token-arena-button--small"
+                       href="@PumpFunUrl"
+                       target="_blank"
+                       rel="noopener noreferrer">@L.T("token.contract.qrAction", CurrentCulture)</a>
+                </aside>
+            </div>
+        </section>
+
+        <section class="token-arena-stats" aria-busy="@_marketLoading">
+            @if (_marketLoading)
+            {
+                @foreach (var statKey in StatKeyOrder)
+                {
+                    <article class="token-arena-stat token-arena-card">
+                        <span class="token-arena-kicker">@L.T(statKey, CurrentCulture)</span>
+                        <span class="token-arena-skeleton token-arena-skeleton--value"></span>
+                        <span class="token-arena-skeleton token-arena-skeleton--line"></span>
+                    </article>
+                }
+            }
+            else
+            {
+                @foreach (var stat in BuildStatCards())
+                {
+                    <article class="token-arena-stat token-arena-card">
+                        <span class="token-arena-kicker">@L.T(stat.TitleKey, CurrentCulture)</span>
+                        <strong>@stat.Value</strong>
+                        <small>@stat.Supporting</small>
+                    </article>
+                }
+            }
+        </section>
+
+        <section class="token-arena-columns">
+            <article class="token-arena-card token-arena-panel">
+                <div class="token-arena-card__head">
+                    <div>
+                        <span class="token-arena-kicker">@L.T("token.utility.kicker", CurrentCulture)</span>
+                        <h3>@L.T("token.utility.title", CurrentCulture)</h3>
+                    </div>
+                </div>
+
+                <ul class="token-arena-list">
+                    <li>
+                        <span class="token-arena-list__icon">A</span>
+                        <div>
+                            <strong>@L.T("token.utility.items.participate.title", CurrentCulture)</strong>
+                            <p>@L.T("token.utility.items.participate.description", CurrentCulture)</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="token-arena-list__icon">C</span>
+                        <div>
+                            <strong>@L.T("token.utility.items.community.title", CurrentCulture)</strong>
+                            <p>@L.T("token.utility.items.community.description", CurrentCulture)</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="token-arena-list__icon">U</span>
+                        <div>
+                            <strong>@L.T("token.utility.items.utility.title", CurrentCulture)</strong>
+                            <p>@L.T("token.utility.items.utility.description", CurrentCulture)</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="token-arena-list__icon">ID</span>
+                        <div>
+                            <strong>@L.T("token.utility.items.identity.title", CurrentCulture)</strong>
+                            <p>@L.T("token.utility.items.identity.description", CurrentCulture)</p>
+                        </div>
+                    </li>
+                </ul>
+            </article>
+
+            <article class="token-arena-card token-arena-panel">
+                <div class="token-arena-card__head">
+                    <div>
+                        <span class="token-arena-kicker">@L.T("token.about.kicker", CurrentCulture)</span>
+                        <h3>@L.T("token.about.title", CurrentCulture)</h3>
+                    </div>
+                </div>
+
+                <p class="token-arena-body">@L.T("token.about.description", CurrentCulture)</p>
+
+                <div class="token-arena-notice">
+                    <strong>@L.T("token.notice.title", CurrentCulture)</strong>
+                    <p>@L.T("token.notice.description", CurrentCulture)</p>
+                </div>
+            </article>
+        </section>
+
+        <section class="token-arena-footer token-arena-card">
+            <div>
+                <span class="token-arena-kicker">@L.T("token.footer.kicker", CurrentCulture)</span>
+                <h3>@L.T("token.footer.cta", CurrentCulture)</h3>
+            </div>
+            <a class="token-arena-button token-arena-button--primary"
+               href="@PumpFunUrl"
+               target="_blank"
+               rel="noopener noreferrer">@L.T("token.footer.button", CurrentCulture)</a>
+        </section>
+    </div>
+</section>
+
+<style>
+    .token-arena-page {
+        position: relative;
+        overflow: hidden;
+        min-height: calc(100vh - 5rem);
+        padding: clamp(1rem, 2vw, 1.5rem);
+        background:
+            radial-gradient(circle at top left, rgba(255, 33, 82, 0.18), transparent 28%),
+            radial-gradient(circle at top right, rgba(77, 121, 255, 0.18), transparent 32%),
+            linear-gradient(180deg, #050811 0%, #070d17 35%, #040812 100%);
+    }
+
+    .token-arena-page__backdrop {
+        position: absolute;
+        inset: auto;
+        width: 32rem;
+        height: 32rem;
+        filter: blur(80px);
+        pointer-events: none;
+        opacity: 0.55;
+    }
+
+    .token-arena-page__backdrop--red {
+        top: -8rem;
+        left: -6rem;
+        background: rgba(255, 38, 87, 0.28);
+    }
+
+    .token-arena-page__backdrop--blue {
+        right: -7rem;
+        top: 9rem;
+        background: rgba(79, 118, 255, 0.26);
+    }
+
+    .token-arena-page__grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 1rem;
+        width: min(1320px, 100%);
+        margin: 0 auto;
+    }
+
+    .token-arena-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(130, 154, 255, 0.24);
+        border-radius: 1.5rem;
+        background:
+            linear-gradient(135deg, rgba(11, 18, 33, 0.94), rgba(7, 12, 24, 0.96)),
+            linear-gradient(135deg, rgba(255, 43, 93, 0.24), rgba(93, 73, 255, 0.18));
+        box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+            0 22px 60px rgba(0, 0, 0, 0.35),
+            0 0 35px rgba(86, 99, 255, 0.08);
+    }
+
+    .token-arena-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(255, 52, 102, 0.08), transparent 38%, rgba(84, 129, 255, 0.08));
+        pointer-events: none;
+    }
+
+    .token-arena-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+        gap: 1.5rem;
+        padding: clamp(1.35rem, 3vw, 2rem);
+    }
+
+    .token-arena-hero__copy,
+    .token-arena-visual,
+    .token-arena-contract,
+    .token-arena-panel,
+    .token-arena-footer {
+        position: relative;
+        z-index: 1;
+    }
+
+    .token-arena-eyebrow,
+    .token-arena-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-bottom: 0.85rem;
+        color: #83fff0;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .token-arena-hero h1 {
+        margin: 0;
+        color: #f5f7ff;
+        font-size: clamp(2.2rem, 4vw, 4.3rem);
+        line-height: 0.94;
+        text-transform: uppercase;
+        text-wrap: balance;
+    }
+
+    .token-arena-hero h2 {
+        margin: 0.9rem 0 0;
+        color: #b48dff;
+        font-size: clamp(1.15rem, 2vw, 1.65rem);
+        font-weight: 800;
+    }
+
+    .token-arena-hero p,
+    .token-arena-body,
+    .token-arena-list p,
+    .token-arena-notice p {
+        margin: 1rem 0 0;
+        color: rgba(222, 231, 255, 0.8);
+        line-height: 1.65;
+    }
+
+    .token-arena-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 1.5rem;
+    }
+
+    .token-arena-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+        padding: 0.8rem 1.2rem;
+        border-radius: 0.95rem;
+        border: 1px solid rgba(144, 165, 255, 0.28);
+        color: #f7f8ff;
+        font-weight: 700;
+        text-decoration: none;
+        background: rgba(12, 16, 28, 0.82);
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        cursor: pointer;
+    }
+
+    .token-arena-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+        border-color: rgba(176, 194, 255, 0.42);
+    }
+
+    .token-arena-button:disabled {
+        cursor: wait;
+        opacity: 0.6;
+    }
+
+    .token-arena-button--primary {
+        border-color: rgba(255, 96, 139, 0.45);
+        background: linear-gradient(135deg, #ff365f, #ff642f);
+        box-shadow: 0 14px 30px rgba(255, 71, 108, 0.28);
+    }
+
+    .token-arena-button--ghost {
+        border-color: rgba(95, 154, 255, 0.45);
+        background: linear-gradient(135deg, rgba(34, 72, 146, 0.78), rgba(63, 38, 161, 0.78));
+    }
+
+    .token-arena-button--outline {
+        background: rgba(7, 11, 21, 0.55);
+    }
+
+    .token-arena-button--small {
+        min-height: 2.6rem;
+        padding-inline: 1rem;
+    }
+
+    .token-arena-visual {
+        display: grid;
+        align-items: center;
+        min-height: 420px;
+        border-radius: 1.35rem;
+        border: 1px solid rgba(130, 154, 255, 0.18);
+        background:
+            linear-gradient(180deg, rgba(16, 17, 40, 0.3), rgba(6, 10, 21, 0.72)),
+            radial-gradient(circle at 25% 24%, rgba(255, 37, 81, 0.24), transparent 33%),
+            radial-gradient(circle at 78% 22%, rgba(70, 136, 255, 0.2), transparent 33%);
+        padding: clamp(0.85rem, 2vw, 1.15rem);
+    }
+
+    .token-arena-visual__frame {
+        position: relative;
+        width: 100%;
+        min-height: 100%;
+        overflow: hidden;
+        border-radius: 1.2rem;
+        border: 1px solid rgba(164, 182, 255, 0.24);
+        background:
+            linear-gradient(135deg, rgba(255, 61, 95, 0.14), rgba(89, 127, 255, 0.14)),
+            rgba(8, 11, 21, 0.88);
+        box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+            0 0 0 1px rgba(148, 163, 255, 0.08),
+            0 24px 60px rgba(0, 0, 0, 0.35);
+        isolation: isolate;
+    }
+
+    .token-arena-visual__frame-glow,
+    .token-arena-visual__overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .token-arena-visual__frame-glow {
+        background:
+            linear-gradient(90deg, rgba(255, 56, 102, 0.2), transparent 26%, transparent 74%, rgba(66, 129, 255, 0.2)),
+            radial-gradient(circle at top left, rgba(255, 61, 95, 0.24), transparent 28%),
+            radial-gradient(circle at top right, rgba(75, 135, 255, 0.24), transparent 28%);
+        mix-blend-mode: screen;
+        z-index: 1;
+    }
+
+    .token-arena-visual__overlay {
+        background:
+            linear-gradient(180deg, rgba(5, 8, 17, 0.08) 0%, rgba(5, 8, 17, 0) 22%, rgba(5, 8, 17, 0.18) 100%);
+        z-index: 3;
+    }
+
+    .token-arena-visual__image {
+        position: relative;
+        z-index: 2;
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 390px;
+        object-fit: contain;
+        object-position: center;
+        filter:
+            drop-shadow(0 0 24px rgba(255, 61, 95, 0.18))
+            drop-shadow(0 0 28px rgba(81, 129, 255, 0.18));
+    }
+
+    .token-arena-contract {
+        padding: 1.2rem 1.25rem 1.35rem;
+    }
+
+    .token-arena-contract__layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.5fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .token-arena-contract__main {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .token-arena-card__head {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .token-arena-card__head h3,
+    .token-arena-footer h3 {
+        margin: 0;
+        color: #f4f7ff;
+        font-size: clamp(1.2rem, 2vw, 1.55rem);
+    }
+
+    .token-arena-market-status {
+        display: grid;
+        gap: 0.2rem;
+        padding: 0.9rem 1rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(156, 177, 255, 0.16);
+        background: rgba(8, 12, 23, 0.64);
+    }
+
+    .token-arena-market-status strong {
+        color: #f6f8ff;
+    }
+
+    .token-arena-market-status span {
+        color: rgba(214, 223, 255, 0.76);
+        line-height: 1.55;
+    }
+
+    .token-arena-market-status--fallback {
+        border-color: rgba(255, 191, 116, 0.2);
+        background: linear-gradient(135deg, rgba(255, 164, 63, 0.08), rgba(255, 110, 74, 0.04));
+    }
+
+    .token-arena-market-status--error {
+        border-color: rgba(255, 112, 143, 0.24);
+        background: linear-gradient(135deg, rgba(255, 72, 111, 0.08), rgba(78, 34, 89, 0.05));
+    }
+
+    .token-arena-market-badge {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        margin-top: 0.3rem;
+        padding: 0.38rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 194, 110, 0.22);
+        background: rgba(255, 182, 72, 0.08);
+        color: #ffd597;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+    }
+
+    .token-arena-contract__address {
+        margin-top: 0;
+        padding: 1rem 1.1rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(175, 191, 255, 0.18);
+        background: rgba(7, 11, 21, 0.64);
+        color: #eef2ff;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: clamp(0.84rem, 1.25vw, 1rem);
+        word-break: break-all;
+    }
+
+    .token-arena-contract__meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.9rem;
+    }
+
+    .token-arena-qr {
+        display: grid;
+        align-content: start;
+        gap: 0.9rem;
+        padding: 1rem;
+        background:
+            linear-gradient(160deg, rgba(36, 10, 18, 0.92), rgba(14, 11, 28, 0.96)),
+            linear-gradient(135deg, rgba(255, 57, 103, 0.18), rgba(88, 120, 255, 0.14));
+        border-color: rgba(255, 109, 151, 0.22);
+        box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+            0 18px 40px rgba(0, 0, 0, 0.28),
+            0 0 40px rgba(255, 76, 121, 0.08);
+    }
+
+    .token-arena-qr__code-shell {
+        display: grid;
+        place-items: center;
+        padding: 0.85rem;
+        border-radius: 1rem;
+        background:
+            linear-gradient(135deg, rgba(255, 68, 111, 0.16), rgba(94, 118, 255, 0.14)),
+            rgba(7, 10, 18, 0.86);
+        border: 1px solid rgba(178, 185, 255, 0.16);
+    }
+
+    .token-arena-qr__image {
+        display: block;
+        width: min(100%, 210px);
+        aspect-ratio: 1 / 1;
+        border-radius: 0.8rem;
+        background: #ffffff;
+        object-fit: cover;
+        box-shadow:
+            0 10px 25px rgba(0, 0, 0, 0.26),
+            0 0 24px rgba(255, 79, 121, 0.1);
+    }
+
+    .token-arena-qr__copy {
+        margin: 0;
+        color: rgba(232, 236, 255, 0.78);
+        line-height: 1.55;
+        font-size: 0.95rem;
+    }
+
+    .token-arena-contract__meta article,
+    .token-arena-stat {
+        padding: 1rem;
+        border-radius: 1rem;
+        background: rgba(6, 10, 20, 0.6);
+        border: 1px solid rgba(163, 182, 255, 0.14);
+    }
+
+    .token-arena-contract__meta span,
+    .token-arena-stat small {
+        display: block;
+        color: rgba(204, 215, 255, 0.7);
+        font-size: 0.9rem;
+    }
+
+    .token-arena-contract__meta strong,
+    .token-arena-stat strong {
+        display: block;
+        margin-top: 0.45rem;
+        color: #ffffff;
+        font-size: clamp(1.05rem, 1.8vw, 1.4rem);
+    }
+
+    .token-arena-stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .token-arena-stat {
+        min-height: 150px;
+    }
+
+    .token-arena-stat strong {
+        font-size: clamp(1.4rem, 2.1vw, 1.95rem);
+    }
+
+    .token-arena-skeleton {
+        display: block;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(34, 43, 72, 0.55), rgba(86, 103, 161, 0.35), rgba(34, 43, 72, 0.55));
+        background-size: 220% 100%;
+        animation: tokenArenaShimmer 1.8s linear infinite;
+    }
+
+    .token-arena-skeleton--value {
+        width: 72%;
+        height: 2rem;
+        margin-top: 0.25rem;
+    }
+
+    .token-arena-skeleton--line {
+        width: 58%;
+        height: 0.95rem;
+        margin-top: 0.9rem;
+    }
+
+    @@keyframes tokenArenaShimmer {
+        from {
+            background-position: 200% 0;
+        }
+
+        to {
+            background-position: -20% 0;
+        }
+    }
+
+    .token-arena-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .token-arena-panel {
+        padding: 1.25rem;
+    }
+
+    .token-arena-list {
+        display: grid;
+        gap: 1rem;
+        margin: 1rem 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .token-arena-list li {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.9rem;
+        align-items: start;
+        padding: 0.95rem 1rem;
+        border-radius: 1rem;
+        background: rgba(7, 12, 22, 0.62);
+        border: 1px solid rgba(150, 167, 255, 0.14);
+    }
+
+    .token-arena-list strong {
+        color: #f6f7ff;
+    }
+
+    .token-arena-list p {
+        margin-top: 0.35rem;
+        font-size: 0.96rem;
+    }
+
+    .token-arena-list__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.8rem;
+        height: 2.8rem;
+        padding-inline: 0.35rem;
+        border-radius: 999px;
+        color: #89fff0;
+        font-size: 0.82rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, rgba(255, 50, 96, 0.18), rgba(97, 83, 255, 0.22));
+        border: 1px solid rgba(136, 176, 255, 0.18);
+    }
+
+    .token-arena-notice {
+        margin-top: 1.2rem;
+        padding: 1rem 1.05rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 173, 78, 0.24);
+        background: linear-gradient(135deg, rgba(255, 154, 44, 0.08), rgba(255, 70, 70, 0.06));
+    }
+
+    .token-arena-notice strong {
+        color: #ffbf73;
+    }
+
+    .token-arena-notice p {
+        margin-top: 0.45rem;
+    }
+
+    .token-arena-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.15rem 1.25rem;
+    }
+
+    @@media (max-width: 1180px) {
+        .token-arena-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 1100px) {
+        .token-arena-hero,
+        .token-arena-columns {
+            grid-template-columns: 1fr;
+        }
+
+        .token-arena-contract__layout {
+            grid-template-columns: 1fr;
+        }
+
+        .token-arena-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .token-arena-visual {
+            min-height: 360px;
+        }
+
+        .token-arena-visual__image {
+            min-height: 340px;
+        }
+    }
+
+    @@media (max-width: 720px) {
+        .token-arena-page {
+            padding: 0.85rem;
+        }
+
+        .token-arena-hero,
+        .token-arena-contract,
+        .token-arena-panel,
+        .token-arena-footer {
+            padding: 1rem;
+        }
+
+        .token-arena-stats,
+        .token-arena-contract__meta {
+            grid-template-columns: 1fr;
+        }
+
+        .token-arena-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .token-arena-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .token-arena-visual {
+            min-height: 300px;
+        }
+
+        .token-arena-visual__image {
+            min-height: 260px;
+        }
+    }
+</style>
+
+@code {
+    private const string HeroImagePath = "/images/token/criptoversus-token-arena.png";
+
+    private static readonly string[] StatKeyOrder =
+    [
+        "token.stats.price",
+        "token.stats.marketCap",
+        "token.stats.holders",
+        "token.stats.volume24h",
+        "token.stats.liquidity"
+    ];
+
+    private TokenMarketSnapshotResult? _marketResult;
+    private bool _marketLoading = true;
+    private bool _copied;
+    private bool _isInteractive;
+
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private string PumpFunUrl => TokenMarketService.OfficialPumpFunUrl;
+    private string HeroImageAbsoluteUrl => BuildAbsolute(HeroImagePath);
+    private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildTokenPath(CurrentCulture));
+    private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildTokenPath("en"));
+    private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTokenPath("pt"));
+    private string SeoTitle => L.T("token.seo.title", CurrentCulture);
+    private string SeoDescription => L.T("token.seo.description", CurrentCulture);
+    private string CopyButtonText => L.T(_copied ? "token.action.copied" : "token.action.copyContract", CurrentCulture);
+    private string QrCodeUrl => $"https://api.qrserver.com/v1/create-qr-code/?size=320x320&data={Uri.EscapeDataString(PumpFunUrl)}";
+    private string StructuredDataMarkup => BuildStructuredDataMarkup();
+    private TokenMarketSnapshot? MarketSnapshot => _marketResult?.Snapshot;
+    private string MarketStatusCssClass
+        => _marketLoading
+            ? string.Empty
+            : IsUnavailableSource
+                ? "token-arena-market-status--fallback"
+                : _marketResult?.HasError == true
+                    ? "token-arena-market-status--fallback"
+                    : _marketResult?.IsFallback == true
+                    ? "token-arena-market-status--fallback"
+                    : string.Empty;
+    private bool ShowNotIndexedBadge
+        => !_marketLoading && (IsUnavailableSource || string.Equals(MarketSnapshot?.Source, "fallback", StringComparison.OrdinalIgnoreCase));
+    private bool IsUnavailableSource
+        => string.Equals(MarketSnapshot?.Source, "unavailable", StringComparison.OrdinalIgnoreCase);
+    private string MarketStatusTitle
+        => _marketLoading
+            ? L.T("token.market.loadingTitle", CurrentCulture)
+            : IsUnavailableSource
+                ? L.T("token.market.unavailableTitle", CurrentCulture)
+                : _marketResult?.HasError == true
+                    ? L.T("token.market.fallbackTitle", CurrentCulture)
+                : _marketResult?.IsFallback == true
+                    ? L.T("token.market.fallbackTitle", CurrentCulture)
+                    : L.T("token.market.liveTitle", CurrentCulture);
+    private string MarketStatusBody
+        => _marketLoading
+            ? L.T("token.market.loadingBody", CurrentCulture)
+            : IsUnavailableSource
+                ? L.T("token.market.unavailableBody", CurrentCulture)
+                : _marketResult?.HasError == true
+                    ? L.T("token.market.fallbackBody", CurrentCulture)
+                : _marketResult?.IsFallback == true
+                    ? L.T("token.market.fallbackBody", CurrentCulture)
+                    : L.T("token.market.liveBody", CurrentCulture, FormatUpdatedAt(MarketSnapshot?.UpdatedAtUtc));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _marketLoading = true;
+        _marketResult = null;
+
+        try
+        {
+            _marketResult = await TokenMarket.GetSnapshotAsync();
+        }
+        finally
+        {
+            _marketLoading = false;
+        }
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isInteractive = true;
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task CopyContractAsync()
+    {
+        if (!_isInteractive)
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", MarketSnapshot?.ContractAddress ?? TokenMarketService.OfficialContractAddress);
+            _copied = true;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(2200);
+            _copied = false;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (InvalidOperationException)
+        {
+            _copied = false;
+        }
+        catch (JSDisconnectedException)
+        {
+            _copied = false;
+        }
+    }
+
+    private IEnumerable<TokenStatCard> BuildStatCards()
+    {
+        var snapshot = MarketSnapshot ?? TokenMarketService.CreateFallbackSnapshot();
+
+        return
+        [
+            new("token.stats.price", FormatUsd(snapshot.CurrentPriceUsd, 7), L.T("token.market.supporting.updated", CurrentCulture, FormatUpdatedAt(snapshot.UpdatedAtUtc))),
+            new("token.stats.marketCap", FormatUsd(snapshot.MarketCapUsd), L.T("token.market.supporting.contract", CurrentCulture)),
+            new("token.stats.holders", FormatWholeNumber(snapshot.Holders), L.T("token.market.supporting.community", CurrentCulture)),
+            new("token.stats.volume24h", FormatUsd(snapshot.Volume24hUsd), L.T("token.market.supporting.window24h", CurrentCulture)),
+            new("token.stats.liquidity", FormatUsd(snapshot.LiquidityUsd), L.T("token.market.supporting.depth", CurrentCulture))
+        ];
+    }
+
+    private string FormatUsd(decimal? value, int decimals = 0)
+    {
+        if (!value.HasValue)
+            return L.T("token.market.unavailableValue", CurrentCulture);
+
+        var culture = ResolveCulture();
+        var format = decimals > 0 ? $"C{decimals}" : "C0";
+        return value.Value.ToString(format, culture);
+    }
+
+    private string FormatPercent(decimal? value)
+    {
+        if (!value.HasValue)
+            return L.T("token.market.unavailableValue", CurrentCulture);
+
+        return $"{value.Value:0.##}%";
+    }
+
+    private string FormatWholeNumber(int? value)
+    {
+        if (!value.HasValue)
+            return L.T("token.market.unavailableValue", CurrentCulture);
+
+        return value.Value.ToString("N0", ResolveCulture());
+    }
+
+    private string FormatUpdatedAt(DateTimeOffset? value)
+    {
+        if (!value.HasValue)
+            return L.T("token.market.unavailableValue", CurrentCulture);
+
+        return value.Value.ToLocalTime().ToString("g", ResolveCulture());
+    }
+
+    private CultureInfo ResolveCulture()
+        => CultureInfo.GetCultureInfo(AppCulture.ToCultureCode(CurrentCulture));
+
+    private string BuildAbsolute(string path) => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
+
+    private string BuildStructuredDataMarkup()
+    {
+        var snapshot = MarketSnapshot ?? TokenMarketService.CreateFallbackSnapshot();
+        var data = new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebPage",
+            ["name"] = SeoTitle,
+            ["description"] = SeoDescription,
+            ["url"] = CanonicalUrl,
+            ["image"] = HeroImageAbsoluteUrl,
+            ["mainEntity"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "Product",
+                ["name"] = L.T("token.schema.name", CurrentCulture),
+                ["description"] = L.T("token.about.description", CurrentCulture),
+                ["category"] = L.T("token.schema.category", CurrentCulture),
+                ["sku"] = snapshot.ContractAddress,
+                ["sameAs"] = new[] { PumpFunUrl },
+                ["additionalProperty"] = new object[]
+                {
+                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.network", CurrentCulture), ["value"] = snapshot.Network },
+                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.contractAddress", CurrentCulture), ["value"] = snapshot.ContractAddress },
+                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.buyTax", CurrentCulture), ["value"] = snapshot.BuyTaxPercent },
+                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.sellTax", CurrentCulture), ["value"] = snapshot.SellTaxPercent }
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(data);
+    }
+
+    private sealed record TokenStatCard(string TitleKey, string Value, string Supporting);
+}

@@ -24,6 +24,7 @@
     "brandSubtitle": "Trading Arena",
     "home": "Home",
     "howItWorks": "Como funciona",
+    "token": "Token",
     "stats": "Estatísticas",
     "roadmap": "Roteiro",
     "faq": "FAQ",
@@ -1462,6 +1463,114 @@
       "exitRequested": "Exit requested",
       "closeNow": "Close position",
       "requestExit": "Request exit"
+    }
+  },
+  "token": {
+    "seo": {
+      "title": "CriptoVersus Token Arena | Token Oficial da Comunidade",
+      "description": "Explore a pagina oficial do token CriptoVersus, os detalhes do contrato, o painel de mercado e o acesso na Pump.fun para o token de comunidade da arena cripto ao vivo."
+    },
+    "hero": {
+      "badge": "Token oficial do CriptoVersus",
+      "title": "CriptoVersus Token Arena",
+      "subtitle": "O token que movimenta a Arena.",
+      "description": "Participe da primeira arena de batalhas cripto ao vivo. Assista aos confrontos do mercado, escolha seu lado e faca parte do ecossistema CriptoVersus."
+    },
+    "visual": {
+      "bulls": "Bulls",
+      "bears": "Bears"
+    },
+    "action": {
+      "buy": "Comprar na Pump.fun",
+      "watch": "Assistir Arena ao Vivo",
+      "copyContract": "Copiar Contrato",
+      "copied": "Copiado!",
+      "viewPump": "Ver na Pump.fun"
+    },
+    "contract": {
+      "kicker": "Contrato do token",
+      "title": "Endereco do contrato",
+      "network": "Rede",
+      "buyTax": "Taxa de compra",
+      "sellTax": "Taxa de venda",
+      "qrKicker": "Acesso Pump.fun",
+      "qrAlt": "QR code para abrir o token CriptoVersus na Pump.fun",
+      "qrDescription": "Escaneie este codigo para abrir a pagina oficial do token CriptoVersus na Pump.fun pelo celular.",
+      "qrAction": "Abrir Pump.fun"
+    },
+    "stats": {
+      "price": "Preco Atual",
+      "marketCap": "Capitalizacao",
+      "holders": "Detentores",
+      "volume24h": "Volume 24h",
+      "liquidity": "Liquidez"
+    },
+    "market": {
+      "loadingTitle": "Carregando painel do token",
+      "loadingBody": "Preparando o painel mais recente de mercado para a visao da arena.",
+      "liveTitle": "Painel de mercado ao vivo",
+      "liveBody": "Snapshot de mercado atualizado em: {0}",
+      "fallbackTitle": "Painel com fallback",
+      "fallbackBody": "Os provedores de mercado ainda nao indexaram completamente este token. A arena mantem a pagina estavel enquanto os dados publicos ficam disponiveis.",
+      "errorTitle": "Painel recuperado com fallback",
+      "errorBody": "A consulta de mercado ao vivo falhou, entao a arena manteve a pagina online com valores fallback sem quebrar a experiencia.",
+      "unavailableTitle": "Indexacao de mercado em andamento",
+      "unavailableBody": "Este token ainda esta sendo indexado pelos provedores publicos de mercado. As estatisticas ao vivo aparecerao automaticamente quando a indexacao estiver disponivel.",
+      "notIndexedYet": "Dados de mercado ainda nao indexados",
+      "unavailableValue": "Indisponivel",
+      "supporting": {
+        "updated": "Atualizado: {0}",
+        "contract": "Token oficial da arena",
+        "community": "Base da comunidade",
+        "window24h": "Janela movel de 24h",
+        "depth": "Profundidade visivel"
+      }
+    },
+    "utility": {
+      "kicker": "Utilidade na arena",
+      "title": "Para que serve o token?",
+      "items": {
+        "participate": {
+          "title": "Participar da Arena",
+          "description": "Fique mais perto das batalhas ao vivo, acompanhe a identidade das partidas e fortaleça a camada de entretenimento do ecossistema."
+        },
+        "community": {
+          "title": "Acesso a comunidade",
+          "description": "Permaneça conectado com a torcida, os canais sociais e futuras ativações da comunidade CriptoVersus."
+        },
+        "utility": {
+          "title": "Utilidade futura no ecossistema",
+          "description": "Deixe a base pronta para utilidades futuras ligadas a experiencia em evolucao da arena."
+        },
+        "identity": {
+          "title": "Identidade de batalha cripto ao vivo",
+          "description": "Carregue o simbolo de uma arena Web3 de entretenimento criada em torno de lados, volatilidade e espectaculo de mercado ao vivo."
+        }
+      }
+    },
+    "about": {
+      "kicker": "Sobre o token",
+      "title": "Sobre o token",
+      "description": "Este token e um token experimental de comunidade criado para apoiar o ecossistema CriptoVersus. Nao e promessa de lucro, nao e conselho financeiro e nao e recomendacao de investimento."
+    },
+    "notice": {
+      "title": "Aviso Importante",
+      "description": "Este e um token experimental de entretenimento/comunidade. Criptoativos sao arriscados. Sempre faca sua propria pesquisa e nunca invista mais do que pode perder."
+    },
+    "schema": {
+      "name": "Token CriptoVersus",
+      "category": "Token de comunidade",
+      "properties": {
+        "network": "Rede",
+        "contractAddress": "Endereco do contrato",
+        "buyTax": "Taxa de compra",
+        "sellTax": "Taxa de venda"
+      }
+    },
+    "footer": {
+      "kicker": "Chamada final",
+      "cta": "Escolha seu lado. Entre na Arena.",
+      "button": "Comprar Token Agora"
     }
   }
 }

@@ -24,6 +24,7 @@
     "brandSubtitle": "Trading Arena",
     "home": "Home",
     "howItWorks": "How It Works",
+    "token": "Token",
     "stats": "Stats",
     "roadmap": "Roadmap",
     "faq": "FAQ",
@@ -1462,6 +1463,115 @@
       "exitRequested": "Exit requested",
       "closeNow": "Close position",
       "requestExit": "Request exit"
+    }
+  }
+  ,
+  "token": {
+    "seo": {
+      "title": "CriptoVersus Token Arena | Official Community Token",
+      "description": "Explore the official CriptoVersus token page, contract details, market snapshot and Pump.fun access for the live crypto battle arena community token."
+    },
+    "hero": {
+      "badge": "Official CriptoVersus token",
+      "title": "CriptoVersus Token Arena",
+      "subtitle": "The token that powers the Arena.",
+      "description": "Join the first live crypto battle arena. Watch market battles, choose your side, and become part of the CriptoVersus ecosystem."
+    },
+    "visual": {
+      "bulls": "Bulls",
+      "bears": "Bears"
+    },
+    "action": {
+      "buy": "Buy on Pump.fun",
+      "watch": "Watch Live Arena",
+      "copyContract": "Copy Contract",
+      "copied": "Copied!",
+      "viewPump": "View on Pump.fun"
+    },
+    "contract": {
+      "kicker": "Token contract",
+      "title": "Contract Address",
+      "network": "Network",
+      "buyTax": "Buy tax",
+      "sellTax": "Sell tax",
+      "qrKicker": "Pump.fun access",
+      "qrAlt": "QR code to open the CriptoVersus token on Pump.fun",
+      "qrDescription": "Scan this code to open the official CriptoVersus token page on Pump.fun from your phone.",
+      "qrAction": "Open Pump.fun"
+    },
+    "stats": {
+      "price": "Current Price",
+      "marketCap": "Market Cap",
+      "holders": "Holders",
+      "volume24h": "24h Volume",
+      "liquidity": "Liquidity"
+    },
+    "market": {
+      "loadingTitle": "Loading token snapshot",
+      "loadingBody": "Preparing the latest token market panel for the arena view.",
+      "liveTitle": "Live market panel",
+      "liveBody": "Market snapshot updated: {0}",
+      "fallbackTitle": "Fallback market panel",
+      "fallbackBody": "Market providers have not fully indexed this token yet. The arena is keeping the page stable while fresh market data becomes available.",
+      "errorTitle": "Market panel recovered with fallback",
+      "errorBody": "The live market request failed, so the arena kept the page online with fallback values instead of breaking the experience.",
+      "unavailableTitle": "Market indexing in progress",
+      "unavailableBody": "This token is still being indexed by public market data providers. Live stats will appear automatically once indexing is available.",
+      "notIndexedYet": "Market data not indexed yet",
+      "unavailableValue": "Unavailable",
+      "supporting": {
+        "updated": "Updated: {0}",
+        "contract": "Official arena token",
+        "community": "Community side count",
+        "window24h": "Rolling 24h window",
+        "depth": "Visible pool depth"
+      }
+    },
+    "utility": {
+      "kicker": "Arena utility",
+      "title": "What is the token for?",
+      "items": {
+        "participate": {
+          "title": "Participate in the Arena",
+          "description": "Stand closer to the live battles, follow the match identity and support the entertainment layer of the ecosystem."
+        },
+        "community": {
+          "title": "Community access",
+          "description": "Stay plugged into the crowd, social channels and future community activations around CriptoVersus."
+        },
+        "utility": {
+          "title": "Future ecosystem utility",
+          "description": "Prepare the page structure for future utilities tied to the evolving arena experience."
+        },
+        "identity": {
+          "title": "Live crypto battle identity",
+          "description": "Carry the symbol of a Web3 entertainment arena built around sides, volatility and live market spectacle."
+        }
+      }
+    },
+    "about": {
+      "kicker": "About the token",
+      "title": "About the token",
+      "description": "This token is an experimental community token created to support the CriptoVersus ecosystem. It is not a promise of profit, not financial advice, and not an investment recommendation."
+    },
+    "notice": {
+      "title": "Important Notice",
+      "description": "This is an experimental entertainment/community token. Crypto assets are risky. Always do your own research and never invest more than you can afford to lose."
+    },
+    "schema": {
+      "name": "CriptoVersus Token",
+      "category": "Community token",
+      "properties": {
+        "network": "Network",
+        "contractAddress": "Contract address",
+        "buyTax": "Buy tax",
+        "sellTax": "Sell tax"
+      }
+    },
+    "footer": {
+      "kicker": "Final call",
+      "cta": "Choose your side. Enter the Arena.",
+      "button": "Buy Token Now"
     }
   }
 }
