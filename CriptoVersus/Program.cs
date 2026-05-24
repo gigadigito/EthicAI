@@ -80,6 +80,7 @@ builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
 });
 
 builder.Services.AddScoped<CriptoVersusApiClient>();
+builder.Services.AddScoped<HotMatchService>();
 
 
 builder.Services.AddBlazoredSessionStorage();

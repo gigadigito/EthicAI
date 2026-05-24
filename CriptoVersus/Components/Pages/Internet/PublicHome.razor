@@ -6,6 +6,7 @@
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
+@inject HotMatchService HotMatches
 @inject DashboardHubClient HubClient
 @inject IConfiguration Config
 @inject NavigationManager Nav
@@ -70,19 +71,113 @@
                 </a>
             </div>
         </div>
-        <div class="home-hero__stats" aria-label="@T("platformHighlights")">
-            <article>
-                <span>@T("liveMatches")</span>
-                <strong>@(_snapshot?.Matches.Ongoing ?? 0)</strong>
-            </article>
-            <article>
-                <span>@T("completedIn24h")</span>
-                <strong>@(_snapshot?.Matches.CompletedLast24h ?? 0)</strong>
-            </article>
-            <article>
-                <span>@T("trackedCoins")</span>
-                <strong>@Math.Max(_snapshot?.TopGainers.Count ?? 0, 6)</strong>
-            </article>
+        <div class="home-hero__visual">
+            @if (_hotMatchesLoading && HeroHotMatch is null)
+            {
+                <div class="home-hot-hero home-hot-hero--skeleton" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            }
+            else if (HeroHotMatch is not null)
+            {
+                var hero = HeroHotMatch!;
+                var heroEnergyA = GetEnergyPercentA(hero);
+                var heroEnergyB = 100 - heroEnergyA;
+
+                <article class="home-hot-hero @GetArenaLeaderClass(hero) @GetArenaHeatClass(hero)">
+                    <div class="home-hot-hero__header">
+                        <div class="home-hot-hero__badges">
+                            @foreach (var badge in GetBattleBadges(hero, isFeatured: true))
+                            {
+                                <span class="arena-chip @GetArenaChipClass(badge.Tone)">@badge.Text</span>
+                            }
+                        </div>
+                        <span class="arena-meta">@ArenaText("arenaMatchId", hero.MatchId)</span>
+                    </div>
+
+                    <div class="home-hot-hero__scoreboard">
+                        <div class="home-hot-hero__team">
+                            <img class="home-hot-hero__logo"
+                                 src="@hero.HomeLogoUrl"
+                                 width="56"
+                                 height="56"
+                                 alt="@hero.HomeSymbol"
+                                 loading="lazy"
+                                 onerror="this.remove();" />
+                            <div>
+                                <strong>@GetBaseSymbol(hero.TeamA)</strong>
+                                <span class="@GetSignedChangeClass(hero.PctA)">@FormatPct(hero.PctA)</span>
+                            </div>
+                        </div>
+
+                        <div class="home-hot-hero__center">
+                            <small>@GetMatchClockLabel(hero)</small>
+                            <div class="arena-scoreboard arena-scoreboard--featured">
+                                <strong>@hero.ScoreA</strong>
+                                <span class="arena-vs-badge">@T("vs")</span>
+                                <strong>@hero.ScoreB</strong>
+                            </div>
+                        </div>
+
+                        <div class="home-hot-hero__team home-hot-hero__team--right">
+                            <div>
+                                <strong>@GetBaseSymbol(hero.TeamB)</strong>
+                                <span class="@GetSignedChangeClass(hero.PctB)">@FormatPct(hero.PctB)</span>
+                            </div>
+                            <img class="home-hot-hero__logo"
+                                 src="@hero.AwayLogoUrl"
+                                 width="56"
+                                 height="56"
+                                 alt="@hero.AwaySymbol"
+                                 loading="lazy"
+                                 onerror="this.remove();" />
+                        </div>
+                    </div>
+
+                    <div class="arena-energy-bar arena-energy-bar--featured" aria-hidden="true">
+                        <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(heroEnergyA)"></span>
+                        <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(heroEnergyB)"></span>
+                    </div>
+
+                    <div class="home-hot-hero__metrics">
+                        <article>
+                            <span>@ArenaText("momentum")</span>
+                            <strong>@GetMomentumLabel(heroEnergyA)</strong>
+                        </article>
+                        <article>
+                            <span>@ArenaText("arenaPressure")</span>
+                            <strong>@hero.ArenaPressure</strong>
+                        </article>
+                        <article>
+                            <span>@ArenaText("hotScore")</span>
+                            <strong>@hero.HotScore</strong>
+                        </article>
+                    </div>
+
+                    <a class="arena-cta-button home-hot-hero__cta"
+                       href="@GetTvWatchUrl(hero)"
+                       aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                        @ArenaText("watchLive")
+                    </a>
+                </article>
+            }
+
+            <div class="home-hero__stats" aria-label="@T("platformHighlights")">
+                <article>
+                    <span>@T("liveMatches")</span>
+                    <strong>@(_snapshot?.Matches.Ongoing ?? HotMatchFeed.Count)</strong>
+                </article>
+                <article>
+                    <span>@T("completedIn24h")</span>
+                    <strong>@(_snapshot?.Matches.CompletedLast24h ?? 0)</strong>
+                </article>
+                <article>
+                    <span>@T("trackedCoins")</span>
+                    <strong>@Math.Max(_snapshot?.TopGainers.Count ?? 0, 6)</strong>
+                </article>
+            </div>
         </div>
     </header>
 
@@ -106,7 +201,7 @@
                 var featuredEnergyA = GetEnergyPercentA(featured);
                 var featuredEnergyB = 100 - featuredEnergyA;
 
-                <article class="arena-featured-battle @GetArenaLeaderClass(featured)">
+                <article class="arena-featured-battle @GetArenaLeaderClass(featured) @GetArenaHeatClass(featured)">
                     <a class="arena-card-hitbox"
                        href="@GetMatchUrl(featured)"
                        aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)"></a>
@@ -211,12 +306,23 @@
             }
 
             <div class="arena-match-grid">
+                @if (_hotMatchesLoading && ArenaLiveMatches.Count == 0)
+                {
+                    @for (var i = 0; i < 4; i++)
+                    {
+                        <article class="arena-match-card arena-match-card--skeleton" aria-hidden="true">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </article>
+                    }
+                }
                 @foreach (var match in ArenaLiveMatches)
                 {
                     var energyA = GetEnergyPercentA(match);
                     var energyB = 100 - energyA;
 
-                    <article class="arena-match-card @GetArenaLeaderClass(match)">
+                    <article class="arena-match-card @GetArenaLeaderClass(match) @GetArenaHeatClass(match)">
                         <a class="arena-card-hitbox"
                            href="@GetMatchUrl(match)"
                            aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
@@ -299,7 +405,7 @@
                 var energyA = GetEnergyPercentA(match);
                 var energyB = 100 - energyA;
 
-                <article class="arena-match-card arena-match-card--compact @GetArenaLeaderClass(match)">
+                <article class="arena-match-card arena-match-card--compact @GetArenaLeaderClass(match) @GetArenaHeatClass(match)">
                     <a class="arena-card-hitbox"
                        href="@GetMatchUrl(match)"
                        aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
@@ -459,6 +565,10 @@
     private bool _disposed;
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
     private CancellationTokenSource? _debounceCts;
+    private CancellationTokenSource? _homeRefreshCts;
+    private Task? _homeRefreshLoopTask;
+    private IReadOnlyList<HotMatchDto> _hotMatches = [];
+    private bool _hotMatchesLoading = true;
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
@@ -486,12 +596,17 @@
     };
 
     private const int HomeMatchLimit = 10;
+    private const int HomeRefreshSeconds = 15;
 
-    private List<MatchDto> LiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? []).Take(HomeMatchLimit).ToList();
-    private List<MatchDto> FeaturedMatches => RankHomeMatches(
-            (_snapshot?.Matches.OngoingList ?? [])
-                .Concat(_snapshot?.Matches.Upcoming ?? [])
-                .Concat(_snapshot?.Matches.CompletedList ?? []))
+    private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
+    private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
+    private List<MatchDto> LiveMatches => HotMatchFeed
+        .Where(x => !x.IsFinished && string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+        .Select(ToMatchCard)
+        .Take(HomeMatchLimit)
+        .ToList();
+    private List<MatchDto> FeaturedMatches => HotMatchFeed
+        .Select(ToMatchCard)
         .Take(HomeMatchLimit)
         .ToList();
     private MatchDto? FeaturedBattle => SelectFeaturedBattle();
@@ -538,7 +653,7 @@
 
         try
         {
-            await ReloadSnapshotAsync(CancellationToken.None);
+            await ReloadHomeDataAsync(CancellationToken.None);
         }
         catch
         {
@@ -559,6 +674,9 @@
         {
             // A home continua funcional sem o hub; mantemos o snapshot inicial.
         }
+
+        _homeRefreshCts = new CancellationTokenSource();
+        _homeRefreshLoopTask = RunHomeRefreshLoopAsync(_homeRefreshCts.Token);
     }
 
     private string T(string key, params object?[] args)
@@ -577,6 +695,33 @@
             ? RouteLocalization.BuildHomePath(CurrentCulture)
             : RouteLocalization.BuildLocalizedPath(CurrentCulture, match.MatchId, slug);
     }
+
+    private string GetTvWatchUrl(HotMatchDto match)
+        => RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, match.Slug);
+
+    private MatchDto ToMatchCard(HotMatchDto match)
+        => match.MatchSnapshot ?? new MatchDto
+        {
+            MatchId = match.MatchId,
+            TeamA = match.TeamA,
+            TeamB = match.TeamB,
+            ScoreA = match.ScoreA,
+            ScoreB = match.ScoreB,
+            Status = match.Status,
+            ElapsedMinutes = match.ElapsedMinutes,
+            RemainingMinutes = match.RemainingMinutes,
+            IsFinished = match.IsFinished,
+            PctA = match.PctA,
+            PctB = match.PctB,
+            TotalPool = match.TotalPool,
+            TotalPoolAmount = match.TotalPoolAmount,
+            HasBetsOnBothSides = match.HasBetsOnBothSides,
+            PoolStrengthTeamA = match.PoolStrengthTeamA,
+            PoolStrengthTeamB = match.PoolStrengthTeamB
+        };
+
+    private HotMatchDto? FindHotMatch(int matchId)
+        => HotMatchFeed.FirstOrDefault(x => x.MatchId == matchId);
 
     private List<MatchDto> RankHomeMatches(IEnumerable<MatchDto> source)
     {
@@ -735,8 +880,14 @@
             "featuredBattle" => CurrentCulture == "en" ? "Featured Battle" : "Batalha em destaque",
             "openArena" => CurrentCulture == "en" ? "Open Arena" : "Abrir arena",
             "openBattle" => CurrentCulture == "en" ? "Open battle" : "Abrir batalha",
+            "watchLive" => CurrentCulture == "en" ? "WATCH LIVE" : "ASSISTIR AO VIVO",
+            "watchLiveAria" => CurrentCulture == "en" ? "Watch live match {0} versus {1}, match {2}" : "Assistir ao vivo a partida {0} contra {1}, partida {2}",
             "hotMatch" => CurrentCulture == "en" ? "HOT MATCH" : "BATALHA QUENTE",
+            "trending" => CurrentCulture == "en" ? "TRENDING" : "TRENDING",
             "momentum" => CurrentCulture == "en" ? "MOMENTUM" : "MOMENTUM",
+            "fear" => CurrentCulture == "en" ? "FEAR" : "FEAR",
+            "hotScore" => CurrentCulture == "en" ? "Hot score" : "Hot score",
+            "arenaPressure" => CurrentCulture == "en" ? "Arena pressure" : "Pressao da arena",
             "highVolatility" => CurrentCulture == "en" ? "HIGH VOLATILITY" : "ALTA VOLATILIDADE",
             "volatility" => CurrentCulture == "en" ? "Volatility" : "Volatilidade",
             "scoreLine" => CurrentCulture == "en" ? "Scoreline" : "Placar",
@@ -772,6 +923,17 @@
         return match.StartTime.HasValue ? ArenaText("startingSoon") : ArenaText("marketLive");
     }
 
+    private string GetMatchClockLabel(HotMatchDto match)
+    {
+        if (match.IsFinished)
+            return ArenaText("finalResultShort");
+
+        if (match.ElapsedMinutes > 0)
+            return ArenaText("elapsedMinutes", match.ElapsedMinutes);
+
+        return ArenaText("marketLive");
+    }
+
     private BattleLeader GetLeaderSide(MatchDto match)
     {
         if (match.ScoreA > match.ScoreB)
@@ -797,6 +959,9 @@
             _ => "is-even"
         };
 
+    private string GetArenaLeaderClass(HotMatchDto match)
+        => GetArenaLeaderClass(ToMatchCard(match));
+
     private string GetSignedChangeClass(decimal? pct)
         => (pct ?? 0) switch
         {
@@ -820,6 +985,9 @@
 
         return 50d;
     }
+
+    private double GetEnergyPercentA(HotMatchDto match)
+        => GetEnergyPercentA(ToMatchCard(match));
 
     private double? GetPctEnergy(MatchDto match)
     {
@@ -857,6 +1025,15 @@
 
     private IEnumerable<ArenaBadge> GetBattleBadges(MatchDto match, bool isFeatured)
     {
+        var hot = FindHotMatch(match.MatchId);
+        if (hot is not null)
+        {
+            foreach (var badge in GetBattleBadges(hot, isFeatured))
+                yield return badge;
+
+            yield break;
+        }
+
         if (isFeatured)
             yield return new ArenaBadge(ArenaText("hotMatch"), "hot");
 
@@ -864,6 +1041,24 @@
             yield return new ArenaBadge(ArenaText("momentum"), "momentum");
 
         if (HasHighVolatility(match))
+            yield return new ArenaBadge(ArenaText("highVolatility"), "volatility");
+    }
+
+    private IEnumerable<ArenaBadge> GetBattleBadges(HotMatchDto match, bool isFeatured)
+    {
+        if (isFeatured)
+            yield return new ArenaBadge(ArenaText("hotMatch"), "hot");
+
+        if (match.IsTrending)
+            yield return new ArenaBadge(ArenaText("trending"), "trending");
+
+        if (match.Fear >= 55m)
+            yield return new ArenaBadge(ArenaText("fear"), "fear");
+
+        if (match.Momentum >= 24m)
+            yield return new ArenaBadge(ArenaText("momentum"), "momentum");
+
+        if (HasHighVolatility(ToMatchCard(match)))
             yield return new ArenaBadge(ArenaText("highVolatility"), "volatility");
     }
 
@@ -879,8 +1074,26 @@
             "hot" => "arena-chip--hot",
             "momentum" => "arena-chip--momentum",
             "volatility" => "arena-chip--volatility",
+            "fear" => "arena-chip--fear",
+            "trending" => "arena-chip--trending",
             _ => "arena-chip--muted"
         };
+
+    private string GetArenaHeatClass(MatchDto match)
+    {
+        var hot = FindHotMatch(match.MatchId);
+        if (hot is null)
+            return string.Empty;
+
+        return GetArenaHeatClass(hot);
+    }
+
+    private static string GetArenaHeatClass(HotMatchDto match)
+        => match.IsExplosive
+            ? "is-explosive"
+            : match.IsTrending
+                ? "is-trending"
+                : string.Empty;
 
     private sealed record ArenaBadge(string Text, string Tone);
     private sealed record FaqItem(string Question, string Answer);
@@ -1114,16 +1327,43 @@
             data.Remove(key);
     }
 
-    private async Task ReloadSnapshotAsync(CancellationToken ct)
+    private async Task ReloadHomeDataAsync(CancellationToken ct)
     {
         await _reloadLock.WaitAsync(ct);
         try
         {
-            _snapshot = await Api.GetDashboardSnapshotAsync(ct);
+            try
+            {
+                _snapshot = await Api.GetDashboardSnapshotAsync(ct);
+            }
+            catch
+            {
+                // Mantemos o ultimo snapshot valido para evitar flicker.
+            }
+
+            _hotMatches = await HotMatches.GetHotMatchesAsync(ct);
+            _hotMatchesLoading = false;
         }
         finally
         {
             _reloadLock.Release();
+        }
+    }
+
+    private async Task RunHomeRefreshLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(HomeRefreshSeconds));
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await ReloadHomeDataAsync(ct);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
 
@@ -1157,7 +1397,7 @@
                 if (ct.IsCancellationRequested || _disposed)
                     return;
 
-                await ReloadSnapshotAsync(ct);
+                await ReloadHomeDataAsync(ct);
                 await InvokeAsync(StateHasChanged);
             }
             catch (OperationCanceledException)
@@ -1184,6 +1424,9 @@
 
         _debounceCts?.Dispose();
         _debounceCts = null;
+        _homeRefreshCts?.Cancel();
+        _homeRefreshCts?.Dispose();
+        _homeRefreshCts = null;
         _reloadLock.Dispose();
 
         return ValueTask.CompletedTask;
@@ -1318,6 +1561,174 @@
 
     .home-hero__stats strong {
         font-size: 2rem;
+    }
+
+    .home-hero__visual {
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .home-hot-hero {
+        padding: 1.2rem;
+        border-radius: 26px;
+        border: 1px solid rgba(127,246,223,.18);
+        background:
+            radial-gradient(circle at top left, rgba(127,246,223,.12), transparent 32%),
+            radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%),
+            linear-gradient(180deg, rgba(8,14,24,.96), rgba(5,9,17,.98));
+        box-shadow: 0 24px 55px rgba(0,0,0,.28);
+        display: grid;
+        gap: 1rem;
+    }
+
+    .home-hot-hero__header,
+    .home-hot-hero__scoreboard,
+    .home-hot-hero__team,
+    .home-hot-hero__metrics {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .home-hot-hero__header,
+    .home-hot-hero__metrics {
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .home-hot-hero__badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .55rem;
+    }
+
+    .home-hot-hero__scoreboard {
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .home-hot-hero__team {
+        align-items: center;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .home-hot-hero__team--right {
+        justify-content: flex-end;
+        text-align: right;
+    }
+
+    .home-hot-hero__team strong {
+        display: block;
+        font-size: clamp(1.1rem, 2vw, 1.6rem);
+        line-height: 1;
+    }
+
+    .home-hot-hero__team span {
+        display: block;
+        margin-top: .25rem;
+        color: #b9cadf;
+        font-size: .88rem;
+    }
+
+    .home-hot-hero__logo {
+        border-radius: 18px;
+        background: rgba(255,255,255,.06);
+        object-fit: contain;
+        padding: .3rem;
+        flex-shrink: 0;
+    }
+
+    .home-hot-hero__center {
+        display: grid;
+        justify-items: center;
+        gap: .45rem;
+        text-align: center;
+    }
+
+    .home-hot-hero__center small {
+        color: #8ea4c1;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        font-weight: 800;
+    }
+
+    .home-hot-hero__metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .8rem;
+    }
+
+    .home-hot-hero__metrics article {
+        padding: .9rem 1rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,.06);
+        background: rgba(255,255,255,.035);
+        display: grid;
+        gap: .25rem;
+    }
+
+    .home-hot-hero__metrics span {
+        color: #89a0be;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        font-size: .72rem;
+    }
+
+    .home-hot-hero__metrics strong {
+        font-size: 1rem;
+    }
+
+    .home-hot-hero__cta {
+        width: 100%;
+    }
+
+    .home-hot-hero--skeleton,
+    .arena-match-card--skeleton {
+        pointer-events: none;
+    }
+
+    .home-hot-hero--skeleton span,
+    .arena-match-card--skeleton span {
+        display: block;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(127,246,223,.08), rgba(191,114,255,.14), rgba(127,246,223,.08));
+        background-size: 200% 100%;
+        animation: arena-skeleton 2s linear infinite;
+    }
+
+    .home-hot-hero--skeleton span:nth-child(1) {
+        height: 16px;
+        width: 42%;
+    }
+
+    .home-hot-hero--skeleton span:nth-child(2) {
+        height: 88px;
+    }
+
+    .home-hot-hero--skeleton span:nth-child(3) {
+        height: 44px;
+        width: 58%;
+    }
+
+    .arena-match-card--skeleton {
+        padding: 1rem;
+        display: grid;
+        gap: .85rem;
+    }
+
+    .arena-match-card--skeleton span:nth-child(1) {
+        height: 14px;
+        width: 34%;
+    }
+
+    .arena-match-card--skeleton span:nth-child(2) {
+        height: 96px;
+    }
+
+    .arena-match-card--skeleton span:nth-child(3) {
+        height: 12px;
+        width: 60%;
     }
 
     .home-anchor-nav {
@@ -1575,6 +1986,18 @@
         color: #ffe8ff;
         background: rgba(163,92,255,.18);
         border-color: rgba(163,92,255,.3);
+    }
+
+    .arena-chip--fear {
+        color: #ffe7ef;
+        background: rgba(255, 76, 111, .16);
+        border-color: rgba(255, 76, 111, .28);
+    }
+
+    .arena-chip--trending {
+        color: #fff4d8;
+        background: rgba(255, 196, 63, .14);
+        border-color: rgba(255, 196, 63, .24);
     }
 
     .arena-chip--muted {
@@ -1891,6 +2314,15 @@
         box-shadow: 0 24px 60px rgba(0,0,0,.32), inset -1px 0 0 rgba(187,114,255,.18);
     }
 
+    .is-trending {
+        box-shadow: 0 24px 60px rgba(0,0,0,.32), 0 0 0 1px rgba(255,196,63,.12), 0 0 30px rgba(255,196,63,.08);
+    }
+
+    .is-explosive {
+        border-color: rgba(255, 98, 140, .34);
+        box-shadow: 0 28px 76px rgba(0,0,0,.38), 0 0 0 1px rgba(255,98,140,.18), 0 0 36px rgba(255,98,140,.14);
+    }
+
     .is-up {
         color: #68ffb1;
     }
@@ -1940,6 +2372,18 @@
     }
 }
     @@media (max-width: 760px) {
+        .home-hot-hero__scoreboard,
+        .home-hot-hero__metrics {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+
+        .home-hot-hero__team,
+        .home-hot-hero__team--right {
+            justify-content: flex-start;
+            text-align: left;
+        }
+
         .arena-featured-battle,
         .arena-match-card,
         .home-section {
@@ -2036,6 +2480,16 @@
         50% {
             transform: translateY(-1px);
             box-shadow: 0 0 20px rgba(127,246,223,.14);
+        }
+    }
+
+    @@keyframes arena-skeleton {
+        from {
+            background-position: 200% 0;
+        }
+
+        to {
+            background-position: -200% 0;
         }
     }
 </style>

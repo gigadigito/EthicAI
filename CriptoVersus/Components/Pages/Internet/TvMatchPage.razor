@@ -3,6 +3,7 @@
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
+@inject HotMatchService HotMatches
 @inject AppCultureService AppCulture
 @inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
@@ -120,7 +121,7 @@ else
         {
             _error = null;
             var matchTask = Api.GetMatchByIdAsync(MatchId, ct);
-            var hotTask = Api.GetTvHotMatchAsync(ct);
+            var hotTask = HotMatches.GetHotMatchesAsync(ct);
             await Task.WhenAll(matchTask, hotTask);
 
             _match = matchTask.Result;
@@ -139,12 +140,12 @@ else
                 return;
             }
 
-            var hotMatch = hotTask.Result;
+            var hotMatch = hotTask.Result?.FirstOrDefault(x => x.MatchId == MatchId);
 
-            if (hotMatch?.HasMatch == true && hotMatch.MatchId == MatchId)
+            if (hotMatch is not null)
             {
-                _hotMatch = hotMatch;
-                await LogAsync("hot match refreshed", new { hotMatch.MatchId, hotMatch.HotScore });
+                _hotMatch = HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization);
+                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore });
             }
             else
             {
