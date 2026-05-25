@@ -4,6 +4,7 @@ using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,16 +19,19 @@ public sealed class SocialController : ControllerBase
     private readonly ISocialComposeFinalService _socialComposeFinalService;
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
     public SocialController(
         EthicAIDbContext db,
         IConfiguration configuration,
+        IWebHostEnvironment environment,
         ISocialAutomationService socialAutomationService,
         ISocialVsRenderService socialVsRenderService,
         ISocialComposeFinalService socialComposeFinalService)
     {
         _db = db;
         _configuration = configuration;
+        _environment = environment;
         _socialAutomationService = socialAutomationService;
         _socialVsRenderService = socialVsRenderService;
         _socialComposeFinalService = socialComposeFinalService;
@@ -239,6 +243,17 @@ public sealed class SocialController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [AllowAnonymous]
+    [HttpGet("/public/social/generated/{fileName}")]
+    public IActionResult GetGeneratedSocialImage(string fileName)
+    {
+        if (!SocialGeneratedImageStorage.TryResolveGeneratedImagePath(_environment, fileName, out var filePath, out var contentType))
+            return NotFound();
+
+        Response.Headers.CacheControl = "public,max-age=3600";
+        return PhysicalFile(filePath, contentType);
     }
 
     private bool TryAuthorizeSocialWrite(out ActionResult error)
