@@ -8,8 +8,10 @@ namespace CriptoVersus.API.Services;
 
 public interface ISocialComposeFinalService
 {
-    Task<byte[]> ComposeAsync(SocialComposeFinalRequest request, CancellationToken ct);
+    Task<SocialComposeFinalResult> ComposeAsync(SocialComposeFinalRequest request, CancellationToken ct);
 }
+
+public sealed record SocialComposeFinalResult(byte[] Bytes, string FileName, string FullPath);
 
 public sealed class SocialComposeFinalService : ISocialComposeFinalService
 {
@@ -37,7 +39,7 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
         _logger = logger;
     }
 
-    public async Task<byte[]> ComposeAsync(SocialComposeFinalRequest request, CancellationToken ct)
+    public async Task<SocialComposeFinalResult> ComposeAsync(SocialComposeFinalRequest request, CancellationToken ct)
     {
         var leftSymbol = NormalizeSymbol(request.LeftSymbol);
         var rightSymbol = NormalizeSymbol(request.RightSymbol);
@@ -51,7 +53,7 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
             throw new ArgumentException("Both leftSymbol and rightSymbol are required.");
 
         var cacheKey = $"social-compose:{leftSymbol}:{rightSymbol}:{score}:{ComputeHash(backgroundBase64)}";
-        if (_cache.TryGetValue<byte[]>(cacheKey, out var cached) && cached is not null)
+        if (_cache.TryGetValue<SocialComposeFinalResult>(cacheKey, out var cached) && cached is not null)
             return cached;
 
         var backgroundBytes = DecodeBackground(backgroundBase64);
@@ -73,14 +75,20 @@ public sealed class SocialComposeFinalService : ISocialComposeFinalService
             rightSymbol,
             score);
 
-        _cache.Set(cacheKey, bytes, new MemoryCacheEntryOptions
+        var fileName = SocialGeneratedImageStorage.CreateGeneratedImageFileName(".png");
+        var fullPath = await SocialGeneratedImageStorage.SaveGeneratedImageAsync(_environment, bytes, fileName, ct);
+        _logger.LogInformation("ComposeFinal salvou imagem gerada: {FullPath}", fullPath);
+
+        var result = new SocialComposeFinalResult(bytes, fileName, fullPath);
+
+        _cache.Set(cacheKey, result, new MemoryCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
             SlidingExpiration = TimeSpan.FromMinutes(10),
             Size = Math.Max(1, bytes.Length / 1024)
         });
 
-        return bytes;
+        return result;
     }
 
     private async Task<SKBitmap?> LoadIconAsync(string symbol, CancellationToken ct)

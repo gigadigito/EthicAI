@@ -20,11 +20,13 @@ public sealed class SocialController : ControllerBase
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<SocialController> _logger;
 
     public SocialController(
         EthicAIDbContext db,
         IConfiguration configuration,
         IWebHostEnvironment environment,
+        ILogger<SocialController> logger,
         ISocialAutomationService socialAutomationService,
         ISocialVsRenderService socialVsRenderService,
         ISocialComposeFinalService socialComposeFinalService)
@@ -32,6 +34,7 @@ public sealed class SocialController : ControllerBase
         _db = db;
         _configuration = configuration;
         _environment = environment;
+        _logger = logger;
         _socialAutomationService = socialAutomationService;
         _socialVsRenderService = socialVsRenderService;
         _socialComposeFinalService = socialComposeFinalService;
@@ -221,8 +224,9 @@ public sealed class SocialController : ControllerBase
     {
         try
         {
-            var bytes = await _socialComposeFinalService.ComposeAsync(request, ct);
-            return File(bytes, "image/png");
+            var result = await _socialComposeFinalService.ComposeAsync(request, ct);
+            Response.Headers["X-Generated-FileName"] = result.FileName;
+            return File(result.Bytes, "image/png");
         }
         catch (ArgumentException ex)
         {
@@ -236,8 +240,9 @@ public sealed class SocialController : ControllerBase
     {
         try
         {
-            var bytes = await _socialComposeFinalService.ComposeAsync(request, ct);
-            return File(bytes, "image/png");
+            var result = await _socialComposeFinalService.ComposeAsync(request, ct);
+            Response.Headers["X-Generated-FileName"] = result.FileName;
+            return File(result.Bytes, "image/png");
         }
         catch (ArgumentException ex)
         {
@@ -249,7 +254,13 @@ public sealed class SocialController : ControllerBase
     [HttpGet("/public/social/generated/{fileName}")]
     public IActionResult GetGeneratedSocialImage(string fileName)
     {
-        if (!SocialGeneratedImageStorage.TryResolveGeneratedImagePath(_environment, fileName, out var filePath, out var contentType))
+        if (!SocialGeneratedImageStorage.TryCreateGeneratedImagePath(_environment, fileName, out _, out var filePath, out var contentType))
+            return NotFound();
+
+        var exists = System.IO.File.Exists(filePath);
+        _logger.LogInformation("Public generated image requested: {FileName} -> {FullPath} Exists={Exists}", fileName, filePath, exists);
+
+        if (!exists)
             return NotFound();
 
         Response.Headers.CacheControl = "public,max-age=3600";

@@ -21,6 +21,32 @@ internal static class SocialGeneratedImageStorage
         return Path.Combine(environment.WebRootPath, "social", "generated");
     }
 
+    internal static string CreateGeneratedImageFileName(string extension = ".png")
+    {
+        var normalizedExtension = NormalizeExtension(extension);
+        return $"criptoversus-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{normalizedExtension}";
+    }
+
+    internal static bool TryCreateGeneratedImagePath(
+        IWebHostEnvironment environment,
+        string? fileName,
+        out string safeFileName,
+        out string physicalPath,
+        out string contentType)
+    {
+        safeFileName = string.Empty;
+        physicalPath = string.Empty;
+        contentType = string.Empty;
+
+        if (!TrySanitizeFileName(fileName, out safeFileName))
+            return false;
+
+        if (!TryGetContentType(safeFileName, out contentType))
+            return false;
+
+        return TryBuildPhysicalPath(environment, safeFileName, out physicalPath);
+    }
+
     internal static bool TryResolveGeneratedImagePath(
         IWebHostEnvironment environment,
         string? fileName,
@@ -30,19 +56,58 @@ internal static class SocialGeneratedImageStorage
         physicalPath = string.Empty;
         contentType = string.Empty;
 
+        if (!TryCreateGeneratedImagePath(environment, fileName, out _, out var candidatePath, out contentType))
+            return false;
+
+        if (!File.Exists(candidatePath))
+            return false;
+
+        physicalPath = candidatePath;
+        return true;
+    }
+
+    internal static async Task<string> SaveGeneratedImageAsync(
+        IWebHostEnvironment environment,
+        byte[] bytes,
+        string fileName,
+        CancellationToken ct)
+    {
+        if (!TryCreateGeneratedImagePath(environment, fileName, out _, out var physicalPath, out _))
+            throw new InvalidOperationException("Could not resolve generated image path.");
+
+        var directory = Path.GetDirectoryName(physicalPath);
+        if (string.IsNullOrWhiteSpace(directory))
+            throw new InvalidOperationException("Could not resolve generated image directory.");
+
+        Directory.CreateDirectory(directory);
+        await File.WriteAllBytesAsync(physicalPath, bytes, ct);
+        return physicalPath;
+    }
+
+    private static bool TrySanitizeFileName(string? fileName, out string safeFileName)
+    {
+        safeFileName = string.Empty;
+
         if (string.IsNullOrWhiteSpace(fileName))
             return false;
 
         var trimmedFileName = fileName.Trim();
-        var safeFileName = Path.GetFileName(trimmedFileName);
+        safeFileName = Path.GetFileName(trimmedFileName);
         if (string.IsNullOrWhiteSpace(safeFileName))
             return false;
 
         if (!string.Equals(trimmedFileName, safeFileName, StringComparison.Ordinal))
             return false;
 
-        if (!TryGetContentType(safeFileName, out contentType))
-            return false;
+        return true;
+    }
+
+    private static bool TryBuildPhysicalPath(
+        IWebHostEnvironment environment,
+        string safeFileName,
+        out string physicalPath)
+    {
+        physicalPath = string.Empty;
 
         var generatedDirectory = GetGeneratedImagesDirectory(environment);
         if (string.IsNullOrWhiteSpace(generatedDirectory))
@@ -60,9 +125,6 @@ internal static class SocialGeneratedImageStorage
         if (!normalizedCandidate.StartsWith(directoryPrefix, pathComparison))
             return false;
 
-        if (!File.Exists(normalizedCandidate))
-            return false;
-
         physicalPath = normalizedCandidate;
         return true;
     }
@@ -71,6 +133,18 @@ internal static class SocialGeneratedImageStorage
     {
         var extension = Path.GetExtension(fileName);
         return ContentTypes.TryGetValue(extension, out contentType!);
+    }
+
+    private static string NormalizeExtension(string extension)
+    {
+        var normalizedExtension = extension.StartsWith(".", StringComparison.Ordinal)
+            ? extension
+            : "." + extension;
+
+        if (!ContentTypes.ContainsKey(normalizedExtension))
+            throw new ArgumentException($"Unsupported generated image extension: {extension}", nameof(extension));
+
+        return normalizedExtension;
     }
 
     // TODO: add a background cleanup worker to delete generated images older than 24 hours.
