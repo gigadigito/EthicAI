@@ -3,6 +3,7 @@ using Blazored.SessionStorage;
 using BLL.Blockchain;
 using CriptoVersus.Web.Components;
 using CriptoVersus.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -132,8 +133,8 @@ app.UseMiddleware<MatchRouteRedirectMiddleware>();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapGet("/healthz", () => Results.Ok("OK"))
-    .AllowAnonymous();
+app.MapGet("/healthz", () => Results.Text("OK", "text/plain"))
+    .WithMetadata(new AllowAnonymousAttribute());
 
 app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {
