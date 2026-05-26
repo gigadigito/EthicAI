@@ -1,8 +1,10 @@
 ﻿@page "/roadmap"
 @page "/pt/roadmap"
 @page "/en/roadmap"
+@using System.Text.Json
 @using CriptoVersus.Web.Services
 @inject NavigationManager Nav
+@inject IConfiguration Config
 @inject RoadmapContentService RoadmapContentService
 @inject AppCultureService AppCulture
 @inject LocalizationService L
@@ -11,6 +13,7 @@
 
 <HeadContent>
     <meta name="description" content="@_page.MetaDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@_page.CanonicalUrl" />
     @foreach (var alternate in _page.AlternateLinks)
     {
@@ -21,11 +24,16 @@
     <meta property="og:description" content="@_page.OpenGraph.Description" />
     <meta property="og:type" content="@_page.OpenGraph.Type" />
     <meta property="og:url" content="@_page.OpenGraph.Url" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@_page.PageTitle" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(_page.Culture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(_page.Culture)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@_page.OpenGraph.Title" />
     <meta name="twitter:description" content="@_page.OpenGraph.Description" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@_page.PageTitle" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
 <section class="roadmap-page">
@@ -617,6 +625,25 @@
 
     private string BuildAbsolute(string relativePath)
         => new Uri(new Uri(Nav.BaseUri), relativePath.TrimStart('/')).ToString();
+
+    private string MetaKeywords
+        => $"{SeoDefaults.GlobalKeywords}, CriptoVersus roadmap, #CriptoVersus roadmap, crypto platform roadmap, live crypto product roadmap";
+
+    private string SocialImageUrl
+        => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/img/roadmap-logo2.png");
+
+    private string StructuredDataMarkup
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebPage",
+            ["name"] = _page.PageTitle,
+            ["description"] = _page.MetaDescription,
+            ["url"] = _page.CanonicalUrl,
+            ["image"] = SocialImageUrl,
+            ["keywords"] = MetaKeywords,
+            ["inLanguage"] = _page.Culture
+        });
 
     private string T(string key, params object?[] args)
         => L.T($"roadmap.{key}", _page.Culture, args);

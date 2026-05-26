@@ -1,4 +1,13 @@
 @page "/tokenomics/regras-das-partidas"
+@inject IConfiguration Config
+@inject NavigationManager Nav
+
+<BasicSeoHead Title="CriptoVersus Match Rules | Score Logic and Crypto Battle Mechanics"
+              Description="Understand how CriptoVersus builds match scores with percentage thresholds, crossover rules, volume windows, auditable events and #CriptoVersus arena logic."
+              CanonicalUrl="@CanonicalUrl"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus match rules and score logic"
+              JsonLd="@StructuredDataMarkup" />
 
 <section class="match-rules-page">
     <div class="rules-hero">
@@ -389,3 +398,9 @@
         }
     }
 </style>
+
+@code {
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/tokenomics/regras-das-partidas");
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/img/tokenomics-hero-banner-en.png");
+    private string StructuredDataMarkup => $$"""{"@context":"https://schema.org","@type":"WebPage","name":"CriptoVersus Match Rules","description":"Detailed explanation of CriptoVersus scoring rules, thresholds, crossover events, volume windows and auditable score formation.","url":"{{CanonicalUrl}}","image":"{{SocialImageUrl}}","keywords":"CriptoVersus, #CriptoVersus, crypto match rules, crypto scoreboard rules, market battle scoring, percentage crossover, volume window, blockchain game rules"}""";
+}

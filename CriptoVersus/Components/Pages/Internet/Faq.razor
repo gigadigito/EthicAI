@@ -12,6 +12,7 @@
 <PageTitle>@T("seo.title")</PageTitle>
 <HeadContent>
     <meta name="description" content="@T("seo.description")" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture))" />
     <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("en"))" />
     <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("pt"))" />
@@ -20,11 +21,15 @@
     <meta property="og:description" content="@T("seo.description")" />
     <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture))" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@T("seo.title")" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@T("seo.title")" />
     <meta name="twitter:description" content="@T("seo.description")" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@T("seo.title")" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
@@ -612,6 +617,8 @@
     private IReadOnlyList<FaqEntry> _items = [];
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus FAQ, #CriptoVersus FAQ";
+    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
     private IEnumerable<FaqEntry> BasicsItems => _items.Where(item => string.Equals(item.Group, "basics", StringComparison.OrdinalIgnoreCase));
     private IEnumerable<FaqEntry> DeepItems => _items.Where(item => string.Equals(item.Group, "deep", StringComparison.OrdinalIgnoreCase));
 
@@ -753,5 +760,4 @@
         public string Answer { get; set; } = string.Empty;
     }
 }
-
 

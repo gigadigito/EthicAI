@@ -17,10 +17,12 @@
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 
-<PageTitle>CriptoVersus Dashboard</PageTitle>
-<HeadContent>
-    <meta name="robots" content="noindex,nofollow,noarchive" />
-</HeadContent>
+<BasicSeoHead Title="CriptoVersus Dashboard"
+              Description="Internal CriptoVersus dashboard for monitoring live arena state, worker updates and operational telemetry."
+              CanonicalUrl="@CanonicalUrl"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus dashboard"
+              Robots="noindex,nofollow,noarchive" />
 
 <h3 class="mb-3">@L.T("home.page.title", CurrentCulture)</h3>
 
@@ -127,6 +129,8 @@ else
     }
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private string CanonicalUrl => BuildAbsolute("/intranet/dashboard");
+    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
 
     private string BuildAbsolute(string relativePath)
     {

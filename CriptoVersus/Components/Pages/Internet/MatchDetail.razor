@@ -20,7 +20,12 @@
 @implements IDisposable
 @if (EmitPageTitle)
 {
-    <PageTitle>@_title</PageTitle>
+    <BasicSeoHead Title="@SeoTitle"
+                  Description="@SeoDescription"
+                  CanonicalUrl="@SeoCanonicalUrl"
+                  ImageUrl="@SeoImageUrl"
+                  ImageAlt="@SeoTitle"
+                  Robots="noindex,nofollow,noarchive" />
 }
 
 <div class="container py-3">
@@ -2272,6 +2277,12 @@
     private string? _error;
     private string _title = "Match";
     private MatchDto? _match;
+    private string SeoTitle => string.IsNullOrWhiteSpace(_title) ? "CriptoVersus Match Detail" : $"{_title} | CriptoVersus Legacy Match";
+    private string SeoDescription => IsEnglish
+        ? "Legacy CriptoVersus match detail route kept for compatibility while the main indexed match SEO lives on the canonical public match pages."
+        : "Rota legada de detalhe de partida do CriptoVersus mantida por compatibilidade, enquanto o SEO indexado principal fica nas paginas canonicas de partida.";
+    private string SeoCanonicalUrl => BuildAbsolute("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimStart('/'));
+    private string SeoImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
 
     private bool _isSendingBet;
     private bool _betRequestOk;
@@ -2644,6 +2655,9 @@
     private bool IsEnglish => CurrentCulture == "en";
     private string T(string key, params object?[] args)
         => L.T($"matchDetail.{key}", CurrentCulture, args);
+
+    private string BuildAbsolute(string path)
+        => SeoDefaults.BuildAbsoluteUrl(Config, Nav, path.StartsWith('/') ? path : "/" + path);
 
     private static string GetScoreEventIcon(MatchScoreEventDto scoreEvent)
         => scoreEvent.Points > 0 ? "⚽" : "◎";

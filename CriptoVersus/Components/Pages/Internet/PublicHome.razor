@@ -20,19 +20,24 @@
 <PageTitle>@SeoTitle</PageTitle>
 <HeadContent>
     <meta name="description" content="@SeoDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
-    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="x-default" href="@HomeRootUrl" />
     <meta property="og:title" content="@SeoTitle" />
     <meta property="og:description" content="@SeoDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@SeoTitle" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@SeoTitle" />
     <meta name="twitter:description" content="@SeoDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@SeoTitle" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
@@ -573,7 +578,10 @@
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
     private string SeoDescription => T("seoDescription");
-    private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
+    private string MetaKeywords => SeoDefaults.GlobalKeywords;
+    private string HomeRootUrl => SeoDefaults.BuildCanonicalRootUrl(Config, Nav);
+    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private string CanonicalUrl => CurrentCulture == "pt" ? PortugueseUrl : HomeRootUrl;
     private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildHomePath("en"));
     private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildHomePath("pt"));
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());

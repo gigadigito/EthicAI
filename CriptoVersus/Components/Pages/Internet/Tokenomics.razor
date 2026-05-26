@@ -16,6 +16,7 @@
 <PageTitle>@L.T("howItWorks.seo.title", CurrentCulture)</PageTitle>
 <HeadContent>
     <meta name="description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
     <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("en"))" />
     <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("pt"))" />
@@ -23,11 +24,16 @@
     <meta property="og:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <meta property="og:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
     <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <meta property="og:locale" content="@(AppCulture.ToOgLocale(CurrentCulture))" />
     <meta property="og:locale:alternate" content="@(AppCulture.GetAlternateOgLocale(CurrentCulture))" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <meta name="twitter:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
@@ -331,6 +337,8 @@
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool IsEnglish => CurrentCulture == "en";
+    private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus how it works, #CriptoVersus rules, crypto scoring rules";
+    private string SocialImageUrl => BuildAbsolute(IsEnglish ? "/img/tokenomics-hero-banner-en.png" : "/img/tokenomics-hero-banner.png");
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
 
     private string BuildAbsolute(string relativePath)

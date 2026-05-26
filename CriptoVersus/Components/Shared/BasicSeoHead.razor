@@ -1,0 +1,96 @@
+@using System.Text.Json
+@using CriptoVersus.Web.Services
+
+<PageTitle>@Title</PageTitle>
+<HeadContent>
+    @if (!string.IsNullOrWhiteSpace(Robots))
+    {
+        <meta name="robots" content="@Robots" />
+    }
+    <meta name="description" content="@Description" />
+    <meta name="keywords" content="@ResolvedKeywords" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    @if (!string.IsNullOrWhiteSpace(EnglishUrl))
+    {
+        <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    }
+    @if (!string.IsNullOrWhiteSpace(PortugueseUrl))
+    {
+        <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    }
+    @if (!string.IsNullOrWhiteSpace(XDefaultUrl))
+    {
+        <link rel="alternate" hreflang="x-default" href="@XDefaultUrl" />
+    }
+    <meta property="og:title" content="@OgTitle" />
+    <meta property="og:description" content="@OgDescription" />
+    <meta property="og:url" content="@OgUrl" />
+    <meta property="og:type" content="@OgType" />
+    @if (!string.IsNullOrWhiteSpace(OgLocale))
+    {
+        <meta property="og:locale" content="@OgLocale" />
+    }
+    @if (!string.IsNullOrWhiteSpace(OgAlternateLocale))
+    {
+        <meta property="og:locale:alternate" content="@OgAlternateLocale" />
+    }
+    @if (!string.IsNullOrWhiteSpace(ImageUrl))
+    {
+        <meta property="og:image" content="@ImageUrl" />
+        <meta name="twitter:image" content="@TwitterImageUrl" />
+    }
+    @if (!string.IsNullOrWhiteSpace(ImageAlt))
+    {
+        <meta property="og:image:alt" content="@ImageAlt" />
+        <meta name="twitter:image:alt" content="@ImageAlt" />
+    }
+    <meta name="twitter:card" content="@TwitterCard" />
+    <meta name="twitter:title" content="@TwitterTitle" />
+    <meta name="twitter:description" content="@TwitterDescription" />
+    <script type="application/ld+json">@StructuredDataJson</script>
+</HeadContent>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Description { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string CanonicalUrl { get; set; } = string.Empty;
+    [Parameter] public string? Keywords { get; set; }
+    [Parameter] public string? EnglishUrl { get; set; }
+    [Parameter] public string? PortugueseUrl { get; set; }
+    [Parameter] public string? XDefaultUrl { get; set; }
+    [Parameter] public string? OgLocale { get; set; }
+    [Parameter] public string? OgAlternateLocale { get; set; }
+    [Parameter] public string? ImageUrl { get; set; }
+    [Parameter] public string? ImageAlt { get; set; }
+    [Parameter] public string TwitterCard { get; set; } = "summary_large_image";
+    [Parameter] public string OgType { get; set; } = "website";
+    [Parameter] public string? Robots { get; set; }
+    [Parameter] public string? JsonLd { get; set; }
+
+    private string ResolvedKeywords => string.IsNullOrWhiteSpace(Keywords) ? SeoDefaults.GlobalKeywords : Keywords!;
+    private string OgTitle => Title;
+    private string OgDescription => Description;
+    private string OgUrl => CanonicalUrl;
+    private string TwitterTitle => Title;
+    private string TwitterDescription => Description;
+    private string TwitterImageUrl => string.IsNullOrWhiteSpace(ImageUrl) ? string.Empty : ImageUrl!;
+    private string StructuredDataJson => JsonLd ?? BuildDefaultStructuredData();
+
+    private string BuildDefaultStructuredData()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebPage",
+            ["name"] = Title,
+            ["description"] = Description,
+            ["url"] = CanonicalUrl,
+            ["keywords"] = ResolvedKeywords
+        };
+
+        if (!string.IsNullOrWhiteSpace(ImageUrl))
+            payload["image"] = ImageUrl;
+
+        return JsonSerializer.Serialize(payload);
+    }
+}

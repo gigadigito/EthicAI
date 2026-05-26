@@ -1,7 +1,14 @@
 ﻿@page "/Error"
 @using System.Diagnostics
+@inject IConfiguration Config
+@inject NavigationManager Nav
 
-<PageTitle>Error</PageTitle>
+<BasicSeoHead Title="CriptoVersus Error Page"
+              Description="Fallback error page for CriptoVersus.Web when a request cannot be processed successfully."
+              CanonicalUrl="@CanonicalUrl"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus error page"
+              Robots="noindex,nofollow,noarchive" />
 
 <h1 class="text-danger">Error.</h1>
 <h2 class="text-danger">An error occurred while processing your request.</h2>
@@ -25,6 +32,9 @@
 </p>
 
 @code{
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/Error");
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+
     [CascadingParameter]
     private HttpContext? HttpContext { get; set; }
 

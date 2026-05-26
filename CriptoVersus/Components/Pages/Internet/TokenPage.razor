@@ -16,6 +16,7 @@
 <PageTitle>@SeoTitle</PageTitle>
 <HeadContent>
     <meta name="description" content="@SeoDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
@@ -840,6 +841,7 @@
     private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTokenPath("pt"));
     private string SeoTitle => L.T("token.seo.title", CurrentCulture);
     private string SeoDescription => L.T("token.seo.description", CurrentCulture);
+    private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus token, #CriptoVersus token, Solana meme token";
     private string CopyButtonText => L.T(_copied ? "token.action.copied" : "token.action.copyContract", CurrentCulture);
     private string QrCodeUrl => $"https://api.qrserver.com/v1/create-qr-code/?size=320x320&data={Uri.EscapeDataString(PumpFunUrl)}";
     private string StructuredDataMarkup => BuildStructuredDataMarkup();

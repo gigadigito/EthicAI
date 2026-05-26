@@ -20,6 +20,7 @@
 <PageTitle>@PageTitleText</PageTitle>
 <HeadContent>
     <meta name="description" content="@MetaDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
@@ -28,11 +29,15 @@
     <meta property="og:description" content="@MetaDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@PageTitleText" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@PageTitleText" />
     <meta name="twitter:description" content="@MetaDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@PageTitleText" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
@@ -411,9 +416,11 @@
     private bool IsEmptyState => _stats.TotalMatches == 0 && _stats.TopTeams.Count == 0 && _stats.LatestMatches.Count == 0;
     private string PageTitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
+    private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus stats, #CriptoVersus stats, crypto market stats";
     private string CanonicalUrl => BuildAbsolute("/stats");
     private string EnglishUrl => BuildAbsolute("/stats");
     private string PortugueseUrl => BuildAbsolute("/pt/estatisticas");
+    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
     private HashSet<string> LinkableTeamSlugs => _stats.TopTeams
         .Select(team => BuildAssetSlug(CleanAssetSymbol(team.Symbol)))

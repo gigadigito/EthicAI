@@ -1,7 +1,14 @@
 ﻿@page "/weather"
 @attribute [StreamRendering]
+@inject IConfiguration Config
+@inject NavigationManager Nav
 
-<PageTitle>Weather</PageTitle>
+<BasicSeoHead Title="CriptoVersus Weather Demo"
+              Description="Streaming weather demo route in CriptoVersus.Web used for sample data rendering and component checks."
+              CanonicalUrl="@CanonicalUrl"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus weather demo"
+              Robots="noindex,nofollow,noarchive" />
 
 <h1>Weather</h1>
 
@@ -38,6 +45,8 @@ else
 
 @code {
     private WeatherForecast[]? forecasts;
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/weather");
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
 
     protected override async Task OnInitializedAsync()
     {

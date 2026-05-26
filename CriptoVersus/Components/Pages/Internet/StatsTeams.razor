@@ -17,6 +17,7 @@
 <PageTitle>@PageTitleText</PageTitle>
 <HeadContent>
     <meta name="description" content="@MetaDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
@@ -25,11 +26,15 @@
     <meta property="og:description" content="@MetaDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@PageTitleText" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@PageTitleText" />
     <meta name="twitter:description" content="@MetaDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@PageTitleText" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
@@ -296,9 +301,11 @@
     private bool IsEmptyState => _teams.Count == 0;
     private string PageTitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
+    private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus teams, #CriptoVersus teams, crypto team rankings";
     private string CanonicalUrl => BuildAbsolute("/stats/teams");
     private string EnglishUrl => BuildAbsolute("/stats/teams");
     private string PortugueseUrl => BuildAbsolute("/pt/estatisticas/times");
+    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
     private int TotalBattlesIndexed => _teams.Sum(team => team.Matches) / 2;
 

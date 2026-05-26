@@ -2,6 +2,7 @@
 @page "/{Culture}/tv"
 @page "/tv/broadcast"
 @page "/{Culture}/tv/broadcast"
+@using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
@@ -20,6 +21,7 @@
 <PageTitle>@PageTitleText</PageTitle>
 <HeadContent>
     <meta name="description" content="@MetaDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
@@ -28,11 +30,16 @@
     <meta property="og:description" content="@MetaDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
     <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@PageTitleText" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(_culture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(_culture)" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@PageTitleText" />
     <meta name="twitter:description" content="@MetaDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@PageTitleText" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
 <TvStage Culture="@_culture"
@@ -80,6 +87,22 @@
     private string PortugueseUrl => BuildAbsolute(_isBroadcastMode
         ? RouteLocalization.BuildTvBroadcastPath(AppCultureService.SecondaryRouteCulture)
         : RouteLocalization.BuildTvPath(AppCultureService.SecondaryRouteCulture));
+    private string MetaKeywords => _isBroadcastMode
+        ? $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV broadcast, #CriptoVersus TV, crypto broadcast, live crypto arena"
+        : $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV, #CriptoVersus TV, crypto match stream, live crypto battles";
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+    private string StructuredDataMarkup
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebPage",
+            ["name"] = PageTitleText,
+            ["description"] = MetaDescription,
+            ["url"] = CanonicalUrl,
+            ["image"] = SocialImageUrl,
+            ["keywords"] = MetaKeywords,
+            ["inLanguage"] = _culture
+        });
     private int BroadcastRotationMinutes
         => Math.Clamp(Config.GetValue<int?>("CriptoVersusTV:BroadcastRotationMinutes") ?? 5, 1, 30);
     private int BroadcastRotationRemainingSeconds

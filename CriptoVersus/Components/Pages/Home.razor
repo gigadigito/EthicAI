@@ -1,7 +1,19 @@
 @page "/home"
+@inject IConfiguration Config
+@inject NavigationManager Nav
 
-<PageTitle>Home</PageTitle>
+<BasicSeoHead Title="CriptoVersus Home Placeholder"
+              Description="Legacy home placeholder route for CriptoVersus.Web, kept for compatibility while the public arena lives on the main homepage."
+              CanonicalUrl="@CanonicalUrl"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus home placeholder"
+              Robots="noindex,nofollow,noarchive" />
 
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
+
+@code {
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/home");
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+}

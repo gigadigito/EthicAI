@@ -1,7 +1,14 @@
 ﻿@page "/counter"
 @rendermode InteractiveServer
+@inject IConfiguration Config
+@inject NavigationManager Nav
 
-<PageTitle>Counter</PageTitle>
+<BasicSeoHead Title="CriptoVersus Counter Demo"
+              Description="Interactive counter demo page inside CriptoVersus.Web used for UI validation and component testing."
+              CanonicalUrl="@CanonicalUrl"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus emblem"
+              Robots="noindex,nofollow,noarchive" />
 
 <h1>Counter</h1>
 
@@ -11,6 +18,8 @@
 
 @code {
     private int currentCount = 0;
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, "/counter");
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
 
     private void IncrementCount()
     {

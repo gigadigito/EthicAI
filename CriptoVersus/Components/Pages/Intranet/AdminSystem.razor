@@ -9,8 +9,24 @@
 @inject WalletSessionState WalletState
 @inject IConfiguration Config
 @inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject RouteLocalizationService RouteLocalization
 @implements IDisposable
 @implements IAsyncDisposable
+
+<BasicSeoHead Title="@SeoTitle"
+              Description="@SeoDescription"
+              CanonicalUrl="@CanonicalUrl"
+              EnglishUrl="@EnglishUrl"
+              PortugueseUrl="@PortugueseUrl"
+              XDefaultUrl="@EnglishUrl"
+              OgLocale="@AppCulture.ToOgLocale(CurrentCulture)"
+              OgAlternateLocale="@AppCulture.GetAlternateOgLocale(CurrentCulture)"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus admin system"
+              Robots="noindex,nofollow,noarchive" />
 
 <section class="admin-page">
     <div class="admin-heading">
@@ -141,6 +157,16 @@
 </section>
 
 @code {
+    private string CurrentCulture => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private string SeoTitle => CurrentCulture == "en" ? "CriptoVersus Admin System" : "CriptoVersus Admin Sistema";
+    private string SeoDescription => CurrentCulture == "en"
+        ? "Internal CriptoVersus admin system page for monitoring program operations, positions and contract state."
+        : "Pagina interna do sistema admin CriptoVersus para monitorar operacao, posicoes e estado do contrato.";
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildAdminPath(CurrentCulture));
+    private string EnglishUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildAdminPath("en"));
+    private string PortugueseUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildAdminPath("pt"));
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+
     private AdminSystemDto? _system;
     private ChainOverview? _chain;
     private IJSObjectReference? _adminModule;

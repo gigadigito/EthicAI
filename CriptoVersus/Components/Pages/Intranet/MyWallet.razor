@@ -14,7 +14,21 @@
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject DashboardHubClient HubClient
+@inject NavigationManager Nav
+@inject RouteLocalizationService RouteLocalization
 @implements IAsyncDisposable
+
+<BasicSeoHead Title="@SeoTitle"
+              Description="@SeoDescription"
+              CanonicalUrl="@CanonicalUrl"
+              EnglishUrl="@EnglishUrl"
+              PortugueseUrl="@PortugueseUrl"
+              XDefaultUrl="@EnglishUrl"
+              OgLocale="@AppCulture.ToOgLocale(CurrentCulture)"
+              OgAlternateLocale="@AppCulture.GetAlternateOgLocale(CurrentCulture)"
+              ImageUrl="@SocialImageUrl"
+              ImageAlt="CriptoVersus wallet page"
+              Robots="noindex,nofollow,noarchive" />
 
 <section class="wallet-page">
     <div class="wallet-heading">
@@ -1451,6 +1465,14 @@
 
     private string CurrentCulture
         => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private string SeoTitle => CurrentCulture == "en" ? "CriptoVersus My Wallet" : "CriptoVersus Minha Carteira";
+    private string SeoDescription => CurrentCulture == "en"
+        ? "Internal CriptoVersus wallet page for balances, positions, custody details and account history."
+        : "Pagina interna da carteira CriptoVersus com saldos, posicoes, custodia e historico da conta.";
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath(CurrentCulture));
+    private string EnglishUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath("en"));
+    private string PortugueseUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath("pt"));
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
 
     private string DisplayName
         => !string.IsNullOrWhiteSpace(_wallet?.Name)
