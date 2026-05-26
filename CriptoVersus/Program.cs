@@ -77,6 +77,7 @@ builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
     var cfg = sp.GetRequiredService<IConfiguration>();
     var baseUrl = cfg["Api:BaseUrl"]?.TrimEnd('/');
     client.BaseAddress = new Uri(baseUrl + "/");
+    client.Timeout = TimeSpan.FromSeconds(10);
 });
 
 builder.Services.AddScoped<CriptoVersusApiClient>();
@@ -130,6 +131,8 @@ app.UseMiddleware<MatchRouteRedirectMiddleware>();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.MapGet("/healthz", () => Results.Text("ok", "text/plain; charset=utf-8"));
 
 app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {

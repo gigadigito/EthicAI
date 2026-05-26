@@ -14,6 +14,7 @@
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
+@inject ILogger<PublicHome> Logger
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
@@ -574,6 +575,7 @@
     private Task? _homeRefreshLoopTask;
     private IReadOnlyList<HotMatchDto> _hotMatches = [];
     private bool _hotMatchesLoading = true;
+    private string _lastRefreshSignature = string.Empty;
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
@@ -661,7 +663,7 @@
 
         try
         {
-            await ReloadHomeDataAsync(CancellationToken.None);
+            await ReloadHomeDataAsync(CancellationToken.None, "initial-load");
         }
         catch
         {
@@ -685,6 +687,7 @@
 
         _homeRefreshCts = new CancellationTokenSource();
         _homeRefreshLoopTask = RunHomeRefreshLoopAsync(_homeRefreshCts.Token);
+        Logger.LogInformation("PublicHome automatic refresh loop started. IntervalSeconds={IntervalSeconds}", HomeRefreshSeconds);
     }
 
     private string T(string key, params object?[] args)
@@ -1335,11 +1338,18 @@
             data.Remove(key);
     }
 
-    private async Task ReloadHomeDataAsync(CancellationToken ct)
+    private async Task<bool> ReloadHomeDataAsync(CancellationToken ct, string trigger)
     {
-        await _reloadLock.WaitAsync(ct);
+        if (!await _reloadLock.WaitAsync(TimeSpan.Zero, ct))
+        {
+            Logger.LogInformation("PublicHome refresh skipped because another refresh is already running. Trigger={Trigger}", trigger);
+            return false;
+        }
+
+        var startedAtUtc = DateTime.UtcNow;
         try
         {
+            Logger.LogInformation("PublicHome refresh started. Trigger={Trigger}", trigger);
             try
             {
                 _snapshot = await Api.GetDashboardSnapshotAsync(ct);
@@ -1351,6 +1361,14 @@
 
             _hotMatches = await HotMatches.GetHotMatchesAsync(ct);
             _hotMatchesLoading = false;
+            var changed = UpdateRefreshSignature();
+            Logger.LogInformation(
+                "PublicHome refresh completed. Trigger={Trigger} Changed={Changed} HotMatches={HotMatchCount} DurationMs={DurationMs}",
+                trigger,
+                changed,
+                _hotMatches.Count,
+                (DateTime.UtcNow - startedAtUtc).TotalMilliseconds);
+            return changed;
         }
         finally
         {
@@ -1366,12 +1384,16 @@
         {
             while (await timer.WaitForNextTickAsync(ct))
             {
-                await ReloadHomeDataAsync(ct);
-                await InvokeAsync(StateHasChanged);
+                if (await ReloadHomeDataAsync(ct, "timer"))
+                    await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
         {
+        }
+        finally
+        {
+            Logger.LogInformation("PublicHome automatic refresh loop stopped.");
         }
     }
 
@@ -1405,8 +1427,8 @@
                 if (ct.IsCancellationRequested || _disposed)
                     return;
 
-                await ReloadHomeDataAsync(ct);
-                await InvokeAsync(StateHasChanged);
+                if (await ReloadHomeDataAsync(ct, "dashboard-changed"))
+                    await InvokeAsync(StateHasChanged);
             }
             catch (OperationCanceledException)
             {
@@ -1417,10 +1439,27 @@
         }, ct);
     }
 
+    private bool UpdateRefreshSignature()
+    {
+        var hotSignature = string.Join(",",
+            _hotMatches
+                .Take(5)
+                .Select(x => $"{x.MatchId}:{x.HomeScore}-{x.AwayScore}:{x.HotScore}:{x.RemainingMinutes}:{x.Status}"));
+        var snapshotSignature = string.Join("|",
+            _snapshot?.Matches.Ongoing ?? -1,
+            _snapshot?.Matches.CompletedLast24h ?? -1,
+            _snapshot?.TopGainers.Count ?? -1);
+        var signature = $"{snapshotSignature}|{hotSignature}";
+        var changed = !string.Equals(signature, _lastRefreshSignature, StringComparison.Ordinal);
+        _lastRefreshSignature = signature;
+        return changed;
+    }
+
     public ValueTask DisposeAsync()
     {
         _disposed = true;
         HubClient.DashboardChanged -= OnDashboardChanged;
+        Logger.LogInformation("PublicHome disposing refresh resources.");
 
         try
         {

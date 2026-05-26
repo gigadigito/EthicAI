@@ -9,15 +9,19 @@ namespace CriptoVersus.Web.Services;
 
 public sealed class CriptoVersusApiClient
 {
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
     private readonly HttpClient _http;
     private readonly ISessionStorageService _sessionStorage;
+    private readonly ILogger<CriptoVersusApiClient> _logger;
 
     public CriptoVersusApiClient(
         IHttpClientFactory factory,
-        ISessionStorageService sessionStorage)
+        ISessionStorageService sessionStorage,
+        ILogger<CriptoVersusApiClient> logger)
     {
         _http = factory.CreateClient("CriptoVersusApi");
         _sessionStorage = sessionStorage;
+        _logger = logger;
     }
 
     public string BuildApiUrl(string? relativePath)
@@ -195,11 +199,20 @@ public sealed class CriptoVersusApiClient
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         await AddBearerTokenAsync(request);
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(RequestTimeout);
 
-        using var response = await _http.SendAsync(request, ct);
-        await EnsureSuccessOrThrowAsync(response, ct);
-
-        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        try
+        {
+            using var response = await _http.SendAsync(request, timeoutCts.Token);
+            await EnsureSuccessOrThrowAsync(response, timeoutCts.Token);
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
+        }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Timed out calling GET {Url} after {TimeoutSeconds}s.", url, RequestTimeout.TotalSeconds);
+            throw new TimeoutException($"Timed out calling GET {url}.", ex);
+        }
     }
 
     private async Task<T?> PostAsJsonWithBearerAsync<T>(
@@ -213,11 +226,20 @@ public sealed class CriptoVersusApiClient
         };
 
         await AddBearerTokenAsync(request);
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(RequestTimeout);
 
-        using var response = await _http.SendAsync(request, ct);
-        await EnsureSuccessOrThrowAsync(response, ct);
-
-        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        try
+        {
+            using var response = await _http.SendAsync(request, timeoutCts.Token);
+            await EnsureSuccessOrThrowAsync(response, timeoutCts.Token);
+            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
+        }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Timed out calling POST {Url} after {TimeoutSeconds}s.", url, RequestTimeout.TotalSeconds);
+            throw new TimeoutException($"Timed out calling POST {url}.", ex);
+        }
     }
 
     private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response, CancellationToken ct)

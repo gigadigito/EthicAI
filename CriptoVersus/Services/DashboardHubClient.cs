@@ -111,28 +111,13 @@ namespace CriptoVersus.Web.Services
 
             _logger.LogInformation("WIRING handlers id={id}", _id);
 
-            hub.On<string>("dashboard_changed", payload =>
-            {
-                _logger.LogInformation("EVENT dashboard_changed (string) id={id} len={len} payload={payload}",
-                    _id, payload?.Length ?? 0, payload);
-
-                DashboardChanged?.Invoke(payload);
-            });
-
-            hub.On<JsonElement>("dashboard_changed", je =>
-            {
-                var payload = je.ToString();
-                _logger.LogInformation("EVENT dashboard_changed (JsonElement) id={id} len={len} payload={payload}",
-                    _id, payload?.Length ?? 0, payload);
-
-                DashboardChanged?.Invoke(payload);
-            });
-
+            // Keep a single registration for this hub event so one server notification does not
+            // fan out into multiple UI refreshes.
             hub.On("dashboard_changed", (object?[] args) =>
             {
                 var payload = ExtractPayload(args);
 
-                _logger.LogInformation("EVENT dashboard_changed (object[] fallback) id={id} argsLen={argsLen} payloadLen={len} payload={payload}",
+                _logger.LogInformation("EVENT dashboard_changed id={id} argsLen={argsLen} payloadLen={len} payload={payload}",
                     _id, args?.Length ?? 0, payload?.Length ?? 0, payload);
 
                 DashboardChanged?.Invoke(payload);

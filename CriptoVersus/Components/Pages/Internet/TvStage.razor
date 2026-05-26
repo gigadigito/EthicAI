@@ -12,6 +12,7 @@
 @inject RouteLocalizationService RouteLocalization
 @inject TvArenaCommentaryService ArenaCommentary
 @inject TvFieldStateService FieldPositionService
+@inject ILogger<TvStage> Logger
 @implements IAsyncDisposable
 
 @if (HasLiveMatch)
@@ -655,6 +656,7 @@ else
 
     // Temporary debug demo to validate the cinematic narration overlay visually.
     private const bool EnableNarrationDebugDemo = false;
+    private const int ClockRenderIntervalMilliseconds = 1000;
     private const string ReplayRootId = "tv-replay-root";
     private const string DefaultReplayAnimation = "POWER_SHOT";
     private static readonly TimeSpan AutoReplayInitialDelay = TimeSpan.FromSeconds(12);
@@ -758,6 +760,9 @@ else
     private readonly Queue<PendingReplayRequest> _pendingAutoReplayQueue = new();
     private readonly HashSet<string> _armedAutoReplaySignatures = new(StringComparer.Ordinal);
     private string _lastBroadcastStateSignature = string.Empty;
+    private string _lastClockRenderSignature = string.Empty;
+    private string _lastFieldInteropSignature = string.Empty;
+    private string _lastCameraInteropSignature = string.Empty;
     private bool _didMatchStart;
     private bool _didHalftime;
     private bool _didMatchEnding;
@@ -866,6 +871,7 @@ else
 
             _clockCts = new CancellationTokenSource();
             _clockLoopTask = RunClockLoopAsync(_clockCts.Token);
+            Logger.LogInformation("TvStage clock loop started. IntervalMs={IntervalMs} BroadcastMode={BroadcastMode}", ClockRenderIntervalMilliseconds, IsBroadcastMode);
 
             _broadcastAutomationCts = new CancellationTokenSource();
             _broadcastAutomationLoopTask = RunBroadcastAutomationLoopAsync(_broadcastAutomationCts.Token);
@@ -888,33 +894,45 @@ else
             await SyncTelemetryChartsAsync();
         }
 
-        if (UseFootballFieldLayout && CurrentFieldState is not null && _tvModule is not null)
+        var fieldState = CurrentFieldState;
+
+        if (UseFootballFieldLayout && fieldState is not null && _tvModule is not null)
         {
+            var fieldInteropSignature = BuildFieldInteropSignature(fieldState);
             try
             {
-                await _tvModule.InvokeVoidAsync("initFieldSway", "tv-crypto-field", BuildFieldMovementOptions());
+                if (!string.Equals(fieldInteropSignature, _lastFieldInteropSignature, StringComparison.Ordinal))
+                {
+                    _lastFieldInteropSignature = fieldInteropSignature;
+                    await _tvModule.InvokeVoidAsync("initFieldSway", "tv-crypto-field", BuildFieldMovementOptions());
+                }
             }
             catch
             {
             }
         }
 
-        if (UseFootballFieldLayout && CurrentFieldState is not null && _tvCameraModule is not null)
+        if (UseFootballFieldLayout && fieldState is not null && _tvCameraModule is not null)
         {
+            var cameraInteropSignature = BuildCameraInteropSignature();
             try
             {
-                await _tvCameraModule.InvokeVoidAsync("initTvCamera", "tv-crypto-field", new
+                if (!string.Equals(cameraInteropSignature, _lastCameraInteropSignature, StringComparison.Ordinal))
                 {
-                    minZoom = 1d,
-                    maxZoom = 1.72d,
-                    overviewZoom = 1.04d,
-                    ballZoom = 1.22d,
-                    attackZoom = 1.34d,
-                    goalZoom = 1.48d,
-                    autoResetDelayMs = 0,
-                    directorIntervalMs = 5600,
-                    autoDirectorEnabled = true
-                });
+                    _lastCameraInteropSignature = cameraInteropSignature;
+                    await _tvCameraModule.InvokeVoidAsync("initTvCamera", "tv-crypto-field", new
+                    {
+                        minZoom = 1d,
+                        maxZoom = 1.72d,
+                        overviewZoom = 1.04d,
+                        ballZoom = 1.22d,
+                        attackZoom = 1.34d,
+                        goalZoom = 1.48d,
+                        autoResetDelayMs = 0,
+                        directorIntervalMs = 5600,
+                        autoDirectorEnabled = true
+                    });
+                }
             }
             catch
             {
@@ -1475,17 +1493,26 @@ else
 
     private async Task RunClockLoopAsync(CancellationToken ct)
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(75));
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(ClockRenderIntervalMilliseconds));
 
         try
         {
             while (await timer.WaitForNextTickAsync(ct))
             {
+                var renderSignature = BuildClockRenderSignature();
+                if (string.Equals(renderSignature, _lastClockRenderSignature, StringComparison.Ordinal))
+                    continue;
+
+                _lastClockRenderSignature = renderSignature;
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException)
         {
+        }
+        finally
+        {
+            Logger.LogInformation("TvStage clock loop stopped. BroadcastMode={BroadcastMode}", IsBroadcastMode);
         }
     }
 
@@ -3467,6 +3494,17 @@ else
         return $"{Math.Max(0, remaining):00}:00";
     }
 
+    private string BuildClockRenderSignature()
+        => string.Join("|",
+            DisplayClockPrimary(),
+            BroadcastRotationRemainingSeconds.ToString(CultureInfo.InvariantCulture),
+            BroadcastFocusWidthCss,
+            BroadcastRotationWidthCss,
+            _isEventVisible ? "1" : "0",
+            _pulseScoreboard ? "1" : "0",
+            _pulseHotScore ? "1" : "0",
+            IsBroadcastSwitchNoticeVisible ? "1" : "0");
+
     private static string FormatClock(int totalSeconds)
     {
         if (totalSeconds < 0)
@@ -3488,7 +3526,24 @@ else
     {
         _clockAnchorRemainingMilliseconds = ResolveRemainingMillisecondsSeed();
         _clockAnchorUtc = DateTime.UtcNow;
+        _lastClockRenderSignature = string.Empty;
     }
+
+    private string BuildFieldInteropSignature(TvFieldStateDto fieldState)
+        => string.Join("|",
+            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            fieldState.MomentumOwner ?? "center",
+            fieldState.Leader ?? "none",
+            fieldState.TeamPressureA.ToString("0.##", CultureInfo.InvariantCulture),
+            fieldState.TeamPressureB.ToString("0.##", CultureInfo.InvariantCulture),
+            fieldState.ScoreA.ToString(CultureInfo.InvariantCulture),
+            fieldState.ScoreB.ToString(CultureInfo.InvariantCulture),
+            fieldState.RecentEvents.Count);
+
+    private string BuildCameraInteropSignature()
+        => string.Join("|",
+            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            IsBroadcastMode ? "broadcast" : "single");
 
     private double ResolveRemainingMillisecondsSeed()
     {
@@ -4045,6 +4100,7 @@ else
     public async ValueTask DisposeAsync()
     {
         _isDisposed = true;
+        Logger.LogInformation("TvStage disposing timers and JS interop resources. BroadcastMode={BroadcastMode} MatchId={MatchId}", IsBroadcastMode, Match?.MatchId ?? HotMatch?.MatchId ?? 0);
 
         if (_clockCts is not null)
         {

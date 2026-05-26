@@ -13,6 +13,7 @@
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
+@inject ILogger<TvMatchPage> Logger
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
@@ -72,6 +73,7 @@ else
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
     private string? _error;
+    private int _refreshInProgress;
     private string PageTitleText
         => _match is null
             ? L.T("tv.seo.title", _culture)
@@ -121,6 +123,7 @@ else
 
         _refreshCts = new CancellationTokenSource();
         _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
+        Logger.LogInformation("TvMatchPage refresh loop started. MatchId={MatchId} IntervalSeconds={IntervalSeconds}", MatchId, RefreshIntervalSeconds);
     }
 
     private async Task RunRefreshLoopAsync(CancellationToken ct)
@@ -141,8 +144,16 @@ else
 
     private async Task RefreshAsync(CancellationToken ct)
     {
+        if (Interlocked.Exchange(ref _refreshInProgress, 1) == 1)
+        {
+            Logger.LogInformation("TvMatchPage refresh skipped because another refresh is already running. MatchId={MatchId}", MatchId);
+            return;
+        }
+
+        var startedAtUtc = DateTime.UtcNow;
         try
         {
+            Logger.LogInformation("TvMatchPage refresh started. MatchId={MatchId}", MatchId);
             _error = null;
             var matchTask = Api.GetMatchByIdAsync(MatchId, ct);
             var hotTask = HotMatches.GetHotMatchesAsync(ct);
@@ -177,6 +188,11 @@ else
             }
 
             await InvokeAsync(StateHasChanged);
+            Logger.LogInformation(
+                "TvMatchPage refresh completed. MatchId={MatchId} HasHotMatch={HasHotMatch} DurationMs={DurationMs}",
+                MatchId,
+                _hotMatch is not null,
+                (DateTime.UtcNow - startedAtUtc).TotalMilliseconds);
         }
         catch (OperationCanceledException)
         {
@@ -184,7 +200,12 @@ else
         catch (Exception ex)
         {
             _error = ex.Message;
+            Logger.LogWarning(ex, "TvMatchPage refresh failed. MatchId={MatchId}", MatchId);
             await LogAsync("refresh error", ex.Message);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _refreshInProgress, 0);
         }
     }
 
@@ -217,6 +238,8 @@ else
             {
             }
         }
+
+        Logger.LogInformation("TvMatchPage refresh loop disposed. MatchId={MatchId}", MatchId);
 
         if (_tvModule is not null)
             await _tvModule.DisposeAsync();
