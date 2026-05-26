@@ -132,7 +132,8 @@ app.UseMiddleware<MatchRouteRedirectMiddleware>();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapGet("/healthz", () => Results.Text("ok", "text/plain; charset=utf-8"));
+app.MapGet("/healthz", () => Results.Ok("OK"))
+    .AllowAnonymous();
 
 app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {
