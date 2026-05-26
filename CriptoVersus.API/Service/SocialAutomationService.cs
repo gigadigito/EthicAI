@@ -20,13 +20,16 @@ public sealed class SocialAutomationService : ISocialAutomationService
     private const int MatchDurationMinutes = 90;
 
     private readonly EthicAIDbContext _db;
+    private readonly IConfiguration _configuration;
     private readonly SocialAutomationOptions _options;
 
     public SocialAutomationService(
         EthicAIDbContext db,
+        IConfiguration configuration,
         IOptions<SocialAutomationOptions> options)
     {
         _db = db;
+        _configuration = configuration;
         _options = options.Value;
     }
 
@@ -189,21 +192,30 @@ public sealed class SocialAutomationService : ISocialAutomationService
 
     private async Task<List<Match>> LoadOngoingMatchesAsync(CancellationToken ct)
     {
-        return await _db.Match
+        var matches = await _db.Match
             .AsNoTracking()
             .Include(x => x.TeamA).ThenInclude(x => x.Currency)
             .Include(x => x.TeamB).ThenInclude(x => x.Currency)
             .Where(x => x.Status == MatchStatus.Ongoing)
             .ToListAsync(ct);
+
+        return matches
+            .Where(x => !IsForbiddenPair(x))
+            .ToList();
     }
 
     private async Task<Match?> LoadMatchAsync(int matchId, CancellationToken ct)
     {
-        return await _db.Match
+        var match = await _db.Match
             .AsNoTracking()
             .Include(x => x.TeamA).ThenInclude(x => x.Currency)
             .Include(x => x.TeamB).ThenInclude(x => x.Currency)
             .FirstOrDefaultAsync(x => x.MatchId == matchId, ct);
+
+        if (match is null || IsForbiddenPair(match))
+            return null;
+
+        return match;
     }
 
     private async Task<List<SocialBetSummary>> LoadBetSummariesAsync(IReadOnlyCollection<int> matchIds, CancellationToken ct)
@@ -366,6 +378,12 @@ public sealed class SocialAutomationService : ISocialAutomationService
 
     private string BuildPublicUrl(int matchId, string homeSymbol, string awaySymbol)
         => $"{_options.PublicBaseUrl.TrimEnd('/')}/match/{matchId}/{Slugify(homeSymbol)}-vs-{Slugify(awaySymbol)}";
+
+    private bool IsForbiddenPair(Match match)
+        => MatchPairRules.IsForbiddenPair(
+            match.TeamA?.Currency?.Symbol,
+            match.TeamB?.Currency?.Symbol,
+            _configuration);
 
     private static string Slugify(string value)
     {
