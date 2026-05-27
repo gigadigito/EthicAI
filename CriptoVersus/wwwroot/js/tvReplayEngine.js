@@ -387,12 +387,35 @@
             return;
         }
 
+        if (url.includes("/img/tv-replay/field-replay-bg.png")) {
+            element.style.backgroundImage = `
+                radial-gradient(circle at 50% 50%, rgba(120, 232, 255, 0.12), transparent 45%),
+                linear-gradient(180deg, rgba(8, 33, 23, 0.96), rgba(4, 20, 13, 0.98)),
+                repeating-linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.05) 0 2px,
+                    transparent 2px 120px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(255,255,255,0.04) 0 2px,
+                    transparent 2px 96px
+                )
+            `;
+            element.classList.add("has-asset");
+        }
+
         const image = new Image();
         image.onload = () => {
             element.style.backgroundImage = `url("${url}")`;
             element.classList.add("has-asset");
         };
         image.onerror = () => {
+            if (url.includes("/img/tv-replay/field-replay-bg.png")) {
+                element.classList.add("has-asset");
+                return;
+            }
+
             element.classList.remove("has-asset");
         };
         image.src = url;

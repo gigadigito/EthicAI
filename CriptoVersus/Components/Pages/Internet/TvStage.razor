@@ -59,11 +59,11 @@
                                        src="@_currentPirateOpeningVideo"
                                        autoplay
                                        muted
-                                       loop
                                        playsinline
                                        preload="auto"
                                        disablepictureinpicture
                                        controlslist="nodownload noplaybackrate nofullscreen"
+                                       onloadeddata="this.style.display='block'; this.parentElement.classList.remove('is-placeholder');"
                                        onerror="this.style.display='none'; this.parentElement.classList.add('is-placeholder');"
                                        aria-label="@PirateSpeakerName"></video>
                             }
@@ -73,6 +73,7 @@
                                      src="/img/tv/zero-host.png"
                                      alt="@PirateSpeakerName"
                                      loading="eager"
+                                     onload="this.style.display='block'; this.parentElement.classList.remove('is-placeholder');"
                                      onerror="this.style.display='none'; this.parentElement.classList.add('is-placeholder');" />
                             }
                             <div class="pirate-character-frame__fallback" aria-hidden="true">
@@ -1978,9 +1979,6 @@ else
         var delay = string.Equals(reason, "match-change", StringComparison.Ordinal)
             ? TimeSpan.FromSeconds(3.5)
             : TimeSpan.FromMilliseconds(650);
-        var visibleDuration = string.Equals(reason, "match-change", StringComparison.Ordinal)
-            ? TimeSpan.FromSeconds(5.2)
-            : TimeSpan.FromSeconds(8.4);
 
         try
         {
@@ -1991,6 +1989,7 @@ else
                 return;
 
             _currentPirateOpeningVideo = GetNextPirateOpeningVideo();
+            var visibleDuration = ResolvePirateOverlayVisibleDuration(reason, _currentPirateOpeningVideo);
             _pirateOverlayReason = reason;
             _pirateOverlayMessage = GetRandomPirateMessage(reason);
             _showPirateOverlay = true;
@@ -2039,6 +2038,21 @@ else
         _pirateOverlayReason = string.Empty;
         _currentPirateOpeningVideo = null;
         _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static TimeSpan ResolvePirateOverlayVisibleDuration(string reason, string? currentPirateOpeningVideo)
+    {
+        var hasVideo = !string.IsNullOrWhiteSpace(currentPirateOpeningVideo);
+        if (hasVideo)
+        {
+            return string.Equals(reason, "match-change", StringComparison.Ordinal)
+                ? TimeSpan.FromSeconds(9.1)
+                : TimeSpan.FromSeconds(9.4);
+        }
+
+        return string.Equals(reason, "match-change", StringComparison.Ordinal)
+            ? TimeSpan.FromSeconds(5.2)
+            : TimeSpan.FromSeconds(8.4);
     }
 
     private string? GetNextPirateOpeningVideo()
@@ -7609,6 +7623,10 @@ else
     height: 100%;
     object-fit: cover;
     filter: saturate(1.02) contrast(1.08);
+}
+
+.pirate-character-frame__video {
+    background: #020814;
 }
 
 .pirate-character-frame__fallback {
