@@ -1,4 +1,5 @@
 @using System.Globalization
+@using System.IO
 @using System.Text
 @using CriptoVersus.Components.Shared
 @using DTOs
@@ -25,6 +26,76 @@
         <div class="tv-stage__particles"></div>
         <TvNarrationOverlay @ref="_narrationOverlay" />
         <div id="tv-replay-root" class="tv-replay-root" aria-hidden="true"></div>
+
+        @if (_showPirateOverlay)
+        {
+            <div class="pirate-signal-backdrop" aria-live="polite" aria-atomic="true">
+                <div class="pirate-vhs-glitch" aria-hidden="true">
+                    @for (var i = 0; i < 42; i++)
+                    {
+                        <span class="pirate-vhs-glitch__line" style="--line-index:@i;"></span>
+                    }
+                </div>
+
+                <div class="pirate-signal-panel @(string.Equals(_pirateOverlayReason, "match-change", StringComparison.Ordinal) ? "is-match-change" : "is-initial")">
+                    <div class="pirate-signal-panel__scanlines"></div>
+                    <div class="pirate-signal-panel__noise"></div>
+
+                    <div class="pirate-signal-header">
+                        <div class="pirate-signal-header__left">
+                            <span class="signal-dot"></span>
+                            <span>@PirateHeaderTitle</span>
+                        </div>
+                        <span class="signal-status">@PirateHeaderStatus</span>
+                    </div>
+
+                    <div class="pirate-signal-body">
+                        <div class="pirate-character-frame">
+                            <div class="pirate-character-frame__hud"></div>
+                            @if (!string.IsNullOrWhiteSpace(_currentPirateOpeningVideo))
+                            {
+                                <video @key="_currentPirateOpeningVideo"
+                                       class="pirate-character-frame__portrait pirate-character-frame__video"
+                                       src="@_currentPirateOpeningVideo"
+                                       autoplay
+                                       muted
+                                       loop
+                                       playsinline
+                                       preload="auto"
+                                       disablepictureinpicture
+                                       controlslist="nodownload noplaybackrate nofullscreen"
+                                       onerror="this.style.display='none'; this.parentElement.classList.add('is-placeholder');"
+                                       aria-label="@PirateSpeakerName"></video>
+                            }
+                            else
+                            {
+                                <img class="pirate-character-frame__portrait"
+                                     src="/img/tv/zero-host.png"
+                                     alt="@PirateSpeakerName"
+                                     loading="eager"
+                                     onerror="this.style.display='none'; this.parentElement.classList.add('is-placeholder');" />
+                            }
+                            <div class="pirate-character-frame__fallback" aria-hidden="true">
+                                <span>CV</span>
+                            </div>
+                            <div class="pirate-character-frame__label">
+                                <small>@PirateSpeakerRole</small>
+                                <strong>@PirateSpeakerName</strong>
+                            </div>
+                        </div>
+
+                        <div class="pirate-signal-copy">
+                            <div class="pirate-signal-copy__eyebrow">@PirateCopyEyebrow</div>
+                            <div class="pirate-message">@_pirateOverlayMessage</div>
+                            <div class="pirate-signal-copy__meta">
+                                <span>@PirateFooterLeft</span>
+                                <span>@PirateFooterRight</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
 
         @if (_isEventVisible && _activeEvent is not null)
         {
@@ -763,6 +834,15 @@ else
     private string _lastClockRenderSignature = string.Empty;
     private string _lastFieldInteropSignature = string.Empty;
     private string _lastCameraInteropSignature = string.Empty;
+    private bool _showPirateOverlay;
+    private string _pirateOverlayMessage = string.Empty;
+    private string _pirateOverlayReason = string.Empty;
+    private string? _currentPirateOpeningVideo;
+    private int? _lastPirateOverlayMatchId;
+    private bool _hasShownInitialPirateIntro;
+    private CancellationTokenSource? _pirateOverlayCts;
+    private readonly List<string> _pirateOpeningVideos = [];
+    private readonly Queue<string> _pirateOpeningVideoQueue = new();
     private bool _didMatchStart;
     private bool _didHalftime;
     private bool _didMatchEnding;
@@ -842,6 +922,14 @@ else
         : null;
     private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
+    private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
+    private string PirateHeaderTitle => "CRYPTOVERSUS PIRATE FEED";
+    private string PirateHeaderStatus => IsPortugueseCulture ? "SINAL ENCONTRADO" : "SIGNAL FOUND";
+    private string PirateSpeakerName => IsPortugueseCulture ? "Comandante da Arena" : "Arena Commander";
+    private string PirateSpeakerRole => IsPortugueseCulture ? "Host pirata" : "Pirate host";
+    private string PirateCopyEyebrow => IsPortugueseCulture ? "Transmissao interceptada" : "Intercepted transmission";
+    private string PirateFooterLeft => IsPortugueseCulture ? "HUD sincrono ativo" : "Synchronous HUD online";
+    private string PirateFooterRight => IsPortugueseCulture ? "Feed clandestino" : "Clandestine feed";
 
     protected override void OnParametersSet()
     {
@@ -1636,6 +1724,9 @@ else
         var current = CaptureSnapshot();
         if (current is null)
         {
+            CancelPirateOverlayTimer();
+            _showPirateOverlay = false;
+            _pirateOverlayReason = string.Empty;
             _previousSnapshot = null;
             _lastAiNarrationMatchId = null;
             _currentAiNarration = string.Empty;
@@ -1648,10 +1739,14 @@ else
         if (_lastAiNarrationMatchId != current.MatchId)
         {
             var hadPreviousMatch = _lastAiNarrationMatchId.HasValue;
+            if (IsBroadcastMode && !hadPreviousMatch && !_hasShownInitialPirateIntro)
+                _ = ShowPirateIntroAsync("initial");
+
             if (IsBroadcastMode && hadPreviousMatch)
             {
                 _broadcastNoticeUntilUtc = DateTime.UtcNow.AddSeconds(4);
                 _ = TriggerBroadcastFlipAsync();
+                _ = TryShowPirateOverlayForMatchChangeAsync(current.MatchId);
             }
 
             _lastAiNarrationMatchId = current.MatchId;
@@ -1862,6 +1957,207 @@ else
         _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
         _scheduledBroadcastPromoMatchId = null;
         _lastBroadcastPromoMatchId = currentMatchId;
+    }
+
+    private async Task ShowPirateIntroAsync(string reason)
+    {
+        if (_isDisposed || !IsBroadcastMode || !HasLiveMatch)
+            return;
+
+        if (string.Equals(reason, "initial", StringComparison.Ordinal))
+        {
+            if (_hasShownInitialPirateIntro)
+                return;
+
+            _hasShownInitialPirateIntro = true;
+        }
+
+        CancelPirateOverlayTimer();
+        _pirateOverlayCts = new CancellationTokenSource();
+        var ct = _pirateOverlayCts.Token;
+        var delay = string.Equals(reason, "match-change", StringComparison.Ordinal)
+            ? TimeSpan.FromSeconds(3.5)
+            : TimeSpan.FromMilliseconds(650);
+        var visibleDuration = string.Equals(reason, "match-change", StringComparison.Ordinal)
+            ? TimeSpan.FromSeconds(5.2)
+            : TimeSpan.FromSeconds(8.4);
+
+        try
+        {
+            if (delay > TimeSpan.Zero)
+                await Task.Delay(delay, ct);
+
+            if (ct.IsCancellationRequested || _isDisposed)
+                return;
+
+            _currentPirateOpeningVideo = GetNextPirateOpeningVideo();
+            _pirateOverlayReason = reason;
+            _pirateOverlayMessage = GetRandomPirateMessage(reason);
+            _showPirateOverlay = true;
+
+            Logger.LogInformation(
+                "TvStage pirate overlay shown. Reason={Reason} MatchId={MatchId} Video={Video}",
+                reason,
+                Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+                _currentPirateOpeningVideo ?? "fallback-image");
+
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(visibleDuration, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        HidePirateIntro();
+
+        if (_pirateOverlayCts is not null && _pirateOverlayCts.Token == ct)
+            CancelPirateOverlayTimer();
+    }
+
+    private async Task TryShowPirateOverlayForMatchChangeAsync(int currentMatchId)
+    {
+        if (_isDisposed || !IsBroadcastMode || currentMatchId <= 0)
+            return;
+
+        if (_lastPirateOverlayMatchId == currentMatchId)
+        {
+            Logger.LogInformation("TvStage pirate overlay skipped for repeated match. MatchId={MatchId}", currentMatchId);
+            return;
+        }
+
+        _lastPirateOverlayMatchId = currentMatchId;
+        await ShowPirateIntroAsync("match-change");
+    }
+
+    private void HidePirateIntro()
+    {
+        if (_isDisposed)
+            return;
+
+        _showPirateOverlay = false;
+        _pirateOverlayReason = string.Empty;
+        _currentPirateOpeningVideo = null;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetNextPirateOpeningVideo()
+    {
+        EnsurePirateOpeningVideosLoaded();
+
+        if (_pirateOpeningVideos.Count == 0)
+            return null;
+
+        if (_pirateOpeningVideoQueue.Count == 0)
+        {
+            foreach (var video in _pirateOpeningVideos.OrderBy(_ => Random.Shared.Next()))
+                _pirateOpeningVideoQueue.Enqueue(video);
+        }
+
+        return _pirateOpeningVideoQueue.Count > 0
+            ? _pirateOpeningVideoQueue.Dequeue()
+            : null;
+    }
+
+    private void EnsurePirateOpeningVideosLoaded()
+    {
+        if (_pirateOpeningVideos.Count > 0)
+            return;
+
+        try
+        {
+            var openingFolder = Path.Combine(Environment.WebRootPath, "video", "opening");
+            if (!Directory.Exists(openingFolder))
+            {
+                Logger.LogWarning("TvStage pirate opening folder not found at {OpeningFolder}", openingFolder);
+                return;
+            }
+
+            var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".mp4",
+                ".webm",
+                ".mov",
+                ".m4v"
+            };
+
+            foreach (var filePath in Directory.EnumerateFiles(openingFolder))
+            {
+                var extension = Path.GetExtension(filePath);
+                if (!supportedExtensions.Contains(extension))
+                    continue;
+
+                var fileName = Path.GetFileName(filePath);
+                if (string.IsNullOrWhiteSpace(fileName))
+                    continue;
+
+                _pirateOpeningVideos.Add($"/video/opening/{Uri.EscapeDataString(fileName)}");
+            }
+
+            Logger.LogInformation(
+                "TvStage pirate opening videos loaded. Count={VideoCount}",
+                _pirateOpeningVideos.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "TvStage failed to load pirate opening videos.");
+        }
+    }
+
+    private string GetRandomPirateMessage(string reason)
+    {
+        if (IsPortugueseCulture)
+        {
+            string[] messages = string.Equals(reason, "initial", StringComparison.Ordinal)
+                ?
+                [
+                    "O mercado nunca dorme... e hoje, fortunas serao reescritas.",
+                    "A arena desperta. Cada vela pode mudar um imperio.",
+                    "Os sinais estao vivos. Observe quem domina o proximo impacto."
+                ]
+                :
+                [
+                    "Sinal interceptado. Nova batalha detectada.",
+                    "A arena mudou. Observe com atencao.",
+                    "A volatilidade esta subindo. Alguem vai cair.",
+                    "Transmissao CriptoVersus retomada.",
+                    "Uma nova guerra de mercado comeca agora."
+                ];
+
+            return messages[Random.Shared.Next(messages.Length)];
+        }
+
+        string[] englishMessages = string.Equals(reason, "initial", StringComparison.Ordinal)
+            ?
+            [
+                "The market never sleeps... and tonight, fortunes will be rewritten.",
+                "The arena is waking up. Every candle can rewrite an empire.",
+                "Signals are live. Watch who controls the next impact."
+            ]
+            :
+            [
+                "Signal intercepted. New battle detected.",
+                "The arena has shifted. Watch closely.",
+                "Volatility is rising. Someone is about to fall.",
+                "CriptoVersus transmission resumed.",
+                "A new market war begins now."
+            ];
+
+        return englishMessages[Random.Shared.Next(englishMessages.Length)];
+    }
+
+    private void CancelPirateOverlayTimer()
+    {
+        try
+        {
+            _pirateOverlayCts?.Cancel();
+        }
+        catch
+        {
+        }
+
+        _pirateOverlayCts?.Dispose();
+        _pirateOverlayCts = null;
     }
 
     private async Task MaybeTriggerBroadcastPromoAsync(BroadcastSnapshot current)
@@ -4101,6 +4397,7 @@ else
     {
         _isDisposed = true;
         Logger.LogInformation("TvStage disposing timers and JS interop resources. BroadcastMode={BroadcastMode} MatchId={MatchId}", IsBroadcastMode, Match?.MatchId ?? HotMatch?.MatchId ?? 0);
+        CancelPirateOverlayTimer();
 
         if (_clockCts is not null)
         {
@@ -7089,7 +7386,321 @@ else
         letter-spacing: -.02em;
     }
 
-  .tv-event-overlay {
+.pirate-signal-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 14;
+    display: grid;
+    place-items: start center;
+    overflow: hidden;
+    padding: clamp(16px, 3vw, 36px);
+    background:
+        radial-gradient(circle at 50% 50%, rgba(14, 22, 38, 0.14), rgba(2, 6, 14, 0.76)),
+        linear-gradient(180deg, rgba(2, 10, 24, 0.08), rgba(2, 10, 24, 0.5));
+    pointer-events: none;
+    animation: pirateFadeIn .45s ease-out both;
+}
+
+.pirate-signal-panel {
+    position: relative;
+    width: min(84vw, 1100px);
+    min-height: min(70vh, 720px);
+    margin-top: clamp(12px, 4vh, 42px);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 18px;
+    padding: clamp(18px, 3vw, 34px);
+    color: #dffcff;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(102, 228, 255, 0.72);
+    background:
+        linear-gradient(135deg, rgba(4, 18, 34, 0.94), rgba(3, 10, 24, 0.9)),
+        url('/img/tv/futuristic-facecam-template.png') center/cover no-repeat;
+    box-shadow:
+        0 0 0 1px rgba(120, 244, 255, 0.12) inset,
+        0 28px 80px rgba(0, 0, 0, 0.46),
+        0 0 42px rgba(34, 214, 255, 0.22);
+    animation:
+        pirateGlitch .22s steps(2, end) 2,
+        pirateVhsBurst 1.05s ease-out 1,
+        pirateFloat 5.8s ease-in-out infinite,
+        neonPulse 2.8s ease-in-out infinite;
+}
+
+.pirate-signal-panel::before,
+.pirate-signal-panel::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border: 2px solid rgba(28, 200, 255, 0.68);
+    clip-path: polygon(6% 0, 24% 0, 27% 3%, 92% 3%, 100% 14%, 100% 100%, 45% 100%, 41% 96%, 3% 96%, 0 92%, 0 11%);
+    pointer-events: none;
+}
+
+.pirate-signal-panel::after {
+    inset: 20px;
+    border-color: rgba(111, 250, 255, 0.18);
+    opacity: .8;
+}
+
+.pirate-signal-panel__scanlines,
+.pirate-signal-panel__noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.pirate-vhs-glitch {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 1;
+    animation: pirateVhsContainer 1.5s linear infinite;
+}
+
+.pirate-vhs-glitch::before,
+.pirate-vhs-glitch::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+}
+
+.pirate-vhs-glitch::before {
+    top: 0;
+    height: 22%;
+    background: linear-gradient(180deg, rgba(160, 248, 255, 0.52), rgba(160, 248, 255, 0));
+    opacity: 0;
+    animation: pirateVhsTracking 1.15s linear infinite;
+}
+
+.pirate-vhs-glitch::after {
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(255, 0, 84, 0.12), transparent 22%, transparent 78%, rgba(0, 229, 255, 0.12)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.05));
+    opacity: 0;
+    animation: pirateVhsFlash 2.4s steps(2, end) infinite;
+}
+
+.pirate-vhs-glitch__line {
+    position: absolute;
+    display: block;
+    left: 0;
+    right: 0;
+    top: calc(-8% + (var(--line-index) * 2.85%));
+    height: clamp(2px, .34vw, 6px);
+    opacity: 0;
+    background:
+        linear-gradient(90deg,
+            rgba(115, 245, 255, 0) 0%,
+            rgba(115, 245, 255, 0.3) 18%,
+            rgba(255, 255, 255, 0.88) 46%,
+            rgba(80, 210, 255, 0.42) 78%,
+            rgba(115, 245, 255, 0) 100%);
+    box-shadow:
+        0 0 14px rgba(120, 246, 255, 0.42),
+        0 0 30px rgba(120, 246, 255, 0.18);
+    transform: translateX(0) scaleX(1);
+    animation: pirateVhsLine 1.18s calc(var(--line-index) * 0.035s) infinite;
+}
+
+.pirate-signal-panel__scanlines {
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(146, 255, 255, 0.09) 0 2px,
+        rgba(2, 8, 14, 0) 2px 6px);
+    mix-blend-mode: screen;
+    opacity: .26;
+    animation: scanlines 8s linear infinite;
+}
+
+.pirate-signal-panel__noise {
+    background:
+        linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.08) 50%, transparent 100%),
+        radial-gradient(circle at 20% 20%, rgba(83, 200, 255, 0.18), transparent 32%),
+        radial-gradient(circle at 78% 12%, rgba(0, 255, 198, 0.14), transparent 28%);
+    opacity: .34;
+    animation: pirateNoise 3.8s steps(3, end) infinite;
+}
+
+.pirate-signal-header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(104, 227, 255, 0.24);
+    text-transform: uppercase;
+    letter-spacing: .22em;
+    font-size: .74rem;
+}
+
+.pirate-signal-header__left {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.signal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #57ebff;
+    box-shadow: 0 0 14px rgba(87, 235, 255, 0.95);
+    animation: signalDotPulse 1.2s ease-in-out infinite;
+    flex: 0 0 auto;
+}
+
+.signal-status {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(127, 245, 255, 0.34);
+    background: rgba(8, 24, 42, 0.8);
+    color: #8ff9ff;
+    box-shadow: 0 0 18px rgba(55, 220, 255, 0.14);
+}
+
+.pirate-signal-body {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(280px, 1.05fr) minmax(300px, .95fr);
+    gap: clamp(18px, 3vw, 34px);
+    align-items: stretch;
+    min-height: 0;
+}
+
+.pirate-character-frame {
+    position: relative;
+    min-height: clamp(280px, 48vw, 540px);
+    border-radius: 24px;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 28%, rgba(52, 223, 255, 0.22), transparent 34%),
+        linear-gradient(180deg, rgba(3, 12, 28, 0.85), rgba(3, 8, 20, 0.98));
+    border: 1px solid rgba(117, 242, 255, 0.35);
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.03),
+        0 0 26px rgba(44, 208, 255, 0.18);
+    display: grid;
+    align-items: end;
+}
+
+.pirate-character-frame__hud {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(50, 200, 255, 0.1), transparent 14%, transparent 86%, rgba(50, 200, 255, 0.1)),
+        linear-gradient(180deg, rgba(50, 200, 255, 0.08), transparent 16%, transparent 84%, rgba(50, 200, 255, 0.08));
+    pointer-events: none;
+}
+
+.pirate-character-frame__portrait {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(1.02) contrast(1.08);
+}
+
+.pirate-character-frame__fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    background:
+        radial-gradient(circle at 50% 40%, rgba(57, 229, 255, 0.3), transparent 25%),
+        linear-gradient(180deg, rgba(11, 23, 41, 0.15), rgba(3, 8, 20, 0.9));
+    color: rgba(152, 248, 255, 0.92);
+    font-size: clamp(3.8rem, 10vw, 7rem);
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-shadow: 0 0 24px rgba(73, 223, 255, 0.32);
+}
+
+.pirate-character-frame.is-placeholder .pirate-character-frame__fallback {
+    display: grid;
+}
+
+.pirate-character-frame__label {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 4px;
+    padding: 18px 18px 16px;
+    background: linear-gradient(180deg, rgba(5, 13, 28, 0), rgba(5, 13, 28, 0.86));
+    text-transform: uppercase;
+    letter-spacing: .14em;
+}
+
+.pirate-character-frame__label small {
+    color: rgba(152, 245, 255, 0.72);
+    font-size: .68rem;
+}
+
+.pirate-character-frame__label strong {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: #f2ffff;
+}
+
+.pirate-signal-copy {
+    display: grid;
+    align-content: end;
+    gap: 16px;
+    min-height: 0;
+}
+
+.pirate-signal-copy__eyebrow {
+    text-transform: uppercase;
+    letter-spacing: .22em;
+    font-size: .72rem;
+    color: rgba(123, 242, 255, 0.84);
+}
+
+.pirate-message {
+    position: relative;
+    padding: clamp(18px, 2.4vw, 28px);
+    border-radius: 24px;
+    background:
+        linear-gradient(180deg, rgba(6, 18, 36, 0.88), rgba(3, 10, 22, 0.96));
+    border: 1px solid rgba(112, 236, 255, 0.28);
+    box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.02),
+        0 0 24px rgba(40, 207, 255, 0.12);
+    font-size: clamp(1rem, 1.9vw, 1.45rem);
+    line-height: 1.55;
+    color: #f4ffff;
+}
+
+.pirate-message::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(48, 229, 255, 0.1), transparent 26%, transparent 74%, rgba(48, 229, 255, 0.1));
+    pointer-events: none;
+}
+
+.pirate-signal-copy__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    justify-content: space-between;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+    font-size: .68rem;
+    color: rgba(135, 239, 255, 0.76);
+}
+
+.tv-event-overlay {
     position: fixed;
     inset: 0;
     z-index: 999999;
@@ -7956,6 +8567,67 @@ else
         }
     }
 
+    @@media (max-width: 980px) {
+        .pirate-signal-panel {
+            width: min(90vw, 860px);
+            min-height: min(72vh, 680px);
+            margin-top: clamp(8px, 3vh, 28px);
+        }
+
+        .pirate-signal-body {
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        .pirate-character-frame {
+            min-height: 320px;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .pirate-signal-backdrop {
+            padding: 10px 12px 12px;
+        }
+
+        .pirate-signal-panel {
+            width: min(95vw, 95vw);
+            min-height: auto;
+            margin-top: 4px;
+            padding: 14px;
+            border-radius: 20px;
+        }
+
+        .pirate-signal-header {
+            gap: 10px;
+            font-size: .62rem;
+            letter-spacing: .14em;
+        }
+
+        .signal-status {
+            padding: 6px 10px;
+        }
+
+        .pirate-character-frame {
+            min-height: 240px;
+            border-radius: 18px;
+        }
+
+        .pirate-message {
+            font-size: .96rem;
+            padding: 16px;
+            border-radius: 18px;
+        }
+
+        .pirate-signal-copy {
+            gap: 12px;
+        }
+
+        .pirate-signal-copy__meta {
+            font-size: .6rem;
+            letter-spacing: .12em;
+        }
+    }
+
     @@media (prefers-reduced-motion: reduce) {
         .tv-stage__backdrop,
         .tv-stage__aurora,
@@ -7969,9 +8641,143 @@ else
         .tv-telemetry article,
         .tv-match-card::after,
         .tv-event-strip__card::before,
-        .tv-ticker__track {
+        .tv-ticker__track,
+        .pirate-signal-backdrop,
+        .pirate-vhs-glitch,
+        .pirate-signal-panel,
+        .pirate-signal-panel__scanlines,
+        .pirate-signal-panel__noise,
+        .pirate-vhs-glitch__line {
             animation: none;
         }
+    }
+
+    @@keyframes pirateFadeIn {
+        0% { opacity: 0; transform: scale(.985); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    @@keyframes pirateGlitch {
+        0% { transform: translate3d(0, 0, 0); filter: hue-rotate(0deg); }
+        22% { transform: translate3d(-2px, 0, 0); }
+        48% { transform: translate3d(3px, -1px, 0); filter: hue-rotate(8deg); }
+        73% { transform: translate3d(-1px, 1px, 0); }
+        100% { transform: translate3d(0, 0, 0); filter: hue-rotate(0deg); }
+    }
+
+    @@keyframes pirateFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+
+    @@keyframes neonPulse {
+        0%, 100% {
+            box-shadow:
+                0 0 0 1px rgba(120, 244, 255, 0.12) inset,
+                0 28px 80px rgba(0, 0, 0, 0.46),
+                0 0 42px rgba(34, 214, 255, 0.22);
+        }
+
+        50% {
+            box-shadow:
+                0 0 0 1px rgba(120, 244, 255, 0.2) inset,
+                0 28px 84px rgba(0, 0, 0, 0.48),
+                0 0 56px rgba(34, 214, 255, 0.3);
+        }
+    }
+
+    @@keyframes pirateNoise {
+        0%, 100% { opacity: .22; transform: translate3d(0, 0, 0); }
+        33% { opacity: .36; transform: translate3d(1px, -1px, 0); }
+        66% { opacity: .28; transform: translate3d(-1px, 1px, 0); }
+    }
+
+    @@keyframes pirateVhsBurst {
+        0% { filter: contrast(1.3) saturate(1.14) brightness(1.14); }
+        10% { filter: contrast(1.58) saturate(1.3) brightness(1.28); }
+        28% { filter: contrast(1.18) saturate(1.08) brightness(1.04); }
+        100% { filter: contrast(1) saturate(1) brightness(1); }
+    }
+
+    @@keyframes pirateVhsContainer {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .94; }
+    }
+
+    @@keyframes pirateVhsFlash {
+        0%, 100% { opacity: 0; }
+        8% { opacity: .4; }
+        12% { opacity: .72; }
+        18% { opacity: .14; }
+        56% { opacity: .08; }
+        62% { opacity: .36; }
+        68% { opacity: 0; }
+        82% { opacity: .18; }
+        100% { opacity: 0; }
+    }
+
+    @@keyframes pirateVhsTracking {
+        0% {
+            opacity: 0;
+            transform: translateY(-42%);
+        }
+
+        10% {
+            opacity: .88;
+            transform: translateY(-8%);
+        }
+
+        38% {
+            opacity: .46;
+            transform: translateY(42%);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateY(126%);
+        }
+    }
+
+    @@keyframes pirateVhsLine {
+        0% {
+            opacity: 0;
+            transform: translate3d(0, -12px, 0) scaleX(1);
+        }
+
+        8% {
+            opacity: .98;
+            transform: translate3d(22px, 0, 0) scaleX(1.03);
+        }
+
+        14% {
+            opacity: .92;
+            transform: translate3d(-14px, 8px, 0) scaleX(.98);
+        }
+
+        22% {
+            opacity: .72;
+            transform: translate3d(12px, 22px, 0) scaleX(1.01);
+        }
+
+        32% {
+            opacity: .36;
+            transform: translate3d(-30px, 40px, 0) scaleX(1);
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate3d(0, 92px, 0) scaleX(1);
+        }
+    }
+
+    @@keyframes scanlines {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(24px); }
+    }
+
+    @@keyframes signalDotPulse {
+        0%, 100% { transform: scale(1); opacity: .8; }
+        50% { transform: scale(1.16); opacity: 1; }
     }
 
     @@keyframes tvGlow {
