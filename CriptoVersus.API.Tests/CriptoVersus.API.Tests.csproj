@@ -6,35 +6,35 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <BaseOutputPath>bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>obj\</MSBuildProjectExtensionsPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="xunit" Version="2.5.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
   </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\DAL\DAL.csproj" />
+    <Reference Include="DAL">
+      <HintPath>..\.codex-artifacts-local\bin\DAL\Debug\net8.0\DAL.dll</HintPath>
+    </Reference>
     <Reference Include="DTOs">
       <HintPath>..\.codex-artifacts-local\bin\DTOs\Debug\net8.0\DTOs.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <Compile Include="..\CriptoVersus.API\Controllers\MatchesController.cs" Link="Controllers\MatchesController.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\CriptoVersus.Worker\DataRetentionOptions.cs" Link="DataRetentionOptions.cs" />
-    <Compile Include="..\CriptoVersus.Worker\DataRetentionService.cs" Link="DataRetentionService.cs" />
-    <Compile Include="..\CriptoVersus.API\Controllers\MatchesController.cs" Link="MatchesController.cs" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>

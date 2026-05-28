@@ -23,19 +23,22 @@ namespace CriptoVersus.API.Controllers
         private readonly IMatchScoreRebuildService _matchScoreRebuildService;
         private readonly IConfiguration _configuration;
         private readonly IArenaSentimentService _arenaSentimentService;
+        private readonly ILogger<MatchesController> _logger;
 
         public MatchesController(
             EthicAIDbContext db,
             IHubContext<DashboardHub> hub,
             IMatchScoreRebuildService matchScoreRebuildService,
             IConfiguration configuration,
-            IArenaSentimentService arenaSentimentService)
+            IArenaSentimentService arenaSentimentService,
+            ILogger<MatchesController> logger)
         {
             _db = db;
             _hub = hub;
             _matchScoreRebuildService = matchScoreRebuildService;
             _configuration = configuration;
             _arenaSentimentService = arenaSentimentService;
+            _logger = logger;
         }
 
         // =========================
@@ -196,11 +199,16 @@ namespace CriptoVersus.API.Controllers
             if (take <= 0) take = 200;
             if (take > 1000) take = 1000;
 
-            var exists = await _db.Set<Match>().AnyAsync(m => m.MatchId == id, ct);
-            if (!exists)
+            var match = await _db.Set<Match>()
+                .AsNoTracking()
+                .Where(m => m.MatchId == id)
+                .Select(m => new { m.MatchId, m.Status })
+                .FirstOrDefaultAsync(ct);
+
+            if (match is null)
                 return NotFound();
 
-            var items = await _db.Set<MatchMetricSnapshot>()
+            var rawItems = await _db.Set<MatchMetricSnapshot>()
                 .AsNoTracking()
                 .Include(x => x.Team).ThenInclude(t => t.Currency)
                 .Where(x => x.MatchId == id)
@@ -219,7 +227,59 @@ namespace CriptoVersus.API.Controllers
                 })
                 .ToListAsync(ct);
 
-            return Ok(items.OrderBy(x => x.CapturedAtUtc).ToList());
+            if (rawItems.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Returning raw match metric snapshots for match {MatchId}. Count={Count}. Status={Status}",
+                    id,
+                    rawItems.Count,
+                    match.Status);
+
+                return Ok(rawItems
+                    .OrderBy(x => x.CapturedAtUtc)
+                    .ThenBy(x => x.MatchMetricSnapshotId)
+                    .ToList());
+            }
+
+            var aggregateItems = await _db.Set<MatchMetricHourlyAggregate>()
+                .AsNoTracking()
+                .Where(x => x.MatchId == id)
+                .OrderByDescending(x => x.HourBucketUtc)
+                .Take(take)
+                .Select(x => new MatchMetricSnapshotDto
+                {
+                    MatchMetricSnapshotId = x.Id,
+                    MatchId = x.MatchId,
+                    TeamId = x.TeamId,
+                    TeamSymbol = x.Symbol,
+                    CapturedAtUtc = x.HourBucketUtc,
+                    PercentageChange = x.AveragePercentageChange,
+                    QuoteVolume = x.AverageQuoteVolume,
+                    TradeCount = (long)Math.Round(x.AverageTradeCount, MidpointRounding.AwayFromZero)
+                })
+                .ToListAsync(ct);
+
+            if (aggregateItems.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Returning aggregated match metric snapshots for match {MatchId}. Count={Count}. Status={Status}",
+                    id,
+                    aggregateItems.Count,
+                    match.Status);
+
+                return Ok(aggregateItems
+                    .OrderBy(x => x.CapturedAtUtc)
+                    .ThenBy(x => x.MatchMetricSnapshotId)
+                    .ToList());
+            }
+
+            _logger.LogInformation(
+                "No metric snapshots found for match {MatchId}. Count=0. Status={Status}. TriedAggregate={TriedAggregate}",
+                id,
+                match.Status,
+                true);
+
+            return Ok(new List<MatchMetricSnapshotDto>());
         }
 
         [AllowAnonymous]
