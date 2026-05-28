@@ -576,6 +576,8 @@
     private IReadOnlyList<HotMatchDto> _hotMatches = [];
     private bool _hotMatchesLoading = true;
     private string _lastRefreshSignature = string.Empty;
+    private bool _interactiveFeaturesStarted;
+    private bool _hubSubscribed;
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
@@ -659,35 +661,30 @@
     }
     protected override async Task OnInitializedAsync()
     {
-        HubClient.DashboardChanged += OnDashboardChanged;
-
         try
         {
-            await ReloadHomeDataAsync(CancellationToken.None, "initial-load");
+            using var initialLoadCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await ReloadHomeDataAsync(
+                initialLoadCts.Token,
+                "initial-load",
+                includeHotMatches: false);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "PublicHome initial snapshot load failed. Rendering partial home state.");
             _snapshot = null;
+            _hotMatchesLoading = false;
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (!firstRender || _interactiveFeaturesStarted)
             return;
 
-        try
-        {
-            await HubClient.EnsureStartedAsync();
-        }
-        catch
-        {
-            // A home continua funcional sem o hub; mantemos o snapshot inicial.
-        }
-
-        _homeRefreshCts = new CancellationTokenSource();
-        _homeRefreshLoopTask = RunHomeRefreshLoopAsync(_homeRefreshCts.Token);
-        Logger.LogInformation("PublicHome automatic refresh loop started. IntervalSeconds={IntervalSeconds}", HomeRefreshSeconds);
+        _interactiveFeaturesStarted = true;
+        _ = StartInteractiveFeaturesAsync();
+        await Task.CompletedTask;
     }
 
     private string T(string key, params object?[] args)
@@ -1338,7 +1335,10 @@
             data.Remove(key);
     }
 
-    private async Task<bool> ReloadHomeDataAsync(CancellationToken ct, string trigger)
+    private async Task<bool> ReloadHomeDataAsync(
+        CancellationToken ct,
+        string trigger,
+        bool includeHotMatches = true)
     {
         if (!await _reloadLock.WaitAsync(TimeSpan.Zero, ct))
         {
@@ -1354,13 +1354,45 @@
             {
                 _snapshot = await Api.GetDashboardSnapshotAsync(ct);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                Logger.LogWarning("PublicHome snapshot load canceled. Trigger={Trigger}", trigger);
+            }
+            catch (TimeoutException ex)
+            {
+                Logger.LogWarning(ex, "PublicHome snapshot load timed out. Trigger={Trigger}", trigger);
+            }
             catch
             {
                 // Mantemos o ultimo snapshot valido para evitar flicker.
             }
 
-            _hotMatches = await HotMatches.GetHotMatchesAsync(ct);
-            _hotMatchesLoading = false;
+            if (includeHotMatches)
+            {
+                try
+                {
+                    using var hotMatchesCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    hotMatchesCts.CancelAfter(TimeSpan.FromSeconds(8));
+                    _hotMatches = await HotMatches.GetHotMatchesAsync(hotMatchesCts.Token);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    Logger.LogWarning("PublicHome hot matches load canceled. Trigger={Trigger}", trigger);
+                }
+                catch (TimeoutException ex)
+                {
+                    Logger.LogWarning(ex, "PublicHome hot matches load timed out. Trigger={Trigger}", trigger);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "PublicHome hot matches load failed. Trigger={Trigger}", trigger);
+                }
+                finally
+                {
+                    _hotMatchesLoading = false;
+                }
+            }
+
             var changed = UpdateRefreshSignature();
             Logger.LogInformation(
                 "PublicHome refresh completed. Trigger={Trigger} Changed={Changed} HotMatches={HotMatchCount} DurationMs={DurationMs}",
@@ -1394,6 +1426,45 @@
         finally
         {
             Logger.LogInformation("PublicHome automatic refresh loop stopped.");
+        }
+    }
+
+    private async Task StartInteractiveFeaturesAsync()
+    {
+        try
+        {
+            if (!_hubSubscribed)
+            {
+                HubClient.DashboardChanged += OnDashboardChanged;
+                _hubSubscribed = true;
+            }
+
+            try
+            {
+                await HubClient.EnsureStartedAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "PublicHome live hub startup failed. Home will continue with snapshot refresh only.");
+            }
+
+            try
+            {
+                if (await ReloadHomeDataAsync(CancellationToken.None, "after-first-render", includeHotMatches: true))
+                    await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "PublicHome interactive refresh failed after first render.");
+            }
+
+            _homeRefreshCts = new CancellationTokenSource();
+            _homeRefreshLoopTask = RunHomeRefreshLoopAsync(_homeRefreshCts.Token);
+            Logger.LogInformation("PublicHome automatic refresh loop started. IntervalSeconds={IntervalSeconds}", HomeRefreshSeconds);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "PublicHome interactive feature bootstrap failed.");
         }
     }
 
@@ -1458,7 +1529,8 @@
     public ValueTask DisposeAsync()
     {
         _disposed = true;
-        HubClient.DashboardChanged -= OnDashboardChanged;
+        if (_hubSubscribed)
+            HubClient.DashboardChanged -= OnDashboardChanged;
         Logger.LogInformation("PublicHome disposing refresh resources.");
 
         try
