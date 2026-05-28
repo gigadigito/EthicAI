@@ -135,30 +135,7 @@
             </div>
         </section>
 
-        <section class="token-arena-stats" aria-busy="@_marketLoading">
-            @if (_marketLoading)
-            {
-                @foreach (var statKey in StatKeyOrder)
-                {
-                    <article class="token-arena-stat token-arena-card">
-                        <span class="token-arena-kicker">@L.T(statKey, CurrentCulture)</span>
-                        <span class="token-arena-skeleton token-arena-skeleton--value"></span>
-                        <span class="token-arena-skeleton token-arena-skeleton--line"></span>
-                    </article>
-                }
-            }
-            else
-            {
-                @foreach (var stat in BuildStatCards())
-                {
-                    <article class="token-arena-stat token-arena-card">
-                        <span class="token-arena-kicker">@L.T(stat.TitleKey, CurrentCulture)</span>
-                        <strong>@stat.Value</strong>
-                        <small>@stat.Supporting</small>
-                    </article>
-                }
-            }
-        </section>
+        @* TODO: Re-enable token market stat cards when live data is consistently available in production. *@
 
         <section class="token-arena-columns">
             <article class="token-arena-card token-arena-panel">
