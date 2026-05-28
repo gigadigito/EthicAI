@@ -48,9 +48,12 @@ Console.ResetColor();
 
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>();
 builder.Services.Configure<CriptoVersusWorkerOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker"));
+builder.Services.Configure<DataRetentionOptions>(
+    builder.Configuration.GetSection(DataRetentionOptions.SectionName));
 builder.Services.Configure<ArenaSentimentOptions>(
     builder.Configuration.GetSection(ArenaSentimentOptions.ConfigSection));
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
@@ -115,6 +118,7 @@ static async Task<string> BuildConnectionStringWithResolvedHostAsync(
 builder.Services.AddScoped<ILedgerService, LedgerService>();
 builder.Services.AddScoped<IPositionOrchestrationService, PositionOrchestrationService>();
 builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
+builder.Services.AddScoped<DataRetentionService>();
 builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();
 builder.Services.AddScoped<FullOnChainFundsService>();
@@ -162,6 +166,7 @@ builder.Services.AddSingleton<IMatchScoringEngine, MatchScoringEngine>();
 
 // Worker
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<DataRetentionWorker>();
 
 var host = builder.Build();
 

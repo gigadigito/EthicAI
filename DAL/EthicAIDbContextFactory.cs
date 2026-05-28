@@ -8,19 +8,23 @@ public class EthicAIDbContextFactory : IDesignTimeDbContextFactory<EthicAIDbCont
 {
     public EthicAIDbContext CreateDbContext(string[] args)
     {
-        // Build configuration from appsettings.json
+        var basePath = Directory.GetCurrentDirectory();
+        var solutionRootAppsettings = Path.Combine(basePath, "..", "CriptoVersus.Worker", "appsettings.json");
+
         IConfigurationRoot configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json")
+            .SetBasePath(basePath)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile(solutionRootAppsettings, optional: true)
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<EthicAIDbContext>();
 
-        // Use the connection string from the configuration
         var connectionString = configuration.GetConnectionString("Default");
+        if (string.IsNullOrWhiteSpace(connectionString))
+            connectionString = "Host=localhost;Port=5432;Database=criptoversus_design;Username=postgres;Password=postgres";
+
         optionsBuilder.UseNpgsql(connectionString);
 
-        // Use the correct constructor that accepts DbContextOptions
         return new EthicAIDbContext(optionsBuilder.Options);
     }
 }

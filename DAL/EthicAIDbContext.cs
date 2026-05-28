@@ -27,6 +27,7 @@ namespace EthicAI.EntityModel
         public DbSet<PositionLifecycleEvent> PositionLifecycleEvent { get; set; }
         public DbSet<WorkerStatus> WorkerStatus { get; set; }
         public DbSet<MatchMetricSnapshot> MatchMetricSnapshot { get; set; }
+        public DbSet<MatchMetricHourlyAggregate> MatchMetricHourlyAggregate { get; set; }
         public DbSet<MatchScoreEvent> MatchScoreEvent { get; set; }
         public DbSet<MatchScoreState> MatchScoreState { get; set; }
         public DbSet<ArenaSentimentSnapshot> ArenaSentimentSnapshot { get; set; }
@@ -651,6 +652,7 @@ namespace EthicAI.EntityModel
                       .HasColumnName("nr_trade_count");
 
                 entity.HasIndex(e => new { e.MatchId, e.TeamId, e.CapturedAtUtc });
+                entity.HasIndex(e => e.CapturedAtUtc);
 
                 entity.HasOne(e => e.Match)
                       .WithMany(m => m.MetricSnapshots)
@@ -659,6 +661,88 @@ namespace EthicAI.EntityModel
 
                 entity.HasOne(e => e.Team)
                       .WithMany(t => t.MetricSnapshots)
+                      .HasForeignKey(e => e.TeamId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MatchMetricHourlyAggregate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("match_metric_hourly_aggregate");
+
+                entity.Property(e => e.Id)
+                      .HasColumnName("id")
+                      .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.MatchId).HasColumnName("cd_match");
+                entity.Property(e => e.TeamId).HasColumnName("cd_team");
+
+                entity.Property(e => e.Symbol)
+                      .HasColumnName("tx_symbol")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.HourBucketUtc)
+                      .HasColumnName("dt_hour_bucket")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.AveragePercentageChange)
+                      .HasColumnName("nr_avg_percentage_change")
+                      .HasColumnType("decimal(18, 8)");
+
+                entity.Property(e => e.MinPercentageChange)
+                      .HasColumnName("nr_min_percentage_change")
+                      .HasColumnType("decimal(18, 8)");
+
+                entity.Property(e => e.MaxPercentageChange)
+                      .HasColumnName("nr_max_percentage_change")
+                      .HasColumnType("decimal(18, 8)");
+
+                entity.Property(e => e.AverageQuoteVolume)
+                      .HasColumnName("nr_avg_quote_volume")
+                      .HasColumnType("decimal(28, 8)");
+
+                entity.Property(e => e.MinQuoteVolume)
+                      .HasColumnName("nr_min_quote_volume")
+                      .HasColumnType("decimal(28, 8)");
+
+                entity.Property(e => e.MaxQuoteVolume)
+                      .HasColumnName("nr_max_quote_volume")
+                      .HasColumnType("decimal(28, 8)");
+
+                entity.Property(e => e.AverageTradeCount)
+                      .HasColumnName("nr_avg_trade_count")
+                      .HasColumnType("decimal(20, 4)");
+
+                entity.Property(e => e.MinTradeCount)
+                      .HasColumnName("nr_min_trade_count");
+
+                entity.Property(e => e.MaxTradeCount)
+                      .HasColumnName("nr_max_trade_count");
+
+                entity.Property(e => e.SnapshotCount)
+                      .HasColumnName("nr_snapshot_count");
+
+                entity.Property(e => e.CreatedAtUtc)
+                      .HasColumnName("dt_created_at")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.Property(e => e.UpdatedAtUtc)
+                      .HasColumnName("dt_updated_at")
+                      .HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => new { e.MatchId, e.TeamId, e.Symbol, e.HourBucketUtc })
+                      .IsUnique();
+
+                entity.HasIndex(e => new { e.MatchId, e.HourBucketUtc });
+                entity.HasIndex(e => new { e.Symbol, e.HourBucketUtc });
+
+                entity.HasOne(e => e.Match)
+                      .WithMany()
+                      .HasForeignKey(e => e.MatchId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Team)
+                      .WithMany()
                       .HasForeignKey(e => e.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
@@ -871,6 +955,7 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone");
 
                 entity.HasIndex(e => new { e.Symbol, e.CalculatedAt });
+                entity.HasIndex(e => e.CalculatedAt);
             });
 
             modelBuilder.Entity<SocialPostHistory>(entity =>
