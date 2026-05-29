@@ -2,6 +2,7 @@
 @page "/en"
 @page "/pt"
 @using Microsoft.AspNetCore.Components
+@using System.Diagnostics
 @using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
@@ -612,15 +613,27 @@
 
     private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
     private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
-    private List<MatchDto> LiveMatches => HotMatchFeed
-        .Where(x => !x.IsFinished && string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
-        .Select(ToMatchCard)
+    private List<MatchDto> SnapshotLiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? [])
         .Take(HomeMatchLimit)
         .ToList();
-    private List<MatchDto> FeaturedMatches => HotMatchFeed
-        .Select(ToMatchCard)
+    private List<MatchDto> SnapshotFeaturedMatches => RankHomeMatches(
+            (_snapshot?.Matches.OngoingList ?? [])
+                .Concat(_snapshot?.Matches.CompletedList ?? []))
         .Take(HomeMatchLimit)
         .ToList();
+    private List<MatchDto> LiveMatches => HotMatchFeed.Count > 0
+        ? HotMatchFeed
+            .Where(x => !x.IsFinished && string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
+            .Select(ToMatchCard)
+            .Take(HomeMatchLimit)
+            .ToList()
+        : SnapshotLiveMatches;
+    private List<MatchDto> FeaturedMatches => HotMatchFeed.Count > 0
+        ? HotMatchFeed
+            .Select(ToMatchCard)
+            .Take(HomeMatchLimit)
+            .ToList()
+        : SnapshotFeaturedMatches;
     private MatchDto? FeaturedBattle => SelectFeaturedBattle();
     private List<MatchDto> ArenaLiveMatches => LiveMatches
         .Where(x => x.MatchId != FeaturedBattle?.MatchId)
@@ -682,6 +695,7 @@
         if (!firstRender || _interactiveFeaturesStarted)
             return;
 
+        Logger.LogInformation("PublicHome first render ready.");
         _interactiveFeaturesStarted = true;
         _ = StartInteractiveFeaturesAsync();
         await Task.CompletedTask;
@@ -1338,6 +1352,7 @@
     private async Task<bool> ReloadHomeDataAsync(
         CancellationToken ct,
         string trigger,
+        bool includeSnapshot = true,
         bool includeHotMatches = true)
     {
         if (!await _reloadLock.WaitAsync(TimeSpan.Zero, ct))
@@ -1350,30 +1365,46 @@
         try
         {
             Logger.LogInformation("PublicHome refresh started. Trigger={Trigger}", trigger);
-            try
+            if (includeSnapshot)
             {
-                _snapshot = await Api.GetDashboardSnapshotAsync(ct);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                Logger.LogWarning("PublicHome snapshot load canceled. Trigger={Trigger}", trigger);
-            }
-            catch (TimeoutException ex)
-            {
-                Logger.LogWarning(ex, "PublicHome snapshot load timed out. Trigger={Trigger}", trigger);
-            }
-            catch
-            {
-                // Mantemos o ultimo snapshot valido para evitar flicker.
+                var snapshotStopwatch = Stopwatch.StartNew();
+                try
+                {
+                    _snapshot = await Api.GetDashboardSnapshotAsync(ct);
+                    Logger.LogInformation(
+                        "PublicHome snapshot loaded in {DurationMs} ms. Trigger={Trigger} Ongoing={OngoingCount} Completed24h={CompletedLast24h}",
+                        snapshotStopwatch.ElapsedMilliseconds,
+                        trigger,
+                        _snapshot?.Matches.OngoingList.Count ?? 0,
+                        _snapshot?.Matches.CompletedLast24h ?? 0);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    Logger.LogWarning("PublicHome snapshot load canceled. Trigger={Trigger}", trigger);
+                }
+                catch (TimeoutException ex)
+                {
+                    Logger.LogWarning(ex, "PublicHome snapshot load timed out. Trigger={Trigger}", trigger);
+                }
+                catch
+                {
+                    // Mantemos o ultimo snapshot valido para evitar flicker.
+                }
             }
 
             if (includeHotMatches)
             {
+                var hotMatchesStopwatch = Stopwatch.StartNew();
                 try
                 {
                     using var hotMatchesCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    hotMatchesCts.CancelAfter(TimeSpan.FromSeconds(8));
+                    hotMatchesCts.CancelAfter(TimeSpan.FromSeconds(4));
                     _hotMatches = await HotMatches.GetHotMatchesAsync(hotMatchesCts.Token);
+                    Logger.LogInformation(
+                        "PublicHome deferred details loaded. Trigger={Trigger} HotMatches={HotMatchCount} DurationMs={DurationMs}",
+                        trigger,
+                        _hotMatches.Count,
+                        hotMatchesStopwatch.ElapsedMilliseconds);
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
@@ -1439,18 +1470,15 @@
                 _hubSubscribed = true;
             }
 
-            try
-            {
-                await HubClient.EnsureStartedAsync();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "PublicHome live hub startup failed. Home will continue with snapshot refresh only.");
-            }
+            _ = StartDashboardHubAsync();
 
             try
             {
-                if (await ReloadHomeDataAsync(CancellationToken.None, "after-first-render", includeHotMatches: true))
+                if (await ReloadHomeDataAsync(
+                    CancellationToken.None,
+                    "after-first-render",
+                    includeSnapshot: false,
+                    includeHotMatches: true))
                     await InvokeAsync(StateHasChanged);
             }
             catch (Exception ex)
@@ -1465,6 +1493,18 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "PublicHome interactive feature bootstrap failed.");
+        }
+    }
+
+    private async Task StartDashboardHubAsync()
+    {
+        try
+        {
+            await HubClient.EnsureStartedAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "PublicHome live hub startup failed. Home will continue with snapshot refresh only.");
         }
     }
 
