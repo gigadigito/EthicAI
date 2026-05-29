@@ -18,6 +18,10 @@ namespace DAL.NftFutebol
         public int LastPressureLeaderCycles { get; set; }
         public DateTime? LastPressureGoalTeamAAtUtc { get; set; }
         public DateTime? LastPressureGoalTeamBAtUtc { get; set; }
+        public int? CurrentPressureDominanceLeaderTeamId { get; set; }
+        public DateTime? CurrentPressureDominanceStartedAtUtc { get; set; }
+        public bool CurrentPressureDominanceResolved { get; set; }
+        public bool CurrentPressureDominanceGoalAwarded { get; set; }
         public DateTime CreatedAtUtc { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
 

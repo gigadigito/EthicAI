@@ -100,7 +100,7 @@ public sealed class ArenaSentimentService : IArenaSentimentService
 
         if (!startUtc.HasValue || DateTime.UtcNow - startUtc.Value < TimeSpan.FromMinutes(settings.BlockFirstMinutes))
         {
-            ResetPressureLeader(scoreState);
+            ResetPressureDominance(scoreState);
             scoreState.UpdatedAtUtc = DateTime.UtcNow;
             return new ArenaPressureGoalResult
             {
@@ -110,7 +110,7 @@ public sealed class ArenaSentimentService : IArenaSentimentService
 
         if (!pair.TeamA.HasSufficientData || !pair.TeamB.HasSufficientData || scoreState.TotalPressureGoalsAwarded >= settings.MaxGoalsPerMatch)
         {
-            ResetPressureLeader(scoreState);
+            ResetPressureDominance(scoreState);
             scoreState.UpdatedAtUtc = DateTime.UtcNow;
             return new ArenaPressureGoalResult
             {
@@ -121,7 +121,7 @@ public sealed class ArenaSentimentService : IArenaSentimentService
         var diff = pair.TeamA.Score - pair.TeamB.Score;
         if (Math.Abs(diff) < settings.MinScoreDiff)
         {
-            ResetPressureLeader(scoreState);
+            ResetPressureDominance(scoreState);
             scoreState.UpdatedAtUtc = DateTime.UtcNow;
             return new ArenaPressureGoalResult
             {
@@ -137,6 +137,9 @@ public sealed class ArenaSentimentService : IArenaSentimentService
         var loserSymbol = diff > 0 ? pair.TeamB.Symbol : pair.TeamA.Symbol;
         var winnerScore = diff > 0 ? pair.TeamA.Score : pair.TeamB.Score;
         var loserScore = diff > 0 ? pair.TeamB.Score : pair.TeamA.Score;
+        var nowUtc = DateTime.UtcNow;
+
+        EnsurePressureDominanceState(scoreState, leaderTeamId, nowUtc);
 
         if (scoreState.LastPressureLeaderTeamId == leaderTeamId)
             scoreState.LastPressureLeaderCycles++;
@@ -146,7 +149,22 @@ public sealed class ArenaSentimentService : IArenaSentimentService
             scoreState.LastPressureLeaderCycles = 1;
         }
 
-        scoreState.UpdatedAtUtc = DateTime.UtcNow;
+        scoreState.UpdatedAtUtc = nowUtc;
+
+        // One continuous dominance sequence gets a single scoring attempt.
+        if (scoreState.CurrentPressureDominanceResolved)
+        {
+            return new ArenaPressureGoalResult
+            {
+                DataSufficient = true,
+                WinnerTeamId = leaderTeamId,
+                WinnerSymbol = leaderSymbol,
+                LoserSymbol = loserSymbol,
+                WinnerScore = winnerScore,
+                LoserScore = loserScore,
+                ScoreDiff = Math.Abs(diff)
+            };
+        }
 
         if (scoreState.LastPressureLeaderCycles < settings.RequiredCycles)
         {
@@ -173,16 +191,20 @@ public sealed class ArenaSentimentService : IArenaSentimentService
 
         ResetPressureLeader(scoreState);
 
-        var eligibleForGoal = chargesAfter >= 2 && IsPressureGoalWindowOpen(scoreState, isTeamA, settings, DateTime.UtcNow);
+        var eligibleForGoal = chargesAfter >= 2 && IsPressureGoalWindowOpen(scoreState, isTeamA, settings, nowUtc);
         if (!eligibleForGoal)
         {
             if (chargesAfter >= 2)
             {
                 if (isTeamA)
-                    scoreState.TeamAPressureCharges = 1;
+                    scoreState.TeamAPressureCharges = 0;
                 else
-                    scoreState.TeamBPressureCharges = 1;
-                chargesAfter = 1;
+                    scoreState.TeamBPressureCharges = 0;
+
+                // Cooldown remains a secondary guard, but it cannot reopen
+                // the same uninterrupted dominance sequence for a later goal.
+                scoreState.CurrentPressureDominanceResolved = true;
+                chargesAfter = 0;
             }
 
             return new ArenaPressureGoalResult
@@ -203,15 +225,17 @@ public sealed class ArenaSentimentService : IArenaSentimentService
         {
             match.ScoreA += 1;
             scoreState.TeamAPressureCharges = 0;
-            scoreState.LastPressureGoalTeamAAtUtc = DateTime.UtcNow;
+            scoreState.LastPressureGoalTeamAAtUtc = nowUtc;
         }
         else
         {
             match.ScoreB += 1;
             scoreState.TeamBPressureCharges = 0;
-            scoreState.LastPressureGoalTeamBAtUtc = DateTime.UtcNow;
+            scoreState.LastPressureGoalTeamBAtUtc = nowUtc;
         }
 
+        scoreState.CurrentPressureDominanceResolved = true;
+        scoreState.CurrentPressureDominanceGoalAwarded = true;
         scoreState.TotalPressureGoalsAwarded++;
         scoreState.LastEventSequence++;
 
@@ -230,7 +254,7 @@ public sealed class ArenaSentimentService : IArenaSentimentService
             OpponentQuoteVolume = diff > 0 ? match.TeamB.Currency.QuoteVolume : match.TeamA.Currency.QuoteVolume,
             MetricDelta = Math.Abs(diff),
             Description = $"Arena Pressure Goal: {leaderSymbol} manteve vantagem de sentimento sobre {loserSymbol} e converteu um gol bonus.",
-            EventTimeUtc = DateTime.UtcNow
+            EventTimeUtc = nowUtc
         });
 
         _logger.LogInformation(
@@ -405,6 +429,27 @@ public sealed class ArenaSentimentService : IArenaSentimentService
     {
         scoreState.LastPressureLeaderTeamId = null;
         scoreState.LastPressureLeaderCycles = 0;
+    }
+
+    private static void ResetPressureDominance(MatchScoreState scoreState)
+    {
+        ResetPressureLeader(scoreState);
+        scoreState.TeamAPressureCharges = 0;
+        scoreState.TeamBPressureCharges = 0;
+        scoreState.CurrentPressureDominanceLeaderTeamId = null;
+        scoreState.CurrentPressureDominanceStartedAtUtc = null;
+        scoreState.CurrentPressureDominanceResolved = false;
+        scoreState.CurrentPressureDominanceGoalAwarded = false;
+    }
+
+    private static void EnsurePressureDominanceState(MatchScoreState scoreState, int leaderTeamId, DateTime nowUtc)
+    {
+        if (scoreState.CurrentPressureDominanceLeaderTeamId == leaderTeamId)
+            return;
+
+        ResetPressureDominance(scoreState);
+        scoreState.CurrentPressureDominanceLeaderTeamId = leaderTeamId;
+        scoreState.CurrentPressureDominanceStartedAtUtc = nowUtc;
     }
 
     private static bool IsPressureGoalWindowOpen(MatchScoreState state, bool isTeamA, ArenaSentimentOptions options, DateTime nowUtc)

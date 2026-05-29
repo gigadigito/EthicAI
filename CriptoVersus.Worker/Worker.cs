@@ -1914,6 +1914,10 @@ BEGIN
         ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_pressure_leader_cycles integer NOT NULL DEFAULT 0;
         ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_a timestamp with time zone NULL;
         ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_b timestamp with time zone NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS cd_current_pressure_dominance_leader integer NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_current_pressure_dominance_started timestamp with time zone NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS fl_current_pressure_dominance_resolved boolean NOT NULL DEFAULT FALSE;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS fl_current_pressure_dominance_goal_awarded boolean NOT NULL DEFAULT FALSE;
     END IF;
 END $$;";
 

@@ -890,6 +890,22 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_last_pressure_goal_b");
 
+                entity.Property(e => e.CurrentPressureDominanceLeaderTeamId)
+                      .HasColumnName("cd_current_pressure_dominance_leader")
+                      .IsRequired(false);
+
+                entity.Property(e => e.CurrentPressureDominanceStartedAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_current_pressure_dominance_started");
+
+                entity.Property(e => e.CurrentPressureDominanceResolved)
+                      .HasColumnName("fl_current_pressure_dominance_resolved")
+                      .HasDefaultValue(false);
+
+                entity.Property(e => e.CurrentPressureDominanceGoalAwarded)
+                      .HasColumnName("fl_current_pressure_dominance_goal_awarded")
+                      .HasDefaultValue(false);
+
                 entity.Property(e => e.CreatedAtUtc)
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_created_at");
