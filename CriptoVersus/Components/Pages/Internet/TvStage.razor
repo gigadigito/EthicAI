@@ -1613,9 +1613,19 @@ else
         {
             while (await timer.WaitForNextTickAsync(ct))
             {
+                var shouldRender = false;
                 var matchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
                 if (matchId <= 0)
                 {
+                    shouldRender =
+                        _metricSnapshotMatchId != 0
+                        || _metricSnapshotLastId != 0
+                        || _metricSnapshots.Count != 0
+                        || _arenaSentimentA is not null
+                        || _arenaSentimentB is not null
+                        || _arenaSentimentLoading
+                        || _lastArenaSentimentFetchUtc != DateTime.MinValue;
+
                     _metricSnapshotMatchId = 0;
                     _metricSnapshotLastId = 0;
                     _metricSnapshots = [];
@@ -1623,11 +1633,30 @@ else
                     _arenaSentimentB = null;
                     _arenaSentimentLoading = false;
                     _lastArenaSentimentFetchUtc = DateTime.MinValue;
+
+                    if (shouldRender)
+                    {
+                        try
+                        {
+                            await InvokeAsync(StateHasChanged);
+                        }
+                        catch
+                        {
+                        }
+                    }
+
                     continue;
                 }
 
                 if (_metricSnapshotMatchId != matchId)
                 {
+                    shouldRender =
+                        _metricSnapshotMatchId != 0
+                        || _metricSnapshots.Count != 0
+                        || _arenaSentimentA is not null
+                        || _arenaSentimentB is not null
+                        || _lastArenaSentimentFetchUtc != DateTime.MinValue;
+
                     _metricSnapshotMatchId = matchId;
                     _metricSnapshotLastId = 0;
                     _metricSnapshots = [];
@@ -1659,6 +1688,7 @@ else
                         .OrderByDescending(x => x.CapturedAtUtc)
                         .Take(160)
                         .ToList();
+                    shouldRender = true;
                 }
 
                 var shouldRefreshSentiment =
@@ -1670,11 +1700,25 @@ else
                 {
                     try
                     {
-                        _arenaSentimentLoading = _arenaSentimentA is null && _arenaSentimentB is null;
+                        var shouldShowArenaSentimentLoading = _arenaSentimentA is null && _arenaSentimentB is null;
+                        if (_arenaSentimentLoading != shouldShowArenaSentimentLoading)
+                        {
+                            _arenaSentimentLoading = shouldShowArenaSentimentLoading;
+                            shouldRender = true;
+                        }
+
+                        var previousSentimentA = _arenaSentimentA;
+                        var previousSentimentB = _arenaSentimentB;
                         var sentiment = await Api.GetMatchArenaSentimentAsync(matchId, ct);
                         _arenaSentimentA = sentiment?.TeamA;
                         _arenaSentimentB = sentiment?.TeamB;
                         _lastArenaSentimentFetchUtc = DateTime.UtcNow;
+
+                        if (!AreArenaSentimentValuesEqual(previousSentimentA, _arenaSentimentA)
+                            || !AreArenaSentimentValuesEqual(previousSentimentB, _arenaSentimentB))
+                        {
+                            shouldRender = true;
+                        }
                     }
                     catch (OperationCanceledException)
                     {
@@ -1686,7 +1730,11 @@ else
                     }
                     finally
                     {
-                        _arenaSentimentLoading = false;
+                        if (_arenaSentimentLoading)
+                        {
+                            _arenaSentimentLoading = false;
+                            shouldRender = true;
+                        }
                     }
                 }
 
@@ -1712,6 +1760,17 @@ else
                 }
                 catch
                 {
+                }
+
+                if (shouldRender)
+                {
+                    try
+                    {
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
         }
@@ -1958,6 +2017,29 @@ else
         _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
         _scheduledBroadcastPromoMatchId = null;
         _lastBroadcastPromoMatchId = currentMatchId;
+    }
+
+    private static bool AreArenaSentimentValuesEqual(ArenaSentimentDto? left, ArenaSentimentDto? right)
+    {
+        if (ReferenceEquals(left, right))
+            return true;
+
+        if (left is null || right is null)
+            return false;
+
+        return left.Symbol == right.Symbol
+            && left.Score == right.Score
+            && left.Classification == right.Classification
+            && left.PriceMomentumScore == right.PriceMomentumScore
+            && left.VolumeScore == right.VolumeScore
+            && left.OrderBookScore == right.OrderBookScore
+            && left.FundingScore == right.FundingScore
+            && left.LongShortScore == right.LongShortScore
+            && left.VolatilityScore == right.VolatilityScore
+            && left.CalculatedAt == right.CalculatedAt
+            && left.HasSufficientData == right.HasSufficientData
+            && left.DataCoverage == right.DataCoverage
+            && left.Note == right.Note;
     }
 
     private async Task ShowPirateIntroAsync(string reason)

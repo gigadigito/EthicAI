@@ -79,7 +79,7 @@
             </div>
         </div>
         <div class="home-hero__visual">
-            @if (_hotMatchesLoading && HeroHotMatch is null)
+            @if (_hotMatchesLoading && HeroHotMatch is null && HeroFallbackMatch is null)
             {
                 <div class="home-hot-hero home-hot-hero--skeleton" aria-hidden="true">
                     <span></span>
@@ -167,6 +167,89 @@
                        href="@GetTvWatchUrl(hero)"
                        aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                         @ArenaText("watchLive")
+                    </a>
+                </article>
+            }
+            else if (HeroFallbackMatch is not null)
+            {
+                var hero = HeroFallbackMatch!;
+                var heroEnergyA = GetEnergyPercentA(hero);
+                var heroEnergyB = 100 - heroEnergyA;
+
+                <article class="home-hot-hero @GetArenaLeaderClass(hero) @GetArenaHeatClass(hero)">
+                    <div class="home-hot-hero__header">
+                        <div class="home-hot-hero__badges">
+                            @foreach (var badge in GetBattleBadges(hero, isFeatured: true))
+                            {
+                                <span class="arena-chip @GetArenaChipClass(badge.Tone)">@badge.Text</span>
+                            }
+                        </div>
+                        <span class="arena-meta">@ArenaText("arenaMatchId", hero.MatchId)</span>
+                    </div>
+
+                    <div class="home-hot-hero__scoreboard">
+                        <div class="home-hot-hero__team">
+                            <img class="home-hot-hero__logo"
+                                 src="@GetCoinIconUrl(hero.TeamA)"
+                                 width="56"
+                                 height="56"
+                                 alt="@hero.TeamA"
+                                 loading="lazy"
+                                 onerror="this.remove();" />
+                            <div>
+                                <strong>@GetBaseSymbol(hero.TeamA)</strong>
+                                <span class="@GetSignedChangeClass(hero.PctA)">@FormatPct(hero.PctA)</span>
+                            </div>
+                        </div>
+
+                        <div class="home-hot-hero__center">
+                            <small>@GetMatchClockLabel(hero)</small>
+                            <div class="arena-scoreboard arena-scoreboard--featured">
+                                <strong>@hero.ScoreA</strong>
+                                <span class="arena-vs-badge">@T("vs")</span>
+                                <strong>@hero.ScoreB</strong>
+                            </div>
+                        </div>
+
+                        <div class="home-hot-hero__team home-hot-hero__team--right">
+                            <div>
+                                <strong>@GetBaseSymbol(hero.TeamB)</strong>
+                                <span class="@GetSignedChangeClass(hero.PctB)">@FormatPct(hero.PctB)</span>
+                            </div>
+                            <img class="home-hot-hero__logo"
+                                 src="@GetCoinIconUrl(hero.TeamB)"
+                                 width="56"
+                                 height="56"
+                                 alt="@hero.TeamB"
+                                 loading="lazy"
+                                 onerror="this.remove();" />
+                        </div>
+                    </div>
+
+                    <div class="arena-energy-bar arena-energy-bar--featured" aria-hidden="true">
+                        <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(heroEnergyA)"></span>
+                        <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(heroEnergyB)"></span>
+                    </div>
+
+                    <div class="home-hot-hero__metrics">
+                        <article>
+                            <span>@ArenaText("momentum")</span>
+                            <strong>@GetMomentumLabel(heroEnergyA)</strong>
+                        </article>
+                        <article>
+                            <span>@ArenaText("volatility")</span>
+                            <strong>@GetVolatilityLabel(hero)</strong>
+                        </article>
+                        <article>
+                            <span>@ArenaText("scoreLine")</span>
+                            <strong>@GetMatchStateLabel(hero)</strong>
+                        </article>
+                    </div>
+
+                    <a class="arena-cta-button home-hot-hero__cta"
+                       href="@GetMatchUrl(hero)"
+                       aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                        @ArenaText("openArena")
                     </a>
                 </article>
             }
@@ -613,6 +696,7 @@
 
     private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
     private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
+    private MatchDto? HeroFallbackMatch => !_hotMatchesLoading && HeroHotMatch is null ? FeaturedBattle : null;
     private List<MatchDto> SnapshotLiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? [])
         .Take(HomeMatchLimit)
         .ToList();
@@ -1362,6 +1446,9 @@
         }
 
         var startedAtUtc = DateTime.UtcNow;
+        var hotMatchesLoadingBefore = _hotMatchesLoading;
+        var hotMatchesLoadingChanged = false;
+
         try
         {
             Logger.LogInformation("PublicHome refresh started. Trigger={Trigger}", trigger);
@@ -1410,6 +1497,10 @@
                 {
                     Logger.LogWarning("PublicHome hot matches load canceled. Trigger={Trigger}", trigger);
                 }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    Logger.LogWarning("PublicHome hot matches load canceled by local timeout. Trigger={Trigger}", trigger);
+                }
                 catch (TimeoutException ex)
                 {
                     Logger.LogWarning(ex, "PublicHome hot matches load timed out. Trigger={Trigger}", trigger);
@@ -1421,17 +1512,23 @@
                 finally
                 {
                     _hotMatchesLoading = false;
+                    hotMatchesLoadingChanged = hotMatchesLoadingBefore != _hotMatchesLoading;
                 }
             }
 
             var changed = UpdateRefreshSignature();
             Logger.LogInformation(
-                "PublicHome refresh completed. Trigger={Trigger} Changed={Changed} HotMatches={HotMatchCount} DurationMs={DurationMs}",
+                "PublicHome refresh completed. Trigger={Trigger} Changed={Changed} LoadingChanged={LoadingChanged} HotMatches={HotMatchCount} DurationMs={DurationMs}",
                 trigger,
                 changed,
+                hotMatchesLoadingChanged,
                 _hotMatches.Count,
                 (DateTime.UtcNow - startedAtUtc).TotalMilliseconds);
-            return changed;
+
+            if (hotMatchesLoadingChanged)
+                await InvokeAsync(StateHasChanged);
+
+            return changed || hotMatchesLoadingChanged;
         }
         finally
         {
