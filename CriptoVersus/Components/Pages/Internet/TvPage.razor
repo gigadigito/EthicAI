@@ -203,23 +203,15 @@
         try
         {
             Logger.LogInformation("TvPage refresh started. BroadcastMode={BroadcastMode} ForceInitialSelection={ForceInitialSelection}", _isBroadcastMode, forceInitialSelection);
-            _hotMatches = await HotMatches.GetHotMatchesAsync(ct);
+            var hotMatchesTask = HotMatches.GetHotMatchesAsync(ct);
+            var statsTask = TryLoadStatsOverviewAsync(ct);
+            var snapshotTask = TryLoadDashboardSnapshotAsync(ct);
 
-            try
-            {
-                _stats = await Api.GetStatsOverviewAsync(ct) ?? _stats;
-            }
-            catch
-            {
-            }
+            await Task.WhenAll(hotMatchesTask, statsTask, snapshotTask);
 
-            try
-            {
-                _snapshot = await Api.GetDashboardSnapshotAsync(ct) ?? _snapshot;
-            }
-            catch
-            {
-            }
+            _hotMatches = hotMatchesTask.Result;
+            _stats = statsTask.Result ?? _stats;
+            _snapshot = snapshotTask.Result ?? _snapshot;
 
             var hotMatch = _hotMatches.FirstOrDefault();
             if (_isBroadcastMode)
@@ -470,6 +462,30 @@
 
     private string BuildAbsolute(string path)
         => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";
+
+    private async Task<StatsOverviewDto?> TryLoadStatsOverviewAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await Api.GetStatsOverviewAsync(ct);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<DashboardSnapshotDto?> TryLoadDashboardSnapshotAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await Api.GetDashboardSnapshotAsync(ct);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     private async Task LogAsync(string message, object? payload = null)
     {

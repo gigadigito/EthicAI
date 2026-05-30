@@ -58,7 +58,15 @@ public sealed class CriptoVersusApiClient
     }
 
     public async Task<MatchDto?> GetMatchByIdAsync(int matchId, CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<MatchDto>($"api/Matches/{matchId}", ct);
+        => await GetMatchByIdAsync(matchId, includeParticipants: true, ct);
+
+    public async Task<MatchDto?> GetMatchByIdAsync(
+        int matchId,
+        bool includeParticipants,
+        CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<MatchDto>(
+            $"api/Matches/{matchId}?includeParticipants={includeParticipants.ToString().ToLowerInvariant()}",
+            ct);
 
     public async Task<List<MatchMetricSnapshotDto>?> GetMatchMetricSnapshotsAsync(
         int matchId,
@@ -90,7 +98,14 @@ public sealed class CriptoVersusApiClient
     }
 
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<List<MatchDto>>("api/Matches", ct);
+        => await GetMatchesAsync(includeParticipants: false, ct);
+
+    public async Task<List<MatchDto>?> GetMatchesAsync(
+        bool includeParticipants,
+        CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<List<MatchDto>>(
+            $"api/Matches?includeParticipants={includeParticipants.ToString().ToLowerInvariant()}",
+            ct);
 
     public async Task<List<SocialHotMatchDto>?> GetSocialHotMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<SocialHotMatchDto>>("api/social/hot-matches", ct);

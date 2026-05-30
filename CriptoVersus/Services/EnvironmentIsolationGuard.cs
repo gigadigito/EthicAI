@@ -3,6 +3,7 @@ namespace CriptoVersus.Web.Services;
 internal static class EnvironmentIsolationGuard
 {
     private const string PublicIconApiBaseUrl = "https://api.criptoversus.com/api/icons/binance/";
+    private const string InternalApiBaseUrlKey = "Api:InternalBaseUrl";
 
     private static readonly string[] ProductionUrlMarkers =
     [
@@ -41,7 +42,8 @@ internal static class EnvironmentIsolationGuard
 
     public static Uri GetRequiredApiBaseUri(IConfiguration configuration)
     {
-        var apiBaseUrl = configuration["Api:BaseUrl"]?.Trim();
+        var apiBaseUrl = configuration[InternalApiBaseUrlKey]?.Trim()
+            ?? configuration["Api:BaseUrl"]?.Trim();
         if (string.IsNullOrWhiteSpace(apiBaseUrl))
             throw new InvalidOperationException("Api:BaseUrl não configurado.");
 

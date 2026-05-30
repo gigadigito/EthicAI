@@ -86,8 +86,13 @@ public sealed class HotMatchService
 
     private async Task<IReadOnlyList<HotMatchDto>> LoadHotMatchesCoreAsync(CancellationToken ct)
     {
-        var matches = await TryGetMatchesAsync(ct) ?? [];
-        var socialHotMatches = await TryGetSocialHotMatchesAsync(ct);
+        var matchesTask = TryGetMatchesAsync(ct);
+        var socialHotMatchesTask = TryGetSocialHotMatchesAsync(ct);
+
+        await Task.WhenAll(matchesTask, socialHotMatchesTask);
+
+        var matches = matchesTask.Result ?? [];
+        var socialHotMatches = socialHotMatchesTask.Result;
 
         if (socialHotMatches is { Count: > 0 })
         {
@@ -134,7 +139,7 @@ public sealed class HotMatchService
     {
         try
         {
-            return await _api.GetMatchesAsync(ct);
+            return await _api.GetMatchesAsync(includeParticipants: false, ct);
         }
         catch (OperationCanceledException)
         {

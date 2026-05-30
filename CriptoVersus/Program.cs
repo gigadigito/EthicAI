@@ -9,7 +9,8 @@ using System.Globalization;
 var builder = WebApplication.CreateBuilder(args);
 
 var env = builder.Environment.EnvironmentName;
-var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
+var apiBaseUrl = builder.Configuration["Api:InternalBaseUrl"]
+    ?? builder.Configuration["Api:BaseUrl"];
 
 Console.ForegroundColor = ConsoleColor.Cyan;
 Console.WriteLine("=================================");
@@ -76,7 +77,8 @@ builder.Services.AddServerSideBlazor()
 builder.Services.AddHttpClient("CriptoVersusApi", (sp, client) =>
 {
     var cfg = sp.GetRequiredService<IConfiguration>();
-    var baseUrl = cfg["Api:BaseUrl"]?.TrimEnd('/');
+    var baseUrl = cfg["Api:InternalBaseUrl"]?.TrimEnd('/')
+        ?? cfg["Api:BaseUrl"]?.TrimEnd('/');
     client.BaseAddress = new Uri(baseUrl + "/");
     client.Timeout = TimeSpan.FromSeconds(10);
 });

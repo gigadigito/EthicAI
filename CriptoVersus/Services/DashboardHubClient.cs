@@ -207,7 +207,8 @@ namespace CriptoVersus.Web.Services
             if (!string.IsNullOrWhiteSpace(configuredHubUrl))
                 return configuredHubUrl;
 
-            var baseUrl = configuration["Api:BaseUrl"]?.TrimEnd('/');
+            var baseUrl = configuration["Api:InternalBaseUrl"]?.TrimEnd('/')
+                ?? configuration["Api:BaseUrl"]?.TrimEnd('/');
             if (string.IsNullOrWhiteSpace(baseUrl))
                 throw new InvalidOperationException("Api:BaseUrl não configurado para conectar ao DashboardHub.");
 

@@ -49,6 +49,7 @@ namespace CriptoVersus.API.Controllers
         public async Task<ActionResult<List<MatchDto>>> GetAll(
             [FromQuery] MatchStatus? status = null,
             [FromQuery] int take = 50,
+            [FromQuery] bool includeParticipants = false,
             CancellationToken ct = default)
         {
             if (take <= 0) take = 50;
@@ -75,7 +76,7 @@ namespace CriptoVersus.API.Controllers
                 .Where(m => !MatchPairRules.IsForbiddenPair(m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol, _configuration))
                 .ToList();
 
-            var items = await ToMatchDtosAsync(matches, now, ct);
+            var items = await ToMatchDtosAsync(matches, now, includeParticipants, ct);
             return Ok(items);
         }
         // =========================
@@ -87,6 +88,7 @@ namespace CriptoVersus.API.Controllers
         public async Task<ActionResult<MatchDto>> GetBySymbols(
             [FromQuery] string symbolA,
             [FromQuery] string symbolB,
+            [FromQuery] bool includeParticipants = false,
             CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(symbolA) || string.IsNullOrWhiteSpace(symbolB))
@@ -122,7 +124,7 @@ namespace CriptoVersus.API.Controllers
             if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol, _configuration))
                 return NotFound();
 
-            return Ok(await ToMatchDtoAsync(match, now, ct));
+            return Ok(await ToMatchDtoAsync(match, now, includeParticipants, ct));
         }
 
         // =========================
@@ -130,7 +132,10 @@ namespace CriptoVersus.API.Controllers
         // =========================
         [AllowAnonymous]
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<MatchDto>> GetById(int id, CancellationToken ct)
+        public async Task<ActionResult<MatchDto>> GetById(
+            int id,
+            [FromQuery] bool includeParticipants = true,
+            CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
 
@@ -147,7 +152,7 @@ namespace CriptoVersus.API.Controllers
             if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol, _configuration))
                 return NotFound();
 
-            return Ok(await ToMatchDtoAsync(match, now, ct));
+            return Ok(await ToMatchDtoAsync(match, now, includeParticipants, ct));
         }
 
         [AllowAnonymous]
@@ -424,7 +429,11 @@ namespace CriptoVersus.API.Controllers
         // =========================
         // Helpers
         // =========================
-        private async Task<List<MatchDto>> ToMatchDtosAsync(List<Match> matches, DateTime nowUtc, CancellationToken ct)
+        private async Task<List<MatchDto>> ToMatchDtosAsync(
+            List<Match> matches,
+            DateTime nowUtc,
+            bool includeParticipants,
+            CancellationToken ct)
         {
             if (matches.Count == 0)
                 return [];
@@ -446,34 +455,42 @@ namespace CriptoVersus.API.Controllers
                 })
                 .ToListAsync(ct);
 
-            var participants = await _db.Set<Bet>()
-                .AsNoTracking()
-                .Where(b => matchIds.Contains(b.MatchId))
-                .Include(b => b.User)
-                .Include(b => b.Team).ThenInclude(t => t.Currency)
-                .Include(b => b.Match)
-                .OrderByDescending(b => b.BetTime)
-                .ToListAsync(ct);
+            var participantsByMatch = new Dictionary<int, List<MatchParticipantDto>>();
+            if (includeParticipants)
+            {
+                var participants = await _db.Set<Bet>()
+                    .AsNoTracking()
+                    .Where(b => matchIds.Contains(b.MatchId))
+                    .Include(b => b.User)
+                    .Include(b => b.Team).ThenInclude(t => t.Currency)
+                    .Include(b => b.Match)
+                    .OrderByDescending(b => b.BetTime)
+                    .ToListAsync(ct);
 
-            var participantsByMatch = participants
-                .GroupBy(x => x.MatchId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(x => new MatchParticipantDto
-                    {
-                        WalletMasked = MaskWallet(x.User?.Wallet),
-                        TeamSymbol = x.Team?.Currency?.Symbol ?? $"Team#{x.TeamId}",
-                        BetAmount = x.Amount,
-                        ResultLabel = GetParticipantResultLabel(x.Match?.Status ?? MatchStatus.Pending, x.IsWinner, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode),
-                        ReceivedAmount = GetParticipantReceivedAmount(x.Match?.Status ?? MatchStatus.Pending, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode)
-                    }).ToList());
+                participantsByMatch = participants
+                    .GroupBy(x => x.MatchId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => new MatchParticipantDto
+                        {
+                            WalletMasked = MaskWallet(x.User?.Wallet),
+                            TeamSymbol = x.Team?.Currency?.Symbol ?? $"Team#{x.TeamId}",
+                            BetAmount = x.Amount,
+                            ResultLabel = GetParticipantResultLabel(x.Match?.Status ?? MatchStatus.Pending, x.IsWinner, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode),
+                            ReceivedAmount = GetParticipantReceivedAmount(x.Match?.Status ?? MatchStatus.Pending, x.PayoutAmount ?? 0m, x.Amount, x.Match?.EndReasonCode)
+                        }).ToList());
+            }
 
             return matches.Select(match => ToMatchDto(match, nowUtc, aggregates, participantsByMatch)).ToList();
         }
 
-        private async Task<MatchDto> ToMatchDtoAsync(Match match, DateTime nowUtc, CancellationToken ct)
+        private async Task<MatchDto> ToMatchDtoAsync(
+            Match match,
+            DateTime nowUtc,
+            bool includeParticipants,
+            CancellationToken ct)
         {
-            var items = await ToMatchDtosAsync([match], nowUtc, ct);
+            var items = await ToMatchDtosAsync([match], nowUtc, includeParticipants, ct);
             return items[0];
         }
 
