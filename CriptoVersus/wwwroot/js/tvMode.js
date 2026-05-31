@@ -707,7 +707,13 @@ const TACTICAL_STATES = {
     DefendZone: "DefendZone",
     MarkOpponent: "MarkOpponent",
     RunIntoSpace: "RunIntoSpace",
-    ReturnToFormation: "ReturnToFormation"
+    ReturnToFormation: "ReturnToFormation",
+    Press: "Press",
+    Track: "Track",
+    Intercept: "Intercept",
+    Cover: "Cover",
+    Hold: "Hold",
+    Fallback: "Fallback"
 };
 
 function normalizeFieldMovementOptions(options) {
@@ -927,13 +933,23 @@ function collectTacticalPlayers(root, state) {
             acceleration: { x: 0, y: 0 },
             target: { x: 0, y: 0 },
             tacticalState: TACTICAL_STATES.Idle,
+            tacticalDecision: null,
             freedomRadius: 0,
             maxSpeed: 0,
             maxForce: 0,
             wanderAngle: randomFloat01(stableSeed + 11) * Math.PI * 2,
             phase: randomFloat01(stableSeed + 17) * Math.PI * 2,
             stride: 0.84 + randomFloat01(stableSeed + 23) * 0.54,
-            sway: 0.82 + randomFloat01(stableSeed + 29) * 0.44
+            sway: 0.82 + randomFloat01(stableSeed + 29) * 0.44,
+            reactionDelayMs: 100 + Math.floor(randomFloat01(stableSeed + 53) * 700),
+            nextDecisionAt: 0,
+            targetCooldownUntil: 0,
+            targetEnemyKey: "",
+            targetThreatScore: 0,
+            lastDecisionReason: "",
+            tacticalRadiusMultiplier: 1,
+            tacticalSpeedMultiplier: 1,
+            tacticalForceMultiplier: 1
         };
 
         hydratePlayerFlags(player);
@@ -1184,6 +1200,7 @@ function applyTacticalFieldMotion(state, now) {
 
     const overlayRect = state.overlay.getBoundingClientRect();
     const ballInfo = resolveTacticalBallInfo(state, overlayRect);
+    const tacticalSnapshot = buildTacticalSnapshot(state, ballInfo, overlayRect, now);
 
     for (const player of state.players) {
         if (!player?.node?.isConnected) {
@@ -1191,22 +1208,24 @@ function applyTacticalFieldMotion(state, now) {
         }
 
         primeTacticalPlayer(player, state);
-        player.tacticalState = resolveTacticalState(player, state, ballInfo, overlayRect);
-        player.target = resolveTacticalTarget(player, state, ballInfo, overlayRect, now);
+        player.tacticalDecision = resolveTacticalDecision(player, state, ballInfo, tacticalSnapshot, overlayRect, now);
+        player.tacticalState = player.tacticalDecision?.state ?? TACTICAL_STATES.Idle;
+        hydrateTacticalMotionProfile(player);
+        player.target = resolveTacticalTarget(player, state, ballInfo, tacticalSnapshot, overlayRect, now);
         player.acceleration = { x: 0, y: 0 };
 
-        applySteeringForce(player, arriveSteeringForce(player, player.target), 1.1);
+        applySteeringForce(player, arriveSteeringForce(player, player.target), isHighUrgencyTacticalState(player.tacticalState) ? 1.85 : 1.15);
         applySteeringForce(player, separationSteeringForce(player, state.players, overlayRect, state.options.separationStrength), 1.2);
         applySteeringForce(player, avoidCrowdingForce(player, state.players, overlayRect), 0.9);
-        applySteeringForce(player, returnToFormationForce(player), 0.85);
+        applySteeringForce(player, returnToFormationForce(player), isActiveTacticalState(player.tacticalState) ? 0.22 : 0.85);
 
         if (state.options.tacticalMovementEnabled) {
-            applySteeringForce(player, wanderSteeringForce(player, dt, state.options.wanderStrength), 0.55);
+            applySteeringForce(player, wanderSteeringForce(player, dt, state.options.wanderStrength), isActiveTacticalState(player.tacticalState) ? 0.12 : 0.55);
         }
 
         player.velocity.x += player.acceleration.x * dt;
         player.velocity.y += player.acceleration.y * dt;
-        limitVectorMagnitude(player.velocity, Math.max(12, player.maxSpeed * state.options.animationSpeed));
+        limitVectorMagnitude(player.velocity, Math.max(12, player.maxSpeed * player.tacticalSpeedMultiplier * state.options.animationSpeed));
 
         player.position.x += player.velocity.x * dt;
         player.position.y += player.velocity.y * dt;
@@ -1231,8 +1250,62 @@ function applyTacticalFieldMotion(state, now) {
             player.node.style.setProperty("--tv-debug-target-y", `${(player.target.y - player.position.y).toFixed(2)}px`);
             player.node.style.setProperty("--tv-debug-vel-x", `${player.velocity.x.toFixed(2)}px`);
             player.node.style.setProperty("--tv-debug-vel-y", `${player.velocity.y.toFixed(2)}px`);
+            player.node.dataset.tacticalState = player.tacticalState || "";
+            player.node.dataset.tacticalEnemy = player.targetEnemyKey || "";
+            player.node.dataset.tacticalDestination = `${player.target.x.toFixed(1)},${player.target.y.toFixed(1)}`;
+            player.node.title = `${player.tacticalState || "Idle"} | enemy=${player.targetEnemyKey || "-"} | target=${player.target.x.toFixed(1)},${player.target.y.toFixed(1)} | reason=${player.lastDecisionReason || "-"}`;
         }
     }
+}
+
+function hydrateTacticalMotionProfile(player) {
+    switch (player.tacticalState) {
+        case TACTICAL_STATES.Press:
+            player.tacticalRadiusMultiplier = 2.3;
+            player.tacticalSpeedMultiplier = 1.42;
+            player.tacticalForceMultiplier = 1.7;
+            break;
+        case TACTICAL_STATES.Track:
+            player.tacticalRadiusMultiplier = 2.1;
+            player.tacticalSpeedMultiplier = 1.34;
+            player.tacticalForceMultiplier = 1.52;
+            break;
+        case TACTICAL_STATES.Intercept:
+            player.tacticalRadiusMultiplier = 2.2;
+            player.tacticalSpeedMultiplier = 1.38;
+            player.tacticalForceMultiplier = 1.62;
+            break;
+        case TACTICAL_STATES.Cover:
+        case TACTICAL_STATES.Fallback:
+            player.tacticalRadiusMultiplier = 1.8;
+            player.tacticalSpeedMultiplier = 1.2;
+            player.tacticalForceMultiplier = 1.32;
+            break;
+        case TACTICAL_STATES.Hold:
+            player.tacticalRadiusMultiplier = 1.35;
+            player.tacticalSpeedMultiplier = 1.04;
+            player.tacticalForceMultiplier = 1.08;
+            break;
+        default:
+            player.tacticalRadiusMultiplier = 1;
+            player.tacticalSpeedMultiplier = 1;
+            player.tacticalForceMultiplier = 1;
+            break;
+    }
+}
+
+function isActiveTacticalState(state) {
+    return state === TACTICAL_STATES.Press
+        || state === TACTICAL_STATES.Track
+        || state === TACTICAL_STATES.Intercept
+        || state === TACTICAL_STATES.Cover
+        || state === TACTICAL_STATES.Fallback;
+}
+
+function isHighUrgencyTacticalState(state) {
+    return state === TACTICAL_STATES.Press
+        || state === TACTICAL_STATES.Track
+        || state === TACTICAL_STATES.Intercept;
 }
 
 function resolveTacticalBallInfo(state, overlayRect) {
@@ -1256,42 +1329,291 @@ function resolveTacticalBallInfo(state, overlayRect) {
     };
 }
 
-function resolveTacticalState(player, state, ballInfo, overlayRect) {
-    if (player.role === "goalkeeper") {
-        return TACTICAL_STATES.Idle;
+function buildTacticalSnapshot(state, ballInfo, overlayRect, now) {
+    const players = state.players.filter((player) => player?.node?.isConnected);
+    const context = state.context;
+    const teamAPlayers = players.filter((player) => stringEquals(player.teamSymbol, context.teamA));
+    const teamBPlayers = players.filter((player) => stringEquals(player.teamSymbol, context.teamB));
+    const ownerTeam = ballInfo.owner || context.ballOwner || context.momentumOwner || context.teamA;
+    const ballSideY = overlayRect.height <= 0 ? 0.5 : clamp(ballInfo.y / overlayRect.height, 0, 1);
+    const defendingTeam = stringEquals(ownerTeam, context.teamA) ? context.teamB : context.teamA;
+
+    const teamInfo = new Map([
+        [context.teamA, { players: teamAPlayers, goalX: 0, defendDir: -1, attackDir: 1 }],
+        [context.teamB, { players: teamBPlayers, goalX: overlayRect.width, defendDir: 1, attackDir: -1 }]
+    ]);
+
+    const threatTable = new Map();
+    for (const [teamSymbol, info] of teamInfo.entries()) {
+        const opponents = players.filter((player) => !stringEquals(player.teamSymbol, teamSymbol));
+        const defenders = info.players;
+
+        for (const enemy of opponents) {
+            const enemyWorld = toTacticalWorldPoint(enemy, overlayRect);
+            const predicted = predictPlayerWorldPosition(enemy, overlayRect, 0.45);
+            const threat = evaluateThreat(enemy, enemyWorld, predicted, defenders, info.goalX, ballInfo, overlayRect, now);
+            threatTable.set(`${teamSymbol}|${enemy.key}`, threat);
+
+            if (threat.recentDangerous) {
+                state.threatMemory = state.threatMemory ?? new Map();
+                state.threatMemory.set(enemy.key, now + 2400);
+            }
+        }
     }
 
-    if (!state.options.tacticalMovementEnabled) {
-        return TACTICAL_STATES.Idle;
+    if (state.threatMemory instanceof Map) {
+        for (const [key, expiresAt] of state.threatMemory.entries()) {
+            if (expiresAt <= now) {
+                state.threatMemory.delete(key);
+            }
+        }
     }
 
-    const inPossession = stringEquals(player.teamSymbol, ballInfo.owner);
-    const nearBall = tacticalDistanceToBall(player, ballInfo, overlayRect) < player.freedomRadius * 1.9;
-
-    if (!inPossession && nearBall) {
-        return TACTICAL_STATES.PressBall;
-    }
-
-    if (!inPossession && player.role === "defender") {
-        return nearBall ? TACTICAL_STATES.MarkOpponent : TACTICAL_STATES.DefendZone;
-    }
-
-    if (inPossession && (player.hasBall || player.role === "attacker")) {
-        return TACTICAL_STATES.RunIntoSpace;
-    }
-
-    if (inPossession && (player.role === "midfielder" || player.isAttacking)) {
-        return TACTICAL_STATES.SupportAttack;
-    }
-
-    if (!inPossession && player.role === "midfielder") {
-        return TACTICAL_STATES.MarkOpponent;
-    }
-
-    return TACTICAL_STATES.ReturnToFormation;
+    return {
+        players,
+        now,
+        ownerTeam,
+        defendingTeam,
+        ballSideY,
+        teamInfo,
+        threatTable
+    };
 }
 
-function resolveTacticalTarget(player, state, ballInfo, overlayRect, now) {
+function evaluateThreat(enemy, enemyWorld, predictedWorld, defenders, ownGoalX, ballInfo, overlayRect, now) {
+    const goalDistance = Math.max(1, Math.abs(predictedWorld.x - ownGoalX));
+    const goalCloseness = clamp(1 - (goalDistance / Math.max(1, overlayRect.width * 0.78)), 0, 1);
+    const ballDistance = Math.max(1, Math.hypot(predictedWorld.x - ballInfo.x, predictedWorld.y - ballInfo.y));
+    const ballCloseness = clamp(1 - (ballDistance / Math.max(1, overlayRect.width * 0.42)), 0, 1);
+    const velocity = enemy.velocity ?? { x: 0, y: 0 };
+    const towardGoalDir = ownGoalX < enemyWorld.x ? -1 : 1;
+    const goalRun = clamp((velocity.x * towardGoalDir) / Math.max(1, enemy.maxSpeed || 1), -1, 1);
+    const nearestDefenderDistance = defenders.length === 0
+        ? overlayRect.width
+        : Math.min(...defenders.map((defender) => {
+            const defenderWorld = toTacticalWorldPoint(defender, overlayRect);
+            return Math.hypot(predictedWorld.x - defenderWorld.x, predictedWorld.y - defenderWorld.y);
+        }));
+    const isFree = clamp((nearestDefenderDistance - 26) / 120, 0, 1);
+    const passLane = evaluatePassLaneOpen(ballInfo, predictedWorld, defenders, overlayRect);
+    const recentDangerous = enemy.hasBall
+        || goalCloseness > 0.72
+        || (ballCloseness > 0.64 && passLane > 0.55)
+        || (goalRun > 0.32 && isFree > 0.45);
+
+    const score =
+        (goalCloseness * 34)
+        + (ballCloseness * 22)
+        + (Math.max(0, goalRun) * 14)
+        + (isFree * 12)
+        + (passLane * 10)
+        + (recentDangerous ? 8 : 0)
+        + (enemy.hasBall ? 12 : 0);
+
+    return {
+        score,
+        predictedWorld,
+        ballDistance,
+        goalDistance,
+        goalCloseness,
+        isFree,
+        passLane,
+        goalRun,
+        recentDangerous
+    };
+}
+
+function evaluatePassLaneOpen(ballInfo, targetWorld, defenders, overlayRect) {
+    if (!ballInfo?.carrier || defenders.length === 0) {
+        return 0.5;
+    }
+
+    const carrierWorld = { x: ballInfo.x, y: ballInfo.y };
+    const laneLength = Math.max(1, Math.hypot(targetWorld.x - carrierWorld.x, targetWorld.y - carrierWorld.y));
+    let bestBlock = 0;
+
+    for (const defender of defenders) {
+        const defenderWorld = toTacticalWorldPoint(defender, overlayRect);
+        const lanePoint = nearestPointOnSegment(defenderWorld, carrierWorld, targetWorld);
+        const laneDistance = Math.hypot(defenderWorld.x - lanePoint.x, defenderWorld.y - lanePoint.y);
+        const alongLane = Math.hypot(lanePoint.x - carrierWorld.x, lanePoint.y - carrierWorld.y) / laneLength;
+        const blockScore = clamp(1 - (laneDistance / 42), 0, 1) * clamp(1 - Math.abs(alongLane - 0.55) * 1.5, 0.2, 1);
+        if (blockScore > bestBlock) {
+            bestBlock = blockScore;
+        }
+    }
+
+    return clamp(1 - bestBlock, 0, 1);
+}
+
+function resolveTacticalDecision(player, state, ballInfo, snapshot, overlayRect, now) {
+    if (player.role === "goalkeeper" || !state.options.tacticalMovementEnabled) {
+        return {
+            state: TACTICAL_STATES.Idle,
+            targetEnemyKey: "",
+            threatScore: 0,
+            reason: "idle"
+        };
+    }
+
+    if (player.nextDecisionAt > now && player.tacticalDecision) {
+        return player.tacticalDecision;
+    }
+
+    const inPossession = stringEquals(player.teamSymbol, snapshot.ownerTeam);
+    let decision;
+
+    if (inPossession) {
+        decision = resolveOffensiveDecision(player, state, ballInfo, snapshot, overlayRect);
+    } else {
+        decision = resolveDefensiveDecision(player, state, ballInfo, snapshot, overlayRect, now);
+    }
+
+    const previousTarget = player.targetEnemyKey || "";
+    const nextTarget = decision.targetEnemyKey || "";
+    if (previousTarget && nextTarget && previousTarget !== nextTarget && player.targetCooldownUntil > now) {
+        decision = {
+            ...decision,
+            targetEnemyKey: previousTarget,
+            targetEnemy: decision.targetEnemyFallback ?? decision.targetEnemy ?? null,
+            reason: `${decision.reason}|cooldown-hold`
+        };
+    } else if (previousTarget !== nextTarget) {
+        player.targetCooldownUntil = now + 650;
+    }
+
+    player.targetEnemyKey = decision.targetEnemyKey || "";
+    player.targetThreatScore = decision.threatScore || 0;
+    player.lastDecisionReason = decision.reason || "";
+    player.nextDecisionAt = now + Math.max(110, Math.min(180, player.reactionDelayMs));
+    player.tacticalDecision = decision;
+
+    if (state.options.debug && throttleKey("TV_TACTIC", `${player.key}:${decision.state}:${player.targetEnemyKey || "none"}`, 1800)) {
+        console.log("[TV_TACTIC]", {
+            playerId: player.key,
+            defensiveState: decision.state,
+            targetEnemyId: player.targetEnemyKey || null,
+            threatScore: Number((decision.threatScore || 0).toFixed(2)),
+            reason: decision.reason
+        });
+    }
+
+    return decision;
+}
+
+function resolveOffensiveDecision(player, state, ballInfo, snapshot, overlayRect) {
+    if (player.hasBall || player.role === "attacker") {
+        return { state: TACTICAL_STATES.RunIntoSpace, targetEnemyKey: "", threatScore: 0, reason: "attack-run" };
+    }
+
+    if (player.role === "midfielder" || player.isAttacking) {
+        return { state: TACTICAL_STATES.SupportAttack, targetEnemyKey: "", threatScore: 0, reason: "support-attack" };
+    }
+
+    return { state: TACTICAL_STATES.Hold, targetEnemyKey: "", threatScore: 0, reason: "offensive-hold" };
+}
+
+function resolveDefensiveDecision(player, state, ballInfo, snapshot, overlayRect, now) {
+    const enemyPlayers = snapshot.players.filter((candidate) => !stringEquals(candidate.teamSymbol, player.teamSymbol));
+    const pressPlayers = ballInfo.carrier ? resolvePressPlayers(player.teamSymbol, ballInfo.carrier, snapshot.players, overlayRect) : [];
+    if (pressPlayers.some((candidate) => candidate.key === player.key)) {
+        return {
+            state: TACTICAL_STATES.Press,
+            targetEnemyKey: ballInfo.carrier.key,
+            targetEnemy: ballInfo.carrier,
+            threatScore: 100,
+            reason: pressPlayers[0]?.key === player.key ? "primary-press" : "secondary-press"
+        };
+    }
+
+    const threats = enemyPlayers
+        .map((enemy) => ({ enemy, threat: snapshot.threatTable.get(`${player.teamSymbol}|${enemy.key}`) }))
+        .filter((item) => item.threat)
+        .sort((a, b) => b.threat.score - a.threat.score);
+
+    const ownWorld = toTacticalWorldPoint(player, overlayRect);
+    let chosen = null;
+    let bestScore = -Infinity;
+    for (const item of threats) {
+        const targetWorld = item.threat.predictedWorld;
+        const distancePenalty = Math.hypot(targetWorld.x - ownWorld.x, targetWorld.y - ownWorld.y) * 0.18;
+        const roleBias = player.role === "defender" ? 7 : player.role === "midfielder" ? 4 : -6;
+        const score = item.threat.score - distancePenalty + roleBias;
+        if (score > bestScore) {
+            bestScore = score;
+            chosen = item;
+        }
+    }
+
+    const pressure = stringEquals(player.teamSymbol, state.context.teamA) ? state.context.pressureA : state.context.pressureB;
+    const fallbackBias = pressure < -1.15 || player.role === "defender";
+
+    if (chosen) {
+        const laneCarrier = ballInfo.carrier && !stringEquals(ballInfo.carrier.key, chosen.enemy.key);
+        if (laneCarrier && chosen.threat.passLane > 0.55 && player.role !== "attacker") {
+            return {
+                state: TACTICAL_STATES.Intercept,
+                targetEnemyKey: chosen.enemy.key,
+                targetEnemy: chosen.enemy,
+                threatScore: chosen.threat.score,
+                reason: "open-pass-lane"
+            };
+        }
+
+        if (chosen.threat.score >= 38 || chosen.threat.recentDangerous) {
+            return {
+                state: TACTICAL_STATES.Track,
+                targetEnemyKey: chosen.enemy.key,
+                targetEnemy: chosen.enemy,
+                threatScore: chosen.threat.score,
+                reason: "high-threat-runner"
+            };
+        }
+    }
+
+    if (fallbackBias) {
+        return { state: TACTICAL_STATES.Fallback, targetEnemyKey: "", threatScore: 0, reason: "defensive-recovery" };
+    }
+
+    if (player.role === "midfielder" || player.role === "defender") {
+        return { state: TACTICAL_STATES.Cover, targetEnemyKey: chosen?.enemy?.key || "", targetEnemy: chosen?.enemy || null, threatScore: chosen?.threat?.score || 0, reason: "cover-space" };
+    }
+
+    return { state: TACTICAL_STATES.Hold, targetEnemyKey: "", threatScore: 0, reason: "hold-shape" };
+}
+
+function resolvePressPlayers(teamSymbol, ballCarrier, players, overlayRect) {
+    const defenders = players.filter((candidate) => stringEquals(candidate.teamSymbol, teamSymbol) && !candidate.hasBall && candidate.role !== "goalkeeper");
+    if (defenders.length === 0) {
+        return [];
+    }
+
+    const carrierWorld = toTacticalWorldPoint(ballCarrier, overlayRect);
+    const ranked = defenders
+        .map((candidate) => ({
+            candidate,
+            distance: Math.hypot(
+                toTacticalWorldPoint(candidate, overlayRect).x - carrierWorld.x,
+                toTacticalWorldPoint(candidate, overlayRect).y - carrierWorld.y),
+            supportBias: candidate.role === "midfielder" ? -10 : candidate.role === "defender" ? -4 : 4
+        }))
+        .sort((a, b) => (a.distance + a.supportBias) - (b.distance + b.supportBias));
+
+    const primary = ranked[0]?.candidate;
+    const secondary = ranked[1];
+    if (!primary) {
+        return [];
+    }
+
+    const active = [primary];
+    if (secondary && secondary.distance <= ranked[0].distance + 38 && secondary.candidate.role !== "attacker") {
+        active.push(secondary.candidate);
+    }
+
+    return active;
+}
+
+function resolveTacticalTarget(player, state, ballInfo, snapshot, overlayRect, now) {
     const context = state.context;
     const dir = player.side === "left" ? 1 : -1;
     const possession = stringEquals(player.teamSymbol, context.teamA) ? context.possessionA : context.possessionB;
@@ -1304,9 +1626,70 @@ function resolveTacticalTarget(player, state, ballInfo, overlayRect, now) {
     const shapeBias = clamp((possession - 50) / 50, -1, 1);
     const wanderSeed = player.seed + Math.floor(now / 520);
     const wander = randomPointInCircle(radius * (0.22 + state.options.wanderStrength * 0.16), wanderSeed);
+    const decision = player.tacticalDecision ?? null;
+    const ownGoalX = player.side === "left" ? 0 : overlayRect.width;
+    const ballSlideY = ((ballInfo.y / Math.max(1, overlayRect.height)) - 0.5) * radius * 0.52;
     let target = { x: 0, y: 0 };
 
-    switch (player.tacticalState) {
+    switch (decision?.state ?? player.tacticalState) {
+        case TACTICAL_STATES.Press: {
+            const enemy = decision?.targetEnemy ?? ballInfo.carrier;
+            const future = enemy ? predictPlayerWorldPosition(enemy, overlayRect, 0.2) : { x: ballInfo.x, y: ballInfo.y };
+            target = worldTargetToLocal(player, overlayRect, {
+                x: future.x + (dir * -10),
+                y: future.y
+            });
+            break;
+        }
+        case TACTICAL_STATES.Track: {
+            const enemy = decision?.targetEnemy;
+            if (enemy) {
+                const future = predictPlayerWorldPosition(enemy, overlayRect, 0.4);
+                const markDistance = player.role === "defender" ? 12 : 16;
+                const goalSide = ownGoalX < future.x ? 1 : -1;
+                target = worldTargetToLocal(player, overlayRect, {
+                    x: future.x + (goalSide * markDistance),
+                    y: future.y
+                });
+            }
+            break;
+        }
+        case TACTICAL_STATES.Intercept: {
+            const enemy = decision?.targetEnemy;
+            const carrier = ballInfo.carrier;
+            if (enemy && carrier) {
+                const futureEnemy = predictPlayerWorldPosition(enemy, overlayRect, 0.45);
+                const futureCarrier = predictPlayerWorldPosition(carrier, overlayRect, 0.18);
+                const ownWorld = toTacticalWorldPoint(player, overlayRect);
+                const lanePoint = nearestPointOnSegment(ownWorld, futureCarrier, futureEnemy);
+                target = worldTargetToLocal(player, overlayRect, {
+                    x: lanePoint.x + ((ownGoalX < lanePoint.x ? -1 : 1) * 4),
+                    y: lanePoint.y
+                });
+            }
+            break;
+        }
+        case TACTICAL_STATES.Cover: {
+            const compactY = ballSlideY * 0.9;
+            const coverDepth = player.role === "defender" ? -dir * radius * (0.18 + compactness * 0.18) : -dir * radius * 0.06;
+            target = {
+                x: coverDepth,
+                y: clamp(compactY - player.position.y * 0.12, -radius * 0.44, radius * 0.44)
+            };
+            break;
+        }
+        case TACTICAL_STATES.Hold:
+            target = {
+                x: inPossession ? dir * radius * 0.04 : -dir * radius * 0.1 * compactness,
+                y: clamp(ballSlideY * 0.62 - player.position.y * 0.14, -radius * 0.34, radius * 0.34)
+            };
+            break;
+        case TACTICAL_STATES.Fallback:
+            target = {
+                x: -dir * radius * (0.28 + compactness * 0.18),
+                y: clamp(ballSlideY * 0.82 - player.position.y * 0.16, -radius * 0.4, radius * 0.4)
+            };
+            break;
         case TACTICAL_STATES.PressBall:
             target = {
                 x: dir * radius * (0.34 + shapeBias * 0.18),
@@ -1361,7 +1744,46 @@ function resolveTacticalTarget(player, state, ballInfo, overlayRect, now) {
         target.x += dir * radius * 0.08 * momentumPush;
     }
 
-    return clampTacticalTarget(target, radius);
+    const targetRadius = radius * Math.max(1, player.tacticalRadiusMultiplier || 1);
+    return clampTacticalTarget(target, targetRadius);
+}
+
+function getPlayerBaseWorldPoint(player, overlayRect) {
+    return {
+        x: (player.baseXPercent / 100) * overlayRect.width,
+        y: (player.baseYPercent / 100) * overlayRect.height
+    };
+}
+
+function worldTargetToLocal(player, overlayRect, worldTarget) {
+    const base = getPlayerBaseWorldPoint(player, overlayRect);
+    return {
+        x: worldTarget.x - base.x,
+        y: worldTarget.y - base.y
+    };
+}
+
+function predictPlayerWorldPosition(player, overlayRect, predictionTime = 0.35) {
+    const world = toTacticalWorldPoint(player, overlayRect);
+    return {
+        x: world.x + ((player.velocity?.x || 0) * predictionTime),
+        y: world.y + ((player.velocity?.y || 0) * predictionTime)
+    };
+}
+
+function nearestPointOnSegment(point, start, end) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const lengthSq = (dx * dx) + (dy * dy);
+    if (lengthSq <= 0.0001) {
+        return { x: start.x, y: start.y };
+    }
+
+    const t = clamp((((point.x - start.x) * dx) + ((point.y - start.y) * dy)) / lengthSq, 0, 1);
+    return {
+        x: start.x + (dx * t),
+        y: start.y + (dy * t)
+    };
 }
 
 function arriveSteeringForce(player, target) {
@@ -1380,7 +1802,7 @@ function arriveSteeringForce(player, target) {
     const steer = scaleVector(normalizeVector(desired), speed);
     steer.x -= player.velocity.x;
     steer.y -= player.velocity.y;
-    return limitVectorMagnitude(steer, player.maxForce);
+    return limitVectorMagnitude(steer, player.maxForce * (player.tacticalForceMultiplier || 1));
 }
 
 function wanderSteeringForce(player, dt, strength) {
@@ -1430,7 +1852,7 @@ function separationSteeringForce(player, players, overlayRect, strength) {
     steer = scaleVector(normalizeVector(steer), player.maxSpeed);
     steer.x -= player.velocity.x;
     steer.y -= player.velocity.y;
-    return limitVectorMagnitude(scaleVector(steer, strength), player.maxForce * 1.1);
+    return limitVectorMagnitude(scaleVector(steer, strength), player.maxForce * (player.tacticalForceMultiplier || 1) * 1.1);
 }
 
 function avoidCrowdingForce(player, players, overlayRect) {
@@ -1454,7 +1876,7 @@ function avoidCrowdingForce(player, players, overlayRect) {
         steer.y += dy / distance;
     }
 
-    return limitVectorMagnitude(steer, player.maxForce * 0.6);
+    return limitVectorMagnitude(steer, player.maxForce * (player.tacticalForceMultiplier || 1) * 0.6);
 }
 
 function returnToFormationForce(player) {
@@ -1466,7 +1888,7 @@ function returnToFormationForce(player) {
     const desired = scaleVector(normalizeVector(scaleVector(player.position, -1)), player.maxSpeed * 0.55);
     desired.x -= player.velocity.x;
     desired.y -= player.velocity.y;
-    return limitVectorMagnitude(desired, player.maxForce * 0.7);
+    return limitVectorMagnitude(desired, player.maxForce * (player.tacticalForceMultiplier || 1) * 0.7);
 }
 
 function applySteeringForce(player, force, weight = 1) {
@@ -1543,13 +1965,14 @@ function resolveTacticalVisualOffset(player, now) {
 
 function clampPlayerToFreedomRadius(player) {
     const distance = vectorMagnitude(player.position);
-    if (distance <= player.freedomRadius) {
+    const activeRadius = player.freedomRadius * Math.max(1, player.tacticalRadiusMultiplier || 1);
+    if (distance <= activeRadius) {
         return;
     }
 
     const normalized = normalizeVector(player.position);
-    player.position.x = normalized.x * player.freedomRadius;
-    player.position.y = normalized.y * player.freedomRadius;
+    player.position.x = normalized.x * activeRadius;
+    player.position.y = normalized.y * activeRadius;
     player.velocity.x *= 0.78;
     player.velocity.y *= 0.78;
 }
