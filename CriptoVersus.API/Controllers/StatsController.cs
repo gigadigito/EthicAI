@@ -32,6 +32,7 @@ public sealed class StatsController : ControllerBase
     {
         var activityCutoffUtc = DateTime.UtcNow.Date.AddDays(-(ActivityWindowDays - 1));
         var visibleMatches = await LoadVisibleMatchesAsync(ct);
+        var nowUtc = DateTime.UtcNow;
 
         var overview = new StatsOverviewDto
         {
@@ -57,6 +58,13 @@ public sealed class StatsController : ControllerBase
                     .DefaultIfEmpty()
                     .Max()
         };
+
+        overview.IsStale = !overview.LastUpdatedUtc.HasValue || nowUtc - overview.LastUpdatedUtc.Value > TimeSpan.FromMinutes(10);
+        overview.StaleReason = !overview.LastUpdatedUtc.HasValue
+            ? "match-stats-missing"
+            : overview.IsStale
+                ? "match-stats-stale"
+                : null;
 
         overview.TopTeams = BuildTopTeams(visibleMatches);
         overview.MatchActivity = BuildMatchActivity(visibleMatches, activityCutoffUtc);

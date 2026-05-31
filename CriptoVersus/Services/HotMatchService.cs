@@ -7,6 +7,7 @@ namespace CriptoVersus.Web.Services;
 public sealed class HotMatchService
 {
     private const string CacheKey = "hot-match-feed-v1";
+    private const string LastKnownGoodCacheKey = "hot-match-feed-v1:last-good";
     private static readonly SemaphoreSlim CacheLock = new(1, 1);
 
     private readonly CriptoVersusApiClient _api;
@@ -38,7 +39,17 @@ public sealed class HotMatchService
                 return cached;
 
             var items = await LoadHotMatchesCoreAsync(ct);
+            if (items.Count == 0 &&
+                _cache.TryGetValue<IReadOnlyList<HotMatchDto>>(LastKnownGoodCacheKey, out var lastKnownGood) &&
+                lastKnownGood is { Count: > 0 })
+            {
+                _logger.LogWarning("[HOT_MATCH] Using last known good feed because live load returned empty. Count={Count}", lastKnownGood.Count);
+                items = lastKnownGood;
+            }
+
             _cache.Set(CacheKey, items, TimeSpan.FromSeconds(10));
+            if (items.Count > 0)
+                _cache.Set(LastKnownGoodCacheKey, items, TimeSpan.FromMinutes(2));
             return items;
         }
         finally

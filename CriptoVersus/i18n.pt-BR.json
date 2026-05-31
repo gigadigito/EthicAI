@@ -1105,7 +1105,15 @@
       "mainMatchCta": "Entrar no Broadcast",
       "openBroadcastAria": "Abrir o broadcast fixo de {0}",
       "overlayTitle": "Assistir Broadcast",
-      "overlaySubtitle": "Ao vivo agora"
+      "overlaySubtitle": "Ao vivo agora",
+      "signalDegraded": "Sinal degradado",
+      "dataStatusTitle": "Feed operando com dados em recuperacao",
+      "dataStatusFallback": "O broadcast continua online com o ultimo snapshot valido enquanto a arena recompõe o fluxo ao vivo.",
+      "dataStatusWorkerHeartbeat": "O worker ficou sem heartbeat recente. A transmissao segue no ar usando dados estaveis ate o pipeline voltar.",
+      "dataStatusWorkerDegraded": "O worker entrou em modo degradado. A arena manteve o sinal no ar com fallback em vez de apagar os paineis.",
+      "dataStatusCurrencyMissing": "O snapshot publico de moedas nao foi encontrado agora. A tela esta segurando o ultimo quadro confiavel.",
+      "dataStatusCurrencyStale": "O snapshot de mercado ficou stale. O broadcast segue mostrando o ultimo ranking util enquanto a coleta retoma.",
+      "dataStatusStatsStale": "As estatisticas publicas ficaram stale temporariamente. A arena segue no ar com os dados mais recentes disponiveis."
     },
     "promo": {
       "chooseSide": "ESCOLHA UM LADO!",

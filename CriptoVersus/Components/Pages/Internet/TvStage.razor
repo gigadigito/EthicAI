@@ -170,7 +170,7 @@
                         @T("labels.liveArena")
                     </span>
                     <span class="tv-pill">@T("labels.automaticBroadcast")</span>
-                    <span class="tv-pill tv-pill--signal">@T("labels.signalStable")</span>
+                    <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
                     <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
                     @if (ShouldRenderCrowdAudio)
                     {
@@ -182,6 +182,14 @@
                     }
                 </div>
             </header>
+
+            @if (ShouldShowDataStatusBanner)
+            {
+                <div class="tv-stage__status-banner" aria-live="polite" aria-atomic="true">
+                    <strong>@T("broadcast.dataStatusTitle")</strong>
+                    <span>@BroadcastDataStatusMessage</span>
+                </div>
+            }
 
             @if (IsBroadcastMode && !string.IsNullOrWhiteSpace(CurrentMatchUrl))
             {
@@ -911,6 +919,11 @@ else
     private string BroadcastFocusKey => _broadcastFocusKey;
     private string BroadcastFocusColor => _broadcastFocusColor;
     private int _broadcastFocusVariantIndex;
+    private bool IsDataStale => Snapshot?.IsStale == true || Stats?.IsStale == true;
+    private bool ShouldShowDataStatusBanner => IsBroadcastMode && IsDataStale;
+    private string SignalBadgeClass => IsDataStale ? "tv-pill tv-pill--signal tv-pill--warning" : "tv-pill tv-pill--signal";
+    private string SignalBadgeLabel => IsDataStale ? T("broadcast.signalDegraded") : T("labels.signalStable");
+    private string BroadcastDataStatusMessage => ResolveBroadcastDataStatusMessage();
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
@@ -931,6 +944,27 @@ else
     private string PirateCopyEyebrow => IsPortugueseCulture ? "Transmissao interceptada" : "Intercepted transmission";
     private string PirateFooterLeft => IsPortugueseCulture ? "HUD sincrono ativo" : "Synchronous HUD online";
     private string PirateFooterRight => IsPortugueseCulture ? "Feed clandestino" : "Clandestine feed";
+
+    private string ResolveBroadcastDataStatusMessage()
+    {
+        var snapshotReason = Snapshot?.StaleReason;
+        if (string.Equals(snapshotReason, "worker-heartbeat-stale", StringComparison.OrdinalIgnoreCase))
+            return T("broadcast.dataStatusWorkerHeartbeat");
+
+        if (string.Equals(snapshotReason, "worker-degraded", StringComparison.OrdinalIgnoreCase))
+            return T("broadcast.dataStatusWorkerDegraded");
+
+        if (string.Equals(snapshotReason, "currency-snapshot-missing", StringComparison.OrdinalIgnoreCase))
+            return T("broadcast.dataStatusCurrencyMissing");
+
+        if (string.Equals(snapshotReason, "currency-snapshot-stale", StringComparison.OrdinalIgnoreCase))
+            return T("broadcast.dataStatusCurrencyStale");
+
+        if (Stats?.IsStale == true)
+            return T("broadcast.dataStatusStatsStale");
+
+        return T("broadcast.dataStatusFallback");
+    }
 
     protected override void OnParametersSet()
     {
@@ -5828,6 +5862,12 @@ else
         background: rgba(83, 200, 255, 0.1);
     }
 
+    .tv-pill--warning {
+        border-color: rgba(255, 184, 77, 0.32);
+        background: rgba(255, 184, 77, 0.14);
+        color: #ffe1a8;
+    }
+
     .tv-pill--audio {
         cursor: pointer;
         border-color: rgba(255,255,255,0.14);
@@ -5873,6 +5913,30 @@ else
     .tv-broadcast-notice span {
         color: var(--tv-muted);
         font-size: .82rem;
+    }
+
+    .tv-stage__status-banner {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 18px;
+        padding: 12px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 184, 77, 0.24);
+        background: linear-gradient(180deg, rgba(49, 31, 7, 0.86), rgba(15, 12, 18, 0.96));
+        box-shadow: 0 14px 32px rgba(0,0,0,0.18);
+    }
+
+    .tv-stage__status-banner strong {
+        font-size: .8rem;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        color: #ffd27a;
+    }
+
+    .tv-stage__status-banner span {
+        color: rgba(242, 246, 255, 0.84);
+        font-size: .92rem;
+        line-height: 1.45;
     }
 
     .tv-broadcast-focus-bar {

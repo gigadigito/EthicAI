@@ -9,12 +9,17 @@ namespace DTOs
     public class WorkerStatusDto
     {
         public string ServiceName { get; set; } = "CriptoVersus.Worker";
+        public string? Status { get; set; }
 
         public bool IsAlive { get; set; }              // heartbeat ok?
         public DateTime LastHeartbeatUtc { get; set; } // última vez que o worker rodou
 
         public DateTime? LastCycleStartUtc { get; set; }
         public DateTime? LastCycleEndUtc { get; set; }
+        public DateTime? LastSuccessUtc { get; set; }
+        public int? LastCycleDurationMs { get; set; }
+        public bool IsDegraded { get; set; }
+        public string? HealthJson { get; set; }
 
         public string? LastError { get; set; }         // msg curta
         public DateTime? LastErrorUtc { get; set; }

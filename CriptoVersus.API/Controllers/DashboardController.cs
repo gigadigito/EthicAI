@@ -51,6 +51,7 @@ namespace CriptoVersus.API.Controllers
                 ct: ct);
 
             var topGainersTask = GetTopGainersAsync(top, ct);
+            var latestCurrencyUpdateTask = GetLatestCurrencyUpdateAsync(ct);
             var ongoingListTask = GetOngoingListAsync(ongoing, now, matchDurationMinutes, ct);
             var pendingListTask = GetPendingListAsync(pending, now, matchDurationMinutes, ct);
             var completedListTask = GetCompletedListAsync(ongoing, now, last24h, matchDurationMinutes, ct);
@@ -62,6 +63,7 @@ namespace CriptoVersus.API.Controllers
             await Task.WhenAll(
                 workerTask,
                 topGainersTask,
+                latestCurrencyUpdateTask,
                 ongoingListTask,
                 pendingListTask,
                 completedListTask,
@@ -69,10 +71,33 @@ namespace CriptoVersus.API.Controllers
                 ongoingCountTask,
                 completedLast24hTask);
 
+            var latestCurrencyUpdateUtc = latestCurrencyUpdateTask.Result;
+            var snapshotAgeSeconds = latestCurrencyUpdateUtc.HasValue
+                ? Math.Max(0, (int)Math.Round((now - latestCurrencyUpdateUtc.Value).TotalSeconds))
+                : (int?)null;
+            var worker = workerTask.Result;
+            var isStale = worker.IsDegraded
+                || !worker.IsAlive
+                || !latestCurrencyUpdateUtc.HasValue
+                || now - latestCurrencyUpdateUtc.Value > TimeSpan.FromMinutes(10);
+
+            var staleReason = !worker.IsAlive
+                ? "worker-heartbeat-stale"
+                : worker.IsDegraded
+                    ? "worker-degraded"
+                    : !latestCurrencyUpdateUtc.HasValue
+                        ? "currency-snapshot-missing"
+                        : now - latestCurrencyUpdateUtc.Value > TimeSpan.FromMinutes(10)
+                            ? "currency-snapshot-stale"
+                            : null;
+
             return Ok(new DashboardSnapshotDto
             {
                 ServerTimeUtc = now,
-                Worker = workerTask.Result,
+                Worker = worker,
+                IsStale = isStale,
+                SnapshotAgeSeconds = snapshotAgeSeconds,
+                StaleReason = staleReason,
                 TopGainers = topGainersTask.Result,
                 Matches = new MatchSummaryDto
                 {
@@ -92,10 +117,48 @@ namespace CriptoVersus.API.Controllers
 
             var minUtc = DateTime.UtcNow.AddMinutes(-10);
 
-            var list = await db.Set<Currency>()
+            var list = await QueryTopGainersAsync(
+                db,
+                query => query.Where(c => c.LastUpdated >= minUtc),
+                ct);
+
+            if (list.Count == 0)
+            {
+                var latestCurrencyUpdateUtc = await db.Set<Currency>()
+                    .AsNoTracking()
+                    .MaxAsync(c => (DateTime?)c.LastUpdated, ct);
+
+                if (latestCurrencyUpdateUtc.HasValue)
+                {
+                    var fallbackWindowStartUtc = latestCurrencyUpdateUtc.Value.AddMinutes(-2);
+                    list = await QueryTopGainersAsync(
+                        db,
+                        query => query.Where(c => c.LastUpdated >= fallbackWindowStartUtc),
+                        ct);
+                }
+            }
+
+            list = list
+                .Where(c => !MatchPairRules.IsForbiddenStablecoin(c.Symbol, _config))
+                .Take(top)
+                .ToList();
+
+            for (int i = 0; i < list.Count; i++)
+                list[i].Rank = i + 1;
+
+            return list;
+        }
+
+        private static async Task<List<CurrencyDto>> QueryTopGainersAsync(
+            EthicAIDbContext db,
+            Func<IQueryable<Currency>, IQueryable<Currency>> scope,
+            CancellationToken ct)
+        {
+            var baseQuery = db.Set<Currency>()
                 .AsNoTracking()
-                .Where(c => c.Symbol != null && EF.Functions.ILike(c.Symbol, "%USDT"))
-                .Where(c => c.LastUpdated >= minUtc)
+                .Where(c => c.Symbol != null && EF.Functions.ILike(c.Symbol, "%USDT"));
+
+            return await scope(baseQuery)
                 .OrderByDescending(c => c.PercentageChange)
                 .ThenByDescending(c => c.LastUpdated)
                 .Select(c => new CurrencyDto
@@ -107,16 +170,14 @@ namespace CriptoVersus.API.Controllers
                     Rank = 0
                 })
                 .ToListAsync(ct);
+        }
 
-            list = list
-                .Where(c => !MatchPairRules.IsForbiddenStablecoin(c.Symbol, _config))
-                .Take(top)
-                .ToList();
-
-            for (int i = 0; i < list.Count; i++)
-                list[i].Rank = i + 1;
-
-            return list;
+        private async Task<DateTime?> GetLatestCurrencyUpdateAsync(CancellationToken ct)
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync(ct);
+            return await db.Set<Currency>()
+                .AsNoTracking()
+                .MaxAsync(c => (DateTime?)c.LastUpdated, ct);
         }
 
         private async Task<List<MatchDto>> GetOngoingListAsync(int take, DateTime now, int matchDurationMinutes, CancellationToken ct)
@@ -358,6 +419,10 @@ LIMIT 1;";
             dto.LastHeartbeatUtc = lastHeartbeat ?? (lastSuccess ?? DateTime.MinValue);
             dto.LastCycleStartUtc = lastCycleStart;
             dto.LastCycleEndUtc = lastCycleEnd;
+            dto.LastSuccessUtc = lastSuccess;
+            dto.Status = status;
+            dto.IsDegraded = degraded;
+            dto.HealthJson = healthJson;
             dto.LastError = string.IsNullOrWhiteSpace(lastErr) ? null : lastErr;
             dto.LastErrorUtc = null;
 

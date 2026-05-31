@@ -4,6 +4,9 @@ namespace DTOs
     public class DashboardSnapshotDto
     {
         public DateTime ServerTimeUtc { get; set; }
+        public bool IsStale { get; set; }
+        public int? SnapshotAgeSeconds { get; set; }
+        public string? StaleReason { get; set; }
 
         public WorkerStatusDto Worker { get; set; } = new();
 

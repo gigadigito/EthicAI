@@ -25,8 +25,6 @@ docker compose logs -f --tail 300 criptoversus-worker
 
 
 
-
-
 cd /home/admin/stacks/criptoversus-web/src
 
 git status

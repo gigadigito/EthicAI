@@ -17,6 +17,7 @@ public sealed class ArenaSentimentService : IArenaSentimentService
 {
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(45);
     private static readonly TimeSpan FuturesExchangeInfoCacheDuration = TimeSpan.FromMinutes(30);
+    private static readonly TimeSpan BinanceRequestTimeout = TimeSpan.FromSeconds(6);
     private const string FuturesExchangeInfoCacheKey = "arena-sentiment:futures-exchange-info";
     private const decimal PriceMomentumWeight = 0.30m;
     private const decimal VolumeWeight = 0.20m;
@@ -522,10 +523,12 @@ public sealed class ArenaSentimentService : IArenaSentimentService
         string? symbol = null,
         bool futuresEndpoint = false)
     {
-        using var response = await _httpClient.GetAsync(url, ct);
+        using var requestCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        requestCts.CancelAfter(BinanceRequestTimeout);
+        using var response = await _httpClient.GetAsync(url, requestCts.Token);
         if (!response.IsSuccessStatusCode)
         {
-            var responseBody = await SafeReadBodyAsync(response, ct);
+            var responseBody = await SafeReadBodyAsync(response, requestCts.Token);
             LogBinanceHttpFailure(response, url, symbol, required, futuresEndpoint, responseBody);
 
             if (required)
@@ -534,7 +537,7 @@ public sealed class ArenaSentimentService : IArenaSentimentService
             return default;
         }
 
-        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken: requestCts.Token);
     }
 
     private void LogBinanceHttpFailure(HttpResponseMessage response, string url, string? symbol, bool required, bool futuresEndpoint, string? responseBody)

@@ -46,10 +46,17 @@ Console.WriteLine($"Worker Interval: {interval}");
 Console.WriteLine("=================================");
 Console.ResetColor();
 
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient().ConfigureHttpClient(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(12);
+});
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>();
+builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>()
+    .ConfigureHttpClient(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(8);
+    });
 builder.Services.Configure<CriptoVersusWorkerOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker"));
 builder.Services.Configure<DataRetentionOptions>(

@@ -1105,7 +1105,15 @@
       "mainMatchCta": "Enter Broadcast",
       "openBroadcastAria": "Open the fixed broadcast for {0}",
       "overlayTitle": "Watch Broadcast",
-      "overlaySubtitle": "Live now"
+      "overlaySubtitle": "Live now",
+      "signalDegraded": "Signal degraded",
+      "dataStatusTitle": "Feed running on recovery data",
+      "dataStatusFallback": "The broadcast is staying online with the last valid snapshot while the arena rebuilds the live flow.",
+      "dataStatusWorkerHeartbeat": "The worker missed recent heartbeats. The broadcast remains online with stable data until the pipeline resumes.",
+      "dataStatusWorkerDegraded": "The worker entered degraded mode. The arena kept the signal online with fallback data instead of clearing the panels.",
+      "dataStatusCurrencyMissing": "The public currency snapshot is missing right now. The screen is holding the last reliable frame.",
+      "dataStatusCurrencyStale": "The market snapshot went stale. The broadcast is still showing the last useful ranking while ingestion recovers.",
+      "dataStatusStatsStale": "Public statistics are temporarily stale. The arena remains online with the most recent available data."
     },
     "promo": {
       "chooseSide": "CHOOSE A SIDE!",

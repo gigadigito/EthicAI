@@ -8,6 +8,8 @@ public sealed class StatsOverviewDto
     public decimal AverageScore { get; set; }
     public int HighestScore { get; set; }
     public DateTime? LastUpdatedUtc { get; set; }
+    public bool IsStale { get; set; }
+    public string? StaleReason { get; set; }
     public List<StatsAssetPerformanceDto> TopTeams { get; set; } = [];
     public List<StatsMatchActivityDto> MatchActivity { get; set; } = [];
     public List<StatsLatestMatchDto> LatestMatches { get; set; } = [];

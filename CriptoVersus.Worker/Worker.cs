@@ -37,8 +37,10 @@ namespace CriptoVersus.Worker
 
         private const string WorkerName = "CriptoVersus.Worker";
 
-        private static readonly TimeSpan CycleInterval = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan DefaultCycleInterval = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan MatchDuration = TimeSpan.FromMinutes(90);
+        private static readonly TimeSpan ExternalRequestTimeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan FreshCurrencyWindow = TimeSpan.FromMinutes(10);
 
         private const int DesiredOngoing = 10;
         private const int DesiredPending = 10;
@@ -92,7 +94,7 @@ namespace CriptoVersus.Worker
             while (!stoppingToken.IsCancellationRequested)
             {
                 await ExecuteCycleWithStatusAsync(stoppingToken);
-                await Task.Delay(CycleInterval, stoppingToken);
+                await Task.Delay(GetCycleInterval(), stoppingToken);
             }
         }
 
@@ -156,6 +158,7 @@ namespace CriptoVersus.Worker
             using var scope = _sp.CreateScope();
 
             var http = _httpClientFactory.CreateClient();
+            http.Timeout = ExternalRequestTimeout;
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
@@ -165,8 +168,14 @@ namespace CriptoVersus.Worker
             var positionService = scope.ServiceProvider.GetRequiredService<IPositionOrchestrationService>();
 
             var nowUtc = DateTime.UtcNow;
+            var cycleStartUtc = nowUtc;
 
-            var topGainers = await LoadTopGainersAsync(http, ct);
+            var topGainers = await ExecuteStageAsync(
+                "load-top-gainers",
+                cycleStartUtc,
+                heartbeatOnly: false,
+                action: innerCt => LoadTopGainersAsync(http, innerCt),
+                ct);
             var hasHealthySnapshot = topGainers.Count >= 6;
             if (!hasHealthySnapshot)
             {
@@ -187,34 +196,41 @@ namespace CriptoVersus.Worker
 
             if (topGainers.Count > 0)
             {
-                var currencies = await matchService.SaveCurrenciesAsync(topGainers);
+                var currencies = await ExecuteStageAsync(
+                    "save-currencies",
+                    cycleStartUtc,
+                    heartbeatOnly: false,
+                    action: innerCt => matchService.SaveCurrenciesAsync(topGainers),
+                    ct);
                 currencyBySymbol = BuildCurrencyMap(currencies);
                 allowedSymbols = BuildAllowedSet(snapshot);
             }
 
-            await NormalizePendingWindowsAsync(db, nowUtc, ct);
-            await PromoteDuePendingToOngoingAsync(db, nowUtc, ct);
-            await CancelVeryOldPendingAsync(db, nowUtc, ct);
+            await ExecuteStageAsync("normalize-pending-initial", cycleStartUtc, true, innerCt => NormalizePendingWindowsAsync(db, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("promote-due-pending", cycleStartUtc, true, innerCt => PromoteDuePendingToOngoingAsync(db, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("cancel-stale-pending", cycleStartUtc, true, innerCt => CancelVeryOldPendingAsync(db, nowUtc, innerCt), ct);
             if (hasHealthySnapshot)
-                await CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, ct);
+                await ExecuteStageAsync("cleanup-out-of-snapshot", cycleStartUtc, true, innerCt => CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, innerCt), ct);
 
-            await ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, arenaSentimentService, snapshot, snapshotUtc, allowedSymbols, nowUtc, ct);
-            await ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, ct);
-            await SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, ct);
-            await EnsureOngoingPoolAsync(db, nowUtc, ct);
+            await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, arenaSentimentService, snapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("settlements", cycleStartUtc, true, innerCt => ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);
             if (hasHealthySnapshot)
-                await EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, ct);
-            await NormalizePendingWindowsAsync(db, nowUtc, ct);
-            await MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, ct);
+                await ExecuteStageAsync("ensure-pending-pool", cycleStartUtc, true, innerCt => EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("normalize-pending-final", cycleStartUtc, true, innerCt => NormalizePendingWindowsAsync(db, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("materialize-recurring-bets", cycleStartUtc, true, innerCt => MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, innerCt), ct);
 
-            await LogPoolStatusAsync(db, nowUtc, ct);
+            await ExecuteStageAsync("log-pool-status", cycleStartUtc, true, innerCt => LogPoolStatusAsync(db, nowUtc, innerCt), ct);
         }
 
         private async Task<List<Crypto>> LoadTopGainersAsync(HttpClient http, CancellationToken ct)
         {
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(ExternalRequestTimeout);
             var all = await http.GetFromJsonAsync<List<Crypto>>(
                 "https://api.binance.com/api/v3/ticker/24hr",
-                ct);
+                timeoutCts.Token);
 
             if (all == null || all.Count == 0)
             {
@@ -1978,6 +1994,76 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                     lastErrorStack
                 },
                 ct);
+        }
+
+        private TimeSpan GetCycleInterval()
+        {
+            var configuredSeconds = _options.IntervalSeconds;
+            return configuredSeconds > 0
+                ? TimeSpan.FromSeconds(configuredSeconds)
+                : DefaultCycleInterval;
+        }
+
+        private async Task TouchHeartbeatAsync(DateTime cycleStartUtc, string status, string? stage, CancellationToken ct)
+        {
+            await WriteWorkerStatusAsync(
+                status: status,
+                cycleStartUtc: cycleStartUtc,
+                cycleEndUtc: null,
+                lastSuccessUtc: null,
+                lastCycleMs: null,
+                degraded: false,
+                healthJson: stage is null ? null : JsonSerializer.Serialize(new Dictionary<string, string?>
+                {
+                    ["stage"] = stage,
+                    ["heartbeat"] = "true"
+                }),
+                lastErrorMsg: null,
+                lastErrorStack: null,
+                ct: ct);
+        }
+
+        private async Task ExecuteStageAsync(
+            string stageName,
+            DateTime cycleStartUtc,
+            bool heartbeatOnly,
+            Func<CancellationToken, Task> action,
+            CancellationToken ct)
+        {
+            var sw = Stopwatch.StartNew();
+            await TouchHeartbeatAsync(cycleStartUtc, "running", stageName, ct);
+            try
+            {
+                await action(ct);
+                _logger.LogInformation("✅ Worker stage completed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Worker stage failed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                throw;
+            }
+        }
+
+        private async Task<T> ExecuteStageAsync<T>(
+            string stageName,
+            DateTime cycleStartUtc,
+            bool heartbeatOnly,
+            Func<CancellationToken, Task<T>> action,
+            CancellationToken ct)
+        {
+            var sw = Stopwatch.StartNew();
+            await TouchHeartbeatAsync(cycleStartUtc, "running", stageName, ct);
+            try
+            {
+                var result = await action(ct);
+                _logger.LogInformation("✅ Worker stage completed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Worker stage failed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                throw;
+            }
         }
 
         private async Task NotifyDashboardChangedAsync(CancellationToken ct)
