@@ -46,10 +46,7 @@ Console.WriteLine($"Worker Interval: {interval}");
 Console.WriteLine("=================================");
 Console.ResetColor();
 
-builder.Services.AddHttpClient().ConfigureHttpClient(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(12);
-});
+builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>()
