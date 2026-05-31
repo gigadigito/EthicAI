@@ -134,6 +134,27 @@ const tvAudioMap = {
     suddenReversal: "/audio/tv/sudden-reversal.mp3"
 };
 
+const ambientTracks = [
+    {
+        src: "/audio/tv/stadium-crowd-loop.mp3?v=20260521-1",
+        mood: "standard",
+        intensity: 0.56,
+        tags: ["stadium", "crowd", "base"]
+    },
+    {
+        src: "/audio/tv/StadiumCrowd.mp3?v=20260531-1",
+        mood: "live-channel",
+        intensity: 0.64,
+        tags: ["stadium", "crowd", "alt"]
+    },
+    {
+        src: "/audio/tv/crowareana3.mp3?v=20260531-1",
+        mood: "wide-bowl",
+        intensity: 0.6,
+        tags: ["stadium", "crowd", "late-night"]
+    }
+];
+
 const tvAudioChannelMap = {
     crowdRise: "ambient",
     goal: "fx",
@@ -221,6 +242,10 @@ const tvAudioCooldownDefaults = {
 let tvAudioManagerState = null;
 
 function logTvAudio(message, payload) {
+    if (!isTvAudioDebugEnabled()) {
+        return;
+    }
+
     if (typeof payload === "undefined") {
         console.log(`[TV_AUDIO] ${message}`);
         return;
@@ -230,6 +255,10 @@ function logTvAudio(message, payload) {
 }
 
 function consoleAudio(label, payload) {
+    if (!isTvAudioDebugEnabled()) {
+        return;
+    }
+
     if (typeof payload === "undefined") {
         console.log(label);
         return;
@@ -276,6 +305,21 @@ function ensureTvAudioManager() {
         ambientStarted: false,
         lastError: null,
         lastUnlockSource: null,
+        ambient: {
+            hostElementId: null,
+            currentAudio: null,
+            currentTrack: null,
+            currentIndex: -1,
+            nextAudio: null,
+            nextTrack: null,
+            nextIndex: -1,
+            lastTrackSrc: null,
+            transitionMs: 1800,
+            isTransitioning: false,
+            visibilityListenersAttached: false,
+            pausedForHiddenTab: false,
+            destroyed: false
+        },
         diagnostics: {
             loaded: [],
             queued: [],
@@ -436,29 +480,7 @@ function createPlaybackAudio(url, channel, volume, muted) {
     }
 
     audio.addEventListener("ended", () => {
-        try {
-            audio.pause();
-        } catch {
-        }
-
-        const gain = manager.instanceGains.get(audio);
-        if (gain) {
-            try {
-                gain.disconnect();
-            } catch {
-            }
-        }
-
-        const source = manager.sourceNodes.get(audio);
-        if (source) {
-            try {
-                source.disconnect();
-            } catch {
-            }
-        }
-
-        manager.instanceGains.delete(audio);
-        manager.sourceNodes.delete(audio);
+        cleanupManagedAudio(audio);
     }, { once: true });
 
     return audio;
@@ -669,6 +691,348 @@ function setTvAudioSettings(volume, muted) {
     if (manager.masterGain) {
         manager.masterGain.gain.value = manager.muted ? 0 : 1;
     }
+
+    [manager.ambient.currentAudio, manager.ambient.nextAudio].forEach((audio) => {
+        if (!audio) {
+            return;
+        }
+
+        audio.muted = manager.muted;
+    });
+
+    const currentGain = manager.ambient.currentAudio ? manager.instanceGains.get(manager.ambient.currentAudio) : null;
+    if (currentGain) {
+        fadeGainTo(currentGain, manager.muted ? 0 : manager.ambientTargetVolume, 700);
+    }
+}
+
+function getAmbientPlaylist() {
+    return ambientTracks.filter((track) => typeof track?.src === "string" && track.src.trim().length > 0);
+}
+
+function prepareAmbientHostElement(audio) {
+    if (!audio) {
+        return;
+    }
+
+    try {
+        audio.preload = "none";
+        audio.loop = false;
+        audio.muted = true;
+    } catch {
+    }
+}
+
+function attachAmbientLifecycleListeners() {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    if (typeof document === "undefined" || ambient.visibilityListenersAttached) {
+        return;
+    }
+
+    ambient.visibilityListenersAttached = true;
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            handleAmbientHiddenTab();
+            return;
+        }
+
+        handleAmbientVisibleTab();
+    });
+}
+
+function handleAmbientHiddenTab() {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    if (!ambient.currentAudio) {
+        return;
+    }
+
+    ambient.pausedForHiddenTab = true;
+    const currentGain = manager.instanceGains.get(ambient.currentAudio);
+    if (currentGain) {
+        fadeGainTo(currentGain, 0, 900);
+    }
+
+    const pausedAudio = ambient.currentAudio;
+    window.setTimeout(() => {
+        if (!ambient.pausedForHiddenTab || ambient.currentAudio !== pausedAudio) {
+            return;
+        }
+
+        try {
+            pausedAudio.pause();
+        } catch {
+        }
+    }, 950);
+
+    logAmbientDebug("hidden-tab pause", {
+        track: ambient.currentTrack?.src ?? null
+    });
+}
+
+function handleAmbientVisibleTab() {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    if (!ambient.pausedForHiddenTab) {
+        return;
+    }
+
+    ambient.pausedForHiddenTab = false;
+    if (manager.muted) {
+        return;
+    }
+
+    resumeAmbientPlayback("visibility-resume").catch(() => { });
+}
+
+function createAmbientAudio(track) {
+    const manager = ensureTvAudioManager();
+    const audio = new Audio(track.src);
+    audio.preload = "auto";
+    audio.loop = false;
+    audio.volume = 1;
+    audio.muted = manager.muted;
+    audio.playsInline = true;
+    connectAudioElement(audio, "ambient");
+
+    const instanceGain = manager.instanceGains.get(audio);
+    if (instanceGain) {
+        instanceGain.gain.value = 0;
+    }
+
+    audio.addEventListener("error", () => {
+        markAmbientTrackFailed(track, "media-error");
+    }, { once: true });
+
+    return audio;
+}
+
+function markAmbientTrackFailed(track, reason) {
+    const manager = ensureTvAudioManager();
+    if (!track?.src) {
+        return;
+    }
+
+    manager.lastError = { name: "AmbientError", message: `${track.src} :: ${reason}` };
+
+    if (throttleKey("TV_AMBIENT", `fail:${track.src}:${reason}`, 5000)) {
+        logAmbientDebug("track failed", { src: track.src, reason });
+    }
+}
+
+function chooseNextAmbientTrack(excludeSrc = null) {
+    const playlist = getAmbientPlaylist();
+    if (playlist.length === 0) {
+        return null;
+    }
+
+    const ambient = ensureTvAudioManager().ambient;
+    const safeExclude = excludeSrc ?? ambient.lastTrackSrc;
+    for (let step = 1; step <= playlist.length; step += 1) {
+        const candidateIndex = (Math.max(ambient.currentIndex, -1) + step) % playlist.length;
+        const candidate = playlist[candidateIndex];
+        if (!candidate) {
+            continue;
+        }
+
+        if (playlist.length > 1 && candidate.src === safeExclude) {
+            continue;
+        }
+
+        return { track: candidate, index: candidateIndex };
+    }
+
+    return { track: playlist[0], index: 0 };
+}
+
+function ensureAmbientPreloaded(excludeSrc = null) {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    const selection = chooseNextAmbientTrack(excludeSrc);
+    if (!selection) {
+        ambient.nextAudio = null;
+        ambient.nextTrack = null;
+        ambient.nextIndex = -1;
+        return null;
+    }
+
+    if (ambient.nextTrack?.src === selection.track.src && ambient.nextAudio) {
+        return { audio: ambient.nextAudio, track: ambient.nextTrack, index: ambient.nextIndex };
+    }
+
+    if (ambient.nextAudio) {
+        cleanupManagedAudio(ambient.nextAudio);
+    }
+
+    const nextAudio = createAmbientAudio(selection.track);
+    try {
+        nextAudio.load();
+    } catch {
+    }
+
+    ambient.nextAudio = nextAudio;
+    ambient.nextTrack = selection.track;
+    ambient.nextIndex = selection.index;
+
+    logAmbientDebug("preloaded next", {
+        src: selection.track.src,
+        mood: selection.track.mood,
+        intensity: selection.track.intensity
+    });
+
+    return { audio: nextAudio, track: selection.track, index: selection.index };
+}
+
+async function startAmbientAudioInstance(audio, track, reason) {
+    const manager = ensureTvAudioManager();
+    try {
+        await audio.play();
+        manager.unlocked = true;
+        manager.autoplayBlocked = false;
+        logAmbientDebug("play ok", { src: track.src, reason });
+        return true;
+    } catch (error) {
+        const normalized = normalizeAudioError(error);
+        manager.lastError = normalized;
+        manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+        markAmbientTrackFailed(track, normalized.message);
+        return false;
+    }
+}
+
+async function transitionAmbientTrack(reason = "rotation") {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    if (ambient.isTransitioning || manager.muted || ambient.destroyed) {
+        return false;
+    }
+
+    ambient.isTransitioning = true;
+    try {
+        const prepared = ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
+        if (!prepared) {
+            return false;
+        }
+
+        const previousAudio = ambient.currentAudio;
+        const previousTrack = ambient.currentTrack;
+        const nextAudio = prepared.audio;
+        const nextTrack = prepared.track;
+        const nextIndex = prepared.index;
+        const nextGain = manager.instanceGains.get(nextAudio);
+        if (nextGain) {
+            nextGain.gain.value = 0;
+        }
+
+        const started = await startAmbientAudioInstance(nextAudio, nextTrack, reason);
+        if (!started) {
+            if (ambient.nextAudio === nextAudio) {
+                ambient.nextAudio = null;
+                ambient.nextTrack = null;
+                ambient.nextIndex = -1;
+            }
+            cleanupManagedAudio(nextAudio);
+            return false;
+        }
+
+        ambient.currentAudio = nextAudio;
+        ambient.currentTrack = nextTrack;
+        ambient.currentIndex = nextIndex;
+        ambient.lastTrackSrc = nextTrack.src;
+        ambient.nextAudio = null;
+        ambient.nextTrack = null;
+        ambient.nextIndex = -1;
+        manager.ambientStarted = true;
+
+        if (nextGain) {
+            fadeGainTo(nextGain, manager.muted ? 0 : manager.ambientTargetVolume, ambient.transitionMs);
+        } else {
+            nextAudio.volume = manager.muted ? 0 : manager.ambientTargetVolume;
+        }
+
+        nextAudio.onended = () => {
+            if (ensureTvAudioManager().ambient.currentAudio !== nextAudio) {
+                return;
+            }
+
+            transitionAmbientTrack("ended").catch(() => { });
+        };
+
+        if (previousAudio && previousAudio !== nextAudio) {
+            const previousGain = manager.instanceGains.get(previousAudio);
+            if (previousGain) {
+                fadeGainTo(previousGain, 0, ambient.transitionMs);
+            }
+
+            window.setTimeout(() => {
+                if (ensureTvAudioManager().ambient.currentAudio === previousAudio) {
+                    return;
+                }
+
+                cleanupManagedAudio(previousAudio);
+            }, ambient.transitionMs + 180);
+        }
+
+        ensureAmbientPreloaded(nextTrack.src);
+        logAmbientDebug("transition", {
+            reason,
+            from: previousTrack?.src ?? null,
+            to: nextTrack.src
+        });
+        return true;
+    } finally {
+        ambient.isTransitioning = false;
+    }
+}
+
+async function resumeAmbientPlayback(reason = "resume") {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    if (ambient.destroyed || manager.muted) {
+        return false;
+    }
+
+    if (typeof document !== "undefined" && document.hidden) {
+        ambient.pausedForHiddenTab = true;
+        return false;
+    }
+
+    if (ambient.currentAudio) {
+        const currentGain = manager.instanceGains.get(ambient.currentAudio);
+        const started = await startAmbientAudioInstance(ambient.currentAudio, ambient.currentTrack ?? { src: "unknown" }, reason);
+        if (started) {
+            if (currentGain) {
+                fadeGainTo(currentGain, manager.ambientTargetVolume, 1200);
+            } else {
+                ambient.currentAudio.volume = manager.ambientTargetVolume;
+            }
+
+            ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
+            manager.ambientStarted = true;
+            return true;
+        }
+    }
+
+    return transitionAmbientTrack(reason);
+}
+
+function stopAmbientPlayback() {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    ambient.destroyed = true;
+    ambient.pausedForHiddenTab = false;
+    ambient.isTransitioning = false;
+
+    [ambient.currentAudio, ambient.nextAudio].forEach((audio) => cleanupManagedAudio(audio));
+    ambient.currentAudio = null;
+    ambient.currentTrack = null;
+    ambient.currentIndex = -1;
+    ambient.nextAudio = null;
+    ambient.nextTrack = null;
+    ambient.nextIndex = -1;
+    ambient.lastTrackSrc = null;
+    manager.ambientStarted = false;
 }
 
 function diagnoseTvAudio() {
@@ -680,7 +1044,9 @@ function diagnoseTvAudio() {
         queued: manager.diagnostics.queued.slice(-20),
         played: manager.diagnostics.played.slice(-20),
         activeKey: manager.activeKey,
-        activePriority: manager.activePriority
+        activePriority: manager.activePriority,
+        ambientTrack: manager.ambient.currentTrack?.src ?? null,
+        ambientNextTrack: manager.ambient.nextTrack?.src ?? null
     };
     console.log("[TV_AUDIO]", state);
     return state;
@@ -1258,6 +1624,43 @@ function applyTacticalFieldMotion(state, now) {
     }
 }
 
+function cleanupManagedAudio(audio) {
+    if (!audio) {
+        return;
+    }
+
+    const manager = ensureTvAudioManager();
+    const gain = manager.instanceGains.get(audio);
+    if (gain) {
+        try {
+            gain.disconnect();
+        } catch {
+        }
+    }
+
+    const source = manager.sourceNodes.get(audio);
+    if (source) {
+        try {
+            source.disconnect();
+        } catch {
+        }
+    }
+
+    manager.instanceGains.delete(audio);
+    manager.sourceNodes.delete(audio);
+
+    try {
+        audio.pause();
+    } catch {
+    }
+
+    try {
+        audio.removeAttribute("src");
+        audio.load();
+    } catch {
+    }
+}
+
 function hydrateTacticalMotionProfile(player) {
     switch (player.tacticalState) {
         case TACTICAL_STATES.Press:
@@ -1378,6 +1781,31 @@ function buildTacticalSnapshot(state, ballInfo, overlayRect, now) {
         teamInfo,
         threatTable
     };
+}
+
+function isTvAudioDebugEnabled() {
+    if (typeof window === "undefined" || !window.location) {
+        return false;
+    }
+
+    const host = window.location.hostname || "";
+    return host === "localhost"
+        || host === "127.0.0.1"
+        || host === "::1"
+        || host.endsWith(".local");
+}
+
+function logAmbientDebug(message, payload) {
+    if (!isTvAudioDebugEnabled()) {
+        return;
+    }
+
+    if (typeof payload === "undefined") {
+        console.log(`[TV_AMBIENT] ${message}`);
+        return;
+    }
+
+    console.log(`[TV_AMBIENT] ${message}`, payload);
 }
 
 function evaluateThreat(enemy, enemyWorld, predictedWorld, defenders, ownGoalX, ballInfo, overlayRect, now) {
@@ -2976,98 +3404,44 @@ export async function initBroadcastAudio(elementId, volume, muted) {
     if (!audio) {
         manager.ambientElementId = elementId;
         manager.ambientTargetVolume = safeVolume;
+        manager.ambient.hostElementId = elementId;
         setTvAudioSettings(safeVolume, muted);
         return getTvAudioState();
     }
 
     ensureAudioUnlockListeners();
+    attachAmbientLifecycleListeners();
     await unlockTvAudioContext("initBroadcastAudio");
 
     manager.ambientElementId = elementId;
     manager.ambientTargetVolume = safeVolume;
-    audio.preload = "auto";
-    audio.loop = true;
-    audio.volume = 1;
-    audio.muted = Boolean(muted);
-    try {
-        audio.load();
-    } catch {
-    }
-    connectAudioElement(audio, "ambient");
+    manager.ambient.hostElementId = elementId;
+    manager.ambient.destroyed = false;
+    prepareAmbientHostElement(audio);
     setTvAudioSettings(safeVolume, muted);
 
-    consoleAudio("AUDIO_PLAY_REQUEST", { key: "crowdRise", channel: "ambient", loop: true, elementId });
-    try {
-        await audio.play();
-        manager.unlocked = true;
-        manager.autoplayBlocked = false;
-        manager.ambientStarted = true;
-        const ambientGain = manager.instanceGains.get(audio);
-        if (ambientGain) {
-            ambientGain.gain.value = 0;
-            fadeGainTo(ambientGain, muted ? 0 : safeVolume, 1800);
-        } else {
-            audio.volume = muted ? 0 : safeVolume;
-        }
-        consoleAudio("AUDIO_PLAY_OK", { key: "crowdRise", channel: "ambient", loop: true });
-        consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key: "crowdRise", elementId });
-    } catch (error) {
-        const normalized = normalizeAudioError(error);
-        manager.lastError = normalized;
-        manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
-        consoleAudio("AUDIO_PLAY_FAIL", { key: "crowdRise", channel: "ambient", elementId, ...normalized });
+    if (!Boolean(muted)) {
+        await resumeAmbientPlayback("init");
     }
 
     return getTvAudioState();
 }
 
 export function setBroadcastAudioMuted(elementId, muted, volume) {
-    const audio = document.getElementById(elementId);
     const manager = ensureTvAudioManager();
     const safeVolume = clamp(Number(volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
-    const context = getTvAudioContext();
 
-    if (!audio) {
-        manager.ambientElementId = elementId;
-        manager.ambientTargetVolume = safeVolume;
-        setTvAudioSettings(safeVolume, muted);
+    manager.ambientElementId = elementId;
+    manager.ambient.hostElementId = elementId;
+    manager.ambientTargetVolume = safeVolume;
+    setTvAudioSettings(safeVolume, muted);
+
+    if (Boolean(muted)) {
+        logAmbientDebug("muted", { volume: safeVolume });
         return;
     }
 
-    if (context && context.state === "suspended") {
-        unlockTvAudioContext("setBroadcastAudioMuted").catch(() => { });
-    }
-
-    manager.ambientElementId = elementId;
-    manager.ambientTargetVolume = safeVolume;
-    audio.loop = true;
-    audio.muted = Boolean(muted);
-    audio.volume = 1;
-    setTvAudioSettings(safeVolume, muted);
-
-    const ambientGain = manager.instanceGains.get(audio);
-    if (ambientGain) {
-        fadeGainTo(ambientGain, muted ? 0 : safeVolume, 700);
-    } else {
-        audio.volume = muted ? 0 : safeVolume;
-    }
-
-    if (!audio.muted) {
-        consoleAudio("AUDIO_PLAY_REQUEST", { key: "crowdRise", channel: "ambient", reason: "setBroadcastAudioMuted" });
-        audio.play()
-            .then(() => {
-                manager.unlocked = true;
-                manager.autoplayBlocked = false;
-                manager.ambientStarted = true;
-                consoleAudio("AUDIO_PLAY_OK", { key: "crowdRise", channel: "ambient", reason: "setBroadcastAudioMuted" });
-            })
-            .catch((error) => {
-                const normalized = normalizeAudioError(error);
-                manager.lastError = normalized;
-                manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
-                consoleAudio("AUDIO_PLAY_FAIL", { key: "crowdRise", channel: "ambient", reason: "setBroadcastAudioMuted", ...normalized });
-            });
-    }
+    resumeAmbientPlayback("setBroadcastAudioMuted").catch(() => { });
 }
 
 export function playAudioCue(elementId) {
@@ -3098,6 +3472,7 @@ export function initTvAudioManager(volume, muted) {
     }
     manager.muted = Boolean(muted);
     ensureAudioUnlockListeners();
+    attachAmbientLifecycleListeners();
     preloadAllTvAudio();
     consoleAudio("AUDIO_INIT", {
         volume: manager.volume,
@@ -3140,6 +3515,15 @@ export function stopTvAudioCue(key) {
     }
 }
 
+export function destroyBroadcastAudio(elementId) {
+    const manager = ensureTvAudioManager();
+    if (!elementId || manager.ambient.hostElementId === elementId || manager.ambientElementId === elementId) {
+        stopAmbientPlayback();
+        manager.ambient.hostElementId = null;
+        manager.ambientElementId = null;
+    }
+}
+
 if (typeof globalThis !== "undefined") {
     globalThis.initBroadcastAudio = initBroadcastAudio;
     globalThis.setBroadcastAudioMuted = setBroadcastAudioMuted;
@@ -3148,6 +3532,7 @@ if (typeof globalThis !== "undefined") {
     globalThis.playTvAudioCue = playTvAudioCue;
     globalThis.stopTvAudioCue = stopTvAudioCue;
     globalThis.unlockBroadcastAudio = unlockBroadcastAudio;
+    globalThis.destroyBroadcastAudio = destroyBroadcastAudio;
     globalThis.getTvAudioState = getTvAudioState;
     globalThis.tvAudioMap = tvAudioMap;
     globalThis.criptoVersusTvAudioManager = {
@@ -3157,6 +3542,7 @@ if (typeof globalThis !== "undefined") {
         setSettings: setTvAudioSettings,
         diagnose: diagnoseTvAudio,
         unlock: unlockBroadcastAudio,
+        destroy: destroyBroadcastAudio,
         state: getTvAudioState
     };
     globalThis.criptoVersusTvCharts = {

@@ -700,7 +700,7 @@ else
 
 @if (ShouldRenderCrowdAudio)
 {
-    <audio id="tv-broadcast-crowd" class="tv-crowd-audio" data-tv-audio-role="ambient" src="/audio/tv/stadium-crowd-loop.mp3?v=20260521-1" preload="auto" loop></audio>
+    <audio id="tv-broadcast-crowd" class="tv-crowd-audio" data-tv-audio-role="ambient" preload="none"></audio>
 }
 
 @if (ShouldRenderGoalAudio)
@@ -4572,6 +4572,17 @@ else
 
         if (_narrationOverlay is not null)
             await _narrationOverlay.DisposeAsync();
+
+        try
+        {
+            await JS.InvokeVoidAsync("destroyBroadcastAudio", "tv-broadcast-crowd");
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch
+        {
+        }
 
         try
         {
