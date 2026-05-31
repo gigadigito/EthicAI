@@ -393,7 +393,7 @@ function getChannelGain(channel) {
 function connectAudioElement(audio, channel) {
     const manager = ensureTvAudioManager();
     const context = getTvAudioContext();
-    if (!context) {
+    if (!context || context.state !== "running") {
         return null;
     }
 
@@ -703,7 +703,50 @@ function setTvAudioSettings(volume, muted) {
     const currentGain = manager.ambient.currentAudio ? manager.instanceGains.get(manager.ambient.currentAudio) : null;
     if (currentGain) {
         fadeGainTo(currentGain, manager.muted ? 0 : manager.ambientTargetVolume, 700);
+    } else if (manager.ambient.currentAudio) {
+        fadeMediaVolume(manager.ambient.currentAudio, manager.muted ? 0 : manager.ambientTargetVolume, 700);
     }
+}
+
+function fadeMediaVolume(audio, target, durationMs = 1200) {
+    if (!audio || typeof window === "undefined") {
+        return;
+    }
+
+    const manager = ensureTvAudioManager();
+    const key = audio;
+    const previous = manager.fadeTimers.get(key);
+    if (previous) {
+        window.cancelAnimationFrame(previous);
+    }
+
+    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const initial = clamp(Number(audio.volume) || 0, 0, 1);
+    const safeTarget = clamp(Number(target) || 0, 0, 1);
+    const safeDuration = Math.max(0, durationMs);
+
+    if (safeDuration === 0) {
+        audio.volume = safeTarget;
+        return;
+    }
+
+    const tick = (now) => {
+        const elapsed = Math.max(0, now - start);
+        const progress = Math.min(1, elapsed / safeDuration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        audio.volume = initial + ((safeTarget - initial) * eased);
+
+        if (progress < 1) {
+            const rafId = window.requestAnimationFrame(tick);
+            manager.fadeTimers.set(key, rafId);
+        } else {
+            manager.fadeTimers.delete(key);
+            audio.volume = safeTarget;
+        }
+    };
+
+    const rafId = window.requestAnimationFrame(tick);
+    manager.fadeTimers.set(key, rafId);
 }
 
 function getAmbientPlaylist() {
@@ -832,6 +875,8 @@ function prepareInitialAmbientAudio(hostAudio) {
     const gain = manager.instanceGains.get(hostAudio);
     if (gain) {
         gain.gain.value = 0;
+    } else {
+        hostAudio.volume = 0;
     }
 
     ambient.currentAudio = hostAudio;
@@ -995,7 +1040,7 @@ async function transitionAmbientTrack(reason = "rotation") {
         if (nextGain) {
             fadeGainTo(nextGain, manager.muted ? 0 : manager.ambientTargetVolume, ambient.transitionMs);
         } else {
-            nextAudio.volume = manager.muted ? 0 : manager.ambientTargetVolume;
+            fadeMediaVolume(nextAudio, manager.muted ? 0 : manager.ambientTargetVolume, ambient.transitionMs);
         }
 
         nextAudio.onended = () => {
@@ -1010,6 +1055,8 @@ async function transitionAmbientTrack(reason = "rotation") {
             const previousGain = manager.instanceGains.get(previousAudio);
             if (previousGain) {
                 fadeGainTo(previousGain, 0, ambient.transitionMs);
+            } else {
+                fadeMediaVolume(previousAudio, 0, ambient.transitionMs);
             }
 
             window.setTimeout(() => {
@@ -1052,7 +1099,7 @@ async function resumeAmbientPlayback(reason = "resume") {
             if (currentGain) {
                 fadeGainTo(currentGain, manager.ambientTargetVolume, 1200);
             } else {
-                ambient.currentAudio.volume = manager.ambientTargetVolume;
+                fadeMediaVolume(ambient.currentAudio, manager.ambientTargetVolume, 1200);
             }
 
             ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
@@ -1070,7 +1117,7 @@ async function resumeAmbientPlayback(reason = "resume") {
                 if (hostGain) {
                     fadeGainTo(hostGain, manager.ambientTargetVolume, 1200);
                 } else {
-                    hostAudio.volume = manager.ambientTargetVolume;
+                    fadeMediaVolume(hostAudio, manager.ambientTargetVolume, 1200);
                 }
 
                 manager.ambientStarted = true;
