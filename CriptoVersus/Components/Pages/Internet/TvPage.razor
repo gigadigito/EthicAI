@@ -457,8 +457,27 @@
     private static bool IsBroadcastEligibleMatch(HotMatchDto? match)
         => match is not null
             && !match.IsFinished
-            && string.Equals(match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase)
+            && !IsBroadcastTerminalStatus(match.Status)
             && match.HotScore >= 30;
+
+    private static bool IsBroadcastTerminalStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return false;
+
+        return status.Trim().ToUpperInvariant() switch
+        {
+            "COMPLETED" => true,
+            "CANCELLED" => true,
+            "CANCELED" => true,
+            "CLOSED" => true,
+            "SETTLED" => true,
+            "FINISHED" => true,
+            "EXPIRED" => true,
+            "ABORTED" => true,
+            _ => false
+        };
+    }
 
     private string BuildAbsolute(string path)
         => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";

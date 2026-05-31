@@ -2,7 +2,7 @@
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
 
-<div class="arena-sentiment-gauge @(IsLoading ? "arena-sentiment-gauge--loading" : string.Empty)" style="@($"--gauge-size:{NormalizedSize}px; --gauge-accent:{GaugeColor}; --needle-rotation:{NeedleRotation}deg;")">
+<div class="arena-sentiment-gauge @(IsLoading ? "arena-sentiment-gauge--loading" : string.Empty)" style="@GaugeStyle">
     @if (IsLoading)
     {
         <div class="arena-sentiment-gauge__skeleton"></div>
@@ -28,7 +28,7 @@
             <div class="arena-sentiment-gauge__ticks">
                 @foreach (var tick in TickItems)
                 {
-                    <span class="arena-sentiment-gauge__tick" style="@($"left:{tick.Left}%; top:{tick.Top}%;")">@tick.Label</span>
+                    <span class="arena-sentiment-gauge__tick" style="@BuildTickStyle(tick)">@tick.Label</span>
                 }
             </div>
 
@@ -65,6 +65,8 @@
     private string DisplayLabelText => string.IsNullOrWhiteSpace(LabelText) ? L.T("arenaPressureLabel", CurrentCulture) : LabelText;
     private string CenterLabel => ShowLabel ? DisplayLabelText : DisplayClassificationLabel;
     private double NeedleRotation => -90d + (DisplayScore * 1.8d);
+    private string GaugeStyle
+        => FormattableString.Invariant($"--gauge-size:{NormalizedSize}px; --gauge-accent:{GaugeColor}; --needle-rotation:{NeedleRotation:0.##}deg;");
 
     private string GaugeColor => DisplayClassification switch
     {
@@ -83,6 +85,9 @@
         new("80", 74, 34),
         new("100", 84, 79)
     ];
+
+    private static string BuildTickStyle(TickItem tick)
+        => FormattableString.Invariant($"left:{tick.Left:0.##}%; top:{tick.Top:0.##}%;");
 
     private sealed record TickItem(string Label, double Left, double Top);
 }

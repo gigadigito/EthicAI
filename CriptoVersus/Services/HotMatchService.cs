@@ -252,7 +252,7 @@ public sealed class HotMatchService
             Minute = social.Minute,
             ElapsedMinutes = match?.ElapsedMinutes ?? social.Minute,
             RemainingMinutes = remainingMinutes,
-            IsFinished = match?.IsFinished ?? !string.Equals(social.Status, "Ongoing", StringComparison.OrdinalIgnoreCase),
+            IsFinished = match?.IsFinished ?? IsTerminalMatchStatus(social.Status),
             PctA = match?.PctA,
             PctB = match?.PctB,
             TotalPool = match?.TotalPool ?? 0m,
@@ -270,6 +270,25 @@ public sealed class HotMatchService
             AwayLogoUrl = _api.BuildBinanceIconUrl(match?.TeamB ?? social.AwaySymbol),
             PriorityScore = priorityScore,
             MatchSnapshot = match
+        };
+    }
+
+    private static bool IsTerminalMatchStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return false;
+
+        return status.Trim().ToUpperInvariant() switch
+        {
+            "COMPLETED" => true,
+            "CANCELLED" => true,
+            "CANCELED" => true,
+            "CLOSED" => true,
+            "SETTLED" => true,
+            "FINISHED" => true,
+            "EXPIRED" => true,
+            "ABORTED" => true,
+            _ => false
         };
     }
 
