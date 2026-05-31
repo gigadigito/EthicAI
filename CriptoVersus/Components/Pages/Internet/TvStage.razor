@@ -864,6 +864,7 @@ else
     private bool _didKickoff;
     private bool _didBroadcastDiagnostics;
     private DateTime _broadcastCinematicSuppressUntilUtc = DateTime.MinValue;
+    private DateTime _broadcastCinematicWarmupUntilUtc = DateTime.MinValue;
     private int _broadcastRotationIndex;
     private DateTime _lastBroadcastFocusChangeUtc = DateTime.MinValue;
     private DateTime _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
@@ -1891,6 +1892,7 @@ else
             _didMatchEnding = false;
             _didVictoryMoment = false;
             _broadcastCinematicSuppressUntilUtc = DateTime.MinValue;
+            _broadcastCinematicWarmupUntilUtc = DateTime.MinValue;
             _nextRandomBroadcastInterruptionAtUtc = DateTime.UtcNow.AddMinutes(Random.Shared.Next(3, 7));
             _pendingAutoReplayQueue.Clear();
             _armedAutoReplaySignatures.Clear();
@@ -2077,6 +2079,9 @@ else
         if (!IsBroadcastMode || _showPirateOverlay)
             return;
 
+        if (DateTime.UtcNow < _broadcastCinematicWarmupUntilUtc)
+            return;
+
         if (DateTime.UtcNow < _broadcastCinematicSuppressUntilUtc)
             return;
 
@@ -2223,6 +2228,15 @@ else
             _pirateOverlayMessage = GetRandomPirateMessage(reason, selectedVideo);
             _showPirateOverlay = true;
             _broadcastCinematicSuppressUntilUtc = DateTime.UtcNow.Add(visibleDuration).Add(TimeSpan.FromSeconds(2));
+            if (string.Equals(reason, "initial", StringComparison.Ordinal)
+                || string.Equals(reason, "match-start", StringComparison.Ordinal)
+                || string.Equals(reason, "kickoff", StringComparison.Ordinal))
+            {
+                _broadcastCinematicWarmupUntilUtc = DateTime.UtcNow.AddSeconds(45);
+                _nextRandomBroadcastInterruptionAtUtc = _broadcastCinematicWarmupUntilUtc.AddMinutes(Random.Shared.Next(3, 7));
+                _didMatchStart = true;
+                _didKickoff = true;
+            }
             if (selectedVideo is not null)
             {
                 _lastBroadcastVideoId = selectedVideo.Id;
