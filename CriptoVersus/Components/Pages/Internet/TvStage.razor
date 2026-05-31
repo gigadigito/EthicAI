@@ -29,7 +29,7 @@
 
         @if (_showPirateOverlay)
         {
-            <div class="pirate-signal-backdrop" aria-live="polite" aria-atomic="true">
+            <div class="pirate-signal-backdrop @BroadcastCinematicBackdropClass" aria-live="polite" aria-atomic="true">
                 <div class="pirate-vhs-glitch" aria-hidden="true">
                     @for (var i = 0; i < 42; i++)
                     {
@@ -37,7 +37,7 @@
                     }
                 </div>
 
-                <div class="pirate-signal-panel @(string.Equals(_pirateOverlayReason, "match-change", StringComparison.Ordinal) ? "is-match-change" : "is-initial")">
+                <div class="pirate-signal-panel @BroadcastCinematicPanelClass">
                     <div class="pirate-signal-panel__scanlines"></div>
                     <div class="pirate-signal-panel__noise"></div>
 
@@ -64,7 +64,8 @@
                                        disablepictureinpicture
                                        controlslist="nodownload noplaybackrate nofullscreen"
                                        onloadeddata="this.style.display='block'; this.parentElement.classList.remove('is-placeholder');"
-                                       onerror="this.style.display='none'; this.parentElement.classList.add('is-placeholder');"
+                                       onerror="if(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.hostname==='::1'||location.hostname.endsWith('.local')){console.warn('[TV_VIDEO] playback error', this.currentSrc || this.src);} this.style.display='none'; this.parentElement.classList.add('is-placeholder');"
+                                       @onended="HandleBroadcastCinematicVideoEndedAsync"
                                        aria-label="@PirateSpeakerName"></video>
                             }
                             else
@@ -847,11 +848,15 @@ else
     private string _pirateOverlayMessage = string.Empty;
     private string _pirateOverlayReason = string.Empty;
     private string? _currentPirateOpeningVideo;
+    private BroadcastCinematicVideoAsset? _currentBroadcastVideoAsset;
+    private string _currentBroadcastTransition = "glitch";
     private int? _lastPirateOverlayMatchId;
     private bool _hasShownInitialPirateIntro;
     private CancellationTokenSource? _pirateOverlayCts;
-    private readonly List<string> _pirateOpeningVideos = [];
-    private readonly Queue<string> _pirateOpeningVideoQueue = new();
+    private readonly List<BroadcastCinematicVideoAsset> _broadcastCinematicVideos = [];
+    private readonly Dictionary<string, DateTime> _broadcastVideoCooldownsUtc = new(StringComparer.Ordinal);
+    private string _lastBroadcastVideoId = string.Empty;
+    private DateTime _nextRandomBroadcastInterruptionAtUtc = DateTime.MinValue;
     private bool _didMatchStart;
     private bool _didHalftime;
     private bool _didMatchEnding;
@@ -868,6 +873,17 @@ else
     private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
     private sealed record PendingReplayRequest(string Signature, string Side, int ScoreValue, DateTime ReadyAtUtc, MatchScoreEventDto? ScoreEvent = null);
     private sealed record TvAudioInteropState(bool Unlocked, bool AutoplayBlocked, bool AmbientStarted, bool Muted, string? ContextState, int InitCount, string? AmbientElementId, string? LastError);
+    private sealed record BroadcastCinematicVideoAsset(
+        string Id,
+        string Src,
+        string Category,
+        int Priority,
+        TimeSpan Cooldown,
+        IReadOnlyList<string> Tags,
+        IReadOnlyList<string> TriggerKeys,
+        string Transition,
+        double Weight,
+        TimeSpan PreferredDuration);
     private sealed record BroadcastSignalDefinition(
         string Key,
         int Priority,
@@ -937,13 +953,16 @@ else
     private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
     private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
-    private string PirateHeaderTitle => "CRYPTOVERSUS PIRATE FEED";
-    private string PirateHeaderStatus => IsPortugueseCulture ? "SINAL ENCONTRADO" : "SIGNAL FOUND";
-    private string PirateSpeakerName => IsPortugueseCulture ? "Comandante da Arena" : "Arena Commander";
-    private string PirateSpeakerRole => IsPortugueseCulture ? "Host pirata" : "Pirate host";
-    private string PirateCopyEyebrow => IsPortugueseCulture ? "Transmissao interceptada" : "Intercepted transmission";
-    private string PirateFooterLeft => IsPortugueseCulture ? "HUD sincrono ativo" : "Synchronous HUD online";
-    private string PirateFooterRight => IsPortugueseCulture ? "Feed clandestino" : "Clandestine feed";
+    private string PirateHeaderTitle => ResolveBroadcastCinematicHeaderTitle();
+    private string PirateHeaderStatus => ResolveBroadcastCinematicHeaderStatus();
+    private string PirateSpeakerName => ResolveBroadcastCinematicSpeakerName();
+    private string PirateSpeakerRole => ResolveBroadcastCinematicSpeakerRole();
+    private string PirateCopyEyebrow => ResolveBroadcastCinematicEyebrow();
+    private string PirateFooterLeft => ResolveBroadcastCinematicFooterLeft();
+    private string PirateFooterRight => ResolveBroadcastCinematicFooterRight();
+    private string BroadcastCinematicBackdropClass => $"is-{SanitizeBroadcastVideoCssToken(_currentBroadcastVideoAsset?.Category)} is-transition-{SanitizeBroadcastVideoCssToken(_currentBroadcastTransition)}";
+    private string BroadcastCinematicPanelClass
+        => $"{(string.Equals(_pirateOverlayReason, "match-change", StringComparison.Ordinal) ? "is-match-change" : "is-initial")} is-{SanitizeBroadcastVideoCssToken(_currentBroadcastVideoAsset?.Category)} is-transition-{SanitizeBroadcastVideoCssToken(_currentBroadcastTransition)}";
 
     private string ResolveBroadcastDataStatusMessage()
     {
@@ -1821,6 +1840,9 @@ else
             CancelPirateOverlayTimer();
             _showPirateOverlay = false;
             _pirateOverlayReason = string.Empty;
+            _currentPirateOpeningVideo = null;
+            _currentBroadcastVideoAsset = null;
+            _currentBroadcastTransition = "glitch";
             _previousSnapshot = null;
             _lastAiNarrationMatchId = null;
             _currentAiNarration = string.Empty;
@@ -1834,7 +1856,10 @@ else
         {
             var hadPreviousMatch = _lastAiNarrationMatchId.HasValue;
             if (IsBroadcastMode && !hadPreviousMatch && !_hasShownInitialPirateIntro)
+            {
+                _didMatchStart = true;
                 _ = ShowPirateIntroAsync("initial");
+            }
 
             if (IsBroadcastMode && hadPreviousMatch)
             {
@@ -1858,6 +1883,12 @@ else
             _autoReplaySignature = string.Empty;
             _nextAutoReplayAtUtc = DateTime.MinValue;
             _lastAutoReplaySide = string.Empty;
+            _didKickoff = false;
+            _didMatchStart = false;
+            _didHalftime = false;
+            _didMatchEnding = false;
+            _didVictoryMoment = false;
+            _nextRandomBroadcastInterruptionAtUtc = DateTime.UtcNow.AddMinutes(Random.Shared.Next(3, 7));
             _pendingAutoReplayQueue.Clear();
             _armedAutoReplaySignatures.Clear();
             if (IsBroadcastMode && hadPreviousMatch)
@@ -1914,6 +1945,7 @@ else
             _ = TriggerEventAsync(CreateEvent("fearSurge"));
             _ = QueueNarrationAsync(CreateNarrationEvent("fearSurge", current));
             _ = MaybeRefreshAiNarrationAsync("fear-spike");
+            _ = TryShowPirateIntroAsync("market-crash");
         }
         else if (hotScoreSpike)
         {
@@ -1921,12 +1953,14 @@ else
             _ = TriggerEventAsync(CreateEvent("hotScoreSpike"));
             _ = QueueNarrationAsync(CreateNarrationEvent("hotScoreSpike", current));
             _ = MaybeRefreshAiNarrationAsync("massive-breakout");
+            _ = TryShowPirateIntroAsync("volatility-spike");
         }
         else if (finalMoments)
         {
             _ = TriggerEventAsync(CreateEvent("finalMoments"));
             _ = QueueNarrationAsync(CreateNarrationEvent("finalMoments", current));
             _ = MaybeRefreshAiNarrationAsync("final-minutes");
+            _ = TryShowPirateIntroAsync("final-minutes");
         }
 
         _previousSnapshot = current;
@@ -1984,6 +2018,7 @@ else
                 var fieldState = CurrentFieldState;
                 await AdvanceBroadcastFocusAsync(current, fieldState);
                 await MaybeTriggerBroadcastPromoAsync(current);
+                await EvaluateBroadcastCinematicTriggersAsync(current);
 
                 if (Environment.IsDevelopment())
                 {
@@ -2032,6 +2067,75 @@ else
 
         await SetBroadcastFocusAsync(next.Key, next.Label, next.Color, next.DurationMs);
         _lastBroadcastFocusChangeUtc = DateTime.UtcNow;
+    }
+
+    private async Task EvaluateBroadcastCinematicTriggersAsync(BroadcastSnapshot current)
+    {
+        if (!IsBroadcastMode || _showPirateOverlay)
+            return;
+
+        if (!_didMatchStart)
+        {
+            _didMatchStart = true;
+            await TryShowPirateIntroAsync("match-start");
+            return;
+        }
+
+        if (!_didKickoff && IsKickoffWindow(current))
+        {
+            _didKickoff = true;
+            await TryShowPirateIntroAsync("kickoff");
+            return;
+        }
+
+        if (!_didHalftime && IsHalftimeWindow(current))
+        {
+            _didHalftime = true;
+            await TryShowPirateIntroAsync("halftime");
+            return;
+        }
+
+        if (!_didMatchEnding && current.RemainingSeconds <= 300)
+        {
+            _didMatchEnding = true;
+            await TryShowPirateIntroAsync("final-minutes");
+            return;
+        }
+
+        if (!_didVictoryMoment && IsVictoryWindow(current))
+        {
+            _didVictoryMoment = true;
+            await TryShowPirateIntroAsync("special-event");
+            return;
+        }
+
+        if (IsBitcoinDominanceArena(current) && throttleBroadcastOverlay("bitcoin-dominance", TimeSpan.FromMinutes(6)))
+        {
+            await TryShowPirateIntroAsync("bitcoin-dominance");
+            return;
+        }
+
+        if (IsMemeCoinArena(current) && throttleBroadcastOverlay("meme-coin-surge", TimeSpan.FromMinutes(5)))
+        {
+            await TryShowPirateIntroAsync("meme-coin-surge");
+            return;
+        }
+
+        if (_nextRandomBroadcastInterruptionAtUtc != DateTime.MinValue && DateTime.UtcNow >= _nextRandomBroadcastInterruptionAtUtc)
+        {
+            _nextRandomBroadcastInterruptionAtUtc = DateTime.UtcNow.AddMinutes(Random.Shared.Next(3, 7));
+            await TryShowPirateIntroAsync("random-interruption");
+        }
+    }
+
+    private bool throttleBroadcastOverlay(string key, TimeSpan cooldown)
+    {
+        var now = DateTime.UtcNow;
+        if (_broadcastCooldownUntilUtc.TryGetValue(key, out var untilUtc) && untilUtc > now)
+            return false;
+
+        _broadcastCooldownUntilUtc[key] = now.Add(cooldown);
+        return true;
     }
 
     private void ScheduleBroadcastPromo(int matchId)
@@ -2104,17 +2208,40 @@ else
             if (ct.IsCancellationRequested || _isDisposed)
                 return;
 
-            _currentPirateOpeningVideo = GetNextPirateOpeningVideo();
-            var visibleDuration = ResolvePirateOverlayVisibleDuration(reason, _currentPirateOpeningVideo);
+            var selectedVideo = SelectBroadcastCinematicVideo(reason);
+            _currentBroadcastVideoAsset = selectedVideo;
+            _currentPirateOpeningVideo = selectedVideo?.Src;
+            _currentBroadcastTransition = selectedVideo?.Transition ?? ResolveFallbackBroadcastTransition(reason);
+            var visibleDuration = ResolvePirateOverlayVisibleDuration(reason, selectedVideo);
             _pirateOverlayReason = reason;
-            _pirateOverlayMessage = GetRandomPirateMessage(reason);
+            _pirateOverlayMessage = GetRandomPirateMessage(reason, selectedVideo);
             _showPirateOverlay = true;
+            if (selectedVideo is not null)
+            {
+                _lastBroadcastVideoId = selectedVideo.Id;
+                _broadcastVideoCooldownsUtc[selectedVideo.Id] = DateTime.UtcNow.Add(selectedVideo.Cooldown);
+            }
 
             Logger.LogInformation(
-                "TvStage pirate overlay shown. Reason={Reason} MatchId={MatchId} Video={Video}",
+                "TvStage broadcast cinematic shown. Reason={Reason} MatchId={MatchId} Video={Video} Category={Category} Transition={Transition}",
                 reason,
                 Match?.MatchId ?? HotMatch?.MatchId ?? 0,
-                _currentPirateOpeningVideo ?? "fallback-image");
+                _currentPirateOpeningVideo ?? "fallback-image",
+                selectedVideo?.Category ?? "fallback",
+                _currentBroadcastTransition);
+
+            if (Environment.IsDevelopment() && _tvModule is not null)
+            {
+                await LogAsync("TV_VIDEO", "selected", new
+                {
+                    trigger = reason,
+                    videoId = selectedVideo?.Id,
+                    category = selectedVideo?.Category,
+                    src = selectedVideo?.Src,
+                    transition = _currentBroadcastTransition,
+                    tags = selectedVideo?.Tags
+                });
+            }
 
             await InvokeAsync(StateHasChanged);
             await Task.Delay(visibleDuration, ct);
@@ -2145,6 +2272,14 @@ else
         await ShowPirateIntroAsync("match-change");
     }
 
+    private async Task TryShowPirateIntroAsync(string reason)
+    {
+        if (_showPirateOverlay || _pirateOverlayCts is not null)
+            return;
+
+        await ShowPirateIntroAsync(reason);
+    }
+
     private void HidePirateIntro()
     {
         if (_isDisposed)
@@ -2153,17 +2288,20 @@ else
         _showPirateOverlay = false;
         _pirateOverlayReason = string.Empty;
         _currentPirateOpeningVideo = null;
+        _currentBroadcastVideoAsset = null;
+        _currentBroadcastTransition = "glitch";
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private static TimeSpan ResolvePirateOverlayVisibleDuration(string reason, string? currentPirateOpeningVideo)
+    private static TimeSpan ResolvePirateOverlayVisibleDuration(string reason, BroadcastCinematicVideoAsset? asset)
     {
-        var hasVideo = !string.IsNullOrWhiteSpace(currentPirateOpeningVideo);
+        var hasVideo = !string.IsNullOrWhiteSpace(asset?.Src);
         if (hasVideo)
         {
+            var preferred = asset?.PreferredDuration ?? TimeSpan.FromSeconds(9.2);
             return string.Equals(reason, "match-change", StringComparison.Ordinal)
-                ? TimeSpan.FromSeconds(9.1)
-                : TimeSpan.FromSeconds(9.4);
+                ? preferred - TimeSpan.FromMilliseconds(250)
+                : preferred;
         }
 
         return string.Equals(reason, "match-change", StringComparison.Ordinal)
@@ -2171,109 +2309,579 @@ else
             : TimeSpan.FromSeconds(8.4);
     }
 
-    private string? GetNextPirateOpeningVideo()
-    {
-        EnsurePirateOpeningVideosLoaded();
-
-        if (_pirateOpeningVideos.Count == 0)
-            return null;
-
-        if (_pirateOpeningVideoQueue.Count == 0)
-        {
-            foreach (var video in _pirateOpeningVideos.OrderBy(_ => Random.Shared.Next()))
-                _pirateOpeningVideoQueue.Enqueue(video);
-        }
-
-        return _pirateOpeningVideoQueue.Count > 0
-            ? _pirateOpeningVideoQueue.Dequeue()
-            : null;
-    }
-
     private void EnsurePirateOpeningVideosLoaded()
     {
-        if (_pirateOpeningVideos.Count > 0)
+        if (_broadcastCinematicVideos.Count > 0)
             return;
 
         try
         {
-            var openingFolder = Path.Combine(Environment.WebRootPath, "video", "opening");
-            if (!Directory.Exists(openingFolder))
+            foreach (var root in EnumerateBroadcastVideoRoots())
             {
-                Logger.LogWarning("TvStage pirate opening folder not found at {OpeningFolder}", openingFolder);
-                return;
-            }
-
-            var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ".mp4",
-                ".webm",
-                ".mov",
-                ".m4v"
-            };
-
-            foreach (var filePath in Directory.EnumerateFiles(openingFolder))
-            {
-                var extension = Path.GetExtension(filePath);
-                if (!supportedExtensions.Contains(extension))
+                if (!Directory.Exists(root.PhysicalPath))
                     continue;
 
-                var fileName = Path.GetFileName(filePath);
-                if (string.IsNullOrWhiteSpace(fileName))
-                    continue;
-
-                _pirateOpeningVideos.Add($"/video/opening/{Uri.EscapeDataString(fileName)}");
+                foreach (var filePath in Directory.EnumerateFiles(root.PhysicalPath, "*.*", SearchOption.AllDirectories))
+                {
+                    var asset = BuildBroadcastCinematicVideoAsset(filePath, root.PhysicalPath, root.WebPathPrefix, root.DefaultCategory);
+                    if (asset is not null)
+                        _broadcastCinematicVideos.Add(asset);
+                }
             }
 
             Logger.LogInformation(
-                "TvStage pirate opening videos loaded. Count={VideoCount}",
-                _pirateOpeningVideos.Count);
+                "TvStage broadcast cinematic videos loaded. Count={VideoCount}",
+                _broadcastCinematicVideos.Count);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "TvStage failed to load pirate opening videos.");
+            Logger.LogWarning(ex, "TvStage failed to load broadcast cinematic videos.");
         }
     }
 
-    private string GetRandomPirateMessage(string reason)
+    private string GetRandomPirateMessage(string reason, BroadcastCinematicVideoAsset? asset)
     {
+        var category = asset?.Category ?? "intro";
         if (IsPortugueseCulture)
         {
-            string[] messages = string.Equals(reason, "initial", StringComparison.Ordinal)
-                ?
+            string[] messages = category switch
+            {
+                "pirate-transmission" =>
+                [
+                    "Sinal pirata capturado. O feed foi invadido.",
+                    "Transmissao clandestina no ar. Mantenha os olhos na arena.",
+                    "Canal comprometido. Uma nova mensagem entrou no sistema."
+                ],
+                "market-warning" =>
+                [
+                    "Alerta de mercado. A pressao esta rompendo o painel.",
+                    "A volatilidade escalou. Proteja a linha defensiva.",
+                    "Sinais extremos detectados. O canal entrou em modo de risco."
+                ],
+                "villain-message" =>
+                [
+                    "O arquiteto da arena voltou a falar. Nada aqui e aleatorio.",
+                    "A mente por tras do caos assumiu o sinal.",
+                    "Mensagem hostil recebida. A arena foi observada o tempo inteiro."
+                ],
+                "meme-coin-event" =>
+                [
+                    "As meme coins tomaram o palco. A plateia enlouqueceu.",
+                    "O caos dos memes invadiu a transmissao oficial.",
+                    "Rali detectado. Os mascotes da cripto querem dominar a arena."
+                ],
+                "special-event" =>
+                [
+                    "Evento especial no ar. A arena mudou de estado.",
+                    "Sequencia cinematica acionada. Todos os olhos no centro do campo.",
+                    "Sinal premium detectado. Algo grande esta prestes a acontecer."
+                ],
+                _ when string.Equals(reason, "initial", StringComparison.Ordinal) =>
                 [
                     "O mercado nunca dorme... e hoje, fortunas serao reescritas.",
                     "A arena desperta. Cada vela pode mudar um imperio.",
                     "Os sinais estao vivos. Observe quem domina o proximo impacto."
-                ]
-                :
+                ],
+                _ =>
                 [
                     "Sinal interceptado. Nova batalha detectada.",
                     "A arena mudou. Observe com atencao.",
                     "A volatilidade esta subindo. Alguem vai cair.",
                     "Transmissao CriptoVersus retomada.",
                     "Uma nova guerra de mercado comeca agora."
-                ];
+                ]
+            };
 
             return messages[Random.Shared.Next(messages.Length)];
         }
 
-        string[] englishMessages = string.Equals(reason, "initial", StringComparison.Ordinal)
-            ?
+        string[] englishMessages = category switch
+        {
+            "pirate-transmission" =>
+            [
+                "Pirate signal captured. The feed has been hijacked.",
+                "Clandestine transmission online. Keep your eyes on the arena.",
+                "Channel compromised. A new rogue message hit the system."
+            ],
+            "market-warning" =>
+            [
+                "Market alert. Pressure is breaking the panel.",
+                "Volatility escalated. Lock the defensive line.",
+                "Extreme signals detected. The channel is now in risk mode."
+            ],
+            "villain-message" =>
+            [
+                "The architect of the arena speaks again. None of this is random.",
+                "The mind behind the chaos has taken over the signal.",
+                "Hostile message received. The arena was being watched all along."
+            ],
+            "meme-coin-event" =>
+            [
+                "Meme coins just took the stage. The crowd lost control.",
+                "Meme chaos has invaded the official broadcast.",
+                "Rally detected. The crypto mascots want the whole arena."
+            ],
+            "special-event" =>
+            [
+                "Special event live. The arena has changed state.",
+                "Cinematic sequence engaged. All eyes on center field.",
+                "Premium signal detected. Something huge is about to happen."
+            ],
+            _ when string.Equals(reason, "initial", StringComparison.Ordinal) =>
             [
                 "The market never sleeps... and tonight, fortunes will be rewritten.",
                 "The arena is waking up. Every candle can rewrite an empire.",
                 "Signals are live. Watch who controls the next impact."
-            ]
-            :
+            ],
+            _ =>
             [
                 "Signal intercepted. New battle detected.",
                 "The arena has shifted. Watch closely.",
                 "Volatility is rising. Someone is about to fall.",
                 "CriptoVersus transmission resumed.",
                 "A new market war begins now."
-            ];
+            ]
+        };
 
         return englishMessages[Random.Shared.Next(englishMessages.Length)];
+    }
+
+    private IEnumerable<(string PhysicalPath, string WebPathPrefix, string DefaultCategory)> EnumerateBroadcastVideoRoots()
+    {
+        yield return (Path.Combine(Environment.WebRootPath, "video", "broadcast"), "/video/broadcast", "special-event");
+        yield return (Path.Combine(Environment.WebRootPath, "video", "opening"), "/video/opening", "intro");
+    }
+
+    private BroadcastCinematicVideoAsset? BuildBroadcastCinematicVideoAsset(string filePath, string rootPath, string webPathPrefix, string defaultCategory)
+    {
+        var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".mp4",
+            ".webm",
+            ".mov",
+            ".m4v"
+        };
+
+        var extension = Path.GetExtension(filePath);
+        if (!supportedExtensions.Contains(extension))
+            return null;
+
+        var fileName = Path.GetFileNameWithoutExtension(filePath);
+        if (string.IsNullOrWhiteSpace(fileName))
+            return null;
+
+        var relativePath = Path.GetRelativePath(rootPath, filePath)
+            .Replace('\\', '/')
+            .TrimStart('/');
+
+        var firstFolder = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        var category = InferBroadcastVideoCategory(firstFolder, fileName, defaultCategory);
+        var tags = InferBroadcastVideoTags(fileName, category).ToArray();
+        var triggers = InferBroadcastVideoTriggers(fileName, category).ToArray();
+        var src = $"{webPathPrefix}/{string.Join("/", relativePath.Split('/').Select(Uri.EscapeDataString))}";
+        var priority = ResolveBroadcastVideoPriority(category, tags);
+        var cooldown = ResolveBroadcastVideoCooldown(category, triggers);
+        var transition = ResolveBroadcastVideoTransition(category, tags);
+        var weight = ResolveBroadcastVideoWeight(priority, tags, triggers);
+        var duration = ResolveBroadcastVideoDuration(category, triggers);
+
+        return new BroadcastCinematicVideoAsset(
+            Id: $"{category}:{fileName}".ToLowerInvariant(),
+            Src: src,
+            Category: category,
+            Priority: priority,
+            Cooldown: cooldown,
+            Tags: tags,
+            TriggerKeys: triggers,
+            Transition: transition,
+            Weight: weight,
+            PreferredDuration: duration);
+    }
+
+    private BroadcastCinematicVideoAsset? SelectBroadcastCinematicVideo(string triggerKey)
+    {
+        EnsurePirateOpeningVideosLoaded();
+
+        if (_broadcastCinematicVideos.Count == 0)
+            return null;
+
+        var now = DateTime.UtcNow;
+        var candidates = _broadcastCinematicVideos
+            .Where(asset => IsBroadcastVideoCandidate(asset, triggerKey))
+            .ToList();
+
+        if (candidates.Count == 0)
+            candidates = [.. _broadcastCinematicVideos];
+
+        var cooledCandidates = candidates
+            .Where(asset => !_broadcastVideoCooldownsUtc.TryGetValue(asset.Id, out var untilUtc) || untilUtc <= now)
+            .ToList();
+
+        if (cooledCandidates.Count > 0)
+            candidates = cooledCandidates;
+
+        if (candidates.Count > 1)
+        {
+            var nonRepeating = candidates
+                .Where(asset => !string.Equals(asset.Id, _lastBroadcastVideoId, StringComparison.Ordinal))
+                .ToList();
+
+            if (nonRepeating.Count > 0)
+                candidates = nonRepeating;
+        }
+
+        var totalWeight = candidates.Sum(asset => Math.Max(0.1d, asset.Weight));
+        var roll = Random.Shared.NextDouble() * Math.Max(0.1d, totalWeight);
+        var cumulative = 0d;
+        foreach (var asset in candidates.OrderByDescending(x => x.Priority))
+        {
+            cumulative += Math.Max(0.1d, asset.Weight);
+            if (roll <= cumulative)
+                return asset;
+        }
+
+        return candidates.OrderByDescending(x => x.Priority).FirstOrDefault();
+    }
+
+    private bool IsBroadcastVideoCandidate(BroadcastCinematicVideoAsset asset, string triggerKey)
+    {
+        if (asset.TriggerKeys.Contains(triggerKey, StringComparer.OrdinalIgnoreCase))
+            return true;
+
+        return triggerKey switch
+        {
+            "initial" or "match-start" => asset.Category is "intro" or "arena-lore" or "special-event",
+            "match-change" => asset.Category is "pirate-transmission" or "villain-message" or "special-event",
+            "halftime" => asset.Category is "arena-lore" or "villain-message",
+            "final-minutes" => asset.Category is "market-warning" or "villain-message" or "special-event",
+            "volatility-spike" => asset.Category is "market-warning" or "special-event",
+            "market-crash" => asset.Category is "market-warning" or "villain-message",
+            "bitcoin-dominance" => asset.Tags.Contains("bitcoin", StringComparer.OrdinalIgnoreCase) || asset.Tags.Contains("btc", StringComparer.OrdinalIgnoreCase),
+            "meme-coin-surge" => asset.Category == "meme-coin-event",
+            "random-interruption" => asset.Category is "pirate-transmission" or "villain-message" or "arena-lore",
+            "special-event" => asset.Category == "special-event",
+            "kickoff" => asset.Category is "intro" or "special-event",
+            _ => true
+        };
+    }
+
+    private static string InferBroadcastVideoCategory(string? folderName, string fileName, string defaultCategory)
+    {
+        var normalizedFolder = NormalizeBroadcastToken(folderName);
+        var normalizedFile = NormalizeBroadcastToken(fileName);
+
+        if (normalizedFolder.Contains("pirate", StringComparison.Ordinal) || normalizedFile.Contains("pirate", StringComparison.Ordinal))
+            return "pirate-transmission";
+
+        if (normalizedFolder.Contains("warning", StringComparison.Ordinal)
+            || normalizedFolder.Contains("alert", StringComparison.Ordinal)
+            || normalizedFile.Contains("warning", StringComparison.Ordinal)
+            || normalizedFile.Contains("crash", StringComparison.Ordinal))
+            return "market-warning";
+
+        if (normalizedFolder.Contains("villain", StringComparison.Ordinal)
+            || normalizedFolder.Contains("mastermind", StringComparison.Ordinal)
+            || normalizedFile.Contains("villain", StringComparison.Ordinal)
+            || normalizedFile.Contains("mastermind", StringComparison.Ordinal))
+            return "villain-message";
+
+        if (normalizedFile.Contains("pepe", StringComparison.Ordinal)
+            || normalizedFile.Contains("doge", StringComparison.Ordinal)
+            || normalizedFile.Contains("shib", StringComparison.Ordinal)
+            || normalizedFile.Contains("floki", StringComparison.Ordinal)
+            || normalizedFile.Contains("bonk", StringComparison.Ordinal)
+            || normalizedFile.Contains("wif", StringComparison.Ordinal))
+            return "meme-coin-event";
+
+        if (normalizedFile.Contains("bitcoin", StringComparison.Ordinal)
+            || normalizedFile.Contains("btc", StringComparison.Ordinal)
+            || normalizedFolder.Contains("special", StringComparison.Ordinal))
+            return "special-event";
+
+        if (normalizedFolder.Contains("lore", StringComparison.Ordinal)
+            || normalizedFile.Contains("arena", StringComparison.Ordinal)
+            || normalizedFile.Contains("doctor", StringComparison.Ordinal)
+            || normalizedFile.Contains("destiny", StringComparison.Ordinal))
+            return "arena-lore";
+
+        return defaultCategory;
+    }
+
+    private static IEnumerable<string> InferBroadcastVideoTags(string fileName, string category)
+    {
+        var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            category
+        };
+
+        foreach (var token in fileName
+            .Split(['_', '-', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(NormalizeBroadcastToken)
+            .Where(token => !string.IsNullOrWhiteSpace(token)))
+        {
+            tags.Add(token);
+        }
+
+        return tags;
+    }
+
+    private static IEnumerable<string> InferBroadcastVideoTriggers(string fileName, string category)
+    {
+        var normalized = NormalizeBroadcastToken(fileName);
+        var triggers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        switch (category)
+        {
+            case "intro":
+                triggers.Add("initial");
+                triggers.Add("match-start");
+                triggers.Add("kickoff");
+                break;
+            case "pirate-transmission":
+                triggers.Add("match-change");
+                triggers.Add("random-interruption");
+                break;
+            case "market-warning":
+                triggers.Add("volatility-spike");
+                triggers.Add("final-minutes");
+                break;
+            case "villain-message":
+                triggers.Add("match-change");
+                triggers.Add("halftime");
+                triggers.Add("random-interruption");
+                break;
+            case "special-event":
+                triggers.Add("special-event");
+                triggers.Add("match-start");
+                break;
+            case "arena-lore":
+                triggers.Add("initial");
+                triggers.Add("halftime");
+                break;
+            case "meme-coin-event":
+                triggers.Add("meme-coin-surge");
+                triggers.Add("random-interruption");
+                break;
+        }
+
+        if (normalized.Contains("bitcoin", StringComparison.Ordinal) || normalized.Contains("btc", StringComparison.Ordinal))
+            triggers.Add("bitcoin-dominance");
+
+        if (normalized.Contains("warning", StringComparison.Ordinal) || normalized.Contains("crash", StringComparison.Ordinal))
+            triggers.Add("market-crash");
+
+        return triggers;
+    }
+
+    private static int ResolveBroadcastVideoPriority(string category, IReadOnlyList<string> tags)
+        => category switch
+        {
+            "special-event" => 95,
+            "market-warning" => 90,
+            "villain-message" => 86,
+            "pirate-transmission" => 82,
+            "meme-coin-event" => 78,
+            "arena-lore" => 72,
+            _ => tags.Contains("bitcoin", StringComparer.OrdinalIgnoreCase) ? 84 : 68
+        };
+
+    private static TimeSpan ResolveBroadcastVideoCooldown(string category, IReadOnlyList<string> triggers)
+        => category switch
+        {
+            "special-event" => TimeSpan.FromMinutes(6),
+            "market-warning" => TimeSpan.FromMinutes(5),
+            "villain-message" => TimeSpan.FromMinutes(4),
+            "pirate-transmission" => TimeSpan.FromMinutes(3),
+            "meme-coin-event" => TimeSpan.FromMinutes(4),
+            _ => triggers.Contains("initial", StringComparer.OrdinalIgnoreCase) ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(3)
+        };
+
+    private static string ResolveBroadcastVideoTransition(string category, IReadOnlyList<string> tags)
+    {
+        if (category == "market-warning")
+            return "emergency-alert";
+        if (category == "pirate-transmission")
+            return "signal-interference";
+        if (category == "villain-message")
+            return "arena-takeover";
+        if (category == "special-event")
+            return tags.Contains("bitcoin", StringComparer.OrdinalIgnoreCase) ? "broadcast-cut" : "glitch";
+
+        return "glitch";
+    }
+
+    private static double ResolveBroadcastVideoWeight(int priority, IReadOnlyList<string> tags, IReadOnlyList<string> triggers)
+        => Math.Max(1d, (priority / 10d) + (triggers.Count * 0.8d) + (tags.Contains("bitcoin", StringComparer.OrdinalIgnoreCase) ? 1.4d : 0d));
+
+    private static TimeSpan ResolveBroadcastVideoDuration(string category, IReadOnlyList<string> triggers)
+        => category switch
+        {
+            "special-event" => TimeSpan.FromSeconds(10.8),
+            "villain-message" => TimeSpan.FromSeconds(9.8),
+            "market-warning" => TimeSpan.FromSeconds(8.6),
+            "pirate-transmission" => TimeSpan.FromSeconds(8.9),
+            _ => triggers.Contains("initial", StringComparer.OrdinalIgnoreCase) ? TimeSpan.FromSeconds(9.4) : TimeSpan.FromSeconds(8.8)
+        };
+
+    private static string ResolveFallbackBroadcastTransition(string reason)
+        => reason switch
+        {
+            "match-change" => "broadcast-cut",
+            "volatility-spike" or "market-crash" => "emergency-alert",
+            "random-interruption" => "signal-interference",
+            _ => "glitch"
+        };
+
+    private string ResolveBroadcastCinematicHeaderTitle()
+        => _currentBroadcastVideoAsset?.Category switch
+        {
+            "market-warning" => "CRIPTOVERSUS MARKET ALERT",
+            "special-event" => "CRIPTOVERSUS SPECIAL SIGNAL",
+            "villain-message" => "CRYPTOVERSUS CONTROL ROOM",
+            "arena-lore" => "CRIPTOVERSUS ARENA ARCHIVE",
+            "meme-coin-event" => "CRIPTOVERSUS MEME FEED",
+            _ => "CRYPTOVERSUS PIRATE FEED"
+        };
+
+    private string ResolveBroadcastCinematicHeaderStatus()
+        => _currentBroadcastTransition switch
+        {
+            "emergency-alert" => IsPortugueseCulture ? "ALERTA EMERGENCIAL" : "EMERGENCY ALERT",
+            "arena-takeover" => IsPortugueseCulture ? "SINAL DOMINADO" : "SIGNAL OVERRIDDEN",
+            "broadcast-cut" => IsPortugueseCulture ? "CORTE DE REDE" : "NETWORK CUT",
+            _ => IsPortugueseCulture ? "SINAL ENCONTRADO" : "SIGNAL FOUND"
+        };
+
+    private string ResolveBroadcastCinematicSpeakerName()
+        => _currentBroadcastVideoAsset?.Category switch
+        {
+            "villain-message" => IsPortugueseCulture ? "Mestre da Arena" : "Arena Mastermind",
+            "market-warning" => IsPortugueseCulture ? "Alerta de Mercado" : "Market Sentinel",
+            "special-event" => IsPortugueseCulture ? "Canal Prime" : "Prime Channel",
+            "meme-coin-event" => IsPortugueseCulture ? "Mascote da Arena" : "Arena Mascot",
+            _ => IsPortugueseCulture ? "Comandante da Arena" : "Arena Commander"
+        };
+
+    private string ResolveBroadcastCinematicSpeakerRole()
+        => _currentBroadcastVideoAsset?.Category switch
+        {
+            "villain-message" => IsPortugueseCulture ? "Transmissor hostil" : "Hostile broadcaster",
+            "market-warning" => IsPortugueseCulture ? "Central de risco" : "Risk command",
+            "special-event" => IsPortugueseCulture ? "Sinal especial" : "Special signal",
+            "arena-lore" => IsPortugueseCulture ? "Arquivo da arena" : "Arena archive",
+            "meme-coin-event" => IsPortugueseCulture ? "Feed memetico" : "Meme feed",
+            _ => IsPortugueseCulture ? "Host pirata" : "Pirate host"
+        };
+
+    private string ResolveBroadcastCinematicEyebrow()
+        => _currentBroadcastVideoAsset?.Category switch
+        {
+            "market-warning" => IsPortugueseCulture ? "Protocolo de alerta acionado" : "Alert protocol engaged",
+            "special-event" => IsPortugueseCulture ? "Intro cinematica liberada" : "Cinematic intro released",
+            "villain-message" => IsPortugueseCulture ? "Mensagem interceptada do controle" : "Intercepted control-room message",
+            "arena-lore" => IsPortugueseCulture ? "Memoria secreta da arena" : "Secret arena memory",
+            "meme-coin-event" => IsPortugueseCulture ? "Rali memetico interceptado" : "Meme rally intercepted",
+            _ => IsPortugueseCulture ? "Transmissao interceptada" : "Intercepted transmission"
+        };
+
+    private string ResolveBroadcastCinematicFooterLeft()
+        => _currentBroadcastVideoAsset?.Category switch
+        {
+            "market-warning" => IsPortugueseCulture ? "Volatilidade monitorada" : "Volatility monitored",
+            "special-event" => IsPortugueseCulture ? "Canal premium ativo" : "Premium channel online",
+            _ => IsPortugueseCulture ? "HUD sincrono ativo" : "Synchronous HUD online"
+        };
+
+    private string ResolveBroadcastCinematicFooterRight()
+        => _currentBroadcastVideoAsset?.Category switch
+        {
+            "villain-message" => IsPortugueseCulture ? "Controle nao autorizado" : "Unauthorized control",
+            "meme-coin-event" => IsPortugueseCulture ? "Feed caotico" : "Chaotic feed",
+            "arena-lore" => IsPortugueseCulture ? "Arquivo criptografado" : "Encrypted archive",
+            _ => IsPortugueseCulture ? "Feed clandestino" : "Clandestine feed"
+        };
+
+    private static string SanitizeBroadcastVideoCssToken(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? "default"
+            : NormalizeBroadcastToken(value).Replace('_', '-');
+
+    private static string NormalizeBroadcastToken(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        return value.Trim().ToLowerInvariant()
+            .Replace(' ', '-')
+            .Replace('_', '-');
+    }
+
+    private bool IsKickoffWindow(BroadcastSnapshot current)
+        => current.LeftScore == 0
+            && current.RightScore == 0
+            && current.RemainingSeconds >= (90 * 60) - 120;
+
+    private static bool IsHalftimeWindow(BroadcastSnapshot current)
+        => current.RemainingSeconds is <= (46 * 60) and >= (44 * 60);
+
+    private static bool IsVictoryWindow(BroadcastSnapshot current)
+        => current.RemainingSeconds <= 90
+            && Math.Abs(current.LeftScore - current.RightScore) >= 2;
+
+    private bool IsBitcoinDominanceArena(BroadcastSnapshot current)
+    {
+        var symbols = new[]
+        {
+            current.LeftSymbol,
+            current.RightSymbol,
+            current.LeaderSymbol
+        };
+
+        return symbols.Any(symbol => !string.IsNullOrWhiteSpace(symbol)
+            && (symbol.Contains("BTC", StringComparison.OrdinalIgnoreCase)
+                || symbol.Contains("BITCOIN", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private bool IsMemeCoinArena(BroadcastSnapshot current)
+    {
+        var symbols = new[]
+        {
+            current.LeftSymbol,
+            current.RightSymbol,
+            current.LeaderSymbol
+        };
+
+        string[] memeTokens = ["DOGE", "PEPE", "SHIB", "FLOKI", "BONK", "WIF", "BRETT"];
+        return symbols.Any(symbol => memeTokens.Any(token => symbol?.Contains(token, StringComparison.OrdinalIgnoreCase) == true));
+    }
+
+    private async Task HandleBroadcastCinematicVideoEndedAsync()
+    {
+        if (Environment.IsDevelopment() && _currentBroadcastVideoAsset is not null)
+        {
+            await LogAsync("TV_VIDEO", "completed", new
+            {
+                videoId = _currentBroadcastVideoAsset.Id,
+                category = _currentBroadcastVideoAsset.Category,
+                src = _currentBroadcastVideoAsset.Src
+            });
+        }
+
+        HidePirateIntro();
+    }
+
+    private async Task HandleBroadcastCinematicVideoErrorAsync()
+    {
+        if (Environment.IsDevelopment())
+        {
+            await LogAsync("TV_VIDEO", "error", new
+            {
+                videoId = _currentBroadcastVideoAsset?.Id,
+                category = _currentBroadcastVideoAsset?.Category,
+                src = _currentBroadcastVideoAsset?.Src,
+                trigger = _pirateOverlayReason
+            });
+        }
     }
 
     private void CancelPirateOverlayTimer()
@@ -7572,6 +8180,24 @@ else
     animation: pirateFadeIn .45s ease-out both;
 }
 
+.pirate-signal-backdrop.is-market-warning {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(90, 18, 18, 0.22), rgba(16, 4, 10, 0.82)),
+        linear-gradient(180deg, rgba(78, 18, 28, 0.12), rgba(16, 8, 20, 0.64));
+}
+
+.pirate-signal-backdrop.is-villain-message {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(60, 16, 90, 0.22), rgba(8, 4, 18, 0.84)),
+        linear-gradient(180deg, rgba(52, 18, 84, 0.12), rgba(10, 8, 22, 0.64));
+}
+
+.pirate-signal-backdrop.is-special-event {
+    background:
+        radial-gradient(circle at 50% 50%, rgba(96, 72, 20, 0.18), rgba(16, 12, 4, 0.82)),
+        linear-gradient(180deg, rgba(84, 66, 20, 0.12), rgba(8, 10, 22, 0.62));
+}
+
 .pirate-signal-panel {
     position: relative;
     width: min(84vw, 1100px);
@@ -7594,6 +8220,36 @@ else
         pirateGlitch .22s steps(2, end) 2,
         pirateVhsBurst 1.05s ease-out 1,
         pirateFloat 5.8s ease-in-out infinite,
+        neonPulse 2.8s ease-in-out infinite;
+}
+
+.pirate-signal-panel.is-market-warning {
+    border-color: rgba(255, 131, 102, 0.74);
+    background: linear-gradient(135deg, rgba(34, 12, 14, 0.96), rgba(18, 8, 20, 0.92));
+}
+
+.pirate-signal-panel.is-villain-message {
+    border-color: rgba(198, 132, 255, 0.7);
+    background: linear-gradient(135deg, rgba(20, 10, 38, 0.96), rgba(12, 8, 24, 0.92));
+}
+
+.pirate-signal-panel.is-special-event {
+    border-color: rgba(255, 226, 124, 0.76);
+    background: linear-gradient(135deg, rgba(30, 22, 8, 0.96), rgba(10, 12, 24, 0.92));
+}
+
+.pirate-signal-panel.is-transition-emergency-alert {
+    animation:
+        pirateGlitch .22s steps(2, end) 2,
+        pirateVhsBurst 1.05s ease-out 1,
+        pirateAlertPulse 1.2s ease-in-out infinite;
+}
+
+.pirate-signal-panel.is-transition-arena-takeover {
+    animation:
+        pirateGlitch .22s steps(2, end) 2,
+        pirateVhsBurst 1.05s ease-out 1,
+        pirateTakeoverShake 2.4s ease-in-out infinite,
         neonPulse 2.8s ease-in-out infinite;
 }
 
@@ -8857,6 +9513,29 @@ else
                 0 28px 84px rgba(0, 0, 0, 0.48),
                 0 0 56px rgba(34, 214, 255, 0.3);
         }
+    }
+
+    @@keyframes pirateAlertPulse {
+        0%, 100% {
+            box-shadow:
+                0 0 0 1px rgba(255, 124, 92, 0.18) inset,
+                0 28px 84px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(255, 112, 76, 0.2);
+        }
+
+        50% {
+            box-shadow:
+                0 0 0 1px rgba(255, 168, 120, 0.34) inset,
+                0 30px 92px rgba(0, 0, 0, 0.56),
+                0 0 64px rgba(255, 112, 76, 0.34);
+        }
+    }
+
+    @@keyframes pirateTakeoverShake {
+        0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+        20% { transform: translate3d(-2px, 0, 0) rotate(-0.2deg); }
+        45% { transform: translate3d(2px, -1px, 0) rotate(0.18deg); }
+        70% { transform: translate3d(-1px, 1px, 0) rotate(-0.14deg); }
     }
 
     @@keyframes pirateNoise {
