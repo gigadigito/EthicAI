@@ -390,13 +390,39 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("contract_address");
 
+                    b.Property<bool?>("IsMemeCoin")
+                        .HasColumnType("boolean")
+                        .HasColumnName("in_meme_coin");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
 
+                    b.Property<string>("LargeImageUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("tx_large_image_url");
+
                     b.Property<DateTime?>("LastCheckedUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_checked_utc");
+
+                    b.Property<int?>("MarketCapRank")
+                        .HasColumnType("integer")
+                        .HasColumnName("nr_market_cap_rank");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("tx_name");
+
+                    b.Property<string>("PrimaryColor")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("tx_primary_color");
+
+                    b.Property<string>("SecondaryColor")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("tx_secondary_color");
 
                     b.Property<string>("Source")
                         .HasMaxLength(80)
@@ -414,6 +440,10 @@ namespace DAL.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("telegram_url");
 
+                    b.Property<string>("ThumbUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("tx_thumb_url");
+
                     b.Property<string>("TwitterHandle")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
@@ -427,6 +457,11 @@ namespace DAL.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("website_url");
+
+                    b.Property<string>("VisualStyle")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("tx_visual_style");
 
                     b.HasKey("Id");
 

@@ -118,23 +118,49 @@ public sealed class SocialController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("coin-profile")]
-    public async Task<ActionResult<CoinSocialProfileDto>> UpsertCoinProfile(
+    public async Task<ActionResult<CoinSocialProfileUpsertResponse>> UpsertCoinProfile(
         [FromBody] UpsertCoinSocialProfileRequest request,
         CancellationToken ct)
     {
         if (!TryAuthorizeSocialWrite(out var error))
             return error;
 
-        var normalizedSymbol = NormalizeSymbol(request.Symbol);
-        if (string.IsNullOrWhiteSpace(normalizedSymbol))
-            return BadRequest(new { message = "Symbol obrigatorio." });
+        var normalizedSymbol = request.HasSymbol ? NormalizeSymbol(request.Symbol) : null;
+        var coinGeckoId = request.HasCoinGeckoId ? TrimOrNull(request.CoinGeckoId) : null;
+        if (string.IsNullOrWhiteSpace(normalizedSymbol) && string.IsNullOrWhiteSpace(coinGeckoId))
+            return BadRequest(new { message = "Informe symbol ou coingeckoId." });
 
         var nowUtc = DateTime.UtcNow;
-        var entity = await _db.CoinSocialProfile
-            .FirstOrDefaultAsync(x => x.Symbol == normalizedSymbol, ct);
+        CoinSocialProfile? entityByCoinGecko = null;
+        CoinSocialProfile? entityBySymbol = null;
 
-        if (entity is null)
+        if (!string.IsNullOrWhiteSpace(coinGeckoId))
         {
+            entityByCoinGecko = await _db.CoinSocialProfile
+                .FirstOrDefaultAsync(x => x.CoinGeckoId == coinGeckoId, ct);
+        }
+
+        if (!string.IsNullOrWhiteSpace(normalizedSymbol))
+        {
+            entityBySymbol = await _db.CoinSocialProfile
+                .FirstOrDefaultAsync(x => x.Symbol == normalizedSymbol, ct);
+        }
+
+        if (entityByCoinGecko is not null &&
+            entityBySymbol is not null &&
+            entityByCoinGecko.Id != entityBySymbol.Id)
+        {
+            return Conflict(new { message = "Ja existem perfis distintos para o symbol e o coingeckoId informados." });
+        }
+
+        var entity = entityByCoinGecko ?? entityBySymbol;
+
+        var isNew = entity is null;
+        if (isNew)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedSymbol))
+                return BadRequest(new { message = "Symbol obrigatorio para criar novo perfil." });
+
             entity = new CoinSocialProfile
             {
                 Symbol = normalizedSymbol,
@@ -144,19 +170,66 @@ public sealed class SocialController : ControllerBase
             _db.CoinSocialProfile.Add(entity);
         }
 
-        entity.Symbol = normalizedSymbol;
-        entity.CoinGeckoId = TrimOrNull(request.CoinGeckoId);
-        entity.ContractAddress = TrimOrNull(request.ContractAddress);
-        entity.TwitterHandle = NormalizeTwitterHandle(request.TwitterHandle);
-        entity.TelegramUrl = TrimOrNull(request.TelegramUrl);
-        entity.WebsiteUrl = TrimOrNull(request.WebsiteUrl);
-        entity.Source = TrimOrNull(request.Source);
-        entity.LastCheckedUtc = nowUtc;
-        entity.UpdatedAtUtc = nowUtc;
+        var changed = isNew;
+
+        if (request.HasSymbol && !string.IsNullOrWhiteSpace(normalizedSymbol))
+            changed |= SetIfDifferent(entity, x => x.Symbol, (x, value) => x.Symbol = value, normalizedSymbol);
+
+        if (request.HasCoinGeckoId)
+            changed |= SetIfDifferent(entity, x => x.CoinGeckoId, (x, value) => x.CoinGeckoId = value, coinGeckoId);
+
+        if (request.HasContractAddress)
+            changed |= SetIfDifferent(entity, x => x.ContractAddress, (x, value) => x.ContractAddress = value, TrimOrNull(request.ContractAddress));
+
+        if (request.HasName)
+            changed |= SetIfDifferent(entity, x => x.Name, (x, value) => x.Name = value, TrimOrNull(request.Name));
+
+        if (request.HasThumbUrl)
+            changed |= SetIfDifferent(entity, x => x.ThumbUrl, (x, value) => x.ThumbUrl = value, TrimOrNull(request.ThumbUrl));
+
+        if (request.HasLargeImageUrl)
+            changed |= SetIfDifferent(entity, x => x.LargeImageUrl, (x, value) => x.LargeImageUrl = value, TrimOrNull(request.LargeImageUrl));
+
+        if (request.HasMarketCapRank)
+            changed |= SetIfDifferent(entity, x => x.MarketCapRank, (x, value) => x.MarketCapRank = value, request.MarketCapRank);
+
+        if (request.HasIsMemeCoin)
+            changed |= SetIfDifferent(entity, x => x.IsMemeCoin, (x, value) => x.IsMemeCoin = value, request.IsMemeCoin);
+
+        if (request.HasPrimaryColor)
+            changed |= SetIfDifferent(entity, x => x.PrimaryColor, (x, value) => x.PrimaryColor = value, TrimOrNull(request.PrimaryColor));
+
+        if (request.HasSecondaryColor)
+            changed |= SetIfDifferent(entity, x => x.SecondaryColor, (x, value) => x.SecondaryColor = value, TrimOrNull(request.SecondaryColor));
+
+        if (request.HasVisualStyle)
+            changed |= SetIfDifferent(entity, x => x.VisualStyle, (x, value) => x.VisualStyle = value, TrimOrNull(request.VisualStyle));
+
+        if (request.HasTwitterHandle)
+            changed |= SetIfDifferent(entity, x => x.TwitterHandle, (x, value) => x.TwitterHandle = value, NormalizeTwitterHandle(request.TwitterHandle));
+
+        if (request.HasTelegramUrl)
+            changed |= SetIfDifferent(entity, x => x.TelegramUrl, (x, value) => x.TelegramUrl = value, TrimOrNull(request.TelegramUrl));
+
+        if (request.HasWebsiteUrl)
+            changed |= SetIfDifferent(entity, x => x.WebsiteUrl, (x, value) => x.WebsiteUrl = value, TrimOrNull(request.WebsiteUrl));
+
+        if (request.HasSource)
+            changed |= SetIfDifferent(entity, x => x.Source, (x, value) => x.Source = value, TrimOrNull(request.Source));
+
+        var lastCheckedUtc = request.HasLastCheckedUtc ? request.LastCheckedUtc ?? nowUtc : nowUtc;
+        changed |= SetIfDifferent(entity, x => x.LastCheckedUtc, (x, value) => x.LastCheckedUtc = value, lastCheckedUtc);
+
+        if (changed)
+            entity.UpdatedAtUtc = nowUtc;
 
         await _db.SaveChangesAsync(ct);
 
-        return Ok(ToDto(entity));
+        return Ok(new CoinSocialProfileUpsertResponse
+        {
+            Ok = true,
+            Profile = ToDto(entity)
+        });
     }
 
     [AllowAnonymous]
@@ -295,9 +368,18 @@ public sealed class SocialController : ControllerBase
 
     private static CoinSocialProfileDto ToDto(CoinSocialProfile entity) => new()
     {
+        Id = entity.Id,
         Symbol = entity.Symbol,
         CoinGeckoId = entity.CoinGeckoId,
         ContractAddress = entity.ContractAddress,
+        Name = entity.Name,
+        ThumbUrl = entity.ThumbUrl,
+        LargeImageUrl = entity.LargeImageUrl,
+        MarketCapRank = entity.MarketCapRank,
+        IsMemeCoin = entity.IsMemeCoin,
+        PrimaryColor = entity.PrimaryColor,
+        SecondaryColor = entity.SecondaryColor,
+        VisualStyle = entity.VisualStyle,
         TwitterHandle = entity.TwitterHandle,
         TelegramUrl = entity.TelegramUrl,
         WebsiteUrl = entity.WebsiteUrl,
@@ -326,4 +408,13 @@ public sealed class SocialController : ControllerBase
 
     private static string? TrimOrNull(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool SetIfDifferent<T>(CoinSocialProfile entity, Func<CoinSocialProfile, T> getter, Action<CoinSocialProfile, T> setter, T value)
+    {
+        if (EqualityComparer<T>.Default.Equals(getter(entity), value))
+            return false;
+
+        setter(entity, value);
+        return true;
+    }
 }

@@ -1033,6 +1033,36 @@ namespace EthicAI.EntityModel
                       .HasColumnName("contract_address")
                       .HasMaxLength(200);
 
+                entity.Property(e => e.Name)
+                      .HasColumnName("tx_name")
+                      .HasColumnType("text");
+
+                entity.Property(e => e.ThumbUrl)
+                      .HasColumnName("tx_thumb_url")
+                      .HasColumnType("text");
+
+                entity.Property(e => e.LargeImageUrl)
+                      .HasColumnName("tx_large_image_url")
+                      .HasColumnType("text");
+
+                entity.Property(e => e.MarketCapRank)
+                      .HasColumnName("nr_market_cap_rank");
+
+                entity.Property(e => e.IsMemeCoin)
+                      .HasColumnName("in_meme_coin");
+
+                entity.Property(e => e.PrimaryColor)
+                      .HasColumnName("tx_primary_color")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.SecondaryColor)
+                      .HasColumnName("tx_secondary_color")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.VisualStyle)
+                      .HasColumnName("tx_visual_style")
+                      .HasMaxLength(100);
+
                 entity.Property(e => e.TwitterHandle)
                       .HasColumnName("twitter_handle")
                       .HasMaxLength(120);

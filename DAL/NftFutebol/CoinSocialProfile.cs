@@ -6,6 +6,14 @@ public sealed class CoinSocialProfile
     public string Symbol { get; set; } = string.Empty;
     public string? CoinGeckoId { get; set; }
     public string? ContractAddress { get; set; }
+    public string? Name { get; set; }
+    public string? ThumbUrl { get; set; }
+    public string? LargeImageUrl { get; set; }
+    public int? MarketCapRank { get; set; }
+    public bool? IsMemeCoin { get; set; }
+    public string? PrimaryColor { get; set; }
+    public string? SecondaryColor { get; set; }
+    public string? VisualStyle { get; set; }
     public string? TwitterHandle { get; set; }
     public string? TelegramUrl { get; set; }
     public string? WebsiteUrl { get; set; }
