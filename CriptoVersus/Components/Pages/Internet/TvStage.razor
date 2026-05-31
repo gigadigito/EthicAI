@@ -863,6 +863,7 @@ else
     private bool _didVictoryMoment;
     private bool _didKickoff;
     private bool _didBroadcastDiagnostics;
+    private DateTime _broadcastCinematicSuppressUntilUtc = DateTime.MinValue;
     private int _broadcastRotationIndex;
     private DateTime _lastBroadcastFocusChangeUtc = DateTime.MinValue;
     private DateTime _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
@@ -1858,6 +1859,7 @@ else
             if (IsBroadcastMode && !hadPreviousMatch && !_hasShownInitialPirateIntro)
             {
                 _didMatchStart = true;
+                _didKickoff = true;
                 _ = ShowPirateIntroAsync("initial");
             }
 
@@ -1888,6 +1890,7 @@ else
             _didHalftime = false;
             _didMatchEnding = false;
             _didVictoryMoment = false;
+            _broadcastCinematicSuppressUntilUtc = DateTime.MinValue;
             _nextRandomBroadcastInterruptionAtUtc = DateTime.UtcNow.AddMinutes(Random.Shared.Next(3, 7));
             _pendingAutoReplayQueue.Clear();
             _armedAutoReplaySignatures.Clear();
@@ -2074,6 +2077,9 @@ else
         if (!IsBroadcastMode || _showPirateOverlay)
             return;
 
+        if (DateTime.UtcNow < _broadcastCinematicSuppressUntilUtc)
+            return;
+
         if (!_didMatchStart)
         {
             _didMatchStart = true;
@@ -2216,6 +2222,7 @@ else
             _pirateOverlayReason = reason;
             _pirateOverlayMessage = GetRandomPirateMessage(reason, selectedVideo);
             _showPirateOverlay = true;
+            _broadcastCinematicSuppressUntilUtc = DateTime.UtcNow.Add(visibleDuration).Add(TimeSpan.FromSeconds(2));
             if (selectedVideo is not null)
             {
                 _lastBroadcastVideoId = selectedVideo.Id;
