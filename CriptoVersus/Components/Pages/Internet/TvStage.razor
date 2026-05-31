@@ -984,7 +984,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260521-5");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260531-ambient-2");
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
@@ -3761,11 +3761,11 @@ else
     }
 
     private decimal ResolveCrowdAudioVolume()
-        => Math.Clamp(Config.GetValue<decimal?>("CriptoVersusTV:CrowdAudioVolume") ?? 0.24m, 0.12m, 0.45m);
+        => Math.Clamp(Config.GetValue<decimal?>("CriptoVersusTV:CrowdAudioVolume") ?? 0.42m, 0.18m, 0.80m);
 
     private async Task EnsureBroadcastAudioAsync()
     {
-        if (_tvModule is null || !ShouldRenderCrowdAudio)
+        if (_broadcastAudioInitialized || _tvModule is null || !ShouldRenderCrowdAudio)
             return;
 
         try

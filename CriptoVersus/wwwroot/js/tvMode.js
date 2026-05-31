@@ -123,7 +123,7 @@ const tvAudioMap = {
     whistle: "/audio/tv/whistle.mp3",
     kickoff: "/audio/tv/kickoff.mp3",
     halftime: "/audio/tv/halftime.mp3",
-    lastMinute: "/audio/tv/last-minute.mp3",
+    lastMinute: "/audio/tv/final-minutes.mp3",
     counterAttack: "/audio/tv/counter-attack.mp3",
     marketCrash: "/audio/tv/market-crash.mp3",
     marketPump: "/audio/tv/market-pump.mp3",
@@ -978,6 +978,13 @@ function ensureAmbientPreloaded(excludeSrc = null) {
 
 async function startAmbientAudioInstance(audio, track, reason) {
     const manager = ensureTvAudioManager();
+    if (audio && !audio.paused && !audio.ended && audio.currentSrc) {
+        manager.unlocked = true;
+        manager.autoplayBlocked = false;
+        logAmbientDebug("already playing", { src: track.src, reason });
+        return true;
+    }
+
     try {
         await audio.play();
         manager.unlocked = true;
