@@ -808,6 +808,53 @@ function createAmbientAudio(track) {
     return audio;
 }
 
+function prepareInitialAmbientAudio(hostAudio) {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    const selection = chooseNextAmbientTrack(ambient.lastTrackSrc);
+    if (!selection) {
+        return false;
+    }
+
+    prepareAmbientHostElement(hostAudio);
+    hostAudio.preload = "auto";
+    hostAudio.playsInline = true;
+    hostAudio.muted = manager.muted;
+    if (hostAudio.getAttribute("src") !== selection.track.src) {
+        hostAudio.setAttribute("src", selection.track.src);
+        try {
+            hostAudio.load();
+        } catch {
+        }
+    }
+
+    connectAudioElement(hostAudio, "ambient");
+    const gain = manager.instanceGains.get(hostAudio);
+    if (gain) {
+        gain.gain.value = 0;
+    }
+
+    ambient.currentAudio = hostAudio;
+    ambient.currentTrack = selection.track;
+    ambient.currentIndex = selection.index;
+    ambient.lastTrackSrc = selection.track.src;
+    hostAudio.onended = () => {
+        if (ensureTvAudioManager().ambient.currentAudio !== hostAudio) {
+            return;
+        }
+
+        transitionAmbientTrack("ended").catch(() => { });
+    };
+
+    ensureAmbientPreloaded(selection.track.src);
+    logAmbientDebug("prepared initial", {
+        src: selection.track.src,
+        mood: selection.track.mood,
+        intensity: selection.track.intensity
+    });
+    return true;
+}
+
 function markAmbientTrackFailed(track, reason) {
     const manager = ensureTvAudioManager();
     if (!track?.src) {
@@ -1011,6 +1058,24 @@ async function resumeAmbientPlayback(reason = "resume") {
             ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
             manager.ambientStarted = true;
             return true;
+        }
+    }
+
+    if (ambient.hostElementId && typeof document !== "undefined") {
+        const hostAudio = document.getElementById(ambient.hostElementId);
+        if (hostAudio instanceof HTMLAudioElement && prepareInitialAmbientAudio(hostAudio)) {
+            const hostGain = manager.instanceGains.get(hostAudio);
+            const started = await startAmbientAudioInstance(hostAudio, ambient.currentTrack ?? { src: "unknown" }, `${reason}-host-fallback`);
+            if (started) {
+                if (hostGain) {
+                    fadeGainTo(hostGain, manager.ambientTargetVolume, 1200);
+                } else {
+                    hostAudio.volume = manager.ambientTargetVolume;
+                }
+
+                manager.ambientStarted = true;
+                return true;
+            }
         }
     }
 
@@ -3417,7 +3482,11 @@ export async function initBroadcastAudio(elementId, volume, muted) {
     manager.ambientTargetVolume = safeVolume;
     manager.ambient.hostElementId = elementId;
     manager.ambient.destroyed = false;
-    prepareAmbientHostElement(audio);
+    if (!manager.ambient.currentAudio) {
+        prepareInitialAmbientAudio(audio);
+    } else {
+        prepareAmbientHostElement(audio);
+    }
     setTvAudioSettings(safeVolume, muted);
 
     if (!Boolean(muted)) {
