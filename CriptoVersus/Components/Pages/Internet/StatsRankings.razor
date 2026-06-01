@@ -1,0 +1,212 @@
+@page "/stats/rankings"
+@page "/en/stats/rankings"
+@page "/pt/estatisticas/rankings"
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject AppCultureService AppCulture
+@inject IHttpContextAccessor HttpContextAccessor
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@rendermode InteractiveServer
+
+<PageTitle>@T("seo.title")</PageTitle>
+
+<section class="hub-page">
+    <header class="hub-hero">
+        <div>
+            <span class="hub-eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p>@T("hero.subtitle")</p>
+        </div>
+        <div class="hub-actions">
+            <a class="hub-pill" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">@T("hero.backToStats")</a>
+            <a class="hub-pill hub-pill--accent" href="@RouteLocalization.BuildStatsMatchesPath(CurrentCulture)">@T("hero.openMatches")</a>
+        </div>
+    </header>
+
+    <section class="hub-panel">
+        <div class="hub-input-group">
+            <label for="rankings-search">@T("filters.searchLabel")</label>
+            <input id="rankings-search" type="search" placeholder="@T("filters.searchPlaceholder")" @bind="SearchValue" @bind:event="oninput" />
+        </div>
+    </section>
+
+    @if (_loading)
+    {
+        <section class="hub-feedback"><strong>@T("states.loadingTitle")</strong><p>@T("states.loadingBody")</p></section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <section class="hub-feedback hub-feedback--error"><strong>@T("states.errorTitle")</strong><p>@_error</p></section>
+    }
+    else if (_teams.Count == 0)
+    {
+        <section class="hub-feedback"><strong>@T("states.emptyTitle")</strong><p>@T("states.emptyBody")</p></section>
+    }
+    else
+    {
+        <section class="hub-summary">
+            <article><span>@T("summary.assets")</span><strong>@_teams.Count</strong></article>
+            <article><span>@T("summary.topWins")</span><strong>@TopWinsLabel</strong></article>
+            <article><span>@T("summary.topEfficiency")</span><strong>@TopEfficiencyLabel</strong></article>
+            <article><span>@T("summary.topStreak")</span><strong>@TopStreakLabel</strong></article>
+        </section>
+
+        @foreach (var board in Boards)
+        {
+            <section class="hub-card">
+                <div class="hub-section-head">
+                    <div>
+                        <span>@board.Eyebrow</span>
+                        <h2>@board.Title</h2>
+                    </div>
+                    <p>@board.Description</p>
+                </div>
+                <div class="hub-table-wrap">
+                    <table class="hub-table">
+                        <thead>
+                            <tr>
+                                <th>@T("boards.columns.rank")</th>
+                                <th>@T("boards.columns.asset")</th>
+                                <th>@board.PrimaryLabel</th>
+                                <th>@T("boards.columns.matches")</th>
+                                <th>@T("boards.columns.winRate")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in board.Rows.Take(10).Select((team, index) => new { team, index }))
+                            {
+                                <tr>
+                                    <td>@(row.index + 1)</td>
+                                    <td><a class="hub-link" href="@GetTeamUrl(row.team.CleanSymbol)">@row.team.CleanSymbol</a></td>
+                                    <td>@board.ValueSelector(row.team)</td>
+                                    <td>@row.team.Matches</td>
+                                    <td>@PublicStatsHubCalculator.FormatPercent(row.team.WinRate)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        }
+    }
+</section>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+
+    private readonly List<MatchDto> _matches = [];
+    private readonly List<PublicStatsHubCalculator.PublicStatsTeamSummary> _teams = [];
+    private bool _loading = true;
+    private string? _error;
+    private string _search = string.Empty;
+
+    private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+
+    private string TopWinsLabel => _teams.Count == 0 ? "-" : $"{_teams.OrderByDescending(x => x.Wins).First().CleanSymbol} ({_teams.Max(x => x.Wins)})";
+    private string TopEfficiencyLabel => _teams.Count == 0 ? "-" : $"{_teams.OrderByDescending(x => x.Efficiency).First().CleanSymbol} ({PublicStatsHubCalculator.FormatPercent(_teams.Max(x => x.Efficiency))})";
+    private string TopStreakLabel => _teams.Count == 0 ? "-" : $"{_teams.OrderByDescending(x => x.CurrentUnbeatenStreak).First().CleanSymbol} ({_teams.Max(x => x.CurrentUnbeatenStreak)})";
+
+    private IReadOnlyList<RankingBoardViewModel> Boards =>
+    [
+        new(T("boards.wins.eyebrow"), T("boards.wins.title"), T("boards.wins.description"), T("boards.wins.metric"), _teams.OrderByDescending(x => x.Wins).ThenByDescending(x => x.WinRate).ToList(), team => team.Wins.ToString()),
+        new(T("boards.efficiency.eyebrow"), T("boards.efficiency.title"), T("boards.efficiency.description"), T("boards.efficiency.metric"), _teams.OrderByDescending(x => x.Efficiency).ThenByDescending(x => x.Wins).ToList(), team => PublicStatsHubCalculator.FormatPercent(team.Efficiency)),
+        new(T("boards.goals.eyebrow"), T("boards.goals.title"), T("boards.goals.description"), T("boards.goals.metric"), _teams.OrderByDescending(x => x.GoalsFor).ThenByDescending(x => x.Wins).ToList(), team => team.GoalsFor.ToString()),
+        new(T("boards.streak.eyebrow"), T("boards.streak.title"), T("boards.streak.description"), T("boards.streak.metric"), _teams.OrderByDescending(x => x.CurrentUnbeatenStreak).ThenByDescending(x => x.BestWinStreak).ToList(), team => $"{team.CurrentUnbeatenStreak}")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            _matches.Clear();
+            _matches.AddRange(await Api.GetMatchesAsync(status: null, take: 200) ?? []);
+            Recompute();
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            Console.WriteLine($"Stats rankings page load error: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Recompute()
+    {
+        var dataset = PublicStatsHubCalculator.Build(_matches.Where(match =>
+            string.IsNullOrWhiteSpace(_search)
+            || Contains(match.TeamA, _search)
+            || Contains(match.TeamB, _search)
+            || Contains(PublicStatsHubCalculator.CleanAssetSymbol(match.TeamA), _search)
+            || Contains(PublicStatsHubCalculator.CleanAssetSymbol(match.TeamB), _search)));
+
+        _teams.Clear();
+        _teams.AddRange(dataset.Teams);
+    }
+
+    private static bool Contains(string? source, string value)
+        => !string.IsNullOrWhiteSpace(source) && source.Contains(value, StringComparison.OrdinalIgnoreCase);
+
+    private string GetTeamUrl(string symbol)
+        => RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, PublicStatsHubCalculator.BuildAssetSlug(symbol));
+
+    private string T(string key, params object?[] args)
+        => L.T($"statsRankings.{key}", CurrentCulture, args);
+
+    private string SearchValue
+    {
+        get => _search;
+        set
+        {
+            _search = value;
+            Recompute();
+        }
+    }
+
+    private sealed record RankingBoardViewModel(
+        string Eyebrow,
+        string Title,
+        string Description,
+        string PrimaryLabel,
+        IReadOnlyList<PublicStatsHubCalculator.PublicStatsTeamSummary> Rows,
+        Func<PublicStatsHubCalculator.PublicStatsTeamSummary, string> ValueSelector);
+}
+
+<style>
+    .hub-page { color: #eef4ff; display: grid; gap: 1rem; }
+    .hub-hero, .hub-panel, .hub-card, .hub-feedback, .hub-summary article { border: 1px solid rgba(112,132,170,.18); border-radius: 24px; background: linear-gradient(180deg, rgba(9,13,22,.98), rgba(6,9,16,.99)); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+    .hub-hero, .hub-panel, .hub-card, .hub-feedback { padding: 1.25rem; }
+    .hub-eyebrow, .hub-section-head span { color: #7ff6df; text-transform: uppercase; letter-spacing: .12em; font-size: .76rem; font-weight: 900; }
+    .hub-hero h1, .hub-card h2 { margin: .5rem 0; }
+    .hub-hero p, .hub-section-head p, .hub-feedback p, .hub-panel label { color: #9cb0ca; }
+    .hub-actions, .hub-match { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+    .hub-pill, .hub-link { color: #eef4ff; text-decoration: none; }
+    .hub-pill { border: 1px solid rgba(83,200,255,.22); border-radius: 999px; background: rgba(14,22,36,.92); padding: .7rem 1rem; }
+    .hub-pill--accent { border-color: rgba(127,246,223,.34); background: rgba(13,32,32,.92); }
+    .hub-panel { display: grid; gap: 1rem; }
+    .hub-input-group { display: grid; gap: .5rem; }
+    .hub-input-group input { border: 1px solid rgba(127,246,223,.22); border-radius: 16px; background: rgba(8,14,24,.92); color: #eef4ff; padding: .9rem 1rem; }
+    .hub-summary { display: grid; gap: .8rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .hub-summary article { padding: 1rem; display: grid; gap: .45rem; }
+    .hub-summary span { color: #9cb0ca; font-size: .86rem; }
+    .hub-summary strong { font-size: 1.1rem; }
+    .hub-table-wrap { overflow-x: auto; }
+    .hub-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .hub-table th, .hub-table td { padding: .9rem .75rem; border-bottom: 1px solid rgba(112,132,170,.12); text-align: left; }
+    .hub-section-head { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+    @@media (max-width: 900px) { .hub-summary { grid-template-columns: 1fr; } .hub-section-head { flex-direction: column; align-items: start; } }
+</style>

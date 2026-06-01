@@ -21,6 +21,8 @@ public sealed class CoinSocialProfileDto
     public string? WebsiteUrl { get; set; }
     public string? Source { get; set; }
     public DateTime? LastCheckedUtc { get; set; }
+    public DateTime? CreatedAtUtc { get; set; }
+    public DateTime? UpdatedAtUtc { get; set; }
 }
 
 public sealed class UpsertCoinSocialProfileRequest

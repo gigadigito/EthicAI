@@ -75,6 +75,21 @@ public sealed class RouteLocalizationService
             ? "/pt/estatisticas/times"
             : "/stats/teams";
 
+    public string BuildStatsMatchesPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/estatisticas/partidas"
+            : "/stats/matches";
+
+    public string BuildStatsRankingsPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/estatisticas/rankings"
+            : "/stats/rankings";
+
+    public string BuildStatsRecordsPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/estatisticas/recordes"
+            : "/stats/records";
+
     public string BuildStatsTeamDetailPath(string? culture, string slug)
     {
         var normalizedSlug = slug.Trim().ToLowerInvariant();
@@ -142,6 +157,21 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/en/stats/teams", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/estatisticas/times", StringComparison.OrdinalIgnoreCase))
             return BuildStatsTeamsPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/stats/matches", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/stats/matches", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/estatisticas/partidas", StringComparison.OrdinalIgnoreCase))
+            return BuildStatsMatchesPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/stats/rankings", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/stats/rankings", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/estatisticas/rankings", StringComparison.OrdinalIgnoreCase))
+            return BuildStatsRankingsPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/stats/records", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/stats/records", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/estatisticas/recordes", StringComparison.OrdinalIgnoreCase))
+            return BuildStatsRecordsPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/token", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/token", StringComparison.OrdinalIgnoreCase)

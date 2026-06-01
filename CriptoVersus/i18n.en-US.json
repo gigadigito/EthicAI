@@ -425,6 +425,17 @@
       "emptyBody": "The arena has not published enough completed or tracked matches to fill the statistics board yet. The page stays live and will populate automatically as public match data grows.",
       "noData": "No data yet"
     },
+    "search": {
+      "eyebrow": "Asset search",
+      "title": "Find a coin instantly",
+      "description": "Search the public ranking by symbol or asset name without leaving the Stats page.",
+      "label": "Search for a coin",
+      "placeholder": "BTC, ETH, STRAX, TON...",
+      "ariaLabel": "Search for a coin by symbol or name",
+      "clear": "Clear",
+      "noResultsTitle": "No asset found for this search.",
+      "noResultsBody": "Try another symbol or asset name to return to the public ranking."
+    },
     "summary": {
       "ariaLabel": "Public stats summary",
       "totalMatches": {
@@ -515,7 +526,7 @@
     "future": {
       "eyebrow": "Roadmap connectors",
       "title": "Next public stats hubs",
-      "description": "Reserved destinations for upcoming stats expansions. They are intentionally disabled until the routes go live.",
+      "description": "Explore dedicated public hubs built on top of the live CriptoVersus arena data.",
       "availableNow": "Available now",
       "comingSoon": "Coming soon",
       "openAria": "Open {0}",
@@ -550,6 +561,104 @@
     "footnote": {
       "title": "Public arena data context",
       "body": "CriptoVersus public statistics track crypto match performance, historical arena battles, win rates, scoreboards and public market competition between digital assets."
+    }
+  },
+  "statsMatches": {
+    "seo": { "title": "CriptoVersus Matches Stats", "description": "Browse public crypto matches, filter by status and review asset results across the arena." },
+    "hero": { "eyebrow": "Public match hub", "title": "Stats Matches", "subtitle": "Search public battles, inspect recent scoreboards and compare results by asset.", "backToStats": "Back to stats", "openTeams": "Open teams" },
+    "filters": {
+      "searchLabel": "Search by coin or team",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON...",
+      "statusLabel": "Status",
+      "status": { "all": "All", "ongoing": "Live", "completed": "Finished", "pending": "Pending", "cancelled": "Cancelled" }
+    },
+    "states": {
+      "loadingTitle": "Loading public matches",
+      "loadingBody": "Collecting public scoreboards and recent battle history.",
+      "errorTitle": "Matches temporarily unavailable",
+      "errorBody": "We could not load the public match archive right now.",
+      "emptyTitle": "No matches found",
+      "emptyBody": "Try another asset, team or status filter."
+    },
+    "summary": { "totalMatches": "Total matches", "completed": "Finished", "live": "Live", "assets": "Tracked assets" },
+    "matches": {
+      "eyebrow": "Recent archive",
+      "title": "Latest public matches",
+      "description": "Open any match page and review the latest public scoreboards.",
+      "openMatch": "Open match",
+      "columns": { "match": "Match", "score": "Score", "status": "Status", "date": "Date", "link": "Link" }
+    },
+    "teams": {
+      "eyebrow": "Asset performance",
+      "title": "Wins, losses and draws by asset",
+      "description": "Public asset summaries derived from the current filtered match set.",
+      "columns": { "asset": "Asset", "matches": "Matches", "wins": "Wins", "draws": "Draws", "losses": "Losses", "goals": "Goals", "winRate": "Win Rate" }
+    },
+    "status": { "completed": "Finished", "ongoing": "Live", "pending": "Pending", "cancelled": "Cancelled", "unknown": "Unknown" }
+  },
+  "statsRankings": {
+    "seo": { "title": "CriptoVersus Rankings", "description": "Compare public rankings by wins, efficiency, goals and unbeaten streaks." },
+    "hero": { "eyebrow": "Public rankings hub", "title": "Stats Rankings", "subtitle": "Multi-metric public ranking boards for the CriptoVersus arena.", "backToStats": "Back to stats", "openMatches": "Open matches" },
+    "filters": { "searchLabel": "Search by asset", "searchPlaceholder": "BTC, ETH, STRAX, TON..." },
+    "states": {
+      "loadingTitle": "Loading public rankings",
+      "loadingBody": "Calculating ranking boards from the latest public match data.",
+      "errorTitle": "Rankings temporarily unavailable",
+      "errorBody": "We could not load the public ranking boards right now.",
+      "emptyTitle": "No rankings available yet",
+      "emptyBody": "The arena still needs more completed public matches to rank assets here."
+    },
+    "summary": { "assets": "Ranked assets", "topWins": "Most wins", "topEfficiency": "Best efficiency", "topStreak": "Best unbeaten streak" },
+    "boards": {
+      "columns": { "rank": "Rank", "asset": "Asset", "matches": "Matches", "winRate": "Win Rate" },
+      "wins": { "eyebrow": "Victory board", "title": "Ranking by wins", "description": "Assets ordered by total wins in completed public matches.", "metric": "Wins" },
+      "efficiency": { "eyebrow": "Efficiency board", "title": "Ranking by efficiency", "description": "Three-point efficiency rate across completed public battles.", "metric": "Efficiency" },
+      "goals": { "eyebrow": "Attack board", "title": "Ranking by goals", "description": "Assets with the highest public scoring output.", "metric": "Goals" },
+      "streak": { "eyebrow": "Momentum board", "title": "Ranking by unbeaten streak", "description": "Current unbeaten runs based on the latest completed match history.", "metric": "Streak" }
+    }
+  },
+  "statsRecords": {
+    "seo": { "title": "CriptoVersus Records", "description": "Review the biggest public records, blowouts and standout historical matches in the arena." },
+    "hero": { "eyebrow": "Public records hub", "title": "Stats Records", "subtitle": "Public milestones and historic scoreboards from the CriptoVersus arena.", "backToStats": "Back to stats", "openRankings": "Open rankings" },
+    "states": {
+      "loadingTitle": "Loading public records",
+      "loadingBody": "Scanning completed public matches for standout records and milestones.",
+      "errorTitle": "Records temporarily unavailable",
+      "errorBody": "We could not load the public records board right now.",
+      "emptyTitle": "No records available yet",
+      "emptyBody": "The arena still needs more completed public matches before records can be highlighted."
+    },
+    "summary": { "longestWinStreak": "Longest win streak", "biggestBlowout": "Biggest blowout", "mostGoals": "Most goals in one match", "bestCampaign": "Best campaign" },
+    "records": {
+      "eyebrow": "Milestones",
+      "title": "Arena record board",
+      "description": "Temporary frontend-calculated records based on existing public match data.",
+      "openMatch": "Open match",
+      "cards": {
+        "longestWinStreak": "Longest win streak",
+        "longestWinStreakDetail": "Best consecutive wins by a public arena asset.",
+        "biggestBlowout": "Biggest blowout",
+        "biggestBlowoutDetail": "Largest goal difference recorded in a public match.",
+        "mostGoals": "Most goals in a match",
+        "mostGoalsDetail": "Highest combined score published on a public scoreboard.",
+        "bestCampaign": "Best campaign",
+        "bestCampaignDetail": "Best efficiency rate among assets with a meaningful public sample.",
+        "worstCampaign": "Worst campaign",
+        "worstCampaignDetail": "Lowest efficiency rate among indexed public assets."
+      }
+    },
+    "history": {
+      "eyebrow": "Historic matches",
+      "title": "Relevant historic matches",
+      "description": "High-impact scoreboards worth revisiting from the public archive.",
+      "openMatch": "Open match",
+      "columns": { "match": "Match", "score": "Score", "note": "Why it matters", "link": "Link" },
+      "notes": {
+        "blowout": "Largest public blowout on record.",
+        "mostGoals": "Highest-scoring public match so far.",
+        "closeClassic": "Tight high-scoring battle with classic energy.",
+        "highImpact": "High-impact public match from the historical archive."
+      }
     }
   },
   "statsTeams": {
@@ -692,7 +801,43 @@
       "momentum": "Momentum",
       "momentumHint": "current arena form label",
       "lastMatch": "Last match",
-      "lastMatchHint": "latest public battle date"
+      "lastMatchHint": "latest public battle date",
+      "winRate": "Win rate",
+      "winRateHint": "closing percentage in completed battles",
+      "matchesPlayed": "Matches played",
+      "matchesPlayedHint": "indexed public battle sample",
+      "streak": "Streak",
+      "streakHint": "current completed-results run",
+      "historicalRecord": "Historical record",
+      "historicalRecordHint": "wins, losses and draws in the arena",
+      "historicalRecordValue": "{0}W - {1}L - {2}D",
+      "streakWinValue": "{0} wins",
+      "streakLossValue": "{0} losses",
+      "streakDrawValue": "{0} draws"
+    },
+    "social": {
+      "imageAlt": "{0} premium profile artwork",
+      "identity": {
+        "name": "Name",
+        "coinGeckoId": "CoinGecko ID",
+        "contract": "Contract",
+        "marketCapRank": "Market cap rank",
+        "visualStyle": "Visual style",
+        "category": "Category",
+        "memeCoin": "Meme coin"
+      },
+      "links": {
+        "website": "Website",
+        "twitter": "X / Twitter",
+        "telegram": "Telegram"
+      },
+      "reference": {
+        "title": "Reference profile",
+        "source": "Source",
+        "lastChecked": "Last checked UTC",
+        "marketCapRank": "Market cap rank",
+        "memeCoin": "Meme coin"
+      }
     },
     "investment": {
       "eyebrow": "Live investment",

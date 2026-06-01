@@ -425,6 +425,17 @@
       "emptyBody": "The arena has not published enough completed or tracked matches to fill the statistics board yet. The page stays live and will populate automatically as public match data grows.",
       "noData": "No data yet"
     },
+    "search": {
+      "eyebrow": "Busca de ativos",
+      "title": "Encontre uma moeda rapidamente",
+      "description": "Pesquise o ranking publico por simbolo ou nome do ativo sem sair da tela de Stats.",
+      "label": "Buscar moeda",
+      "placeholder": "BTC, ETH, STRAX, TON...",
+      "ariaLabel": "Buscar moeda por simbolo ou nome",
+      "clear": "Limpar",
+      "noResultsTitle": "No asset found for this search.",
+      "noResultsBody": "Tente outro simbolo ou nome de ativo para voltar ao ranking publico."
+    },
     "summary": {
       "ariaLabel": "Public stats summary",
       "totalMatches": {
@@ -515,7 +526,7 @@
     "future": {
       "eyebrow": "Roadmap connectors",
       "title": "Next public stats hubs",
-      "description": "Reserved destinations for upcoming stats expansions. They are intentionally disabled until the routes go live.",
+      "description": "Explore hubs publicos dedicados construidos sobre os dados ao vivo da arena CriptoVersus.",
       "availableNow": "Available now",
       "comingSoon": "Coming soon",
       "openAria": "Open {0}",
@@ -692,7 +703,43 @@
       "momentum": "Momentum",
       "momentumHint": "current arena form label",
       "lastMatch": "Last match",
-      "lastMatchHint": "latest public battle date"
+      "lastMatchHint": "latest public battle date",
+      "winRate": "Aproveitamento",
+      "winRateHint": "percentual final em batalhas concluídas",
+      "matchesPlayed": "Partidas jogadas",
+      "matchesPlayedHint": "amostra pública indexada",
+      "streak": "Sequência",
+      "streakHint": "série atual de resultados concluídos",
+      "historicalRecord": "Retrospecto histórico",
+      "historicalRecordHint": "vitórias, derrotas e empates na arena",
+      "historicalRecordValue": "{0}V - {1}D - {2}E",
+      "streakWinValue": "{0} vitórias",
+      "streakLossValue": "{0} derrotas",
+      "streakDrawValue": "{0} empates"
+    },
+    "social": {
+      "imageAlt": "Arte premium de perfil para {0}",
+      "identity": {
+        "name": "Nome",
+        "coinGeckoId": "CoinGecko ID",
+        "contract": "Contrato",
+        "marketCapRank": "Ranking de market cap",
+        "visualStyle": "Estilo visual",
+        "category": "Categoria",
+        "memeCoin": "Meme coin"
+      },
+      "links": {
+        "website": "Website",
+        "twitter": "X / Twitter",
+        "telegram": "Telegram"
+      },
+      "reference": {
+        "title": "Reference profile",
+        "source": "Source",
+        "lastChecked": "Last checked UTC",
+        "marketCapRank": "Market cap rank",
+        "memeCoin": "Meme coin"
+      }
     },
     "investment": {
       "eyebrow": "Live investment",
@@ -1471,6 +1518,104 @@
       "exitRequested": "Exit requested",
       "closeNow": "Close position",
       "requestExit": "Request exit"
+    }
+  },
+  "statsMatches": {
+    "seo": { "title": "Estatisticas de Partidas CriptoVersus", "description": "Explore partidas publicas, filtre por status e acompanhe resultados por ativo na arena." },
+    "hero": { "eyebrow": "Hub publico de partidas", "title": "Stats Matches", "subtitle": "Busque batalhas publicas, revise placares recentes e compare resultados por moeda.", "backToStats": "Voltar para stats", "openTeams": "Abrir times" },
+    "filters": {
+      "searchLabel": "Buscar por moeda ou time",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON...",
+      "statusLabel": "Status",
+      "status": { "all": "Todos", "ongoing": "Ao vivo", "completed": "Finalizadas", "pending": "Pendentes", "cancelled": "Canceladas" }
+    },
+    "states": {
+      "loadingTitle": "Carregando partidas publicas",
+      "loadingBody": "Coletando placares publicos e historico recente da arena.",
+      "errorTitle": "Partidas indisponiveis no momento",
+      "errorBody": "Nao foi possivel carregar o arquivo publico de partidas agora.",
+      "emptyTitle": "Nenhuma partida encontrada",
+      "emptyBody": "Tente outro ativo, time ou filtro de status."
+    },
+    "summary": { "totalMatches": "Partidas totais", "completed": "Finalizadas", "live": "Ao vivo", "assets": "Ativos rastreados" },
+    "matches": {
+      "eyebrow": "Arquivo recente",
+      "title": "Ultimas partidas publicas",
+      "description": "Abra qualquer pagina de partida e revise os placares publicos mais recentes.",
+      "openMatch": "Abrir partida",
+      "columns": { "match": "Partida", "score": "Placar", "status": "Status", "date": "Data", "link": "Link" }
+    },
+    "teams": {
+      "eyebrow": "Desempenho por ativo",
+      "title": "Vitorias, derrotas e empates por ativo",
+      "description": "Resumo publico por ativo com base no conjunto de partidas atualmente filtrado.",
+      "columns": { "asset": "Ativo", "matches": "Partidas", "wins": "Vitorias", "draws": "Empates", "losses": "Derrotas", "goals": "Gols", "winRate": "Aproveitamento" }
+    },
+    "status": { "completed": "Finalizada", "ongoing": "Ao vivo", "pending": "Pendente", "cancelled": "Cancelada", "unknown": "Desconhecido" }
+  },
+  "statsRankings": {
+    "seo": { "title": "Rankings CriptoVersus", "description": "Compare rankings publicos por vitorias, aproveitamento, gols e invencibilidade." },
+    "hero": { "eyebrow": "Hub publico de rankings", "title": "Stats Rankings", "subtitle": "Quadros publicos de ranking por multiplas metricas da arena CriptoVersus.", "backToStats": "Voltar para stats", "openMatches": "Abrir partidas" },
+    "filters": { "searchLabel": "Buscar por ativo", "searchPlaceholder": "BTC, ETH, STRAX, TON..." },
+    "states": {
+      "loadingTitle": "Carregando rankings publicos",
+      "loadingBody": "Calculando os quadros de ranking com base nas partidas publicas mais recentes.",
+      "errorTitle": "Rankings indisponiveis no momento",
+      "errorBody": "Nao foi possivel carregar os rankings publicos agora.",
+      "emptyTitle": "Nenhum ranking disponivel ainda",
+      "emptyBody": "A arena ainda precisa de mais partidas publicas finalizadas para ranquear os ativos aqui."
+    },
+    "summary": { "assets": "Ativos ranqueados", "topWins": "Mais vitorias", "topEfficiency": "Melhor aproveitamento", "topStreak": "Melhor invencibilidade" },
+    "boards": {
+      "columns": { "rank": "Pos.", "asset": "Ativo", "matches": "Partidas", "winRate": "Aproveitamento" },
+      "wins": { "eyebrow": "Quadro de vitorias", "title": "Ranking por vitorias", "description": "Ativos ordenados pelo total de vitorias em partidas publicas finalizadas.", "metric": "Vitorias" },
+      "efficiency": { "eyebrow": "Quadro de aproveitamento", "title": "Ranking por aproveitamento", "description": "Taxa de aproveitamento em sistema de tres pontos nas batalhas publicas finalizadas.", "metric": "Aproveitamento" },
+      "goals": { "eyebrow": "Quadro ofensivo", "title": "Ranking por gols", "description": "Ativos com a maior producao ofensiva publica.", "metric": "Gols" },
+      "streak": { "eyebrow": "Quadro de momento", "title": "Ranking por invencibilidade", "description": "Sequencias atuais de invencibilidade com base no historico publico mais recente.", "metric": "Streak" }
+    }
+  },
+  "statsRecords": {
+    "seo": { "title": "Recordes CriptoVersus", "description": "Revise os maiores recordes publicos, goleadas e partidas historicas da arena." },
+    "hero": { "eyebrow": "Hub publico de recordes", "title": "Stats Records", "subtitle": "Marcos publicos e placares historicos da arena CriptoVersus.", "backToStats": "Voltar para stats", "openRankings": "Abrir rankings" },
+    "states": {
+      "loadingTitle": "Carregando recordes publicos",
+      "loadingBody": "Varrendo as partidas publicas finalizadas em busca de recordes e marcos relevantes.",
+      "errorTitle": "Recordes indisponiveis no momento",
+      "errorBody": "Nao foi possivel carregar o painel publico de recordes agora.",
+      "emptyTitle": "Nenhum recorde disponivel ainda",
+      "emptyBody": "A arena ainda precisa de mais partidas publicas finalizadas antes de destacar recordes."
+    },
+    "summary": { "longestWinStreak": "Maior sequencia de vitorias", "biggestBlowout": "Maior goleada", "mostGoals": "Mais gols em uma partida", "bestCampaign": "Melhor campanha" },
+    "records": {
+      "eyebrow": "Marcos",
+      "title": "Painel de recordes da arena",
+      "description": "Recordes calculados temporariamente no frontend com base nos dados publicos ja existentes.",
+      "openMatch": "Abrir partida",
+      "cards": {
+        "longestWinStreak": "Maior sequencia de vitorias",
+        "longestWinStreakDetail": "Melhor numero de vitorias consecutivas de um ativo publico da arena.",
+        "biggestBlowout": "Maior goleada",
+        "biggestBlowoutDetail": "Maior diferenca de gols registrada em uma partida publica.",
+        "mostGoals": "Mais gols em uma partida",
+        "mostGoalsDetail": "Maior soma de gols publicada em um placar publico.",
+        "bestCampaign": "Melhor campanha",
+        "bestCampaignDetail": "Melhor taxa de aproveitamento entre ativos com amostra publica relevante.",
+        "worstCampaign": "Pior campanha",
+        "worstCampaignDetail": "Menor taxa de aproveitamento entre os ativos publicos indexados."
+      }
+    },
+    "history": {
+      "eyebrow": "Partidas historicas",
+      "title": "Partidas historicas relevantes",
+      "description": "Placares de alto impacto que valem revisita no arquivo publico.",
+      "openMatch": "Abrir partida",
+      "columns": { "match": "Partida", "score": "Placar", "note": "Motivo", "link": "Link" },
+      "notes": {
+        "blowout": "Maior goleada publica registrada.",
+        "mostGoals": "Partida publica com mais gols ate agora.",
+        "closeClassic": "Batalha equilibrada e com muitos gols, em clima de classico.",
+        "highImpact": "Partida publica de alto impacto no historico da arena."
+      }
     }
   },
   "token": {

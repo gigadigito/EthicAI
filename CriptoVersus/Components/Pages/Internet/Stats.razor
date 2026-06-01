@@ -73,6 +73,30 @@
         </div>
     </header>
 
+    <section class="stats-search-shell" aria-labelledby="stats-search-heading">
+        <div class="stats-section-head">
+            <div>
+                <span>@T("search.eyebrow")</span>
+                <h2 id="stats-search-heading">@T("search.title")</h2>
+            </div>
+            <p>@T("search.description")</p>
+        </div>
+        <label class="stats-search-label" for="stats-search-input">@T("search.label")</label>
+        <div class="stats-search-row">
+            <input id="stats-search-input"
+                   class="stats-search-input"
+                   type="search"
+                   placeholder="@T("search.placeholder")"
+                   aria-label="@T("search.ariaLabel")"
+                   value="@_searchInput"
+                   @oninput="OnSearchInputChanged" />
+            @if (!string.IsNullOrWhiteSpace(_searchInput))
+            {
+                <button type="button" class="stats-search-clear" @onclick="ClearSearchAsync">@T("search.clear")</button>
+            }
+        </div>
+    </section>
+
     @if (_loading)
     {
         <section class="stats-feedback">
@@ -101,6 +125,16 @@
                 <div>
                     <strong>@T("states.emptyTitle")</strong>
                     <p>@T("states.emptyBody")</p>
+                </div>
+            </section>
+        }
+
+        if (HasNoSearchResults)
+        {
+            <section class="stats-feedback stats-feedback--inline">
+                <div>
+                    <strong>@T("search.noResultsTitle")</strong>
+                    <p>@T("search.noResultsBody")</p>
                 </div>
             </section>
         }
@@ -409,11 +443,15 @@
     private bool _loading = true;
     private bool _chartsPendingRender;
     private string? _error;
+    private string _searchInput = string.Empty;
+    private string _appliedSearch = string.Empty;
+    private CancellationTokenSource? _searchDebounceCts;
 
     private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
         ? AppCulture.NormalizeRouteCulture(Culture)
         : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
     private bool IsEmptyState => _stats.TotalMatches == 0 && _stats.TopTeams.Count == 0 && _stats.LatestMatches.Count == 0;
+    private bool HasNoSearchResults => !string.IsNullOrWhiteSpace(_appliedSearch) && _stats.TopTeams.Count == 0;
     private string PageTitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus stats, #CriptoVersus stats, crypto market stats";
@@ -439,10 +477,10 @@
 
     private IReadOnlyList<FutureLinkViewModel> FutureLinks =>
     [
-        new FutureLinkViewModel(T("future.links.teams.title"), RouteLocalization.BuildStatsTeamsPath(CurrentCulture), T("future.links.teams.description"), isEnabled: LinkableTeamSlugs.Count > 0),
-        new FutureLinkViewModel(T("future.links.matches.title"), "/stats/matches", T("future.links.matches.description")),
-        new FutureLinkViewModel(T("future.links.rankings.title"), "/stats/rankings", T("future.links.rankings.description")),
-        new FutureLinkViewModel(T("future.links.records.title"), "/stats/records", T("future.links.records.description"))
+        new FutureLinkViewModel(T("future.links.teams.title"), RouteLocalization.BuildStatsTeamsPath(CurrentCulture), T("future.links.teams.description"), isEnabled: true),
+        new FutureLinkViewModel(T("future.links.matches.title"), RouteLocalization.BuildStatsMatchesPath(CurrentCulture), T("future.links.matches.description"), isEnabled: true),
+        new FutureLinkViewModel(T("future.links.rankings.title"), RouteLocalization.BuildStatsRankingsPath(CurrentCulture), T("future.links.rankings.description"), isEnabled: true),
+        new FutureLinkViewModel(T("future.links.records.title"), RouteLocalization.BuildStatsRecordsPath(CurrentCulture), T("future.links.records.description"), isEnabled: true)
     ];
 
     private IReadOnlyList<TrendingAssetViewModel> TrendingAssets =>
@@ -456,6 +494,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _appliedSearch = GetSearchFromUri();
+        _searchInput = _appliedSearch;
         await LoadAsync();
     }
 
@@ -477,7 +517,7 @@
 
         try
         {
-            var response = await Api.GetStatsOverviewAsync();
+            var response = await Api.GetStatsOverviewAsync(_appliedSearch);
             if (response is not null)
             {
                 _stats.TotalMatches = response.TotalMatches;
@@ -509,6 +549,60 @@
             _chartsPendingRender = true;
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task OnSearchInputChanged(ChangeEventArgs args)
+    {
+        _searchInput = args.Value?.ToString() ?? string.Empty;
+        await DebounceSearchAsync();
+    }
+
+    private async Task ClearSearchAsync()
+    {
+        _searchInput = string.Empty;
+        await ApplySearchAsync(string.Empty);
+    }
+
+    private async Task DebounceSearchAsync()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _searchDebounceCts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(300, _searchDebounceCts.Token);
+            await ApplySearchAsync(_searchInput);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task ApplySearchAsync(string? value)
+    {
+        var normalized = value?.Trim() ?? string.Empty;
+        if (string.Equals(normalized, _appliedSearch, StringComparison.Ordinal))
+            return;
+
+        _appliedSearch = normalized;
+        var nextUri = Nav.GetUriWithQueryParameter("search", string.IsNullOrWhiteSpace(normalized) ? null : normalized);
+        Nav.NavigateTo(nextUri, replace: true);
+        await LoadAsync();
+    }
+
+    private string GetSearchFromUri()
+    {
+        var uri = new Uri(Nav.Uri);
+        var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in query)
+        {
+            var pieces = part.Split('=', 2);
+            if (pieces.Length > 0 && string.Equals(Uri.UnescapeDataString(pieces[0]), "search", StringComparison.OrdinalIgnoreCase))
+                return pieces.Length == 2 ? Uri.UnescapeDataString(pieces[1]).Replace('+', ' ') : string.Empty;
+        }
+
+        return string.Empty;
     }
 
     private string BuildStructuredDataMarkup()
@@ -706,6 +800,9 @@
 
     public async ValueTask DisposeAsync()
     {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+
         try
         {
             await JS.InvokeVoidAsync("criptoVersusStatsCharts.dispose", WinRateChartId);
@@ -799,7 +896,8 @@
     .stats-chart-card,
     .stats-table-section,
     .stats-link-card,
-    .stats-feedback {
+    .stats-feedback,
+    .stats-search-shell {
         position: relative;
         border: 1px solid var(--stats-border);
         border-radius: 26px;
@@ -814,6 +912,7 @@
     .stats-table-section::before,
     .stats-link-card::before,
     .stats-feedback::before,
+    .stats-search-shell::before,
     .stats-trending-section::before,
     .stats-seo-footnote::before {
         content: "";
@@ -840,9 +939,55 @@
     .stats-hero__panel,
     .stats-chart-card,
     .stats-table-section,
-    .stats-link-card {
+    .stats-link-card,
+    .stats-search-shell {
         position: relative;
         z-index: 1;
+    }
+
+    .stats-search-shell {
+        padding: 1.2rem 1.25rem 1.3rem;
+    }
+
+    .stats-search-row {
+        display: flex;
+        gap: .75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .stats-search-label {
+        display: inline-block;
+        margin-bottom: .55rem;
+        color: #dce7f6;
+        font-size: .92rem;
+        font-weight: 700;
+    }
+
+    .stats-search-input {
+        flex: 1 1 280px;
+        min-width: 0;
+        border: 1px solid rgba(127, 246, 223, 0.22);
+        border-radius: 16px;
+        background: rgba(8, 14, 24, 0.92);
+        color: var(--stats-text);
+        padding: .95rem 1rem;
+        outline: none;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .stats-search-input:focus {
+        border-color: rgba(127, 246, 223, 0.55);
+        box-shadow: 0 0 0 3px rgba(127, 246, 223, 0.12);
+    }
+
+    .stats-search-clear {
+        border: 1px solid rgba(83, 200, 255, 0.24);
+        border-radius: 14px;
+        background: rgba(14, 22, 36, 0.92);
+        color: #e8f2ff;
+        padding: .85rem 1rem;
+        font-weight: 700;
     }
 
     .stats-hero__eyebrow,

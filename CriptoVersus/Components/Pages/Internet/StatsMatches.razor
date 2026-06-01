@@ -1,0 +1,274 @@
+@page "/stats/matches"
+@page "/en/stats/matches"
+@page "/pt/estatisticas/partidas"
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject AppCultureService AppCulture
+@inject IHttpContextAccessor HttpContextAccessor
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
+@rendermode InteractiveServer
+
+<PageTitle>@T("seo.title")</PageTitle>
+
+<section class="hub-page">
+    <header class="hub-hero">
+        <div>
+            <span class="hub-eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p>@T("hero.subtitle")</p>
+        </div>
+        <div class="hub-actions">
+            <a class="hub-pill" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">@T("hero.backToStats")</a>
+            <a class="hub-pill hub-pill--accent" href="@RouteLocalization.BuildStatsTeamsPath(CurrentCulture)">@T("hero.openTeams")</a>
+        </div>
+    </header>
+
+    <section class="hub-panel">
+        <div class="hub-input-group">
+            <label for="matches-search">@T("filters.searchLabel")</label>
+            <input id="matches-search" type="search" placeholder="@T("filters.searchPlaceholder")" @bind="SearchValue" @bind:event="oninput" />
+        </div>
+        <div class="hub-filter-group">
+            <span>@T("filters.statusLabel")</span>
+            @foreach (var option in StatusOptions)
+            {
+                <button type="button" class="@(option == _status ? "hub-chip is-active" : "hub-chip")" @onclick="() => SetStatus(option)">@T($"filters.status.{option}")</button>
+            }
+        </div>
+    </section>
+
+    @if (_loading)
+    {
+        <section class="hub-feedback"><strong>@T("states.loadingTitle")</strong><p>@T("states.loadingBody")</p></section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <section class="hub-feedback hub-feedback--error"><strong>@T("states.errorTitle")</strong><p>@_error</p></section>
+    }
+    else if (_filteredMatches.Count == 0)
+    {
+        <section class="hub-feedback"><strong>@T("states.emptyTitle")</strong><p>@T("states.emptyBody")</p></section>
+    }
+    else
+    {
+        <section class="hub-summary">
+            <article><span>@T("summary.totalMatches")</span><strong>@_filteredMatches.Count</strong></article>
+            <article><span>@T("summary.completed")</span><strong>@_filteredMatches.Count(match => match.Status == "completed")</strong></article>
+            <article><span>@T("summary.live")</span><strong>@_filteredMatches.Count(match => match.Status == "ongoing")</strong></article>
+            <article><span>@T("summary.assets")</span><strong>@DistinctAssets</strong></article>
+        </section>
+
+        <section class="hub-card">
+            <div class="hub-section-head">
+                <div>
+                    <span>@T("matches.eyebrow")</span>
+                    <h2>@T("matches.title")</h2>
+                </div>
+                <p>@T("matches.description")</p>
+            </div>
+            <div class="hub-table-wrap">
+                <table class="hub-table">
+                    <thead>
+                        <tr>
+                            <th>@T("matches.columns.match")</th>
+                            <th>@T("matches.columns.score")</th>
+                            <th>@T("matches.columns.status")</th>
+                            <th>@T("matches.columns.date")</th>
+                            <th>@T("matches.columns.link")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var match in _filteredMatches.Take(40))
+                        {
+                            <tr>
+                                <td>
+                                    <div class="hub-match">
+                                        <a href="@GetTeamUrl(match.HomeCleanSymbol)">@match.HomeCleanSymbol</a>
+                                        <span>vs</span>
+                                        <a href="@GetTeamUrl(match.AwayCleanSymbol)">@match.AwayCleanSymbol</a>
+                                    </div>
+                                </td>
+                                <td>@match.HomeScore x @match.AwayScore</td>
+                                <td><span class="hub-badge">@T($"status.{match.Status}")</span></td>
+                                <td>@PublicStatsHubCalculator.DisplayDateTime(match.SortUtc)</td>
+                                <td><a class="hub-link" href="@GetMatchUrl(match)">@T("matches.openMatch")</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="hub-card">
+            <div class="hub-section-head">
+                <div>
+                    <span>@T("teams.eyebrow")</span>
+                    <h2>@T("teams.title")</h2>
+                </div>
+                <p>@T("teams.description")</p>
+            </div>
+            <div class="hub-table-wrap">
+                <table class="hub-table">
+                    <thead>
+                        <tr>
+                            <th>@T("teams.columns.asset")</th>
+                            <th>@T("teams.columns.matches")</th>
+                            <th>@T("teams.columns.wins")</th>
+                            <th>@T("teams.columns.draws")</th>
+                            <th>@T("teams.columns.losses")</th>
+                            <th>@T("teams.columns.goals")</th>
+                            <th>@T("teams.columns.winRate")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var team in _filteredDataset.Teams.Take(20))
+                        {
+                            <tr>
+                                <td><a class="hub-link" href="@GetTeamUrl(team.CleanSymbol)">@team.CleanSymbol</a></td>
+                                <td>@team.Matches</td>
+                                <td>@team.Wins</td>
+                                <td>@team.Draws</td>
+                                <td>@team.Losses</td>
+                                <td>@team.GoalsFor</td>
+                                <td>@PublicStatsHubCalculator.FormatPercent(team.WinRate)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+
+    private readonly List<MatchDto> _matches = [];
+    private readonly string[] StatusOptions = ["all", "ongoing", "completed", "pending", "cancelled"];
+    private bool _loading = true;
+    private string? _error;
+    private string _search = string.Empty;
+    private string _status = "all";
+    private List<PublicStatsHubCalculator.PublicStatsMatch> _filteredMatches = [];
+    private PublicStatsHubCalculator.PublicStatsDataset _filteredDataset = PublicStatsHubCalculator.Build([]);
+
+    private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+
+    private int DistinctAssets => _filteredMatches
+        .SelectMany(match => new[] { match.HomeCleanSymbol, match.AwayCleanSymbol })
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            _matches.Clear();
+            _matches.AddRange(await Api.GetMatchesAsync(status: null, take: 200) ?? []);
+            Recompute();
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            Console.WriteLine($"Stats matches page load error: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void SetStatus(string status)
+    {
+        _status = status;
+        Recompute();
+    }
+
+    private void Recompute()
+    {
+        var filtered = _matches
+            .Where(match => MatchesStatus(match, _status))
+            .Where(match => MatchesSearch(match, _search))
+            .ToList();
+
+        _filteredDataset = PublicStatsHubCalculator.Build(filtered);
+        _filteredMatches = _filteredDataset.Matches.ToList();
+    }
+
+    private bool MatchesStatus(MatchDto match, string status)
+        => status == "all" || string.Equals(match.Status, status, StringComparison.OrdinalIgnoreCase);
+
+    private bool MatchesSearch(MatchDto match, string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+            return true;
+
+        return Contains(match.TeamA, search)
+            || Contains(match.TeamB, search)
+            || Contains(PublicStatsHubCalculator.CleanAssetSymbol(match.TeamA), search)
+            || Contains(PublicStatsHubCalculator.CleanAssetSymbol(match.TeamB), search);
+    }
+
+    private static bool Contains(string? source, string value)
+        => !string.IsNullOrWhiteSpace(source) && source.Contains(value, StringComparison.OrdinalIgnoreCase);
+
+    private string GetMatchUrl(PublicStatsHubCalculator.PublicStatsMatch match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol);
+        return RouteLocalization.BuildBestPath(CurrentCulture, match.MatchId, slug);
+    }
+
+    private string GetTeamUrl(string symbol)
+        => RouteLocalization.BuildStatsTeamDetailPath(CurrentCulture, PublicStatsHubCalculator.BuildAssetSlug(symbol));
+
+    private string T(string key, params object?[] args)
+        => L.T($"statsMatches.{key}", CurrentCulture, args);
+    private string SearchValue
+    {
+        get => _search;
+        set
+        {
+            _search = value;
+            Recompute();
+        }
+    }
+}
+
+<style>
+    .hub-page { color: #eef4ff; display: grid; gap: 1rem; }
+    .hub-hero, .hub-panel, .hub-card, .hub-feedback, .hub-summary article { border: 1px solid rgba(112,132,170,.18); border-radius: 24px; background: linear-gradient(180deg, rgba(9,13,22,.98), rgba(6,9,16,.99)); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+    .hub-hero, .hub-panel, .hub-card, .hub-feedback { padding: 1.25rem; }
+    .hub-eyebrow, .hub-section-head span { color: #7ff6df; text-transform: uppercase; letter-spacing: .12em; font-size: .76rem; font-weight: 900; }
+    .hub-hero h1, .hub-card h2 { margin: .5rem 0; }
+    .hub-hero p, .hub-section-head p, .hub-feedback p, .hub-panel label, .hub-filter-group span { color: #9cb0ca; }
+    .hub-actions, .hub-filter-group, .hub-match { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+    .hub-pill, .hub-chip, .hub-link { color: #eef4ff; text-decoration: none; }
+    .hub-pill, .hub-chip { border: 1px solid rgba(83,200,255,.22); border-radius: 999px; background: rgba(14,22,36,.92); padding: .7rem 1rem; }
+    .hub-pill--accent, .hub-chip.is-active { border-color: rgba(127,246,223,.34); background: rgba(13,32,32,.92); }
+    .hub-panel { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr) auto; }
+    .hub-input-group { display: grid; gap: .5rem; }
+    .hub-input-group input { border: 1px solid rgba(127,246,223,.22); border-radius: 16px; background: rgba(8,14,24,.92); color: #eef4ff; padding: .9rem 1rem; }
+    .hub-summary { display: grid; gap: .8rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .hub-summary article { padding: 1rem; display: grid; gap: .45rem; }
+    .hub-summary span { color: #9cb0ca; font-size: .86rem; }
+    .hub-summary strong { font-size: 1.5rem; }
+    .hub-table-wrap { overflow-x: auto; }
+    .hub-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .hub-table th, .hub-table td { padding: .9rem .75rem; border-bottom: 1px solid rgba(112,132,170,.12); text-align: left; }
+    .hub-badge { display: inline-flex; padding: .3rem .65rem; border-radius: 999px; background: rgba(83,200,255,.12); }
+    .hub-section-head { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+    @@media (max-width: 900px) { .hub-panel, .hub-summary { grid-template-columns: 1fr; } .hub-section-head { flex-direction: column; align-items: start; } }
+</style>

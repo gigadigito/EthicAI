@@ -239,6 +239,33 @@ const tvAudioCooldownDefaults = {
     crowdRise: 3000
 };
 
+const tvAudioMixProfiles = {
+    goal: { minVolume: 0.88, boost: 1.2, duckAmbientTo: 0.42, duckMs: 1800 },
+    nearGoal: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.52, duckMs: 1200 },
+    pressure: { minVolume: 0.78, boost: 1.06, duckAmbientTo: 0.58, duckMs: 1000 },
+    comeback: { minVolume: 0.84, boost: 1.12, duckAmbientTo: 0.48, duckMs: 1500 },
+    equalizer: { minVolume: 0.88, boost: 1.18, duckAmbientTo: 0.44, duckMs: 1700 },
+    momentum: { minVolume: 0.78, boost: 1.04, duckAmbientTo: 0.6, duckMs: 900 },
+    fearSpike: { minVolume: 0.82, boost: 1.08, duckAmbientTo: 0.54, duckMs: 1200 },
+    fearCollapse: { minVolume: 0.82, boost: 1.08, duckAmbientTo: 0.54, duckMs: 1200 },
+    finalMinutes: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.56, duckMs: 1400 },
+    victory: { minVolume: 0.9, boost: 1.2, duckAmbientTo: 0.4, duckMs: 2200 },
+    replay: { minVolume: 0.82, boost: 1.08, duckAmbientTo: 0.56, duckMs: 1300 },
+    switchSide: { minVolume: 0.74, boost: 1.02, duckAmbientTo: 0.62, duckMs: 900 },
+    whistle: { minVolume: 0.76, boost: 1.06, duckAmbientTo: 0.6, duckMs: 850 },
+    kickoff: { minVolume: 0.8, boost: 1.1, duckAmbientTo: 0.54, duckMs: 1300 },
+    halftime: { minVolume: 0.78, boost: 1.05, duckAmbientTo: 0.6, duckMs: 1000 },
+    lastMinute: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.56, duckMs: 1200 },
+    counterAttack: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.52, duckMs: 1100 },
+    marketCrash: { minVolume: 0.86, boost: 1.14, duckAmbientTo: 0.44, duckMs: 1800 },
+    marketPump: { minVolume: 0.84, boost: 1.1, duckAmbientTo: 0.5, duckMs: 1500 },
+    clutchSave: { minVolume: 0.84, boost: 1.14, duckAmbientTo: 0.48, duckMs: 1500 },
+    bigCandleMovement: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.54, duckMs: 1200 },
+    ballRecovery: { minVolume: 0.76, boost: 1.04, duckAmbientTo: 0.6, duckMs: 900 },
+    highlightMoment: { minVolume: 0.82, boost: 1.1, duckAmbientTo: 0.5, duckMs: 1400 },
+    suddenReversal: { minVolume: 0.84, boost: 1.14, duckAmbientTo: 0.46, duckMs: 1600 }
+};
+
 let tvAudioManagerState = null;
 
 function logTvAudio(message, payload) {
@@ -324,7 +351,8 @@ function ensureTvAudioManager() {
             loaded: [],
             queued: [],
             played: []
-        }
+        },
+        ambientDuckRestoreTimer: null
     };
 
     return tvAudioManagerState;
@@ -490,6 +518,66 @@ function resolveTvAudioUrl(key) {
     return tvAudioMap[key] ?? null;
 }
 
+function resolveTvCueVolume(key, channel, requestedVolume, manager) {
+    const profile = tvAudioMixProfiles[key] ?? null;
+    const numericRequested = Number(requestedVolume);
+    const baseVolume = Number.isFinite(numericRequested)
+        ? numericRequested
+        : (channel === "fx"
+            ? Math.max(manager.volume, 0.74)
+            : channel === "ui"
+                ? Math.max(manager.volume, 0.68)
+                : manager.volume);
+    const boosted = baseVolume * (profile?.boost ?? 1);
+    const floor = profile?.minVolume
+        ?? (channel === "fx" ? 0.74 : channel === "ui" ? 0.66 : 0.22);
+    return clamp(Math.max(floor, boosted), 0, 1);
+}
+
+function duckAmbientForCue(key, manager) {
+    if (manager.muted) {
+        return;
+    }
+
+    const profile = tvAudioMixProfiles[key] ?? null;
+    const currentAudio = manager.ambient.currentAudio;
+    if (!currentAudio || !profile) {
+        return;
+    }
+
+    const duckTarget = clamp(Number(profile.duckAmbientTo ?? manager.ambientTargetVolume), 0, 1);
+    const duckMs = Math.max(500, Number(profile.duckMs ?? 1100));
+    const currentGain = manager.instanceGains.get(currentAudio);
+
+    if (currentGain) {
+        fadeGainTo(currentGain, Math.min(manager.ambientTargetVolume, duckTarget), 180);
+    } else {
+        fadeMediaVolume(currentAudio, Math.min(manager.ambientTargetVolume, duckTarget), 180);
+    }
+
+    if (manager.ambientDuckRestoreTimer) {
+        window.clearTimeout(manager.ambientDuckRestoreTimer);
+    }
+
+    manager.ambientDuckRestoreTimer = window.setTimeout(() => {
+        const latestManager = ensureTvAudioManager();
+        const latestAudio = latestManager.ambient.currentAudio;
+        if (!latestAudio || latestManager.muted) {
+            latestManager.ambientDuckRestoreTimer = null;
+            return;
+        }
+
+        const latestGain = latestManager.instanceGains.get(latestAudio);
+        if (latestGain) {
+            fadeGainTo(latestGain, latestManager.ambientTargetVolume, 700);
+        } else {
+            fadeMediaVolume(latestAudio, latestManager.ambientTargetVolume, 700);
+        }
+
+        latestManager.ambientDuckRestoreTimer = null;
+    }, duckMs);
+}
+
 function preloadTvAudio(key) {
     const manager = ensureTvAudioManager();
     const url = resolveTvAudioUrl(key);
@@ -544,10 +632,11 @@ function playTvAudio(key, options = {}) {
     }
 
     const channel = options.channel ?? resolveTvAudioChannel(key);
-    const audio = createPlaybackAudio(url, channel, typeof options.volume === "number" ? options.volume : manager.volume, Boolean(options.muted ?? manager.muted));
+    const resolvedVolume = resolveTvCueVolume(key, channel, options.volume, manager);
+    const audio = createPlaybackAudio(url, channel, resolvedVolume, Boolean(options.muted ?? manager.muted));
     audio.muted = Boolean(options.muted ?? manager.muted);
     audio.loop = Boolean(options.loop);
-    consoleAudio("AUDIO_EVENT_TRIGGERED", { key, channel, priority, loop: audio.loop });
+    consoleAudio("AUDIO_EVENT_TRIGGERED", { key, channel, priority, loop: audio.loop, resolvedVolume });
 
     try {
         if (!audio.loop) {
@@ -563,6 +652,8 @@ function playTvAudio(key, options = {}) {
         if (ambientGain) {
             ambientGain.gain.value = 0;
         }
+    } else {
+        duckAmbientForCue(key, manager);
     }
 
     consoleAudio("AUDIO_PLAY_REQUEST", { key, channel, loop: audio.loop, muted: audio.muted });

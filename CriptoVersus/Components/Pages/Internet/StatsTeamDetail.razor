@@ -75,16 +75,90 @@
     else
 
     {
-        <header class="team-detail-hero">
+        <header class="team-detail-hero @(HasEnhancedProfile ? "is-enhanced" : string.Empty)" style="@HeroThemeStyle">
+            @if (HasHeroArt)
+            {
+                <div class="team-detail-hero__art-bg" style="@HeroBackdropStyle" aria-hidden="true"></div>
+            }
             <div class="team-detail-hero__copy">
                 <span class="team-detail-hero__eyebrow">@T("hero.eyebrow")</span>
                 <div class="team-detail-hero__identity">
                     <img src="@GetIconUrl(_detail.IconUrl, _detail.DisplaySymbol)" alt="" width="28" height="28" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
                     <span class="team-detail__fallback" aria-hidden="true">@GetAssetMonogram(_detail.DisplaySymbol)</span>
-                    <h1>@_detail.DisplaySymbol</h1>
+                    <div class="team-detail-hero__identity-copy">
+                        <h1>@_detail.DisplaySymbol</h1>
+                        @if (HasIdentityName)
+                        {
+                            <strong>@DisplayIdentityName</strong>
+                        }
+                    </div>
                 </div>
                 <p class="team-detail-hero__lead">@T("hero.subtitle", _detail.DisplaySymbol)</p>
                 <p class="team-detail-hero__seo-copy">@T("hero.seoCopy", _detail.DisplaySymbol)</p>
+                @if (HasIdentityMetadata)
+                {
+                    <div class="team-detail-hero__meta-grid">
+                        @if (HasIdentityName)
+                        {
+                            <article class="team-detail-meta-card">
+                                <span>@T("social.identity.name")</span>
+                                <strong>@DisplayIdentityName</strong>
+                            </article>
+                        }
+                        @if (HasCoinGeckoId)
+                        {
+                            <article class="team-detail-meta-card">
+                                <span>@T("social.identity.coinGeckoId")</span>
+                                <strong>@_coinProfile!.CoinGeckoId</strong>
+                            </article>
+                        }
+                        @if (HasContractAddress)
+                        {
+                            <article class="team-detail-meta-card">
+                                <span>@T("social.identity.contract")</span>
+                                <strong>@FormatContractAddress(_coinProfile!.ContractAddress)</strong>
+                            </article>
+                        }
+                        @if (HasMarketCapRank)
+                        {
+                            <article class="team-detail-meta-card">
+                                <span>@T("social.identity.marketCapRank")</span>
+                                <strong>#@_coinProfile!.MarketCapRank</strong>
+                            </article>
+                        }
+                        @if (HasVisualStyle)
+                        {
+                            <article class="team-detail-meta-card">
+                                <span>@T("social.identity.visualStyle")</span>
+                                <strong>@_coinProfile!.VisualStyle</strong>
+                            </article>
+                        }
+                        @if (HasMemeCoinBadge)
+                        {
+                            <article class="team-detail-meta-card">
+                                <span>@T("social.identity.category")</span>
+                                <strong>@T("social.identity.memeCoin")</strong>
+                            </article>
+                        }
+                    </div>
+                }
+                @if (HasOfficialLinks)
+                {
+                    <div class="team-detail-hero__socials">
+                        @if (HasWebsiteLink)
+                        {
+                            <a class="team-detail-social-link" href="@WebsiteLink" target="_blank" rel="noopener noreferrer">@T("social.links.website")</a>
+                        }
+                        @if (HasTwitterLink)
+                        {
+                            <a class="team-detail-social-link" href="@TwitterLink" target="_blank" rel="noopener noreferrer">@T("social.links.twitter")</a>
+                        }
+                        @if (HasTelegramLink)
+                        {
+                            <a class="team-detail-social-link" href="@TelegramLink" target="_blank" rel="noopener noreferrer">@T("social.links.telegram")</a>
+                        }
+                    </div>
+                }
                 <div class="team-detail-invest-card">
                     <div class="team-detail-invest-card__copy">
                         <span class="team-detail-invest-card__eyebrow">@T("investment.eyebrow")</span>
@@ -113,22 +187,81 @@
                     <a class="team-detail-pill-link team-detail-pill-link--accent" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">@T("hero.backToStats")</a>
                 </div>
             </div>
-            <div class="team-detail-hero__panel">
-                <article>
-                    <span>@T("hero.rank")</span>
-                    <strong>#@_detail.Rank</strong>
-                    <small>@T("hero.rankHint")</small>
-                </article>
-                <article>
-                    <span>@T("hero.momentum")</span>
-                    <strong>@FormatMomentum(_detail.Momentum)</strong>
-                    <small>@T("hero.momentumHint")</small>
-                </article>
-                <article>
-                    <span>@T("hero.lastMatch")</span>
-                    <strong>@DisplayDate(_detail.LastMatchUtc)</strong>
-                    <small>@T("hero.lastMatchHint")</small>
-                </article>
+            <div class="team-detail-hero__visual-column">
+                @if (HasHeroArt)
+                {
+                    <figure class="team-detail-hero__art-frame">
+                        <img class="team-detail-hero__art-image"
+                             src="@HeroArtUrl"
+                             alt="@T("social.imageAlt", _detail.DisplaySymbol)"
+                             loading="lazy"
+                             decoding="async" />
+                    </figure>
+                }
+                <div class="team-detail-hero__panel">
+                    <article>
+                        <span>@T("hero.rank")</span>
+                        <strong>#@_detail.Rank</strong>
+                        <small>@T("hero.rankHint")</small>
+                    </article>
+                    <article>
+                        <span>@T("hero.momentum")</span>
+                        <strong>@FormatMomentum(_detail.Momentum)</strong>
+                        <small>@T("hero.momentumHint")</small>
+                    </article>
+                    <article>
+                        <span>@T("hero.lastMatch")</span>
+                        <strong>@DisplayDate(_detail.LastMatchUtc)</strong>
+                        <small>@T("hero.lastMatchHint")</small>
+                    </article>
+                    <article>
+                        <span>@T("hero.winRate")</span>
+                        <strong>@FormatPercent(_detail.WinRate)</strong>
+                        <small>@T("hero.winRateHint")</small>
+                    </article>
+                    <article>
+                        <span>@T("hero.matchesPlayed")</span>
+                        <strong>@DisplayNumber(_detail.Matches)</strong>
+                        <small>@T("hero.matchesPlayedHint")</small>
+                    </article>
+                    @if (HasStreakMetric)
+                    {
+                        <article>
+                            <span>@T("hero.streak")</span>
+                            <strong>@FormatStreak(_detail.CurrentStreak)</strong>
+                            <small>@T("hero.streakHint")</small>
+                        </article>
+                    }
+                    <article>
+                        <span>@T("hero.historicalRecord")</span>
+                        <strong>@HistoricalRecordText</strong>
+                        <small>@T("hero.historicalRecordHint")</small>
+                    </article>
+                </div>
+                @if (HasReferenceProfile)
+                {
+                    <aside class="team-detail-reference-card">
+                        <span>@T("social.reference.title")</span>
+                        <div class="team-detail-reference-card__grid">
+                            @if (HasSource)
+                            {
+                                <div><strong>@T("social.reference.source")</strong><small>@_coinProfile!.Source</small></div>
+                            }
+                            @if (_coinProfile?.LastCheckedUtc is not null)
+                            {
+                                <div><strong>@T("social.reference.lastChecked")</strong><small>@DisplayDateTime(_coinProfile!.LastCheckedUtc)</small></div>
+                            }
+                            @if (HasMarketCapRank)
+                            {
+                                <div><strong>@T("social.reference.marketCapRank")</strong><small>#@_coinProfile!.MarketCapRank</small></div>
+                            }
+                            @if (HasMemeCoinBadge)
+                            {
+                                <div><strong>@T("social.reference.memeCoin")</strong><small>@T("social.identity.memeCoin")</small></div>
+                            }
+                        </div>
+                    </aside>
+                }
             </div>
         </header>
 
@@ -366,6 +499,7 @@
     private static readonly decimal[] QuickInvestmentAmounts = [0.01m, 0.05m, 0.1m, 0.25m, 0.5m, 1m];
 
     private readonly StatsArenaTeamDetailDto _detail = new();
+    private CoinSocialProfileDto? _coinProfile;
 
     private bool _loading = true;
 
@@ -446,6 +580,33 @@
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
 
     private string SeoSymbol => !string.IsNullOrWhiteSpace(_detail.DisplaySymbol) ? _detail.DisplaySymbol : NormalizedSlug.ToUpperInvariant();
+    private bool HasCustomPalette =>
+        !string.IsNullOrWhiteSpace(_coinProfile?.PrimaryColor)
+        || !string.IsNullOrWhiteSpace(_coinProfile?.SecondaryColor);
+    private bool HasEnhancedProfile => HasHeroArt || HasIdentityMetadata || HasOfficialLinks || HasReferenceProfile || HasCustomPalette;
+    private string DisplayIdentityName => string.IsNullOrWhiteSpace(_coinProfile?.Name) ? _detail.DisplayName : _coinProfile!.Name!;
+    private bool HasIdentityName => !string.IsNullOrWhiteSpace(_coinProfile?.Name);
+    private bool HasCoinGeckoId => !string.IsNullOrWhiteSpace(_coinProfile?.CoinGeckoId);
+    private bool HasContractAddress => !string.IsNullOrWhiteSpace(_coinProfile?.ContractAddress);
+    private bool HasMarketCapRank => _coinProfile?.MarketCapRank is > 0;
+    private bool HasVisualStyle => !string.IsNullOrWhiteSpace(_coinProfile?.VisualStyle);
+    private bool HasMemeCoinBadge => _coinProfile?.IsMemeCoin == true;
+    private bool HasSource => !string.IsNullOrWhiteSpace(_coinProfile?.Source);
+    private bool HasIdentityMetadata => HasIdentityName || HasCoinGeckoId || HasContractAddress || HasMarketCapRank || HasVisualStyle || HasMemeCoinBadge;
+    private string? HeroArtUrl => FirstValidAbsoluteHttpUrl(_coinProfile?.LargeImageUrl, _coinProfile?.ThumbUrl);
+    private bool HasHeroArt => !string.IsNullOrWhiteSpace(HeroArtUrl);
+    private string HeroBackdropStyle => HasHeroArt ? $"background-image:url('{HeroArtUrl}');" : string.Empty;
+    private string HeroThemeStyle => $"--td-accent-primary:{ResolveAccentColor(_coinProfile?.PrimaryColor, "#7ff6df")};--td-accent-secondary:{ResolveAccentColor(_coinProfile?.SecondaryColor, "#53c8ff")};";
+    private string? WebsiteLink => IsValidAbsoluteHttpUrl(_coinProfile?.WebsiteUrl) ? _coinProfile!.WebsiteUrl : null;
+    private string? TelegramLink => IsValidAbsoluteHttpUrl(_coinProfile?.TelegramUrl) ? _coinProfile!.TelegramUrl : null;
+    private string? TwitterLink => BuildTwitterUrl(_coinProfile?.TwitterHandle);
+    private bool HasWebsiteLink => !string.IsNullOrWhiteSpace(WebsiteLink);
+    private bool HasTelegramLink => !string.IsNullOrWhiteSpace(TelegramLink);
+    private bool HasTwitterLink => !string.IsNullOrWhiteSpace(TwitterLink);
+    private bool HasOfficialLinks => HasWebsiteLink || HasTelegramLink || HasTwitterLink;
+    private bool HasReferenceProfile => HasSource || _coinProfile?.LastCheckedUtc is not null || HasMarketCapRank || HasMemeCoinBadge;
+    private bool HasStreakMetric => !string.IsNullOrWhiteSpace(_detail.CurrentStreak);
+    private string HistoricalRecordText => T("hero.historicalRecordValue", _detail.Wins, _detail.Losses, _detail.Draws);
 
 
 
@@ -507,6 +668,7 @@
         _loading = true;
 
         _error = null;
+        _coinProfile = null;
 
 
 
@@ -542,11 +704,15 @@
 
                 _detail.Losses = response.Losses;
 
+                _detail.Draws = response.Draws;
+
                 _detail.WinRate = response.WinRate;
 
                 _detail.AverageScore = response.AverageScore;
 
                 _detail.TotalScore = response.TotalScore;
+
+                _detail.CurrentStreak = response.CurrentStreak;
 
                 _detail.Momentum = response.Momentum;
 
@@ -565,6 +731,8 @@
                 _detail.Rivalries.Clear();
 
                 _detail.Rivalries.AddRange(response.Rivalries ?? []);
+
+                await TryLoadCoinSocialProfileAsync();
 
                 await ResolveInvestmentContextAsync();
 
@@ -667,6 +835,38 @@
         {
 
             _investmentContextLoading = false;
+
+        }
+
+    }
+
+    private async Task TryLoadCoinSocialProfileAsync()
+
+    {
+
+        _coinProfile = null;
+
+
+
+        try
+
+        {
+
+            _coinProfile = await Api.GetCoinSocialProfileAsync(_detail.DisplaySymbol);
+
+            if (_coinProfile is null && !string.IsNullOrWhiteSpace(_detail.Symbol))
+
+                _coinProfile = await Api.GetCoinSocialProfileAsync(_detail.Symbol);
+
+        }
+
+        catch (Exception ex)
+
+        {
+
+            Console.WriteLine($"Stats team social profile load error: {ex.Message}");
+
+            _coinProfile = null;
 
         }
 
@@ -1478,6 +1678,40 @@
 
 
 
+    private string FormatStreak(string? streak)
+
+    {
+
+        if (string.IsNullOrWhiteSpace(streak) || streak!.Length < 2)
+
+            return T("states.noData");
+
+
+
+        var type = streak[..1].ToUpperInvariant();
+
+        var count = streak[1..];
+
+
+
+        return type switch
+
+        {
+
+            "W" => T("hero.streakWinValue", count),
+
+            "L" => T("hero.streakLossValue", count),
+
+            "D" => T("hero.streakDrawValue", count),
+
+            _ => streak
+
+        };
+
+    }
+
+
+
     private string FormatStatus(string? status)
 
         => string.IsNullOrWhiteSpace(status)
@@ -1602,6 +1836,46 @@
 
     private static DateTime EnsureUtc(DateTime value) => value.Kind switch { DateTimeKind.Utc => value, DateTimeKind.Local => value.ToUniversalTime(), _ => DateTime.SpecifyKind(value, DateTimeKind.Utc) };
 
+    private static string ResolveAccentColor(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        var trimmed = value.Trim();
+        return trimmed.Length is 4 or 7 && trimmed.StartsWith('#') && trimmed[1..].All(Uri.IsHexDigit)
+            ? trimmed
+            : fallback;
+    }
+
+    private static bool IsValidAbsoluteHttpUrl(string? value)
+        => Uri.TryCreate(value, UriKind.Absolute, out var uri)
+           && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+    private static string? FirstValidAbsoluteHttpUrl(params string?[] candidates)
+        => candidates.FirstOrDefault(IsValidAbsoluteHttpUrl);
+
+    private static string? BuildTwitterUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+        if (IsValidAbsoluteHttpUrl(trimmed))
+            return trimmed;
+
+        var handle = trimmed.TrimStart('@');
+        return string.IsNullOrWhiteSpace(handle) ? null : $"https://x.com/{handle}";
+    }
+
+    private static string FormatContractAddress(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "-";
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= 14 ? trimmed : $"{trimmed[..6]}...{trimmed[^4..]}";
+    }
+
     private static readonly string[] VisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
 
 
@@ -1681,6 +1955,8 @@
         --td-text: #f4f8ff;
         --td-muted: #9cb0ca;
         --td-green: #7ff6df;
+        --td-accent-primary: #7ff6df;
+        --td-accent-secondary: #53c8ff;
         display: grid;
         gap: 1.2rem;
         width: min(1680px,100%);
@@ -1701,10 +1977,32 @@
         grid-template-columns: minmax(0,1.2fr) minmax(280px,.8fr);
         gap: 1.2rem;
         padding: 2rem 1.7rem 1.9rem;
+        isolation: isolate;
+        background:
+            radial-gradient(circle at top left, color-mix(in srgb, var(--td-accent-primary) 20%, transparent), transparent 28%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--td-accent-secondary) 22%, transparent), transparent 30%),
+            linear-gradient(180deg, rgba(9,13,22,.98), rgba(6,9,16,.99));
+    }
+
+    .team-detail-hero.is-enhanced {
+        border-color: color-mix(in srgb, var(--td-accent-primary) 30%, rgba(112,132,170,.18));
+        box-shadow: 0 24px 70px rgba(0,0,0,.34), 0 0 46px color-mix(in srgb, var(--td-accent-primary) 10%, transparent);
+    }
+
+    .team-detail-hero__art-bg {
+        position: absolute;
+        inset: 0;
+        background-position: center;
+        background-size: cover;
+        opacity: .14;
+        filter: blur(20px) saturate(1.15);
+        transform: scale(1.05);
+        pointer-events: none;
+        z-index: 0;
     }
 
     .team-detail-hero__eyebrow, .team-detail-section-head span, .team-detail-card span {
-        color: var(--td-green);
+        color: var(--td-accent-primary);
         letter-spacing: .12em;
         text-transform: uppercase;
         font-weight: 900;
@@ -1717,6 +2015,17 @@
         gap: .75rem;
         margin: .65rem 0 .85rem;
     }
+
+    .team-detail-hero__identity-copy {
+        display: grid;
+        gap: .2rem;
+    }
+
+        .team-detail-hero__identity-copy strong {
+            color: #eef5ff;
+            font-size: 1rem;
+            line-height: 1.1;
+        }
 
         .team-detail-hero__identity h1, .team-detail-section-head h2 {
             margin: 0;
@@ -1733,6 +2042,62 @@
         line-height: 1.65;
     }
 
+    .team-detail-hero__copy, .team-detail-hero__visual-column {
+        position: relative;
+        z-index: 1;
+    }
+
+    .team-detail-hero__meta-grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        margin-top: 1rem;
+    }
+
+    .team-detail-meta-card, .team-detail-reference-card {
+        border: 1px solid color-mix(in srgb, var(--td-accent-primary) 20%, rgba(255,255,255,.08));
+        background: linear-gradient(180deg, rgba(8,12,21,.88), rgba(8,13,22,.96));
+        border-radius: 18px;
+        padding: .9rem .95rem;
+        backdrop-filter: blur(12px);
+    }
+
+        .team-detail-meta-card span, .team-detail-reference-card span {
+            color: var(--td-muted);
+            display: block;
+            font-size: .72rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            margin-bottom: .35rem;
+        }
+
+        .team-detail-meta-card strong, .team-detail-reference-card strong {
+            color: #f5fbff;
+            font-size: .98rem;
+            line-height: 1.15;
+        }
+
+    .team-detail-hero__socials {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-top: 1rem;
+    }
+
+    .team-detail-social-link {
+        min-height: 2.9rem;
+        padding: 0 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 800;
+        color: #f5fbff;
+        border: 1px solid color-mix(in srgb, var(--td-accent-secondary) 26%, rgba(255,255,255,.1));
+        background: linear-gradient(90deg, rgba(255,255,255,.04), color-mix(in srgb, var(--td-accent-secondary) 18%, rgba(255,255,255,.02)));
+    }
+
     .team-detail-invest-card {
         display: grid;
         grid-template-columns: minmax(0,1fr) auto;
@@ -1745,7 +2110,7 @@
     }
 
     .team-detail-invest-card__eyebrow {
-        color: var(--td-green);
+        color: var(--td-accent-primary);
         letter-spacing: .12em;
         text-transform: uppercase;
         font-weight: 900;
@@ -1830,8 +2195,8 @@
         padding: 0 1.1rem;
         border: 1px solid rgba(127,246,223,.24);
         color: #04140f;
-        background: linear-gradient(90deg,#4cf38d,#7ff6df);
-        box-shadow: 0 18px 34px rgba(76,243,141,.16);
+        background: linear-gradient(90deg,var(--td-accent-secondary),var(--td-accent-primary));
+        box-shadow: 0 18px 34px color-mix(in srgb, var(--td-accent-primary) 18%, transparent);
     }
 
         .team-detail-invest-button:disabled {
@@ -1874,7 +2239,33 @@
     .team-detail-pill-link--accent {
         color: #03150f;
         border-color: transparent;
-        background: linear-gradient(90deg,#4cf38d,#7ff6df);
+        background: linear-gradient(90deg,var(--td-accent-secondary),var(--td-accent-primary));
+    }
+
+    .team-detail-hero__visual-column {
+        display: grid;
+        gap: 1rem;
+        align-content: start;
+    }
+
+    .team-detail-hero__art-frame {
+        margin: 0;
+        min-height: 280px;
+        aspect-ratio: 1 / 1;
+        border-radius: 24px;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb, var(--td-accent-primary) 24%, rgba(255,255,255,.08));
+        background:
+            radial-gradient(circle at top, color-mix(in srgb, var(--td-accent-secondary) 18%, transparent), transparent 38%),
+            linear-gradient(180deg, rgba(8,12,21,.9), rgba(6,9,17,.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 18px 42px rgba(0,0,0,.28);
+    }
+
+    .team-detail-hero__art-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
     .team-detail-hero__panel {
@@ -1885,12 +2276,23 @@
         background: rgba(84,100,128,.18);
     }
 
+    .team-detail-hero.is-enhanced .team-detail-hero__panel {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: .8rem;
+        background: transparent;
+    }
+
         .team-detail-hero__panel article {
             padding: 1.1rem 1.2rem;
-            background: rgba(9,13,22,.96);
+            background: rgba(9,13,22,.94);
             display: grid;
             gap: .25rem;
         }
+
+    .team-detail-hero.is-enhanced .team-detail-hero__panel article {
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,.08);
+    }
 
         .team-detail-hero__panel strong, .team-detail-card strong {
             font-size: clamp(1.6rem,1.4vw,2.2rem);
@@ -2014,10 +2416,31 @@
     .team-detail-cta-link {
         min-height: 2.3rem;
         padding: 0 .85rem;
-        border: 1px solid rgba(127,246,223,.22);
-        background: rgba(127,246,223,.08);
-        color: var(--td-green);
+        border: 1px solid color-mix(in srgb, var(--td-accent-primary) 22%, transparent);
+        background: color-mix(in srgb, var(--td-accent-primary) 10%, rgba(255,255,255,.02));
+        color: var(--td-accent-primary);
     }
+
+    .team-detail-reference-card {
+        display: grid;
+        gap: .8rem;
+    }
+
+    .team-detail-reference-card__grid {
+        display: grid;
+        gap: .75rem;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    }
+
+        .team-detail-reference-card__grid div {
+            display: grid;
+            gap: .2rem;
+        }
+
+        .team-detail-reference-card__grid small {
+            color: #d6e5f7;
+            line-height: 1.45;
+        }
 
     .team-detail-feedback {
         padding: 1.1rem 1.2rem;
@@ -2132,6 +2555,10 @@
             grid-template-columns: 1fr;
         }
 
+        .team-detail-hero.is-enhanced .team-detail-hero__panel {
+            grid-template-columns: 1fr 1fr;
+        }
+
         .team-detail-invest-card__actions {
             justify-items: stretch;
             min-width: 0;
@@ -2145,6 +2572,19 @@
 
         .team-detail-hero, .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section {
             padding: 1rem;
+        }
+
+        .team-detail-hero__socials, .team-detail-hero__actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .team-detail-hero.is-enhanced .team-detail-hero__panel {
+            grid-template-columns: 1fr;
+        }
+
+        .team-detail-hero__art-frame {
+            min-height: 220px;
         }
 
         .team-detail-chart-shell {

@@ -57,9 +57,11 @@ public sealed class StatsArenaTeamDto
     public int Matches { get; set; }
     public int Wins { get; set; }
     public int Losses { get; set; }
+    public int Draws { get; set; }
     public decimal WinRate { get; set; }
     public decimal AverageScore { get; set; }
     public int TotalScore { get; set; }
+    public string CurrentStreak { get; set; } = string.Empty;
     public string Momentum { get; set; } = string.Empty;
     public string IconUrl { get; set; } = string.Empty;
     public DateTime? LastMatchUtc { get; set; }
@@ -74,9 +76,11 @@ public sealed class StatsArenaTeamDetailDto
     public int Matches { get; set; }
     public int Wins { get; set; }
     public int Losses { get; set; }
+    public int Draws { get; set; }
     public decimal WinRate { get; set; }
     public decimal AverageScore { get; set; }
     public int TotalScore { get; set; }
+    public string CurrentStreak { get; set; } = string.Empty;
     public string Momentum { get; set; } = string.Empty;
     public string IconUrl { get; set; } = string.Empty;
     public DateTime? LastMatchUtc { get; set; }

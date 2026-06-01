@@ -1,0 +1,222 @@
+@page "/stats/records"
+@page "/en/stats/records"
+@page "/pt/estatisticas/recordes"
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject AppCultureService AppCulture
+@inject IHttpContextAccessor HttpContextAccessor
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject MatchSlugHelper MatchSlugHelper
+@rendermode InteractiveServer
+
+<PageTitle>@T("seo.title")</PageTitle>
+
+<section class="hub-page">
+    <header class="hub-hero">
+        <div>
+            <span class="hub-eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p>@T("hero.subtitle")</p>
+        </div>
+        <div class="hub-actions">
+            <a class="hub-pill" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">@T("hero.backToStats")</a>
+            <a class="hub-pill hub-pill--accent" href="@RouteLocalization.BuildStatsRankingsPath(CurrentCulture)">@T("hero.openRankings")</a>
+        </div>
+    </header>
+
+    @if (_loading)
+    {
+        <section class="hub-feedback"><strong>@T("states.loadingTitle")</strong><p>@T("states.loadingBody")</p></section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <section class="hub-feedback hub-feedback--error"><strong>@T("states.errorTitle")</strong><p>@_error</p></section>
+    }
+    else if (_dataset.CompletedMatches.Count == 0 || _dataset.Teams.Count == 0)
+    {
+        <section class="hub-feedback"><strong>@T("states.emptyTitle")</strong><p>@T("states.emptyBody")</p></section>
+    }
+    else
+    {
+        <section class="hub-summary">
+            <article><span>@T("summary.longestWinStreak")</span><strong>@LongestWinStreakLabel</strong></article>
+            <article><span>@T("summary.biggestBlowout")</span><strong>@BiggestBlowoutLabel</strong></article>
+            <article><span>@T("summary.mostGoals")</span><strong>@MostGoalsLabel</strong></article>
+            <article><span>@T("summary.bestCampaign")</span><strong>@BestCampaignLabel</strong></article>
+        </section>
+
+        <section class="hub-card">
+            <div class="hub-section-head">
+                <div>
+                    <span>@T("records.eyebrow")</span>
+                    <h2>@T("records.title")</h2>
+                </div>
+                <p>@T("records.description")</p>
+            </div>
+            <div class="hub-record-grid">
+                @foreach (var card in RecordCards)
+                {
+                    <article class="hub-record-card">
+                        <span>@card.Label</span>
+                        <strong>@card.Value</strong>
+                        <p>@card.Detail</p>
+                        @if (!string.IsNullOrWhiteSpace(card.Link))
+                        {
+                            <a class="hub-link" href="@card.Link">@T("records.openMatch")</a>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+
+        <section class="hub-card">
+            <div class="hub-section-head">
+                <div>
+                    <span>@T("history.eyebrow")</span>
+                    <h2>@T("history.title")</h2>
+                </div>
+                <p>@T("history.description")</p>
+            </div>
+            <div class="hub-table-wrap">
+                <table class="hub-table">
+                    <thead>
+                        <tr>
+                            <th>@T("history.columns.match")</th>
+                            <th>@T("history.columns.score")</th>
+                            <th>@T("history.columns.note")</th>
+                            <th>@T("history.columns.link")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var match in HistoricMatches)
+                        {
+                            <tr>
+                                <td>@match.HomeCleanSymbol vs @match.AwayCleanSymbol</td>
+                                <td>@match.HomeScore x @match.AwayScore</td>
+                                <td>@DescribeHistoricMatch(match)</td>
+                                <td><a class="hub-link" href="@GetMatchUrl(match)">@T("history.openMatch")</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</section>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+
+    private bool _loading = true;
+    private string? _error;
+    private PublicStatsHubCalculator.PublicStatsDataset _dataset = PublicStatsHubCalculator.Build([]);
+
+    private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
+        ? AppCulture.NormalizeRouteCulture(Culture)
+        : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+
+    private PublicStatsHubCalculator.PublicStatsTeamSummary? BestCampaign => RankedTeams.FirstOrDefault();
+    private PublicStatsHubCalculator.PublicStatsTeamSummary? WorstCampaign => RankedTeams.LastOrDefault();
+    private PublicStatsHubCalculator.PublicStatsTeamSummary? LongestWinStreakTeam => _dataset.Teams.OrderByDescending(x => x.BestWinStreak).ThenByDescending(x => x.Wins).FirstOrDefault();
+    private PublicStatsHubCalculator.PublicStatsMatch? BiggestBlowout => _dataset.CompletedMatches.OrderByDescending(x => x.GoalDifference).ThenByDescending(x => x.TotalGoals).ThenByDescending(x => x.SortUtc).FirstOrDefault();
+    private PublicStatsHubCalculator.PublicStatsMatch? MostGoalsMatch => _dataset.CompletedMatches.OrderByDescending(x => x.TotalGoals).ThenByDescending(x => x.GoalDifference).ThenByDescending(x => x.SortUtc).FirstOrDefault();
+    private IReadOnlyList<PublicStatsHubCalculator.PublicStatsTeamSummary> RankedTeams => _dataset.Teams.Where(x => x.Matches >= 3).DefaultIfEmpty(_dataset.Teams.FirstOrDefault() ?? new PublicStatsHubCalculator.PublicStatsTeamSummary()).Where(x => !string.IsNullOrWhiteSpace(x.Symbol)).OrderByDescending(x => x.Efficiency).ThenByDescending(x => x.Wins).ToList();
+    private string LongestWinStreakLabel => LongestWinStreakTeam is null ? "-" : $"{LongestWinStreakTeam.CleanSymbol} ({LongestWinStreakTeam.BestWinStreak})";
+    private string BiggestBlowoutLabel => BiggestBlowout is null ? "-" : $"{BiggestBlowout.HomeScore} x {BiggestBlowout.AwayScore}";
+    private string MostGoalsLabel => MostGoalsMatch is null ? "-" : $"{MostGoalsMatch.HomeScore + MostGoalsMatch.AwayScore}";
+    private string BestCampaignLabel => BestCampaign is null ? "-" : $"{BestCampaign.CleanSymbol} ({PublicStatsHubCalculator.FormatPercent(BestCampaign.Efficiency)})";
+
+    private IReadOnlyList<RecordCardViewModel> RecordCards =>
+    [
+        new(T("records.cards.longestWinStreak"), LongestWinStreakLabel, T("records.cards.longestWinStreakDetail"), string.Empty),
+        new(T("records.cards.biggestBlowout"), BiggestBlowout is null ? "-" : $"{BiggestBlowout.HomeCleanSymbol} {BiggestBlowout.HomeScore} x {BiggestBlowout.AwayScore} {BiggestBlowout.AwayCleanSymbol}", T("records.cards.biggestBlowoutDetail"), BiggestBlowout is null ? string.Empty : GetMatchUrl(BiggestBlowout)),
+        new(T("records.cards.mostGoals"), MostGoalsMatch is null ? "-" : $"{MostGoalsMatch.HomeCleanSymbol} {MostGoalsMatch.HomeScore} x {MostGoalsMatch.AwayScore} {MostGoalsMatch.AwayCleanSymbol}", T("records.cards.mostGoalsDetail"), MostGoalsMatch is null ? string.Empty : GetMatchUrl(MostGoalsMatch)),
+        new(T("records.cards.bestCampaign"), BestCampaign is null ? "-" : $"{BestCampaign.CleanSymbol} - {PublicStatsHubCalculator.FormatPercent(BestCampaign.Efficiency)}", T("records.cards.bestCampaignDetail"), string.Empty),
+        new(T("records.cards.worstCampaign"), WorstCampaign is null ? "-" : $"{WorstCampaign.CleanSymbol} - {PublicStatsHubCalculator.FormatPercent(WorstCampaign.Efficiency)}", T("records.cards.worstCampaignDetail"), string.Empty)
+    ];
+
+    private IReadOnlyList<PublicStatsHubCalculator.PublicStatsMatch> HistoricMatches =>
+        _dataset.CompletedMatches
+            .OrderByDescending(match => match.TotalGoals)
+            .ThenByDescending(match => match.GoalDifference)
+            .ThenByDescending(match => match.SortUtc)
+            .Take(8)
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
+        try
+        {
+            var matches = await Api.GetMatchesAsync(status: null, take: 200) ?? [];
+            _dataset = PublicStatsHubCalculator.Build(matches);
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            Console.WriteLine($"Stats records page load error: {ex.Message}");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string DescribeHistoricMatch(PublicStatsHubCalculator.PublicStatsMatch match)
+    {
+        if (BiggestBlowout?.MatchId == match.MatchId)
+            return T("history.notes.blowout");
+
+        if (MostGoalsMatch?.MatchId == match.MatchId)
+            return T("history.notes.mostGoals");
+
+        if (match.GoalDifference <= 1 && match.TotalGoals >= 3)
+            return T("history.notes.closeClassic");
+
+        return T("history.notes.highImpact");
+    }
+
+    private string GetMatchUrl(PublicStatsHubCalculator.PublicStatsMatch match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol);
+        return RouteLocalization.BuildBestPath(CurrentCulture, match.MatchId, slug);
+    }
+
+    private string T(string key, params object?[] args)
+        => L.T($"statsRecords.{key}", CurrentCulture, args);
+
+    private sealed record RecordCardViewModel(string Label, string Value, string Detail, string Link);
+}
+
+<style>
+    .hub-page { color: #eef4ff; display: grid; gap: 1rem; }
+    .hub-hero, .hub-card, .hub-feedback, .hub-summary article { border: 1px solid rgba(112,132,170,.18); border-radius: 24px; background: linear-gradient(180deg, rgba(9,13,22,.98), rgba(6,9,16,.99)); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+    .hub-hero, .hub-card, .hub-feedback { padding: 1.25rem; }
+    .hub-eyebrow, .hub-section-head span { color: #7ff6df; text-transform: uppercase; letter-spacing: .12em; font-size: .76rem; font-weight: 900; }
+    .hub-hero h1, .hub-card h2 { margin: .5rem 0; }
+    .hub-hero p, .hub-section-head p, .hub-feedback p, .hub-record-card p { color: #9cb0ca; }
+    .hub-actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+    .hub-pill, .hub-link { color: #eef4ff; text-decoration: none; }
+    .hub-pill { border: 1px solid rgba(83,200,255,.22); border-radius: 999px; background: rgba(14,22,36,.92); padding: .7rem 1rem; }
+    .hub-pill--accent { border-color: rgba(127,246,223,.34); background: rgba(13,32,32,.92); }
+    .hub-summary { display: grid; gap: .8rem; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .hub-summary article { padding: 1rem; display: grid; gap: .45rem; }
+    .hub-summary span { color: #9cb0ca; font-size: .86rem; }
+    .hub-record-grid { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+    .hub-record-card { border: 1px solid rgba(112,132,170,.12); border-radius: 20px; padding: 1rem; background: rgba(10,16,28,.88); display: grid; gap: .5rem; }
+    .hub-record-card span { color: #7ff6df; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+    .hub-table-wrap { overflow-x: auto; }
+    .hub-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    .hub-table th, .hub-table td { padding: .9rem .75rem; border-bottom: 1px solid rgba(112,132,170,.12); text-align: left; }
+    .hub-section-head { display: flex; justify-content: space-between; gap: 1rem; align-items: end; margin-bottom: 1rem; }
+    @@media (max-width: 900px) { .hub-summary { grid-template-columns: 1fr; } .hub-section-head { flex-direction: column; align-items: start; } }
+</style>

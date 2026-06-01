@@ -384,7 +384,9 @@ public sealed class SocialController : ControllerBase
         TelegramUrl = entity.TelegramUrl,
         WebsiteUrl = entity.WebsiteUrl,
         Source = entity.Source,
-        LastCheckedUtc = entity.LastCheckedUtc
+        LastCheckedUtc = entity.LastCheckedUtc,
+        CreatedAtUtc = entity.CreatedAtUtc,
+        UpdatedAtUtc = entity.UpdatedAtUtc
     };
 
     private static string NormalizeSymbol(string? symbol)

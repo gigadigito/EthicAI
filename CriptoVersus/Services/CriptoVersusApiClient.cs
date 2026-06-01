@@ -98,13 +98,33 @@ public sealed class CriptoVersusApiClient
     }
 
     public async Task<List<MatchDto>?> GetMatchesAsync(CancellationToken ct = default)
-        => await GetMatchesAsync(includeParticipants: false, ct);
+        => await GetMatchesAsync(includeParticipants: false, status: null, take: 50, ct);
 
     public async Task<List<MatchDto>?> GetMatchesAsync(
         bool includeParticipants,
         CancellationToken ct = default)
+        => await GetMatchesAsync(includeParticipants, status: null, take: 50, ct);
+
+    public async Task<List<MatchDto>?> GetMatchesAsync(
+        bool includeParticipants,
+        string? status = null,
+        int take = 50,
+        CancellationToken ct = default)
+    {
+        var safeTake = Math.Clamp(take, 1, 200);
+        var path = $"api/Matches?includeParticipants={includeParticipants.ToString().ToLowerInvariant()}&take={safeTake}";
+        if (!string.IsNullOrWhiteSpace(status))
+            path += $"&status={Uri.EscapeDataString(status)}";
+
+        return await GetFromJsonWithBearerAsync<List<MatchDto>>(path, ct);
+    }
+
+    public async Task<List<MatchDto>?> GetMatchesAsync(
+        string? status,
+        int take,
+        CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<MatchDto>>(
-            $"api/Matches?includeParticipants={includeParticipants.ToString().ToLowerInvariant()}",
+            $"api/Matches?includeParticipants=false&take={Math.Clamp(take, 1, 200)}{(string.IsNullOrWhiteSpace(status) ? string.Empty : $"&status={Uri.EscapeDataString(status)}")}",
             ct);
 
     public async Task<List<SocialHotMatchDto>?> GetSocialHotMatchesAsync(CancellationToken ct = default)
@@ -200,13 +220,51 @@ public sealed class CriptoVersusApiClient
         => await GetFromJsonWithBearerAsync<TokenomicsDto>("api/tokenomics", ct);
 
     public async Task<StatsOverviewDto?> GetStatsOverviewAsync(CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<StatsOverviewDto>("api/stats/overview", ct);
+        => await GetStatsOverviewAsync(search: null, ct);
+
+    public async Task<StatsOverviewDto?> GetStatsOverviewAsync(string? search, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsOverviewDto>(
+            string.IsNullOrWhiteSpace(search)
+                ? "api/stats/overview"
+                : $"api/stats/overview?search={Uri.EscapeDataString(search)}",
+            ct);
 
     public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<List<StatsArenaTeamDto>>("api/stats/teams", ct);
+        => await GetStatsTeamsAsync(search: null, ct);
+
+    public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(string? search, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<List<StatsArenaTeamDto>>(
+            string.IsNullOrWhiteSpace(search)
+                ? "api/stats/teams"
+                : $"api/stats/teams?search={Uri.EscapeDataString(search)}",
+            ct);
 
     public async Task<StatsArenaTeamDetailDto?> GetStatsTeamDetailAsync(string slug, CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<StatsArenaTeamDetailDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}", ct);
+
+    public async Task<CoinSocialProfileDto?> GetCoinSocialProfileAsync(
+        string? symbol = null,
+        string? coinGeckoId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(symbol) && string.IsNullOrWhiteSpace(coinGeckoId))
+            return null;
+
+        var query = new List<string>();
+        if (!string.IsNullOrWhiteSpace(symbol))
+            query.Add($"symbol={Uri.EscapeDataString(symbol)}");
+        if (!string.IsNullOrWhiteSpace(coinGeckoId))
+            query.Add($"coingecko_id={Uri.EscapeDataString(coinGeckoId)}");
+
+        try
+        {
+            return await GetFromJsonWithBearerAsync<CoinSocialProfileDto>($"api/coin-social-profile?{string.Join("&", query)}", ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
 
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,

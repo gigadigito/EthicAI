@@ -28,10 +28,11 @@ public sealed class StatsController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("overview")]
-    public async Task<ActionResult<StatsOverviewDto>> GetOverview(CancellationToken ct)
+    public async Task<ActionResult<StatsOverviewDto>> GetOverview([FromQuery] string? search = null, CancellationToken ct = default)
     {
         var activityCutoffUtc = DateTime.UtcNow.Date.AddDays(-(ActivityWindowDays - 1));
         var visibleMatches = await LoadVisibleMatchesAsync(ct);
+        visibleMatches = ApplySearchFilter(visibleMatches, search);
         var nowUtc = DateTime.UtcNow;
 
         var overview = new StatsOverviewDto
@@ -66,7 +67,9 @@ public sealed class StatsController : ControllerBase
                 ? "match-stats-stale"
                 : null;
 
-        overview.TopTeams = BuildTopTeams(visibleMatches);
+        overview.TopTeams = BuildTopTeams(visibleMatches, search);
+        if (!string.IsNullOrWhiteSpace(search))
+            overview.ActiveAssets = overview.TopTeams.Count;
         overview.MatchActivity = BuildMatchActivity(visibleMatches, activityCutoffUtc);
         overview.LatestMatches = BuildLatestMatches(visibleMatches);
 
@@ -75,10 +78,11 @@ public sealed class StatsController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("teams")]
-    public async Task<ActionResult<List<StatsArenaTeamDto>>> GetTeams(CancellationToken ct)
+    public async Task<ActionResult<List<StatsArenaTeamDto>>> GetTeams([FromQuery] string? search = null, CancellationToken ct = default)
     {
         var visibleMatches = await LoadVisibleMatchesAsync(ct);
-        return Ok(BuildArenaTeams(visibleMatches, MaxDirectoryTeams));
+        visibleMatches = ApplySearchFilter(visibleMatches, search);
+        return Ok(BuildArenaTeams(visibleMatches, MaxDirectoryTeams, search));
     }
 
     [AllowAnonymous]
@@ -111,9 +115,11 @@ public sealed class StatsController : ControllerBase
             Matches = team.Matches,
             Wins = team.Wins,
             Losses = team.Losses,
+            Draws = Math.Max(0, team.Matches - team.Wins - team.Losses),
             WinRate = team.WinRate,
             AverageScore = team.AverageScore,
             TotalScore = team.TotalScore,
+            CurrentStreak = BuildCurrentStreak(teamMatches, normalizedSlug),
             Momentum = team.Momentum,
             IconUrl = team.IconUrl,
             LastMatchUtc = team.LastMatchUtc,
@@ -157,8 +163,8 @@ public sealed class StatsController : ControllerBase
             .ToList();
     }
 
-    private List<StatsAssetPerformanceDto> BuildTopTeams(List<StatsMatchProjection> matches)
-        => BuildArenaTeams(matches, MaxTopTeams)
+    private List<StatsAssetPerformanceDto> BuildTopTeams(List<StatsMatchProjection> matches, string? search = null)
+        => BuildArenaTeams(matches, MaxTopTeams, search)
             .Select(team => new StatsAssetPerformanceDto
             {
                 Rank = team.Rank,
@@ -174,7 +180,7 @@ public sealed class StatsController : ControllerBase
             })
             .ToList();
 
-    private List<StatsArenaTeamDto> BuildArenaTeams(List<StatsMatchProjection> matches, int? limit = null)
+    private List<StatsArenaTeamDto> BuildArenaTeams(List<StatsMatchProjection> matches, int? limit = null, string? search = null)
     {
         var completedMatches = matches
             .Where(m => m.Status == MatchStatus.Completed)
@@ -194,6 +200,8 @@ public sealed class StatsController : ControllerBase
 
         return teamRows
             .GroupBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
+            .Where(group => string.IsNullOrWhiteSpace(search)
+                || AssetMatchesSearch(group.First().Symbol, group.First().DisplayName, search.Trim()))
             .Select(group =>
             {
                 var ordered = group
@@ -396,6 +404,28 @@ public sealed class StatsController : ControllerBase
         return normalized;
     }
 
+    private static List<StatsMatchProjection> ApplySearchFilter(List<StatsMatchProjection> matches, string? search)
+    {
+        var normalizedSearch = search?.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedSearch))
+            return matches;
+
+        return matches
+            .Where(match =>
+                AssetMatchesSearch(match.TeamASymbol, match.TeamADisplayName, normalizedSearch)
+                || AssetMatchesSearch(match.TeamBSymbol, match.TeamBDisplayName, normalizedSearch))
+            .ToList();
+    }
+
+    private static bool AssetMatchesSearch(string? symbol, string? name, string search)
+        => ContainsSearch(symbol, search)
+           || ContainsSearch(name, search)
+           || ContainsSearch(CleanAssetSymbol(symbol), search);
+
+    private static bool ContainsSearch(string? source, string search)
+        => !string.IsNullOrWhiteSpace(source)
+           && source.Contains(search, StringComparison.OrdinalIgnoreCase);
+
     private static string ResolveMomentum(decimal winRate, int matches, decimal averageScore, int totalScore, int recentMatches)
     {
         if (winRate >= 70m)
@@ -417,6 +447,43 @@ public sealed class StatsController : ControllerBase
             return "Struggling";
 
         return "Volatile";
+    }
+
+    private static string BuildCurrentStreak(List<StatsMatchProjection> matches, string normalizedSlug)
+    {
+        var ordered = matches
+            .Where(match => match.Status == MatchStatus.Completed)
+            .OrderByDescending(match => match.EndTime ?? match.StartTime ?? DateTime.MinValue)
+            .ToList();
+
+        if (ordered.Count == 0)
+            return string.Empty;
+
+        string? streakType = null;
+        var streakCount = 0;
+
+        foreach (var match in ordered)
+        {
+            var isTeamA = NormalizeTicker(match.TeamASymbol) == normalizedSlug;
+            var teamId = isTeamA ? match.TeamAId : match.TeamBId;
+            var winnerTeamId = ResolveWinnerTeamId(match);
+            var currentType = winnerTeamId switch
+            {
+                null => "D",
+                var winnerId when winnerId == teamId => "W",
+                _ => "L"
+            };
+
+            if (streakType is null)
+                streakType = currentType;
+
+            if (!string.Equals(streakType, currentType, StringComparison.Ordinal))
+                break;
+
+            streakCount++;
+        }
+
+        return streakType is null || streakCount == 0 ? string.Empty : $"{streakType}{streakCount}";
     }
 
     private static readonly string[] QuoteSuffixes =
