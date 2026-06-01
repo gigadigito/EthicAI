@@ -2311,7 +2311,7 @@
     private string LoggedUserDisplay
         => _loggedUserId is int userId && userId > 0
             ? $"Usuario #{userId}"
-            : "Faça login para investir";
+            : "Faça login para apostar";
 
     private string LoggedWalletDisplay
         => string.IsNullOrWhiteSpace(_loggedWalletPublicKey)
@@ -2922,8 +2922,8 @@
             if (string.IsNullOrWhiteSpace(token) || !_loggedUserId.HasValue || _loggedUserId.Value <= 0)
             {
                 _betRequestOk = false;
-                _betStatusMessage = "Faça login com a carteira Solana antes de investir.";
-                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com o investimento.");
+                _betStatusMessage = "Faça login com a carteira Solana antes de apostar.";
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com a aposta.");
                 return;
             }
 
@@ -2956,15 +2956,15 @@
             if (response.IsSuccessStatusCode)
             {
                 _betRequestOk = true;
-                _betStatusMessage = $"Investimento enviado com sucesso para {teamName}. Usuário={LoggedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
-                ShowInvestmentPopup("Investimento confirmado", $"Seu investimento de {FmtSolAmount(amountSol)} em {teamName} foi registrado com sucesso.");
+                _betStatusMessage = $"Aposta enviada com sucesso para {teamName}. Usuário={LoggedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
+                ShowInvestmentPopup("Aposta confirmada", $"Sua aposta de {FmtSolAmount(amountSol)} em {teamName} foi registrada com sucesso.");
                 await ReloadMatchAsync(CancellationToken.None);
             }
             else
             {
                 _betRequestOk = false;
-                _betStatusMessage = $"Falha ao investir em {teamName}. Usuário={LoggedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
-                ShowInvestmentPopup("Investimento não concluído", "Não foi possível registrar seu investimento agora. Tente novamente em instantes.");
+                _betStatusMessage = $"Falha ao apostar em {teamName}. Usuário={LoggedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                ShowInvestmentPopup("Aposta não concluída", "Não foi possível registrar sua aposta agora. Tente novamente em instantes.");
             }
         }
         catch (Exception ex)
@@ -2972,7 +2972,7 @@
             _betRequestOk = false;
             _betStatusMessage = GetBetExceptionMessage(ex, LoggedUserDisplay);
             _betResponseBody = ex.ToString();
-            ShowInvestmentPopup("Investimento não concluído", GetBetPopupExceptionMessage(ex));
+            ShowInvestmentPopup("Aposta não concluída", GetBetPopupExceptionMessage(ex));
         }
         finally
         {

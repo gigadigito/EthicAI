@@ -17,6 +17,8 @@ public sealed class TeamInvestmentContextResolver
         if (string.IsNullOrWhiteSpace(normalizedSymbol))
             return TeamInvestmentContextResolution.Unavailable("team_symbol_missing");
 
+        var positionAsset = await ResolvePositionAssetAsync(normalizedSymbol, ct);
+
         var matches = await _api.GetMatchesAsync(ct) ?? [];
 
         var relatedMatches = matches
@@ -24,7 +26,19 @@ public sealed class TeamInvestmentContextResolver
             .ToList();
 
         if (relatedMatches.Count == 0)
+        {
+            if (positionAsset is not null)
+            {
+                return TeamInvestmentContextResolution.Available(
+                    null,
+                    positionAsset.TeamId,
+                    string.IsNullOrWhiteSpace(positionAsset.Symbol) ? normalizedSymbol : positionAsset.Symbol,
+                    string.Empty,
+                    "position_available_no_active_match");
+            }
+
             return TeamInvestmentContextResolution.Unavailable("team_match_missing");
+        }
 
         var advancedLive = relatedMatches
             .Where(x => string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
@@ -58,7 +72,19 @@ public sealed class TeamInvestmentContextResolver
 
         var teamContext = PublicInvestmentRules.GetTeamContext(contextSource, normalizedSymbol);
         if (teamContext is null)
+        {
+            if (positionAsset is not null)
+            {
+                return TeamInvestmentContextResolution.Available(
+                    ongoing ?? pending,
+                    positionAsset.TeamId,
+                    string.IsNullOrWhiteSpace(positionAsset.Symbol) ? normalizedSymbol : positionAsset.Symbol,
+                    string.Empty,
+                    (ongoing ?? pending) is null ? "position_available_no_active_match" : string.Empty);
+            }
+
             return TeamInvestmentContextResolution.Unavailable("team_context_invalid");
+        }
 
         return TeamInvestmentContextResolution.Available(
             ongoing ?? pending,
@@ -66,6 +92,20 @@ public sealed class TeamInvestmentContextResolver
             teamContext.Value.TeamName,
             teamContext.Value.OpponentName,
             (ongoing ?? pending) is null ? "position_available_no_active_match" : string.Empty);
+    }
+
+    private async Task<PositionAssetOptionDto?> ResolvePositionAssetAsync(string normalizedSymbol, CancellationToken ct)
+    {
+        var assets = await _api.GetPositionAssetsAsync(normalizedSymbol, take: 20, ct) ?? [];
+
+        return assets
+            .Where(x => x.TeamId > 0)
+            .OrderByDescending(x => string.Equals(PublicInvestmentRules.NormalizeSymbol(x.Symbol), normalizedSymbol, StringComparison.Ordinal))
+            .ThenByDescending(x => string.Equals(PublicInvestmentRules.NormalizeSymbol(x.CurrencyName), normalizedSymbol, StringComparison.Ordinal))
+            .ThenByDescending(x => x.HasLiveMatch)
+            .ThenByDescending(x => x.HasUpcomingMatch)
+            .ThenBy(x => x.Symbol)
+            .FirstOrDefault();
     }
 }
 

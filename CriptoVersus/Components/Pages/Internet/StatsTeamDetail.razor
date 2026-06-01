@@ -80,6 +80,7 @@
             {
                 <div class="team-detail-hero__art-bg" style="@HeroBackdropStyle" aria-hidden="true"></div>
             }
+            <div class="team-detail-hero__ambient" aria-hidden="true"></div>
             <div class="team-detail-hero__copy">
                 <span class="team-detail-hero__eyebrow">@T("hero.eyebrow")</span>
                 <div class="team-detail-hero__identity">
@@ -95,50 +96,16 @@
                 </div>
                 <p class="team-detail-hero__lead">@T("hero.subtitle", _detail.DisplaySymbol)</p>
                 <p class="team-detail-hero__seo-copy">@T("hero.seoCopy", _detail.DisplaySymbol)</p>
-                @if (HasIdentityMetadata)
+                @if (HasHeroHighlights)
                 {
-                    <div class="team-detail-hero__meta-grid">
-                        @if (HasIdentityName)
+                    <div class="team-detail-hero__highlight-row">
+                        @if (HasArenaRankHighlight)
                         {
-                            <article class="team-detail-meta-card">
-                                <span>@T("social.identity.name")</span>
-                                <strong>@DisplayIdentityName</strong>
-                            </article>
+                            <span class="team-detail-hero__highlight-pill">@T("hero.rank"): #@_detail.Rank</span>
                         }
-                        @if (HasCoinGeckoId)
+                        @if (HasMomentumHighlight)
                         {
-                            <article class="team-detail-meta-card">
-                                <span>@T("social.identity.coinGeckoId")</span>
-                                <strong>@_coinProfile!.CoinGeckoId</strong>
-                            </article>
-                        }
-                        @if (HasContractAddress)
-                        {
-                            <article class="team-detail-meta-card">
-                                <span>@T("social.identity.contract")</span>
-                                <strong>@FormatContractAddress(_coinProfile!.ContractAddress)</strong>
-                            </article>
-                        }
-                        @if (HasMarketCapRank)
-                        {
-                            <article class="team-detail-meta-card">
-                                <span>@T("social.identity.marketCapRank")</span>
-                                <strong>#@_coinProfile!.MarketCapRank</strong>
-                            </article>
-                        }
-                        @if (HasVisualStyle)
-                        {
-                            <article class="team-detail-meta-card">
-                                <span>@T("social.identity.visualStyle")</span>
-                                <strong>@_coinProfile!.VisualStyle</strong>
-                            </article>
-                        }
-                        @if (HasMemeCoinBadge)
-                        {
-                            <article class="team-detail-meta-card">
-                                <span>@T("social.identity.category")</span>
-                                <strong>@T("social.identity.memeCoin")</strong>
-                            </article>
+                            <span class="team-detail-hero__highlight-pill">@T("hero.momentum"): @FormatMomentum(_detail.Momentum)</span>
                         }
                     </div>
                 }
@@ -159,13 +126,13 @@
                         }
                     </div>
                 }
-                <div class="team-detail-invest-card">
+                <div class="team-detail-hero__cta-shell">
                     <div class="team-detail-invest-card__copy">
                         <span class="team-detail-invest-card__eyebrow">@T("investment.eyebrow")</span>
                         <strong>@T("investment.title", _detail.DisplaySymbol)</strong>
                         <p>@GetInvestmentMessage()</p>
                     </div>
-                    <div class="team-detail-invest-card__actions">
+                    <div class="team-detail-invest-card__actions team-detail-invest-card__actions--hero">
                         <span class="team-detail-invest-state @GetInvestmentStateClass()">@GetInvestmentStateLabel()</span>
                         <button class="team-detail-invest-button"
                                 disabled="@IsInvestmentButtonDisabled"
@@ -173,7 +140,6 @@
                             @(IsInvestmentBusy ? T("investment.loadingCta") : T("investment.cta", _detail.DisplaySymbol))
                         </button>
                         @if (_investmentMatch is not null)
-
                         {
                             <a class="team-detail-invest-link"
                                href="@BuildMatchUrl(_investmentMatch)">
@@ -198,72 +164,137 @@
                              decoding="async" />
                     </figure>
                 }
-                <div class="team-detail-hero__panel">
-                    <article>
+                <div class="team-detail-hero__visual-badges">
+                    <article class="team-detail-hero__spotlight-card">
                         <span>@T("hero.rank")</span>
                         <strong>#@_detail.Rank</strong>
-                        <small>@T("hero.rankHint")</small>
                     </article>
-                    <article>
+                    <article class="team-detail-hero__spotlight-card">
                         <span>@T("hero.momentum")</span>
                         <strong>@FormatMomentum(_detail.Momentum)</strong>
-                        <small>@T("hero.momentumHint")</small>
-                    </article>
-                    <article>
-                        <span>@T("hero.lastMatch")</span>
-                        <strong>@DisplayDate(_detail.LastMatchUtc)</strong>
-                        <small>@T("hero.lastMatchHint")</small>
-                    </article>
-                    <article>
-                        <span>@T("hero.winRate")</span>
-                        <strong>@FormatPercent(_detail.WinRate)</strong>
-                        <small>@T("hero.winRateHint")</small>
-                    </article>
-                    <article>
-                        <span>@T("hero.matchesPlayed")</span>
-                        <strong>@DisplayNumber(_detail.Matches)</strong>
-                        <small>@T("hero.matchesPlayedHint")</small>
-                    </article>
-                    @if (HasStreakMetric)
-                    {
-                        <article>
-                            <span>@T("hero.streak")</span>
-                            <strong>@FormatStreak(_detail.CurrentStreak)</strong>
-                            <small>@T("hero.streakHint")</small>
-                        </article>
-                    }
-                    <article>
-                        <span>@T("hero.historicalRecord")</span>
-                        <strong>@HistoricalRecordText</strong>
-                        <small>@T("hero.historicalRecordHint")</small>
                     </article>
                 </div>
-                @if (HasReferenceProfile)
-                {
-                    <aside class="team-detail-reference-card">
-                        <span>@T("social.reference.title")</span>
-                        <div class="team-detail-reference-card__grid">
-                            @if (HasSource)
-                            {
-                                <div><strong>@T("social.reference.source")</strong><small>@_coinProfile!.Source</small></div>
-                            }
-                            @if (_coinProfile?.LastCheckedUtc is not null)
-                            {
-                                <div><strong>@T("social.reference.lastChecked")</strong><small>@DisplayDateTime(_coinProfile!.LastCheckedUtc)</small></div>
-                            }
-                            @if (HasMarketCapRank)
-                            {
-                                <div><strong>@T("social.reference.marketCapRank")</strong><small>#@_coinProfile!.MarketCapRank</small></div>
-                            }
-                            @if (HasMemeCoinBadge)
-                            {
-                                <div><strong>@T("social.reference.memeCoin")</strong><small>@T("social.identity.memeCoin")</small></div>
-                            }
-                        </div>
-                    </aside>
-                }
             </div>
         </header>
+
+        <section class="team-detail-quickstats-section">
+            <div class="team-detail-section-head team-detail-section-head--compact">
+                <div>
+                    <span>@T("hero.quickStatsEyebrow")</span>
+                    <h2>@T("hero.quickStatsTitle")</h2>
+                </div>
+                <p>@T("hero.quickStatsDescription", _detail.DisplaySymbol)</p>
+            </div>
+            <div class="team-detail-quickstats-grid">
+                <article class="team-detail-stat-card">
+                    <span>@T("hero.rank")</span>
+                    <strong>#@_detail.Rank</strong>
+                    <small>@T("hero.rankHint")</small>
+                </article>
+                <article class="team-detail-stat-card">
+                    <span>@T("hero.winRate")</span>
+                    <strong>@FormatPercent(_detail.WinRate)</strong>
+                    <small>@T("hero.winRateHint")</small>
+                </article>
+                <article class="team-detail-stat-card">
+                    <span>@T("hero.matchesPlayed")</span>
+                    <strong>@DisplayNumber(_detail.Matches)</strong>
+                    <small>@T("hero.matchesPlayedHint")</small>
+                </article>
+                @if (HasStreakMetric)
+                {
+                    <article class="team-detail-stat-card">
+                        <span>@T("hero.streak")</span>
+                        <strong>@FormatStreak(_detail.CurrentStreak)</strong>
+                        <small>@T("hero.streakHint")</small>
+                    </article>
+                }
+                <article class="team-detail-stat-card team-detail-stat-card--record">
+                    <span>@T("hero.historicalRecord")</span>
+                    <strong>@HistoricalRecordText</strong>
+                    <small>@T("hero.historicalRecordLegend")</small>
+                </article>
+                <article class="team-detail-stat-card">
+                    <span>@T("hero.lastMatch")</span>
+                    <strong>@DisplayDate(_detail.LastMatchUtc)</strong>
+                    <small>@T("hero.lastMatchHint")</small>
+                </article>
+                <article class="team-detail-stat-card">
+                    <span>@T("hero.momentum")</span>
+                    <strong>@FormatMomentum(_detail.Momentum)</strong>
+                    <small>@T("hero.momentumHint")</small>
+                </article>
+                @if (HasMarketCapRank)
+                {
+                    <article class="team-detail-stat-card">
+                        <span>@T("social.identity.marketCapRank")</span>
+                        <strong>#@_coinProfile!.MarketCapRank</strong>
+                        <small>@T("hero.marketCapHint")</small>
+                    </article>
+                }
+            </div>
+        </section>
+
+        @if (HasProfileMetadataSection)
+        {
+            <details class="team-detail-profile-meta" open="@HasEnhancedProfile">
+                <summary>
+                    <span>@T("social.reference.title")</span>
+                    <strong>@T("social.reference.subtitle")</strong>
+                </summary>
+                <div class="team-detail-profile-meta__grid">
+                    @if (HasCoinGeckoId)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.identity.coinGeckoId")</span>
+                            <strong>@_coinProfile!.CoinGeckoId</strong>
+                        </article>
+                    }
+                    @if (HasMarketCapRank)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.identity.marketCapRank")</span>
+                            <strong>#@_coinProfile!.MarketCapRank</strong>
+                        </article>
+                    }
+                    @if (HasVisualStyle)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.identity.visualStyle")</span>
+                            <strong>@_coinProfile!.VisualStyle</strong>
+                        </article>
+                    }
+                    @if (HasSource)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.reference.source")</span>
+                            <strong>@_coinProfile!.Source</strong>
+                        </article>
+                    }
+                    @if (_coinProfile?.LastCheckedUtc is not null)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.reference.lastChecked")</span>
+                            <strong>@DisplayDateTime(_coinProfile!.LastCheckedUtc)</strong>
+                        </article>
+                    }
+                    @if (HasContractAddress)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.identity.contract")</span>
+                            <strong>@FormatContractAddress(_coinProfile!.ContractAddress)</strong>
+                        </article>
+                    }
+                    @if (HasMemeCoinBadge)
+                    {
+                        <article class="team-detail-meta-card">
+                            <span>@T("social.reference.memeCoin")</span>
+                            <strong>@T("social.identity.memeCoin")</strong>
+                        </article>
+                    }
+                </div>
+            </details>
+        }
 
         <section class="team-detail-summary-grid">
             <article class="team-detail-card"><span>@T("summary.matches")</span><strong>@DisplayNumber(_detail.Matches)</strong></article>
@@ -584,6 +615,9 @@
         !string.IsNullOrWhiteSpace(_coinProfile?.PrimaryColor)
         || !string.IsNullOrWhiteSpace(_coinProfile?.SecondaryColor);
     private bool HasEnhancedProfile => HasHeroArt || HasIdentityMetadata || HasOfficialLinks || HasReferenceProfile || HasCustomPalette;
+    private bool HasArenaRankHighlight => _detail.Rank > 0;
+    private bool HasMomentumHighlight => !string.IsNullOrWhiteSpace(_detail.Momentum);
+    private bool HasHeroHighlights => HasArenaRankHighlight || HasMomentumHighlight;
     private string DisplayIdentityName => string.IsNullOrWhiteSpace(_coinProfile?.Name) ? _detail.DisplayName : _coinProfile!.Name!;
     private bool HasIdentityName => !string.IsNullOrWhiteSpace(_coinProfile?.Name);
     private bool HasCoinGeckoId => !string.IsNullOrWhiteSpace(_coinProfile?.CoinGeckoId);
@@ -605,6 +639,7 @@
     private bool HasTwitterLink => !string.IsNullOrWhiteSpace(TwitterLink);
     private bool HasOfficialLinks => HasWebsiteLink || HasTelegramLink || HasTwitterLink;
     private bool HasReferenceProfile => HasSource || _coinProfile?.LastCheckedUtc is not null || HasMarketCapRank || HasMemeCoinBadge;
+    private bool HasProfileMetadataSection => HasCoinGeckoId || HasMarketCapRank || HasVisualStyle || HasSource || _coinProfile?.LastCheckedUtc is not null || HasContractAddress || HasMemeCoinBadge;
     private bool HasStreakMetric => !string.IsNullOrWhiteSpace(_detail.CurrentStreak);
     private string HistoricalRecordText => T("hero.historicalRecordValue", _detail.Wins, _detail.Losses, _detail.Draws);
 
@@ -998,7 +1033,7 @@
     private bool IsInvestmentBlockedByAdvancedLive
         => string.Equals(_investmentContextFailureReason, "team_match_advanced_live", StringComparison.OrdinalIgnoreCase);
 
-    private bool IsInvestmentAvailable => _investmentTeamId > 0 && !IsInvestmentBlockedByAdvancedLive;
+    private bool IsInvestmentAvailable => _investmentTeamId > 0 && !_investmentContextLoading && !IsInvestmentBlockedByAdvancedLive;
 
     private bool IsInvestmentButtonDisabled => IsInvestmentBusy || !IsInvestmentAvailable;
 
@@ -1466,7 +1501,7 @@
 
                 _investmentStatusMessage = T("investment.messages.walletRequired", _detail.DisplaySymbol);
 
-                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com o investimento.");
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com a aposta.");
 
                 return;
 
@@ -1508,7 +1543,7 @@
 
                 _investmentStatusMessage = T("investment.messages.submitError", _detail.DisplaySymbol);
 
-                ShowInvestmentPopup("Investimento não concluído", "Não foi possível registrar seu investimento agora. Tente novamente em instantes.");
+                ShowInvestmentPopup("Aposta não concluída", "Não foi possível registrar sua aposta agora. Tente novamente em instantes.");
 
             }
 
@@ -1520,7 +1555,7 @@
 
             _investmentStatusMessage = ex.Message;
 
-            ShowInvestmentPopup("Investimento não concluído", GetBetPopupExceptionMessage(ex));
+            ShowInvestmentPopup("Aposta não concluída", GetBetPopupExceptionMessage(ex));
 
         }
 
@@ -1974,13 +2009,13 @@
 
     .team-detail-hero {
         display: grid;
-        grid-template-columns: minmax(0,1.2fr) minmax(280px,.8fr);
-        gap: 1.2rem;
-        padding: 2rem 1.7rem 1.9rem;
+        grid-template-columns: minmax(0,1.05fr) minmax(320px,.95fr);
+        gap: 1.6rem;
+        padding: 2.1rem 1.8rem 2rem;
         isolation: isolate;
         background:
-            radial-gradient(circle at top left, color-mix(in srgb, var(--td-accent-primary) 20%, transparent), transparent 28%),
-            radial-gradient(circle at bottom right, color-mix(in srgb, var(--td-accent-secondary) 22%, transparent), transparent 30%),
+            radial-gradient(circle at top left, color-mix(in srgb, var(--td-accent-primary) 18%, transparent), transparent 30%),
+            radial-gradient(circle at bottom right, color-mix(in srgb, var(--td-accent-secondary) 18%, transparent), transparent 34%),
             linear-gradient(180deg, rgba(9,13,22,.98), rgba(6,9,16,.99));
     }
 
@@ -1989,14 +2024,28 @@
         box-shadow: 0 24px 70px rgba(0,0,0,.34), 0 0 46px color-mix(in srgb, var(--td-accent-primary) 10%, transparent);
     }
 
+    .team-detail-hero__ambient {
+        position: absolute;
+        inset: auto auto -18% 12%;
+        width: 50%;
+        aspect-ratio: 1.15 / 1;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle, color-mix(in srgb, var(--td-accent-primary) 18%, transparent), transparent 62%);
+        opacity: .6;
+        filter: blur(30px);
+        pointer-events: none;
+        z-index: 0;
+    }
+
     .team-detail-hero__art-bg {
         position: absolute;
         inset: 0;
         background-position: center;
         background-size: cover;
-        opacity: .14;
-        filter: blur(20px) saturate(1.15);
-        transform: scale(1.05);
+        opacity: .2;
+        filter: blur(30px) saturate(1.1);
+        transform: scale(1.08);
         pointer-events: none;
         z-index: 0;
     }
@@ -2012,18 +2061,18 @@
     .team-detail-hero__identity {
         display: flex;
         align-items: center;
-        gap: .75rem;
-        margin: .65rem 0 .85rem;
+        gap: .9rem;
+        margin: .75rem 0 1rem;
     }
 
     .team-detail-hero__identity-copy {
         display: grid;
-        gap: .2rem;
+        gap: .25rem;
     }
 
         .team-detail-hero__identity-copy strong {
             color: #eef5ff;
-            font-size: 1rem;
+            font-size: 1.05rem;
             line-height: 1.1;
         }
 
@@ -2033,7 +2082,7 @@
         }
 
         .team-detail-hero__identity h1 {
-            font-size: clamp(2rem,2vw + 1rem,3rem);
+            font-size: clamp(2.4rem,2.3vw + 1rem,4.2rem);
         }
 
     .team-detail-hero__lead, .team-detail-hero__seo-copy, .team-detail-section-head p, .team-detail-feedback p, .team-detail-muted, .team-detail-rival-item small {
@@ -2042,16 +2091,44 @@
         line-height: 1.65;
     }
 
+    .team-detail-hero__lead {
+        font-size: 1.02rem;
+        max-width: 58ch;
+    }
+
+    .team-detail-hero__seo-copy {
+        max-width: 65ch;
+        margin-top: .55rem;
+    }
+
     .team-detail-hero__copy, .team-detail-hero__visual-column {
         position: relative;
         z-index: 1;
     }
 
-    .team-detail-hero__meta-grid {
-        display: grid;
-        gap: .75rem;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    .team-detail-hero__copy {
+        align-content: start;
+    }
+
+    .team-detail-hero__highlight-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .7rem;
         margin-top: 1rem;
+    }
+
+    .team-detail-hero__highlight-pill {
+        min-height: 2.35rem;
+        padding: 0 .95rem;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        font-size: .82rem;
+        font-weight: 900;
+        color: #eef8ff;
+        border: 1px solid color-mix(in srgb, var(--td-accent-primary) 28%, rgba(255,255,255,.08));
+        background: rgba(10,15,24,.7);
+        backdrop-filter: blur(16px);
     }
 
     .team-detail-meta-card, .team-detail-reference-card {
@@ -2081,12 +2158,12 @@
         display: flex;
         flex-wrap: wrap;
         gap: .75rem;
-        margin-top: 1rem;
+        margin-top: 1.05rem;
     }
 
     .team-detail-social-link {
         min-height: 2.9rem;
-        padding: 0 1rem;
+        padding: 0 1.05rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -2096,17 +2173,28 @@
         color: #f5fbff;
         border: 1px solid color-mix(in srgb, var(--td-accent-secondary) 26%, rgba(255,255,255,.1));
         background: linear-gradient(90deg, rgba(255,255,255,.04), color-mix(in srgb, var(--td-accent-secondary) 18%, rgba(255,255,255,.02)));
+        transition: transform .18s ease, border-color .18s ease, background .18s ease;
     }
 
-    .team-detail-invest-card {
+        .team-detail-social-link:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--td-accent-primary) 34%, rgba(255,255,255,.12));
+            background: linear-gradient(90deg, rgba(255,255,255,.08), color-mix(in srgb, var(--td-accent-primary) 18%, rgba(255,255,255,.02)));
+        }
+
+    .team-detail-hero__cta-shell {
         display: grid;
-        grid-template-columns: minmax(0,1fr) auto;
-        gap: 1rem;
-        margin-top: 1.15rem;
-        padding: 1rem 1.05rem;
+        grid-template-columns: minmax(0,1fr) minmax(240px, 320px);
+        gap: 1.15rem;
+        margin-top: 1.2rem;
+        padding: 1.05rem 1.1rem;
         border-radius: 22px;
-        border: 1px solid rgba(127,246,223,.18);
-        background: radial-gradient(circle at top left, rgba(127,246,223,.12), transparent 36%), linear-gradient(180deg, rgba(7,12,20,.92), rgba(6,10,17,.96));
+        border: 1px solid color-mix(in srgb, var(--td-accent-primary) 18%, rgba(255,255,255,.08));
+        background:
+            linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0)),
+            radial-gradient(circle at top left, color-mix(in srgb, var(--td-accent-primary) 12%, transparent), transparent 36%),
+            linear-gradient(180deg, rgba(7,12,20,.9), rgba(6,10,17,.96));
+        backdrop-filter: blur(14px);
     }
 
     .team-detail-invest-card__eyebrow {
@@ -2139,6 +2227,10 @@
         align-content: center;
         justify-items: end;
         min-width: 220px;
+    }
+
+    .team-detail-invest-card__actions--hero {
+        justify-items: stretch;
     }
 
     .team-detail-invest-state {
@@ -2197,7 +2289,13 @@
         color: #04140f;
         background: linear-gradient(90deg,var(--td-accent-secondary),var(--td-accent-primary));
         box-shadow: 0 18px 34px color-mix(in srgb, var(--td-accent-primary) 18%, transparent);
+        transition: transform .18s ease, box-shadow .18s ease;
     }
+
+        .team-detail-invest-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 40px color-mix(in srgb, var(--td-accent-primary) 24%, transparent);
+        }
 
         .team-detail-invest-button:disabled {
             opacity: .65;
@@ -2210,7 +2308,13 @@
         border: 1px solid rgba(255,255,255,.12);
         background: rgba(255,255,255,.03);
         color: #eef5ff;
+        transition: transform .18s ease, border-color .18s ease;
     }
+
+        .team-detail-invest-link:hover {
+            transform: translateY(-1px);
+            border-color: color-mix(in srgb, var(--td-accent-secondary) 22%, rgba(255,255,255,.12));
+        }
 
     .team-detail-hero__actions {
         display: flex;
@@ -2250,15 +2354,15 @@
 
     .team-detail-hero__art-frame {
         margin: 0;
-        min-height: 280px;
-        aspect-ratio: 1 / 1;
-        border-radius: 24px;
+        min-height: 460px;
+        aspect-ratio: 0.96 / 1;
+        border-radius: 28px;
         overflow: hidden;
         border: 1px solid color-mix(in srgb, var(--td-accent-primary) 24%, rgba(255,255,255,.08));
         background:
             radial-gradient(circle at top, color-mix(in srgb, var(--td-accent-secondary) 18%, transparent), transparent 38%),
             linear-gradient(180deg, rgba(8,12,21,.9), rgba(6,9,17,.98));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 18px 42px rgba(0,0,0,.28);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 20px 55px rgba(0,0,0,.36), 0 0 40px color-mix(in srgb, var(--td-accent-primary) 8%, transparent);
     }
 
     .team-detail-hero__art-image {
@@ -2268,36 +2372,124 @@
         display: block;
     }
 
-    .team-detail-hero__panel {
+    .team-detail-hero__visual-badges {
         display: grid;
-        gap: 1px;
-        border-radius: 22px;
-        overflow: hidden;
-        background: rgba(84,100,128,.18);
-    }
-
-    .team-detail-hero.is-enhanced .team-detail-hero__panel {
         grid-template-columns: repeat(2, minmax(0,1fr));
         gap: .8rem;
-        background: transparent;
     }
 
-        .team-detail-hero__panel article {
-            padding: 1.1rem 1.2rem;
-            background: rgba(9,13,22,.94);
-            display: grid;
-            gap: .25rem;
-        }
-
-    .team-detail-hero.is-enhanced .team-detail-hero__panel article {
+    .team-detail-hero__spotlight-card {
+        padding: 1rem 1.05rem;
         border-radius: 20px;
         border: 1px solid rgba(255,255,255,.08);
+        background: linear-gradient(180deg, rgba(9,13,22,.94), rgba(9,14,24,.88));
+        backdrop-filter: blur(14px);
+        display: grid;
+        gap: .2rem;
     }
 
-        .team-detail-hero__panel strong, .team-detail-card strong {
-            font-size: clamp(1.6rem,1.4vw,2.2rem);
+        .team-detail-hero__spotlight-card span,
+        .team-detail-stat-card span,
+        .team-detail-profile-meta summary span {
+            color: var(--td-muted);
+            display: block;
+            font-size: .72rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .team-detail-hero__spotlight-card strong {
+            font-size: clamp(1.35rem,1vw + 1rem,2rem);
             line-height: 1.05;
         }
+
+    .team-detail-quickstats-section,
+    .team-detail-profile-meta {
+        position: relative;
+        border: 1px solid var(--td-border);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(8,12,21,.94), rgba(6,9,16,.98));
+        box-shadow: 0 18px 44px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.03);
+        overflow: hidden;
+    }
+
+    .team-detail-quickstats-section {
+        padding: 1.15rem 1.2rem 1.2rem;
+        display: grid;
+        gap: .95rem;
+    }
+
+    .team-detail-section-head--compact p {
+        max-width: 60ch;
+    }
+
+    .team-detail-quickstats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0,1fr));
+        gap: .9rem;
+    }
+
+    .team-detail-stat-card {
+        min-height: 142px;
+        padding: 1rem 1.05rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,.08);
+        background:
+            linear-gradient(180deg, rgba(11,16,27,.98), rgba(8,12,20,.98));
+        display: grid;
+        align-content: start;
+        gap: .35rem;
+        transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+        .team-detail-stat-card:hover {
+            transform: translateY(-2px);
+            border-color: color-mix(in srgb, var(--td-accent-primary) 26%, rgba(255,255,255,.08));
+            box-shadow: 0 18px 30px rgba(0,0,0,.24), 0 0 24px color-mix(in srgb, var(--td-accent-primary) 8%, transparent);
+        }
+
+        .team-detail-stat-card strong,
+        .team-detail-card strong {
+            font-size: clamp(1.65rem,1.4vw,2.2rem);
+            line-height: 1.05;
+        }
+
+        .team-detail-stat-card small {
+            color: var(--td-muted);
+            line-height: 1.45;
+        }
+
+    .team-detail-stat-card--record strong {
+        font-size: clamp(1.35rem,1vw + 1rem,1.85rem);
+    }
+
+    .team-detail-profile-meta {
+        padding: 0;
+    }
+
+        .team-detail-profile-meta summary {
+            list-style: none;
+            cursor: pointer;
+            display: grid;
+            gap: .22rem;
+            padding: 1rem 1.2rem;
+        }
+
+        .team-detail-profile-meta summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .team-detail-profile-meta summary strong {
+            font-size: 1rem;
+            color: #eef5ff;
+        }
+
+    .team-detail-profile-meta__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: .85rem;
+        padding: 0 1.2rem 1.2rem;
+    }
 
     .team-detail-summary-grid, .team-detail-grid {
         display: grid;
@@ -2545,23 +2737,33 @@
         }
 
     @@media (max-width: 1180px) {
+        .team-detail-quickstats-grid {
+            grid-template-columns: repeat(3,minmax(0,1fr));
+        }
+
         .team-detail-summary-grid {
             grid-template-columns: repeat(3,minmax(0,1fr));
         }
     }
 
     @@media (max-width: 980px) {
-        .team-detail-hero, .team-detail-grid, .team-detail-invest-card {
+        .team-detail-hero, .team-detail-grid, .team-detail-hero__cta-shell {
             grid-template-columns: 1fr;
         }
 
-        .team-detail-hero.is-enhanced .team-detail-hero__panel {
-            grid-template-columns: 1fr 1fr;
+        .team-detail-hero__art-frame {
+            min-height: 340px;
+            aspect-ratio: 1.2 / 1;
         }
 
-        .team-detail-invest-card__actions {
+        .team-detail-invest-card__actions,
+        .team-detail-invest-card__actions--hero {
             justify-items: stretch;
             min-width: 0;
+        }
+
+        .team-detail-quickstats-grid {
+            grid-template-columns: repeat(2,minmax(0,1fr));
         }
     }
 
@@ -2574,17 +2776,44 @@
             padding: 1rem;
         }
 
+        .team-detail-quickstats-section {
+            padding: 1rem;
+        }
+
+        .team-detail-profile-meta summary,
+        .team-detail-profile-meta__grid {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
         .team-detail-hero__socials, .team-detail-hero__actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
         }
 
-        .team-detail-hero.is-enhanced .team-detail-hero__panel {
-            grid-template-columns: 1fr;
+        .team-detail-hero__socials {
+            justify-content: center;
+        }
+
+        .team-detail-hero__highlight-row {
+            gap: .55rem;
+        }
+
+        .team-detail-hero__visual-badges {
+            grid-template-columns: 1fr 1fr;
         }
 
         .team-detail-hero__art-frame {
-            min-height: 220px;
+            min-height: 250px;
+            aspect-ratio: 1.12 / 1;
+        }
+
+        .team-detail-quickstats-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .team-detail-stat-card {
+            min-height: 128px;
         }
 
         .team-detail-chart-shell {
@@ -2597,8 +2826,16 @@
     }
 
     @@media (max-width: 430px) {
-        .team-detail-invest-card {
-            padding: .92rem;
+        .team-detail-hero {
+            padding: 1rem;
+        }
+
+        .team-detail-hero__socials, .team-detail-hero__actions, .team-detail-quickstats-grid, .team-detail-hero__visual-badges {
+            grid-template-columns: 1fr;
+        }
+
+        .team-detail-hero__art-frame {
+            min-height: 220px;
         }
 
         .team-detail-invest-button, .team-detail-invest-link {

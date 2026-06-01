@@ -1,5 +1,6 @@
 ﻿using DTOs;
 using Blazored.SessionStorage;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -10,6 +11,8 @@ namespace CriptoVersus.Web.Services;
 public sealed class CriptoVersusApiClient
 {
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan CoinSocialProfileCacheDuration = TimeSpan.FromMinutes(10);
+    private static readonly ConcurrentDictionary<string, CachedCoinSocialProfileResult> CoinSocialProfileCache = new();
     private readonly HttpClient _http;
     private readonly ISessionStorageService _sessionStorage;
     private readonly ILogger<CriptoVersusApiClient> _logger;
@@ -250,6 +253,13 @@ public sealed class CriptoVersusApiClient
         if (string.IsNullOrWhiteSpace(symbol) && string.IsNullOrWhiteSpace(coinGeckoId))
             return null;
 
+        var cacheKey = BuildCoinSocialProfileCacheKey(symbol, coinGeckoId);
+        if (CoinSocialProfileCache.TryGetValue(cacheKey, out var cached)
+            && (DateTimeOffset.UtcNow - cached.CachedAtUtc) <= CoinSocialProfileCacheDuration)
+        {
+            return cached.Profile;
+        }
+
         var query = new List<string>();
         if (!string.IsNullOrWhiteSpace(symbol))
             query.Add($"symbol={Uri.EscapeDataString(symbol)}");
@@ -258,13 +268,19 @@ public sealed class CriptoVersusApiClient
 
         try
         {
-            return await GetFromJsonWithBearerAsync<CoinSocialProfileDto>($"api/coin-social-profile?{string.Join("&", query)}", ct);
+            var profile = await GetFromJsonWithBearerAsync<CoinSocialProfileDto>($"api/coin-social-profile?{string.Join("&", query)}", ct);
+            CoinSocialProfileCache[cacheKey] = new CachedCoinSocialProfileResult(DateTimeOffset.UtcNow, profile);
+            return profile;
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
+            CoinSocialProfileCache[cacheKey] = new CachedCoinSocialProfileResult(DateTimeOffset.UtcNow, null);
             return null;
         }
     }
+
+    private static string BuildCoinSocialProfileCacheKey(string? symbol, string? coinGeckoId)
+        => $"{symbol?.Trim().ToUpperInvariant() ?? string.Empty}|{coinGeckoId?.Trim().ToLowerInvariant() ?? string.Empty}";
 
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,
@@ -512,4 +528,6 @@ public sealed class CriptoVersusApiClient
             // Nesses cenarios seguimos sem bearer e deixamos a rota publica responder.
         }
     }
+
+    private sealed record CachedCoinSocialProfileResult(DateTimeOffset CachedAtUtc, CoinSocialProfileDto? Profile);
 }
