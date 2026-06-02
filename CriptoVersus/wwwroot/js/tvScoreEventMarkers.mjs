@@ -195,14 +195,19 @@ function buildUtcClockLabel(eventTime) {
 
 function resolveSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId, rightTeamId) {
     const eventSymbol = normalizeSymbol(scoreEvent?.teamSymbol);
+    const normalizedLeftSymbol = normalizeSymbol(leftMeta?.symbol);
+    const normalizedRightSymbol = normalizeSymbol(rightMeta?.symbol);
+
     if (eventSymbol) {
-        if (eventSymbol === normalizeSymbol(leftMeta?.symbol)) {
+        if (eventSymbol === normalizedLeftSymbol) {
             return "left";
         }
 
-        if (eventSymbol === normalizeSymbol(rightMeta?.symbol)) {
+        if (eventSymbol === normalizedRightSymbol) {
             return "right";
         }
+
+        return null;
     }
 
     const numericTeamId = Number(scoreEvent?.teamId);

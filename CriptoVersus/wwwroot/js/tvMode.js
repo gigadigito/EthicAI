@@ -3837,6 +3837,16 @@ function positionCompareScoreEventMarkers(state) {
         const series = entry.model.side === "right" ? state.rightSeries : state.leftSeries;
         const x = timeScale.timeToCoordinate(entry.model.time);
         const yBase = series?.priceToCoordinate?.(entry.model.value);
+        const coordinate = Number.isFinite(x) ? x : null;
+
+        console.log("[TV_CHART] score marker time", {
+            rawTime: entry.model.rawTime,
+            normalizedTime: entry.model.normalizedTime ?? entry.model.time,
+            firstSeriesTime: entry.model.firstSeriesTime,
+            lastSeriesTime: entry.model.lastSeriesTime,
+            coordinate,
+            status: entry.model.visibilityReason ?? "ok"
+        });
 
         if (!Number.isFinite(x) || !Number.isFinite(yBase)) {
             entry.node.classList.remove("is-visible");
@@ -3847,7 +3857,7 @@ function positionCompareScoreEventMarkers(state) {
             yBase + (Number(entry.model.stackOffsetPx) || 0),
             18,
             Math.max(18, rect.height - 18));
-        entry.node.style.left = `${clamp(x, 18, Math.max(18, rect.width - 18))}px`;
+        entry.node.style.left = `${x}px`;
         entry.node.style.setProperty("--battle-y", `${y}px`);
         entry.node.classList.add("is-visible");
     });
@@ -4108,7 +4118,7 @@ function normalizePoints(points) {
                 return null;
             }
 
-            const time = Number(p.time);
+            const time = normalizeChartTime(p.time);
             const value = Number(p.value);
 
             if (!Number.isFinite(time) || !Number.isFinite(value)) {
@@ -4119,6 +4129,35 @@ function normalizePoints(points) {
         })
         .filter(Boolean)
         .sort((a, b) => a.time - b.time);
+}
+
+function normalizeChartTime(value) {
+    if (typeof value === "string" && value.trim().length > 0) {
+        const parsed = Date.parse(value);
+        if (Number.isFinite(parsed)) {
+            return Math.floor(parsed / 1000);
+        }
+    }
+
+    if (value instanceof Date) {
+        return Math.floor(value.getTime() / 1000);
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+        if (value > 100000000000) {
+            return Math.floor(value / 1000);
+        }
+
+        if (value > 1000000000) {
+            return Math.floor(value);
+        }
+
+        if (value >= 0) {
+            return Math.floor(value);
+        }
+    }
+
+    return null;
 }
 
 function normalizeScoreEventSymbol(symbol) {
@@ -4142,22 +4181,7 @@ function normalizeScoreEventSymbol(symbol) {
 }
 
 function toUnixSeconds(value) {
-    if (typeof value === "number" && Number.isFinite(value)) {
-        return value;
-    }
-
-    if (value instanceof Date) {
-        return Math.floor(value.getTime() / 1000);
-    }
-
-    if (typeof value === "string" && value.trim().length > 0) {
-        const parsed = Date.parse(value);
-        if (Number.isFinite(parsed)) {
-            return Math.floor(parsed / 1000);
-        }
-    }
-
-    return null;
+    return normalizeChartTime(value);
 }
 
 function buildGameMinuteLabel(matchStartTimeUtc, eventTime) {
@@ -4327,10 +4351,23 @@ function resolveScoreEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, c
 function buildScoreEventMarkersModel(payload) {
     const normalizedLeftPoints = normalizePoints(payload?.leftPoints);
     const normalizedRightPoints = normalizePoints(payload?.rightPoints);
+    const firstSeriesTime = Math.max(
+        normalizedLeftPoints[0]?.time ?? Number.NaN,
+        normalizedRightPoints[0]?.time ?? Number.NaN);
+    const lastSeriesTime = Math.min(
+        normalizedLeftPoints[normalizedLeftPoints.length - 1]?.time ?? Number.NaN,
+        normalizedRightPoints[normalizedRightPoints.length - 1]?.time ?? Number.NaN);
     const normalizedScoreEvents = Array.isArray(payload?.scoreEvents)
         ? payload.scoreEvents
             .map((scoreEvent) => {
-                const eventTime = toUnixSeconds(scoreEvent?.eventTimeUtc ?? scoreEvent?.time ?? scoreEvent?.eventTime);
+                const rawTime =
+                    scoreEvent?.eventTimeUtc
+                    ?? scoreEvent?.occurredAtUtc
+                    ?? scoreEvent?.createdAtUtc
+                    ?? scoreEvent?.capturedAtUtc
+                    ?? scoreEvent?.time
+                    ?? scoreEvent?.eventTime;
+                const eventTime = normalizeChartTime(rawTime);
                 const points = Number(scoreEvent?.points ?? 0);
                 const matchScoreEventId = Number(scoreEvent?.matchScoreEventId ?? 0);
 
@@ -4340,6 +4377,7 @@ function buildScoreEventMarkersModel(payload) {
 
                 return {
                     matchScoreEventId,
+                    rawTime,
                     eventTime,
                     points,
                     teamId: scoreEvent?.teamId ?? null,
@@ -4354,7 +4392,8 @@ function buildScoreEventMarkersModel(payload) {
                             ? scoreEvent.reasonCode
                             : typeof scoreEvent?.eventType === "string" && scoreEvent.eventType.length > 0
                                 ? scoreEvent.eventType
-                                : "Score event"
+                                : "Score event",
+                    visibilityReason: "ok"
                 };
             })
             .filter(Boolean)
@@ -4365,10 +4404,8 @@ function buildScoreEventMarkersModel(payload) {
         return [];
     }
 
-    const overlapStart = Math.max(normalizedLeftPoints[0].time, normalizedRightPoints[0].time);
-    const overlapEnd = Math.min(
-        normalizedLeftPoints[normalizedLeftPoints.length - 1].time,
-        normalizedRightPoints[normalizedRightPoints.length - 1].time);
+    const overlapStart = firstSeriesTime;
+    const overlapEnd = lastSeriesTime;
 
     if (!Number.isFinite(overlapStart) || !Number.isFinite(overlapEnd) || overlapEnd < overlapStart) {
         return [];
@@ -4377,6 +4414,7 @@ function buildScoreEventMarkersModel(payload) {
     const stackState = new Map();
     const crossoverMatches = buildBattleCrossovers(normalizedLeftPoints, normalizedRightPoints)
         .map((crossover) => ({ ...crossover, used: false }));
+    const nearEndClampWindowSeconds = 120;
 
     return normalizedScoreEvents
         .map((scoreEvent) => {
@@ -4386,12 +4424,35 @@ function buildScoreEventMarkersModel(payload) {
                 payload?.rightMeta,
                 payload?.leftTeamId,
                 payload?.rightTeamId);
-            if (!side || scoreEvent.eventTime < overlapStart || scoreEvent.eventTime > overlapEnd) {
+            if (!side) {
                 return null;
             }
 
+            let normalizedEventTime = scoreEvent.eventTime;
+            let visibilityReason = "ok";
+
+            if (normalizedEventTime < overlapStart || normalizedEventTime > overlapEnd) {
+                if (normalizedEventTime > overlapEnd && normalizedEventTime - overlapEnd <= nearEndClampWindowSeconds) {
+                    normalizedEventTime = overlapEnd;
+                    visibilityReason = "clamped-near-end";
+                } else {
+                    console.log("[TV_CHART] score marker time", {
+                        rawTime: scoreEvent.rawTime,
+                        normalizedTime: scoreEvent.eventTime,
+                        firstSeriesTime,
+                        lastSeriesTime,
+                        coordinate: null,
+                        status: "event-out-of-range"
+                    });
+                    return null;
+                }
+            }
+
             const plotPoint = resolveScoreEventPlotPoint(
-                scoreEvent,
+                {
+                    ...scoreEvent,
+                    eventTime: normalizedEventTime
+                },
                 side,
                 normalizedLeftPoints,
                 normalizedRightPoints,
@@ -4411,6 +4472,11 @@ function buildScoreEventMarkersModel(payload) {
                 side,
                 time: plotPoint.time,
                 value: plotPoint.value,
+                rawTime: scoreEvent.rawTime,
+                normalizedTime: normalizedEventTime,
+                firstSeriesTime,
+                lastSeriesTime,
+                visibilityReason,
                 stackIndex,
                 stackOffsetPx: buildScoreEventStackOffset(stackIndex),
                 teamSymbol: scoreEvent.teamSymbol || meta?.symbol || "",
