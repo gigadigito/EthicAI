@@ -44,6 +44,42 @@
 
 <body>
     <Routes @rendermode="InteractiveServer" />
+    <div id="components-reconnect-modal" class="components-reconnect-hide" data-nosnippet>
+        <div class="cv-reconnect-overlay" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="cv-reconnect-backdrop"></div>
+            <div class="cv-reconnect-card">
+                <div class="cv-reconnect-card__glow cv-reconnect-card__glow--green"></div>
+                <div class="cv-reconnect-card__glow cv-reconnect-card__glow--violet"></div>
+                <div class="cv-reconnect-card__eyebrow">CRIPTO VERSUS ARENA</div>
+                <div class="cv-reconnect-card__spinner" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <h2 class="cv-reconnect-card__title">Reconectando à arena...</h2>
+                <p class="cv-reconnect-card__body">
+                    A conexão com o servidor foi perdida. Estamos tentando restaurar o sinal da arena para você continuar acompanhando a partida.
+                </p>
+                <div class="cv-reconnect-card__attempts">
+                    <span>Tentativa</span>
+                    <strong class="components-reconnect-current-attempt">1</strong>
+                    <span>de</span>
+                    <strong class="components-reconnect-max-retries">?</strong>
+                </div>
+                <div class="cv-reconnect-card__status">
+                    <span class="cv-reconnect-status cv-reconnect-status--retrying">Reconexão automática em andamento</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--failed">Não foi possível reconectar automaticamente.</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--rejected">A sessão foi rejeitada pelo servidor. Recarregue para entrar novamente.</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--paused">A reconexão foi pausada temporariamente.</span>
+                </div>
+                <button type="button"
+                        class="cv-reconnect-card__button"
+                        onclick="window.location.reload()">
+                    Recarregar agora
+                </button>
+            </div>
+        </div>
+    </div>
     <script src="/js/solanaweb3.js?v=20260506"></script>
     <script src="/js/solanaWalletInterop.js?v=20260511"></script>
     <script src="/js/userTime.js"></script>
@@ -55,6 +91,7 @@
     <script src="/js/criptoversus-stats-charts.js"></script>
     <script src="/js/tokenomicsCharts.js"></script>
     <script src="_framework/blazor.web.js"></script>
+    <script src="/js/blazor-reconnect.js"></script>
 
    
     <script type="module" src="/js/dist/interop/blazor.js"></script>

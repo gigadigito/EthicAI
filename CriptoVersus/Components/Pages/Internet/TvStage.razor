@@ -1,6 +1,7 @@
 @using System.Globalization
 @using System.IO
 @using System.Text
+@using BLL.Positions
 @using CriptoVersus.Components.Shared
 @using DTOs
 @using CriptoVersus.Web.Services
@@ -10,6 +11,7 @@
 @inject IJSRuntime JS
 @inject IWebHostEnvironment Environment
 @inject MatchSlugHelper MatchSlugHelper
+@inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
 @inject TvArenaCommentaryService ArenaCommentary
 @inject TvFieldStateService FieldPositionService
@@ -231,6 +233,23 @@
                     {
                         <div class="tv-football-layout">
                             <section class="tv-football-side tv-football-side--left">
+                                <div class="tv-football-side__cta-wrap">
+                                    @if (CanInvestInArena())
+                                    {
+                                        <a class="tv-football-side__cta tv-football-side__cta--left"
+                                           href="@BuildArenaInvestmentUrl()">
+                                            @T("investIn", DisplayLeftHeroLabel())
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="tv-football-side__cta tv-football-side__cta--left"
+                                                disabled>
+                                            @T("investIn", DisplayLeftHeroLabel())
+                                        </button>
+                                    }
+                                </div>
                                 <div class="tv-football-side__logo">
                                     <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
                                 </div>
@@ -263,6 +282,23 @@
                             </section>
 
                             <section class="tv-football-side tv-football-side--right">
+                                <div class="tv-football-side__cta-wrap">
+                                    @if (CanInvestInArena())
+                                    {
+                                        <a class="tv-football-side__cta tv-football-side__cta--right"
+                                           href="@BuildArenaInvestmentUrl()">
+                                            @T("investIn", DisplayRightHeroLabel())
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="tv-football-side__cta tv-football-side__cta--right"
+                                                disabled>
+                                            @T("investIn", DisplayRightHeroLabel())
+                                        </button>
+                                    }
+                                </div>
                                 <div class="tv-football-side__logo">
                                     <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
                                 </div>
@@ -278,6 +314,20 @@
                         <div class="tv-match-card__arena">
                             <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
                                 <div class="tv-team__halo"></div>
+                                <div class="tv-team__cta-wrap">
+                                    @if (CanInvestInArena())
+                                    {
+                                        <a class="tv-team__cta tv-team__cta--left" href="@BuildArenaInvestmentUrl()">
+                                            @T("investIn", DisplayLeftHeroLabel())
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="tv-team__cta tv-team__cta--left" disabled>
+                                            @T("investIn", DisplayLeftHeroLabel())
+                                        </button>
+                                    }
+                                </div>
                                 <div class="tv-team__logo-shell">
                                     <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
                                 </div>
@@ -312,6 +362,20 @@
 
                             <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
                                 <div class="tv-team__halo"></div>
+                                <div class="tv-team__cta-wrap">
+                                    @if (CanInvestInArena())
+                                    {
+                                        <a class="tv-team__cta tv-team__cta--right" href="@BuildArenaInvestmentUrl()">
+                                            @T("investIn", DisplayRightHeroLabel())
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="tv-team__cta tv-team__cta--right" disabled>
+                                            @T("investIn", DisplayRightHeroLabel())
+                                        </button>
+                                    }
+                                </div>
                                 <div class="tv-team__logo-shell">
                                     <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
                                 </div>
@@ -954,6 +1018,10 @@ else
         : null;
     private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
+    private string BuildArenaInvestmentUrl()
+        => string.IsNullOrWhiteSpace(CurrentMatchUrl)
+            ? "#"
+            : $"{CurrentMatchUrl}#match-investment";
     private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
     private string PirateHeaderTitle => ResolveBroadcastCinematicHeaderTitle();
     private string PirateHeaderStatus => ResolveBroadcastCinematicHeaderStatus();
@@ -5039,6 +5107,24 @@ else
             || text.Contains("surge", StringComparison.OrdinalIgnoreCase);
     }
 
+    private bool CanInvestInArena()
+    {
+        if (Match is not null)
+            return PublicInvestmentRules.IsBettingWindowOpen(Match);
+
+        if (HotMatch?.HasMatch != true)
+            return false;
+
+        var decision = InvestmentAccessPolicy.EvaluateLegacyMatch(
+            "ongoing",
+            HotMatch.MatchStartTimeUtc,
+            null,
+            elapsedMinutes: null,
+            nowUtc: DateTimeOffset.UtcNow);
+
+        return decision.CanInvest;
+    }
+
     private async Task LogClockDebugAsync()
     {
         if (!Environment.IsDevelopment() || _tvModule is null)
@@ -7039,6 +7125,53 @@ else
         border: 1px solid rgba(255,255,255,0.05);
         background: linear-gradient(180deg, rgba(8, 14, 24, 0.92), rgba(7, 11, 18, 0.84));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .tv-football-side__cta-wrap,
+    .tv-team__cta-wrap {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin-bottom: 8px;
+    }
+
+    .tv-football-side__cta,
+    .tv-team__cta {
+        width: 100%;
+        max-width: 180px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.14);
+        color: #f4fbff;
+        text-decoration: none;
+        font-size: .78rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        background: linear-gradient(135deg, rgba(67, 200, 255, 0.92), rgba(110, 245, 217, 0.92));
+        box-shadow: 0 14px 34px rgba(18, 34, 54, 0.34);
+        transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    }
+
+    .tv-football-side__cta:hover,
+    .tv-football-side__cta:focus-visible,
+    .tv-team__cta:hover,
+    .tv-team__cta:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 18px 40px rgba(18, 34, 54, 0.42);
+        color: #041018;
+    }
+
+    .tv-football-side__cta:disabled,
+    .tv-team__cta:disabled {
+        opacity: .48;
+        cursor: not-allowed;
+        color: rgba(244,251,255,.72);
+        background: linear-gradient(180deg, rgba(56, 64, 82, 0.82), rgba(34, 39, 51, 0.88));
+        box-shadow: none;
     }
 
     .tv-football-side--left {

@@ -3,7 +3,7 @@ namespace BLL.Positions;
 public static class InvestmentAccessPolicy
 {
     public const int MatchDurationMinutes = 90;
-    public const int AdvancedLiveThresholdMinutes = (MatchDurationMinutes * 2) / 3;
+    public const int AdvancedLiveThresholdMinutes = MatchDurationMinutes / 2;
     public const int OngoingGraceMinutes = 30;
     public const string AdvancedLiveMatchReason = "advanced_live_match";
     public const string MatchNotOpenReason = "match_not_open";

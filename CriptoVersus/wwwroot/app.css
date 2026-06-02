@@ -183,3 +183,236 @@ a:hover,
         transform: translateY(14px);
     }
 }
+
+#components-reconnect-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .28s ease, visibility .28s ease;
+}
+
+#components-reconnect-modal.components-reconnect-show,
+#components-reconnect-modal.components-reconnect-failed,
+#components-reconnect-modal.components-reconnect-rejected,
+#components-reconnect-modal.components-reconnect-retrying,
+#components-reconnect-modal.components-reconnect-paused {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#components-reconnect-modal.components-reconnect-hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.cv-reconnect-overlay {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.cv-reconnect-backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top left, rgba(76, 243, 141, .16), transparent 24%),
+        radial-gradient(circle at top right, rgba(168, 85, 247, .2), transparent 26%),
+        radial-gradient(circle at bottom center, rgba(59, 130, 246, .16), transparent 28%),
+        rgba(2, 8, 18, .74);
+    backdrop-filter: blur(18px);
+}
+
+.cv-reconnect-card {
+    position: relative;
+    width: min(100%, 520px);
+    padding: 1.75rem 1.5rem 1.4rem;
+    border-radius: 28px;
+    border: 1px solid rgba(127, 246, 223, .18);
+    background:
+        linear-gradient(180deg, rgba(9, 14, 24, .96), rgba(5, 8, 14, .98));
+    box-shadow:
+        0 32px 120px rgba(0, 0, 0, .46),
+        inset 0 1px 0 rgba(255, 255, 255, .04);
+    color: #f4fbff;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.cv-reconnect-card__glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(36px);
+    opacity: .58;
+    z-index: -1;
+}
+
+.cv-reconnect-card__glow--green {
+    width: 180px;
+    height: 180px;
+    top: -44px;
+    left: -22px;
+    background: rgba(76, 243, 141, .22);
+}
+
+.cv-reconnect-card__glow--violet {
+    width: 220px;
+    height: 220px;
+    right: -72px;
+    bottom: -88px;
+    background: rgba(168, 85, 247, .2);
+}
+
+.cv-reconnect-card__eyebrow {
+    color: #7ff6df;
+    font-size: .78rem;
+    font-weight: 900;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+}
+
+.cv-reconnect-card__spinner {
+    position: relative;
+    width: 74px;
+    height: 74px;
+    margin: 1rem 0 1.1rem;
+    display: grid;
+    place-items: center;
+}
+
+.cv-reconnect-card__spinner span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #7ff6df;
+    border-right-color: rgba(83, 200, 255, .86);
+    animation: cv-reconnect-spin 1.15s linear infinite;
+    box-shadow: 0 0 18px rgba(127, 246, 223, .22);
+}
+
+.cv-reconnect-card__spinner span:nth-child(2) {
+    inset: 10px;
+    border-top-color: rgba(168, 85, 247, .88);
+    border-right-color: rgba(127, 246, 223, .82);
+    animation-duration: 1.45s;
+    animation-direction: reverse;
+}
+
+.cv-reconnect-card__spinner span:nth-child(3) {
+    inset: 22px;
+    border-top-color: rgba(83, 200, 255, .92);
+    border-right-color: rgba(168, 85, 247, .8);
+    animation-duration: .95s;
+}
+
+.cv-reconnect-card__title {
+    margin: 0;
+    font-size: clamp(1.5rem, 2vw, 2rem);
+    line-height: 1.05;
+    letter-spacing: -.04em;
+}
+
+.cv-reconnect-card__body {
+    margin: .85rem 0 0;
+    color: #b9c7da;
+    line-height: 1.7;
+    font-size: .98rem;
+}
+
+.cv-reconnect-card__attempts {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    margin-top: 1rem;
+    padding: .65rem .9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.04);
+    color: #dce8f8;
+    font-size: .84rem;
+    font-weight: 700;
+}
+
+.cv-reconnect-card__attempts strong {
+    color: #7ff6df;
+    font-size: .95rem;
+}
+
+.cv-reconnect-card__status {
+    display: grid;
+    gap: .45rem;
+    margin-top: 1rem;
+}
+
+.cv-reconnect-status {
+    display: none;
+    color: #b8c7d8;
+    font-size: .92rem;
+    line-height: 1.55;
+}
+
+#components-reconnect-modal.components-reconnect-show .cv-reconnect-status--retrying,
+#components-reconnect-modal.components-reconnect-retrying .cv-reconnect-status--retrying,
+#components-reconnect-modal.components-reconnect-failed .cv-reconnect-status--failed,
+#components-reconnect-modal.components-reconnect-rejected .cv-reconnect-status--rejected,
+#components-reconnect-modal.components-reconnect-paused .cv-reconnect-status--paused {
+    display: block;
+}
+
+.cv-reconnect-card__button {
+    margin-top: 1.2rem;
+    min-height: 3rem;
+    width: 100%;
+    border: 0;
+    border-radius: 16px;
+    background: linear-gradient(90deg, #4cf38d, #53c8ff);
+    color: #041018;
+    font-size: .95rem;
+    font-weight: 900;
+    letter-spacing: .04em;
+    box-shadow: 0 16px 34px rgba(76, 243, 141, .18);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.cv-reconnect-card__button:hover,
+.cv-reconnect-card__button:focus-visible {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+    box-shadow: 0 20px 38px rgba(83, 200, 255, .24);
+}
+
+@keyframes cv-reconnect-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 640px) {
+    .cv-reconnect-overlay {
+        padding: 1rem;
+    }
+
+    .cv-reconnect-card {
+        padding: 1.35rem 1rem 1rem;
+        border-radius: 22px;
+    }
+
+    .cv-reconnect-card__attempts {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
