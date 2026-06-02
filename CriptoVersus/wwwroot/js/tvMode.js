@@ -3443,12 +3443,21 @@ function buildBattleSamples(leftPoints, rightPoints) {
         .filter(Boolean);
 }
 
+function hasExactPointAt(points, time) {
+    if (!Array.isArray(points)) {
+        return false;
+    }
+
+    return points.some((point) => point && Number(point.time) === Number(time));
+}
+
 function findLatestBattleCrossover(leftPoints, rightPoints) {
     const samples = buildBattleSamples(leftPoints, rightPoints);
     if (samples.length < 2) {
         return null;
     }
 
+    const overlapStart = samples[0]?.time ?? null;
     const candidates = [];
 
     for (let index = 1; index < samples.length; index += 1) {
@@ -3473,6 +3482,14 @@ function findLatestBattleCrossover(leftPoints, rightPoints) {
         const rightCrossValue = previous.rightValue + ((current.rightValue - previous.rightValue) * ratio);
         const winner = yellowTakesLead ? "left" : "right";
         const winnerValue = winner === "left" ? leftCrossValue : rightCrossValue;
+        const crossIsAtWindowStart = overlapStart !== null && Math.abs(crossTime - overlapStart) < 0.0001;
+        const previousIsOnlySyntheticBoundary =
+            crossIsAtWindowStart
+            && !(hasExactPointAt(leftPoints, previous.time) && hasExactPointAt(rightPoints, previous.time));
+
+        if (crossIsAtWindowStart || previousIsOnlySyntheticBoundary) {
+            continue;
+        }
 
         candidates.push({
             winner,
@@ -3499,6 +3516,22 @@ function clearCompareMarkerFadeTimer(state) {
         window.clearTimeout(state.markerFadeTimer);
         state.markerFadeTimer = null;
     }
+}
+
+function clearCompareCrossoverMarker(state) {
+    if (!state) {
+        return;
+    }
+
+    clearCompareMarkerFadeTimer(state);
+
+    try {
+        state.markerNode?.remove?.();
+    } catch {
+    }
+
+    state.markerNode = null;
+    state.currentCrossover = null;
 }
 
 function buildCompareMarkerNode(meta) {
@@ -3551,7 +3584,7 @@ function positionCompareCrossoverMarker(state) {
 
     const previousX = timeScale.timeToCoordinate(marker.previousTime);
     const currentX = timeScale.timeToCoordinate(marker.currentTime);
-    const winnerY = winnerSeries.priceToCoordinate(marker.winnerValue);
+    const winnerY = winnerSeries.priceToCoordinate(marker.crossValue);
 
     if (!Number.isFinite(previousX) || !Number.isFinite(currentX) || !Number.isFinite(winnerY)) {
         markerNode.classList.remove("is-visible");
@@ -3578,6 +3611,7 @@ function refreshCompareCrossoverMarker(state) {
 function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, rightMeta) {
     const nextMarker = findLatestBattleCrossover(leftPoints, rightPoints);
     if (!nextMarker) {
+        clearCompareCrossoverMarker(state);
         return;
     }
 
@@ -3603,12 +3637,7 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
     const winnerMeta = nextMarker.winner === "right" ? rightMeta : leftMeta;
     const overlayRoot = ensureCompareOverlayRoot(state);
 
-    clearCompareMarkerFadeTimer(state);
-
-    try {
-        state.markerNode?.remove?.();
-    } catch {
-    }
+    clearCompareCrossoverMarker(state);
 
     const markerNode = buildCompareMarkerNode(winnerMeta);
     overlayRoot.appendChild(markerNode);
