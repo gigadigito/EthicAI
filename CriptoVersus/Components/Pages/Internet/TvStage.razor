@@ -238,7 +238,7 @@
                                     {
                                         <a class="tv-football-side__cta tv-football-side__cta--left"
                                            href="@BuildArenaInvestmentUrl()">
-                                            @T("investIn", DisplayLeftHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </a>
                                     }
                                     else
@@ -246,7 +246,7 @@
                                         <button type="button"
                                                 class="tv-football-side__cta tv-football-side__cta--left"
                                                 disabled>
-                                            @T("investIn", DisplayLeftHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </button>
                                     }
                                 </div>
@@ -287,7 +287,7 @@
                                     {
                                         <a class="tv-football-side__cta tv-football-side__cta--right"
                                            href="@BuildArenaInvestmentUrl()">
-                                            @T("investIn", DisplayRightHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </a>
                                     }
                                     else
@@ -295,7 +295,7 @@
                                         <button type="button"
                                                 class="tv-football-side__cta tv-football-side__cta--right"
                                                 disabled>
-                                            @T("investIn", DisplayRightHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </button>
                                     }
                                 </div>
@@ -318,13 +318,13 @@
                                     @if (CanInvestInArena())
                                     {
                                         <a class="tv-team__cta tv-team__cta--left" href="@BuildArenaInvestmentUrl()">
-                                            @T("investIn", DisplayLeftHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </a>
                                     }
                                     else
                                     {
                                         <button type="button" class="tv-team__cta tv-team__cta--left" disabled>
-                                            @T("investIn", DisplayLeftHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </button>
                                     }
                                 </div>
@@ -366,13 +366,13 @@
                                     @if (CanInvestInArena())
                                     {
                                         <a class="tv-team__cta tv-team__cta--right" href="@BuildArenaInvestmentUrl()">
-                                            @T("investIn", DisplayRightHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </a>
                                     }
                                     else
                                     {
                                         <button type="button" class="tv-team__cta tv-team__cta--right" disabled>
-                                            @T("investIn", DisplayRightHeroLabel())
+                                            @MatchGaugeT("invest")
                                         </button>
                                     }
                                 </div>
@@ -7138,22 +7138,37 @@ else
     .tv-football-side__cta,
     .tv-team__cta {
         width: 100%;
-        max-width: 180px;
+        max-width: 144px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 10px 14px;
+        min-height: 2.6rem;
+        padding: .62rem .95rem;
         border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.14);
+        border: 1px solid transparent;
         color: #f4fbff;
         text-decoration: none;
         font-size: .78rem;
         font-weight: 900;
         letter-spacing: .08em;
         text-transform: uppercase;
-        background: linear-gradient(135deg, rgba(67, 200, 255, 0.92), rgba(110, 245, 217, 0.92));
-        box-shadow: 0 14px 34px rgba(18, 34, 54, 0.34);
-        transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+        white-space: nowrap;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease, filter .18s ease;
+    }
+
+    .tv-football-side__cta--left,
+    .tv-team__cta--left {
+        color: #eafff5;
+        background: linear-gradient(135deg, rgba(16,185,129,.34), rgba(11,118,86,.2));
+        border-color: rgba(52,211,153,.36);
+    }
+
+    .tv-football-side__cta--right,
+    .tv-team__cta--right {
+        color: #f7f0ff;
+        background: linear-gradient(135deg, rgba(59,130,246,.34), rgba(37,99,235,.2));
+        border-color: rgba(96,165,250,.34);
     }
 
     .tv-football-side__cta:hover,
@@ -7161,8 +7176,8 @@ else
     .tv-team__cta:hover,
     .tv-team__cta:focus-visible {
         transform: translateY(-1px);
-        box-shadow: 0 18px 40px rgba(18, 34, 54, 0.42);
-        color: #041018;
+        filter: brightness(1.05);
+        color: inherit;
     }
 
     .tv-football-side__cta:disabled,
