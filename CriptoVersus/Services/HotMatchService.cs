@@ -150,7 +150,11 @@ public sealed class HotMatchService
     {
         try
         {
-            return await _api.GetMatchesAsync(includeParticipants: false, ct);
+            var ongoing = await _api.GetMatchesAsync(includeParticipants: false, status: "Ongoing", take: 100, ct);
+            if (ongoing is { Count: > 0 })
+                return ongoing;
+
+            return await _api.GetMatchesAsync(includeParticipants: false, status: null, take: 100, ct);
         }
         catch (OperationCanceledException)
         {

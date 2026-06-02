@@ -146,6 +146,12 @@
             Nav.NavigateTo(expectedPath, replace: true);
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+        _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -153,7 +159,8 @@
 
         _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260531-ambient-2");
         await LogAsync("loaded");
-        await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+        if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
+            await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
         _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
 
         _refreshCts = new CancellationTokenSource();
@@ -238,6 +245,9 @@
                     }
                 }
             }
+
+            if (_isBroadcastMode && (_selectedHotMatch is null || !_selectedHotMatch.HasMatch))
+                await TryResolveBroadcastFallbackAsync(ct);
 
             await RefreshSelectedMatchAsync(ct);
             await InvokeAsync(StateHasChanged);
@@ -452,6 +462,188 @@
 
         if (_selectedHotRanking is not null)
             _selectedHotMatch = HotMatches.ToTvHotMatch(_selectedHotRanking, _culture, RouteLocalization);
+    }
+
+    private async Task TryResolveBroadcastFallbackAsync(CancellationToken ct)
+    {
+        try
+        {
+            var legacyHotMatch = await Api.GetTvHotMatchAsync(ct);
+            if (legacyHotMatch?.HasMatch == true)
+            {
+                var match = await Api.GetMatchByIdAsync(legacyHotMatch.MatchId, ct);
+                var fallback = BuildFallbackHotMatch(legacyHotMatch, match);
+                if (IsBroadcastEligibleMatch(fallback))
+                {
+                    await SwitchToMatchAsync(fallback, match, broadcastRotation: true, switchMode: "legacy-hot-match-fallback");
+                    await LogAsync("[TV_ROTATION] fallback selected from legacy hot match", new { fallback.MatchId, fallback.HotScore });
+                    return;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "TvPage legacy broadcast fallback failed.");
+        }
+
+        try
+        {
+            var ongoingMatches = await Api.GetMatchesAsync(includeParticipants: false, status: "Ongoing", take: 20, ct) ?? [];
+            var fallback = ongoingMatches
+                .Where(match => !match.IsFinished && !IsBroadcastTerminalStatus(match.Status))
+                .OrderByDescending(CalculateFallbackPriorityScore)
+                .Select(BuildFallbackHotMatch)
+                .FirstOrDefault(IsBroadcastEligibleMatch);
+
+            if (fallback is null)
+                return;
+
+            await SwitchToMatchAsync(fallback, fallback.MatchSnapshot, broadcastRotation: true, switchMode: "ongoing-match-fallback");
+            await LogAsync("[TV_ROTATION] fallback selected from ongoing matches", new { fallback.MatchId, fallback.HotScore });
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "TvPage ongoing-match fallback failed.");
+        }
+    }
+
+    private HotMatchDto BuildFallbackHotMatch(TvHotMatchDto hotMatch, MatchDto? match)
+    {
+        var slug = !string.IsNullOrWhiteSpace(hotMatch.Slug)
+            ? hotMatch.Slug
+            : MatchSlugHelper.BuildSlug(hotMatch.LeftSymbol, hotMatch.RightSymbol);
+        var homeScore = match?.ScoreA ?? hotMatch.LeftScore;
+        var awayScore = match?.ScoreB ?? hotMatch.RightScore;
+        var elapsedMinutes = match?.ElapsedMinutes
+            ?? Math.Max(0, 90 - ((hotMatch.RemainingSeconds ?? 0) / 60));
+        var remainingMinutes = match?.RemainingMinutes
+            ?? Math.Max(0, (int)Math.Ceiling((hotMatch.RemainingSeconds ?? 0) / 60d));
+        var pctA = match?.PctA ?? hotMatch.LeftChangePercent;
+        var pctB = match?.PctB ?? hotMatch.RightChangePercent;
+        var totalPool = match?.TotalPoolAmount ?? match?.TotalPool ?? 0m;
+
+        return new HotMatchDto
+        {
+            MatchId = hotMatch.MatchId,
+            Slug = slug,
+            HomeSymbol = match?.TeamA ?? hotMatch.LeftSymbol,
+            AwaySymbol = match?.TeamB ?? hotMatch.RightSymbol,
+            HomeScore = homeScore,
+            AwayScore = awayScore,
+            HotScore = hotMatch.HotScore,
+            Momentum = Math.Clamp(Math.Abs((pctA ?? 0m) - (pctB ?? 0m)) * 10m, 0m, 100m),
+            Fear = homeScore == awayScore ? 40m : 22m,
+            ArenaPressure = Math.Clamp(hotMatch.HotScore, 0, 100),
+            IsTrending = hotMatch.HotScore >= 60,
+            IsExplosive = hotMatch.HotScore >= BreakingHotScoreThreshold,
+            ActivityLevel = Math.Clamp(hotMatch.HotScore, 0, 100),
+            ScoreDifference = Math.Abs(homeScore - awayScore),
+            RecentGoals = homeScore + awayScore > 0 ? 1 : 0,
+            Status = match?.Status ?? "Ongoing",
+            Minute = elapsedMinutes,
+            ElapsedMinutes = elapsedMinutes,
+            RemainingMinutes = remainingMinutes,
+            IsFinished = match?.IsFinished ?? false,
+            PctA = pctA,
+            PctB = pctB,
+            TotalPool = match?.TotalPool ?? totalPool,
+            TotalPoolAmount = totalPool,
+            HasBetsOnBothSides = match?.HasBetsOnBothSides ?? false,
+            PoolStrengthTeamA = match?.PoolStrengthTeamA ?? 0,
+            PoolStrengthTeamB = match?.PoolStrengthTeamB ?? 0,
+            TotalGoals = homeScore + awayScore,
+            TotalBets = (match?.BetCountTeamA ?? 0) + (match?.BetCountTeamB ?? 0),
+            HomeBetAmount = match?.TotalAmountTeamA ?? 0m,
+            AwayBetAmount = match?.TotalAmountTeamB ?? 0m,
+            Reason = !string.IsNullOrWhiteSpace(hotMatch.Reason)
+                ? hotMatch.Reason
+                : "Fallback broadcast selection from live arena feed.",
+            PublicUrl = hotMatch.WatchUrl,
+            HomeLogoUrl = hotMatch.LeftLogoUrl,
+            AwayLogoUrl = hotMatch.RightLogoUrl,
+            PriorityScore = hotMatch.HotScore,
+            MatchSnapshot = match
+        };
+    }
+
+    private HotMatchDto BuildFallbackHotMatch(MatchDto match)
+    {
+        var pctGap = Math.Abs((match.PctA ?? 0m) - (match.PctB ?? 0m));
+        var scoreDifference = Math.Abs(match.ScoreA - match.ScoreB);
+        var hotScore = Math.Clamp(
+            32
+            + Math.Min(30, (match.ScoreA + match.ScoreB) * 6)
+            + (scoreDifference == 0 ? 16 : scoreDifference == 1 ? 10 : 2)
+            + Math.Min(18, (int)Math.Round(pctGap * 2m, MidpointRounding.AwayFromZero)),
+            0,
+            100);
+
+        return new HotMatchDto
+        {
+            MatchId = match.MatchId,
+            Slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB),
+            HomeSymbol = match.TeamA,
+            AwaySymbol = match.TeamB,
+            HomeScore = match.ScoreA,
+            AwayScore = match.ScoreB,
+            HotScore = hotScore,
+            Momentum = Math.Clamp(pctGap * 8m, 0m, 100m),
+            Fear = scoreDifference <= 1 ? 36m : 18m,
+            ArenaPressure = hotScore,
+            IsTrending = hotScore >= 60,
+            IsExplosive = hotScore >= BreakingHotScoreThreshold,
+            ActivityLevel = hotScore,
+            ScoreDifference = scoreDifference,
+            RecentGoals = match.ScoreA + match.ScoreB > 0 ? 1 : 0,
+            Status = match.Status,
+            Minute = match.ElapsedMinutes,
+            ElapsedMinutes = match.ElapsedMinutes,
+            RemainingMinutes = match.RemainingMinutes,
+            IsFinished = match.IsFinished,
+            PctA = match.PctA,
+            PctB = match.PctB,
+            TotalPool = match.TotalPool,
+            TotalPoolAmount = match.TotalPoolAmount,
+            HasBetsOnBothSides = match.HasBetsOnBothSides,
+            PoolStrengthTeamA = match.PoolStrengthTeamA,
+            PoolStrengthTeamB = match.PoolStrengthTeamB,
+            TotalGoals = match.ScoreA + match.ScoreB,
+            TotalBets = match.BetCountTeamA + match.BetCountTeamB,
+            HomeBetAmount = match.TotalAmountTeamA,
+            AwayBetAmount = match.TotalAmountTeamB,
+            Reason = "Fallback broadcast selection from ongoing matches.",
+            PublicUrl = RouteLocalization.BuildTvMatchPath(_culture, match.MatchId, MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB)),
+            HomeLogoUrl = Api.BuildBinanceIconUrl(match.TeamA),
+            AwayLogoUrl = Api.BuildBinanceIconUrl(match.TeamB),
+            PriorityScore = CalculateFallbackPriorityScore(match),
+            MatchSnapshot = match
+        };
+    }
+
+    private static decimal CalculateFallbackPriorityScore(MatchDto match)
+    {
+        var scoreDifference = Math.Abs(match.ScoreA - match.ScoreB);
+        var closeness = scoreDifference switch
+        {
+            0 => 20m,
+            1 => 14m,
+            2 => 8m,
+            _ => 2m
+        };
+
+        return 35m
+            + closeness
+            + Math.Min(24m, (match.ScoreA + match.ScoreB) * 6m)
+            + Math.Min(20m, Math.Abs((match.PctA ?? 0m) - (match.PctB ?? 0m)) * 2m)
+            + Math.Min(18m, match.TotalPoolAmount);
     }
 
     private static bool IsBroadcastEligibleMatch(HotMatchDto? match)
