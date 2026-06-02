@@ -834,6 +834,13 @@
             if (!resolution.IsAvailable)
 
             {
+                if (_detail.TeamId > 0)
+                {
+                    _investmentTeamId = _detail.TeamId;
+                    _pendingBetTeamName = !string.IsNullOrWhiteSpace(_detail.DisplaySymbol) ? _detail.DisplaySymbol : _detail.Symbol;
+                    _investmentContextFailureReason = resolution.FailureReason;
+                    return;
+                }
 
                 _investmentContextFailureReason = resolution.FailureReason;
 
@@ -858,6 +865,11 @@
         catch (Exception ex)
 
         {
+            if (_detail.TeamId > 0)
+            {
+                _investmentTeamId = _detail.TeamId;
+                _pendingBetTeamName = !string.IsNullOrWhiteSpace(_detail.DisplaySymbol) ? _detail.DisplaySymbol : _detail.Symbol;
+            }
 
             _investmentContextFailureReason = "team_match_lookup_error";
 

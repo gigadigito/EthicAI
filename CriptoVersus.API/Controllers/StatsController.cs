@@ -108,6 +108,7 @@ public sealed class StatsController : ControllerBase
 
         var detail = new StatsArenaTeamDetailDto
         {
+            TeamId = team.TeamId,
             Symbol = team.Symbol,
             DisplaySymbol = team.DisplaySymbol,
             DisplayName = team.DisplayName,
@@ -219,6 +220,7 @@ public sealed class StatsController : ControllerBase
 
                 return new StatsArenaTeamDto
                 {
+                    TeamId = group.First().TeamId,
                     Symbol = group.First().Symbol,
                     DisplaySymbol = displaySymbol,
                     DisplayName = ordered.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.DisplayName))?.DisplayName ?? group.First().Symbol,

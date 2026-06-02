@@ -50,6 +50,7 @@ public sealed class StatsLatestMatchDto
 
 public sealed class StatsArenaTeamDto
 {
+    public int TeamId { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public string DisplaySymbol { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
@@ -69,6 +70,7 @@ public sealed class StatsArenaTeamDto
 
 public sealed class StatsArenaTeamDetailDto
 {
+    public int TeamId { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public string DisplaySymbol { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
