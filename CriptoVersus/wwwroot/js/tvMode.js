@@ -3519,6 +3519,14 @@ function interpolateSeriesValue(points, time) {
         return null;
     }
 
+    if (time === points[0].time) {
+        return points[0].value;
+    }
+
+    if (time === points[points.length - 1].time) {
+        return points[points.length - 1].value;
+    }
+
     for (let index = 0; index < points.length - 1; index += 1) {
         const start = points[index];
         const end = points[index + 1];
@@ -3536,7 +3544,7 @@ function interpolateSeriesValue(points, time) {
         return start.value + ((end.value - start.value) * ratio);
     }
 
-    return points[points.length - 1].value;
+    return null;
 }
 
 function buildBattleSamples(leftPoints, rightPoints) {
@@ -4314,11 +4322,7 @@ function resolveScoreEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, c
             });
 
         if (matchingCrossovers.length === 0) {
-            const seriesPoints = side === "left" ? leftPoints : rightPoints;
-            const value = interpolateSeriesValue(seriesPoints, eventTime);
-            return Number.isFinite(value)
-                ? { time: eventTime, value }
-                : null;
+            return null;
         }
 
         matchingCrossovers.sort((a, b) => {
@@ -4456,6 +4460,14 @@ function buildScoreEventMarkersModel(payload) {
                 normalizedRightPoints,
                 crossoverMatches);
             if (!plotPoint || !Number.isFinite(plotPoint.time) || !Number.isFinite(plotPoint.value)) {
+                console.log("[TV_CHART] score marker time", {
+                    rawTime: scoreEvent.rawTime,
+                    normalizedTime: normalizedEventTime,
+                    firstSeriesTime,
+                    lastSeriesTime,
+                    coordinate: null,
+                    status: "invalid-plot-point"
+                });
                 return null;
             }
 
