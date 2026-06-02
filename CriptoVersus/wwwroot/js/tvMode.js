@@ -136,22 +136,12 @@ const tvAudioMap = {
 
 const ambientTracks = [
     {
+        // Keep the broadcast on the clean stadium bed. Some alternate loops carry
+        // intrusive SFX that read like event cues in the background.
         src: "/audio/tv/stadium-crowd-loop.mp3?v=20260521-1",
         mood: "standard",
         intensity: 0.56,
-        tags: ["stadium", "crowd", "base"]
-    },
-    {
-        src: "/audio/tv/StadiumCrowd.mp3?v=20260531-1",
-        mood: "live-channel",
-        intensity: 0.64,
-        tags: ["stadium", "crowd", "alt"]
-    },
-    {
-        src: "/audio/tv/crowareana3.mp3?v=20260531-1",
-        mood: "wide-bowl",
-        intensity: 0.6,
-        tags: ["stadium", "crowd", "late-night"]
+        tags: ["stadium", "crowd", "base", "clean"]
     }
 ];
 

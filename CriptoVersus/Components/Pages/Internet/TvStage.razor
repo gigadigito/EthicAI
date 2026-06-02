@@ -211,18 +211,7 @@
             }
 
             <div class="tv-stage__grid">
-                <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty) @(ShouldRenderMatchCardOverlayLink ? "tv-match-card--link" : string.Empty)">
-                    @if (ShouldRenderMatchCardOverlayLink)
-                    {
-                        <a class="tv-match-card__overlay-link"
-                           href="@CurrentMatchUrl"
-                           aria-label="@T("broadcast.openBroadcastAria", DisplayMatchHeadline())">
-                            <span class="tv-match-card__overlay-copy">
-                                <strong>@T("broadcast.overlayTitle")</strong>
-                                <span>@T("broadcast.overlaySubtitle")</span>
-                            </span>
-                        </a>
-                    }
+                <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
 
                     <div class="tv-match-card__meta">
                         <span>@T("labels.hotMatch")</span>
@@ -237,6 +226,7 @@
                                     @if (CanInvestInArena())
                                     {
                                         <a class="tv-football-side__cta tv-football-side__cta--left"
+                                           style="@GetBetButtonStyle(DisplayLeftSymbol())"
                                            href="@BuildArenaInvestmentUrl()">
                                             @MatchGaugeT("invest")
                                         </a>
@@ -245,6 +235,7 @@
                                     {
                                         <button type="button"
                                                 class="tv-football-side__cta tv-football-side__cta--left"
+                                                style="@GetBetButtonStyle(DisplayLeftSymbol())"
                                                 disabled>
                                             @MatchGaugeT("invest")
                                         </button>
@@ -286,6 +277,7 @@
                                     @if (CanInvestInArena())
                                     {
                                         <a class="tv-football-side__cta tv-football-side__cta--right"
+                                           style="@GetBetButtonStyle(DisplayRightSymbol())"
                                            href="@BuildArenaInvestmentUrl()">
                                             @MatchGaugeT("invest")
                                         </a>
@@ -294,6 +286,7 @@
                                     {
                                         <button type="button"
                                                 class="tv-football-side__cta tv-football-side__cta--right"
+                                                style="@GetBetButtonStyle(DisplayRightSymbol())"
                                                 disabled>
                                             @MatchGaugeT("invest")
                                         </button>
@@ -317,13 +310,18 @@
                                 <div class="tv-team__cta-wrap">
                                     @if (CanInvestInArena())
                                     {
-                                        <a class="tv-team__cta tv-team__cta--left" href="@BuildArenaInvestmentUrl()">
+                                        <a class="tv-team__cta tv-team__cta--left"
+                                           style="@GetBetButtonStyle(DisplayLeftSymbol())"
+                                           href="@BuildArenaInvestmentUrl()">
                                             @MatchGaugeT("invest")
                                         </a>
                                     }
                                     else
                                     {
-                                        <button type="button" class="tv-team__cta tv-team__cta--left" disabled>
+                                        <button type="button"
+                                                class="tv-team__cta tv-team__cta--left"
+                                                style="@GetBetButtonStyle(DisplayLeftSymbol())"
+                                                disabled>
                                             @MatchGaugeT("invest")
                                         </button>
                                     }
@@ -365,13 +363,18 @@
                                 <div class="tv-team__cta-wrap">
                                     @if (CanInvestInArena())
                                     {
-                                        <a class="tv-team__cta tv-team__cta--right" href="@BuildArenaInvestmentUrl()">
+                                        <a class="tv-team__cta tv-team__cta--right"
+                                           style="@GetBetButtonStyle(DisplayRightSymbol())"
+                                           href="@BuildArenaInvestmentUrl()">
                                             @MatchGaugeT("invest")
                                         </a>
                                     }
                                     else
                                     {
-                                        <button type="button" class="tv-team__cta tv-team__cta--right" disabled>
+                                        <button type="button"
+                                                class="tv-team__cta tv-team__cta--right"
+                                                style="@GetBetButtonStyle(DisplayRightSymbol())"
+                                                disabled>
                                             @MatchGaugeT("invest")
                                         </button>
                                     }
@@ -397,12 +400,6 @@
                         </div>
                     </section>
 
-                    @if (ShouldRenderMatchCardOverlayLink)
-                    {
-                        <div class="tv-match-card__footer">
-                            <span class="tv-watch-link tv-watch-link--strong">@T("broadcast.mainMatchCta")</span>
-                        </div>
-                    }
                 </article>
 
                 <aside class="tv-telemetry @(UseFootballFieldLayout ? "tv-telemetry--football" : string.Empty)">
@@ -996,7 +993,6 @@ else
     private string BroadcastFocusWidthCss => (BroadcastFocusProgress * 100d).ToString("0.##", CultureInfo.InvariantCulture);
     private bool ShouldShowBroadcastRotationGauge => IsBroadcastMode && BroadcastRotationMinutes > 0;
     private string BroadcastRotationWidthCss => (Math.Clamp(BroadcastRotationProgress, 0d, 1d) * 100d).ToString("0.##", CultureInfo.InvariantCulture);
-    private bool ShouldRenderMatchCardOverlayLink => IsBroadcastMode && !string.IsNullOrWhiteSpace(CurrentMatchUrl);
     private string BroadcastFocusLabel => _broadcastFocusLabel;
     private string BroadcastFocusKey => _broadcastFocusKey;
     private string BroadcastFocusColor => _broadcastFocusColor;
@@ -1925,13 +1921,6 @@ else
         if (_lastAiNarrationMatchId != current.MatchId)
         {
             var hadPreviousMatch = _lastAiNarrationMatchId.HasValue;
-            if (IsBroadcastMode && !hadPreviousMatch && !_hasShownInitialPirateIntro)
-            {
-                _didMatchStart = true;
-                _didKickoff = true;
-                _ = ShowPirateIntroAsync("initial");
-            }
-
             if (IsBroadcastMode && hadPreviousMatch)
             {
                 _broadcastNoticeUntilUtc = DateTime.UtcNow.AddSeconds(4);
@@ -2262,6 +2251,9 @@ else
     private async Task ShowPirateIntroAsync(string reason)
     {
         if (_isDisposed || !IsBroadcastMode || !HasLiveMatch)
+            return;
+
+        if (!string.Equals(reason, "match-change", StringComparison.Ordinal))
             return;
 
         if (string.Equals(reason, "initial", StringComparison.Ordinal))
@@ -4997,6 +4989,9 @@ else
         return $"--team-accent:{accent}; --team-shadow:{shadow};";
     }
 
+    private string GetBetButtonStyle(string symbol)
+        => $"--bet-accent:{GetAccentColor(symbol)};";
+
     private string GetEventAccentStyle(string accentHex)
         => $"--event-accent:{accentHex};";
 
@@ -7160,15 +7155,23 @@ else
     .tv-football-side__cta--left,
     .tv-team__cta--left {
         color: #eafff5;
-        background: linear-gradient(135deg, rgba(16,185,129,.34), rgba(11,118,86,.2));
-        border-color: rgba(52,211,153,.36);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #10b981) 42%, transparent), color-mix(in srgb, var(--bet-accent, #10b981) 20%, rgba(5, 12, 26, 0.72)));
+        border-color: color-mix(in srgb, var(--bet-accent, #10b981) 48%, transparent);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.08),
+            0 0 0 1px color-mix(in srgb, var(--bet-accent, #10b981) 18%, transparent),
+            0 16px 28px color-mix(in srgb, var(--bet-accent, #10b981) 20%, transparent);
     }
 
     .tv-football-side__cta--right,
     .tv-team__cta--right {
         color: #f7f0ff;
-        background: linear-gradient(135deg, rgba(59,130,246,.34), rgba(37,99,235,.2));
-        border-color: rgba(96,165,250,.34);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #3b82f6) 42%, transparent), color-mix(in srgb, var(--bet-accent, #3b82f6) 20%, rgba(5, 12, 26, 0.72)));
+        border-color: color-mix(in srgb, var(--bet-accent, #3b82f6) 48%, transparent);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.08),
+            0 0 0 1px color-mix(in srgb, var(--bet-accent, #3b82f6) 18%, transparent),
+            0 16px 28px color-mix(in srgb, var(--bet-accent, #3b82f6) 20%, transparent);
     }
 
     .tv-football-side__cta:hover,
