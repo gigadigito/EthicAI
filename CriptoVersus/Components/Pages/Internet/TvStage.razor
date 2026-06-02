@@ -177,7 +177,7 @@
                     <span class="tv-pill">@T("labels.automaticBroadcast")</span>
                     @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
                     {
-                        <a class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
+                        <a target="_blank" class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
                     }
                     <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
                     <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
