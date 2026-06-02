@@ -1354,123 +1354,38 @@ else
             });
         }
 
-        static string NormalizeTelemetrySymbol(string? symbol)
-        {
-            if (string.IsNullOrWhiteSpace(symbol))
-                return string.Empty;
+        var matchTeamAId = Match?.TeamAId ?? 0;
+        var matchTeamBId = Match?.TeamBId ?? 0;
 
-            var upper = symbol.Trim().ToUpperInvariant();
-            upper = upper.Replace("/", string.Empty, StringComparison.Ordinal)
-                .Replace("-", string.Empty, StringComparison.Ordinal)
-                .Replace("_", string.Empty, StringComparison.Ordinal)
-                .Replace(" ", string.Empty, StringComparison.Ordinal);
+        List<MatchMetricSnapshotDto> leftSnapshots = matchTeamAId > 0
+            ? _metricSnapshots.Where(x => x.TeamId == matchTeamAId).OrderBy(x => x.CapturedAtUtc).ToList()
+            : [];
 
-            return GetBaseSymbol(upper);
-        }
-
-        var normalizedLeft = NormalizeTelemetrySymbol(DisplayLeftSymbol());
-        var normalizedRight = NormalizeTelemetrySymbol(DisplayRightSymbol());
-
-        List<MatchMetricSnapshotDto> leftSnapshots = _metricSnapshots
-            .Where(x => NormalizeTelemetrySymbol(x.TeamSymbol) == normalizedLeft)
-            .ToList();
-
-        List<MatchMetricSnapshotDto> rightSnapshots = _metricSnapshots
-            .Where(x => NormalizeTelemetrySymbol(x.TeamSymbol) == normalizedRight)
-            .ToList();
-
-        var mappingNotes = new List<string> { "symbol-normalized" };
-
-        if (Match is not null && Match.TeamAId > 0 && leftSnapshots.Count == 0)
-        {
-            leftSnapshots = _metricSnapshots.Where(x => x.TeamId == Match.TeamAId).ToList();
-            if (leftSnapshots.Count > 0)
-                mappingNotes.Add("left-teamId");
-        }
-
-        if (Match is not null && Match.TeamBId > 0 && rightSnapshots.Count == 0)
-        {
-            rightSnapshots = _metricSnapshots.Where(x => x.TeamId == Match.TeamBId).ToList();
-            if (rightSnapshots.Count > 0)
-                mappingNotes.Add("right-teamId");
-        }
-
-        var symbolGroups = _metricSnapshots
-            .Where(x => !string.IsNullOrWhiteSpace(x.TeamSymbol))
-            .GroupBy(x => NormalizeTelemetrySymbol(x.TeamSymbol))
-            .Where(g => !string.IsNullOrWhiteSpace(g.Key))
-            .OrderByDescending(g => g.Count())
-            .ToList();
-
-        if (leftSnapshots.Count == 0)
-        {
-            leftSnapshots = symbolGroups
-                .FirstOrDefault(g => !g.Any(item => rightSnapshots.Contains(item)))
-                ?.ToList()
-                ?? [];
-
-            if (leftSnapshots.Count > 0)
-                mappingNotes.Add("left-top-symbol");
-        }
-
-        if (rightSnapshots.Count == 0)
-        {
-            rightSnapshots = symbolGroups
-                .FirstOrDefault(g => !g.Any(item => leftSnapshots.Contains(item)))
-                ?.ToList()
-                ?? [];
-
-            if (rightSnapshots.Count > 0)
-                mappingNotes.Add("right-top-symbol");
-        }
-
-        if (leftSnapshots.Count == 0 || rightSnapshots.Count == 0)
-        {
-            var idGroups = _metricSnapshots
-                .Where(x => x.TeamId > 0)
-                .GroupBy(x => x.TeamId)
-                .OrderByDescending(g => g.Count())
-                .ToList();
-
-            if (leftSnapshots.Count == 0)
-            {
-                leftSnapshots = idGroups
-                    .FirstOrDefault(g => !g.Any(item => rightSnapshots.Contains(item)))
-                    ?.ToList()
-                    ?? [];
-
-                if (leftSnapshots.Count > 0)
-                    mappingNotes.Add("left-top-teamId");
-            }
-
-            if (rightSnapshots.Count == 0)
-            {
-                rightSnapshots = idGroups
-                    .FirstOrDefault(g => !g.Any(item => leftSnapshots.Contains(item)))
-                    ?.ToList()
-                    ?? [];
-
-                if (rightSnapshots.Count > 0)
-                    mappingNotes.Add("right-top-teamId");
-            }
-        }
+        List<MatchMetricSnapshotDto> rightSnapshots = matchTeamBId > 0
+            ? _metricSnapshots.Where(x => x.TeamId == matchTeamBId).OrderBy(x => x.CapturedAtUtc).ToList()
+            : [];
 
         var leftPoints = BuildPoints(leftSnapshots, currentLeftLiveValue);
         var rightPoints = BuildPoints(rightSnapshots, currentRightLiveValue);
+        var chartScoreEvents = _allScoreEvents
+            .Where(x => x.TeamId == matchTeamAId || x.TeamId == matchTeamBId)
+            .OrderBy(x => x.EventSequence)
+            .ThenBy(x => x.EventTimeUtc)
+            .ToList();
 
         await LogAsync("TV_CHART_PAYLOAD", "final", new
         {
-            mappingStrategy = string.Join("|", mappingNotes),
-            normalizedLeft,
-            normalizedRight,
-            matchLeftTeamId = Match?.TeamAId,
-            matchRightTeamId = Match?.TeamBId,
+            mappingStrategy = "match-team-ids",
+            matchLeftTeamId = matchTeamAId,
+            matchRightTeamId = matchTeamBId,
             leftPoints = leftPoints.Length,
             rightPoints = rightPoints.Length,
             leftTeamIds = leftSnapshots.Select(x => x.TeamId).Distinct().ToArray(),
             rightTeamIds = rightSnapshots.Select(x => x.TeamId).Distinct().ToArray(),
             leftSymbols = leftSnapshots.Select(x => x.TeamSymbol).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray(),
             rightSymbols = rightSnapshots.Select(x => x.TeamSymbol).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray(),
+            scoreEventCount = chartScoreEvents.Count,
+            scoreEventTeamIds = chartScoreEvents.Select(x => x.TeamId).Distinct().ToArray(),
             leftPreview = leftPoints.Take(3).ToArray(),
             rightPreview = rightPoints.Take(3).ToArray()
         });
@@ -1481,21 +1396,21 @@ else
             {
                 left = leftPoints,
                 right = rightPoints,
-                scoreEvents = _allScoreEvents,
-                leftTeamId = Match?.TeamAId ?? 0,
-                rightTeamId = Match?.TeamBId ?? 0,
+                scoreEvents = chartScoreEvents,
+                leftTeamId = matchTeamAId,
+                rightTeamId = matchTeamBId,
                 matchStartTimeUtc = Match?.StartTime,
                 leftMeta = new
                 {
-                    symbol = DisplayLeftSymbol(),
+                    symbol = Match?.TeamA ?? DisplayLeftSymbol(),
                     logoUrl = GetLogoUrl(DisplayLeftLogoUrl()),
-                    accentColor = GetAccentColor(DisplayLeftSymbol())
+                    accentColor = GetAccentColor(Match?.TeamA ?? DisplayLeftSymbol())
                 },
                 rightMeta = new
                 {
-                    symbol = DisplayRightSymbol(),
+                    symbol = Match?.TeamB ?? DisplayRightSymbol(),
                     logoUrl = GetLogoUrl(DisplayRightLogoUrl()),
-                    accentColor = GetAccentColor(DisplayRightSymbol())
+                    accentColor = GetAccentColor(Match?.TeamB ?? DisplayRightSymbol())
                 }
             });
         }
