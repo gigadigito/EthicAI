@@ -16,15 +16,18 @@ public sealed class CriptoVersusApiClient
     private static readonly ConcurrentDictionary<string, CachedCoinSocialProfileResult> CoinSocialProfileCache = new();
     private readonly HttpClient _http;
     private readonly ISessionStorageService _sessionStorage;
+    private readonly Uri? _publicApiBaseAddress;
     private readonly ILogger<CriptoVersusApiClient> _logger;
 
     public CriptoVersusApiClient(
         IHttpClientFactory factory,
         ISessionStorageService sessionStorage,
+        IConfiguration configuration,
         ILogger<CriptoVersusApiClient> logger)
     {
         _http = factory.CreateClient("CriptoVersusApi");
         _sessionStorage = sessionStorage;
+        _publicApiBaseAddress = TryBuildBaseAddress(configuration["Api:BaseUrl"]);
         _logger = logger;
     }
 
@@ -289,50 +292,71 @@ public sealed class CriptoVersusApiClient
     private async Task<T?> GetFromJsonWithBearerAsync<T>(
         string url,
         CancellationToken ct = default)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        await AddBearerTokenAsync(request);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(RequestTimeout);
-
-        try
-        {
-            using var response = await _http.SendAsync(request, timeoutCts.Token);
-            await EnsureSuccessOrThrowAsync(response, timeoutCts.Token);
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
-        }
-        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
-        {
-            _logger.LogWarning(ex, "Timed out calling GET {Url} after {TimeoutSeconds}s.", url, RequestTimeout.TotalSeconds);
-            throw new TimeoutException($"Timed out calling GET {url}.", ex);
-        }
-    }
+        => await SendJsonWithBearerAsync<T>(HttpMethod.Get, url, static () => null, ct);
 
     private async Task<T?> PostAsJsonWithBearerAsync<T>(
         string url,
         object payload,
         CancellationToken ct = default)
+        => await SendJsonWithBearerAsync<T>(HttpMethod.Post, url, () => JsonContent.Create(payload), ct);
+
+    private async Task<T?> SendJsonWithBearerAsync<T>(
+        HttpMethod method,
+        string url,
+        Func<HttpContent?> contentFactory,
+        CancellationToken ct = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        var requestUris = BuildCandidateRequestUris(url);
+        for (var attempt = 0; attempt < requestUris.Count; attempt++)
         {
-            Content = JsonContent.Create(payload)
-        };
+            var requestUri = requestUris[attempt];
+            var isFallbackAttempt = attempt > 0;
 
-        await AddBearerTokenAsync(request);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(RequestTimeout);
+            using var request = new HttpRequestMessage(method, requestUri)
+            {
+                Content = contentFactory()
+            };
 
-        try
-        {
-            using var response = await _http.SendAsync(request, timeoutCts.Token);
-            await EnsureSuccessOrThrowAsync(response, timeoutCts.Token);
-            return await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
+            await AddBearerTokenAsync(request);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(RequestTimeout);
+
+            try
+            {
+                using var response = await _http.SendAsync(request, timeoutCts.Token);
+                await EnsureSuccessOrThrowAsync(response, timeoutCts.Token);
+                return await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
+            }
+            catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
+            {
+                if (!isFallbackAttempt && requestUris.Count > 1)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Timed out calling {Method} {Url} via primary API base {ApiBase}. Retrying against public API base {PublicApiBase}.",
+                        method.Method,
+                        url,
+                        _http.BaseAddress,
+                        _publicApiBaseAddress);
+                    continue;
+                }
+
+                _logger.LogWarning(ex, "Timed out calling {Method} {Url} after {TimeoutSeconds}s.", method.Method, requestUri, RequestTimeout.TotalSeconds);
+                throw new TimeoutException($"Timed out calling {method.Method} {requestUri}.", ex);
+            }
+            catch (HttpRequestException ex) when (!isFallbackAttempt && requestUris.Count > 1 && IsRetryablePrimaryApiFailure(ex))
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Primary API call failed for {Method} {Url} via {ApiBase}. Retrying against public API base {PublicApiBase}.",
+                    method.Method,
+                    url,
+                    _http.BaseAddress,
+                    _publicApiBaseAddress);
+            }
         }
-        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
-        {
-            _logger.LogWarning(ex, "Timed out calling POST {Url} after {TimeoutSeconds}s.", url, RequestTimeout.TotalSeconds);
-            throw new TimeoutException($"Timed out calling POST {url}.", ex);
-        }
+
+        return default;
     }
 
     private static async Task EnsureSuccessOrThrowAsync(HttpResponseMessage response, CancellationToken ct)
@@ -345,6 +369,42 @@ public sealed class CriptoVersusApiClient
             ?? $"HTTP {(int)response.StatusCode} calling {response.RequestMessage?.RequestUri}";
 
         throw new HttpRequestException(message, null, response.StatusCode);
+    }
+
+    private List<Uri> BuildCandidateRequestUris(string url)
+    {
+        var requestUris = new List<Uri>();
+        if (Uri.TryCreate(url, UriKind.Absolute, out var absoluteUri))
+        {
+            requestUris.Add(absoluteUri);
+            return requestUris;
+        }
+
+        if (_http.BaseAddress is not null)
+            requestUris.Add(new Uri(_http.BaseAddress, url.TrimStart('/')));
+
+        if (_publicApiBaseAddress is not null
+            && (_http.BaseAddress is null || !_publicApiBaseAddress.Equals(_http.BaseAddress)))
+        {
+            requestUris.Add(new Uri(_publicApiBaseAddress, url.TrimStart('/')));
+        }
+
+        return requestUris;
+    }
+
+    private static bool IsRetryablePrimaryApiFailure(HttpRequestException ex)
+        => ex.StatusCode is null
+            || ex.StatusCode == HttpStatusCode.BadGateway
+            || ex.StatusCode == HttpStatusCode.ServiceUnavailable
+            || ex.StatusCode == HttpStatusCode.GatewayTimeout;
+
+    private static Uri? TryBuildBaseAddress(string? rawBaseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(rawBaseUrl))
+            return null;
+
+        var normalized = rawBaseUrl.Trim().TrimEnd('/') + "/";
+        return Uri.TryCreate(normalized, UriKind.Absolute, out var uri) ? uri : null;
     }
 
     private async Task<List<PositionAssetOptionDto>> BuildPositionAssetsFallbackFromMatchesAsync(

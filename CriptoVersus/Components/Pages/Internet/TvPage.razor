@@ -148,7 +148,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+        try
+        {
+            using var initialLoadCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await RefreshAsync(forceInitialSelection: true, initialLoadCts.Token);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "TvPage initial load timed out or failed during prerender. Rendering partial TV shell.");
+        }
+
         _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
     }
 
