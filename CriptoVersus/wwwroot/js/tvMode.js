@@ -3443,21 +3443,12 @@ function buildBattleSamples(leftPoints, rightPoints) {
         .filter(Boolean);
 }
 
-function hasExactPointAt(points, time) {
-    if (!Array.isArray(points)) {
-        return false;
-    }
-
-    return points.some((point) => point && Number(point.time) === Number(time));
-}
-
 function findLatestBattleCrossover(leftPoints, rightPoints) {
     const samples = buildBattleSamples(leftPoints, rightPoints);
     if (samples.length < 2) {
         return null;
     }
 
-    const overlapStart = samples[0]?.time ?? null;
     const candidates = [];
 
     for (let index = 1; index < samples.length; index += 1) {
@@ -3482,12 +3473,13 @@ function findLatestBattleCrossover(leftPoints, rightPoints) {
         const rightCrossValue = previous.rightValue + ((current.rightValue - previous.rightValue) * ratio);
         const winner = yellowTakesLead ? "left" : "right";
         const winnerValue = winner === "left" ? leftCrossValue : rightCrossValue;
-        const crossIsAtWindowStart = overlapStart !== null && Math.abs(crossTime - overlapStart) < 0.0001;
-        const previousIsOnlySyntheticBoundary =
-            crossIsAtWindowStart
-            && !(hasExactPointAt(leftPoints, previous.time) && hasExactPointAt(rightPoints, previous.time));
+        const strength = Math.abs(current.diff - previous.diff);
 
-        if (crossIsAtWindowStart || previousIsOnlySyntheticBoundary) {
+        if (!Number.isFinite(crossTime)
+            || !Number.isFinite(leftCrossValue)
+            || !Number.isFinite(rightCrossValue)
+            || !Number.isFinite(winnerValue)
+            || strength <= 0.000001) {
             continue;
         }
 
@@ -3500,7 +3492,7 @@ function findLatestBattleCrossover(leftPoints, rightPoints) {
             previousTime: previous.time,
             currentTime: current.time,
             signature: `${winner}:${Math.round(crossTime * 10)}`,
-            strength: Math.abs(current.diff - previous.diff)
+            strength
         });
     }
 
