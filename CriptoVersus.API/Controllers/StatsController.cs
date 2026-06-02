@@ -1,4 +1,5 @@
 using DTOs;
+using BLL.Positions;
 using DAL.NftFutebol;
 using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
@@ -130,6 +131,91 @@ public sealed class StatsController : ControllerBase
         };
 
         return Ok(detail);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("teams/{slug}/investment-context")]
+    public async Task<ActionResult<StatsArenaInvestmentContextDto>> GetTeamInvestmentContext(string slug, CancellationToken ct)
+    {
+        var normalizedSlug = NormalizeTicker(slug);
+        if (string.IsNullOrWhiteSpace(normalizedSlug))
+            return NotFound();
+
+        var candidateTeams = await _db.Set<Team>()
+            .AsNoTracking()
+            .Include(t => t.Currency)
+            .Where(t => t.Currency != null)
+            .Select(t => new
+            {
+                t.TeamId,
+                t.Currency.Symbol,
+                DisplayName = string.IsNullOrWhiteSpace(t.Currency.Name) ? t.Currency.Symbol : t.Currency.Name
+            })
+            .ToListAsync(ct);
+
+        var team = candidateTeams.FirstOrDefault(t => NormalizeTicker(t.Symbol) == normalizedSlug);
+
+        if (team is null)
+            return NotFound();
+
+        var relevantMatches = await _db.Set<Match>()
+            .AsNoTracking()
+            .Where(m =>
+                (m.TeamAId == team.TeamId || m.TeamBId == team.TeamId) &&
+                (m.Status == MatchStatus.Ongoing || m.Status == MatchStatus.Pending))
+            .OrderByDescending(m => m.StartTime ?? DateTime.MinValue)
+            .Select(m => new
+            {
+                m.MatchId,
+                Status = m.Status.ToString(),
+                m.StartTime,
+                OpponentSymbol = m.TeamAId == team.TeamId ? m.TeamB.Currency.Symbol : m.TeamA.Currency.Symbol
+            })
+            .ToListAsync(ct);
+
+        foreach (var match in relevantMatches.Where(m => string.Equals(m.Status, MatchStatus.Ongoing.ToString(), StringComparison.OrdinalIgnoreCase)))
+        {
+            var decision = InvestmentAccessPolicy.EvaluatePersistentExposure(
+                match.Status,
+                match.StartTime,
+                null,
+                nowUtc: DateTimeOffset.UtcNow);
+
+            if (!decision.CanInvest)
+            {
+                return Ok(new StatsArenaInvestmentContextDto
+                {
+                    TeamId = team.TeamId,
+                    Symbol = team.Symbol,
+                    DisplaySymbol = CleanAssetSymbol(team.Symbol),
+                    IsAvailable = false,
+                    FailureReason = "team_match_advanced_live",
+                    MatchId = match.MatchId,
+                    MatchStatus = match.Status,
+                    MatchStartTimeUtc = match.StartTime,
+                    OpponentName = CleanAssetSymbol(match.OpponentSymbol)
+                });
+            }
+        }
+
+        var preferredMatch = relevantMatches
+            .OrderByDescending(m => string.Equals(m.Status, MatchStatus.Ongoing.ToString(), StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(m => string.Equals(m.Status, MatchStatus.Pending.ToString(), StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(m => m.StartTime ?? DateTime.MinValue)
+            .FirstOrDefault();
+
+        return Ok(new StatsArenaInvestmentContextDto
+        {
+            TeamId = team.TeamId,
+            Symbol = team.Symbol,
+            DisplaySymbol = CleanAssetSymbol(team.Symbol),
+            IsAvailable = true,
+            FailureReason = string.Empty,
+            MatchId = preferredMatch?.MatchId,
+            MatchStatus = preferredMatch?.Status ?? string.Empty,
+            MatchStartTimeUtc = preferredMatch?.StartTime,
+            OpponentName = preferredMatch is null ? string.Empty : CleanAssetSymbol(preferredMatch.OpponentSymbol)
+        });
     }
 
     private async Task<List<StatsMatchProjection>> LoadVisibleMatchesAsync(CancellationToken ct)

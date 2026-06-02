@@ -101,3 +101,16 @@ public sealed class StatsArenaRivalDto
     public int Losses { get; set; }
     public string IconUrl { get; set; } = string.Empty;
 }
+
+public sealed class StatsArenaInvestmentContextDto
+{
+    public int TeamId { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string DisplaySymbol { get; set; } = string.Empty;
+    public bool IsAvailable { get; set; }
+    public string FailureReason { get; set; } = string.Empty;
+    public int? MatchId { get; set; }
+    public string MatchStatus { get; set; } = string.Empty;
+    public DateTime? MatchStartTimeUtc { get; set; }
+    public string OpponentName { get; set; } = string.Empty;
+}

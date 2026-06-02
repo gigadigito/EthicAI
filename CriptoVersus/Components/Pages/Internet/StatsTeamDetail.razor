@@ -828,6 +828,19 @@
         try
 
         {
+            var publicContext = await Api.GetStatsTeamInvestmentContextAsync(Slug);
+            if (publicContext is not null && publicContext.TeamId > 0)
+            {
+                _investmentTeamId = publicContext.TeamId;
+                _pendingBetTeamName = !string.IsNullOrWhiteSpace(publicContext.DisplaySymbol)
+                    ? publicContext.DisplaySymbol
+                    : (!string.IsNullOrWhiteSpace(_detail.DisplaySymbol) ? _detail.DisplaySymbol : _detail.Symbol);
+                _investmentOpponentName = publicContext.OpponentName;
+                _investmentContextFailureReason = publicContext.IsAvailable
+                    ? string.Empty
+                    : publicContext.FailureReason;
+                return;
+            }
 
             var resolution = await TeamInvestmentContextResolver.ResolveAsync(_detail.Symbol);
 

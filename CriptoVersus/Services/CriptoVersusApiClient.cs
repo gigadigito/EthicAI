@@ -246,6 +246,9 @@ public sealed class CriptoVersusApiClient
     public async Task<StatsArenaTeamDetailDto?> GetStatsTeamDetailAsync(string slug, CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<StatsArenaTeamDetailDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}", ct);
 
+    public async Task<StatsArenaInvestmentContextDto?> GetStatsTeamInvestmentContextAsync(string slug, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsArenaInvestmentContextDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}/investment-context", ct);
+
     public async Task<CoinSocialProfileDto?> GetCoinSocialProfileAsync(
         string? symbol = null,
         string? coinGeckoId = null,
