@@ -7133,53 +7133,68 @@ else
     .tv-football-side__cta,
     .tv-team__cta {
         width: 100%;
-        max-width: 144px;
+        max-width: 164px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.6rem;
-        padding: .62rem .95rem;
+        min-height: 3rem;
+        padding: .78rem 1.14rem;
         border-radius: 999px;
-        border: 1px solid transparent;
+        border: 1px solid rgba(255,255,255,.18);
         color: #f4fbff;
         text-decoration: none;
-        font-size: .78rem;
+        font-size: .84rem;
         font-weight: 900;
-        letter-spacing: .08em;
+        letter-spacing: .14em;
         text-transform: uppercase;
         white-space: nowrap;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-        transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease, filter .18s ease;
+        text-shadow: 0 1px 0 rgba(0,0,0,.28);
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.14),
+            inset 0 -12px 20px rgba(0,0,0,.14);
+        transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease, filter .18s ease, border-color .18s ease;
     }
 
     .tv-football-side__cta--left,
     .tv-team__cta--left {
         color: #eafff5;
-        background: linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #10b981) 42%, transparent), color-mix(in srgb, var(--bet-accent, #10b981) 20%, rgba(5, 12, 26, 0.72)));
-        border-color: color-mix(in srgb, var(--bet-accent, #10b981) 48%, transparent);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0) 36%),
+            linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #10b981) 74%, #ffffff 6%), color-mix(in srgb, var(--bet-accent, #10b981) 44%, rgba(5, 12, 26, 0.78)));
+        border-color: color-mix(in srgb, var(--bet-accent, #10b981) 80%, rgba(255,255,255,.18));
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.08),
-            0 0 0 1px color-mix(in srgb, var(--bet-accent, #10b981) 18%, transparent),
-            0 16px 28px color-mix(in srgb, var(--bet-accent, #10b981) 20%, transparent);
+            inset 0 1px 0 rgba(255,255,255,.2),
+            0 0 0 1px color-mix(in srgb, var(--bet-accent, #10b981) 26%, transparent),
+            0 0 30px color-mix(in srgb, var(--bet-accent, #10b981) 34%, transparent),
+            0 18px 32px color-mix(in srgb, var(--bet-accent, #10b981) 28%, rgba(0,0,0,.14));
     }
 
     .tv-football-side__cta--right,
     .tv-team__cta--right {
         color: #f7f0ff;
-        background: linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #3b82f6) 42%, transparent), color-mix(in srgb, var(--bet-accent, #3b82f6) 20%, rgba(5, 12, 26, 0.72)));
-        border-color: color-mix(in srgb, var(--bet-accent, #3b82f6) 48%, transparent);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0) 36%),
+            linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #3b82f6) 74%, #ffffff 6%), color-mix(in srgb, var(--bet-accent, #3b82f6) 44%, rgba(5, 12, 26, 0.78)));
+        border-color: color-mix(in srgb, var(--bet-accent, #3b82f6) 80%, rgba(255,255,255,.18));
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.08),
-            0 0 0 1px color-mix(in srgb, var(--bet-accent, #3b82f6) 18%, transparent),
-            0 16px 28px color-mix(in srgb, var(--bet-accent, #3b82f6) 20%, transparent);
+            inset 0 1px 0 rgba(255,255,255,.2),
+            0 0 0 1px color-mix(in srgb, var(--bet-accent, #3b82f6) 26%, transparent),
+            0 0 30px color-mix(in srgb, var(--bet-accent, #3b82f6) 34%, transparent),
+            0 18px 32px color-mix(in srgb, var(--bet-accent, #3b82f6) 28%, rgba(0,0,0,.14));
     }
 
     .tv-football-side__cta:hover,
     .tv-football-side__cta:focus-visible,
     .tv-team__cta:hover,
     .tv-team__cta:focus-visible {
-        transform: translateY(-1px);
-        filter: brightness(1.05);
+        transform: translateY(-2px) scale(1.03);
+        filter: brightness(1.12) saturate(1.08);
+        border-color: color-mix(in srgb, var(--bet-accent, #53c8ff) 90%, rgba(255,255,255,.26));
+        box-shadow:
+            inset 0 1px 0 rgba(255,255,255,.24),
+            0 0 0 1px color-mix(in srgb, var(--bet-accent, #53c8ff) 36%, transparent),
+            0 0 38px color-mix(in srgb, var(--bet-accent, #53c8ff) 44%, transparent),
+            0 22px 38px color-mix(in srgb, var(--bet-accent, #53c8ff) 30%, rgba(0,0,0,.16));
         color: inherit;
     }
 
