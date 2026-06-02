@@ -274,17 +274,30 @@ function isCrossoverScoreEvent(scoreEvent) {
 
 function resolveEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, crossoverMatches) {
     if (isCrossoverScoreEvent(scoreEvent)) {
+        const eventTime = scoreEvent.eventTime;
         const matchingCrossovers = crossoverMatches
             .map((crossover, index) => ({ crossover, index }))
-            .filter((entry) => entry.crossover.side === side && !entry.crossover.used);
+            .filter((entry) => {
+                if (entry.crossover.side !== side || entry.crossover.used) {
+                    return false;
+                }
+
+                const windowStart = Math.min(entry.crossover.previousTime, entry.crossover.currentTime);
+                const windowEnd = Math.max(entry.crossover.previousTime, entry.crossover.currentTime);
+                return eventTime >= windowStart && eventTime <= windowEnd;
+            });
 
         if (matchingCrossovers.length === 0) {
-            return null;
+            const seriesPoints = side === "left" ? leftPoints : rightPoints;
+            const fallbackValue = interpolateSeriesValue(seriesPoints, eventTime);
+            return Number.isFinite(fallbackValue)
+                ? { time: eventTime, value: fallbackValue }
+                : null;
         }
 
         matchingCrossovers.sort((a, b) => {
-            const deltaA = Math.abs(a.crossover.crossTime - scoreEvent.eventTime);
-            const deltaB = Math.abs(b.crossover.crossTime - scoreEvent.eventTime);
+            const deltaA = Math.abs(a.crossover.currentTime - eventTime);
+            const deltaB = Math.abs(b.crossover.currentTime - eventTime);
             if (deltaA !== deltaB) {
                 return deltaA - deltaB;
             }
