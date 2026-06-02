@@ -194,6 +194,17 @@ function buildUtcClockLabel(eventTime) {
 }
 
 function resolveSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId, rightTeamId) {
+    const eventSymbol = normalizeSymbol(scoreEvent?.teamSymbol);
+    if (eventSymbol) {
+        if (eventSymbol === normalizeSymbol(leftMeta?.symbol)) {
+            return "left";
+        }
+
+        if (eventSymbol === normalizeSymbol(rightMeta?.symbol)) {
+            return "right";
+        }
+    }
+
     const numericTeamId = Number(scoreEvent?.teamId);
     if (Number.isFinite(numericTeamId)) {
         if (Number.isFinite(Number(leftTeamId)) && numericTeamId === Number(leftTeamId)) {
@@ -203,19 +214,6 @@ function resolveSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId, rightTea
         if (Number.isFinite(Number(rightTeamId)) && numericTeamId === Number(rightTeamId)) {
             return "right";
         }
-    }
-
-    const eventSymbol = normalizeSymbol(scoreEvent?.teamSymbol);
-    if (!eventSymbol) {
-        return null;
-    }
-
-    if (eventSymbol === normalizeSymbol(leftMeta?.symbol)) {
-        return "left";
-    }
-
-    if (eventSymbol === normalizeSymbol(rightMeta?.symbol)) {
-        return "right";
     }
 
     return null;

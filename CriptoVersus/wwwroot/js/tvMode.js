@@ -4174,6 +4174,17 @@ function buildGameMinuteLabel(matchStartTimeUtc, eventTime) {
 }
 
 function resolveScoreEventSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId, rightTeamId) {
+    const eventSymbol = normalizeScoreEventSymbol(scoreEvent?.teamSymbol);
+    if (eventSymbol) {
+        if (eventSymbol === normalizeScoreEventSymbol(leftMeta?.symbol)) {
+            return "left";
+        }
+
+        if (eventSymbol === normalizeScoreEventSymbol(rightMeta?.symbol)) {
+            return "right";
+        }
+    }
+
     const numericTeamId = Number(scoreEvent?.teamId);
     if (Number.isFinite(numericTeamId)) {
         if (Number.isFinite(Number(leftTeamId)) && numericTeamId === Number(leftTeamId)) {
@@ -4183,19 +4194,6 @@ function resolveScoreEventSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId
         if (Number.isFinite(Number(rightTeamId)) && numericTeamId === Number(rightTeamId)) {
             return "right";
         }
-    }
-
-    const eventSymbol = normalizeScoreEventSymbol(scoreEvent?.teamSymbol);
-    if (!eventSymbol) {
-        return null;
-    }
-
-    if (eventSymbol === normalizeScoreEventSymbol(leftMeta?.symbol)) {
-        return "left";
-    }
-
-    if (eventSymbol === normalizeScoreEventSymbol(rightMeta?.symbol)) {
-        return "right";
     }
 
     return null;

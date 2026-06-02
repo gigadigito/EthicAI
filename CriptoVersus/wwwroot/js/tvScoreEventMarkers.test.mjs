@@ -106,7 +106,40 @@ function testPositionsCrossoverMarkerAtRealIntersection() {
     assert.ok(Math.abs(markers[0].value - 3.6666666667) < 0.0001);
 }
 
+function testPrefersDisplayedSymbolOverTeamIdWhenResolvingSeriesSide() {
+    const markers = buildScoreEventMarkersModel({
+        leftPoints: buildPoints([
+            [100, 4.2],
+            [160, 4.1]
+        ]),
+        rightPoints: buildPoints([
+            [100, 1.2],
+            [160, 1.4]
+        ]),
+        scoreEvents: [
+            {
+                matchScoreEventId: 31,
+                teamId: 999,
+                teamSymbol: "JTOUSDT",
+                points: 1,
+                eventTimeUtc: new Date(130000).toISOString(),
+                description: "Threshold %."
+            }
+        ],
+        leftMeta: { symbol: "JTOUSDT", logoUrl: "/jto.png", accentColor: "#7af5c7" },
+        rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#7dc9ff" },
+        leftTeamId: 111,
+        rightTeamId: 999,
+        matchStartTimeUtc: "2026-06-02T15:16:00Z"
+    });
+
+    assert.equal(markers.length, 1);
+    assert.equal(markers[0].side, "left");
+    assert.ok(markers[0].value > 4);
+}
+
 testBuildsEveryOfficialScoreEvent();
 testKeepsSameMinuteEventsByStacking();
 testPositionsCrossoverMarkerAtRealIntersection();
+testPrefersDisplayedSymbolOverTeamIdWhenResolvingSeriesSide();
 console.log("tvScoreEventMarkers tests passed");
