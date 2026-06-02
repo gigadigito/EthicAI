@@ -1,5 +1,6 @@
 ﻿using DTOs;
 using Blazored.SessionStorage;
+using BLL.Positions;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
@@ -350,7 +351,6 @@ public sealed class CriptoVersusApiClient
     {
         var matches = await GetMatchesAsync(ct) ?? [];
         var normalizedSearch = search?.Trim();
-        const int advancedLiveThresholdMinutes = 15;
         var assetMap = new Dictionary<int, PositionAssetOptionDto>();
 
         foreach (var match in matches)
@@ -385,15 +385,23 @@ public sealed class CriptoVersusApiClient
                 x.CurrencyName.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))
             .Select(x =>
             {
-                if (x.HasLiveMatch && (x.MatchElapsedMinutes ?? 0) >= advancedLiveThresholdMinutes)
+                var accessDecision = InvestmentAccessPolicy.EvaluatePersistentExposure(
+                    x.MatchStatus,
+                    x.MatchStartTimeUtc,
+                    x.EntryCutoffUtc,
+                    x.MatchElapsedMinutes,
+                    nowUtc: DateTimeOffset.UtcNow);
+
+                if (!accessDecision.CanInvest)
                 {
                     x.CanInvestNow = false;
-                    x.AccessReasonCode = "ADVANCED_LIVE_MATCH";
-                    x.AccessMessage = $"Nao e possivel aumentar exposicao agora: a partida #{x.MatchId} esta em fase avancada. Status={x.MatchStatus}, tempo decorrido={x.MatchElapsedMinutes} min, limite de entrada={advancedLiveThresholdMinutes} min.";
+                    x.AccessReasonCode = accessDecision.ReasonCode;
+                    x.AccessMessage = $"Nao e possivel aumentar exposicao agora: a partida #{x.MatchId} esta em fase avancada. Status={x.MatchStatus}, tempo decorrido={accessDecision.ElapsedMinutes} min, limite de entrada={InvestmentAccessPolicy.AdvancedLiveThresholdMinutes} min.";
                 }
                 else if (x.HasLiveMatch || x.HasUpcomingMatch)
                 {
                     x.CanInvestNow = true;
+                    x.AccessReasonCode = null;
                     x.AccessMessage = x.MatchId.HasValue
                         ? $"Partida {(x.HasLiveMatch ? "em andamento" : "pendente")} na partida #{x.MatchId}. Entrada liberada no momento."
                         : "Ativo disponivel para abrir posicao agora.";
@@ -401,6 +409,7 @@ public sealed class CriptoVersusApiClient
                 else
                 {
                     x.CanInvestNow = true;
+                    x.AccessReasonCode = null;
                     x.AccessMessage = "Ativo disponivel para abrir posicao agora.";
                 }
 

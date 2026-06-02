@@ -4,6 +4,7 @@ public static class InvestmentAccessPolicy
 {
     public const int MatchDurationMinutes = 90;
     public const int AdvancedLiveThresholdMinutes = (MatchDurationMinutes * 2) / 3;
+    public const int OngoingGraceMinutes = 30;
     public const string AdvancedLiveMatchReason = "advanced_live_match";
     public const string MatchNotOpenReason = "match_not_open";
 
@@ -41,7 +42,7 @@ public static class InvestmentAccessPolicy
 
         return normalizedStatus switch
         {
-            "ongoing" when resolvedElapsedMinutes >= AdvancedLiveThresholdMinutes
+            "ongoing" when IsBlockingAdvancedLiveWindow(resolvedElapsedMinutes)
                 => InvestmentAccessDecision.Block(AdvancedLiveMatchReason, resolvedElapsedMinutes),
             _ => InvestmentAccessDecision.Allow(resolvedElapsedMinutes)
         };
@@ -94,6 +95,10 @@ public static class InvestmentAccessPolicy
 
     private static string NormalizeStatus(string? status)
         => status?.Trim().ToLowerInvariant() ?? string.Empty;
+
+    private static bool IsBlockingAdvancedLiveWindow(int elapsedMinutes)
+        => elapsedMinutes >= AdvancedLiveThresholdMinutes
+           && elapsedMinutes <= MatchDurationMinutes + OngoingGraceMinutes;
 }
 
 public sealed record InvestmentAccessDecision(bool CanInvest, string? ReasonCode, int ElapsedMinutes)
