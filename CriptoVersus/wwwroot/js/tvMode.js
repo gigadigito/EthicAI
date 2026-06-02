@@ -4418,7 +4418,6 @@ function buildScoreEventMarkersModel(payload) {
     const stackState = new Map();
     const crossoverMatches = buildBattleCrossovers(normalizedLeftPoints, normalizedRightPoints)
         .map((crossover) => ({ ...crossover, used: false }));
-    const nearEndClampWindowSeconds = 120;
 
     return normalizedScoreEvents
         .map((scoreEvent) => {
@@ -4433,23 +4432,18 @@ function buildScoreEventMarkersModel(payload) {
             }
 
             let normalizedEventTime = scoreEvent.eventTime;
-            let visibilityReason = "ok";
+            const visibilityReason = "ok";
 
             if (normalizedEventTime < overlapStart || normalizedEventTime > overlapEnd) {
-                if (normalizedEventTime > overlapEnd && normalizedEventTime - overlapEnd <= nearEndClampWindowSeconds) {
-                    normalizedEventTime = overlapEnd;
-                    visibilityReason = "clamped-near-end";
-                } else {
-                    console.log("[TV_CHART] score marker time", {
-                        rawTime: scoreEvent.rawTime,
-                        normalizedTime: scoreEvent.eventTime,
-                        firstSeriesTime,
-                        lastSeriesTime,
-                        coordinate: null,
-                        status: "event-out-of-range"
-                    });
-                    return null;
-                }
+                console.log("[TV_CHART] score marker time", {
+                    rawTime: scoreEvent.rawTime,
+                    normalizedTime: scoreEvent.eventTime,
+                    firstSeriesTime,
+                    lastSeriesTime,
+                    coordinate: null,
+                    status: "event-out-of-range"
+                });
+                return null;
             }
 
             const plotPoint = resolveScoreEventPlotPoint(

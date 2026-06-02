@@ -159,7 +159,9 @@
         <div class="tv-stage__broadcast-shell @(IsBroadcastFlipActive ? "is-match-switching" : string.Empty)">
         <header class="tv-stage__topbar">
             <div>
-                <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
+                <a class="tv-stage__eyebrow tv-stage__eyebrow-link" href="@RouteLocalization.BuildHomePath(Culture)">
+                    @T("hero.eyebrow")
+                </a>
                 <h1>@DisplayStageTitle()</h1>
                 @if (UseFootballFieldLayout)
                     {
@@ -173,6 +175,10 @@
                         @T("labels.liveArena")
                     </span>
                     <span class="tv-pill">@T("labels.automaticBroadcast")</span>
+                    @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+                    {
+                        <a class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
+                    }
                     <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
                     <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
                     @if (ShouldRenderCrowdAudio)
@@ -6476,6 +6482,17 @@ else
         font-weight: 900;
     }
 
+    .tv-stage__eyebrow-link {
+        text-decoration: none;
+    }
+
+    .tv-stage__eyebrow-link:hover,
+    .tv-stage__eyebrow-link:focus-visible {
+        color: var(--tv-green);
+        text-decoration: none;
+        opacity: .92;
+    }
+
     .tv-stage__eyebrow::before,
     .tv-pill__dot {
         content: "";
@@ -6527,6 +6544,18 @@ else
         letter-spacing: .08em;
         text-transform: uppercase;
         backdrop-filter: blur(14px);
+    }
+
+    .tv-pill--nav {
+        text-decoration: none;
+    }
+
+    .tv-pill--nav:hover,
+    .tv-pill--nav:focus-visible {
+        color: #eef5ff;
+        text-decoration: none;
+        border-color: rgba(127, 246, 223, 0.28);
+        background: rgba(127, 246, 223, 0.09);
     }
 
     .tv-pill--live {
