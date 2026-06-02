@@ -3156,6 +3156,11 @@ function ensureResizeObserver(container, chart) {
             chart.timeScale().fitContent();
         } catch {
         }
+
+        const latest = telemetryChartsState?.charts?.get(container.id);
+        if (latest?.kind === "compare") {
+            refreshCompareCrossoverMarker(latest);
+        }
     });
 
     resizeObserver.observe(container);
@@ -3170,6 +3175,18 @@ function ensureResizeObserver(container, chart) {
 function disposeChartEntry(entry) {
     if (!entry) {
         return;
+    }
+
+    try {
+        if (entry.markerFadeTimer) {
+            window.clearTimeout(entry.markerFadeTimer);
+        }
+    } catch {
+    }
+
+    try {
+        entry.overlayRoot?.remove?.();
+    } catch {
     }
 
     try {
@@ -3205,6 +3222,411 @@ function addCandlestickSeriesCompat(LightweightCharts, chart, options) {
     }
 
     throw new Error("no supported CandlestickSeries API");
+}
+
+function ensureCompareCrossoverStyles() {
+    if (typeof document === "undefined" || document.getElementById("tv-chart-crossover-styles")) {
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "tv-chart-crossover-styles";
+    style.textContent = `
+.tv-chart-crossover-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 4;
+    overflow: hidden;
+}
+
+.tv-chart-crossover-marker {
+    position: absolute;
+    width: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+
+.tv-chart-crossover-marker.is-visible {
+    opacity: 1;
+}
+
+.tv-chart-crossover-marker__beam {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 8%) 24%, color-mix(in srgb, var(--battle-accent, #53c8ff) 92%, transparent) 55%, transparent 100%);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent);
+    opacity: 0.72;
+}
+
+.tv-chart-crossover-marker__beam::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent) 0%, transparent 70%);
+    filter: blur(4px);
+    opacity: 0.8;
+}
+
+.tv-chart-crossover-marker__badge {
+    position: absolute;
+    left: 0;
+    top: var(--battle-y, 50%);
+    width: 36px;
+    height: 36px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 14%);
+    background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 38%),
+        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 30%, rgba(4, 10, 20, 0.94)), rgba(5, 12, 24, 0.96));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--battle-accent, #53c8ff) 28%, transparent),
+        0 0 22px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent),
+        0 10px 24px rgba(0,0,0,.32);
+    animation: tvChartCrossoverPop 520ms cubic-bezier(.19,1,.22,1);
+}
+
+.tv-chart-crossover-marker.is-resting .tv-chart-crossover-marker__badge {
+    animation: none;
+}
+
+.tv-chart-crossover-marker__badge img {
+    width: 76%;
+    height: 76%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,.16));
+}
+
+.tv-chart-crossover-marker__fallback {
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: #f4fbff;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(0,0,0,.36);
+}
+
+@keyframes tvChartCrossoverPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+    68% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+`;
+
+    document.head.appendChild(style);
+}
+
+function normalizeSeriesMeta(meta, fallbackColor) {
+    const symbol = typeof meta?.symbol === "string" ? meta.symbol.trim() : "";
+    const logoUrl = typeof meta?.logoUrl === "string" ? meta.logoUrl.trim() : "";
+    const accentColor = typeof meta?.accentColor === "string" && meta.accentColor.trim().length > 0
+        ? meta.accentColor.trim()
+        : fallbackColor;
+
+    return {
+        symbol,
+        logoUrl,
+        accentColor
+    };
+}
+
+function getBattleFallbackLabel(symbol) {
+    if (typeof symbol !== "string" || symbol.trim().length === 0) {
+        return "?";
+    }
+
+    const compact = symbol.trim().replace(/[^a-z0-9]/gi, "");
+    return compact.slice(0, compact.length >= 4 ? 3 : 2).toUpperCase() || "?";
+}
+
+function ensureCompareOverlayRoot(state) {
+    ensureCompareCrossoverStyles();
+
+    if (state.overlayRoot?.isConnected) {
+        return state.overlayRoot;
+    }
+
+    const overlayRoot = document.createElement("div");
+    overlayRoot.className = "tv-chart-crossover-layer";
+    state.container.appendChild(overlayRoot);
+    state.overlayRoot = overlayRoot;
+    return overlayRoot;
+}
+
+function interpolateSeriesValue(points, time) {
+    if (!Array.isArray(points) || points.length === 0) {
+        return null;
+    }
+
+    if (time < points[0].time || time > points[points.length - 1].time) {
+        return null;
+    }
+
+    for (let index = 0; index < points.length - 1; index += 1) {
+        const start = points[index];
+        const end = points[index + 1];
+
+        if (time < start.time || time > end.time) {
+            continue;
+        }
+
+        const span = end.time - start.time;
+        if (span === 0) {
+            return end.value;
+        }
+
+        const ratio = clamp((time - start.time) / span, 0, 1);
+        return start.value + ((end.value - start.value) * ratio);
+    }
+
+    return points[points.length - 1].value;
+}
+
+function buildBattleSamples(leftPoints, rightPoints) {
+    if (!Array.isArray(leftPoints) || !Array.isArray(rightPoints) || leftPoints.length < 2 || rightPoints.length < 2) {
+        return [];
+    }
+
+    const overlapStart = Math.max(leftPoints[0].time, rightPoints[0].time);
+    const overlapEnd = Math.min(leftPoints[leftPoints.length - 1].time, rightPoints[rightPoints.length - 1].time);
+
+    if (!Number.isFinite(overlapStart) || !Number.isFinite(overlapEnd) || overlapEnd <= overlapStart) {
+        return [];
+    }
+
+    const timeline = new Set([overlapStart, overlapEnd]);
+
+    leftPoints.forEach((point) => {
+        if (point.time >= overlapStart && point.time <= overlapEnd) {
+            timeline.add(point.time);
+        }
+    });
+
+    rightPoints.forEach((point) => {
+        if (point.time >= overlapStart && point.time <= overlapEnd) {
+            timeline.add(point.time);
+        }
+    });
+
+    return Array.from(timeline)
+        .sort((a, b) => a - b)
+        .map((time) => {
+            const leftValue = interpolateSeriesValue(leftPoints, time);
+            const rightValue = interpolateSeriesValue(rightPoints, time);
+
+            if (!Number.isFinite(leftValue) || !Number.isFinite(rightValue)) {
+                return null;
+            }
+
+            return {
+                time,
+                leftValue,
+                rightValue,
+                diff: leftValue - rightValue
+            };
+        })
+        .filter(Boolean);
+}
+
+function findLatestBattleCrossover(leftPoints, rightPoints) {
+    const samples = buildBattleSamples(leftPoints, rightPoints);
+    if (samples.length < 2) {
+        return null;
+    }
+
+    const candidates = [];
+
+    for (let index = 1; index < samples.length; index += 1) {
+        const previous = samples[index - 1];
+        const current = samples[index];
+
+        if (!previous || !current || current.time <= previous.time) {
+            continue;
+        }
+
+        const yellowTakesLead = previous.diff <= 0 && current.diff > 0;
+        const blueTakesLead = previous.diff >= 0 && current.diff < 0;
+
+        if (!blueTakesLead && !yellowTakesLead) {
+            continue;
+        }
+
+        const denominator = previous.diff - current.diff;
+        const ratio = denominator === 0 ? 0.5 : clamp(previous.diff / denominator, 0, 1);
+        const crossTime = previous.time + ((current.time - previous.time) * ratio);
+        const leftCrossValue = previous.leftValue + ((current.leftValue - previous.leftValue) * ratio);
+        const rightCrossValue = previous.rightValue + ((current.rightValue - previous.rightValue) * ratio);
+        const winner = yellowTakesLead ? "left" : "right";
+        const winnerValue = winner === "left" ? leftCrossValue : rightCrossValue;
+
+        candidates.push({
+            winner,
+            crossTime,
+            crossValue: (leftCrossValue + rightCrossValue) / 2,
+            winnerValue,
+            ratio,
+            previousTime: previous.time,
+            currentTime: current.time,
+            signature: `${winner}:${Math.round(crossTime * 10)}`,
+            strength: Math.abs(current.diff - previous.diff)
+        });
+    }
+
+    if (candidates.length === 0) {
+        return null;
+    }
+
+    return candidates[candidates.length - 1];
+}
+
+function clearCompareMarkerFadeTimer(state) {
+    if (state?.markerFadeTimer) {
+        window.clearTimeout(state.markerFadeTimer);
+        state.markerFadeTimer = null;
+    }
+}
+
+function buildCompareMarkerNode(meta) {
+    const marker = document.createElement("div");
+    marker.className = "tv-chart-crossover-marker";
+    marker.style.setProperty("--battle-accent", meta.accentColor);
+
+    const beam = document.createElement("div");
+    beam.className = "tv-chart-crossover-marker__beam";
+
+    const badge = document.createElement("div");
+    badge.className = "tv-chart-crossover-marker__badge";
+
+    const fallback = document.createElement("span");
+    fallback.className = "tv-chart-crossover-marker__fallback";
+    fallback.textContent = getBattleFallbackLabel(meta.symbol);
+    badge.appendChild(fallback);
+
+    if (meta.logoUrl) {
+        const image = document.createElement("img");
+        image.alt = "";
+        image.src = meta.logoUrl;
+        image.addEventListener("load", () => {
+            fallback.style.display = "none";
+        }, { once: true });
+        image.addEventListener("error", () => {
+            image.remove();
+            fallback.style.display = "grid";
+        }, { once: true });
+        badge.appendChild(image);
+    }
+
+    marker.appendChild(beam);
+    marker.appendChild(badge);
+    return marker;
+}
+
+function positionCompareCrossoverMarker(state) {
+    const marker = state?.currentCrossover;
+    const markerNode = state?.markerNode;
+    if (!marker || !markerNode || !state.chart || !state.chart.timeScale) {
+        return;
+    }
+
+    const timeScale = state.chart.timeScale();
+    const winnerSeries = marker.winner === "right" ? state.rightSeries : state.leftSeries;
+    if (!winnerSeries?.priceToCoordinate) {
+        return;
+    }
+
+    const previousX = timeScale.timeToCoordinate(marker.previousTime);
+    const currentX = timeScale.timeToCoordinate(marker.currentTime);
+    const winnerY = winnerSeries.priceToCoordinate(marker.winnerValue);
+
+    if (!Number.isFinite(previousX) || !Number.isFinite(currentX) || !Number.isFinite(winnerY)) {
+        markerNode.classList.remove("is-visible");
+        return;
+    }
+
+    const rect = state.container.getBoundingClientRect();
+    const x = clamp(previousX + ((currentX - previousX) * marker.ratio), 18, Math.max(18, rect.width - 18));
+    const y = clamp(winnerY, 18, Math.max(18, rect.height - 18));
+
+    markerNode.style.left = `${x}px`;
+    markerNode.style.setProperty("--battle-y", `${y}px`);
+    markerNode.classList.add("is-visible");
+}
+
+function refreshCompareCrossoverMarker(state) {
+    if (!state?.currentCrossover || !state?.markerNode) {
+        return;
+    }
+
+    positionCompareCrossoverMarker(state);
+}
+
+function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, rightMeta) {
+    const nextMarker = findLatestBattleCrossover(leftPoints, rightPoints);
+    if (!nextMarker) {
+        return;
+    }
+
+    const currentMarker = state.currentCrossover;
+    const sameSignature = currentMarker && currentMarker.signature === nextMarker.signature;
+    if (sameSignature) {
+        state.currentCrossover = {
+            ...currentMarker,
+            ...nextMarker
+        };
+        refreshCompareCrossoverMarker(state);
+        return;
+    }
+
+    if (currentMarker) {
+        const secondsSinceCross = nextMarker.crossTime - currentMarker.crossTime;
+        const changedWinner = nextMarker.winner !== currentMarker.winner;
+        if (secondsSinceCross < (changedWinner ? 6 : 14)) {
+            return;
+        }
+    }
+
+    const winnerMeta = nextMarker.winner === "right" ? rightMeta : leftMeta;
+    const overlayRoot = ensureCompareOverlayRoot(state);
+
+    clearCompareMarkerFadeTimer(state);
+
+    try {
+        state.markerNode?.remove?.();
+    } catch {
+    }
+
+    const markerNode = buildCompareMarkerNode(winnerMeta);
+    overlayRoot.appendChild(markerNode);
+
+    state.markerNode = markerNode;
+    state.currentCrossover = {
+        ...nextMarker,
+        renderedAt: Date.now(),
+        winnerMeta
+    };
+
+    window.requestAnimationFrame(() => {
+        positionCompareCrossoverMarker(state);
+    });
+
+    state.markerFadeTimer = window.setTimeout(() => {
+        state.markerNode?.classList.add("is-resting");
+    }, 2600);
 }
 
 async function ensureCandlestickChart(containerId) {
@@ -3344,7 +3766,13 @@ async function ensureCompareChart(containerId) {
         chart,
         leftSeries,
         rightSeries,
-        resizeObserver: null
+        resizeObserver: null,
+        overlayRoot: null,
+        markerNode: null,
+        currentCrossover: null,
+        markerFadeTimer: null,
+        leftMeta: null,
+        rightMeta: null
     };
 
     telemetryChartsState.charts.set(containerId, state);
@@ -3510,6 +3938,8 @@ export async function updateTelemetryCharts(payload) {
     try {
         const leftPoints = normalizePoints(payload?.left);
         const rightPoints = normalizePoints(payload?.right);
+        const leftMeta = normalizeSeriesMeta(payload?.leftMeta, "rgba(255, 215, 110, 0.96)");
+        const rightMeta = normalizeSeriesMeta(payload?.rightMeta, "rgba(134, 201, 255, 0.92)");
 
         const leftCandles = buildSyntheticCandles(leftPoints, 30);
         const rightCandles = buildSyntheticCandles(rightPoints, 30);
@@ -3535,6 +3965,8 @@ export async function updateTelemetryCharts(payload) {
 
         compare.leftSeries.setData(normalizeCompareLine(leftPoints));
         compare.rightSeries.setData(normalizeCompareLine(rightPoints));
+        compare.leftMeta = leftMeta;
+        compare.rightMeta = rightMeta;
 
         setChartEmptyState("tv-telemetry-chart-left", leftCandles.length < 2);
         setChartEmptyState("tv-telemetry-chart-right", rightCandles.length < 2);
@@ -3549,6 +3981,7 @@ export async function updateTelemetryCharts(payload) {
         fitChart(left.chart);
         fitChart(right.chart);
         fitChart(compare.chart);
+        maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
         if (splitLeft) {
             fitChart(splitLeft.chart);
         }
