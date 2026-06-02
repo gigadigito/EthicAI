@@ -90,6 +90,90 @@ function interpolateSeriesValue(points, time) {
     return points[points.length - 1]?.value ?? null;
 }
 
+function buildBattleSamples(leftPoints, rightPoints) {
+    if (!Array.isArray(leftPoints) || !Array.isArray(rightPoints) || leftPoints.length === 0 || rightPoints.length === 0) {
+        return [];
+    }
+
+    const overlapStart = Math.max(leftPoints[0].time, rightPoints[0].time);
+    const overlapEnd = Math.min(
+        leftPoints[leftPoints.length - 1].time,
+        rightPoints[rightPoints.length - 1].time);
+
+    if (!Number.isFinite(overlapStart) || !Number.isFinite(overlapEnd) || overlapEnd <= overlapStart) {
+        return [];
+    }
+
+    const times = Array.from(new Set([
+        ...leftPoints.map((point) => point.time),
+        ...rightPoints.map((point) => point.time)
+    ]))
+        .filter((time) => time >= overlapStart && time <= overlapEnd)
+        .sort((a, b) => a - b);
+
+    return times
+        .map((time) => {
+            const leftValue = interpolateSeriesValue(leftPoints, time);
+            const rightValue = interpolateSeriesValue(rightPoints, time);
+
+            if (!Number.isFinite(leftValue) || !Number.isFinite(rightValue)) {
+                return null;
+            }
+
+            return {
+                time,
+                leftValue,
+                rightValue
+            };
+        })
+        .filter(Boolean);
+}
+
+function buildBattleCrossovers(leftPoints, rightPoints) {
+    const samples = buildBattleSamples(leftPoints, rightPoints);
+    if (samples.length < 2) {
+        return [];
+    }
+
+    const crossovers = [];
+
+    for (let index = 1; index < samples.length; index += 1) {
+        const previous = samples[index - 1];
+        const current = samples[index];
+        if (!previous || !current || current.time <= previous.time) {
+            continue;
+        }
+
+        const previousDiff = previous.rightValue - previous.leftValue;
+        const currentDiff = current.rightValue - current.leftValue;
+        const rightCrossedUp = previousDiff < 0 && currentDiff > 0;
+        const leftCrossedUp = previousDiff > 0 && currentDiff < 0;
+
+        if (!rightCrossedUp && !leftCrossedUp) {
+            continue;
+        }
+
+        const denominator = Math.abs(previousDiff) + Math.abs(currentDiff);
+        const t = denominator <= 0 ? 0.5 : clamp(Math.abs(previousDiff) / denominator, 0, 1);
+        const crossTime = previous.time + ((current.time - previous.time) * t);
+        const crossValue = previous.leftValue + ((current.leftValue - previous.leftValue) * t);
+
+        if (!Number.isFinite(crossTime) || !Number.isFinite(crossValue)) {
+            continue;
+        }
+
+        crossovers.push({
+            side: leftCrossedUp ? "left" : "right",
+            crossTime,
+            crossValue,
+            previousTime: previous.time,
+            currentTime: current.time
+        });
+    }
+
+    return crossovers;
+}
+
 function buildGameMinuteLabel(matchStartTimeUtc, eventTime) {
     const startUnix = toUnixSeconds(matchStartTimeUtc);
     if (!Number.isFinite(startUnix)) {
@@ -174,6 +258,61 @@ function normalizeScoreEvents(scoreEvents) {
         });
 }
 
+function isCrossoverScoreEvent(scoreEvent) {
+    const parts = [
+        scoreEvent?.ruleType,
+        scoreEvent?.eventType,
+        scoreEvent?.reasonCode,
+        scoreEvent?.description
+    ]
+        .filter((part) => typeof part === "string" && part.trim().length > 0)
+        .join(" ")
+        .toUpperCase();
+
+    return parts.includes("CROSSOVER");
+}
+
+function resolveEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, crossoverMatches) {
+    if (isCrossoverScoreEvent(scoreEvent)) {
+        const matchingCrossovers = crossoverMatches
+            .map((crossover, index) => ({ crossover, index }))
+            .filter((entry) => entry.crossover.side === side && !entry.crossover.used);
+
+        if (matchingCrossovers.length === 0) {
+            return null;
+        }
+
+        matchingCrossovers.sort((a, b) => {
+            const deltaA = Math.abs(a.crossover.crossTime - scoreEvent.eventTime);
+            const deltaB = Math.abs(b.crossover.crossTime - scoreEvent.eventTime);
+            if (deltaA !== deltaB) {
+                return deltaA - deltaB;
+            }
+
+            return a.crossover.crossTime - b.crossover.crossTime;
+        });
+
+        const winner = matchingCrossovers[0];
+        crossoverMatches[winner.index].used = true;
+
+        return {
+            time: winner.crossover.crossTime,
+            value: winner.crossover.crossValue
+        };
+    }
+
+    const seriesPoints = side === "left" ? leftPoints : rightPoints;
+    const seriesValue = interpolateSeriesValue(seriesPoints, scoreEvent.eventTime);
+    if (!Number.isFinite(seriesValue)) {
+        return null;
+    }
+
+    return {
+        time: scoreEvent.eventTime,
+        value: seriesValue
+    };
+}
+
 function buildStackOffset(stackIndex) {
     if (stackIndex <= 0) {
         return 0;
@@ -197,6 +336,8 @@ export function buildScoreEventMarkersModel({
     const normalizedLeftPoints = normalizePoints(leftPoints);
     const normalizedRightPoints = normalizePoints(rightPoints);
     const normalizedScoreEvents = normalizeScoreEvents(scoreEvents);
+    const crossoverMatches = buildBattleCrossovers(normalizedLeftPoints, normalizedRightPoints)
+        .map((crossover) => ({ ...crossover, used: false }));
 
     if (normalizedLeftPoints.length === 0 || normalizedRightPoints.length === 0 || normalizedScoreEvents.length === 0) {
         return [];
@@ -224,14 +365,13 @@ export function buildScoreEventMarkersModel({
                 return null;
             }
 
-            const seriesPoints = side === "left" ? normalizedLeftPoints : normalizedRightPoints;
-            const seriesValue = interpolateSeriesValue(seriesPoints, scoreEvent.eventTime);
-            if (!Number.isFinite(seriesValue)) {
+            const plotPoint = resolveEventPlotPoint(scoreEvent, side, normalizedLeftPoints, normalizedRightPoints, crossoverMatches);
+            if (!plotPoint || !Number.isFinite(plotPoint.time) || !Number.isFinite(plotPoint.value)) {
                 return null;
             }
 
             const meta = side === "left" ? leftMeta : rightMeta;
-            const minuteBucket = Math.floor(scoreEvent.eventTime / 60);
+            const minuteBucket = Math.floor(plotPoint.time / 60);
             const stackKey = `${side}:${minuteBucket}`;
             const stackIndex = stackState.get(stackKey) ?? 0;
             stackState.set(stackKey, stackIndex + 1);
@@ -239,8 +379,8 @@ export function buildScoreEventMarkersModel({
             return {
                 key: `score:${scoreEvent.matchScoreEventId || `${side}:${scoreEvent.eventTime}:${stackIndex}`}`,
                 side,
-                time: scoreEvent.eventTime,
-                value: seriesValue,
+                time: plotPoint.time,
+                value: plotPoint.value,
                 stackIndex,
                 stackOffsetPx: buildStackOffset(stackIndex),
                 teamId: scoreEvent.teamId,

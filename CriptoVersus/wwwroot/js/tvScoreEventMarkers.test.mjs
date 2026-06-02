@@ -14,7 +14,7 @@ function testBuildsEveryOfficialScoreEvent() {
     const markers = buildScoreEventMarkersModel({
         leftPoints: buildPoints([
             [unix("2026-06-02T15:31:00Z"), 1.0],
-            [unix("2026-06-02T15:32:00Z"), 1.4],
+            [unix("2026-06-02T15:32:00Z"), 0.9],
             [unix("2026-06-02T15:33:00Z"), 1.8],
             [unix("2026-06-02T15:37:00Z"), 2.2]
         ]),
@@ -70,6 +70,43 @@ function testKeepsSameMinuteEventsByStacking() {
     assert.notEqual(markers[0].stackOffsetPx, markers[1].stackOffsetPx);
 }
 
+function testPositionsCrossoverMarkerAtRealIntersection() {
+    const markers = buildScoreEventMarkersModel({
+        leftPoints: buildPoints([
+            [100, 4],
+            [160, 3]
+        ]),
+        rightPoints: buildPoints([
+            [100, 3],
+            [160, 5]
+        ]),
+        scoreEvents: [
+            {
+                matchScoreEventId: 21,
+                teamId: 20,
+                teamSymbol: "FETUSDT",
+                points: 1,
+                eventTimeUtc: new Date(160000).toISOString(),
+                ruleType: "PercentageCrossover",
+                eventType: "PERCENTAGE_CROSSOVER_UP",
+                reasonCode: "PERCENTAGE_CROSSOVER_UP",
+                description: "FET marcou 1 ponto por cruzar a linha de valorizacao percentual para cima."
+            }
+        ],
+        leftMeta: { symbol: "CHIPUSDT", logoUrl: "/chip.png", accentColor: "#ffd76e" },
+        rightMeta: { symbol: "FETUSDT", logoUrl: "/fet.png", accentColor: "#86c9ff" },
+        leftTeamId: 10,
+        rightTeamId: 20,
+        matchStartTimeUtc: "2026-06-02T15:16:00Z"
+    });
+
+    assert.equal(markers.length, 1);
+    assert.equal(markers[0].side, "right");
+    assert.ok(Math.abs(markers[0].time - 120) < 0.0001);
+    assert.ok(Math.abs(markers[0].value - 3.6666666667) < 0.0001);
+}
+
 testBuildsEveryOfficialScoreEvent();
 testKeepsSameMinuteEventsByStacking();
+testPositionsCrossoverMarkerAtRealIntersection();
 console.log("tvScoreEventMarkers tests passed");
