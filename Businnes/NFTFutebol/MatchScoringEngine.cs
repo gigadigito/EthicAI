@@ -116,7 +116,7 @@ namespace BLL.NFTFutebol
             var previousDiff = context.PreviousTeamA.PercentageChange - context.PreviousTeamB.PercentageChange;
             var currentDiff = context.TeamA.PercentageChange - context.TeamB.PercentageChange;
 
-            if (previousDiff < 0m && currentDiff >= 0m)
+            if (previousDiff < 0m && currentDiff > 0m)
             {
                 teamAScore++;
                 events.Add(new PendingMatchScoreEvent
@@ -133,7 +133,7 @@ namespace BLL.NFTFutebol
                     Description = $"{context.TeamA.Symbol} marcou 1 ponto por cruzar a linha de valorizacao percentual para cima."
                 });
             }
-            else if (previousDiff > 0m && currentDiff <= 0m)
+            else if (previousDiff > 0m && currentDiff < 0m)
             {
                 teamBScore++;
                 events.Add(new PendingMatchScoreEvent
@@ -248,7 +248,7 @@ namespace BLL.NFTFutebol
             var previousDiff = context.PreviousTeamA.QuoteVolume - context.PreviousTeamB.QuoteVolume;
             var currentDiff = context.TeamA.QuoteVolume - context.TeamB.QuoteVolume;
 
-            if (previousDiff < 0m && currentDiff >= 0m)
+            if (previousDiff < 0m && currentDiff > 0m)
             {
                 teamAScore++;
                 events.Add(new PendingMatchScoreEvent
@@ -265,7 +265,7 @@ namespace BLL.NFTFutebol
                     Description = $"{context.TeamA.Symbol} marcou 1 ponto por cruzar a linha de volume para cima."
                 });
             }
-            else if (previousDiff > 0m && currentDiff <= 0m)
+            else if (previousDiff > 0m && currentDiff < 0m)
             {
                 teamBScore++;
                 events.Add(new PendingMatchScoreEvent

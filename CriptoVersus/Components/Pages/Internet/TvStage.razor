@@ -857,6 +857,7 @@ else
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
     private IReadOnlyList<MatchScoreEventDto> _recentScoreEvents = [];
+    private IReadOnlyList<MatchScoreEventDto> _allScoreEvents = [];
     private IReadOnlyList<MatchMetricSnapshotDto> _metricSnapshots = [];
     private ArenaSentimentDto? _arenaSentimentA;
     private ArenaSentimentDto? _arenaSentimentB;
@@ -1303,6 +1304,10 @@ else
                 {
                     left = BuildPoints([], currentLeftLiveValue),
                     right = BuildPoints([], currentRightLiveValue),
+                    scoreEvents = _allScoreEvents,
+                    leftTeamId = Match?.TeamAId ?? 0,
+                    rightTeamId = Match?.TeamBId ?? 0,
+                    matchStartTimeUtc = Match?.StartTime,
                     leftMeta = new
                     {
                         symbol = DisplayLeftSymbol(),
@@ -1476,6 +1481,10 @@ else
             {
                 left = leftPoints,
                 right = rightPoints,
+                scoreEvents = _allScoreEvents,
+                leftTeamId = Match?.TeamAId ?? 0,
+                rightTeamId = Match?.TeamBId ?? 0,
+                matchStartTimeUtc = Match?.StartTime,
                 leftMeta = new
                 {
                     symbol = DisplayLeftSymbol(),
@@ -1942,6 +1951,7 @@ else
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
             _recentScoreEvents = [];
+            _allScoreEvents = [];
             ResetBroadcastPromoState();
             return;
         }
@@ -1961,6 +1971,7 @@ else
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
             _recentScoreEvents = [];
+            _allScoreEvents = [];
             _lastScoreEventMatchId = current.MatchId;
             _lastSeenScoreEventId = null;
             _lastTriggeredGoalEventId = null;
@@ -3360,6 +3371,10 @@ else
         try
         {
             var events = await Api.GetMatchScoreEventsAsync(matchId) ?? [];
+            _allScoreEvents = events
+                .OrderBy(x => x.EventTimeUtc)
+                .ThenBy(x => x.MatchScoreEventId)
+                .ToList();
             _recentScoreEvents = events
                 .OrderByDescending(x => x.MatchScoreEventId)
                 .Take(5)

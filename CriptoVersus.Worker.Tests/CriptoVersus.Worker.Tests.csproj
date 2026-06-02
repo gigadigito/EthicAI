@@ -35,6 +35,8 @@
     <Compile Include="..\CriptoVersus.Worker\DataRetentionOptions.cs" Link="DataRetentionOptions.cs" />
     <Compile Include="..\CriptoVersus.Worker\DataRetentionService.cs" Link="DataRetentionService.cs" />
     <Compile Include="..\CriptoVersus.API\Controllers\MatchesController.cs" Link="MatchesController.cs" />
+    <Compile Include="..\CriptoVersus.API\Service\MatchScoreRebuildService.cs" Link="MatchScoreRebuildService.cs" />
+    <Compile Include="..\Businnes\NFTFutebol\MatchScoringEngine.cs" Link="MatchScoringEngine.cs" />
   </ItemGroup>
 
 </Project>

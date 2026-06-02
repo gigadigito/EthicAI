@@ -309,25 +309,6 @@ namespace CriptoVersus.API.Controllers
                 ct));
         }
 
-        [HttpPost("{id:int}/rebuild-score-events")]
-        public async Task<ActionResult<MatchScoreRebuildResult>> RebuildScoreEvents(int id, CancellationToken ct)
-        {
-            try
-            {
-                var result = await _matchScoreRebuildService.RebuildAsync(id, ct);
-                await NotifyDashboardChangedAsync("match_score_rebuilt", id, ct);
-                return Ok(result);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("nao encontrada", StringComparison.OrdinalIgnoreCase))
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         // =========================
         // POST /api/matches
         // Cria uma nova partida

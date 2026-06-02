@@ -24,18 +24,24 @@ public sealed class AdminController : ControllerBase
     private readonly CriptoVersusBlockchainOptions _blockchainOptions;
     private readonly ILedgerService _ledgerService;
     private readonly ISystemBalanceWithdrawalService _systemBalanceWithdrawalService;
+    private readonly IMatchScoreRebuildService _matchScoreRebuildService;
+    private readonly ILogger<AdminController> _logger;
 
     public AdminController(
         EthicAIDbContext context,
         IConfiguration configuration,
         ILedgerService ledgerService,
         ISystemBalanceWithdrawalService systemBalanceWithdrawalService,
+        IMatchScoreRebuildService matchScoreRebuildService,
+        ILogger<AdminController> logger,
         IOptions<CriptoVersusBlockchainOptions> blockchainOptions)
     {
         _context = context;
         _configuration = configuration;
         _ledgerService = ledgerService;
         _systemBalanceWithdrawalService = systemBalanceWithdrawalService;
+        _matchScoreRebuildService = matchScoreRebuildService;
+        _logger = logger;
         _blockchainOptions = blockchainOptions.Value;
     }
 
@@ -317,6 +323,40 @@ public sealed class AdminController : ControllerBase
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("matches/{matchId:int}/rebuild-score-events")]
+    public async Task<ActionResult<MatchScoreRebuildResult>> RebuildMatchScoreEvents(int matchId, CancellationToken ct)
+    {
+        var wallet = GetAuthenticatedWallet();
+        if (!IsAdminWallet(wallet))
+            return Forbid();
+
+        try
+        {
+            var result = await _matchScoreRebuildService.RebuildAsync(matchId, ct);
+
+            _logger.LogInformation(
+                "ADMIN_MATCH_SCORE_REBUILD matchId={MatchId} wallet={Wallet} atUtc={AtUtc} oldEvents={OldEvents} newEvents={NewEvents} scoreBefore={ScoreBefore} scoreAfter={ScoreAfter} settledBets={SettledBetsCount}",
+                matchId,
+                wallet,
+                result.RebuiltAtUtc,
+                result.OldEvents,
+                result.NewEvents,
+                result.ScoreBefore,
+                result.ScoreAfter,
+                result.SettledBetsCount);
+
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("nao encontrada", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new { message = ex.Message, success = false, matchId });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message, success = false, matchId });
         }
     }
 

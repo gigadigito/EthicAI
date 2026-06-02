@@ -3159,6 +3159,7 @@ function ensureResizeObserver(container, chart) {
 
         const latest = telemetryChartsState?.charts?.get(container.id);
         if (latest?.kind === "compare") {
+            positionCompareScoreEventMarkers(latest);
             refreshCompareCrossoverMarker(latest);
         }
     });
@@ -3186,6 +3187,11 @@ function disposeChartEntry(entry) {
 
     try {
         entry.overlayRoot?.remove?.();
+    } catch {
+    }
+
+    try {
+        clearCompareScoreEventMarkers(entry);
     } catch {
     }
 
@@ -3319,6 +3325,142 @@ function ensureCompareCrossoverStyles() {
     color: #f4fbff;
     text-transform: uppercase;
     text-shadow: 0 1px 0 rgba(0,0,0,.36);
+}
+
+.tv-chart-score-marker {
+    position: absolute;
+    width: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    pointer-events: none;
+}
+
+.tv-chart-score-marker.is-visible {
+    opacity: 1;
+}
+
+.tv-chart-score-marker__beam {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 76%, white 8%) 24%, color-mix(in srgb, var(--battle-accent, #53c8ff) 88%, transparent) 58%, transparent 100%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--battle-accent, #53c8ff) 34%, transparent);
+    opacity: 0.52;
+}
+
+.tv-chart-score-marker__badge {
+    position: absolute;
+    left: 0;
+    top: var(--battle-y, 50%);
+    width: 30px;
+    height: 30px;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    overflow: visible;
+    pointer-events: auto;
+}
+
+.tv-chart-score-marker__badge-shell {
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 14%);
+    background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 38%),
+        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 30%, rgba(4, 10, 20, 0.94)), rgba(5, 12, 24, 0.96));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--battle-accent, #53c8ff) 22%, transparent),
+        0 0 18px color-mix(in srgb, var(--battle-accent, #53c8ff) 38%, transparent),
+        0 10px 24px rgba(0,0,0,.28);
+    animation: tvChartCrossoverPop 460ms cubic-bezier(.19,1,.22,1);
+}
+
+.tv-chart-score-marker__badge img {
+    width: 76%;
+    height: 76%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,.16));
+}
+
+.tv-chart-score-marker__fallback {
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: #f4fbff;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(0,0,0,.36);
+}
+
+.tv-chart-score-marker__tooltip {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 10px);
+    min-width: 158px;
+    max-width: 220px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(7, 15, 28, 0.96), rgba(4, 10, 22, 0.98));
+    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(255,255,255,.12));
+    box-shadow: 0 14px 30px rgba(0,0,0,.34), 0 0 18px color-mix(in srgb, var(--battle-accent, #53c8ff) 16%, transparent);
+    transform: translate(-50%, 4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.tv-chart-score-marker__tooltip::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -5px;
+    width: 10px;
+    height: 10px;
+    background: inherit;
+    border-left: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(255,255,255,.12));
+    border-top: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(255,255,255,.12));
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.tv-chart-score-marker__badge:hover .tv-chart-score-marker__tooltip,
+.tv-chart-score-marker__badge:focus-within .tv-chart-score-marker__tooltip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.tv-chart-score-marker__tooltip-time {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: rgba(207, 232, 255, 0.78);
+    text-transform: uppercase;
+}
+
+.tv-chart-score-marker__tooltip-title {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 900;
+    color: #f7fcff;
+}
+
+.tv-chart-score-marker__tooltip-reason {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: rgba(216, 230, 245, 0.82);
 }
 
 @keyframes tvChartCrossoverPop {
@@ -3526,6 +3668,24 @@ function clearCompareCrossoverMarker(state) {
     state.currentCrossover = null;
 }
 
+function clearCompareScoreEventMarkers(state) {
+    if (!state) {
+        return;
+    }
+
+    if (Array.isArray(state.scoreEventMarkerNodes)) {
+        for (const markerNode of state.scoreEventMarkerNodes) {
+            try {
+                markerNode?.remove?.();
+            } catch {
+            }
+        }
+    }
+
+    state.scoreEventMarkerNodes = [];
+    state.scoreEventMarkers = [];
+}
+
 function buildCompareMarkerNode(meta) {
     const marker = document.createElement("div");
     marker.className = "tv-chart-crossover-marker";
@@ -3555,6 +3715,67 @@ function buildCompareMarkerNode(meta) {
         }, { once: true });
         badge.appendChild(image);
     }
+
+    marker.appendChild(beam);
+    marker.appendChild(badge);
+    return marker;
+}
+
+function buildScoreEventMarkerNode(markerModel) {
+    const marker = document.createElement("div");
+    marker.className = "tv-chart-score-marker";
+    marker.style.setProperty("--battle-accent", markerModel.accentColor);
+
+    const beam = document.createElement("div");
+    beam.className = "tv-chart-score-marker__beam";
+
+    const badge = document.createElement("div");
+    badge.className = "tv-chart-score-marker__badge";
+
+    const badgeShell = document.createElement("div");
+    badgeShell.className = "tv-chart-score-marker__badge-shell";
+
+    const fallback = document.createElement("span");
+    fallback.className = "tv-chart-score-marker__fallback";
+    fallback.textContent = getBattleFallbackLabel(markerModel.teamSymbol);
+    badgeShell.appendChild(fallback);
+
+    if (markerModel.logoUrl) {
+        const image = document.createElement("img");
+        image.alt = "";
+        image.src = markerModel.logoUrl;
+        image.addEventListener("load", () => {
+            fallback.style.display = "none";
+        }, { once: true });
+        image.addEventListener("error", () => {
+            image.remove();
+            fallback.style.display = "grid";
+        }, { once: true });
+        badgeShell.appendChild(image);
+    }
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "tv-chart-score-marker__tooltip";
+
+    const tooltipTime = document.createElement("span");
+    tooltipTime.className = "tv-chart-score-marker__tooltip-time";
+    tooltipTime.textContent = markerModel.minuteLabel;
+
+    const tooltipTitle = document.createElement("span");
+    tooltipTitle.className = "tv-chart-score-marker__tooltip-title";
+    tooltipTitle.textContent = `${markerModel.teamSymbol} +${markerModel.points}`;
+
+    const tooltipReason = document.createElement("span");
+    tooltipReason.className = "tv-chart-score-marker__tooltip-reason";
+    tooltipReason.textContent = markerModel.reason;
+
+    tooltip.appendChild(tooltipTime);
+    tooltip.appendChild(tooltipTitle);
+    tooltip.appendChild(tooltipReason);
+
+    badge.appendChild(badgeShell);
+    badge.appendChild(tooltip);
+    badge.title = `${markerModel.minuteLabel}\n${markerModel.teamSymbol} +${markerModel.points}\n${markerModel.reason}`;
 
     marker.appendChild(beam);
     marker.appendChild(badge);
@@ -3598,6 +3819,56 @@ function refreshCompareCrossoverMarker(state) {
     }
 
     positionCompareCrossoverMarker(state);
+}
+
+function positionCompareScoreEventMarkers(state) {
+    if (!state?.chart || !state?.scoreEventMarkerNodes?.length) {
+        return;
+    }
+
+    const timeScale = state.chart.timeScale?.();
+    if (!timeScale) {
+        return;
+    }
+
+    const rect = state.container.getBoundingClientRect();
+
+    state.scoreEventMarkerNodes.forEach((entry) => {
+        const series = entry.model.side === "right" ? state.rightSeries : state.leftSeries;
+        const x = timeScale.timeToCoordinate(entry.model.time);
+        const yBase = series?.priceToCoordinate?.(entry.model.value);
+
+        if (!Number.isFinite(x) || !Number.isFinite(yBase)) {
+            entry.node.classList.remove("is-visible");
+            return;
+        }
+
+        const y = clamp(
+            yBase + (Number(entry.model.stackOffsetPx) || 0),
+            18,
+            Math.max(18, rect.height - 18));
+        entry.node.style.left = `${clamp(x, 18, Math.max(18, rect.width - 18))}px`;
+        entry.node.style.setProperty("--battle-y", `${y}px`);
+        entry.node.classList.add("is-visible");
+    });
+}
+
+function renderCompareScoreEventMarkers(state, markerModels) {
+    clearCompareScoreEventMarkers(state);
+
+    if (!Array.isArray(markerModels) || markerModels.length === 0) {
+        return;
+    }
+
+    const overlayRoot = ensureCompareOverlayRoot(state);
+    state.scoreEventMarkers = markerModels;
+    state.scoreEventMarkerNodes = markerModels.map((markerModel) => {
+        const node = buildScoreEventMarkerNode(markerModel);
+        overlayRoot.appendChild(node);
+        return { model: markerModel, node };
+    });
+
+    positionCompareScoreEventMarkers(state);
 }
 
 function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, rightMeta) {
@@ -3648,6 +3919,28 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
     state.markerFadeTimer = window.setTimeout(() => {
         state.markerNode?.classList.add("is-resting");
     }, 2600);
+}
+
+function maybeRenderCompareScoreEvents(state, payload, leftPoints, rightPoints, leftMeta, rightMeta) {
+    const markerModels = buildScoreEventMarkersModel({
+        leftPoints,
+        rightPoints,
+        scoreEvents: payload?.scoreEvents,
+        leftMeta,
+        rightMeta,
+        leftTeamId: payload?.leftTeamId,
+        rightTeamId: payload?.rightTeamId,
+        matchStartTimeUtc: payload?.matchStartTimeUtc
+    });
+
+    if (markerModels.length > 0) {
+        clearCompareCrossoverMarker(state);
+        renderCompareScoreEventMarkers(state, markerModels);
+        return true;
+    }
+
+    clearCompareScoreEventMarkers(state);
+    return false;
 }
 
 async function ensureCandlestickChart(containerId) {
@@ -3792,6 +4085,8 @@ async function ensureCompareChart(containerId) {
         markerNode: null,
         currentCrossover: null,
         markerFadeTimer: null,
+        scoreEventMarkers: [],
+        scoreEventMarkerNodes: [],
         leftMeta: null,
         rightMeta: null
     };
@@ -3824,6 +4119,186 @@ function normalizePoints(points) {
         })
         .filter(Boolean)
         .sort((a, b) => a.time - b.time);
+}
+
+function normalizeScoreEventSymbol(symbol) {
+    if (typeof symbol !== "string" || symbol.trim().length === 0) {
+        return "";
+    }
+
+    const compact = symbol
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "");
+    const quoteSuffixes = ["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "USDP", "USD"];
+
+    for (const suffix of quoteSuffixes) {
+        if (compact.endsWith(suffix) && compact.length > suffix.length) {
+            return compact.slice(0, compact.length - suffix.length);
+        }
+    }
+
+    return compact;
+}
+
+function toUnixSeconds(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (value instanceof Date) {
+        return Math.floor(value.getTime() / 1000);
+    }
+
+    if (typeof value === "string" && value.trim().length > 0) {
+        const parsed = Date.parse(value);
+        if (Number.isFinite(parsed)) {
+            return Math.floor(parsed / 1000);
+        }
+    }
+
+    return null;
+}
+
+function buildGameMinuteLabel(matchStartTimeUtc, eventTime) {
+    const startUnix = toUnixSeconds(matchStartTimeUtc);
+    if (!Number.isFinite(startUnix)) {
+        const date = new Date(eventTime * 1000);
+        return `${date.getUTCHours().toString().padStart(2, "0")}:${date.getUTCMinutes().toString().padStart(2, "0")}`;
+    }
+
+    const elapsedSeconds = Math.max(0, Math.round(eventTime - startUnix));
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function resolveScoreEventSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId, rightTeamId) {
+    const numericTeamId = Number(scoreEvent?.teamId);
+    if (Number.isFinite(numericTeamId)) {
+        if (Number.isFinite(Number(leftTeamId)) && numericTeamId === Number(leftTeamId)) {
+            return "left";
+        }
+
+        if (Number.isFinite(Number(rightTeamId)) && numericTeamId === Number(rightTeamId)) {
+            return "right";
+        }
+    }
+
+    const eventSymbol = normalizeScoreEventSymbol(scoreEvent?.teamSymbol);
+    if (!eventSymbol) {
+        return null;
+    }
+
+    if (eventSymbol === normalizeScoreEventSymbol(leftMeta?.symbol)) {
+        return "left";
+    }
+
+    if (eventSymbol === normalizeScoreEventSymbol(rightMeta?.symbol)) {
+        return "right";
+    }
+
+    return null;
+}
+
+function buildScoreEventStackOffset(stackIndex) {
+    if (stackIndex <= 0) {
+        return 0;
+    }
+
+    const level = Math.ceil(stackIndex / 2);
+    const direction = stackIndex % 2 === 1 ? -1 : 1;
+    return direction * level * 18;
+}
+
+function buildScoreEventMarkersModel(payload) {
+    const normalizedLeftPoints = normalizePoints(payload?.leftPoints);
+    const normalizedRightPoints = normalizePoints(payload?.rightPoints);
+    const normalizedScoreEvents = Array.isArray(payload?.scoreEvents)
+        ? payload.scoreEvents
+            .map((scoreEvent) => {
+                const eventTime = toUnixSeconds(scoreEvent?.eventTimeUtc ?? scoreEvent?.time ?? scoreEvent?.eventTime);
+                const points = Number(scoreEvent?.points ?? 0);
+                const matchScoreEventId = Number(scoreEvent?.matchScoreEventId ?? 0);
+
+                if (!Number.isFinite(eventTime) || !Number.isFinite(points) || points <= 0) {
+                    return null;
+                }
+
+                return {
+                    matchScoreEventId,
+                    eventTime,
+                    points,
+                    teamId: scoreEvent?.teamId ?? null,
+                    teamSymbol: typeof scoreEvent?.teamSymbol === "string" ? scoreEvent.teamSymbol : "",
+                    reason: typeof scoreEvent?.description === "string" && scoreEvent.description.length > 0
+                        ? scoreEvent.description
+                        : typeof scoreEvent?.reasonCode === "string" && scoreEvent.reasonCode.length > 0
+                            ? scoreEvent.reasonCode
+                            : typeof scoreEvent?.eventType === "string" && scoreEvent.eventType.length > 0
+                                ? scoreEvent.eventType
+                                : "Score event"
+                };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.eventTime === b.eventTime ? a.matchScoreEventId - b.matchScoreEventId : a.eventTime - b.eventTime)
+        : [];
+
+    if (normalizedLeftPoints.length === 0 || normalizedRightPoints.length === 0 || normalizedScoreEvents.length === 0) {
+        return [];
+    }
+
+    const overlapStart = Math.max(normalizedLeftPoints[0].time, normalizedRightPoints[0].time);
+    const overlapEnd = Math.min(
+        normalizedLeftPoints[normalizedLeftPoints.length - 1].time,
+        normalizedRightPoints[normalizedRightPoints.length - 1].time);
+
+    if (!Number.isFinite(overlapStart) || !Number.isFinite(overlapEnd) || overlapEnd < overlapStart) {
+        return [];
+    }
+
+    const stackState = new Map();
+
+    return normalizedScoreEvents
+        .map((scoreEvent) => {
+            const side = resolveScoreEventSeriesSide(
+                scoreEvent,
+                payload?.leftMeta,
+                payload?.rightMeta,
+                payload?.leftTeamId,
+                payload?.rightTeamId);
+            if (!side || scoreEvent.eventTime < overlapStart || scoreEvent.eventTime > overlapEnd) {
+                return null;
+            }
+
+            const seriesPoints = side === "left" ? normalizedLeftPoints : normalizedRightPoints;
+            const value = interpolateSeriesValue(seriesPoints, scoreEvent.eventTime);
+            if (!Number.isFinite(value)) {
+                return null;
+            }
+
+            const meta = side === "left" ? payload?.leftMeta : payload?.rightMeta;
+            const minuteBucket = Math.floor(scoreEvent.eventTime / 60);
+            const stackKey = `${side}:${minuteBucket}`;
+            const stackIndex = stackState.get(stackKey) ?? 0;
+            stackState.set(stackKey, stackIndex + 1);
+
+            return {
+                key: `score:${scoreEvent.matchScoreEventId || `${side}:${scoreEvent.eventTime}:${stackIndex}`}`,
+                side,
+                time: scoreEvent.eventTime,
+                value,
+                stackIndex,
+                stackOffsetPx: buildScoreEventStackOffset(stackIndex),
+                teamSymbol: scoreEvent.teamSymbol || meta?.symbol || "",
+                logoUrl: typeof meta?.logoUrl === "string" ? meta.logoUrl : "",
+                accentColor: typeof meta?.accentColor === "string" ? meta.accentColor : "",
+                points: scoreEvent.points,
+                reason: scoreEvent.reason,
+                minuteLabel: buildGameMinuteLabel(payload?.matchStartTimeUtc, scoreEvent.eventTime)
+            };
+        })
+        .filter(Boolean);
 }
 
 function normalizeCompareLine(points) {
@@ -4002,7 +4477,10 @@ export async function updateTelemetryCharts(payload) {
         fitChart(left.chart);
         fitChart(right.chart);
         fitChart(compare.chart);
-        maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
+        const renderedOfficialScoreEvents = maybeRenderCompareScoreEvents(compare, payload, leftPoints, rightPoints, leftMeta, rightMeta);
+        if (!renderedOfficialScoreEvents) {
+            maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
+        }
         if (splitLeft) {
             fitChart(splitLeft.chart);
         }
@@ -4018,7 +4496,9 @@ export async function updateTelemetryCharts(payload) {
             leftCandles: leftCandles.length,
             rightCandles: rightCandles.length,
             leftPoints: leftPoints.length,
-            rightPoints: rightPoints.length
+            rightPoints: rightPoints.length,
+            scoreEvents: Array.isArray(payload?.scoreEvents) ? payload.scoreEvents.length : 0,
+            officialMarkers: compare.scoreEventMarkers?.length ?? 0
         });
 
         if (splitLeft || splitRight) {

@@ -33,6 +33,7 @@ public sealed class MatchScoreRebuildService : IMatchScoreRebuildService
             .Include(x => x.TeamA).ThenInclude(x => x.Currency)
             .Include(x => x.TeamB).ThenInclude(x => x.Currency)
             .Include(x => x.ScoreState)
+            .Include(x => x.Bets)
             .FirstOrDefaultAsync(x => x.MatchId == matchId, ct);
 
         if (match is null)
@@ -69,6 +70,18 @@ public sealed class MatchScoreRebuildService : IMatchScoreRebuildService
         var existingEvents = await _db.Set<MatchScoreEvent>()
             .Where(x => x.MatchId == matchId)
             .ToListAsync(ct);
+
+        var oldEvents = existingEvents.Count;
+        var scoreBeforeA = match.ScoreA;
+        var scoreBeforeB = match.ScoreB;
+        var hasSettledPayouts = match.Bets.Any(x =>
+            x.SettledAt.HasValue
+            || x.IsWinner.HasValue
+            || (x.PayoutAmount ?? 0m) > 0m);
+        var settledBetsCount = match.Bets.Count(x =>
+            x.SettledAt.HasValue
+            || x.IsWinner.HasValue
+            || (x.PayoutAmount ?? 0m) > 0m);
 
         if (existingEvents.Count > 0)
             _db.MatchScoreEvent.RemoveRange(existingEvents);
@@ -135,16 +148,28 @@ public sealed class MatchScoreRebuildService : IMatchScoreRebuildService
         }
 
         scoreState.UpdatedAtUtc = DateTime.UtcNow;
+        match.WinnerTeamId = null;
         await _db.SaveChangesAsync(ct);
 
         return new MatchScoreRebuildResult
         {
             MatchId = match.MatchId,
+            Success = true,
             RuleType = match.ScoringRuleType.ToString(),
             SnapshotPairsProcessed = pairedSnapshots.Count,
+            OldEvents = oldEvents,
+            NewEvents = rebuiltEvents,
             EventsRebuilt = rebuiltEvents,
             ScoreA = match.ScoreA,
-            ScoreB = match.ScoreB
+            ScoreB = match.ScoreB,
+            ScoreBefore = $"{scoreBeforeA}x{scoreBeforeB}",
+            ScoreAfter = $"{match.ScoreA}x{match.ScoreB}",
+            RebuiltAtUtc = scoreState.UpdatedAtUtc,
+            HasSettledPayouts = hasSettledPayouts,
+            SettledBetsCount = settledBetsCount,
+            Warning = hasSettledPayouts
+                ? "Match already has settled bets/payout traces. Score events were rebuilt without re-running financial settlement."
+                : null
         };
     }
 
@@ -222,9 +247,18 @@ public sealed class MatchScoreRebuildOptions
 public sealed class MatchScoreRebuildResult
 {
     public int MatchId { get; init; }
+    public bool Success { get; init; }
     public string RuleType { get; init; } = string.Empty;
     public int SnapshotPairsProcessed { get; init; }
+    public int OldEvents { get; init; }
+    public int NewEvents { get; init; }
     public int EventsRebuilt { get; init; }
     public int ScoreA { get; init; }
     public int ScoreB { get; init; }
+    public string ScoreBefore { get; init; } = "0x0";
+    public string ScoreAfter { get; init; } = "0x0";
+    public DateTime RebuiltAtUtc { get; init; }
+    public bool HasSettledPayouts { get; init; }
+    public int SettledBetsCount { get; init; }
+    public string? Warning { get; init; }
 }
