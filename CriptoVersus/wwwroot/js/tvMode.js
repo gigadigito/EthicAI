@@ -4199,14 +4199,18 @@ function buildGameMinuteLabel(matchStartTimeUtc, eventTime) {
 
 function resolveScoreEventSeriesSide(scoreEvent, leftMeta, rightMeta, leftTeamId, rightTeamId) {
     const eventSymbol = normalizeScoreEventSymbol(scoreEvent?.teamSymbol);
+    const leftSymbol = normalizeScoreEventSymbol(leftMeta?.symbol);
+    const rightSymbol = normalizeScoreEventSymbol(rightMeta?.symbol);
     if (eventSymbol) {
-        if (eventSymbol === normalizeScoreEventSymbol(leftMeta?.symbol)) {
+        if (eventSymbol === leftSymbol) {
             return "left";
         }
 
-        if (eventSymbol === normalizeScoreEventSymbol(rightMeta?.symbol)) {
+        if (eventSymbol === rightSymbol) {
             return "right";
         }
+
+        return null;
     }
 
     const numericTeamId = Number(scoreEvent?.teamId);
