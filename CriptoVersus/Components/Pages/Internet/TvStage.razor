@@ -3650,22 +3650,13 @@ else
     private bool ShouldRenderScoreEventInCompareChart(MatchScoreEventDto scoreEvent)
     {
         var ruleType = scoreEvent.RuleType ?? string.Empty;
-        var matchRuleType = Match?.ScoringRuleType ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(ruleType) || string.IsNullOrWhiteSpace(matchRuleType))
+        if (string.IsNullOrWhiteSpace(ruleType))
             return false;
 
-        if (matchRuleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase))
-            return IsPercentThresholdRule(ruleType) || IsPercentageCrossoverRule(ruleType);
-
-        if (matchRuleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase))
-            return IsPercentageCrossoverRule(ruleType);
-
-        return false;
+        // Market Battle Flow plots the physical battle between the two percentage lines,
+        // so only upward percentage crossovers belong to this layer.
+        return IsPercentageCrossoverRule(ruleType);
     }
-
-    private static bool IsPercentThresholdRule(string ruleType)
-        => ruleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPercentageCrossoverRule(string ruleType)
         => ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
