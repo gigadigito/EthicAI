@@ -1306,11 +1306,12 @@ else
             }
             try
             {
+                var filteredScoreEvents = _allScoreEvents.Where(ShouldRenderScoreEventInCompareChart).ToList();
                 await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new
                 {
                     left = BuildPoints([], currentLeftLiveValue),
                     right = BuildPoints([], currentRightLiveValue),
-                    scoreEvents = _allScoreEvents,
+                    scoreEvents = filteredScoreEvents,
                     leftTeamId = Match?.TeamAId ?? 0,
                     rightTeamId = Match?.TeamBId ?? 0,
                     matchStartTimeUtc = Match?.StartTime,
@@ -1374,7 +1375,7 @@ else
         var leftPoints = BuildPoints(leftSnapshots, currentLeftLiveValue);
         var rightPoints = BuildPoints(rightSnapshots, currentRightLiveValue);
         var chartScoreEvents = _allScoreEvents
-            .Where(x => x.TeamId == matchTeamAId || x.TeamId == matchTeamBId)
+            .Where(x => (x.TeamId == matchTeamAId || x.TeamId == matchTeamBId) && ShouldRenderScoreEventInCompareChart(x))
             .OrderBy(x => x.EventSequence)
             .ThenBy(x => x.EventTimeUtc)
             .ToList();
@@ -1392,6 +1393,7 @@ else
             rightSymbols = rightSnapshots.Select(x => x.TeamSymbol).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray(),
             scoreEventCount = chartScoreEvents.Count,
             scoreEventTeamIds = chartScoreEvents.Select(x => x.TeamId).Distinct().ToArray(),
+            scoreEventRuleTypes = chartScoreEvents.Select(x => x.RuleType).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray(),
             leftPreview = leftPoints.Take(3).ToArray(),
             rightPreview = rightPoints.Take(3).ToArray()
         });
@@ -3644,6 +3646,29 @@ else
                     "ArenaPressure" => "Pressao de arena convertida",
                     _ => "Evento de pontuacao detectado"
                 };
+
+    private bool ShouldRenderScoreEventInCompareChart(MatchScoreEventDto scoreEvent)
+    {
+        var ruleType = scoreEvent.RuleType ?? string.Empty;
+        var matchRuleType = Match?.ScoringRuleType ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(ruleType) || string.IsNullOrWhiteSpace(matchRuleType))
+            return false;
+
+        if (matchRuleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase))
+            return IsPercentThresholdRule(ruleType) || IsPercentageCrossoverRule(ruleType);
+
+        if (matchRuleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase))
+            return IsPercentageCrossoverRule(ruleType);
+
+        return false;
+    }
+
+    private static bool IsPercentThresholdRule(string ruleType)
+        => ruleType.Equals("PercentThreshold", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPercentageCrossoverRule(string ruleType)
+        => ruleType.Equals("PercentageCrossover", StringComparison.OrdinalIgnoreCase);
 
     private static double ResolveReplayValue(MatchScoreEventDto scoreEvent)
     {
