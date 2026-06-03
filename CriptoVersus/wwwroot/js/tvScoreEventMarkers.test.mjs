@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 
+import { computeScoreMarkerPlacement } from "./tvChartMarkers.mjs";
+import { disposeChartEntry } from "./tvChartResize.mjs";
+import { normalizeChartTime } from "./tvChartTime.mjs";
 import { buildScoreEventMarkersModel } from "./tvScoreEventMarkers.mjs";
 
 function buildPoints(values) {
@@ -8,6 +11,22 @@ function buildPoints(values) {
 
 function unix(isoDate) {
     return Math.floor(Date.parse(isoDate) / 1000);
+}
+
+function testNormalizesIsoStringToSeconds() {
+    assert.equal(normalizeChartTime("2026-06-02T15:31:05Z"), unix("2026-06-02T15:31:05Z"));
+}
+
+function testNormalizesDateToSeconds() {
+    assert.equal(normalizeChartTime(new Date("2026-06-02T15:31:05Z")), unix("2026-06-02T15:31:05Z"));
+}
+
+function testNormalizesMillisecondsToSeconds() {
+    assert.equal(normalizeChartTime(1780414265000), 1780414265);
+}
+
+function testKeepsSecondsAsSeconds() {
+    assert.equal(normalizeChartTime(1780414265), 1780414265);
 }
 
 function testBuildsEveryOfficialScoreEvent() {
@@ -41,6 +60,54 @@ function testBuildsEveryOfficialScoreEvent() {
     assert.deepEqual(markers.map((marker) => marker.key), ["score:1", "score:2", "score:3", "score:4"]);
 }
 
+function testKeepsMarkerAtSameTimestampAsSeriesPoint() {
+    const [marker] = buildScoreEventMarkersModel({
+        leftPoints: buildPoints([
+            [100, 1.1],
+            [160, 1.6]
+        ]),
+        rightPoints: buildPoints([
+            [100, 0.7],
+            [160, 0.9]
+        ]),
+        scoreEvents: [
+            { matchScoreEventId: 101, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTime: 160, description: "Threshold %." }
+        ],
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
+        leftTeamId: 10,
+        rightTeamId: 20,
+        matchStartTimeUtc: "2026-06-02T15:16:00Z"
+    });
+
+    assert.equal(marker.time, 160);
+    assert.equal(marker.value, 1.6);
+}
+
+function testInterpolatesMarkerBetweenTwoSeriesPoints() {
+    const [marker] = buildScoreEventMarkersModel({
+        leftPoints: buildPoints([
+            [100, 2.0],
+            [160, 4.0]
+        ]),
+        rightPoints: buildPoints([
+            [100, 1.0],
+            [160, 1.5]
+        ]),
+        scoreEvents: [
+            { matchScoreEventId: 102, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTime: 130, description: "Threshold %." }
+        ],
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
+        leftTeamId: 10,
+        rightTeamId: 20,
+        matchStartTimeUtc: "2026-06-02T15:16:00Z"
+    });
+
+    assert.equal(marker.time, 130);
+    assert.ok(Math.abs(marker.value - 3.0) < 0.0001);
+}
+
 function testKeepsSameMinuteEventsByStacking() {
     const markers = buildScoreEventMarkersModel({
         leftPoints: buildPoints([
@@ -68,6 +135,36 @@ function testKeepsSameMinuteEventsByStacking() {
     assert.equal(markers[0].stackIndex, 0);
     assert.equal(markers[1].stackIndex, 1);
     assert.notEqual(markers[0].stackOffsetPx, markers[1].stackOffsetPx);
+}
+
+function testOutOfRangeEventDoesNotBreakChart() {
+    const warnings = [];
+    const markers = buildScoreEventMarkersModel({
+        leftPoints: buildPoints([
+            [100, 1.0],
+            [160, 1.5]
+        ]),
+        rightPoints: buildPoints([
+            [100, 1.0],
+            [160, 1.2]
+        ]),
+        scoreEvents: [
+            { matchScoreEventId: 103, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTime: 99, description: "Too early." }
+        ],
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
+        leftTeamId: 10,
+        rightTeamId: 20
+    }, {
+        diagnostics: {
+            recordDiscardedEvent(reason) {
+                warnings.push(reason);
+            }
+        }
+    });
+
+    assert.equal(markers.length, 0);
+    assert.deepEqual(warnings, ["event-out-of-range"]);
 }
 
 function testPositionsCrossoverMarkerAtRealIntersection() {
@@ -138,8 +235,90 @@ function testPrefersDisplayedSymbolOverTeamIdWhenResolvingSeriesSide() {
     assert.ok(markers[0].value > 4);
 }
 
+function testResizePlacementDoesNotDuplicateMarkers() {
+    const markerEntry = {
+        model: { time: 120, value: 2, stackOffsetPx: 0 },
+        node: {
+            style: {
+                left: "",
+                setProperty() {
+                }
+            },
+            classList: {
+                add() {
+                },
+                remove() {
+                }
+            }
+        }
+    };
+
+    const placementA = computeScoreMarkerPlacement(markerEntry.model, {
+        timeToCoordinate: () => 50,
+        priceToCoordinate: () => 60
+    }, { width: 200, height: 100 });
+    const placementB = computeScoreMarkerPlacement(markerEntry.model, {
+        timeToCoordinate: () => 50,
+        priceToCoordinate: () => 60
+    }, { width: 200, height: 100 });
+
+    assert.deepEqual(placementA, placementB);
+}
+
+function testDisposeRemovesOldListeners() {
+    let clearedTimer = null;
+    let disconnected = 0;
+    let removed = 0;
+    const entry = {
+        markerFadeTimer: 77,
+        overlayRoot: {
+            remove() {
+                removed += 1;
+            }
+        },
+        scoreEventMarkerNodes: [
+            {
+                node: {
+                    remove() {
+                        removed += 1;
+                    }
+                }
+            }
+        ],
+        resizeObserver: {
+            disconnect() {
+                disconnected += 1;
+            }
+        },
+        chart: {
+            remove() {
+                removed += 1;
+            }
+        }
+    };
+
+    disposeChartEntry(entry, {
+        clearTimer(timerId) {
+            clearedTimer = timerId;
+        }
+    });
+
+    assert.equal(clearedTimer, 77);
+    assert.equal(disconnected, 1);
+    assert.equal(removed, 3);
+}
+
+testNormalizesIsoStringToSeconds();
+testNormalizesDateToSeconds();
+testNormalizesMillisecondsToSeconds();
+testKeepsSecondsAsSeconds();
 testBuildsEveryOfficialScoreEvent();
+testKeepsMarkerAtSameTimestampAsSeriesPoint();
+testInterpolatesMarkerBetweenTwoSeriesPoints();
 testKeepsSameMinuteEventsByStacking();
+testOutOfRangeEventDoesNotBreakChart();
 testPositionsCrossoverMarkerAtRealIntersection();
 testPrefersDisplayedSymbolOverTeamIdWhenResolvingSeriesSide();
+testResizePlacementDoesNotDuplicateMarkers();
+testDisposeRemovesOldListeners();
 console.log("tvScoreEventMarkers tests passed");

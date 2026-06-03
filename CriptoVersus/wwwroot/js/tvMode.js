@@ -15,6 +15,40 @@
 let telemetryCubeState = null;
 let telemetryChartsState = null;
 let fieldFreedomState = null;
+import {
+    createTvChartDiagnostics,
+    logTelemetryChartSummary
+} from "./tvChartDiagnostics.mjs";
+import {
+    ensureCompareCrossoverStyles as ensureCompareCrossoverStylesCore,
+    ensureCompareOverlayRoot as ensureCompareOverlayRootCore,
+    buildCompareMarkerNode as buildCompareMarkerNodeCore,
+    buildScoreEventMarkerNode as buildScoreEventMarkerNodeCore,
+    computeScoreMarkerPlacement,
+    applyScoreMarkerPlacement
+} from "./tvChartMarkers.mjs";
+import {
+    applyChartTheme as applyChartThemeCore,
+    addLineSeriesCompat as addLineSeriesCompatCore,
+    addCandlestickSeriesCompat as addCandlestickSeriesCompatCore,
+    normalizeSeriesMeta as normalizeSeriesMetaCore,
+    normalizeCompareLine as normalizeCompareLineCore,
+    buildSyntheticCandles as buildSyntheticCandlesCore,
+    setChartEmptyState as setChartEmptyStateCore
+} from "./tvChartSeries.mjs";
+import {
+    fitChart as fitChartCore,
+    ensureChartResizeObserver,
+    disposeChartEntry as disposeChartEntryCore
+} from "./tvChartResize.mjs";
+import {
+    normalizeChartTime as normalizeChartTimeCore,
+    normalizeChartPoints
+} from "./tvChartTime.mjs";
+import {
+    interpolateSeriesValue as interpolateSeriesValueCore,
+    buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
+} from "./tvScoreEvents.mjs";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -100,6 +134,10 @@ function telemetryChartLog(message, payload) {
     }
 
     console.log(`[TV_CHART] ${message}`, payload);
+}
+
+function getTvChartDiagnostics() {
+    return telemetryChartsState?.activeDiagnostics ?? createTvChartDiagnostics("TV_CHART");
 }
 
 function clamp(value, min, max) {
@@ -3090,387 +3128,42 @@ export function notifyTelemetryCubeEvent(eventKey) {
 }
 
 function applyChartTheme(LightweightCharts, chart) {
-    const solidType = LightweightCharts?.ColorType?.Solid ?? 0;
-
-    chart.applyOptions({
-        layout: {
-            background: { type: solidType, color: "transparent" },
-            textColor: "rgba(219, 232, 247, 0.72)",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif"
-        },
-        grid: {
-            vertLines: { color: "rgba(255,255,255,0.04)" },
-            horzLines: { color: "rgba(255,255,255,0.035)" }
-        },
-        rightPriceScale: {
-            visible: false,
-            borderVisible: false
-        },
-        leftPriceScale: {
-            visible: false,
-            borderVisible: false
-        },
-        timeScale: {
-            visible: false,
-            borderVisible: false,
-            barSpacing: 22
-        },
-        crosshair: {
-            vertLine: { visible: false },
-            horzLine: { visible: false }
-        },
-        handleScroll: {
-            mouseWheel: false,
-            pressedMouseMove: false,
-            horzTouchDrag: false,
-            vertTouchDrag: false
-        },
-        handleScale: {
-            axisPressedMouseMove: { time: false, price: false },
-            mouseWheel: false,
-            pinch: false
-        }
-    });
+    applyChartThemeCore(LightweightCharts, chart);
 }
 
 function ensureResizeObserver(container, chart) {
-    if (!telemetryChartsState) {
-        return;
-    }
-
-    const existing = telemetryChartsState.charts.get(container.id);
-
-    if (existing?.resizeObserver) {
-        return;
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-        const rect = container.getBoundingClientRect();
-
-        chart.applyOptions({
-            width: Math.max(1, Math.floor(rect.width)),
-            height: Math.max(1, Math.floor(rect.height))
-        });
-
-        try {
-            chart.timeScale().fitContent();
-        } catch {
-        }
-
-        const latest = telemetryChartsState?.charts?.get(container.id);
-        if (latest?.kind === "compare") {
+    ensureChartResizeObserver({
+        chartsState: telemetryChartsState,
+        container,
+        chart,
+        chartId: container.id,
+        diagnostics: getTvChartDiagnostics(),
+        onCompareRefresh(latest) {
             positionCompareScoreEventMarkers(latest);
             refreshCompareCrossoverMarker(latest);
         }
     });
-
-    resizeObserver.observe(container);
-
-    telemetryChartsState.charts.set(container.id, {
-        ...existing,
-        container,
-        resizeObserver
-    });
 }
 
 function disposeChartEntry(entry) {
-    if (!entry) {
-        return;
-    }
-
-    try {
-        if (entry.markerFadeTimer) {
-            window.clearTimeout(entry.markerFadeTimer);
-        }
-    } catch {
-    }
-
-    try {
-        entry.overlayRoot?.remove?.();
-    } catch {
-    }
-
     try {
         clearCompareScoreEventMarkers(entry);
     } catch {
     }
 
-    try {
-        entry.resizeObserver?.disconnect?.();
-    } catch {
-    }
-
-    try {
-        entry.chart?.remove?.();
-    } catch {
-    }
+    disposeChartEntryCore(entry);
 }
 
 function addLineSeriesCompat(LightweightCharts, chart, options) {
-    if (typeof chart.addLineSeries === "function") {
-        return chart.addLineSeries(options);
-    }
-
-    if (typeof chart.addSeries === "function" && LightweightCharts?.LineSeries) {
-        return chart.addSeries(LightweightCharts.LineSeries, options);
-    }
-
-    throw new Error("no supported LineSeries API");
+    return addLineSeriesCompatCore(LightweightCharts, chart, options);
 }
 
 function addCandlestickSeriesCompat(LightweightCharts, chart, options) {
-    if (typeof chart.addCandlestickSeries === "function") {
-        return chart.addCandlestickSeries(options);
-    }
-
-    if (typeof chart.addSeries === "function" && LightweightCharts?.CandlestickSeries) {
-        return chart.addSeries(LightweightCharts.CandlestickSeries, options);
-    }
-
-    throw new Error("no supported CandlestickSeries API");
+    return addCandlestickSeriesCompatCore(LightweightCharts, chart, options);
 }
 
 function ensureCompareCrossoverStyles() {
-    if (typeof document === "undefined" || document.getElementById("tv-chart-crossover-styles")) {
-        return;
-    }
-
-    const style = document.createElement("style");
-    style.id = "tv-chart-crossover-styles";
-    style.textContent = `
-.tv-chart-crossover-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 4;
-    overflow: hidden;
-}
-
-.tv-chart-crossover-marker {
-    position: absolute;
-    width: 0;
-    top: 0;
-    bottom: 0;
-    opacity: 0;
-    transition: opacity 180ms ease;
-}
-
-.tv-chart-crossover-marker.is-visible {
-    opacity: 1;
-}
-
-.tv-chart-crossover-marker__beam {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    transform: translateX(-50%);
-    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 8%) 24%, color-mix(in srgb, var(--battle-accent, #53c8ff) 92%, transparent) 55%, transparent 100%);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent);
-    opacity: 0.72;
-}
-
-.tv-chart-crossover-marker__beam::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 10px;
-    height: 44px;
-    transform: translate(-50%, -50%);
-    background: radial-gradient(circle, color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent) 0%, transparent 70%);
-    filter: blur(4px);
-    opacity: 0.8;
-}
-
-.tv-chart-crossover-marker__badge {
-    position: absolute;
-    left: 0;
-    top: var(--battle-y, 50%);
-    width: 36px;
-    height: 36px;
-    transform: translate(-50%, -50%);
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 14%);
-    background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 42%),
-        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 38%),
-        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 30%, rgba(4, 10, 20, 0.94)), rgba(5, 12, 24, 0.96));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--battle-accent, #53c8ff) 28%, transparent),
-        0 0 22px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent),
-        0 10px 24px rgba(0,0,0,.32);
-    animation: tvChartCrossoverPop 520ms cubic-bezier(.19,1,.22,1);
-}
-
-.tv-chart-crossover-marker.is-resting .tv-chart-crossover-marker__badge {
-    animation: none;
-}
-
-.tv-chart-crossover-marker__badge img {
-    width: 76%;
-    height: 76%;
-    object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(255,255,255,.16));
-}
-
-.tv-chart-crossover-marker__fallback {
-    font-size: 0.72rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    color: #f4fbff;
-    text-transform: uppercase;
-    text-shadow: 0 1px 0 rgba(0,0,0,.36);
-}
-
-.tv-chart-score-marker {
-    position: absolute;
-    width: 0;
-    top: 0;
-    bottom: 0;
-    opacity: 0;
-    transition: opacity 180ms ease;
-    pointer-events: none;
-}
-
-.tv-chart-score-marker.is-visible {
-    opacity: 1;
-}
-
-.tv-chart-score-marker__beam {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    transform: translateX(-50%);
-    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 76%, white 8%) 24%, color-mix(in srgb, var(--battle-accent, #53c8ff) 88%, transparent) 58%, transparent 100%);
-    box-shadow: 0 0 14px color-mix(in srgb, var(--battle-accent, #53c8ff) 34%, transparent);
-    opacity: 0.52;
-}
-
-.tv-chart-score-marker__badge {
-    position: absolute;
-    left: 0;
-    top: var(--battle-y, 50%);
-    width: 30px;
-    height: 30px;
-    transform: translate(-50%, -50%);
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    overflow: visible;
-    pointer-events: auto;
-}
-
-.tv-chart-score-marker__badge-shell {
-    width: 100%;
-    height: 100%;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 14%);
-    background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 42%),
-        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 38%),
-        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 30%, rgba(4, 10, 20, 0.94)), rgba(5, 12, 24, 0.96));
-    box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--battle-accent, #53c8ff) 22%, transparent),
-        0 0 18px color-mix(in srgb, var(--battle-accent, #53c8ff) 38%, transparent),
-        0 10px 24px rgba(0,0,0,.28);
-    animation: tvChartCrossoverPop 460ms cubic-bezier(.19,1,.22,1);
-}
-
-.tv-chart-score-marker__badge img {
-    width: 76%;
-    height: 76%;
-    object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(255,255,255,.16));
-}
-
-.tv-chart-score-marker__fallback {
-    font-size: 0.68rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    color: #f4fbff;
-    text-transform: uppercase;
-    text-shadow: 0 1px 0 rgba(0,0,0,.36);
-}
-
-.tv-chart-score-marker__tooltip {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 10px);
-    min-width: 158px;
-    max-width: 220px;
-    padding: 9px 10px;
-    border-radius: 12px;
-    background: linear-gradient(180deg, rgba(7, 15, 28, 0.96), rgba(4, 10, 22, 0.98));
-    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(255,255,255,.12));
-    box-shadow: 0 14px 30px rgba(0,0,0,.34), 0 0 18px color-mix(in srgb, var(--battle-accent, #53c8ff) 16%, transparent);
-    transform: translate(-50%, 4px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 140ms ease, transform 140ms ease;
-}
-
-.tv-chart-score-marker__tooltip::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: -5px;
-    width: 10px;
-    height: 10px;
-    background: inherit;
-    border-left: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(255,255,255,.12));
-    border-top: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(255,255,255,.12));
-    transform: translateX(-50%) rotate(45deg);
-}
-
-.tv-chart-score-marker__badge:hover .tv-chart-score-marker__tooltip,
-.tv-chart-score-marker__badge:focus-within .tv-chart-score-marker__tooltip {
-    opacity: 1;
-    transform: translate(-50%, 0);
-}
-
-.tv-chart-score-marker__tooltip-time {
-    display: block;
-    margin-bottom: 4px;
-    font-size: 0.68rem;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    color: rgba(207, 232, 255, 0.78);
-    text-transform: uppercase;
-}
-
-.tv-chart-score-marker__tooltip-title {
-    display: block;
-    font-size: 0.82rem;
-    font-weight: 900;
-    color: #f7fcff;
-}
-
-.tv-chart-score-marker__tooltip-reason {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.72rem;
-    line-height: 1.35;
-    color: rgba(216, 230, 245, 0.82);
-}
-
-@keyframes tvChartCrossoverPop {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-    68% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-`;
-
-    document.head.appendChild(style);
+    ensureCompareCrossoverStylesCore();
 }
 
 function normalizeSeriesMeta(meta, fallbackColor) {
@@ -3480,71 +3173,15 @@ function normalizeSeriesMeta(meta, fallbackColor) {
         ? meta.accentColor.trim()
         : fallbackColor;
 
-    return {
-        symbol,
-        logoUrl,
-        accentColor
-    };
-}
-
-function getBattleFallbackLabel(symbol) {
-    if (typeof symbol !== "string" || symbol.trim().length === 0) {
-        return "?";
-    }
-
-    const compact = symbol.trim().replace(/[^a-z0-9]/gi, "");
-    return compact.slice(0, compact.length >= 4 ? 3 : 2).toUpperCase() || "?";
+    return normalizeSeriesMetaCore(meta, fallbackColor);
 }
 
 function ensureCompareOverlayRoot(state) {
-    ensureCompareCrossoverStyles();
-
-    if (state.overlayRoot?.isConnected) {
-        return state.overlayRoot;
-    }
-
-    const overlayRoot = document.createElement("div");
-    overlayRoot.className = "tv-chart-crossover-layer";
-    state.container.appendChild(overlayRoot);
-    state.overlayRoot = overlayRoot;
-    return overlayRoot;
+    return ensureCompareOverlayRootCore(state);
 }
 
 function interpolateSeriesValue(points, time) {
-    if (!Array.isArray(points) || points.length === 0) {
-        return null;
-    }
-
-    if (time < points[0].time || time > points[points.length - 1].time) {
-        return null;
-    }
-
-    if (time === points[0].time) {
-        return points[0].value;
-    }
-
-    if (time === points[points.length - 1].time) {
-        return points[points.length - 1].value;
-    }
-
-    for (let index = 0; index < points.length - 1; index += 1) {
-        const start = points[index];
-        const end = points[index + 1];
-
-        if (time < start.time || time > end.time) {
-            continue;
-        }
-
-        const span = end.time - start.time;
-        if (span === 0) {
-            return end.value;
-        }
-
-        const ratio = clamp((time - start.time) / span, 0, 1);
-        return start.value + ((end.value - start.value) * ratio);
-    }
-
-    return null;
+    return interpolateSeriesValueCore(points, time);
 }
 
 function buildBattleSamples(leftPoints, rightPoints) {
@@ -3684,7 +3321,7 @@ function clearCompareScoreEventMarkers(state) {
     if (Array.isArray(state.scoreEventMarkerNodes)) {
         for (const markerNode of state.scoreEventMarkerNodes) {
             try {
-                markerNode?.remove?.();
+                markerNode?.node?.remove?.();
             } catch {
             }
         }
@@ -3695,99 +3332,11 @@ function clearCompareScoreEventMarkers(state) {
 }
 
 function buildCompareMarkerNode(meta) {
-    const marker = document.createElement("div");
-    marker.className = "tv-chart-crossover-marker";
-    marker.style.setProperty("--battle-accent", meta.accentColor);
-
-    const beam = document.createElement("div");
-    beam.className = "tv-chart-crossover-marker__beam";
-
-    const badge = document.createElement("div");
-    badge.className = "tv-chart-crossover-marker__badge";
-
-    const fallback = document.createElement("span");
-    fallback.className = "tv-chart-crossover-marker__fallback";
-    fallback.textContent = getBattleFallbackLabel(meta.symbol);
-    badge.appendChild(fallback);
-
-    if (meta.logoUrl) {
-        const image = document.createElement("img");
-        image.alt = "";
-        image.src = meta.logoUrl;
-        image.addEventListener("load", () => {
-            fallback.style.display = "none";
-        }, { once: true });
-        image.addEventListener("error", () => {
-            image.remove();
-            fallback.style.display = "grid";
-        }, { once: true });
-        badge.appendChild(image);
-    }
-
-    marker.appendChild(beam);
-    marker.appendChild(badge);
-    return marker;
+    return buildCompareMarkerNodeCore(meta);
 }
 
 function buildScoreEventMarkerNode(markerModel) {
-    const marker = document.createElement("div");
-    marker.className = "tv-chart-score-marker";
-    marker.style.setProperty("--battle-accent", markerModel.accentColor);
-
-    const beam = document.createElement("div");
-    beam.className = "tv-chart-score-marker__beam";
-
-    const badge = document.createElement("div");
-    badge.className = "tv-chart-score-marker__badge";
-
-    const badgeShell = document.createElement("div");
-    badgeShell.className = "tv-chart-score-marker__badge-shell";
-
-    const fallback = document.createElement("span");
-    fallback.className = "tv-chart-score-marker__fallback";
-    fallback.textContent = getBattleFallbackLabel(markerModel.teamSymbol);
-    badgeShell.appendChild(fallback);
-
-    if (markerModel.logoUrl) {
-        const image = document.createElement("img");
-        image.alt = "";
-        image.src = markerModel.logoUrl;
-        image.addEventListener("load", () => {
-            fallback.style.display = "none";
-        }, { once: true });
-        image.addEventListener("error", () => {
-            image.remove();
-            fallback.style.display = "grid";
-        }, { once: true });
-        badgeShell.appendChild(image);
-    }
-
-    const tooltip = document.createElement("div");
-    tooltip.className = "tv-chart-score-marker__tooltip";
-
-    const tooltipTime = document.createElement("span");
-    tooltipTime.className = "tv-chart-score-marker__tooltip-time";
-    tooltipTime.textContent = markerModel.minuteLabel;
-
-    const tooltipTitle = document.createElement("span");
-    tooltipTitle.className = "tv-chart-score-marker__tooltip-title";
-    tooltipTitle.textContent = `${markerModel.teamSymbol} +${markerModel.points}`;
-
-    const tooltipReason = document.createElement("span");
-    tooltipReason.className = "tv-chart-score-marker__tooltip-reason";
-    tooltipReason.textContent = markerModel.reason;
-
-    tooltip.appendChild(tooltipTime);
-    tooltip.appendChild(tooltipTitle);
-    tooltip.appendChild(tooltipReason);
-
-    badge.appendChild(badgeShell);
-    badge.appendChild(tooltip);
-    badge.title = `${markerModel.minuteLabel}\n${markerModel.teamSymbol} +${markerModel.points}\n${markerModel.reason}`;
-
-    marker.appendChild(beam);
-    marker.appendChild(badge);
-    return marker;
+    return buildScoreEventMarkerNodeCore(markerModel);
 }
 
 function positionCompareCrossoverMarker(state) {
@@ -3840,34 +3389,26 @@ function positionCompareScoreEventMarkers(state) {
     }
 
     const rect = state.container.getBoundingClientRect();
+    const diagnostics = getTvChartDiagnostics();
 
     state.scoreEventMarkerNodes.forEach((entry) => {
         const series = entry.model.side === "right" ? state.rightSeries : state.leftSeries;
-        const x = timeScale.timeToCoordinate(entry.model.time);
-        const yBase = series?.priceToCoordinate?.(entry.model.value);
-        const coordinate = Number.isFinite(x) ? x : null;
-
-        console.log("[TV_CHART] score marker time", {
-            rawTime: entry.model.rawTime,
-            normalizedTime: entry.model.normalizedTime ?? entry.model.time,
-            firstSeriesTime: entry.model.firstSeriesTime,
-            lastSeriesTime: entry.model.lastSeriesTime,
-            coordinate,
-            status: entry.model.visibilityReason ?? "ok"
+        const placement = computeScoreMarkerPlacement(entry.model, {
+            timeToCoordinate: (time) => timeScale.timeToCoordinate(time),
+            priceToCoordinate: (value) => series?.priceToCoordinate?.(value)
+        }, {
+            width: rect.width,
+            height: rect.height,
+            diagnostics
         });
 
-        if (!Number.isFinite(x) || !Number.isFinite(yBase)) {
-            entry.node.classList.remove("is-visible");
-            return;
+        if (applyScoreMarkerPlacement(entry, placement)) {
+            diagnostics.recordPositionedEvent?.({
+                key: entry.model.key,
+                time: entry.model.time,
+                teamSymbol: entry.model.teamSymbol
+            });
         }
-
-        const y = clamp(
-            yBase + (Number(entry.model.stackOffsetPx) || 0),
-            18,
-            Math.max(18, rect.height - 18));
-        entry.node.style.left = `${x}px`;
-        entry.node.style.setProperty("--battle-y", `${y}px`);
-        entry.node.classList.add("is-visible");
     });
 }
 
@@ -3940,17 +3481,16 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
 }
 
 function maybeRenderCompareScoreEvents(state, payload, leftPoints, rightPoints, leftMeta, rightMeta) {
-    const markerLeftPoints = normalizePoints(payload?.leftMarkerPoints);
-    const markerRightPoints = normalizePoints(payload?.rightMarkerPoints);
     const markerModels = buildScoreEventMarkersModel({
-        leftPoints: markerLeftPoints.length > 0 ? markerLeftPoints : leftPoints,
-        rightPoints: markerRightPoints.length > 0 ? markerRightPoints : rightPoints,
+        leftPoints,
+        rightPoints,
         scoreEvents: payload?.scoreEvents,
         leftMeta,
         rightMeta,
         leftTeamId: payload?.leftTeamId,
         rightTeamId: payload?.rightTeamId,
-        matchStartTimeUtc: payload?.matchStartTimeUtc
+        matchStartTimeUtc: payload?.matchStartTimeUtc,
+        plotCache: state?.scoreEventPlotCache
     });
 
     if (markerModels.length > 0) {
@@ -4107,6 +3647,7 @@ async function ensureCompareChart(containerId) {
         markerFadeTimer: null,
         scoreEventMarkers: [],
         scoreEventMarkerNodes: [],
+        scoreEventPlotCache: new Map(),
         leftMeta: null,
         rightMeta: null
     };
@@ -4118,56 +3659,19 @@ async function ensureCompareChart(containerId) {
 }
 
 function normalizePoints(points) {
-    if (!Array.isArray(points)) {
-        return [];
-    }
-
-    return points
-        .map((p) => {
-            if (!p) {
-                return null;
-            }
-
-            const time = normalizeChartTime(p.time);
-            const value = Number(p.value);
-
-            if (!Number.isFinite(time) || !Number.isFinite(value)) {
-                return null;
-            }
-
-            return { time, value };
-        })
-        .filter(Boolean)
-        .sort((a, b) => a.time - b.time);
+    return normalizeChartPoints(points, {
+        diagnostics: getTvChartDiagnostics(),
+        source: "raw snapshots"
+    }).map((point) => ({
+        time: point.time,
+        value: point.value
+    }));
 }
 
 function normalizeChartTime(value) {
-    if (typeof value === "string" && value.trim().length > 0) {
-        const parsed = Date.parse(value);
-        if (Number.isFinite(parsed)) {
-            return Math.floor(parsed / 1000);
-        }
-    }
-
-    if (value instanceof Date) {
-        return Math.floor(value.getTime() / 1000);
-    }
-
-    if (typeof value === "number" && Number.isFinite(value)) {
-        if (value > 100000000000) {
-            return Math.floor(value / 1000);
-        }
-
-        if (value > 1000000000) {
-            return Math.floor(value);
-        }
-
-        if (value >= 0) {
-            return Math.floor(value);
-        }
-    }
-
-    return null;
+    return normalizeChartTimeCore(value, {
+        diagnostics: getTvChartDiagnostics()
+    });
 }
 
 function normalizeScoreEventSymbol(symbol) {
@@ -4311,6 +3815,7 @@ function buildBattleCrossovers(leftPoints, rightPoints) {
 function resolveScoreEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, crossoverMatches) {
     if (isCrossoverScoreEvent(scoreEvent)) {
         const eventTime = scoreEvent.eventTime;
+        const crossoverMatchToleranceSeconds = 180;
         const matchingCrossovers = crossoverMatches
             .map((crossover, index) => ({ crossover, index }))
             .filter((entry) => {
@@ -4323,13 +3828,27 @@ function resolveScoreEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, c
                 return eventTime >= windowStart && eventTime <= windowEnd;
             });
 
-        if (matchingCrossovers.length === 0) {
+        let eligibleCrossovers = matchingCrossovers;
+
+        if (eligibleCrossovers.length === 0) {
+            eligibleCrossovers = crossoverMatches
+                .map((crossover, index) => ({ crossover, index }))
+                .filter((entry) => {
+                    if (entry.crossover.side !== side || entry.crossover.used) {
+                        return false;
+                    }
+
+                    return Math.abs(entry.crossover.crossTime - eventTime) <= crossoverMatchToleranceSeconds;
+                });
+        }
+
+        if (eligibleCrossovers.length === 0) {
             return null;
         }
 
-        matchingCrossovers.sort((a, b) => {
-            const deltaA = Math.abs(a.crossover.currentTime - eventTime);
-            const deltaB = Math.abs(b.crossover.currentTime - eventTime);
+        eligibleCrossovers.sort((a, b) => {
+            const deltaA = Math.abs(a.crossover.crossTime - eventTime);
+            const deltaB = Math.abs(b.crossover.crossTime - eventTime);
             if (deltaA !== deltaB) {
                 return deltaA - deltaB;
             }
@@ -4337,7 +3856,7 @@ function resolveScoreEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, c
             return a.crossover.crossTime - b.crossover.crossTime;
         });
 
-        const winner = matchingCrossovers[0];
+        const winner = eligibleCrossovers[0];
         crossoverMatches[winner.index].used = true;
 
         return {
@@ -4359,269 +3878,39 @@ function resolveScoreEventPlotPoint(scoreEvent, side, leftPoints, rightPoints, c
 }
 
 function buildScoreEventMarkersModel(payload) {
-    const normalizedLeftPoints = normalizePoints(payload?.leftPoints);
-    const normalizedRightPoints = normalizePoints(payload?.rightPoints);
-    const firstSeriesTime = Math.max(
-        normalizedLeftPoints[0]?.time ?? Number.NaN,
-        normalizedRightPoints[0]?.time ?? Number.NaN);
-    const lastSeriesTime = Math.min(
-        normalizedLeftPoints[normalizedLeftPoints.length - 1]?.time ?? Number.NaN,
-        normalizedRightPoints[normalizedRightPoints.length - 1]?.time ?? Number.NaN);
-    const normalizedScoreEvents = Array.isArray(payload?.scoreEvents)
-        ? payload.scoreEvents
-            .map((scoreEvent) => {
-                const rawTime =
-                    scoreEvent?.eventTimeUtc
-                    ?? scoreEvent?.occurredAtUtc
-                    ?? scoreEvent?.createdAtUtc
-                    ?? scoreEvent?.capturedAtUtc
-                    ?? scoreEvent?.time
-                    ?? scoreEvent?.eventTime;
-                const eventTime = normalizeChartTime(rawTime);
-                const points = Number(scoreEvent?.points ?? 0);
-                const matchScoreEventId = Number(scoreEvent?.matchScoreEventId ?? 0);
-
-                if (!Number.isFinite(eventTime) || !Number.isFinite(points) || points <= 0) {
-                    return null;
-                }
-
-                return {
-                    matchScoreEventId,
-                    rawTime,
-                    eventTime,
-                    points,
-                    teamId: scoreEvent?.teamId ?? null,
-                    teamSymbol: typeof scoreEvent?.teamSymbol === "string" ? scoreEvent.teamSymbol : "",
-                    ruleType: typeof scoreEvent?.ruleType === "string" ? scoreEvent.ruleType : "",
-                    eventType: typeof scoreEvent?.eventType === "string" ? scoreEvent.eventType : "",
-                    reasonCode: typeof scoreEvent?.reasonCode === "string" ? scoreEvent.reasonCode : "",
-                    description: typeof scoreEvent?.description === "string" ? scoreEvent.description : "",
-                    reason: typeof scoreEvent?.description === "string" && scoreEvent.description.length > 0
-                        ? scoreEvent.description
-                        : typeof scoreEvent?.reasonCode === "string" && scoreEvent.reasonCode.length > 0
-                            ? scoreEvent.reasonCode
-                            : typeof scoreEvent?.eventType === "string" && scoreEvent.eventType.length > 0
-                                ? scoreEvent.eventType
-                                : "Score event",
-                    visibilityReason: "ok"
-                };
-            })
-            .filter(Boolean)
-            .sort((a, b) => a.eventTime === b.eventTime ? a.matchScoreEventId - b.matchScoreEventId : a.eventTime - b.eventTime)
-        : [];
-
-    if (normalizedLeftPoints.length === 0 || normalizedRightPoints.length === 0 || normalizedScoreEvents.length === 0) {
-        return [];
-    }
-
-    const overlapStart = firstSeriesTime;
-    const overlapEnd = lastSeriesTime;
-
-    if (!Number.isFinite(overlapStart) || !Number.isFinite(overlapEnd) || overlapEnd < overlapStart) {
-        return [];
-    }
-
-    const stackState = new Map();
-    const crossoverMatches = buildBattleCrossovers(normalizedLeftPoints, normalizedRightPoints)
-        .map((crossover) => ({ ...crossover, used: false }));
-
-    return normalizedScoreEvents
-        .map((scoreEvent) => {
-            const side = resolveScoreEventSeriesSide(
-                scoreEvent,
-                payload?.leftMeta,
-                payload?.rightMeta,
-                payload?.leftTeamId,
-                payload?.rightTeamId);
-            if (!side) {
-                return null;
-            }
-
-            let normalizedEventTime = scoreEvent.eventTime;
-            const visibilityReason = "ok";
-
-            if (normalizedEventTime < overlapStart || normalizedEventTime > overlapEnd) {
-                console.log("[TV_CHART] score marker time", {
-                    rawTime: scoreEvent.rawTime,
-                    normalizedTime: scoreEvent.eventTime,
-                    firstSeriesTime,
-                    lastSeriesTime,
-                    coordinate: null,
-                    status: "event-out-of-range"
-                });
-                return null;
-            }
-
-            const plotPoint = resolveScoreEventPlotPoint(
-                {
-                    ...scoreEvent,
-                    eventTime: normalizedEventTime
-                },
-                side,
-                normalizedLeftPoints,
-                normalizedRightPoints,
-                crossoverMatches);
-            if (!plotPoint || !Number.isFinite(plotPoint.time) || !Number.isFinite(plotPoint.value)) {
-                console.log("[TV_CHART] score marker time", {
-                    rawTime: scoreEvent.rawTime,
-                    normalizedTime: normalizedEventTime,
-                    firstSeriesTime,
-                    lastSeriesTime,
-                    coordinate: null,
-                    status: "invalid-plot-point"
-                });
-                return null;
-            }
-
-            const meta = side === "left" ? payload?.leftMeta : payload?.rightMeta;
-            const minuteBucket = Math.floor(plotPoint.time / 60);
-            const stackKey = `${side}:${minuteBucket}`;
-            const stackIndex = stackState.get(stackKey) ?? 0;
-            stackState.set(stackKey, stackIndex + 1);
-
-            return {
-                key: `score:${scoreEvent.matchScoreEventId || `${side}:${scoreEvent.eventTime}:${stackIndex}`}`,
-                side,
-                time: plotPoint.time,
-                value: plotPoint.value,
-                rawTime: scoreEvent.rawTime,
-                normalizedTime: normalizedEventTime,
-                firstSeriesTime,
-                lastSeriesTime,
-                visibilityReason,
-                stackIndex,
-                stackOffsetPx: buildScoreEventStackOffset(stackIndex),
-                teamSymbol: scoreEvent.teamSymbol || meta?.symbol || "",
-                logoUrl: typeof meta?.logoUrl === "string" ? meta.logoUrl : "",
-                accentColor: typeof meta?.accentColor === "string" ? meta.accentColor : "",
-                points: scoreEvent.points,
-                reason: scoreEvent.reason,
-                minuteLabel: buildGameMinuteLabel(payload?.matchStartTimeUtc, scoreEvent.eventTime)
-            };
-        })
-        .filter(Boolean);
+    return buildScoreEventMarkersModelCore(payload, {
+        diagnostics: getTvChartDiagnostics()
+    });
 }
 
 function normalizeCompareLine(points) {
-    return normalizePoints(points)
-        .map((point) => ({
-            time: point.time,
-            value: point.value
-        }));
+    return normalizeCompareLineCore(points, {
+        diagnostics: getTvChartDiagnostics(),
+        source: "raw snapshots"
+    });
 }
 
 function buildSyntheticCandles(points, bucketSeconds = 30) {
-    const normalized = normalizePoints(points);
-    const buckets = new Map();
-
-    for (const point of normalized) {
-        const bucketTime = Math.floor(point.time / bucketSeconds) * bucketSeconds;
-
-        if (!buckets.has(bucketTime)) {
-            buckets.set(bucketTime, []);
-        }
-
-        buckets.get(bucketTime).push(point);
-    }
-
-    let previousClose = null;
-
-    let candles = Array.from(buckets.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([time, bucket]) => {
-            bucket.sort((a, b) => a.time - b.time);
-
-            const current = bucket[bucket.length - 1].value;
-            const open = previousClose ?? bucket[0].value;
-            const close = current;
-            previousClose = close;
-
-            let high = Math.max(...bucket.map((x) => x.value));
-            let low = Math.min(...bucket.map((x) => x.value));
-
-            const delta = close - open;
-            const baseRange = high - low;
-
-            // Cinematic synthetic volatility: ensures visible bodies/wicks even when pct changes are small.
-            let volatility = Math.max(Math.abs(delta) * 0.45, Math.abs(baseRange) * 0.35, 0.12);
-            volatility = Math.min(volatility, 1.8);
-
-            high = Math.max(high, open, close) + volatility;
-            low = Math.min(low, open, close) - volatility;
-
-            return {
-                time,
-                open,
-                high,
-                low,
-                close
-            };
-        });
-
-    if (candles.length === 1) {
-        const only = candles[0];
-        const previousTime = only.time - bucketSeconds;
-        const padding = Math.max(Math.abs(only.close) * 0.006, 0.05);
-
-        candles = [
-            {
-                time: previousTime,
-                open: only.open - padding,
-                high: only.high,
-                low: only.low - padding,
-                close: only.open
-            },
-            only
-        ];
-    }
-
-    return candles;
+    return buildSyntheticCandlesCore(points, bucketSeconds, {
+        diagnostics: getTvChartDiagnostics(),
+        source: "raw snapshots"
+    });
 }
 
 function setChartEmptyState(containerId, isEmpty, message = "coletando candles") {
-    const container = document.getElementById(containerId);
-
-    if (!container) {
-        return;
-    }
-
-    let badge = container.querySelector(".tv-chart-empty-state");
-
-    if (!isEmpty) {
-        badge?.remove();
-        return;
-    }
-
-    if (!badge) {
-        badge = document.createElement("div");
-        badge.className = "tv-chart-empty-state";
-        badge.style.position = "absolute";
-        badge.style.inset = "0";
-        badge.style.display = "grid";
-        badge.style.placeItems = "center";
-        badge.style.color = "rgba(219, 232, 247, 0.60)";
-        badge.style.fontSize = "0.76rem";
-        badge.style.fontWeight = "900";
-        badge.style.letterSpacing = "0.12em";
-        badge.style.textTransform = "uppercase";
-        badge.style.pointerEvents = "none";
-        badge.style.zIndex = "2";
-        container.appendChild(badge);
-    }
-
-    badge.textContent = message;
+    setChartEmptyStateCore(containerId, isEmpty, message);
 }
 
 function fitChart(chart) {
-    try {
-        chart.timeScale().fitContent();
-    } catch {
-    }
+    fitChartCore(chart);
 }
 
 export async function updateTelemetryCharts(payload) {
     telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
-    telemetryChartsState.lastPayload = payload;
+    const safePayload = payload ?? {};
+    const diagnostics = createTvChartDiagnostics("TV_CHART");
+    telemetryChartsState.activeDiagnostics = diagnostics;
+    telemetryChartsState.lastPayload = safePayload;
 
     if (!hasChartContainers()) {
         if (throttleKey("TV_CHART", "waiting containers", 1500)) {
@@ -4633,10 +3922,10 @@ export async function updateTelemetryCharts(payload) {
     }
 
     try {
-        const leftPoints = normalizePoints(payload?.left);
-        const rightPoints = normalizePoints(payload?.right);
-        const leftMeta = normalizeSeriesMeta(payload?.leftMeta, "rgba(255, 215, 110, 0.96)");
-        const rightMeta = normalizeSeriesMeta(payload?.rightMeta, "rgba(134, 201, 255, 0.92)");
+        const leftPoints = normalizePoints(safePayload.left);
+        const rightPoints = normalizePoints(safePayload.right);
+        const leftMeta = normalizeSeriesMeta(safePayload.leftMeta, "rgba(255, 215, 110, 0.96)");
+        const rightMeta = normalizeSeriesMeta(safePayload.rightMeta, "rgba(134, 201, 255, 0.92)");
 
         const leftCandles = buildSyntheticCandles(leftPoints, 30);
         const rightCandles = buildSyntheticCandles(rightPoints, 30);
@@ -4678,7 +3967,7 @@ export async function updateTelemetryCharts(payload) {
         fitChart(left.chart);
         fitChart(right.chart);
         fitChart(compare.chart);
-        const renderedOfficialScoreEvents = maybeRenderCompareScoreEvents(compare, payload, leftPoints, rightPoints, leftMeta, rightMeta);
+        const renderedOfficialScoreEvents = maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
         if (!renderedOfficialScoreEvents) {
             maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
         }
@@ -4698,8 +3987,23 @@ export async function updateTelemetryCharts(payload) {
             rightCandles: rightCandles.length,
             leftPoints: leftPoints.length,
             rightPoints: rightPoints.length,
-            scoreEvents: Array.isArray(payload?.scoreEvents) ? payload.scoreEvents.length : 0,
+            scoreEvents: Array.isArray(safePayload.scoreEvents) ? safePayload.scoreEvents.length : 0,
             officialMarkers: compare.scoreEventMarkers?.length ?? 0
+        });
+
+        const minSeriesTime = Math.min(leftPoints[0]?.time ?? Number.POSITIVE_INFINITY, rightPoints[0]?.time ?? Number.POSITIVE_INFINITY);
+        const maxSeriesTime = Math.max(
+            leftPoints[leftPoints.length - 1]?.time ?? Number.NEGATIVE_INFINITY,
+            rightPoints[rightPoints.length - 1]?.time ?? Number.NEGATIVE_INFINITY);
+
+        logTelemetryChartSummary(diagnostics, safePayload, {
+            leftCandles: leftCandles.length,
+            rightCandles: rightCandles.length,
+            leftPoints: leftPoints.length,
+            rightPoints: rightPoints.length,
+            officialMarkers: compare.scoreEventMarkers?.length ?? 0,
+            minTime: Number.isFinite(minSeriesTime) ? minSeriesTime : null,
+            maxTime: Number.isFinite(maxSeriesTime) ? maxSeriesTime : null
         });
 
         if (splitLeft || splitRight) {
@@ -4718,6 +4022,10 @@ export async function updateTelemetryCharts(payload) {
         }
 
         setCubeFace(0, "chart-error");
+    } finally {
+        if (telemetryChartsState) {
+            telemetryChartsState.activeDiagnostics = null;
+        }
     }
 }
 

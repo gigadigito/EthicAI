@@ -1,7 +1,8 @@
 {
   "scripts": {
     "ts:watch": "tsc -w",
-    "ts:build": "tsc"
+    "ts:build": "tsc",
+    "test:tv-charts": "node ./wwwroot/js/tvScoreEventMarkers.test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
