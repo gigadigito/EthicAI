@@ -50,6 +50,7 @@ import {
     interpolateSeriesValue as interpolateSeriesValueCore,
     buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
 } from "./tvScoreEvents.mjs";
+import { findLineCrossovers } from "./tvLineCrossovers.mjs";
 import { createTelemetryCubeController } from "./tvTelemetryCube.mjs";
 import { createTvAudioFacade } from "./tvAudioFacade.mjs";
 import {
@@ -2545,6 +2546,17 @@ function addCandlestickSeriesCompat(LightweightCharts, chart, options) {
     return addCandlestickSeriesCompatCore(LightweightCharts, chart, options);
 }
 
+function applySeriesMarkersCompat(LightweightCharts, series, markers) {
+    if (typeof series?.setMarkers === "function") {
+        series.setMarkers(markers);
+        return;
+    }
+
+    if (typeof LightweightCharts?.createSeriesMarkers === "function") {
+        LightweightCharts.createSeriesMarkers(series, markers);
+    }
+}
+
 function ensureCompareCrossoverStyles() {
     ensureCompareCrossoverStylesCore();
 }
@@ -2694,6 +2706,16 @@ function clearCompareCrossoverMarker(state) {
 
     state.markerNode = null;
     state.currentCrossover = null;
+
+    try {
+        state.crossoverSeries?.setData?.([]);
+    } catch {
+    }
+
+    try {
+        applySeriesMarkersCompat(state.LightweightCharts, state.crossoverSeries, []);
+    } catch {
+    }
 }
 
 function clearCompareScoreEventMarkers(state) {
@@ -2814,53 +2836,46 @@ function renderCompareScoreEventMarkers(state, markerModels) {
 }
 
 function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, rightMeta) {
-    const nextMarker = findLatestBattleCrossover(leftPoints, rightPoints);
+    const diagnostics = getTvChartDiagnostics();
+    const crossovers = findLineCrossovers(leftPoints, rightPoints, { diagnostics });
+    const nextMarker = crossovers[crossovers.length - 1] ?? null;
     if (!nextMarker) {
         clearCompareCrossoverMarker(state);
         return;
     }
 
-    const currentMarker = state.currentCrossover;
-    const sameSignature = currentMarker && currentMarker.signature === nextMarker.signature;
-    if (sameSignature) {
-        state.currentCrossover = {
-            ...currentMarker,
-            ...nextMarker
-        };
-        refreshCompareCrossoverMarker(state);
-        return;
-    }
-
-    if (currentMarker) {
-        const secondsSinceCross = nextMarker.crossTime - currentMarker.crossTime;
-        const changedWinner = nextMarker.winner !== currentMarker.winner;
-        if (secondsSinceCross < (changedWinner ? 6 : 14)) {
-            return;
-        }
-    }
-
-    const winnerMeta = nextMarker.winner === "right" ? rightMeta : leftMeta;
-    const overlayRoot = ensureCompareOverlayRoot(state);
-
     clearCompareCrossoverMarker(state);
-
-    const markerNode = buildCompareMarkerNode(winnerMeta);
-    overlayRoot.appendChild(markerNode);
-
-    state.markerNode = markerNode;
-    state.currentCrossover = {
-        ...nextMarker,
-        renderedAt: Date.now(),
+    const winnerMeta = nextMarker.direction === "a-crosses-above" ? leftMeta : rightMeta;
+    const markerPoint = {
+        time: nextMarker.time,
+        value: nextMarker.value
+    };
+    const markerModel = {
+        time: nextMarker.time,
+        value: nextMarker.value,
+        direction: nextMarker.direction,
         winnerMeta
     };
 
-    window.requestAnimationFrame(() => {
-        positionCompareCrossoverMarker(state);
-    });
+    try {
+        state.crossoverSeries?.setData?.([markerPoint]);
+        applySeriesMarkersCompat(state.LightweightCharts, state.crossoverSeries, [
+            {
+                time: nextMarker.time,
+                position: "inBar",
+                color: winnerMeta?.accentColor || "#f4fbff",
+                shape: "circle",
+                text: "⚔"
+            }
+        ]);
+    } catch {
+    }
 
-    state.markerFadeTimer = window.setTimeout(() => {
-        state.markerNode?.classList.add("is-resting");
-    }, 2600);
+    state.currentCrossover = {
+        ...markerModel,
+        signature: `${nextMarker.time.toFixed(6)}:${nextMarker.value.toFixed(6)}:${nextMarker.direction}`,
+        renderedAt: Date.now()
+    };
 }
 
 function maybeRenderCompareScoreEvents(state, payload, leftPoints, rightPoints, leftMeta, rightMeta) {
@@ -3017,12 +3032,23 @@ async function ensureCompareChart(containerId) {
         lastValueVisible: false
     });
 
+    const crossoverSeries = addLineSeriesCompat(LightweightCharts, chart, {
+        color: "rgba(0, 0, 0, 0)",
+        lineWidth: 0,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        pointMarkersVisible: false,
+        lineVisible: false
+    });
+
     const state = {
         kind: "compare",
         container,
         chart,
+        LightweightCharts,
         leftSeries,
         rightSeries,
+        crossoverSeries,
         resizeObserver: null,
         overlayRoot: null,
         markerNode: null,

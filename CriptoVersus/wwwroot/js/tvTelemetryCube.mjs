@@ -135,6 +135,14 @@ export function createTelemetryCubeController(deps) {
                     state.paused = false;
                     resume();
                 });
+
+                shell.addEventListener("click", () => {
+                    if (!state || state.disabled) {
+                        return;
+                    }
+
+                    setFace(state.faceIndex + 1, "click");
+                });
             }
 
             if (!window.__tvTelemetryCubeVisibilityBound) {

@@ -165,7 +165,38 @@ function testNotifyGoalHoldsRotationAndSwitchesFace() {
     });
 }
 
+function testClickRotatesCubeOneFace() {
+    withFakeDom(({ cubeClassList, listeners }) => {
+        let refreshCalls = 0;
+        const controller = createTelemetryCubeController({
+            isReducedMotion: () => false,
+            throttleKey: () => false,
+            logCube() {
+            },
+            logChart() {
+            },
+            hasChartContainers: () => true,
+            scheduleContainerRetry() {
+            },
+            getLastPayload: () => null,
+            onResizeCharts() {
+            },
+            onRefreshCharts() {
+                refreshCalls += 1;
+            }
+        });
+
+        controller.init("cube-shell", 5000);
+        listeners.click?.();
+
+        assert.ok(cubeClassList.added.includes("is-face-1"));
+        assert.equal(controller.getState().faceIndex, 1);
+        assert.equal(refreshCalls, 0);
+    });
+}
+
 testInitCubeSchedulesContainerRetryWhenChartsAreMissing();
 testSetFaceRefreshesChartsAndAppliesCssClass();
 testNotifyGoalHoldsRotationAndSwitchesFace();
+testClickRotatesCubeOneFace();
 console.log("tvTelemetryCube tests passed");
