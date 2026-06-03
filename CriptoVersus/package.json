@@ -2,7 +2,7 @@
   "scripts": {
     "ts:watch": "tsc -w",
     "ts:build": "tsc",
-    "test:tv-charts": "node ./wwwroot/js/tvScoreEventMarkers.test.mjs"
+    "test:tv-charts": "node ./wwwroot/js/tvScoreEventMarkers.test.mjs && node ./wwwroot/js/tvTelemetryCube.test.mjs && node ./wwwroot/js/tvAudioFacade.test.mjs && node ./wwwroot/js/tvAudioConfig.test.mjs && node ./wwwroot/js/tvAudioRuntime.test.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

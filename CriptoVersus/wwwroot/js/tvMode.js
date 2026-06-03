@@ -12,9 +12,10 @@
     console.log(`[${prefix}] ${eventName}`, payload);
 }
 
-let telemetryCubeState = null;
 let telemetryChartsState = null;
 let fieldFreedomState = null;
+let telemetryCubeController = null;
+let tvAudioFacade = null;
 import {
     createTvChartDiagnostics,
     logTelemetryChartSummary
@@ -49,6 +50,29 @@ import {
     interpolateSeriesValue as interpolateSeriesValueCore,
     buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
 } from "./tvScoreEvents.mjs";
+import { createTelemetryCubeController } from "./tvTelemetryCube.mjs";
+import { createTvAudioFacade } from "./tvAudioFacade.mjs";
+import {
+    tvAudioMap,
+    ambientTracks,
+    tvAudioPriority,
+    tvAudioCooldownDefaults,
+    isTvAudioDebugEnabled,
+    logAmbientDebug,
+    normalizeAudioError
+} from "./tvAudioConfig.mjs";
+import {
+    ensureTvAudioManager,
+    resolveTvAudioChannel,
+    getTvAudioContext,
+    getChannelGain,
+    connectAudioElement,
+    fadeGainTo,
+    fadeMediaVolume,
+    cleanupManagedAudio,
+    resolveTvAudioUrl,
+    resolveTvCueVolume
+} from "./tvAudioRuntime.mjs";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -140,161 +164,55 @@ function getTvChartDiagnostics() {
     return telemetryChartsState?.activeDiagnostics ?? createTvChartDiagnostics("TV_CHART");
 }
 
+function ensureTvAudioFacade() {
+    if (tvAudioFacade) {
+        return tvAudioFacade;
+    }
+
+    tvAudioFacade = createTvAudioFacade({
+        initBroadcastAudio: initBroadcastAudioLegacy,
+        setBroadcastAudioMuted: setBroadcastAudioMutedLegacy,
+        playAudioCue: playAudioCueLegacy,
+        initTvAudioManager: initTvAudioManagerLegacy,
+        playTvAudioCue: playTvAudioCueLegacy,
+        stopTvAudioCue: stopTvAudioCueLegacy,
+        destroyBroadcastAudio: destroyBroadcastAudioLegacy,
+        getTvAudioState,
+        tvAudioMap
+    });
+
+    return tvAudioFacade;
+}
+
+function ensureTelemetryCubeController() {
+    if (telemetryCubeController) {
+        return telemetryCubeController;
+    }
+
+    telemetryCubeController = createTelemetryCubeController({
+        isReducedMotion,
+        throttleKey,
+        logCube: telemetryCubeLog,
+        logChart: telemetryChartLog,
+        hasChartContainers,
+        scheduleContainerRetry,
+        getLastPayload() {
+            return telemetryChartsState?.lastPayload ?? null;
+        },
+        onResizeCharts() {
+            resizeTelemetryCharts();
+        },
+        onRefreshCharts(payload) {
+            updateTelemetryCharts(payload);
+        }
+    });
+
+    return telemetryCubeController;
+}
+
 function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
-
-const tvAudioMap = {
-    goal: "/audio/tv/goal-sting.mp3",
-    nearGoal: "/audio/tv/near-goal.mp3",
-    pressure: "/audio/tv/pressure-rise.mp3",
-    comeback: "/audio/tv/comeback.mp3",
-    equalizer: "/audio/tv/equalizer.mp3",
-    momentum: "/audio/tv/momentum-swing.mp3",
-    fearSpike: "/audio/tv/fear-spike.mp3",
-    fearCollapse: "/audio/tv/fear-collapse.mp3",
-    finalMinutes: "/audio/tv/final-minutes.mp3",
-    victory: "/audio/tv/victory.mp3",
-    replay: "/audio/tv/replay-vinyl.mp3",
-    switchSide: "/audio/tv/switch-side.mp3",
-    crowdRise: "/audio/tv/stadium-crowd-loop.mp3",
-    whistle: "/audio/tv/whistle.mp3",
-    kickoff: "/audio/tv/kickoff.mp3",
-    halftime: "/audio/tv/halftime.mp3",
-    lastMinute: "/audio/tv/final-minutes.mp3",
-    counterAttack: "/audio/tv/counter-attack.mp3",
-    marketCrash: "/audio/tv/market-crash.mp3",
-    marketPump: "/audio/tv/market-pump.mp3",
-    clutchSave: "/audio/tv/clutch-save.mp3",
-    bigCandleMovement: "/audio/tv/big-candle-movement.mp3",
-    ballRecovery: "/audio/tv/ball-recovery.mp3",
-    highlightMoment: "/audio/tv/highlight-moment.mp3",
-    suddenReversal: "/audio/tv/sudden-reversal.mp3"
-};
-
-const ambientTracks = [
-    {
-        // Keep the broadcast on the clean stadium bed. Some alternate loops carry
-        // intrusive SFX that read like event cues in the background.
-        src: "/audio/tv/stadium-crowd-loop.mp3?v=20260521-1",
-        mood: "standard",
-        intensity: 0.56,
-        tags: ["stadium", "crowd", "base", "clean"]
-    }
-];
-
-const tvAudioChannelMap = {
-    crowdRise: "ambient",
-    goal: "fx",
-    nearGoal: "fx",
-    pressure: "fx",
-    comeback: "fx",
-    equalizer: "fx",
-    momentum: "fx",
-    fearSpike: "fx",
-    fearCollapse: "fx",
-    finalMinutes: "fx",
-    victory: "fx",
-    replay: "fx",
-    switchSide: "fx",
-    whistle: "ui",
-    kickoff: "ui",
-    halftime: "ui",
-    lastMinute: "ui",
-    counterAttack: "fx",
-    marketCrash: "fx",
-    marketPump: "fx",
-    clutchSave: "fx",
-    bigCandleMovement: "fx",
-    ballRecovery: "fx",
-    highlightMoment: "fx",
-    suddenReversal: "fx"
-};
-
-const tvAudioPriority = {
-    goal: 100,
-    victory: 95,
-    equalizer: 92,
-    comeback: 88,
-    clutchSave: 86,
-    replay: 82,
-    suddenReversal: 78,
-    counterAttack: 76,
-    momentum: 72,
-    nearGoal: 68,
-    pressure: 66,
-    highlightMoment: 64,
-    finalMinutes: 62,
-    fearSpike: 60,
-    fearCollapse: 58,
-    bigCandleMovement: 56,
-    marketCrash: 55,
-    marketPump: 55,
-    ballRecovery: 52,
-    switchSide: 48,
-    halftime: 45,
-    kickoff: 40,
-    whistle: 40,
-    lastMinute: 38,
-    crowdRise: 20
-};
-
-const tvAudioCooldownDefaults = {
-    goal: 6500,
-    replay: 12000,
-    victory: 12000,
-    equalizer: 9000,
-    comeback: 9000,
-    clutchSave: 7000,
-    suddenReversal: 6500,
-    counterAttack: 6000,
-    momentum: 5500,
-    nearGoal: 4000,
-    pressure: 4500,
-    highlightMoment: 5500,
-    finalMinutes: 8000,
-    fearSpike: 6000,
-    fearCollapse: 6000,
-    bigCandleMovement: 6500,
-    marketCrash: 6500,
-    marketPump: 6500,
-    ballRecovery: 4000,
-    switchSide: 8000,
-    halftime: 12000,
-    kickoff: 12000,
-    whistle: 12000,
-    lastMinute: 5000,
-    crowdRise: 3000
-};
-
-const tvAudioMixProfiles = {
-    goal: { minVolume: 0.88, boost: 1.2, duckAmbientTo: 0.42, duckMs: 1800 },
-    nearGoal: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.52, duckMs: 1200 },
-    pressure: { minVolume: 0.78, boost: 1.06, duckAmbientTo: 0.58, duckMs: 1000 },
-    comeback: { minVolume: 0.84, boost: 1.12, duckAmbientTo: 0.48, duckMs: 1500 },
-    equalizer: { minVolume: 0.88, boost: 1.18, duckAmbientTo: 0.44, duckMs: 1700 },
-    momentum: { minVolume: 0.78, boost: 1.04, duckAmbientTo: 0.6, duckMs: 900 },
-    fearSpike: { minVolume: 0.82, boost: 1.08, duckAmbientTo: 0.54, duckMs: 1200 },
-    fearCollapse: { minVolume: 0.82, boost: 1.08, duckAmbientTo: 0.54, duckMs: 1200 },
-    finalMinutes: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.56, duckMs: 1400 },
-    victory: { minVolume: 0.9, boost: 1.2, duckAmbientTo: 0.4, duckMs: 2200 },
-    replay: { minVolume: 0.82, boost: 1.08, duckAmbientTo: 0.56, duckMs: 1300 },
-    switchSide: { minVolume: 0.74, boost: 1.02, duckAmbientTo: 0.62, duckMs: 900 },
-    whistle: { minVolume: 0.76, boost: 1.06, duckAmbientTo: 0.6, duckMs: 850 },
-    kickoff: { minVolume: 0.8, boost: 1.1, duckAmbientTo: 0.54, duckMs: 1300 },
-    halftime: { minVolume: 0.78, boost: 1.05, duckAmbientTo: 0.6, duckMs: 1000 },
-    lastMinute: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.56, duckMs: 1200 },
-    counterAttack: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.52, duckMs: 1100 },
-    marketCrash: { minVolume: 0.86, boost: 1.14, duckAmbientTo: 0.44, duckMs: 1800 },
-    marketPump: { minVolume: 0.84, boost: 1.1, duckAmbientTo: 0.5, duckMs: 1500 },
-    clutchSave: { minVolume: 0.84, boost: 1.14, duckAmbientTo: 0.48, duckMs: 1500 },
-    bigCandleMovement: { minVolume: 0.8, boost: 1.08, duckAmbientTo: 0.54, duckMs: 1200 },
-    ballRecovery: { minVolume: 0.76, boost: 1.04, duckAmbientTo: 0.6, duckMs: 900 },
-    highlightMoment: { minVolume: 0.82, boost: 1.1, duckAmbientTo: 0.5, duckMs: 1400 },
-    suddenReversal: { minVolume: 0.84, boost: 1.14, duckAmbientTo: 0.46, duckMs: 1600 }
-};
-
-let tvAudioManagerState = null;
 
 function logTvAudio(message, payload) {
     if (!isTvAudioDebugEnabled()) {
@@ -322,202 +240,6 @@ function consoleAudio(label, payload) {
     console.log(label, payload);
 }
 
-function normalizeAudioError(error) {
-    if (!error) {
-        return { message: "unknown error" };
-    }
-
-    return {
-        name: error.name ?? "Error",
-        message: error.message ?? String(error)
-    };
-}
-
-function ensureTvAudioManager() {
-    if (tvAudioManagerState) {
-        return tvAudioManagerState;
-    }
-
-    tvAudioManagerState = {
-        volume: 0.22,
-        muted: false,
-        ambientElementId: null,
-        ambientTargetVolume: 0.22,
-        context: null,
-        masterGain: null,
-        channelGains: new Map(),
-        sourceNodes: new WeakMap(),
-        instanceGains: new WeakMap(),
-        fadeTimers: new Map(),
-        activeKey: null,
-        activePriority: -1,
-        preload: new Map(),
-        lastPlayedAt: new Map(),
-        unlocked: false,
-        autoplayBlocked: false,
-        unlockListenersAttached: false,
-        initCount: 0,
-        ambientStarted: false,
-        lastError: null,
-        lastUnlockSource: null,
-        ambient: {
-            hostElementId: null,
-            currentAudio: null,
-            currentTrack: null,
-            currentIndex: -1,
-            nextAudio: null,
-            nextTrack: null,
-            nextIndex: -1,
-            lastTrackSrc: null,
-            transitionMs: 1800,
-            isTransitioning: false,
-            visibilityListenersAttached: false,
-            pausedForHiddenTab: false,
-            destroyed: false
-        },
-        diagnostics: {
-            loaded: [],
-            queued: [],
-            played: []
-        },
-        ambientDuckRestoreTimer: null
-    };
-
-    return tvAudioManagerState;
-}
-
-function resolveTvAudioChannel(key) {
-    return tvAudioChannelMap[key] ?? "fx";
-}
-
-function getTvAudioContext() {
-    const manager = ensureTvAudioManager();
-
-    if (typeof window === "undefined") {
-        return null;
-    }
-
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextCtor) {
-        return null;
-    }
-
-    if (manager.context && manager.context.state !== "closed") {
-        return manager.context;
-    }
-
-    try {
-        const context = new AudioContextCtor();
-        const masterGain = context.createGain();
-        masterGain.gain.value = 1;
-        masterGain.connect(context.destination);
-
-        manager.context = context;
-        manager.masterGain = masterGain;
-        manager.channelGains = new Map();
-        consoleAudio("AUDIO_INIT", { contextState: context.state });
-        return context;
-    } catch {
-        return null;
-    }
-}
-
-function getChannelGain(channel) {
-    const manager = ensureTvAudioManager();
-    const context = getTvAudioContext();
-    if (!context || !manager.masterGain) {
-        return null;
-    }
-
-    if (manager.channelGains.has(channel)) {
-        return manager.channelGains.get(channel);
-    }
-
-    const gain = context.createGain();
-    const defaults = {
-        ambient: 1,
-        fx: 0.92,
-        ui: 0.82
-    };
-
-    gain.gain.value = defaults[channel] ?? 0.9;
-    gain.connect(manager.masterGain);
-    manager.channelGains.set(channel, gain);
-    return gain;
-}
-
-function connectAudioElement(audio, channel) {
-    const manager = ensureTvAudioManager();
-    const context = getTvAudioContext();
-    if (!context || context.state !== "running") {
-        return null;
-    }
-
-    if (manager.sourceNodes.has(audio)) {
-        return manager.sourceNodes.get(audio);
-    }
-
-    try {
-        const source = context.createMediaElementSource(audio);
-        const instanceGain = context.createGain();
-        const channelGain = getChannelGain(channel);
-
-        if (!channelGain) {
-            source.connect(context.destination);
-        } else {
-            instanceGain.connect(channelGain);
-            source.connect(instanceGain);
-        }
-
-        manager.sourceNodes.set(audio, source);
-        manager.instanceGains.set(audio, instanceGain);
-        return source;
-    } catch {
-        return null;
-    }
-}
-
-function fadeGainTo(gainNode, target, durationMs = 1200) {
-    if (!gainNode || typeof window === "undefined") {
-        return;
-    }
-
-    const manager = ensureTvAudioManager();
-    const key = gainNode;
-    const previous = manager.fadeTimers.get(key);
-    if (previous) {
-        window.cancelAnimationFrame(previous);
-    }
-
-    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
-    const initial = typeof gainNode.gain?.value === "number" ? gainNode.gain.value : 0;
-    const safeTarget = clamp(Number(target) || 0, 0, 1);
-    const safeDuration = Math.max(0, durationMs);
-
-    if (safeDuration === 0) {
-        gainNode.gain.value = safeTarget;
-        return;
-    }
-
-    const tick = (now) => {
-        const elapsed = Math.max(0, now - start);
-        const progress = Math.min(1, elapsed / safeDuration);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        gainNode.gain.value = initial + ((safeTarget - initial) * eased);
-
-        if (progress < 1) {
-            const rafId = window.requestAnimationFrame(tick);
-            manager.fadeTimers.set(key, rafId);
-        } else {
-            manager.fadeTimers.delete(key);
-            gainNode.gain.value = safeTarget;
-        }
-    };
-
-    const rafId = window.requestAnimationFrame(tick);
-    manager.fadeTimers.set(key, rafId);
-}
-
 function createPlaybackAudio(url, channel, volume, muted) {
     const audio = new Audio(url);
     audio.preload = "auto";
@@ -540,26 +262,6 @@ function createPlaybackAudio(url, channel, volume, muted) {
     }, { once: true });
 
     return audio;
-}
-
-function resolveTvAudioUrl(key) {
-    return tvAudioMap[key] ?? null;
-}
-
-function resolveTvCueVolume(key, channel, requestedVolume, manager) {
-    const profile = tvAudioMixProfiles[key] ?? null;
-    const numericRequested = Number(requestedVolume);
-    const baseVolume = Number.isFinite(numericRequested)
-        ? numericRequested
-        : (channel === "fx"
-            ? Math.max(manager.volume, 0.74)
-            : channel === "ui"
-                ? Math.max(manager.volume, 0.68)
-                : manager.volume);
-    const boosted = baseVolume * (profile?.boost ?? 1);
-    const floor = profile?.minVolume
-        ?? (channel === "fx" ? 0.74 : channel === "ui" ? 0.66 : 0.22);
-    return clamp(Math.max(floor, boosted), 0, 1);
 }
 
 function duckAmbientForCue(key, manager) {
@@ -825,47 +527,6 @@ function setTvAudioSettings(volume, muted) {
     } else if (manager.ambient.currentAudio) {
         fadeMediaVolume(manager.ambient.currentAudio, manager.muted ? 0 : manager.ambientTargetVolume, 700);
     }
-}
-
-function fadeMediaVolume(audio, target, durationMs = 1200) {
-    if (!audio || typeof window === "undefined") {
-        return;
-    }
-
-    const manager = ensureTvAudioManager();
-    const key = audio;
-    const previous = manager.fadeTimers.get(key);
-    if (previous) {
-        window.cancelAnimationFrame(previous);
-    }
-
-    const start = typeof performance !== "undefined" ? performance.now() : Date.now();
-    const initial = clamp(Number(audio.volume) || 0, 0, 1);
-    const safeTarget = clamp(Number(target) || 0, 0, 1);
-    const safeDuration = Math.max(0, durationMs);
-
-    if (safeDuration === 0) {
-        audio.volume = safeTarget;
-        return;
-    }
-
-    const tick = (now) => {
-        const elapsed = Math.max(0, now - start);
-        const progress = Math.min(1, elapsed / safeDuration);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        audio.volume = initial + ((safeTarget - initial) * eased);
-
-        if (progress < 1) {
-            const rafId = window.requestAnimationFrame(tick);
-            manager.fadeTimers.set(key, rafId);
-        } else {
-            manager.fadeTimers.delete(key);
-            audio.volume = safeTarget;
-        }
-    };
-
-    const rafId = window.requestAnimationFrame(tick);
-    manager.fadeTimers.set(key, rafId);
 }
 
 function getAmbientPlaylist() {
@@ -1862,43 +1523,6 @@ function applyTacticalFieldMotion(state, now) {
     }
 }
 
-function cleanupManagedAudio(audio) {
-    if (!audio) {
-        return;
-    }
-
-    const manager = ensureTvAudioManager();
-    const gain = manager.instanceGains.get(audio);
-    if (gain) {
-        try {
-            gain.disconnect();
-        } catch {
-        }
-    }
-
-    const source = manager.sourceNodes.get(audio);
-    if (source) {
-        try {
-            source.disconnect();
-        } catch {
-        }
-    }
-
-    manager.instanceGains.delete(audio);
-    manager.sourceNodes.delete(audio);
-
-    try {
-        audio.pause();
-    } catch {
-    }
-
-    try {
-        audio.removeAttribute("src");
-        audio.load();
-    } catch {
-    }
-}
-
 function hydrateTacticalMotionProfile(player) {
     switch (player.tacticalState) {
         case TACTICAL_STATES.Press:
@@ -2019,31 +1643,6 @@ function buildTacticalSnapshot(state, ballInfo, overlayRect, now) {
         teamInfo,
         threatTable
     };
-}
-
-function isTvAudioDebugEnabled() {
-    if (typeof window === "undefined" || !window.location) {
-        return false;
-    }
-
-    const host = window.location.hostname || "";
-    return host === "localhost"
-        || host === "127.0.0.1"
-        || host === "::1"
-        || host.endsWith(".local");
-}
-
-function logAmbientDebug(message, payload) {
-    if (!isTvAudioDebugEnabled()) {
-        return;
-    }
-
-    if (typeof payload === "undefined") {
-        console.log(`[TV_AMBIENT] ${message}`);
-        return;
-    }
-
-    console.log(`[TV_AMBIENT] ${message}`, payload);
 }
 
 function evaluateThreat(enemy, enemyWorld, predictedWorld, defenders, ownGoalX, ballInfo, overlayRect, now) {
@@ -2820,63 +2419,11 @@ function applyFreedomMotion(state, now) {
 }
 
 function setCubeFace(faceIndex, reason) {
-    try {
-        if (!telemetryCubeState?.cube) {
-            return;
-        }
-
-        const faceCount = telemetryCubeState.faceCount || 7;
-        const normalized = ((faceIndex % faceCount) + faceCount) % faceCount;
-        telemetryCubeState.faceIndex = normalized;
-        telemetryCubeState.cube.classList.remove("is-face-0", "is-face-1", "is-face-2", "is-face-3", "is-face-4", "is-face-5", "is-face-6");
-        telemetryCubeState.cube.classList.add(`is-face-${normalized}`);
-
-        telemetryCubeLog(`face changed ${normalized}`, reason ? { reason } : undefined);
-
-        // 3D transforms can cause LightweightCharts to miss a resize; force-fit after the face is applied.
-        window.setTimeout(() => resizeTelemetryCharts(), 0);
-        window.setTimeout(() => resizeTelemetryCharts(), 80);
-        window.setTimeout(() => resizeTelemetryCharts(), 350);
-        window.setTimeout(() => resizeTelemetryCharts(), 1100);
-
-        if (telemetryChartsState?.lastPayload) {
-            window.setTimeout(() => {
-                try {
-                    updateTelemetryCharts(telemetryChartsState.lastPayload);
-
-                    if (throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
-                        telemetryChartLog("refresh from state", { reason: `face-${normalized}` });
-                    }
-                } catch (error) {
-                    telemetryCubeLog("chart refresh failed", error?.message || String(error));
-                }
-            }, 120);
-        }
-    } catch (error) {
-        telemetryCubeLog("setCubeFace failed", error?.message || String(error));
-    }
+    ensureTelemetryCubeController().setFace(faceIndex, reason);
 }
 
 function resumeCubeRotation() {
-    if (!telemetryCubeState) {
-        return;
-    }
-
-    if (telemetryCubeState.disabled || telemetryCubeState.paused) {
-        return;
-    }
-
-    if (telemetryCubeState.timerId) {
-        return;
-    }
-
-    telemetryCubeState.timerId = window.setInterval(() => {
-        try {
-            setCubeFace(telemetryCubeState.faceIndex + 1, "interval");
-        } catch (error) {
-            telemetryCubeLog("interval failed", error?.message || String(error));
-        }
-    }, telemetryCubeState.intervalMs);
+    ensureTelemetryCubeController().resume();
 }
 
 function resizeTelemetryCharts() {
@@ -2916,20 +2463,7 @@ function resizeTelemetryCharts() {
 }
 
 function pauseCubeRotation(reason) {
-    if (!telemetryCubeState) {
-        return;
-    }
-
-    if (telemetryCubeState.timerId) {
-        window.clearInterval(telemetryCubeState.timerId);
-        telemetryCubeState.timerId = null;
-    }
-
-    telemetryCubeState.shell?.classList.toggle("is-paused", telemetryCubeState.paused);
-
-    if (throttleKey("TV_CUBE", `paused:${reason ?? "unknown"}`, 2000)) {
-        telemetryCubeLog("paused", reason);
-    }
+    ensureTelemetryCubeController().pause(reason);
 }
 
 function hasChartContainers() {
@@ -2969,162 +2503,11 @@ function scheduleContainerRetry(reason) {
 }
 
 export function initTelemetryCube(shellId, intervalMs) {
-    const tryInit = (attempt) => {
-        const shell = document.getElementById(shellId);
-        const cube = shell?.querySelector?.(".tv-telemetry-cube");
-
-        if (!shell || !cube) {
-            if (attempt < 10) {
-                window.setTimeout(() => tryInit(attempt + 1), 300);
-            }
-
-            return;
-        }
-
-        const resolvedIntervalMs = typeof intervalMs === "number" && intervalMs >= 3000
-            ? intervalMs
-            : Math.max(3000, (Number(shell.dataset.intervalSeconds) || 12) * 1000);
-
-        if (telemetryCubeState?.shell === shell && telemetryCubeState?.cube === cube) {
-            telemetryCubeState.intervalMs = resolvedIntervalMs;
-            telemetryCubeState.disabled = isReducedMotion()
-                || (typeof window !== "undefined" && window.innerWidth <= 720);
-            return;
-        }
-
-        pauseCubeRotation("reinit");
-
-        telemetryCubeState = {
-            shell,
-            cube,
-            intervalMs: resolvedIntervalMs,
-            timerId: null,
-            faceIndex: 0,
-            faceCount: 7,
-            paused: false,
-            disabled: false,
-            holdUntil: 0
-        };
-
-        const disabled = isReducedMotion()
-            || (typeof window !== "undefined" && window.innerWidth <= 720);
-
-        telemetryCubeState.disabled = disabled;
-
-        if (disabled) {
-            setCubeFace(0, "disabled");
-            telemetryCubeLog("initialized (disabled)");
-            return;
-        }
-
-        if (!shell.dataset.tvCubeBound) {
-            shell.dataset.tvCubeBound = "1";
-
-            shell.addEventListener("mouseenter", () => {
-                telemetryCubeState.paused = true;
-                pauseCubeRotation("hover");
-            });
-
-            shell.addEventListener("mouseleave", () => {
-                telemetryCubeState.paused = false;
-                resumeCubeRotation();
-            });
-        }
-
-        if (!window.__tvTelemetryCubeVisibilityBound) {
-            window.__tvTelemetryCubeVisibilityBound = true;
-
-            window.addEventListener("visibilitychange", () => {
-                if (document.hidden) {
-                    pauseCubeRotation("hidden");
-                    return;
-                }
-
-                if (telemetryCubeState) {
-                    telemetryCubeState.paused = false;
-                }
-
-                resumeCubeRotation();
-            });
-        }
-
-        setCubeFace(0, "init");
-        telemetryCubeLog("initialized", { intervalMs: resolvedIntervalMs });
-        resumeCubeRotation();
-
-        if (hasChartContainers()) {
-            telemetryChartLog("containers ready");
-        } else {
-            telemetryChartsState = telemetryChartsState ?? { charts: new Map(), libPromise: null };
-            scheduleContainerRetry("initTelemetryCube");
-        }
-    };
-
-    tryInit(0);
+    ensureTelemetryCubeController().init(shellId, intervalMs);
 }
 
 export function notifyTelemetryCubeEvent(eventKey) {
-    if (!telemetryCubeState || telemetryCubeState.disabled) {
-        return;
-    }
-
-    const key = String(eventKey || "").toLowerCase();
-
-    if (!key) {
-        return;
-    }
-
-    if (key.includes("goal")) {
-        setCubeFace(5, "goal");
-
-        const now = Date.now();
-        telemetryCubeState.holdUntil = now + 7000;
-
-        pauseCubeRotation("goal-hold");
-
-        window.setTimeout(() => {
-            if (!telemetryCubeState) {
-                return;
-            }
-
-            if (Date.now() < telemetryCubeState.holdUntil) {
-                return;
-            }
-
-            telemetryCubeState.paused = false;
-            resumeCubeRotation();
-        }, 7200);
-
-        return;
-    }
-
-    if (key.includes("fear")) {
-        setCubeFace(6, "fear");
-
-        const now = Date.now();
-        telemetryCubeState.holdUntil = now + 7000;
-
-        pauseCubeRotation("fear-hold");
-
-        window.setTimeout(() => {
-            if (!telemetryCubeState) {
-                return;
-            }
-
-            if (Date.now() < telemetryCubeState.holdUntil) {
-                return;
-            }
-
-            telemetryCubeState.paused = false;
-            resumeCubeRotation();
-        }, 7200);
-
-        return;
-    }
-
-    if (key.includes("momentum") || key.includes("reversal") || key.includes("fear")) {
-        setCubeFace(2, "momentum-shift");
-    }
+    ensureTelemetryCubeController().notify(eventKey);
 }
 
 function applyChartTheme(LightweightCharts, chart) {
@@ -4029,7 +3412,7 @@ export async function updateTelemetryCharts(payload) {
     }
 }
 
-export async function initBroadcastAudio(elementId, volume, muted) {
+async function initBroadcastAudioLegacy(elementId, volume, muted) {
     const audio = document.getElementById(elementId);
     const manager = ensureTvAudioManager();
     const safeVolume = clamp(Number(volume) || manager.volume, 0, 1);
@@ -4074,7 +3457,7 @@ export async function initBroadcastAudio(elementId, volume, muted) {
     return getTvAudioState();
 }
 
-export function setBroadcastAudioMuted(elementId, muted, volume) {
+function setBroadcastAudioMutedLegacy(elementId, muted, volume) {
     const manager = ensureTvAudioManager();
     const safeVolume = clamp(Number(volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
 
@@ -4091,7 +3474,7 @@ export function setBroadcastAudioMuted(elementId, muted, volume) {
     resumeAmbientPlayback("setBroadcastAudioMuted").catch(() => { });
 }
 
-export function playAudioCue(elementId) {
+function playAudioCueLegacy(elementId) {
     if (typeof elementId === "string" && Object.prototype.hasOwnProperty.call(tvAudioMap, elementId)) {
         playTvAudio(elementId);
         return;
@@ -4112,7 +3495,7 @@ export function playAudioCue(elementId) {
     audio.play().catch(() => { });
 }
 
-export function initTvAudioManager(volume, muted) {
+function initTvAudioManagerLegacy(volume, muted) {
     const manager = ensureTvAudioManager();
     if (typeof volume === "number") {
         manager.volume = Math.min(1, Math.max(0, volume));
@@ -4129,7 +3512,7 @@ export function initTvAudioManager(volume, muted) {
     return diagnoseTvAudio();
 }
 
-export function playTvAudioCue(key, options) {
+function playTvAudioCueLegacy(key, options) {
     const context = getTvAudioContext();
     if (context && context.state === "suspended") {
         unlockTvAudioContext(`playTvAudioCue:${key}`).catch(() => { });
@@ -4148,7 +3531,7 @@ export async function unlockBroadcastAudio(elementId, volume, muted) {
     return state;
 }
 
-export function stopTvAudioCue(key) {
+function stopTvAudioCueLegacy(key) {
     const manager = ensureTvAudioManager();
     const audio = manager.preload.get(key);
     if (!audio) {
@@ -4162,13 +3545,41 @@ export function stopTvAudioCue(key) {
     }
 }
 
-export function destroyBroadcastAudio(elementId) {
+function destroyBroadcastAudioLegacy(elementId) {
     const manager = ensureTvAudioManager();
     if (!elementId || manager.ambient.hostElementId === elementId || manager.ambientElementId === elementId) {
         stopAmbientPlayback();
         manager.ambient.hostElementId = null;
         manager.ambientElementId = null;
     }
+}
+
+export function initBroadcastAudio(elementId, volume, muted) {
+    return ensureTvAudioFacade().initBroadcastAudio(elementId, volume, muted);
+}
+
+export function setBroadcastAudioMuted(elementId, muted, volume) {
+    return ensureTvAudioFacade().setBroadcastAudioMuted(elementId, muted, volume);
+}
+
+export function playAudioCue(elementId) {
+    return ensureTvAudioFacade().playAudioCue(elementId);
+}
+
+export function initTvAudioManager(volume, muted) {
+    return ensureTvAudioFacade().initTvAudioManager(volume, muted);
+}
+
+export function playTvAudioCue(key, options) {
+    return ensureTvAudioFacade().playTvAudioCue(key, options);
+}
+
+export function stopTvAudioCue(key) {
+    return ensureTvAudioFacade().stopTvAudioCue(key);
+}
+
+export function destroyBroadcastAudio(elementId) {
+    return ensureTvAudioFacade().destroyBroadcastAudio(elementId);
 }
 
 if (typeof globalThis !== "undefined") {
