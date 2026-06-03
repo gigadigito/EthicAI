@@ -1270,7 +1270,7 @@ else
             return nowUnixSeconds - lastPoint.Value.Time >= 12;
         }
 
-        object[] BuildPoints(IEnumerable<MatchMetricSnapshotDto> snapshots, decimal? liveValue)
+        object[] BuildPoints(IEnumerable<MatchMetricSnapshotDto> snapshots, decimal? liveValue, bool includeLivePoint = true)
         {
             var points = snapshots
                 .OrderBy(x => x.CapturedAtUtc)
@@ -1279,7 +1279,7 @@ else
                     Value: (double)x.PercentageChange))
                 .ToList();
 
-            if (liveValue.HasValue)
+            if (includeLivePoint && liveValue.HasValue)
             {
                 var nowUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 var lastPoint = points.Count == 0 ? ((long Time, double Value)?)null : points[^1];
@@ -1311,6 +1311,8 @@ else
                 {
                     left = BuildPoints([], currentLeftLiveValue),
                     right = BuildPoints([], currentRightLiveValue),
+                    leftMarkerPoints = BuildPoints([], null, includeLivePoint: false),
+                    rightMarkerPoints = BuildPoints([], null, includeLivePoint: false),
                     scoreEvents = filteredScoreEvents,
                     leftTeamId = Match?.TeamAId ?? 0,
                     rightTeamId = Match?.TeamBId ?? 0,
@@ -1374,6 +1376,8 @@ else
 
         var leftPoints = BuildPoints(leftSnapshots, currentLeftLiveValue);
         var rightPoints = BuildPoints(rightSnapshots, currentRightLiveValue);
+        var leftMarkerPoints = BuildPoints(leftSnapshots, null, includeLivePoint: false);
+        var rightMarkerPoints = BuildPoints(rightSnapshots, null, includeLivePoint: false);
         var chartScoreEvents = _allScoreEvents
             .Where(x => (x.TeamId == matchTeamAId || x.TeamId == matchTeamBId) && ShouldRenderScoreEventInCompareChart(x))
             .OrderBy(x => x.EventSequence)
@@ -1400,10 +1404,12 @@ else
 
         try
         {
-            await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new
+                await _tvModule.InvokeVoidAsync("updateTelemetryCharts", new
             {
                 left = leftPoints,
                 right = rightPoints,
+                leftMarkerPoints = leftMarkerPoints,
+                rightMarkerPoints = rightMarkerPoints,
                 scoreEvents = chartScoreEvents,
                 leftTeamId = matchTeamAId,
                 rightTeamId = matchTeamBId,

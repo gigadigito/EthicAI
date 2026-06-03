@@ -3940,9 +3940,11 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
 }
 
 function maybeRenderCompareScoreEvents(state, payload, leftPoints, rightPoints, leftMeta, rightMeta) {
+    const markerLeftPoints = normalizePoints(payload?.leftMarkerPoints);
+    const markerRightPoints = normalizePoints(payload?.rightMarkerPoints);
     const markerModels = buildScoreEventMarkersModel({
-        leftPoints,
-        rightPoints,
+        leftPoints: markerLeftPoints.length > 0 ? markerLeftPoints : leftPoints,
+        rightPoints: markerRightPoints.length > 0 ? markerRightPoints : rightPoints,
         scoreEvents: payload?.scoreEvents,
         leftMeta,
         rightMeta,
