@@ -19,7 +19,7 @@ let tvAudioFacade = null;
 import {
     createTvChartDiagnostics,
     logTelemetryChartSummary
-} from "./tvChartDiagnostics.mjs";
+} from "./tvChartDiagnostics.mjs?v=20260603-cube-click-1";
 import {
     ensureCompareCrossoverStyles as ensureCompareCrossoverStylesCore,
     ensureCompareOverlayRoot as ensureCompareOverlayRootCore,
@@ -27,7 +27,7 @@ import {
     buildScoreEventMarkerNode as buildScoreEventMarkerNodeCore,
     computeScoreMarkerPlacement,
     applyScoreMarkerPlacement
-} from "./tvChartMarkers.mjs";
+} from "./tvChartMarkers.mjs?v=20260603-cube-click-1";
 import {
     applyChartTheme as applyChartThemeCore,
     addLineSeriesCompat as addLineSeriesCompatCore,
@@ -36,23 +36,23 @@ import {
     normalizeCompareLine as normalizeCompareLineCore,
     buildSyntheticCandles as buildSyntheticCandlesCore,
     setChartEmptyState as setChartEmptyStateCore
-} from "./tvChartSeries.mjs";
+} from "./tvChartSeries.mjs?v=20260603-cube-click-1";
 import {
     fitChart as fitChartCore,
     ensureChartResizeObserver,
     disposeChartEntry as disposeChartEntryCore
-} from "./tvChartResize.mjs";
+} from "./tvChartResize.mjs?v=20260603-cube-click-1";
 import {
     normalizeChartTime as normalizeChartTimeCore,
     normalizeChartPoints
-} from "./tvChartTime.mjs";
+} from "./tvChartTime.mjs?v=20260603-cube-click-1";
 import {
     interpolateSeriesValue as interpolateSeriesValueCore,
     buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
-} from "./tvScoreEvents.mjs";
-import { findLineCrossovers } from "./tvLineCrossovers.mjs";
-import { createTelemetryCubeController } from "./tvTelemetryCube.mjs";
-import { createTvAudioFacade } from "./tvAudioFacade.mjs";
+} from "./tvScoreEvents.mjs?v=20260603-cube-click-1";
+import { findLineCrossovers } from "./tvLineCrossovers.mjs?v=20260603-cube-click-1";
+import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260603-cube-click-1";
+import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-cube-click-1";
 import {
     tvAudioMap,
     ambientTracks,
@@ -61,7 +61,7 @@ import {
     isTvAudioDebugEnabled,
     logAmbientDebug,
     normalizeAudioError
-} from "./tvAudioConfig.mjs";
+} from "./tvAudioConfig.mjs?v=20260603-cube-click-1";
 import {
     ensureTvAudioManager,
     resolveTvAudioChannel,
@@ -73,7 +73,7 @@ import {
     cleanupManagedAudio,
     resolveTvAudioUrl,
     resolveTvCueVolume
-} from "./tvAudioRuntime.mjs";
+} from "./tvAudioRuntime.mjs?v=20260603-cube-click-1";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
