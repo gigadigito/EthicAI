@@ -38,11 +38,17 @@
     "kicker": "Arena Network",
     "joinArena": "Join the Arena",
     "description": "Stay close to the live crowd, broadcast rhythm and match updates across the official CriptoVersus channels.",
-    "twitch": {
-      "name": "Twitch",
-      "action": "Watch Live",
-      "cta": "Watch Live on Twitch",
-      "aria": "Open the official CriptoVersus Twitch channel"
+    "youtube": {
+      "name": "YouTube",
+      "action": "Watch Channel",
+      "cta": "Open YouTube",
+      "aria": "Open the official CriptoVersus YouTube channel"
+    },
+    "pump": {
+      "name": "Pump.fun",
+      "action": "View Coin",
+      "cta": "Open Pump.fun",
+      "aria": "Open the official CriptoVersus Pump.fun coin page"
     },
     "x": {
       "name": "X",

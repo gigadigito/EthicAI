@@ -38,11 +38,17 @@
     "kicker": "Rede da arena",
     "joinArena": "Entre na Arena",
     "description": "Fique perto da torcida ao vivo, do ritmo da transmissao e das atualizacoes das partidas pelos canais oficiais do CriptoVersus.",
-    "twitch": {
-      "name": "Twitch",
-      "action": "Assistir ao vivo",
-      "cta": "Assistir na Twitch",
-      "aria": "Abrir o canal oficial do CriptoVersus na Twitch"
+    "youtube": {
+      "name": "YouTube",
+      "action": "Assistir canal",
+      "cta": "Abrir YouTube",
+      "aria": "Abrir o canal oficial do CriptoVersus no YouTube"
+    },
+    "pump": {
+      "name": "Pump.fun",
+      "action": "Ver moeda",
+      "cta": "Abrir Pump.fun",
+      "aria": "Abrir a pagina oficial da moeda CriptoVersus na Pump.fun"
     },
     "x": {
       "name": "X",

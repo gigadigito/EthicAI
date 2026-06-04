@@ -25,7 +25,9 @@
                    rel="noopener noreferrer"
                    aria-label="@link.AriaLabel"
                    title="@link.Name">
-                    <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                    <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
+                        <img src="@link.IconPath" alt="" />
+                    </span>
                 </a>
                 break;
             case "footer":
@@ -35,7 +37,9 @@
                    rel="noopener noreferrer"
                    aria-label="@link.AriaLabel">
                     <span class="community-links__row-brand">
-                        <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                        <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
+                            <img src="@link.IconPath" alt="" />
+                        </span>
                         <strong>@link.Name</strong>
                     </span>
                     <small>@link.ActionLabel</small>
@@ -47,7 +51,9 @@
                    target="_blank"
                    rel="noopener noreferrer"
                    aria-label="@link.AriaLabel">
-                    <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                    <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
+                        <img src="@link.IconPath" alt="" />
+                    </span>
                     <span>@link.CtaLabel</span>
                 </a>
                 break;
@@ -58,7 +64,9 @@
                    rel="noopener noreferrer"
                    aria-label="@link.AriaLabel">
                     <span class="community-links__row-brand">
-                        <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">@link.ShortLabel</span>
+                        <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
+                            <img src="@link.IconPath" alt="" />
+                        </span>
                         <strong>@link.Name</strong>
                     </span>
                     <small>@link.ActionLabel</small>
@@ -81,25 +89,33 @@
 
     private CommunityItem[] CommunityItems => [
         new(
-            "twitch",
-            "Tw",
-            "https://www.twitch.tv/criptoversus",
-            T("community.twitch.name"),
-            T("community.twitch.action"),
-            T("community.twitch.cta"),
-            T("community.twitch.aria")),
+            "youtube",
+            "https://www.youtube.com/@Criptoversus-i7d",
+            "/img/community/youtube.png",
+            T("community.youtube.name"),
+            T("community.youtube.action"),
+            T("community.youtube.cta"),
+            T("community.youtube.aria")),
+        new(
+            "pump",
+            "https://pump.fun/coin/Hc61Hz6a7sUpbwvzwQXAxbKr5ziQrRmUmxjXMmddpump",
+            "/img/community/pump.png",
+            T("community.pump.name"),
+            T("community.pump.action"),
+            T("community.pump.cta"),
+            T("community.pump.aria")),
         new(
             "x",
-            "X",
             "https://x.com/criptoversus",
+            "/img/community/x.png",
             T("community.x.name"),
             T("community.x.action"),
             T("community.x.cta"),
             T("community.x.aria")),
         new(
             "telegram",
-            "TG",
             "https://t.me/criptoversus",
+            "/img/community/telegram.png",
             T("community.telegram.name"),
             T("community.telegram.action"),
             T("community.telegram.cta"),
@@ -110,8 +126,8 @@
 
     private sealed record CommunityItem(
         string Key,
-        string ShortLabel,
         string Url,
+        string IconPath,
         string Name,
         string ActionLabel,
         string CtaLabel,
