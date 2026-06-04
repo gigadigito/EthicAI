@@ -37,7 +37,9 @@ internal static class AudioRequestNormalizer
             TeamName = string.IsNullOrWhiteSpace(request.TeamName) ? null : request.TeamName.Trim(),
             ContextKey = NormalizeToken(request.ContextKey),
             Intensity = NormalizeToken(request.Intensity),
-            VoiceKey = NormalizeToken(request.VoiceKey)
+            VoiceKey = NormalizeToken(request.VoiceKey),
+            QueueIfMissing = request.QueueIfMissing,
+            ForceQueue = request.ForceQueue
         };
     }
 }
