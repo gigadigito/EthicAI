@@ -19,7 +19,7 @@ let tvAudioFacade = null;
 import {
     createTvChartDiagnostics,
     logTelemetryChartSummary
-} from "./tvChartDiagnostics.mjs?v=20260603-cube-click-1";
+} from "./tvChartDiagnostics.mjs?v=20260603-crossover-marker-1";
 import {
     ensureCompareCrossoverStyles as ensureCompareCrossoverStylesCore,
     ensureCompareOverlayRoot as ensureCompareOverlayRootCore,
@@ -27,7 +27,7 @@ import {
     buildScoreEventMarkerNode as buildScoreEventMarkerNodeCore,
     computeScoreMarkerPlacement,
     applyScoreMarkerPlacement
-} from "./tvChartMarkers.mjs?v=20260603-cube-click-1";
+} from "./tvChartMarkers.mjs?v=20260603-crossover-marker-1";
 import {
     applyChartTheme as applyChartThemeCore,
     addLineSeriesCompat as addLineSeriesCompatCore,
@@ -36,23 +36,23 @@ import {
     normalizeCompareLine as normalizeCompareLineCore,
     buildSyntheticCandles as buildSyntheticCandlesCore,
     setChartEmptyState as setChartEmptyStateCore
-} from "./tvChartSeries.mjs?v=20260603-cube-click-1";
+} from "./tvChartSeries.mjs?v=20260603-crossover-marker-1";
 import {
     fitChart as fitChartCore,
     ensureChartResizeObserver,
     disposeChartEntry as disposeChartEntryCore
-} from "./tvChartResize.mjs?v=20260603-cube-click-1";
+} from "./tvChartResize.mjs?v=20260603-crossover-marker-1";
 import {
     normalizeChartTime as normalizeChartTimeCore,
     normalizeChartPoints
-} from "./tvChartTime.mjs?v=20260603-cube-click-1";
+} from "./tvChartTime.mjs?v=20260603-crossover-marker-1";
 import {
     interpolateSeriesValue as interpolateSeriesValueCore,
     buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
-} from "./tvScoreEvents.mjs?v=20260603-cube-click-1";
-import { findLineCrossovers } from "./tvLineCrossovers.mjs?v=20260603-cube-click-1";
-import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260603-cube-click-1";
-import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-cube-click-1";
+} from "./tvScoreEvents.mjs?v=20260603-crossover-marker-1";
+import { findLineCrossovers } from "./tvLineCrossovers.mjs?v=20260603-crossover-marker-1";
+import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260603-crossover-marker-1";
+import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-crossover-marker-1";
 import {
     tvAudioMap,
     ambientTracks,
@@ -61,7 +61,7 @@ import {
     isTvAudioDebugEnabled,
     logAmbientDebug,
     normalizeAudioError
-} from "./tvAudioConfig.mjs?v=20260603-cube-click-1";
+} from "./tvAudioConfig.mjs?v=20260603-crossover-marker-1";
 import {
     ensureTvAudioManager,
     resolveTvAudioChannel,
@@ -73,7 +73,7 @@ import {
     cleanupManagedAudio,
     resolveTvAudioUrl,
     resolveTvCueVolume
-} from "./tvAudioRuntime.mjs?v=20260603-cube-click-1";
+} from "./tvAudioRuntime.mjs?v=20260603-crossover-marker-1";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -2757,18 +2757,17 @@ function positionCompareCrossoverMarker(state) {
         return;
     }
 
-    const previousX = timeScale.timeToCoordinate(marker.previousTime);
-    const currentX = timeScale.timeToCoordinate(marker.currentTime);
-    const winnerY = winnerSeries.priceToCoordinate(marker.crossValue);
+    const markerX = timeScale.timeToCoordinate(marker.time);
+    const markerY = winnerSeries.priceToCoordinate(marker.value);
 
-    if (!Number.isFinite(previousX) || !Number.isFinite(currentX) || !Number.isFinite(winnerY)) {
+    if (!Number.isFinite(markerX) || !Number.isFinite(markerY)) {
         markerNode.classList.remove("is-visible");
         return;
     }
 
     const rect = state.container.getBoundingClientRect();
-    const x = clamp(previousX + ((currentX - previousX) * marker.ratio), 18, Math.max(18, rect.width - 18));
-    const y = clamp(winnerY, 18, Math.max(18, rect.height - 18));
+    const x = clamp(markerX, 18, Math.max(18, rect.width - 18));
+    const y = clamp(markerY, 18, Math.max(18, rect.height - 18));
 
     markerNode.style.left = `${x}px`;
     markerNode.style.setProperty("--battle-y", `${y}px`);
@@ -2846,6 +2845,8 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
 
     clearCompareCrossoverMarker(state);
     const winnerMeta = nextMarker.direction === "a-crosses-above" ? leftMeta : rightMeta;
+    const overlayRoot = ensureCompareOverlayRoot(state);
+    const markerNode = buildCompareMarkerNode(winnerMeta);
     const markerPoint = {
         time: nextMarker.time,
         value: nextMarker.value
@@ -2871,11 +2872,19 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
     } catch {
     }
 
+    overlayRoot.appendChild(markerNode);
+    state.markerNode = markerNode;
     state.currentCrossover = {
         ...markerModel,
         signature: `${nextMarker.time.toFixed(6)}:${nextMarker.value.toFixed(6)}:${nextMarker.direction}`,
         renderedAt: Date.now()
     };
+    positionCompareCrossoverMarker(state);
+    diagnostics.info?.("compare-crossover-marker-rendered", {
+        crossTime: nextMarker.time,
+        crossValue: nextMarker.value,
+        direction: nextMarker.direction
+    });
 }
 
 function maybeRenderCompareScoreEvents(state, payload, leftPoints, rightPoints, leftMeta, rightMeta) {
@@ -2892,7 +2901,6 @@ function maybeRenderCompareScoreEvents(state, payload, leftPoints, rightPoints, 
     });
 
     if (markerModels.length > 0) {
-        clearCompareCrossoverMarker(state);
         renderCompareScoreEventMarkers(state, markerModels);
         return true;
     }
@@ -3376,10 +3384,8 @@ export async function updateTelemetryCharts(payload) {
         fitChart(left.chart);
         fitChart(right.chart);
         fitChart(compare.chart);
-        const renderedOfficialScoreEvents = maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
-        if (!renderedOfficialScoreEvents) {
-            maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
-        }
+        maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
+        maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
         if (splitLeft) {
             fitChart(splitLeft.chart);
         }

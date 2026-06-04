@@ -1076,7 +1076,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260603-cube-click-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260603-crossover-marker-1");
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
