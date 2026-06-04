@@ -804,6 +804,10 @@ else
 @if (ShouldRenderGoalAudio)
 {
     <audio id="tv-goal-sting" class="tv-crowd-audio" data-tv-audio-role="fx" src="@ResolveGoalAudioSrc()" preload="auto"></audio>
+    @if (!string.IsNullOrWhiteSpace(_proceduralGoalAudioSrc))
+    {
+        <audio id="tv-procedural-goal-audio" class="tv-crowd-audio" data-tv-audio-role="fx" src="@_proceduralGoalAudioSrc" preload="auto"></audio>
+    }
 }
 
 @if (Environment.IsDevelopment())
@@ -930,6 +934,8 @@ else
     private string _lastGoalTriggerSignature = string.Empty;
     private string _lastGoalAudioSignature = string.Empty;
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
+    private string _lastGoalAudioPlaybackKind = string.Empty;
+    private string? _proceduralGoalAudioSrc;
     private readonly Dictionary<string, DateTime> _broadcastCooldownUntilUtc = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _broadcastLastSignatures = new(StringComparer.Ordinal);
     private BroadcastSnapshot? _automationPreviousSnapshot;
@@ -1977,6 +1983,8 @@ else
             _lastGoalTriggerSignature = string.Empty;
             _lastGoalAudioSignature = string.Empty;
             _lastGoalAudioAtUtc = DateTime.MinValue;
+            _lastGoalAudioPlaybackKind = string.Empty;
+            _proceduralGoalAudioSrc = null;
             _autoReplayRemainingPlays = 0;
             _autoReplaySignature = string.Empty;
             _nextAutoReplayAtUtc = DateTime.MinValue;
@@ -3434,7 +3442,7 @@ else
             _ = PlayReplayAsync(CreateScoreReplayEvent(current, latest));
             MarkGoalTrigger(current);
             ArmAutoReplayForEvents(current, newEvents);
-            await TryPlayGoalAudioAsync(current);
+            await TryPlayGoalAudioAsync(current, latest);
             _ = MaybeRefreshAiNarrationAsync("goal");
         }
         catch (Exception ex)
@@ -4624,23 +4632,48 @@ else
         }
     }
 
-    private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current)
+    private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current, MatchScoreEventDto? scoreEvent = null)
     {
         if (!ShouldRenderGoalAudio)
             return;
 
         var signature = BuildGoalTriggerSignature(current);
+        var proceduralAudioUrl = NormalizeProceduralGoalAudioUrl(scoreEvent?.AudioUrl);
+        var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(proceduralAudioUrl)
+            && string.Equals(signature, _lastGoalAudioSignature, StringComparison.Ordinal)
+            && !string.Equals(_lastGoalAudioPlaybackKind, "procedural", StringComparison.Ordinal);
 
         // Hard de-dupe: the score event probe and the hot snapshot pipeline can see the same goal.
-        if (string.Equals(signature, _lastGoalAudioSignature, StringComparison.Ordinal))
+        if (string.Equals(signature, _lastGoalAudioSignature, StringComparison.Ordinal) && !canUpgradeToProcedural)
             return;
 
         // Anti-loop guard: if some upstream signal oscillates, never spam the sting.
-        if (_lastGoalAudioAtUtc != DateTime.MinValue && DateTime.UtcNow - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(6))
+        if (!canUpgradeToProcedural
+            && _lastGoalAudioAtUtc != DateTime.MinValue
+            && DateTime.UtcNow - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(6))
             return;
 
         _lastGoalAudioSignature = signature;
         _lastGoalAudioAtUtc = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(proceduralAudioUrl)
+            && await TryPlayProceduralGoalAudioAsync(current, proceduralAudioUrl, scoreEvent))
+        {
+            _lastGoalAudioPlaybackKind = "procedural";
+            return;
+        }
+
+        if (scoreEvent is not null)
+        {
+            await LogAsync("TV_AUDIO", "procedural-audio-missing-no-impact", new
+            {
+                current.MatchId,
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                scoreEvent.AudioUrl,
+                scoreEvent.AudioFallbackUsed,
+                scoreEvent.AudioResolvedLanguage
+            });
+        }
 
         if (_tvModule is not null)
         {
@@ -4653,6 +4686,7 @@ else
                     volume = (double)ResolveCrowdAudioVolume(),
                     muted = _isCrowdAudioMuted
                 });
+                _lastGoalAudioPlaybackKind = "legacy";
                 return;
             }
             catch (JSException)
@@ -4672,11 +4706,62 @@ else
                 volume = (double)ResolveCrowdAudioVolume(),
                 muted = _isCrowdAudioMuted
             });
+            _lastGoalAudioPlaybackKind = "legacy";
         }
         catch
         {
         }
     }
+
+    private async Task<bool> TryPlayProceduralGoalAudioAsync(
+        BroadcastSnapshot current,
+        string audioUrl,
+        MatchScoreEventDto? scoreEvent)
+    {
+        try
+        {
+            if (!string.Equals(_proceduralGoalAudioSrc, audioUrl, StringComparison.Ordinal))
+            {
+                _proceduralGoalAudioSrc = audioUrl;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            if (_tvModule is not null)
+            {
+                await _tvModule.InvokeVoidAsync("playAudioCue", "tv-procedural-goal-audio");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("playAudioCue", "tv-procedural-goal-audio");
+            }
+
+            await LogAsync("TV_AUDIO", "procedural-goal-used", new
+            {
+                current.MatchId,
+                current.LeftScore,
+                current.RightScore,
+                scoreEventId = scoreEvent?.MatchScoreEventId,
+                audioUrl,
+                fallbackUsed = scoreEvent?.AudioFallbackUsed,
+                resolvedLanguage = scoreEvent?.AudioResolvedLanguage
+            });
+            return true;
+        }
+        catch (Exception ex) when (ex is JSException or ObjectDisposedException)
+        {
+            await LogAsync("TV_AUDIO", "procedural-goal-failed-fallback", new
+            {
+                current.MatchId,
+                scoreEventId = scoreEvent?.MatchScoreEventId,
+                audioUrl,
+                message = ex.Message
+            });
+            return false;
+        }
+    }
+
+    private static string? NormalizeProceduralGoalAudioUrl(string? audioUrl)
+        => string.IsNullOrWhiteSpace(audioUrl) ? null : audioUrl.Trim();
 
     private void MarkGoalTrigger(BroadcastSnapshot current)
     {
