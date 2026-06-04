@@ -2529,9 +2529,92 @@ function ensureResizeObserver(container, chart) {
     });
 }
 
+function cancelCompareOverlayRefresh(state) {
+    if (!state?.overlayRefreshRafId) {
+        return;
+    }
+
+    try {
+        window.cancelAnimationFrame(state.overlayRefreshRafId);
+    } catch {
+    }
+
+    state.overlayRefreshRafId = null;
+}
+
+function refreshCompareOverlay(state) {
+    positionCompareScoreEventMarkers(state);
+    positionCompareCrossoverMarker(state);
+}
+
+function scheduleCompareOverlayRefresh(state) {
+    if (!state) {
+        return;
+    }
+
+    cancelCompareOverlayRefresh(state);
+    state.overlayRefreshRafId = window.requestAnimationFrame(() => {
+        state.overlayRefreshRafId = window.requestAnimationFrame(() => {
+            state.overlayRefreshRafId = null;
+            refreshCompareOverlay(state);
+        });
+    });
+}
+
+function attachCompareChartSync(state) {
+    if (!state?.chart || state.compareSyncAttached) {
+        return;
+    }
+
+    const timeScale = state.chart.timeScale?.();
+    const refresh = () => scheduleCompareOverlayRefresh(state);
+
+    if (typeof timeScale?.subscribeVisibleTimeRangeChange === "function") {
+        timeScale.subscribeVisibleTimeRangeChange(refresh);
+        state.unsubscribeVisibleTimeRangeChange = () => {
+            try {
+                timeScale.unsubscribeVisibleTimeRangeChange(refresh);
+            } catch {
+            }
+        };
+    }
+
+    if (typeof timeScale?.subscribeVisibleLogicalRangeChange === "function") {
+        timeScale.subscribeVisibleLogicalRangeChange(refresh);
+        state.unsubscribeVisibleLogicalRangeChange = () => {
+            try {
+                timeScale.unsubscribeVisibleLogicalRangeChange(refresh);
+            } catch {
+            }
+        };
+    }
+
+    state.compareSyncAttached = true;
+}
+
 function disposeChartEntry(entry) {
     try {
         clearCompareScoreEventMarkers(entry);
+    } catch {
+    }
+
+    try {
+        clearCompareCrossoverMarker(entry);
+    } catch {
+    }
+
+    try {
+        cancelCompareOverlayRefresh(entry);
+    } catch {
+    }
+
+    try {
+        entry?.unsubscribeVisibleTimeRangeChange?.();
+    } catch {
+    }
+
+    try {
+        entry?.unsubscribeVisibleLogicalRangeChange?.();
     } catch {
     }
 
@@ -2844,7 +2927,7 @@ function renderCompareScoreEventMarkers(state, markerModels) {
         return { model: markerModel, node };
     });
 
-    positionCompareScoreEventMarkers(state);
+    scheduleCompareOverlayRefresh(state);
 }
 
 function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, rightMeta) {
@@ -2898,7 +2981,7 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
     state.currentCrossovers = markerModels;
     state.currentCrossover = markerModels[markerModels.length - 1] ?? null;
     state.markerNode = state.crossoverMarkerNodes[state.crossoverMarkerNodes.length - 1]?.node ?? null;
-    positionCompareCrossoverMarker(state);
+    scheduleCompareOverlayRefresh(state);
     diagnostics.info?.("compare-crossover-markers-rendered", {
         count: markerModels.length,
         items: markerModels.map((markerModel) => ({
@@ -3086,6 +3169,10 @@ async function ensureCompareChart(containerId) {
         crossoverMarkerNodes: [],
         currentCrossovers: [],
         markerFadeTimer: null,
+        overlayRefreshRafId: null,
+        compareSyncAttached: false,
+        unsubscribeVisibleTimeRangeChange: null,
+        unsubscribeVisibleLogicalRangeChange: null,
         scoreEventMarkers: [],
         scoreEventMarkerNodes: [],
         scoreEventPlotCache: new Map(),
@@ -3094,6 +3181,7 @@ async function ensureCompareChart(containerId) {
     };
 
     telemetryChartsState.charts.set(containerId, state);
+    attachCompareChartSync(state);
     ensureResizeObserver(container, chart);
 
     return state;
@@ -3410,6 +3498,7 @@ export async function updateTelemetryCharts(payload) {
         fitChart(compare.chart);
         maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
         maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
+        scheduleCompareOverlayRefresh(compare);
         if (splitLeft) {
             fitChart(splitLeft.chart);
         }
