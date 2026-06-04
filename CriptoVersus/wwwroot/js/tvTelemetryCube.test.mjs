@@ -172,6 +172,7 @@ function testNotifyGoalHoldsRotationAndSwitchesFace() {
 function testClickRotatesCubeOneFace() {
     withFakeDom(({ cubeClassList, listeners }) => {
         let refreshCalls = 0;
+        const payload = { left: [{ time: 1, value: 1 }] };
         const controller = createTelemetryCubeController({
             isReducedMotion: () => false,
             throttleKey: () => false,
@@ -182,7 +183,7 @@ function testClickRotatesCubeOneFace() {
             hasChartContainers: () => true,
             scheduleContainerRetry() {
             },
-            getLastPayload: () => null,
+            getLastPayload: () => payload,
             onResizeCharts() {
             },
             onRefreshCharts() {
@@ -195,11 +196,11 @@ function testClickRotatesCubeOneFace() {
 
         assert.ok(cubeClassList.added.includes("is-face-1"));
         assert.equal(controller.getState().faceIndex, 1);
-        assert.ok(refreshCalls >= 0);
+        assert.ok(refreshCalls >= 1);
     });
 }
 
-function testTransitionEndDoesNotDuplicateSettledRefresh() {
+function testSetFaceAddsSettledRefreshAfterImmediateRefresh() {
     withFakeDom(({ cubeListeners }) => {
         let refreshCalls = 0;
         const payload = { left: [{ time: 1, value: 1 }] };
@@ -222,6 +223,10 @@ function testTransitionEndDoesNotDuplicateSettledRefresh() {
         });
 
         controller.init("cube-shell", 5000);
+        const beforeSetFace = refreshCalls;
+        controller.setFace(2, "test-settled");
+        assert.ok(refreshCalls >= beforeSetFace + 2);
+
         const beforeTransition = refreshCalls;
         cubeListeners.transitionend?.({
             target: controller.getState().cube,
@@ -236,5 +241,5 @@ testInitCubeSchedulesContainerRetryWhenChartsAreMissing();
 testSetFaceRefreshesChartsAndAppliesCssClass();
 testNotifyGoalHoldsRotationAndSwitchesFace();
 testClickRotatesCubeOneFace();
-testTransitionEndDoesNotDuplicateSettledRefresh();
+testSetFaceAddsSettledRefreshAfterImmediateRefresh();
 console.log("tvTelemetryCube tests passed");

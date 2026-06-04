@@ -97,6 +97,22 @@ export function createTelemetryCubeController(deps) {
             window.setTimeout(() => resizeCharts(), 80);
             window.setTimeout(() => resizeCharts(), 350);
             window.setTimeout(() => resizeCharts(), 1100);
+
+            const lastPayload = deps.getLastPayload?.();
+            if (lastPayload) {
+                window.setTimeout(() => {
+                    try {
+                        deps.onRefreshCharts?.(lastPayload);
+
+                        if (deps.throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
+                            deps.logChart("refresh from state", { reason: `face-${normalized}` });
+                        }
+                    } catch (error) {
+                        deps.logCube("chart refresh failed", error?.message || String(error));
+                    }
+                }, 120);
+            }
+
             scheduleFaceSettled(reason ?? `face-${normalized}`);
         } catch (error) {
             deps.logCube("setCubeFace failed", error?.message || String(error));
