@@ -2699,13 +2699,19 @@ function clearCompareCrossoverMarker(state) {
 
     clearCompareMarkerFadeTimer(state);
 
-    try {
-        state.markerNode?.remove?.();
-    } catch {
+    if (Array.isArray(state.crossoverMarkerNodes)) {
+        for (const markerNode of state.crossoverMarkerNodes) {
+            try {
+                markerNode?.node?.remove?.();
+            } catch {
+            }
+        }
     }
 
     state.markerNode = null;
     state.currentCrossover = null;
+    state.crossoverMarkerNodes = [];
+    state.currentCrossovers = [];
 
     try {
         state.crossoverSeries?.setData?.([]);
@@ -2745,37 +2751,44 @@ function buildScoreEventMarkerNode(markerModel) {
 }
 
 function positionCompareCrossoverMarker(state) {
-    const marker = state?.currentCrossover;
-    const markerNode = state?.markerNode;
-    if (!marker || !markerNode || !state.chart || !state.chart.timeScale) {
+    if (!state?.chart || !state.chart.timeScale || !Array.isArray(state.crossoverMarkerNodes) || state.crossoverMarkerNodes.length === 0) {
         return;
     }
 
     const timeScale = state.chart.timeScale();
-    const winnerSeries = marker.winner === "right" ? state.rightSeries : state.leftSeries;
-    if (!winnerSeries?.priceToCoordinate) {
-        return;
-    }
-
-    const markerX = timeScale.timeToCoordinate(marker.time);
-    const markerY = winnerSeries.priceToCoordinate(marker.value);
-
-    if (!Number.isFinite(markerX) || !Number.isFinite(markerY)) {
-        markerNode.classList.remove("is-visible");
-        return;
-    }
-
     const rect = state.container.getBoundingClientRect();
-    const x = clamp(markerX, 18, Math.max(18, rect.width - 18));
-    const y = clamp(markerY, 18, Math.max(18, rect.height - 18));
 
-    markerNode.style.left = `${x}px`;
-    markerNode.style.setProperty("--battle-y", `${y}px`);
-    markerNode.classList.add("is-visible");
+    state.crossoverMarkerNodes.forEach((entry) => {
+        const marker = entry?.model;
+        const markerNode = entry?.node;
+        if (!marker || !markerNode) {
+            return;
+        }
+
+        const winnerSeries = marker.direction === "a-crosses-above" ? state.leftSeries : state.rightSeries;
+        if (!winnerSeries?.priceToCoordinate) {
+            return;
+        }
+
+        const markerX = timeScale.timeToCoordinate(marker.time);
+        const markerY = winnerSeries.priceToCoordinate(marker.value);
+
+        if (!Number.isFinite(markerX) || !Number.isFinite(markerY)) {
+            markerNode.classList.remove("is-visible");
+            return;
+        }
+
+        const x = clamp(markerX, 18, Math.max(18, rect.width - 18));
+        const y = clamp(markerY, 18, Math.max(18, rect.height - 18));
+
+        markerNode.style.left = `${x}px`;
+        markerNode.style.setProperty("--battle-y", `${y}px`);
+        markerNode.classList.add("is-visible");
+    });
 }
 
 function refreshCompareCrossoverMarker(state) {
-    if (!state?.currentCrossover || !state?.markerNode) {
+    if (!state?.currentCrossovers?.length || !state?.crossoverMarkerNodes?.length) {
         return;
     }
 
@@ -2837,53 +2850,62 @@ function renderCompareScoreEventMarkers(state, markerModels) {
 function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, rightMeta) {
     const diagnostics = getTvChartDiagnostics();
     const crossovers = findLineCrossovers(leftPoints, rightPoints, { diagnostics });
-    const nextMarker = crossovers[crossovers.length - 1] ?? null;
-    if (!nextMarker) {
+    if (!crossovers.length) {
         clearCompareCrossoverMarker(state);
         return;
     }
 
     clearCompareCrossoverMarker(state);
-    const winnerMeta = nextMarker.direction === "a-crosses-above" ? leftMeta : rightMeta;
     const overlayRoot = ensureCompareOverlayRoot(state);
-    const markerNode = buildCompareMarkerNode(winnerMeta);
-    const markerPoint = {
-        time: nextMarker.time,
-        value: nextMarker.value
-    };
-    const markerModel = {
-        time: nextMarker.time,
-        value: nextMarker.value,
-        direction: nextMarker.direction,
-        winnerMeta
-    };
+    const markerPoints = [];
+    const markerModels = [];
+    const seriesMarkers = [];
+
+    for (const crossover of crossovers) {
+        const winnerMeta = crossover.direction === "a-crosses-above" ? leftMeta : rightMeta;
+        markerPoints.push({
+            time: crossover.time,
+            value: crossover.value
+        });
+        markerModels.push({
+            time: crossover.time,
+            value: crossover.value,
+            direction: crossover.direction,
+            winnerMeta,
+            signature: `${crossover.time.toFixed(6)}:${crossover.value.toFixed(6)}:${crossover.direction}`,
+            renderedAt: Date.now()
+        });
+        seriesMarkers.push({
+            time: crossover.time,
+            position: "inBar",
+            color: winnerMeta?.accentColor || "#f4fbff",
+            shape: "circle",
+            text: "⚔"
+        });
+    }
 
     try {
-        state.crossoverSeries?.setData?.([markerPoint]);
-        applySeriesMarkersCompat(state.LightweightCharts, state.crossoverSeries, [
-            {
-                time: nextMarker.time,
-                position: "inBar",
-                color: winnerMeta?.accentColor || "#f4fbff",
-                shape: "circle",
-                text: "⚔"
-            }
-        ]);
+        state.crossoverSeries?.setData?.(markerPoints);
+        applySeriesMarkersCompat(state.LightweightCharts, state.crossoverSeries, seriesMarkers);
     } catch {
     }
 
-    overlayRoot.appendChild(markerNode);
-    state.markerNode = markerNode;
-    state.currentCrossover = {
-        ...markerModel,
-        signature: `${nextMarker.time.toFixed(6)}:${nextMarker.value.toFixed(6)}:${nextMarker.direction}`,
-        renderedAt: Date.now()
-    };
+    state.crossoverMarkerNodes = markerModels.map((markerModel) => {
+        const node = buildCompareMarkerNode(markerModel.winnerMeta);
+        overlayRoot.appendChild(node);
+        return { model: markerModel, node };
+    });
+    state.currentCrossovers = markerModels;
+    state.currentCrossover = markerModels[markerModels.length - 1] ?? null;
+    state.markerNode = state.crossoverMarkerNodes[state.crossoverMarkerNodes.length - 1]?.node ?? null;
     positionCompareCrossoverMarker(state);
-    diagnostics.info?.("compare-crossover-marker-rendered", {
-        crossTime: nextMarker.time,
-        crossValue: nextMarker.value,
-        direction: nextMarker.direction
+    diagnostics.info?.("compare-crossover-markers-rendered", {
+        count: markerModels.length,
+        items: markerModels.map((markerModel) => ({
+            crossTime: markerModel.time,
+            crossValue: markerModel.value,
+            direction: markerModel.direction
+        }))
     });
 }
 
@@ -3061,6 +3083,8 @@ async function ensureCompareChart(containerId) {
         overlayRoot: null,
         markerNode: null,
         currentCrossover: null,
+        crossoverMarkerNodes: [],
+        currentCrossovers: [],
         markerFadeTimer: null,
         scoreEventMarkers: [],
         scoreEventMarkerNodes: [],
