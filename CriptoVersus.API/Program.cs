@@ -2,6 +2,7 @@
 using BLL.Blockchain;
 using BLL.ArenaSentiment;
 using BLL.Positions;
+using DTOs;
 using CriptoVersus.API.Hubs;
 using CriptoVersus.API.Services;
 using CriptoVersus.API.Swagger;
@@ -53,6 +54,11 @@ builder.Services.AddScoped<ISystemBalanceWithdrawalService, SystemBalanceWithdra
 builder.Services.AddScoped<ICustodySolTransferService, CustodySolTransferService>();
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
 builder.Services.AddScoped<ITvHotMatchService, TvHotMatchService>();
+builder.Services.AddScoped<IAudioAssetResolverService, AudioAssetResolverService>();
+builder.Services.AddScoped<IAudioGenerationQueueService, AudioGenerationQueueService>();
+builder.Services.AddScoped<IAudioStorageService, AudioStorageService>();
+builder.Services.AddSingleton<IAudioWorkerAuthenticationService, AudioWorkerAuthenticationService>();
+builder.Services.AddScoped<IProceduralAudioSeedService, ProceduralAudioSeedService>();
 builder.Services.AddHttpClient<ITvAiNarrationService, TvAiNarrationService>();
 builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
 builder.Services.AddSingleton<ISocialVsRenderService, SocialVsRenderService>();
@@ -69,6 +75,10 @@ builder.Services.Configure<SocialAutomationOptions>(
     builder.Configuration.GetSection(SocialAutomationOptions.SectionName));
 builder.Services.Configure<CriptoVersusAiOptions>(
     builder.Configuration.GetSection(CriptoVersusAiOptions.SectionName));
+builder.Services.Configure<AudioGenerationOptions>(
+    builder.Configuration.GetSection(AudioGenerationOptions.SectionName));
+builder.Services.Configure<ProceduralAudioFeatureOptions>(
+    builder.Configuration.GetSection(ProceduralAudioFeatureOptions.SectionName));
 builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
 builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();
@@ -173,6 +183,8 @@ using (var scope = app.Services.CreateScope())
     var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<EthicAIDbContext>>();
     using var context = dbContextFactory.CreateDbContext();
     context.Database.Migrate();
+    var seedService = scope.ServiceProvider.GetRequiredService<IProceduralAudioSeedService>();
+    await seedService.EnsureSeedAsync();
 }
 
 var blockchainOptions = app.Services

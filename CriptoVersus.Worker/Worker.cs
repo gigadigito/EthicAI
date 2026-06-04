@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.Sockets;
@@ -34,6 +35,7 @@ namespace CriptoVersus.Worker
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly CriptoVersusWorkerOptions _options;
+        private readonly ProceduralAudioFeatureOptions _proceduralAudioFeatures;
 
         private const string WorkerName = "CriptoVersus.Worker";
 
@@ -64,13 +66,15 @@ namespace CriptoVersus.Worker
             IServiceProvider sp,
             IHttpClientFactory httpClientFactory,
             IConfiguration configuration,
-            IOptions<CriptoVersusWorkerOptions> options)
+            IOptions<CriptoVersusWorkerOptions> options,
+            IOptions<ProceduralAudioFeatureOptions> proceduralAudioFeatures)
         {
             _logger = logger;
             _sp = sp;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
             _options = options.Value;
+            _proceduralAudioFeatures = proceduralAudioFeatures.Value;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -1145,6 +1149,14 @@ namespace CriptoVersus.Worker
                 foreach (var scoreEvent in scoringResult.Events)
                 {
                     scoreState.LastEventSequence++;
+                    var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
+                    var teamName = scoreEvent.TeamId == match.TeamAId
+                        ? match.TeamA?.Currency?.Name
+                        : match.TeamB?.Currency?.Name;
+                    var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
+                    var audioResponse = audioRequest is null
+                        ? null
+                        : await ResolveProceduralAudioAsync(audioRequest, ct);
 
                     db.MatchScoreEvent.Add(new MatchScoreEvent
                     {
@@ -1163,17 +1175,27 @@ namespace CriptoVersus.Worker
                         WindowStartUtc = scoreEvent.WindowStartUtc,
                         WindowEndUtc = scoreEvent.WindowEndUtc,
                         Description = scoreEvent.Description,
-                        EventTimeUtc = scoreEvent.EventTimeUtc
+                        EventTimeUtc = scoreEvent.EventTimeUtc,
+                        AudioContextKey = audioRequest?.ContextKey,
+                        AudioIntensity = audioRequest?.Intensity,
+                        AudioVoiceKey = audioRequest?.VoiceKey,
+                        AudioAssetId = audioResponse?.AssetId,
+                        AudioUrl = audioResponse?.AudioUrl,
+                        AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
+                        AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
                     });
 
                     _logger.LogInformation(
-                        "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc}",
+                        "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
                         match.MatchId,
                         scoreState.LastEventSequence,
                         scoreEvent.TeamId,
                         scoreEvent.RuleType,
                         scoreEvent.EventType,
-                        scoreEvent.Description);
+                        scoreEvent.Description,
+                        audioResponse?.Found ?? false,
+                        audioResponse?.FallbackUsed ?? false,
+                        audioResponse?.Queued ?? false);
                 }
 
                 await arenaSentimentService.CalculateArenaPressureGoalAsync(match.MatchId, ct);
@@ -1830,6 +1852,128 @@ namespace CriptoVersus.Worker
         {
             var aligned = AlignToWindow(utc, windowMinutes);
             return aligned == utc ? aligned : aligned.AddMinutes(windowMinutes);
+        }
+
+        private AudioResolveRequest? BuildAudioResolveRequest(
+            PendingMatchScoreEvent scoreEvent,
+            string? teamSymbol,
+            string? teamName)
+        {
+            if (!_options.ProceduralAudio.Enabled)
+                return null;
+
+            if (!_proceduralAudioFeatures.Enabled)
+            {
+                _logger.LogInformation(
+                    "Procedural audio disabled by feature flag in worker. EventType={EventType} TeamSymbol={TeamSymbol}",
+                    scoreEvent.EventType,
+                    teamSymbol);
+                return null;
+            }
+
+            var descriptor = ProceduralAudioEventMapper.MapScoreEvent(
+                scoreEvent.EventType,
+                scoreEvent.ReasonCode,
+                scoreEvent.MetricDelta);
+
+            if (string.IsNullOrWhiteSpace(descriptor.EventType))
+                return null;
+
+            return new AudioResolveRequest
+            {
+                EventType = descriptor.EventType,
+                Language = _options.ProceduralAudio.DefaultLanguage,
+                TeamSymbol = teamSymbol,
+                TeamName = teamName,
+                ContextKey = descriptor.ContextKey,
+                Intensity = descriptor.Intensity,
+                VoiceKey = _options.ProceduralAudio.VoiceKey
+            };
+        }
+
+        private async Task<AudioResolveResponse?> ResolveProceduralAudioAsync(
+            AudioResolveRequest request,
+            CancellationToken ct)
+        {
+            if (!_options.ProceduralAudio.Enabled || string.IsNullOrWhiteSpace(_options.ProceduralAudio.ResolveUrl))
+                return null;
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(Math.Max(2, _options.ProceduralAudio.RequestTimeoutSeconds)));
+
+            try
+            {
+                var http = _httpClientFactory.CreateClient();
+                using var response = await http.PostAsJsonAsync(
+                    _options.ProceduralAudio.ResolveUrl,
+                    request,
+                    timeoutCts.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+                    _logger.LogWarning(
+                        "Procedural audio resolve failed. StatusCode={StatusCode} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} Body={Body}",
+                        (int)response.StatusCode,
+                        request.EventType,
+                        request.Language,
+                        request.TeamSymbol,
+                        body);
+                    return null;
+                }
+
+                var result = await response.Content.ReadFromJsonAsync<AudioResolveResponse>(cancellationToken: timeoutCts.Token);
+                if (result is null)
+                {
+                    _logger.LogWarning(
+                        "Procedural audio resolve returned empty payload. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                        request.EventType,
+                        request.Language,
+                        request.TeamSymbol);
+                    return null;
+                }
+
+                _logger.LogInformation(
+                    "Procedural audio resolve finished. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} Found={Found} FallbackUsed={FallbackUsed} Queued={Queued} AudioUrl={AudioUrl}",
+                    request.EventType,
+                    request.Language,
+                    request.TeamSymbol,
+                    result.Found,
+                    result.FallbackUsed,
+                    result.Queued,
+                    result.AudioUrl);
+
+                return result;
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                _logger.LogWarning(
+                    "Procedural audio resolve timed out. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                    request.EventType,
+                    request.Language,
+                    request.TeamSymbol);
+                return null;
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Procedural audio resolve transient HTTP failure. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                    request.EventType,
+                    request.Language,
+                    request.TeamSymbol);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Procedural audio resolve failed unexpectedly. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                    request.EventType,
+                    request.Language,
+                    request.TeamSymbol);
+                return null;
+            }
         }
 
         private static double ParsePercent(string? s)

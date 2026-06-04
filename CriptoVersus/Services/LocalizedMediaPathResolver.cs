@@ -27,7 +27,12 @@ public sealed class LocalizedMediaPathResolver
     public IReadOnlyList<string> GetCultureFallbackChain(string? culture)
     {
         var current = NormalizeCulture(culture);
-        return [current, AppCultureService.DefaultRouteCulture, AppCultureService.SecondaryRouteCulture]
+        return new[]
+        {
+            current,
+            AppCultureService.DefaultRouteCulture,
+            AppCultureService.SecondaryRouteCulture
+        }
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

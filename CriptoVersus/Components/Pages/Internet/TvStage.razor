@@ -3384,7 +3384,7 @@ else
 
         try
         {
-            var events = await Api.GetMatchScoreEventsAsync(matchId) ?? [];
+            var events = await Api.GetMatchScoreEventsAsync(matchId, Culture) ?? [];
             _allScoreEvents = events
                 .OrderBy(x => x.EventTimeUtc)
                 .ThenBy(x => x.MatchScoreEventId)

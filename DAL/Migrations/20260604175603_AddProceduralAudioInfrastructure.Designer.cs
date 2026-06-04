@@ -3,6 +3,7 @@ using System;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,10 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DAL.Migrations
 {
     [DbContext(typeof(EthicAIDbContext))]
-    partial class EthicAIDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260604175603_AddProceduralAudioInfrastructure")]
+    partial class AddProceduralAudioInfrastructure
     {
         /// <inheritdoc />
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2523,4 +2525,3 @@ namespace DAL.Migrations
         }
     }
 }
-

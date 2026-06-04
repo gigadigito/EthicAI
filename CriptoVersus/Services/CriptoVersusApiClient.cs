@@ -86,12 +86,22 @@ public sealed class CriptoVersusApiClient
             ct);
     }
 
-    public async Task<List<MatchScoreEventDto>?> GetMatchScoreEventsAsync(
+    public Task<List<MatchScoreEventDto>?> GetMatchScoreEventsAsync(
         int matchId,
         CancellationToken ct = default)
+        => GetMatchScoreEventsAsync(matchId, language: null, ct);
+
+    public async Task<List<MatchScoreEventDto>?> GetMatchScoreEventsAsync(
+        int matchId,
+        string? language,
+        CancellationToken ct = default)
     {
+        var query = string.IsNullOrWhiteSpace(language)
+            ? string.Empty
+            : $"?language={Uri.EscapeDataString(language)}";
+
         return await GetFromJsonWithBearerAsync<List<MatchScoreEventDto>>(
-            $"api/Matches/{matchId}/score-events",
+            $"api/Matches/{matchId}/score-events{query}",
             ct);
     }
 

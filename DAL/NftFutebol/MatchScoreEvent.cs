@@ -19,8 +19,16 @@ namespace DAL.NftFutebol
         public DateTime? WindowEndUtc { get; set; }
         public string Description { get; set; } = string.Empty;
         public DateTime EventTimeUtc { get; set; }
+        public string? AudioContextKey { get; set; }
+        public string? AudioIntensity { get; set; }
+        public string? AudioVoiceKey { get; set; }
+        public long? AudioAssetId { get; set; }
+        public string? AudioUrl { get; set; }
+        public bool AudioFallbackUsed { get; set; }
+        public string? AudioResolvedLanguage { get; set; }
 
         public Match Match { get; set; } = null!;
         public Team Team { get; set; } = null!;
+        public AudioAsset? AudioAsset { get; set; }
     }
 }

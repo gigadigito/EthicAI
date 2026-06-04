@@ -36,6 +36,10 @@ namespace EthicAI.EntityModel
         public DbSet<MatchAiNarrationHistory> MatchAiNarrationHistory { get; set; }
         public DbSet<FinancialMigrationBatch> FinancialMigrationBatch { get; set; }
         public DbSet<FundMigrationCheckpoint> FundMigrationCheckpoint { get; set; }
+        public DbSet<AudioAsset> AudioAsset { get; set; }
+        public DbSet<AudioGenerationQueueItem> AudioGenerationQueueItem { get; set; }
+        public DbSet<AudioPhraseTemplate> AudioPhraseTemplate { get; set; }
+        public DbSet<AudioVoiceProfile> AudioVoiceProfile { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -810,6 +814,32 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_event_time");
 
+                entity.Property(e => e.AudioContextKey)
+                      .HasColumnName("tx_audio_context_key")
+                      .HasMaxLength(100);
+
+                entity.Property(e => e.AudioIntensity)
+                      .HasColumnName("tx_audio_intensity")
+                      .HasMaxLength(30);
+
+                entity.Property(e => e.AudioVoiceKey)
+                      .HasColumnName("tx_audio_voice_key")
+                      .HasMaxLength(80);
+
+                entity.Property(e => e.AudioAssetId)
+                      .HasColumnName("audio_asset_id");
+
+                entity.Property(e => e.AudioUrl)
+                      .HasColumnName("tx_audio_url");
+
+                entity.Property(e => e.AudioFallbackUsed)
+                      .HasColumnName("fl_audio_fallback_used")
+                      .HasDefaultValue(false);
+
+                entity.Property(e => e.AudioResolvedLanguage)
+                      .HasColumnName("tx_audio_resolved_language")
+                      .HasMaxLength(20);
+
                 entity.HasIndex(e => new { e.MatchId, e.EventSequence }).IsUnique();
 
                 entity.HasOne(e => e.Match)
@@ -821,6 +851,11 @@ namespace EthicAI.EntityModel
                       .WithMany(t => t.ScoreEvents)
                       .HasForeignKey(e => e.TeamId)
                       .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.AudioAsset)
+                      .WithMany(a => a.MatchScoreEvents)
+                      .HasForeignKey(e => e.AudioAssetId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             modelBuilder.Entity<MatchScoreState>(entity =>
@@ -1159,6 +1194,124 @@ namespace EthicAI.EntityModel
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<AudioAsset>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("audio_asset");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.EventType).HasColumnName("event_type").HasMaxLength(50);
+                entity.Property(e => e.Language).HasColumnName("language").HasMaxLength(10);
+                entity.Property(e => e.TeamSymbol).HasColumnName("team_symbol").HasMaxLength(20);
+                entity.Property(e => e.ContextKey).HasColumnName("context_key").HasMaxLength(100);
+                entity.Property(e => e.Intensity).HasColumnName("intensity").HasMaxLength(30);
+                entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
+                entity.Property(e => e.TemplateKey).HasColumnName("template_key").HasMaxLength(100);
+                entity.Property(e => e.TextPrompt).HasColumnName("text_prompt");
+                entity.Property(e => e.AudioUrl).HasColumnName("audio_url");
+                entity.Property(e => e.RelativePath).HasColumnName("relative_path");
+                entity.Property(e => e.FileName).HasColumnName("file_name").HasMaxLength(255);
+                entity.Property(e => e.MimeType).HasColumnName("mime_type").HasMaxLength(100).HasDefaultValue("audio/mpeg");
+                entity.Property(e => e.DurationMs).HasColumnName("duration_ms");
+                entity.Property(e => e.FileSizeBytes).HasColumnName("file_size_bytes");
+                entity.Property(e => e.FileHash).HasColumnName("file_hash").HasMaxLength(128);
+                entity.Property(e => e.GenerationModel).HasColumnName("generation_model").HasMaxLength(100);
+                entity.Property(e => e.GenerationSource).HasColumnName("generation_source").HasMaxLength(50);
+                entity.Property(e => e.QualityScore).HasColumnName("quality_score").HasColumnType("numeric(5,2)");
+                entity.Property(e => e.Priority).HasColumnName("priority").HasDefaultValue(0);
+                entity.Property(e => e.UsageCount).HasColumnName("usage_count").HasDefaultValue(0);
+                entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(30).HasDefaultValue(AudioAssetStatus.Ready);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.LastUsedAtUtc).HasColumnName("last_used_at_utc").HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol });
+                entity.HasIndex(e => new { e.EventType, e.Language, e.Status });
+                entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol, e.ContextKey, e.Intensity, e.Status });
+                entity.HasIndex(e => e.FileHash)
+                      .IsUnique()
+                      .HasFilter("\"file_hash\" IS NOT NULL");
+            });
+
+            modelBuilder.Entity<AudioGenerationQueueItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("audio_generation_queue");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.EventType).HasColumnName("event_type").HasMaxLength(50);
+                entity.Property(e => e.Language).HasColumnName("language").HasMaxLength(10);
+                entity.Property(e => e.TeamSymbol).HasColumnName("team_symbol").HasMaxLength(20);
+                entity.Property(e => e.ContextKey).HasColumnName("context_key").HasMaxLength(100);
+                entity.Property(e => e.Intensity).HasColumnName("intensity").HasMaxLength(30);
+                entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
+                entity.Property(e => e.TemplateKey).HasColumnName("template_key").HasMaxLength(100);
+                entity.Property(e => e.TextPrompt).HasColumnName("text_prompt");
+                entity.Property(e => e.TargetRelativePath).HasColumnName("target_relative_path");
+                entity.Property(e => e.TargetFileName).HasColumnName("target_file_name").HasMaxLength(255);
+                entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(30).HasDefaultValue(AudioGenerationJobStatus.Pending);
+                entity.Property(e => e.Priority).HasColumnName("priority").HasDefaultValue(0);
+                entity.Property(e => e.AttemptCount).HasColumnName("attempt_count").HasDefaultValue(0);
+                entity.Property(e => e.MaxAttempts).HasColumnName("max_attempts").HasDefaultValue(3);
+                entity.Property(e => e.LeaseOwner).HasColumnName("lease_owner").HasMaxLength(100);
+                entity.Property(e => e.LeasedUntilUtc).HasColumnName("leased_until_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.ProcessedAtUtc).HasColumnName("processed_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.CompletedAudioAssetId).HasColumnName("completed_audio_asset_id");
+
+                entity.HasIndex(e => new { e.Status, e.Priority, e.CreatedAtUtc });
+                entity.HasIndex(e => e.LeasedUntilUtc);
+                entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol, e.ContextKey, e.Intensity });
+
+                entity.HasOne(e => e.CompletedAudioAsset)
+                      .WithMany(a => a.CompletedJobs)
+                      .HasForeignKey(e => e.CompletedAudioAssetId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<AudioPhraseTemplate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("audio_phrase_template");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.TemplateKey).HasColumnName("template_key").HasMaxLength(100);
+                entity.Property(e => e.EventType).HasColumnName("event_type").HasMaxLength(50);
+                entity.Property(e => e.Language).HasColumnName("language").HasMaxLength(10);
+                entity.Property(e => e.ContextKey).HasColumnName("context_key").HasMaxLength(100);
+                entity.Property(e => e.Intensity).HasColumnName("intensity").HasMaxLength(30);
+                entity.Property(e => e.TemplateText).HasColumnName("template_text");
+                entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+                entity.Property(e => e.Priority).HasColumnName("priority").HasDefaultValue(0);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => e.TemplateKey).IsUnique();
+            });
+
+            modelBuilder.Entity<AudioVoiceProfile>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.ToTable("audio_voice_profile");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
+                entity.Property(e => e.Language).HasColumnName("language").HasMaxLength(10);
+                entity.Property(e => e.DisplayName).HasColumnName("display_name").HasMaxLength(150);
+                entity.Property(e => e.SampleRelativePath).HasColumnName("sample_relative_path");
+                entity.Property(e => e.SampleUrl).HasColumnName("sample_url");
+                entity.Property(e => e.Provider).HasColumnName("provider").HasMaxLength(80);
+                entity.Property(e => e.VoiceStyle).HasColumnName("voice_style").HasMaxLength(80);
+                entity.Property(e => e.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+                entity.Property(e => e.Priority).HasColumnName("priority").HasDefaultValue(0);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");
+
+                entity.HasIndex(e => e.VoiceKey).IsUnique();
+            });
+
             Seed(modelBuilder);
         }
 
@@ -1170,6 +1323,20 @@ namespace EthicAI.EntityModel
                 new PostCategory { Id = 3, Name = "Health" },
                 new PostCategory { Id = 4, Name = "Education" },
                 new PostCategory { Id = 5, Name = "Business" }
+            );
+
+            var audioSeedTime = new DateTime(2026, 06, 04, 0, 0, 0, DateTimeKind.Utc);
+            modelBuilder.Entity<AudioPhraseTemplate>().HasData(
+                new AudioPhraseTemplate { Id = 1, TemplateKey = "goal_pt_br_hype", EventType = "goal", Language = "pt-BR", Intensity = "hype", TemplateText = "GOOOOL de {TEAM_SYMBOL}! A arena CriptoVersus entrou em combustao total!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 2, TemplateKey = "goal_en_us_hype", EventType = "goal", Language = "en-US", Intensity = "hype", TemplateText = "GOOOAL for {TEAM_SYMBOL}! The CriptoVersus Arena just exploded!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 3, TemplateKey = "match_start_pt_br_normal", EventType = "match_start", Language = "pt-BR", Intensity = "normal", TemplateText = "A batalha entre {TEAM_SYMBOL} e seus rivais esta comecando agora na CriptoVersus Arena.", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 4, TemplateKey = "match_start_en_us_normal", EventType = "match_start", Language = "en-US", Intensity = "normal", TemplateText = "The battle is starting now in the CriptoVersus Arena. {TEAM_SYMBOL} is ready for kickoff.", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 5, TemplateKey = "final_whistle_pt_br_normal", EventType = "final_whistle", Language = "pt-BR", Intensity = "normal", TemplateText = "Fim de jogo na CriptoVersus Arena. {TEAM_SYMBOL} deixa sua marca no placar final.", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 6, TemplateKey = "final_whistle_en_us_normal", EventType = "final_whistle", Language = "en-US", Intensity = "normal", TemplateText = "Final whistle in the CriptoVersus Arena. {TEAM_SYMBOL} leaves a mark on the final score.", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 7, TemplateKey = "market_pump_pt_br_hype", EventType = "market_pump", Language = "pt-BR", Intensity = "hype", TemplateText = "{TEAM_SYMBOL} entrou em pump! A torcida sente a pressao aumentar a cada vela.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 8, TemplateKey = "market_pump_en_us_hype", EventType = "market_pump", Language = "en-US", Intensity = "hype", TemplateText = "{TEAM_SYMBOL} is pumping hard! The crowd can feel the momentum rising.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 9, TemplateKey = "market_crash_pt_br_dramatic", EventType = "market_crash", Language = "pt-BR", Intensity = "dramatic", TemplateText = "Queda brusca para {TEAM_SYMBOL}. O mercado tremeu dentro da arena.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 10, TemplateKey = "market_crash_en_us_dramatic", EventType = "market_crash", Language = "en-US", Intensity = "dramatic", TemplateText = "{TEAM_SYMBOL} just crashed. The whole arena felt that shockwave.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime }
             );
 
             // var posts = PostSeedDatax.GetPosts();

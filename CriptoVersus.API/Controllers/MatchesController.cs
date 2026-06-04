@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 // Ajuste namespaces conforme seu projeto
@@ -23,6 +24,9 @@ namespace CriptoVersus.API.Controllers
         private readonly IMatchScoreRebuildService _matchScoreRebuildService;
         private readonly IConfiguration _configuration;
         private readonly IArenaSentimentService _arenaSentimentService;
+        private readonly IAudioAssetResolverService _audioAssetResolver;
+        private readonly IAudioGenerationQueueService _audioGenerationQueue;
+        private readonly IOptions<ProceduralAudioFeatureOptions> _proceduralAudioOptions;
         private readonly ILogger<MatchesController> _logger;
 
         public MatchesController(
@@ -31,6 +35,9 @@ namespace CriptoVersus.API.Controllers
             IMatchScoreRebuildService matchScoreRebuildService,
             IConfiguration configuration,
             IArenaSentimentService arenaSentimentService,
+            IAudioAssetResolverService audioAssetResolver,
+            IAudioGenerationQueueService audioGenerationQueue,
+            IOptions<ProceduralAudioFeatureOptions> proceduralAudioOptions,
             ILogger<MatchesController> logger)
         {
             _db = db;
@@ -38,6 +45,9 @@ namespace CriptoVersus.API.Controllers
             _matchScoreRebuildService = matchScoreRebuildService;
             _configuration = configuration;
             _arenaSentimentService = arenaSentimentService;
+            _audioAssetResolver = audioAssetResolver;
+            _audioGenerationQueue = audioGenerationQueue;
+            _proceduralAudioOptions = proceduralAudioOptions;
             _logger = logger;
         }
 
@@ -157,7 +167,10 @@ namespace CriptoVersus.API.Controllers
 
         [AllowAnonymous]
         [HttpGet("{id:int}/score-events")]
-        public async Task<ActionResult<List<MatchScoreEventDto>>> GetScoreEvents(int id, CancellationToken ct)
+        public async Task<ActionResult<List<MatchScoreEventDto>>> GetScoreEvents(
+            int id,
+            [FromQuery] string? language = null,
+            CancellationToken ct = default)
         {
             var exists = await _db.Set<Match>().AnyAsync(m => m.MatchId == id, ct);
             if (!exists)
@@ -168,30 +181,53 @@ namespace CriptoVersus.API.Controllers
                 .Include(x => x.Team).ThenInclude(t => t.Currency)
                 .Where(x => x.MatchId == id)
                 .OrderBy(x => x.EventSequence)
-                .Select(x => new MatchScoreEventDto
-                {
-                    MatchScoreEventId = x.MatchScoreEventId,
-                    MatchId = x.MatchId,
-                    TeamId = x.TeamId,
-                    TeamSymbol = x.Team.Currency.Symbol,
-                    RuleType = x.RuleType.ToString(),
-                    EventType = x.EventType,
-                    ReasonCode = x.ReasonCode,
-                    Points = x.Points,
-                    EventSequence = x.EventSequence,
-                    TeamPercentageChange = x.TeamPercentageChange,
-                    OpponentPercentageChange = x.OpponentPercentageChange,
-                    TeamQuoteVolume = x.TeamQuoteVolume,
-                    OpponentQuoteVolume = x.OpponentQuoteVolume,
-                    MetricDelta = x.MetricDelta,
-                    WindowStartUtc = x.WindowStartUtc,
-                    WindowEndUtc = x.WindowEndUtc,
-                    Description = x.Description,
-                    EventTimeUtc = x.EventTimeUtc
-                })
                 .ToListAsync(ct);
 
-            return Ok(items);
+            var requestedLanguage = string.IsNullOrWhiteSpace(language)
+                ? null
+                : AudioRequestNormalizer.NormalizeLanguage(language);
+
+            var results = new List<MatchScoreEventDto>(items.Count);
+            foreach (var item in items)
+            {
+            var dto = new MatchScoreEventDto
+                {
+                    MatchScoreEventId = item.MatchScoreEventId,
+                    MatchId = item.MatchId,
+                    TeamId = item.TeamId,
+                    TeamSymbol = item.Team.Currency.Symbol,
+                    RuleType = item.RuleType.ToString(),
+                    EventType = item.EventType,
+                    ReasonCode = item.ReasonCode,
+                    Points = item.Points,
+                    EventSequence = item.EventSequence,
+                    TeamPercentageChange = item.TeamPercentageChange,
+                    OpponentPercentageChange = item.OpponentPercentageChange,
+                    TeamQuoteVolume = item.TeamQuoteVolume,
+                    OpponentQuoteVolume = item.OpponentQuoteVolume,
+                    MetricDelta = item.MetricDelta,
+                    WindowStartUtc = item.WindowStartUtc,
+                    WindowEndUtc = item.WindowEndUtc,
+                    Description = item.Description,
+                    EventTimeUtc = item.EventTimeUtc,
+                    AudioContextKey = item.AudioContextKey,
+                    AudioIntensity = item.AudioIntensity,
+                    AudioVoiceKey = item.AudioVoiceKey,
+                    AudioAssetId = item.AudioAssetId,
+                    AudioUrl = item.AudioUrl,
+                    AudioFallbackUsed = item.AudioFallbackUsed,
+                    AudioResolvedLanguage = item.AudioResolvedLanguage
+                };
+
+                if (_proceduralAudioOptions.Value.Enabled
+                    && _proceduralAudioOptions.Value.ResolveOnScoreEvents
+                    && !string.IsNullOrWhiteSpace(requestedLanguage))
+                    await ApplyLocalizedAudioAsync(item, dto, requestedLanguage, ct);
+
+                results.Add(dto);
+            }
+
+            return Ok(results);
         }
 
         [AllowAnonymous]
@@ -724,6 +760,92 @@ namespace CriptoVersus.API.Controllers
                     utc = DateTimeOffset.UtcNow
                 }),
                 ct);
+        }
+
+        private async Task ApplyLocalizedAudioAsync(
+            MatchScoreEvent item,
+            MatchScoreEventDto dto,
+            string requestedLanguage,
+            CancellationToken ct)
+        {
+            var resolveRequest = BuildAudioResolveRequest(item, requestedLanguage);
+            if (resolveRequest is null)
+                return;
+
+            dto.AudioContextKey ??= resolveRequest.ContextKey;
+            dto.AudioIntensity ??= resolveRequest.Intensity;
+            dto.AudioVoiceKey ??= resolveRequest.VoiceKey;
+
+            if (dto.AudioAssetId.HasValue
+                && !string.IsNullOrWhiteSpace(dto.AudioUrl)
+                && string.Equals(dto.AudioResolvedLanguage, requestedLanguage, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var resolved = await _audioAssetResolver.ResolveAsync(resolveRequest, ct);
+            if (resolved is not null)
+            {
+                dto.AudioAssetId = resolved.Asset.Id;
+                dto.AudioUrl = resolved.Asset.AudioUrl;
+                dto.AudioFallbackUsed = resolved.FallbackUsed;
+                dto.AudioResolvedLanguage = resolved.ResolvedLanguage;
+                dto.AudioVoiceKey ??= resolved.Asset.VoiceKey;
+
+                _logger.LogInformation(
+                    "Localized score-event audio resolved. MatchId={MatchId} EventId={EventId} Language={Language} AssetId={AssetId} FallbackUsed={FallbackUsed}",
+                    item.MatchId,
+                    item.MatchScoreEventId,
+                    requestedLanguage,
+                    resolved.Asset.Id,
+                    resolved.FallbackUsed);
+                return;
+            }
+
+            var queued = await _audioGenerationQueue.EnqueueIfMissingAsync(resolveRequest, ct);
+            _logger.LogWarning(
+                "Localized score-event audio missing. MatchId={MatchId} EventId={EventId} Language={Language} Queued={Queued} EventType={EventType}",
+                item.MatchId,
+                item.MatchScoreEventId,
+                requestedLanguage,
+                queued,
+                resolveRequest.EventType);
+
+            if (_proceduralAudioOptions.Value.FallbackToLegacyAudio && !string.IsNullOrWhiteSpace(item.AudioUrl))
+            {
+                dto.AudioUrl = item.AudioUrl;
+                dto.AudioAssetId = item.AudioAssetId;
+                dto.AudioFallbackUsed = true;
+                dto.AudioResolvedLanguage = item.AudioResolvedLanguage;
+                _logger.LogInformation(
+                    "Legacy audio fallback used on score-event response. MatchId={MatchId} EventId={EventId} Language={Language} AudioUrl={AudioUrl}",
+                    item.MatchId,
+                    item.MatchScoreEventId,
+                    requestedLanguage,
+                    item.AudioUrl);
+            }
+        }
+
+        private static AudioResolveRequest? BuildAudioResolveRequest(MatchScoreEvent item, string requestedLanguage)
+        {
+            var descriptor = ProceduralAudioEventMapper.MapScoreEvent(
+                item.EventType,
+                item.ReasonCode,
+                item.MetricDelta);
+
+            if (string.IsNullOrWhiteSpace(descriptor.EventType))
+                return null;
+
+            return new AudioResolveRequest
+            {
+                EventType = descriptor.EventType,
+                Language = requestedLanguage,
+                TeamSymbol = item.Team?.Currency?.Symbol,
+                TeamName = item.Team?.Currency?.Name,
+                ContextKey = item.AudioContextKey ?? descriptor.ContextKey,
+                Intensity = item.AudioIntensity ?? descriptor.Intensity,
+                VoiceKey = item.AudioVoiceKey
+            };
         }
 
     }

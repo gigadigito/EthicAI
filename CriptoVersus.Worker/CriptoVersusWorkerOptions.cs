@@ -18,6 +18,7 @@ public class CriptoVersusWorkerOptions
     public ScoringOptions Scoring { get; set; } = new();
     public SentimentOptions Sentiment { get; set; } = new();
     public SettlementOptions Settlement { get; set; } = new();
+    public ProceduralAudioOptions ProceduralAudio { get; set; } = new();
 }
 
 public class ScoringOptions
@@ -45,4 +46,13 @@ public class SentimentOptions
     public int GoalCooldownMinutes { get; set; } = 15;
     public int MaxGoalsPerMatch { get; set; } = 2;
     public int BlockFirstMinutes { get; set; } = 3;
+}
+
+public class ProceduralAudioOptions
+{
+    public bool Enabled { get; set; } = true;
+    public string ResolveUrl { get; set; } = "http://criptoversus-api:8080/api/audio/resolve";
+    public string DefaultLanguage { get; set; } = "en-US";
+    public string? VoiceKey { get; set; }
+    public int RequestTimeoutSeconds { get; set; } = 5;
 }

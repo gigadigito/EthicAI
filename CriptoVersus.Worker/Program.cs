@@ -12,6 +12,7 @@ using BLL.ArenaSentiment;
 using CriptoVersus.Worker;
 using BLL;
 using BLL.Blockchain;
+using DTOs;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -56,6 +57,8 @@ builder.Services.AddHttpClient<IArenaSentimentService, ArenaSentimentService>()
     });
 builder.Services.Configure<CriptoVersusWorkerOptions>(
     builder.Configuration.GetSection("CriptoVersusWorker"));
+builder.Services.Configure<ProceduralAudioFeatureOptions>(
+    builder.Configuration.GetSection(ProceduralAudioFeatureOptions.SectionName));
 builder.Services.Configure<DataRetentionOptions>(
     builder.Configuration.GetSection(DataRetentionOptions.SectionName));
 builder.Services.Configure<ArenaSentimentOptions>(
