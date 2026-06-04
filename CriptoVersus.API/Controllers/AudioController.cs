@@ -48,16 +48,18 @@ public sealed class AudioController : ControllerBase
             {
                 Found = false,
                 AudioUrl = null,
-                Queued = false
+                Queued = false,
+                QueueStatus = "skipped",
+                QueueReason = "procedural audio disabled"
             });
         }
 
         var resolved = await _resolver.ResolveAsync(request, ct);
         if (resolved is not null)
         {
-            var queued = false;
+            AudioQueueEnqueueResult? queueResult = null;
             if (resolved.FallbackUsed)
-                queued = await _queue.EnqueueIfMissingAsync(request, ct);
+                queueResult = await _queue.EnqueueIfMissingAsync(request, ct);
 
             return Ok(new AudioResolveResponse
             {
@@ -65,19 +67,46 @@ public sealed class AudioController : ControllerBase
                 AudioUrl = resolved.Asset.AudioUrl,
                 AssetId = resolved.Asset.Id,
                 FallbackUsed = resolved.FallbackUsed,
-                Queued = queued,
+                Queued = queueResult?.Queued ?? false,
                 ResolvedLanguage = resolved.ResolvedLanguage,
                 RelativePath = resolved.Asset.RelativePath,
-                SpecificityScore = resolved.SpecificityScore
+                SpecificityScore = resolved.SpecificityScore,
+                QueueStatus = queueResult?.Status,
+                QueueReason = queueResult?.Reason
             });
         }
 
-        var enqueued = await _queue.EnqueueIfMissingAsync(request, ct);
+        var queueResultWhenMissing = await _queue.EnqueueIfMissingAsync(request, ct);
+        if (queueResultWhenMissing.Queued && !queueResultWhenMissing.AlreadyQueued)
+        {
+            _logger.LogInformation(
+                "Procedural audio asset missing; generation job enqueued. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} JobId={JobId}",
+                request.EventType,
+                request.Language,
+                request.TeamSymbol,
+                request.ContextKey,
+                request.Intensity,
+                queueResultWhenMissing.JobId);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Procedural audio queue skipped because {Reason}. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity}",
+                queueResultWhenMissing.Reason,
+                request.EventType,
+                request.Language,
+                request.TeamSymbol,
+                request.ContextKey,
+                request.Intensity);
+        }
+
         return Ok(new AudioResolveResponse
         {
             Found = false,
             AudioUrl = null,
-            Queued = enqueued
+            Queued = queueResultWhenMissing.Queued,
+            QueueStatus = queueResultWhenMissing.Status,
+            QueueReason = queueResultWhenMissing.Reason
         });
     }
 
@@ -106,10 +135,10 @@ public sealed class AudioController : ControllerBase
     public async Task<ActionResult<object>> TestResolve([FromBody] AudioResolveRequest request, CancellationToken ct)
     {
         var diagnostic = await _resolver.DiagnoseAsync(request, incrementUsage: false, ct);
-        var queued = false;
+        AudioQueueEnqueueResult? queueResult = null;
 
         if (_featureOptions.Value.Enabled && diagnostic.ResolvedAsset is null)
-            queued = await _queue.EnqueueIfMissingAsync(request, ct);
+            queueResult = await _queue.EnqueueIfMissingAsync(request, ct);
 
         return Ok(new
         {
@@ -117,7 +146,9 @@ public sealed class AudioController : ControllerBase
             request = diagnostic.NormalizedRequest,
             found = diagnostic.ResolvedAsset is not null,
             fallbackUsed = diagnostic.FallbackUsed,
-            queued,
+            queued = queueResult?.Queued ?? false,
+            queueStatus = queueResult?.Status,
+            queueReason = queueResult?.Reason,
             specificityScore = diagnostic.SpecificityScore,
             candidateCount = diagnostic.CandidateCount,
             rankedCandidateIds = diagnostic.RankedCandidateIds,

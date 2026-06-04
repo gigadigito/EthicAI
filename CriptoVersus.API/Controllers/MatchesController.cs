@@ -802,13 +802,15 @@ namespace CriptoVersus.API.Controllers
                 return;
             }
 
-            var queued = await _audioGenerationQueue.EnqueueIfMissingAsync(resolveRequest, ct);
+            var queueResult = await _audioGenerationQueue.EnqueueIfMissingAsync(resolveRequest, ct);
             _logger.LogWarning(
-                "Localized score-event audio missing. MatchId={MatchId} EventId={EventId} Language={Language} Queued={Queued} EventType={EventType}",
+                "Localized score-event audio missing. MatchId={MatchId} EventId={EventId} Language={Language} Queued={Queued} QueueStatus={QueueStatus} QueueReason={QueueReason} EventType={EventType}",
                 item.MatchId,
                 item.MatchScoreEventId,
                 requestedLanguage,
-                queued,
+                queueResult.Queued,
+                queueResult.Status,
+                queueResult.Reason,
                 resolveRequest.EventType);
 
             if (_proceduralAudioOptions.Value.FallbackToLegacyAudio && !string.IsNullOrWhiteSpace(item.AudioUrl))

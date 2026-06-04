@@ -9,6 +9,8 @@ public sealed class AudioResolveRequest
     public string? ContextKey { get; set; }
     public string? Intensity { get; set; }
     public string? VoiceKey { get; set; }
+    public bool QueueIfMissing { get; set; } = true;
+    public bool ForceQueue { get; set; }
 }
 
 public sealed class AudioResolveResponse
@@ -21,6 +23,8 @@ public sealed class AudioResolveResponse
     public string? ResolvedLanguage { get; set; }
     public string? RelativePath { get; set; }
     public int SpecificityScore { get; set; }
+    public string? QueueStatus { get; set; }
+    public string? QueueReason { get; set; }
 }
 
 public sealed class AudioGenerationJobLeaseRequest

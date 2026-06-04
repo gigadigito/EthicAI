@@ -8,11 +8,18 @@ namespace CriptoVersus.API.Services;
 
 public interface IAudioGenerationQueueService
 {
-    Task<bool> EnqueueIfMissingAsync(AudioResolveRequest request, CancellationToken ct = default);
+    Task<AudioQueueEnqueueResult> EnqueueIfMissingAsync(AudioResolveRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<AudioGenerationJobDto>> LeaseJobsAsync(AudioGenerationJobLeaseRequest request, CancellationToken ct = default);
     Task<AudioAsset> CompleteJobAsync(long id, AudioGenerationCompleteRequest request, IFormFile audioFile, CancellationToken ct = default);
     Task<bool> FailJobAsync(long id, AudioGenerationFailRequest request, CancellationToken ct = default);
 }
+
+public sealed record AudioQueueEnqueueResult(
+    bool Queued,
+    bool AlreadyQueued,
+    string Status,
+    string Reason,
+    long? JobId = null);
 
 public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
 {
@@ -43,52 +50,67 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         _logger = logger;
     }
 
-    public async Task<bool> EnqueueIfMissingAsync(AudioResolveRequest request, CancellationToken ct = default)
+    public async Task<AudioQueueEnqueueResult> EnqueueIfMissingAsync(AudioResolveRequest request, CancellationToken ct = default)
     {
-        if (!_featureOptions.Value.Enabled)
+        if (!request.QueueIfMissing)
         {
             _logger.LogInformation(
-                "Procedural audio disabled. Queue enqueue skipped. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                "Procedural audio queue skipped because queueIfMissing=false. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
                 request.EventType,
                 request.Language,
                 request.TeamSymbol);
-            return false;
+            return new AudioQueueEnqueueResult(false, false, "skipped", "queueIfMissing=false");
+        }
+
+        if (!_featureOptions.Value.Enabled)
+        {
+            _logger.LogInformation(
+                "Procedural audio queue skipped because feature flag is disabled. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                request.EventType,
+                request.Language,
+                request.TeamSymbol);
+            return new AudioQueueEnqueueResult(false, false, "skipped", "procedural audio disabled");
         }
 
         if (!_featureOptions.Value.AllowQueueGeneration)
         {
             _logger.LogInformation(
-                "Procedural audio queue generation disabled by feature flag. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                "Procedural audio queue skipped because AllowQueueGeneration=false. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
                 request.EventType,
                 request.Language,
                 request.TeamSymbol);
-            return false;
+            return new AudioQueueEnqueueResult(false, false, "skipped", "queue generation disabled");
         }
 
         var normalized = AudioRequestNormalizer.Normalize(request);
         var resolvedVoiceKey = ResolveVoiceKey(normalized);
-        var existing = await _db.AudioGenerationQueueItem
-            .AnyAsync(x =>
-                ActiveStatuses.Contains(x.Status)
-                && x.EventType == normalized.EventType
-                && x.Language == normalized.Language
-                && x.TeamSymbol == normalized.TeamSymbol
-                && x.ContextKey == normalized.ContextKey
-                && x.Intensity == normalized.Intensity
-                && x.VoiceKey == resolvedVoiceKey,
-                ct);
-
-        if (existing)
+        if (!request.ForceQueue)
         {
-            _logger.LogInformation(
-                "Audio generation queue duplicate skipped. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
-                normalized.EventType,
-                normalized.Language,
-                normalized.TeamSymbol,
-                normalized.ContextKey,
-                normalized.Intensity,
-                resolvedVoiceKey);
-            return false;
+            var existingJob = await _db.AudioGenerationQueueItem
+                .Where(x =>
+                    ActiveStatuses.Contains(x.Status)
+                    && x.EventType == normalized.EventType
+                    && x.Language == normalized.Language
+                    && x.TeamSymbol == normalized.TeamSymbol
+                    && x.ContextKey == normalized.ContextKey
+                    && x.Intensity == normalized.Intensity
+                    && x.VoiceKey == resolvedVoiceKey)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .FirstOrDefaultAsync(ct);
+
+            if (existingJob is not null)
+            {
+                _logger.LogInformation(
+                    "Procedural audio queue skipped because an active generation job already exists. JobId={JobId} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
+                    existingJob.Id,
+                    normalized.EventType,
+                    normalized.Language,
+                    normalized.TeamSymbol,
+                    normalized.ContextKey,
+                    normalized.Intensity,
+                    resolvedVoiceKey);
+                return new AudioQueueEnqueueResult(true, true, "already_queued", "active generation job already exists", existingJob.Id);
+            }
         }
 
         var template = await ResolveTemplateAsync(normalized, ct);
@@ -115,7 +137,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
-            "Audio generation job enqueued. JobId={JobId} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
+            "Procedural audio asset missing; generation job enqueued. JobId={JobId} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
             job.Id,
             job.EventType,
             job.Language,
@@ -124,7 +146,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             job.Intensity,
             job.VoiceKey);
 
-        return true;
+        return new AudioQueueEnqueueResult(true, false, "enqueued", "generation job created", job.Id);
     }
 
     public async Task<IReadOnlyList<AudioGenerationJobDto>> LeaseJobsAsync(AudioGenerationJobLeaseRequest request, CancellationToken ct = default)
