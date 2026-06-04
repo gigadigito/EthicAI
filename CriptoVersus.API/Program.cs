@@ -10,9 +10,11 @@ using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.FileProviders;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -178,6 +180,8 @@ builder.Services.AddDbContextFactory<EthicAIDbContext>(opt => opt.UseNpgsql(conn
 
 var app = builder.Build();
 
+var mediaContentTypeProvider = CreateMediaContentTypeProvider();
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<EthicAIDbContext>>();
@@ -228,8 +232,12 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
+MapPublicAudioFiles(app, mediaContentTypeProvider);
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = mediaContentTypeProvider
+});
 app.UseRouting();
-app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -237,3 +245,37 @@ app.MapControllers();
 app.MapHub<DashboardHub>("/hubs/dashboard").AllowAnonymous();
 
 app.Run();
+
+static FileExtensionContentTypeProvider CreateMediaContentTypeProvider()
+{
+    var provider = new FileExtensionContentTypeProvider();
+    provider.Mappings[".mp3"] = "audio/mpeg";
+    provider.Mappings[".wav"] = "audio/wav";
+    return provider;
+}
+
+static void MapPublicAudioFiles(WebApplication app, FileExtensionContentTypeProvider contentTypeProvider)
+{
+    var webRootPath = app.Environment.WebRootPath;
+    if (string.IsNullOrWhiteSpace(webRootPath))
+        return;
+
+    var audioRoot = Path.Combine(webRootPath, "audio");
+    Directory.CreateDirectory(audioRoot);
+
+    app.Map("/audio", audioApp =>
+    {
+        audioApp.UseStaticFiles(new StaticFileOptions
+        {
+            RequestPath = string.Empty,
+            FileProvider = new PhysicalFileProvider(audioRoot),
+            ContentTypeProvider = contentTypeProvider
+        });
+
+        audioApp.Run(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        });
+    });
+}

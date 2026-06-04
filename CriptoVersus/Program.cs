@@ -4,6 +4,8 @@ using BLL.Blockchain;
 using CriptoVersus.Web.Components;
 using CriptoVersus.Web.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -90,6 +92,7 @@ builder.Services.AddScoped<HotMatchService>();
 
 builder.Services.AddBlazoredSessionStorage();
 var app = builder.Build();
+var mediaContentTypeProvider = CreateMediaContentTypeProvider();
 
 CriptoVersusBlockchainStartupLogger.Log(
     app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("CriptoVersus.Web.Blockchain"),
@@ -133,7 +136,11 @@ app.Use(async (context, next) =>
 });
 app.UseMiddleware<MatchRouteRedirectMiddleware>();
 
-app.UseStaticFiles();
+MapPublicAudioFiles(app, mediaContentTypeProvider);
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = mediaContentTypeProvider
+});
 app.UseAntiforgery();
 
 app.MapGet("/healthz", () => Results.Text("OK", "text/plain"))
@@ -219,4 +226,38 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+static FileExtensionContentTypeProvider CreateMediaContentTypeProvider()
+{
+    var provider = new FileExtensionContentTypeProvider();
+    provider.Mappings[".mp3"] = "audio/mpeg";
+    provider.Mappings[".wav"] = "audio/wav";
+    return provider;
+}
+
+static void MapPublicAudioFiles(WebApplication app, FileExtensionContentTypeProvider contentTypeProvider)
+{
+    var webRootPath = app.Environment.WebRootPath;
+    if (string.IsNullOrWhiteSpace(webRootPath))
+        return;
+
+    var audioRoot = Path.Combine(webRootPath, "audio");
+    Directory.CreateDirectory(audioRoot);
+
+    app.Map("/audio", audioApp =>
+    {
+        audioApp.UseStaticFiles(new StaticFileOptions
+        {
+            RequestPath = string.Empty,
+            FileProvider = new PhysicalFileProvider(audioRoot),
+            ContentTypeProvider = contentTypeProvider
+        });
+
+        audioApp.Run(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        });
+    });
+}
 

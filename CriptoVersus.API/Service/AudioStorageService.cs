@@ -12,20 +12,23 @@ public sealed class AudioStorageService : IAudioStorageService
 {
     private readonly IWebHostEnvironment _environment;
     private readonly IOptions<AudioGenerationOptions> _options;
+    private readonly IConfiguration _configuration;
 
     public AudioStorageService(
         IWebHostEnvironment environment,
-        IOptions<AudioGenerationOptions> options)
+        IOptions<AudioGenerationOptions> options,
+        IConfiguration configuration)
     {
         _environment = environment;
         _options = options;
+        _configuration = configuration;
     }
 
     public async Task<AudioStoredFile> SaveGeneratedAudioAsync(AudioGenerationJobDto job, IFormFile audioFile, CancellationToken ct)
     {
-        var root = _environment.WebRootPath;
-        if (string.IsNullOrWhiteSpace(root))
-            throw new InvalidOperationException("API wwwroot path is not configured.");
+        var roots = ResolveTargetRoots();
+        if (roots.Count == 0)
+            throw new InvalidOperationException("No public audio root could be resolved.");
 
         var language = AudioRequestNormalizer.NormalizeLanguage(job.Language);
         var eventType = AudioRequestNormalizer.NormalizeEventType(job.EventType);
@@ -41,20 +44,61 @@ public sealed class AudioStorageService : IAudioStorageService
             teamSegment,
             fileName).Replace('\\', '/');
 
-        var physicalPath = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
-        var physicalDirectory = Path.GetDirectoryName(physicalPath)
-            ?? throw new InvalidOperationException("Audio target directory could not be resolved.");
+        string? primaryPhysicalPath = null;
+        foreach (var root in roots)
+        {
+            var targetPath = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            var targetDirectory = Path.GetDirectoryName(targetPath)
+                ?? throw new InvalidOperationException("Audio target directory could not be resolved.");
 
-        Directory.CreateDirectory(physicalDirectory);
+            Directory.CreateDirectory(targetDirectory);
 
-        await using var fileStream = File.Create(physicalPath);
-        await audioFile.CopyToAsync(fileStream, ct);
+            await using var fileStream = File.Create(targetPath);
+            await audioFile.CopyToAsync(fileStream, ct);
+            await fileStream.FlushAsync(ct);
+
+            primaryPhysicalPath ??= targetPath;
+        }
+
+        if (primaryPhysicalPath is null)
+            throw new InvalidOperationException("Audio file could not be stored.");
 
         return new AudioStoredFile(
             RelativePath: relativePath,
-            AudioUrl: "/" + relativePath.TrimStart('/'),
+            AudioUrl: BuildPublicAudioUrl(relativePath),
             FileName: fileName,
-            PhysicalPath: physicalPath);
+            PhysicalPath: primaryPhysicalPath);
+    }
+
+    private List<string> ResolveTargetRoots()
+    {
+        var roots = new List<string>();
+        AddIfValid(roots, _options.Value.PublicAudioRootPath);
+        AddIfValid(roots, _environment.WebRootPath);
+        return roots
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private string BuildPublicAudioUrl(string relativePath)
+    {
+        var normalizedRelativePath = "/" + relativePath.TrimStart('/').Replace('\\', '/');
+        var configuredBaseUrl = _options.Value.PublicBaseUrl?.Trim()
+            ?? _configuration["SocialAutomation:PublicBaseUrl"]?.Trim()
+            ?? _configuration["CriptoVersus:PublicBaseUrl"]?.Trim();
+
+        if (string.IsNullOrWhiteSpace(configuredBaseUrl))
+            return normalizedRelativePath;
+
+        return $"{configuredBaseUrl.TrimEnd('/')}{normalizedRelativePath}";
+    }
+
+    private static void AddIfValid(List<string> roots, string? root)
+    {
+        if (string.IsNullOrWhiteSpace(root))
+            return;
+
+        roots.Add(root.Trim());
     }
 
     private static string BuildDefaultFileName(AudioGenerationJobDto job, string uploadedName)
