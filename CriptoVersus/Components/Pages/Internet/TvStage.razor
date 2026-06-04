@@ -162,35 +162,39 @@
                 <a class="tv-stage__eyebrow tv-stage__eyebrow-link" href="@RouteLocalization.BuildHomePath(Culture)">
                     @T("hero.eyebrow")
                 </a>
-                <h1>@DisplayStageTitle()</h1>
-                @if (UseFootballFieldLayout)
-                    {
-                        <p class="tv-stage__headline">@DisplayMatchHeadline()</p>
-                    }
-                </div>
+                <h1 class="tv-brand-lockup">
+                    <a class="tv-brand-link" href="@RouteLocalization.BuildHomePath(Culture)">
+                        <img class="tv-brand-logo"
+                             src="/img/criptoversus-tv-procedural.png"
+                             alt="CriptoVersus Procedural TV" />
+                    </a>
+                    <span class="tv-brand-subtitle">Procedural TV</span>
+                </h1>
+                <p class="tv-stage__headline">@DisplayMatchHeadline()</p>
+            </div>
 
-                <div class="tv-stage__badges">
-                    <span class="tv-pill tv-pill--live">
-                        <span class="tv-pill__dot"></span>
-                        @T("labels.liveArena")
-                    </span>
-                    <span class="tv-pill">@T("labels.automaticBroadcast")</span>
-                    @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+            <div class="tv-stage__badges">
+                <span class="tv-pill tv-pill--live">
+                    <span class="tv-pill__dot"></span>
+                    @T("labels.liveArena")
+                </span>
+                <span class="tv-pill">@T("labels.automaticBroadcast")</span>
+                @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
+                {
+                    <a target="_blank" class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
+                }
+                <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
+                <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
+                @if (ShouldRenderCrowdAudio)
+                {
+                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                    @if (ShouldShowAudioUnlockButton)
                     {
-                        <a target="_blank" class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
+                        <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
                     }
-                    <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
-                    <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
-                    @if (ShouldRenderCrowdAudio)
-                    {
-                        <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
-                        @if (ShouldShowAudioUnlockButton)
-                        {
-                            <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
-                        }
-                    }
-                </div>
-            </header>
+                }
+            </div>
+        </header>
 
             @if (ShouldShowDataStatusBanner)
             {
@@ -642,9 +646,17 @@ else
 
         <header class="tv-waiting-hero">
             <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
-            <h1>@T("hero.title")</h1>
-            <p class="tv-waiting-hero__lead">@T("states.waitingForNextHotBattle")</p>
-            <p class="tv-waiting-hero__sublead">@GetAlternateLanguageLine()</p>
+            <h1 class="tv-brand-lockup">
+                <a class="tv-brand-link" href="@RouteLocalization.BuildHomePath(Culture)">
+                    <img class="tv-brand-logo"
+                         src="/img/criptoversus-tv-procedural.png"
+                         alt="CriptoVersus Procedural TV" />
+                </a>
+                <span class="tv-brand-subtitle">Procedural TV</span>
+            </h1>
+            <p class="tv-waiting-hero__lead">@T("states.proceduralSearchTitle")</p>
+            <p class="tv-waiting-hero__sublead">@T("states.proceduralSearchSubtitle")</p>
+            <p class="tv-waiting-hero__sublead tv-waiting-hero__sublead--alt">@GetAlternateLanguageLine()</p>
             <div class="tv-stage__badges">
                 <span class="tv-pill">@T("labels.automaticBroadcast")</span>
                 <span class="tv-pill tv-pill--signal">@T("states.noHotMatchRightNow")</span>
@@ -655,6 +667,15 @@ else
                     {
                         <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
                     }
+                }
+            </div>
+            <div class="tv-procedural-log" aria-live="polite" aria-atomic="true">
+                @for (var i = 0; i < ProceduralLogLines.Count; i++)
+                {
+                    <div class="tv-procedural-log__line" style="@($"--tv-log-delay:{i * 0.55:0.00}s;")">
+                        <span class="tv-procedural-log__dot"></span>
+                        <span>@ProceduralLogLines[i]</span>
+                    </div>
                 }
             </div>
         </header>
@@ -676,15 +697,24 @@ else
                     <h2>@T("waiting.topCoins")</h2>
                 </div>
                 <div class="tv-ranking-list">
-                    @foreach (var team in TopTeams)
+                    @if (TopTeams.Count > 0)
                     {
-                        <div class="tv-ranking-row">
-                            <strong>#@team.Rank</strong>
-                            <div>
-                                <span>@team.Symbol</span>
-                                <small>@team.DisplayName</small>
+                        @foreach (var team in TopTeams)
+                        {
+                            <div class="tv-ranking-row">
+                                <strong>#@team.Rank</strong>
+                                <div>
+                                    <span>@team.Symbol</span>
+                                    <small>@team.DisplayName</small>
+                                </div>
+                                <em>@FormatPercent(team.WinRate)</em>
                             </div>
-                            <em>@FormatPercent(team.WinRate)</em>
+                        }
+                    }
+                    else
+                    {
+                        <div class="@GetWaitingPanelStateClass(TopCoinsLoading, TopCoinsError)">
+                            @GetTopCoinsStatusMessage()
                         </div>
                     }
                 </div>
@@ -696,20 +726,29 @@ else
                     <h2>@T("waiting.latestBattles")</h2>
                 </div>
                 <div class="tv-latest-list">
-                    @foreach (var match in LatestMatches)
+                    @if (LatestMatches.Count > 0)
                     {
-                        <div class="tv-latest-row">
-                            <div>
-                                <strong>@match.HomeSymbol @T("vs") @match.AwaySymbol</strong>
-                                <small>@FormatStatus(match.Status)</small>
+                        @foreach (var match in LatestMatches)
+                        {
+                            <div class="tv-latest-row">
+                                <div>
+                                    <strong>@match.HomeSymbol @T("vs") @match.AwaySymbol</strong>
+                                    <small>@FormatStatus(match.Status)</small>
+                                </div>
+                                <div class="tv-latest-row__meta">
+                                    <em>@match.HomeScore:@match.AwayScore</em>
+                                    @if (!string.IsNullOrWhiteSpace(BuildMatchUrl(match)))
+                                    {
+                                        <a class="tv-inline-link" href="@BuildMatchUrl(match)">@T("watchMatch")</a>
+                                    }
+                                </div>
                             </div>
-                            <div class="tv-latest-row__meta">
-                                <em>@match.HomeScore:@match.AwayScore</em>
-                                @if (!string.IsNullOrWhiteSpace(BuildMatchUrl(match)))
-                                {
-                                    <a class="tv-inline-link" href="@BuildMatchUrl(match)">@T("watchMatch")</a>
-                                }
-                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="@GetWaitingPanelStateClass(LatestBattlesLoading, LatestBattlesError)">
+                            @GetLatestBattlesStatusMessage()
                         </div>
                     }
                 </div>
@@ -721,11 +760,20 @@ else
                     <h2>@T("waiting.marketPulse")</h2>
                 </div>
                 <div class="tv-gainers-list">
-                    @foreach (var asset in TopGainers)
+                    @if (TopGainers.Count > 0)
                     {
-                        <div class="tv-gainer-row">
-                            <span>@asset.Symbol</span>
-                            <strong>@FormatSignedPercent(asset.PercentageChange)</strong>
+                        @foreach (var asset in TopGainers)
+                        {
+                            <div class="tv-gainer-row">
+                                <span>@asset.Symbol</span>
+                                <strong>@FormatSignedPercent(asset.PercentageChange)</strong>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="@GetWaitingPanelStateClass(MarketPulseLoading, MarketPulseError)">
+                            @GetMarketPulseStatusMessage()
                         </div>
                     }
                 </div>
@@ -783,6 +831,12 @@ else
     [Parameter] public MatchDto? Match { get; set; }
     [Parameter] public StatsOverviewDto? Stats { get; set; }
     [Parameter] public DashboardSnapshotDto? Snapshot { get; set; }
+    [Parameter] public bool TopCoinsLoading { get; set; } = true;
+    [Parameter] public string? TopCoinsError { get; set; }
+    [Parameter] public bool LatestBattlesLoading { get; set; } = true;
+    [Parameter] public string? LatestBattlesError { get; set; }
+    [Parameter] public bool MarketPulseLoading { get; set; } = true;
+    [Parameter] public string? MarketPulseError { get; set; }
     [Parameter] public int BroadcastRotationMinutes { get; set; }
     [Parameter] public int BroadcastRotationRemainingSeconds { get; set; }
     [Parameter] public double BroadcastRotationProgress { get; set; }
@@ -999,6 +1053,13 @@ else
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
+    private IReadOnlyList<string> ProceduralLogLines =>
+    [
+        T("states.scanMarketPulse"),
+        T("states.scanArenaRanking"),
+        T("states.scanCandidates"),
+        T("states.awaitingKickoff")
+    ];
     private IReadOnlyList<ActivityChartPoint> ActivityChartPoints => BuildActivityChartPoints();
     private string ActivityChartLinePoints => string.Join(" ", ActivityChartPoints.Select(point => FormattableString.Invariant($"{point.X:0.##},{point.Y:0.##}")));
     private string ActivityChartAreaPath => BuildActivityChartAreaPath(ActivityChartPoints);
@@ -3886,6 +3947,56 @@ else
             ? string.Empty
             : BuildMatchUrl(match.MatchId, MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol));
 
+    private string GetTopCoinsStatusMessage()
+        => ResolveWaitingPanelStatusMessage(
+            TopCoinsLoading,
+            !string.IsNullOrWhiteSpace(TopCoinsError) ? T("waiting.errorRanking") : null,
+            TopTeams.Count,
+            T("waiting.loadingRanking"),
+            T("waiting.emptyRanking"));
+
+    private string GetLatestBattlesStatusMessage()
+        => ResolveWaitingPanelStatusMessage(
+            LatestBattlesLoading,
+            !string.IsNullOrWhiteSpace(LatestBattlesError) ? T("waiting.errorFeed") : null,
+            LatestMatches.Count,
+            T("waiting.loadingFeed"),
+            T("waiting.emptyFeed"));
+
+    private string GetMarketPulseStatusMessage()
+        => ResolveWaitingPanelStatusMessage(
+            MarketPulseLoading,
+            !string.IsNullOrWhiteSpace(MarketPulseError) ? T("waiting.errorMarketPulse") : null,
+            TopGainers.Count,
+            T("waiting.loadingMarketPulse"),
+            T("waiting.emptyMarketPulse"));
+
+    private static string GetWaitingPanelStateClass(bool isLoading, string? errorMessage)
+        => isLoading
+            ? "tv-panel__status tv-panel__status--loading"
+            : !string.IsNullOrWhiteSpace(errorMessage)
+                ? "tv-panel__status tv-panel__status--error"
+                : "tv-panel__status tv-panel__status--empty";
+
+    private static string ResolveWaitingPanelStatusMessage(
+        bool isLoading,
+        string? errorMessage,
+        int itemCount,
+        string loadingMessage,
+        string emptyMessage)
+    {
+        if (itemCount > 0)
+            return string.Empty;
+
+        if (isLoading)
+            return loadingMessage;
+
+        if (!string.IsNullOrWhiteSpace(errorMessage))
+            return errorMessage;
+
+        return emptyMessage;
+    }
+
     private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current, string? scorerOverride = null)
     {
         var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
@@ -4163,11 +4274,6 @@ else
 
     private string DisplayMatchId()
         => (Match?.MatchId ?? HotMatch?.MatchId ?? 0).ToString(CultureInfo.InvariantCulture);
-
-    private string DisplayStageTitle()
-        => UseFootballFieldLayout
-            ? T("hero.title")
-            : $"{T("hero.title")} - {DisplayMatchHeadline()}.";
 
     private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
     private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
@@ -6565,6 +6671,54 @@ else
         letter-spacing: -.05em;
     }
 
+    .tv-brand-lockup {
+        display: inline-grid;
+        justify-items: start;
+        gap: 10px;
+        margin: 10px 0 0;
+    }
+
+    .tv-brand-link {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    .tv-brand-link:hover,
+    .tv-brand-link:focus-visible {
+        text-decoration: none;
+        opacity: .96;
+    }
+
+    .tv-brand-logo {
+        display: block;
+        width: min(100%, clamp(220px, 34vw, 520px));
+        height: auto;
+        background: transparent;
+        filter: drop-shadow(0 10px 26px rgba(111, 28, 255, 0.22)) drop-shadow(0 8px 22px rgba(76, 243, 141, 0.16));
+    }
+
+    .tv-brand-subtitle {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #d9f8ff;
+        font-size: clamp(.8rem, 1.4vw, 1rem);
+        font-weight: 900;
+        letter-spacing: .34em;
+        text-transform: uppercase;
+        text-shadow: 0 0 16px rgba(144, 92, 255, 0.38), 0 0 18px rgba(76, 243, 141, 0.22);
+    }
+
+    .tv-brand-subtitle::before {
+        content: "";
+        width: 54px;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(153, 76, 255, 0), rgba(153, 76, 255, 0.94), rgba(76, 243, 141, 0.94));
+        box-shadow: 0 0 18px rgba(76, 243, 141, 0.24);
+    }
+
     .tv-stage__headline {
         margin: 8px 0 0;
         color: rgba(223, 245, 255, 0.82);
@@ -8286,6 +8440,45 @@ else
         font-size: 1rem;
     }
 
+    .tv-waiting-hero__sublead--alt {
+        color: rgba(207, 228, 239, 0.62);
+    }
+
+    .tv-procedural-log {
+        display: grid;
+        gap: 10px;
+        width: min(100%, 620px);
+        padding: 14px 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(83, 200, 255, 0.14);
+        background:
+            linear-gradient(180deg, rgba(5, 10, 18, 0.96), rgba(4, 8, 16, 0.98)),
+            radial-gradient(circle at top left, rgba(153, 76, 255, 0.08), transparent 32%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.18);
+    }
+
+    .tv-procedural-log__line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #c7f9e0;
+        font-size: .88rem;
+        letter-spacing: .04em;
+        opacity: .34;
+        transform: translateX(-8px);
+        animation: tvProceduralLogPulse 2.8s ease-in-out infinite;
+        animation-delay: var(--tv-log-delay, 0s);
+    }
+
+    .tv-procedural-log__dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #7ff6df, #7dff63);
+        box-shadow: 0 0 14px rgba(127, 246, 223, 0.34);
+        flex: 0 0 auto;
+    }
+
     .tv-waiting-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -8359,6 +8552,34 @@ else
     .tv-gainers-list {
         display: grid;
         gap: 10px;
+    }
+
+    .tv-panel__status {
+        display: grid;
+        place-items: center;
+        min-height: 112px;
+        padding: 18px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.03);
+        color: #dceaf4;
+        text-align: center;
+        line-height: 1.5;
+    }
+
+    .tv-panel__status--loading {
+        border-color: rgba(83, 200, 255, 0.16);
+        color: #cde8ff;
+    }
+
+    .tv-panel__status--error {
+        border-color: rgba(255, 168, 111, 0.18);
+        color: #ffd2b0;
+    }
+
+    .tv-panel__status--empty {
+        border-color: rgba(127, 246, 223, 0.12);
+        color: rgba(220, 234, 244, 0.74);
     }
 
     .tv-ranking-row,
@@ -9354,6 +9575,23 @@ else
         background: rgba(20, 38, 56, 0.96);
     }
 
+    @@keyframes tvProceduralLogPulse {
+        0%, 100% {
+            opacity: .34;
+            transform: translateX(-8px);
+        }
+
+        45% {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        70% {
+            opacity: .72;
+            transform: translateX(2px);
+        }
+    }
+
     @@media (max-width: 1280px) {
         .tv-stage__grid,
         .tv-waiting-grid {
@@ -9405,6 +9643,14 @@ else
         .tv-stage {
             gap: 10px;
             padding: 16px;
+        }
+
+        .tv-brand-logo {
+            width: min(100%, 320px);
+        }
+
+        .tv-brand-subtitle {
+            letter-spacing: .26em;
         }
 
         .tv-broadcast-rotation-gauge {

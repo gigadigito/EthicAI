@@ -1170,12 +1170,18 @@
     },
     "states": {
       "waitingForNextHotBattle": "Waiting for the next hot battle",
+      "proceduralSearchTitle": "Looking for the next procedural battle...",
+      "proceduralSearchSubtitle": "Analyzing market pulse, rankings and possible contenders",
       "noHotMatchRightNow": "No hot match right now",
       "availableInOtherLanguage": "Also available in another language: {0}",
       "aiCalibrating": "AI narrator is calibrating the arena feed.",
       "aiTracking": "AI narrator is tracking the live flow for the next call.",
       "commentaryLoading": "Arena commentary is refreshing from the latest market state.",
-      "commentaryStandby": "Arena commentary is waiting for the next relevant movement."
+      "commentaryStandby": "Arena commentary is waiting for the next relevant movement.",
+      "scanMarketPulse": "Syncing market pulse...",
+      "scanArenaRanking": "Reading arena ranking...",
+      "scanCandidates": "Searching candidate coins...",
+      "awaitingKickoff": "Waiting for kickoff event..."
     },
     "activity": {
       "eyebrow": "Live Activity",
@@ -1464,7 +1470,16 @@
       "statsEyebrow": "Arena feed",
       "latestBattles": "Latest battles",
       "gainersEyebrow": "Market pulse",
-      "marketPulse": "Top movers"
+      "marketPulse": "Top movers",
+      "loadingRanking": "Loading ranking...",
+      "loadingFeed": "Loading arena feed...",
+      "loadingMarketPulse": "Loading market pulse...",
+      "errorRanking": "Failed to load ranking, retrying...",
+      "errorFeed": "Failed to load feed, retrying...",
+      "errorMarketPulse": "Failed to load market pulse, retrying...",
+      "emptyRanking": "No ranking data right now",
+      "emptyFeed": "No recent data right now",
+      "emptyMarketPulse": "No major market moves right now"
     },
     "fallback": {
       "closeMatchReason": "Close live crypto battle with active arena pressure.",

@@ -49,6 +49,12 @@
          Match="@_selectedMatch"
          Stats="@_stats"
          Snapshot="@_snapshot"
+         TopCoinsLoading="@_topCoinsState.IsLoading"
+         TopCoinsError="@_topCoinsState.ErrorMessage"
+         LatestBattlesLoading="@_latestBattlesState.IsLoading"
+         LatestBattlesError="@_latestBattlesState.ErrorMessage"
+         MarketPulseLoading="@_marketPulseState.IsLoading"
+         MarketPulseError="@_marketPulseState.ErrorMessage"
          BroadcastRotationMinutes="@BroadcastRotationMinutes"
          BroadcastRotationRemainingSeconds="@BroadcastRotationRemainingSeconds"
          BroadcastRotationProgress="@BroadcastRotationProgress" />
@@ -59,6 +65,7 @@
     private const int SwitchThreshold = 12;
     private const int BreakingHotScoreThreshold = 90;
     private const decimal BreakingPriorityGap = 45m;
+    private static readonly TimeSpan IndependentFeedTimeout = TimeSpan.FromSeconds(8);
 
     [Parameter] public string? Culture { get; set; }
 
@@ -77,6 +84,9 @@
     private DateTime _lastBroadcastRotationUtc = DateTime.MinValue;
     private DateTime _nextRefreshAtUtc = DateTime.MinValue;
     private int _refreshInProgress;
+    private PanelLoadState _topCoinsState = PanelLoadState.Loading();
+    private PanelLoadState _latestBattlesState = PanelLoadState.Loading();
+    private PanelLoadState _marketPulseState = PanelLoadState.Loading();
 
     private string PageTitleText => L.T(_isBroadcastMode ? "tv.seo.broadcastTitle" : "tv.seo.title", _culture);
     private string MetaDescription => L.T(_isBroadcastMode ? "tv.seo.broadcastDescription" : "tv.seo.description", _culture);
@@ -219,46 +229,39 @@
         try
         {
             Logger.LogInformation("TvPage refresh started. BroadcastMode={BroadcastMode} ForceInitialSelection={ForceInitialSelection}", _isBroadcastMode, forceInitialSelection);
-            var hotMatchesTask = HotMatches.GetHotMatchesAsync(ct);
-            var statsTask = TryLoadStatsOverviewAsync(ct);
-            var snapshotTask = TryLoadDashboardSnapshotAsync(ct);
+            var hotMatchesTask = TryLoadWithTimeoutAsync(
+                token => HotMatches.GetHotMatchesAsync(token),
+                ct,
+                IndependentFeedTimeout);
+            var statsTask = TryLoadWithTimeoutAsync(
+                token => Api.GetStatsOverviewAsync(token),
+                ct,
+                IndependentFeedTimeout);
+            var snapshotTask = TryLoadWithTimeoutAsync(
+                token => Api.GetDashboardSnapshotAsync(token),
+                ct,
+                IndependentFeedTimeout);
 
             await Task.WhenAll(hotMatchesTask, statsTask, snapshotTask);
 
-            _hotMatches = hotMatchesTask.Result;
-            _stats = statsTask.Result ?? _stats;
-            _snapshot = snapshotTask.Result ?? _snapshot;
+            ApplyStatsOverviewResult(statsTask.Result);
+            ApplyDashboardSnapshotResult(snapshotTask.Result);
+            ApplyHotMatchFeedResult(hotMatchesTask.Result);
+            await InvokeAsync(StateHasChanged);
 
-            var hotMatch = _hotMatches.FirstOrDefault();
-            if (_isBroadcastMode)
+            try
             {
-                await ResolveBroadcastSelectionAsync(_hotMatches, forceInitialSelection, ct);
+                await RefreshMatchSelectionAsync(hotMatchesTask.Result, forceInitialSelection, ct);
             }
-            else if (hotMatch is not null)
+            catch (OperationCanceledException)
             {
-                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore, hotMatch.Reason });
-                await ResolveHotMatchSelectionAsync(hotMatch, forceInitialSelection, ct);
             }
-            else
+            catch (Exception ex)
             {
-                await LogAsync("[HOT_MATCH] no ranked match available");
-
-                if (_selectedHotMatch?.HasMatch == true)
-                {
-                    var currentFinished = await IsSelectedMatchFinishedAsync(ct);
-                    if (currentFinished)
-                    {
-                        _selectedHotMatch = null;
-                        _selectedMatch = null;
-                        _selectedHotRanking = null;
-                    }
-                }
+                Logger.LogWarning(ex, "TvPage match selection refresh failed. BroadcastMode={BroadcastMode}", _isBroadcastMode);
+                await LogAsync("[TV_ROTATION] selection error", ex.Message);
             }
 
-            if (_isBroadcastMode && (_selectedHotMatch is null || !_selectedHotMatch.HasMatch))
-                await TryResolveBroadcastFallbackAsync(ct);
-
-            await RefreshSelectedMatchAsync(ct);
             await InvokeAsync(StateHasChanged);
             Logger.LogInformation(
                 "TvPage refresh completed. BroadcastMode={BroadcastMode} SelectedMatchId={SelectedMatchId} DurationMs={DurationMs}",
@@ -318,6 +321,63 @@
         }
 
         await SwitchToMatchAsync(hotMatch, hotMatch.MatchSnapshot);
+    }
+
+    private async Task RefreshMatchSelectionAsync(LoadAttemptResult<IReadOnlyList<HotMatchDto>> hotMatchesResult, bool forceInitialSelection, CancellationToken ct)
+    {
+        if (hotMatchesResult.IsSuccess)
+        {
+            var hotMatch = _hotMatches.FirstOrDefault();
+            if (_isBroadcastMode)
+            {
+                await ResolveBroadcastSelectionAsync(_hotMatches, forceInitialSelection, ct);
+            }
+            else if (hotMatch is not null)
+            {
+                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore, hotMatch.Reason });
+                await ResolveHotMatchSelectionAsync(hotMatch, forceInitialSelection, ct);
+            }
+            else
+            {
+                await LogAsync("[HOT_MATCH] no ranked match available");
+
+                if (_selectedHotMatch?.HasMatch == true)
+                {
+                    var currentFinished = await IsSelectedMatchFinishedAsync(ct);
+                    if (currentFinished)
+                    {
+                        _selectedHotMatch = null;
+                        _selectedMatch = null;
+                        _selectedHotRanking = null;
+                    }
+                }
+            }
+        }
+        else
+        {
+            await LogAsync("[HOT_MATCH] feed unavailable", new
+            {
+                hotMatchesResult.IsTimeout,
+                hotMatchesResult.ErrorMessage
+            });
+        }
+
+        if (_isBroadcastMode && (_selectedHotMatch is null || !_selectedHotMatch.HasMatch))
+            await TryResolveBroadcastFallbackAsync(ct);
+
+        try
+        {
+            await RefreshSelectedMatchAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "TvPage selected match refresh failed. MatchId={MatchId}", _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0);
+            await LogAsync("[TV_ROTATION] selected match refresh error", ex.Message);
+        }
     }
 
     private async Task<bool> IsSelectedMatchFinishedAsync(CancellationToken ct)
@@ -683,27 +743,78 @@
     private string BuildAbsolute(string path)
         => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";
 
-    private async Task<StatsOverviewDto?> TryLoadStatsOverviewAsync(CancellationToken ct)
+    private void ApplyHotMatchFeedResult(LoadAttemptResult<IReadOnlyList<HotMatchDto>> result)
     {
-        try
+        if (result.IsSuccess)
         {
-            return await Api.GetStatsOverviewAsync(ct);
+            _hotMatches = result.Value ?? [];
+            return;
         }
-        catch
-        {
-            return null;
-        }
+
+        Logger.LogWarning(
+            "TvPage hot match feed unavailable. Timeout={Timeout} Error={Error}",
+            result.IsTimeout,
+            result.ErrorMessage);
     }
 
-    private async Task<DashboardSnapshotDto?> TryLoadDashboardSnapshotAsync(CancellationToken ct)
+    private void ApplyStatsOverviewResult(LoadAttemptResult<StatsOverviewDto?> result)
     {
+        if (result.IsSuccess)
+        {
+            _stats = result.Value;
+            _topCoinsState = PanelLoadState.Ready();
+            _latestBattlesState = PanelLoadState.Ready();
+            return;
+        }
+
+        _topCoinsState = PanelLoadState.Error("error");
+        _latestBattlesState = PanelLoadState.Error("error");
+        Logger.LogWarning(
+            "TvPage stats overview unavailable. Timeout={Timeout} Error={Error}",
+            result.IsTimeout,
+            result.ErrorMessage);
+    }
+
+    private void ApplyDashboardSnapshotResult(LoadAttemptResult<DashboardSnapshotDto?> result)
+    {
+        if (result.IsSuccess)
+        {
+            _snapshot = result.Value;
+            _marketPulseState = PanelLoadState.Ready();
+            return;
+        }
+
+        _marketPulseState = PanelLoadState.Error("error");
+        Logger.LogWarning(
+            "TvPage dashboard snapshot unavailable. Timeout={Timeout} Error={Error}",
+            result.IsTimeout,
+            result.ErrorMessage);
+    }
+
+    private static async Task<LoadAttemptResult<T>> TryLoadWithTimeoutAsync<T>(
+        Func<CancellationToken, Task<T>> loader,
+        CancellationToken ct,
+        TimeSpan timeout)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(timeout);
+
         try
         {
-            return await Api.GetDashboardSnapshotAsync(ct);
+            var value = await loader(timeoutCts.Token);
+            return LoadAttemptResult<T>.Success(value);
         }
-        catch
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
         {
-            return null;
+            return LoadAttemptResult<T>.Timeout();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return LoadAttemptResult<T>.Failure(ex.Message);
         }
     }
 
@@ -738,5 +849,19 @@
 
         if (_tvModule is not null)
             await _tvModule.DisposeAsync();
+    }
+
+    private sealed record PanelLoadState(bool IsLoading, string? ErrorMessage)
+    {
+        public static PanelLoadState Loading() => new(true, null);
+        public static PanelLoadState Ready() => new(false, null);
+        public static PanelLoadState Error(string message) => new(false, message);
+    }
+
+    private sealed record LoadAttemptResult<T>(bool IsSuccess, bool IsTimeout, string? ErrorMessage, T? Value)
+    {
+        public static LoadAttemptResult<T> Success(T? value) => new(true, false, null, value);
+        public static LoadAttemptResult<T> Timeout() => new(false, true, "Timed out", default);
+        public static LoadAttemptResult<T> Failure(string? errorMessage) => new(false, false, errorMessage, default);
     }
 }

@@ -1072,12 +1072,18 @@
     },
     "states": {
       "waitingForNextHotBattle": "Aguardando a proxima grande batalha",
+      "proceduralSearchTitle": "Procurando proxima batalha procedural...",
+      "proceduralSearchSubtitle": "Analisando mercado, rankings e possiveis confrontos",
       "noHotMatchRightNow": "Sem partida quente agora",
       "availableInOtherLanguage": "Tambem disponivel em outro idioma: {0}",
       "aiCalibrating": "O narrador por IA esta calibrando o feed da arena.",
       "aiTracking": "O narrador por IA esta acompanhando o fluxo ao vivo para a proxima chamada.",
       "commentaryLoading": "O comentario da arena esta atualizando com base no estado mais recente do mercado.",
-      "commentaryStandby": "O comentario da arena esta aguardando o proximo movimento relevante."
+      "commentaryStandby": "O comentario da arena esta aguardando o proximo movimento relevante.",
+      "scanMarketPulse": "Sincronizando pulso do mercado...",
+      "scanArenaRanking": "Lendo ranking da arena...",
+      "scanCandidates": "Procurando moedas candidatas...",
+      "awaitingKickoff": "Aguardando evento de kickoff..."
     },
     "activity": {
       "eyebrow": "Atividade ao vivo",
@@ -1366,7 +1372,16 @@
       "statsEyebrow": "Feed da arena",
       "latestBattles": "Ultimas batalhas",
       "gainersEyebrow": "Pulso do mercado",
-      "marketPulse": "Maiores movimentos"
+      "marketPulse": "Maiores movimentos",
+      "loadingRanking": "Carregando ranking...",
+      "loadingFeed": "Carregando feed da arena...",
+      "loadingMarketPulse": "Carregando pulso do mercado...",
+      "errorRanking": "Falha ao carregar ranking, tentando novamente...",
+      "errorFeed": "Falha ao carregar feed, tentando novamente...",
+      "errorMarketPulse": "Falha ao carregar pulso do mercado, tentando novamente...",
+      "emptyRanking": "Sem ranking disponivel no momento",
+      "emptyFeed": "Sem dados recentes no momento",
+      "emptyMarketPulse": "Sem grandes movimentos no momento"
     },
     "fallback": {
       "closeMatchReason": "Batalha cripto ao vivo equilibrada com pressao competitiva na arena.",
