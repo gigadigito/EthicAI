@@ -34,6 +34,7 @@ export function ensureCompareCrossoverStyles() {
     bottom: 0;
     opacity: 0;
     transition: opacity 180ms ease;
+    z-index: 5;
 }
 
 .tv-chart-crossover-marker.is-visible {
@@ -45,11 +46,11 @@ export function ensureCompareCrossoverStyles() {
     left: 0;
     top: 0;
     bottom: 0;
-    width: 2px;
+    width: 3px;
     transform: translateX(-50%);
-    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 8%) 24%, color-mix(in srgb, var(--battle-accent, #53c8ff) 92%, transparent) 55%, transparent 100%);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent);
-    opacity: 0.72;
+    background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 86%, white 12%) 16%, color-mix(in srgb, var(--battle-accent, #53c8ff) 96%, white 8%) 48%, color-mix(in srgb, var(--battle-accent, #53c8ff) 88%, transparent) 74%, transparent 100%);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--battle-accent, #53c8ff) 52%, transparent);
+    opacity: 0.9;
 }
 
 .tv-chart-crossover-marker__beam::after {
@@ -57,34 +58,36 @@ export function ensureCompareCrossoverStyles() {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 10px;
-    height: 44px;
+    width: 14px;
+    height: 58px;
     transform: translate(-50%, -50%);
     background: radial-gradient(circle, color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent) 0%, transparent 70%);
     filter: blur(4px);
-    opacity: 0.8;
+    opacity: 0.95;
 }
 
 .tv-chart-crossover-marker__badge {
     position: absolute;
     left: 0;
     top: var(--battle-y, 50%);
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     transform: translate(-50%, -50%);
     border-radius: 999px;
     display: grid;
     place-items: center;
     overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 14%);
+    border: 2px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 24%);
     background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 42%),
-        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 38%),
-        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 30%, rgba(4, 10, 20, 0.94)), rgba(5, 12, 24, 0.96));
+        radial-gradient(circle at 30% 28%, rgba(255,255,255,.34), transparent 38%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--battle-accent, #53c8ff) 18%, transparent) 0%, transparent 68%),
+        linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 38%),
+        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, rgba(4, 10, 20, 0.96)), rgba(5, 12, 24, 0.98));
     box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--battle-accent, #53c8ff) 28%, transparent),
-        0 0 22px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent),
-        0 10px 24px rgba(0,0,0,.32);
+        0 0 0 2px rgba(255,255,255,.18),
+        0 0 0 5px color-mix(in srgb, var(--battle-accent, #53c8ff) 20%, transparent),
+        0 0 28px color-mix(in srgb, var(--battle-accent, #53c8ff) 48%, transparent),
+        0 12px 28px rgba(0,0,0,.38);
     animation: tvChartCrossoverPop 520ms cubic-bezier(.19,1,.22,1);
 }
 
@@ -93,19 +96,19 @@ export function ensureCompareCrossoverStyles() {
 }
 
 .tv-chart-crossover-marker__badge img {
-    width: 76%;
-    height: 76%;
+    width: 72%;
+    height: 72%;
     object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(255,255,255,.16));
+    filter: drop-shadow(0 0 10px rgba(255,255,255,.22));
 }
 
 .tv-chart-crossover-marker__fallback {
-    font-size: 0.72rem;
+    font-size: 0.78rem;
     font-weight: 900;
     letter-spacing: 0.08em;
-    color: #f4fbff;
+    color: #ffffff;
     text-transform: uppercase;
-    text-shadow: 0 1px 0 rgba(0,0,0,.36);
+    text-shadow: 0 1px 0 rgba(0,0,0,.36), 0 0 10px rgba(255,255,255,.18);
 }
 
 .tv-chart-score-marker {
@@ -116,6 +119,7 @@ export function ensureCompareCrossoverStyles() {
     opacity: 0;
     transition: opacity 180ms ease;
     pointer-events: none;
+    z-index: 6;
 }
 
 .tv-chart-score-marker.is-visible {
@@ -127,19 +131,19 @@ export function ensureCompareCrossoverStyles() {
     left: 0;
     top: 0;
     bottom: 0;
-    width: 1px;
+    width: 2px;
     transform: translateX(-50%);
     background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--battle-accent, #53c8ff) 76%, white 8%) 24%, color-mix(in srgb, var(--battle-accent, #53c8ff) 88%, transparent) 58%, transparent 100%);
-    box-shadow: 0 0 14px color-mix(in srgb, var(--battle-accent, #53c8ff) 34%, transparent);
-    opacity: 0.52;
+    box-shadow: 0 0 16px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent);
+    opacity: 0.72;
 }
 
 .tv-chart-score-marker__badge {
     position: absolute;
     left: 0;
     top: var(--battle-y, 50%);
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     transform: translate(-50%, -50%);
     border-radius: 999px;
     display: grid;
@@ -155,32 +159,55 @@ export function ensureCompareCrossoverStyles() {
     display: grid;
     place-items: center;
     overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 14%);
+    border: 2px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 82%, white 22%);
     background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,.24), transparent 42%),
-        linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 38%),
-        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 30%, rgba(4, 10, 20, 0.94)), rgba(5, 12, 24, 0.96));
+        radial-gradient(circle at 30% 28%, rgba(255,255,255,.32), transparent 38%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--battle-accent, #53c8ff) 18%, transparent) 0%, transparent 68%),
+        linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 38%),
+        linear-gradient(135deg, color-mix(in srgb, var(--battle-accent, #53c8ff) 38%, rgba(4, 10, 20, 0.96)), rgba(5, 12, 24, 0.98));
     box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--battle-accent, #53c8ff) 22%, transparent),
-        0 0 18px color-mix(in srgb, var(--battle-accent, #53c8ff) 38%, transparent),
-        0 10px 24px rgba(0,0,0,.28);
+        0 0 0 2px rgba(255,255,255,.16),
+        0 0 0 5px color-mix(in srgb, var(--battle-accent, #53c8ff) 18%, transparent),
+        0 0 22px color-mix(in srgb, var(--battle-accent, #53c8ff) 42%, transparent),
+        0 10px 24px rgba(0,0,0,.32);
     animation: tvChartCrossoverPop 460ms cubic-bezier(.19,1,.22,1);
 }
 
 .tv-chart-score-marker__badge img {
-    width: 76%;
-    height: 76%;
+    width: 72%;
+    height: 72%;
     object-fit: contain;
-    filter: drop-shadow(0 0 8px rgba(255,255,255,.16));
+    filter: drop-shadow(0 0 10px rgba(255,255,255,.22));
 }
 
 .tv-chart-score-marker__fallback {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 900;
     letter-spacing: 0.08em;
-    color: #f4fbff;
+    color: #ffffff;
     text-transform: uppercase;
-    text-shadow: 0 1px 0 rgba(0,0,0,.36);
+    text-shadow: 0 1px 0 rgba(0,0,0,.36), 0 0 10px rgba(255,255,255,.18);
+}
+
+.tv-chart-score-marker__points {
+    position: absolute;
+    right: -8px;
+    bottom: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.08)), rgba(7, 16, 29, 0.96);
+    border: 1px solid color-mix(in srgb, var(--battle-accent, #53c8ff) 72%, white 18%);
+    box-shadow: 0 4px 12px rgba(0,0,0,.34), 0 0 12px color-mix(in srgb, var(--battle-accent, #53c8ff) 22%, transparent);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #ffffff;
+    text-shadow: 0 1px 0 rgba(0,0,0,.4);
 }
 
 .tv-chart-score-marker__tooltip {
@@ -351,11 +378,16 @@ export function buildScoreEventMarkerNode(markerModel) {
     tooltipReason.className = "tv-chart-score-marker__tooltip-reason";
     tooltipReason.textContent = markerModel.reason;
 
+    const pointsChip = document.createElement("span");
+    pointsChip.className = "tv-chart-score-marker__points";
+    pointsChip.textContent = `+${markerModel.points}`;
+
     tooltip.appendChild(tooltipTime);
     tooltip.appendChild(tooltipTitle);
     tooltip.appendChild(tooltipReason);
 
     badge.appendChild(badgeShell);
+    badge.appendChild(pointsChip);
     badge.appendChild(tooltip);
     badge.title = `${markerModel.minuteLabel}\n${markerModel.teamSymbol} +${markerModel.points}\n${markerModel.reason}`;
     marker.appendChild(beam);

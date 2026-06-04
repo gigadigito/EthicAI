@@ -498,29 +498,14 @@
                                         </header>
 
                                         <div class="tv-goal-log">
-                                            @if (_recentScoreEvents.Count > 0)
-                                            {
-                                                <div class="tv-goal-log__list">
-                                                    @foreach (var item in _recentScoreEvents.Take(5))
-                                                    {
-                                                        <article class="tv-goal-log__item">
-                                                            <strong>@FormatGoalLogTime(item)</strong>
-                                                            <div>
-                                                                <span>@item.TeamSymbol</span>
-                                                                <small>@DescribeGoalLog(item)</small>
-                                                            </div>
-                                                            <em>+@item.Points</em>
-                                                        </article>
-                                                    }
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="tv-goal-log__empty">
-                                                    <strong>@RootT("grid.metrics.goals")</strong>
-                                                    <small>@DisplayGoalLogEmptyState()</small>
-                                                </div>
-                                            }
+                                            <TvGoalEventFeed FeedId="@GoalEventFeedId"
+                                                             Culture="@Culture"
+                                                             Items="@_recentScoreEvents.Take(5).ToList()"
+                                                             FormatTime="FormatGoalLogTime"
+                                                             DescribeFallback="DescribeGoalLog"
+                                                             ResolveTeamLogoUrl="ResolveGoalLogTeamLogoUrl"
+                                                             EmptyTitle="@RootT("grid.metrics.goals")"
+                                                             EmptySubtitle="@DisplayGoalLogEmptyState()" />
                                         </div>
                                     </div>
 
@@ -836,6 +821,7 @@ else
 
     private IJSObjectReference? _tvModule;
     private IJSObjectReference? _tvCameraModule;
+    private IJSObjectReference? _tvEventFeedModule;
     private BroadcastSnapshot? _previousSnapshot;
     private CancellationTokenSource? _eventCts;
     private CancellationTokenSource? _pulseCts;
@@ -938,6 +924,7 @@ else
     private DateTime _scheduledBroadcastPromoAtUtc = DateTime.MaxValue;
     private int? _scheduledBroadcastPromoMatchId;
     private int? _lastBroadcastPromoMatchId;
+    private const string GoalEventFeedId = "tv-goal-event-feed";
 
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
     private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
@@ -1078,6 +1065,7 @@ else
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260603-crossover-marker-1");
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
+            _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -1101,6 +1089,18 @@ else
             }
 
             await LogClockDebugAsync();
+        }
+
+        if (_tvEventFeedModule is not null)
+        {
+            try
+            {
+                await _tvEventFeedModule.InvokeVoidAsync("initTvEventFeed", GoalEventFeedId);
+                await _tvEventFeedModule.InvokeVoidAsync("refreshTvEventFeed", GoalEventFeedId);
+            }
+            catch
+            {
+            }
         }
 
         if (EnableTelemetryCube && _tvModule is not null)
@@ -4760,6 +4760,20 @@ else
         return T("events.goalTitle", item.TeamSymbol);
     }
 
+    private string ResolveGoalLogTeamLogoUrl(string? teamSymbol)
+    {
+        if (string.IsNullOrWhiteSpace(teamSymbol))
+            return string.Empty;
+
+        if (string.Equals(teamSymbol, DisplayLeftSymbol(), StringComparison.OrdinalIgnoreCase))
+            return GetLogoUrl(DisplayLeftLogoUrl());
+
+        if (string.Equals(teamSymbol, DisplayRightSymbol(), StringComparison.OrdinalIgnoreCase))
+            return GetLogoUrl(DisplayRightLogoUrl());
+
+        return string.Empty;
+    }
+
     private string FormatGoalLogTime(MatchScoreEventDto item)
     {
         var timestamp = item.EventTimeUtc.Kind == DateTimeKind.Unspecified
@@ -5327,6 +5341,23 @@ else
 
             await _tvCameraModule.DisposeAsync();
             _tvCameraModule = null;
+        }
+
+        if (_tvEventFeedModule is not null)
+        {
+            try
+            {
+                await _tvEventFeedModule.InvokeVoidAsync("disposeTvEventFeed", GoalEventFeedId);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch
+            {
+            }
+
+            await _tvEventFeedModule.DisposeAsync();
+            _tvEventFeedModule = null;
         }
     }
 

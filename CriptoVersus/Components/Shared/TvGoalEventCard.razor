@@ -1,0 +1,58 @@
+@using CriptoVersus.Web.Services
+
+<article class="tv-event-card @(Model.IsHero ? "tv-event-card--hero" : "tv-event-card--compact") @(Model.IsHighPriority ? "tv-event-card--high-priority" : string.Empty)"
+         data-tv-event-card
+         data-enter-from="@Model.EnterFrom"
+         data-priority="@Model.PriorityLevel"
+         style="@BuildCssVars()">
+    <div class="tv-event-card__scanlines" aria-hidden="true"></div>
+    <div class="tv-event-card__edge-glow" aria-hidden="true"></div>
+    <div class="tv-event-card__event-icon-shell" aria-hidden="true">
+        <div class="tv-event-card__event-icon-art">
+            <img class="tv-event-card__event-icon-image" src="@Model.IconAssetPath" alt="" onerror="this.style.display='none';" />
+            <span class="tv-event-card__event-icon-fallback">@Model.IconFallback</span>
+        </div>
+    </div>
+
+    <div class="tv-event-card__content">
+        <div class="tv-event-card__identity">
+            <div class="tv-event-card__team-coin">
+                @if (!string.IsNullOrWhiteSpace(Model.TeamLogoUrl))
+                {
+                    <img src="@Model.TeamLogoUrl" alt="" />
+                }
+                else
+                {
+                    <span>@Model.TeamSymbol</span>
+                }
+            </div>
+            <span class="tv-event-card__team-symbol">@Model.TeamSymbol</span>
+        </div>
+
+        <div class="tv-event-card__copy">
+            <h3>@Model.EventTitle</h3>
+            <p>@Model.EventSubtitle</p>
+        </div>
+    </div>
+
+    <div class="tv-event-card__meta">
+        <strong class="tv-event-card__timer">@Model.TimerLabel</strong>
+        <em class="tv-event-card__reward">@Model.RewardLabel</em>
+    </div>
+
+    @if (Model.IsHighPriority)
+    {
+        <div class="tv-event-card__particles" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    }
+</article>
+
+@code {
+    [Parameter, EditorRequired] public TvGoalEventCardModel Model { get; set; } = default!;
+
+    private string BuildCssVars()
+        => $"--event-accent-start:{Model.AccentStart};--event-accent-end:{Model.AccentEnd};--event-glow:{Model.GlowColor};";
+}

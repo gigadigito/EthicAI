@@ -1,0 +1,87 @@
+@using CriptoVersus.Web.Services
+@using System.Globalization
+
+<div id="@FeedId" class="tv-event-feed">
+    @if (EventCards.Count > 0)
+    {
+        <section class="tv-event-feed__hero">
+            <TvGoalEventCard Model="EventCards[0]" />
+        </section>
+
+        @if (EventCards.Count > 1)
+        {
+            <section class="tv-event-feed__timeline">
+                <div class="tv-event-feed__rail" aria-hidden="true"></div>
+                <div class="tv-event-feed__stack">
+                    @foreach (var item in EventCards.Skip(1))
+                    {
+                        <TvGoalEventCard Model="item" />
+                    }
+                </div>
+            </section>
+        }
+    }
+    else
+    {
+        <div class="tv-event-feed__empty">
+            <strong>@EmptyTitle</strong>
+            <small>@EmptySubtitle</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string FeedId { get; set; } = "tv-goal-event-feed";
+    [Parameter] public string Culture { get; set; } = "pt-BR";
+    [Parameter] public IReadOnlyList<MatchScoreEventDto> Items { get; set; } = Array.Empty<MatchScoreEventDto>();
+    [Parameter] public Func<MatchScoreEventDto, string>? FormatTime { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? DescribeFallback { get; set; }
+    [Parameter] public Func<string?, string>? ResolveTeamLogoUrl { get; set; }
+    [Parameter] public string EmptyTitle { get; set; } = "GRID.METRICS.GOALS";
+    [Parameter] public string EmptySubtitle { get; set; } = "Aguardando o proximo evento de pontuacao.";
+
+    private IReadOnlyList<TvGoalEventCardModel> EventCards => BuildCards();
+
+    private IReadOnlyList<TvGoalEventCardModel> BuildCards()
+    {
+        if (Items.Count == 0)
+        {
+            return Array.Empty<TvGoalEventCardModel>();
+        }
+
+        var result = new List<TvGoalEventCardModel>(Items.Count);
+        for (var index = 0; index < Items.Count; index += 1)
+        {
+            var item = Items[index];
+            var definition = TvEventTypeRegistry.Resolve(item);
+            var rawSubtitle = DescribeFallback?.Invoke(item) ?? item.Description ?? string.Empty;
+            var subtitle = definition.GetSubtitle(Culture, item, rawSubtitle);
+            var enterFrom = index == 0 ? "left" : (index % 2 == 0 ? "right" : "left");
+            var priority = definition.PriorityLevel;
+
+            result.Add(new TvGoalEventCardModel(
+                item.MatchScoreEventId,
+                definition.Id,
+                item.TeamSymbol,
+                ResolveTeamLogoUrl?.Invoke(item.TeamSymbol) ?? string.Empty,
+                definition.GetTitle(Culture),
+                subtitle,
+                FormatTime?.Invoke(item) ?? item.EventTimeUtc.ToString("HH:mm", CultureInfo.InvariantCulture),
+                $"+{item.Points}",
+                definition.IconAssetPath,
+                definition.IconFallback,
+                definition.AccentStart,
+                definition.AccentEnd,
+                definition.GlowColor,
+                definition.AnimationStyle,
+                definition.SoundCueId,
+                priority,
+                index == 0,
+                priority >= 4,
+                enterFrom,
+                rawSubtitle));
+        }
+
+        return result;
+    }
+}

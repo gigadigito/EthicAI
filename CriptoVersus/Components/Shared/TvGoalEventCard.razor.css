@@ -1,0 +1,116 @@
+.tv-event-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    overflow: hidden;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01) 30%),
+        linear-gradient(180deg, rgba(6, 14, 26, 0.96), rgba(5, 10, 21, 0.98));
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.06),
+        0 18px 42px rgba(0,0,0,0.28),
+        0 0 0 1px rgba(255,255,255,0.02);
+    transform: translate3d(0, 20px, 0) scale(0.985);
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: transform 320ms cubic-bezier(.22,1,.36,1), opacity 320ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    content-visibility: auto;
+    contain-intrinsic-size: 124px;
+}
+
+.tv-event-card.is-visible { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+.tv-event-card[data-enter-from="right"] { transform: translate3d(22px, 0, 0) scale(0.985); }
+.tv-event-card[data-enter-from="left"] { transform: translate3d(-22px, 0, 0) scale(0.985); }
+.tv-event-card.is-visible[data-enter-from="left"],
+.tv-event-card.is-visible[data-enter-from="right"] { transform: translate3d(0, 0, 0) scale(1); }
+
+.tv-event-card--hero {
+    grid-template-columns: 88px minmax(0, 1fr) auto;
+    gap: 18px;
+    min-height: 126px;
+    padding: 18px 22px;
+    border-radius: 28px;
+    background:
+        radial-gradient(circle at 15% 50%, color-mix(in srgb, var(--event-glow, rgba(83,200,255,.35)) 34%, transparent) 0%, transparent 34%),
+        linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02) 28%),
+        linear-gradient(180deg, rgba(7, 16, 31, 0.98), rgba(3, 9, 20, 0.98));
+}
+
+.tv-event-card--compact { min-height: 92px; }
+.tv-event-card--high-priority {
+    border-color: color-mix(in srgb, var(--event-accent-start, #53c8ff) 34%, rgba(255,255,255,0.12));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 1px color-mix(in srgb, var(--event-accent-start, #53c8ff) 12%, transparent), 0 0 30px color-mix(in srgb, var(--event-glow, rgba(83,200,255,.35)) 26%, transparent), 0 18px 42px rgba(0,0,0,0.3);
+}
+
+.tv-event-card__scanlines,
+.tv-event-card__edge-glow,
+.tv-event-card__particles { pointer-events: none; position: absolute; inset: 0; }
+.tv-event-card__scanlines { background-image: linear-gradient(180deg, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 1px, transparent 1px, transparent 4px); opacity: 0.05; mix-blend-mode: screen; }
+.tv-event-card__edge-glow { background: linear-gradient(90deg, color-mix(in srgb, var(--event-accent-start, #53c8ff) 24%, transparent), transparent 22%, transparent 78%, color-mix(in srgb, var(--event-accent-end, #7ff6df) 24%, transparent)), linear-gradient(180deg, color-mix(in srgb, var(--event-accent-start, #53c8ff) 14%, transparent), transparent 24%, transparent 76%, color-mix(in srgb, var(--event-accent-end, #7ff6df) 14%, transparent)); opacity: 0.8; }
+
+.tv-event-card__event-icon-shell { position: relative; display: grid; place-items: center; }
+.tv-event-card__event-icon-art {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--event-accent-start, #53c8ff) 44%, rgba(255,255,255,.12));
+    background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--event-accent-start, #53c8ff) 22%, transparent), transparent 68%), linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02)), linear-gradient(135deg, color-mix(in srgb, var(--event-accent-start, #53c8ff) 24%, rgba(6,14,24,.96)), color-mix(in srgb, var(--event-accent-end, #7ff6df) 20%, rgba(5,10,18,.98)));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(255,255,255,.04), 0 0 22px color-mix(in srgb, var(--event-glow, rgba(83,200,255,.35)) 28%, transparent);
+}
+
+.tv-event-card--hero .tv-event-card__event-icon-art { width: 74px; height: 74px; border-radius: 24px; }
+.tv-event-card__event-icon-art::before,
+.tv-event-card__event-icon-art::after { content: ""; position: absolute; inset: 10px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); }
+.tv-event-card__event-icon-art::after { inset: auto 10px 10px 10px; height: 2px; border: 0; background: linear-gradient(90deg, var(--event-accent-start, #53c8ff), var(--event-accent-end, #7ff6df)); opacity: 0.82; }
+.tv-event-card__event-icon-image { width: 100%; height: 100%; object-fit: cover; }
+.tv-event-card__event-icon-fallback { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.55rem; font-weight: 900; color: #f7fbff; text-shadow: 0 0 18px rgba(255,255,255,0.18); }
+
+.tv-event-card__content { position: relative; z-index: 1; min-width: 0; display: grid; gap: 10px; }
+.tv-event-card__identity { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.tv-event-card__team-coin { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06); flex: 0 0 auto; }
+.tv-event-card__team-coin img { width: 100%; height: 100%; object-fit: cover; }
+.tv-event-card__team-coin span,
+.tv-event-card__team-symbol { color: #dff8ff; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
+.tv-event-card__team-coin span { font-size: 0.72rem; }
+.tv-event-card__team-symbol { font-size: 0.76rem; }
+.tv-event-card__copy { min-width: 0; display: grid; gap: 6px; }
+.tv-event-card__copy h3 { margin: 0; font-size: 1.1rem; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; color: #fbfdff; }
+.tv-event-card--hero .tv-event-card__copy h3 { font-size: 1.34rem; }
+.tv-event-card__copy p { margin: 0; color: rgba(214, 227, 243, 0.82); font-size: 0.84rem; line-height: 1.45; }
+.tv-event-card__meta { position: relative; z-index: 1; display: grid; justify-items: end; gap: 8px; align-self: stretch; min-width: 78px; }
+.tv-event-card__timer { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); color: #f4f8ff; font-size: 1.02rem; font-weight: 900; letter-spacing: 0.08em; font-variant-numeric: tabular-nums; }
+.tv-event-card__reward { font-style: normal; font-size: 1.4rem; font-weight: 900; line-height: 1; letter-spacing: 0.04em; color: #ffffff; text-shadow: 0 0 18px color-mix(in srgb, var(--event-accent-end, #7ff6df) 28%, transparent), 0 1px 0 rgba(0,0,0,.4); }
+.tv-event-card--hero .tv-event-card__reward { font-size: 2.2rem; }
+.tv-event-card__particles span { position: absolute; width: 6px; height: 6px; border-radius: 999px; background: linear-gradient(180deg, var(--event-accent-start, #53c8ff), var(--event-accent-end, #7ff6df)); opacity: 0; transform: translate3d(0, 8px, 0) scale(0.65); animation: tvEventParticle 1.6s ease-out infinite; }
+.tv-event-card__particles span:nth-child(1) { top: 18px; right: 72px; }
+.tv-event-card__particles span:nth-child(2) { top: 42px; right: 102px; animation-delay: 180ms; }
+.tv-event-card__particles span:nth-child(3) { top: 28px; right: 132px; animation-delay: 320ms; }
+
+@keyframes tvEventParticle {
+    0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.65); }
+    25% { opacity: 1; }
+    100% { opacity: 0; transform: translate3d(0, -12px, 0) scale(1); }
+}
+
+@media (max-width: 900px) {
+    .tv-event-card, .tv-event-card--hero { grid-template-columns: 62px minmax(0, 1fr) auto; gap: 12px; padding: 14px 16px; }
+    .tv-event-card--hero .tv-event-card__event-icon-art { width: 64px; height: 64px; }
+    .tv-event-card__copy h3, .tv-event-card--hero .tv-event-card__copy h3 { font-size: 1.02rem; }
+}
+
+@media (max-width: 640px) {
+    .tv-event-card, .tv-event-card--hero { grid-template-columns: 56px minmax(0, 1fr); grid-template-areas: "icon content" "meta meta"; }
+    .tv-event-card__event-icon-shell { grid-area: icon; }
+    .tv-event-card__content { grid-area: content; }
+    .tv-event-card__meta { grid-area: meta; justify-items: start; grid-auto-flow: column; justify-content: space-between; align-items: center; min-width: 0; }
+    .tv-event-card__reward, .tv-event-card--hero .tv-event-card__reward { font-size: 1.38rem; }
+}
