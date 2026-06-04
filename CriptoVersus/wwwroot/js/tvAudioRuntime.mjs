@@ -3,6 +3,11 @@ import {
     tvAudioMap,
     tvAudioMixProfiles
 } from "./tvAudioConfig.mjs";
+import {
+    getMediaCulture,
+    resolveLocalizedAudioPath,
+    setMediaCulture
+} from "./mediaLocalization.mjs";
 
 function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
@@ -57,7 +62,9 @@ export function ensureTvAudioManager() {
             queued: [],
             played: []
         },
-        ambientDuckRestoreTimer: null
+        ambientDuckRestoreTimer: null,
+        culture: getMediaCulture(),
+        resolvedAudioUrls: new Map()
     };
 
     return tvAudioManagerState;
@@ -272,8 +279,44 @@ export function cleanupManagedAudio(audio) {
     manager.sourceNodes.delete(audio);
 }
 
-export function resolveTvAudioUrl(key) {
-    return tvAudioMap[key] ?? null;
+export function setTvMediaCulture(culture) {
+    const normalized = setMediaCulture(culture);
+    const manager = ensureTvAudioManager();
+    manager.culture = normalized;
+    manager.resolvedAudioUrls.clear();
+    return normalized;
+}
+
+export function getTvMediaCulture() {
+    const manager = ensureTvAudioManager();
+    return manager.culture ?? getMediaCulture();
+}
+
+export async function resolveTvAudioUrl(key) {
+    const asset = tvAudioMap[key] ?? null;
+    if (!asset) {
+        return null;
+    }
+
+    if (typeof asset === "string") {
+        return asset;
+    }
+
+    const culture = getTvMediaCulture();
+    const manager = ensureTvAudioManager();
+    const cacheKey = `${culture}|${asset.context}|${asset.fileName}|${asset.legacyPath}|${asset.version ?? ""}`;
+    if (manager.resolvedAudioUrls.has(cacheKey)) {
+        return manager.resolvedAudioUrls.get(cacheKey) ?? null;
+    }
+
+    const resolved = await resolveLocalizedAudioPath(asset.fileName, culture, asset.context, {
+        legacyPath: asset.legacyPath,
+        version: asset.version,
+        logLabel: key
+    });
+
+    manager.resolvedAudioUrls.set(cacheKey, resolved ?? asset.legacyPath);
+    return resolved ?? asset.legacyPath;
 }
 
 export function resolveTvCueVolume(key, channel, requestedVolume, manager) {

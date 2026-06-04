@@ -1,33 +1,44 @@
+function buildTvAudioAsset(fileName, version = null) {
+    const basePath = `/audio/tv/${fileName}`;
+    return {
+        fileName,
+        context: "tv",
+        legacyPath: basePath,
+        version
+    };
+}
+
 export const tvAudioMap = {
-    goal: "/audio/tv/goal-sting.mp3",
-    nearGoal: "/audio/tv/near-goal.mp3",
-    pressure: "/audio/tv/pressure-rise.mp3",
-    comeback: "/audio/tv/comeback.mp3",
-    equalizer: "/audio/tv/equalizer.mp3",
-    momentum: "/audio/tv/momentum-swing.mp3",
-    fearSpike: "/audio/tv/fear-spike.mp3",
-    fearCollapse: "/audio/tv/fear-collapse.mp3",
-    finalMinutes: "/audio/tv/final-minutes.mp3",
-    victory: "/audio/tv/victory.mp3",
-    replay: "/audio/tv/replay-vinyl.mp3",
-    switchSide: "/audio/tv/switch-side.mp3",
-    crowdRise: "/audio/tv/stadium-crowd-loop.mp3",
-    whistle: "/audio/tv/whistle.mp3",
-    kickoff: "/audio/tv/kickoff.mp3",
-    halftime: "/audio/tv/halftime.mp3",
-    lastMinute: "/audio/tv/final-minutes.mp3",
-    counterAttack: "/audio/tv/counter-attack.mp3",
-    marketCrash: "/audio/tv/market-crash.mp3",
-    marketPump: "/audio/tv/market-pump.mp3",
-    clutchSave: "/audio/tv/clutch-save.mp3",
-    bigCandleMovement: "/audio/tv/big-candle-movement.mp3",
-    ballRecovery: "/audio/tv/ball-recovery.mp3",
-    highlightMoment: "/audio/tv/highlight-moment.mp3",
-    suddenReversal: "/audio/tv/sudden-reversal.mp3"
+    goal: buildTvAudioAsset("goal-sting.mp3"),
+    nearGoal: buildTvAudioAsset("near-goal.mp3"),
+    pressure: buildTvAudioAsset("pressure-rise.mp3"),
+    comeback: buildTvAudioAsset("comeback.mp3"),
+    equalizer: buildTvAudioAsset("equalizer.mp3"),
+    momentum: buildTvAudioAsset("momentum-swing.mp3"),
+    fearSpike: buildTvAudioAsset("fear-spike.mp3"),
+    fearCollapse: buildTvAudioAsset("fear-collapse.mp3"),
+    finalMinutes: buildTvAudioAsset("final-minutes.mp3"),
+    victory: buildTvAudioAsset("victory.mp3"),
+    replay: buildTvAudioAsset("replay-vinyl.mp3"),
+    switchSide: buildTvAudioAsset("switch-side.mp3"),
+    crowdRise: buildTvAudioAsset("stadium-crowd-loop.mp3"),
+    whistle: buildTvAudioAsset("whistle.mp3"),
+    kickoff: buildTvAudioAsset("kickoff.mp3"),
+    halftime: buildTvAudioAsset("halftime.mp3"),
+    lastMinute: buildTvAudioAsset("final-minutes.mp3"),
+    counterAttack: buildTvAudioAsset("counter-attack.mp3"),
+    marketCrash: buildTvAudioAsset("market-crash.mp3"),
+    marketPump: buildTvAudioAsset("market-pump.mp3"),
+    clutchSave: buildTvAudioAsset("clutch-save.mp3"),
+    bigCandleMovement: buildTvAudioAsset("big-candle-movement.mp3"),
+    ballRecovery: buildTvAudioAsset("ball-recovery.mp3"),
+    highlightMoment: buildTvAudioAsset("highlight-moment.mp3"),
+    suddenReversal: buildTvAudioAsset("sudden-reversal.mp3")
 };
 
 export const ambientTracks = [
     {
+        ...buildTvAudioAsset("stadium-crowd-loop.mp3", "20260521-1"),
         src: "/audio/tv/stadium-crowd-loop.mp3?v=20260521-1",
         mood: "standard",
         intensity: 0.56,

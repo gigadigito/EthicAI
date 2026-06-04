@@ -13,6 +13,7 @@
 @inject MatchSlugHelper MatchSlugHelper
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
+@inject LocalizedMediaPathResolver MediaResolver
 @inject TvArenaCommentaryService ArenaCommentary
 @inject TvFieldStateService FieldPositionService
 @inject ILogger<TvStage> Logger
@@ -802,7 +803,7 @@ else
 
 @if (ShouldRenderGoalAudio)
 {
-    <audio id="tv-goal-sting" class="tv-crowd-audio" data-tv-audio-role="fx" src="/audio/tv/goal-sting.mp3?v=20260521-1" preload="auto"></audio>
+    <audio id="tv-goal-sting" class="tv-crowd-audio" data-tv-audio-role="fx" src="@ResolveGoalAudioSrc()" preload="auto"></audio>
 }
 
 @if (Environment.IsDevelopment())
@@ -1118,9 +1119,21 @@ else
         if (_isDisposed)
             return;
 
+        if (!firstRender && _tvModule is not null)
+        {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
+            }
+            catch (JSException)
+            {
+            }
+        }
+
         if (firstRender)
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260603-crossover-marker-1");
+            await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
             _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
             await LogAsync("TV_MOTION", "motion system ready");
@@ -2554,8 +2567,23 @@ else
 
     private IEnumerable<(string PhysicalPath, string WebPathPrefix, string DefaultCategory)> EnumerateBroadcastVideoRoots()
     {
-        yield return (Path.Combine(Environment.WebRootPath, "video", "broadcast"), "/video/broadcast", "special-event");
-        yield return (Path.Combine(Environment.WebRootPath, "video", "opening"), "/video/opening", "intro");
+        foreach (var directory in MediaResolver.ResolveVideoDirectories(
+            Culture,
+            context: "broadcast",
+            legacyRelativeDirectory: "video/broadcast",
+            legacyWebPrefix: "/video/broadcast"))
+        {
+            yield return (directory.PhysicalPath, directory.WebPathPrefix, "special-event");
+        }
+
+        foreach (var directory in MediaResolver.ResolveVideoDirectories(
+            Culture,
+            context: "opening",
+            legacyRelativeDirectory: "video/opening",
+            legacyWebPrefix: "/video/opening"))
+        {
+            yield return (directory.PhysicalPath, directory.WebPathPrefix, "intro");
+        }
     }
 
     private BroadcastCinematicVideoAsset? BuildBroadcastCinematicVideoAsset(string filePath, string rootPath, string webPathPrefix, string defaultCategory)
@@ -4539,6 +4567,14 @@ else
 
     private decimal ResolveCrowdAudioVolume()
         => Math.Clamp(Config.GetValue<decimal?>("CriptoVersusTV:CrowdAudioVolume") ?? 0.42m, 0.18m, 0.80m);
+
+    private string ResolveGoalAudioSrc()
+        => MediaResolver.ResolveAudioWebPath(
+            "goal-sting.mp3",
+            Culture,
+            context: "tv",
+            version: "20260521-1")
+        ?? "/audio/tv/goal-sting.mp3?v=20260521-1";
 
     private async Task EnsureBroadcastAudioAsync()
     {

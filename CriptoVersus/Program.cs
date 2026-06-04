@@ -47,6 +47,7 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddSingleton<AppCultureService>();
 builder.Services.AddSingleton<LocalizationService>();
+builder.Services.AddSingleton<LocalizedMediaPathResolver>();
 builder.Services.AddSingleton<PublishedVersionService>();
 builder.Services.AddScoped<DashboardHubClient>();
 builder.Services.AddScoped<WalletSessionState>();

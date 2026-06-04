@@ -72,8 +72,11 @@ import {
     fadeMediaVolume,
     cleanupManagedAudio,
     resolveTvAudioUrl,
-    resolveTvCueVolume
+    resolveTvCueVolume,
+    setTvMediaCulture as setTvMediaCultureCore,
+    getTvMediaCulture
 } from "./tvAudioRuntime.mjs?v=20260603-crossover-marker-1";
+import { resolveLocalizedAudioPath } from "./mediaLocalization.mjs?v=20260603-crossover-marker-1";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -309,9 +312,9 @@ function duckAmbientForCue(key, manager) {
     }, duckMs);
 }
 
-function preloadTvAudio(key) {
+async function preloadTvAudio(key) {
     const manager = ensureTvAudioManager();
-    const url = resolveTvAudioUrl(key);
+    const url = await resolveTvAudioUrl(key);
     if (!url) {
         return null;
     }
@@ -338,13 +341,13 @@ function preloadTvAudio(key) {
     return audio;
 }
 
-function preloadAllTvAudio() {
-    Object.keys(tvAudioMap).forEach((key) => preloadTvAudio(key));
+async function preloadAllTvAudio() {
+    await Promise.all(Object.keys(tvAudioMap).map((key) => preloadTvAudio(key)));
 }
 
-function playTvAudio(key, options = {}) {
+async function playTvAudio(key, options = {}) {
     const manager = ensureTvAudioManager();
-    const url = resolveTvAudioUrl(key);
+    const url = await resolveTvAudioUrl(key);
     if (!url) {
         logTvAudio("missing asset", key);
         return false;
@@ -531,7 +534,31 @@ function setTvAudioSettings(volume, muted) {
 }
 
 function getAmbientPlaylist() {
-    return ambientTracks.filter((track) => typeof track?.src === "string" && track.src.trim().length > 0);
+    return ambientTracks.filter((track) =>
+        (typeof track?.src === "string" && track.src.trim().length > 0)
+        || (typeof track?.fileName === "string" && track.fileName.trim().length > 0));
+}
+
+async function ensureAmbientTrackUrl(track) {
+    if (!track) {
+        return null;
+    }
+
+    if (!track.fileName || !track.context) {
+        return track.src ?? null;
+    }
+
+    const resolved = await resolveLocalizedAudioPath(track.fileName, getTvMediaCulture(), track.context, {
+        legacyPath: track.legacyPath ?? track.src ?? null,
+        version: track.version ?? null,
+        logLabel: `ambient:${track.mood ?? track.fileName}`
+    });
+    if (!resolved) {
+        return track.src ?? track.legacyPath ?? null;
+    }
+
+    track.src = resolved;
+    return resolved;
 }
 
 function prepareAmbientHostElement(audio) {
@@ -610,9 +637,9 @@ function handleAmbientVisibleTab() {
     resumeAmbientPlayback("visibility-resume").catch(() => { });
 }
 
-function createAmbientAudio(track) {
+function createAmbientAudio(track, src) {
     const manager = ensureTvAudioManager();
-    const audio = new Audio(track.src);
+    const audio = new Audio(src);
     audio.preload = "auto";
     audio.loop = false;
     audio.volume = 1;
@@ -632,7 +659,7 @@ function createAmbientAudio(track) {
     return audio;
 }
 
-function prepareInitialAmbientAudio(hostAudio) {
+async function prepareInitialAmbientAudio(hostAudio) {
     const manager = ensureTvAudioManager();
     const ambient = manager.ambient;
     const selection = chooseNextAmbientTrack(ambient.lastTrackSrc);
@@ -640,12 +667,18 @@ function prepareInitialAmbientAudio(hostAudio) {
         return false;
     }
 
+    const src = await ensureAmbientTrackUrl(selection.track);
+    if (!src) {
+        markAmbientTrackFailed(selection.track, "missing-localized-src");
+        return false;
+    }
+
     prepareAmbientHostElement(hostAudio);
     hostAudio.preload = "auto";
     hostAudio.playsInline = true;
     hostAudio.muted = manager.muted;
-    if (hostAudio.getAttribute("src") !== selection.track.src) {
-        hostAudio.setAttribute("src", selection.track.src);
+    if (hostAudio.getAttribute("src") !== src) {
+        hostAudio.setAttribute("src", src);
         try {
             hostAudio.load();
         } catch {
@@ -663,7 +696,7 @@ function prepareInitialAmbientAudio(hostAudio) {
     ambient.currentAudio = hostAudio;
     ambient.currentTrack = selection.track;
     ambient.currentIndex = selection.index;
-    ambient.lastTrackSrc = selection.track.src;
+    ambient.lastTrackSrc = src;
     hostAudio.onended = () => {
         if (ensureTvAudioManager().ambient.currentAudio !== hostAudio) {
             return;
@@ -672,9 +705,9 @@ function prepareInitialAmbientAudio(hostAudio) {
         transitionAmbientTrack("ended").catch(() => { });
     };
 
-    ensureAmbientPreloaded(selection.track.src);
+    await ensureAmbientPreloaded(src);
     logAmbientDebug("prepared initial", {
-        src: selection.track.src,
+        src,
         mood: selection.track.mood,
         intensity: selection.track.intensity
     });
@@ -719,7 +752,7 @@ function chooseNextAmbientTrack(excludeSrc = null) {
     return { track: playlist[0], index: 0 };
 }
 
-function ensureAmbientPreloaded(excludeSrc = null) {
+async function ensureAmbientPreloaded(excludeSrc = null) {
     const manager = ensureTvAudioManager();
     const ambient = manager.ambient;
     const selection = chooseNextAmbientTrack(excludeSrc);
@@ -730,7 +763,13 @@ function ensureAmbientPreloaded(excludeSrc = null) {
         return null;
     }
 
-    if (ambient.nextTrack?.src === selection.track.src && ambient.nextAudio) {
+    const src = await ensureAmbientTrackUrl(selection.track);
+    if (!src) {
+        markAmbientTrackFailed(selection.track, "missing-next-src");
+        return null;
+    }
+
+    if (ambient.nextTrack?.src === src && ambient.nextAudio) {
         return { audio: ambient.nextAudio, track: ambient.nextTrack, index: ambient.nextIndex };
     }
 
@@ -738,18 +777,19 @@ function ensureAmbientPreloaded(excludeSrc = null) {
         cleanupManagedAudio(ambient.nextAudio);
     }
 
-    const nextAudio = createAmbientAudio(selection.track);
+    const nextAudio = createAmbientAudio(selection.track, src);
     try {
         nextAudio.load();
     } catch {
     }
 
     ambient.nextAudio = nextAudio;
+    selection.track.src = src;
     ambient.nextTrack = selection.track;
     ambient.nextIndex = selection.index;
 
     logAmbientDebug("preloaded next", {
-        src: selection.track.src,
+        src,
         mood: selection.track.mood,
         intensity: selection.track.intensity
     });
@@ -790,7 +830,7 @@ async function transitionAmbientTrack(reason = "rotation") {
 
     ambient.isTransitioning = true;
     try {
-        const prepared = ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
+        const prepared = await ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
         if (!prepared) {
             return false;
         }
@@ -856,7 +896,7 @@ async function transitionAmbientTrack(reason = "rotation") {
             }, ambient.transitionMs + 180);
         }
 
-        ensureAmbientPreloaded(nextTrack.src);
+        await ensureAmbientPreloaded(nextTrack.src);
         logAmbientDebug("transition", {
             reason,
             from: previousTrack?.src ?? null,
@@ -890,7 +930,7 @@ async function resumeAmbientPlayback(reason = "resume") {
                 fadeMediaVolume(ambient.currentAudio, manager.ambientTargetVolume, 1200);
             }
 
-            ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc);
+            ensureAmbientPreloaded(ambient.currentTrack?.src ?? ambient.lastTrackSrc).catch(() => { });
             manager.ambientStarted = true;
             return true;
         }
@@ -898,7 +938,7 @@ async function resumeAmbientPlayback(reason = "resume") {
 
     if (ambient.hostElementId && typeof document !== "undefined") {
         const hostAudio = document.getElementById(ambient.hostElementId);
-        if (hostAudio instanceof HTMLAudioElement && prepareInitialAmbientAudio(hostAudio)) {
+        if (hostAudio instanceof HTMLAudioElement && await prepareInitialAmbientAudio(hostAudio)) {
             const hostGain = manager.instanceGains.get(hostAudio);
             const started = await startAmbientAudioInstance(hostAudio, ambient.currentTrack ?? { src: "unknown" }, `${reason}-host-fallback`);
             if (started) {
@@ -3589,7 +3629,7 @@ async function initBroadcastAudioLegacy(elementId, volume, muted) {
     manager.ambient.hostElementId = elementId;
     manager.ambient.destroyed = false;
     if (!manager.ambient.currentAudio) {
-        prepareInitialAmbientAudio(audio);
+            await prepareInitialAmbientAudio(audio);
     } else {
         prepareAmbientHostElement(audio);
     }
@@ -3648,7 +3688,7 @@ function initTvAudioManagerLegacy(volume, muted) {
     manager.muted = Boolean(muted);
     ensureAudioUnlockListeners();
     attachAmbientLifecycleListeners();
-    preloadAllTvAudio();
+    preloadAllTvAudio().catch(() => { });
     consoleAudio("AUDIO_INIT", {
         volume: manager.volume,
         muted: manager.muted,
@@ -3657,7 +3697,7 @@ function initTvAudioManagerLegacy(volume, muted) {
     return diagnoseTvAudio();
 }
 
-function playTvAudioCueLegacy(key, options) {
+async function playTvAudioCueLegacy(key, options) {
     const context = getTvAudioContext();
     if (context && context.state === "suspended") {
         unlockTvAudioContext(`playTvAudioCue:${key}`).catch(() => { });
@@ -3719,6 +3759,10 @@ export function playTvAudioCue(key, options) {
     return ensureTvAudioFacade().playTvAudioCue(key, options);
 }
 
+export function setTvMediaCulture(culture) {
+    return setTvMediaCultureCore(culture);
+}
+
 export function stopTvAudioCue(key) {
     return ensureTvAudioFacade().stopTvAudioCue(key);
 }
@@ -3733,6 +3777,7 @@ if (typeof globalThis !== "undefined") {
     globalThis.playAudioCue = playAudioCue;
     globalThis.initTvAudioManager = initTvAudioManager;
     globalThis.playTvAudioCue = playTvAudioCue;
+    globalThis.setTvMediaCulture = setTvMediaCulture;
     globalThis.stopTvAudioCue = stopTvAudioCue;
     globalThis.unlockBroadcastAudio = unlockBroadcastAudio;
     globalThis.destroyBroadcastAudio = destroyBroadcastAudio;
@@ -3746,7 +3791,8 @@ if (typeof globalThis !== "undefined") {
         diagnose: diagnoseTvAudio,
         unlock: unlockBroadcastAudio,
         destroy: destroyBroadcastAudio,
-        state: getTvAudioState
+        state: getTvAudioState,
+        setCulture: setTvMediaCulture
     };
     globalThis.criptoVersusTvCharts = {
         initTelemetryCube,
