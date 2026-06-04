@@ -2,12 +2,15 @@
 @using System.Globalization
 
 <style>
-.tv-event-feed{min-height:100%;height:100%;display:grid;gap:14px;padding:2px 0 0}
+.tv-event-feed{min-height:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px;padding:2px 0 0;overflow:hidden}
 .tv-event-feed__hero{position:relative}
-.tv-event-feed__timeline{position:relative;min-height:0;display:grid;grid-template-columns:28px minmax(0,1fr)}
+.tv-event-feed__timeline{position:relative;min-height:0;height:100%;display:grid;grid-template-columns:28px minmax(0,1fr);overflow:hidden}
 .tv-event-feed__rail{position:relative;width:100%}
 .tv-event-feed__rail::before{content:"";position:absolute;left:14px;top:8px;bottom:8px;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,rgba(116,221,255,.54),rgba(116,221,255,.08));box-shadow:0 0 18px rgba(83,200,255,.18)}
-.tv-event-feed__stack{min-height:0;display:grid;gap:12px}
+.tv-event-feed__stack{min-height:0;height:100%;display:grid;gap:12px;overflow:auto;padding-right:8px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(122,235,255,.45) rgba(255,255,255,.03)}
+.tv-event-feed__stack::-webkit-scrollbar{width:8px}
+.tv-event-feed__stack::-webkit-scrollbar-track{background:rgba(255,255,255,.03);border-radius:999px}
+.tv-event-feed__stack::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(122,235,255,.55),rgba(122,235,255,.22));border-radius:999px;border:1px solid rgba(255,255,255,.08)}
 .tv-event-feed__empty{min-height:240px;display:grid;place-content:center;gap:8px;padding:18px;text-align:center;border-radius:24px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02))}
 .tv-event-card{position:relative;display:grid;grid-template-columns:84px 104px minmax(0,1fr) 120px 116px;align-items:center;gap:18px;padding:18px 22px;overflow:hidden;border-radius:26px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.01) 30%),linear-gradient(180deg,rgba(6,14,26,.96),rgba(5,10,21,.98));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 42px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.02);transform:translate3d(0,20px,0) scale(.985);opacity:0;will-change:transform,opacity;transition:transform 320ms cubic-bezier(.22,1,.36,1),opacity 320ms ease}
 .tv-event-card.is-visible{transform:translate3d(0,0,0) scale(1);opacity:1}
@@ -40,7 +43,7 @@
 .tv-event-card__particles span:nth-child(1){top:18px;right:72px}.tv-event-card__particles span:nth-child(2){top:42px;right:102px;animation-delay:180ms}.tv-event-card__particles span:nth-child(3){top:28px;right:132px;animation-delay:320ms}
 @keyframes tvEventParticle{0%{opacity:0;transform:translate3d(0,8px,0) scale(.65)}25%{opacity:1}100%{opacity:0;transform:translate3d(0,-12px,0) scale(1)}}
 @media (max-width:900px){.tv-event-card{grid-template-columns:74px 84px minmax(0,1fr) 92px 90px;gap:14px;padding:16px 18px}.tv-event-card__event-icon-art{width:68px;height:68px}.tv-event-card__team-coin{width:76px;height:76px}.tv-event-card__copy h3{font-size:1.28rem}.tv-event-card__copy p{font-size:.92rem}.tv-event-card__reward{font-size:3rem}}
-@media (max-width:640px){.tv-event-feed__timeline{grid-template-columns:1fr}.tv-event-feed__rail{display:none}.tv-event-card{grid-template-columns:64px 78px minmax(0,1fr);grid-template-areas:"event team body""event meta meta";align-items:start}.tv-event-card__event-icon-shell{grid-area:event}.tv-event-card__team-coin-shell{grid-area:team}.tv-event-card__content{grid-area:body}.tv-event-card__meta{grid-area:meta;grid-auto-flow:column;justify-content:space-between;align-items:center;justify-items:start}.tv-event-card__reward{font-size:2.4rem}}
+@media (max-width:640px){.tv-event-feed__timeline{grid-template-columns:1fr}.tv-event-feed__rail{display:none}.tv-event-feed__stack{padding-right:2px}.tv-event-card{grid-template-columns:64px 78px minmax(0,1fr);grid-template-areas:"event team body""event meta meta";align-items:start}.tv-event-card__event-icon-shell{grid-area:event}.tv-event-card__team-coin-shell{grid-area:team}.tv-event-card__content{grid-area:body}.tv-event-card__meta{grid-area:meta;grid-auto-flow:column;justify-content:space-between;align-items:center;justify-items:start}.tv-event-card__reward{font-size:2.4rem}}
 </style>
 
 <div id="@FeedId" class="tv-event-feed">
