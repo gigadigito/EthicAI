@@ -1,64 +1,13 @@
-.tv-event-feed {
-    min-height: 100%;
-    height: 100%;
-    display: grid;
-    gap: 14px;
-    padding: 2px 0 0;
-}
-
-.tv-event-feed__hero { position: relative; }
-
-.tv-event-feed__timeline {
-    position: relative;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: 24px minmax(0, 1fr);
-}
-
-.tv-event-feed__rail { position: relative; width: 100%; }
-
-.tv-event-feed__rail::before {
-    content: "";
-    position: absolute;
-    left: 12px;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    transform: translateX(-50%);
-    background: linear-gradient(180deg, rgba(116, 221, 255, 0.54), rgba(116, 221, 255, 0.08));
-    box-shadow: 0 0 18px rgba(83, 200, 255, 0.18);
-}
-
-.tv-event-feed__stack {
-    min-height: 0;
-    display: grid;
-    gap: 10px;
-}
-
-.tv-event-feed__empty {
-    min-height: 240px;
-    display: grid;
-    place-content: center;
-    gap: 8px;
-    padding: 18px;
-    text-align: center;
-    border-radius: 24px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
-}
-
-.tv-event-feed__empty strong {
-    font-size: 1rem;
-    letter-spacing: 0.14em;
-    color: #f6fbff;
-}
-
-.tv-event-feed__empty small {
-    color: rgba(207, 222, 238, 0.76);
-    line-height: 1.5;
-}
-
-@media (max-width: 640px) {
-    .tv-event-feed__timeline { grid-template-columns: 1fr; }
-    .tv-event-feed__rail { display: none; }
-}
+.tv-event-feed{min-height:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px;padding:2px 0 0;overflow:hidden}
+.tv-event-feed__hero{position:relative}
+.tv-event-feed__timeline{position:relative;min-height:0;height:100%;display:grid;grid-template-columns:28px minmax(0,1fr);overflow:hidden}
+.tv-event-feed__rail{position:relative;width:100%}
+.tv-event-feed__rail::before{content:"";position:absolute;left:14px;top:8px;bottom:8px;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,rgba(116,221,255,.54),rgba(116,221,255,.08));box-shadow:0 0 18px rgba(83,200,255,.18)}
+.tv-event-feed__stack{min-height:0;height:100%;display:grid;gap:12px;overflow:auto;padding-right:8px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(122,235,255,.45) rgba(255,255,255,.03)}
+.tv-event-feed__stack::-webkit-scrollbar{width:8px}
+.tv-event-feed__stack::-webkit-scrollbar-track{background:rgba(255,255,255,.03);border-radius:999px}
+.tv-event-feed__stack::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(122,235,255,.55),rgba(122,235,255,.22));border-radius:999px;border:1px solid rgba(255,255,255,.08)}
+.tv-event-feed__empty{min-height:240px;display:grid;place-content:center;gap:8px;padding:18px;text-align:center;border-radius:24px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02))}
+.tv-event-feed__empty strong{font-size:1rem;letter-spacing:.14em;color:#f6fbff}
+.tv-event-feed__empty small{color:rgba(207,222,238,.76);line-height:1.5}
+@media (max-width:640px){.tv-event-feed__timeline{grid-template-columns:1fr}.tv-event-feed__rail{display:none}.tv-event-feed__stack{padding-right:2px}}
