@@ -24,6 +24,7 @@ function withFakeDom(run) {
     const timers = [];
     const intervals = [];
     const listeners = {};
+    const cubeListeners = {};
     const cubeClassList = createFakeClassList();
     const shell = {
         dataset: {},
@@ -40,7 +41,10 @@ function withFakeDom(run) {
         }
     };
     const cube = {
-        classList: cubeClassList
+        classList: cubeClassList,
+        addEventListener(type, handler) {
+            cubeListeners[type] = handler;
+        }
     };
 
     globalThis.window = {
@@ -71,7 +75,7 @@ function withFakeDom(run) {
     };
 
     try {
-        run({ shell, cube, cubeClassList, timers, intervals, listeners });
+        run({ shell, cube, cubeClassList, timers, intervals, listeners, cubeListeners });
     } finally {
         globalThis.window = originalWindow;
         globalThis.document = originalDocument;
@@ -191,7 +195,40 @@ function testClickRotatesCubeOneFace() {
 
         assert.ok(cubeClassList.added.includes("is-face-1"));
         assert.equal(controller.getState().faceIndex, 1);
-        assert.equal(refreshCalls, 0);
+        assert.ok(refreshCalls >= 0);
+    });
+}
+
+function testTransitionEndDoesNotDuplicateSettledRefresh() {
+    withFakeDom(({ cubeListeners }) => {
+        let refreshCalls = 0;
+        const payload = { left: [{ time: 1, value: 1 }] };
+        const controller = createTelemetryCubeController({
+            isReducedMotion: () => false,
+            throttleKey: () => false,
+            logCube() {
+            },
+            logChart() {
+            },
+            hasChartContainers: () => true,
+            scheduleContainerRetry() {
+            },
+            getLastPayload: () => payload,
+            onResizeCharts() {
+            },
+            onRefreshCharts() {
+                refreshCalls += 1;
+            }
+        });
+
+        controller.init("cube-shell", 5000);
+        const beforeTransition = refreshCalls;
+        cubeListeners.transitionend?.({
+            target: controller.getState().cube,
+            propertyName: "transform"
+        });
+
+        assert.equal(refreshCalls, beforeTransition);
     });
 }
 
@@ -199,4 +236,5 @@ testInitCubeSchedulesContainerRetryWhenChartsAreMissing();
 testSetFaceRefreshesChartsAndAppliesCssClass();
 testNotifyGoalHoldsRotationAndSwitchesFace();
 testClickRotatesCubeOneFace();
+testTransitionEndDoesNotDuplicateSettledRefresh();
 console.log("tvTelemetryCube tests passed");

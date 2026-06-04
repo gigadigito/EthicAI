@@ -1,6 +1,19 @@
 export function createTelemetryCubeController(deps) {
     let state = null;
 
+    function clearSettledTimer() {
+        if (!state?.settledTimerId) {
+            return;
+        }
+
+        try {
+            window.clearTimeout(state.settledTimerId);
+        } catch {
+        }
+
+        state.settledTimerId = null;
+    }
+
     function pause(reason) {
         if (!state) {
             return;
@@ -22,6 +35,50 @@ export function createTelemetryCubeController(deps) {
         deps.onResizeCharts?.();
     }
 
+    function refreshChartsFromSettledFace(reason, faceIndex) {
+        const lastPayload = deps.getLastPayload?.();
+        if (!lastPayload) {
+            return;
+        }
+
+        try {
+            deps.onRefreshCharts?.(lastPayload);
+
+            if (deps.throttleKey("TV_CHART", `refresh:${reason}:face-${faceIndex}`, 2000)) {
+                deps.logChart("refresh from settled face", { reason, faceIndex });
+            }
+        } catch (error) {
+            deps.logCube("chart refresh failed", error?.message || String(error));
+        }
+    }
+
+    function settleFaceRotation(token, reason) {
+        if (!state || state.pendingSettledToken !== token || state.lastSettledToken === token) {
+            return;
+        }
+
+        state.lastSettledToken = token;
+        clearSettledTimer();
+        resizeCharts();
+        refreshChartsFromSettledFace(reason ?? "settled", state.faceIndex);
+    }
+
+    function scheduleFaceSettled(reason) {
+        if (!state) {
+            return;
+        }
+
+        clearSettledTimer();
+        state.pendingSettledToken = (state.pendingSettledToken || 0) + 1;
+        state.lastFaceChangeReason = reason ?? "face";
+        state.lastFaceChangeIndex = state.faceIndex;
+        const token = state.pendingSettledToken;
+
+        state.settledTimerId = window.setTimeout(() => {
+            settleFaceRotation(token, `${state.lastFaceChangeReason ?? "face"}-timeout`);
+        }, 1100);
+    }
+
     function setFace(faceIndex, reason) {
         try {
             if (!state?.cube) {
@@ -40,21 +97,7 @@ export function createTelemetryCubeController(deps) {
             window.setTimeout(() => resizeCharts(), 80);
             window.setTimeout(() => resizeCharts(), 350);
             window.setTimeout(() => resizeCharts(), 1100);
-
-            const lastPayload = deps.getLastPayload?.();
-            if (lastPayload) {
-                window.setTimeout(() => {
-                    try {
-                        deps.onRefreshCharts?.(lastPayload);
-
-                        if (deps.throttleKey("TV_CHART", `refresh:face-${normalized}`, 2000)) {
-                            deps.logChart("refresh from state", { reason: `face-${normalized}` });
-                        }
-                    } catch (error) {
-                        deps.logCube("chart refresh failed", error?.message || String(error));
-                    }
-                }, 120);
-            }
+            scheduleFaceSettled(reason ?? `face-${normalized}`);
         } catch (error) {
             deps.logCube("setCubeFace failed", error?.message || String(error));
         }
@@ -109,7 +152,12 @@ export function createTelemetryCubeController(deps) {
                 faceCount: 7,
                 paused: false,
                 disabled: false,
-                holdUntil: 0
+                holdUntil: 0,
+                settledTimerId: null,
+                pendingSettledToken: 0,
+                lastSettledToken: 0,
+                lastFaceChangeReason: "init",
+                lastFaceChangeIndex: 0
             };
 
             const disabled = deps.isReducedMotion()
@@ -142,6 +190,22 @@ export function createTelemetryCubeController(deps) {
                     }
 
                     setFace(state.faceIndex + 1, "click");
+                });
+
+                cube.addEventListener("transitionend", (event) => {
+                    if (!state || state.disabled) {
+                        return;
+                    }
+
+                    if (event?.target !== cube) {
+                        return;
+                    }
+
+                    if (typeof event?.propertyName === "string" && event.propertyName !== "transform") {
+                        return;
+                    }
+
+                    settleFaceRotation(state.pendingSettledToken, `${state.lastFaceChangeReason ?? "face"}-transitionend`);
                 });
             }
 
