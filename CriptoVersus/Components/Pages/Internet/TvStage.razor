@@ -795,11 +795,12 @@ else
             </section>
         }
 
-        @if (_audioDebugEnabled)
-        {
-            <TvAudioDebugOverlay Culture="@Culture" />
-        }
     </section>
+}
+
+@if (_audioDebugEnabled)
+{
+    <TvAudioDebugOverlay Culture="@Culture" />
 }
 
 @if (ShouldRenderCrowdAudio)
