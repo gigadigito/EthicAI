@@ -39,3 +39,30 @@ export async function copyText(text) {
 
     await navigator.clipboard.writeText(text);
 }
+
+export async function playAudioById(elementId) {
+    if (!elementId) {
+        return;
+    }
+
+    const element = document.getElementById(elementId);
+    if (!element) {
+        return;
+    }
+
+    await element.play();
+}
+
+export function stopAudioById(elementId) {
+    if (!elementId) {
+        return;
+    }
+
+    const element = document.getElementById(elementId);
+    if (!element) {
+        return;
+    }
+
+    element.pause();
+    element.currentTime = 0;
+}

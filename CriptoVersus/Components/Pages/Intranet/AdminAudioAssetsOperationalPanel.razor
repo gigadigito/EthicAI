@@ -66,11 +66,13 @@ else
                     <span class="me-3">Assets filtrados: <strong>@_assets.TotalCount</strong></span>
                     <span>Selecionados: <strong>@_selectedAssetIds.Count</strong></span>
                 </div>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary" @onclick="SelectVisibleAssets">Selecionar pagina</button>
-                    <button class="btn btn-outline-secondary" @onclick="ClearSelection">Limpar selecao</button>
-                    <button class="btn btn-outline-warning" @onclick="BulkDisableAsync" disabled="@(_selectedAssetIds.Count == 0)">Bulk disable</button>
-                    <button class="btn btn-outline-danger" @onclick="BulkDeleteAsync" disabled="@(_selectedAssetIds.Count == 0)">Bulk delete file + record</button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="ToggleSelectAllVisible">Selecionar Todos</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="SelectVisibleAssets">Selecionar pagina</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection">Limpar selecao</button>
+                    <button class="btn btn-outline-warning btn-sm" @onclick="BulkDisableAsync" disabled="@(_selectedAssetIds.Count == 0)">Desabilitar selecionados</button>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="BulkDeleteAsync" disabled="@(_selectedAssetIds.Count == 0)">Excluir selecionados</button>
+                    <button class="btn btn-danger btn-sm" @onclick="DeleteOrphanRecordsAsync" disabled="@(_assets.Summary.TotalOrphans == 0)">Excluir todos os orfaos</button>
                 </div>
             </div>
         </div>
@@ -98,24 +100,21 @@ else
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-bordered align-middle">
-                    <thead class="table-light">
+                <table class="table table-sm table-bordered align-middle admin-audio-table">
+                    <thead>
                         <tr>
                             <th>FileName</th>
-                            <th>RelativePath</th>
-                            <th>FullPath</th>
                             <th>Exists</th>
                             <th>Size</th>
                             <th>LastModifiedUtc</th>
-                            <th>PublicUrl</th>
-                            <th>Open</th>
-                            <th>Play</th>
+                            <th>Paths</th>
+                            <th>Playback</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (_filesystem.Items.Count == 0)
                         {
-                            <tr><td colspan="9" class="text-center text-muted">Nenhum arquivo encontrado no filesystem publicado.</td></tr>
+                            <tr><td colspan="6" class="text-center text-muted">Nenhum arquivo encontrado no filesystem publicado.</td></tr>
                         }
                         else
                         {
@@ -123,21 +122,39 @@ else
                             {
                                 <tr>
                                     <td>@file.FileName</td>
-                                    <td><code>@file.RelativePath</code></td>
-                                    <td><code>@file.FullPath</code></td>
-                                    <td>@(file.Exists ? "yes" : "no")</td>
-                                    <td>@FormatBytes(file.SizeBytes)</td>
-                                    <td>@FormatDate(file.LastModifiedUtc)</td>
-                                    <td class="text-break"><code>@file.PublicUrl</code></td>
-                                    <td><button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenUrlAsync(file.PublicUrl)" disabled="@(!file.Exists)">Open</button></td>
-                                    <td style="min-width:220px">
+                                    <td>
                                         @if (file.Exists)
                                         {
-                                            <audio controls preload="metadata" src="@file.PublicUrl"></audio>
+                                            <span class="badge text-bg-success">PLAYABLE</span>
                                         }
                                         else
                                         {
-                                            <span class="text-danger">missing file</span>
+                                            <span class="badge text-bg-danger">MISSING FILE</span>
+                                        }
+                                    </td>
+                                    <td>@FormatBytes(file.SizeBytes)</td>
+                                    <td>@FormatDate(file.LastModifiedUtc)</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-light icon-button" title="@file.PublicUrl" @onclick='() => CopyValueAsync(file.PublicUrl, "URL publica")'><i class="bi bi-globe2"></i></button>
+                                            <button class="btn btn-outline-light icon-button" title="@file.RelativePath" @onclick='() => CopyValueAsync(file.RelativePath, "Relative path")'><i class="bi bi-folder2-open"></i></button>
+                                            <button class="btn btn-outline-light icon-button" title="@file.FullPath" @onclick='() => CopyValueAsync(file.FullPath, "Path fisico")'><i class="bi bi-hdd-stack"></i></button>
+                                            <button class="btn btn-outline-info icon-button" title="Abrir URL publica" @onclick='() => OpenUrlAsync(file.PublicUrl)' disabled="@(!file.Exists)"><i class="bi bi-box-arrow-up-right"></i></button>
+                                        </div>
+                                    </td>
+                                    <td style="min-width:260px">
+                                        @if (file.Exists)
+                                        {
+                                            @{ var fileAudioId = GetFilesystemAudioElementId(file.RelativePath); }
+                                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                <button class="btn btn-outline-success btn-sm" @onclick='() => PlayAudioByIdAsync(fileAudioId)'>Play</button>
+                                                <button class="btn btn-outline-secondary btn-sm" @onclick='() => StopAudioByIdAsync(fileAudioId)'>Stop</button>
+                                                <audio id="@fileAudioId" controls preload="metadata" src="@file.PublicUrl"></audio>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge text-bg-danger">ORPHAN</span>
                                         }
                                     </td>
                                 </tr>
@@ -152,27 +169,37 @@ else
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Audio Assets Database</strong>
-            <span class="small text-muted">@(_loading ? "Carregando..." : $"{_assets.Items.Count} itens na pagina")</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <select class="form-select form-select-sm page-size-select" value="@_filters.PageSize" @onchange="ChangePageSizeAsync">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+                <span class="small text-muted">@(_loading ? "Carregando..." : $"{_assets.Items.Count} itens na pagina / {_assets.TotalCount} total")</span>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-sm table-striped table-bordered align-middle">
-                    <thead class="table-light">
+                <table class="table table-sm table-bordered align-middle admin-audio-table">
+                    <thead>
                         <tr>
-                            <th></th>
-                            <th>Id</th>
-                            <th>Status</th>
-                            <th>Event</th>
-                            <th>Language</th>
-                            <th>RawSymbol</th>
-                            <th>NormalizedSymbol</th>
-                            <th>TeamName</th>
+                            <th><input class="form-check-input" type="checkbox" checked="@(!AnyUnselectedVisible() && _assets.Items.Count > 0)" @onchange="_ => ToggleSelectAllVisible()" /></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("id")'>Id @SortIndicator("id")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("status")'>Status @SortIndicator("status")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("event")'>Event @SortIndicator("event")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("language")'>Language @SortIndicator("language")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("rawsymbol")'>RawSymbol @SortIndicator("rawsymbol")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("normalizedsymbol")'>NormalizedSymbol @SortIndicator("normalizedsymbol")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("teamname")'>TeamName @SortIndicator("teamname")</button></th>
                             <th>FileExists</th>
                             <th>PublicUrlValid</th>
-                            <th>UsageCount</th>
-                            <th>CreatedAt</th>
+                            <th>IsOrphan</th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("usagecount")'>UsageCount @SortIndicator("usagecount")</button></th>
+                            <th><button class="btn btn-link table-sort" @onclick='() => ChangeSort("createdat")'>CreatedAt @SortIndicator("createdat")</button></th>
                             <th>Duration</th>
-                            <th>PublicUrl</th>
+                            <th>Paths</th>
+                            <th>Playback</th>
                             <th>TextPrompt</th>
                             <th>Actions</th>
                         </tr>
@@ -180,7 +207,7 @@ else
                     <tbody>
                         @if (_assets.Items.Count == 0)
                         {
-                            <tr><td colspan="16" class="text-center text-muted">Nenhum registro encontrado no banco.</td></tr>
+                            <tr><td colspan="18" class="text-center text-muted">Nenhum registro encontrado no banco.</td></tr>
                         }
                         else
                         {
@@ -214,13 +241,35 @@ else
                                     </td>
                                     <td>@(asset.HasPhysicalFile ? "yes" : "no")</td>
                                     <td>@(asset.PublicUrlValid ? "yes" : "no")</td>
+                                    <td>@(asset.IsOrphan ? "yes" : "no")</td>
                                     <td>@asset.UsageCount</td>
                                     <td>@FormatDate(asset.CreatedAtUtc)</td>
                                     <td>@FormatDuration(asset.DurationMs)</td>
-                                    <td class="text-break">
-                                        <div><code>@asset.ResolvedAudioUrl</code></div>
-                                        <div class="small text-muted"><code>@asset.RelativePath</code></div>
-                                        <div class="small text-muted"><code>@asset.PhysicalPath</code></div>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-light icon-button" title="@asset.ResolvedAudioUrl" @onclick='() => CopyValueAsync(asset.ResolvedAudioUrl, "URL publica")' disabled="@string.IsNullOrWhiteSpace(asset.ResolvedAudioUrl)"><i class="bi bi-globe2"></i></button>
+                                            <button class="btn btn-outline-light icon-button" title="@asset.RelativePath" @onclick='() => CopyValueAsync(asset.RelativePath, "Relative path")' disabled="@string.IsNullOrWhiteSpace(asset.RelativePath)"><i class="bi bi-folder2-open"></i></button>
+                                            <button class="btn btn-outline-light icon-button" title="@asset.PhysicalPath" @onclick='() => CopyValueAsync(asset.PhysicalPath, "Path fisico")' disabled="@string.IsNullOrWhiteSpace(asset.PhysicalPath)"><i class="bi bi-hdd-stack"></i></button>
+                                            <button class="btn btn-outline-info icon-button" title="Abrir URL publica" @onclick='() => OpenUrlAsync(asset.ResolvedAudioUrl)' disabled="@(!asset.PublicUrlValid)"><i class="bi bi-box-arrow-up-right"></i></button>
+                                        </div>
+                                    </td>
+                                    <td style="min-width:260px">
+                                        @if (asset.PublicUrlValid)
+                                        {
+                                            @{ var assetAudioId = GetAssetAudioElementId(asset.Id); }
+                                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                <button class="btn btn-outline-success btn-sm" @onclick='() => PlayAudioByIdAsync(assetAudioId)'>Play</button>
+                                                <button class="btn btn-outline-secondary btn-sm" @onclick='() => StopAudioByIdAsync(assetAudioId)'>Stop</button>
+                                                <audio id="@assetAudioId" controls preload="metadata" src="@asset.ResolvedAudioUrl"></audio>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex flex-wrap gap-1">
+                                                <span class="badge text-bg-danger">MISSING FILE</span>
+                                                <span class="badge text-bg-dark">INVALID URL</span>
+                                            </div>
+                                        }
                                     </td>
                                     <td class="text-break">
                                         <div>@Truncate(asset.TextPrompt, 180)</div>
@@ -231,27 +280,27 @@ else
                                     </td>
                                     <td style="min-width:320px">
                                         <div class="d-flex flex-wrap gap-1 mb-2">
-                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenUrlAsync(asset.ResolvedAudioUrl)" disabled="@(!asset.PublicUrlValid)">Open URL</button>
-                                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => CopyUrlAsync(asset.ResolvedAudioUrl)" disabled="@string.IsNullOrWhiteSpace(asset.ResolvedAudioUrl)">Copy URL</button>
                                             <button class="btn btn-outline-warning btn-sm" @onclick="() => DisableAssetAsync(asset.Id)">Disable</button>
                                             <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRecordAsync(asset.Id)">Delete Record</button>
                                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteFileAndRecordAsync(asset.Id)">Delete File + Record</button>
                                             <button class="btn btn-outline-dark btn-sm" @onclick="() => QueueRegenerationAsync(asset)">Regenerate</button>
                                         </div>
-                                        @if (asset.PublicUrlValid)
-                                        {
-                                            <audio controls preload="metadata" src="@asset.ResolvedAudioUrl"></audio>
-                                        }
-                                        else
-                                        {
-                                            <div class="text-danger small">Player desabilitado: arquivo fisico inexistente ou URL publica invalida.</div>
-                                        }
+                                        <div class="small text-muted">@asset.FileName</div>
                                     </td>
                                 </tr>
                             }
                         }
                     </tbody>
                 </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                <div class="small text-muted">Pagina @_filters.Page de @TotalPages</div>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-light" @onclick="() => GoToPageAsync(1)" disabled="@(_filters.Page <= 1)">Primeira</button>
+                    <button class="btn btn-outline-light" @onclick="() => GoToPageAsync(_filters.Page - 1)" disabled="@(_filters.Page <= 1)">Anterior</button>
+                    <button class="btn btn-outline-light" @onclick="() => GoToPageAsync(_filters.Page + 1)" disabled="@(_filters.Page >= TotalPages)">Proxima</button>
+                    <button class="btn btn-outline-light" @onclick="() => GoToPageAsync(TotalPages)" disabled="@(_filters.Page >= TotalPages)">Ultima</button>
+                </div>
             </div>
         </div>
     </div>
@@ -376,12 +425,12 @@ else
     {
         _loading = true;
         _error = null;
+        _feedback = null;
         ApplyDateFilters();
 
         try
         {
             _assets = await Api.GetAudioAssetsAsync(BuildQueryString()) ?? new AudioAssetAdminListResponseDto();
-            _filesystem = await Api.GetAudioAssetFilesystemAsync() ?? new AudioAssetFilesystemResponseDto();
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -389,7 +438,19 @@ else
         }
         catch (Exception ex)
         {
-            _error = $"Nao foi possivel carregar o diagnostico de audio: {ex.Message}";
+            _error = $"Nao foi possivel carregar a tabela do banco de audio: {ex.Message}";
+        }
+
+        try
+        {
+            _filesystem = await Api.GetAudioAssetFilesystemAsync() ?? new AudioAssetFilesystemResponseDto();
+        }
+        catch (Exception ex)
+        {
+            _filesystem = new AudioAssetFilesystemResponseDto();
+            _error = string.IsNullOrWhiteSpace(_error)
+                ? $"Nao foi possivel carregar o diagnostico de filesystem: {ex.Message}"
+                : $"{_error} | Filesystem indisponivel: {ex.Message}";
         }
         finally
         {
@@ -479,6 +540,26 @@ else
         catch (Exception ex)
         {
             _error = $"Falha no bulk delete: {ex.Message}";
+        }
+    }
+
+    private async Task DeleteOrphanRecordsAsync()
+    {
+        if (!await ConfirmAsync($"Excluir todos os registros orfaos visiveis no banco? Total atual: {_assets.Summary.TotalOrphans}"))
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Api.DeleteOrphanAudioAssetRecordsAsync();
+            _feedback = response?.Message ?? "Operacao de limpeza de orfaos executada.";
+            ClearSelection();
+            await LoadAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"Falha ao excluir registros orfaos: {ex.Message}";
         }
     }
 
@@ -651,6 +732,37 @@ else
         _feedback = "URL copiada.";
     }
 
+    private async Task CopyValueAsync(string? value, string label)
+    {
+        if (string.IsNullOrWhiteSpace(value) || _audioModule is null)
+        {
+            return;
+        }
+
+        await _audioModule.InvokeVoidAsync("copyText", value);
+        _feedback = $"{label} copiado.";
+    }
+
+    private async Task PlayAudioByIdAsync(string elementId)
+    {
+        if (_audioModule is null)
+        {
+            return;
+        }
+
+        await _audioModule.InvokeVoidAsync("playAudioById", elementId);
+    }
+
+    private async Task StopAudioByIdAsync(string elementId)
+    {
+        if (_audioModule is null)
+        {
+            return;
+        }
+
+        await _audioModule.InvokeVoidAsync("stopAudioById", elementId);
+    }
+
     private async Task PlayTestAudioAsync()
     {
         if (_audioModule is not null)
@@ -693,6 +805,20 @@ else
     }
 
     private void ClearSelection() => _selectedAssetIds.Clear();
+
+    private void ToggleSelectAllVisible()
+    {
+        if (AnyUnselectedVisible())
+        {
+            SelectVisibleAssets();
+            return;
+        }
+
+        foreach (var item in _assets.Items)
+        {
+            _selectedAssetIds.Remove(item.Id);
+        }
+    }
 
     private void ToggleSelection(long id, object? value)
     {
@@ -738,10 +864,73 @@ else
         {
             AddQuery(query, "suspectsOnly", "true");
         }
+        AddQuery(query, "sortBy", _filters.SortBy);
+        AddQuery(query, "sortDirection", _filters.SortDirection);
         AddQuery(query, "page", _filters.Page.ToString());
         AddQuery(query, "pageSize", _filters.PageSize.ToString());
         return query.Count == 0 ? string.Empty : $"?{string.Join("&", query)}";
     }
+
+    private void ChangeSort(string sortBy)
+    {
+        if (string.Equals(_filters.SortBy, sortBy, StringComparison.OrdinalIgnoreCase))
+        {
+            _filters.SortDirection = string.Equals(_filters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
+        }
+        else
+        {
+            _filters.SortBy = sortBy;
+            _filters.SortDirection = "desc";
+        }
+
+        _filters.Page = 1;
+        _ = LoadAllAsync();
+    }
+
+    private bool IsSortedBy(string sortBy) => string.Equals(_filters.SortBy, sortBy, StringComparison.OrdinalIgnoreCase);
+
+    private string SortIndicator(string sortBy)
+    {
+        if (!IsSortedBy(sortBy))
+        {
+            return " ";
+        }
+
+        return string.Equals(_filters.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "↑" : "↓";
+    }
+
+    private int TotalPages => Math.Max(1, (int)Math.Ceiling((_assets.TotalCount <= 0 ? 1 : _assets.TotalCount) / (double)Math.Max(1, _filters.PageSize)));
+
+    private async Task GoToPageAsync(int page)
+    {
+        var targetPage = Math.Clamp(page, 1, TotalPages);
+        if (targetPage == _filters.Page)
+        {
+            return;
+        }
+
+        _filters.Page = targetPage;
+        await LoadAllAsync();
+    }
+
+    private async Task ChangePageSizeAsync(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var parsed))
+        {
+            return;
+        }
+
+        _filters.PageSize = Math.Clamp(parsed, 10, 200);
+        _filters.Page = 1;
+        await LoadAllAsync();
+    }
+
+    private bool AnyUnselectedVisible() => _assets.Items.Any(x => !_selectedAssetIds.Contains(x.Id));
+
+    private string GetAssetAudioElementId(long assetId) => $"audio-asset-player-{assetId}";
+
+    private string GetFilesystemAudioElementId(string relativePath)
+        => $"audio-filesystem-player-{Math.Abs((relativePath ?? string.Empty).GetHashCode())}";
 
     private AudioResolveRequest BuildResolvePreviewRequest() => new()
     {
@@ -909,6 +1098,71 @@ else
 }
 
 <style>
+    .audio-admin-page .card {
+        background: #05070a;
+        border: 1px solid #2d333b;
+        color: #f8f9fa;
+    }
+
+    .audio-admin-page .card-header {
+        background: #0d1117;
+        color: #f8f9fa;
+        border-bottom: 1px solid #2d333b;
+    }
+
+    .audio-admin-page .card-body,
+    .audio-admin-page .form-label,
+    .audio-admin-page .small,
+    .audio-admin-page .text-muted {
+        color: #d0d7de !important;
+    }
+
+    .audio-admin-page .form-control,
+    .audio-admin-page .form-select,
+    .audio-admin-page .form-range,
+    .audio-admin-page textarea {
+        background: #0d1117;
+        color: #f8f9fa;
+        border-color: #30363d;
+    }
+
+    .audio-admin-page .admin-audio-table {
+        --bs-table-bg: #05070a;
+        --bs-table-color: #f8f9fa;
+        --bs-table-border-color: #30363d;
+        --bs-table-striped-bg: #0d1117;
+        --bs-table-striped-color: #f8f9fa;
+        --bs-table-hover-bg: #111827;
+        --bs-table-hover-color: #ffffff;
+    }
+
+    .audio-admin-page .admin-audio-table thead th {
+        background: #161b22;
+        color: #ffffff;
+        border-color: #30363d;
+        white-space: nowrap;
+    }
+
+    .audio-admin-page .table-sort {
+        color: #ffffff;
+        text-decoration: none;
+        padding: 0;
+        font-size: inherit;
+    }
+
+    .audio-admin-page .table-sort:hover {
+        color: #7ee787;
+    }
+
+    .audio-admin-page .icon-button {
+        min-width: 2rem;
+    }
+
+    .audio-admin-page .page-size-select {
+        width: auto;
+        min-width: 5rem;
+    }
+
     .audio-admin-page audio {
         width: 220px;
         max-width: 100%;

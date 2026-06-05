@@ -257,6 +257,9 @@ public sealed class CriptoVersusApiClient
     public async Task<AudioAssetAdminActionResultDto?> BulkDeleteAudioAssetsFileAndRecordAsync(IReadOnlyList<long> ids, CancellationToken ct = default)
         => await PostAsJsonWithBearerAsync<AudioAssetAdminActionResultDto>("api/audio-assets/bulk-delete-file-and-record", new AudioAssetBulkActionRequestDto { AssetIds = ids }, ct);
 
+    public async Task<AudioAssetAdminActionResultDto?> DeleteOrphanAudioAssetRecordsAsync(CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioAssetAdminActionResultDto>("api/audio-assets/maintenance/delete-orphan-records", new { }, ct);
+
     public async Task<AudioAssetMaintenanceDisableSuspectResponseDto?> DisableSuspectAudioAssetsAsync(AudioAssetMaintenanceDisableSuspectRequestDto request, CancellationToken ct = default)
         => await PostAsJsonWithBearerAsync<AudioAssetMaintenanceDisableSuspectResponseDto>("api/audio-assets/maintenance/disable-suspect", request, ct);
 

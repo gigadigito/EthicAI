@@ -15,6 +15,7 @@ public interface IAudioAssetAdminService
     Task<AudioAssetAdminActionResultDto> DeleteFileAndRecordAsync(long id, string actorWallet, CancellationToken ct = default);
     Task<AudioAssetAdminActionResultDto> BulkDisableAsync(IReadOnlyCollection<long> ids, string actorWallet, CancellationToken ct = default);
     Task<AudioAssetAdminActionResultDto> BulkDeleteFileAndRecordAsync(IReadOnlyCollection<long> ids, string actorWallet, CancellationToken ct = default);
+    Task<AudioAssetAdminActionResultDto> DeleteOrphanRecordsAsync(string actorWallet, CancellationToken ct = default);
     Task<AudioAssetMaintenanceDisableSuspectResponseDto> DisableSuspectsAsync(AudioAssetMaintenanceDisableSuspectRequestDto request, string actorWallet, CancellationToken ct = default);
 }
 
@@ -79,10 +80,9 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
                 || (x.TeamSymbol != null && EF.Functions.ILike(x.TeamSymbol, $"%{containsText}%")));
         }
 
-        var materialized = await dbQuery
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .ThenByDescending(x => x.Id)
-            .ToListAsync(ct);
+        dbQuery = ApplySorting(dbQuery, query);
+
+        var materialized = await dbQuery.ToListAsync(ct);
 
         var databaseFilteredCount = materialized.Count;
         var mapped = materialized
@@ -275,6 +275,29 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
         return Success("Assets selecionados tiveram arquivo e registro removidos.", assets.Select(x => x.Id).ToArray());
     }
 
+    public async Task<AudioAssetAdminActionResultDto> DeleteOrphanRecordsAsync(string actorWallet, CancellationToken ct = default)
+    {
+        var candidates = await _db.AudioAsset.ToListAsync(ct);
+        var orphanAssets = candidates
+            .Where(x => !_storage.InspectStoredAudio(x.RelativePath).Exists)
+            .ToList();
+
+        if (orphanAssets.Count == 0)
+            return new AudioAssetAdminActionResultDto { Success = true, Message = "Nenhum registro orfao encontrado.", AffectedCount = 0 };
+
+        var affectedIds = orphanAssets.Select(x => x.Id).ToArray();
+        _db.AudioAsset.RemoveRange(orphanAssets);
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogWarning(
+            "ADMIN_AUDIO_ASSET_ORPHAN_RECORDS_DELETED wallet={Wallet} affectedCount={AffectedCount} assetIds={AssetIds}",
+            actorWallet,
+            affectedIds.Length,
+            string.Join(",", affectedIds));
+
+        return Success("Registros orfaos removidos do banco.", affectedIds);
+    }
+
     public async Task<AudioAssetMaintenanceDisableSuspectResponseDto> DisableSuspectsAsync(
         AudioAssetMaintenanceDisableSuspectRequestDto request,
         string actorWallet,
@@ -377,6 +400,26 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             AffectedCount = ids.Count,
             AssetIds = ids
         };
+
+    private static IQueryable<AudioAsset> ApplySorting(IQueryable<AudioAsset> query, AudioAssetAdminQueryDto request)
+    {
+        var sortBy = request.SortBy?.Trim().ToLowerInvariant();
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+        return sortBy switch
+        {
+            "id" => descending ? query.OrderByDescending(x => x.Id) : query.OrderBy(x => x.Id),
+            "event" or "eventtype" => descending ? query.OrderByDescending(x => x.EventType).ThenByDescending(x => x.Id) : query.OrderBy(x => x.EventType).ThenBy(x => x.Id),
+            "language" => descending ? query.OrderByDescending(x => x.Language).ThenByDescending(x => x.Id) : query.OrderBy(x => x.Language).ThenBy(x => x.Id),
+            "rawsymbol" => descending ? query.OrderByDescending(x => x.RawSymbol).ThenByDescending(x => x.Id) : query.OrderBy(x => x.RawSymbol).ThenBy(x => x.Id),
+            "normalizedsymbol" => descending ? query.OrderByDescending(x => x.NormalizedSymbol).ThenByDescending(x => x.Id) : query.OrderBy(x => x.NormalizedSymbol).ThenBy(x => x.Id),
+            "teamname" => descending ? query.OrderByDescending(x => x.TeamName).ThenByDescending(x => x.Id) : query.OrderBy(x => x.TeamName).ThenBy(x => x.Id),
+            "status" => descending ? query.OrderByDescending(x => x.Status).ThenByDescending(x => x.Id) : query.OrderBy(x => x.Status).ThenBy(x => x.Id),
+            "usagecount" => descending ? query.OrderByDescending(x => x.UsageCount).ThenByDescending(x => x.Id) : query.OrderBy(x => x.UsageCount).ThenBy(x => x.Id),
+            "createdat" or "createdatutc" => descending ? query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id) : query.OrderBy(x => x.CreatedAtUtc).ThenBy(x => x.Id),
+            _ => query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id)
+        };
+    }
 
     private static AudioAssetAdminActionResultDto NotFound(long id)
         => new()

@@ -121,6 +121,16 @@ public sealed class AudioAssetsController : ControllerBase
         return Ok(await _adminService.BulkDeleteFileAndRecordAsync(request.AssetIds, wallet, ct));
     }
 
+    [HttpPost("maintenance/delete-orphan-records")]
+    public async Task<ActionResult<AudioAssetAdminActionResultDto>> DeleteOrphanRecords(CancellationToken ct)
+    {
+        var wallet = RequireAdminWallet();
+        if (wallet is null)
+            return Forbid();
+
+        return Ok(await _adminService.DeleteOrphanRecordsAsync(wallet, ct));
+    }
+
     [HttpPost("maintenance/disable-suspect")]
     public async Task<ActionResult<AudioAssetMaintenanceDisableSuspectResponseDto>> DisableSuspect(
         [FromBody] AudioAssetMaintenanceDisableSuspectRequestDto request,

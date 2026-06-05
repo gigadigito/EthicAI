@@ -89,6 +89,8 @@ public sealed class AudioAssetAdminQueryDto
     public DateTime? CreatedAfterUtc { get; set; }
     public DateTime? CreatedBeforeUtc { get; set; }
     public bool? SuspectsOnly { get; set; }
+    public string? SortBy { get; set; }
+    public string? SortDirection { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
 }
