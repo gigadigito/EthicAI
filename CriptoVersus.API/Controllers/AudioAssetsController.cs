@@ -54,6 +54,16 @@ public sealed class AudioAssetsController : ControllerBase
         return asset is null ? NotFound() : Ok(asset);
     }
 
+    [HttpGet("filesystem")]
+    public async Task<ActionResult<AudioAssetFilesystemResponseDto>> GetFilesystem(CancellationToken ct)
+    {
+        var wallet = RequireAdminWallet();
+        if (wallet is null)
+            return Forbid();
+
+        return Ok(await _adminService.GetFilesystemAsync(ct));
+    }
+
     [HttpPatch("{id:long}/disable")]
     public async Task<ActionResult<AudioAssetAdminActionResultDto>> Disable(long id, CancellationToken ct)
     {

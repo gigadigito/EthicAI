@@ -107,11 +107,19 @@ public sealed class AudioAssetAdminListItemDto
     public string? VoiceKey { get; set; }
     public string? TextPrompt { get; set; }
     public string AudioUrl { get; set; } = string.Empty;
+    public string ResolvedAudioUrl { get; set; } = string.Empty;
     public string RelativePath { get; set; } = string.Empty;
+    public string? PhysicalPath { get; set; }
     public string FileName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }
     public int UsageCount { get; set; }
+    public int? DurationMs { get; set; }
+    public long? FileSizeBytes { get; set; }
+    public bool HasPhysicalFile { get; set; }
+    public bool PublicUrlValid { get; set; }
+    public bool IsOrphan { get; set; }
+    public string? OrphanReason { get; set; }
     public bool IsSuspect { get; set; }
     public IReadOnlyList<string> SuspectRules { get; set; } = Array.Empty<string>();
     public string? GenerationSource { get; set; }
@@ -122,7 +130,38 @@ public sealed class AudioAssetAdminListResponseDto
     public int Page { get; set; }
     public int PageSize { get; set; }
     public int TotalCount { get; set; }
+    public AudioAssetAdminSummaryDto Summary { get; set; } = new();
     public IReadOnlyList<AudioAssetAdminListItemDto> Items { get; set; } = Array.Empty<AudioAssetAdminListItemDto>();
+}
+
+public sealed class AudioAssetAdminSummaryDto
+{
+    public int TotalAssetsInDatabase { get; set; }
+    public int TotalPhysicalFiles { get; set; }
+    public int TotalOrphans { get; set; }
+    public int TotalDisabled { get; set; }
+    public int TotalReady { get; set; }
+    public long TotalDirectoryBytes { get; set; }
+    public string AudioRootPath { get; set; } = string.Empty;
+}
+
+public sealed class AudioAssetFilesystemEntryDto
+{
+    public string FileName { get; set; } = string.Empty;
+    public string RelativePath { get; set; } = string.Empty;
+    public string FullPath { get; set; } = string.Empty;
+    public bool Exists { get; set; }
+    public long SizeBytes { get; set; }
+    public DateTime? LastModifiedUtc { get; set; }
+    public string PublicUrl { get; set; } = string.Empty;
+}
+
+public sealed class AudioAssetFilesystemResponseDto
+{
+    public string AudioRootPath { get; set; } = string.Empty;
+    public int TotalFiles { get; set; }
+    public long TotalDirectoryBytes { get; set; }
+    public IReadOnlyList<AudioAssetFilesystemEntryDto> Items { get; set; } = Array.Empty<AudioAssetFilesystemEntryDto>();
 }
 
 public sealed class AudioAssetAdminActionResultDto

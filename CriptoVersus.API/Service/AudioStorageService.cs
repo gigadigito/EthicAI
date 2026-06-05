@@ -8,6 +8,9 @@ public interface IAudioStorageService
     Task<AudioStoredFile> SaveGeneratedAudioAsync(AudioGenerationJobDto job, IFormFile audioFile, CancellationToken ct);
     Task<AudioStoredFileDeletionResult> DeleteStoredAudioAsync(string relativePath, CancellationToken ct);
     bool StoredAudioExists(string? relativePath);
+    AudioStoredPathDiagnostics InspectStoredAudio(string? relativePath);
+    IReadOnlyList<AudioStoredFilesystemEntry> EnumerateStoredAudioFiles();
+    string? GetPrimaryAudioRootPath();
 }
 
 public sealed class AudioStorageService : IAudioStorageService
@@ -107,6 +110,83 @@ public sealed class AudioStorageService : IAudioStorageService
         return false;
     }
 
+    public AudioStoredPathDiagnostics InspectStoredAudio(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return new AudioStoredPathDiagnostics(
+                RelativePath: string.Empty,
+                PhysicalPath: null,
+                PublicUrl: string.Empty,
+                Exists: false,
+                OrphanReason: "relative_path vazio");
+        }
+
+        var normalizedRelativePath = relativePath.Trim().TrimStart('/').Replace('\\', '/');
+        var roots = ResolveTargetRoots();
+        foreach (var root in roots)
+        {
+            var targetPath = ResolveSafePhysicalPath(root, normalizedRelativePath);
+            if (File.Exists(targetPath))
+            {
+                return new AudioStoredPathDiagnostics(
+                    RelativePath: normalizedRelativePath,
+                    PhysicalPath: targetPath,
+                    PublicUrl: BuildPublicAudioUrl(normalizedRelativePath),
+                    Exists: true,
+                    OrphanReason: null);
+            }
+        }
+
+        var fallbackPhysicalPath = roots.Count > 0
+            ? ResolveSafePhysicalPath(roots[0], normalizedRelativePath)
+            : null;
+
+        return new AudioStoredPathDiagnostics(
+            RelativePath: normalizedRelativePath,
+            PhysicalPath: fallbackPhysicalPath,
+            PublicUrl: BuildPublicAudioUrl(normalizedRelativePath),
+            Exists: false,
+            OrphanReason: $"arquivo nao encontrado em {roots.Count} raiz(es) publicas");
+    }
+
+    public IReadOnlyList<AudioStoredFilesystemEntry> EnumerateStoredAudioFiles()
+    {
+        var roots = ResolveTargetRoots();
+        if (roots.Count == 0)
+            return [];
+
+        var primaryRoot = roots[0];
+        if (!Directory.Exists(primaryRoot))
+            return [];
+
+        var files = Directory
+            .EnumerateFiles(primaryRoot, "*", SearchOption.AllDirectories)
+            .Select(path =>
+            {
+                var info = new FileInfo(path);
+                var relativePath = Path.GetRelativePath(primaryRoot, path).Replace('\\', '/');
+                return new AudioStoredFilesystemEntry(
+                    FileName: info.Name,
+                    RelativePath: relativePath,
+                    FullPath: info.FullName,
+                    Exists: true,
+                    SizeBytes: info.Length,
+                    LastModifiedUtc: info.LastWriteTimeUtc,
+                    PublicUrl: BuildPublicAudioUrl(relativePath));
+            })
+            .OrderBy(x => x.RelativePath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return files;
+    }
+
+    public string? GetPrimaryAudioRootPath()
+    {
+        var roots = ResolveTargetRoots();
+        return roots.Count == 0 ? null : roots[0];
+    }
+
     private List<string> ResolveTargetRoots()
     {
         var roots = new List<string>();
@@ -201,3 +281,19 @@ public sealed record AudioStoredFileDeletionResult(
     string RelativePath,
     IReadOnlyList<string> DeletedPaths,
     IReadOnlyList<string> MissingPaths);
+
+public sealed record AudioStoredPathDiagnostics(
+    string RelativePath,
+    string? PhysicalPath,
+    string PublicUrl,
+    bool Exists,
+    string? OrphanReason);
+
+public sealed record AudioStoredFilesystemEntry(
+    string FileName,
+    string RelativePath,
+    string FullPath,
+    bool Exists,
+    long SizeBytes,
+    DateTime? LastModifiedUtc,
+    string PublicUrl);

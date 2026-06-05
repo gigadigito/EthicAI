@@ -9,6 +9,7 @@ public interface IAudioAssetAdminService
 {
     Task<AudioAssetAdminListResponseDto> GetAssetsAsync(AudioAssetAdminQueryDto query, CancellationToken ct = default);
     Task<AudioAssetAdminListItemDto?> GetAssetAsync(long id, CancellationToken ct = default);
+    Task<AudioAssetFilesystemResponseDto> GetFilesystemAsync(CancellationToken ct = default);
     Task<AudioAssetAdminActionResultDto> DisableAsync(long id, string actorWallet, CancellationToken ct = default);
     Task<AudioAssetAdminActionResultDto> DeleteRecordAsync(long id, string actorWallet, CancellationToken ct = default);
     Task<AudioAssetAdminActionResultDto> DeleteFileAndRecordAsync(long id, string actorWallet, CancellationToken ct = default);
@@ -84,10 +85,15 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             .ToListAsync(ct);
 
         var mapped = materialized
-            .Where(x => _storage.StoredAudioExists(x.RelativePath))
             .Select(Map)
             .Where(x => query.SuspectsOnly != true || x.IsSuspect)
             .ToList();
+
+        var filesystem = await GetFilesystemAsync(ct);
+        var totalAssetsInDatabase = await _db.AudioAsset.AsNoTracking().CountAsync(ct);
+        var totalDisabled = await _db.AudioAsset.AsNoTracking().CountAsync(x => x.Status == AudioAssetStatus.Disabled, ct);
+        var totalReady = await _db.AudioAsset.AsNoTracking().CountAsync(x => x.Status == AudioAssetStatus.Ready, ct);
+        var totalOrphans = mapped.Count(x => x.IsOrphan);
 
         var totalCount = mapped.Count;
         var pageItems = mapped
@@ -100,6 +106,16 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount,
+            Summary = new AudioAssetAdminSummaryDto
+            {
+                TotalAssetsInDatabase = totalAssetsInDatabase,
+                TotalPhysicalFiles = filesystem.TotalFiles,
+                TotalOrphans = totalOrphans,
+                TotalDisabled = totalDisabled,
+                TotalReady = totalReady,
+                TotalDirectoryBytes = filesystem.TotalDirectoryBytes,
+                AudioRootPath = filesystem.AudioRootPath
+            },
             Items = pageItems
         };
     }
@@ -107,9 +123,30 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
     public async Task<AudioAssetAdminListItemDto?> GetAssetAsync(long id, CancellationToken ct = default)
     {
         var asset = await _db.AudioAsset.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
-        return asset is null || !_storage.StoredAudioExists(asset.RelativePath)
-            ? null
-            : Map(asset);
+        return asset is null ? null : Map(asset);
+    }
+
+    public Task<AudioAssetFilesystemResponseDto> GetFilesystemAsync(CancellationToken ct = default)
+    {
+        var entries = _storage.EnumerateStoredAudioFiles();
+        var response = new AudioAssetFilesystemResponseDto
+        {
+            AudioRootPath = _storage.GetPrimaryAudioRootPath() ?? string.Empty,
+            TotalFiles = entries.Count,
+            TotalDirectoryBytes = entries.Sum(x => x.SizeBytes),
+            Items = entries.Select(x => new AudioAssetFilesystemEntryDto
+            {
+                FileName = x.FileName,
+                RelativePath = x.RelativePath,
+                FullPath = x.FullPath,
+                Exists = x.Exists,
+                SizeBytes = x.SizeBytes,
+                LastModifiedUtc = x.LastModifiedUtc,
+                PublicUrl = x.PublicUrl
+            }).ToList()
+        };
+
+        return Task.FromResult(response);
     }
 
     public async Task<AudioAssetAdminActionResultDto> DisableAsync(long id, string actorWallet, CancellationToken ct = default)
@@ -263,9 +300,21 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
         };
     }
 
-    private static AudioAssetAdminListItemDto Map(AudioAsset asset)
+    private AudioAssetAdminListItemDto Map(AudioAsset asset)
     {
         var suspectRules = AudioAssetSuspicionInspector.Evaluate(asset);
+        var storageInfo = _storage.InspectStoredAudio(asset.RelativePath);
+        var isOrphan = !storageInfo.Exists;
+
+        _logger.LogInformation(
+            "ADMIN_AUDIO_ASSET_DIAGNOSTIC assetId={AssetId} relativePath={RelativePath} physicalPath={PhysicalPath} fileExists={FileExists} publicUrl={PublicUrl} orphanReason={OrphanReason}",
+            asset.Id,
+            asset.RelativePath,
+            storageInfo.PhysicalPath,
+            storageInfo.Exists,
+            storageInfo.PublicUrl,
+            storageInfo.OrphanReason ?? string.Empty);
+
         return new AudioAssetAdminListItemDto
         {
             Id = asset.Id,
@@ -280,11 +329,19 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             VoiceKey = asset.VoiceKey,
             TextPrompt = asset.TextPrompt,
             AudioUrl = asset.AudioUrl,
+            ResolvedAudioUrl = storageInfo.PublicUrl,
             RelativePath = asset.RelativePath,
+            PhysicalPath = storageInfo.PhysicalPath,
             FileName = asset.FileName,
             Status = asset.Status,
             CreatedAtUtc = asset.CreatedAtUtc,
             UsageCount = asset.UsageCount,
+            DurationMs = asset.DurationMs,
+            FileSizeBytes = asset.FileSizeBytes,
+            HasPhysicalFile = storageInfo.Exists,
+            PublicUrlValid = storageInfo.Exists && !string.IsNullOrWhiteSpace(storageInfo.PublicUrl),
+            IsOrphan = isOrphan,
+            OrphanReason = storageInfo.OrphanReason,
             IsSuspect = suspectRules.Count > 0,
             SuspectRules = suspectRules,
             GenerationSource = asset.GenerationSource

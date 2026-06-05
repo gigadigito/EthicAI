@@ -239,6 +239,9 @@ public sealed class CriptoVersusApiClient
     public async Task<AudioAssetAdminListItemDto?> GetAudioAssetAsync(long id, CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<AudioAssetAdminListItemDto>($"api/audio-assets/{id}", ct);
 
+    public async Task<AudioAssetFilesystemResponseDto?> GetAudioAssetFilesystemAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<AudioAssetFilesystemResponseDto>("api/audio-assets/filesystem", ct);
+
     public async Task<AudioAssetAdminActionResultDto?> DisableAudioAssetAsync(long id, CancellationToken ct = default)
         => await SendJsonWithBearerAsync<AudioAssetAdminActionResultDto>(HttpMethod.Patch, $"api/audio-assets/{id}/disable", static () => JsonContent.Create(new { }), ct);
 
