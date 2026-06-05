@@ -17,6 +17,10 @@ let fieldFreedomState = null;
 let telemetryCubeController = null;
 let tvAudioFacade = null;
 let activeProceduralAudio = null;
+let tvAudioDebugSessionState = {
+    enabled: false,
+    hydrated: false
+};
 import {
     createTvChartDiagnostics,
     logTelemetryChartSummary
@@ -4117,8 +4121,12 @@ export function destroyBroadcastAudio(elementId) {
 export function setTvAudioDebugEnabled(enabled, options = {}) {
     const active = setTvAudioTelemetryEnabled(enabled);
     setTvBackgroundAudioController(buildBackgroundDebugController());
+    const wasEnabled = tvAudioDebugSessionState.enabled;
+    const shouldHydrate = active && (!wasEnabled || !tvAudioDebugSessionState.hydrated);
+    tvAudioDebugSessionState.enabled = active;
 
     if (!active) {
+        tvAudioDebugSessionState.hydrated = false;
         return getTvAudioTelemetryState();
     }
 
@@ -4139,17 +4147,22 @@ export function setTvAudioDebugEnabled(enabled, options = {}) {
     const backgroundVolume = clamp(Number(state?.background?.volume) || manager.ambientTargetVolume || 0.42, 0, 1);
     buildBackgroundDebugController().setVolume(backgroundVolume);
 
-    if (state?.background?.selectedKey === "off") {
-        buildBackgroundDebugController().setTrack("", state.background.selectedLabel, "off");
-    } else if (state?.background?.selectedUrl) {
-        buildBackgroundDebugController().setTrack(state.background.selectedUrl, state.background.selectedLabel, state.background.selectedKey);
-        buildBackgroundDebugController().play().catch?.(() => { });
+    if (shouldHydrate) {
+        if (state?.background?.selectedKey === "off") {
+            buildBackgroundDebugController().setTrack("", state.background.selectedLabel, "off");
+        } else if (state?.background?.selectedUrl) {
+            buildBackgroundDebugController().setTrack(state.background.selectedUrl, state.background.selectedLabel, state.background.selectedKey);
+            buildBackgroundDebugController().play().catch?.(() => { });
+        }
+
+        tvAudioDebugSessionState.hydrated = true;
     }
 
     pushAudioDebugLog("audio-debug-enabled", "info", {
         culture: getTvMediaCulture(),
         proceduralVolume,
-        backgroundVolume
+        backgroundVolume,
+        hydrated: shouldHydrate
     });
 
     return getTvAudioTelemetryState();
