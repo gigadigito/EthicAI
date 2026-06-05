@@ -939,6 +939,7 @@ else
     private int? _lastScoreEventMatchId;
     private long? _lastSeenScoreEventId;
     private long? _lastTriggeredGoalEventId;
+    private long? _lastAudioDebugSnapshotEventId;
     private string _lastGoalTriggerSignature = string.Empty;
     private string _lastGoalAudioSignature = string.Empty;
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
@@ -3454,6 +3455,9 @@ else
                 .Take(5)
                 .ToList();
             var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
+            var current = CaptureSnapshot();
+            var latestKnownEvent = _recentScoreEvents.FirstOrDefault();
+            await SyncProceduralAudioDebugSnapshotAsync(current, latestKnownEvent);
 
             if (_lastScoreEventMatchId != matchId || !_lastSeenScoreEventId.HasValue)
             {
@@ -3476,7 +3480,7 @@ else
             if (_lastTriggeredGoalEventId.HasValue && latest.MatchScoreEventId <= _lastTriggeredGoalEventId.Value)
                 return;
 
-            var current = CaptureSnapshot();
+            current = CaptureSnapshot();
             if (current is null)
                 return;
 
@@ -4678,6 +4682,33 @@ else
         catch
         {
         }
+    }
+
+    private async Task SyncProceduralAudioDebugSnapshotAsync(BroadcastSnapshot? current, MatchScoreEventDto? scoreEvent)
+    {
+        if (!_audioDebugEnabled || current is null || scoreEvent is null)
+            return;
+
+        if (_lastAudioDebugSnapshotEventId == scoreEvent.MatchScoreEventId)
+            return;
+
+        _lastAudioDebugSnapshotEventId = scoreEvent.MatchScoreEventId;
+        var audioUrl = NormalizeProceduralGoalAudioUrl(scoreEvent.AudioUrl);
+        if (!string.IsNullOrWhiteSpace(audioUrl))
+        {
+            await NotifyProceduralAudioDebugAsync("found", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                audioUrl,
+                message: "Loaded recent score event with procedural audio."));
+            return;
+        }
+
+        await NotifyProceduralAudioDebugAsync("missing", BuildProceduralAudioDebugPayload(
+            current,
+            scoreEvent,
+            audioUrl,
+            message: "Loaded recent score event without procedural audio URL."));
     }
 
     private async Task EnsureBroadcastAudioAsync()

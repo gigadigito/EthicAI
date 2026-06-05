@@ -76,6 +76,12 @@
     font-weight: 700;
 }
 
+.tv-audio-debug__hint {
+    margin-bottom: 0.45rem;
+    color: rgba(220, 238, 245, 0.62);
+    line-height: 1.35;
+}
+
 .tv-audio-debug__meta,
 .tv-audio-debug__stats,
 .tv-audio-debug__buttons,
