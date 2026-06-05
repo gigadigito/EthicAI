@@ -15,15 +15,18 @@ public interface IAudioAssetResolverService
 public sealed class AudioAssetResolverService : IAudioAssetResolverService
 {
     private readonly EthicAIDbContext _db;
+    private readonly IAudioStorageService _storage;
     private readonly IOptions<ProceduralAudioFeatureOptions> _featureOptions;
     private readonly ILogger<AudioAssetResolverService> _logger;
 
     public AudioAssetResolverService(
         EthicAIDbContext db,
+        IAudioStorageService storage,
         IOptions<ProceduralAudioFeatureOptions> featureOptions,
         ILogger<AudioAssetResolverService> logger)
     {
         _db = db;
+        _storage = storage;
         _featureOptions = featureOptions;
         _logger = logger;
     }
@@ -74,13 +77,30 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
                 && x.Language == normalized.Language)
             .ToListAsync(ct);
 
+        var availableCandidates = new List<AudioAsset>(candidates.Count);
+        foreach (var candidate in candidates)
+        {
+            if (_storage.StoredAudioExists(candidate.RelativePath))
+            {
+                availableCandidates.Add(candidate);
+                continue;
+            }
+
+            _logger.LogWarning(
+                "Procedural audio candidate ignored because the file is missing. AssetId={AssetId} RelativePath={RelativePath} AudioUrl={AudioUrl}",
+                candidate.Id,
+                candidate.RelativePath,
+                candidate.AudioUrl);
+        }
+
         _logger.LogInformation(
-            "Procedural audio resolver loaded {CandidateCount} ready candidates for EventType={EventType} Language={Language}",
+            "Procedural audio resolver loaded {CandidateCount} ready candidates and kept {AvailableCandidateCount} with existing files for EventType={EventType} Language={Language}",
             candidates.Count,
+            availableCandidates.Count,
             normalized.EventType,
             normalized.Language);
 
-        var evaluations = candidates
+        var evaluations = availableCandidates
             .Select(asset => Evaluate(asset, normalized))
             .ToList();
 
@@ -148,7 +168,7 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
             ResolvedAsset: ranked?.Asset,
             FallbackUsed: ranked?.FallbackUsed ?? false,
             SpecificityScore: ranked?.SpecificityScore ?? 0,
-            CandidateCount: candidates.Count,
+            CandidateCount: availableCandidates.Count,
             RankedCandidateIds: rankedCandidates.Select(x => x.Asset.Id).ToArray(),
             ResolutionSteps:
             [

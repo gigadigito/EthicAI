@@ -7,6 +7,7 @@ public interface IAudioStorageService
 {
     Task<AudioStoredFile> SaveGeneratedAudioAsync(AudioGenerationJobDto job, IFormFile audioFile, CancellationToken ct);
     Task<AudioStoredFileDeletionResult> DeleteStoredAudioAsync(string relativePath, CancellationToken ct);
+    bool StoredAudioExists(string? relativePath);
 }
 
 public sealed class AudioStorageService : IAudioStorageService
@@ -88,6 +89,22 @@ public sealed class AudioStorageService : IAudioStorageService
             RelativePath: relativePath.Replace('\\', '/'),
             DeletedPaths: deletedFiles,
             MissingPaths: missingFiles));
+    }
+
+    public bool StoredAudioExists(string? relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return false;
+
+        var roots = ResolveTargetRoots();
+        foreach (var root in roots)
+        {
+            var targetPath = ResolveSafePhysicalPath(root, relativePath);
+            if (File.Exists(targetPath))
+                return true;
+        }
+
+        return false;
     }
 
     private List<string> ResolveTargetRoots()

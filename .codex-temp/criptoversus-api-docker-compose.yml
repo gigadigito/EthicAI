@@ -1,0 +1,35 @@
+services:
+  criptoversus-api:
+    container_name: criptoversus-api
+
+    image: criptoversus-api:local
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=appdb;Username=appuser;Password=Macross@x1
+      CriptoVersusBlockchain__CustodyWalletSecretKeyBase64: ${CriptoVersusBlockchain__CustodyWalletSecretKeyBase64}
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - /home/admin/stacks/criptoversus-api/data/audio:/app/wwwroot/audio
+
+    restart: unless-stopped
+
+    networks:
+      - default
+      - npm-net
+      - root_internal
+
+networks:
+  npm-net:
+    external: true
+  root_internal:
+    external: true
