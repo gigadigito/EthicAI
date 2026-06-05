@@ -363,7 +363,7 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (!firstRender || !IsAdminWallet)
         {
             return;
         }
@@ -382,6 +382,10 @@ else
         {
             _assets = await Api.GetAudioAssetsAsync(BuildQueryString()) ?? new AudioAssetAdminListResponseDto();
             _filesystem = await Api.GetAudioAssetFilesystemAsync() ?? new AudioAssetFilesystemResponseDto();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _error = "Sessao admin nao autenticada na API. Reconecte a wallet admin para carregar o diagnostico.";
         }
         catch (Exception ex)
         {
@@ -852,6 +856,11 @@ else
     {
         _ = InvokeAsync(async () =>
         {
+            if (!IsAdminWallet)
+            {
+                return;
+            }
+
             await LoadAllAsync();
             StateHasChanged();
         });

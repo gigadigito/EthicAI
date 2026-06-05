@@ -84,6 +84,7 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             .ThenByDescending(x => x.Id)
             .ToListAsync(ct);
 
+        var databaseFilteredCount = materialized.Count;
         var mapped = materialized
             .Select(Map)
             .Where(x => query.SuspectsOnly != true || x.IsSuspect)
@@ -100,6 +101,17 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
+
+        _logger.LogInformation(
+            "ADMIN_AUDIO_ASSET_LIST totalDatabase={TotalDatabase} totalDatabaseFiltered={TotalDatabaseFiltered} totalFilesystem={TotalFilesystem} totalOrphans={TotalOrphans} totalReturned={TotalReturned} page={Page} pageSize={PageSize} suspectsOnly={SuspectsOnly}",
+            totalAssetsInDatabase,
+            databaseFilteredCount,
+            filesystem.TotalFiles,
+            totalOrphans,
+            pageItems.Count,
+            page,
+            pageSize,
+            query.SuspectsOnly);
 
         return new AudioAssetAdminListResponseDto
         {
@@ -145,6 +157,12 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
                 PublicUrl = x.PublicUrl
             }).ToList()
         };
+
+        _logger.LogInformation(
+            "ADMIN_AUDIO_FILESYSTEM_LIST audioRoot={AudioRoot} totalFilesystem={TotalFilesystem} totalDirectoryBytes={TotalDirectoryBytes}",
+            response.AudioRootPath,
+            response.TotalFiles,
+            response.TotalDirectoryBytes);
 
         return Task.FromResult(response);
     }
@@ -305,6 +323,9 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
         var suspectRules = AudioAssetSuspicionInspector.Evaluate(asset);
         var storageInfo = _storage.InspectStoredAudio(asset.RelativePath);
         var isOrphan = !storageInfo.Exists;
+
+        // Importante: assets orfaos continuam aparecendo na tabela de banco.
+        // Esta tela e operacional/debug e nao deve esconder problemas de storage.
 
         _logger.LogInformation(
             "ADMIN_AUDIO_ASSET_DIAGNOSTIC assetId={AssetId} relativePath={RelativePath} physicalPath={PhysicalPath} fileExists={FileExists} publicUrl={PublicUrl} orphanReason={OrphanReason}",

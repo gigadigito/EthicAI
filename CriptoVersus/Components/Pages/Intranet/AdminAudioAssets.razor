@@ -332,8 +332,24 @@
     private IJSObjectReference? _audioModule;
     private bool IsAdminWallet => IsConfiguredWallet(WalletState.WalletPublicKey, Config["CriptoVersus:AdminWallet"]) || IsConfiguredWallet(WalletState.WalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
 
-    protected override void OnInitialized() => WalletState.Changed += OnWalletStateChanged;
-    protected override async Task OnAfterRenderAsync(bool firstRender){ if (firstRender){ _audioModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/adminAudioAssets.js?v=20260605-audio-admin-debug"); await LoadAllAsync(); } }
+    protected override void OnInitialized()
+    {
+        if (_showLegacyAudioAssetsLayout)
+        {
+            WalletState.Changed += OnWalletStateChanged;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_showLegacyAudioAssetsLayout || !firstRender)
+        {
+            return;
+        }
+
+        _audioModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/adminAudioAssets.js?v=20260605-audio-admin-debug");
+        await LoadAllAsync();
+    }
 
     private async Task LoadAllAsync(){ _loading = true; _error = null; ApplyDateFilters(); try { _assets = await Api.GetAudioAssetsAsync(BuildQueryString()) ?? new AudioAssetAdminListResponseDto(); _filesystem = await Api.GetAudioAssetFilesystemAsync() ?? new AudioAssetFilesystemResponseDto(); } catch (Exception ex) { _error = $"Nao foi possivel carregar o diagnostico de audio: {ex.Message}"; } finally { _loading = false; await InvokeAsync(StateHasChanged); } }
     private async Task DisableAssetAsync(long id){ try { _feedback = (await Api.DisableAudioAssetAsync(id))?.Message; await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha ao desabilitar asset {id}: {ex.Message}"; } }
@@ -368,12 +384,37 @@
     private static string FormatDuration(int? durationMs){ if (!durationMs.HasValue || durationMs.Value <= 0) return "unknown"; var ts = TimeSpan.FromMilliseconds(durationMs.Value); return ts.TotalHours >= 1 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss"); }
     private static string Truncate(string? value, int maxLength){ if (string.IsNullOrWhiteSpace(value) || value.Length <= maxLength) return value ?? string.Empty; return value[..maxLength] + "..."; }
     private string GetRowClass(AudioAssetAdminListItemDto asset) => asset.IsOrphan ? "table-danger" : asset.Status == "disabled" ? "table-secondary" : asset.IsSuspect ? "table-warning" : string.Empty;
-    private void OnWalletStateChanged(){ _ = InvokeAsync(async () => { await LoadAllAsync(); StateHasChanged(); }); }
+    private void OnWalletStateChanged()
+    {
+        if (!_showLegacyAudioAssetsLayout)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(async () =>
+        {
+            await LoadAllAsync();
+            StateHasChanged();
+        });
+    }
     private static void AddQuery(List<string> query, string key, string? value){ if (!string.IsNullOrWhiteSpace(value)) query.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(value)}"); }
     private static DateTime? ParseDate(string? raw, bool endOfDay){ if (!DateTime.TryParse(raw, out var parsed)) return null; return endOfDay ? parsed.Date.AddDays(1).AddTicks(-1) : parsed.Date; }
     private static bool IsConfiguredWallet(string? wallet, string? configuredWallet) => !string.IsNullOrWhiteSpace(wallet) && !string.IsNullOrWhiteSpace(configuredWallet) && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
-    public void Dispose() => WalletState.Changed -= OnWalletStateChanged;
-    public async ValueTask DisposeAsync(){ if (_audioModule is not null) await _audioModule.DisposeAsync(); }
+    public void Dispose()
+    {
+        if (_showLegacyAudioAssetsLayout)
+        {
+            WalletState.Changed -= OnWalletStateChanged;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_audioModule is not null)
+        {
+            await _audioModule.DisposeAsync();
+        }
+    }
     private sealed class TestRunViewModel { public long JobId { get; set; } public string? AudioUrl { get; set; } public string? TextPrompt { get; set; } public string? TeamName { get; set; } public string? VoiceKey { get; set; } public string? Intensity { get; set; } }
 }
 
