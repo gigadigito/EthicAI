@@ -65,6 +65,11 @@ public sealed class RouteLocalizationService
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/admin-sistema"
             : "/en/admin-system";
+
+    public string BuildAdminAudioAssetsPath(string? culture)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/admin/audio-assets"
+            : "/en/admin/audio-assets";
     public string BuildStatsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas"
@@ -177,6 +182,13 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/en/token", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/token", StringComparison.OrdinalIgnoreCase))
             return BuildTokenPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/admin/audio-assets", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/admin/audio-assets", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/admin/audio-assets", StringComparison.OrdinalIgnoreCase))
+        {
+            return BuildAdminAudioAssetsPath(normalizedTarget) + querySuffix;
+        }
 
         var segments = cleanPath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

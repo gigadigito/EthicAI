@@ -60,6 +60,7 @@ builder.Services.AddScoped<IAudioAssetResolverService, AudioAssetResolverService
 builder.Services.AddScoped<IAudioNarrativeResolverService, AudioNarrativeResolverService>();
 builder.Services.AddScoped<IAudioGenerationQueueService, AudioGenerationQueueService>();
 builder.Services.AddScoped<IAudioStorageService, AudioStorageService>();
+builder.Services.AddScoped<IAudioAssetAdminService, AudioAssetAdminService>();
 builder.Services.AddSingleton<IAudioWorkerAuthenticationService, AudioWorkerAuthenticationService>();
 builder.Services.AddScoped<IProceduralAudioSeedService, ProceduralAudioSeedService>();
 builder.Services.AddHttpClient<ITvAiNarrationService, TvAiNarrationService>();

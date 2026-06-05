@@ -12,6 +12,8 @@ public interface IAudioGenerationQueueService
     Task<IReadOnlyList<AudioGenerationJobDto>> LeaseJobsAsync(AudioGenerationJobLeaseRequest request, CancellationToken ct = default);
     Task<AudioAsset> CompleteJobAsync(long id, AudioGenerationCompleteRequest request, IFormFile audioFile, CancellationToken ct = default);
     Task<bool> FailJobAsync(long id, AudioGenerationFailRequest request, CancellationToken ct = default);
+    Task<AudioAssetTestGenerateResponseDto> EnqueueManualTestAsync(AudioAssetTestGenerateRequestDto request, CancellationToken ct = default);
+    Task<AudioAssetTestStatusResponseDto?> GetJobStatusAsync(long id, CancellationToken ct = default);
 }
 
 public sealed record AudioQueueEnqueueResult(
@@ -223,7 +225,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             FileSizeBytes = request.FileSizeBytes ?? audioFile.Length,
             FileHash = request.FileHash,
             GenerationModel = request.GenerationModel,
-            GenerationSource = string.IsNullOrWhiteSpace(request.GenerationSource) ? request.WorkerId : request.GenerationSource,
+            GenerationSource = ResolveGenerationSource(job, request),
             QualityScore = request.QualityScore,
             Priority = job.Priority,
             Status = AudioAssetStatus.Ready,
@@ -283,6 +285,108 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         return true;
     }
 
+    public async Task<AudioAssetTestGenerateResponseDto> EnqueueManualTestAsync(
+        AudioAssetTestGenerateRequestDto request,
+        CancellationToken ct = default)
+    {
+        var normalized = await _narrativeResolver.ResolveAsync(new AudioResolveRequest
+        {
+            EventType = request.EventType,
+            Language = request.Language,
+            RawSymbol = request.TeamSymbol,
+            NormalizedSymbol = request.TeamSymbol,
+            TeamSymbol = request.TeamSymbol,
+            TeamName = request.TeamName,
+            TextPrompt = request.OverrideTextPrompt,
+            ContextKey = request.ContextKey,
+            Intensity = request.Intensity,
+            VoiceKey = request.VoiceKey,
+            QueueIfMissing = false,
+            ForceQueue = true
+        }, ct);
+
+        var resolvedVoiceKey = ResolveVoiceKey(normalized);
+        var template = await ResolveTemplateAsync(normalized, ct);
+        var textPrompt = BuildPrompt(
+            string.IsNullOrWhiteSpace(request.OverrideTextPrompt)
+                ? normalized
+                : new AudioResolveRequest
+                {
+                    EventType = normalized.EventType,
+                    Language = normalized.Language,
+                    RawSymbol = normalized.RawSymbol,
+                    NormalizedSymbol = normalized.NormalizedSymbol,
+                    TeamSymbol = normalized.TeamSymbol,
+                    TeamName = normalized.TeamName,
+                    TextPrompt = request.OverrideTextPrompt,
+                    ContextKey = normalized.ContextKey,
+                    Intensity = normalized.Intensity,
+                    VoiceKey = resolvedVoiceKey
+                },
+            template);
+
+        var nowUtc = DateTime.UtcNow;
+        var job = new AudioGenerationQueueItem
+        {
+            EventType = normalized.EventType,
+            Language = normalized.Language,
+            RawSymbol = normalized.RawSymbol,
+            NormalizedSymbol = normalized.NormalizedSymbol,
+            TeamSymbol = normalized.TeamSymbol,
+            TeamName = normalized.TeamName,
+            ContextKey = normalized.ContextKey,
+            Intensity = normalized.Intensity,
+            VoiceKey = resolvedVoiceKey,
+            TemplateKey = template?.TemplateKey,
+            TextPrompt = textPrompt,
+            TargetFileName = BuildTargetFileName(normalized, "test"),
+            TargetRelativePath = BuildTestTargetRelativePath(),
+            Status = AudioGenerationJobStatus.Pending,
+            Priority = 5,
+            CreatedAtUtc = nowUtc,
+            UpdatedAtUtc = nowUtc
+        };
+
+        _db.AudioGenerationQueueItem.Add(job);
+        await _db.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Manual test audio generation job enqueued. JobId={JobId} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} VoiceKey={VoiceKey}",
+            job.Id,
+            job.EventType,
+            job.Language,
+            job.TeamSymbol,
+            job.VoiceKey);
+
+        return new AudioAssetTestGenerateResponseDto
+        {
+            Queued = true,
+            JobId = job.Id
+        };
+    }
+
+    public async Task<AudioAssetTestStatusResponseDto?> GetJobStatusAsync(long id, CancellationToken ct = default)
+    {
+        var job = await _db.AudioGenerationQueueItem
+            .AsNoTracking()
+            .Include(x => x.CompletedAudioAsset)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+        if (job is null)
+            return null;
+
+        return new AudioAssetTestStatusResponseDto
+        {
+            JobId = job.Id,
+            Status = job.Status,
+            AssetId = job.CompletedAudioAssetId,
+            AudioUrl = job.CompletedAudioAsset?.AudioUrl,
+            TextPrompt = job.CompletedAudioAsset?.TextPrompt ?? job.TextPrompt,
+            TeamName = job.CompletedAudioAsset?.TeamName ?? job.TeamName,
+            ErrorMessage = job.ErrorMessage
+        };
+    }
+
     private async Task<AudioPhraseTemplate?> ResolveTemplateAsync(AudioResolveRequest request, CancellationToken ct)
     {
         return await _db.AudioPhraseTemplate
@@ -326,17 +430,21 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
     private static string BuildTargetRelativePath(AudioResolveRequest request)
         => $"audio/{request.Language}/{request.EventType}/{(string.IsNullOrWhiteSpace(request.TeamSymbol) ? "generic" : request.TeamSymbol)}";
 
-    private static string BuildTargetFileName(AudioResolveRequest request)
+    private static string BuildTargetFileName(AudioResolveRequest request, string? prefix = null)
     {
         var parts = new[]
         {
+            prefix,
             request.EventType,
             string.IsNullOrWhiteSpace(request.TeamSymbol) ? "generic" : request.TeamSymbol,
             string.IsNullOrWhiteSpace(request.Intensity) ? "normal" : request.Intensity
         };
 
-        return $"{string.Join("_", parts.Select(x => x!.Trim().ToLowerInvariant()))}_{DateTime.UtcNow:yyyyMMddHHmmss}.mp3";
+        return $"{string.Join("_", parts.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim().ToLowerInvariant()))}_{DateTime.UtcNow:yyyyMMddHHmmss}.mp3";
     }
+
+    private static string BuildTestTargetRelativePath()
+        => "audio/test";
 
     private static int ResolvePriority(AudioResolveRequest request)
     {
@@ -376,5 +484,19 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             LeaseOwner = job.LeaseOwner,
             LeasedUntilUtc = job.LeasedUntilUtc
         };
+    }
+
+    private static string ResolveGenerationSource(AudioGenerationQueueItem job, AudioGenerationCompleteRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.GenerationSource))
+            return request.GenerationSource!;
+
+        if (!string.IsNullOrWhiteSpace(job.TargetRelativePath)
+            && job.TargetRelativePath.StartsWith("audio/test", StringComparison.OrdinalIgnoreCase))
+        {
+            return "manual_test";
+        }
+
+        return request.WorkerId;
     }
 }

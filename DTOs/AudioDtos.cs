@@ -76,3 +76,121 @@ public sealed class AudioGenerationFailRequest
     public string WorkerId { get; set; } = string.Empty;
     public string ErrorMessage { get; set; } = string.Empty;
 }
+
+public sealed class AudioAssetAdminQueryDto
+{
+    public string? EventType { get; set; }
+    public string? Language { get; set; }
+    public string? TeamSymbol { get; set; }
+    public string? NormalizedSymbol { get; set; }
+    public string? TeamName { get; set; }
+    public string? Status { get; set; }
+    public string? ContainsText { get; set; }
+    public DateTime? CreatedAfterUtc { get; set; }
+    public DateTime? CreatedBeforeUtc { get; set; }
+    public bool? SuspectsOnly { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public sealed class AudioAssetAdminListItemDto
+{
+    public long Id { get; set; }
+    public string EventType { get; set; } = string.Empty;
+    public string Language { get; set; } = string.Empty;
+    public string? RawSymbol { get; set; }
+    public string? NormalizedSymbol { get; set; }
+    public string? TeamName { get; set; }
+    public string? TeamSymbol { get; set; }
+    public string? ContextKey { get; set; }
+    public string? Intensity { get; set; }
+    public string? VoiceKey { get; set; }
+    public string? TextPrompt { get; set; }
+    public string AudioUrl { get; set; } = string.Empty;
+    public string RelativePath { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; }
+    public int UsageCount { get; set; }
+    public bool IsSuspect { get; set; }
+    public IReadOnlyList<string> SuspectRules { get; set; } = Array.Empty<string>();
+    public string? GenerationSource { get; set; }
+}
+
+public sealed class AudioAssetAdminListResponseDto
+{
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalCount { get; set; }
+    public IReadOnlyList<AudioAssetAdminListItemDto> Items { get; set; } = Array.Empty<AudioAssetAdminListItemDto>();
+}
+
+public sealed class AudioAssetAdminActionResultDto
+{
+    public bool Success { get; set; }
+    public int AffectedCount { get; set; }
+    public IReadOnlyList<long> AssetIds { get; set; } = Array.Empty<long>();
+    public string Message { get; set; } = string.Empty;
+}
+
+public sealed class AudioAssetBulkActionRequestDto
+{
+    public IReadOnlyList<long> AssetIds { get; set; } = Array.Empty<long>();
+}
+
+public sealed class AudioAssetMaintenanceDisableSuspectRequestDto
+{
+    public bool DryRun { get; set; } = true;
+    public IReadOnlyList<string> Rules { get; set; } = Array.Empty<string>();
+}
+
+public sealed class AudioAssetMaintenanceDisableSuspectResponseDto
+{
+    public bool DryRun { get; set; }
+    public int AffectedCount { get; set; }
+    public IReadOnlyList<long> AssetIds { get; set; } = Array.Empty<long>();
+    public IReadOnlyList<string> Rules { get; set; } = Array.Empty<string>();
+}
+
+public sealed class AudioAssetTestGenerateRequestDto
+{
+    public string EventType { get; set; } = string.Empty;
+    public string Language { get; set; } = string.Empty;
+    public string? TeamSymbol { get; set; }
+    public string? TeamName { get; set; }
+    public string? ContextKey { get; set; }
+    public string? Intensity { get; set; }
+    public string? VoiceKey { get; set; }
+    public string? OverrideTextPrompt { get; set; }
+}
+
+public sealed class AudioAssetTestGenerateResponseDto
+{
+    public bool Queued { get; set; }
+    public long JobId { get; set; }
+}
+
+public sealed class AudioAssetTestStatusResponseDto
+{
+    public string Status { get; set; } = string.Empty;
+    public long JobId { get; set; }
+    public long? AssetId { get; set; }
+    public string? AudioUrl { get; set; }
+    public string? TextPrompt { get; set; }
+    public string? TeamName { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public sealed class AudioResolveDiagnosticPreviewDto
+{
+    public bool Enabled { get; set; }
+    public bool Found { get; set; }
+    public bool FallbackUsed { get; set; }
+    public bool Queued { get; set; }
+    public string? QueueStatus { get; set; }
+    public string? QueueReason { get; set; }
+    public int SpecificityScore { get; set; }
+    public int CandidateCount { get; set; }
+    public string? ResolvedLanguage { get; set; }
+    public AudioResolveRequest? Request { get; set; }
+}

@@ -6,6 +6,7 @@ namespace CriptoVersus.API.Services;
 public interface IAudioStorageService
 {
     Task<AudioStoredFile> SaveGeneratedAudioAsync(AudioGenerationJobDto job, IFormFile audioFile, CancellationToken ct);
+    Task<AudioStoredFileDeletionResult> DeleteStoredAudioAsync(string relativePath, CancellationToken ct);
 }
 
 public sealed class AudioStorageService : IAudioStorageService
@@ -30,24 +31,15 @@ public sealed class AudioStorageService : IAudioStorageService
         if (roots.Count == 0)
             throw new InvalidOperationException("No public audio root could be resolved.");
 
-        var language = AudioRequestNormalizer.NormalizeLanguage(job.Language);
-        var eventType = AudioRequestNormalizer.NormalizeEventType(job.EventType);
-        var teamSegment = string.IsNullOrWhiteSpace(job.TeamSymbol) ? "generic" : job.TeamSymbol!.Trim().ToUpperInvariant();
         var fileName = !string.IsNullOrWhiteSpace(job.TargetFileName)
             ? job.TargetFileName!.Trim()
             : BuildDefaultFileName(job, audioFile.FileName);
-
-        var relativePath = Path.Combine(
-            _options.Value.AudioRootFolder.Trim('/', '\\'),
-            language,
-            eventType,
-            teamSegment,
-            fileName).Replace('\\', '/');
+        var relativePath = BuildRelativePath(job, fileName);
 
         string? primaryPhysicalPath = null;
         foreach (var root in roots)
         {
-            var targetPath = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            var targetPath = ResolveSafePhysicalPath(root, relativePath);
             var targetDirectory = Path.GetDirectoryName(targetPath)
                 ?? throw new InvalidOperationException("Audio target directory could not be resolved.");
 
@@ -68,6 +60,34 @@ public sealed class AudioStorageService : IAudioStorageService
             AudioUrl: BuildPublicAudioUrl(relativePath),
             FileName: fileName,
             PhysicalPath: primaryPhysicalPath);
+    }
+
+    public Task<AudioStoredFileDeletionResult> DeleteStoredAudioAsync(string relativePath, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        var roots = ResolveTargetRoots();
+        var deletedFiles = new List<string>();
+        var missingFiles = new List<string>();
+
+        foreach (var root in roots)
+        {
+            var targetPath = ResolveSafePhysicalPath(root, relativePath);
+            if (File.Exists(targetPath))
+            {
+                File.Delete(targetPath);
+                deletedFiles.Add(targetPath);
+            }
+            else
+            {
+                missingFiles.Add(targetPath);
+            }
+        }
+
+        return Task.FromResult(new AudioStoredFileDeletionResult(
+            RelativePath: relativePath.Replace('\\', '/'),
+            DeletedPaths: deletedFiles,
+            MissingPaths: missingFiles));
     }
 
     private List<string> ResolveTargetRoots()
@@ -101,6 +121,37 @@ public sealed class AudioStorageService : IAudioStorageService
         roots.Add(root.Trim());
     }
 
+    private string BuildRelativePath(AudioGenerationJobDto job, string fileName)
+    {
+        if (!string.IsNullOrWhiteSpace(job.TargetRelativePath))
+        {
+            var sanitized = job.TargetRelativePath!.Trim().Trim('/', '\\').Replace('\\', '/');
+            return $"{sanitized}/{fileName}".TrimStart('/');
+        }
+
+        var language = AudioRequestNormalizer.NormalizeLanguage(job.Language);
+        var eventType = AudioRequestNormalizer.NormalizeEventType(job.EventType);
+        var teamSegment = string.IsNullOrWhiteSpace(job.TeamSymbol) ? "generic" : job.TeamSymbol!.Trim().ToUpperInvariant();
+
+        return Path.Combine(
+            _options.Value.AudioRootFolder.Trim('/', '\\'),
+            language,
+            eventType,
+            teamSegment,
+            fileName).Replace('\\', '/');
+    }
+
+    private static string ResolveSafePhysicalPath(string root, string relativePath)
+    {
+        var fullRoot = Path.GetFullPath(root);
+        var combined = Path.GetFullPath(Path.Combine(fullRoot, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+        if (!combined.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Unsafe audio path detected: {relativePath}");
+
+        return combined;
+    }
+
     private static string BuildDefaultFileName(AudioGenerationJobDto job, string uploadedName)
     {
         var extension = Path.GetExtension(uploadedName);
@@ -128,3 +179,8 @@ public sealed record AudioStoredFile(
     string AudioUrl,
     string FileName,
     string PhysicalPath);
+
+public sealed record AudioStoredFileDeletionResult(
+    string RelativePath,
+    IReadOnlyList<string> DeletedPaths,
+    IReadOnlyList<string> MissingPaths);

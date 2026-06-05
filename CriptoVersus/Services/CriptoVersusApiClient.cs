@@ -233,6 +233,39 @@ public sealed class CriptoVersusApiClient
     public async Task<AdminSystemDto?> GetAdminSystemAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<AdminSystemDto>("api/admin/system", ct);
 
+    public async Task<AudioAssetAdminListResponseDto?> GetAudioAssetsAsync(string queryString, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<AudioAssetAdminListResponseDto>($"api/audio-assets{queryString}", ct);
+
+    public async Task<AudioAssetAdminListItemDto?> GetAudioAssetAsync(long id, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<AudioAssetAdminListItemDto>($"api/audio-assets/{id}", ct);
+
+    public async Task<AudioAssetAdminActionResultDto?> DisableAudioAssetAsync(long id, CancellationToken ct = default)
+        => await SendJsonWithBearerAsync<AudioAssetAdminActionResultDto>(HttpMethod.Patch, $"api/audio-assets/{id}/disable", static () => JsonContent.Create(new { }), ct);
+
+    public async Task<AudioAssetAdminActionResultDto?> DeleteAudioAssetRecordAsync(long id, CancellationToken ct = default)
+        => await SendJsonWithBearerAsync<AudioAssetAdminActionResultDto>(HttpMethod.Delete, $"api/audio-assets/{id}", static () => null, ct);
+
+    public async Task<AudioAssetAdminActionResultDto?> DeleteAudioAssetFileAndRecordAsync(long id, CancellationToken ct = default)
+        => await SendJsonWithBearerAsync<AudioAssetAdminActionResultDto>(HttpMethod.Delete, $"api/audio-assets/{id}/file-and-record", static () => null, ct);
+
+    public async Task<AudioAssetAdminActionResultDto?> BulkDisableAudioAssetsAsync(IReadOnlyList<long> ids, CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioAssetAdminActionResultDto>("api/audio-assets/bulk-disable", new AudioAssetBulkActionRequestDto { AssetIds = ids }, ct);
+
+    public async Task<AudioAssetAdminActionResultDto?> BulkDeleteAudioAssetsFileAndRecordAsync(IReadOnlyList<long> ids, CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioAssetAdminActionResultDto>("api/audio-assets/bulk-delete-file-and-record", new AudioAssetBulkActionRequestDto { AssetIds = ids }, ct);
+
+    public async Task<AudioAssetMaintenanceDisableSuspectResponseDto?> DisableSuspectAudioAssetsAsync(AudioAssetMaintenanceDisableSuspectRequestDto request, CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioAssetMaintenanceDisableSuspectResponseDto>("api/audio-assets/maintenance/disable-suspect", request, ct);
+
+    public async Task<AudioAssetTestGenerateResponseDto?> GenerateTestAudioAsync(AudioAssetTestGenerateRequestDto request, CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioAssetTestGenerateResponseDto>("api/audio-assets/test-generate", request, ct);
+
+    public async Task<AudioAssetTestStatusResponseDto?> GetTestAudioStatusAsync(long jobId, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<AudioAssetTestStatusResponseDto>($"api/audio-assets/test-status/{jobId}", ct);
+
+    public async Task<AudioResolveDiagnosticPreviewDto?> PostAudioResolveTestAsync(AudioResolveRequest request, CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioResolveDiagnosticPreviewDto>("api/audio/test-resolve", request, ct);
+
     public async Task<TokenomicsDto?> GetTokenomicsAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<TokenomicsDto>("api/tokenomics", ct);
 
