@@ -166,7 +166,7 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
         var fallbackUsed = false;
         var reasons = new List<string>();
 
-        if (!TryScore("team_symbol", asset.TeamSymbol, request.TeamSymbol, 16, ref score, ref fallbackUsed, reasons, upper: true))
+        if (!TryScore("team_symbol", asset.TeamSymbol, request.TeamSymbol, 16, ref score, ref fallbackUsed, reasons, normalizer: AudioRequestNormalizer.NormalizeTeamSymbol))
             return new EvaluatedAudioAsset(asset, false, fallbackUsed, score, string.Join("; ", reasons));
 
         if (!TryScore("context_key", asset.ContextKey, request.ContextKey, 8, ref score, ref fallbackUsed, reasons))
@@ -190,10 +190,15 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
         ref int score,
         ref bool fallbackUsed,
         List<string> reasons,
+        Func<string?, string?>? normalizer = null,
         bool upper = false)
     {
-        var normalizedAsset = AudioRequestNormalizer.NormalizeToken(assetValue, upper);
-        var normalizedRequest = AudioRequestNormalizer.NormalizeToken(requestValue, upper);
+        var normalizedAsset = normalizer is not null
+            ? normalizer(assetValue)
+            : AudioRequestNormalizer.NormalizeToken(assetValue, upper);
+        var normalizedRequest = normalizer is not null
+            ? normalizer(requestValue)
+            : AudioRequestNormalizer.NormalizeToken(requestValue, upper);
 
         if (normalizedRequest is null)
         {

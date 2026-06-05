@@ -260,8 +260,11 @@ function normalizeTelemetryPayload(payload = {}) {
     return {
         timestamp: payload.timestamp ?? payload.Timestamp ?? new Date().toISOString(),
         source: payload.source ?? payload.Source ?? "tv-stage",
-        eventType: payload.eventType ?? payload.EventType ?? payload.ruleType ?? payload.RuleType ?? "goal",
+        eventType: payload.eventType ?? payload.EventType ?? payload.mappedEventType ?? payload.MappedEventType ?? payload.ruleType ?? payload.RuleType ?? "goal",
+        rawEventType: payload.rawEventType ?? payload.RawEventType ?? payload.eventType ?? payload.EventType ?? payload.ruleType ?? payload.RuleType ?? null,
+        mappedEventType: payload.mappedEventType ?? payload.MappedEventType ?? payload.eventType ?? payload.EventType ?? payload.ruleType ?? payload.RuleType ?? null,
         teamSymbol: payload.teamSymbol ?? payload.TeamSymbol ?? null,
+        normalizedSymbol: payload.normalizedSymbol ?? payload.NormalizedSymbol ?? payload.normalizedTeamSymbol ?? payload.NormalizedTeamSymbol ?? null,
         language: payload.language ?? payload.Language ?? getTvMediaCulture(),
         audioUrl: payload.audioUrl ?? payload.AudioUrl ?? null,
         audioAssetId: payload.audioAssetId ?? payload.AudioAssetId ?? null,
@@ -269,6 +272,7 @@ function normalizeTelemetryPayload(payload = {}) {
         audioContextKey: payload.audioContextKey ?? payload.AudioContextKey ?? null,
         audioIntensity: payload.audioIntensity ?? payload.AudioIntensity ?? null,
         audioVoiceKey: payload.audioVoiceKey ?? payload.AudioVoiceKey ?? null,
+        playbackPriority: payload.playbackPriority ?? payload.PlaybackPriority ?? null,
         message: payload.message ?? payload.Message ?? null,
         error: payload.error ?? payload.Error ?? null,
         status: payload.status ?? payload.Status ?? "skipped"

@@ -8,6 +8,10 @@ namespace DTOs
         public string TeamSymbol { get; set; } = string.Empty;
         public string RuleType { get; set; } = string.Empty;
         public string EventType { get; set; } = string.Empty;
+        public string? RawEventType { get; set; }
+        public string? MappedEventType { get; set; }
+        public string? NormalizedTeamSymbol { get; set; }
+        public int ProceduralPlaybackPriority { get; set; }
         public string? ReasonCode { get; set; }
         public int Points { get; set; }
         public int EventSequence { get; set; }

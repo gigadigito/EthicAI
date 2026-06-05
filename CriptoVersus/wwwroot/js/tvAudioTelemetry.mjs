@@ -133,7 +133,10 @@ function normalizeEvent(status, event = {}) {
         timestamp: event.timestamp ?? new Date().toISOString(),
         source: event.source ?? "tv",
         eventType: event.eventType ?? null,
+        rawEventType: event.rawEventType ?? event.eventType ?? null,
+        mappedEventType: event.mappedEventType ?? event.eventType ?? null,
         teamSymbol: event.teamSymbol ?? null,
+        normalizedSymbol: event.normalizedSymbol ?? null,
         language: event.language ?? null,
         audioUrl: event.audioUrl ?? null,
         audioAssetId: event.audioAssetId ?? null,
@@ -141,6 +144,7 @@ function normalizeEvent(status, event = {}) {
         audioContextKey: event.audioContextKey ?? null,
         audioIntensity: event.audioIntensity ?? null,
         audioVoiceKey: event.audioVoiceKey ?? null,
+        playbackPriority: event.playbackPriority ?? null,
         status: status ?? event.status ?? "skipped",
         message: event.message ?? null,
         error: event.error ?? null

@@ -190,12 +190,22 @@ namespace CriptoVersus.API.Controllers
             var results = new List<MatchScoreEventDto>(items.Count);
             foreach (var item in items)
             {
-            var dto = new MatchScoreEventDto
+                var descriptor = ProceduralAudioEventMapper.MapScoreEvent(
+                    item.EventType,
+                    item.ReasonCode,
+                    item.MetricDelta,
+                    item.Team?.Currency?.Symbol);
+
+                var dto = new MatchScoreEventDto
                 {
                     MatchScoreEventId = item.MatchScoreEventId,
                     MatchId = item.MatchId,
                     TeamId = item.TeamId,
                     TeamSymbol = item.Team.Currency.Symbol,
+                    RawEventType = descriptor.RawEventType,
+                    MappedEventType = descriptor.EventType,
+                    NormalizedTeamSymbol = descriptor.NormalizedTeamSymbol ?? ProceduralAudioNormalization.NormalizeTeamSymbol(item.Team.Currency.Symbol),
+                    ProceduralPlaybackPriority = descriptor.PlaybackPriority,
                     RuleType = item.RuleType.ToString(),
                     EventType = item.EventType,
                     ReasonCode = item.ReasonCode,
@@ -833,7 +843,8 @@ namespace CriptoVersus.API.Controllers
             var descriptor = ProceduralAudioEventMapper.MapScoreEvent(
                 item.EventType,
                 item.ReasonCode,
-                item.MetricDelta);
+                item.MetricDelta,
+                item.Team?.Currency?.Symbol);
 
             if (string.IsNullOrWhiteSpace(descriptor.EventType))
                 return null;
@@ -842,7 +853,7 @@ namespace CriptoVersus.API.Controllers
             {
                 EventType = descriptor.EventType,
                 Language = requestedLanguage,
-                TeamSymbol = item.Team?.Currency?.Symbol,
+                TeamSymbol = descriptor.NormalizedTeamSymbol ?? ProceduralAudioNormalization.NormalizeTeamSymbol(item.Team?.Currency?.Symbol),
                 TeamName = item.Team?.Currency?.Name,
                 ContextKey = item.AudioContextKey ?? descriptor.ContextKey,
                 Intensity = item.AudioIntensity ?? descriptor.Intensity,

@@ -1874,16 +1874,28 @@ namespace CriptoVersus.Worker
             var descriptor = ProceduralAudioEventMapper.MapScoreEvent(
                 scoreEvent.EventType,
                 scoreEvent.ReasonCode,
-                scoreEvent.MetricDelta);
+                scoreEvent.MetricDelta,
+                teamSymbol);
 
             if (string.IsNullOrWhiteSpace(descriptor.EventType))
                 return null;
+
+            var normalizedTeamSymbol = descriptor.NormalizedTeamSymbol ?? ProceduralAudioNormalization.NormalizeTeamSymbol(teamSymbol);
+
+            _logger.LogInformation(
+                "procedural-event-mapped RawEventType={RawEventType} MappedEventType={MappedEventType} NormalizedSymbol={NormalizedSymbol} ContextKey={ContextKey} Intensity={Intensity} PlaybackPriority={PlaybackPriority}",
+                descriptor.RawEventType,
+                descriptor.EventType,
+                normalizedTeamSymbol,
+                descriptor.ContextKey,
+                descriptor.Intensity,
+                descriptor.PlaybackPriority);
 
             return new AudioResolveRequest
             {
                 EventType = descriptor.EventType,
                 Language = _options.ProceduralAudio.DefaultLanguage,
-                TeamSymbol = teamSymbol,
+                TeamSymbol = normalizedTeamSymbol,
                 TeamName = teamName,
                 ContextKey = descriptor.ContextKey,
                 Intensity = descriptor.Intensity,

@@ -25,13 +25,16 @@
                 @if (_state.LastEvent is not null)
                 {
                     <dl class="tv-audio-debug__grid">
-                        <div><dt>Event</dt><dd>@(_state.LastEvent.EventType ?? "-")</dd></div>
+                        <div><dt>Raw</dt><dd>@(_state.LastEvent.RawEventType ?? _state.LastEvent.EventType ?? "-")</dd></div>
+                        <div><dt>Mapped</dt><dd>@(_state.LastEvent.MappedEventType ?? _state.LastEvent.EventType ?? "-")</dd></div>
                         <div><dt>Team</dt><dd>@(_state.LastEvent.TeamSymbol ?? "-")</dd></div>
+                        <div><dt>Normalized</dt><dd>@(_state.LastEvent.NormalizedSymbol ?? "-")</dd></div>
                         <div><dt>Asset</dt><dd>@(_state.LastEvent.AudioAssetId?.ToString(CultureInfo.InvariantCulture) ?? "-")</dd></div>
                         <div><dt>Fallback</dt><dd>@(_state.LastEvent.AudioFallbackUsed ? "yes" : "no")</dd></div>
                         <div><dt>Context</dt><dd>@(_state.LastEvent.AudioContextKey ?? "-")</dd></div>
                         <div><dt>Intensity</dt><dd>@(_state.LastEvent.AudioIntensity ?? "-")</dd></div>
                         <div><dt>Voice</dt><dd>@(_state.LastEvent.AudioVoiceKey ?? "-")</dd></div>
+                        <div><dt>Priority</dt><dd>@(_state.LastEvent.PlaybackPriority?.ToString(CultureInfo.InvariantCulture) ?? "-")</dd></div>
                     </dl>
                 }
             </section>
@@ -60,8 +63,9 @@
                         {
                             <div class="tv-audio-debug__event">
                                 <span>@FormatTimestamp(audioEvent.Timestamp)</span>
-                                <strong>@(audioEvent.EventType ?? "event")</strong>
+                                <strong>@(audioEvent.RawEventType ?? audioEvent.EventType ?? "event")</strong>
                                 <em>@(audioEvent.TeamSymbol ?? "-")</em>
+                                <small>@(audioEvent.MappedEventType ?? audioEvent.EventType ?? "-") / @(audioEvent.NormalizedSymbol ?? "-")</small>
                                 <b>@(audioEvent.Status ?? "idle")</b>
                             </div>
                         }
@@ -370,7 +374,10 @@
     {
         public string? Timestamp { get; set; }
         public string? EventType { get; set; }
+        public string? RawEventType { get; set; }
+        public string? MappedEventType { get; set; }
         public string? TeamSymbol { get; set; }
+        public string? NormalizedSymbol { get; set; }
         public string? Language { get; set; }
         public string? AudioUrl { get; set; }
         public long? AudioAssetId { get; set; }
@@ -378,6 +385,7 @@
         public string? AudioContextKey { get; set; }
         public string? AudioIntensity { get; set; }
         public string? AudioVoiceKey { get; set; }
+        public int? PlaybackPriority { get; set; }
         public string? Status { get; set; }
     }
 

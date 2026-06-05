@@ -941,11 +941,14 @@ else
     private int? _lastScoreEventMatchId;
     private long? _lastSeenScoreEventId;
     private long? _lastTriggeredGoalEventId;
+    private long? _lastProceduralPlaybackEventId;
     private long? _lastAudioDebugSnapshotEventId;
     private string _lastGoalTriggerSignature = string.Empty;
     private string _lastGoalAudioSignature = string.Empty;
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
     private string _lastGoalAudioPlaybackKind = string.Empty;
+    private DateTime _lastProceduralPlaybackAtUtc = DateTime.MinValue;
+    private int _lastProceduralPlaybackPriority;
     private string? _proceduralGoalAudioSrc;
     private readonly Dictionary<string, DateTime> _broadcastCooldownUntilUtc = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _broadcastLastSignatures = new(StringComparer.Ordinal);
@@ -3490,34 +3493,45 @@ else
 
             _lastSeenScoreEventId = latestEventId;
 
-            var latest = newEvents[^1];
-            if (_lastTriggeredGoalEventId.HasValue && latest.MatchScoreEventId <= _lastTriggeredGoalEventId.Value)
-                return;
-
             current = CaptureSnapshot();
             if (current is null)
                 return;
 
-            var currentGoalSignature = BuildGoalTriggerSignature(current);
-            var latestProceduralAudioUrl = NormalizeProceduralGoalAudioUrl(latest.AudioUrl);
-            var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(latestProceduralAudioUrl)
-                && string.Equals(currentGoalSignature, _lastGoalAudioSignature, StringComparison.Ordinal)
-                && !string.Equals(_lastGoalAudioPlaybackKind, "procedural", StringComparison.Ordinal);
-            if (string.Equals(currentGoalSignature, _lastGoalTriggerSignature, StringComparison.Ordinal) && !canUpgradeToProcedural)
-                return;
+            await ObserveProceduralScoreEventsAsync(current, newEvents);
 
-            _lastTriggeredGoalEventId = latest.MatchScoreEventId;
-            await PulseScoreAsync(
-                string.Equals(latest.TeamSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase),
-                string.Equals(latest.TeamSymbol, current.RightSymbol, StringComparison.OrdinalIgnoreCase),
-                false);
-            await TriggerEventAsync(CreateGoalEvent(current, latest.TeamSymbol));
-            await QueueNarrationAsync(CreateGoalNarration(current, latest.TeamSymbol));
-            _ = PlayReplayAsync(CreateScoreReplayEvent(current, latest));
-            MarkGoalTrigger(current);
-            ArmAutoReplayForEvents(current, newEvents);
-            await TryPlayGoalAudioAsync(current, latest);
-            _ = MaybeRefreshAiNarrationAsync("goal");
+            var latestGoalEvent = newEvents
+                .Where(IsGoalLikeScoreEvent)
+                .OrderByDescending(x => x.MatchScoreEventId)
+                .FirstOrDefault();
+
+            if (latestGoalEvent is not null
+                && (!_lastTriggeredGoalEventId.HasValue || latestGoalEvent.MatchScoreEventId > _lastTriggeredGoalEventId.Value))
+            {
+                var currentGoalSignature = BuildGoalTriggerSignature(current);
+                var latestProceduralAudioUrl = NormalizeProceduralGoalAudioUrl(latestGoalEvent.AudioUrl);
+                var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(latestProceduralAudioUrl)
+                    && string.Equals(currentGoalSignature, _lastGoalAudioSignature, StringComparison.Ordinal)
+                    && !string.Equals(_lastGoalAudioPlaybackKind, "procedural", StringComparison.Ordinal);
+
+                if (!string.Equals(currentGoalSignature, _lastGoalTriggerSignature, StringComparison.Ordinal) || canUpgradeToProcedural)
+                {
+                    _lastTriggeredGoalEventId = latestGoalEvent.MatchScoreEventId;
+                    await PulseScoreAsync(
+                        string.Equals(latestGoalEvent.TeamSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase),
+                        string.Equals(latestGoalEvent.TeamSymbol, current.RightSymbol, StringComparison.OrdinalIgnoreCase),
+                        false);
+                    await TriggerEventAsync(CreateGoalEvent(current, latestGoalEvent.TeamSymbol));
+                    await QueueNarrationAsync(CreateGoalNarration(current, latestGoalEvent.TeamSymbol));
+                    _ = PlayReplayAsync(CreateScoreReplayEvent(current, latestGoalEvent));
+                    MarkGoalTrigger(current);
+                    ArmAutoReplayForEvents(current, newEvents);
+                    await TryPlayGoalAudioAsync(current, latestGoalEvent);
+                }
+            }
+
+            await TryPlayProceduralArenaEventAsync(current, newEvents);
+            if (latestGoalEvent is not null)
+                _ = MaybeRefreshAiNarrationAsync("goal");
         }
         catch (Exception ex)
         {
@@ -4662,8 +4676,11 @@ else
         => new
         {
             source = "tv-stage",
-            eventType = scoreEvent?.EventType ?? scoreEvent?.RuleType ?? "goal",
+            eventType = scoreEvent?.MappedEventType ?? scoreEvent?.EventType ?? scoreEvent?.RuleType ?? "goal",
+            rawEventType = scoreEvent?.RawEventType ?? scoreEvent?.EventType ?? scoreEvent?.RuleType ?? "goal",
+            mappedEventType = scoreEvent?.MappedEventType ?? scoreEvent?.EventType ?? scoreEvent?.RuleType ?? "goal",
             teamSymbol = scoreEvent?.TeamSymbol ?? current.LeaderSymbol,
+            normalizedSymbol = scoreEvent?.NormalizedTeamSymbol ?? scoreEvent?.TeamSymbol ?? current.LeaderSymbol,
             language = scoreEvent?.AudioResolvedLanguage ?? Culture,
             audioUrl = audioUrl ?? scoreEvent?.AudioUrl,
             audioAssetId = scoreEvent?.AudioAssetId,
@@ -4671,6 +4688,7 @@ else
             audioContextKey = scoreEvent?.AudioContextKey,
             audioIntensity = scoreEvent?.AudioIntensity,
             audioVoiceKey = scoreEvent?.AudioVoiceKey,
+            playbackPriority = scoreEvent?.ProceduralPlaybackPriority,
             message,
             error
         };
@@ -4729,6 +4747,145 @@ else
             message: "Loaded recent score event without procedural audio URL."));
     }
 
+    private async Task ObserveProceduralScoreEventsAsync(BroadcastSnapshot current, IEnumerable<MatchScoreEventDto> scoreEvents)
+    {
+        foreach (var scoreEvent in scoreEvents.OrderBy(x => x.MatchScoreEventId))
+        {
+            await LogAsync("TV_AUDIO", "procedural-event-normalized", new
+            {
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                mappedEventType = scoreEvent.MappedEventType ?? scoreEvent.EventType,
+                teamSymbol = scoreEvent.TeamSymbol,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                playbackPriority = scoreEvent.ProceduralPlaybackPriority
+            });
+
+            var proceduralAudioUrl = NormalizeProceduralGoalAudioUrl(scoreEvent.AudioUrl);
+            if (!string.IsNullOrWhiteSpace(proceduralAudioUrl))
+            {
+                await NotifyProceduralAudioDebugAsync("found", BuildProceduralAudioDebugPayload(
+                    current,
+                    scoreEvent,
+                    proceduralAudioUrl,
+                    message: "Procedural audio asset already available for this score event."));
+                await LogAsync("TV_AUDIO", "procedural-playback-found-existing", new
+                {
+                    scoreEventId = scoreEvent.MatchScoreEventId,
+                    rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                    mappedEventType = scoreEvent.MappedEventType ?? scoreEvent.EventType,
+                    normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                    audioUrl = proceduralAudioUrl,
+                    playbackPriority = scoreEvent.ProceduralPlaybackPriority
+                });
+
+                if (scoreEvent.AudioFallbackUsed)
+                {
+                    await NotifyProceduralAudioDebugAsync("fallback", BuildProceduralAudioDebugPayload(
+                        current,
+                        scoreEvent,
+                        proceduralAudioUrl,
+                        message: "Procedural asset resolved through a generic fallback variant."));
+                }
+
+                continue;
+            }
+
+            await NotifyProceduralAudioDebugAsync("queued", new
+            {
+                source = "tv-stage",
+                eventType = scoreEvent.MappedEventType ?? scoreEvent.EventType,
+                rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                mappedEventType = scoreEvent.MappedEventType ?? scoreEvent.EventType,
+                teamSymbol = scoreEvent.TeamSymbol,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                language = scoreEvent.AudioResolvedLanguage ?? Culture,
+                audioAssetId = scoreEvent.AudioAssetId,
+                audioFallbackUsed = scoreEvent.AudioFallbackUsed,
+                audioContextKey = scoreEvent.AudioContextKey,
+                audioIntensity = scoreEvent.AudioIntensity,
+                audioVoiceKey = scoreEvent.AudioVoiceKey,
+                playbackPriority = scoreEvent.ProceduralPlaybackPriority,
+                message = "Procedural audio asset missing; generation queue was requested for this score event."
+            });
+            await NotifyProceduralAudioDebugAsync("missing", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                null,
+                message: "No procedural audio URL arrived for this score event."));
+            await LogAsync("TV_AUDIO", "procedural-playback-queue-created", new
+            {
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                mappedEventType = scoreEvent.MappedEventType ?? scoreEvent.EventType,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                playbackPriority = scoreEvent.ProceduralPlaybackPriority
+            });
+        }
+    }
+
+    private async Task TryPlayProceduralArenaEventAsync(BroadcastSnapshot current, IEnumerable<MatchScoreEventDto> scoreEvents)
+    {
+        var candidate = scoreEvents
+            .Where(x => !IsGoalLikeScoreEvent(x))
+            .OrderByDescending(ResolveProceduralPlaybackPriority)
+            .ThenByDescending(x => x.MatchScoreEventId)
+            .FirstOrDefault();
+
+        if (candidate is null)
+            return;
+
+        var mappedEventType = ResolveMappedEventType(candidate);
+        var playbackPriority = ResolveProceduralPlaybackPriority(candidate);
+        var audioUrl = NormalizeProceduralGoalAudioUrl(candidate.AudioUrl);
+        var cooldown = ResolveProceduralPlaybackCooldown(mappedEventType);
+        var signature = $"{candidate.MatchScoreEventId}|{mappedEventType}|{candidate.NormalizedTeamSymbol ?? candidate.TeamSymbol}|{candidate.AudioAssetId}";
+
+        if (_lastProceduralPlaybackEventId == candidate.MatchScoreEventId)
+            return;
+
+        if (!TryEnterProceduralPlaybackWindow(signature, mappedEventType, playbackPriority, cooldown, out var skipReason))
+        {
+            await NotifyProceduralAudioDebugAsync("skipped", BuildProceduralAudioDebugPayload(
+                current,
+                candidate,
+                audioUrl,
+                message: $"Cooldown active. {skipReason}"));
+            await LogAsync("TV_AUDIO", "procedural-playback-skipped-cooldown", new
+            {
+                scoreEventId = candidate.MatchScoreEventId,
+                rawEventType = candidate.RawEventType ?? candidate.EventType,
+                mappedEventType,
+                normalizedSymbol = candidate.NormalizedTeamSymbol,
+                playbackPriority,
+                reason = skipReason
+            });
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(audioUrl))
+        {
+            var played = await TryPlayProceduralArenaAudioAsync(current, candidate, mappedEventType, audioUrl, playbackPriority);
+            if (played)
+            {
+                MarkProceduralPlayback(candidate.MatchScoreEventId, playbackPriority);
+                return;
+            }
+        }
+
+        if (await TryPlayLegacyArenaCueAsync(current, candidate, mappedEventType, audioUrl, playbackPriority))
+        {
+            MarkProceduralPlayback(candidate.MatchScoreEventId, playbackPriority);
+            return;
+        }
+
+        await NotifyProceduralAudioDebugAsync("missing", BuildProceduralAudioDebugPayload(
+            current,
+            candidate,
+            audioUrl,
+            message: "Procedural and legacy arena audio were both unavailable, but the broadcast continues normally."));
+    }
+
     private async Task EnsureBroadcastAudioAsync()
     {
         if (_broadcastAudioInitialized || _tvModule is null || !ShouldRenderCrowdAudio)
@@ -4776,6 +4933,221 @@ else
         {
         }
     }
+
+    private static bool IsGoalLikeScoreEvent(MatchScoreEventDto scoreEvent)
+        => ResolveMappedEventType(scoreEvent) switch
+        {
+            "goal" or "equalizer" or "underdog_goal" => true,
+            _ => false
+        };
+
+    private static string ResolveMappedEventType(MatchScoreEventDto scoreEvent)
+        => string.IsNullOrWhiteSpace(scoreEvent.MappedEventType)
+            ? scoreEvent.EventType
+            : scoreEvent.MappedEventType!;
+
+    private static int ResolveProceduralPlaybackPriority(MatchScoreEventDto scoreEvent)
+    {
+        if (scoreEvent.ProceduralPlaybackPriority > 0)
+            return scoreEvent.ProceduralPlaybackPriority;
+
+        return ResolveMappedEventType(scoreEvent) switch
+        {
+            "goal" => 100,
+            "underdog_goal" => 95,
+            "equalizer" => 94,
+            "comeback" => 92,
+            "dominant_lead" => 90,
+            "market_crash" => 88,
+            "market_pump" => 76,
+            "momentum_shift" => 72,
+            "volatility_spike" => 80,
+            "near_goal" => 58,
+            _ => 60
+        };
+    }
+
+    private static TimeSpan ResolveProceduralPlaybackCooldown(string mappedEventType)
+        => mappedEventType switch
+        {
+            "goal" => TimeSpan.FromMilliseconds(6500),
+            "underdog_goal" or "equalizer" or "comeback" => TimeSpan.FromMilliseconds(5400),
+            "dominant_lead" or "market_crash" => TimeSpan.FromMilliseconds(4800),
+            "market_pump" or "momentum_shift" or "volatility_spike" => TimeSpan.FromMilliseconds(3600),
+            "near_goal" => TimeSpan.FromMilliseconds(2400),
+            _ => TimeSpan.FromMilliseconds(3200)
+        };
+
+    private bool TryEnterProceduralPlaybackWindow(
+        string signature,
+        string mappedEventType,
+        int playbackPriority,
+        TimeSpan cooldown,
+        out string reason)
+    {
+        var now = DateTime.UtcNow;
+        var perTypeKey = $"procedural-audio:{mappedEventType}";
+        if (_broadcastCooldownUntilUtc.TryGetValue(perTypeKey, out var perTypeUntilUtc) && perTypeUntilUtc > now)
+        {
+            reason = $"per-type cooldown until {perTypeUntilUtc:O}";
+            return false;
+        }
+
+        if (_broadcastLastSignatures.TryGetValue(perTypeKey, out var previousSignature)
+            && string.Equals(previousSignature, signature, StringComparison.Ordinal))
+        {
+            reason = "duplicate playback signature";
+            return false;
+        }
+
+        if (_lastProceduralPlaybackAtUtc != DateTime.MinValue
+            && now - _lastProceduralPlaybackAtUtc < TimeSpan.FromMilliseconds(2100)
+            && playbackPriority < _lastProceduralPlaybackPriority)
+        {
+            reason = $"global procedural cooldown after higher-priority audio {_lastProceduralPlaybackPriority}";
+            return false;
+        }
+
+        _broadcastCooldownUntilUtc[perTypeKey] = now.Add(cooldown);
+        _broadcastLastSignatures[perTypeKey] = signature;
+        reason = string.Empty;
+        return true;
+    }
+
+    private void MarkProceduralPlayback(long scoreEventId, int playbackPriority)
+    {
+        _lastProceduralPlaybackEventId = scoreEventId;
+        _lastProceduralPlaybackAtUtc = DateTime.UtcNow;
+        _lastProceduralPlaybackPriority = playbackPriority;
+    }
+
+    private async Task<bool> TryPlayProceduralArenaAudioAsync(
+        BroadcastSnapshot current,
+        MatchScoreEventDto scoreEvent,
+        string mappedEventType,
+        string audioUrl,
+        int playbackPriority)
+    {
+        try
+        {
+            var payload = BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                audioUrl,
+                message: "Procedural arena event audio resolved for autoplay.");
+
+            await LogAsync("TV_AUDIO", "procedural-playback-start", new
+            {
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                mappedEventType,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                playbackPriority,
+                audioUrl
+            });
+
+            if (_tvModule is not null)
+                await _tvModule.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, payload);
+            else
+                await JS.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, payload);
+
+            return true;
+        }
+        catch (Exception ex) when (ex is JSException or ObjectDisposedException)
+        {
+            await NotifyProceduralAudioDebugAsync("failed", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                audioUrl,
+                message: "Procedural arena audio failed during autoplay.",
+                error: ex.Message));
+            await LogAsync("TV_AUDIO", "procedural-playback-failed", new
+            {
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                mappedEventType,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                playbackPriority,
+                audioUrl,
+                message = ex.Message
+            });
+            return false;
+        }
+    }
+
+    private async Task<bool> TryPlayLegacyArenaCueAsync(
+        BroadcastSnapshot current,
+        MatchScoreEventDto scoreEvent,
+        string mappedEventType,
+        string? proceduralAudioUrl,
+        int playbackPriority)
+    {
+        var cueKey = ResolveLegacyArenaCueKey(mappedEventType);
+        if (string.IsNullOrWhiteSpace(cueKey))
+            return false;
+
+        try
+        {
+            await NotifyProceduralAudioDebugAsync("fallback", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                proceduralAudioUrl,
+                message: $"Procedural arena audio unavailable. Falling back to legacy cue '{cueKey}'."));
+
+            if (_tvModule is not null)
+            {
+                await _tvModule.InvokeVoidAsync("playTvAudioCue", cueKey, new
+                {
+                    priority = playbackPriority,
+                    cooldownMs = (int)ResolveProceduralPlaybackCooldown(mappedEventType).TotalMilliseconds,
+                    volume = (double)ResolveCrowdAudioVolume(),
+                    muted = _isCrowdAudioMuted
+                });
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("playTvAudioCue", cueKey, new
+                {
+                    priority = playbackPriority,
+                    cooldownMs = (int)ResolveProceduralPlaybackCooldown(mappedEventType).TotalMilliseconds,
+                    volume = (double)ResolveCrowdAudioVolume(),
+                    muted = _isCrowdAudioMuted
+                });
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (ex is JSException or ObjectDisposedException)
+        {
+            await LogAsync("TV_AUDIO", "procedural-playback-failed", new
+            {
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                rawEventType = scoreEvent.RawEventType ?? scoreEvent.EventType,
+                mappedEventType,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                playbackPriority,
+                legacyCueKey = cueKey,
+                message = ex.Message
+            });
+            return false;
+        }
+    }
+
+    private static string? ResolveLegacyArenaCueKey(string mappedEventType)
+        => mappedEventType switch
+        {
+            "goal" => "goal",
+            "underdog_goal" => "goal",
+            "equalizer" => "equalizer",
+            "comeback" => "comeback",
+            "dominant_lead" => "clutchSave",
+            "market_crash" => "marketCrash",
+            "market_pump" => "marketPump",
+            "momentum_shift" => "momentum",
+            "volatility_spike" => "momentum",
+            "near_goal" => "nearGoal",
+            _ => null
+        };
 
     private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current, MatchScoreEventDto? scoreEvent = null)
     {
