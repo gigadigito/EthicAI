@@ -18,8 +18,11 @@ internal static class AudioRequestNormalizer
         {
             EventType = NormalizeEventType(request.EventType),
             Language = NormalizeLanguage(request.Language),
-            TeamSymbol = NormalizeTeamSymbol(request.TeamSymbol),
+            RawSymbol = string.IsNullOrWhiteSpace(request.RawSymbol) ? null : request.RawSymbol.Trim().ToUpperInvariant(),
+            NormalizedSymbol = NormalizeTeamSymbol(request.NormalizedSymbol ?? request.TeamSymbol ?? request.RawSymbol),
+            TeamSymbol = NormalizeTeamSymbol(request.TeamSymbol ?? request.NormalizedSymbol ?? request.RawSymbol),
             TeamName = string.IsNullOrWhiteSpace(request.TeamName) ? null : request.TeamName.Trim(),
+            TextPrompt = string.IsNullOrWhiteSpace(request.TextPrompt) ? null : request.TextPrompt.Trim(),
             ContextKey = NormalizeToken(request.ContextKey),
             Intensity = NormalizeToken(request.Intensity),
             VoiceKey = NormalizeToken(request.VoiceKey),

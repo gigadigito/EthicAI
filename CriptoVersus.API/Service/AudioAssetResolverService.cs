@@ -57,7 +57,10 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
     {
         var normalized = AudioRequestNormalizer.Normalize(request);
         _logger.LogInformation(
-            "Procedural audio resolve request normalized. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
+            "Procedural audio resolve request normalized. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
+            normalized.RawSymbol,
+            normalized.NormalizedSymbol,
+            normalized.TeamName,
             normalized.EventType,
             normalized.Language,
             normalized.TeamSymbol,

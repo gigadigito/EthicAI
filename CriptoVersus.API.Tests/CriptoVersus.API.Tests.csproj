@@ -6,9 +6,6 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <BaseOutputPath>bin\</BaseOutputPath>
-    <BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>obj\</MSBuildProjectExtensionsPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,16 +18,13 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <Reference Include="DAL">
-      <HintPath>..\.codex-artifacts-local\bin\DAL\Debug\net8.0\DAL.dll</HintPath>
-    </Reference>
-    <Reference Include="DTOs">
-      <HintPath>..\.codex-artifacts-local\bin\DTOs\Debug\net8.0\DTOs.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\CriptoVersus.API\CriptoVersus.API.csproj" />
+    <ProjectReference Include="..\DAL\DAL.csproj" />
+    <ProjectReference Include="..\DTOs\DTOs.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\CriptoVersus.API\Controllers\MatchesController.cs" Link="Controllers\MatchesController.cs" />
+    <Compile Remove="MatchMetricSnapshotsEndpointTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

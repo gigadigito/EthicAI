@@ -1883,7 +1883,9 @@ namespace CriptoVersus.Worker
             var normalizedTeamSymbol = descriptor.NormalizedTeamSymbol ?? ProceduralAudioNormalization.NormalizeTeamSymbol(teamSymbol);
 
             _logger.LogInformation(
-                "procedural-event-mapped RawEventType={RawEventType} MappedEventType={MappedEventType} NormalizedSymbol={NormalizedSymbol} ContextKey={ContextKey} Intensity={Intensity} PlaybackPriority={PlaybackPriority}",
+                "procedural-event-mapped RawSymbol={RawSymbol} TeamName={TeamName} RawEventType={RawEventType} MappedEventType={MappedEventType} NormalizedSymbol={NormalizedSymbol} ContextKey={ContextKey} Intensity={Intensity} PlaybackPriority={PlaybackPriority}",
+                teamSymbol,
+                teamName,
                 descriptor.RawEventType,
                 descriptor.EventType,
                 normalizedTeamSymbol,
@@ -1895,6 +1897,8 @@ namespace CriptoVersus.Worker
             {
                 EventType = descriptor.EventType,
                 Language = _options.ProceduralAudio.DefaultLanguage,
+                RawSymbol = teamSymbol,
+                NormalizedSymbol = normalizedTeamSymbol,
                 TeamSymbol = normalizedTeamSymbol,
                 TeamName = teamName,
                 ContextKey = descriptor.ContextKey,

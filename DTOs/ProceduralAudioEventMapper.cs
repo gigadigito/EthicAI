@@ -86,8 +86,20 @@ public static class ProceduralAudioEventMapper
         {
             "ARENA_PRESSURE_GOAL" => Create(scoreEventType, "goal", normalizedSymbol, "arena_pressure", "hype", 100),
             "PERCENT_THRESHOLD_REACHED" => Create(scoreEventType, "market_pump", normalizedSymbol, "threshold_break", UpgradeIntensity(intensity, "hype"), 78),
-            "PERCENTAGE_CROSSOVER_UP" => Create(scoreEventType, "momentum_shift", normalizedSymbol, "percentage_crossover_up", UpgradeIntensity(intensity, "hype"), 72),
-            "PERCENTAGE_CROSSOVER_DOWN" => Create(scoreEventType, "market_crash", normalizedSymbol, "percentage_crossover_down", UpgradeIntensity(intensity, "dramatic"), 88),
+            "PERCENTAGE_CROSSOVER_UP" => Create(
+                scoreEventType,
+                SelectCrossoverUpNarrative(metricDelta),
+                normalizedSymbol,
+                "percentage_crossover_up",
+                UpgradeIntensity(intensity, SelectCrossoverUpNarrative(metricDelta) == "volatility_spike" ? "epic" : "hype"),
+                SelectCrossoverUpNarrative(metricDelta) == "volatility_spike" ? 80 : 72),
+            "PERCENTAGE_CROSSOVER_DOWN" => Create(
+                scoreEventType,
+                SelectCrossoverDownNarrative(metricDelta),
+                normalizedSymbol,
+                "percentage_crossover_down",
+                UpgradeIntensity(intensity, SelectCrossoverDownNarrative(metricDelta) == "market_crash" ? "dramatic" : "hype"),
+                SelectCrossoverDownNarrative(metricDelta) == "market_crash" ? 88 : 72),
             "VOLUME_WINDOW_WINNER" => Create(scoreEventType, "dominant_lead", normalizedSymbol, "volume_window", UpgradeIntensity(intensity, "hype"), 82),
             "VOLUME_CROSSOVER_UP" => Create(scoreEventType, "market_pump", normalizedSymbol, "volume_crossover", UpgradeIntensity(intensity, "hype"), 76),
             "FAST_PUMP" => Create(scoreEventType, "volatility_spike", normalizedSymbol, "fast_pump", UpgradeIntensity(intensity, "epic"), 80),
@@ -115,9 +127,9 @@ public static class ProceduralAudioEventMapper
             _ when normalizedType.Contains("CRASH", StringComparison.Ordinal) || normalizedReason.Contains("CRASH", StringComparison.Ordinal)
                 => Create(scoreEventType, "market_crash", normalizedSymbol, NormalizeContext(scoreEventType), UpgradeIntensity(intensity, "dramatic"), 88),
             _ when normalizedType.Contains("CROSSOVER_UP", StringComparison.Ordinal) || normalizedReason.Contains("CROSSOVER_UP", StringComparison.Ordinal)
-                => Create(scoreEventType, "momentum_shift", normalizedSymbol, NormalizeContext(scoreEventType), UpgradeIntensity(intensity, "hype"), 72),
+                => Create(scoreEventType, SelectCrossoverUpNarrative(metricDelta), normalizedSymbol, NormalizeContext(scoreEventType), UpgradeIntensity(intensity, SelectCrossoverUpNarrative(metricDelta) == "volatility_spike" ? "epic" : "hype"), SelectCrossoverUpNarrative(metricDelta) == "volatility_spike" ? 80 : 72),
             _ when normalizedType.Contains("CROSSOVER_DOWN", StringComparison.Ordinal) || normalizedReason.Contains("CROSSOVER_DOWN", StringComparison.Ordinal)
-                => Create(scoreEventType, "market_crash", normalizedSymbol, NormalizeContext(scoreEventType), UpgradeIntensity(intensity, "dramatic"), 88),
+                => Create(scoreEventType, SelectCrossoverDownNarrative(metricDelta), normalizedSymbol, NormalizeContext(scoreEventType), UpgradeIntensity(intensity, SelectCrossoverDownNarrative(metricDelta) == "market_crash" ? "dramatic" : "hype"), SelectCrossoverDownNarrative(metricDelta) == "market_crash" ? 88 : 72),
             _ when normalizedType.Contains("PUMP", StringComparison.Ordinal) || normalizedReason.Contains("PUMP", StringComparison.Ordinal)
                 => Create(scoreEventType, "market_pump", normalizedSymbol, NormalizeContext(scoreEventType), UpgradeIntensity(intensity, "hype"), 76),
             _ => Create(scoreEventType, "momentum_shift", normalizedSymbol, NormalizeContext(scoreEventType), intensity, 60)
@@ -182,4 +194,10 @@ public static class ProceduralAudioEventMapper
         => string.IsNullOrWhiteSpace(raw)
             ? "generic"
             : raw.Trim().ToLowerInvariant().Replace(' ', '_');
+
+    private static string SelectCrossoverUpNarrative(decimal? metricDelta)
+        => Math.Abs(metricDelta ?? 0m) >= 8m ? "volatility_spike" : "momentum_shift";
+
+    private static string SelectCrossoverDownNarrative(decimal? metricDelta)
+        => Math.Abs(metricDelta ?? 0m) >= 8m ? "market_crash" : "momentum_shift";
 }

@@ -1202,7 +1202,10 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.EventType).HasColumnName("event_type").HasMaxLength(50);
                 entity.Property(e => e.Language).HasColumnName("language").HasMaxLength(10);
+                entity.Property(e => e.RawSymbol).HasColumnName("raw_symbol").HasMaxLength(30);
+                entity.Property(e => e.NormalizedSymbol).HasColumnName("normalized_symbol").HasMaxLength(20);
                 entity.Property(e => e.TeamSymbol).HasColumnName("team_symbol").HasMaxLength(20);
+                entity.Property(e => e.TeamName).HasColumnName("team_name").HasMaxLength(120);
                 entity.Property(e => e.ContextKey).HasColumnName("context_key").HasMaxLength(100);
                 entity.Property(e => e.Intensity).HasColumnName("intensity").HasMaxLength(30);
                 entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
@@ -1228,6 +1231,7 @@ namespace EthicAI.EntityModel
                 entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol });
                 entity.HasIndex(e => new { e.EventType, e.Language, e.Status });
                 entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol, e.ContextKey, e.Intensity, e.Status });
+                entity.HasIndex(e => new { e.EventType, e.Language, e.NormalizedSymbol, e.ContextKey, e.Intensity, e.Status });
                 entity.HasIndex(e => e.FileHash)
                       .IsUnique()
                       .HasFilter("\"file_hash\" IS NOT NULL");
@@ -1241,7 +1245,10 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.EventType).HasColumnName("event_type").HasMaxLength(50);
                 entity.Property(e => e.Language).HasColumnName("language").HasMaxLength(10);
+                entity.Property(e => e.RawSymbol).HasColumnName("raw_symbol").HasMaxLength(30);
+                entity.Property(e => e.NormalizedSymbol).HasColumnName("normalized_symbol").HasMaxLength(20);
                 entity.Property(e => e.TeamSymbol).HasColumnName("team_symbol").HasMaxLength(20);
+                entity.Property(e => e.TeamName).HasColumnName("team_name").HasMaxLength(120);
                 entity.Property(e => e.ContextKey).HasColumnName("context_key").HasMaxLength(100);
                 entity.Property(e => e.Intensity).HasColumnName("intensity").HasMaxLength(30);
                 entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
@@ -1264,6 +1271,7 @@ namespace EthicAI.EntityModel
                 entity.HasIndex(e => new { e.Status, e.Priority, e.CreatedAtUtc });
                 entity.HasIndex(e => e.LeasedUntilUtc);
                 entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol, e.ContextKey, e.Intensity });
+                entity.HasIndex(e => new { e.EventType, e.Language, e.NormalizedSymbol, e.ContextKey, e.Intensity });
 
                 entity.HasOne(e => e.CompletedAudioAsset)
                       .WithMany(a => a.CompletedJobs)
@@ -1327,16 +1335,16 @@ namespace EthicAI.EntityModel
 
             var audioSeedTime = new DateTime(2026, 06, 04, 0, 0, 0, DateTimeKind.Utc);
             modelBuilder.Entity<AudioPhraseTemplate>().HasData(
-                new AudioPhraseTemplate { Id = 1, TemplateKey = "goal_pt_br_hype", EventType = "goal", Language = "pt-BR", Intensity = "hype", TemplateText = "GOOOOL de {TEAM_SYMBOL}! A arena CriptoVersus entrou em combustao total!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 2, TemplateKey = "goal_en_us_hype", EventType = "goal", Language = "en-US", Intensity = "hype", TemplateText = "GOOOAL for {TEAM_SYMBOL}! The CriptoVersus Arena just exploded!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 3, TemplateKey = "match_start_pt_br_normal", EventType = "match_start", Language = "pt-BR", Intensity = "normal", TemplateText = "A batalha entre {TEAM_SYMBOL} e seus rivais esta comecando agora na CriptoVersus Arena.", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 4, TemplateKey = "match_start_en_us_normal", EventType = "match_start", Language = "en-US", Intensity = "normal", TemplateText = "The battle is starting now in the CriptoVersus Arena. {TEAM_SYMBOL} is ready for kickoff.", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 5, TemplateKey = "final_whistle_pt_br_normal", EventType = "final_whistle", Language = "pt-BR", Intensity = "normal", TemplateText = "Fim de jogo na CriptoVersus Arena. {TEAM_SYMBOL} deixa sua marca no placar final.", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 6, TemplateKey = "final_whistle_en_us_normal", EventType = "final_whistle", Language = "en-US", Intensity = "normal", TemplateText = "Final whistle in the CriptoVersus Arena. {TEAM_SYMBOL} leaves a mark on the final score.", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 7, TemplateKey = "market_pump_pt_br_hype", EventType = "market_pump", Language = "pt-BR", Intensity = "hype", TemplateText = "{TEAM_SYMBOL} entrou em pump! A torcida sente a pressao aumentar a cada vela.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 8, TemplateKey = "market_pump_en_us_hype", EventType = "market_pump", Language = "en-US", Intensity = "hype", TemplateText = "{TEAM_SYMBOL} is pumping hard! The crowd can feel the momentum rising.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 9, TemplateKey = "market_crash_pt_br_dramatic", EventType = "market_crash", Language = "pt-BR", Intensity = "dramatic", TemplateText = "Queda brusca para {TEAM_SYMBOL}. O mercado tremeu dentro da arena.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 10, TemplateKey = "market_crash_en_us_dramatic", EventType = "market_crash", Language = "en-US", Intensity = "dramatic", TemplateText = "{TEAM_SYMBOL} just crashed. The whole arena felt that shockwave.", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime }
+                new AudioPhraseTemplate { Id = 1, TemplateKey = "goal_pt_br_hype", EventType = "goal", Language = "pt-BR", Intensity = "hype", TemplateText = "É gol de {TEAM_NAME}! A arena CriptoVersus explode em emoção!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 2, TemplateKey = "goal_en_us_hype", EventType = "goal", Language = "en-US", Intensity = "hype", TemplateText = "What a goal by {TEAM_NAME}! The CriptoVersus Arena erupts!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 3, TemplateKey = "match_start_pt_br_normal", EventType = "match_start", Language = "pt-BR", Intensity = "normal", TemplateText = "{TEAM_NAME} está pronto para começar mais uma batalha na CriptoVersus Arena!", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 4, TemplateKey = "match_start_en_us_normal", EventType = "match_start", Language = "en-US", Intensity = "normal", TemplateText = "{TEAM_NAME} is ready to kick off another battle in the CriptoVersus Arena!", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 5, TemplateKey = "final_whistle_pt_br_normal", EventType = "final_whistle", Language = "pt-BR", Intensity = "normal", TemplateText = "Fim de jogo para {TEAM_NAME} na CriptoVersus Arena!", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 6, TemplateKey = "final_whistle_en_us_normal", EventType = "final_whistle", Language = "en-US", Intensity = "normal", TemplateText = "Final whistle for {TEAM_NAME} in the CriptoVersus Arena!", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 7, TemplateKey = "market_pump_pt_br_hype", EventType = "market_pump", Language = "pt-BR", Intensity = "hype", TemplateText = "{TEAM_NAME} acelera forte dentro da arena e ganha o embalo da torcida!", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 8, TemplateKey = "market_pump_en_us_hype", EventType = "market_pump", Language = "en-US", Intensity = "hype", TemplateText = "{TEAM_NAME} surges inside the arena and the crowd can feel the momentum rising!", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 9, TemplateKey = "market_crash_pt_br_dramatic", EventType = "market_crash", Language = "pt-BR", Intensity = "dramatic", TemplateText = "{TEAM_NAME} sente o impacto e a arena acompanha cada segundo dessa queda!", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 10, TemplateKey = "market_crash_en_us_dramatic", EventType = "market_crash", Language = "en-US", Intensity = "dramatic", TemplateText = "{TEAM_NAME} takes a heavy hit and the whole arena can feel the collapse!", IsActive = true, Priority = 85, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime }
             );
 
             // var posts = PostSeedDatax.GetPosts();

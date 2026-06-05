@@ -32,6 +32,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
 
     private readonly EthicAIDbContext _db;
     private readonly IAudioStorageService _storage;
+    private readonly IAudioNarrativeResolverService _narrativeResolver;
     private readonly IOptions<AudioGenerationOptions> _options;
     private readonly IOptions<ProceduralAudioFeatureOptions> _featureOptions;
     private readonly ILogger<AudioGenerationQueueService> _logger;
@@ -39,12 +40,14 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
     public AudioGenerationQueueService(
         EthicAIDbContext db,
         IAudioStorageService storage,
+        IAudioNarrativeResolverService narrativeResolver,
         IOptions<AudioGenerationOptions> options,
         IOptions<ProceduralAudioFeatureOptions> featureOptions,
         ILogger<AudioGenerationQueueService> logger)
     {
         _db = db;
         _storage = storage;
+        _narrativeResolver = narrativeResolver;
         _options = options;
         _featureOptions = featureOptions;
         _logger = logger;
@@ -82,7 +85,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             return new AudioQueueEnqueueResult(false, false, "skipped", "queue generation disabled");
         }
 
-        var normalized = AudioRequestNormalizer.Normalize(request);
+        var normalized = await _narrativeResolver.ResolveAsync(request, ct);
         var resolvedVoiceKey = ResolveVoiceKey(normalized);
         if (!request.ForceQueue)
         {
@@ -91,7 +94,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
                     ActiveStatuses.Contains(x.Status)
                     && x.EventType == normalized.EventType
                     && x.Language == normalized.Language
-                    && x.TeamSymbol == normalized.TeamSymbol
+                    && x.NormalizedSymbol == normalized.NormalizedSymbol
                     && x.ContextKey == normalized.ContextKey
                     && x.Intensity == normalized.Intensity
                     && x.VoiceKey == resolvedVoiceKey)
@@ -105,7 +108,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
                     existingJob.Id,
                     normalized.EventType,
                     normalized.Language,
-                    normalized.TeamSymbol,
+                    normalized.NormalizedSymbol,
                     normalized.ContextKey,
                     normalized.Intensity,
                     resolvedVoiceKey);
@@ -119,7 +122,10 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         {
             EventType = normalized.EventType,
             Language = normalized.Language,
+            RawSymbol = normalized.RawSymbol,
+            NormalizedSymbol = normalized.NormalizedSymbol,
             TeamSymbol = normalized.TeamSymbol,
+            TeamName = normalized.TeamName,
             ContextKey = normalized.ContextKey,
             Intensity = normalized.Intensity,
             VoiceKey = resolvedVoiceKey,
@@ -137,11 +143,14 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
-            "Procedural audio asset missing; generation job enqueued. JobId={JobId} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
+            "Procedural audio asset missing; generation job enqueued. JobId={JobId} RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TextPrompt={TextPrompt} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
             job.Id,
+            job.RawSymbol,
+            job.NormalizedSymbol,
+            job.TeamName,
             job.EventType,
             job.Language,
-            job.TeamSymbol,
+            job.TextPrompt,
             job.ContextKey,
             job.Intensity,
             job.VoiceKey);
@@ -197,7 +206,10 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         {
             EventType = job.EventType,
             Language = job.Language,
+            RawSymbol = job.RawSymbol,
+            NormalizedSymbol = job.NormalizedSymbol,
             TeamSymbol = job.TeamSymbol,
+            TeamName = job.TeamName,
             ContextKey = job.ContextKey,
             Intensity = job.Intensity,
             VoiceKey = job.VoiceKey,
@@ -295,12 +307,18 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
 
     private static string BuildPrompt(AudioResolveRequest request, AudioPhraseTemplate? template)
     {
+        if (!string.IsNullOrWhiteSpace(request.TextPrompt))
+            return request.TextPrompt!;
+
         var text = template?.TemplateText
-            ?? $"{request.EventType} for {request.TeamSymbol ?? "generic"} in {request.Language}.";
+            ?? ProceduralNarrativeText.BuildTextPrompt(
+                request.EventType,
+                request.Language,
+                request.TeamName ?? request.NormalizedSymbol ?? request.TeamSymbol ?? "CriptoVersus");
 
         return text
-            .Replace("{TEAM_SYMBOL}", request.TeamSymbol ?? "GENERIC", StringComparison.OrdinalIgnoreCase)
-            .Replace("{TEAM_NAME}", request.TeamName ?? request.TeamSymbol ?? "generic team", StringComparison.OrdinalIgnoreCase)
+            .Replace("{TEAM_SYMBOL}", request.NormalizedSymbol ?? request.TeamSymbol ?? "GENERIC", StringComparison.OrdinalIgnoreCase)
+            .Replace("{TEAM_NAME}", request.TeamName ?? request.NormalizedSymbol ?? request.TeamSymbol ?? "CriptoVersus", StringComparison.OrdinalIgnoreCase)
             .Replace("{EVENT_TYPE}", request.EventType, StringComparison.OrdinalIgnoreCase)
             .Replace("{LANGUAGE}", request.Language, StringComparison.OrdinalIgnoreCase);
     }
@@ -340,7 +358,10 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             Id = job.Id,
             EventType = job.EventType,
             Language = job.Language,
+            RawSymbol = job.RawSymbol,
+            NormalizedSymbol = job.NormalizedSymbol,
             TeamSymbol = job.TeamSymbol,
+            TeamName = job.TeamName,
             ContextKey = job.ContextKey,
             Intensity = job.Intensity,
             VoiceKey = job.VoiceKey,

@@ -838,7 +838,7 @@ namespace CriptoVersus.API.Controllers
             }
         }
 
-        private static AudioResolveRequest? BuildAudioResolveRequest(MatchScoreEvent item, string requestedLanguage)
+        private AudioResolveRequest? BuildAudioResolveRequest(MatchScoreEvent item, string requestedLanguage)
         {
             var descriptor = ProceduralAudioEventMapper.MapScoreEvent(
                 item.EventType,
@@ -849,16 +849,31 @@ namespace CriptoVersus.API.Controllers
             if (string.IsNullOrWhiteSpace(descriptor.EventType))
                 return null;
 
-            return new AudioResolveRequest
+            var rawSymbol = item.Team?.Currency?.Symbol;
+            var normalizedSymbol = descriptor.NormalizedTeamSymbol ?? ProceduralAudioNormalization.NormalizeTeamSymbol(rawSymbol);
+            var request = new AudioResolveRequest
             {
                 EventType = descriptor.EventType,
                 Language = requestedLanguage,
-                TeamSymbol = descriptor.NormalizedTeamSymbol ?? ProceduralAudioNormalization.NormalizeTeamSymbol(item.Team?.Currency?.Symbol),
+                RawSymbol = rawSymbol,
+                NormalizedSymbol = normalizedSymbol,
+                TeamSymbol = normalizedSymbol,
                 TeamName = item.Team?.Currency?.Name,
                 ContextKey = item.AudioContextKey ?? descriptor.ContextKey,
                 Intensity = item.AudioIntensity ?? descriptor.Intensity,
                 VoiceKey = item.AudioVoiceKey
             };
+
+            _logger.LogInformation(
+                "Procedural audio request built from score event. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} TechnicalEventType={TechnicalEventType} NarrativeEventType={NarrativeEventType} Language={Language}",
+                request.RawSymbol,
+                request.NormalizedSymbol,
+                request.TeamName,
+                descriptor.RawEventType,
+                request.EventType,
+                request.Language);
+
+            return request;
         }
 
     }

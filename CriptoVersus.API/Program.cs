@@ -57,6 +57,7 @@ builder.Services.AddScoped<ICustodySolTransferService, CustodySolTransferService
 builder.Services.AddScoped<IMatchScoreRebuildService, MatchScoreRebuildService>();
 builder.Services.AddScoped<ITvHotMatchService, TvHotMatchService>();
 builder.Services.AddScoped<IAudioAssetResolverService, AudioAssetResolverService>();
+builder.Services.AddScoped<IAudioNarrativeResolverService, AudioNarrativeResolverService>();
 builder.Services.AddScoped<IAudioGenerationQueueService, AudioGenerationQueueService>();
 builder.Services.AddScoped<IAudioStorageService, AudioStorageService>();
 builder.Services.AddSingleton<IAudioWorkerAuthenticationService, AudioWorkerAuthenticationService>();

@@ -40,7 +40,10 @@ public sealed class AudioController : ControllerBase
         if (!_featureOptions.Value.Enabled)
         {
             _logger.LogInformation(
-                "Procedural audio resolve requested while disabled. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                "Procedural audio resolve requested while disabled. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol}",
+                request.RawSymbol,
+                request.NormalizedSymbol,
+                request.TeamName,
                 request.EventType,
                 request.Language,
                 request.TeamSymbol);
@@ -80,7 +83,10 @@ public sealed class AudioController : ControllerBase
         if (queueResultWhenMissing.Queued && !queueResultWhenMissing.AlreadyQueued)
         {
             _logger.LogInformation(
-                "Procedural audio asset missing; generation job enqueued. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} JobId={JobId}",
+                "Procedural audio asset missing; generation job enqueued. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} JobId={JobId}",
+                request.RawSymbol,
+                request.NormalizedSymbol,
+                request.TeamName,
                 request.EventType,
                 request.Language,
                 request.TeamSymbol,
@@ -91,8 +97,11 @@ public sealed class AudioController : ControllerBase
         else
         {
             _logger.LogInformation(
-                "Procedural audio queue skipped because {Reason}. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity}",
+                "Procedural audio queue skipped because {Reason}. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity}",
                 queueResultWhenMissing.Reason,
+                request.RawSymbol,
+                request.NormalizedSymbol,
+                request.TeamName,
                 request.EventType,
                 request.Language,
                 request.TeamSymbol,

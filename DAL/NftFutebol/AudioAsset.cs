@@ -5,7 +5,10 @@ public sealed class AudioAsset
     public long Id { get; set; }
     public string EventType { get; set; } = string.Empty;
     public string Language { get; set; } = string.Empty;
+    public string? RawSymbol { get; set; }
+    public string? NormalizedSymbol { get; set; }
     public string? TeamSymbol { get; set; }
+    public string? TeamName { get; set; }
     public string? ContextKey { get; set; }
     public string? Intensity { get; set; }
     public string? VoiceKey { get; set; }
