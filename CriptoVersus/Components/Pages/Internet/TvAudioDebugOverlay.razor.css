@@ -151,6 +151,34 @@
     overflow-y: auto;
 }
 
+.tv-audio-debug__events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+    max-height: 14vh;
+    overflow-y: auto;
+}
+
+.tv-audio-debug__event {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0.35rem;
+    align-items: center;
+    padding: 0.3rem 0.42rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.tv-audio-debug__event span,
+.tv-audio-debug__event em {
+    color: rgba(220, 238, 245, 0.58);
+}
+
+.tv-audio-debug__event b {
+    color: #8aff9d;
+    font-weight: 700;
+}
+
 .tv-audio-debug__log {
     display: flex;
     gap: 0.35rem;

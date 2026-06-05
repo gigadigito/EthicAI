@@ -48,6 +48,28 @@
             </section>
 
             <section class="tv-audio-debug__section">
+                <div class="tv-audio-debug__section-title">Recent Audio Requests</div>
+                <div class="tv-audio-debug__events">
+                    @if (_state.Events.Count == 0)
+                    {
+                        <div class="tv-audio-debug__event">No procedural events observed yet.</div>
+                    }
+                    else
+                    {
+                        @foreach (var audioEvent in _state.Events.Take(8))
+                        {
+                            <div class="tv-audio-debug__event">
+                                <span>@FormatTimestamp(audioEvent.Timestamp)</span>
+                                <strong>@(audioEvent.EventType ?? "event")</strong>
+                                <em>@(audioEvent.TeamSymbol ?? "-")</em>
+                                <b>@(audioEvent.Status ?? "idle")</b>
+                            </div>
+                        }
+                    }
+                </div>
+            </section>
+
+            <section class="tv-audio-debug__section">
                 <label class="tv-audio-debug__label" for="tv-audio-debug-event-volume">Procedural Event Volume</label>
                 <div class="tv-audio-debug__control-row">
                     <input id="tv-audio-debug-event-volume" type="range" min="0" max="100" value="@VolumePercentValue(_state.Volume)" @oninput="HandleEventVolumeChangedAsync" />

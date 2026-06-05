@@ -368,8 +368,56 @@ function buildAmbientTrackEntry(track, index, source = "catalog") {
     };
 }
 
+function humanizeAudioKey(key) {
+    return String(key || "")
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 function buildTvBackgroundAudioDebugTracks() {
-    const playlist = getAmbientPlaylist().map((track, index) => buildAmbientTrackEntry(track, index, "catalog"));
+    const catalog = [];
+    const seen = new Set();
+
+    const pushTrack = (entry) => {
+        if (!entry?.key || seen.has(entry.key)) {
+            return;
+        }
+
+        seen.add(entry.key);
+        catalog.push(entry);
+    };
+
+    getAmbientPlaylist().forEach((track, index) => {
+        pushTrack(buildAmbientTrackEntry(track, index, "ambient"));
+    });
+
+    Object.entries(tvAudioMap).forEach(([key, asset], index) => {
+        pushTrack({
+            key,
+            label: humanizeAudioKey(key),
+            url: asset?.legacyPath ?? "",
+            source: "tv-audio-map",
+            index
+        });
+    });
+
+    pushTrack({
+        key: "crowdArena3",
+        label: "Crowd Arena 3",
+        url: "/audio/tv/crowdarena3.mp3",
+        source: "debug-extra"
+    });
+
+    pushTrack({
+        key: "stadiumCrowdAlt",
+        label: "Stadium Crowd Alt",
+        url: "/audio/tv/StadiumCrowd.mp3",
+        source: "debug-extra"
+    });
+
     const offEntry = {
         key: "off",
         label: "Silence / Off",
@@ -377,11 +425,14 @@ function buildTvBackgroundAudioDebugTracks() {
         source: "virtual"
     };
 
-    if (!playlist.some((item) => item.key === offEntry.key)) {
-        playlist.unshift(offEntry);
+    pushTrack(offEntry);
+    const offIndex = catalog.findIndex((item) => item.key === "off");
+    if (offIndex > 0) {
+        const [off] = catalog.splice(offIndex, 1);
+        catalog.unshift(off);
     }
 
-    return playlist;
+    return catalog;
 }
 
 function syncBackgroundTelemetryState(overrides = {}) {

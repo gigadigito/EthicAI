@@ -4893,15 +4893,9 @@ else
     {
         try
         {
-            if (!string.Equals(_proceduralGoalAudioSrc, audioUrl, StringComparison.Ordinal))
-            {
-                _proceduralGoalAudioSrc = audioUrl;
-                await InvokeAsync(StateHasChanged);
-            }
-
             if (_tvModule is not null)
             {
-                await _tvModule.InvokeVoidAsync("playProceduralAudioElement", "tv-procedural-goal-audio", BuildProceduralAudioDebugPayload(
+                await _tvModule.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, BuildProceduralAudioDebugPayload(
                     current,
                     scoreEvent,
                     audioUrl,
@@ -4909,7 +4903,7 @@ else
             }
             else
             {
-                await JS.InvokeVoidAsync("playProceduralAudioElement", "tv-procedural-goal-audio", BuildProceduralAudioDebugPayload(
+                await JS.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, BuildProceduralAudioDebugPayload(
                     current,
                     scoreEvent,
                     audioUrl,
