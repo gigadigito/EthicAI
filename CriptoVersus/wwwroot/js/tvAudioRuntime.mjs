@@ -55,7 +55,10 @@ export function ensureTvAudioManager() {
             isTransitioning: false,
             visibilityListenersAttached: false,
             pausedForHiddenTab: false,
-            destroyed: false
+            destroyed: false,
+            debugStatus: "stopped",
+            debugError: null,
+            debugSelectedTrack: null
         },
         diagnostics: {
             loaded: [],

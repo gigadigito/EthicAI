@@ -1,0 +1,394 @@
+@using System.Globalization
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<aside class="tv-audio-debug @( _collapsed ? "is-collapsed" : string.Empty)" aria-live="polite">
+    <header class="tv-audio-debug__header">
+        <div>
+            <strong>Audio Debug</strong>
+            <span>@Culture · Event @FormatPercent(_state.Volume)</span>
+        </div>
+        <button type="button" class="tv-audio-debug__toggle" @onclick="ToggleCollapsedAsync">@(_collapsed ? "+" : "-")</button>
+    </header>
+
+    @if (!_collapsed)
+    {
+        <div class="tv-audio-debug__body">
+            <section class="tv-audio-debug__section">
+                <div class="tv-audio-debug__meta">
+                    <span>Last: @(_state.LastEvent?.Status ?? "idle")</span>
+                    <span>Bg: @(_state.Background?.Status ?? "stopped")</span>
+                </div>
+                @if (_state.LastEvent is not null)
+                {
+                    <dl class="tv-audio-debug__grid">
+                        <div><dt>Event</dt><dd>@(_state.LastEvent.EventType ?? "-")</dd></div>
+                        <div><dt>Team</dt><dd>@(_state.LastEvent.TeamSymbol ?? "-")</dd></div>
+                        <div><dt>Asset</dt><dd>@(_state.LastEvent.AudioAssetId?.ToString(CultureInfo.InvariantCulture) ?? "-")</dd></div>
+                        <div><dt>Fallback</dt><dd>@(_state.LastEvent.AudioFallbackUsed ? "yes" : "no")</dd></div>
+                        <div><dt>Context</dt><dd>@(_state.LastEvent.AudioContextKey ?? "-")</dd></div>
+                        <div><dt>Intensity</dt><dd>@(_state.LastEvent.AudioIntensity ?? "-")</dd></div>
+                        <div><dt>Voice</dt><dd>@(_state.LastEvent.AudioVoiceKey ?? "-")</dd></div>
+                    </dl>
+                }
+            </section>
+
+            <section class="tv-audio-debug__section">
+                <div class="tv-audio-debug__stats">
+                    <span>found @_state.Stats.Found</span>
+                    <span>queued @_state.Stats.Queued</span>
+                    <span>missing @_state.Stats.Missing</span>
+                    <span>played @_state.Stats.Played</span>
+                    <span>failed @_state.Stats.Failed</span>
+                    <span>fallback @_state.Stats.Fallback</span>
+                </div>
+            </section>
+
+            <section class="tv-audio-debug__section">
+                <label class="tv-audio-debug__label" for="tv-audio-debug-event-volume">Procedural Event Volume</label>
+                <div class="tv-audio-debug__control-row">
+                    <input id="tv-audio-debug-event-volume" type="range" min="0" max="100" value="@VolumePercentValue(_state.Volume)" @oninput="HandleEventVolumeChangedAsync" />
+                    <span>@VolumePercentValue(_state.Volume)%</span>
+                </div>
+                <div class="tv-audio-debug__buttons">
+                    <button type="button" @onclick="PlayLastEventAsync" disabled="@string.IsNullOrWhiteSpace(_state.LastEvent?.AudioUrl)">Play</button>
+                    <button type="button" @onclick="StopProceduralAudioAsync">Stop</button>
+                    <button type="button" @onclick="ClearLogsAsync">Clear logs</button>
+                </div>
+            </section>
+
+            <section class="tv-audio-debug__section">
+                <div class="tv-audio-debug__section-title">Background Audio / Ambiente</div>
+                <div class="tv-audio-debug__meta">
+                    <span>@(_state.Background?.ActiveLabel ?? "Default")</span>
+                    <span>@(_state.Background?.Status ?? "stopped")</span>
+                </div>
+                <div class="tv-audio-debug__url">@ShortUrl(_state.Background?.ActiveUrl)</div>
+                <label class="tv-audio-debug__label" for="tv-audio-debug-bg-volume">Background Volume</label>
+                <div class="tv-audio-debug__control-row">
+                    <input id="tv-audio-debug-bg-volume" type="range" min="0" max="100" value="@VolumePercentValue(_state.Background?.Volume ?? 0.42)" @oninput="HandleBackgroundVolumeChangedAsync" />
+                    <span>@VolumePercentValue(_state.Background?.Volume ?? 0.42)%</span>
+                </div>
+                <div class="tv-audio-debug__buttons">
+                    <button type="button" @onclick="PlayBackgroundAsync">Play</button>
+                    <button type="button" @onclick="PauseBackgroundAsync">Pause</button>
+                    <button type="button" @onclick="StopBackgroundAsync">Stop</button>
+                    <button type="button" @onclick="ResetBackgroundAsync">Reset</button>
+                </div>
+                <div class="tv-audio-debug__track-picker">
+                    <select @bind="_selectedTrackKey">
+                        @foreach (var track in _state.Background?.Tracks ?? [])
+                        {
+                            <option value="@track.Key">@track.Label</option>
+                        }
+                    </select>
+                    <button type="button" @onclick="ApplyBackgroundTrackAsync">Aplicar trilha</button>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(_state.Background?.Error))
+                {
+                    <div class="tv-audio-debug__error">@_state.Background.Error</div>
+                }
+            </section>
+
+            <section class="tv-audio-debug__section">
+                <div class="tv-audio-debug__section-title">Logs</div>
+                <div class="tv-audio-debug__logs">
+                    @if (_state.Logs.Count == 0)
+                    {
+                        <div class="tv-audio-debug__log">Waiting for audio events...</div>
+                    }
+                    else
+                    {
+                        @foreach (var log in _state.Logs)
+                        {
+                            <div class="tv-audio-debug__log">
+                                <span>@FormatTimestamp(log.Timestamp)</span>
+                                <strong>@log.Message</strong>
+                            </div>
+                        }
+                    }
+                </div>
+            </section>
+        </div>
+    }
+</aside>
+
+@code {
+    [Parameter] public string Culture { get; set; } = "en";
+
+    private IJSObjectReference? _tvModule;
+    private CancellationTokenSource? _pollCts;
+    private Task? _pollTask;
+    private bool _collapsed;
+    private string _selectedTrackKey = "default";
+    private TvAudioDebugState _state = TvAudioDebugState.CreateDefault();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260604-audio-debug-1");
+        await RefreshStateAsync();
+        _pollCts = new CancellationTokenSource();
+        _pollTask = PollStateAsync(_pollCts.Token);
+    }
+
+    private async Task PollStateAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(700));
+        while (await timer.WaitForNextTickAsync(cancellationToken))
+        {
+            try
+            {
+                await RefreshStateAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private async Task RefreshStateAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        var state = await _tvModule.InvokeAsync<TvAudioDebugState>("getTvAudioDebugState");
+        _state = state ?? TvAudioDebugState.CreateDefault();
+        if (_state.Background is not null)
+        {
+            var hasSelectedTrack = _state.Background.Tracks.Any(item => string.Equals(item.Key, _selectedTrackKey, StringComparison.OrdinalIgnoreCase));
+            if (!hasSelectedTrack)
+            {
+                _selectedTrackKey = _state.Background.SelectedKey ?? "default";
+            }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleCollapsedAsync()
+    {
+        _collapsed = !_collapsed;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleEventVolumeChangedAsync(ChangeEventArgs args)
+    {
+        if (_tvModule is null)
+            return;
+
+        var volume = ParseSlider(args.Value);
+        await _tvModule.InvokeVoidAsync("setProceduralAudioDebugVolume", volume);
+        await RefreshStateAsync();
+    }
+
+    private async Task HandleBackgroundVolumeChangedAsync(ChangeEventArgs args)
+    {
+        if (_tvModule is null)
+            return;
+
+        var volume = ParseSlider(args.Value);
+        await _tvModule.InvokeVoidAsync("setTvBackgroundAudioDebugVolume", volume);
+        await RefreshStateAsync();
+    }
+
+    private async Task PlayLastEventAsync()
+    {
+        if (_tvModule is null || string.IsNullOrWhiteSpace(_state.LastEvent?.AudioUrl))
+            return;
+
+        await _tvModule.InvokeVoidAsync("playProceduralAudioUrl", _state.LastEvent.AudioUrl, _state.LastEvent);
+        await RefreshStateAsync();
+    }
+
+    private async Task StopProceduralAudioAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("stopProceduralAudioDebug");
+        await RefreshStateAsync();
+    }
+
+    private async Task ClearLogsAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("clearTvAudioDebug");
+        await RefreshStateAsync();
+    }
+
+    private async Task ApplyBackgroundTrackAsync()
+    {
+        if (_tvModule is null || _state.Background is null)
+            return;
+
+        var track = _state.Background.Tracks.FirstOrDefault(item => string.Equals(item.Key, _selectedTrackKey, StringComparison.OrdinalIgnoreCase));
+        if (track is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("setTvBackgroundAudioDebugTrack", track.Url, track.Label, track.Key);
+        if (!string.Equals(track.Key, "off", StringComparison.OrdinalIgnoreCase))
+        {
+            await _tvModule.InvokeVoidAsync("playTvBackgroundAudioDebug");
+        }
+
+        await RefreshStateAsync();
+    }
+
+    private async Task PlayBackgroundAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("playTvBackgroundAudioDebug");
+        await RefreshStateAsync();
+    }
+
+    private async Task PauseBackgroundAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("pauseTvBackgroundAudioDebug");
+        await RefreshStateAsync();
+    }
+
+    private async Task StopBackgroundAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("stopTvBackgroundAudioDebug");
+        await RefreshStateAsync();
+    }
+
+    private async Task ResetBackgroundAsync()
+    {
+        if (_tvModule is null)
+            return;
+
+        await _tvModule.InvokeVoidAsync("resetTvBackgroundAudioDebug");
+        await RefreshStateAsync();
+    }
+
+    private static string ShortUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return "default";
+
+        return url.Length <= 52 ? url : $"...{url[^49..]}";
+    }
+
+    private static string FormatTimestamp(string? timestamp)
+    {
+        if (!DateTimeOffset.TryParse(timestamp, out var parsed))
+            return "--:--:--";
+
+        return parsed.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatPercent(double value)
+        => $"{Math.Round(Math.Clamp(value, 0, 1) * 100):0}%";
+
+    private static int VolumePercentValue(double value)
+        => (int)Math.Round(Math.Clamp(value, 0, 1) * 100);
+
+    private static double ParseSlider(object? value)
+        => Math.Clamp(Convert.ToDouble(value ?? 0, CultureInfo.InvariantCulture) / 100d, 0d, 1d);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_pollCts is not null)
+        {
+            _pollCts.Cancel();
+            _pollCts.Dispose();
+        }
+
+        if (_pollTask is not null)
+        {
+            try
+            {
+                await _pollTask;
+            }
+            catch
+            {
+            }
+        }
+
+        if (_tvModule is not null)
+        {
+            await _tvModule.DisposeAsync();
+        }
+    }
+
+    private sealed class TvAudioDebugState
+    {
+        public bool Enabled { get; set; }
+        public double Volume { get; set; } = 0.8;
+        public TvAudioDebugEvent? LastEvent { get; set; }
+        public List<TvAudioDebugEvent> Events { get; set; } = [];
+        public List<TvAudioDebugLog> Logs { get; set; } = [];
+        public TvAudioDebugStats Stats { get; set; } = new();
+        public TvBackgroundDebugState Background { get; set; } = new();
+
+        public static TvAudioDebugState CreateDefault() => new();
+    }
+
+    private sealed class TvAudioDebugEvent
+    {
+        public string? Timestamp { get; set; }
+        public string? EventType { get; set; }
+        public string? TeamSymbol { get; set; }
+        public string? Language { get; set; }
+        public string? AudioUrl { get; set; }
+        public long? AudioAssetId { get; set; }
+        public bool AudioFallbackUsed { get; set; }
+        public string? AudioContextKey { get; set; }
+        public string? AudioIntensity { get; set; }
+        public string? AudioVoiceKey { get; set; }
+        public string? Status { get; set; }
+    }
+
+    private sealed class TvAudioDebugLog
+    {
+        public string? Timestamp { get; set; }
+        public string? Message { get; set; }
+    }
+
+    private sealed class TvAudioDebugStats
+    {
+        public int Found { get; set; }
+        public int Queued { get; set; }
+        public int Missing { get; set; }
+        public int Played { get; set; }
+        public int Failed { get; set; }
+        public int Fallback { get; set; }
+    }
+
+    private sealed class TvBackgroundDebugState
+    {
+        public string? ActiveLabel { get; set; } = "Default";
+        public string? ActiveUrl { get; set; }
+        public string? SelectedLabel { get; set; } = "Default";
+        public string? SelectedUrl { get; set; }
+        public string? SelectedKey { get; set; } = "default";
+        public string? Status { get; set; } = "stopped";
+        public double Volume { get; set; } = 0.42;
+        public string? Error { get; set; }
+        public List<TvBackgroundTrackOption> Tracks { get; set; } = [];
+    }
+
+    private sealed class TvBackgroundTrackOption
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+    }
+}

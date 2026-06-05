@@ -1,6 +1,7 @@
 @using System.Globalization
 @using System.IO
 @using System.Text
+@using System.Net
 @using BLL.Positions
 @using CriptoVersus.Components.Shared
 @using DTOs
@@ -793,6 +794,11 @@ else
                 </div>
             </section>
         }
+
+        @if (_audioDebugEnabled)
+        {
+            <TvAudioDebugOverlay Culture="@Culture" />
+        }
     </section>
 }
 
@@ -928,6 +934,7 @@ else
     private bool _audioAutoplayBlocked;
     private bool _pendingScoreEventProbe;
     private bool _isScoreEventProbeRunning;
+    private bool _audioDebugEnabled;
     private int? _lastScoreEventMatchId;
     private long? _lastSeenScoreEventId;
     private long? _lastTriggeredGoalEventId;
@@ -1111,6 +1118,8 @@ else
 
     protected override void OnParametersSet()
     {
+        SyncAudioDebugFlag();
+
         if (!ShouldRenderCrowdAudio)
             _broadcastAudioInitialized = false;
 
@@ -1130,6 +1139,11 @@ else
             try
             {
                 await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
+                await _tvModule.InvokeVoidAsync("setTvAudioDebugEnabled", _audioDebugEnabled, new
+                {
+                    culture = Culture,
+                    backgroundVolume = (double)ResolveCrowdAudioVolume()
+                });
             }
             catch (JSException)
             {
@@ -1138,8 +1152,13 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260603-crossover-marker-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260604-audio-debug-1");
             await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
+            await _tvModule.InvokeVoidAsync("setTvAudioDebugEnabled", _audioDebugEnabled, new
+            {
+                culture = Culture,
+                backgroundVolume = (double)ResolveCrowdAudioVolume()
+            });
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
             _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
             await LogAsync("TV_MOTION", "motion system ready");
@@ -1763,6 +1782,38 @@ else
         finally
         {
             Logger.LogInformation("TvStage clock loop stopped. BroadcastMode={BroadcastMode}", IsBroadcastMode);
+        }
+    }
+
+    private void SyncAudioDebugFlag()
+    {
+        try
+        {
+            var uri = new Uri(Nav.Uri, UriKind.Absolute);
+            var query = uri.Query;
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                _audioDebugEnabled = false;
+                return;
+            }
+
+            foreach (var segment in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = segment.Split('=', 2, StringSplitOptions.TrimEntries);
+                if (!string.Equals(parts[0], "audioDebug", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var value = parts.Length > 1 ? WebUtility.UrlDecode(parts[1]) : string.Empty;
+                _audioDebugEnabled = string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                return;
+            }
+
+            _audioDebugEnabled = false;
+        }
+        catch
+        {
+            _audioDebugEnabled = false;
         }
     }
 
@@ -4584,6 +4635,50 @@ else
             version: "20260521-1")
         ?? "/audio/tv/goal-sting.mp3?v=20260521-1";
 
+    private object BuildProceduralAudioDebugPayload(BroadcastSnapshot current, MatchScoreEventDto? scoreEvent, string? audioUrl = null, string? message = null, string? error = null)
+        => new
+        {
+            source = "tv-stage",
+            eventType = scoreEvent?.EventType ?? scoreEvent?.RuleType ?? "goal",
+            teamSymbol = scoreEvent?.TeamSymbol ?? current.LeaderSymbol,
+            language = scoreEvent?.AudioResolvedLanguage ?? Culture,
+            audioUrl = audioUrl ?? scoreEvent?.AudioUrl,
+            audioAssetId = scoreEvent?.AudioAssetId,
+            audioFallbackUsed = scoreEvent?.AudioFallbackUsed ?? false,
+            audioContextKey = scoreEvent?.AudioContextKey,
+            audioIntensity = scoreEvent?.AudioIntensity,
+            audioVoiceKey = scoreEvent?.AudioVoiceKey,
+            message,
+            error
+        };
+
+    private async Task NotifyProceduralAudioDebugAsync(string status, object payload)
+    {
+        if (_tvModule is not null)
+        {
+            try
+            {
+                await _tvModule.InvokeVoidAsync("notifyProceduralAudioDebug", status, payload);
+                return;
+            }
+            catch (JSException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("notifyProceduralAudioDebug", status, payload);
+        }
+        catch
+        {
+        }
+    }
+
     private async Task EnsureBroadcastAudioAsync()
     {
         if (_broadcastAudioInitialized || _tvModule is null || !ShouldRenderCrowdAudio)
@@ -4665,6 +4760,16 @@ else
 
         if (scoreEvent is not null)
         {
+            await NotifyProceduralAudioDebugAsync("queued", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                proceduralAudioUrl,
+                message: "Procedural audio missing in broadcast payload; continuing without blocking arena."));
+            await NotifyProceduralAudioDebugAsync("missing", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                proceduralAudioUrl,
+                message: "No procedural audio URL available for this event."));
             await LogAsync("TV_AUDIO", "procedural-audio-missing-no-impact", new
             {
                 current.MatchId,
@@ -4679,6 +4784,15 @@ else
         {
             try
             {
+                if (scoreEvent is not null)
+                {
+                    await NotifyProceduralAudioDebugAsync("fallback", BuildProceduralAudioDebugPayload(
+                        current,
+                        scoreEvent,
+                        proceduralAudioUrl,
+                        message: "Falling back to legacy goal sting."));
+                }
+
                 await _tvModule.InvokeVoidAsync("playTvAudioCue", "goal", new
                 {
                     priority = 100,
@@ -4699,6 +4813,15 @@ else
 
         try
         {
+            if (scoreEvent is not null)
+            {
+                await NotifyProceduralAudioDebugAsync("fallback", BuildProceduralAudioDebugPayload(
+                    current,
+                    scoreEvent,
+                    proceduralAudioUrl,
+                    message: "Falling back to legacy goal sting."));
+            }
+
             await JS.InvokeVoidAsync("playTvAudioCue", "goal", new
             {
                 priority = 100,
@@ -4728,11 +4851,19 @@ else
 
             if (_tvModule is not null)
             {
-                await _tvModule.InvokeVoidAsync("playAudioCue", "tv-procedural-goal-audio");
+                await _tvModule.InvokeVoidAsync("playProceduralAudioElement", "tv-procedural-goal-audio", BuildProceduralAudioDebugPayload(
+                    current,
+                    scoreEvent,
+                    audioUrl,
+                    message: "Procedural goal audio resolved for playback."));
             }
             else
             {
-                await JS.InvokeVoidAsync("playAudioCue", "tv-procedural-goal-audio");
+                await JS.InvokeVoidAsync("playProceduralAudioElement", "tv-procedural-goal-audio", BuildProceduralAudioDebugPayload(
+                    current,
+                    scoreEvent,
+                    audioUrl,
+                    message: "Procedural goal audio resolved for playback."));
             }
 
             await LogAsync("TV_AUDIO", "procedural-goal-used", new
@@ -4749,6 +4880,12 @@ else
         }
         catch (Exception ex) when (ex is JSException or ObjectDisposedException)
         {
+            await NotifyProceduralAudioDebugAsync("failed", BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                audioUrl,
+                message: "Procedural goal audio failed and legacy fallback will be used.",
+                error: ex.Message));
             await LogAsync("TV_AUDIO", "procedural-goal-failed-fallback", new
             {
                 current.MatchId,

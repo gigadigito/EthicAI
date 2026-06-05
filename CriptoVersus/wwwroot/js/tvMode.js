@@ -16,6 +16,7 @@ let telemetryChartsState = null;
 let fieldFreedomState = null;
 let telemetryCubeController = null;
 let tvAudioFacade = null;
+let activeProceduralAudio = null;
 import {
     createTvChartDiagnostics,
     logTelemetryChartSummary
@@ -77,6 +78,13 @@ import {
     getTvMediaCulture
 } from "./tvAudioRuntime.mjs?v=20260603-crossover-marker-1";
 import { resolveLocalizedAudioPath } from "./mediaLocalization.mjs?v=20260603-crossover-marker-1";
+import {
+    ensureTvAudioTelemetry,
+    setTvAudioTelemetryEnabled,
+    setTvBackgroundAudioController,
+    updateTvBackgroundAudioState,
+    getTvAudioTelemetryState
+} from "./tvAudioTelemetry.mjs?v=20260604-audio-debug-1";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -242,6 +250,170 @@ function consoleAudio(label, payload) {
     }
 
     console.log(label, payload);
+}
+
+function normalizeTelemetryPayload(payload = {}) {
+    return {
+        timestamp: payload.timestamp ?? payload.Timestamp ?? new Date().toISOString(),
+        source: payload.source ?? payload.Source ?? "tv-stage",
+        eventType: payload.eventType ?? payload.EventType ?? payload.ruleType ?? payload.RuleType ?? "goal",
+        teamSymbol: payload.teamSymbol ?? payload.TeamSymbol ?? null,
+        language: payload.language ?? payload.Language ?? getTvMediaCulture(),
+        audioUrl: payload.audioUrl ?? payload.AudioUrl ?? null,
+        audioAssetId: payload.audioAssetId ?? payload.AudioAssetId ?? null,
+        audioFallbackUsed: Boolean(payload.audioFallbackUsed ?? payload.AudioFallbackUsed),
+        audioContextKey: payload.audioContextKey ?? payload.AudioContextKey ?? null,
+        audioIntensity: payload.audioIntensity ?? payload.AudioIntensity ?? null,
+        audioVoiceKey: payload.audioVoiceKey ?? payload.AudioVoiceKey ?? null,
+        message: payload.message ?? payload.Message ?? null,
+        error: payload.error ?? payload.Error ?? null,
+        status: payload.status ?? payload.Status ?? "skipped"
+    };
+}
+
+function telemetryApi() {
+    return ensureTvAudioTelemetry();
+}
+
+function notifyProceduralAudioEvent(status, payload = {}) {
+    const telemetry = telemetryApi();
+    if (!telemetry) {
+        return null;
+    }
+
+    const normalized = normalizeTelemetryPayload({ ...payload, status });
+    switch (status) {
+        case "queued":
+            return telemetry.notifyQueued(normalized);
+        case "found":
+            return telemetry.notifyFound(normalized);
+        case "missing":
+        case "skipped":
+            return telemetry.notifyMissing(normalized);
+        case "playing":
+            return telemetry.notifyPlaying(normalized);
+        case "played":
+            return telemetry.notifyPlayed(normalized);
+        case "failed":
+            return telemetry.notifyFailed(normalized);
+        case "fallback":
+            return telemetry.notifyFallback(normalized);
+        default:
+            return telemetry.pushEvent(normalized);
+    }
+}
+
+function pushAudioDebugLog(message, level = "info", data = null) {
+    const telemetry = telemetryApi();
+    if (!telemetry) {
+        return null;
+    }
+
+    return telemetry.pushLog(message, level, data);
+}
+
+function getProceduralAudioDebugVolume() {
+    const telemetry = telemetryApi();
+    return clamp(Number(telemetry?.getVolume?.() ?? ensureTvAudioManager().volume), 0, 1);
+}
+
+function applyProceduralAudioElementVolume(audio) {
+    if (!(audio instanceof HTMLAudioElement)) {
+        return getProceduralAudioDebugVolume();
+    }
+
+    const volume = getProceduralAudioDebugVolume();
+    audio.volume = volume;
+    audio.muted = false;
+    connectAudioElement(audio, "fx");
+    const instanceGain = ensureTvAudioManager().instanceGains.get(audio);
+    if (instanceGain) {
+        instanceGain.gain.value = volume;
+    }
+
+    return volume;
+}
+
+function ensureAmbientDebugTrackState() {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    ambient.debugStatus = ambient.debugStatus ?? "stopped";
+    ambient.debugError = ambient.debugError ?? null;
+    ambient.debugSelectedTrack = ambient.debugSelectedTrack ?? null;
+    return ambient;
+}
+
+function buildAmbientTrackLabel(track, fallbackLabel = "Ambient") {
+    if (!track) {
+        return fallbackLabel;
+    }
+
+    return track.label
+        ?? track.name
+        ?? track.mood
+        ?? track.fileName
+        ?? fallbackLabel;
+}
+
+function buildAmbientTrackEntry(track, index, source = "catalog") {
+    return {
+        key: track?.key ?? track?.mood ?? track?.fileName ?? `track-${index}`,
+        label: buildAmbientTrackLabel(track, `Track ${index + 1}`),
+        url: track?.src ?? track?.legacyPath ?? "",
+        source
+    };
+}
+
+function buildTvBackgroundAudioDebugTracks() {
+    const playlist = getAmbientPlaylist().map((track, index) => buildAmbientTrackEntry(track, index, "catalog"));
+    const offEntry = {
+        key: "off",
+        label: "Silence / Off",
+        url: "",
+        source: "virtual"
+    };
+
+    if (!playlist.some((item) => item.key === offEntry.key)) {
+        playlist.unshift(offEntry);
+    }
+
+    return playlist;
+}
+
+function syncBackgroundTelemetryState(overrides = {}) {
+    const manager = ensureTvAudioManager();
+    const ambient = ensureAmbientDebugTrackState();
+    const activeTrack = ambient.currentTrack ?? ambient.debugSelectedTrack;
+    const selectedTrack = ambient.debugSelectedTrack ?? activeTrack;
+    return updateTvBackgroundAudioState({
+        activeLabel: buildAmbientTrackLabel(activeTrack, "Default"),
+        activeUrl: activeTrack?.src ?? "",
+        selectedLabel: buildAmbientTrackLabel(selectedTrack, "Default"),
+        selectedUrl: selectedTrack?.src ?? "",
+        selectedKey: selectedTrack?.key ?? "default",
+        status: ambient.debugStatus ?? (manager.ambientStarted ? "playing" : "stopped"),
+        volume: clamp(Number(manager.ambientTargetVolume) || 0.42, 0, 1),
+        error: ambient.debugError ?? null,
+        tracks: buildTvBackgroundAudioDebugTracks(),
+        ...overrides
+    });
+}
+
+function resetAmbientState({ destroyed }) {
+    const manager = ensureTvAudioManager();
+    const ambient = ensureAmbientDebugTrackState();
+    ambient.destroyed = Boolean(destroyed);
+    ambient.pausedForHiddenTab = false;
+    ambient.isTransitioning = false;
+    [ambient.currentAudio, ambient.nextAudio].forEach((audio) => cleanupManagedAudio(audio));
+    ambient.currentAudio = null;
+    ambient.currentTrack = null;
+    ambient.currentIndex = -1;
+    ambient.nextAudio = null;
+    ambient.nextTrack = null;
+    ambient.nextIndex = -1;
+    ambient.lastTrackSrc = null;
+    manager.ambientStarted = false;
 }
 
 function createPlaybackAudio(url, channel, volume, muted) {
@@ -716,11 +888,16 @@ async function prepareInitialAmbientAudio(hostAudio) {
 
 function markAmbientTrackFailed(track, reason) {
     const manager = ensureTvAudioManager();
+    const ambient = ensureAmbientDebugTrackState();
     if (!track?.src) {
         return;
     }
 
     manager.lastError = { name: "AmbientError", message: `${track.src} :: ${reason}` };
+    ambient.debugError = reason;
+    ambient.debugStatus = /allow|gesture|interact/i.test(reason) ? "blocked" : "failed";
+    syncBackgroundTelemetryState();
+    pushAudioDebugLog("background-failed", "warn", { src: track.src, reason });
 
     if (throttleKey("TV_AMBIENT", `fail:${track.src}:${reason}`, 5000)) {
         logAmbientDebug("track failed", { src: track.src, reason });
@@ -729,11 +906,15 @@ function markAmbientTrackFailed(track, reason) {
 
 function chooseNextAmbientTrack(excludeSrc = null) {
     const playlist = getAmbientPlaylist();
+    const ambient = ensureAmbientDebugTrackState();
+    if (ambient.debugSelectedTrack?.src) {
+        return { track: ambient.debugSelectedTrack, index: -1 };
+    }
+
     if (playlist.length === 0) {
         return null;
     }
 
-    const ambient = ensureTvAudioManager().ambient;
     const safeExclude = excludeSrc ?? ambient.lastTrackSrc;
     for (let step = 1; step <= playlist.length; step += 1) {
         const candidateIndex = (Math.max(ambient.currentIndex, -1) + step) % playlist.length;
@@ -799,9 +980,13 @@ async function ensureAmbientPreloaded(excludeSrc = null) {
 
 async function startAmbientAudioInstance(audio, track, reason) {
     const manager = ensureTvAudioManager();
+    const ambient = ensureAmbientDebugTrackState();
     if (audio && !audio.paused && !audio.ended && audio.currentSrc) {
         manager.unlocked = true;
         manager.autoplayBlocked = false;
+        ambient.debugStatus = "playing";
+        ambient.debugError = null;
+        syncBackgroundTelemetryState();
         logAmbientDebug("already playing", { src: track.src, reason });
         return true;
     }
@@ -810,12 +995,24 @@ async function startAmbientAudioInstance(audio, track, reason) {
         await audio.play();
         manager.unlocked = true;
         manager.autoplayBlocked = false;
+        ambient.debugStatus = "playing";
+        ambient.debugError = null;
+        syncBackgroundTelemetryState();
+        pushAudioDebugLog("background-playing", "info", { src: track.src, reason });
         logAmbientDebug("play ok", { src: track.src, reason });
         return true;
     } catch (error) {
         const normalized = normalizeAudioError(error);
         manager.lastError = normalized;
         manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+        ambient.debugStatus = manager.autoplayBlocked ? "blocked" : "failed";
+        ambient.debugError = normalized.message;
+        syncBackgroundTelemetryState();
+        pushAudioDebugLog(manager.autoplayBlocked ? "background-audio-blocked" : "background-failed", "warn", {
+            src: track?.src ?? null,
+            reason,
+            error: normalized.message
+        });
         markAmbientTrackFailed(track, normalized.message);
         return false;
     }
@@ -958,21 +1155,11 @@ async function resumeAmbientPlayback(reason = "resume") {
 }
 
 function stopAmbientPlayback() {
-    const manager = ensureTvAudioManager();
-    const ambient = manager.ambient;
-    ambient.destroyed = true;
-    ambient.pausedForHiddenTab = false;
-    ambient.isTransitioning = false;
-
-    [ambient.currentAudio, ambient.nextAudio].forEach((audio) => cleanupManagedAudio(audio));
-    ambient.currentAudio = null;
-    ambient.currentTrack = null;
-    ambient.currentIndex = -1;
-    ambient.nextAudio = null;
-    ambient.nextTrack = null;
-    ambient.nextIndex = -1;
-    ambient.lastTrackSrc = null;
-    manager.ambientStarted = false;
+    const ambient = ensureAmbientDebugTrackState();
+    resetAmbientState({ destroyed: true });
+    ambient.debugStatus = "stopped";
+    syncBackgroundTelemetryState();
+    pushAudioDebugLog("background-stopped", "info");
 }
 
 function diagnoseTvAudio() {
@@ -3739,6 +3926,162 @@ function destroyBroadcastAudioLegacy(elementId) {
     }
 }
 
+function attachProceduralAudioLifecycle(audio, payload) {
+    const normalized = normalizeTelemetryPayload(payload);
+    activeProceduralAudio = audio;
+    notifyProceduralAudioEvent("found", normalized);
+    notifyProceduralAudioEvent("playing", normalized);
+
+    audio.onended = () => {
+        if (activeProceduralAudio === audio) {
+            activeProceduralAudio = null;
+        }
+
+        notifyProceduralAudioEvent("played", normalized);
+        pushAudioDebugLog("played", "info", normalized);
+        cleanupManagedAudio(audio);
+    };
+}
+
+async function playProceduralAudioNode(audio, payload = {}) {
+    if (!(audio instanceof HTMLAudioElement)) {
+        notifyProceduralAudioEvent("failed", { ...payload, error: "missing audio element" });
+        return false;
+    }
+
+    const normalized = normalizeTelemetryPayload({
+        ...payload,
+        audioUrl: payload.audioUrl ?? audio.currentSrc ?? audio.src ?? null
+    });
+
+    try {
+        if (activeProceduralAudio && activeProceduralAudio !== audio) {
+            try {
+                activeProceduralAudio.pause();
+                activeProceduralAudio.currentTime = 0;
+            } catch {
+            }
+        }
+
+        audio.pause();
+        audio.currentTime = 0;
+        audio.loop = false;
+        applyProceduralAudioElementVolume(audio);
+        attachProceduralAudioLifecycle(audio, normalized);
+        await audio.play();
+        pushAudioDebugLog("playing", "info", normalized);
+        return true;
+    } catch (error) {
+        const normalizedError = normalizeAudioError(error);
+        notifyProceduralAudioEvent("failed", {
+            ...normalized,
+            error: normalizedError.message
+        });
+        pushAudioDebugLog("failed", "warn", {
+            ...normalized,
+            error: normalizedError.message
+        });
+        return false;
+    }
+}
+
+function buildBackgroundDebugController() {
+    return {
+        listTracks: () => buildTvBackgroundAudioDebugTracks(),
+        setVolume(volume) {
+            const manager = ensureTvAudioManager();
+            manager.ambientTargetVolume = clamp(Number(volume) || manager.ambientTargetVolume, 0, 1);
+            const ambient = ensureAmbientDebugTrackState();
+            const currentGain = ambient.currentAudio ? manager.instanceGains.get(ambient.currentAudio) : null;
+            if (currentGain) {
+                fadeGainTo(currentGain, manager.muted ? 0 : manager.ambientTargetVolume, 350);
+            } else if (ambient.currentAudio) {
+                fadeMediaVolume(ambient.currentAudio, manager.muted ? 0 : manager.ambientTargetVolume, 350);
+            }
+
+            syncBackgroundTelemetryState({ volume: manager.ambientTargetVolume });
+            pushAudioDebugLog("background-volume-changed", "info", { volume: manager.ambientTargetVolume });
+            return manager.ambientTargetVolume;
+        },
+        async setTrack(url, label, key) {
+            const ambient = ensureAmbientDebugTrackState();
+            if (!url) {
+                ambient.debugSelectedTrack = { key: key ?? "off", label: label ?? "Silence / Off", src: "" };
+                resetAmbientState({ destroyed: false });
+                ambient.debugStatus = "stopped";
+                syncBackgroundTelemetryState({
+                    selectedUrl: "",
+                    selectedLabel: label ?? "Silence / Off",
+                    selectedKey: key ?? "off",
+                    activeUrl: "",
+                    activeLabel: label ?? "Silence / Off"
+                });
+                pushAudioDebugLog("background-track-selected", "info", { key: key ?? "off", label: label ?? "Silence / Off", url: "" });
+                return syncBackgroundTelemetryState();
+            }
+
+            ambient.debugSelectedTrack = {
+                key: key ?? "custom",
+                label: label ?? "Custom ambient",
+                src: url
+            };
+            resetAmbientState({ destroyed: false });
+            ambient.debugStatus = "paused";
+            syncBackgroundTelemetryState({
+                selectedUrl: url,
+                selectedLabel: label ?? "Custom ambient",
+                selectedKey: key ?? "custom"
+            });
+            pushAudioDebugLog("background-track-selected", "info", { key: key ?? "custom", label, url });
+            return syncBackgroundTelemetryState();
+        },
+        async play() {
+            const ambient = ensureAmbientDebugTrackState();
+            ambient.destroyed = false;
+            const played = await resumeAmbientPlayback("debug-play");
+            syncBackgroundTelemetryState({
+                status: played ? "playing" : ambient.debugStatus
+            });
+            return played;
+        },
+        pause() {
+            const ambient = ensureAmbientDebugTrackState();
+            if (ambient.currentAudio) {
+                try {
+                    ambient.currentAudio.pause();
+                } catch {
+                }
+            }
+
+            ambient.debugStatus = "paused";
+            syncBackgroundTelemetryState();
+            pushAudioDebugLog("background-paused", "info");
+            return true;
+        },
+        stop() {
+            const ambient = ensureAmbientDebugTrackState();
+            resetAmbientState({ destroyed: false });
+            ambient.debugStatus = "stopped";
+            syncBackgroundTelemetryState();
+            pushAudioDebugLog("background-stopped", "info");
+            return true;
+        },
+        async reset() {
+            const ambient = ensureAmbientDebugTrackState();
+            ambient.debugSelectedTrack = null;
+            resetAmbientState({ destroyed: false });
+            ambient.debugStatus = "paused";
+            syncBackgroundTelemetryState({
+                selectedUrl: "",
+                selectedLabel: "Default",
+                selectedKey: "default"
+            });
+            pushAudioDebugLog("background-track-selected", "info", { key: "default", label: "Default", url: "" });
+            return syncBackgroundTelemetryState();
+        }
+    };
+}
+
 export function initBroadcastAudio(elementId, volume, muted) {
     return ensureTvAudioFacade().initBroadcastAudio(elementId, volume, muted);
 }
@@ -3771,6 +4114,146 @@ export function destroyBroadcastAudio(elementId) {
     return ensureTvAudioFacade().destroyBroadcastAudio(elementId);
 }
 
+export function setTvAudioDebugEnabled(enabled, options = {}) {
+    const active = setTvAudioTelemetryEnabled(enabled);
+    setTvBackgroundAudioController(buildBackgroundDebugController());
+
+    if (!active) {
+        return getTvAudioTelemetryState();
+    }
+
+    if (options?.culture) {
+        setTvMediaCultureCore(options.culture);
+    }
+
+    const manager = ensureTvAudioManager();
+    syncBackgroundTelemetryState({
+        volume: clamp(Number(options?.backgroundVolume) || manager.ambientTargetVolume || 0.42, 0, 1)
+    });
+
+    const telemetry = telemetryApi();
+    const state = telemetry?.getState?.();
+    const proceduralVolume = clamp(Number(state?.volume) || manager.volume, 0, 1);
+    telemetry?.setVolume?.(proceduralVolume);
+
+    const backgroundVolume = clamp(Number(state?.background?.volume) || manager.ambientTargetVolume || 0.42, 0, 1);
+    buildBackgroundDebugController().setVolume(backgroundVolume);
+
+    if (state?.background?.selectedKey === "off") {
+        buildBackgroundDebugController().setTrack("", state.background.selectedLabel, "off");
+    } else if (state?.background?.selectedUrl) {
+        buildBackgroundDebugController().setTrack(state.background.selectedUrl, state.background.selectedLabel, state.background.selectedKey);
+        buildBackgroundDebugController().play().catch?.(() => { });
+    }
+
+    pushAudioDebugLog("audio-debug-enabled", "info", {
+        culture: getTvMediaCulture(),
+        proceduralVolume,
+        backgroundVolume
+    });
+
+    return getTvAudioTelemetryState();
+}
+
+export function getTvAudioDebugState() {
+    return getTvAudioTelemetryState();
+}
+
+export function clearTvAudioDebug() {
+    const telemetry = telemetryApi();
+    return telemetry?.clear?.() ?? getTvAudioTelemetryState();
+}
+
+export function setProceduralAudioDebugVolume(volume) {
+    const telemetry = telemetryApi();
+    const nextVolume = clamp(Number(volume) || getProceduralAudioDebugVolume(), 0, 1);
+    telemetry?.setVolume?.(nextVolume);
+    if (activeProceduralAudio) {
+        applyProceduralAudioElementVolume(activeProceduralAudio);
+    }
+    return nextVolume;
+}
+
+export async function playProceduralAudioElement(elementId, payload = {}) {
+    const audio = typeof document !== "undefined" ? document.getElementById(elementId) : null;
+    return playProceduralAudioNode(audio, payload);
+}
+
+export async function playProceduralAudioUrl(url, payload = {}) {
+    if (!url) {
+        notifyProceduralAudioEvent("missing", { ...payload, message: "Missing procedural audio URL" });
+        return false;
+    }
+
+    const audio = new Audio(url);
+    audio.preload = "auto";
+    return playProceduralAudioNode(audio, {
+        ...payload,
+        audioUrl: url
+    });
+}
+
+export function stopProceduralAudioDebug() {
+    if (!activeProceduralAudio) {
+        return false;
+    }
+
+    try {
+        activeProceduralAudio.pause();
+        activeProceduralAudio.currentTime = 0;
+    } catch {
+    }
+
+    activeProceduralAudio = null;
+    pushAudioDebugLog("procedural-stop", "info");
+    return true;
+}
+
+export function notifyProceduralAudioDebug(status, payload = {}) {
+    const normalized = normalizeTelemetryPayload({ ...payload, status });
+    if (status === "fallback") {
+        pushAudioDebugLog("fallback", "info", normalized);
+    } else if (status === "missing" || status === "queued" || status === "failed" || status === "skipped") {
+        pushAudioDebugLog(status, status === "failed" ? "warn" : "info", normalized);
+    }
+
+    return notifyProceduralAudioEvent(status, normalized);
+}
+
+export function getTvBackgroundAudioDebugState() {
+    return syncBackgroundTelemetryState();
+}
+
+export function setTvBackgroundAudioDebugVolume(volume) {
+    return buildBackgroundDebugController().setVolume(volume);
+}
+
+export async function setTvBackgroundAudioDebugTrack(url, label, key) {
+    return buildBackgroundDebugController().setTrack(url, label, key);
+}
+
+export async function playTvBackgroundAudioDebug() {
+    return buildBackgroundDebugController().play();
+}
+
+export function pauseTvBackgroundAudioDebug() {
+    return buildBackgroundDebugController().pause();
+}
+
+export function stopTvBackgroundAudioDebug() {
+    return buildBackgroundDebugController().stop();
+}
+
+export async function resetTvBackgroundAudioDebug() {
+    const controller = buildBackgroundDebugController();
+    await controller.reset();
+    return controller.play();
+}
+
+export function listTvBackgroundAudioDebugTracks() {
+    return buildBackgroundDebugController().listTracks();
+}
+
 if (typeof globalThis !== "undefined") {
     globalThis.initBroadcastAudio = initBroadcastAudio;
     globalThis.setBroadcastAudioMuted = setBroadcastAudioMuted;
@@ -3782,6 +4265,22 @@ if (typeof globalThis !== "undefined") {
     globalThis.unlockBroadcastAudio = unlockBroadcastAudio;
     globalThis.destroyBroadcastAudio = destroyBroadcastAudio;
     globalThis.getTvAudioState = getTvAudioState;
+    globalThis.setTvAudioDebugEnabled = setTvAudioDebugEnabled;
+    globalThis.getTvAudioDebugState = getTvAudioDebugState;
+    globalThis.clearTvAudioDebug = clearTvAudioDebug;
+    globalThis.setProceduralAudioDebugVolume = setProceduralAudioDebugVolume;
+    globalThis.playProceduralAudioElement = playProceduralAudioElement;
+    globalThis.playProceduralAudioUrl = playProceduralAudioUrl;
+    globalThis.stopProceduralAudioDebug = stopProceduralAudioDebug;
+    globalThis.notifyProceduralAudioDebug = notifyProceduralAudioDebug;
+    globalThis.getTvBackgroundAudioDebugState = getTvBackgroundAudioDebugState;
+    globalThis.setTvBackgroundAudioDebugVolume = setTvBackgroundAudioDebugVolume;
+    globalThis.setTvBackgroundAudioDebugTrack = setTvBackgroundAudioDebugTrack;
+    globalThis.playTvBackgroundAudioDebug = playTvBackgroundAudioDebug;
+    globalThis.pauseTvBackgroundAudioDebug = pauseTvBackgroundAudioDebug;
+    globalThis.stopTvBackgroundAudioDebug = stopTvBackgroundAudioDebug;
+    globalThis.resetTvBackgroundAudioDebug = resetTvBackgroundAudioDebug;
+    globalThis.listTvBackgroundAudioDebugTracks = listTvBackgroundAudioDebugTracks;
     globalThis.tvAudioMap = tvAudioMap;
     globalThis.criptoVersusTvAudioManager = {
         init: initTvAudioManager,
@@ -3792,7 +4291,9 @@ if (typeof globalThis !== "undefined") {
         unlock: unlockBroadcastAudio,
         destroy: destroyBroadcastAudio,
         state: getTvAudioState,
-        setCulture: setTvMediaCulture
+        setCulture: setTvMediaCulture,
+        setDebug: setTvAudioDebugEnabled,
+        getDebugState: getTvAudioDebugState
     };
     globalThis.criptoVersusTvCharts = {
         initTelemetryCube,
