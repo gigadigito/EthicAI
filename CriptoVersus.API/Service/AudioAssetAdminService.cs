@@ -84,6 +84,7 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             .ToListAsync(ct);
 
         var mapped = materialized
+            .Where(x => _storage.StoredAudioExists(x.RelativePath))
             .Select(Map)
             .Where(x => query.SuspectsOnly != true || x.IsSuspect)
             .ToList();
@@ -106,7 +107,9 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
     public async Task<AudioAssetAdminListItemDto?> GetAssetAsync(long id, CancellationToken ct = default)
     {
         var asset = await _db.AudioAsset.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
-        return asset is null ? null : Map(asset);
+        return asset is null || !_storage.StoredAudioExists(asset.RelativePath)
+            ? null
+            : Map(asset);
     }
 
     public async Task<AudioAssetAdminActionResultDto> DisableAsync(long id, string actorWallet, CancellationToken ct = default)
