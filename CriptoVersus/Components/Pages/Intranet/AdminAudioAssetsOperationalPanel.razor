@@ -145,7 +145,7 @@ else
                                     <td style="min-width:260px">
                                         @if (file.Exists)
                                         {
-                                            @{ var fileAudioId = GetFilesystemAudioElementId(file.RelativePath); }
+                                            var fileAudioId = GetFilesystemAudioElementId(file.RelativePath);
                                             <div class="d-flex flex-wrap gap-1 align-items-center">
                                                 <button class="btn btn-outline-success btn-sm" @onclick='() => PlayAudioByIdAsync(fileAudioId)'>Play</button>
                                                 <button class="btn btn-outline-secondary btn-sm" @onclick='() => StopAudioByIdAsync(fileAudioId)'>Stop</button>
@@ -256,7 +256,7 @@ else
                                     <td style="min-width:260px">
                                         @if (asset.PublicUrlValid)
                                         {
-                                            @{ var assetAudioId = GetAssetAudioElementId(asset.Id); }
+                                            var assetAudioId = GetAssetAudioElementId(asset.Id);
                                             <div class="d-flex flex-wrap gap-1 align-items-center">
                                                 <button class="btn btn-outline-success btn-sm" @onclick='() => PlayAudioByIdAsync(assetAudioId)'>Play</button>
                                                 <button class="btn btn-outline-secondary btn-sm" @onclick='() => StopAudioByIdAsync(assetAudioId)'>Stop</button>
