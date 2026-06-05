@@ -3485,7 +3485,11 @@ else
                 return;
 
             var currentGoalSignature = BuildGoalTriggerSignature(current);
-            if (string.Equals(currentGoalSignature, _lastGoalTriggerSignature, StringComparison.Ordinal))
+            var latestProceduralAudioUrl = NormalizeProceduralGoalAudioUrl(latest.AudioUrl);
+            var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(latestProceduralAudioUrl)
+                && string.Equals(currentGoalSignature, _lastGoalAudioSignature, StringComparison.Ordinal)
+                && !string.Equals(_lastGoalAudioPlaybackKind, "procedural", StringComparison.Ordinal);
+            if (string.Equals(currentGoalSignature, _lastGoalTriggerSignature, StringComparison.Ordinal) && !canUpgradeToProcedural)
                 return;
 
             _lastTriggeredGoalEventId = latest.MatchScoreEventId;
