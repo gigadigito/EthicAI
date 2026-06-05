@@ -936,6 +936,8 @@ else
     private bool _pendingScoreEventProbe;
     private bool _isScoreEventProbeRunning;
     private bool _audioDebugEnabled;
+    private bool? _lastAppliedAudioDebugEnabled;
+    private string _lastAppliedAudioDebugCulture = string.Empty;
     private int? _lastScoreEventMatchId;
     private long? _lastSeenScoreEventId;
     private long? _lastTriggeredGoalEventId;
@@ -1141,11 +1143,7 @@ else
             try
             {
                 await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
-                await _tvModule.InvokeVoidAsync("setTvAudioDebugEnabled", _audioDebugEnabled, new
-                {
-                    culture = Culture,
-                    backgroundVolume = (double)ResolveCrowdAudioVolume()
-                });
+                await EnsureAudioDebugInteropAsync();
             }
             catch (JSException)
             {
@@ -1156,11 +1154,7 @@ else
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260604-audio-debug-1");
             await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
-            await _tvModule.InvokeVoidAsync("setTvAudioDebugEnabled", _audioDebugEnabled, new
-            {
-                culture = Culture,
-                backgroundVolume = (double)ResolveCrowdAudioVolume()
-            });
+            await EnsureAudioDebugInteropAsync(force: true);
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
             _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
             await LogAsync("TV_MOTION", "motion system ready");
@@ -1817,6 +1811,26 @@ else
         {
             _audioDebugEnabled = false;
         }
+    }
+
+    private async Task EnsureAudioDebugInteropAsync(bool force = false)
+    {
+        if (_tvModule is null)
+            return;
+
+        var cultureChanged = !string.Equals(_lastAppliedAudioDebugCulture, Culture, StringComparison.OrdinalIgnoreCase);
+        var enabledChanged = _lastAppliedAudioDebugEnabled != _audioDebugEnabled;
+        if (!force && !cultureChanged && !enabledChanged)
+            return;
+
+        await _tvModule.InvokeVoidAsync("setTvAudioDebugEnabled", _audioDebugEnabled, new
+        {
+            culture = Culture,
+            backgroundVolume = (double)ResolveCrowdAudioVolume()
+        });
+
+        _lastAppliedAudioDebugEnabled = _audioDebugEnabled;
+        _lastAppliedAudioDebugCulture = Culture;
     }
 
     private async Task RunMetricSnapshotLoopAsync(CancellationToken ct)
