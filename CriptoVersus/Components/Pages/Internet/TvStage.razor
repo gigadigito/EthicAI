@@ -5259,8 +5259,8 @@ else
             };
 
             var played = _tvModule is not null
-                ? await _tvModule.InvokeAsync<bool>("playProceduralAudioUrl", KnownArenaAudioUrl, payload)
-                : await JS.InvokeAsync<bool>("playProceduralAudioUrl", KnownArenaAudioUrl, payload);
+                ? await _tvModule.InvokeAsync<bool>("playDirectAudioUrl", KnownArenaAudioUrl, payload)
+                : await JS.InvokeAsync<bool>("playDirectAudioUrl", KnownArenaAudioUrl, payload);
 
             await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
             {

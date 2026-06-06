@@ -136,10 +136,23 @@ export function connectAudioElement(audio, channel) {
     const manager = ensureTvAudioManager();
     const context = getTvAudioContext();
     if (!context || context.state !== "running") {
+        console.debug("[TV_AUDIO_CONNECT]", {
+            reason: "context-not-running",
+            channel,
+            contextState: context?.state ?? null,
+            src: audio?.currentSrc ?? audio?.src ?? null,
+            crossOrigin: audio?.crossOrigin ?? null
+        });
         return null;
     }
 
     if (manager.sourceNodes.has(audio)) {
+        console.debug("[TV_AUDIO_CONNECT]", {
+            reason: "existing-source-node",
+            channel,
+            src: audio?.currentSrc ?? audio?.src ?? null,
+            crossOrigin: audio?.crossOrigin ?? null
+        });
         return manager.sourceNodes.get(audio);
     }
 
@@ -158,7 +171,17 @@ export function connectAudioElement(audio, channel) {
         manager.sourceNodes.set(audio, source);
         manager.instanceGains.set(audio, instanceGain);
         return source;
-    } catch {
+    } catch (error) {
+        console.debug("[TV_AUDIO_CONNECT]", {
+            reason: "create-media-element-source-failed",
+            channel,
+            src: audio?.currentSrc ?? audio?.src ?? null,
+            crossOrigin: audio?.crossOrigin ?? null,
+            readyState: audio?.readyState ?? null,
+            networkState: audio?.networkState ?? null,
+            errorName: error?.name ?? "Error",
+            errorMessage: error?.message ?? String(error)
+        });
         return null;
     }
 }

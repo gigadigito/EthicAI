@@ -449,7 +449,12 @@ function reportProceduralFailure(reason, payload, audio, error = null, extra = {
     const eventPayload = {
         ...payload,
         reason,
+        errorName: normalizedError?.name ?? null,
         error: normalizedError?.message ?? payload?.error ?? null,
+        audioSrc: audio?.currentSrc ?? audio?.src ?? payload?.audioUrl ?? null,
+        crossOrigin: audio?.crossOrigin ?? null,
+        readyState: audio?.readyState ?? null,
+        networkState: audio?.networkState ?? null,
         ...extra
     };
 
@@ -4512,13 +4517,59 @@ export async function playProceduralAudioUrl(url, payload = {}) {
         return false;
     }
 
-    const audio = new Audio(url);
+    const audio = new Audio();
     audio.crossOrigin = "anonymous";
     audio.preload = "auto";
+    audio.src = url;
     return playProceduralAudioNode(audio, {
         ...payload,
         audioUrl: url
     });
+}
+
+export async function playDirectAudioUrl(url, payload = {}) {
+    if (!url) {
+        notifyProceduralAudioEvent("missing", { ...payload, message: "Missing direct audio URL" });
+        return false;
+    }
+
+    const audio = new Audio();
+    audio.crossOrigin = "anonymous";
+    audio.preload = "auto";
+    audio.src = url;
+    audio.volume = clamp(Number(payload?.volume) || 0.8, 0, 1);
+    audio.muted = false;
+
+    try {
+        const unlocked = await unlockTvAudioContext("direct-audio");
+        console.debug("[TV_AUDIO_STATE]", {
+            paused: audio.paused,
+            ended: audio.ended,
+            currentTime: audio.currentTime,
+            src: audio.currentSrc || audio.src || null,
+            readyState: audio.readyState,
+            networkState: audio.networkState,
+            source: "direct-before-play",
+            unlocked
+        });
+
+        await audio.play();
+        notifyProceduralAudioEvent("playing", {
+            ...payload,
+            audioUrl: url,
+            source: "direct-audio"
+        });
+
+        audio.onended = () => cleanupManagedAudio(audio);
+        return true;
+    } catch (error) {
+        reportProceduralFailure("play-exception", {
+            ...payload,
+            audioUrl: url,
+            source: "direct-audio"
+        }, audio, error);
+        return false;
+    }
 }
 
 export function stopProceduralAudioDebug() {
@@ -4594,6 +4645,7 @@ if (typeof globalThis !== "undefined") {
     globalThis.unlockBroadcastAudio = unlockBroadcastAudio;
     globalThis.destroyBroadcastAudio = destroyBroadcastAudio;
     globalThis.getTvAudioState = getTvAudioState;
+    globalThis.playDirectAudioUrl = playDirectAudioUrl;
     globalThis.setTvAudioDebugEnabled = setTvAudioDebugEnabled;
     globalThis.getTvAudioDebugState = getTvAudioDebugState;
     globalThis.clearTvAudioDebug = clearTvAudioDebug;
