@@ -915,7 +915,7 @@ namespace CriptoVersus.Worker
                 m.BettingCloseTime.Value <= nowUtc, ct);
         }
 
-        private static async Task CancelPendingOutsideSnapshotAsync(
+        private async Task CancelPendingOutsideSnapshotAsync(
             EthicAIDbContext db,
             HashSet<string> allowed,
             DateTime nowUtc,

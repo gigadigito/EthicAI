@@ -10,6 +10,9 @@
     <Compile Remove="Seed\**" />
     <EmbeddedResource Remove="Seed\**" />
     <None Remove="Seed\**" />
+    <Compile Remove="tmp\**" />
+    <EmbeddedResource Remove="tmp\**" />
+    <None Remove="tmp\**" />
   </ItemGroup>
 
   <ItemGroup>
