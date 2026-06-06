@@ -65,7 +65,8 @@
     private const int SwitchThreshold = 12;
     private const int BreakingHotScoreThreshold = 90;
     private const decimal BreakingPriorityGap = 45m;
-    private static readonly TimeSpan IndependentFeedTimeout = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan PrimarySelectionFeedTimeout = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan AuxiliaryFeedTimeout = TimeSpan.FromSeconds(8);
 
     [Parameter] public string? Culture { get; set; }
 
@@ -232,15 +233,15 @@
             var hotMatchesTask = TryLoadWithTimeoutAsync(
                 token => HotMatches.GetHotMatchesAsync(token),
                 ct,
-                IndependentFeedTimeout);
+                PrimarySelectionFeedTimeout);
             var statsTask = TryLoadWithTimeoutAsync(
                 token => Api.GetStatsOverviewAsync(token),
                 ct,
-                IndependentFeedTimeout);
+                AuxiliaryFeedTimeout);
             var snapshotTask = TryLoadWithTimeoutAsync(
                 token => Api.GetDashboardSnapshotAsync(token),
                 ct,
-                IndependentFeedTimeout);
+                AuxiliaryFeedTimeout);
 
             await Task.WhenAll(hotMatchesTask, statsTask, snapshotTask);
 
@@ -385,7 +386,7 @@
         if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
             return true;
 
-        var current = await Api.GetMatchByIdAsync(_selectedHotMatch.MatchId, ct);
+        var current = await Api.GetMatchByIdAsync(_selectedHotMatch.MatchId, includeParticipants: false, ct);
         return current is null
             || current.IsFinished
             || string.Equals(current.Status, "Completed", StringComparison.OrdinalIgnoreCase)
@@ -514,7 +515,7 @@
 
         _selectedHotRanking = _hotMatches.FirstOrDefault(x => x.MatchId == selectedMatchId) ?? _selectedHotRanking;
         _selectedMatch = _selectedHotRanking?.MatchSnapshot ?? _selectedMatch;
-        _selectedMatch ??= await Api.GetMatchByIdAsync(selectedMatchId, ct);
+        _selectedMatch ??= await Api.GetMatchByIdAsync(selectedMatchId, includeParticipants: false, ct);
         if (_isBroadcastMode && _selectedHotRanking is not null && !IsBroadcastEligibleMatch(_selectedHotRanking))
         {
             await LogAsync("[TV_ROTATION] refresh skipped not live", new
@@ -540,7 +541,7 @@
             var legacyHotMatch = await Api.GetTvHotMatchAsync(ct);
             if (legacyHotMatch?.HasMatch == true)
             {
-                var match = await Api.GetMatchByIdAsync(legacyHotMatch.MatchId, ct);
+                var match = await Api.GetMatchByIdAsync(legacyHotMatch.MatchId, includeParticipants: false, ct);
                 var fallback = BuildFallbackHotMatch(legacyHotMatch, match);
                 if (IsBroadcastEligibleMatch(fallback))
                 {

@@ -44,8 +44,7 @@ namespace CriptoVersus.Worker
         private static readonly TimeSpan ExternalRequestTimeout = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan FreshCurrencyWindow = TimeSpan.FromMinutes(10);
 
-        private const int DesiredOngoing = 10;
-        private const int DesiredPending = 10;
+        private const int DefaultDesiredMatchPoolSize = 10;
 
         private static readonly TimeSpan PendingLeadTime = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan BettingCloseOffset = TimeSpan.FromMinutes(2);
@@ -55,7 +54,7 @@ namespace CriptoVersus.Worker
 
         private const decimal MinQuoteVolumeUsdt = 5_000_000m;
         private const int MinTradesCount = 2000;
-        private const int TakeGainers = 40;
+        private const int DefaultTopGainersTake = 40;
         private const int LogTop = 15;
 
         private const int MoneyScale = 8;
@@ -221,7 +220,7 @@ namespace CriptoVersus.Worker
             await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);
             if (hasHealthySnapshot)
-                await ExecuteStageAsync("ensure-pending-pool", cycleStartUtc, true, innerCt => EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, DesiredPending, nowUtc, innerCt), ct);
+                await ExecuteStageAsync("ensure-pending-pool", cycleStartUtc, true, innerCt => EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, GetDesiredPendingCount(), nowUtc, innerCt), ct);
             await ExecuteStageAsync("normalize-pending-final", cycleStartUtc, true, innerCt => NormalizePendingWindowsAsync(db, nowUtc, innerCt), ct);
             await ExecuteStageAsync("materialize-recurring-bets", cycleStartUtc, true, innerCt => MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, innerCt), ct);
 
@@ -251,7 +250,7 @@ namespace CriptoVersus.Worker
                 .Where(c => c.Count >= MinTradesCount)
                 .Where(c => ParseDec(c.QuoteVolume) >= MinQuoteVolumeUsdt)
                 .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
-                .Take(TakeGainers)
+                .Take(GetTopGainersTake())
                 .ToList();
         }
 
@@ -362,7 +361,7 @@ namespace CriptoVersus.Worker
             CancellationToken ct)
         {
             await CancelPendingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, ct);
-            await ForceEndOngoingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, ct);
+            await ForceEndOngoingOutsideSnapshotAsync(db, allowedSymbols, nowUtc, GetAutoEndOngoingMatches(), ct);
         }
 
         private async Task LogPoolStatusAsync(EthicAIDbContext db, DateTime nowUtc, CancellationToken ct)
@@ -382,8 +381,8 @@ namespace CriptoVersus.Worker
                 pendingClosed,
                 ongoingCount,
                 cancelledRecent,
-                DesiredPending,
-                DesiredOngoing);
+                GetDesiredPendingCount(),
+                GetDesiredOngoingCount());
         }
 
         private async Task EnsurePendingPoolAsync(
@@ -631,11 +630,12 @@ namespace CriptoVersus.Worker
             DateTime nowUtc,
             CancellationToken ct)
         {
+            var desiredOngoing = GetDesiredOngoingCount();
             var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
-            if (ongoingCount >= DesiredOngoing)
+            if (ongoingCount >= desiredOngoing)
                 return;
 
-            var missing = DesiredOngoing - ongoingCount;
+            var missing = desiredOngoing - ongoingCount;
 
             var duePending = await db.Match
                 .Where(m =>
@@ -955,10 +955,11 @@ namespace CriptoVersus.Worker
                 await db.SaveChangesAsync(ct);
         }
 
-        private static async Task ForceEndOngoingOutsideSnapshotAsync(
+        private async Task ForceEndOngoingOutsideSnapshotAsync(
             EthicAIDbContext db,
             HashSet<string> allowed,
             DateTime nowUtc,
+            bool autoEndOngoingMatches,
             CancellationToken ct)
         {
             var ongoingNow = await db.Match
@@ -976,6 +977,17 @@ namespace CriptoVersus.Worker
 
                 if (!allowed.Contains(a) || !allowed.Contains(b))
                 {
+                    if (!autoEndOngoingMatches)
+                    {
+                        _logger.LogInformation(
+                            "Skipping ongoing match cleanup because AutoEndOngoingMatches=false. MatchId={MatchId}, TeamA={TeamA}, TeamB={TeamB}",
+                            m.MatchId,
+                            a,
+                            b);
+                        continue;
+                    }
+
+                    var previousStatus = m.Status;
                     m.Status = MatchStatus.Completed;
                     m.EndTime = nowUtc;
                     m.WinnerTeamId = null;
@@ -985,6 +997,15 @@ namespace CriptoVersus.Worker
                     m.TeamBOutCycles = 0;
                     m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
                     changed++;
+
+                    _logger.LogWarning(
+                        "Auto-finished ongoing match outside snapshot. MatchId={MatchId} TeamA={TeamA} TeamB={TeamB} PreviousStatus={PreviousStatus} Reason={Reason} AutoEndOngoingMatches={AutoEndOngoingMatches}",
+                        m.MatchId,
+                        a,
+                        b,
+                        previousStatus,
+                        m.EndReasonCode,
+                        autoEndOngoingMatches);
                 }
             }
 
@@ -2163,6 +2184,24 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 ? TimeSpan.FromSeconds(configuredSeconds)
                 : DefaultCycleInterval;
         }
+
+        private int GetDesiredOngoingCount()
+            => _options.DesiredActiveMatches > 0
+                ? _options.DesiredActiveMatches
+                : DefaultDesiredMatchPoolSize;
+
+        private int GetDesiredPendingCount()
+            => _options.DesiredActiveMatches > 0
+                ? _options.DesiredActiveMatches
+                : DefaultDesiredMatchPoolSize;
+
+        private int GetTopGainersTake()
+            => _options.TopGainersTake > 0
+                ? _options.TopGainersTake
+                : DefaultTopGainersTake;
+
+        private bool GetAutoEndOngoingMatches()
+            => _options.AutoEndOngoingMatches;
 
         private async Task TouchHeartbeatAsync(DateTime cycleStartUtc, string status, string? stage, CancellationToken ct)
         {

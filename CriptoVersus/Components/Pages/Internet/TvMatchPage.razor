@@ -155,7 +155,7 @@ else
         {
             Logger.LogInformation("TvMatchPage refresh started. MatchId={MatchId}", MatchId);
             _error = null;
-            var matchTask = Api.GetMatchByIdAsync(MatchId, ct);
+            var matchTask = Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct);
             var hotTask = HotMatches.GetHotMatchesAsync(ct);
             await Task.WhenAll(matchTask, hotTask);
 

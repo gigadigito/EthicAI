@@ -19,73 +19,71 @@
 
 <input type="checkbox" title="Abrir menu de navegacao" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="app-nav">
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler')?.click()">
+    <nav class="app-nav pump-style-nav">
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildHomePath(CurrentCulture)" Match="NavLinkMatch.All">
-                <span class="nav-icon">H</span>
+            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildHomePath(CurrentCulture)" Match="NavLinkMatch.All">
+                <i class="bi bi-house-door nav-icon"></i>
                 <span>@L.T("nav.home", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
-                <span class="nav-icon">T</span>
+            <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
+                <i class="bi bi-controller nav-icon"></i>
                 <span>@L.T("nav.howItWorks", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildTokenPath(CurrentCulture)">
-                <span class="nav-icon">K</span>
+            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildTokenPath(CurrentCulture)">
+                <i class="bi bi-coin nav-icon"></i>
                 <span>@L.T("nav.token", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">
-                <span class="nav-icon">S</span>
+            <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">
+                <i class="bi bi-bar-chart-line nav-icon"></i>
                 <span>@L.T("nav.stats", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
-                <span class="nav-icon">R</span>
+            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
+                <i class="bi bi-signpost-2 nav-icon"></i>
                 <span>@L.T("nav.roadmap", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildFaqPath(CurrentCulture)">
-                <span class="nav-icon">F</span>
+            <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildFaqPath(CurrentCulture)">
+                <i class="bi bi-question-circle nav-icon"></i>
                 <span>@L.T("nav.faq", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link" href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">
-                <span class="nav-icon">V</span>
+            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">
+                <i class="bi bi-broadcast-pin nav-icon"></i>
                 <span>@L.T("nav.tvBroadcast", CurrentCulture)</span>
             </NavLink>
         </div>
 
         @if (IsLoggedIn)
-
         {
             <div class="nav-item">
-                <NavLink class="nav-link" href="@RouteLocalization.BuildWalletPath(CurrentCulture)">
-                    <span class="nav-icon">C</span>
+                <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildWalletPath(CurrentCulture)">
+                    <i class="bi bi-wallet2 nav-icon"></i>
                     <span>@L.T("nav.wallet", CurrentCulture)</span>
                 </NavLink>
             </div>
 
             @if (IsAdminWallet)
-
             {
                 <div class="nav-item">
-                    <NavLink class="nav-link" href="@RouteLocalization.BuildAdminPath(CurrentCulture)">
-                        <span class="nav-icon">A</span>
+                    <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildAdminPath(CurrentCulture)">
+                        <i class="bi bi-shield-lock nav-icon"></i>
                         <span>@L.T("nav.admin", CurrentCulture)</span>
                     </NavLink>
                 </div>

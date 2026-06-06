@@ -1,0 +1,14 @@
+﻿.nav-icon {
+    width: 64px;
+    height: 64px;
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+}
+
+    .nav-icon i {
+        font-size: 2rem;
+        line-height: 1;
+    }
