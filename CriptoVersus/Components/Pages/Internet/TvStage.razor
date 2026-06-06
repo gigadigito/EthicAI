@@ -4977,6 +4977,17 @@ else
 
         try
         {
+            await LogAsync("TV_EVENT_AUDIO", "resolving", new
+            {
+                matchId = candidate.MatchId,
+                eventType = candidate.AudioRequest.EventType,
+                audioKey = candidate.AudioKey,
+                candidate.TypeKey,
+                candidate.HighlightSymbol,
+                candidate.AudioRequest.ContextKey,
+                candidate.AudioRequest.Intensity
+            });
+
             var response = await Api.ResolveAudioAsync(new AudioResolveRequest
             {
                 EventType = candidate.AudioRequest.EventType,
@@ -5008,6 +5019,17 @@ else
                 queued = response?.Queued ?? false,
                 response?.QueueStatus,
                 response?.QueueReason
+            });
+
+            await LogAsync("TV_EVENT_AUDIO", "resolved-url", new
+            {
+                matchId = candidate.MatchId,
+                eventType = candidate.AudioRequest.EventType,
+                audioKey = candidate.AudioKey,
+                audioUrl = response?.AudioUrl,
+                assetId = response?.AssetId,
+                found = response?.Found ?? false,
+                queued = response?.Queued ?? false
             });
 
             if (response is null)
@@ -5071,13 +5093,33 @@ else
                 assetId = candidate.AudioAssetId
             };
 
+            await LogAsync("TV_EVENT_AUDIO", "invoking-playDirectAudioUrl", new
+            {
+                matchId = candidate.MatchId,
+                eventType = candidate.AudioRequest?.EventType ?? candidate.TypeKey,
+                audioKey = candidate.AudioKey,
+                audioUrl = candidate.AudioUrl,
+                candidate.HighlightSymbol
+            });
+
             var played = !string.IsNullOrWhiteSpace(candidate.AudioUrl)
                 ? (_tvModule is not null
-                    ? await _tvModule.InvokeAsync<bool>("playProceduralAudioUrl", candidate.AudioUrl, playback)
-                    : await JS.InvokeAsync<bool>("playProceduralAudioUrl", candidate.AudioUrl, playback))
+                    ? await _tvModule.InvokeAsync<bool>("playDirectAudioUrl", candidate.AudioUrl, playback)
+                    : await JS.InvokeAsync<bool>("playDirectAudioUrl", candidate.AudioUrl, playback))
                 : (_tvModule is not null
                     ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, playback)
                     : await JS.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, playback));
+
+            if (played)
+            {
+                await LogAsync("TV_EVENT_AUDIO", "playback-started", new
+                {
+                    matchId = candidate.MatchId,
+                    eventType = candidate.AudioRequest?.EventType ?? candidate.TypeKey,
+                    audioKey = candidate.AudioKey,
+                    audioUrl = candidate.AudioUrl
+                });
+            }
 
             await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
             {
@@ -5093,6 +5135,16 @@ else
         }
         catch (Exception ex) when (ex is JSException or ObjectDisposedException)
         {
+            await LogAsync("TV_EVENT_AUDIO", "playback-failed", new
+            {
+                matchId = candidate.MatchId,
+                eventType = candidate.AudioRequest?.EventType ?? candidate.TypeKey,
+                audioKey = candidate.AudioKey,
+                audioUrl = candidate.AudioUrl,
+                errorName = ex.GetType().Name,
+                error = ex.Message,
+                stack = ex.StackTrace
+            });
             await LogAsync("TV_ARENA_COMMENTARY", "audio-failed", new
             {
                 candidate.MatchId,
@@ -5205,13 +5257,33 @@ else
                 assetId = resolvedCommentary.AudioAssetId
             };
 
+            await LogAsync("TV_EVENT_AUDIO", "invoking-playDirectAudioUrl", new
+            {
+                matchId = resolvedCommentary.MatchId,
+                eventType = resolvedCommentary.AudioRequest?.EventType ?? resolvedCommentary.TypeKey,
+                audioKey = resolvedCommentary.AudioKey,
+                audioUrl = resolvedCommentary.AudioUrl,
+                resolvedCommentary.HighlightSymbol
+            });
+
             var played = !string.IsNullOrWhiteSpace(resolvedCommentary.AudioUrl)
                 ? (_tvModule is not null
-                    ? await _tvModule.InvokeAsync<bool>("playProceduralAudioUrl", resolvedCommentary.AudioUrl, playback)
-                    : await JS.InvokeAsync<bool>("playProceduralAudioUrl", resolvedCommentary.AudioUrl, playback))
+                    ? await _tvModule.InvokeAsync<bool>("playDirectAudioUrl", resolvedCommentary.AudioUrl, playback)
+                    : await JS.InvokeAsync<bool>("playDirectAudioUrl", resolvedCommentary.AudioUrl, playback))
                 : (_tvModule is not null
                     ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", resolvedCommentary.AudioKey, playback)
                     : await JS.InvokeAsync<bool>("playTvAudioCue", resolvedCommentary.AudioKey, playback));
+
+            if (played)
+            {
+                await LogAsync("TV_EVENT_AUDIO", "playback-started", new
+                {
+                    matchId = resolvedCommentary.MatchId,
+                    eventType = resolvedCommentary.AudioRequest?.EventType ?? resolvedCommentary.TypeKey,
+                    audioKey = resolvedCommentary.AudioKey,
+                    audioUrl = resolvedCommentary.AudioUrl
+                });
+            }
 
             await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
             {
@@ -5227,6 +5299,16 @@ else
         }
         catch (Exception ex) when (ex is JSException or ObjectDisposedException)
         {
+            await LogAsync("TV_EVENT_AUDIO", "playback-failed", new
+            {
+                matchId = commentary.MatchId,
+                eventType = commentary.AudioRequest?.EventType ?? commentary.TypeKey,
+                audioKey = commentary.AudioKey,
+                audioUrl = commentary.AudioUrl,
+                errorName = ex.GetType().Name,
+                error = ex.Message,
+                stack = ex.StackTrace
+            });
             await LogAsync("TV_ARENA_COMMENTARY", "audio-failed", new
             {
                 commentary.MatchId,
@@ -6238,6 +6320,16 @@ else
     {
         try
         {
+            await LogAsync("TV_EVENT_AUDIO", "resolved-url", new
+            {
+                matchId = current.MatchId,
+                eventType = mappedEventType,
+                audioKey = scoreEvent.AudioContextKey,
+                audioUrl,
+                normalizedSymbol = scoreEvent.NormalizedTeamSymbol,
+                scoreEventId = scoreEvent.MatchScoreEventId
+            });
+
             var payload = BuildProceduralAudioDebugPayload(
                 current,
                 scoreEvent,
@@ -6254,15 +6346,46 @@ else
                 audioUrl
             });
 
-            if (_tvModule is not null)
-                await _tvModule.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, payload);
-            else
-                await JS.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, payload);
+            await LogAsync("TV_EVENT_AUDIO", "invoking-playDirectAudioUrl", new
+            {
+                matchId = current.MatchId,
+                eventType = mappedEventType,
+                audioKey = scoreEvent.AudioContextKey,
+                audioUrl,
+                scoreEventId = scoreEvent.MatchScoreEventId
+            });
+
+            var played = _tvModule is not null
+                ? await _tvModule.InvokeAsync<bool>("playDirectAudioUrl", audioUrl, payload)
+                : await JS.InvokeAsync<bool>("playDirectAudioUrl", audioUrl, payload);
+
+            if (!played)
+                return false;
+
+            await LogAsync("TV_EVENT_AUDIO", "playback-started", new
+            {
+                matchId = current.MatchId,
+                eventType = mappedEventType,
+                audioKey = scoreEvent.AudioContextKey,
+                audioUrl,
+                scoreEventId = scoreEvent.MatchScoreEventId
+            });
 
             return true;
         }
         catch (Exception ex) when (ex is JSException or ObjectDisposedException)
         {
+            await LogAsync("TV_EVENT_AUDIO", "playback-failed", new
+            {
+                matchId = current.MatchId,
+                eventType = mappedEventType,
+                audioKey = scoreEvent.AudioContextKey,
+                audioUrl,
+                scoreEventId = scoreEvent.MatchScoreEventId,
+                errorName = ex.GetType().Name,
+                error = ex.Message,
+                stack = ex.StackTrace
+            });
             await NotifyProceduralAudioDebugAsync("failed", BuildProceduralAudioDebugPayload(
                 current,
                 scoreEvent,
@@ -6367,6 +6490,8 @@ else
         var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(proceduralAudioUrl)
             && string.Equals(signature, _lastGoalAudioSignature, StringComparison.Ordinal)
             && !string.Equals(_lastGoalAudioPlaybackKind, "procedural", StringComparison.Ordinal);
+        var scorer = scoreEvent?.NormalizedTeamSymbol ?? scoreEvent?.TeamSymbol ?? current.LeaderSymbol;
+        var cooldownBlocked = false;
 
         // Hard de-dupe: the score event probe and the hot snapshot pipeline can see the same goal.
         if (string.Equals(signature, _lastGoalAudioSignature, StringComparison.Ordinal) && !canUpgradeToProcedural)
@@ -6376,7 +6501,19 @@ else
         if (!canUpgradeToProcedural
             && _lastGoalAudioAtUtc != DateTime.MinValue
             && DateTime.UtcNow - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(6))
+        {
+            cooldownBlocked = true;
+            await LogAsync("TV_GOAL_AUDIO", "state", new
+            {
+                scorer,
+                matchId = current.MatchId,
+                audioKey = "goal",
+                resolvedUrl = proceduralAudioUrl,
+                cooldownBlocked,
+                playbackStarted = false
+            });
             return;
+        }
 
         _lastGoalAudioSignature = signature;
         _lastGoalAudioAtUtc = DateTime.UtcNow;
@@ -6385,6 +6522,15 @@ else
             && await TryPlayProceduralGoalAudioAsync(current, proceduralAudioUrl, scoreEvent))
         {
             _lastGoalAudioPlaybackKind = "procedural";
+            await LogAsync("TV_GOAL_AUDIO", "state", new
+            {
+                scorer,
+                matchId = current.MatchId,
+                audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                resolvedUrl = proceduralAudioUrl,
+                cooldownBlocked,
+                playbackStarted = true
+            });
             return;
         }
 
@@ -6431,6 +6577,15 @@ else
                     muted = _isCrowdAudioMuted
                 });
                 _lastGoalAudioPlaybackKind = "legacy";
+                await LogAsync("TV_GOAL_AUDIO", "state", new
+                {
+                    scorer,
+                    matchId = current.MatchId,
+                    audioKey = "goal",
+                    resolvedUrl = proceduralAudioUrl,
+                    cooldownBlocked,
+                    playbackStarted = true
+                });
                 return;
             }
             catch (JSException)
@@ -6460,6 +6615,15 @@ else
                 muted = _isCrowdAudioMuted
             });
             _lastGoalAudioPlaybackKind = "legacy";
+            await LogAsync("TV_GOAL_AUDIO", "state", new
+            {
+                scorer,
+                matchId = current.MatchId,
+                audioKey = "goal",
+                resolvedUrl = proceduralAudioUrl,
+                cooldownBlocked,
+                playbackStarted = true
+            });
         }
         catch
         {
@@ -6473,22 +6637,63 @@ else
     {
         try
         {
-            if (_tvModule is not null)
+            await LogAsync("TV_EVENT_AUDIO", "resolved-url", new
             {
-                await _tvModule.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, BuildProceduralAudioDebugPayload(
-                    current,
-                    scoreEvent,
-                    audioUrl,
-                    message: "Procedural goal audio resolved for playback."));
-            }
-            else
+                matchId = current.MatchId,
+                eventType = ResolveMappedEventType(scoreEvent ?? new MatchScoreEventDto { EventType = "goal" }),
+                audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                audioUrl,
+                scorer = scoreEvent?.NormalizedTeamSymbol ?? scoreEvent?.TeamSymbol
+            });
+            await LogAsync("TV_EVENT_AUDIO", "invoking-playDirectAudioUrl", new
             {
-                await JS.InvokeVoidAsync("playProceduralAudioUrl", audioUrl, BuildProceduralAudioDebugPayload(
-                    current,
-                    scoreEvent,
-                    audioUrl,
-                    message: "Procedural goal audio resolved for playback."));
+                matchId = current.MatchId,
+                eventType = ResolveMappedEventType(scoreEvent ?? new MatchScoreEventDto { EventType = "goal" }),
+                audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                audioUrl
+            });
+
+            var payload = BuildProceduralAudioDebugPayload(
+                current,
+                scoreEvent,
+                audioUrl,
+                message: "Procedural goal audio resolved for playback.");
+
+            var played = _tvModule is not null
+                ? await _tvModule.InvokeAsync<bool>("playDirectAudioUrl", audioUrl, payload)
+                : await JS.InvokeAsync<bool>("playDirectAudioUrl", audioUrl, payload);
+
+            if (!played)
+            {
+                await LogAsync("TV_GOAL_AUDIO", "state", new
+                {
+                    scorer = scoreEvent?.NormalizedTeamSymbol ?? scoreEvent?.TeamSymbol,
+                    matchId = current.MatchId,
+                    audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                    resolvedUrl = audioUrl,
+                    cooldownBlocked = false,
+                    playbackStarted = false
+                });
+                return false;
             }
+
+            await LogAsync("TV_EVENT_AUDIO", "playback-started", new
+            {
+                matchId = current.MatchId,
+                eventType = ResolveMappedEventType(scoreEvent ?? new MatchScoreEventDto { EventType = "goal" }),
+                audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                audioUrl
+            });
+
+            await LogAsync("TV_GOAL_AUDIO", "state", new
+            {
+                scorer = scoreEvent?.NormalizedTeamSymbol ?? scoreEvent?.TeamSymbol,
+                matchId = current.MatchId,
+                audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                resolvedUrl = audioUrl,
+                cooldownBlocked = false,
+                playbackStarted = true
+            });
 
             await LogAsync("TV_AUDIO", "procedural-goal-used", new
             {
@@ -6504,6 +6709,16 @@ else
         }
         catch (Exception ex) when (ex is JSException or ObjectDisposedException)
         {
+            await LogAsync("TV_EVENT_AUDIO", "playback-failed", new
+            {
+                matchId = current.MatchId,
+                eventType = ResolveMappedEventType(scoreEvent ?? new MatchScoreEventDto { EventType = "goal" }),
+                audioKey = scoreEvent?.AudioContextKey ?? "goal",
+                audioUrl,
+                errorName = ex.GetType().Name,
+                error = ex.Message,
+                stack = ex.StackTrace
+            });
             await NotifyProceduralAudioDebugAsync("failed", BuildProceduralAudioDebugPayload(
                 current,
                 scoreEvent,
