@@ -948,6 +948,16 @@ namespace CriptoVersus.Worker
                     m.TeamBOutCycles = 0;
                     m.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
                     changed++;
+
+                    _logger.LogInformation(
+                        "Match finalization applied. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
+                        "cleanup-out-of-snapshot-pending",
+                        GetAutoEndOngoingMatches(),
+                        m.EndReasonCode,
+                        m.EndReasonDetail,
+                        m.MatchId,
+                        a,
+                        b);
                 }
             }
 
@@ -979,11 +989,13 @@ namespace CriptoVersus.Worker
                 {
                     if (!autoEndOngoingMatches)
                     {
-                        _logger.LogInformation(
-                            "Skipping ongoing match cleanup because AutoEndOngoingMatches=false. MatchId={MatchId}, TeamA={TeamA}, TeamB={TeamB}",
-                            m.MatchId,
-                            a,
-                            b);
+                        LogSkippedOngoingAutoEnd(
+                            routine: "cleanup-out-of-snapshot-ongoing",
+                            matchId: m.MatchId,
+                            teamA: a,
+                            teamB: b,
+                            reasonCode: "FILTERED_OUT_ONGOING",
+                            reasonDetail: $"Forced end blocked: pair not in TopGainers snapshot. A={a} B={b}");
                         continue;
                     }
 
@@ -999,13 +1011,15 @@ namespace CriptoVersus.Worker
                     changed++;
 
                     _logger.LogWarning(
-                        "Auto-finished ongoing match outside snapshot. MatchId={MatchId} TeamA={TeamA} TeamB={TeamB} PreviousStatus={PreviousStatus} Reason={Reason} AutoEndOngoingMatches={AutoEndOngoingMatches}",
-                        m.MatchId,
-                        a,
-                        b,
+                        "Match finalization applied. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} PreviousStatus={PreviousStatus} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
+                        "cleanup-out-of-snapshot-ongoing",
+                        autoEndOngoingMatches,
                         previousStatus,
                         m.EndReasonCode,
-                        autoEndOngoingMatches);
+                        m.EndReasonDetail,
+                        m.MatchId,
+                        a,
+                        b);
                 }
             }
 
@@ -1078,6 +1092,18 @@ namespace CriptoVersus.Worker
 
                 if (!allowed.Contains(symA) || !allowed.Contains(symB))
                 {
+                    if (!GetAutoEndOngoingMatches())
+                    {
+                        LogSkippedOngoingAutoEnd(
+                            routine: "process-ongoing-legacy-snapshot-wo",
+                            matchId: match.MatchId,
+                            teamA: symA,
+                            teamB: symB,
+                            reasonCode: "FILTERED_OUT_ONGOING",
+                            reasonDetail: $"Forced end blocked: pair not in TopGainers snapshot. A={symA} B={symB}");
+                        continue;
+                    }
+
                     match.Status = MatchStatus.Completed;
                     match.EndTime = nowUtc;
                     match.WinnerTeamId = null;
@@ -1090,8 +1116,14 @@ namespace CriptoVersus.Worker
                     await db.SaveChangesAsync(ct);
 
                     _logger.LogWarning(
-                        "🏁 FORCE END (WO) match {id} ({a} vs {b}) - fora do snapshot.",
-                        match.MatchId, symA, symB);
+                        "Match finalization applied. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
+                        "process-ongoing-legacy-snapshot-wo",
+                        GetAutoEndOngoingMatches(),
+                        match.EndReasonCode,
+                        match.EndReasonDetail,
+                        match.MatchId,
+                        symA,
+                        symB);
 
                     continue;
                 }
@@ -1240,31 +1272,58 @@ namespace CriptoVersus.Worker
                 if (decisionOngoing.UpdatedTeamBOutCycles.HasValue)
                     match.TeamBOutCycles = decisionOngoing.UpdatedTeamBOutCycles.Value;
 
-                if (decisionOngoing.Decision == MatchDecisionType.FinishWithWinner)
+                if (ShouldSuppressSnapshotDrivenAutoEnd(decisionOngoing))
                 {
-                    var winnerId = decisionOngoing.WinnerTeamId
-                        ?? (decisionOngoing.WinnerSide == MatchWinnerSide.A ? match.TeamAId : match.TeamBId);
-
-                    ApplyFinish(match, winnerId, decisionOngoing, nowUtc);
-                    await db.SaveChangesAsync(ct);
-
-                    _logger.LogWarning(
-                        "🏁 FINISH match {id} WINNER={winner}. Reason={code} Detail={detail}",
-                        match.MatchId, winnerId, decisionOngoing.ReasonCode, decisionOngoing.ReasonDetail);
-
-                    continue;
+                    LogSkippedOngoingAutoEnd(
+                        routine: "process-ongoing-rule-engine",
+                        matchId: match.MatchId,
+                        teamA: symA,
+                        teamB: symB,
+                        reasonCode: decisionOngoing.ReasonCode,
+                        reasonDetail: decisionOngoing.ReasonDetail);
                 }
-
-                if (decisionOngoing.Decision == MatchDecisionType.FinishWithWO)
+                else
                 {
-                    ApplyFinish(match, null, decisionOngoing, nowUtc);
-                    await db.SaveChangesAsync(ct);
+                    if (decisionOngoing.Decision == MatchDecisionType.FinishWithWinner)
+                    {
+                        var winnerId = decisionOngoing.WinnerTeamId
+                            ?? (decisionOngoing.WinnerSide == MatchWinnerSide.A ? match.TeamAId : match.TeamBId);
 
-                    _logger.LogWarning(
-                        "🏁 FINISH match {id} WO. Reason={code} Detail={detail}",
-                        match.MatchId, decisionOngoing.ReasonCode, decisionOngoing.ReasonDetail);
+                        ApplyFinish(match, winnerId, decisionOngoing, nowUtc);
+                        await db.SaveChangesAsync(ct);
 
-                    continue;
+                        _logger.LogWarning(
+                            "Match finalization applied. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} WinnerTeamId={WinnerTeamId} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
+                            "process-ongoing-rule-engine",
+                            GetAutoEndOngoingMatches(),
+                            winnerId,
+                            decisionOngoing.ReasonCode,
+                            decisionOngoing.ReasonDetail,
+                            match.MatchId,
+                            symA,
+                            symB);
+
+                        continue;
+                    }
+
+                    if (decisionOngoing.Decision == MatchDecisionType.FinishWithWO)
+                    {
+                        ApplyFinish(match, null, decisionOngoing, nowUtc);
+                        await db.SaveChangesAsync(ct);
+
+                        _logger.LogWarning(
+                            "Match finalization applied. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} WinnerTeamId={WinnerTeamId} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
+                            "process-ongoing-rule-engine",
+                            GetAutoEndOngoingMatches(),
+                            null,
+                            decisionOngoing.ReasonCode,
+                            decisionOngoing.ReasonDetail,
+                            match.MatchId,
+                            symA,
+                            symB);
+
+                        continue;
+                    }
                 }
 
                 if (!match.StartTime.HasValue)
@@ -1720,6 +1779,41 @@ namespace CriptoVersus.Worker
             match.EndReasonCode = decision.ReasonCode;
             match.EndReasonDetail = decision.ReasonDetail;
             match.RulesetVersion = decision.RulesetVersion;
+        }
+
+        private bool ShouldSuppressSnapshotDrivenAutoEnd(MatchDecision decision)
+        {
+            if (GetAutoEndOngoingMatches())
+                return false;
+
+            return decision.Decision is MatchDecisionType.FinishWithWinner or MatchDecisionType.FinishWithWO
+                && IsSnapshotDrivenAutoEndReason(decision.ReasonCode);
+        }
+
+        private static bool IsSnapshotDrivenAutoEndReason(string? reasonCode)
+            => string.Equals(reasonCode, RuleConstants.RC_KO_A_OUT_OF_GAINERS, StringComparison.Ordinal)
+                || string.Equals(reasonCode, RuleConstants.RC_KO_B_OUT_OF_GAINERS, StringComparison.Ordinal)
+                || string.Equals(reasonCode, RuleConstants.RC_BOTH_OUT_SCORE_DECISION, StringComparison.Ordinal)
+                || string.Equals(reasonCode, RuleConstants.RC_BOTH_OUT_DRAW_WO, StringComparison.Ordinal)
+                || string.Equals(reasonCode, "FILTERED_OUT_ONGOING", StringComparison.Ordinal);
+
+        private void LogSkippedOngoingAutoEnd(
+            string routine,
+            int matchId,
+            string teamA,
+            string teamB,
+            string? reasonCode,
+            string? reasonDetail)
+        {
+            _logger.LogInformation(
+                "Skipping ongoing match finalization. Routine={Routine} AutoEndOngoingMatches={AutoEndOngoingMatches} ReasonCode={ReasonCode} ReasonDetail={ReasonDetail} MatchId={MatchId} TeamA={TeamA} TeamB={TeamB}",
+                routine,
+                GetAutoEndOngoingMatches(),
+                reasonCode,
+                reasonDetail,
+                matchId,
+                teamA,
+                teamB);
         }
 
         private async Task<MatchScoreState> EnsureScoreStateAsync(

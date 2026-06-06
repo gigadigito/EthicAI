@@ -1022,6 +1022,26 @@ else
         string? FocusLabel = null,
         string? FocusColor = null);
     private bool HasLiveMatch => (HotMatch?.HasMatch == true || Match is not null) && !IsMatchFinishedForStage();
+    private bool HasActiveOngoingMatch
+    {
+        get
+        {
+            if (Match is not null)
+            {
+                return string.Equals(Match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase)
+                    && Match.IsFinished != true
+                    && Match.EndTime is null;
+            }
+
+            if (HotMatch?.HasMatch != true)
+                return false;
+
+            if (HotMatch.RemainingSeconds.HasValue)
+                return HotMatch.RemainingSeconds.Value > 0;
+
+            return !IsMatchFinishedForStage();
+        }
+    }
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private bool EnableTvDebugOverlay => Config.GetValue<bool?>("CriptoVersusTV:EnableDebugOverlay") == true;
@@ -1048,7 +1068,8 @@ else
         => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:AnimationSpeed") ?? 1.0d, 0.3d, 2.5d);
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
-    private bool ShouldRenderCrowdAudio => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
+    private bool IsBroadcastCrowdAudioEnabled => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
+    private bool ShouldRenderCrowdAudio => IsBroadcastCrowdAudioEnabled && HasActiveOngoingMatch;
     private bool ShouldRenderGoalAudio => Config.GetValue<bool?>("CriptoVersusTV:EnableGoalAudio") != false;
     private bool ShouldShowAudioUnlockButton => ShouldRenderCrowdAudio && _showAudioUnlockButton && !_audioUnlocked;
     private double BroadcastFocusProgress => _broadcastFocusUntilUtc <= DateTime.UtcNow
@@ -1247,6 +1268,9 @@ else
             {
             }
         }
+
+        if (!ShouldRenderCrowdAudio && _broadcastAudioInitialized)
+            await StopBroadcastAudioAsync("no-active-ongoing-match");
 
         if (ShouldRenderCrowdAudio && !_broadcastAudioInitialized)
             await EnsureBroadcastAudioAsync();
@@ -4896,6 +4920,11 @@ else
             var state = await _tvModule.InvokeAsync<TvAudioInteropState>("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
             ApplyAudioInteropState(state);
             _broadcastAudioInitialized = true;
+            Logger.LogInformation(
+                "TvStage broadcast crowd audio initialized. MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+                Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+                HasActiveOngoingMatch,
+                IsBroadcastMode);
         }
         catch (JSException)
         {
@@ -4905,6 +4934,11 @@ else
                 var state = await JS.InvokeAsync<TvAudioInteropState>("initBroadcastAudio", "tv-broadcast-crowd", (double)ResolveCrowdAudioVolume(), _isCrowdAudioMuted);
                 ApplyAudioInteropState(state);
                 _broadcastAudioInitialized = true;
+                Logger.LogInformation(
+                    "TvStage broadcast crowd audio initialized via fallback. MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+                    Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+                    HasActiveOngoingMatch,
+                    IsBroadcastMode);
             }
             catch (ObjectDisposedException)
             {
@@ -4917,6 +4951,9 @@ else
 
     private async Task EnableBroadcastAudioAsync()
     {
+        if (!ShouldRenderCrowdAudio)
+            return;
+
         try
         {
             if (_tvModule is not null)
@@ -4932,6 +4969,42 @@ else
         catch (ObjectDisposedException)
         {
         }
+    }
+
+    private async Task StopBroadcastAudioAsync(string reason)
+    {
+        try
+        {
+            if (_tvModule is not null)
+                await _tvModule.InvokeVoidAsync("destroyBroadcastAudio", "tv-broadcast-crowd");
+            else
+                await JS.InvokeVoidAsync("destroyBroadcastAudio", "tv-broadcast-crowd");
+        }
+        catch (JSException)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("destroyBroadcastAudio", "tv-broadcast-crowd");
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        _broadcastAudioInitialized = false;
+        _audioUnlocked = false;
+        _audioAutoplayBlocked = false;
+        _showAudioUnlockButton = false;
+
+        Logger.LogInformation(
+            "TvStage broadcast crowd audio stopped. Reason={Reason} MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+            reason,
+            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            HasActiveOngoingMatch,
+            IsBroadcastMode);
     }
 
     private static bool IsGoalLikeScoreEvent(MatchScoreEventDto scoreEvent)
