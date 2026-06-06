@@ -269,6 +269,9 @@ public sealed class CriptoVersusApiClient
     public async Task<AudioAssetTestStatusResponseDto?> GetTestAudioStatusAsync(long jobId, CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<AudioAssetTestStatusResponseDto>($"api/audio-assets/test-status/{jobId}", ct);
 
+    public async Task<AudioResolveResponse?> ResolveAudioAsync(AudioResolveRequest request, CancellationToken ct = default)
+        => await PostAsJsonWithBearerAsync<AudioResolveResponse>("api/audio/resolve", request, ct);
+
     public async Task<AudioResolveDiagnosticPreviewDto?> PostAudioResolveTestAsync(AudioResolveRequest request, CancellationToken ct = default)
         => await PostAsJsonWithBearerAsync<AudioResolveDiagnosticPreviewDto>("api/audio/test-resolve", request, ct);
 

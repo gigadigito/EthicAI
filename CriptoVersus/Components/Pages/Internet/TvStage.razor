@@ -4697,6 +4697,8 @@ else
         if (candidate is null)
             return;
 
+        candidate = await ResolveArenaNarrativeAudioAsync(candidate);
+
         var now = DateTime.UtcNow;
         var creationBlockedReason = ResolveArenaNarrativeCreationBlockReason();
         if (!string.IsNullOrWhiteSpace(creationBlockedReason))
@@ -4748,6 +4750,12 @@ else
             candidate.AccentHex,
             candidate.Priority,
             candidate.AudioKey,
+            candidate.AudioUrl,
+            candidate.AudioAssetId,
+            candidate.AudioQueued,
+            candidate.AudioQueueStatus,
+            candidate.AudioQueueReason,
+            candidate.AudioRequest,
             candidate.Silent,
             DateTime.UtcNow,
             false);
@@ -4767,6 +4775,11 @@ else
             candidate.HighlightSymbol,
             candidate.MinuteLabel,
             candidate.AudioKey,
+            candidate.AudioUrl,
+            candidate.AudioAssetId,
+            candidate.AudioQueued,
+            candidate.AudioQueueStatus,
+            candidate.AudioQueueReason,
             candidate.Silent,
             candidate.Text
         });
@@ -4866,6 +4879,24 @@ else
             accentHex,
             ResolveArenaNarrativePriority(narrativeType.Value, current),
             ResolveArenaNarrativeAudioKey(narrativeType.Value),
+            new AudioResolveRequest
+            {
+                EventType = ResolveArenaNarrativeEventType(narrativeType.Value),
+                Language = IsPortugueseCulture ? "pt-BR" : "en-US",
+                RawSymbol = ownerSymbol,
+                NormalizedSymbol = highlightSymbol,
+                TeamSymbol = highlightSymbol,
+                TeamName = highlightSymbol,
+                TextPrompt = text,
+                ContextKey = ResolveArenaNarrativeContextKey(narrativeType.Value),
+                Intensity = ResolveArenaNarrativeIntensity(narrativeType.Value),
+                QueueIfMissing = true
+            },
+            null,
+            null,
+            false,
+            null,
+            null,
             ResolveArenaNarrativeCooldown(narrativeType.Value),
             ResolveArenaNarrativeShouldBeSilent(narrativeType.Value, tensionHigh, current.HotScore),
             signature,
@@ -4895,9 +4926,79 @@ else
         _lastAiNarrationAtUtc = entry.CreatedAtUtc;
     }
 
+    private async Task<TvArenaNarrativeCandidate> ResolveArenaNarrativeAudioAsync(TvArenaNarrativeCandidate candidate, bool forceQueue = false)
+    {
+        if (candidate.Silent || candidate.AudioRequest is null)
+            return candidate;
+
+        try
+        {
+            var response = await Api.ResolveAudioAsync(new AudioResolveRequest
+            {
+                EventType = candidate.AudioRequest.EventType,
+                Language = candidate.AudioRequest.Language,
+                RawSymbol = candidate.AudioRequest.RawSymbol,
+                NormalizedSymbol = candidate.AudioRequest.NormalizedSymbol,
+                TeamSymbol = candidate.AudioRequest.TeamSymbol,
+                TeamName = candidate.AudioRequest.TeamName,
+                TextPrompt = candidate.AudioRequest.TextPrompt,
+                ContextKey = candidate.AudioRequest.ContextKey,
+                Intensity = candidate.AudioRequest.Intensity,
+                VoiceKey = candidate.AudioRequest.VoiceKey,
+                QueueIfMissing = candidate.AudioRequest.QueueIfMissing,
+                ForceQueue = forceQueue || candidate.AudioRequest.ForceQueue
+            });
+
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-resolution", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                requestedEventType = candidate.AudioRequest.EventType,
+                candidate.AudioRequest.ContextKey,
+                candidate.AudioRequest.Intensity,
+                found = response?.Found ?? false,
+                response?.AudioUrl,
+                response?.AssetId,
+                queued = response?.Queued ?? false,
+                response?.QueueStatus,
+                response?.QueueReason
+            });
+
+            if (response is null)
+                return candidate;
+
+            return candidate with
+            {
+                AudioUrl = response.AudioUrl,
+                AudioAssetId = response.AssetId,
+                AudioQueued = response.Queued,
+                AudioQueueStatus = response.QueueStatus,
+                AudioQueueReason = response.QueueReason
+            };
+        }
+        catch (Exception ex)
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-resolution-failed", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                requestedEventType = candidate.AudioRequest.EventType,
+                candidate.AudioRequest.ContextKey,
+                candidate.AudioRequest.Intensity,
+                error = ex.Message
+            });
+
+            return candidate;
+        }
+    }
+
     private async Task TryPlayArenaNarrativeAudioAsync(TvArenaNarrativeCandidate candidate)
     {
-        if (candidate.Silent || string.IsNullOrWhiteSpace(candidate.AudioKey))
+        if (candidate.Silent || (string.IsNullOrWhiteSpace(candidate.AudioUrl) && string.IsNullOrWhiteSpace(candidate.AudioKey)))
         {
             await LogAsync("TV_ARENA_COMMENTARY", "comment-sent-to-ui", new
             {
@@ -4906,28 +5007,33 @@ else
                 candidate.Reason,
                 candidate.HighlightSymbol,
                 candidate.Silent,
-                audio = "silent"
+                audio = candidate.Silent ? "silent" : "missing"
             });
             return;
         }
 
         try
         {
-            var played = _tvModule is not null
-                ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, new
-                {
-                    priority = Math.Max(26, candidate.Priority),
-                    cooldownMs = (int)candidate.Cooldown.TotalMilliseconds,
-                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume() * 0.96m, 0.18m, 0.76m),
-                    muted = _isCrowdAudioMuted
-                })
-                : await JS.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, new
-                {
-                    priority = Math.Max(26, candidate.Priority),
-                    cooldownMs = (int)candidate.Cooldown.TotalMilliseconds,
-                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume() * 0.96m, 0.18m, 0.76m),
-                    muted = _isCrowdAudioMuted
-                });
+            var playback = new
+            {
+                priority = Math.Max(26, candidate.Priority),
+                cooldownMs = (int)candidate.Cooldown.TotalMilliseconds,
+                volume = (double)Math.Clamp(ResolveCrowdAudioVolume() * 0.96m, 0.18m, 0.76m),
+                muted = _isCrowdAudioMuted,
+                eventType = candidate.AudioRequest?.EventType ?? candidate.TypeKey,
+                contextKey = candidate.AudioRequest?.ContextKey,
+                intensity = candidate.AudioRequest?.Intensity,
+                teamSymbol = candidate.HighlightSymbol,
+                assetId = candidate.AudioAssetId
+            };
+
+            var played = !string.IsNullOrWhiteSpace(candidate.AudioUrl)
+                ? (_tvModule is not null
+                    ? await _tvModule.InvokeAsync<bool>("playProceduralAudioUrl", candidate.AudioUrl, playback)
+                    : await JS.InvokeAsync<bool>("playProceduralAudioUrl", candidate.AudioUrl, playback))
+                : (_tvModule is not null
+                    ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, playback)
+                    : await JS.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, playback));
 
             await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
             {
@@ -4936,6 +5042,8 @@ else
                 candidate.Reason,
                 candidate.HighlightSymbol,
                 candidate.AudioKey,
+                candidate.AudioUrl,
+                candidate.AudioAssetId,
                 played
             });
         }
@@ -4948,6 +5056,8 @@ else
                 candidate.Reason,
                 candidate.HighlightSymbol,
                 candidate.AudioKey,
+                candidate.AudioUrl,
+                candidate.AudioAssetId,
                 error = ex.Message
             });
         }
@@ -4972,45 +5082,101 @@ else
             commentary.TypeKey,
             commentary.HighlightSymbol,
             commentary.AudioKey,
+            commentary.AudioUrl,
+            commentary.AudioAssetId,
             commentary.Silent
         });
 
-        if (commentary.Silent || string.IsNullOrWhiteSpace(commentary.AudioKey))
+        if (commentary.Silent)
         {
             await LogAsync("TV_ARENA_COMMENTARY", "audio-ignored", new
             {
                 commentary.MatchId,
                 commentary.TypeKey,
                 commentary.HighlightSymbol,
-                reason = commentary.Silent ? "silent-event-click" : "missing-audio-key-click"
+                reason = "silent-event-click"
             });
             return;
         }
 
         try
         {
-            var played = _tvModule is not null
-                ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", commentary.AudioKey, new
+            var resolvedCommentary = commentary;
+            if (string.IsNullOrWhiteSpace(resolvedCommentary.AudioUrl) && resolvedCommentary.AudioRequest is not null)
+            {
+                var refreshedCandidate = await ResolveArenaNarrativeAudioAsync(new TvArenaNarrativeCandidate(
+                    resolvedCommentary.MatchId,
+                    ResolveNarrativeEventKind(resolvedCommentary.TypeKey),
+                    resolvedCommentary.TypeKey,
+                    resolvedCommentary.Text,
+                    resolvedCommentary.MinuteLabel,
+                    resolvedCommentary.HighlightSymbol,
+                    resolvedCommentary.AccentHex,
+                    resolvedCommentary.Priority,
+                    resolvedCommentary.AudioKey,
+                    resolvedCommentary.AudioRequest,
+                    resolvedCommentary.AudioUrl,
+                    resolvedCommentary.AudioAssetId,
+                    resolvedCommentary.AudioQueued,
+                    resolvedCommentary.AudioQueueStatus,
+                    resolvedCommentary.AudioQueueReason,
+                    TimeSpan.FromMilliseconds(150),
+                    resolvedCommentary.Silent,
+                    resolvedCommentary.Id,
+                    "entry-click"), forceQueue: true);
+
+                resolvedCommentary = UpdateArenaCommentaryAudioState(
+                    resolvedCommentary.Id,
+                    refreshedCandidate.AudioUrl,
+                    refreshedCandidate.AudioAssetId,
+                    refreshedCandidate.AudioQueued,
+                    refreshedCandidate.AudioQueueStatus,
+                    refreshedCandidate.AudioQueueReason);
+            }
+
+            if (string.IsNullOrWhiteSpace(resolvedCommentary.AudioUrl) && string.IsNullOrWhiteSpace(resolvedCommentary.AudioKey))
+            {
+                await LogAsync("TV_ARENA_COMMENTARY", "audio-ignored", new
                 {
-                    priority = Math.Max(28, commentary.Priority),
-                    cooldownMs = 150,
-                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume(), 0.18m, 0.78m),
-                    muted = _isCrowdAudioMuted
-                })
-                : await JS.InvokeAsync<bool>("playTvAudioCue", commentary.AudioKey, new
-                {
-                    priority = Math.Max(28, commentary.Priority),
-                    cooldownMs = 150,
-                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume(), 0.18m, 0.78m),
-                    muted = _isCrowdAudioMuted
+                    resolvedCommentary.MatchId,
+                    resolvedCommentary.TypeKey,
+                    resolvedCommentary.HighlightSymbol,
+                    resolvedCommentary.AudioQueueStatus,
+                    resolvedCommentary.AudioQueueReason,
+                    reason = "missing-audio-after-resolve-click"
                 });
+                return;
+            }
+
+            var playback = new
+            {
+                priority = Math.Max(28, resolvedCommentary.Priority),
+                cooldownMs = 150,
+                volume = (double)Math.Clamp(ResolveCrowdAudioVolume(), 0.18m, 0.78m),
+                muted = _isCrowdAudioMuted,
+                eventType = resolvedCommentary.AudioRequest?.EventType ?? resolvedCommentary.TypeKey,
+                contextKey = resolvedCommentary.AudioRequest?.ContextKey,
+                intensity = resolvedCommentary.AudioRequest?.Intensity,
+                teamSymbol = resolvedCommentary.HighlightSymbol,
+                assetId = resolvedCommentary.AudioAssetId
+            };
+
+            var played = !string.IsNullOrWhiteSpace(resolvedCommentary.AudioUrl)
+                ? (_tvModule is not null
+                    ? await _tvModule.InvokeAsync<bool>("playProceduralAudioUrl", resolvedCommentary.AudioUrl, playback)
+                    : await JS.InvokeAsync<bool>("playProceduralAudioUrl", resolvedCommentary.AudioUrl, playback))
+                : (_tvModule is not null
+                    ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", resolvedCommentary.AudioKey, playback)
+                    : await JS.InvokeAsync<bool>("playTvAudioCue", resolvedCommentary.AudioKey, playback));
 
             await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
             {
-                commentary.MatchId,
-                commentary.TypeKey,
-                commentary.HighlightSymbol,
-                commentary.AudioKey,
+                resolvedCommentary.MatchId,
+                resolvedCommentary.TypeKey,
+                resolvedCommentary.HighlightSymbol,
+                resolvedCommentary.AudioKey,
+                resolvedCommentary.AudioUrl,
+                resolvedCommentary.AudioAssetId,
                 source = "entry-click",
                 played
             });
@@ -5023,6 +5189,8 @@ else
                 commentary.TypeKey,
                 commentary.HighlightSymbol,
                 commentary.AudioKey,
+                commentary.AudioUrl,
+                commentary.AudioAssetId,
                 source = "entry-click",
                 error = ex.Message
             });
@@ -5035,7 +5203,7 @@ else
         if (candidate.Silent)
             return "silent-event";
 
-        if (string.IsNullOrWhiteSpace(candidate.AudioKey))
+        if (string.IsNullOrWhiteSpace(candidate.AudioUrl) && string.IsNullOrWhiteSpace(candidate.AudioKey))
             return "missing-audio-key";
 
         if (_isCrowdAudioMuted)
@@ -5283,6 +5451,45 @@ else
             _ => null
         };
 
+    private string ResolveArenaNarrativeEventType(NarrativeEventKind type)
+        => type switch
+        {
+            NarrativeEventKind.MatchOpening => "match_start",
+            NarrativeEventKind.OffensivePossession => "market_pump",
+            NarrativeEventKind.PressureGrowth => "market_pump",
+            NarrativeEventKind.Dominance => "momentum_shift",
+            NarrativeEventKind.PossessionRecovery => "momentum_shift",
+            NarrativeEventKind.DefensivePossession => "momentum_shift",
+            NarrativeEventKind.Transition => "momentum_shift",
+            NarrativeEventKind.Tension => "momentum_shift",
+            _ => "momentum_shift"
+        };
+
+    private static string ResolveArenaNarrativeContextKey(NarrativeEventKind type)
+        => type switch
+        {
+            NarrativeEventKind.MatchOpening => "kickoff",
+            NarrativeEventKind.OffensivePossession => "offensive_possession",
+            NarrativeEventKind.DefensivePossession => "defensive_control",
+            NarrativeEventKind.Dominance => "dominance",
+            NarrativeEventKind.Transition => "arena_transition",
+            NarrativeEventKind.PressureGrowth => "pressure_growth",
+            NarrativeEventKind.PossessionRecovery => "possession_recovery",
+            NarrativeEventKind.Tension => "arena_tension",
+            _ => "arena_flow"
+        };
+
+    private static string ResolveArenaNarrativeIntensity(NarrativeEventKind type)
+        => type switch
+        {
+            NarrativeEventKind.MatchOpening => "normal",
+            NarrativeEventKind.PressureGrowth => "hype",
+            NarrativeEventKind.Tension => "hype",
+            NarrativeEventKind.OffensivePossession => "hype",
+            NarrativeEventKind.Dominance => "normal",
+            _ => "normal"
+        };
+
     private static bool ResolveArenaNarrativeShouldBeSilent(NarrativeEventKind type, bool tensionHigh, int hotScore)
         => type == NarrativeEventKind.Transition || (type == NarrativeEventKind.Tension && (tensionHigh || hotScore >= 88));
 
@@ -5362,9 +5569,62 @@ else
         => $"--commentary-accent:{accentHex};";
 
     private string GetArenaCommentaryClickTitle(TvArenaCommentaryEntry commentary)
-        => !string.IsNullOrWhiteSpace(commentary.AudioKey) && !commentary.Silent
+        => !commentary.Silent && (!string.IsNullOrWhiteSpace(commentary.AudioUrl) || !string.IsNullOrWhiteSpace(commentary.AudioKey) || commentary.AudioRequest is not null)
             ? (IsPortugueseCulture ? "Clique para tocar o audio deste evento" : "Click to play this event audio")
             : (IsPortugueseCulture ? "Evento sem audio associado" : "Event without linked audio");
+
+    private TvArenaCommentaryEntry UpdateArenaCommentaryAudioState(
+        string entryId,
+        string? audioUrl,
+        long? audioAssetId,
+        bool audioQueued,
+        string? audioQueueStatus,
+        string? audioQueueReason)
+    {
+        for (var i = 0; i < _arenaCommentaryFeed.Count; i++)
+        {
+            if (!string.Equals(_arenaCommentaryFeed[i].Id, entryId, StringComparison.Ordinal))
+                continue;
+
+            var updated = _arenaCommentaryFeed[i] with
+            {
+                AudioUrl = audioUrl,
+                AudioAssetId = audioAssetId,
+                AudioQueued = audioQueued,
+                AudioQueueStatus = audioQueueStatus,
+                AudioQueueReason = audioQueueReason
+            };
+
+            _arenaCommentaryFeed[i] = updated;
+            return updated;
+        }
+
+        return new TvArenaCommentaryEntry(
+            entryId,
+            0,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            string.Empty,
+            "#53c8ff",
+            0,
+            null,
+            audioUrl,
+            audioAssetId,
+            audioQueued,
+            audioQueueStatus,
+            audioQueueReason,
+            null,
+            true,
+            DateTime.UtcNow,
+            false);
+    }
+
+    private static NarrativeEventKind ResolveNarrativeEventKind(string typeKey)
+        => Enum.TryParse<NarrativeEventKind>(typeKey, out var parsed)
+            ? parsed
+            : NarrativeEventKind.Transition;
 
     private string DisplayCommentaryText()
         => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
@@ -7059,6 +7319,12 @@ else
         string AccentHex,
         int Priority,
         string? AudioKey,
+        AudioResolveRequest? AudioRequest,
+        string? AudioUrl,
+        long? AudioAssetId,
+        bool AudioQueued,
+        string? AudioQueueStatus,
+        string? AudioQueueReason,
         TimeSpan Cooldown,
         bool Silent,
         string Signature,
@@ -7075,6 +7341,12 @@ else
         string AccentHex,
         int Priority,
         string? AudioKey,
+        string? AudioUrl,
+        long? AudioAssetId,
+        bool AudioQueued,
+        string? AudioQueueStatus,
+        string? AudioQueueReason,
+        AudioResolveRequest? AudioRequest,
         bool Silent,
         DateTime CreatedAtUtc,
         bool IsLatest);
