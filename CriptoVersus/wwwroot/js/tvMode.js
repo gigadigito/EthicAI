@@ -17,8 +17,10 @@ let fieldFreedomState = null;
 let telemetryCubeController = null;
 let tvAudioFacade = null;
 let activeProceduralAudio = null;
+let activeProceduralAudioMeta = null;
 let lastProceduralPlaybackSignature = "";
 let lastProceduralPlaybackAt = 0;
+const PROCEDURAL_PLAY_TIMEOUT_MS = 4000;
 let tvAudioDebugSessionState = {
     enabled: false,
     hydrated: false
@@ -381,6 +383,112 @@ function prepareProceduralAudioElement(audio) {
     }
 
     return volume;
+}
+
+function debugProceduralAudioState(audio, extra = {}) {
+    if (!(audio instanceof HTMLAudioElement)) {
+        console.debug("[TV_AUDIO_STATE]", {
+            paused: null,
+            ended: null,
+            currentTime: null,
+            src: null,
+            readyState: null,
+            networkState: null,
+            ...extra
+        });
+        return;
+    }
+
+    console.debug("[TV_AUDIO_STATE]", {
+        paused: audio.paused,
+        ended: audio.ended,
+        currentTime: audio.currentTime,
+        src: audio.currentSrc || audio.src || null,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        ...extra
+    });
+}
+
+function clearActiveProceduralAudio(reason, audio = activeProceduralAudio) {
+    if (audio && activeProceduralAudio === audio) {
+        activeProceduralAudio = null;
+        activeProceduralAudioMeta = null;
+        pushAudioDebugLog("procedural-active-cleared", "info", { reason });
+        debugProceduralAudioState(audio, { reason, source: "clear-active" });
+    }
+}
+
+function isProceduralAudioEffectivelyActive(audio = activeProceduralAudio) {
+    if (!(audio instanceof HTMLAudioElement)) {
+        return false;
+    }
+
+    return !audio.paused && !audio.ended;
+}
+
+function isAutoplayBlockedError(error) {
+    const normalized = normalizeAudioError(error);
+    return normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+}
+
+function reportProceduralSkip(reason, payload, audio = activeProceduralAudio, extra = {}) {
+    const eventPayload = {
+        ...payload,
+        reason,
+        ...extra
+    };
+
+    notifyProceduralAudioEvent("skipped", eventPayload);
+    pushAudioDebugLog("skipped", "info", eventPayload);
+    debugProceduralAudioState(audio, { reason, source: "skip", ...extra });
+}
+
+function reportProceduralFailure(reason, payload, audio, error = null, extra = {}) {
+    const normalizedError = error ? normalizeAudioError(error) : null;
+    const eventPayload = {
+        ...payload,
+        reason,
+        error: normalizedError?.message ?? payload?.error ?? null,
+        ...extra
+    };
+
+    notifyProceduralAudioEvent("failed", eventPayload);
+    pushAudioDebugLog("failed", "warn", eventPayload);
+    debugProceduralAudioState(audio, {
+        reason,
+        source: "failure",
+        error: normalizedError?.message ?? null,
+        ...extra
+    });
+}
+
+async function awaitProceduralPlay(playResult, timeoutMs = PROCEDURAL_PLAY_TIMEOUT_MS) {
+    if (!playResult || typeof playResult.then !== "function") {
+        return { ok: true, unresolved: false };
+    }
+
+    let timeoutId = null;
+    try {
+        const result = await Promise.race([
+            playResult,
+            new Promise((resolve) => {
+                timeoutId = globalThis.setTimeout(() => resolve({ unresolved: true }), timeoutMs);
+            })
+        ]);
+
+        if (result?.unresolved) {
+            return { ok: false, unresolved: true };
+        }
+
+        return { ok: true, unresolved: false };
+    } catch (error) {
+        return { ok: false, unresolved: false, error };
+    } finally {
+        if (timeoutId) {
+            globalThis.clearTimeout(timeoutId);
+        }
+    }
 }
 
 function ensureAmbientDebugTrackState() {
@@ -4033,17 +4141,35 @@ function destroyBroadcastAudioLegacy(elementId) {
 function attachProceduralAudioLifecycle(audio, payload) {
     const normalized = normalizeTelemetryPayload(payload);
     activeProceduralAudio = audio;
+    activeProceduralAudioMeta = {
+        priority: Number.isFinite(Number(payload?.priority)) ? Number(payload.priority) : Number(payload?.playbackPriority ?? 0),
+        signature: payload?.playbackSignature ?? null,
+        audioUrl: normalized.audioUrl ?? null,
+        startedAt: Date.now()
+    };
     notifyProceduralAudioEvent("found", normalized);
     notifyProceduralAudioEvent("playing", normalized);
+    debugProceduralAudioState(audio, {
+        source: "attach-lifecycle",
+        priority: activeProceduralAudioMeta.priority,
+        audioUrl: activeProceduralAudioMeta.audioUrl
+    });
 
     audio.onended = () => {
-        if (activeProceduralAudio === audio) {
-            activeProceduralAudio = null;
-        }
-
         notifyProceduralAudioEvent("played", normalized);
         pushAudioDebugLog("played", "info", normalized);
+        debugProceduralAudioState(audio, { source: "ended" });
+        clearActiveProceduralAudio("ended", audio);
         cleanupManagedAudio(audio);
+    };
+
+    audio.onpause = () => {
+        debugProceduralAudioState(audio, { source: "pause-event" });
+    };
+
+    audio.onerror = () => {
+        reportProceduralFailure("play-exception", normalized, audio, new Error("audio element error event"));
+        clearActiveProceduralAudio("error-event", audio);
     };
 }
 
@@ -4053,7 +4179,7 @@ export function shouldSkipProceduralPlayback(signature, now = Date.now(), cooldo
 
 async function playProceduralAudioNode(audio, payload = {}) {
     if (!(audio instanceof HTMLAudioElement)) {
-        notifyProceduralAudioEvent("failed", { ...payload, error: "missing audio element" });
+        reportProceduralFailure("missing-audio-element", payload, audio, new Error("missing audio element"));
         return false;
     }
 
@@ -4061,55 +4187,118 @@ async function playProceduralAudioNode(audio, payload = {}) {
         ...payload,
         audioUrl: payload.audioUrl ?? audio.currentSrc ?? audio.src ?? null
     });
+    const requestedPriority = Number.isFinite(Number(payload?.priority))
+        ? Number(payload.priority)
+        : Number(payload?.playbackPriority ?? 0);
     const playbackSignature = [
         normalized.audioUrl ?? "",
         normalized.eventType ?? "",
         normalized.teamSymbol ?? ""
     ].join("|");
+    normalized.playbackPriority = requestedPriority;
+
+    if (activeProceduralAudio && activeProceduralAudio !== audio && !isProceduralAudioEffectivelyActive(activeProceduralAudio)) {
+        clearActiveProceduralAudio("stale-audio-reference", activeProceduralAudio);
+    }
+
+    if (activeProceduralAudio && activeProceduralAudio !== audio && isProceduralAudioEffectivelyActive(activeProceduralAudio)) {
+        const activePriority = Number(activeProceduralAudioMeta?.priority ?? 0);
+        const activeUrl = activeProceduralAudioMeta?.audioUrl ?? activeProceduralAudio.currentSrc ?? activeProceduralAudio.src ?? null;
+        if (activeUrl && normalized.audioUrl && activeUrl === normalized.audioUrl) {
+            reportProceduralSkip("same-audio-url", normalized, activeProceduralAudio, {
+                activePriority,
+                requestedPriority
+            });
+            return false;
+        }
+
+        if (requestedPriority <= activePriority) {
+            reportProceduralSkip("already-playing", normalized, activeProceduralAudio, {
+                activePriority,
+                requestedPriority
+            });
+            return false;
+        }
+    }
 
     if (shouldSkipProceduralPlayback(playbackSignature)) {
-        notifyProceduralAudioEvent("skipped", {
-            ...normalized,
-            reason: "duplicate-procedural-playback"
-        });
-        pushAudioDebugLog("skipped", "info", {
-            ...normalized,
-            reason: "duplicate-procedural-playback"
+        reportProceduralSkip("cooldown-active", normalized, activeProceduralAudio, {
+            playbackSignature,
+            cooldownMs: 1200,
+            lastProceduralPlaybackAt
         });
         return false;
     }
 
     try {
-        await unlockTvAudioContext("procedural-audio");
+        const unlocked = await unlockTvAudioContext("procedural-audio");
+        if (!unlocked) {
+            reportProceduralSkip("autoplay-blocked", normalized, audio, {
+                playbackSignature
+            });
+            return false;
+        }
 
         if (activeProceduralAudio && activeProceduralAudio !== audio) {
             try {
+                debugProceduralAudioState(activeProceduralAudio, {
+                    source: "interrupt-before-play",
+                    requestedPriority,
+                    activePriority: activeProceduralAudioMeta?.priority ?? 0
+                });
                 activeProceduralAudio.pause();
                 activeProceduralAudio.currentTime = 0;
+                clearActiveProceduralAudio("interrupted-by-higher-priority", activeProceduralAudio);
             } catch {
             }
         }
 
+        debugProceduralAudioState(audio, { source: "before-reset", requestedPriority });
         audio.pause();
         audio.currentTime = 0;
         audio.loop = false;
         prepareProceduralAudioElement(audio);
-        attachProceduralAudioLifecycle(audio, normalized);
-        await audio.play();
+        attachProceduralAudioLifecycle(audio, {
+            ...normalized,
+            priority: requestedPriority,
+            playbackSignature
+        });
+        const playOutcome = await awaitProceduralPlay(audio.play());
+        if (playOutcome.unresolved) {
+            reportProceduralFailure("unresolved-promise", normalized, audio, null, {
+                playbackSignature,
+                requestedPriority
+            });
+            clearActiveProceduralAudio("unresolved-promise", audio);
+            return false;
+        }
+
+        if (!playOutcome.ok) {
+            const reason = isAutoplayBlockedError(playOutcome.error) ? "autoplay-blocked" : "play-exception";
+            reportProceduralFailure(reason, normalized, audio, playOutcome.error, {
+                playbackSignature,
+                requestedPriority
+            });
+            clearActiveProceduralAudio(reason, audio);
+            return false;
+        }
+
         lastProceduralPlaybackSignature = playbackSignature;
         lastProceduralPlaybackAt = Date.now();
+        debugProceduralAudioState(audio, {
+            source: "play-ok",
+            requestedPriority,
+            playbackSignature
+        });
         pushAudioDebugLog("playing", "info", normalized);
         return true;
     } catch (error) {
-        const normalizedError = normalizeAudioError(error);
-        notifyProceduralAudioEvent("failed", {
-            ...normalized,
-            error: normalizedError.message
+        const reason = isAutoplayBlockedError(error) ? "autoplay-blocked" : "play-exception";
+        reportProceduralFailure(reason, normalized, audio, error, {
+            playbackSignature,
+            requestedPriority
         });
-        pushAudioDebugLog("failed", "warn", {
-            ...normalized,
-            error: normalizedError.message
-        });
+        clearActiveProceduralAudio(reason, audio);
         return false;
     }
 }
@@ -4344,6 +4533,7 @@ export function stopProceduralAudioDebug() {
     }
 
     activeProceduralAudio = null;
+    activeProceduralAudioMeta = null;
     pushAudioDebugLog("procedural-stop", "info");
     return true;
 }
