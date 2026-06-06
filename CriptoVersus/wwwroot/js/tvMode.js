@@ -345,6 +345,44 @@ function applyProceduralAudioElementVolume(audio) {
     return volume;
 }
 
+function shouldBypassProceduralWebAudio(audio) {
+    if (!(audio instanceof HTMLAudioElement) || typeof window === "undefined") {
+        return false;
+    }
+
+    try {
+        const src = audio.currentSrc || audio.src;
+        if (!src) {
+            return false;
+        }
+
+        const resolved = new URL(src, window.location.href);
+        return resolved.origin !== window.location.origin;
+    } catch {
+        return false;
+    }
+}
+
+function prepareProceduralAudioElement(audio) {
+    if (!(audio instanceof HTMLAudioElement)) {
+        return getProceduralAudioDebugVolume();
+    }
+
+    const volume = getProceduralAudioDebugVolume();
+    audio.volume = volume;
+    audio.muted = false;
+
+    if (!shouldBypassProceduralWebAudio(audio)) {
+        connectAudioElement(audio, "fx");
+        const instanceGain = ensureTvAudioManager().instanceGains.get(audio);
+        if (instanceGain) {
+            instanceGain.gain.value = volume;
+        }
+    }
+
+    return volume;
+}
+
 function ensureAmbientDebugTrackState() {
     const manager = ensureTvAudioManager();
     const ambient = manager.ambient;
@@ -4042,6 +4080,8 @@ async function playProceduralAudioNode(audio, payload = {}) {
     }
 
     try {
+        await unlockTvAudioContext("procedural-audio");
+
         if (activeProceduralAudio && activeProceduralAudio !== audio) {
             try {
                 activeProceduralAudio.pause();
@@ -4053,7 +4093,7 @@ async function playProceduralAudioNode(audio, payload = {}) {
         audio.pause();
         audio.currentTime = 0;
         audio.loop = false;
-        applyProceduralAudioElementVolume(audio);
+        prepareProceduralAudioElement(audio);
         attachProceduralAudioLifecycle(audio, normalized);
         await audio.play();
         lastProceduralPlaybackSignature = playbackSignature;
@@ -4284,6 +4324,7 @@ export async function playProceduralAudioUrl(url, payload = {}) {
     }
 
     const audio = new Audio(url);
+    audio.crossOrigin = "anonymous";
     audio.preload = "auto";
     return playProceduralAudioNode(audio, {
         ...payload,

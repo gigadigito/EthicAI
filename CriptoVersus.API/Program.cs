@@ -271,7 +271,17 @@ static void MapPublicAudioFiles(WebApplication app, FileExtensionContentTypeProv
         {
             RequestPath = string.Empty,
             FileProvider = new PhysicalFileProvider(audioRoot),
-            ContentTypeProvider = contentTypeProvider
+            ContentTypeProvider = contentTypeProvider,
+            OnPrepareResponse = context =>
+            {
+                var headers = context.Context.Response.Headers;
+                headers["Access-Control-Allow-Origin"] = "*";
+                headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS";
+                headers["Access-Control-Allow-Headers"] = "Origin, Range, Accept, Content-Type";
+                headers["Access-Control-Expose-Headers"] = "Accept-Ranges, Content-Length, Content-Range, Content-Type";
+                headers["Cross-Origin-Resource-Policy"] = "cross-origin";
+                headers["Accept-Ranges"] = "bytes";
+            }
         });
 
         audioApp.Run(context =>
