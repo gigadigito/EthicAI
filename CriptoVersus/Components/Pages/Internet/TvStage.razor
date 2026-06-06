@@ -185,6 +185,10 @@
                 }
                 <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
                 <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
+                <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
+                    <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
+                    <span>@KnownArenaAudioButtonLabel</span>
+                </button>
                 @if (ShouldRenderCrowdAudio)
                 {
                     <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
@@ -686,6 +690,10 @@ else
             <div class="tv-stage__badges">
                 <span class="tv-pill">@T("labels.automaticBroadcast")</span>
                 <span class="tv-pill tv-pill--signal">@T("states.noHotMatchRightNow")</span>
+                <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
+                    <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
+                    <span>@KnownArenaAudioButtonLabel</span>
+                </button>
                 @if (ShouldRenderCrowdAudio)
                 {
                     <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
@@ -863,6 +871,14 @@ else
     </aside>
 }
 
+<button type="button"
+        class="tv-fixed-audio-test"
+        @onclick="PlayKnownArenaAudioAsync"
+        title="@KnownArenaAudioButtonTitle">
+    <span class="tv-fixed-audio-test__icon" aria-hidden="true"></span>
+    <span>@KnownArenaAudioButtonLabel</span>
+</button>
+
 @code {
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
     [Parameter] public bool IsBroadcastMode { get; set; }
@@ -885,6 +901,7 @@ else
     private const int ClockRenderIntervalMilliseconds = 1000;
     private const string ReplayRootId = "tv-replay-root";
     private const string DefaultReplayAnimation = "POWER_SHOT";
+    private const string KnownArenaAudioUrl = "https://api.criptoversus.com/audio/en-US/momentum_shift/GENIUS/momentum_shift_genius_hype_20260605224145.mp3";
     private static readonly TimeSpan AutoReplayInitialDelay = TimeSpan.FromSeconds(12);
     private static readonly TimeSpan AutoReplaySpacing = TimeSpan.FromSeconds(90);
     private static readonly TimeSpan BroadcastPromoDelay = TimeSpan.FromMinutes(2);
@@ -5152,8 +5169,8 @@ else
             {
                 priority = Math.Max(28, resolvedCommentary.Priority),
                 cooldownMs = 150,
-                volume = (double)Math.Clamp(ResolveCrowdAudioVolume(), 0.18m, 0.78m),
-                muted = _isCrowdAudioMuted,
+                volume = (double)Math.Clamp(Math.Max(ResolveCrowdAudioVolume(), 0.48m), 0.24m, 0.82m),
+                muted = false,
                 eventType = resolvedCommentary.AudioRequest?.EventType ?? resolvedCommentary.TypeKey,
                 contextKey = resolvedCommentary.AudioRequest?.ContextKey,
                 intensity = resolvedCommentary.AudioRequest?.Intensity,
@@ -5192,6 +5209,45 @@ else
                 commentary.AudioUrl,
                 commentary.AudioAssetId,
                 source = "entry-click",
+                error = ex.Message
+            });
+        }
+    }
+
+    private async Task PlayKnownArenaAudioAsync()
+    {
+        try
+        {
+            var payload = new
+            {
+                priority = 96,
+                cooldownMs = 0,
+                volume = 0.8,
+                muted = false,
+                eventType = "momentum_shift",
+                contextKey = "manual_test_button",
+                intensity = "hype",
+                teamSymbol = "GENIUS",
+                source = "fixed-test-button"
+            };
+
+            var played = _tvModule is not null
+                ? await _tvModule.InvokeAsync<bool>("playProceduralAudioUrl", KnownArenaAudioUrl, payload)
+                : await JS.InvokeAsync<bool>("playProceduralAudioUrl", KnownArenaAudioUrl, payload);
+
+            await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
+            {
+                audioUrl = KnownArenaAudioUrl,
+                source = "fixed-test-button",
+                played
+            });
+        }
+        catch (Exception ex) when (ex is JSException or ObjectDisposedException)
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-failed", new
+            {
+                audioUrl = KnownArenaAudioUrl,
+                source = "fixed-test-button",
                 error = ex.Message
             });
         }
@@ -6471,6 +6527,14 @@ else
         => _isCrowdAudioMuted
             ? T("audio.crowdMuted")
             : T("audio.crowdEnabled");
+
+    private string KnownArenaAudioButtonLabel
+        => IsPortugueseCulture ? "Teste de audio" : "Audio test";
+
+    private string KnownArenaAudioButtonTitle
+        => IsPortugueseCulture
+            ? "Tocar um audio procedural conhecido para validar a saida"
+            : "Play a known procedural audio clip to validate playback";
 
     private string CrowdAudioIconClass
         => _isCrowdAudioMuted
@@ -8725,6 +8789,63 @@ else
     .tv-pill__audio-icon--muted {
         background:
             linear-gradient(135deg, transparent 42%, currentColor 43%, currentColor 57%, transparent 58%);
+    }
+
+    .tv-pill__audio-icon--test {
+        color: #ffd36e;
+        filter: drop-shadow(0 0 8px rgba(255, 211, 110, .24));
+    }
+
+    .tv-fixed-audio-test {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 60;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 211, 110, 0.42);
+        background: linear-gradient(180deg, rgba(255, 211, 110, 0.18), rgba(14, 21, 34, 0.94));
+        color: #fff3c4;
+        font-size: .84rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(12px);
+    }
+
+    .tv-fixed-audio-test__icon {
+        position: relative;
+        width: 12px;
+        height: 10px;
+        color: #ffd36e;
+        flex: 0 0 auto;
+    }
+
+    .tv-fixed-audio-test__icon::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 2px;
+        width: 5px;
+        height: 8px;
+        border-radius: 2px;
+        background: currentColor;
+    }
+
+    .tv-fixed-audio-test__icon::after {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 1px;
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 7px solid currentColor;
     }
 
     .tv-pill--audio-unlock {
@@ -12300,6 +12421,15 @@ else
                 rotateY(0deg)
                 scale(1);
             filter: blur(0);
+        }
+    }
+
+    @@media (max-width: 720px) {
+        .tv-fixed-audio-test {
+            right: 12px;
+            left: 12px;
+            bottom: 12px;
+            justify-content: center;
         }
     }
 
