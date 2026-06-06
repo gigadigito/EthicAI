@@ -187,7 +187,10 @@
                 <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
                 @if (ShouldRenderCrowdAudio)
                 {
-                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
+                        <span class="@CrowdAudioIconClass" aria-hidden="true"></span>
+                        <span>@DisplayCrowdAudioLabel()</span>
+                    </button>
                     @if (ShouldShowAudioUnlockButton)
                     {
                         <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
@@ -412,7 +415,9 @@
                                 {
                                     <article @key="commentary.Id"
                                              class="@(commentary.IsLatest ? "tv-ai-commentary__entry tv-ai-commentary__entry--latest" : "tv-ai-commentary__entry")"
-                                             style="@GetArenaCommentaryAccentStyle(commentary.AccentHex)">
+                                             style="@GetArenaCommentaryAccentStyle(commentary.AccentHex)"
+                                             @onclick="() => HandleArenaCommentaryClickAsync(commentary)"
+                                             title="@GetArenaCommentaryClickTitle(commentary)">
                                         <div class="tv-ai-commentary__entry-meta">
                                             <span class="tv-ai-commentary__minute">@commentary.MinuteLabel</span>
                                             <span class="tv-ai-commentary__type">@commentary.TypeLabel</span>
@@ -683,7 +688,10 @@ else
                 <span class="tv-pill tv-pill--signal">@T("states.noHotMatchRightNow")</span>
                 @if (ShouldRenderCrowdAudio)
                 {
-                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync">@DisplayCrowdAudioLabel()</button>
+                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
+                        <span class="@CrowdAudioIconClass" aria-hidden="true"></span>
+                        <span>@DisplayCrowdAudioLabel()</span>
+                    </button>
                     @if (ShouldShowAudioUnlockButton)
                     {
                         <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
@@ -4739,6 +4747,7 @@ else
             candidate.HighlightSymbol,
             candidate.AccentHex,
             candidate.Priority,
+            candidate.AudioKey,
             candidate.Silent,
             DateTime.UtcNow,
             false);
@@ -4951,6 +4960,71 @@ else
                 candidate.Reason,
                 candidate.HighlightSymbol,
                 candidate.Text
+            });
+        }
+    }
+
+    private async Task HandleArenaCommentaryClickAsync(TvArenaCommentaryEntry commentary)
+    {
+        await LogAsync("TV_ARENA_COMMENTARY", "event-clicked", new
+        {
+            commentary.MatchId,
+            commentary.TypeKey,
+            commentary.HighlightSymbol,
+            commentary.AudioKey,
+            commentary.Silent
+        });
+
+        if (commentary.Silent || string.IsNullOrWhiteSpace(commentary.AudioKey))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-ignored", new
+            {
+                commentary.MatchId,
+                commentary.TypeKey,
+                commentary.HighlightSymbol,
+                reason = commentary.Silent ? "silent-event-click" : "missing-audio-key-click"
+            });
+            return;
+        }
+
+        try
+        {
+            var played = _tvModule is not null
+                ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", commentary.AudioKey, new
+                {
+                    priority = Math.Max(28, commentary.Priority),
+                    cooldownMs = 150,
+                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume(), 0.18m, 0.78m),
+                    muted = _isCrowdAudioMuted
+                })
+                : await JS.InvokeAsync<bool>("playTvAudioCue", commentary.AudioKey, new
+                {
+                    priority = Math.Max(28, commentary.Priority),
+                    cooldownMs = 150,
+                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume(), 0.18m, 0.78m),
+                    muted = _isCrowdAudioMuted
+                });
+
+            await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
+            {
+                commentary.MatchId,
+                commentary.TypeKey,
+                commentary.HighlightSymbol,
+                commentary.AudioKey,
+                source = "entry-click",
+                played
+            });
+        }
+        catch (Exception ex) when (ex is JSException or ObjectDisposedException)
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-failed", new
+            {
+                commentary.MatchId,
+                commentary.TypeKey,
+                commentary.HighlightSymbol,
+                commentary.AudioKey,
+                source = "entry-click",
+                error = ex.Message
             });
         }
     }
@@ -5286,6 +5360,11 @@ else
 
     private string GetArenaCommentaryAccentStyle(string accentHex)
         => $"--commentary-accent:{accentHex};";
+
+    private string GetArenaCommentaryClickTitle(TvArenaCommentaryEntry commentary)
+        => !string.IsNullOrWhiteSpace(commentary.AudioKey) && !commentary.Silent
+            ? (IsPortugueseCulture ? "Clique para tocar o audio deste evento" : "Click to play this event audio")
+            : (IsPortugueseCulture ? "Evento sem audio associado" : "Event without linked audio");
 
     private string DisplayCommentaryText()
         => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
@@ -6132,6 +6211,11 @@ else
         => _isCrowdAudioMuted
             ? T("audio.crowdMuted")
             : T("audio.crowdEnabled");
+
+    private string CrowdAudioIconClass
+        => _isCrowdAudioMuted
+            ? "tv-pill__audio-icon tv-pill__audio-icon--muted"
+            : "tv-pill__audio-icon tv-pill__audio-icon--live";
 
     private void ApplyAudioInteropState(TvAudioInteropState? state)
     {
@@ -6990,6 +7074,7 @@ else
         string HighlightSymbol,
         string AccentHex,
         int Priority,
+        string? AudioKey,
         bool Silent,
         DateTime CreatedAtUtc,
         bool IsLatest);
@@ -8297,8 +8382,77 @@ else
     }
 
     .tv-pill--audio {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         cursor: pointer;
         border-color: rgba(255,255,255,0.14);
+    }
+
+    .tv-pill__audio-icon {
+        position: relative;
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+        flex: 0 0 auto;
+    }
+
+    .tv-pill__audio-icon::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 2px;
+        width: 5px;
+        height: 8px;
+        border-radius: 2px;
+        background: currentColor;
+    }
+
+    .tv-pill__audio-icon::after {
+        content: "";
+        position: absolute;
+        left: 5px;
+        top: 1px;
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 7px solid currentColor;
+    }
+
+    .tv-pill__audio-icon--live {
+        color: #9bf8d8;
+        filter: drop-shadow(0 0 8px rgba(127,246,223,.24));
+    }
+
+    .tv-pill__audio-icon--live span,
+    .tv-pill__audio-icon--muted span {
+        display: none;
+    }
+
+    .tv-pill__audio-icon--live {
+        box-shadow: inset -2px 0 0 0 transparent;
+    }
+
+    .tv-pill__audio-icon--live::marker {
+        content: "";
+    }
+
+    .tv-pill__audio-icon--muted {
+        color: #ffb0b0;
+    }
+
+    .tv-pill__audio-icon--muted::before {
+        background: color-mix(in srgb, currentColor 88%, #ffffff);
+    }
+
+    .tv-pill__audio-icon--muted::after {
+        border-left-color: color-mix(in srgb, currentColor 88%, #ffffff);
+    }
+
+    .tv-pill__audio-icon--muted {
+        background:
+            linear-gradient(135deg, transparent 42%, currentColor 43%, currentColor 57%, transparent 58%);
     }
 
     .tv-pill--audio-unlock {
@@ -9124,14 +9278,33 @@ else
 
     .tv-ai-commentary__feed {
         display: grid;
-        gap: 10px;
+        grid-auto-rows: 100%;
+        gap: 12px;
         min-width: 0;
+        height: 176px;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        padding-right: 2px;
+        scroll-snap-type: y mandatory;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,.16) transparent;
+    }
+
+    .tv-ai-commentary__feed::-webkit-scrollbar {
+        width: 7px;
+    }
+
+    .tv-ai-commentary__feed::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: rgba(255,255,255,.14);
     }
 
     .tv-ai-commentary__entry {
         --commentary-accent: #53c8ff;
         display: grid;
         gap: 8px;
+        min-height: 176px;
+        align-content: start;
         padding: 12px 14px;
         border-radius: 18px;
         border: 1px solid color-mix(in srgb, var(--commentary-accent) 28%, rgba(255,255,255,.08));
@@ -9139,6 +9312,9 @@ else
             linear-gradient(135deg, color-mix(in srgb, var(--commentary-accent) 16%, rgba(255,255,255,.035)) 0%, rgba(255,255,255,.025) 100%);
         box-shadow: 0 12px 28px rgba(3,8,22,.18);
         animation: tvCommentaryEntryIn .34s ease;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        cursor: pointer;
     }
 
     .tv-ai-commentary__entry--latest {
@@ -11363,6 +11539,11 @@ else
 
         .tv-ai-commentary__entry {
             padding: 11px 12px;
+            min-height: 188px;
+        }
+
+        .tv-ai-commentary__feed {
+            height: 188px;
         }
 
         .tv-ai-commentary__entry-meta,
