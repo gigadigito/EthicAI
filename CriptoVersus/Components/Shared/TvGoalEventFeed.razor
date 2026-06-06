@@ -2,56 +2,449 @@
 @using System.Globalization
 
 <style>
-.tv-event-feed{min-height:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:14px;padding:2px 0 0;overflow:hidden}
-.tv-event-feed__hero{position:relative}
-.tv-event-feed__timeline{position:relative;min-height:0;height:100%;display:grid;grid-template-columns:28px minmax(0,1fr);overflow:hidden}
-.tv-event-feed__rail{position:relative;width:100%}
-.tv-event-feed__rail::before{content:"";position:absolute;left:14px;top:8px;bottom:8px;width:2px;transform:translateX(-50%);background:linear-gradient(180deg,rgba(116,221,255,.54),rgba(116,221,255,.08));box-shadow:0 0 18px rgba(83,200,255,.18)}
-.tv-event-feed__stack{min-height:0;height:100%;display:grid;gap:12px;overflow:auto;padding-right:8px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(122,235,255,.45) rgba(255,255,255,.03)}
-.tv-event-feed__stack::-webkit-scrollbar{width:8px}
-.tv-event-feed__stack::-webkit-scrollbar-track{background:rgba(255,255,255,.03);border-radius:999px}
-.tv-event-feed__stack::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(122,235,255,.55),rgba(122,235,255,.22));border-radius:999px;border:1px solid rgba(255,255,255,.08)}
-.tv-event-feed__empty{min-height:240px;display:grid;place-content:center;gap:8px;padding:18px;text-align:center;border-radius:24px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02))}
-.tv-event-feed__empty strong{font-size:1rem;letter-spacing:.14em;color:#f6fbff}
-.tv-event-feed__empty small{color:rgba(207,222,238,.76);line-height:1.5}
+    .tv-event-feed {
+        min-height: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0,1fr);
+        gap: 14px;
+        padding: 2px 0 0;
+        overflow: hidden
+    }
 
-.tv-event-card{position:relative;display:grid;grid-template-columns:84px 104px minmax(0,1fr) 120px 116px;align-items:center;gap:18px;padding:18px 22px;overflow:hidden;border-radius:26px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.01) 30%),linear-gradient(180deg,rgba(6,14,26,.96),rgba(5,10,21,.98));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 42px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.02);transform:translate3d(0,20px,0) scale(.985);opacity:0;will-change:transform,opacity;transition:transform 320ms cubic-bezier(.22,1,.36,1),opacity 320ms ease}
-.tv-event-card.is-visible{transform:translate3d(0,0,0) scale(1);opacity:1}
-.tv-event-card[data-enter-from="right"]{transform:translate3d(22px,0,0) scale(.985)}
-.tv-event-card[data-enter-from="left"]{transform:translate3d(-22px,0,0) scale(.985)}
-.tv-event-card.is-visible[data-enter-from="left"],.tv-event-card.is-visible[data-enter-from="right"]{transform:translate3d(0,0,0) scale(1)}
-.tv-event-card--hero{min-height:132px;padding:20px 24px;border-radius:30px}
-.tv-event-card--compact{min-height:104px}
-.tv-event-card--high-priority{border-color:color-mix(in srgb,var(--event-accent-start,#53c8ff) 34%,rgba(255,255,255,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px color-mix(in srgb,var(--event-accent-start,#53c8ff) 12%,transparent),0 0 32px color-mix(in srgb,var(--event-glow,rgba(83,200,255,.35)) 26%,transparent),0 18px 42px rgba(0,0,0,.3)}
-.tv-event-card__scanlines,.tv-event-card__edge-glow,.tv-event-card__particles{pointer-events:none;position:absolute;inset:0}
-.tv-event-card__scanlines{background-image:linear-gradient(180deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 4px);opacity:.05;mix-blend-mode:screen}
-.tv-event-card__edge-glow{background:linear-gradient(90deg,color-mix(in srgb,var(--event-accent-start,#53c8ff) 24%,transparent),transparent 22%,transparent 78%,color-mix(in srgb,var(--event-accent-end,#7ff6df) 24%,transparent));opacity:.82}
-.tv-event-card__event-icon-shell,.tv-event-card__team-coin-shell{position:relative;display:grid;place-items:center;z-index:1}
-.tv-event-card__event-icon-art{position:relative;width:76px;height:76px;border-radius:22px;display:grid;place-items:center;overflow:hidden;border:1px solid color-mix(in srgb,var(--event-accent-start,#53c8ff) 44%,rgba(255,255,255,.12));background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--event-accent-start,#53c8ff) 22%,transparent),transparent 68%),linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.02)),linear-gradient(135deg,color-mix(in srgb,var(--event-accent-start,#53c8ff) 24%,rgba(6,14,24,.96)),color-mix(in srgb,var(--event-accent-end,#7ff6df) 20%,rgba(5,10,18,.98)));box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px rgba(255,255,255,.04),0 0 24px color-mix(in srgb,var(--event-glow,rgba(83,200,255,.35)) 28%,transparent)}
-.tv-event-card__event-icon-image{width:100%;height:100%;object-fit:cover;display:block}
-.tv-event-card__event-icon-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:1.2rem;font-weight:900;color:#fff;opacity:0}
-.tv-event-card__team-coin{width:92px;height:92px;border-radius:26px;display:grid;place-items:center;overflow:hidden;border:2px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 0 1px rgba(255,255,255,.03),0 18px 28px rgba(0,0,0,.22)}
-.tv-event-card__team-coin img{width:100%;height:100%;object-fit:cover;display:block}
-.tv-event-card__team-coin span{color:#fff;font-size:1rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
-.tv-event-card__content{position:relative;z-index:1;min-width:0;display:grid;gap:10px}
-.tv-event-card__identity{display:inline-flex;align-items:center;gap:10px;min-width:0}
-.tv-event-card__team-symbol{color:#79f6e8;font-weight:900;letter-spacing:.16em;text-transform:uppercase;font-size:.82rem}
-.tv-event-card__copy{min-width:0;display:grid;gap:8px}
-.tv-event-card__copy h3{margin:0;font-size:1.62rem;line-height:1;letter-spacing:.02em;text-transform:uppercase;color:#fbfdff}
-.tv-event-card__copy p{margin:0;color:rgba(230,238,248,.88);font-size:1rem;line-height:1.4}
-.tv-event-card__meta{position:relative;z-index:1;display:grid;justify-items:end;gap:10px}
-.tv-event-card__timer{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 16px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));color:#f4f8ff;font-size:1.14rem;font-weight:900;letter-spacing:.08em;font-variant-numeric:tabular-nums}
-.tv-event-card__reward{font-style:normal;font-size:4rem;font-weight:1000;line-height:1;letter-spacing:-.04em;color:#fff;text-shadow:0 0 18px color-mix(in srgb,var(--event-accent-end,#7ff6df) 28%,transparent),0 1px 0 rgba(0,0,0,.4)}
-.tv-event-card__particles span{position:absolute;width:6px;height:6px;border-radius:999px;background:linear-gradient(180deg,var(--event-accent-start,#53c8ff),var(--event-accent-end,#7ff6df));opacity:0;transform:translate3d(0,8px,0) scale(.65);animation:tvEventParticle 1.6s ease-out infinite}
-.tv-event-card__particles span:nth-child(1){top:18px;right:72px}
-.tv-event-card__particles span:nth-child(2){top:42px;right:102px;animation-delay:180ms}
-.tv-event-card__particles span:nth-child(3){top:28px;right:132px;animation-delay:320ms}
-@@keyframes tvEventParticle{0%{opacity:0;transform:translate3d(0,8px,0) scale(.65)}25%{opacity:1}100%{opacity:0;transform:translate3d(0,-12px,0) scale(1)}}
-@@media (max-width:900px){.tv-event-card{grid-template-columns:74px 84px minmax(0,1fr) 92px 90px;gap:14px;padding:16px 18px}.tv-event-card__event-icon-art{width:68px;height:68px}.tv-event-card__team-coin{width:76px;height:76px}.tv-event-card__copy h3{font-size:1.28rem}.tv-event-card__copy p{font-size:.92rem}.tv-event-card__reward{font-size:3rem}}
-@@media (max-width:640px){.tv-event-feed__timeline{grid-template-columns:1fr}.tv-event-feed__rail{display:none}.tv-event-feed__stack{padding-right:2px}.tv-event-card{grid-template-columns:64px 78px minmax(0,1fr);grid-template-areas:"event team body""event meta meta";align-items:start}.tv-event-card__event-icon-shell{grid-area:event}.tv-event-card__team-coin-shell{grid-area:team}.tv-event-card__content{grid-area:body}.tv-event-card__meta{grid-area:meta;grid-auto-flow:column;justify-content:space-between;align-items:center;justify-items:start}.tv-event-card__reward{font-size:2.4rem}}
-</style>
+    .tv-event-feed__hero {
+        position: relative
+    }
+
+    .tv-event-feed__timeline {
+        position: relative;
+        min-height: 0;
+        height: 100%;
+        display: grid;
+        grid-template-columns: 28px minmax(0,1fr);
+        overflow: hidden
+    }
+
+    .tv-event-feed__rail {
+        position: relative;
+        width: 100%
+    }
+
+        .tv-event-feed__rail::before {
+            content: "";
+            position: absolute;
+            left: 14px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg,rgba(116,221,255,.54),rgba(116,221,255,.08));
+            box-shadow: 0 0 18px rgba(83,200,255,.18)
+        }
+
+    .tv-event-feed__stack {
+        min-height: 0;
+        height: 100%;
+        display: grid;
+        gap: 12px;
+        overflow: auto;
+        padding-right: 8px;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(122,235,255,.45) rgba(255,255,255,.03)
+    }
+
+        .tv-event-feed__stack::-webkit-scrollbar {
+            width: 8px
+        }
+
+        .tv-event-feed__stack::-webkit-scrollbar-track {
+            background: rgba(255,255,255,.03);
+            border-radius: 999px
+        }
+
+        .tv-event-feed__stack::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg,rgba(122,235,255,.55),rgba(122,235,255,.22));
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.08)
+        }
+
+    .tv-event-feed__empty {
+        min-height: 240px;
+        display: grid;
+        place-content: center;
+        gap: 8px;
+        padding: 18px;
+        text-align: center;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,.07);
+        background: linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02))
+    }
+
+        .tv-event-feed__empty strong {
+            font-size: 1rem;
+            letter-spacing: .14em;
+            color: #f6fbff
+        }
+
+        .tv-event-feed__empty small {
+            color: rgba(207,222,238,.76);
+            line-height: 1.5
+        }
+
+    .tv-event-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 120px 72px minmax(0,1fr) 140px 120px;
+        align-items: center;
+        gap: 18px;
+        padding: 18px 22px;
+        overflow: hidden;
+        border-radius: 26px;
+        border: 1px solid rgba(255,255,255,.08);
+        background: linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.01) 30%), linear-gradient(180deg,rgba(6,14,26,.96),rgba(5,10,21,.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 18px 42px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.02);
+        transform: translate3d(0,20px,0) scale(.985);
+        opacity: 0;
+        will-change: transform,opacity;
+        transition: transform 320ms cubic-bezier(.22,1,.36,1), opacity 320ms ease
+    }
+
+        .tv-event-card.is-visible {
+            transform: translate3d(0,0,0) scale(1);
+            opacity: 1
+        }
+
+        .tv-event-card[data-enter-from="right"] {
+            transform: translate3d(22px,0,0) scale(.985)
+        }
+
+        .tv-event-card[data-enter-from="left"] {
+            transform: translate3d(-22px,0,0) scale(.985)
+        }
+
+        .tv-event-card.is-visible[data-enter-from="left"],
+        .tv-event-card.is-visible[data-enter-from="right"] {
+            transform: translate3d(0,0,0) scale(1)
+        }
+
+    .tv-event-card--hero {
+        min-height: 132px;
+        padding: 20px 24px;
+        border-radius: 30px
+    }
+
+    .tv-event-card--compact {
+        min-height: 104px
+    }
+
+    .tv-event-card--high-priority {
+        border-color: color-mix(in srgb,var(--event-accent-start,#53c8ff) 34%,rgba(255,255,255,.12));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px color-mix(in srgb,var(--event-accent-start,#53c8ff) 12%,transparent), 0 0 32px color-mix(in srgb,var(--event-glow,rgba(83,200,255,.35)) 26%,transparent), 0 18px 42px rgba(0,0,0,.3)
+    }
+
+    .tv-event-card__scanlines,
+    .tv-event-card__edge-glow,
+    .tv-event-card__particles {
+        pointer-events: none;
+        position: absolute;
+        inset: 0
+    }
+
+    .tv-event-card__scanlines {
+        background-image: linear-gradient( 180deg, rgba(255,255,255,.05) 0, rgba(255,255,255,.05) 1px, transparent 1px, transparent 4px );
+        opacity: .05;
+        mix-blend-mode: screen
+    }
+
+    .tv-event-card__edge-glow {
+        background: linear-gradient( 90deg, color-mix(in srgb,var(--event-accent-start,#53c8ff) 24%,transparent), transparent 22%, transparent 78%, color-mix(in srgb,var(--event-accent-end,#7ff6df) 24%,transparent) );
+        opacity: .82
+    }
+
+    .tv-event-card__event-icon-shell,
+    .tv-event-card__team-coin-shell {
+        position: relative;
+        display: grid;
+        place-items: center;
+        z-index: 1
+    }
+
+    .tv-event-card__event-icon-art {
+        position: relative;
+        width: 96px;
+        height: 96px;
+        border-radius: 24px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb,var(--event-accent-start,#53c8ff) 44%,rgba(255,255,255,.12));
+        background: radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--event-accent-start,#53c8ff) 22%,transparent),transparent 68%), linear-gradient(145deg,rgba(255,255,255,.14),rgba(255,255,255,.02)), linear-gradient(135deg,color-mix(in srgb,var(--event-accent-start,#53c8ff) 24%,rgba(6,14,24,.96)),color-mix(in srgb,var(--event-accent-end,#7ff6df) 20%,rgba(5,10,18,.98)));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(255,255,255,.04), 0 0 24px color-mix(in srgb,var(--event-glow,rgba(83,200,255,.35)) 28%,transparent)
+    }
+
+    .tv-event-card__event-icon-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block
+    }
+
+    .tv-event-card__event-icon-fallback {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #fff;
+        opacity: 0
+    }
+
+    .tv-event-card__team-coin {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        border: 2px solid rgba(255,255,255,.16);
+        background: linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 1px rgba(255,255,255,.03), 0 18px 28px rgba(0,0,0,.22)
+    }
+
+        .tv-event-card__team-coin img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block
+        }
+
+        .tv-event-card__team-coin span {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: .1em;
+            text-transform: uppercase
+        }
+
+    .tv-event-card__content {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        display: grid;
+        gap: 10px
+    }
+
+    .tv-event-card__identity {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0
+    }
+
+    .tv-event-card__team-symbol {
+        color: #79f6e8;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        font-size: .82rem
+    }
+
+    .tv-event-card__copy {
+        min-width: 0;
+        display: grid;
+        gap: 8px
+    }
+
+        .tv-event-card__copy h3 {
+            margin: 0;
+            font-size: 1.62rem;
+            line-height: 1;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            color: #fbfdff
+        }
+
+        .tv-event-card__copy p {
+            margin: 0;
+            color: rgba(230,238,248,.88);
+            font-size: 1rem;
+            line-height: 1.4
+        }
+
+    .tv-event-card__time-column,
+    .tv-event-card__reward-column {
+        position: relative;
+        z-index: 1;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        border-left: 1px solid rgba(122,235,255,.16)
+    }
+
+    .tv-event-card__timer {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.1);
+        background: linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+        color: #f4f8ff;
+        font-size: 1.14rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        font-variant-numeric: tabular-nums
+    }
+
+    .tv-event-card__reward {
+        font-style: normal;
+        font-size: 4rem;
+        font-weight: 1000;
+        line-height: 1;
+        letter-spacing: -.04em;
+        color: #fff;
+        text-align: center;
+        text-shadow: 0 0 18px color-mix(in srgb,var(--event-accent-end,#7ff6df) 28%,transparent), 0 1px 0 rgba(0,0,0,.4)
+    }
+
+    .tv-event-card__particles span {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(180deg,var(--event-accent-start,#53c8ff),var(--event-accent-end,#7ff6df));
+        opacity: 0;
+        transform: translate3d(0,8px,0) scale(.65);
+        animation: tvEventParticle 1.6s ease-out infinite
+    }
+
+        .tv-event-card__particles span:nth-child(1) {
+            top: 18px;
+            right: 72px
+        }
+
+        .tv-event-card__particles span:nth-child(2) {
+            top: 42px;
+            right: 102px;
+            animation-delay: 180ms
+        }
+
+        .tv-event-card__particles span:nth-child(3) {
+            top: 28px;
+            right: 132px;
+            animation-delay: 320ms
+        }
+
+    @@keyframes tvEventParticle {
+        0%
+
+    {
+        opacity: 0;
+        transform: translate3d(0,8px,0) scale(.65)
+    }
+
+    25% {
+        opacity: 1
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate3d(0,-12px,0) scale(1)
+    }
+
+    }
+
+    @@media (max-width:900px) {
+        .tv-event-card
+
+    {
+        grid-template-columns: 96px 58px minmax(0,1fr) 110px 88px;
+        gap: 14px;
+        padding: 16px 18px
+    }
+
+    .tv-event-card__event-icon-art {
+        width: 82px;
+        height: 82px
+    }
+
+    .tv-event-card__team-coin {
+        width: 46px;
+        height: 46px
+    }
+
+    .tv-event-card__copy h3 {
+        font-size: 1.28rem
+    }
+
+    .tv-event-card__copy p {
+        font-size: .92rem
+    }
+
+    .tv-event-card__reward {
+        font-size: 3rem
+    }
+
+    }
+
+    @@media (max-width:640px) {
+        .tv-event-feed__timeline
+
+    {
+        grid-template-columns: 1fr
+    }
+
+    .tv-event-feed__rail {
+        display: none
+    }
+
+    .tv-event-feed__stack {
+        padding-right: 2px
+    }
+
+    .tv-event-card {
+        grid-template-columns: 78px 48px minmax(0,1fr);
+        grid-template-areas:
+            "event team body"
+            "time reward reward";
+        align-items: start
+    }
+
+    .tv-event-card__event-icon-shell {
+        grid-area: event
+    }
+
+    .tv-event-card__team-coin-shell {
+        grid-area: team
+    }
+
+    .tv-event-card__content {
+        grid-area: body
+    }
+
+    .tv-event-card__time-column {
+        grid-area: time;
+        border-left: 0;
+        place-items: start
+    }
+
+    .tv-event-card__reward-column {
+        grid-area: reward;
+        border-left: 0;
+        place-items: end
+    }
+
+    .tv-event-card__reward {
+        font-size: 2.4rem
+    }
+
+    }</style>
 
 <div id="@FeedId" class="tv-event-feed">
+
     @if (EventCards.Count > 0)
     {
         <section class="tv-event-feed__hero">
@@ -61,13 +454,18 @@
         @if (EventCards.Count > 1)
         {
             <section class="tv-event-feed__timeline">
+
                 <div class="tv-event-feed__rail" aria-hidden="true"></div>
+
                 <div class="tv-event-feed__stack">
+
                     @foreach (var item in EventCards.Skip(1))
                     {
                         <TvGoalEventCard Model="item" />
                     }
+
                 </div>
+
             </section>
         }
     }
@@ -78,17 +476,30 @@
             <small>@EmptySubtitle</small>
         </div>
     }
+
 </div>
 
 @code {
+
     [Parameter] public string FeedId { get; set; } = "tv-goal-event-feed";
+
     [Parameter] public string Culture { get; set; } = "pt-BR";
-    [Parameter] public IReadOnlyList<MatchScoreEventDto> Items { get; set; } = Array.Empty<MatchScoreEventDto>();
+
+    [Parameter]
+    public IReadOnlyList<MatchScoreEventDto> Items { get; set; }
+        = Array.Empty<MatchScoreEventDto>();
+
     [Parameter] public Func<MatchScoreEventDto, string>? FormatTime { get; set; }
+
     [Parameter] public Func<MatchScoreEventDto, string>? DescribeFallback { get; set; }
+
     [Parameter] public Func<string?, string>? ResolveTeamLogoUrl { get; set; }
+
     [Parameter] public string EmptyTitle { get; set; } = "GRID.METRICS.GOALS";
-    [Parameter] public string EmptySubtitle { get; set; } = "Aguardando o proximo evento de pontuacao.";
+
+    [Parameter]
+    public string EmptySubtitle { get; set; }
+        = "Aguardando o proximo evento de pontuacao.";
 
     private IReadOnlyList<TvGoalEventCardModel> EventCards => BuildCards();
 
@@ -100,36 +511,53 @@
         }
 
         var result = new List<TvGoalEventCardModel>(Items.Count);
+
         for (var index = 0; index < Items.Count; index += 1)
         {
             var item = Items[index];
+
             var definition = TvEventTypeRegistry.Resolve(item);
-            var rawSubtitle = DescribeFallback?.Invoke(item) ?? item.Description ?? string.Empty;
-            var subtitle = definition.GetSubtitle(Culture, item, rawSubtitle);
-            var enterFrom = index == 0 ? "left" : (index % 2 == 0 ? "right" : "left");
+
+            var rawSubtitle =
+                DescribeFallback?.Invoke(item)
+                ?? item.Description
+                ?? string.Empty;
+
+            var subtitle =
+                definition.GetSubtitle(Culture, item, rawSubtitle);
+
+            var enterFrom =
+                index == 0
+                    ? "left"
+                    : (index % 2 == 0 ? "right" : "left");
+
             var priority = definition.PriorityLevel;
 
-            result.Add(new TvGoalEventCardModel(
-                item.MatchScoreEventId,
-                definition.Id,
-                item.TeamSymbol,
-                ResolveTeamLogoUrl?.Invoke(item.TeamSymbol) ?? string.Empty,
-                definition.GetTitle(Culture),
-                subtitle,
-                FormatTime?.Invoke(item) ?? item.EventTimeUtc.ToString("HH:mm", CultureInfo.InvariantCulture),
-                $"+{item.Points}",
-                definition.IconAssetPath,
-                definition.IconFallback,
-                definition.AccentStart,
-                definition.AccentEnd,
-                definition.GlowColor,
-                definition.AnimationStyle,
-                definition.SoundCueId,
-                priority,
-                index == 0,
-                priority >= 4,
-                enterFrom,
-                rawSubtitle));
+            result.Add(
+                new TvGoalEventCardModel(
+                    item.MatchScoreEventId,
+                    definition.Id,
+                    item.TeamSymbol,
+                    ResolveTeamLogoUrl?.Invoke(item.TeamSymbol) ?? string.Empty,
+                    definition.GetTitle(Culture),
+                    subtitle,
+                    FormatTime?.Invoke(item)
+                        ?? item.EventTimeUtc.ToString("HH:mm", CultureInfo.InvariantCulture),
+                    $"+{item.Points}",
+                    definition.IconAssetPath,
+                    definition.IconFallback,
+                    definition.AccentStart,
+                    definition.AccentEnd,
+                    definition.GlowColor,
+                    definition.AnimationStyle,
+                    definition.SoundCueId,
+                    priority,
+                    index == 0,
+                    priority >= 4,
+                    enterFrom,
+                    rawSubtitle
+                )
+            );
         }
 
         return result;

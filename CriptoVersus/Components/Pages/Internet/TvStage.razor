@@ -405,9 +405,32 @@
                             <small>@DisplayCommentaryMeta()</small>
                         </div>
 
-                        <div class="tv-ai-commentary__text">
-                            @DisplayCommentaryText()
-                        </div>
+                        @if (HasArenaCommentaryFeed)
+                        {
+                            <div class="tv-ai-commentary__feed" aria-live="polite" aria-atomic="false">
+                                @foreach (var commentary in ArenaCommentaryFeed)
+                                {
+                                    <article @key="commentary.Id"
+                                             class="@(commentary.IsLatest ? "tv-ai-commentary__entry tv-ai-commentary__entry--latest" : "tv-ai-commentary__entry")"
+                                             style="@GetArenaCommentaryAccentStyle(commentary.AccentHex)">
+                                        <div class="tv-ai-commentary__entry-meta">
+                                            <span class="tv-ai-commentary__minute">@commentary.MinuteLabel</span>
+                                            <span class="tv-ai-commentary__type">@commentary.TypeLabel</span>
+                                        </div>
+                                        <div class="tv-ai-commentary__entry-body">
+                                            <strong class="tv-ai-commentary__asset">@commentary.HighlightSymbol</strong>
+                                            <p class="tv-ai-commentary__copy">@commentary.Text</p>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="tv-ai-commentary__text">
+                                @DisplayCommentaryText()
+                            </div>
+                        }
                     </section>
 
                 </article>
@@ -907,6 +930,17 @@ else
     private string _aiNarrationSource = "template";
     private string _lastAiNarrationRequestSignature = string.Empty;
     private List<string> _commentaryHistory = [];
+    private readonly List<TvArenaCommentaryEntry> _arenaCommentaryFeed = [];
+    private readonly Queue<TvArenaCommentaryEntry> _arenaCommentaryArchive = new();
+    private readonly Dictionary<string, DateTime> _arenaNarrativeCooldownsUtc = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _arenaNarrativeLastTextByType = new(StringComparer.Ordinal);
+    private string _lastArenaNarrativeSignature = string.Empty;
+    private string _lastArenaNarrativeOwner = string.Empty;
+    private DateTime _lastArenaNarrativeAtUtc = DateTime.MinValue;
+    private DateTime _narrationBusyUntilUtc = DateTime.MinValue;
+    private DateTime _broadcastCriticalEventUntilUtc = DateTime.MinValue;
+    private int _arenaAttackSequenceCount;
+    private bool _didNarrativeOpening;
     private string _clockDebugSignature = string.Empty;
     private string _tickerSignature = string.Empty;
     private IReadOnlyList<string> _tickerItems = [];
@@ -996,6 +1030,8 @@ else
     private int? _scheduledBroadcastPromoMatchId;
     private int? _lastBroadcastPromoMatchId;
     private const string GoalEventFeedId = "tv-goal-event-feed";
+    private const int MaxArenaCommentaryFeedItems = 7;
+    private const int MaxArenaCommentaryHistoryItems = 24;
 
     private sealed record ReplayDebugPreset(string Label, string EventType, string Animation, string Reason);
     private sealed record BroadcastFocusState(string Key, string Label, string Color, int DurationMs);
@@ -1102,6 +1138,20 @@ else
     private string ActivityChartLinePoints => string.Join(" ", ActivityChartPoints.Select(point => FormattableString.Invariant($"{point.X:0.##},{point.Y:0.##}")));
     private string ActivityChartAreaPath => BuildActivityChartAreaPath(ActivityChartPoints);
     private bool HasActivityChart => ActivityChartPoints.Count > 1;
+    private bool HasArenaCommentaryFeed => _arenaCommentaryFeed.Count > 0;
+    private IReadOnlyList<TvArenaCommentaryEntry> ArenaCommentaryFeed
+    {
+        get
+        {
+            if (_arenaCommentaryFeed.Count == 0)
+                return [];
+
+            var latestId = _arenaCommentaryFeed[^1].Id;
+            return _arenaCommentaryFeed
+                .Select(entry => entry with { IsLatest = entry.Id == latestId })
+                .ToList();
+        }
+    }
     private TvFieldStateDto? CurrentFieldState => UseFootballFieldLayout && HasLiveMatch
         ? FieldPositionService.BuildFieldState(Match, HotMatch, _recentScoreEvents, _metricSnapshots, Culture)
         : null;
@@ -2049,6 +2099,17 @@ else
             _lastAiNarrationMatchId = null;
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
+            _arenaCommentaryFeed.Clear();
+            _arenaCommentaryArchive.Clear();
+            _arenaNarrativeCooldownsUtc.Clear();
+            _arenaNarrativeLastTextByType.Clear();
+            _lastArenaNarrativeSignature = string.Empty;
+            _lastArenaNarrativeOwner = string.Empty;
+            _lastArenaNarrativeAtUtc = DateTime.MinValue;
+            _narrationBusyUntilUtc = DateTime.MinValue;
+            _broadcastCriticalEventUntilUtc = DateTime.MinValue;
+            _arenaAttackSequenceCount = 0;
+            _didNarrativeOpening = false;
             _recentScoreEvents = [];
             _allScoreEvents = [];
             ResetBroadcastPromoState();
@@ -2069,6 +2130,17 @@ else
             _lastAiNarrationRequestSignature = string.Empty;
             _currentAiNarration = string.Empty;
             _commentaryHistory = [];
+            _arenaCommentaryFeed.Clear();
+            _arenaCommentaryArchive.Clear();
+            _arenaNarrativeCooldownsUtc.Clear();
+            _arenaNarrativeLastTextByType.Clear();
+            _lastArenaNarrativeSignature = string.Empty;
+            _lastArenaNarrativeOwner = string.Empty;
+            _lastArenaNarrativeAtUtc = DateTime.MinValue;
+            _narrationBusyUntilUtc = DateTime.MinValue;
+            _broadcastCriticalEventUntilUtc = DateTime.MinValue;
+            _arenaAttackSequenceCount = 0;
+            _didNarrativeOpening = false;
             _recentScoreEvents = [];
             _allScoreEvents = [];
             _lastScoreEventMatchId = current.MatchId;
@@ -2109,6 +2181,7 @@ else
             _ = TriggerEventAsync(CreateEvent("hotMatchDetected"));
             _ = QueueNarrationAsync(CreateNarrationEvent("hotMatchDetected", current));
             _ = MaybeRefreshAiNarrationAsync("initial");
+            _ = MaybeEmitArenaNarrativeAsync(current, CurrentFieldState, NarrativeEventKind.MatchOpening, "match bootstrap");
             _previousSnapshot = current;
             return;
         }
@@ -2164,6 +2237,20 @@ else
             _ = MaybeRefreshAiNarrationAsync("final-minutes");
             _ = TryShowPirateIntroAsync("final-minutes");
         }
+
+        _ = MaybeEmitArenaNarrativeAsync(current, CurrentFieldState, null, hasScoreChange
+            ? "score-change-suppressed"
+            : scoreLeaderChanged
+                ? "leader-change-suppressed"
+                : reversalDetected
+                    ? "reversal-suppressed"
+                    : fearSpike
+                        ? "fear-surge-suppressed"
+                        : hotScoreSpike
+                            ? "hot-score-suppressed"
+                            : finalMoments
+                                ? "final-moments-suppressed"
+                                : "state-poll");
 
         _previousSnapshot = current;
     }
@@ -3442,6 +3529,7 @@ else
 
         _activeEvent = overlayEvent;
         _isEventVisible = true;
+        _broadcastCriticalEventUntilUtc = DateTime.UtcNow.AddSeconds(5);
         await LogAsync("TV_EVENT", overlayEvent.Key);
         if (EnableTelemetryCube && _tvModule is not null)
         {
@@ -3572,8 +3660,12 @@ else
         if (narrationEvent is null || _narrationOverlay is null)
             return;
 
+        _narrationBusyUntilUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(1800, narrationEvent.DurationMs + 280));
         if (IsImpactSeverity(narrationEvent.Severity))
+        {
+            _broadcastCriticalEventUntilUtc = DateTime.UtcNow.AddMilliseconds(Math.Max(2200, narrationEvent.DurationMs));
             _ = TriggerStageImpactAsync(narrationEvent.DurationMs);
+        }
 
         await LogAsync("TV_NARRATION", narrationEvent.Type, new
         {
@@ -4588,6 +4680,613 @@ else
         return false;
     }
 
+    private async Task MaybeEmitArenaNarrativeAsync(BroadcastSnapshot current, TvFieldStateDto? fieldState, NarrativeEventKind? forcedKind, string reason)
+    {
+        if (!HasActiveOngoingMatch || fieldState is null || current.MatchId <= 0)
+            return;
+
+        var candidate = BuildArenaNarrativeCandidate(current, fieldState, forcedKind, reason);
+        if (candidate is null)
+            return;
+
+        var now = DateTime.UtcNow;
+        var creationBlockedReason = ResolveArenaNarrativeCreationBlockReason();
+        if (!string.IsNullOrWhiteSpace(creationBlockedReason))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "creation-ignored", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                creationBlockedReason
+            });
+            return;
+        }
+
+        if (_arenaNarrativeCooldownsUtc.TryGetValue(candidate.TypeKey, out var cooldownUntilUtc) && cooldownUntilUtc > now)
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "cooldown-applied", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                cooldownUntilUtc
+            });
+            return;
+        }
+
+        if (string.Equals(candidate.Signature, _lastArenaNarrativeSignature, StringComparison.Ordinal))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "duplicate-ignored", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol
+            });
+            return;
+        }
+
+        var entry = new TvArenaCommentaryEntry(
+            Guid.NewGuid().ToString("N"),
+            candidate.MatchId,
+            candidate.TypeKey,
+            DescribeNarrativeEventType(candidate.Type),
+            candidate.MinuteLabel,
+            candidate.Text,
+            candidate.HighlightSymbol,
+            candidate.AccentHex,
+            candidate.Priority,
+            candidate.Silent,
+            DateTime.UtcNow,
+            false);
+
+        AppendArenaCommentary(entry);
+        _arenaNarrativeCooldownsUtc[candidate.TypeKey] = now.Add(candidate.Cooldown);
+        _arenaNarrativeLastTextByType[candidate.TypeKey] = candidate.Text;
+        _lastArenaNarrativeSignature = candidate.Signature;
+        _lastArenaNarrativeAtUtc = now;
+        _didNarrativeOpening |= candidate.Type == NarrativeEventKind.MatchOpening;
+
+        await LogAsync("TV_ARENA_COMMENTARY", "event-created", new
+        {
+            candidate.MatchId,
+            candidate.TypeKey,
+            candidate.Reason,
+            candidate.HighlightSymbol,
+            candidate.MinuteLabel,
+            candidate.AudioKey,
+            candidate.Silent,
+            candidate.Text
+        });
+
+        var audioBlockedReason = ResolveArenaNarrativeAudioBlockReason(candidate);
+        if (!string.IsNullOrWhiteSpace(audioBlockedReason))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-ignored", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                audioBlockedReason
+            });
+            return;
+        }
+
+        await TryPlayArenaNarrativeAudioAsync(candidate);
+    }
+
+    private TvArenaNarrativeCandidate? BuildArenaNarrativeCandidate(BroadcastSnapshot current, TvFieldStateDto fieldState, NarrativeEventKind? forcedKind, string reason)
+    {
+        var ownerSymbol = ResolveNarrativeOwnerSymbol(fieldState);
+        if (string.IsNullOrWhiteSpace(ownerSymbol))
+            return null;
+
+        var highlightSymbol = GetBaseSymbol(ownerSymbol);
+        if (string.IsNullOrWhiteSpace(highlightSymbol))
+            highlightSymbol = GetBaseSymbol(current.LeaderSymbol);
+
+        var ownerPossession = ResolveNarrativePossession(fieldState, ownerSymbol);
+        var ownerPressure = ResolveNarrativePressure(fieldState, ownerSymbol);
+        var opponentPressure = ResolveNarrativePressure(fieldState, ResolveOpposingNarrativeSymbol(fieldState, ownerSymbol));
+        var ballZone = ResolveNarrativeBallZone(fieldState, ownerSymbol);
+        var netPossession = Math.Abs(fieldState.PossessionA - fieldState.PossessionB);
+        var elapsedMinute = ResolveArenaCommentaryMinute(current);
+        var tensionHigh = current.RemainingSeconds <= 900 || (current.HotScore >= 84 && Math.Abs(current.LeftScore - current.RightScore) <= 1);
+        var offensivePressure = ownerPressure >= 1.35d || ownerPossession >= 58 || string.Equals(fieldState.MomentumOwner, ownerSymbol, StringComparison.OrdinalIgnoreCase);
+        var defensiveCaution = ballZone == NarrativeBallZone.Defensive && ownerPossession <= 56 && ownerPressure <= 1.1d;
+        var dominance = netPossession >= 14 || (ownerPressure - opponentPressure) >= 1.05d || (string.Equals(fieldState.Leader, ownerSymbol, StringComparison.OrdinalIgnoreCase) && Math.Abs(current.LeftScore - current.RightScore) >= 2);
+        var transition = ballZone == NarrativeBallZone.Middle && netPossession <= 8 && Math.Abs(ownerPressure - opponentPressure) <= 0.5d;
+        var recoveredPossession = !string.IsNullOrWhiteSpace(_lastArenaNarrativeOwner)
+            && !string.Equals(_lastArenaNarrativeOwner, ownerSymbol, StringComparison.OrdinalIgnoreCase)
+            && ballZone != NarrativeBallZone.Offensive;
+
+        if (offensivePressure && ballZone == NarrativeBallZone.Offensive)
+        {
+            _arenaAttackSequenceCount = string.Equals(_lastArenaNarrativeOwner, ownerSymbol, StringComparison.OrdinalIgnoreCase)
+                ? Math.Min(5, _arenaAttackSequenceCount + 1)
+                : 1;
+        }
+        else if (!string.Equals(_lastArenaNarrativeOwner, ownerSymbol, StringComparison.OrdinalIgnoreCase))
+        {
+            _arenaAttackSequenceCount = 0;
+        }
+
+        _lastArenaNarrativeOwner = ownerSymbol;
+
+        var narrativeType = forcedKind
+            ?? (!_didNarrativeOpening && elapsedMinute <= 2 ? NarrativeEventKind.MatchOpening
+                : recoveredPossession ? NarrativeEventKind.PossessionRecovery
+                : ballZone == NarrativeBallZone.Offensive && _arenaAttackSequenceCount >= 2 ? NarrativeEventKind.PressureGrowth
+                : ballZone == NarrativeBallZone.Offensive ? NarrativeEventKind.OffensivePossession
+                : defensiveCaution ? NarrativeEventKind.DefensivePossession
+                : dominance ? NarrativeEventKind.Dominance
+                : transition ? NarrativeEventKind.Transition
+                : tensionHigh ? NarrativeEventKind.Tension
+                : null);
+
+        if (narrativeType is null)
+            return null;
+
+        var minuteLabel = FormatArenaNarrativeMinuteLabel(elapsedMinute);
+        var typeKey = narrativeType.Value.ToString();
+        var accentHex = GetAccentColor(highlightSymbol);
+        var text = BuildArenaNarrativeText(narrativeType.Value, highlightSymbol, current.MatchId, elapsedMinute, current.HotScore);
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        var signature = string.Join("|",
+            current.MatchId,
+            typeKey,
+            highlightSymbol,
+            minuteLabel,
+            ballZone,
+            Math.Max(0, current.RemainingSeconds / 20),
+            _arenaAttackSequenceCount);
+
+        return new TvArenaNarrativeCandidate(
+            current.MatchId,
+            narrativeType.Value,
+            typeKey,
+            text,
+            minuteLabel,
+            highlightSymbol,
+            accentHex,
+            ResolveArenaNarrativePriority(narrativeType.Value, current),
+            ResolveArenaNarrativeAudioKey(narrativeType.Value),
+            ResolveArenaNarrativeCooldown(narrativeType.Value),
+            ResolveArenaNarrativeShouldBeSilent(narrativeType.Value, tensionHigh, current.HotScore),
+            signature,
+            $"{reason}|owner={highlightSymbol}|zone={ballZone}|pressure={ownerPressure:0.##}|possession={ownerPossession}");
+    }
+
+    private void AppendArenaCommentary(TvArenaCommentaryEntry entry)
+    {
+        if (_arenaCommentaryFeed.Count >= MaxArenaCommentaryFeedItems)
+        {
+            var removable = _arenaCommentaryFeed
+                .Select((item, index) => new { item, index })
+                .FirstOrDefault(x => x.item.Priority < entry.Priority)
+                ?? _arenaCommentaryFeed.Select((item, index) => new { item, index }).First();
+
+            _arenaCommentaryFeed.RemoveAt(removable.index);
+        }
+
+        _arenaCommentaryFeed.Add(entry);
+        _arenaCommentaryArchive.Enqueue(entry);
+        while (_arenaCommentaryArchive.Count > MaxArenaCommentaryHistoryItems)
+            _arenaCommentaryArchive.Dequeue();
+
+        _commentaryHistory = _arenaCommentaryArchive.Select(item => item.Text).ToList();
+        _currentAiNarration = entry.Text;
+        _aiNarrationSource = "arena-live";
+        _lastAiNarrationAtUtc = entry.CreatedAtUtc;
+    }
+
+    private async Task TryPlayArenaNarrativeAudioAsync(TvArenaNarrativeCandidate candidate)
+    {
+        if (candidate.Silent || string.IsNullOrWhiteSpace(candidate.AudioKey))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "comment-sent-to-ui", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                candidate.Silent,
+                audio = "silent"
+            });
+            return;
+        }
+
+        try
+        {
+            var played = _tvModule is not null
+                ? await _tvModule.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, new
+                {
+                    priority = Math.Max(26, candidate.Priority),
+                    cooldownMs = (int)candidate.Cooldown.TotalMilliseconds,
+                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume() * 0.96m, 0.18m, 0.76m),
+                    muted = _isCrowdAudioMuted
+                })
+                : await JS.InvokeAsync<bool>("playTvAudioCue", candidate.AudioKey, new
+                {
+                    priority = Math.Max(26, candidate.Priority),
+                    cooldownMs = (int)candidate.Cooldown.TotalMilliseconds,
+                    volume = (double)Math.Clamp(ResolveCrowdAudioVolume() * 0.96m, 0.18m, 0.76m),
+                    muted = _isCrowdAudioMuted
+                });
+
+            await LogAsync("TV_ARENA_COMMENTARY", played ? "audio-chosen" : "audio-ignored", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                candidate.AudioKey,
+                played
+            });
+        }
+        catch (Exception ex) when (ex is JSException or ObjectDisposedException)
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "audio-failed", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                candidate.AudioKey,
+                error = ex.Message
+            });
+        }
+        finally
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "comment-sent-to-ui", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                candidate.Text
+            });
+        }
+    }
+
+    private string ResolveArenaNarrativeAudioBlockReason(TvArenaNarrativeCandidate candidate)
+    {
+        var now = DateTime.UtcNow;
+        if (candidate.Silent)
+            return "silent-event";
+
+        if (string.IsNullOrWhiteSpace(candidate.AudioKey))
+            return "missing-audio-key";
+
+        if (_isCrowdAudioMuted)
+            return "broadcast-muted";
+
+        if (_showPirateOverlay)
+            return "broadcast-overlay-active";
+
+        if (_isEventVisible || now < _broadcastCriticalEventUntilUtc)
+            return "critical-overlay-active";
+
+        if (now < _narrationBusyUntilUtc)
+            return "main-narration-running";
+
+        if (_lastGoalAudioAtUtc != DateTime.MinValue && now - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(5))
+            return "goal-audio-cooldown";
+
+        if (_lastProceduralPlaybackAtUtc != DateTime.MinValue && now - _lastProceduralPlaybackAtUtc < TimeSpan.FromSeconds(4))
+            return "procedural-score-audio-cooldown";
+
+        return string.Empty;
+    }
+
+    private string ResolveArenaNarrativeCreationBlockReason()
+    {
+        var now = DateTime.UtcNow;
+        if (_showPirateOverlay)
+            return "broadcast-overlay-active";
+
+        if (_isEventVisible || now < _broadcastCriticalEventUntilUtc)
+            return "critical-overlay-active";
+
+        if (now < _narrationBusyUntilUtc)
+            return "main-narration-running";
+
+        if (_lastGoalAudioAtUtc != DateTime.MinValue && now - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(5))
+            return "goal-audio-cooldown";
+
+        if (_lastProceduralPlaybackAtUtc != DateTime.MinValue && now - _lastProceduralPlaybackAtUtc < TimeSpan.FromSeconds(4))
+            return "procedural-score-audio-cooldown";
+
+        return string.Empty;
+    }
+
+    private string BuildArenaNarrativeText(NarrativeEventKind type, string symbol, int matchId, int elapsedMinute, int hotScore)
+    {
+        var key = type.ToString();
+        string[] phrases = IsPortugueseCulture
+            ? type switch
+            {
+                NarrativeEventKind.MatchOpening =>
+                new[]
+                {
+                    "Bem-vindo a mais uma partida do CriptoVersus TV.",
+                    "A bola vai rolar na arena CriptoVersus.",
+                    "Comeca mais um duelo cripto dentro da arena."
+                },
+                NarrativeEventKind.OffensivePossession =>
+                new[]
+                {
+                    $"{symbol} toca a bola na area do adversario.",
+                    $"{symbol} avanca pelo campo de ataque.",
+                    $"{symbol} comeca a pressionar no setor ofensivo."
+                },
+                NarrativeEventKind.DefensivePossession =>
+                new[]
+                {
+                    $"{symbol} toca a bola na sua area, sem querer arriscar muito.",
+                    $"{symbol} recua a jogada e tenta organizar a saida.",
+                    $"{symbol} prefere manter a posse com seguranca."
+                },
+                NarrativeEventKind.Dominance =>
+                new[]
+                {
+                    $"A dominancia da bola esta com {symbol}.",
+                    $"{symbol} controla o ritmo da partida neste momento.",
+                    $"{symbol} parece mais confortavel com a posse."
+                },
+                NarrativeEventKind.Transition =>
+                new[]
+                {
+                    "A bola fica viva no meio da arena.",
+                    "As duas moedas disputam espaco no campo.",
+                    "O jogo fica equilibrado neste momento."
+                },
+                NarrativeEventKind.PressureGrowth =>
+                new[]
+                {
+                    $"{symbol} aumenta a pressao ofensiva.",
+                    $"O time de {symbol} sobe suas linhas.",
+                    $"{symbol} empurra o adversario para tras."
+                },
+                NarrativeEventKind.PossessionRecovery =>
+                new[]
+                {
+                    $"{symbol} recupera a posse no meio-campo.",
+                    $"A defesa de {symbol} consegue afastar o perigo.",
+                    $"{symbol} retoma o controle da jogada."
+                },
+                NarrativeEventKind.Tension =>
+                new[]
+                {
+                    "A arena sente o aumento da tensao.",
+                    "O confronto fica mais intenso neste momento.",
+                    "A torcida virtual acompanha cada movimento."
+                },
+                _ => Array.Empty<string>()
+            }
+            : type switch
+            {
+                NarrativeEventKind.MatchOpening =>
+                new[]
+                {
+                    "Welcome to another CriptoVersus TV match.",
+                    "The ball is ready to roll inside the CriptoVersus arena.",
+                    "Another crypto duel is underway in the arena."
+                },
+                NarrativeEventKind.OffensivePossession =>
+                new[]
+                {
+                    $"{symbol} moves the ball into the opponent's box.",
+                    $"{symbol} advances through the attacking half.",
+                    $"{symbol} starts pressing high in the offensive sector."
+                },
+                NarrativeEventKind.DefensivePossession =>
+                new[]
+                {
+                    $"{symbol} keeps the ball deep, avoiding too much risk.",
+                    $"{symbol} drops the play back and reorganizes the exit.",
+                    $"{symbol} prefers to keep possession safely for now."
+                },
+                NarrativeEventKind.Dominance =>
+                new[]
+                {
+                    $"Ball control leans toward {symbol} right now.",
+                    $"{symbol} controls the pace of the match at this moment.",
+                    $"{symbol} looks more comfortable in possession."
+                },
+                NarrativeEventKind.Transition =>
+                new[]
+                {
+                    "The ball stays alive in the middle of the arena.",
+                    "Both currencies are fighting for space on the field.",
+                    "The match feels balanced right now."
+                },
+                NarrativeEventKind.PressureGrowth =>
+                new[]
+                {
+                    $"{symbol} raises the attacking pressure.",
+                    $"{symbol}'s side pushes its lines higher.",
+                    $"{symbol} forces the opponent backward."
+                },
+                NarrativeEventKind.PossessionRecovery =>
+                new[]
+                {
+                    $"{symbol} wins possession back in midfield.",
+                    $"{symbol}'s defense clears the danger.",
+                    $"{symbol} regains control of the move."
+                },
+                NarrativeEventKind.Tension =>
+                new[]
+                {
+                    "The arena can feel the tension rising.",
+                    "This battle is getting more intense right now.",
+                    "The virtual crowd tracks every movement."
+                },
+                _ => Array.Empty<string>()
+            };
+
+        if (phrases.Length == 0)
+            return string.Empty;
+
+        var index = Math.Abs(HashCode.Combine(matchId, elapsedMinute, hotScore, key)) % phrases.Length;
+        var text = phrases[index];
+        if (_arenaNarrativeLastTextByType.TryGetValue(key, out var previousText)
+            && string.Equals(previousText, text, StringComparison.Ordinal)
+            && phrases.Length > 1)
+        {
+            text = phrases[(index + 1) % phrases.Length];
+        }
+
+        if (string.Equals(_currentAiNarration, text, StringComparison.Ordinal) && phrases.Length > 1)
+            text = phrases[(index + 2) % phrases.Length];
+
+        return text;
+    }
+
+    private int ResolveArenaCommentaryMinute(BroadcastSnapshot current)
+    {
+        var remainingSeconds = Math.Max(0, current.RemainingSeconds);
+        var elapsedSeconds = Math.Max(0, (90 * 60) - remainingSeconds);
+        return Math.Clamp((int)Math.Floor(elapsedSeconds / 60d) + 1, 1, 90);
+    }
+
+    private static string FormatArenaNarrativeMinuteLabel(int minute)
+        => $"{Math.Clamp(minute, 1, 90)}'";
+
+    private string DescribeNarrativeEventType(NarrativeEventKind type)
+        => IsPortugueseCulture
+            ? type switch
+            {
+                NarrativeEventKind.MatchOpening => "Abertura",
+                NarrativeEventKind.OffensivePossession => "Posse ofensiva",
+                NarrativeEventKind.DefensivePossession => "Posse defensiva",
+                NarrativeEventKind.Dominance => "Dominancia",
+                NarrativeEventKind.Transition => "Transicao",
+                NarrativeEventKind.PressureGrowth => "Pressao",
+                NarrativeEventKind.PossessionRecovery => "Recuperacao",
+                NarrativeEventKind.Tension => "Tensao",
+                _ => "Arena"
+            }
+            : type switch
+            {
+                NarrativeEventKind.MatchOpening => "Opening",
+                NarrativeEventKind.OffensivePossession => "Attack",
+                NarrativeEventKind.DefensivePossession => "Caution",
+                NarrativeEventKind.Dominance => "Control",
+                NarrativeEventKind.Transition => "Transition",
+                NarrativeEventKind.PressureGrowth => "Pressure",
+                NarrativeEventKind.PossessionRecovery => "Recovery",
+                NarrativeEventKind.Tension => "Tension",
+                _ => "Arena"
+            };
+
+    private static TimeSpan ResolveArenaNarrativeCooldown(NarrativeEventKind type)
+        => type switch
+        {
+            NarrativeEventKind.MatchOpening => TimeSpan.FromSeconds(32),
+            NarrativeEventKind.Dominance or NarrativeEventKind.Tension => TimeSpan.FromSeconds(24),
+            NarrativeEventKind.PressureGrowth => TimeSpan.FromSeconds(20),
+            _ => TimeSpan.FromSeconds(18)
+        };
+
+    private static string? ResolveArenaNarrativeAudioKey(NarrativeEventKind type)
+        => type switch
+        {
+            NarrativeEventKind.MatchOpening => "kickoff",
+            NarrativeEventKind.OffensivePossession => "counterAttack",
+            NarrativeEventKind.DefensivePossession => "switchSide",
+            NarrativeEventKind.Dominance => "momentum",
+            NarrativeEventKind.Transition => "switchSide",
+            NarrativeEventKind.PressureGrowth => "pressure",
+            NarrativeEventKind.PossessionRecovery => "ballRecovery",
+            NarrativeEventKind.Tension => "highlightMoment",
+            _ => null
+        };
+
+    private static bool ResolveArenaNarrativeShouldBeSilent(NarrativeEventKind type, bool tensionHigh, int hotScore)
+        => type == NarrativeEventKind.Transition || (type == NarrativeEventKind.Tension && (tensionHigh || hotScore >= 88));
+
+    private static int ResolveArenaNarrativePriority(NarrativeEventKind type, BroadcastSnapshot current)
+        => type switch
+        {
+            NarrativeEventKind.MatchOpening => 44,
+            NarrativeEventKind.PressureGrowth => 38,
+            NarrativeEventKind.Tension => current.RemainingSeconds <= 600 ? 36 : 32,
+            NarrativeEventKind.Dominance => 34,
+            NarrativeEventKind.PossessionRecovery => 31,
+            NarrativeEventKind.OffensivePossession => 30,
+            NarrativeEventKind.DefensivePossession => 28,
+            NarrativeEventKind.Transition => 26,
+            _ => 25
+        };
+
+    private string ResolveNarrativeOwnerSymbol(TvFieldStateDto fieldState)
+    {
+        var liveCarrier = fieldState.PlayerPositions.FirstOrDefault(player => player.HasBall)?.TeamSymbol;
+        if (!string.IsNullOrWhiteSpace(liveCarrier))
+            return liveCarrier;
+
+        if (!string.IsNullOrWhiteSpace(fieldState.MomentumOwner))
+            return fieldState.MomentumOwner;
+
+        if (!string.IsNullOrWhiteSpace(fieldState.Leader))
+            return fieldState.Leader;
+
+        return fieldState.PossessionA >= fieldState.PossessionB ? fieldState.TeamA : fieldState.TeamB;
+    }
+
+    private static string ResolveOpposingNarrativeSymbol(TvFieldStateDto fieldState, string ownerSymbol)
+        => string.Equals(ownerSymbol, fieldState.TeamA, StringComparison.OrdinalIgnoreCase)
+            ? fieldState.TeamB
+            : fieldState.TeamA;
+
+    private static int ResolveNarrativePossession(TvFieldStateDto fieldState, string ownerSymbol)
+        => string.Equals(ownerSymbol, fieldState.TeamA, StringComparison.OrdinalIgnoreCase)
+            ? fieldState.PossessionA
+            : fieldState.PossessionB;
+
+    private static double ResolveNarrativePressure(TvFieldStateDto fieldState, string ownerSymbol)
+        => string.Equals(ownerSymbol, fieldState.TeamA, StringComparison.OrdinalIgnoreCase)
+            ? fieldState.TeamPressureA
+            : fieldState.TeamPressureB;
+
+    private static NarrativeBallZone ResolveNarrativeBallZone(TvFieldStateDto fieldState, string ownerSymbol)
+    {
+        var carrier = fieldState.PlayerPositions
+            .Where(player => player.HasBall && string.Equals(player.TeamSymbol, ownerSymbol, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(player => player.PlayerIndex)
+            .FirstOrDefault();
+
+        var xPercent = carrier?.XPercent;
+        if (!xPercent.HasValue)
+            return NarrativeBallZone.Middle;
+
+        var attacksLeftToRight = string.Equals(ownerSymbol, fieldState.TeamA, StringComparison.OrdinalIgnoreCase);
+        if (attacksLeftToRight)
+        {
+            if (xPercent.Value >= 62d)
+                return NarrativeBallZone.Offensive;
+            if (xPercent.Value <= 38d)
+                return NarrativeBallZone.Defensive;
+            return NarrativeBallZone.Middle;
+        }
+
+        if (xPercent.Value <= 38d)
+            return NarrativeBallZone.Offensive;
+        if (xPercent.Value >= 62d)
+            return NarrativeBallZone.Defensive;
+        return NarrativeBallZone.Middle;
+    }
+
+    private string GetArenaCommentaryAccentStyle(string accentHex)
+        => $"--commentary-accent:{accentHex};";
+
     private string DisplayCommentaryText()
         => _isAiNarrationLoading && string.IsNullOrWhiteSpace(_currentAiNarration)
             ? T("states.commentaryLoading")
@@ -4599,6 +5298,11 @@ else
     {
         if (_isAiNarrationLoading)
             return T("refreshing");
+
+        if (HasArenaCommentaryFeed)
+            return IsPortugueseCulture
+                ? $"{_arenaCommentaryFeed.Count} eventos ao vivo"
+                : $"{_arenaCommentaryFeed.Count} live events";
 
         if (_lastAiNarrationAtUtc.HasValue)
             return T("labels.commentaryMetaTimestamp", T("commentary.source.aiDisabled"), _lastAiNarrationAtUtc.Value.ToString("HH:mm:ss", CultureInfo.InvariantCulture));
@@ -4637,7 +5341,8 @@ else
                 _currentAiNarration = response.Text;
                 _aiNarrationSource = response.Source;
                 _lastAiNarrationAtUtc = response.GeneratedAtUtc;
-                _commentaryHistory = response.History.ToList();
+                if (!HasArenaCommentaryFeed)
+                    _commentaryHistory = response.History.ToList();
                 _lastAiNarrationRequestSignature = signature;
             }
         }
@@ -6222,6 +6927,25 @@ else
         bool HasRecentReversal,
         bool HasFearSignal);
 
+    private enum NarrativeEventKind
+    {
+        MatchOpening,
+        OffensivePossession,
+        DefensivePossession,
+        Dominance,
+        Transition,
+        PressureGrowth,
+        PossessionRecovery,
+        Tension
+    }
+
+    private enum NarrativeBallZone
+    {
+        Defensive,
+        Middle,
+        Offensive
+    }
+
     private sealed record TvClockState(TvClockPhase Phase, int DisplaySeconds);
 
     private enum TvClockPhase
@@ -6240,6 +6964,35 @@ else
         string Title,
         string Body,
         string AccentHex);
+
+    private sealed record TvArenaNarrativeCandidate(
+        int MatchId,
+        NarrativeEventKind Type,
+        string TypeKey,
+        string Text,
+        string MinuteLabel,
+        string HighlightSymbol,
+        string AccentHex,
+        int Priority,
+        string? AudioKey,
+        TimeSpan Cooldown,
+        bool Silent,
+        string Signature,
+        string Reason);
+
+    private sealed record TvArenaCommentaryEntry(
+        string Id,
+        int MatchId,
+        string TypeKey,
+        string TypeLabel,
+        string MinuteLabel,
+        string Text,
+        string HighlightSymbol,
+        string AccentHex,
+        int Priority,
+        bool Silent,
+        DateTime CreatedAtUtc,
+        bool IsLatest);
 }
 
 <style>
@@ -6255,6 +7008,18 @@ else
         0 0 10px rgba(255,255,255,.75),
         0 8px 12px rgba(0,0,0,.35);
     animation: tvBallBounce .55s ease-in-out infinite;
+}
+
+@@keyframes tvCommentaryEntryIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .tv-telemetry__activity-chart {
@@ -8355,6 +9120,83 @@ else
         font-size: clamp(.95rem, 1.1vw, 1.2rem);
         line-height: 1.55;
         font-weight: 600;
+    }
+
+    .tv-ai-commentary__feed {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .tv-ai-commentary__entry {
+        --commentary-accent: #53c8ff;
+        display: grid;
+        gap: 8px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, var(--commentary-accent) 28%, rgba(255,255,255,.08));
+        background:
+            linear-gradient(135deg, color-mix(in srgb, var(--commentary-accent) 16%, rgba(255,255,255,.035)) 0%, rgba(255,255,255,.025) 100%);
+        box-shadow: 0 12px 28px rgba(3,8,22,.18);
+        animation: tvCommentaryEntryIn .34s ease;
+    }
+
+    .tv-ai-commentary__entry--latest {
+        border-color: color-mix(in srgb, var(--commentary-accent) 56%, rgba(255,255,255,.14));
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--commentary-accent) 14%, transparent),
+            0 16px 34px rgba(3,8,22,.24);
+    }
+
+    .tv-ai-commentary__entry-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .tv-ai-commentary__minute,
+    .tv-ai-commentary__type {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        font-weight: 800;
+    }
+
+    .tv-ai-commentary__minute {
+        color: #f8fbff;
+    }
+
+    .tv-ai-commentary__type {
+        color: color-mix(in srgb, var(--commentary-accent) 78%, #ffffff);
+        text-align: right;
+    }
+
+    .tv-ai-commentary__entry-body {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: start;
+        min-width: 0;
+    }
+
+    .tv-ai-commentary__asset {
+        color: color-mix(in srgb, var(--commentary-accent) 84%, #ffffff);
+        font-size: .84rem;
+        line-height: 1.2;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .tv-ai-commentary__copy {
+        margin: 0;
+        color: #dbe8f7;
+        font-size: clamp(.88rem, 1vw, 1.04rem);
+        line-height: 1.55;
+        font-weight: 600;
+        overflow-wrap: anywhere;
     }
 
     .tv-crowd-audio {
@@ -10517,6 +11359,23 @@ else
         .tv-ai-commentary {
             padding: 12px 14px;
             align-content: start;
+        }
+
+        .tv-ai-commentary__entry {
+            padding: 11px 12px;
+        }
+
+        .tv-ai-commentary__entry-meta,
+        .tv-ai-commentary__entry-body {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-ai-commentary__entry-meta {
+            justify-content: start;
+        }
+
+        .tv-ai-commentary__type {
+            text-align: left;
         }
 
         .tv-ticker__lane,

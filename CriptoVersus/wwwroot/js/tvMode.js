@@ -17,6 +17,8 @@ let fieldFreedomState = null;
 let telemetryCubeController = null;
 let tvAudioFacade = null;
 let activeProceduralAudio = null;
+let lastProceduralPlaybackSignature = "";
+let lastProceduralPlaybackAt = 0;
 let tvAudioDebugSessionState = {
     enabled: false,
     hydrated: false
@@ -89,6 +91,7 @@ import {
     updateTvBackgroundAudioState,
     getTvAudioTelemetryState
 } from "./tvAudioTelemetry.mjs?v=20260604-audio-debug-1";
+import { isProceduralPlaybackDuplicate } from "./tvProceduralAudioUtils.mjs?v=20260606-narrative-1";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -574,6 +577,8 @@ async function preloadTvAudio(key) {
 
 async function preloadAllTvAudio() {
     await Promise.all(Object.keys(tvAudioMap).map((key) => preloadTvAudio(key)));
+    pushAudioDebugLog("preload-complete", "info", { loadedCount: Object.keys(tvAudioMap).length });
+    logTvAudio("preload complete", { loadedCount: Object.keys(tvAudioMap).length });
 }
 
 async function playTvAudio(key, options = {}) {
@@ -589,10 +594,12 @@ async function playTvAudio(key, options = {}) {
     const now = Date.now();
     const lastPlayed = manager.lastPlayedAt.get(key) ?? 0;
     if (now - lastPlayed < cooldownMs) {
+        logTvAudio("skipped", { key, reason: "cooldown", cooldownMs, remainingMs: cooldownMs - (now - lastPlayed) });
         return false;
     }
 
     if (priority < manager.activePriority && manager.activeKey && now - (manager.lastPlayedAt.get(manager.activeKey) ?? 0) < 900) {
+        logTvAudio("skipped", { key, reason: "priority", priority, activeKey: manager.activeKey, activePriority: manager.activePriority });
         return false;
     }
 
@@ -4002,6 +4009,10 @@ function attachProceduralAudioLifecycle(audio, payload) {
     };
 }
 
+export function shouldSkipProceduralPlayback(signature, now = Date.now(), cooldownMs = 1200) {
+    return isProceduralPlaybackDuplicate(signature, lastProceduralPlaybackSignature, lastProceduralPlaybackAt, now, cooldownMs);
+}
+
 async function playProceduralAudioNode(audio, payload = {}) {
     if (!(audio instanceof HTMLAudioElement)) {
         notifyProceduralAudioEvent("failed", { ...payload, error: "missing audio element" });
@@ -4012,6 +4023,23 @@ async function playProceduralAudioNode(audio, payload = {}) {
         ...payload,
         audioUrl: payload.audioUrl ?? audio.currentSrc ?? audio.src ?? null
     });
+    const playbackSignature = [
+        normalized.audioUrl ?? "",
+        normalized.eventType ?? "",
+        normalized.teamSymbol ?? ""
+    ].join("|");
+
+    if (shouldSkipProceduralPlayback(playbackSignature)) {
+        notifyProceduralAudioEvent("skipped", {
+            ...normalized,
+            reason: "duplicate-procedural-playback"
+        });
+        pushAudioDebugLog("skipped", "info", {
+            ...normalized,
+            reason: "duplicate-procedural-playback"
+        });
+        return false;
+    }
 
     try {
         if (activeProceduralAudio && activeProceduralAudio !== audio) {
@@ -4028,6 +4056,8 @@ async function playProceduralAudioNode(audio, payload = {}) {
         applyProceduralAudioElementVolume(audio);
         attachProceduralAudioLifecycle(audio, normalized);
         await audio.play();
+        lastProceduralPlaybackSignature = playbackSignature;
+        lastProceduralPlaybackAt = Date.now();
         pushAudioDebugLog("playing", "info", normalized);
         return true;
     } catch (error) {
