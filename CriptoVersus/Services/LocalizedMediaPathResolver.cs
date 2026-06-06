@@ -80,7 +80,10 @@ public sealed class LocalizedMediaPathResolver
 
         return _pathCache.GetOrAdd(cacheKey, _ =>
         {
-            foreach (var candidateCulture in GetCultureFallbackChain(normalizedCulture))
+            var fallbackChain = GetCultureFallbackChain(normalizedCulture);
+            var primaryCulture = fallbackChain.FirstOrDefault() ?? normalizedCulture;
+
+            foreach (var candidateCulture in new[] { primaryCulture })
             {
                 var localizedDirectory = Path.Combine(_environment.WebRootPath, "media", mediaType, candidateCulture, context);
                 var localizedPhysicalPath = Path.Combine(localizedDirectory, normalizedFileName);
@@ -115,6 +118,26 @@ public sealed class LocalizedMediaPathResolver
                 return AppendVersion(legacyWebPath, version);
             }
 
+            foreach (var candidateCulture in fallbackChain.Skip(1))
+            {
+                var localizedDirectory = Path.Combine(_environment.WebRootPath, "media", mediaType, candidateCulture, context);
+                var localizedPhysicalPath = Path.Combine(localizedDirectory, normalizedFileName);
+                if (!File.Exists(localizedPhysicalPath))
+                    continue;
+
+                var webPath = BuildLocalizedWebPath(mediaType, candidateCulture, context, normalizedFileName);
+                _logger.LogInformation(
+                    "Localized media resolved. MediaType={MediaType} RequestedCulture={RequestedCulture} ResolvedCulture={ResolvedCulture} Context={Context} File={FileName} Path={Path} FallbackUsed={FallbackUsed}",
+                    mediaType,
+                    normalizedCulture,
+                    candidateCulture,
+                    context,
+                    normalizedFileName,
+                    webPath,
+                    true);
+                return AppendVersion(webPath, version);
+            }
+
             _logger.LogWarning(
                 "Localized media not found. MediaType={MediaType} Culture={Culture} Context={Context} File={FileName}",
                 mediaType,
@@ -142,8 +165,10 @@ public sealed class LocalizedMediaPathResolver
         return _directoryCache.GetOrAdd(cacheKey, _ =>
         {
             var results = new List<LocalizedMediaDirectory>();
+            var fallbackChain = GetCultureFallbackChain(normalizedCulture);
+            var primaryCulture = fallbackChain.FirstOrDefault() ?? normalizedCulture;
 
-            foreach (var candidateCulture in GetCultureFallbackChain(normalizedCulture))
+            foreach (var candidateCulture in new[] { primaryCulture })
             {
                 var physicalPath = Path.Combine(_environment.WebRootPath, "media", mediaType, candidateCulture, context);
                 if (!Directory.Exists(physicalPath))
@@ -180,6 +205,28 @@ public sealed class LocalizedMediaPathResolver
                     "legacy",
                     context,
                     IsLegacy: true));
+            }
+
+            foreach (var candidateCulture in fallbackChain.Skip(1))
+            {
+                var physicalPath = Path.Combine(_environment.WebRootPath, "media", mediaType, candidateCulture, context);
+                if (!Directory.Exists(physicalPath))
+                    continue;
+
+                _logger.LogInformation(
+                    "Localized media directory resolved. MediaType={MediaType} RequestedCulture={RequestedCulture} ResolvedCulture={ResolvedCulture} Context={Context} Path={Path} FallbackUsed={FallbackUsed}",
+                    mediaType,
+                    normalizedCulture,
+                    candidateCulture,
+                    context,
+                    physicalPath,
+                    true);
+                results.Add(new LocalizedMediaDirectory(
+                    physicalPath,
+                    $"/media/{mediaType}/{candidateCulture}/{context}",
+                    candidateCulture,
+                    context,
+                    IsLegacy: false));
             }
 
             if (results.Count == 0)

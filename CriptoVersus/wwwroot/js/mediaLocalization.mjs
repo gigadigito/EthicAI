@@ -45,14 +45,17 @@ export function buildLocalizedMediaCandidates({
     const safeFileName = String(fileName).replace(/^[/\\]+/, "");
     const safeContext = String(context).replace(/^[/\\]+|[/\\]+$/g, "");
     const versionSuffix = version ? `?v=${encodeURIComponent(version)}` : "";
-    const localized = getCultureFallbackChain(culture).map((candidateCulture) =>
-        `/media/${mediaType}/${candidateCulture}/${safeContext}/${encodeURIComponent(safeFileName)}${versionSuffix}`);
+    const fallbackChain = getCultureFallbackChain(culture);
+    const primaryCulture = fallbackChain[0];
+    const alternateCultures = fallbackChain.slice(1);
+    const localized = [
+        `/media/${mediaType}/${primaryCulture}/${safeContext}/${encodeURIComponent(safeFileName)}${versionSuffix}`,
+        ...(legacyPath ? [`${legacyPath}${versionSuffix}`] : []),
+        ...alternateCultures.map((candidateCulture) =>
+            `/media/${mediaType}/${candidateCulture}/${safeContext}/${encodeURIComponent(safeFileName)}${versionSuffix}`)
+    ];
 
-    if (!legacyPath) {
-        return localized;
-    }
-
-    return [...localized, `${legacyPath}${versionSuffix}`];
+    return [...new Set(localized)];
 }
 
 async function probeMediaCandidate(url) {

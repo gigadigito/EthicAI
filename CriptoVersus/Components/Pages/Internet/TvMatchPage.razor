@@ -117,7 +117,7 @@ else
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260602-battle-crossover-1");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260606-direct-audio-1");
         await LogAsync("loaded");
         await RefreshAsync(CancellationToken.None);
 
