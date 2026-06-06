@@ -2,6 +2,7 @@ using CriptoVersus.API.Services;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -71,8 +72,13 @@ public sealed class AudioAssetAdminTests
         }
 
         await using var db = new EthicAIDbContext(options);
+        var narrativeResolver = new AudioNarrativeResolverService(
+            db,
+            NullLogger<AudioNarrativeResolverService>.Instance);
         var service = new AudioAssetResolverService(
             db,
+            new TestAudioStorageService(),
+            narrativeResolver,
             Options.Create(new ProceduralAudioFeatureOptions { Enabled = true }),
             NullLogger<AudioAssetResolverService>.Instance);
 
@@ -86,5 +92,37 @@ public sealed class AudioAssetAdminTests
 
         Assert.NotNull(result);
         Assert.Equal(2, result!.Asset.Id);
+    }
+
+    [Fact]
+    public void TextDeduplication_NormalizesEquivalentPhrasesToSameHash()
+    {
+        const string voiceKey = "narrator_pt_br";
+        const string culture = "pt-BR";
+        var first = "ALLO acelera forte dentro da arena e ganha o embalo da torcida!";
+        var second = "  allo  acelera forte dentro da arena e ganha o embalo da torcida. ";
+
+        var firstHash = ProceduralAudioTextDeduplication.ComputeTextHash(first, culture, voiceKey);
+        var secondHash = ProceduralAudioTextDeduplication.ComputeTextHash(second, culture, voiceKey);
+
+        Assert.Equal(firstHash, secondHash);
+    }
+
+    private sealed class TestAudioStorageService : IAudioStorageService
+    {
+        public Task<AudioStoredFile> SaveGeneratedAudioAsync(AudioGenerationJobDto job, IFormFile audioFile, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public Task<AudioStoredFileDeletionResult> DeleteStoredAudioAsync(string relativePath, CancellationToken ct)
+            => throw new NotSupportedException();
+
+        public bool StoredAudioExists(string? relativePath) => true;
+
+        public AudioStoredPathDiagnostics InspectStoredAudio(string? relativePath)
+            => new(relativePath ?? string.Empty, null, relativePath ?? string.Empty, true, null);
+
+        public IReadOnlyList<AudioStoredFilesystemEntry> EnumerateStoredAudioFiles() => Array.Empty<AudioStoredFilesystemEntry>();
+
+        public string? GetPrimaryAudioRootPath() => null;
     }
 }

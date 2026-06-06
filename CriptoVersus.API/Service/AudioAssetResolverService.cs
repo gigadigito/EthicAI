@@ -16,17 +16,20 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
 {
     private readonly EthicAIDbContext _db;
     private readonly IAudioStorageService _storage;
+    private readonly IAudioNarrativeResolverService _narrativeResolver;
     private readonly IOptions<ProceduralAudioFeatureOptions> _featureOptions;
     private readonly ILogger<AudioAssetResolverService> _logger;
 
     public AudioAssetResolverService(
         EthicAIDbContext db,
         IAudioStorageService storage,
+        IAudioNarrativeResolverService narrativeResolver,
         IOptions<ProceduralAudioFeatureOptions> featureOptions,
         ILogger<AudioAssetResolverService> logger)
     {
         _db = db;
         _storage = storage;
+        _narrativeResolver = narrativeResolver;
         _featureOptions = featureOptions;
         _logger = logger;
     }
@@ -58,7 +61,8 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
         bool incrementUsage,
         CancellationToken ct = default)
     {
-        var normalized = AudioRequestNormalizer.Normalize(request);
+        var narrativeResolved = await _narrativeResolver.ResolveAsync(request, ct);
+        var normalized = AudioRequestNormalizer.Normalize(narrativeResolved);
         _logger.LogInformation(
             "Procedural audio resolve request normalized. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
             normalized.RawSymbol,
@@ -70,6 +74,83 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
             normalized.ContextKey,
             normalized.Intensity,
             normalized.VoiceKey);
+
+        var resolvedVoiceKey = ResolveVoiceKey(normalized);
+        var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(normalized.TextPrompt);
+        var textHash = string.IsNullOrWhiteSpace(normalizedText)
+            ? null
+            : ProceduralAudioTextDeduplication.ComputeTextHash(normalized.TextPrompt, normalized.Language, resolvedVoiceKey);
+
+        if (!string.IsNullOrWhiteSpace(textHash))
+        {
+            var hashCandidates = await _db.AudioAsset
+                .Where(x => x.Status == AudioAssetStatus.Ready
+                    && x.Language == normalized.Language
+                    && x.VoiceKey == resolvedVoiceKey
+                    && (x.TextHash == textHash || (x.TextHash == null && x.TextPrompt != null)))
+                .OrderByDescending(x => x.QualityScore ?? 0m)
+                .ThenByDescending(x => x.UsageCount)
+                .ThenByDescending(x => x.LastUsedAtUtc ?? x.CreatedAtUtc)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync(ct);
+
+            var hashHit = hashCandidates.FirstOrDefault(x =>
+                _storage.StoredAudioExists(x.RelativePath)
+                && string.Equals(
+                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                    textHash,
+                    StringComparison.Ordinal));
+            if (hashHit is not null)
+            {
+                _logger.LogInformation(
+                    "[AUDIO_CACHE] hit textHash={TextHash} assetId={AssetId} eventType={EventType} language={Language} voiceKey={VoiceKey}",
+                    textHash,
+                    hashHit.Id,
+                    normalized.EventType,
+                    normalized.Language,
+                    resolvedVoiceKey);
+
+                if (incrementUsage)
+                {
+                    hashHit.UsageCount += 1;
+                    hashHit.LastUsedAtUtc = DateTime.UtcNow;
+                    hashHit.UpdatedAtUtc = DateTime.UtcNow;
+                    if (string.IsNullOrWhiteSpace(hashHit.TextHash))
+                    {
+                        hashHit.NormalizedText ??= normalizedText;
+                        hashHit.TextHash = textHash;
+                    }
+                    await _db.SaveChangesAsync(ct);
+                }
+
+                return new AudioResolveDiagnosticResult(
+                    NormalizedRequest: normalized,
+                    ResolvedAsset: hashHit,
+                    FallbackUsed: false,
+                    SpecificityScore: 200,
+                    CandidateCount: hashCandidates.Count,
+                    RankedCandidateIds: hashCandidates.Select(x => x.Id).ToArray(),
+                    ResolutionSteps:
+                    [
+                        "text_hash + language + voice_key",
+                        "event_type + language + team_symbol + context_key + intensity + voice_key",
+                        "event_type + language + team_symbol + context_key + intensity",
+                        "event_type + language + team_symbol + intensity",
+                        "event_type + language + team_symbol",
+                        "event_type + language + context_key + intensity",
+                        "event_type + language + intensity",
+                        "event_type + language (generic)"
+                    ],
+                    ResolvedLanguage: normalized.Language);
+            }
+
+            _logger.LogInformation(
+                "[AUDIO_CACHE] miss textHash={TextHash} eventType={EventType} language={Language} voiceKey={VoiceKey}",
+                textHash,
+                normalized.EventType,
+                normalized.Language,
+                resolvedVoiceKey);
+        }
 
         var candidates = await _db.AudioAsset
             .Where(x => x.Status == AudioAssetStatus.Ready
@@ -172,6 +253,7 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
             RankedCandidateIds: rankedCandidates.Select(x => x.Asset.Id).ToArray(),
             ResolutionSteps:
             [
+                "text_hash + language + voice_key",
                 "event_type + language + team_symbol + context_key + intensity + voice_key",
                 "event_type + language + team_symbol + context_key + intensity",
                 "event_type + language + team_symbol + intensity",
@@ -181,6 +263,16 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
                 "event_type + language (generic)"
             ],
             ResolvedLanguage: ranked is null ? null : normalized.Language);
+    }
+
+    private static string ResolveVoiceKey(AudioResolveRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.VoiceKey))
+            return request.VoiceKey!;
+
+        return request.Language == "pt-BR"
+            ? "narrator_pt_br"
+            : "narrator_en_us";
     }
 
     private static EvaluatedAudioAsset Evaluate(AudioAsset asset, AudioResolveRequest request)

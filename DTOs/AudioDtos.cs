@@ -25,6 +25,8 @@ public sealed class AudioResolveResponse
     public bool Queued { get; set; }
     public string? ResolvedLanguage { get; set; }
     public string? RelativePath { get; set; }
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public int SpecificityScore { get; set; }
     public string? QueueStatus { get; set; }
     public string? QueueReason { get; set; }
@@ -50,8 +52,11 @@ public sealed class AudioGenerationJobDto
     public string VoiceKey { get; set; } = string.Empty;
     public string? TemplateKey { get; set; }
     public string TextPrompt { get; set; } = string.Empty;
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public string? TargetRelativePath { get; set; }
     public string? TargetFileName { get; set; }
+    public bool KeepWavFiles { get; set; }
     public string Status { get; set; } = string.Empty;
     public int Priority { get; set; }
     public int AttemptCount { get; set; }
@@ -108,6 +113,8 @@ public sealed class AudioAssetAdminListItemDto
     public string? Intensity { get; set; }
     public string? VoiceKey { get; set; }
     public string? TextPrompt { get; set; }
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public string AudioUrl { get; set; } = string.Empty;
     public string ResolvedAudioUrl { get; set; } = string.Empty;
     public string RelativePath { get; set; } = string.Empty;
@@ -218,6 +225,8 @@ public sealed class AudioAssetTestStatusResponseDto
     public long? AssetId { get; set; }
     public string? AudioUrl { get; set; }
     public string? TextPrompt { get; set; }
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public string? TeamName { get; set; }
     public string? ErrorMessage { get; set; }
 }
@@ -233,5 +242,26 @@ public sealed class AudioResolveDiagnosticPreviewDto
     public int SpecificityScore { get; set; }
     public int CandidateCount { get; set; }
     public string? ResolvedLanguage { get; set; }
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public AudioResolveRequest? Request { get; set; }
+}
+
+public sealed class AudioAssetMaintenanceDeduplicateRequestDto
+{
+    public bool DryRun { get; set; } = true;
+    public bool DeleteDuplicateFiles { get; set; } = true;
+    public bool DeleteWavFiles { get; set; } = true;
+}
+
+public sealed class AudioAssetMaintenanceDeduplicateResponseDto
+{
+    public bool DryRun { get; set; }
+    public int GroupsScanned { get; set; }
+    public int DuplicateAssetsFound { get; set; }
+    public int DuplicateAssetsUpdated { get; set; }
+    public int FilesDeleted { get; set; }
+    public int WavFilesDeleted { get; set; }
+    public IReadOnlyList<long> KeptAssetIds { get; set; } = Array.Empty<long>();
+    public IReadOnlyList<long> DuplicateAssetIds { get; set; } = Array.Empty<long>();
 }

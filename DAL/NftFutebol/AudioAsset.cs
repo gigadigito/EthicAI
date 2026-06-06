@@ -14,6 +14,8 @@ public sealed class AudioAsset
     public string? VoiceKey { get; set; }
     public string? TemplateKey { get; set; }
     public string? TextPrompt { get; set; }
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public string AudioUrl { get; set; } = string.Empty;
     public string RelativePath { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;

@@ -14,6 +14,8 @@ public sealed class AudioGenerationQueueItem
     public string VoiceKey { get; set; } = string.Empty;
     public string? TemplateKey { get; set; }
     public string TextPrompt { get; set; } = string.Empty;
+    public string? NormalizedText { get; set; }
+    public string? TextHash { get; set; }
     public string? TargetRelativePath { get; set; }
     public string? TargetFileName { get; set; }
     public string Status { get; set; } = AudioGenerationJobStatus.Pending;

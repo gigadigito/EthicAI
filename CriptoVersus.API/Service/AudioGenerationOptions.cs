@@ -9,4 +9,5 @@ public sealed class AudioGenerationOptions
     public string AudioRootFolder { get; set; } = "audio";
     public string? PublicBaseUrl { get; set; }
     public string? PublicAudioRootPath { get; set; }
+    public bool KeepWavFiles { get; set; }
 }

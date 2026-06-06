@@ -959,6 +959,7 @@ else
     private readonly Queue<TvArenaCommentaryEntry> _arenaCommentaryArchive = new();
     private readonly Dictionary<string, DateTime> _arenaNarrativeCooldownsUtc = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _arenaNarrativeLastTextByType = new(StringComparer.Ordinal);
+    private readonly Dictionary<int, TvArenaNarrativeHistory> _arenaNarrativeHistoryByMatch = new();
     private string _lastArenaNarrativeSignature = string.Empty;
     private string _lastArenaNarrativeOwner = string.Empty;
     private DateTime _lastArenaNarrativeAtUtc = DateTime.MinValue;
@@ -2128,6 +2129,7 @@ else
             _arenaCommentaryArchive.Clear();
             _arenaNarrativeCooldownsUtc.Clear();
             _arenaNarrativeLastTextByType.Clear();
+            _arenaNarrativeHistoryByMatch.Clear();
             _lastArenaNarrativeSignature = string.Empty;
             _lastArenaNarrativeOwner = string.Empty;
             _lastArenaNarrativeAtUtc = DateTime.MinValue;
@@ -2159,6 +2161,7 @@ else
             _arenaCommentaryArchive.Clear();
             _arenaNarrativeCooldownsUtc.Clear();
             _arenaNarrativeLastTextByType.Clear();
+            _arenaNarrativeHistoryByMatch.Clear();
             _lastArenaNarrativeSignature = string.Empty;
             _lastArenaNarrativeOwner = string.Empty;
             _lastArenaNarrativeAtUtc = DateTime.MinValue;
@@ -4750,6 +4753,7 @@ else
         _lastArenaNarrativeSignature = candidate.Signature;
         _lastArenaNarrativeAtUtc = now;
         _didNarrativeOpening |= candidate.Type == NarrativeEventKind.MatchOpening;
+        RecordArenaNarrativeHistory(candidate);
 
         if (!string.IsNullOrWhiteSpace(visualBlockedReason))
         {
@@ -4851,13 +4855,19 @@ else
         if (string.IsNullOrWhiteSpace(ownerSymbol))
             return null;
 
-        var highlightSymbol = GetBaseSymbol(ownerSymbol);
-        if (string.IsNullOrWhiteSpace(highlightSymbol))
-            highlightSymbol = GetBaseSymbol(current.LeaderSymbol);
+        var ownerHighlightSymbol = GetBaseSymbol(ownerSymbol);
+        if (string.IsNullOrWhiteSpace(ownerHighlightSymbol))
+            ownerHighlightSymbol = GetBaseSymbol(current.LeaderSymbol);
 
+        var opponentSymbol = ResolveOpposingNarrativeSymbol(fieldState, ownerSymbol);
+        var opponentHighlightSymbol = GetBaseSymbol(opponentSymbol);
+        if (string.IsNullOrWhiteSpace(opponentHighlightSymbol))
+            opponentHighlightSymbol = ownerHighlightSymbol;
+
+        var history = GetArenaNarrativeHistory(current.MatchId);
         var ownerPossession = ResolveNarrativePossession(fieldState, ownerSymbol);
         var ownerPressure = ResolveNarrativePressure(fieldState, ownerSymbol);
-        var opponentPressure = ResolveNarrativePressure(fieldState, ResolveOpposingNarrativeSymbol(fieldState, ownerSymbol));
+        var opponentPressure = ResolveNarrativePressure(fieldState, opponentSymbol);
         var ballZone = ResolveNarrativeBallZone(fieldState, ownerSymbol);
         var netPossession = Math.Abs(fieldState.PossessionA - fieldState.PossessionB);
         var elapsedMinute = ResolveArenaCommentaryMinute(current);
@@ -4869,6 +4879,12 @@ else
         var recoveredPossession = !string.IsNullOrWhiteSpace(_lastArenaNarrativeOwner)
             && !string.Equals(_lastArenaNarrativeOwner, ownerSymbol, StringComparison.OrdinalIgnoreCase)
             && ballZone != NarrativeBallZone.Offensive;
+        var ownerCommentStreak = history.GetRecentHighlightCount(ownerHighlightSymbol);
+        var losingSymbol = ResolveLosingNarrativeSymbol(current);
+        var recentScorerSymbol = ResolveRecentScorerNarrativeSymbol();
+        var scoreLabel = $"{current.LeftScore}x{current.RightScore}";
+        var forceBalanceAwayFromOwner = ownerCommentStreak >= 3;
+        var selectedZone = ballZone;
 
         if (offensivePressure && ballZone == NarrativeBallZone.Offensive)
         {
@@ -4883,57 +4899,163 @@ else
 
         _lastArenaNarrativeOwner = ownerSymbol;
 
-        var narrativeType = forcedKind
-            ?? (!_didNarrativeOpening && elapsedMinute <= 2 ? NarrativeEventKind.MatchOpening
-                : recoveredPossession ? NarrativeEventKind.PossessionRecovery
-                : ballZone == NarrativeBallZone.Offensive && _arenaAttackSequenceCount >= 2 ? NarrativeEventKind.PressureGrowth
-                : ballZone == NarrativeBallZone.Offensive ? NarrativeEventKind.OffensivePossession
-                : defensiveCaution ? NarrativeEventKind.DefensivePossession
-                : dominance ? NarrativeEventKind.Dominance
-                : transition ? NarrativeEventKind.Transition
-                : tensionHigh ? NarrativeEventKind.Tension
-                : null);
+        List<TvArenaNarrativeOption> options = [];
+        var forcedCategory = forcedKind?.ToString() ?? string.Empty;
 
-        if (narrativeType is null)
+        void AddOption(NarrativeEventKind type, string rawSymbol, string highlightSymbol, string category, int weight, NarrativeBallZone zone)
+        {
+            if (string.IsNullOrWhiteSpace(highlightSymbol))
+                return;
+
+            var textChoice = SelectArenaNarrativeText(type, highlightSymbol, opponentHighlightSymbol, current, zone, history, elapsedMinute, category);
+            if (string.IsNullOrWhiteSpace(textChoice.Text))
+                return;
+
+            var penalty = CalculateArenaNarrativePenalty(history, type, highlightSymbol, textChoice.TemplateKey, ResolveArenaNarrativeAudioKey(type));
+            var finalWeight = weight - penalty;
+            var avoidedReason = penalty > 0
+                ? $"repetition-penalty:{penalty}"
+                : "fresh-selection";
+
+            if (forceBalanceAwayFromOwner
+                && string.Equals(highlightSymbol, ownerHighlightSymbol, StringComparison.OrdinalIgnoreCase)
+                && type is NarrativeEventKind.OffensivePossession or NarrativeEventKind.DefensivePossession or NarrativeEventKind.Dominance or NarrativeEventKind.PressureGrowth)
+            {
+                finalWeight -= 26;
+                avoidedReason = string.Concat(avoidedReason, "|balance-away-from-owner");
+            }
+
+            if (!string.IsNullOrWhiteSpace(losingSymbol)
+                && string.Equals(highlightSymbol, losingSymbol, StringComparison.OrdinalIgnoreCase)
+                && type is NarrativeEventKind.NonPossessionDefense or NarrativeEventKind.RecoveryAttempt or NarrativeEventKind.ScoreboardNeutral)
+            {
+                finalWeight += 10;
+            }
+
+            if (!string.IsNullOrWhiteSpace(recentScorerSymbol)
+                && string.Equals(highlightSymbol, recentScorerSymbol, StringComparison.OrdinalIgnoreCase)
+                && type is NarrativeEventKind.OffensivePossession or NarrativeEventKind.PressureGrowth or NarrativeEventKind.Dominance)
+            {
+                finalWeight -= 8;
+                avoidedReason = string.Concat(avoidedReason, "|recent-scorer-deprioritized");
+            }
+
+            options.Add(new TvArenaNarrativeOption(
+                type,
+                rawSymbol,
+                highlightSymbol,
+                category,
+                zone,
+                textChoice.Text,
+                textChoice.TemplateKey,
+                penalty,
+                Math.Max(1, finalWeight),
+                avoidedReason));
+        }
+
+        if (forcedKind is not null)
+        {
+            AddOption(forcedKind.Value, ownerSymbol, ownerHighlightSymbol, forcedCategory, 100, ballZone);
+        }
+        else
+        {
+            if (!_didNarrativeOpening && elapsedMinute <= 2)
+                AddOption(NarrativeEventKind.MatchOpening, ownerSymbol, ownerHighlightSymbol, "PossessionComment", 96, ballZone);
+
+            if (recoveredPossession)
+                AddOption(NarrativeEventKind.PossessionRecovery, ownerSymbol, ownerHighlightSymbol, "RecoveryAttemptComment", 88, NarrativeBallZone.Middle);
+
+            if (ballZone == NarrativeBallZone.Offensive && _arenaAttackSequenceCount >= 2)
+                AddOption(NarrativeEventKind.PressureGrowth, ownerSymbol, ownerHighlightSymbol, "PressureComment", 84, ballZone);
+
+            if (ballZone == NarrativeBallZone.Offensive)
+                AddOption(NarrativeEventKind.OffensivePossession, ownerSymbol, ownerHighlightSymbol, "OffensiveProgressComment", 78, ballZone);
+
+            if (defensiveCaution)
+                AddOption(NarrativeEventKind.DefensivePossession, ownerSymbol, ownerHighlightSymbol, "DefensiveComment", 72, ballZone);
+
+            if (dominance)
+                AddOption(NarrativeEventKind.Dominance, ownerSymbol, ownerHighlightSymbol, "PossessionComment", 76, ballZone);
+
+            if (transition)
+                AddOption(NarrativeEventKind.Transition, ownerSymbol, ownerHighlightSymbol, "ContextComment", 66, NarrativeBallZone.Middle);
+
+            if (tensionHigh)
+                AddOption(NarrativeEventKind.Tension, ownerSymbol, ownerHighlightSymbol, "ContextComment", 62, ballZone);
+
+            if (offensivePressure || ballZone == NarrativeBallZone.Defensive || forceBalanceAwayFromOwner)
+                AddOption(NarrativeEventKind.NonPossessionDefense, opponentSymbol, opponentHighlightSymbol, "NonPossessionDefenseComment", 82, ballZone);
+
+            if (ownerCommentStreak >= 2 || offensivePressure)
+                AddOption(NarrativeEventKind.RecoveryAttempt, opponentSymbol, opponentHighlightSymbol, "RecoveryAttemptComment", 74, NarrativeBallZone.Defensive);
+
+            if (elapsedMinute >= 8 || ownerCommentStreak >= 2 || Math.Abs(current.LeftScore - current.RightScore) <= 1)
+                AddOption(NarrativeEventKind.ScoreboardNeutral, string.Empty, ResolveScoreboardHighlightSymbol(current, ownerHighlightSymbol, opponentHighlightSymbol), "ScoreboardNeutralComment", 70, NarrativeBallZone.Middle);
+        }
+
+        var selected = options
+            .OrderByDescending(option => option.Weight)
+            .ThenBy(option => option.RepetitionPenalty)
+            .FirstOrDefault();
+
+        if (selected is null)
             return null;
 
         var minuteLabel = FormatArenaNarrativeMinuteLabel(elapsedMinute);
-        var typeKey = narrativeType.Value.ToString();
-        var accentHex = GetAccentColor(highlightSymbol);
-        var text = BuildArenaNarrativeText(narrativeType.Value, highlightSymbol, current.MatchId, elapsedMinute, current.HotScore);
-        if (string.IsNullOrWhiteSpace(text))
-            return null;
+        var typeKey = selected.Type.ToString();
+        var accentHex = GetAccentColor(selected.HighlightSymbol);
+        selectedZone = selected.Zone;
+
+        _ = LogAsync("TV_COMMENTARY_SELECTION", "selected", new
+        {
+            matchId = current.MatchId,
+            selectedCategory = selected.Category,
+            selectedTeam = selected.HighlightSymbol,
+            possessionTeam = ownerHighlightSymbol,
+            nonPossessionTeam = opponentHighlightSymbol,
+            zone = selected.Zone.ToString(),
+            pressure = ownerPressure.ToString("0.##", CultureInfo.InvariantCulture),
+            score = scoreLabel,
+            avoidedReason = selected.AvoidedReason,
+            repetitionPenalty = selected.RepetitionPenalty
+        });
 
         var signature = string.Join("|",
             current.MatchId,
             typeKey,
-            highlightSymbol,
+            selected.HighlightSymbol,
             minuteLabel,
-            ballZone,
+            selectedZone,
             Math.Max(0, current.RemainingSeconds / 20),
-            _arenaAttackSequenceCount);
+            _arenaAttackSequenceCount,
+            selected.TemplateKey);
+
+        var audioTeamSymbol = selected.HighlightSymbol;
+        var audioRawSymbol = string.IsNullOrWhiteSpace(selected.RawSymbol)
+            ? ownerSymbol
+            : selected.RawSymbol;
 
         return new TvArenaNarrativeCandidate(
             current.MatchId,
-            narrativeType.Value,
+            selected.Type,
             typeKey,
-            text,
+            selected.Text,
             minuteLabel,
-            highlightSymbol,
+            selected.HighlightSymbol,
             accentHex,
-            ResolveArenaNarrativePriority(narrativeType.Value, current),
-            ResolveArenaNarrativeAudioKey(narrativeType.Value),
+            ResolveArenaNarrativePriority(selected.Type, current),
+            ResolveArenaNarrativeAudioKey(selected.Type),
             new AudioResolveRequest
             {
-                EventType = ResolveArenaNarrativeEventType(narrativeType.Value),
+                EventType = ResolveArenaNarrativeEventType(selected.Type),
                 Language = IsPortugueseCulture ? "pt-BR" : "en-US",
-                RawSymbol = ownerSymbol,
-                NormalizedSymbol = highlightSymbol,
-                TeamSymbol = highlightSymbol,
-                TeamName = highlightSymbol,
-                TextPrompt = text,
-                ContextKey = ResolveArenaNarrativeContextKey(narrativeType.Value),
-                Intensity = ResolveArenaNarrativeIntensity(narrativeType.Value),
+                RawSymbol = audioRawSymbol,
+                NormalizedSymbol = audioTeamSymbol,
+                TeamSymbol = audioTeamSymbol,
+                TeamName = audioTeamSymbol,
+                TextPrompt = selected.Text,
+                ContextKey = ResolveArenaNarrativeContextKey(selected.Type),
+                Intensity = ResolveArenaNarrativeIntensity(selected.Type),
                 QueueIfMissing = true
             },
             null,
@@ -4941,10 +5063,10 @@ else
             false,
             null,
             null,
-            ResolveArenaNarrativeCooldown(narrativeType.Value),
-            ResolveArenaNarrativeShouldBeSilent(narrativeType.Value, tensionHigh, current.HotScore),
+            ResolveArenaNarrativeCooldown(selected.Type),
+            ResolveArenaNarrativeShouldBeSilent(selected.Type, tensionHigh, current.HotScore),
             signature,
-            $"{reason}|owner={highlightSymbol}|zone={ballZone}|pressure={ownerPressure:0.##}|possession={ownerPossession}");
+            $"{reason}|category={selected.Category}|owner={ownerHighlightSymbol}|focus={selected.HighlightSymbol}|zone={selectedZone}|pressure={ownerPressure:0.##}|possession={ownerPossession}|penalty={selected.RepetitionPenalty}");
     }
 
     private void AppendArenaCommentary(TvArenaCommentaryEntry entry)
@@ -5421,147 +5543,331 @@ else
         return string.Empty;
     }
 
-    private string BuildArenaNarrativeText(NarrativeEventKind type, string symbol, int matchId, int elapsedMinute, int hotScore)
+    private TvArenaNarrativeTextChoice SelectArenaNarrativeText(
+        NarrativeEventKind type,
+        string symbol,
+        string opposingSymbol,
+        BroadcastSnapshot current,
+        NarrativeBallZone zone,
+        TvArenaNarrativeHistory history,
+        int elapsedMinute,
+        string category)
     {
-        var key = type.ToString();
-        string[] phrases = IsPortugueseCulture
+        var templates = BuildArenaNarrativeTemplates(type, symbol, opposingSymbol, current, zone);
+        if (templates.Length == 0)
+            return new TvArenaNarrativeTextChoice(string.Empty, string.Empty);
+
+        var startIndex = Math.Abs(HashCode.Combine(current.MatchId, elapsedMinute, current.HotScore, type.ToString(), symbol)) % templates.Length;
+        TvArenaNarrativeTemplate? best = null;
+        var bestPenalty = int.MaxValue;
+        _arenaNarrativeLastTextByType.TryGetValue(type.ToString(), out var previousText);
+
+        for (var offset = 0; offset < templates.Length; offset++)
+        {
+            var candidate = templates[(startIndex + offset) % templates.Length];
+            var penalty = 0;
+
+            if (history.ContainsRecentTemplate(candidate.TemplateKey))
+                penalty += 18;
+
+            if (history.ContainsRecentText(candidate.Text))
+                penalty += 22;
+
+            if (!string.IsNullOrWhiteSpace(previousText)
+                && string.Equals(previousText, candidate.Text, StringComparison.Ordinal))
+            {
+                penalty += 16;
+            }
+
+            if (string.Equals(_currentAiNarration, candidate.Text, StringComparison.Ordinal))
+                penalty += 24;
+
+            if (!string.IsNullOrWhiteSpace(previousText)
+                && candidate.Text.Equals(previousText, StringComparison.OrdinalIgnoreCase))
+                penalty += 8;
+
+            if (penalty < bestPenalty)
+            {
+                bestPenalty = penalty;
+                best = candidate;
+            }
+        }
+
+        return best is null
+            ? new TvArenaNarrativeTextChoice(string.Empty, string.Empty)
+            : new TvArenaNarrativeTextChoice(best.Text, best.TemplateKey);
+    }
+
+    private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
+        NarrativeEventKind type,
+        string symbol,
+        string opposingSymbol,
+        BroadcastSnapshot current,
+        NarrativeBallZone zone)
+    {
+        var scoreHome = current.LeftScore.ToString(CultureInfo.InvariantCulture);
+        var scoreAway = current.RightScore.ToString(CultureInfo.InvariantCulture);
+        var scoreLinePt = $"{scoreHome} a {scoreAway}";
+        var scoreLineEn = $"{scoreHome} to {scoreAway}";
+
+        return IsPortugueseCulture
             ? type switch
             {
-                NarrativeEventKind.MatchOpening =>
-                new[]
-                {
+                NarrativeEventKind.MatchOpening => BuildTemplates("opening",
+                [
                     "Bem-vindo a mais uma partida do CriptoVersus TV.",
                     "A bola vai rolar na arena CriptoVersus.",
                     "Comeca mais um duelo cripto dentro da arena."
-                },
-                NarrativeEventKind.OffensivePossession =>
-                new[]
+                ]),
+                NarrativeEventKind.OffensivePossession => zone switch
                 {
-                    $"{symbol} toca a bola na area do adversario.",
-                    $"{symbol} avanca pelo campo de ataque.",
-                    $"{symbol} comeca a pressionar no setor ofensivo."
+                    NarrativeBallZone.Defensive => BuildTemplates("offensive-defensive-zone",
+                    [
+                        $"{symbol} toca a bola tranquilamente na sua area.",
+                        $"{symbol} troca passes no campo defensivo.",
+                        $"{symbol} prefere nao arriscar e segura a posse atras."
+                    ]),
+                    NarrativeBallZone.Middle => BuildTemplates("offensive-middle-zone",
+                    [
+                        $"{symbol} trabalha a bola pelo meio da arena.",
+                        $"{symbol} tenta encontrar espaco entre as linhas.",
+                        $"{symbol} mantem a posse e controla o ritmo."
+                    ]),
+                    _ => BuildTemplates("offensive-attack-zone",
+                    [
+                        $"{symbol} toca a bola para a area inimiga.",
+                        $"{symbol} avanca para o campo adversario.",
+                        $"{symbol} comeca a pressionar perto da area rival.",
+                        $"{symbol} leva perigo no ataque."
+                    ])
                 },
-                NarrativeEventKind.DefensivePossession =>
-                new[]
-                {
+                NarrativeEventKind.DefensivePossession => BuildTemplates("defensive-possession",
+                [
                     $"{symbol} toca a bola na sua area, sem querer arriscar muito.",
                     $"{symbol} recua a jogada e tenta organizar a saida.",
                     $"{symbol} prefere manter a posse com seguranca."
-                },
-                NarrativeEventKind.Dominance =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.Dominance => BuildTemplates("dominance",
+                [
                     $"A dominancia da bola esta com {symbol}.",
                     $"{symbol} controla o ritmo da partida neste momento.",
                     $"{symbol} parece mais confortavel com a posse."
-                },
-                NarrativeEventKind.Transition =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.Transition => BuildTemplates("transition",
+                [
                     "A bola fica viva no meio da arena.",
                     "As duas moedas disputam espaco no campo.",
                     "O jogo fica equilibrado neste momento."
-                },
-                NarrativeEventKind.PressureGrowth =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.PressureGrowth => BuildTemplates("pressure-growth",
+                [
                     $"{symbol} aumenta a pressao ofensiva.",
                     $"O time de {symbol} sobe suas linhas.",
                     $"{symbol} empurra o adversario para tras."
-                },
-                NarrativeEventKind.PossessionRecovery =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.PossessionRecovery => BuildTemplates("possession-recovery",
+                [
                     $"{symbol} recupera a posse no meio-campo.",
                     $"A defesa de {symbol} consegue afastar o perigo.",
                     $"{symbol} retoma o controle da jogada."
-                },
-                NarrativeEventKind.Tension =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.Tension => BuildTemplates("tension",
+                [
                     "A arena sente o aumento da tensao.",
                     "O confronto fica mais intenso neste momento.",
                     "A torcida virtual acompanha cada movimento."
+                ]),
+                NarrativeEventKind.NonPossessionDefense => zone switch
+                {
+                    NarrativeBallZone.Defensive => BuildTemplates("non-possession-defensive-zone",
+                    [
+                        $"{symbol} mesmo sem posse de bola defende a sua area.",
+                        $"{symbol} fecha os espacos e tenta impedir o avanco adversario.",
+                        $"{symbol} segura a pressao perto da sua area."
+                    ]),
+                    _ => BuildTemplates("non-possession-defense",
+                    [
+                        $"{symbol} mesmo sem posse de bola protege bem a sua area.",
+                        $"{symbol} fecha os espacos e tenta impedir o avanco adversario.",
+                        $"{symbol} se reorganiza defensivamente."
+                    ])
                 },
-                _ => Array.Empty<string>()
+                NarrativeEventKind.ScoreboardNeutral => BuildTemplates("scoreboard-neutral",
+                [
+                    $"{scoreLinePt} aqui no campo do CriptoVersus.",
+                    $"O placar mostra {scoreLinePt} na arena CriptoVersus.",
+                    $"Temos {scoreLinePt} neste momento da partida.",
+                    $"Placar atualizado: {scoreLinePt} no campo do CriptoVersus.",
+                    $"A partida segue com {scoreLinePt}."
+                ]),
+                NarrativeEventKind.RecoveryAttempt => BuildTemplates("recovery-attempt",
+                [
+                    $"{symbol} tenta recuperar a posse no campo de defesa.",
+                    $"{symbol} tenta reagir e encurtar os espacos.",
+                    $"{symbol} busca retomar o controle mesmo sob pressao."
+                ]),
+                _ => []
             }
             : type switch
             {
-                NarrativeEventKind.MatchOpening =>
-                new[]
-                {
+                NarrativeEventKind.MatchOpening => BuildTemplates("opening",
+                [
                     "Welcome to another CriptoVersus TV match.",
                     "The ball is ready to roll inside the CriptoVersus arena.",
                     "Another crypto duel is underway in the arena."
-                },
-                NarrativeEventKind.OffensivePossession =>
-                new[]
+                ]),
+                NarrativeEventKind.OffensivePossession => zone switch
                 {
-                    $"{symbol} moves the ball into the opponent's box.",
-                    $"{symbol} advances through the attacking half.",
-                    $"{symbol} starts pressing high in the offensive sector."
+                    NarrativeBallZone.Defensive => BuildTemplates("offensive-defensive-zone",
+                    [
+                        $"{symbol} moves the ball calmly inside its own area.",
+                        $"{symbol} trades passes in the defensive half.",
+                        $"{symbol} keeps the ball deep and avoids the early risk."
+                    ]),
+                    NarrativeBallZone.Middle => BuildTemplates("offensive-middle-zone",
+                    [
+                        $"{symbol} works the ball through the middle of the arena.",
+                        $"{symbol} looks for space between the lines.",
+                        $"{symbol} keeps possession and controls the pace."
+                    ]),
+                    _ => BuildTemplates("offensive-attack-zone",
+                    [
+                        $"{symbol} moves the ball toward the enemy box.",
+                        $"{symbol} advances into the attacking half.",
+                        $"{symbol} starts pressing near the rival area.",
+                        $"{symbol} carries danger in attack."
+                    ])
                 },
-                NarrativeEventKind.DefensivePossession =>
-                new[]
-                {
+                NarrativeEventKind.DefensivePossession => BuildTemplates("defensive-possession",
+                [
                     $"{symbol} keeps the ball deep, avoiding too much risk.",
                     $"{symbol} drops the play back and reorganizes the exit.",
                     $"{symbol} prefers to keep possession safely for now."
-                },
-                NarrativeEventKind.Dominance =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.Dominance => BuildTemplates("dominance",
+                [
                     $"Ball control leans toward {symbol} right now.",
                     $"{symbol} controls the pace of the match at this moment.",
                     $"{symbol} looks more comfortable in possession."
-                },
-                NarrativeEventKind.Transition =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.Transition => BuildTemplates("transition",
+                [
                     "The ball stays alive in the middle of the arena.",
                     "Both currencies are fighting for space on the field.",
                     "The match feels balanced right now."
-                },
-                NarrativeEventKind.PressureGrowth =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.PressureGrowth => BuildTemplates("pressure-growth",
+                [
                     $"{symbol} raises the attacking pressure.",
                     $"{symbol}'s side pushes its lines higher.",
                     $"{symbol} forces the opponent backward."
-                },
-                NarrativeEventKind.PossessionRecovery =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.PossessionRecovery => BuildTemplates("possession-recovery",
+                [
                     $"{symbol} wins possession back in midfield.",
                     $"{symbol}'s defense clears the danger.",
                     $"{symbol} regains control of the move."
-                },
-                NarrativeEventKind.Tension =>
-                new[]
-                {
+                ]),
+                NarrativeEventKind.Tension => BuildTemplates("tension",
+                [
                     "The arena can feel the tension rising.",
                     "This battle is getting more intense right now.",
                     "The virtual crowd tracks every movement."
-                },
-                _ => Array.Empty<string>()
+                ]),
+                NarrativeEventKind.NonPossessionDefense => BuildTemplates("non-possession-defense",
+                [
+                    $"{symbol} protects its own area well without the ball.",
+                    $"{symbol} closes the gaps and tries to stop the advance.",
+                    $"{symbol} reorganizes defensively under pressure."
+                ]),
+                NarrativeEventKind.ScoreboardNeutral => BuildTemplates("scoreboard-neutral",
+                [
+                    $"{scoreLineEn} here inside the CriptoVersus field.",
+                    $"The scoreboard shows {scoreLineEn} in the CriptoVersus arena.",
+                    $"We have {scoreLineEn} at this point in the match.",
+                    $"Updated score: {scoreLineEn} on the CriptoVersus field.",
+                    $"The match continues at {scoreLineEn}."
+                ]),
+                NarrativeEventKind.RecoveryAttempt => BuildTemplates("recovery-attempt",
+                [
+                    $"{symbol} tries to win the ball back in its own half.",
+                    $"{symbol} reacts and works to close the passing lanes.",
+                    $"{symbol} looks to regain control while under pressure."
+                ]),
+                _ => []
             };
+    }
 
-        if (phrases.Length == 0)
-            return string.Empty;
+    private static TvArenaNarrativeTemplate[] BuildTemplates(string key, string[] texts)
+        => texts.Select((text, index) => new TvArenaNarrativeTemplate($"{key}:{index}", text)).ToArray();
 
-        var index = Math.Abs(HashCode.Combine(matchId, elapsedMinute, hotScore, key)) % phrases.Length;
-        var text = phrases[index];
-        if (_arenaNarrativeLastTextByType.TryGetValue(key, out var previousText)
-            && string.Equals(previousText, text, StringComparison.Ordinal)
-            && phrases.Length > 1)
+    private TvArenaNarrativeHistory GetArenaNarrativeHistory(int matchId)
+    {
+        if (!_arenaNarrativeHistoryByMatch.TryGetValue(matchId, out var history))
         {
-            text = phrases[(index + 1) % phrases.Length];
+            history = new TvArenaNarrativeHistory();
+            _arenaNarrativeHistoryByMatch[matchId] = history;
         }
 
-        if (string.Equals(_currentAiNarration, text, StringComparison.Ordinal) && phrases.Length > 1)
-            text = phrases[(index + 2) % phrases.Length];
+        return history;
+    }
 
-        return text;
+    private void RecordArenaNarrativeHistory(TvArenaNarrativeCandidate candidate)
+    {
+        var history = GetArenaNarrativeHistory(candidate.MatchId);
+        history.Record(
+            candidate.HighlightSymbol,
+            candidate.TypeKey,
+            candidate.AudioKey,
+            candidate.Text,
+            candidate.Signature);
+    }
+
+    private int CalculateArenaNarrativePenalty(
+        TvArenaNarrativeHistory history,
+        NarrativeEventKind type,
+        string highlightSymbol,
+        string templateKey,
+        string? audioKey)
+    {
+        var penalty = 0;
+
+        if (history.ContainsRecentHighlight(highlightSymbol))
+            penalty += 7;
+
+        if (history.ContainsRecentEventType(type.ToString()))
+            penalty += 8;
+
+        if (!string.IsNullOrWhiteSpace(audioKey) && history.ContainsRecentAudioKey(audioKey))
+            penalty += 14;
+
+        if (history.ContainsRecentTemplate(templateKey))
+            penalty += 18;
+
+        return penalty;
+    }
+
+    private string ResolveLosingNarrativeSymbol(BroadcastSnapshot current)
+        => current.LeftScore == current.RightScore
+            ? string.Empty
+            : current.LeftScore < current.RightScore
+                ? GetBaseSymbol(current.LeftSymbol)
+                : GetBaseSymbol(current.RightSymbol);
+
+    private string ResolveRecentScorerNarrativeSymbol()
+        => GetBaseSymbol(_recentScoreEvents.FirstOrDefault()?.NormalizedTeamSymbol
+            ?? _recentScoreEvents.FirstOrDefault()?.TeamSymbol
+            ?? string.Empty);
+
+    private static string ResolveScoreboardHighlightSymbol(BroadcastSnapshot current, string ownerHighlightSymbol, string opponentHighlightSymbol)
+    {
+        if (current.LeftScore == current.RightScore)
+            return ownerHighlightSymbol;
+
+        var leader = current.LeftScore > current.RightScore ? current.LeftSymbol : current.RightSymbol;
+        return string.IsNullOrWhiteSpace(leader)
+            ? opponentHighlightSymbol
+            : GetBaseSymbol(leader);
     }
 
     private int ResolveArenaCommentaryMinute(BroadcastSnapshot current)
@@ -5585,6 +5891,9 @@ else
                 NarrativeEventKind.Transition => "Transicao",
                 NarrativeEventKind.PressureGrowth => "Pressao",
                 NarrativeEventKind.PossessionRecovery => "Recuperacao",
+                NarrativeEventKind.NonPossessionDefense => "Defesa sem posse",
+                NarrativeEventKind.ScoreboardNeutral => "Placar",
+                NarrativeEventKind.RecoveryAttempt => "Reacao",
                 NarrativeEventKind.Tension => "Tensao",
                 _ => "Arena"
             }
@@ -5597,6 +5906,9 @@ else
                 NarrativeEventKind.Transition => "Transition",
                 NarrativeEventKind.PressureGrowth => "Pressure",
                 NarrativeEventKind.PossessionRecovery => "Recovery",
+                NarrativeEventKind.NonPossessionDefense => "Defense",
+                NarrativeEventKind.ScoreboardNeutral => "Scoreboard",
+                NarrativeEventKind.RecoveryAttempt => "Reaction",
                 NarrativeEventKind.Tension => "Tension",
                 _ => "Arena"
             };
@@ -5605,6 +5917,7 @@ else
         => type switch
         {
             NarrativeEventKind.MatchOpening => TimeSpan.FromSeconds(32),
+            NarrativeEventKind.ScoreboardNeutral => TimeSpan.FromSeconds(30),
             NarrativeEventKind.Dominance or NarrativeEventKind.Tension => TimeSpan.FromSeconds(24),
             NarrativeEventKind.PressureGrowth => TimeSpan.FromSeconds(20),
             _ => TimeSpan.FromSeconds(18)
@@ -5620,6 +5933,9 @@ else
             NarrativeEventKind.Transition => "switchSide",
             NarrativeEventKind.PressureGrowth => "pressure",
             NarrativeEventKind.PossessionRecovery => "ballRecovery",
+            NarrativeEventKind.NonPossessionDefense => "clutchSave",
+            NarrativeEventKind.ScoreboardNeutral => "momentum",
+            NarrativeEventKind.RecoveryAttempt => "ballRecovery",
             NarrativeEventKind.Tension => "highlightMoment",
             _ => null
         };
@@ -5633,6 +5949,9 @@ else
             NarrativeEventKind.Dominance => "momentum_shift",
             NarrativeEventKind.PossessionRecovery => "momentum_shift",
             NarrativeEventKind.DefensivePossession => "momentum_shift",
+            NarrativeEventKind.NonPossessionDefense => "momentum_shift",
+            NarrativeEventKind.ScoreboardNeutral => "momentum_shift",
+            NarrativeEventKind.RecoveryAttempt => "momentum_shift",
             NarrativeEventKind.Transition => "momentum_shift",
             NarrativeEventKind.Tension => "momentum_shift",
             _ => "momentum_shift"
@@ -5648,6 +5967,9 @@ else
             NarrativeEventKind.Transition => "arena_transition",
             NarrativeEventKind.PressureGrowth => "pressure_growth",
             NarrativeEventKind.PossessionRecovery => "possession_recovery",
+            NarrativeEventKind.NonPossessionDefense => "non_possession_defense",
+            NarrativeEventKind.ScoreboardNeutral => "scoreboard_neutral",
+            NarrativeEventKind.RecoveryAttempt => "recovery_attempt",
             NarrativeEventKind.Tension => "arena_tension",
             _ => "arena_flow"
         };
@@ -5660,6 +5982,9 @@ else
             NarrativeEventKind.Tension => "hype",
             NarrativeEventKind.OffensivePossession => "hype",
             NarrativeEventKind.Dominance => "normal",
+            NarrativeEventKind.ScoreboardNeutral => "normal",
+            NarrativeEventKind.NonPossessionDefense => "normal",
+            NarrativeEventKind.RecoveryAttempt => "normal",
             _ => "normal"
         };
 
@@ -5673,7 +5998,10 @@ else
             NarrativeEventKind.PressureGrowth => 38,
             NarrativeEventKind.Tension => current.RemainingSeconds <= 600 ? 36 : 32,
             NarrativeEventKind.Dominance => 34,
+            NarrativeEventKind.ScoreboardNeutral => 33,
             NarrativeEventKind.PossessionRecovery => 31,
+            NarrativeEventKind.NonPossessionDefense => 30,
+            NarrativeEventKind.RecoveryAttempt => 29,
             NarrativeEventKind.OffensivePossession => 30,
             NarrativeEventKind.DefensivePossession => 28,
             NarrativeEventKind.Transition => 26,
@@ -7594,6 +7922,9 @@ else
         Transition,
         PressureGrowth,
         PossessionRecovery,
+        NonPossessionDefense,
+        ScoreboardNeutral,
+        RecoveryAttempt,
         Tension
     }
 
@@ -7643,6 +7974,68 @@ else
         bool Silent,
         string Signature,
         string Reason);
+
+    private sealed record TvArenaNarrativeOption(
+        NarrativeEventKind Type,
+        string RawSymbol,
+        string HighlightSymbol,
+        string Category,
+        NarrativeBallZone Zone,
+        string Text,
+        string TemplateKey,
+        int RepetitionPenalty,
+        int Weight,
+        string AvoidedReason);
+
+    private sealed record TvArenaNarrativeTextChoice(string Text, string TemplateKey);
+
+    private sealed record TvArenaNarrativeTemplate(string TemplateKey, string Text);
+
+    private sealed class TvArenaNarrativeHistory
+    {
+        private const int MaxItems = 6;
+        private readonly Queue<string> _lastAudioKeys = new();
+        private readonly Queue<string> _lastTemplateKeys = new();
+        private readonly Queue<string> _lastHighlightSymbols = new();
+        private readonly Queue<string> _lastEventTypes = new();
+        private readonly Queue<string> _lastTexts = new();
+        private readonly Queue<string> _lastSignatures = new();
+
+        public void Record(string highlightSymbol, string eventType, string? audioKey, string text, string signature)
+        {
+            Push(_lastHighlightSymbols, highlightSymbol);
+            Push(_lastEventTypes, eventType);
+            Push(_lastTexts, text);
+            Push(_lastSignatures, signature);
+
+            if (!string.IsNullOrWhiteSpace(audioKey))
+                Push(_lastAudioKeys, audioKey);
+
+            Push(_lastTemplateKeys, signature.Split('|').LastOrDefault() ?? signature);
+        }
+
+        public bool ContainsRecentAudioKey(string value) => Contains(_lastAudioKeys, value);
+        public bool ContainsRecentTemplate(string value) => Contains(_lastTemplateKeys, value);
+        public bool ContainsRecentHighlight(string value) => Contains(_lastHighlightSymbols, value);
+        public bool ContainsRecentEventType(string value) => Contains(_lastEventTypes, value);
+        public bool ContainsRecentText(string value) => Contains(_lastTexts, value);
+
+        public int GetRecentHighlightCount(string value)
+            => _lastHighlightSymbols.Count(item => string.Equals(item, value, StringComparison.OrdinalIgnoreCase));
+
+        private static bool Contains(IEnumerable<string> values, string value)
+            => values.Any(item => string.Equals(item, value, StringComparison.OrdinalIgnoreCase));
+
+        private static void Push(Queue<string> queue, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return;
+
+            queue.Enqueue(value);
+            while (queue.Count > MaxItems)
+                queue.Dequeue();
+        }
+    }
 
     private sealed record TvArenaCommentaryEntry(
         string Id,

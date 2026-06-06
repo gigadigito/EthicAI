@@ -29,6 +29,7 @@ namespace DTOs
         public string? AudioVoiceKey { get; set; }
         public long? AudioAssetId { get; set; }
         public string? AudioUrl { get; set; }
+        public string? AudioTextHash { get; set; }
         public bool AudioFallbackUsed { get; set; }
         public string? AudioResolvedLanguage { get; set; }
     }

@@ -1211,6 +1211,8 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
                 entity.Property(e => e.TemplateKey).HasColumnName("template_key").HasMaxLength(100);
                 entity.Property(e => e.TextPrompt).HasColumnName("text_prompt");
+                entity.Property(e => e.NormalizedText).HasColumnName("normalized_text");
+                entity.Property(e => e.TextHash).HasColumnName("text_hash").HasMaxLength(64);
                 entity.Property(e => e.AudioUrl).HasColumnName("audio_url");
                 entity.Property(e => e.RelativePath).HasColumnName("relative_path");
                 entity.Property(e => e.FileName).HasColumnName("file_name").HasMaxLength(255);
@@ -1232,6 +1234,7 @@ namespace EthicAI.EntityModel
                 entity.HasIndex(e => new { e.EventType, e.Language, e.Status });
                 entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol, e.ContextKey, e.Intensity, e.Status });
                 entity.HasIndex(e => new { e.EventType, e.Language, e.NormalizedSymbol, e.ContextKey, e.Intensity, e.Status });
+                entity.HasIndex(e => new { e.TextHash, e.Language, e.VoiceKey, e.Status });
                 entity.HasIndex(e => e.FileHash)
                       .IsUnique()
                       .HasFilter("\"file_hash\" IS NOT NULL");
@@ -1254,6 +1257,8 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.VoiceKey).HasColumnName("voice_key").HasMaxLength(80);
                 entity.Property(e => e.TemplateKey).HasColumnName("template_key").HasMaxLength(100);
                 entity.Property(e => e.TextPrompt).HasColumnName("text_prompt");
+                entity.Property(e => e.NormalizedText).HasColumnName("normalized_text");
+                entity.Property(e => e.TextHash).HasColumnName("text_hash").HasMaxLength(64);
                 entity.Property(e => e.TargetRelativePath).HasColumnName("target_relative_path");
                 entity.Property(e => e.TargetFileName).HasColumnName("target_file_name").HasMaxLength(255);
                 entity.Property(e => e.Status).HasColumnName("status").HasMaxLength(30).HasDefaultValue(AudioGenerationJobStatus.Pending);
@@ -1272,6 +1277,7 @@ namespace EthicAI.EntityModel
                 entity.HasIndex(e => e.LeasedUntilUtc);
                 entity.HasIndex(e => new { e.EventType, e.Language, e.TeamSymbol, e.ContextKey, e.Intensity });
                 entity.HasIndex(e => new { e.EventType, e.Language, e.NormalizedSymbol, e.ContextKey, e.Intensity });
+                entity.HasIndex(e => new { e.TextHash, e.Language, e.VoiceKey, e.Status });
 
                 entity.HasOne(e => e.CompletedAudioAsset)
                       .WithMany(a => a.CompletedJobs)

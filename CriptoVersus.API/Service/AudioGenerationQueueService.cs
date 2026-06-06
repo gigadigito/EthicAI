@@ -89,17 +89,64 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
 
         var normalized = await _narrativeResolver.ResolveAsync(request, ct);
         var resolvedVoiceKey = ResolveVoiceKey(normalized);
+        var template = await ResolveTemplateAsync(normalized, ct);
+        var textPrompt = BuildPrompt(normalized, template);
+        var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(textPrompt);
+        var textHash = string.IsNullOrWhiteSpace(normalizedText)
+            ? null
+            : ProceduralAudioTextDeduplication.ComputeTextHash(textPrompt, normalized.Language, resolvedVoiceKey);
+
+        if (!request.ForceQueue && !string.IsNullOrWhiteSpace(textHash))
+        {
+            var existingAssetCandidates = await _db.AudioAsset
+                .Where(x => x.Status == AudioAssetStatus.Ready
+                    && x.Language == normalized.Language
+                    && x.VoiceKey == resolvedVoiceKey
+                    && (x.TextHash == textHash || (x.TextHash == null && x.TextPrompt != null)))
+                .OrderByDescending(x => x.QualityScore ?? 0m)
+                .ThenByDescending(x => x.UsageCount)
+                .ThenByDescending(x => x.LastUsedAtUtc ?? x.CreatedAtUtc)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync(ct);
+
+            var existingAsset = existingAssetCandidates.FirstOrDefault(x =>
+                _storage.StoredAudioExists(x.RelativePath)
+                && string.Equals(
+                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                    textHash,
+                    StringComparison.Ordinal));
+
+            if (existingAsset is not null)
+            {
+                existingAsset.LastUsedAtUtc = DateTime.UtcNow;
+                existingAsset.UpdatedAtUtc = DateTime.UtcNow;
+                existingAsset.NormalizedText ??= normalizedText;
+                existingAsset.TextHash ??= textHash;
+                await _db.SaveChangesAsync(ct);
+
+                _logger.LogInformation(
+                    "[AUDIO_GENERATION] skipped-existing-hash assetId={AssetId} textHash={TextHash} eventType={EventType} language={Language} voiceKey={VoiceKey}",
+                    existingAsset.Id,
+                    textHash,
+                    normalized.EventType,
+                    normalized.Language,
+                    resolvedVoiceKey);
+                return new AudioQueueEnqueueResult(false, true, "skipped_existing_hash", "matching text hash already exists", existingAsset.Id);
+            }
+        }
+
         if (!request.ForceQueue)
         {
             var existingJob = await _db.AudioGenerationQueueItem
                 .Where(x =>
                     ActiveStatuses.Contains(x.Status)
-                    && x.EventType == normalized.EventType
                     && x.Language == normalized.Language
-                    && x.NormalizedSymbol == normalized.NormalizedSymbol
-                    && x.ContextKey == normalized.ContextKey
-                    && x.Intensity == normalized.Intensity
-                    && x.VoiceKey == resolvedVoiceKey)
+                    && x.VoiceKey == resolvedVoiceKey
+                    && (x.TextHash == textHash
+                        || (x.EventType == normalized.EventType
+                            && x.NormalizedSymbol == normalized.NormalizedSymbol
+                            && x.ContextKey == normalized.ContextKey
+                            && x.TextPrompt == textPrompt)))
                 .OrderByDescending(x => x.CreatedAtUtc)
                 .FirstOrDefaultAsync(ct);
 
@@ -118,8 +165,6 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             }
         }
 
-        var template = await ResolveTemplateAsync(normalized, ct);
-        var textPrompt = BuildPrompt(normalized, template);
         var job = new AudioGenerationQueueItem
         {
             EventType = normalized.EventType,
@@ -133,7 +178,9 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             VoiceKey = resolvedVoiceKey,
             TemplateKey = template?.TemplateKey,
             TextPrompt = textPrompt,
-            TargetFileName = BuildTargetFileName(normalized),
+            NormalizedText = normalizedText,
+            TextHash = textHash,
+            TargetFileName = BuildTargetFileName(normalized, textHash),
             TargetRelativePath = BuildTargetRelativePath(normalized),
             Status = AudioGenerationJobStatus.Pending,
             Priority = ResolvePriority(normalized),
@@ -203,6 +250,46 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         job.UpdatedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
 
+        if (!string.IsNullOrWhiteSpace(job.TextHash))
+        {
+            var existingAssetCandidates = await _db.AudioAsset
+                .Where(x => x.Status == AudioAssetStatus.Ready
+                    && x.Language == job.Language
+                    && x.VoiceKey == job.VoiceKey
+                    && (x.TextHash == job.TextHash || (x.TextHash == null && x.TextPrompt != null)))
+                .OrderByDescending(x => x.QualityScore ?? 0m)
+                .ThenByDescending(x => x.UsageCount)
+                .ThenByDescending(x => x.LastUsedAtUtc ?? x.CreatedAtUtc)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync(ct);
+
+            var existingAsset = existingAssetCandidates.FirstOrDefault(x =>
+                _storage.StoredAudioExists(x.RelativePath)
+                && string.Equals(
+                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                    job.TextHash,
+                    StringComparison.Ordinal));
+
+            if (existingAsset is not null)
+            {
+                existingAsset.NormalizedText ??= job.NormalizedText;
+                existingAsset.TextHash ??= job.TextHash;
+                job.Status = AudioGenerationJobStatus.Completed;
+                job.CompletedAudioAssetId = existingAsset.Id;
+                job.ProcessedAtUtc = DateTime.UtcNow;
+                job.UpdatedAtUtc = DateTime.UtcNow;
+                job.ErrorMessage = null;
+                await _db.SaveChangesAsync(ct);
+
+                _logger.LogInformation(
+                    "[AUDIO_GENERATION] skipped-existing-hash assetId={AssetId} textHash={TextHash} jobId={JobId}",
+                    existingAsset.Id,
+                    job.TextHash,
+                    job.Id);
+                return existingAsset;
+            }
+        }
+
         var storedFile = await _storage.SaveGeneratedAudioAsync(ToDto(job), audioFile, ct);
         var asset = new AudioAsset
         {
@@ -217,6 +304,8 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             VoiceKey = job.VoiceKey,
             TemplateKey = job.TemplateKey,
             TextPrompt = job.TextPrompt,
+            NormalizedText = job.NormalizedText,
+            TextHash = job.TextHash,
             AudioUrl = storedFile.AudioUrl,
             RelativePath = storedFile.RelativePath,
             FileName = storedFile.FileName,
@@ -324,6 +413,10 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
                     VoiceKey = resolvedVoiceKey
                 },
             template);
+        var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(textPrompt);
+        var textHash = string.IsNullOrWhiteSpace(normalizedText)
+            ? null
+            : ProceduralAudioTextDeduplication.ComputeTextHash(textPrompt, normalized.Language, resolvedVoiceKey);
 
         var nowUtc = DateTime.UtcNow;
         var job = new AudioGenerationQueueItem
@@ -339,7 +432,9 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             VoiceKey = resolvedVoiceKey,
             TemplateKey = template?.TemplateKey,
             TextPrompt = textPrompt,
-            TargetFileName = BuildTargetFileName(normalized, "test"),
+            NormalizedText = normalizedText,
+            TextHash = textHash,
+            TargetFileName = BuildTargetFileName(normalized, textHash, "test"),
             TargetRelativePath = BuildTestTargetRelativePath(),
             Status = AudioGenerationJobStatus.Pending,
             Priority = 5,
@@ -382,6 +477,8 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             AssetId = job.CompletedAudioAssetId,
             AudioUrl = job.CompletedAudioAsset?.AudioUrl,
             TextPrompt = job.CompletedAudioAsset?.TextPrompt ?? job.TextPrompt,
+            NormalizedText = job.CompletedAudioAsset?.NormalizedText ?? job.NormalizedText,
+            TextHash = job.CompletedAudioAsset?.TextHash ?? job.TextHash,
             TeamName = job.CompletedAudioAsset?.TeamName ?? job.TeamName,
             ErrorMessage = job.ErrorMessage
         };
@@ -430,17 +527,18 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
     private static string BuildTargetRelativePath(AudioResolveRequest request)
         => $"audio/{request.Language}/{request.EventType}/{(string.IsNullOrWhiteSpace(request.TeamSymbol) ? "generic" : request.TeamSymbol)}";
 
-    private static string BuildTargetFileName(AudioResolveRequest request, string? prefix = null)
+    private static string BuildTargetFileName(AudioResolveRequest request, string? textHash, string? prefix = null)
     {
         var parts = new[]
         {
             prefix,
             request.EventType,
+            request.Language,
             string.IsNullOrWhiteSpace(request.TeamSymbol) ? "generic" : request.TeamSymbol,
-            string.IsNullOrWhiteSpace(request.Intensity) ? "normal" : request.Intensity
+            ProceduralAudioTextDeduplication.GetShortHash(textHash)
         };
 
-        return $"{string.Join("_", parts.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim().ToLowerInvariant()))}_{DateTime.UtcNow:yyyyMMddHHmmss}.mp3";
+        return $"{string.Join("_", parts.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim().ToLowerInvariant()))}.mp3";
     }
 
     private static string BuildTestTargetRelativePath()
@@ -459,7 +557,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         };
     }
 
-    private static AudioGenerationJobDto ToDto(AudioGenerationQueueItem job)
+    private AudioGenerationJobDto ToDto(AudioGenerationQueueItem job)
     {
         return new AudioGenerationJobDto
         {
@@ -475,8 +573,11 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             VoiceKey = job.VoiceKey,
             TemplateKey = job.TemplateKey,
             TextPrompt = job.TextPrompt,
+            NormalizedText = job.NormalizedText,
+            TextHash = job.TextHash,
             TargetRelativePath = job.TargetRelativePath,
             TargetFileName = job.TargetFileName,
+            KeepWavFiles = _options.Value.KeepWavFiles,
             Status = job.Status,
             Priority = job.Priority,
             AttemptCount = job.AttemptCount,

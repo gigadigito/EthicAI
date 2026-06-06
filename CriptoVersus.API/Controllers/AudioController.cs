@@ -73,6 +73,8 @@ public sealed class AudioController : ControllerBase
                 Queued = queueResult?.Queued ?? false,
                 ResolvedLanguage = resolved.ResolvedLanguage,
                 RelativePath = resolved.Asset.RelativePath,
+                NormalizedText = resolved.Asset.NormalizedText,
+                TextHash = resolved.Asset.TextHash,
                 SpecificityScore = resolved.SpecificityScore,
                 QueueStatus = queueResult?.Status,
                 QueueReason = queueResult?.Reason
@@ -158,6 +160,8 @@ public sealed class AudioController : ControllerBase
             queued = queueResult?.Queued ?? false,
             queueStatus = queueResult?.Status,
             queueReason = queueResult?.Reason,
+            normalizedText = diagnostic.ResolvedAsset?.NormalizedText,
+            textHash = diagnostic.ResolvedAsset?.TextHash,
             specificityScore = diagnostic.SpecificityScore,
             candidateCount = diagnostic.CandidateCount,
             rankedCandidateIds = diagnostic.RankedCandidateIds,

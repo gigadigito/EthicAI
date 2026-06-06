@@ -143,6 +143,18 @@ public sealed class AudioAssetsController : ControllerBase
         return Ok(await _adminService.DisableSuspectsAsync(request, wallet, ct));
     }
 
+    [HttpPost("maintenance/deduplicate")]
+    public async Task<ActionResult<AudioAssetMaintenanceDeduplicateResponseDto>> Deduplicate(
+        [FromBody] AudioAssetMaintenanceDeduplicateRequestDto request,
+        CancellationToken ct)
+    {
+        var wallet = RequireAdminWallet();
+        if (wallet is null)
+            return Forbid();
+
+        return Ok(await _adminService.DeduplicateAsync(request, wallet, ct));
+    }
+
     [HttpPost("test-generate")]
     public async Task<ActionResult<AudioAssetTestGenerateResponseDto>> TestGenerate(
         [FromBody] AudioAssetTestGenerateRequestDto request,

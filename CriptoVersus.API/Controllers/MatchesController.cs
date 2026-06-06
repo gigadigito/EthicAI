@@ -225,6 +225,7 @@ namespace CriptoVersus.API.Controllers
                     AudioVoiceKey = item.AudioVoiceKey,
                     AudioAssetId = item.AudioAssetId,
                     AudioUrl = item.AudioUrl,
+                    AudioTextHash = item.AudioAsset?.TextHash,
                     AudioFallbackUsed = item.AudioFallbackUsed,
                     AudioResolvedLanguage = item.AudioResolvedLanguage
                 };
@@ -798,6 +799,7 @@ namespace CriptoVersus.API.Controllers
             {
                 dto.AudioAssetId = resolved.Asset.Id;
                 dto.AudioUrl = resolved.Asset.AudioUrl;
+                dto.AudioTextHash = resolved.Asset.TextHash;
                 dto.AudioFallbackUsed = resolved.FallbackUsed;
                 dto.AudioResolvedLanguage = resolved.ResolvedLanguage;
                 dto.AudioVoiceKey ??= resolved.Asset.VoiceKey;
@@ -827,6 +829,7 @@ namespace CriptoVersus.API.Controllers
             {
                 dto.AudioUrl = item.AudioUrl;
                 dto.AudioAssetId = item.AudioAssetId;
+                dto.AudioTextHash = item.AudioAsset?.TextHash;
                 dto.AudioFallbackUsed = true;
                 dto.AudioResolvedLanguage = item.AudioResolvedLanguage;
                 _logger.LogInformation(

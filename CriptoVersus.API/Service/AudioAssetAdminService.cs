@@ -17,21 +17,25 @@ public interface IAudioAssetAdminService
     Task<AudioAssetAdminActionResultDto> BulkDeleteFileAndRecordAsync(IReadOnlyCollection<long> ids, string actorWallet, CancellationToken ct = default);
     Task<AudioAssetAdminActionResultDto> DeleteOrphanRecordsAsync(string actorWallet, CancellationToken ct = default);
     Task<AudioAssetMaintenanceDisableSuspectResponseDto> DisableSuspectsAsync(AudioAssetMaintenanceDisableSuspectRequestDto request, string actorWallet, CancellationToken ct = default);
+    Task<AudioAssetMaintenanceDeduplicateResponseDto> DeduplicateAsync(AudioAssetMaintenanceDeduplicateRequestDto request, string actorWallet, CancellationToken ct = default);
 }
 
 public sealed class AudioAssetAdminService : IAudioAssetAdminService
 {
     private readonly EthicAIDbContext _db;
     private readonly IAudioStorageService _storage;
+    private readonly AudioGenerationOptions _options;
     private readonly ILogger<AudioAssetAdminService> _logger;
 
     public AudioAssetAdminService(
         EthicAIDbContext db,
         IAudioStorageService storage,
+        Microsoft.Extensions.Options.IOptions<AudioGenerationOptions> options,
         ILogger<AudioAssetAdminService> logger)
     {
         _db = db;
         _storage = storage;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -71,6 +75,8 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
         {
             dbQuery = dbQuery.Where(x =>
                 (x.TextPrompt != null && EF.Functions.ILike(x.TextPrompt, $"%{containsText}%"))
+                || (x.NormalizedText != null && EF.Functions.ILike(x.NormalizedText, $"%{containsText}%"))
+                || (x.TextHash != null && EF.Functions.ILike(x.TextHash, $"%{containsText}%"))
                 || EF.Functions.ILike(x.AudioUrl, $"%{containsText}%")
                 || EF.Functions.ILike(x.RelativePath, $"%{containsText}%")
                 || EF.Functions.ILike(x.FileName, $"%{containsText}%")
@@ -341,6 +347,132 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
         };
     }
 
+    public async Task<AudioAssetMaintenanceDeduplicateResponseDto> DeduplicateAsync(
+        AudioAssetMaintenanceDeduplicateRequestDto request,
+        string actorWallet,
+        CancellationToken ct = default)
+    {
+        var candidates = await _db.AudioAsset
+            .Where(x => x.Status == AudioAssetStatus.Ready && x.TextPrompt != null)
+            .OrderBy(x => x.TextHash)
+            .ThenByDescending(x => x.QualityScore ?? 0m)
+            .ThenByDescending(x => x.UsageCount)
+            .ThenByDescending(x => x.LastUsedAtUtc ?? x.CreatedAtUtc)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync(ct);
+
+        var groups = candidates
+            .Select(x => new
+            {
+                Asset = x,
+                EffectiveHash = x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                EffectiveNormalizedText = x.NormalizedText ?? ProceduralAudioTextDeduplication.NormalizeNarrationText(x.TextPrompt)
+            })
+            .GroupBy(x => new { x.EffectiveHash, x.Asset.Language, x.Asset.VoiceKey })
+            .Where(x => x.Count() > 1)
+            .ToList();
+
+        var keptAssetIds = new List<long>();
+        var duplicateAssetIds = new List<long>();
+        var filesDeleted = 0;
+        var wavFilesDeleted = 0;
+        var duplicateAssetsUpdated = 0;
+
+        foreach (var group in groups)
+        {
+            var ordered = group
+                .Select(x => x.Asset)
+                .OrderByDescending(x => x.QualityScore ?? 0m)
+                .ThenByDescending(x => x.UsageCount)
+                .ThenByDescending(x => x.LastUsedAtUtc ?? x.CreatedAtUtc)
+                .ThenByDescending(x => x.Id)
+                .ToList();
+
+            var keep = ordered[0];
+            keptAssetIds.Add(keep.Id);
+
+            foreach (var duplicate in ordered.Skip(1))
+            {
+                duplicateAssetIds.Add(duplicate.Id);
+                _logger.LogInformation(
+                    "[AUDIO_DEDUP] duplicate-found keepAssetId={KeepAssetId} duplicateAssetId={DuplicateAssetId} textHash={TextHash} wallet={Wallet}",
+                    keep.Id,
+                    duplicate.Id,
+                    duplicate.TextHash,
+                    actorWallet);
+
+                if (request.DryRun)
+                    continue;
+
+                keep.TextHash ??= group.Key.EffectiveHash;
+                keep.NormalizedText ??= group.First(x => x.Asset.Id == keep.Id).EffectiveNormalizedText;
+                duplicate.TextHash ??= group.Key.EffectiveHash;
+                duplicate.NormalizedText ??= group.First(x => x.Asset.Id == duplicate.Id).EffectiveNormalizedText;
+
+                await _db.MatchScoreEvent
+                    .Where(x => x.AudioAssetId == duplicate.Id)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.AudioAssetId, keep.Id)
+                        .SetProperty(x => x.AudioUrl, keep.AudioUrl), ct);
+
+                await _db.AudioGenerationQueueItem
+                    .Where(x => x.CompletedAudioAssetId == duplicate.Id)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.CompletedAudioAssetId, keep.Id), ct);
+
+                if (request.DeleteDuplicateFiles && !string.IsNullOrWhiteSpace(duplicate.RelativePath))
+                {
+                    var deleteResult = await _storage.DeleteStoredAudioAsync(duplicate.RelativePath, ct);
+                    filesDeleted += deleteResult.DeletedPaths.Count;
+
+                    if (deleteResult.DeletedPaths.Count > 0)
+                    {
+                        _logger.LogInformation(
+                            "[AUDIO_DEDUP] file-deleted assetId={AssetId} relativePath={RelativePath} deletedPaths={DeletedCount}",
+                            duplicate.Id,
+                            duplicate.RelativePath,
+                            deleteResult.DeletedPaths.Count);
+                    }
+                }
+
+                _db.AudioAsset.Remove(duplicate);
+                duplicateAssetsUpdated += 1;
+            }
+        }
+
+        if (!request.DryRun && request.DeleteWavFiles && !_options.KeepWavFiles)
+        {
+            foreach (var entry in _storage.EnumerateStoredAudioFiles().Where(x => x.RelativePath.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)))
+            {
+                var deleteResult = await _storage.DeleteStoredAudioAsync(entry.RelativePath, ct);
+                wavFilesDeleted += deleteResult.DeletedPaths.Count;
+
+                if (deleteResult.DeletedPaths.Count > 0)
+                {
+                    _logger.LogInformation(
+                        "[AUDIO_DEDUP] file-deleted relativePath={RelativePath} deletedPaths={DeletedCount} kind=wav-cleanup",
+                        entry.RelativePath,
+                        deleteResult.DeletedPaths.Count);
+                }
+            }
+        }
+
+        if (!request.DryRun)
+            await _db.SaveChangesAsync(ct);
+
+        return new AudioAssetMaintenanceDeduplicateResponseDto
+        {
+            DryRun = request.DryRun,
+            GroupsScanned = groups.Count,
+            DuplicateAssetsFound = duplicateAssetIds.Count,
+            DuplicateAssetsUpdated = duplicateAssetsUpdated,
+            FilesDeleted = filesDeleted,
+            WavFilesDeleted = wavFilesDeleted,
+            KeptAssetIds = keptAssetIds.Distinct().ToArray(),
+            DuplicateAssetIds = duplicateAssetIds.ToArray()
+        };
+    }
+
     private AudioAssetAdminListItemDto Map(AudioAsset asset)
     {
         var suspectRules = AudioAssetSuspicionInspector.Evaluate(asset);
@@ -372,6 +504,8 @@ public sealed class AudioAssetAdminService : IAudioAssetAdminService
             Intensity = asset.Intensity,
             VoiceKey = asset.VoiceKey,
             TextPrompt = asset.TextPrompt,
+            NormalizedText = asset.NormalizedText,
+            TextHash = asset.TextHash,
             AudioUrl = asset.AudioUrl,
             ResolvedAudioUrl = storageInfo.PublicUrl,
             RelativePath = asset.RelativePath,
