@@ -4717,19 +4717,8 @@ else
         candidate = await ResolveArenaNarrativeAudioAsync(candidate);
 
         var now = DateTime.UtcNow;
-        var creationBlockedReason = ResolveArenaNarrativeCreationBlockReason();
-        if (!string.IsNullOrWhiteSpace(creationBlockedReason))
-        {
-            await LogAsync("TV_ARENA_COMMENTARY", "creation-ignored", new
-            {
-                candidate.MatchId,
-                candidate.TypeKey,
-                candidate.Reason,
-                candidate.HighlightSymbol,
-                creationBlockedReason
-            });
-            return;
-        }
+        var visualBlockedReason = ResolveArenaNarrativeVisualCommentBlockReason();
+        var tickerBlockedReason = ResolveArenaNarrativeTickerBlockReason();
 
         if (_arenaNarrativeCooldownsUtc.TryGetValue(candidate.TypeKey, out var cooldownUntilUtc) && cooldownUntilUtc > now)
         {
@@ -4756,55 +4745,93 @@ else
             return;
         }
 
-        var entry = new TvArenaCommentaryEntry(
-            Guid.NewGuid().ToString("N"),
-            candidate.MatchId,
-            candidate.TypeKey,
-            DescribeNarrativeEventType(candidate.Type),
-            candidate.MinuteLabel,
-            candidate.Text,
-            candidate.HighlightSymbol,
-            candidate.AccentHex,
-            candidate.Priority,
-            candidate.AudioKey,
-            candidate.AudioUrl,
-            candidate.AudioAssetId,
-            candidate.AudioQueued,
-            candidate.AudioQueueStatus,
-            candidate.AudioQueueReason,
-            candidate.AudioRequest,
-            candidate.Silent,
-            DateTime.UtcNow,
-            false);
-
-        AppendArenaCommentary(entry);
         _arenaNarrativeCooldownsUtc[candidate.TypeKey] = now.Add(candidate.Cooldown);
         _arenaNarrativeLastTextByType[candidate.TypeKey] = candidate.Text;
         _lastArenaNarrativeSignature = candidate.Signature;
         _lastArenaNarrativeAtUtc = now;
         _didNarrativeOpening |= candidate.Type == NarrativeEventKind.MatchOpening;
 
-        await LogAsync("TV_ARENA_COMMENTARY", "event-created", new
+        if (!string.IsNullOrWhiteSpace(visualBlockedReason))
         {
-            candidate.MatchId,
-            candidate.TypeKey,
-            candidate.Reason,
-            candidate.HighlightSymbol,
-            candidate.MinuteLabel,
-            candidate.AudioKey,
-            candidate.AudioUrl,
-            candidate.AudioAssetId,
-            candidate.AudioQueued,
-            candidate.AudioQueueStatus,
-            candidate.AudioQueueReason,
-            candidate.Silent,
-            candidate.Text
-        });
+            await LogAsync("TV_ARENA_COMMENTARY", "visual-comment-blocked", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                visualBlockedReason
+            });
+        }
+        else
+        {
+            var entry = new TvArenaCommentaryEntry(
+                Guid.NewGuid().ToString("N"),
+                candidate.MatchId,
+                candidate.TypeKey,
+                DescribeNarrativeEventType(candidate.Type),
+                candidate.MinuteLabel,
+                candidate.Text,
+                candidate.HighlightSymbol,
+                candidate.AccentHex,
+                candidate.Priority,
+                candidate.AudioKey,
+                candidate.AudioUrl,
+                candidate.AudioAssetId,
+                candidate.AudioQueued,
+                candidate.AudioQueueStatus,
+                candidate.AudioQueueReason,
+                candidate.AudioRequest,
+                candidate.Silent,
+                DateTime.UtcNow,
+                false);
+
+            AppendArenaCommentary(entry);
+            await LogAsync("TV_ARENA_COMMENTARY", "event-created", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                candidate.MinuteLabel,
+                candidate.AudioKey,
+                candidate.AudioUrl,
+                candidate.AudioAssetId,
+                candidate.AudioQueued,
+                candidate.AudioQueueStatus,
+                candidate.AudioQueueReason,
+                candidate.Silent,
+                candidate.Text
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(tickerBlockedReason))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "ticker-blocked", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol,
+                tickerBlockedReason
+            });
+        }
 
         var audioBlockedReason = ResolveArenaNarrativeAudioBlockReason(candidate);
+        if (string.Equals(visualBlockedReason, "broadcast-overlay-active", StringComparison.Ordinal)
+            && string.IsNullOrWhiteSpace(audioBlockedReason))
+        {
+            await LogAsync("TV_ARENA_COMMENTARY", "broadcast-overlay-active-but-audio-allowed", new
+            {
+                candidate.MatchId,
+                candidate.TypeKey,
+                candidate.Reason,
+                candidate.HighlightSymbol
+            });
+        }
+
         if (!string.IsNullOrWhiteSpace(audioBlockedReason))
         {
-            await LogAsync("TV_ARENA_COMMENTARY", "audio-ignored", new
+            await LogAsync("TV_ARENA_COMMENTARY", "procedural-audio-blocked", new
             {
                 candidate.MatchId,
                 candidate.TypeKey,
@@ -5265,6 +5292,24 @@ else
         if (_isCrowdAudioMuted)
             return "broadcast-muted";
 
+        if (_isEventVisible || now < _broadcastCriticalEventUntilUtc)
+            return "critical-overlay-active";
+
+        if (now < _narrationBusyUntilUtc)
+            return "main-narration-running";
+
+        if (_lastGoalAudioAtUtc != DateTime.MinValue && now - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(5))
+            return "goal-audio-cooldown";
+
+        if (_lastProceduralPlaybackAtUtc != DateTime.MinValue && now - _lastProceduralPlaybackAtUtc < TimeSpan.FromSeconds(4))
+            return "procedural-score-audio-cooldown";
+
+        return string.Empty;
+    }
+
+    private string ResolveArenaNarrativeVisualCommentBlockReason()
+    {
+        var now = DateTime.UtcNow;
         if (_showPirateOverlay)
             return "broadcast-overlay-active";
 
@@ -5283,23 +5328,13 @@ else
         return string.Empty;
     }
 
-    private string ResolveArenaNarrativeCreationBlockReason()
+    private string ResolveArenaNarrativeTickerBlockReason()
     {
-        var now = DateTime.UtcNow;
         if (_showPirateOverlay)
             return "broadcast-overlay-active";
 
-        if (_isEventVisible || now < _broadcastCriticalEventUntilUtc)
+        if (_isEventVisible || DateTime.UtcNow < _broadcastCriticalEventUntilUtc)
             return "critical-overlay-active";
-
-        if (now < _narrationBusyUntilUtc)
-            return "main-narration-running";
-
-        if (_lastGoalAudioAtUtc != DateTime.MinValue && now - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(5))
-            return "goal-audio-cooldown";
-
-        if (_lastProceduralPlaybackAtUtc != DateTime.MinValue && now - _lastProceduralPlaybackAtUtc < TimeSpan.FromSeconds(4))
-            return "procedural-score-audio-cooldown";
 
         return string.Empty;
     }
