@@ -192,7 +192,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
-            "Procedural audio asset missing; generation job enqueued. JobId={JobId} RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TextPrompt={TextPrompt} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
+            "Procedural audio asset missing; generation job enqueued. JobId={JobId} RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TextPrompt={TextPrompt} TextHash={TextHash} ContextKey={ContextKey} Intensity={Intensity} VoiceKey={VoiceKey}",
             job.Id,
             job.RawSymbol,
             job.NormalizedSymbol,
@@ -200,6 +200,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             job.EventType,
             job.Language,
             job.TextPrompt,
+            job.TextHash,
             job.ContextKey,
             job.Intensity,
             job.VoiceKey);
@@ -333,10 +334,13 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         await _db.SaveChangesAsync(ct);
 
         _logger.LogInformation(
-            "Audio generation job completed. JobId={JobId} AssetId={AssetId} RelativePath={RelativePath} WorkerId={WorkerId}",
+            "Audio generation job completed. JobId={JobId} AssetId={AssetId} RelativePath={RelativePath} AudioUrl={AudioUrl} TextPrompt={TextPrompt} TextHash={TextHash} WorkerId={WorkerId}",
             job.Id,
             asset.Id,
             asset.RelativePath,
+            asset.AudioUrl,
+            asset.TextPrompt,
+            asset.TextHash,
             request.WorkerId);
 
         return asset;

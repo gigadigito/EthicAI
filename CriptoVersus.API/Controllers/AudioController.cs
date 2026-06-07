@@ -69,6 +69,7 @@ public sealed class AudioController : ControllerBase
                 Found = true,
                 AudioUrl = resolved.Asset.AudioUrl,
                 AssetId = resolved.Asset.Id,
+                TextPrompt = resolved.Asset.TextPrompt,
                 FallbackUsed = resolved.FallbackUsed,
                 Queued = queueResult?.Queued ?? false,
                 ResolvedLanguage = resolved.ResolvedLanguage,
@@ -115,6 +116,7 @@ public sealed class AudioController : ControllerBase
         {
             Found = false,
             AudioUrl = null,
+            TextPrompt = request.TextPrompt,
             Queued = queueResultWhenMissing.Queued,
             QueueStatus = queueResultWhenMissing.Status,
             QueueReason = queueResultWhenMissing.Reason

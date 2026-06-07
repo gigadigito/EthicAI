@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <Compile Remove="MatchMetricSnapshotsEndpointTests.cs" />
+    <Compile Remove="ApiTestStubs.cs" />
   </ItemGroup>
 
   <ItemGroup>

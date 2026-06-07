@@ -39,10 +39,12 @@ public sealed class AudioNarrativeResolverService : IAudioNarrativeResolverServi
             currencyNames.CurrencyName,
             currencyNames.CoinProfileName);
 
-        var textPrompt = ProceduralNarrativeText.BuildTextPrompt(
-            request.EventType,
-            request.Language,
-            teamName);
+        var textPrompt = string.IsNullOrWhiteSpace(request.TextPrompt)
+            ? ProceduralNarrativeText.BuildTextPrompt(
+                request.EventType,
+                request.Language,
+                teamName)
+            : request.TextPrompt!.Trim();
 
         var normalized = AudioRequestNormalizer.Normalize(new AudioResolveRequest
         {
@@ -61,13 +63,15 @@ public sealed class AudioNarrativeResolverService : IAudioNarrativeResolverServi
         });
 
         _logger.LogInformation(
-            "Narrative audio resolved. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} TextPrompt={TextPrompt}",
+            "Narrative audio resolved. RawSymbol={RawSymbol} NormalizedSymbol={NormalizedSymbol} TeamName={TeamName} EventType={EventType} Language={Language} RequestedTextPrompt={RequestedTextPrompt} FinalTextPrompt={TextPrompt} PromptSource={PromptSource}",
             normalized.RawSymbol,
             normalized.NormalizedSymbol,
             normalized.TeamName,
             normalized.EventType,
             normalized.Language,
-            normalized.TextPrompt);
+            request.TextPrompt,
+            normalized.TextPrompt,
+            string.IsNullOrWhiteSpace(request.TextPrompt) ? "event-template" : "explicit-request");
 
         return normalized;
     }

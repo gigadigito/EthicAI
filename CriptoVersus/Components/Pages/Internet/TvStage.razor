@@ -5105,7 +5105,9 @@ else
                 eventType = candidate.AudioRequest.EventType,
                 audioKey = candidate.AudioKey,
                 candidate.TypeKey,
+                candidate.Text,
                 candidate.HighlightSymbol,
+                requestTextPrompt = candidate.AudioRequest.TextPrompt,
                 candidate.AudioRequest.ContextKey,
                 candidate.AudioRequest.Intensity
             });
@@ -5132,10 +5134,16 @@ else
                 candidate.TypeKey,
                 candidate.Reason,
                 candidate.HighlightSymbol,
+                displayedText = candidate.Text,
+                requestedTextPrompt = candidate.AudioRequest.TextPrompt,
                 requestedEventType = candidate.AudioRequest.EventType,
                 candidate.AudioRequest.ContextKey,
                 candidate.AudioRequest.Intensity,
                 found = response?.Found ?? false,
+                response?.TextPrompt,
+                response?.TextHash,
+                response?.RelativePath,
+                response?.NormalizedText,
                 response?.AudioUrl,
                 response?.AssetId,
                 queued = response?.Queued ?? false,
@@ -5341,7 +5349,7 @@ else
                     TimeSpan.FromMilliseconds(150),
                     resolvedCommentary.Silent,
                     resolvedCommentary.Id,
-                    "entry-click"), forceQueue: true);
+                    "entry-click"));
 
                 resolvedCommentary = UpdateArenaCommentaryAudioState(
                     resolvedCommentary.Id,
@@ -10270,6 +10278,7 @@ else
     }
 
     .tv-ai-commentary {
+        height:180px;
         margin-top: 16px;
         padding: 16px 18px;
         border-radius: 22px;
@@ -10339,7 +10348,7 @@ else
         --commentary-accent: #53c8ff;
         display: grid;
         gap: 8px;
-        min-height: 176px;
+        min-height: 120px;
         align-content: start;
         padding: 12px 14px;
         border-radius: 18px;
@@ -12224,7 +12233,7 @@ else
         max-width: 100%;
         overflow: hidden;
         height: 100%;
-        min-height: 620px;
+        min-height: 800px;
     }
 
     .tv-telemetry-cube {

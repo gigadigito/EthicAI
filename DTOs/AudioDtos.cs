@@ -21,6 +21,7 @@ public sealed class AudioResolveResponse
     public bool Found { get; set; }
     public string? AudioUrl { get; set; }
     public long? AssetId { get; set; }
+    public string? TextPrompt { get; set; }
     public bool FallbackUsed { get; set; }
     public bool Queued { get; set; }
     public string? ResolvedLanguage { get; set; }

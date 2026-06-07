@@ -5,6 +5,7 @@ using CriptoVersus.API.Services;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -134,15 +135,15 @@ public sealed class MatchTimingNormalizationTests
         db.SaveChanges();
     }
 
-    private sealed class StubMatchScoreRebuildService : IMatchScoreRebuildService
+    private sealed class StubMatchScoreRebuildService : global::CriptoVersus.API.Services.IMatchScoreRebuildService
     {
-        public Task<MatchScoreRebuildResult> RebuildAsync(int matchId, CancellationToken ct)
+        public Task<global::CriptoVersus.API.Services.MatchScoreRebuildResult> RebuildAsync(int matchId, CancellationToken ct)
             => throw new NotSupportedException();
     }
 
-    private sealed class StubArenaSentimentService : IArenaSentimentService
+    private sealed class StubArenaSentimentService : global::BLL.ArenaSentiment.IArenaSentimentService
     {
-        public Task<ArenaPressureGoalResult> CalculateArenaPressureGoalAsync(int matchId, CancellationToken ct = default)
+        public Task<global::BLL.ArenaSentiment.ArenaPressureGoalResult> CalculateArenaPressureGoalAsync(int matchId, CancellationToken ct = default)
             => throw new NotSupportedException();
 
         public Task<ArenaSentimentDto> GetArenaSentimentAsync(string symbol, CancellationToken ct = default)
@@ -182,7 +183,7 @@ public sealed class MatchTimingNormalizationTests
             => throw new NotSupportedException();
     }
 
-    private sealed class NullDashboardHubContext : IHubContext<DashboardHub>
+    private sealed class NullDashboardHubContext : IHubContext<global::CriptoVersus.API.Hubs.DashboardHub>
     {
         public IHubClients Clients { get; } = new NullHubClients();
         public IGroupManager Groups { get; } = new NullGroupManager();
