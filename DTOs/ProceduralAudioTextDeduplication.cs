@@ -24,12 +24,15 @@ public static partial class ProceduralAudioTextDeduplication
         return normalized;
     }
 
-    public static string ComputeTextHash(string? text, string? culture, string? voiceId)
+    public static string ComputeTextHash(string? text, string? culture, string? voiceId, string? uniquenessSuffix = null)
     {
         var normalizedText = NormalizeNarrationText(text);
         var normalizedCulture = ProceduralAudioNormalization.NormalizeLanguage(culture);
         var normalizedVoice = ProceduralAudioNormalization.NormalizeToken(voiceId) ?? "default";
-        var payload = $"{normalizedText}|{normalizedCulture}|{normalizedVoice}";
+        var normalizedSuffix = string.IsNullOrWhiteSpace(uniquenessSuffix)
+            ? string.Empty
+            : NormalizeNarrationText(uniquenessSuffix);
+        var payload = $"{normalizedText}|{normalizedCulture}|{normalizedVoice}|{normalizedSuffix}";
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }

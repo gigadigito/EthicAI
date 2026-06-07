@@ -58,6 +58,8 @@ public static class ProceduralNarrativeText
             ("comeback", "en-US") => $"{safeTeamName} turns the match around and leaves the entire arena stunned!",
             ("equalizer", "pt-BR") => $"{safeTeamName} busca o empate e muda a temperatura da CriptoVersus Arena!",
             ("equalizer", "en-US") => $"{safeTeamName} finds the equalizer and changes the temperature of the arena!",
+            ("score_event", "pt-BR") => $"{safeTeamName} mexe no placar e altera a energia da CriptoVersus Arena!",
+            ("score_event", "en-US") => $"{safeTeamName} changes the scoreboard and shifts the energy inside the CriptoVersus Arena!",
             ("near_goal", "pt-BR") => $"{safeTeamName} passa muito perto do gol e levanta a arena!",
             ("near_goal", "en-US") => $"{safeTeamName} comes inches away from scoring and lifts the whole arena!",
             ("underdog_goal", "pt-BR") => $"{safeTeamName} surpreende todo mundo e marca um gol improvável!",

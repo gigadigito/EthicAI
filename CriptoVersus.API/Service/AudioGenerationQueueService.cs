@@ -94,7 +94,11 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(textPrompt);
         var textHash = string.IsNullOrWhiteSpace(normalizedText)
             ? null
-            : ProceduralAudioTextDeduplication.ComputeTextHash(textPrompt, normalized.Language, resolvedVoiceKey);
+            : ProceduralAudioTextDeduplication.ComputeTextHash(
+                textPrompt,
+                normalized.Language,
+                resolvedVoiceKey,
+                ResolveTextHashUniquenessSuffix(normalized));
 
         if (!request.ForceQueue && !string.IsNullOrWhiteSpace(textHash))
         {
@@ -112,7 +116,11 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             var existingAsset = existingAssetCandidates.FirstOrDefault(x =>
                 _storage.StoredAudioExists(x.RelativePath)
                 && string.Equals(
-                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(
+                        x.TextPrompt,
+                        x.Language,
+                        x.VoiceKey,
+                        ResolveTextHashUniquenessSuffix(x.EventType, x.ContextKey)),
                     textHash,
                     StringComparison.Ordinal));
 
@@ -267,7 +275,11 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
             var existingAsset = existingAssetCandidates.FirstOrDefault(x =>
                 _storage.StoredAudioExists(x.RelativePath)
                 && string.Equals(
-                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(
+                        x.TextPrompt,
+                        x.Language,
+                        x.VoiceKey,
+                        ResolveTextHashUniquenessSuffix(x.EventType, x.ContextKey)),
                     job.TextHash,
                     StringComparison.Ordinal));
 
@@ -420,7 +432,11 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(textPrompt);
         var textHash = string.IsNullOrWhiteSpace(normalizedText)
             ? null
-            : ProceduralAudioTextDeduplication.ComputeTextHash(textPrompt, normalized.Language, resolvedVoiceKey);
+            : ProceduralAudioTextDeduplication.ComputeTextHash(
+                textPrompt,
+                normalized.Language,
+                resolvedVoiceKey,
+                ResolveTextHashUniquenessSuffix(normalized));
 
         var nowUtc = DateTime.UtcNow;
         var job = new AudioGenerationQueueItem
@@ -529,7 +545,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
     }
 
     private static string BuildTargetRelativePath(AudioResolveRequest request)
-        => $"audio/{request.Language}/{request.EventType}/{(string.IsNullOrWhiteSpace(request.TeamSymbol) ? "generic" : request.TeamSymbol)}";
+        => $"audio/{request.Language}/{request.EventType}/{ResolveStorageSymbolSegment(request)}";
 
     private static string BuildTargetFileName(AudioResolveRequest request, string? textHash, string? prefix = null)
     {
@@ -544,6 +560,29 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
 
         return $"{string.Join("_", parts.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim().ToLowerInvariant()))}.mp3";
     }
+
+    private static string ResolveStorageSymbolSegment(AudioResolveRequest request)
+    {
+        if (IsScoreSensitiveRequest(request))
+            return "shared";
+
+        return string.IsNullOrWhiteSpace(request.TeamSymbol) ? "generic" : request.TeamSymbol!;
+    }
+
+    private static bool IsScoreSensitiveRequest(AudioResolveRequest request)
+        => string.Equals(request.EventType, "score_event", StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(request.ContextKey)
+                && request.ContextKey.StartsWith("scoreboard_", StringComparison.OrdinalIgnoreCase));
+
+    private static string? ResolveTextHashUniquenessSuffix(AudioResolveRequest request)
+        => ResolveTextHashUniquenessSuffix(request.EventType, request.ContextKey);
+
+    private static string? ResolveTextHashUniquenessSuffix(string? eventType, string? contextKey)
+        => string.Equals(eventType, "score_event", StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(contextKey)
+                && contextKey.StartsWith("scoreboard_", StringComparison.OrdinalIgnoreCase))
+            ? $"{eventType}|{contextKey}"
+            : null;
 
     private static string BuildTestTargetRelativePath()
         => "audio/test";

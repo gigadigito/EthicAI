@@ -67,7 +67,8 @@ export function ensureTvAudioManager() {
         },
         ambientDuckRestoreTimer: null,
         culture: getMediaCulture(),
-        resolvedAudioUrls: new Map()
+        resolvedAudioUrls: new Map(),
+        backgroundAudioConfig: null
     };
 
     return tvAudioManagerState;

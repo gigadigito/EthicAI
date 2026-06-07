@@ -59,8 +59,8 @@ function testBuildsStableFallbackCandidates() {
         }),
         [
             "/media/audio/pt/tv/goal-sting.mp3",
-            "/media/audio/en/tv/goal-sting.mp3",
-            "/audio/tv/goal-sting.mp3"
+            "/audio/tv/goal-sting.mp3",
+            "/media/audio/en/tv/goal-sting.mp3"
         ]);
 }
 

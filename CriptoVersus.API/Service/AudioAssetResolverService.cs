@@ -79,7 +79,11 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
         var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(normalized.TextPrompt);
         var textHash = string.IsNullOrWhiteSpace(normalizedText)
             ? null
-            : ProceduralAudioTextDeduplication.ComputeTextHash(normalized.TextPrompt, normalized.Language, resolvedVoiceKey);
+            : ProceduralAudioTextDeduplication.ComputeTextHash(
+                normalized.TextPrompt,
+                normalized.Language,
+                resolvedVoiceKey,
+                ResolveTextHashUniquenessSuffix(normalized));
 
         if (!string.IsNullOrWhiteSpace(textHash))
         {
@@ -97,7 +101,11 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
             var hashHit = hashCandidates.FirstOrDefault(x =>
                 _storage.StoredAudioExists(x.RelativePath)
                 && string.Equals(
-                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(x.TextPrompt, x.Language, x.VoiceKey),
+                    x.TextHash ?? ProceduralAudioTextDeduplication.ComputeTextHash(
+                        x.TextPrompt,
+                        x.Language,
+                        x.VoiceKey,
+                        ResolveTextHashUniquenessSuffix(x.EventType, x.ContextKey)),
                     textHash,
                     StringComparison.Ordinal));
             if (hashHit is not null)
@@ -342,6 +350,16 @@ public sealed class AudioAssetResolverService : IAudioAssetResolverService
     }
 
     private sealed record EvaluatedAudioAsset(AudioAsset Asset, bool IsMatch, bool FallbackUsed, int SpecificityScore, string Reason);
+
+    private static string? ResolveTextHashUniquenessSuffix(AudioResolveRequest request)
+        => ResolveTextHashUniquenessSuffix(request.EventType, request.ContextKey);
+
+    private static string? ResolveTextHashUniquenessSuffix(string? eventType, string? contextKey)
+        => string.Equals(eventType, "score_event", StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrWhiteSpace(contextKey)
+                && contextKey.StartsWith("scoreboard_", StringComparison.OrdinalIgnoreCase))
+            ? $"{eventType}|{contextKey}"
+            : null;
 }
 
 public sealed record AudioAssetResolveResult(AudioAsset Asset, bool FallbackUsed, string ResolvedLanguage, int SpecificityScore);

@@ -65,6 +65,9 @@ import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-crossover-ma
 import {
     tvAudioMap,
     ambientTracks,
+    chooseNextBackgroundTrack,
+    defaultBackgroundAudioConfig,
+    normalizeBackgroundAudioConfig,
     tvAudioPriority,
     tvAudioCooldownDefaults,
     isTvAudioDebugEnabled,
@@ -85,7 +88,7 @@ import {
     setTvMediaCulture as setTvMediaCultureCore,
     getTvMediaCulture
 } from "./tvAudioRuntime.mjs?v=20260603-crossover-marker-1";
-import { resolveLocalizedAudioPath } from "./mediaLocalization.mjs?v=20260603-crossover-marker-1";
+import { normalizeMediaCulture, resolveFirstAvailableMediaPath, resolveLocalizedAudioPath } from "./mediaLocalization.mjs?v=20260603-crossover-marker-1";
 import {
     ensureTvAudioTelemetry,
     setTvAudioTelemetryEnabled,
@@ -631,6 +634,27 @@ function resetAmbientState({ destroyed }) {
     manager.ambientStarted = false;
 }
 
+function normalizeBackgroundAudioSettings(config) {
+    return normalizeBackgroundAudioConfig(config ?? defaultBackgroundAudioConfig);
+}
+
+function applyBackgroundAudioSettings(config) {
+    const manager = ensureTvAudioManager();
+    const normalized = normalizeBackgroundAudioSettings(config);
+    manager.backgroundAudioConfig = normalized;
+    manager.ambientTargetVolume = clamp(Number(normalized.volume) || manager.ambientTargetVolume || 0.42, 0, 1);
+    return normalized;
+}
+
+function getBackgroundAudioSettings() {
+    const manager = ensureTvAudioManager();
+    if (!manager.backgroundAudioConfig) {
+        manager.backgroundAudioConfig = normalizeBackgroundAudioSettings(defaultBackgroundAudioConfig);
+    }
+
+    return manager.backgroundAudioConfig;
+}
+
 function createPlaybackAudio(url, channel, volume, muted) {
     const audio = new Audio(url);
     audio.preload = "auto";
@@ -925,14 +949,92 @@ function setTvAudioSettings(volume, muted) {
 }
 
 function getAmbientPlaylist() {
-    return ambientTracks.filter((track) =>
+    const config = getBackgroundAudioSettings();
+    if (!config.enabled || !config.crowdEnabled) {
+        return [];
+    }
+
+    const configuredTracks = Array.isArray(config.tracks) ? config.tracks.filter(Boolean) : [];
+    const source = configuredTracks.length > 0 ? configuredTracks : ambientTracks;
+    return source.filter((track) =>
         (typeof track?.src === "string" && track.src.trim().length > 0)
+        || (typeof track?.rawPath === "string" && track.rawPath.trim().length > 0)
         || (typeof track?.fileName === "string" && track.fileName.trim().length > 0));
+}
+
+function normalizeConfiguredBackgroundTrackPath(rawPath) {
+    if (typeof rawPath !== "string") {
+        return null;
+    }
+
+    const trimmed = rawPath.trim();
+    if (trimmed.length === 0) {
+        return null;
+    }
+
+    if (/^(https?:)?\/\//i.test(trimmed) || /^(blob:|data:)/i.test(trimmed)) {
+        return trimmed;
+    }
+
+    return `/${trimmed.replace(/\\/g, "/").replace(/^\/+/, "")}`;
+}
+
+function buildConfiguredBackgroundTrackCandidates(track, backgroundConfig) {
+    const normalizedPath = normalizeConfiguredBackgroundTrackPath(track?.rawPath ?? track?.src ?? null);
+    if (!normalizedPath) {
+        return [];
+    }
+
+    const preferredCulture = normalizeMediaCulture(getTvMediaCulture());
+    const fallbackCulture = normalizeMediaCulture(backgroundConfig?.fallbackLocale ?? "en-US");
+    const cultureCandidates = [...new Set([preferredCulture, fallbackCulture, "en", "pt"])];
+
+    const candidates = [];
+    const push = (value) => {
+        if (typeof value === "string" && value.trim().length > 0) {
+            candidates.push(value);
+        }
+    };
+
+    if (/^(https?:)?\/\//i.test(normalizedPath) || /^(blob:|data:)/i.test(normalizedPath)) {
+        push(normalizedPath);
+        return [...new Set(candidates)];
+    }
+
+    if (/^\/media\/audio\/[^/]+\//i.test(normalizedPath)) {
+        cultureCandidates.forEach((culture) => {
+            push(normalizedPath.replace(/^\/media\/audio\/[^/]+\//i, `/media/audio/${culture}/`));
+        });
+        return [...new Set(candidates)];
+    }
+
+    if (/^\/media\/[^/]+\//i.test(normalizedPath)) {
+        const remainder = normalizedPath.replace(/^\/media\/[^/]+\//i, "");
+        cultureCandidates.forEach((culture) => {
+            push(`/media/audio/${culture}/${remainder.replace(/^\/+/, "")}`);
+        });
+        return [...new Set(candidates)];
+    }
+
+    push(normalizedPath);
+    return [...new Set(candidates)];
 }
 
 async function ensureAmbientTrackUrl(track) {
     if (!track) {
         return null;
+    }
+
+    const backgroundConfig = getBackgroundAudioSettings();
+    if (track.sourceType === "configured" || track.rawPath) {
+        const candidates = buildConfiguredBackgroundTrackCandidates(track, backgroundConfig);
+        const resolved = await resolveFirstAvailableMediaPath(candidates, {
+            mediaType: "audio",
+            logLabel: `background:${track.label ?? track.key ?? "configured"}`
+        });
+        track.resolvedSrc = resolved ?? candidates[0] ?? null;
+        track.src = track.resolvedSrc;
+        return track.resolvedSrc;
     }
 
     if (!track.fileName || !track.context) {
@@ -1050,6 +1152,42 @@ function createAmbientAudio(track, src) {
     return audio;
 }
 
+function handleAmbientTrackEnded(audio, track, reason = "ended") {
+    const manager = ensureTvAudioManager();
+    const ambient = manager.ambient;
+    if (ambient.currentAudio !== audio) {
+        return;
+    }
+
+    pushAudioDebugLog("background-track-ended", "info", {
+        reason,
+        src: track?.src ?? track?.resolvedSrc ?? null,
+        label: track?.label ?? null
+    });
+    logAmbientDebug("track ended", {
+        reason,
+        src: track?.src ?? track?.resolvedSrc ?? null,
+        label: track?.label ?? null
+    });
+
+    if (!getBackgroundAudioSettings().rotateOnEnded) {
+        manager.ambientStarted = false;
+        ambient.debugStatus = "stopped";
+        syncBackgroundTelemetryState({ status: "stopped" });
+        pushAudioDebugLog("background-rotation-blocked", "info", {
+            reason: "rotateOnEnded-disabled",
+            src: track?.src ?? track?.resolvedSrc ?? null
+        });
+        return;
+    }
+
+    pushAudioDebugLog("background-rotating", "info", {
+        reason,
+        from: track?.src ?? track?.resolvedSrc ?? null
+    });
+    transitionAmbientTrack(reason).catch(() => { });
+}
+
 async function prepareInitialAmbientAudio(hostAudio) {
     const manager = ensureTvAudioManager();
     const ambient = manager.ambient;
@@ -1089,11 +1227,7 @@ async function prepareInitialAmbientAudio(hostAudio) {
     ambient.currentIndex = selection.index;
     ambient.lastTrackSrc = src;
     hostAudio.onended = () => {
-        if (ensureTvAudioManager().ambient.currentAudio !== hostAudio) {
-            return;
-        }
-
-        transitionAmbientTrack("ended").catch(() => { });
+        handleAmbientTrackEnded(hostAudio, selection.track, "ended");
     };
 
     await ensureAmbientPreloaded(src);
@@ -1116,7 +1250,7 @@ function markAmbientTrackFailed(track, reason) {
     ambient.debugError = reason;
     ambient.debugStatus = /allow|gesture|interact/i.test(reason) ? "blocked" : "failed";
     syncBackgroundTelemetryState();
-    pushAudioDebugLog("background-failed", "warn", { src: track.src, reason });
+    pushAudioDebugLog("background-track-error", "warn", { src: track.src, reason, label: track.label ?? null });
 
     if (throttleKey("TV_AMBIENT", `fail:${track.src}:${reason}`, 5000)) {
         logAmbientDebug("track failed", { src: track.src, reason });
@@ -1134,22 +1268,13 @@ function chooseNextAmbientTrack(excludeSrc = null) {
         return null;
     }
 
-    const safeExclude = excludeSrc ?? ambient.lastTrackSrc;
-    for (let step = 1; step <= playlist.length; step += 1) {
-        const candidateIndex = (Math.max(ambient.currentIndex, -1) + step) % playlist.length;
-        const candidate = playlist[candidateIndex];
-        if (!candidate) {
-            continue;
-        }
-
-        if (playlist.length > 1 && candidate.src === safeExclude) {
-            continue;
-        }
-
-        return { track: candidate, index: candidateIndex };
-    }
-
-    return { track: playlist[0], index: 0 };
+    return chooseNextBackgroundTrack(playlist, {
+        currentIndex: ambient.currentIndex,
+        lastTrackSrc: ambient.lastTrackSrc,
+        excludeSrc,
+        shuffle: getBackgroundAudioSettings().shuffle,
+        avoidImmediateRepeat: getBackgroundAudioSettings().avoidImmediateRepeat
+    });
 }
 
 async function ensureAmbientPreloaded(excludeSrc = null) {
@@ -1217,7 +1342,7 @@ async function startAmbientAudioInstance(audio, track, reason) {
         ambient.debugStatus = "playing";
         ambient.debugError = null;
         syncBackgroundTelemetryState();
-        pushAudioDebugLog("background-playing", "info", { src: track.src, reason });
+        pushAudioDebugLog("background-audio-started", "info", { src: track.src, reason, label: track.label ?? null });
         logAmbientDebug("play ok", { src: track.src, reason });
         return true;
     } catch (error) {
@@ -1280,6 +1405,12 @@ async function transitionAmbientTrack(reason = "rotation") {
         ambient.nextTrack = null;
         ambient.nextIndex = -1;
         manager.ambientStarted = true;
+        pushAudioDebugLog("background-track-selected", "info", {
+            reason,
+            from: previousTrack?.src ?? null,
+            to: nextTrack?.src ?? nextTrack?.resolvedSrc ?? null,
+            shuffle: getBackgroundAudioSettings().shuffle
+        });
 
         if (nextGain) {
             fadeGainTo(nextGain, manager.muted ? 0 : manager.ambientTargetVolume, ambient.transitionMs);
@@ -1288,11 +1419,7 @@ async function transitionAmbientTrack(reason = "rotation") {
         }
 
         nextAudio.onended = () => {
-            if (ensureTvAudioManager().ambient.currentAudio !== nextAudio) {
-                return;
-            }
-
-            transitionAmbientTrack("ended").catch(() => { });
+            handleAmbientTrackEnded(nextAudio, nextTrack, "ended");
         };
 
         if (previousAudio && previousAudio !== nextAudio) {
@@ -1327,6 +1454,18 @@ async function transitionAmbientTrack(reason = "rotation") {
 async function resumeAmbientPlayback(reason = "resume") {
     const manager = ensureTvAudioManager();
     const ambient = manager.ambient;
+    const backgroundConfig = getBackgroundAudioSettings();
+    if (!backgroundConfig.enabled || !backgroundConfig.crowdEnabled) {
+        if (throttleKey("TV_AMBIENT", "blocked-by-config", 4000)) {
+            pushAudioDebugLog("background-blocked-config", "info", {
+                enabled: backgroundConfig.enabled,
+                crowdEnabled: backgroundConfig.crowdEnabled
+            });
+            logAmbientDebug("blocked by config", backgroundConfig);
+        }
+        return false;
+    }
+
     if (ambient.destroyed || manager.muted) {
         return false;
     }
@@ -4003,10 +4142,28 @@ export async function updateTelemetryCharts(payload) {
     }
 }
 
-async function initBroadcastAudioLegacy(elementId, volume, muted) {
+function normalizeBackgroundAudioInteropArgs(configOrVolume, muted) {
+    const manager = ensureTvAudioManager();
+    const normalized = typeof configOrVolume === "object" && configOrVolume !== null && !Array.isArray(configOrVolume)
+        ? applyBackgroundAudioSettings(configOrVolume)
+        : applyBackgroundAudioSettings({
+            ...getBackgroundAudioSettings(),
+            volume: Number.isFinite(Number(configOrVolume))
+                ? Number(configOrVolume)
+                : manager.ambientTargetVolume
+        });
+
+    return {
+        config: normalized,
+        muted: Boolean(muted)
+    };
+}
+
+async function initBroadcastAudioLegacy(elementId, configOrVolume, muted) {
     const audio = document.getElementById(elementId);
     const manager = ensureTvAudioManager();
-    const safeVolume = clamp(Number(volume) || manager.volume, 0, 1);
+    const { config, muted: safeMuted } = normalizeBackgroundAudioInteropArgs(configOrVolume, muted);
+    const safeVolume = clamp(Number(config.volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
     const context = getTvAudioContext();
     manager.initCount += 1;
     consoleAudio("AUDIO_INIT", {
@@ -4014,15 +4171,18 @@ async function initBroadcastAudioLegacy(elementId, volume, muted) {
         elementId,
         hasElement: Boolean(audio),
         contextState: context?.state ?? "none",
-        muted: Boolean(muted),
-        volume: safeVolume
+        muted: safeMuted,
+        volume: safeVolume,
+        backgroundEnabled: config.enabled,
+        crowdEnabled: config.crowdEnabled,
+        configuredTracks: config.tracks.length
     });
 
     if (!audio) {
         manager.ambientElementId = elementId;
         manager.ambientTargetVolume = safeVolume;
         manager.ambient.hostElementId = elementId;
-        setTvAudioSettings(safeVolume, muted);
+        setTvAudioSettings(safeVolume, safeMuted);
         return getTvAudioState();
     }
 
@@ -4034,30 +4194,38 @@ async function initBroadcastAudioLegacy(elementId, volume, muted) {
     manager.ambientTargetVolume = safeVolume;
     manager.ambient.hostElementId = elementId;
     manager.ambient.destroyed = false;
-    if (!manager.ambient.currentAudio) {
-            await prepareInitialAmbientAudio(audio);
+    if (!config.enabled || !config.crowdEnabled) {
+        pushAudioDebugLog("background-blocked-config", "info", {
+            enabled: config.enabled,
+            crowdEnabled: config.crowdEnabled
+        });
     } else {
-        prepareAmbientHostElement(audio);
+        if (!manager.ambient.currentAudio) {
+            await prepareInitialAmbientAudio(audio);
+        } else {
+            prepareAmbientHostElement(audio);
+        }
     }
-    setTvAudioSettings(safeVolume, muted);
+    setTvAudioSettings(safeVolume, safeMuted);
 
-    if (!Boolean(muted)) {
+    if (!safeMuted) {
         await resumeAmbientPlayback("init");
     }
 
     return getTvAudioState();
 }
 
-function setBroadcastAudioMutedLegacy(elementId, muted, volume) {
+function setBroadcastAudioMutedLegacy(elementId, muted, configOrVolume) {
     const manager = ensureTvAudioManager();
-    const safeVolume = clamp(Number(volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
+    const { config, muted: safeMuted } = normalizeBackgroundAudioInteropArgs(configOrVolume, muted);
+    const safeVolume = clamp(Number(config.volume) || manager.ambientTargetVolume || manager.volume, 0, 1);
 
     manager.ambientElementId = elementId;
     manager.ambient.hostElementId = elementId;
     manager.ambientTargetVolume = safeVolume;
-    setTvAudioSettings(safeVolume, muted);
+    setTvAudioSettings(safeVolume, safeMuted);
 
-    if (Boolean(muted)) {
+    if (safeMuted) {
         logAmbientDebug("muted", { volume: safeVolume });
         return;
     }
@@ -4086,19 +4254,24 @@ function playAudioCueLegacy(elementId) {
     audio.play().catch(() => { });
 }
 
-function initTvAudioManagerLegacy(volume, muted) {
+function initTvAudioManagerLegacy(configOrVolume, muted) {
     const manager = ensureTvAudioManager();
-    if (typeof volume === "number") {
-        manager.volume = Math.min(1, Math.max(0, volume));
+    const { config, muted: safeMuted } = normalizeBackgroundAudioInteropArgs(configOrVolume, muted);
+    if (typeof configOrVolume === "number") {
+        manager.volume = Math.min(1, Math.max(0, configOrVolume));
     }
-    manager.muted = Boolean(muted);
+    manager.muted = safeMuted;
+    manager.ambientTargetVolume = config.volume;
     ensureAudioUnlockListeners();
     attachAmbientLifecycleListeners();
     preloadAllTvAudio().catch(() => { });
     consoleAudio("AUDIO_INIT", {
         volume: manager.volume,
         muted: manager.muted,
-        preloadCount: Object.keys(tvAudioMap).length
+        preloadCount: Object.keys(tvAudioMap).length,
+        backgroundEnabled: config.enabled,
+        crowdEnabled: config.crowdEnabled,
+        configuredTracks: config.tracks.length
     });
     return diagnoseTvAudio();
 }
@@ -4111,10 +4284,10 @@ async function playTvAudioCueLegacy(key, options) {
     return playTvAudio(key, options);
 }
 
-export async function unlockBroadcastAudio(elementId, volume, muted) {
+export async function unlockBroadcastAudio(elementId, configOrVolume, muted) {
     const unlocked = await unlockTvAudioContext("manual-button");
     if (elementId) {
-        await initBroadcastAudio(elementId, volume, muted);
+        await initBroadcastAudio(elementId, configOrVolume, muted);
     }
 
     const state = getTvAudioState();

@@ -86,6 +86,30 @@ async function probeMediaCandidate(url) {
     }
 }
 
+export async function resolveFirstAvailableMediaPath(candidates, options = {}) {
+    const list = Array.isArray(candidates)
+        ? [...new Set(candidates.filter((candidate) => typeof candidate === "string" && candidate.trim().length > 0))]
+        : [];
+
+    for (const candidate of list) {
+        if (await probeMediaCandidate(candidate)) {
+            logMediaInfo("candidate asset resolved", {
+                mediaType: options.mediaType ?? "unknown",
+                label: options.logLabel ?? null,
+                resolvedPath: candidate
+            });
+            return candidate;
+        }
+    }
+
+    logMediaWarning("candidate assets not found", {
+        mediaType: options.mediaType ?? "unknown",
+        label: options.logLabel ?? null,
+        candidates: list
+    });
+    return null;
+}
+
 export async function resolveLocalizedMediaPath({
     mediaType,
     fileName,

@@ -46,6 +46,151 @@ export const ambientTracks = [
     }
 ];
 
+export const defaultBackgroundAudioConfig = {
+    enabled: true,
+    crowdEnabled: true,
+    volume: 0.42,
+    shuffle: false,
+    rotateOnEnded: true,
+    avoidImmediateRepeat: true,
+    fallbackLocale: "en-US",
+    tracks: []
+};
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function toTrackLabel(rawPath, fallbackLabel) {
+    if (typeof rawPath !== "string" || rawPath.trim().length === 0) {
+        return fallbackLabel;
+    }
+
+    const normalized = rawPath.replace(/\\/g, "/").split("/").filter(Boolean);
+    return normalized[normalized.length - 1] ?? fallbackLabel;
+}
+
+export function normalizeBackgroundAudioConfig(config = {}) {
+    const rawTracks = Array.isArray(config?.tracks)
+        ? config.tracks
+        : Array.isArray(config?.crowdTracks)
+            ? config.crowdTracks
+            : [];
+
+    const tracks = rawTracks
+        .map((track, index) => {
+            if (typeof track === "string") {
+                const trimmed = track.trim();
+                if (trimmed.length === 0) {
+                    return null;
+                }
+
+                return {
+                    key: `configured-${index}`,
+                    label: toTrackLabel(trimmed, `Track ${index + 1}`),
+                    rawPath: trimmed,
+                    src: null,
+                    sourceType: "configured"
+                };
+            }
+
+            if (track && typeof track === "object") {
+                const rawPath = typeof track.rawPath === "string" && track.rawPath.trim().length > 0
+                    ? track.rawPath.trim()
+                    : typeof track.src === "string" && track.src.trim().length > 0
+                        ? track.src.trim()
+                        : null;
+                if (!rawPath) {
+                    return null;
+                }
+
+                return {
+                    ...track,
+                    key: track.key ?? `configured-${index}`,
+                    label: track.label ?? toTrackLabel(rawPath, `Track ${index + 1}`),
+                    rawPath,
+                    src: track.src ?? null,
+                    sourceType: track.sourceType ?? "configured"
+                };
+            }
+
+            return null;
+        })
+        .filter(Boolean);
+
+    return {
+        enabled: config?.enabled ?? defaultBackgroundAudioConfig.enabled,
+        crowdEnabled: config?.crowdEnabled ?? defaultBackgroundAudioConfig.crowdEnabled,
+        volume: clamp(Number(config?.volume ?? defaultBackgroundAudioConfig.volume) || defaultBackgroundAudioConfig.volume, 0, 1),
+        shuffle: config?.shuffle ?? defaultBackgroundAudioConfig.shuffle,
+        rotateOnEnded: config?.rotateOnEnded ?? defaultBackgroundAudioConfig.rotateOnEnded,
+        avoidImmediateRepeat: config?.avoidImmediateRepeat ?? defaultBackgroundAudioConfig.avoidImmediateRepeat,
+        fallbackLocale: typeof config?.fallbackLocale === "string" && config.fallbackLocale.trim().length > 0
+            ? config.fallbackLocale.trim()
+            : defaultBackgroundAudioConfig.fallbackLocale,
+        tracks
+    };
+}
+
+export function getBackgroundTrackIdentity(track) {
+    if (!track) {
+        return "";
+    }
+
+    return String(track.resolvedSrc ?? track.src ?? track.rawPath ?? track.fileName ?? track.key ?? "")
+        .trim()
+        .toLowerCase();
+}
+
+export function chooseNextBackgroundTrack(tracks, options = {}) {
+    const playlist = Array.isArray(tracks) ? tracks.filter(Boolean) : [];
+    if (playlist.length === 0) {
+        return null;
+    }
+
+    if (playlist.length === 1) {
+        return { track: playlist[0], index: 0 };
+    }
+
+    const currentIndex = Number.isInteger(options.currentIndex) ? options.currentIndex : -1;
+    const safeExclude = String(options.excludeSrc ?? options.lastTrackSrc ?? "").trim().toLowerCase();
+    const avoidImmediateRepeat = options.avoidImmediateRepeat !== false;
+    const shuffle = options.shuffle === true;
+    const random = typeof options.random === "function" ? options.random : Math.random;
+
+    if (shuffle) {
+        const pool = avoidImmediateRepeat && safeExclude
+            ? playlist
+                .map((track, index) => ({ track, index }))
+                .filter((entry) => getBackgroundTrackIdentity(entry.track) !== safeExclude)
+            : playlist.map((track, index) => ({ track, index }));
+
+        const effectivePool = pool.length > 0 ? pool : playlist.map((track, index) => ({ track, index }));
+        const rawPick = Number(random());
+        const normalizedPick = Number.isFinite(rawPick) ? rawPick : 0;
+        const selectedIndex = Math.min(
+            effectivePool.length - 1,
+            Math.max(0, Math.floor(normalizedPick * effectivePool.length)));
+        return effectivePool[selectedIndex];
+    }
+
+    for (let step = 1; step <= playlist.length; step += 1) {
+        const candidateIndex = (Math.max(currentIndex, -1) + step) % playlist.length;
+        const candidate = playlist[candidateIndex];
+        if (!candidate) {
+            continue;
+        }
+
+        if (avoidImmediateRepeat && getBackgroundTrackIdentity(candidate) === safeExclude) {
+            continue;
+        }
+
+        return { track: candidate, index: candidateIndex };
+    }
+
+    return { track: playlist[0], index: 0 };
+}
+
 export const tvAudioChannelMap = {
     crowdRise: "ambient",
     goal: "fx",
