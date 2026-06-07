@@ -102,6 +102,30 @@ function buildTimelineDot(sample, battleState) {
             ? `${formatBattleTime(sample.time)} - ${battleState.rightMeta.displayBase} venceu`
             : `${formatBattleTime(sample.time)} - Empate`;
     dot.setAttribute("aria-label", dot.title);
+
+    if (sample.winner === "left" || sample.winner === "right") {
+        const meta = sample.winner === "left" ? battleState.leftMeta : battleState.rightMeta;
+        const fallback = document.createElement("span");
+        fallback.className = "tv-candle-battle-card__timeline-dot-fallback";
+        fallback.textContent = fallbackLabel(meta.displayBase);
+        dot.appendChild(fallback);
+
+        if (meta.logoUrl) {
+            const image = document.createElement("img");
+            image.alt = "";
+            image.className = "tv-candle-battle-card__timeline-dot-icon";
+            image.src = meta.logoUrl;
+            image.addEventListener("load", () => {
+                fallback.style.display = "none";
+            }, { once: true });
+            image.addEventListener("error", () => {
+                image.remove();
+                fallback.style.display = "grid";
+            }, { once: true });
+            dot.appendChild(image);
+        }
+    }
+
     return dot;
 }
 
