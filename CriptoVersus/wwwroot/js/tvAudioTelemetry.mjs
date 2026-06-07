@@ -140,6 +140,8 @@ function normalizeEvent(status, event = {}) {
         language: event.language ?? null,
         audioUrl: event.audioUrl ?? null,
         audioAssetId: event.audioAssetId ?? null,
+        normalizedText: event.normalizedText ?? null,
+        textHash: event.textHash ?? null,
         audioFallbackUsed: Boolean(event.audioFallbackUsed),
         audioContextKey: event.audioContextKey ?? null,
         audioIntensity: event.audioIntensity ?? null,

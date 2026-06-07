@@ -273,6 +273,8 @@ function normalizeTelemetryPayload(payload = {}) {
         language: payload.language ?? payload.Language ?? getTvMediaCulture(),
         audioUrl: payload.audioUrl ?? payload.AudioUrl ?? null,
         audioAssetId: payload.audioAssetId ?? payload.AudioAssetId ?? null,
+        normalizedText: payload.normalizedText ?? payload.NormalizedText ?? null,
+        textHash: payload.textHash ?? payload.TextHash ?? null,
         audioFallbackUsed: Boolean(payload.audioFallbackUsed ?? payload.AudioFallbackUsed),
         audioContextKey: payload.audioContextKey ?? payload.AudioContextKey ?? null,
         audioIntensity: payload.audioIntensity ?? payload.AudioIntensity ?? null,
