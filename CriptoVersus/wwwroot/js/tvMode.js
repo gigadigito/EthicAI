@@ -3681,6 +3681,7 @@ async function ensureCandlestickChart(containerId) {
         kind: "candlestick",
         container,
         chart,
+        LightweightCharts,
         series,
         resizeObserver: null
     };
