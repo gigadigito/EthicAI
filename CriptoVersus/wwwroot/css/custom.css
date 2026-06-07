@@ -12,3 +12,138 @@
         font-size: 2rem;
         line-height: 1;
     }
+.tv-event-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: clamp(64px, 18vw, 112px) clamp(42px, 11vw, 64px) minmax(0, 1fr) auto;
+    gap: clamp(0.75rem, 2vw, 1.5rem);
+    align-items: center;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.tv-event-card__event-icon-shell,
+.tv-event-card__team-coin-shell,
+.tv-event-card__content,
+.tv-event-card__copy {
+    min-width: 0;
+}
+
+.tv-event-card__event-icon-art {
+    width: clamp(64px, 18vw, 112px);
+    height: clamp(64px, 18vw, 112px);
+}
+
+.tv-event-card__team-coin {
+    width: clamp(38px, 10vw, 58px);
+    height: clamp(38px, 10vw, 58px);
+}
+
+.tv-event-card__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow: hidden;
+}
+
+.tv-event-card__team-symbol {
+    font-size: clamp(0.68rem, 1.8vw, 0.85rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tv-event-card__copy h3 {
+    margin: 0;
+    font-size: clamp(1rem, 4.5vw, 2rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.tv-event-card__copy p {
+    margin: 0.35rem 0 0;
+    font-size: clamp(0.72rem, 2.4vw, 1rem);
+    line-height: 1.25;
+    max-width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.tv-event-card__meta {
+    justify-self: end;
+    text-align: right;
+    min-width: max-content;
+    z-index: 2;
+}
+
+.tv-event-card__timer {
+    font-size: clamp(0.75rem, 2vw, 1rem);
+}
+
+.tv-event-card__reward {
+    font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+}
+
+@media (max-width: 640px) {
+    .tv-event-card {
+        grid-template-columns: 72px 42px minmax(0, 1fr);
+        grid-template-areas:
+            "icon coin content";
+        gap: 0.75rem;
+        padding: 0.9rem;
+        min-height: 128px;
+    }
+
+    .tv-event-card__event-icon-shell {
+        grid-area: icon;
+    }
+
+    .tv-event-card__team-coin-shell {
+        grid-area: coin;
+    }
+
+    .tv-event-card__content {
+        grid-area: content;
+    }
+
+    .tv-event-card__meta {
+        position: absolute;
+        top: 0.65rem;
+        right: 0.75rem;
+        opacity: 0.65;
+        transform: scale(0.85);
+        transform-origin: top right;
+    }
+
+    .tv-event-card__copy h3 {
+        font-size: clamp(1.05rem, 6vw, 1.45rem);
+        line-height: 0.95;
+        max-width: calc(100% - 2.5rem);
+    }
+
+    .tv-event-card__copy p {
+        font-size: 0.78rem;
+        -webkit-line-clamp: 3;
+    }
+}
+
+.tv-event-card--compact {
+    min-height: 112px;
+}
+
+    .tv-event-card--compact .tv-event-card__copy h3 {
+        font-size: clamp(0.95rem, 4.8vw, 1.35rem);
+    }
+
+    .tv-event-card--compact .tv-event-card__copy p {
+        -webkit-line-clamp: 2;
+    }
+
+    .tv-event-card--compact .tv-event-card__event-icon-art {
+        width: clamp(58px, 15vw, 86px);
+        height: clamp(58px, 15vw, 86px);
+    }
