@@ -227,53 +227,6 @@
                 </section>
             }
 
-            @if (ShouldShowTvModeSelector)
-            {
-                <section class="tv-mode-selector" aria-labelledby="tv-mode-selector-heading">
-                    <div class="tv-mode-selector__header">
-                        <div>
-                            <span>@T("modes.kicker")</span>
-                            <h2 id="tv-mode-selector-heading">@T("modes.title")</h2>
-                        </div>
-                        <small>@T("modes.description")</small>
-                    </div>
-
-                    <div class="tv-mode-selector__grid">
-                        <article class="tv-mode-card @(IsBroadcastMode ? "is-active" : string.Empty)">
-                            <span class="tv-mode-card__eyebrow">@T("modes.rotativeEyebrow")</span>
-                            <strong>@T("modes.rotativeTitle")</strong>
-                            <p>@T("modes.rotativeDescription")</p>
-                            <div class="tv-mode-card__actions">
-                                <a class="tv-inline-link tv-inline-link--cta" href="@RotativeTvUrl">@T("modes.rotativeCta")</a>
-                            </div>
-                        </article>
-
-                        @foreach (var availableMatch in AvailableTvMatches)
-                        {
-                            <article class="tv-mode-card @((availableMatch.IsCurrent && !IsBroadcastMode) ? "is-current" : string.Empty)">
-                                <div class="tv-mode-card__meta">
-                                    <span class="tv-mode-card__eyebrow">@T("modes.matchEyebrow")</span>
-                                    <small>@availableMatch.StatusLabel</small>
-                                </div>
-                                <strong>@availableMatch.Title</strong>
-                                <p>@availableMatch.Subtitle</p>
-                                <div class="tv-mode-card__stats">
-                                    <span>@availableMatch.ScoreLabel</span>
-                                    <span>@availableMatch.ClockLabel</span>
-                                </div>
-                                <div class="tv-mode-card__actions">
-                                    <a class="tv-inline-link tv-inline-link--cta" href="@availableMatch.FixedUrl">@T("modes.openMatchCta")</a>
-                                    @if (!IsBroadcastMode)
-                                    {
-                                        <a class="tv-inline-link" href="@RotativeTvUrl">@T("modes.watchLiveCta")</a>
-                                    }
-                                </div>
-                            </article>
-                        }
-                    </div>
-                </section>
-            }
-
             <div class="tv-stage__grid">
                 <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
 
@@ -686,28 +639,7 @@
                     </div>
                 </section>
             }
-            <section class="tv-event-strip @(UseFootballFieldLayout ? "tv-event-strip--football" : string.Empty)">
-                <article class="tv-event-strip__card">
-                    <span>@(UseFootballFieldLayout ? T("field.eventZone") : T("labels.eventZone"))</span>
-                    <strong>@DisplayEventHeadline()</strong>
-                    <p>@DisplayReason()</p>
-                </article>
-                <article class="tv-event-strip__card tv-event-strip__card--accent">
-                    <span>@(UseFootballFieldLayout ? T("field.marketGuidedArena") : T("labels.marketDrivenArena"))</span>
-                    <strong>@DisplayPressureHeadline()</strong>
-                    <p>@DisplayPressureBody()</p>
-                </article>
-            </section>
-
-            <section class="tv-community-callout" aria-labelledby="tv-community-heading">
-                <div class="tv-community-callout__copy">
-                    <span>@T("community.kicker")</span>
-                    <h2 id="tv-community-heading">@T("community.joinArena")</h2>
-                    <p>@T("community.description")</p>
-                </div>
-                <CommunityLinks Culture="@Culture"
-                                Variant="tv" />
-            </section>
+            @RenderTvModeSelector("tv-mode-selector-heading")
 
            
         </div>
@@ -764,64 +696,7 @@ else
             </div>
         </header>
 
-        @if (ShouldShowTvModeSelector)
-        {
-            <section class="tv-mode-selector" aria-labelledby="tv-mode-selector-waiting-heading">
-                <div class="tv-mode-selector__header">
-                    <div>
-                        <span>@T("modes.kicker")</span>
-                        <h2 id="tv-mode-selector-waiting-heading">@T("modes.title")</h2>
-                    </div>
-                    <small>@T("modes.description")</small>
-                </div>
-
-                <div class="tv-mode-selector__grid">
-                    <article class="tv-mode-card @(IsBroadcastMode ? "is-active" : string.Empty)">
-                        <span class="tv-mode-card__eyebrow">@T("modes.rotativeEyebrow")</span>
-                        <strong>@T("modes.rotativeTitle")</strong>
-                        <p>@T("modes.rotativeDescription")</p>
-                        <div class="tv-mode-card__actions">
-                            <a class="tv-inline-link tv-inline-link--cta" href="@RotativeTvUrl">@T("modes.rotativeCta")</a>
-                        </div>
-                    </article>
-
-                    @foreach (var availableMatch in AvailableTvMatches)
-                    {
-                        <article class="tv-mode-card @((availableMatch.IsCurrent && !IsBroadcastMode) ? "is-current" : string.Empty)">
-                            <div class="tv-mode-card__meta">
-                                <span class="tv-mode-card__eyebrow">@T("modes.matchEyebrow")</span>
-                                <small>@availableMatch.StatusLabel</small>
-                            </div>
-                            <strong>@availableMatch.Title</strong>
-                            <p>@availableMatch.Subtitle</p>
-                            <div class="tv-mode-card__stats">
-                                <span>@availableMatch.ScoreLabel</span>
-                                <span>@availableMatch.ClockLabel</span>
-                            </div>
-                            <div class="tv-mode-card__actions">
-                                <a class="tv-inline-link tv-inline-link--cta" href="@availableMatch.FixedUrl">@T("modes.openMatchCta")</a>
-                                @if (!IsBroadcastMode)
-                                {
-                                    <a class="tv-inline-link" href="@RotativeTvUrl">@T("modes.watchLiveCta")</a>
-                                }
-                            </div>
-                        </article>
-                    }
-                </div>
-            </section>
-        }
-
         <div class="tv-waiting-grid">
-            <article class="tv-panel tv-panel--community">
-                <div class="tv-panel__head">
-                    <span>@T("community.kicker")</span>
-                    <h2>@T("community.joinArena")</h2>
-                </div>
-                <p class="tv-community-callout__description">@T("community.description")</p>
-                <CommunityLinks Culture="@Culture"
-                                Variant="tv" />
-            </article>
-
             <article class="tv-panel">
                 <div class="tv-panel__head">
                     <span>@T("waiting.topCoinsEyebrow")</span>
@@ -910,6 +785,8 @@ else
                 </div>
             </article>
         </div>
+
+        @RenderTvModeSelector("tv-mode-selector-waiting-heading")
 
         @if (_tickerItems.Count > 0)
         {
@@ -1250,6 +1127,49 @@ else
     private string RotativeTvUrl => RouteLocalization.BuildTvPath(Culture);
     private IReadOnlyList<TvAvailableMatchCard> AvailableTvMatches => BuildAvailableTvMatches();
     private bool ShouldShowTvModeSelector => AvailableTvMatches.Count > 0 || !IsBroadcastMode;
+    private RenderFragment RenderTvModeSelector(string headingId) => @<section class="tv-mode-selector" aria-labelledby="@headingId">
+        @if (ShouldShowTvModeSelector)
+        {
+            <div class="tv-mode-selector__header">
+                <div>
+                    <span>@T("modes.kicker")</span>
+                    <h2 id="@headingId">@T("modes.title")</h2>
+                </div>
+                <small>@T("modes.description")</small>
+            </div>
+
+            <div class="tv-mode-selector__grid">
+                <article class="tv-mode-card @(IsBroadcastMode ? "is-active" : string.Empty)">
+                    <span class="tv-mode-card__eyebrow">@T("modes.rotativeEyebrow")</span>
+                    <strong>@T("modes.rotativeTitle")</strong>
+                    <p>@T("modes.rotativeDescription")</p>
+                    <div class="tv-mode-card__actions">
+                        <a class="tv-inline-link tv-inline-link--cta" href="@RotativeTvUrl">@T("modes.rotativeCta")</a>
+                    </div>
+                </article>
+
+                @foreach (var availableMatch in AvailableTvMatches)
+                {
+                    <article class="tv-mode-card @((availableMatch.IsCurrent && !IsBroadcastMode) ? "is-current" : string.Empty)">
+                        <div class="tv-mode-card__meta">
+                            <span class="tv-mode-card__eyebrow">@T("modes.matchEyebrow")</span>
+                            <small>@availableMatch.StatusLabel</small>
+                        </div>
+                        <strong>@availableMatch.Title</strong>
+                        <p>@availableMatch.Subtitle</p>
+                        <div class="tv-mode-card__stats">
+                            <span>@availableMatch.ScoreLabel</span>
+                            <span>@availableMatch.ClockLabel</span>
+                        </div>
+                        <div class="tv-mode-card__actions">
+                            <a class="tv-inline-link tv-inline-link--cta" href="@availableMatch.PublicUrl" target="_blank" rel="noopener noreferrer">@T("modes.openMatchCta")</a>
+                            <a class="tv-inline-link" href="@availableMatch.WatchUrl">@T("modes.watchLiveCta")</a>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+    </section>;
     private IReadOnlyList<string> ProceduralLogLines =>
     [
         T("states.scanMarketPulse"),
@@ -4322,8 +4242,10 @@ else
 
         void AddCard(int matchId, string leftSymbol, string rightSymbol, string? status, int scoreA, int scoreB, string clockLabel)
         {
-            var fixedUrl = BuildMatchUrl(matchId, MatchSlugHelper.BuildSlug(leftSymbol, rightSymbol));
-            if (matchId <= 0 || string.IsNullOrWhiteSpace(fixedUrl) || !seen.Add(matchId))
+            var slug = MatchSlugHelper.BuildSlug(leftSymbol, rightSymbol);
+            var watchUrl = BuildMatchUrl(matchId, slug);
+            var publicUrl = $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{RouteLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, matchId, slug)}";
+            if (matchId <= 0 || string.IsNullOrWhiteSpace(watchUrl) || string.IsNullOrWhiteSpace(slug) || !seen.Add(matchId))
                 return;
 
             cards.Add(new TvAvailableMatchCard(
@@ -4333,7 +4255,8 @@ else
                 clockLabel,
                 $"{scoreA}:{scoreB}",
                 $"{GetBaseSymbol(leftSymbol)} • {GetBaseSymbol(rightSymbol)}",
-                fixedUrl,
+                publicUrl,
+                watchUrl,
                 (Match?.MatchId ?? HotMatch?.MatchId ?? 0) == matchId));
         }
 
@@ -4458,7 +4381,8 @@ else
         string ClockLabel,
         string ScoreLabel,
         string Subtitle,
-        string FixedUrl,
+        string PublicUrl,
+        string WatchUrl,
         bool IsCurrent);
 
     private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current, string? scorerOverride = null)
