@@ -53,6 +53,11 @@
                                 <stop offset="0%" stop-color="#24e1ef" />
                                 <stop offset="100%" stop-color="#73fff0" />
                             </linearGradient>
+                            <radialGradient id="@($"{_gradientId}-ball-shell")" cx="32%" cy="28%" r="72%">
+                                <stop offset="0%" stop-color="#ffffff" />
+                                <stop offset="60%" stop-color="#ecf3fb" />
+                                <stop offset="100%" stop-color="#b7c4d6" />
+                            </radialGradient>
                             <filter id="@($"{_gradientId}-glow-left")" x="-40%" y="-40%" width="180%" height="180%">
                                 <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff8b1f" flood-opacity="0.85" />
                             </filter>
@@ -96,7 +101,20 @@
 
                     <div class="tv-arena-pressure-gauge__duel" aria-hidden="true">
                         <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--left"></span>
-                        <span class="tv-arena-pressure-gauge__ball"></span>
+                        <span class="tv-arena-pressure-gauge__ball" style="@BallSpinStyle">
+                            <svg viewBox="0 0 100 100" class="tv-arena-pressure-gauge__ball-svg" focusable="false" aria-hidden="true">
+                                <circle cx="50" cy="50" r="47" class="tv-arena-pressure-gauge__ball-shell" />
+                                <polygon points="50,21 62,29 58,43 42,43 38,29" class="tv-arena-pressure-gauge__ball-panel tv-arena-pressure-gauge__ball-panel--core" />
+                                <polygon points="29,34 39,29 43,43 34,53 22,48" class="tv-arena-pressure-gauge__ball-panel" />
+                                <polygon points="71,34 78,48 66,53 57,43 61,29" class="tv-arena-pressure-gauge__ball-panel" />
+                                <polygon points="35,56 50,47 65,56 61,73 39,73" class="tv-arena-pressure-gauge__ball-panel" />
+                                <polygon points="22,48 34,53 35,67 24,72 15,60" class="tv-arena-pressure-gauge__ball-panel" />
+                                <polygon points="78,48 85,60 76,72 65,67 66,53" class="tv-arena-pressure-gauge__ball-panel" />
+                                <path d="M50 21 L62 29 M50 21 L38 29 M38 29 L29 34 M62 29 L71 34 M29 34 L22 48 M71 34 L78 48 M22 48 L34 53 M78 48 L66 53 M34 53 L35 67 M66 53 L65 67 M35 67 L39 73 M65 67 L61 73 M39 73 L50 79 M61 73 L50 79 M43 43 L34 53 M57 43 L66 53 M43 43 L50 47 M57 43 L50 47 M50 47 L35 56 M50 47 L65 56"
+                                      class="tv-arena-pressure-gauge__ball-seam" />
+                                <ellipse cx="36" cy="31" rx="12" ry="7" class="tv-arena-pressure-gauge__ball-shine" />
+                            </svg>
+                        </span>
                         <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--right"></span>
                     </div>
 
@@ -202,6 +220,7 @@
 
     private int LeftPressureDisplay => _pressure.Left;
     private int RightPressureDisplay => _pressure.Right;
+    private int PressureDelta => LeftPressureDisplay - RightPressureDisplay;
     private int CurrentPressureDisplay => Math.Clamp((int)Math.Round(CurrentPressurePercent ?? Math.Max(LeftPressureDisplay, RightPressureDisplay), MidpointRounding.AwayFromZero), 0, 100);
     private string DisplayStatusLabel => string.IsNullOrWhiteSpace(StatusLabel) ? DefaultStatusLabel : StatusLabel.Trim().ToUpperInvariant();
     private string DisplayDescription => string.IsNullOrWhiteSpace(Description)
@@ -210,6 +229,7 @@
     private string StateClass => string.Join(" ", BuildStateClasses());
     private string AriaLabel
         => string.Format(CultureInfo.CurrentCulture, Tg("ariaLabel"), DisplaySymbol(LeftSymbol), LeftPressureDisplay, DisplaySymbol(RightSymbol), RightPressureDisplay, DisplayStatusLabel);
+    private string BallSpinStyle => BuildBallSpinStyle();
     private string LeftArcStyle => FormattableString.Invariant($"stroke-dasharray:{LeftPressureDisplay} 100;");
     private string RightArcStyle => FormattableString.Invariant($"stroke-dasharray:{RightPressureDisplay} 100;");
     private (int Left, int Right) _pressure => NormalizePressures(LeftPressurePercent, RightPressurePercent);
@@ -318,6 +338,23 @@
 
     private static string BuildTickBadgeStyle(TickMark tick)
         => FormattableString.Invariant($"left:{(tick.LabelX / 420d) * 100d:0.##}%; top:{(tick.LabelY / 250d) * 100d:0.##}%;");
+
+    private string BuildBallSpinStyle()
+    {
+        var magnitude = Math.Abs(PressureDelta);
+        var direction = PressureDelta >= 0 ? 1 : -1;
+        var duration = magnitude switch
+        {
+            >= 30 => 1.45d,
+            >= 20 => 1.9d,
+            >= 10 => 2.35d,
+            >= 5 => 2.85d,
+            _ => 3.4d
+        };
+
+        var lean = Math.Clamp(magnitude * 0.2d, 0d, 7d) * direction;
+        return FormattableString.Invariant($"--ball-spin-duration:{duration:0.##}s; --ball-spin-direction:{direction}; --ball-lean:{lean:0.##}px;");
+    }
 
     private static ArcPoint PointOnArc(int value, double radialOffset = 0d)
     {
@@ -672,19 +709,62 @@
         width: clamp(54px, 8vw, 86px);
         aspect-ratio: 1;
         border-radius: 50%;
-        background:
-            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.98), rgba(191, 205, 224, 0.92) 18%, rgba(15, 27, 46, 0.95) 62%, rgba(3, 8, 16, 0.98) 100%),
-            repeating-conic-gradient(from 0deg, rgba(255,255,255,0.18) 0deg 18deg, rgba(0,0,0,0) 18deg 36deg);
         box-shadow:
             0 0 18px rgba(255,255,255,0.18),
             0 0 32px rgba(46, 232, 242, 0.18),
             inset 0 0 0 2px rgba(255,255,255,0.18);
         border: 1px solid rgba(255,255,255,0.22);
+        overflow: hidden;
+        animation: tvArenaPressureBallSpin var(--ball-spin-duration, 3s) linear infinite;
     }
 
     .tv-arena-pressure-gauge__ball--small {
         width: 16px;
         box-shadow: 0 0 10px rgba(255,255,255,0.18), 0 0 16px rgba(46, 232, 242, 0.14), inset 0 0 0 1px rgba(255,255,255,0.15);
+    }
+
+    .tv-arena-pressure-gauge__ball-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        transform: rotate(0deg);
+    }
+
+    .tv-arena-pressure-gauge__ball-shell {
+        fill: url(#@($"{_gradientId}-ball-shell"));
+    }
+
+    .tv-arena-pressure-gauge__ball-panel {
+        fill: #111827;
+        stroke: rgba(255,255,255,0.18);
+        stroke-width: 1.35;
+    }
+
+    .tv-arena-pressure-gauge__ball-panel--core {
+        fill: #0b1220;
+    }
+
+    .tv-arena-pressure-gauge__ball-seam {
+        fill: none;
+        stroke: rgba(16, 24, 39, 0.78);
+        stroke-width: 2.1;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .tv-arena-pressure-gauge__ball-shine {
+        fill: rgba(255,255,255,0.38);
+        filter: blur(0.4px);
+    }
+
+    @@keyframes tvArenaPressureBallSpin {
+        from {
+            transform: translateX(var(--ball-lean, 0px)) rotate(0deg);
+        }
+
+        to {
+            transform: translateX(var(--ball-lean, 0px)) rotate(calc(360deg * var(--ball-spin-direction, 1)));
+        }
     }
 
     .tv-arena-pressure-gauge__arrow {
