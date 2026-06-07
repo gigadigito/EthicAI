@@ -191,19 +191,7 @@
                     }
                 </div>
 
-                @if (ShouldShowBroadcastRotationGauge)
-                {
-                    <div class="tv-broadcast-rotation-gauge tv-broadcast-rotation-gauge--topbar" aria-live="polite" aria-atomic="true">
-                        <div class="tv-broadcast-rotation-gauge__copy">
-                            <span>@T("broadcast.rotationGaugeLabel")</span>
-                            <strong>@DisplayBroadcastRotationRemaining()</strong>
-                            <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
-                        </div>
-                        <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
-                            <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
-                        </div>
-                    </div>
-                }
+                
             </div>
         </header>
 
@@ -256,6 +244,20 @@
                             </section>
 
                             <section class="tv-football-center">
+
+                                @if (ShouldShowBroadcastRotationGauge)
+                                {
+                                    <div class="tv-broadcast-rotation-gauge tv-broadcast-rotation-gauge--topbar" aria-live="polite" aria-atomic="true">
+                                        <div class="tv-broadcast-rotation-gauge__copy">
+                                            <span>@T("broadcast.rotationGaugeLabel")</span>
+                                            <strong>@DisplayBroadcastRotationRemaining()</strong>
+                                            <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
+                                        </div>
+                                        <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
+                                            <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
+                                        </div>
+                                    </div>
+                                }
                                 <div class="tv-football-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
                                     <span>@T("field.scoreboard")</span>
                                     <div class="tv-football-scoreboard__score">
