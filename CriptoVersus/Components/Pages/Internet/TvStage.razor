@@ -12148,9 +12148,9 @@ else
     }
 
     .tv-candle-battle-card__timeline-track {
-        display: flex;
+        display: grid;
         align-items: center;
-        gap: 6px;
+        gap: 0;
         min-width: 0;
         overflow-x: auto;
         padding-bottom: 2px;
@@ -12167,25 +12167,37 @@ else
     }
 
     .tv-candle-battle-card__timeline-dot {
-        width: 16px;
-        height: 16px;
         padding: 0;
         appearance: none;
         cursor: default;
         position: relative;
+        min-width: 0;
+        width: 100%;
+        height: 20px;
+        border: 0;
+        background: transparent;
+        animation: tvBattleFadeIn .28s ease-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: visible;
+    }
+
+    .tv-candle-battle-card__timeline-dot-bubble {
+        width: 16px;
+        height: 16px;
+        position: relative;
         border-radius: 50%;
-        flex: 0 0 auto;
         border: 1px solid rgba(255,255,255,0.18);
         box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        animation: tvBattleFadeIn .28s ease-out;
         display: grid;
         place-items: center;
         overflow: hidden;
     }
 
-    .tv-candle-battle-card__timeline-dot.is-left { background: #22f0a2; box-shadow: 0 0 12px rgba(34, 240, 162, 0.45); }
-    .tv-candle-battle-card__timeline-dot.is-right { background: #ff5b8f; box-shadow: 0 0 12px rgba(255, 91, 143, 0.42); }
-    .tv-candle-battle-card__timeline-dot.is-tie { background: #9aa7b8; box-shadow: 0 0 10px rgba(154, 167, 184, 0.35); }
+    .tv-candle-battle-card__timeline-dot.is-left .tv-candle-battle-card__timeline-dot-bubble { background: #22f0a2; box-shadow: 0 0 12px rgba(34, 240, 162, 0.45); }
+    .tv-candle-battle-card__timeline-dot.is-right .tv-candle-battle-card__timeline-dot-bubble { background: #ff5b8f; box-shadow: 0 0 12px rgba(255, 91, 143, 0.42); }
+    .tv-candle-battle-card__timeline-dot.is-tie .tv-candle-battle-card__timeline-dot-bubble { background: #9aa7b8; box-shadow: 0 0 10px rgba(154, 167, 184, 0.35); }
 
     .tv-candle-battle-card__timeline-dot-icon {
         width: 100%;

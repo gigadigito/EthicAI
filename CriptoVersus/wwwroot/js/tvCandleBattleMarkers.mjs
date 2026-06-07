@@ -137,6 +137,7 @@ function buildTimelineDot(sample, battleState) {
     const dot = document.createElement("button");
     dot.type = "button";
     dot.className = `tv-candle-battle-card__timeline-dot ${sample.winner === "left" ? "is-left" : sample.winner === "right" ? "is-right" : "is-tie"}`;
+    dot.style.gridColumn = `span ${Math.max(1, sample.count || 1)}`;
     const rangeLabel = sample.count > 1
         ? `${formatBattleTime(sample.startTime)}-${formatBattleTime(sample.endTime)}`
         : formatBattleTime(sample.startTime);
@@ -147,12 +148,16 @@ function buildTimelineDot(sample, battleState) {
             : `${rangeLabel} - Empate${sample.count > 1 ? ` (${sample.count} candles)` : ""}`;
     dot.setAttribute("aria-label", dot.title);
 
+    const bubble = document.createElement("span");
+    bubble.className = "tv-candle-battle-card__timeline-dot-bubble";
+    dot.appendChild(bubble);
+
     if (sample.winner === "left" || sample.winner === "right") {
         const meta = sample.winner === "left" ? battleState.leftMeta : battleState.rightMeta;
         const fallback = document.createElement("span");
         fallback.className = "tv-candle-battle-card__timeline-dot-fallback";
         fallback.textContent = fallbackLabel(meta.displayBase);
-        dot.appendChild(fallback);
+        bubble.appendChild(fallback);
 
         if (meta.logoUrl) {
             const image = document.createElement("img");
@@ -166,8 +171,13 @@ function buildTimelineDot(sample, battleState) {
                 image.remove();
                 fallback.style.display = "grid";
             }, { once: true });
-            dot.appendChild(image);
+            bubble.appendChild(image);
         }
+    } else {
+        const tieMark = document.createElement("span");
+        tieMark.className = "tv-candle-battle-card__timeline-dot-fallback";
+        tieMark.textContent = "=";
+        bubble.appendChild(tieMark);
     }
 
     if (sample.count > 1) {
@@ -201,6 +211,8 @@ export function renderBattleTimeline(containerId, battleState) {
     const trackWidth = Math.max(container.clientWidth || 0, 120);
     const maxDots = Math.max(10, Math.floor(trackWidth / 18));
     const samples = buildTimelineBuckets(battleState.samples, maxDots);
+    const totalUnits = Math.max(1, samples.reduce((sum, sample) => sum + Math.max(1, sample.count || 1), 0));
+    container.style.gridTemplateColumns = `repeat(${totalUnits}, minmax(0, 1fr))`;
 
     const fragment = document.createDocumentFragment();
     samples.forEach((sample) => {
