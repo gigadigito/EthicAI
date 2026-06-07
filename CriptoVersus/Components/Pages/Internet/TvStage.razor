@@ -278,22 +278,6 @@
                                                           TeamBLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />
                                 </div>
 
-                                <div class="tv-football-pressure-gauge">
-                                    <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
-                                                          LeftDisplayName="@DisplayLeftSymbol()"
-                                                          LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                          LeftPressurePercent="@GetArenaPressureLeftPercent()"
-                                                          LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
-                                                          RightSymbol="@DisplayRightHeroLabel()"
-                                                          RightDisplayName="@DisplayRightSymbol()"
-                                                          RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                                          RightPressurePercent="@GetArenaPressureRightPercent()"
-                                                          RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
-                                                          CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
-                                                          StatusLabel="@GetArenaPressureStatusLabel()"
-                                                          Description="@GetArenaPressureDescription()"
-                                                          IsCompact="true" />
-                                </div>
                             </section>
 
                             <section class="tv-football-side tv-football-side--right">
@@ -553,23 +537,20 @@
                                     </div>
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
-                                        @if (!UseFootballFieldLayout || CurrentFieldState is null)
-                                        {
-                                            <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
-                                                                  LeftDisplayName="@DisplayLeftSymbol()"
-                                                                  LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                                  LeftPressurePercent="@GetArenaPressureLeftPercent()"
-                                                                  LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
-                                                                  RightSymbol="@DisplayRightHeroLabel()"
-                                                                  RightDisplayName="@DisplayRightSymbol()"
-                                                                  RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                                                  RightPressurePercent="@GetArenaPressureRightPercent()"
-                                                                  RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
-                                                                  CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
-                                                                  StatusLabel="@GetArenaPressureStatusLabel()"
-                                                                  Description="@GetArenaPressureDescription()"
-                                                                  IsCompact="true" />
-                                        }
+                                        <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
+                                                              LeftDisplayName="@DisplayLeftSymbol()"
+                                                              LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                              LeftPressurePercent="@GetArenaPressureLeftPercent()"
+                                                              LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
+                                                              RightSymbol="@DisplayRightHeroLabel()"
+                                                              RightDisplayName="@DisplayRightSymbol()"
+                                                              RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                              RightPressurePercent="@GetArenaPressureRightPercent()"
+                                                              RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
+                                                              CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
+                                                              StatusLabel="@GetArenaPressureStatusLabel()"
+                                                              Description="@GetArenaPressureDescription()"
+                                                              IsCompact="true" />
                                     </div>
                                 </section>
 
@@ -10799,11 +10780,6 @@ else
 
     .tv-football-field-viewport .tv-field__overlay {
         transform: translateZ(0);
-    }
-
-    .tv-football-pressure-gauge {
-        margin-top: 14px;
-        min-width: 0;
     }
 
     .tv-football-scoreboard {
