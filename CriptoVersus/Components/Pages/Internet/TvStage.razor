@@ -277,6 +277,23 @@
                                                           TeamALogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
                                                           TeamBLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />
                                 </div>
+
+                                <div class="tv-football-pressure-gauge">
+                                    <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
+                                                          LeftDisplayName="@DisplayLeftSymbol()"
+                                                          LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                          LeftPressurePercent="@GetArenaPressureLeftPercent()"
+                                                          LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
+                                                          RightSymbol="@DisplayRightHeroLabel()"
+                                                          RightDisplayName="@DisplayRightSymbol()"
+                                                          RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                          RightPressurePercent="@GetArenaPressureRightPercent()"
+                                                          RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
+                                                          CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
+                                                          StatusLabel="@GetArenaPressureStatusLabel()"
+                                                          Description="@GetArenaPressureDescription()"
+                                                          IsCompact="true" />
+                                </div>
                             </section>
 
                             <section class="tv-football-side tv-football-side--right">
@@ -536,19 +553,23 @@
                                     </div>
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
-                                        <ArenaPressurePanel LeftSymbol="@DisplayLeftHeroLabel()"
-                                                            RightSymbol="@DisplayRightHeroLabel()"
-                                                            LeftSentiment="@_arenaSentimentA"
-                                                            RightSentiment="@_arenaSentimentB"
-                                                            LeftClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                            RightClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                            IsLoading="@_arenaSentimentLoading"
-                                                            GaugeSize="280"
-                                                            TitleText="@MatchGaugeT("arenaPressureTitle")"
-                                                            SubtitleText="@MatchGaugeT("arenaPressureSubtitle")"
-                                                            GaugeLabelText="@MatchGaugeT("arenaPressureLabel")"
-                                                            BadgeText="@MatchGaugeT("marketPulse")"
-                                                            AdditionalClass="arena-pressure-panel--tv" />
+                                        @if (!UseFootballFieldLayout || CurrentFieldState is null)
+                                        {
+                                            <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
+                                                                  LeftDisplayName="@DisplayLeftSymbol()"
+                                                                  LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                                  LeftPressurePercent="@GetArenaPressureLeftPercent()"
+                                                                  LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
+                                                                  RightSymbol="@DisplayRightHeroLabel()"
+                                                                  RightDisplayName="@DisplayRightSymbol()"
+                                                                  RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                                  RightPressurePercent="@GetArenaPressureRightPercent()"
+                                                                  RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
+                                                                  CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
+                                                                  StatusLabel="@GetArenaPressureStatusLabel()"
+                                                                  Description="@GetArenaPressureDescription()"
+                                                                  IsCompact="true" />
+                                        }
                                     </div>
                                 </section>
 
@@ -4750,6 +4771,78 @@ else
 
     private string DisplayPressureBody()
         => T("labels.pressureSummary", DisplayVolume(), DisplayRemainingTime());
+
+    private (int Left, int Right) GetArenaPressurePair()
+    {
+        var fieldState = CurrentFieldState;
+        if (fieldState is null)
+            return (50, 50);
+
+        var left = Math.Clamp(fieldState.PossessionA, 0, 100);
+        var right = Math.Clamp(fieldState.PossessionB, 0, 100);
+        var total = left + right;
+        if (total <= 0)
+            return (50, 50);
+
+        var normalizedLeft = (int)Math.Round((left / (double)total) * 100d, MidpointRounding.AwayFromZero);
+        normalizedLeft = Math.Clamp(normalizedLeft, 0, 100);
+        return (normalizedLeft, 100 - normalizedLeft);
+    }
+
+    private int GetArenaPressureLeftPercent()
+        => GetArenaPressurePair().Left;
+
+    private int GetArenaPressureRightPercent()
+        => GetArenaPressurePair().Right;
+
+    private int GetArenaCurrentPressurePercent()
+    {
+        var pair = GetArenaPressurePair();
+        return Math.Max(pair.Left, pair.Right);
+    }
+
+    private string GetArenaPressureStatusLabel()
+    {
+        var pair = GetArenaPressurePair();
+        if (pair.Left >= 70)
+            return IsPortugueseCulture ? $"{DisplayLeftHeroLabel()} EM PRESSAO CRITICA" : $"{DisplayLeftHeroLabel()} CRITICAL PRESSURE";
+
+        if (pair.Right >= 70)
+            return IsPortugueseCulture ? $"{DisplayRightHeroLabel()} EM PRESSAO CRITICA" : $"{DisplayRightHeroLabel()} CRITICAL PRESSURE";
+
+        if (pair.Left >= 60)
+            return IsPortugueseCulture ? $"{DisplayLeftHeroLabel()} DOMINA A ARENA" : $"{DisplayLeftHeroLabel()} CONTROLS THE ARENA";
+
+        if (pair.Right >= 60)
+            return IsPortugueseCulture ? $"{DisplayRightHeroLabel()} DOMINA A ARENA" : $"{DisplayRightHeroLabel()} CONTROLS THE ARENA";
+
+        return IsPortugueseCulture ? "DISPUTA EQUILIBRADA" : "BALANCED DUEL";
+    }
+
+    private string GetArenaPressureDescription()
+        => IsPortugueseCulture
+            ? "A pressao da arena representa o controle territorial e a intensidade das acoes de cada lado. Acima de 60% indica dominio forte. Abaixo de 40% indica perda de controle."
+            : "Arena pressure shows territorial control and the intensity of each side. Above 60% means strong dominance. Below 40% means loss of control.";
+
+    private string GetArenaPressureMomentumLabel(bool isLeft)
+    {
+        var pair = GetArenaPressurePair();
+        var symbol = isLeft ? DisplayLeftHeroLabel() : DisplayRightHeroLabel();
+        var pressure = isLeft ? pair.Left : pair.Right;
+        var hasMomentum = string.Equals(CurrentFieldState?.MomentumOwner, isLeft ? DisplayLeftSymbol() : DisplayRightSymbol(), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(CurrentFieldState?.MomentumOwner, symbol, StringComparison.OrdinalIgnoreCase);
+
+        if (hasMomentum && pressure >= 55)
+            return IsPortugueseCulture ? "MOMENTUM FORTE" : "STRONG MOMENTUM";
+
+        if (pressure >= 60)
+            return IsPortugueseCulture ? "PRESSAO CRESCENTE" : "RISING PRESSURE";
+
+        if (pressure is >= 45 and <= 55)
+            return IsPortugueseCulture ? "RITMO NEUTRO" : "NEUTRAL RHYTHM";
+
+        return IsPortugueseCulture ? "EM RECUPERACAO" : "RECOVERING";
+    }
 
     private async Task TriggerBroadcastFlipAsync()
     {
@@ -10706,6 +10799,11 @@ else
 
     .tv-football-field-viewport .tv-field__overlay {
         transform: translateZ(0);
+    }
+
+    .tv-football-pressure-gauge {
+        margin-top: 14px;
+        min-width: 0;
     }
 
     .tv-football-scoreboard {

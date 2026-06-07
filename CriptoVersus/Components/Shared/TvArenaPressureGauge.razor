@@ -1,0 +1,1015 @@
+@using System.Globalization
+
+<section class="tv-arena-pressure-gauge @StateClass @(IsCompact ? "is-compact" : string.Empty)"
+         aria-label="@AriaLabel"
+         title="@AriaLabel">
+    <div class="tv-arena-pressure-gauge__panel">
+        <header class="tv-arena-pressure-gauge__header">
+            <div>
+                <h3>ARENA PRESSURE</h3>
+                <p>POSSE DA BOLA EM DISPUTA</p>
+            </div>
+        </header>
+
+        <div class="tv-arena-pressure-gauge__layout">
+            <section class="tv-arena-pressure-gauge__side tv-arena-pressure-gauge__side--left"
+                     title="@($"{LeftSymbol} {LeftDisplayName} - {LeftPressureDisplay}% de pressão")">
+                <div class="tv-arena-pressure-gauge__identity">
+                    <div class="tv-arena-pressure-gauge__logo-ring">
+                        @if (!string.IsNullOrWhiteSpace(LeftLogoUrl))
+                        {
+                            <img src="@LeftLogoUrl" alt="@($"{LeftSymbol} logo")" />
+                        }
+                        else
+                        {
+                            <span>@CompactToken(LeftSymbol)</span>
+                        }
+                    </div>
+                    <div class="tv-arena-pressure-gauge__copy">
+                        <strong>@DisplayToken(LeftSymbol)</strong>
+                        <span>@DisplayToken(LeftDisplayName)</span>
+                    </div>
+                </div>
+                <div class="tv-arena-pressure-gauge__metric">
+                    <strong>@LeftPressureDisplay%</strong>
+                    <span>PRESSAO</span>
+                </div>
+            </section>
+
+            <section class="tv-arena-pressure-gauge__center">
+                <div class="tv-arena-pressure-gauge__gauge-shell">
+                    <svg class="tv-arena-pressure-gauge__svg"
+                         viewBox="0 0 420 250"
+                         role="img"
+                         aria-label="@AriaLabel">
+                        <defs>
+                            <linearGradient id="@($"{_gradientId}-left")" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#ff6b00" />
+                                <stop offset="100%" stop-color="#ffbf3c" />
+                            </linearGradient>
+                            <linearGradient id="@($"{_gradientId}-right")" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#24e1ef" />
+                                <stop offset="100%" stop-color="#73fff0" />
+                            </linearGradient>
+                            <filter id="@($"{_gradientId}-glow-left")" x="-40%" y="-40%" width="180%" height="180%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff8b1f" flood-opacity="0.85" />
+                            </filter>
+                            <filter id="@($"{_gradientId}-glow-right")" x="-40%" y="-40%" width="180%" height="180%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#31f6ff" flood-opacity="0.85" />
+                            </filter>
+                        </defs>
+
+                        <path d="@ArcPath" class="tv-arena-pressure-gauge__track" pathLength="100" />
+                        @foreach (var tick in MajorTicks)
+                        {
+                            <line x1="@tick.LineX1" y1="@tick.LineY1" x2="@tick.LineX2" y2="@tick.LineY2"
+                                  class="tv-arena-pressure-gauge__tick-line @(tick.IsCenter ? "is-center" : string.Empty)" />
+                        }
+                        @foreach (var tick in MinorTicks)
+                        {
+                            <line x1="@tick.LineX1" y1="@tick.LineY1" x2="@tick.LineX2" y2="@tick.LineY2"
+                                  class="tv-arena-pressure-gauge__tick-line tv-arena-pressure-gauge__tick-line--minor" />
+                        }
+
+                        <path d="@ArcPath" class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--left"
+                              pathLength="100" style="@LeftArcStyle">
+                            <title>@($"{LeftSymbol}: {LeftPressureDisplay}%")</title>
+                        </path>
+                        <path d="@ArcPath" class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--right"
+                              pathLength="100" transform="translate(420 0) scale(-1 1)" style="@RightArcStyle">
+                            <title>@($"{RightSymbol}: {RightPressureDisplay}%")</title>
+                        </path>
+
+                        <line x1="@SplitMarker.X" y1="@SplitMarker.Y1" x2="@SplitMarker.X" y2="@SplitMarker.Y2"
+                              class="tv-arena-pressure-gauge__split-marker" />
+                    </svg>
+
+                    <div class="tv-arena-pressure-gauge__tick-overlay" aria-hidden="true">
+                        @foreach (var tick in MajorTicks)
+                        {
+                            <span class="tv-arena-pressure-gauge__tick-badge @(tick.IsCenter ? "is-center" : string.Empty)"
+                                  style="@BuildTickBadgeStyle(tick)">@tick.Label</span>
+                        }
+                    </div>
+
+                    <div class="tv-arena-pressure-gauge__duel" aria-hidden="true">
+                        <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--left"></span>
+                        <span class="tv-arena-pressure-gauge__ball"></span>
+                        <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--right"></span>
+                    </div>
+
+                    <div class="tv-arena-pressure-gauge__center-copy">
+                        <span>PRESSAO ATUAL</span>
+                        <strong>@CurrentPressureDisplay%</strong>
+                        <em>@DisplayStatusLabel</em>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tv-arena-pressure-gauge__side tv-arena-pressure-gauge__side--right"
+                     title="@($"{RightSymbol} {RightDisplayName} - {RightPressureDisplay}% de pressão")">
+                <div class="tv-arena-pressure-gauge__identity">
+                    <div class="tv-arena-pressure-gauge__copy">
+                        <strong>@DisplayToken(RightSymbol)</strong>
+                        <span>@DisplayToken(RightDisplayName)</span>
+                    </div>
+                    <div class="tv-arena-pressure-gauge__logo-ring">
+                        @if (!string.IsNullOrWhiteSpace(RightLogoUrl))
+                        {
+                            <img src="@RightLogoUrl" alt="@($"{RightSymbol} logo")" />
+                        }
+                        else
+                        {
+                            <span>@CompactToken(RightSymbol)</span>
+                        }
+                    </div>
+                </div>
+                <div class="tv-arena-pressure-gauge__metric">
+                    <strong>@RightPressureDisplay%</strong>
+                    <span>PRESSAO</span>
+                </div>
+            </section>
+        </div>
+
+        <footer class="tv-arena-pressure-gauge__footer">
+            <section class="tv-arena-pressure-gauge__momentum tv-arena-pressure-gauge__momentum--left">
+                <span>MOMENTUM</span>
+                <strong>@DisplayToken(LeftSymbol)</strong>
+                <div class="tv-arena-pressure-gauge__bars" aria-hidden="true">
+                    @foreach (var bar in LeftBars)
+                    {
+                        <i style="@bar.Style"></i>
+                    }
+                </div>
+                <small>@DisplayToken(LeftMomentumLabel)</small>
+            </section>
+
+            <section class="tv-arena-pressure-gauge__footer-status">
+                <strong>@FooterPrimaryStatus</strong>
+                <div class="tv-arena-pressure-gauge__footer-arrows" aria-hidden="true">
+                    <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--left"></span>
+                    <span class="tv-arena-pressure-gauge__ball tv-arena-pressure-gauge__ball--small"></span>
+                    <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--right"></span>
+                </div>
+                <small>@FooterSecondaryStatus</small>
+            </section>
+
+            <section class="tv-arena-pressure-gauge__momentum tv-arena-pressure-gauge__momentum--right">
+                <span>MOMENTUM</span>
+                <strong>@DisplayToken(RightSymbol)</strong>
+                <div class="tv-arena-pressure-gauge__bars" aria-hidden="true">
+                    @foreach (var bar in RightBars)
+                    {
+                        <i style="@bar.Style"></i>
+                    }
+                </div>
+                <small>@DisplayToken(RightMomentumLabel)</small>
+            </section>
+        </footer>
+
+        <div class="tv-arena-pressure-gauge__description">
+            <span class="tv-arena-pressure-gauge__description-icon">i</span>
+            <p>@DisplayDescription</p>
+        </div>
+    </div>
+</section>
+
+@code {
+    private readonly string _gradientId = $"tv-pressure-{Guid.NewGuid():N}";
+
+    [Parameter] public string LeftSymbol { get; set; } = string.Empty;
+    [Parameter] public string LeftDisplayName { get; set; } = string.Empty;
+    [Parameter] public string LeftLogoUrl { get; set; } = string.Empty;
+    [Parameter] public double? LeftPressurePercent { get; set; }
+    [Parameter] public string LeftMomentumLabel { get; set; } = string.Empty;
+    [Parameter] public string RightSymbol { get; set; } = string.Empty;
+    [Parameter] public string RightDisplayName { get; set; } = string.Empty;
+    [Parameter] public string RightLogoUrl { get; set; } = string.Empty;
+    [Parameter] public double? RightPressurePercent { get; set; }
+    [Parameter] public string RightMomentumLabel { get; set; } = string.Empty;
+    [Parameter] public double? CurrentPressurePercent { get; set; }
+    [Parameter] public string StatusLabel { get; set; } = string.Empty;
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public bool IsCompact { get; set; }
+
+    private const double ArcRadius = 165d;
+    private const double ArcCenterX = 210d;
+    private const double ArcCenterY = 190d;
+    private const string ArcPath = "M45 190 A165 165 0 0 1 375 190";
+
+    private int LeftPressureDisplay => _pressure.Left;
+    private int RightPressureDisplay => _pressure.Right;
+    private int CurrentPressureDisplay => Math.Clamp((int)Math.Round(CurrentPressurePercent ?? Math.Max(LeftPressureDisplay, RightPressureDisplay), MidpointRounding.AwayFromZero), 0, 100);
+    private string DisplayStatusLabel => string.IsNullOrWhiteSpace(StatusLabel) ? DefaultStatusLabel : StatusLabel.Trim().ToUpperInvariant();
+    private string DisplayDescription => string.IsNullOrWhiteSpace(Description)
+        ? "A pressao da arena representa o controle territorial e a intensidade das acoes de cada lado. Acima de 60% indica dominio forte. Abaixo de 40% indica perda de controle."
+        : Description.Trim();
+    private string StateClass => string.Join(" ", BuildStateClasses());
+    private string AriaLabel => $"{DisplayToken(LeftSymbol)} com {LeftPressureDisplay}% de pressao, {DisplayToken(RightSymbol)} com {RightPressureDisplay}%. Estado atual: {DisplayStatusLabel}.";
+    private string LeftArcStyle => FormattableString.Invariant($"stroke-dasharray:{LeftPressureDisplay} 100;");
+    private string RightArcStyle => FormattableString.Invariant($"stroke-dasharray:{RightPressureDisplay} 100;");
+    private (int Left, int Right) _pressure => NormalizePressures(LeftPressurePercent, RightPressurePercent);
+    private string DefaultStatusLabel
+        => LeftPressureDisplay switch
+        {
+            >= 70 => $"{DisplayToken(LeftSymbol)} EM PRESSAO CRITICA",
+            >= 60 => $"{DisplayToken(LeftSymbol)} DOMINA A ARENA",
+            _ when RightPressureDisplay >= 70 => $"{DisplayToken(RightSymbol)} EM PRESSAO CRITICA",
+            _ when RightPressureDisplay >= 60 => $"{DisplayToken(RightSymbol)} DOMINA A ARENA",
+            _ when Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10 => "DISPUTA EQUILIBRADA",
+            _ => "POSSE EM TRANSICAO"
+        };
+    private string FooterPrimaryStatus
+        => Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10
+            ? "EM DISPUTA"
+            : LeftPressureDisplay > RightPressureDisplay
+                ? $"{DisplayToken(LeftSymbol)} PRESSIONA"
+                : $"{DisplayToken(RightSymbol)} PRESSIONA";
+    private string FooterSecondaryStatus
+        => Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10
+            ? "POSSE NEUTRA"
+            : LeftPressureDisplay > RightPressureDisplay
+                ? "LADO ESQUERDO DOMINANTE"
+                : "LADO DIREITO DOMINANTE";
+    private SplitMarkerDto SplitMarker => BuildSplitMarker(LeftPressureDisplay);
+    private IReadOnlyList<TickMark> MajorTicks => BuildMajorTicks();
+    private IReadOnlyList<TickMark> MinorTicks => BuildMinorTicks();
+    private IReadOnlyList<BarStyle> LeftBars => BuildBars(LeftPressureDisplay, true);
+    private IReadOnlyList<BarStyle> RightBars => BuildBars(RightPressureDisplay, false);
+
+    private IEnumerable<string> BuildStateClasses()
+    {
+        if (LeftPressureDisplay >= 70 || RightPressureDisplay >= 70)
+            yield return "critical-pressure";
+
+        if (LeftPressureDisplay >= 60)
+            yield return "left-dominant";
+        else if (RightPressureDisplay >= 60)
+            yield return "right-dominant";
+        else if (CurrentPressureDisplay is >= 45 and <= 55)
+            yield return "balanced";
+        else
+            yield return "balanced";
+    }
+
+    private static (int Left, int Right) NormalizePressures(double? leftRaw, double? rightRaw)
+    {
+        var left = leftRaw ?? double.NaN;
+        var right = rightRaw ?? double.NaN;
+
+        if (double.IsNaN(left) && double.IsNaN(right))
+            return (50, 50);
+
+        if (double.IsNaN(left))
+            left = 100d - right;
+
+        if (double.IsNaN(right))
+            right = 100d - left;
+
+        left = Math.Clamp(left, 0d, 100d);
+        right = Math.Clamp(right, 0d, 100d);
+        var total = left + right;
+        if (total <= 0.001d)
+            return (50, 50);
+
+        var normalizedLeft = (int)Math.Round((left / total) * 100d, MidpointRounding.AwayFromZero);
+        normalizedLeft = Math.Clamp(normalizedLeft, 0, 100);
+        return (normalizedLeft, 100 - normalizedLeft);
+    }
+
+    private static string DisplayToken(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();
+
+    private static string CompactToken(string? value)
+    {
+        var normalized = DisplayToken(value);
+        return normalized.Length <= 4 ? normalized : normalized[..4];
+    }
+
+    private static SplitMarkerDto BuildSplitMarker(int leftPercent)
+    {
+        var point = PointOnArc(leftPercent);
+        return new SplitMarkerDto(point.X, point.Y - 16d, point.Y + 16d);
+    }
+
+    private static IReadOnlyList<TickMark> BuildMajorTicks()
+        => new[] { 0, 25, 50, 75, 100 }.Select(value => BuildTick(value, true)).ToList();
+
+    private static IReadOnlyList<TickMark> BuildMinorTicks()
+        => Enumerable.Range(1, 19).Select(index => index * 5).Where(value => value % 25 != 0).Select(value => BuildTick(value, false)).ToList();
+
+    private static TickMark BuildTick(int value, bool major)
+    {
+        var outer = PointOnArc(value, 0d);
+        var inner = PointOnArc(value, major ? 12d : 7d);
+        var label = PointOnArc(value, -28d);
+        return new TickMark(value, $"{value}%", outer.X, outer.Y, inner.X, inner.Y, label.X, label.Y, value == 50);
+    }
+
+    private static string BuildTickBadgeStyle(TickMark tick)
+        => FormattableString.Invariant($"left:{(tick.LabelX / 420d) * 100d:0.##}%; top:{(tick.LabelY / 250d) * 100d:0.##}%;");
+
+    private static ArcPoint PointOnArc(int value, double radialOffset = 0d)
+    {
+        var radius = ArcRadius + radialOffset;
+        var angle = Math.PI - ((Math.Clamp(value, 0, 100) / 100d) * Math.PI);
+        var x = ArcCenterX + (radius * Math.Cos(angle));
+        var y = ArcCenterY - (radius * Math.Sin(angle));
+        return new ArcPoint(x, y);
+    }
+
+    private static IReadOnlyList<BarStyle> BuildBars(int pressure, bool left)
+    {
+        var emphasis = pressure / 100d;
+        var bars = new List<BarStyle>(20);
+        for (var i = 0; i < 20; i++)
+        {
+            var wave = 0.42d + (Math.Sin((i + 1) * 0.62d + (left ? 0.4d : 1.1d)) * 0.18d);
+            var peak = Math.Exp(-Math.Pow(i - (left ? 8.5d : 11.5d), 2d) / 22d) * (0.42d + (emphasis * 0.45d));
+            var height = Math.Clamp((wave + peak) * 100d, 18d, 100d);
+            bars.Add(new BarStyle(FormattableString.Invariant($"height:{height:0.##}%;")));
+        }
+
+        return bars;
+    }
+
+    private sealed record ArcPoint(double X, double Y);
+    private sealed record TickMark(int Value, string Label, double LineX1, double LineY1, double LineX2, double LineY2, double LabelX, double LabelY, bool IsCenter);
+    private sealed record SplitMarkerDto(double X, double Y1, double Y2);
+    private sealed record BarStyle(string Style);
+}
+
+<style>
+    .tv-arena-pressure-gauge {
+        --pressure-left: #ff8a1f;
+        --pressure-right: #2ee8f2;
+        --pressure-track: rgba(206, 232, 255, 0.16);
+        --pressure-glass: linear-gradient(180deg, rgba(8, 17, 33, 0.94), rgba(5, 10, 24, 0.92));
+        --pressure-border: rgba(98, 145, 191, 0.22);
+        position: relative;
+        min-width: 0;
+    }
+
+    .tv-arena-pressure-gauge__panel {
+        min-width: 0;
+        display: grid;
+        gap: clamp(0.9rem, 1.6vw, 1.3rem);
+        padding: clamp(1rem, 1.8vw, 1.5rem);
+        border-radius: 28px;
+        border: 1px solid var(--pressure-border);
+        background:
+            radial-gradient(circle at 50% 0%, rgba(46, 232, 242, 0.08), transparent 38%),
+            radial-gradient(circle at 10% 50%, rgba(255, 138, 31, 0.08), transparent 36%),
+            var(--pressure-glass);
+        box-shadow:
+            inset 0 0 0 1px rgba(255,255,255,0.025),
+            0 24px 54px rgba(0, 0, 0, 0.28),
+            0 0 38px rgba(13, 33, 56, 0.24);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .tv-arena-pressure-gauge__panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background:
+            linear-gradient(90deg, rgba(255, 138, 31, 0.06), transparent 28%, transparent 72%, rgba(46, 232, 242, 0.06)),
+            linear-gradient(180deg, rgba(255,255,255,0.04), transparent 14%);
+    }
+
+    .tv-arena-pressure-gauge__header,
+    .tv-arena-pressure-gauge__layout,
+    .tv-arena-pressure-gauge__footer,
+    .tv-arena-pressure-gauge__description {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+    }
+
+    .tv-arena-pressure-gauge__header {
+        text-align: center;
+    }
+
+    .tv-arena-pressure-gauge__header h3 {
+        margin: 0;
+        color: #72f7ff;
+        font-size: clamp(1.1rem, 2vw, 1.9rem);
+        font-weight: 900;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        text-shadow: 0 0 18px rgba(70, 245, 255, 0.34);
+    }
+
+    .tv-arena-pressure-gauge__header p {
+        margin: 0.28rem 0 0;
+        color: rgba(214, 231, 255, 0.68);
+        font-size: clamp(0.7rem, 0.85vw, 0.92rem);
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+
+    .tv-arena-pressure-gauge__layout {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.85fr) minmax(0, 2fr) minmax(150px, 0.85fr);
+        gap: clamp(0.85rem, 1.5vw, 1.4rem);
+        align-items: center;
+    }
+
+    .tv-arena-pressure-gauge__side {
+        min-width: 0;
+        display: grid;
+        gap: 0.9rem;
+        align-content: center;
+    }
+
+    .tv-arena-pressure-gauge__side--left {
+        justify-items: start;
+        text-align: left;
+    }
+
+    .tv-arena-pressure-gauge__side--right {
+        justify-items: end;
+        text-align: right;
+    }
+
+    .tv-arena-pressure-gauge__identity {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+    }
+
+    .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+        flex-direction: row-reverse;
+    }
+
+    .tv-arena-pressure-gauge__logo-ring {
+        width: clamp(82px, 7vw, 112px);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        padding: 0.85rem;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), rgba(16, 24, 41, 0.86));
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__logo-ring {
+        box-shadow: 0 0 24px rgba(255, 138, 31, 0.26), inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__logo-ring {
+        box-shadow: 0 0 24px rgba(46, 232, 242, 0.24), inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
+
+    .tv-arena-pressure-gauge__logo-ring img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 0 16px rgba(255,255,255,0.18));
+    }
+
+    .tv-arena-pressure-gauge__logo-ring span {
+        font-size: clamp(1rem, 1.8vw, 1.4rem);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        color: #f6fbff;
+    }
+
+    .tv-arena-pressure-gauge__copy {
+        min-width: 0;
+        display: grid;
+        gap: 0.22rem;
+    }
+
+    .tv-arena-pressure-gauge__copy strong,
+    .tv-arena-pressure-gauge__copy span,
+    .tv-arena-pressure-gauge__metric span,
+    .tv-arena-pressure-gauge__momentum span,
+    .tv-arena-pressure-gauge__momentum small,
+    .tv-arena-pressure-gauge__footer-status small,
+    .tv-arena-pressure-gauge__center-copy span,
+    .tv-arena-pressure-gauge__center-copy em {
+        text-transform: uppercase;
+    }
+
+    .tv-arena-pressure-gauge__copy strong {
+        color: #f7fbff;
+        font-size: clamp(1.1rem, 2vw, 2rem);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        line-height: 1;
+    }
+
+    .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__copy strong,
+    .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__metric strong,
+    .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__momentum strong {
+        color: #ff9e2a;
+        text-shadow: 0 0 18px rgba(255, 138, 31, 0.2);
+    }
+
+    .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__copy strong,
+    .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__metric strong,
+    .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__momentum strong {
+        color: #46f4ff;
+        text-shadow: 0 0 18px rgba(46, 232, 242, 0.2);
+    }
+
+    .tv-arena-pressure-gauge__copy span {
+        color: rgba(210, 226, 245, 0.72);
+        font-size: clamp(0.74rem, 0.9vw, 1rem);
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        overflow-wrap: anywhere;
+    }
+
+    .tv-arena-pressure-gauge__metric {
+        display: grid;
+        gap: 0.25rem;
+    }
+
+    .tv-arena-pressure-gauge__metric strong {
+        font-size: clamp(2rem, 4vw, 3.5rem);
+        line-height: 1;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+    }
+
+    .tv-arena-pressure-gauge__metric span {
+        color: rgba(217, 232, 246, 0.62);
+        font-size: clamp(0.78rem, 0.9vw, 1rem);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+    }
+
+    .tv-arena-pressure-gauge__center,
+    .tv-arena-pressure-gauge__gauge-shell {
+        min-width: 0;
+        position: relative;
+    }
+
+    .tv-arena-pressure-gauge__gauge-shell {
+        width: min(100%, 760px);
+        margin-inline: auto;
+    }
+
+    .tv-arena-pressure-gauge__svg {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .tv-arena-pressure-gauge__track,
+    .tv-arena-pressure-gauge__fill {
+        fill: none;
+        stroke-width: 22;
+        stroke-linecap: butt;
+    }
+
+    .tv-arena-pressure-gauge__track {
+        stroke: var(--pressure-track);
+    }
+
+    .tv-arena-pressure-gauge__fill {
+        transition: stroke-dasharray 420ms ease, opacity 260ms ease, filter 260ms ease;
+    }
+
+    .tv-arena-pressure-gauge__fill--left {
+        stroke: url(#@($"{_gradientId}-left"));
+        filter: url(#@($"{_gradientId}-glow-left"));
+    }
+
+    .tv-arena-pressure-gauge__fill--right {
+        stroke: url(#@($"{_gradientId}-right"));
+        filter: url(#@($"{_gradientId}-glow-right"));
+    }
+
+    .tv-arena-pressure-gauge__tick-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .tv-arena-pressure-gauge__tick-line {
+        stroke: rgba(203, 228, 255, 0.32);
+        stroke-width: 2;
+        stroke-linecap: round;
+    }
+
+    .tv-arena-pressure-gauge__tick-line.is-center {
+        stroke: rgba(255,255,255,0.9);
+        stroke-width: 3;
+    }
+
+    .tv-arena-pressure-gauge__tick-line--minor {
+        stroke-width: 1.4;
+        opacity: 0.5;
+    }
+
+    .tv-arena-pressure-gauge__tick-label {
+        fill: rgba(225, 238, 255, 0.78);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-anchor: middle;
+    }
+
+    .tv-arena-pressure-gauge__tick-label.is-center {
+        fill: #f7fbff;
+    }
+
+    .tv-arena-pressure-gauge__tick-badge {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        color: rgba(225, 238, 255, 0.78);
+        font-size: clamp(0.72rem, 0.8vw, 0.9rem);
+        font-weight: 800;
+        letter-spacing: 0.06em;
+    }
+
+    .tv-arena-pressure-gauge__tick-badge.is-center {
+        color: #f7fbff;
+    }
+
+    .tv-arena-pressure-gauge__split-marker {
+        stroke: rgba(255,255,255,0.94);
+        stroke-width: 3;
+        stroke-linecap: round;
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.38));
+    }
+
+    .tv-arena-pressure-gauge__duel {
+        position: absolute;
+        inset: auto 0 2.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(0.8rem, 2vw, 1.6rem);
+        pointer-events: none;
+    }
+
+    .tv-arena-pressure-gauge__ball {
+        width: clamp(54px, 8vw, 86px);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.98), rgba(191, 205, 224, 0.92) 18%, rgba(15, 27, 46, 0.95) 62%, rgba(3, 8, 16, 0.98) 100%),
+            repeating-conic-gradient(from 0deg, rgba(255,255,255,0.18) 0deg 18deg, rgba(0,0,0,0) 18deg 36deg);
+        box-shadow:
+            0 0 18px rgba(255,255,255,0.18),
+            0 0 32px rgba(46, 232, 242, 0.18),
+            inset 0 0 0 2px rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.22);
+    }
+
+    .tv-arena-pressure-gauge__ball--small {
+        width: 16px;
+        box-shadow: 0 0 10px rgba(255,255,255,0.18), 0 0 16px rgba(46, 232, 242, 0.14), inset 0 0 0 1px rgba(255,255,255,0.15);
+    }
+
+    .tv-arena-pressure-gauge__arrow {
+        width: clamp(56px, 8vw, 98px);
+        height: 14px;
+        position: relative;
+        display: inline-block;
+        opacity: 0.9;
+    }
+
+    .tv-arena-pressure-gauge__arrow::before,
+    .tv-arena-pressure-gauge__arrow::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .tv-arena-pressure-gauge__arrow::before {
+        width: calc(100% - 14px);
+        height: 4px;
+        border-radius: 999px;
+    }
+
+    .tv-arena-pressure-gauge__arrow::after {
+        width: 0;
+        height: 0;
+        border-top: 12px solid transparent;
+        border-bottom: 12px solid transparent;
+    }
+
+    .tv-arena-pressure-gauge__arrow--left::before {
+        right: 0;
+        background: linear-gradient(90deg, rgba(255, 138, 31, 0), rgba(255, 138, 31, 1));
+        box-shadow: 0 0 18px rgba(255, 138, 31, 0.38);
+    }
+
+    .tv-arena-pressure-gauge__arrow--left::after {
+        left: 0;
+        border-right: 18px solid #ff9a25;
+    }
+
+    .tv-arena-pressure-gauge__arrow--right::before {
+        left: 0;
+        background: linear-gradient(90deg, rgba(46, 232, 242, 1), rgba(46, 232, 242, 0));
+        box-shadow: 0 0 18px rgba(46, 232, 242, 0.38);
+    }
+
+    .tv-arena-pressure-gauge__arrow--right::after {
+        right: 0;
+        border-left: 18px solid #4ff6ff;
+    }
+
+    .tv-arena-pressure-gauge__center-copy {
+        position: absolute;
+        left: 50%;
+        bottom: 0.3rem;
+        transform: translateX(-50%);
+        min-width: min(88%, 260px);
+        display: grid;
+        justify-items: center;
+        gap: 0.25rem;
+        text-align: center;
+    }
+
+    .tv-arena-pressure-gauge__center-copy span,
+    .tv-arena-pressure-gauge__center-copy em {
+        color: rgba(212, 228, 245, 0.7);
+        font-size: clamp(0.72rem, 0.8vw, 0.92rem);
+        font-style: normal;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+    }
+
+    .tv-arena-pressure-gauge__center-copy strong {
+        color: #55f6ff;
+        font-size: clamp(2.3rem, 5vw, 4.2rem);
+        line-height: 1;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        text-shadow: 0 0 22px rgba(46, 232, 242, 0.28);
+    }
+
+    .tv-arena-pressure-gauge__center-copy em {
+        color: rgba(247, 251, 255, 0.78);
+    }
+
+    .tv-arena-pressure-gauge__footer {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: clamp(0.75rem, 1.4vw, 1.25rem);
+        align-items: end;
+        padding-top: 0.4rem;
+        border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .tv-arena-pressure-gauge__momentum,
+    .tv-arena-pressure-gauge__footer-status {
+        min-width: 0;
+        display: grid;
+        gap: 0.35rem;
+    }
+
+    .tv-arena-pressure-gauge__momentum span,
+    .tv-arena-pressure-gauge__footer-status small {
+        color: rgba(212, 228, 245, 0.68);
+        font-size: clamp(0.68rem, 0.75vw, 0.84rem);
+        font-weight: 800;
+        letter-spacing: 0.14em;
+    }
+
+    .tv-arena-pressure-gauge__momentum strong,
+    .tv-arena-pressure-gauge__footer-status strong {
+        color: #f5fbff;
+        font-size: clamp(1rem, 1.25vw, 1.26rem);
+        font-weight: 900;
+        letter-spacing: 0.08em;
+    }
+
+    .tv-arena-pressure-gauge__momentum small {
+        color: rgba(212, 228, 245, 0.64);
+        font-size: clamp(0.68rem, 0.74vw, 0.8rem);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+    }
+
+    .tv-arena-pressure-gauge__momentum--right {
+        text-align: right;
+    }
+
+    .tv-arena-pressure-gauge__bars {
+        height: 52px;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(3px, 1fr);
+        align-items: end;
+        gap: 4px;
+    }
+
+    .tv-arena-pressure-gauge__bars i {
+        display: block;
+        width: 100%;
+        border-radius: 999px 999px 0 0;
+        transition: height 420ms ease;
+    }
+
+    .tv-arena-pressure-gauge__momentum--left .tv-arena-pressure-gauge__bars i {
+        background: linear-gradient(180deg, rgba(255, 191, 60, 1), rgba(255, 107, 0, 0.76));
+        box-shadow: 0 0 10px rgba(255, 138, 31, 0.26);
+    }
+
+    .tv-arena-pressure-gauge__momentum--right .tv-arena-pressure-gauge__bars i {
+        background: linear-gradient(180deg, rgba(115, 255, 240, 1), rgba(36, 225, 239, 0.72));
+        box-shadow: 0 0 10px rgba(46, 232, 242, 0.22);
+    }
+
+    .tv-arena-pressure-gauge__footer-status {
+        justify-items: center;
+        text-align: center;
+        align-content: center;
+        padding-inline: clamp(0.2rem, 1vw, 1rem);
+    }
+
+    .tv-arena-pressure-gauge__footer-arrows {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow {
+        width: 42px;
+        height: 10px;
+    }
+
+    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow::after {
+        border-top-width: 9px;
+        border-bottom-width: 9px;
+    }
+
+    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow--left::after {
+        border-right-width: 14px;
+    }
+
+    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow--right::after {
+        border-left-width: 14px;
+    }
+
+    .tv-arena-pressure-gauge__description {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.85rem;
+        align-items: center;
+        padding: 0.95rem 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.07);
+        background: rgba(7, 16, 30, 0.56);
+    }
+
+    .tv-arena-pressure-gauge__description-icon {
+        width: 36px;
+        aspect-ratio: 1;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        border: 1px solid rgba(80, 237, 245, 0.3);
+        color: #46f4ff;
+        font-size: 1.1rem;
+        font-weight: 900;
+        box-shadow: 0 0 18px rgba(46, 232, 242, 0.16);
+    }
+
+    .tv-arena-pressure-gauge__description p {
+        margin: 0;
+        color: rgba(213, 228, 245, 0.76);
+        font-size: clamp(0.78rem, 0.84vw, 0.96rem);
+        line-height: 1.5;
+    }
+
+    .tv-arena-pressure-gauge.balanced .tv-arena-pressure-gauge__center-copy strong {
+        color: #55f6ff;
+    }
+
+    .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__center-copy strong {
+        color: #ffae34;
+        text-shadow: 0 0 22px rgba(255, 138, 31, 0.3);
+    }
+
+    .tv-arena-pressure-gauge.right-dominant .tv-arena-pressure-gauge__center-copy strong {
+        color: #55f6ff;
+    }
+
+    .tv-arena-pressure-gauge.critical-pressure .tv-arena-pressure-gauge__panel {
+        box-shadow:
+            inset 0 0 0 1px rgba(255,255,255,0.025),
+            0 24px 54px rgba(0, 0, 0, 0.28),
+            0 0 44px rgba(255, 138, 31, 0.1),
+            0 0 44px rgba(46, 232, 242, 0.1);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
+        padding: clamp(0.9rem, 1.4vw, 1.15rem);
+        gap: 0.85rem;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__header h3 {
+        font-size: clamp(1rem, 1.4vw, 1.35rem);
+        letter-spacing: 0.18em;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
+        width: min(100%, 620px);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__description {
+        padding: 0.8rem 0.9rem;
+    }
+
+    @@media (max-width: 1180px) {
+        .tv-arena-pressure-gauge__layout {
+            grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.8fr) minmax(120px, 0.8fr);
+        }
+
+        .tv-arena-pressure-gauge__metric strong {
+            font-size: clamp(1.8rem, 3.2vw, 2.8rem);
+        }
+    }
+
+    @@media (max-width: 860px) {
+        .tv-arena-pressure-gauge__layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .tv-arena-pressure-gauge__center {
+            order: 1;
+            grid-column: 1 / -1;
+        }
+
+        .tv-arena-pressure-gauge__side {
+            order: 2;
+        }
+
+        .tv-arena-pressure-gauge__side--left,
+        .tv-arena-pressure-gauge__side--right {
+            justify-items: stretch;
+            text-align: left;
+        }
+
+        .tv-arena-pressure-gauge__identity,
+        .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+            flex-direction: row;
+        }
+
+        .tv-arena-pressure-gauge__footer {
+            grid-template-columns: 1fr;
+            gap: 0.95rem;
+        }
+
+        .tv-arena-pressure-gauge__momentum--right,
+        .tv-arena-pressure-gauge__footer-status {
+            text-align: left;
+            justify-items: start;
+        }
+
+        .tv-arena-pressure-gauge__description {
+            grid-template-columns: 1fr;
+            text-align: left;
+        }
+    }
+
+    @@media (max-width: 560px) {
+        .tv-arena-pressure-gauge__panel {
+            border-radius: 22px;
+        }
+
+        .tv-arena-pressure-gauge__layout {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-arena-pressure-gauge__side--right {
+            text-align: left;
+        }
+
+        .tv-arena-pressure-gauge__duel {
+            inset: auto 0 3.7rem;
+            gap: 0.5rem;
+        }
+
+        .tv-arena-pressure-gauge__ball {
+            width: 54px;
+        }
+
+        .tv-arena-pressure-gauge__center-copy {
+            bottom: -0.15rem;
+        }
+
+        .tv-arena-pressure-gauge__bars {
+            overflow-x: auto;
+            padding-bottom: 0.2rem;
+        }
+    }
+</style>
