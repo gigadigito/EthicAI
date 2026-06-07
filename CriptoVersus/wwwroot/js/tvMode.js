@@ -60,6 +60,13 @@ import {
     buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
 } from "./tvScoreEvents.mjs?v=20260603-crossover-marker-1";
 import { findLineCrossovers } from "./tvLineCrossovers.mjs?v=20260603-crossover-marker-1";
+import { buildCandleBattleState } from "./tvCandleBattleEngine.mjs?v=20260607-candle-battle-1";
+import {
+    clearBattleMarkers,
+    renderBattleMarkers,
+    renderBattleTimeline
+} from "./tvCandleBattleMarkers.mjs?v=20260607-candle-battle-1";
+import { renderCandleBattleHud } from "./tvCandleBattleHud.mjs?v=20260607-candle-battle-1";
 import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260603-crossover-marker-1";
 import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-crossover-marker-1";
 import {
@@ -3179,6 +3186,11 @@ function attachCompareChartSync(state) {
 
 function disposeChartEntry(entry) {
     try {
+        clearBattleMarkers(entry);
+    } catch {
+    }
+
+    try {
         clearCompareScoreEventMarkers(entry);
     } catch {
     }
@@ -4089,6 +4101,24 @@ export async function updateTelemetryCharts(payload) {
         }
         if (splitRight) {
             fitChart(splitRight.chart);
+        }
+
+        if (splitLeft && splitRight && document.getElementById("tv-candle-battle-root")) {
+            const battleState = buildCandleBattleState({
+                leftCandles,
+                rightCandles,
+                leftMeta,
+                rightMeta
+            });
+
+            renderBattleMarkers(splitLeft, battleState, "left");
+            renderBattleMarkers(splitRight, battleState, "right");
+            renderBattleTimeline("tv-candle-battle-timeline-left", battleState);
+            renderBattleTimeline("tv-candle-battle-timeline-right", battleState);
+            renderCandleBattleHud(battleState);
+        } else {
+            clearBattleMarkers(splitLeft);
+            clearBattleMarkers(splitRight);
         }
 
         window.requestAnimationFrame(() => resizeTelemetryCharts());

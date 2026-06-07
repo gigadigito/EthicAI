@@ -53,11 +53,6 @@
                                 <stop offset="0%" stop-color="#24e1ef" />
                                 <stop offset="100%" stop-color="#73fff0" />
                             </linearGradient>
-                            <radialGradient id="@($"{_gradientId}-ball-shell")" cx="32%" cy="28%" r="72%">
-                                <stop offset="0%" stop-color="#ffffff" />
-                                <stop offset="60%" stop-color="#ecf3fb" />
-                                <stop offset="100%" stop-color="#b7c4d6" />
-                            </radialGradient>
                             <filter id="@($"{_gradientId}-glow-left")" x="-40%" y="-40%" width="180%" height="180%">
                                 <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff8b1f" flood-opacity="0.85" />
                             </filter>
@@ -102,18 +97,7 @@
                     <div class="tv-arena-pressure-gauge__duel" aria-hidden="true">
                         <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--left"></span>
                         <span class="tv-arena-pressure-gauge__ball" style="@BallSpinStyle">
-                            <svg viewBox="0 0 100 100" class="tv-arena-pressure-gauge__ball-svg" focusable="false" aria-hidden="true">
-                                <circle cx="50" cy="50" r="47" class="tv-arena-pressure-gauge__ball-shell" />
-                                <polygon points="50,21 62,29 58,43 42,43 38,29" class="tv-arena-pressure-gauge__ball-panel tv-arena-pressure-gauge__ball-panel--core" />
-                                <polygon points="29,34 39,29 43,43 34,53 22,48" class="tv-arena-pressure-gauge__ball-panel" />
-                                <polygon points="71,34 78,48 66,53 57,43 61,29" class="tv-arena-pressure-gauge__ball-panel" />
-                                <polygon points="35,56 50,47 65,56 61,73 39,73" class="tv-arena-pressure-gauge__ball-panel" />
-                                <polygon points="22,48 34,53 35,67 24,72 15,60" class="tv-arena-pressure-gauge__ball-panel" />
-                                <polygon points="78,48 85,60 76,72 65,67 66,53" class="tv-arena-pressure-gauge__ball-panel" />
-                                <path d="M50 21 L62 29 M50 21 L38 29 M38 29 L29 34 M62 29 L71 34 M29 34 L22 48 M71 34 L78 48 M22 48 L34 53 M78 48 L66 53 M34 53 L35 67 M66 53 L65 67 M35 67 L39 73 M65 67 L61 73 M39 73 L50 79 M61 73 L50 79 M43 43 L34 53 M57 43 L66 53 M43 43 L50 47 M57 43 L50 47 M50 47 L35 56 M50 47 L65 56"
-                                      class="tv-arena-pressure-gauge__ball-seam" />
-                                <ellipse cx="36" cy="31" rx="12" ry="7" class="tv-arena-pressure-gauge__ball-shine" />
-                            </svg>
+                            <img src="/img/bola_da_copa.png" alt="" class="tv-arena-pressure-gauge__ball-image" />
                         </span>
                         <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--right"></span>
                     </div>
@@ -168,7 +152,9 @@
                 <strong>@FooterPrimaryStatus</strong>
                 <div class="tv-arena-pressure-gauge__footer-arrows" aria-hidden="true">
                     <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--left"></span>
-                    <span class="tv-arena-pressure-gauge__ball tv-arena-pressure-gauge__ball--small"></span>
+                    <span class="tv-arena-pressure-gauge__ball tv-arena-pressure-gauge__ball--small">
+                        <img src="/img/bola_da_copa.png" alt="" class="tv-arena-pressure-gauge__ball-image" />
+                    </span>
                     <span class="tv-arena-pressure-gauge__arrow tv-arena-pressure-gauge__arrow--right"></span>
                 </div>
                 <small>@FooterSecondaryStatus</small>
@@ -723,38 +709,14 @@
         box-shadow: 0 0 10px rgba(255,255,255,0.18), 0 0 16px rgba(46, 232, 242, 0.14), inset 0 0 0 1px rgba(255,255,255,0.15);
     }
 
-    .tv-arena-pressure-gauge__ball-svg {
+    .tv-arena-pressure-gauge__ball-image {
         width: 100%;
         height: 100%;
         display: block;
-        transform: rotate(0deg);
-    }
-
-    .tv-arena-pressure-gauge__ball-shell {
-        fill: url(#@($"{_gradientId}-ball-shell"));
-    }
-
-    .tv-arena-pressure-gauge__ball-panel {
-        fill: #111827;
-        stroke: rgba(255,255,255,0.18);
-        stroke-width: 1.35;
-    }
-
-    .tv-arena-pressure-gauge__ball-panel--core {
-        fill: #0b1220;
-    }
-
-    .tv-arena-pressure-gauge__ball-seam {
-        fill: none;
-        stroke: rgba(16, 24, 39, 0.78);
-        stroke-width: 2.1;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-    }
-
-    .tv-arena-pressure-gauge__ball-shine {
-        fill: rgba(255,255,255,0.38);
-        filter: blur(0.4px);
+        object-fit: contain;
+        filter: drop-shadow(0 0 10px rgba(255,255,255,0.26));
+        user-select: none;
+        -webkit-user-drag: none;
     }
 
     @@keyframes tvArenaPressureBallSpin {
