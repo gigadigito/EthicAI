@@ -95,10 +95,12 @@
     .tv-event-card {
         position: relative;
         display: grid;
-        grid-template-columns: 120px 72px minmax(0,1fr) 140px 120px;
+        grid-template-columns: clamp(72px, 8vw, 104px) clamp(40px, 4.5vw, 56px) minmax(0, 1fr) minmax(108px, auto);
+        grid-template-areas: "event team content meta";
         align-items: center;
-        gap: 18px;
-        padding: 18px 22px;
+        gap: clamp(10px, 1.4vw, 18px);
+        padding: clamp(14px, 1.6vw, 20px);
+        min-width: 0;
         overflow: hidden;
         border-radius: 26px;
         border: 1px solid rgba(255,255,255,.08);
@@ -130,12 +132,13 @@
 
     .tv-event-card--hero {
         min-height: 132px;
-        padding: 20px 24px;
         border-radius: 30px
     }
 
     .tv-event-card--compact {
-        min-height: 104px
+        min-height: 108px;
+        grid-template-columns: clamp(60px, 6vw, 82px) clamp(36px, 3.8vw, 48px) minmax(0, 1fr) minmax(84px, auto);
+        gap: clamp(8px, 1vw, 14px);
     }
 
     .tv-event-card--high-priority {
@@ -167,13 +170,23 @@
         position: relative;
         display: grid;
         place-items: center;
+        min-width: 0;
         z-index: 1
+    }
+
+    .tv-event-card__event-icon-shell {
+        grid-area: event;
+    }
+
+    .tv-event-card__team-coin-shell {
+        grid-area: team;
+        align-self: start;
     }
 
     .tv-event-card__event-icon-art {
         position: relative;
-        width: 96px;
-        height: 96px;
+        width: clamp(60px, 7vw, 96px);
+        height: clamp(60px, 7vw, 96px);
         border-radius: 24px;
         display: grid;
         place-items: center;
@@ -202,9 +215,9 @@
     }
 
     .tv-event-card__team-coin {
-        width: 52px;
-        height: 52px;
-        border-radius: 16px;
+        width: clamp(36px, 4vw, 52px);
+        height: clamp(36px, 4vw, 52px);
+        border-radius: clamp(12px, 1.2vw, 16px);
         display: grid;
         place-items: center;
         overflow: hidden;
@@ -229,11 +242,13 @@
         }
 
     .tv-event-card__content {
+        grid-area: content;
         position: relative;
         z-index: 1;
         min-width: 0;
         display: grid;
-        gap: 10px
+        align-content: start;
+        gap: clamp(4px, .75vw, 10px)
     }
 
     .tv-event-card__identity {
@@ -248,7 +263,7 @@
         font-weight: 900;
         letter-spacing: .16em;
         text-transform: uppercase;
-        font-size: .82rem
+        font-size: clamp(.62rem, .8vw, .82rem)
     }
 
     .tv-event-card__copy {
@@ -259,8 +274,13 @@
 
         .tv-event-card__copy h3 {
             margin: 0;
-            font-size: 1.62rem;
-            line-height: 1;
+            min-width: 0;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            font-size: clamp(1rem, 1.4vw, 1.62rem);
+            line-height: 1.02;
             letter-spacing: .02em;
             text-transform: uppercase;
             color: #fbfdff
@@ -268,18 +288,33 @@
 
         .tv-event-card__copy p {
             margin: 0;
+            min-width: 0;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
             color: rgba(230,238,248,.88);
-            font-size: 1rem;
-            line-height: 1.4
+            font-size: clamp(.78rem, .96vw, 1rem);
+            line-height: 1.38
         }
 
-    .tv-event-card__time-column,
-    .tv-event-card__reward-column {
+    .tv-event-card--hero .tv-event-card__copy p {
+        -webkit-line-clamp: 3;
+    }
+
+    .tv-event-card--compact .tv-event-card__copy p {
+        -webkit-line-clamp: 2;
+    }
+
+    .tv-event-card__meta {
+        grid-area: meta;
         position: relative;
         z-index: 1;
-        height: 100%;
         display: grid;
-        place-items: center;
+        justify-items: end;
+        align-content: start;
+        gap: clamp(6px, .8vw, 10px);
+        min-width: 0;
+        padding-left: clamp(8px, 1vw, 14px);
         border-left: 1px solid rgba(122,235,255,.16)
     }
 
@@ -287,27 +322,35 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 48px;
-        padding: 0 18px;
+        min-height: clamp(34px, 4vw, 48px);
+        max-width: 100%;
+        padding: 0 clamp(10px, 1.4vw, 18px);
         border-radius: 16px;
         border: 1px solid rgba(255,255,255,.1);
         background: linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
         color: #f4f8ff;
-        font-size: 1.14rem;
+        font-size: clamp(.78rem, 1vw, 1.04rem);
         font-weight: 900;
         letter-spacing: .08em;
-        font-variant-numeric: tabular-nums
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
     }
 
     .tv-event-card__reward {
         font-style: normal;
-        font-size: 4rem;
+        max-width: 100%;
+        font-size: clamp(1.4rem, 3vw, 3.4rem);
         font-weight: 1000;
         line-height: 1;
         letter-spacing: -.04em;
         color: #fff;
-        text-align: center;
+        text-align: right;
+        white-space: nowrap;
         text-shadow: 0 0 18px color-mix(in srgb,var(--event-accent-end,#7ff6df) 28%,transparent), 0 1px 0 rgba(0,0,0,.4)
+    }
+
+    .tv-event-card--compact .tv-event-card__reward {
+        font-size: clamp(1.1rem, 2.1vw, 1.9rem);
     }
 
     .tv-event-card__particles span {
@@ -358,89 +401,85 @@
     }
 
     @@media (max-width:900px) {
-        .tv-event-card
+        .tv-event-card {
+            grid-template-columns: 76px 44px minmax(0,1fr) minmax(96px,auto);
+            gap: 12px;
+        }
 
-    {
-        grid-template-columns: 96px 58px minmax(0,1fr) 110px 88px;
-        gap: 14px;
-        padding: 16px 18px
-    }
-
-    .tv-event-card__event-icon-art {
-        width: 82px;
-        height: 82px
-    }
-
-    .tv-event-card__team-coin {
-        width: 46px;
-        height: 46px
-    }
-
-    .tv-event-card__copy h3 {
-        font-size: 1.28rem
-    }
-
-    .tv-event-card__copy p {
-        font-size: .92rem
-    }
-
-    .tv-event-card__reward {
-        font-size: 3rem
-    }
-
+        .tv-event-card__meta {
+            padding-left: 10px;
+        }
     }
 
     @@media (max-width:640px) {
-        .tv-event-feed__timeline
+        .tv-event-feed__timeline {
+            grid-template-columns: 1fr
+        }
 
-    {
-        grid-template-columns: 1fr
+        .tv-event-feed__rail {
+            display: none
+        }
+
+        .tv-event-feed__stack {
+            padding-right: 2px
+        }
+
+        .tv-event-card,
+        .tv-event-card--compact,
+        .tv-event-card--hero {
+            grid-template-columns: 62px minmax(0,1fr) auto;
+            grid-template-areas:
+                "event content meta"
+                "team content meta";
+            align-items: start;
+            gap: 10px;
+        }
+
+        .tv-event-card__event-icon-art {
+            width: 62px;
+            height: 62px;
+            border-radius: 18px;
+        }
+
+        .tv-event-card__team-coin-shell {
+            justify-self: center;
+        }
+
+        .tv-event-card__meta {
+            border-left: 0;
+            padding-left: 0;
+            justify-items: end;
+            gap: 6px;
+        }
+
+        .tv-event-card--compact .tv-event-card__reward {
+            display: none;
+        }
     }
 
-    .tv-event-feed__rail {
-        display: none
-    }
+    @@media (max-width:460px) {
+        .tv-event-card,
+        .tv-event-card--compact,
+        .tv-event-card--hero {
+            grid-template-columns: 54px minmax(0,1fr);
+            grid-template-areas:
+                "event meta"
+                "content content"
+                "team team";
+        }
 
-    .tv-event-feed__stack {
-        padding-right: 2px
-    }
+        .tv-event-card__meta {
+            justify-self: end;
+            align-self: start;
+        }
 
-    .tv-event-card {
-        grid-template-columns: 78px 48px minmax(0,1fr);
-        grid-template-areas:
-            "event team body"
-            "time reward reward";
-        align-items: start
-    }
+        .tv-event-card__team-coin-shell {
+            justify-self: start;
+        }
 
-    .tv-event-card__event-icon-shell {
-        grid-area: event
-    }
-
-    .tv-event-card__team-coin-shell {
-        grid-area: team
-    }
-
-    .tv-event-card__content {
-        grid-area: body
-    }
-
-    .tv-event-card__time-column {
-        grid-area: time;
-        border-left: 0;
-        place-items: start
-    }
-
-    .tv-event-card__reward-column {
-        grid-area: reward;
-        border-left: 0;
-        place-items: end
-    }
-
-    .tv-event-card__reward {
-        font-size: 2.4rem
-    }
-
+        .tv-event-card__reward {
+            display: none;
+        }
     }</style>
 
 <div id="@FeedId" class="tv-event-feed">

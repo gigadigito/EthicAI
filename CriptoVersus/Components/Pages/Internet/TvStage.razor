@@ -133,20 +133,6 @@
                 </div>
             </div>
 
-            @if (ShouldShowBroadcastRotationGauge)
-            {
-                <div class="tv-broadcast-rotation-gauge" aria-live="polite" aria-atomic="true">
-                    <div class="tv-broadcast-rotation-gauge__copy">
-                        <span>@T("broadcast.rotationGaugeLabel")</span>
-                        <strong>@DisplayBroadcastRotationRemaining()</strong>
-                        <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
-                    </div>
-                    <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
-                        <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
-                    </div>
-                </div>
-            }
-
             @if (EnableTvDebugOverlay)
             {
                 <div class="tv-debug-overlay" aria-hidden="true">
@@ -175,32 +161,48 @@
                 <p class="tv-stage__headline">@DisplayMatchHeadline()</p>
             </div>
 
-            <div class="tv-stage__badges">
-                <span class="tv-pill tv-pill--live">
-                    <span class="tv-pill__dot"></span>
-                    @T("labels.liveArena")
-                </span>
-                <span class="tv-pill">@T("labels.automaticBroadcast")</span>
-                @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
-                {
-                    <a target="_blank" class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
-                }
-                <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
-                <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
-                <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
-                    <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
-                    <span>@KnownArenaAudioButtonLabel</span>
-                </button>
-                @if (ShouldRenderCrowdAudio)
-                {
-                    <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
-                        <span class="@CrowdAudioIconClass" aria-hidden="true"></span>
-                        <span>@DisplayCrowdAudioLabel()</span>
-                    </button>
-                    @if (ShouldShowAudioUnlockButton)
+            <div class="tv-stage__topbar-side">
+                <div class="tv-stage__badges">
+                    <span class="tv-pill tv-pill--live">
+                        <span class="tv-pill__dot"></span>
+                        @T("labels.liveArena")
+                    </span>
+                    <span class="tv-pill">@T("labels.automaticBroadcast")</span>
+                    @if (!string.IsNullOrWhiteSpace(CurrentRealMatchUrl))
                     {
-                        <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
+                        <a target="_blank" class="tv-pill tv-pill--nav" href="@CurrentRealMatchUrl">Match</a>
                     }
+                    <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
+                    <span class="tv-pill tv-pill--score @(_pulseHotScore ? "is-pulsing" : string.Empty)">@T("labels.hotScore") @DisplayHotScore()</span>
+                    <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
+                        <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
+                        <span>@KnownArenaAudioButtonLabel</span>
+                    </button>
+                    @if (ShouldRenderCrowdAudio)
+                    {
+                        <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@DisplayCrowdAudioLabel()">
+                            <span class="@CrowdAudioIconClass" aria-hidden="true"></span>
+                            <span>@DisplayCrowdAudioLabel()</span>
+                        </button>
+                        @if (ShouldShowAudioUnlockButton)
+                        {
+                            <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@T("audio.startBroadcast")</button>
+                        }
+                    }
+                </div>
+
+                @if (ShouldShowBroadcastRotationGauge)
+                {
+                    <div class="tv-broadcast-rotation-gauge tv-broadcast-rotation-gauge--topbar" aria-live="polite" aria-atomic="true">
+                        <div class="tv-broadcast-rotation-gauge__copy">
+                            <span>@T("broadcast.rotationGaugeLabel")</span>
+                            <strong>@DisplayBroadcastRotationRemaining()</strong>
+                            <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
+                        </div>
+                        <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
+                            <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
+                        </div>
+                    </div>
                 }
             </div>
         </header>
@@ -211,22 +213,6 @@
                     <strong>@T("broadcast.dataStatusTitle")</strong>
                     <span>@BroadcastDataStatusMessage</span>
                 </div>
-            }
-
-            @if (IsBroadcastMode && !string.IsNullOrWhiteSpace(CurrentMatchUrl))
-            {
-                <section class="tv-broadcast-promo" aria-labelledby="tv-broadcast-promo-heading">
-                    <div class="tv-broadcast-promo__copy">
-                        <span class="tv-broadcast-promo__eyebrow">@T("broadcast.mainMatchEyebrow")</span>
-                        <h2 id="tv-broadcast-promo-heading">@DisplayMatchHeadline()</h2>
-                        <p>@T("broadcast.mainMatchDescription")</p>
-                    </div>
-                    <a class="tv-broadcast-promo__cta"
-                       href="@CurrentMatchUrl"
-                       aria-label="@T("broadcast.openBroadcastAria", DisplayMatchHeadline())">
-                        <span>@T("broadcast.mainMatchCta")</span>
-                    </a>
-                </section>
             }
 
             <div class="tv-stage__grid">
@@ -9807,6 +9793,19 @@ else
         justify-content: flex-end;
     }
 
+    .tv-stage__topbar > :first-child,
+    .tv-stage__topbar-side,
+    .tv-stage__badges {
+        min-width: 0;
+    }
+
+    .tv-stage__topbar-side {
+        display: grid;
+        justify-items: end;
+        align-content: start;
+        gap: 10px;
+    }
+
     .tv-pill {
         display: inline-flex;
         align-items: center;
@@ -10098,13 +10097,9 @@ else
     }
 
     .tv-broadcast-rotation-gauge {
-        position: absolute;
-        top: 18px;
-        right: 18px;
-        z-index: 6;
         display: grid;
         gap: 8px;
-        width: min(320px, calc(100vw - 36px));
+        width: min(340px, 100%);
         padding: 12px 14px;
         border-radius: 18px;
         border: 1px solid rgba(83, 200, 255, 0.18);
@@ -10112,6 +10107,12 @@ else
         box-shadow: 0 20px 40px rgba(0,0,0,0.22);
         backdrop-filter: blur(16px);
         pointer-events: none;
+    }
+
+    .tv-broadcast-rotation-gauge--topbar {
+        position: relative;
+        z-index: 1;
+        justify-self: end;
     }
 
     .tv-broadcast-rotation-gauge__copy {
@@ -12723,8 +12724,16 @@ else
         font-size: .72rem;
     }
 
+    .tv-stage--broadcast .tv-stage__topbar {
+        align-items: start;
+    }
+
+    .tv-stage--broadcast .tv-stage__topbar-side {
+        max-width: min(100%, 392px);
+    }
+
     .tv-stage--broadcast .tv-stage__grid {
-        grid-template-columns: minmax(0, 1.72fr) minmax(340px, .76fr);
+        grid-template-columns: minmax(0, 1.62fr) minmax(380px, .86fr);
         gap: 12px;
     }
 
@@ -13038,29 +13047,29 @@ else
             letter-spacing: .26em;
         }
 
-        .tv-broadcast-rotation-gauge {
-            top: 14px;
-            right: 14px;
-            width: min(280px, calc(100vw - 28px));
-            padding: 11px 12px;
-        }
-
         .tv-stage__topbar {
             display: grid;
+        }
+
+        .tv-stage__topbar-side {
+            justify-items: stretch;
+            width: 100%;
+        }
+
+        .tv-stage__badges {
+            justify-content: flex-start;
+        }
+
+        .tv-broadcast-rotation-gauge,
+        .tv-broadcast-rotation-gauge--topbar {
+            justify-self: stretch;
+            width: 100%;
+            padding: 11px 12px;
         }
 
         .tv-stage__headline {
             font-size: .78rem;
             letter-spacing: .14em;
-        }
-
-        .tv-broadcast-promo {
-            grid-template-columns: 1fr;
-            padding: 16px;
-        }
-
-        .tv-broadcast-promo__cta {
-            width: 100%;
         }
 
         .tv-match-card__arena {
@@ -13214,11 +13223,9 @@ else
             padding: 12px;
         }
 
-        .tv-broadcast-rotation-gauge {
-            top: 10px;
-            left: 12px;
-            right: 12px;
-            width: auto;
+        .tv-broadcast-rotation-gauge,
+        .tv-broadcast-rotation-gauge--topbar {
+            width: 100%;
         }
 
         .tv-broadcast-rotation-gauge__copy strong {
