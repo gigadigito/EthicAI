@@ -2317,8 +2317,10 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 : DefaultDesiredMatchPoolSize;
 
         private int GetDesiredPendingCount()
-            => _options.DesiredActiveMatches > 0
-                ? _options.DesiredActiveMatches
+            => _options.DesiredPendingMatches > 0
+                ? _options.DesiredPendingMatches
+                : _options.DesiredActiveMatches > 0
+                    ? _options.DesiredActiveMatches
                 : DefaultDesiredMatchPoolSize;
 
         private int GetTopGainersTake()

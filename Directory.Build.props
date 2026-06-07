@@ -3,6 +3,7 @@
     <RepoArtifactsRoot>$(MSBuildThisFileDirectory).codex-artifacts-local\</RepoArtifactsRoot>
     <BaseIntermediateOutputPath>$(RepoArtifactsRoot)obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
     <BaseOutputPath>$(RepoArtifactsRoot)bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <BuildInParallel>false</BuildInParallel>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
