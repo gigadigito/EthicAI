@@ -620,6 +620,11 @@ namespace CriptoVersus.API.Controllers
                 ? value
                 : fallback;
 
+        private int GetInt(string key, int fallback)
+            => int.TryParse(_configuration[key], out var value)
+                ? value
+                : fallback;
+
         private static decimal ClampRate(decimal rate)
             => Math.Clamp(rate, 0m, 1m);
 
