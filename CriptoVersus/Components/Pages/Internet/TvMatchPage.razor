@@ -51,12 +51,30 @@
 @if (_match is not null)
 {
     <TvStage Culture="@_culture"
+             IsBroadcastMode="false"
              HotMatch="@_hotMatch"
-             Match="@_match" />
+             Match="@_match"
+             Stats="@_stats"
+             Snapshot="@_snapshot"
+             TopCoinsLoading="@_topCoinsLoading"
+             TopCoinsError="@_topCoinsError"
+             LatestBattlesLoading="@_latestBattlesLoading"
+             LatestBattlesError="@_latestBattlesError"
+             MarketPulseLoading="@_marketPulseLoading"
+             MarketPulseError="@_marketPulseError" />
 }
 else
 {
-    <TvStage Culture="@_culture" />
+    <TvStage Culture="@_culture"
+             IsBroadcastMode="false"
+             Stats="@_stats"
+             Snapshot="@_snapshot"
+             TopCoinsLoading="@_topCoinsLoading"
+             TopCoinsError="@_topCoinsError"
+             LatestBattlesLoading="@_latestBattlesLoading"
+             LatestBattlesError="@_latestBattlesError"
+             MarketPulseLoading="@_marketPulseLoading"
+             MarketPulseError="@_marketPulseError" />
 }
 
 @code {
@@ -69,11 +87,19 @@ else
     private string _culture = AppCultureService.DefaultRouteCulture;
     private MatchDto? _match;
     private TvHotMatchDto? _hotMatch;
+    private StatsOverviewDto? _stats;
+    private DashboardSnapshotDto? _snapshot;
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
     private string? _error;
     private int _refreshInProgress;
+    private bool _topCoinsLoading = true;
+    private bool _latestBattlesLoading = true;
+    private bool _marketPulseLoading = true;
+    private string? _topCoinsError;
+    private string? _latestBattlesError;
+    private string? _marketPulseError;
     private string PageTitleText
         => _match is null
             ? L.T("tv.seo.title", _culture)
@@ -157,9 +183,19 @@ else
             _error = null;
             var matchTask = Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct);
             var hotTask = HotMatches.GetHotMatchesAsync(ct);
-            await Task.WhenAll(matchTask, hotTask);
+            var statsTask = Api.GetStatsOverviewAsync(ct);
+            var snapshotTask = Api.GetDashboardSnapshotAsync(ct);
+            await Task.WhenAll(matchTask, hotTask, statsTask, snapshotTask);
 
             _match = matchTask.Result;
+            _stats = statsTask.Result;
+            _snapshot = snapshotTask.Result;
+            _topCoinsLoading = false;
+            _latestBattlesLoading = false;
+            _marketPulseLoading = false;
+            _topCoinsError = null;
+            _latestBattlesError = null;
+            _marketPulseError = null;
             if (_match is null)
             {
                 _error = L.T("tv.matchNotFound", _culture);
@@ -189,9 +225,11 @@ else
 
             await InvokeAsync(StateHasChanged);
             Logger.LogInformation(
-                "TvMatchPage refresh completed. MatchId={MatchId} HasHotMatch={HasHotMatch} DurationMs={DurationMs}",
+                "TvMatchPage refresh completed. Mode={Mode} MatchId={MatchId} HasHotMatch={HasHotMatch} AvailableMatches={AvailableMatches} DurationMs={DurationMs}",
+                "fixed-match",
                 MatchId,
                 _hotMatch is not null,
+                _stats?.LatestMatches?.Count ?? 0,
                 (DateTime.UtcNow - startedAtUtc).TotalMilliseconds);
         }
         catch (OperationCanceledException)
@@ -200,6 +238,12 @@ else
         catch (Exception ex)
         {
             _error = ex.Message;
+            _topCoinsLoading = false;
+            _latestBattlesLoading = false;
+            _marketPulseLoading = false;
+            _topCoinsError ??= ex.Message;
+            _latestBattlesError ??= ex.Message;
+            _marketPulseError ??= ex.Message;
             Logger.LogWarning(ex, "TvMatchPage refresh failed. MatchId={MatchId}", MatchId);
             await LogAsync("refresh error", ex.Message);
         }

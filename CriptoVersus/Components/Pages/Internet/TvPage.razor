@@ -149,8 +149,9 @@
             : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
 
         var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
-        _isBroadcastMode = currentPath.EndsWith("/tv/broadcast", StringComparison.OrdinalIgnoreCase);
-        var expectedPath = _isBroadcastMode
+        var isBroadcastAlias = currentPath.EndsWith("/tv/broadcast", StringComparison.OrdinalIgnoreCase);
+        _isBroadcastMode = true;
+        var expectedPath = isBroadcastAlias
             ? RouteLocalization.BuildTvBroadcastPath(_culture)
             : RouteLocalization.BuildTvPath(_culture);
         if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))

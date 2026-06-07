@@ -227,6 +227,53 @@
                 </section>
             }
 
+            @if (ShouldShowTvModeSelector)
+            {
+                <section class="tv-mode-selector" aria-labelledby="tv-mode-selector-heading">
+                    <div class="tv-mode-selector__header">
+                        <div>
+                            <span>@T("modes.kicker")</span>
+                            <h2 id="tv-mode-selector-heading">@T("modes.title")</h2>
+                        </div>
+                        <small>@T("modes.description")</small>
+                    </div>
+
+                    <div class="tv-mode-selector__grid">
+                        <article class="tv-mode-card @(IsBroadcastMode ? "is-active" : string.Empty)">
+                            <span class="tv-mode-card__eyebrow">@T("modes.rotativeEyebrow")</span>
+                            <strong>@T("modes.rotativeTitle")</strong>
+                            <p>@T("modes.rotativeDescription")</p>
+                            <div class="tv-mode-card__actions">
+                                <a class="tv-inline-link tv-inline-link--cta" href="@RotativeTvUrl">@T("modes.rotativeCta")</a>
+                            </div>
+                        </article>
+
+                        @foreach (var availableMatch in AvailableTvMatches)
+                        {
+                            <article class="tv-mode-card @((availableMatch.IsCurrent && !IsBroadcastMode) ? "is-current" : string.Empty)">
+                                <div class="tv-mode-card__meta">
+                                    <span class="tv-mode-card__eyebrow">@T("modes.matchEyebrow")</span>
+                                    <small>@availableMatch.StatusLabel</small>
+                                </div>
+                                <strong>@availableMatch.Title</strong>
+                                <p>@availableMatch.Subtitle</p>
+                                <div class="tv-mode-card__stats">
+                                    <span>@availableMatch.ScoreLabel</span>
+                                    <span>@availableMatch.ClockLabel</span>
+                                </div>
+                                <div class="tv-mode-card__actions">
+                                    <a class="tv-inline-link tv-inline-link--cta" href="@availableMatch.FixedUrl">@T("modes.openMatchCta")</a>
+                                    @if (!IsBroadcastMode)
+                                    {
+                                        <a class="tv-inline-link" href="@RotativeTvUrl">@T("modes.watchLiveCta")</a>
+                                    }
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+
             <div class="tv-stage__grid">
                 <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
 
@@ -717,6 +764,53 @@ else
             </div>
         </header>
 
+        @if (ShouldShowTvModeSelector)
+        {
+            <section class="tv-mode-selector" aria-labelledby="tv-mode-selector-waiting-heading">
+                <div class="tv-mode-selector__header">
+                    <div>
+                        <span>@T("modes.kicker")</span>
+                        <h2 id="tv-mode-selector-waiting-heading">@T("modes.title")</h2>
+                    </div>
+                    <small>@T("modes.description")</small>
+                </div>
+
+                <div class="tv-mode-selector__grid">
+                    <article class="tv-mode-card @(IsBroadcastMode ? "is-active" : string.Empty)">
+                        <span class="tv-mode-card__eyebrow">@T("modes.rotativeEyebrow")</span>
+                        <strong>@T("modes.rotativeTitle")</strong>
+                        <p>@T("modes.rotativeDescription")</p>
+                        <div class="tv-mode-card__actions">
+                            <a class="tv-inline-link tv-inline-link--cta" href="@RotativeTvUrl">@T("modes.rotativeCta")</a>
+                        </div>
+                    </article>
+
+                    @foreach (var availableMatch in AvailableTvMatches)
+                    {
+                        <article class="tv-mode-card @((availableMatch.IsCurrent && !IsBroadcastMode) ? "is-current" : string.Empty)">
+                            <div class="tv-mode-card__meta">
+                                <span class="tv-mode-card__eyebrow">@T("modes.matchEyebrow")</span>
+                                <small>@availableMatch.StatusLabel</small>
+                            </div>
+                            <strong>@availableMatch.Title</strong>
+                            <p>@availableMatch.Subtitle</p>
+                            <div class="tv-mode-card__stats">
+                                <span>@availableMatch.ScoreLabel</span>
+                                <span>@availableMatch.ClockLabel</span>
+                            </div>
+                            <div class="tv-mode-card__actions">
+                                <a class="tv-inline-link tv-inline-link--cta" href="@availableMatch.FixedUrl">@T("modes.openMatchCta")</a>
+                                @if (!IsBroadcastMode)
+                                {
+                                    <a class="tv-inline-link" href="@RotativeTvUrl">@T("modes.watchLiveCta")</a>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+
         <div class="tv-waiting-grid">
             <article class="tv-panel tv-panel--community">
                 <div class="tv-panel__head">
@@ -1130,7 +1224,7 @@ else
         => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:AnimationSpeed") ?? 1.0d, 0.3d, 2.5d);
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
-    private bool IsBroadcastCrowdAudioEnabled => IsBroadcastMode && Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
+    private bool IsBroadcastCrowdAudioEnabled => Config.GetValue<bool?>("CriptoVersusTV:EnableBroadcastCrowdAudio") != false;
     private bool ShouldRenderCrowdAudio => IsBroadcastCrowdAudioEnabled && HasActiveOngoingMatch;
     private bool ShouldRenderGoalAudio => Config.GetValue<bool?>("CriptoVersusTV:EnableGoalAudio") != false;
     private bool ShouldShowAudioUnlockButton => ShouldRenderCrowdAudio && _showAudioUnlockButton && !_audioUnlocked;
@@ -1153,6 +1247,9 @@ else
     private IReadOnlyList<StatsAssetPerformanceDto> TopTeams => Stats?.TopTeams?.Take(6).ToList() ?? [];
     private IReadOnlyList<StatsLatestMatchDto> LatestMatches => Stats?.LatestMatches?.Take(4).ToList() ?? [];
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
+    private string RotativeTvUrl => RouteLocalization.BuildTvPath(Culture);
+    private IReadOnlyList<TvAvailableMatchCard> AvailableTvMatches => BuildAvailableTvMatches();
+    private bool ShouldShowTvModeSelector => AvailableTvMatches.Count > 0 || !IsBroadcastMode;
     private IReadOnlyList<string> ProceduralLogLines =>
     [
         T("states.scanMarketPulse"),
@@ -1226,6 +1323,13 @@ else
 
         if (!ShouldRenderCrowdAudio)
             _broadcastAudioInitialized = false;
+
+        Logger.LogInformation(
+            "TvStage mode updated. Mode={Mode} MatchId={MatchId} AvailableMatches={AvailableMatches} CrowdAudioEligible={CrowdAudioEligible}",
+            IsBroadcastMode ? "rotative" : "fixed-match",
+            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            AvailableTvMatches.Count,
+            ShouldRenderCrowdAudio);
 
         SyncClockAnchor();
         ProcessBroadcastState();
@@ -4211,6 +4315,92 @@ else
             ? string.Empty
             : BuildMatchUrl(match.MatchId, MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol));
 
+    private IReadOnlyList<TvAvailableMatchCard> BuildAvailableTvMatches()
+    {
+        var cards = new List<TvAvailableMatchCard>();
+        var seen = new HashSet<int>();
+
+        void AddCard(int matchId, string leftSymbol, string rightSymbol, string? status, int scoreA, int scoreB, string clockLabel)
+        {
+            var fixedUrl = BuildMatchUrl(matchId, MatchSlugHelper.BuildSlug(leftSymbol, rightSymbol));
+            if (matchId <= 0 || string.IsNullOrWhiteSpace(fixedUrl) || !seen.Add(matchId))
+                return;
+
+            cards.Add(new TvAvailableMatchCard(
+                matchId,
+                $"{GetBaseSymbol(leftSymbol)} {T("vs")} {GetBaseSymbol(rightSymbol)}",
+                FormatStatus(status),
+                clockLabel,
+                $"{scoreA}:{scoreB}",
+                $"{GetBaseSymbol(leftSymbol)} • {GetBaseSymbol(rightSymbol)}",
+                fixedUrl,
+                (Match?.MatchId ?? HotMatch?.MatchId ?? 0) == matchId));
+        }
+
+        if (HasLiveMatch)
+        {
+            AddCard(
+                Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+                Match?.TeamA ?? HotMatch?.LeftSymbol ?? string.Empty,
+                Match?.TeamB ?? HotMatch?.RightSymbol ?? string.Empty,
+                Match?.Status ?? (HotMatch?.RemainingSeconds > 0 ? "Ongoing" : null),
+                Match?.ScoreA ?? HotMatch?.LeftScore ?? 0,
+                Match?.ScoreB ?? HotMatch?.RightScore ?? 0,
+                DisplayClockPrimary());
+        }
+
+        foreach (var latestMatch in LatestMatches.Where(match => IsSelectableTvStatus(match.Status)))
+        {
+            AddCard(
+                latestMatch.MatchId,
+                latestMatch.HomeSymbol,
+                latestMatch.AwaySymbol,
+                latestMatch.Status,
+                latestMatch.HomeScore,
+                latestMatch.AwayScore,
+                BuildLatestMatchClockLabel(latestMatch));
+        }
+
+        return cards.Take(4).ToList();
+    }
+
+    private static bool IsSelectableTvStatus(string? status)
+        => !IsTerminalTvStatus(status);
+
+    private static bool IsTerminalTvStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return false;
+
+        return status.Trim().ToUpperInvariant() switch
+        {
+            "COMPLETED" => true,
+            "CANCELLED" => true,
+            "CANCELED" => true,
+            "CLOSED" => true,
+            "SETTLED" => true,
+            "FINISHED" => true,
+            "EXPIRED" => true,
+            "ABORTED" => true,
+            _ => false
+        };
+    }
+
+    private string BuildLatestMatchClockLabel(StatsLatestMatchDto match)
+    {
+        if (match.FinishedAtUtc.HasValue)
+            return FormatStatus(match.Status);
+
+        if (match.StartedAtUtc.HasValue)
+        {
+            var elapsed = DateTime.UtcNow - match.StartedAtUtc.Value;
+            if (elapsed.TotalMinutes > 0)
+                return $"{Math.Clamp((int)Math.Floor(elapsed.TotalMinutes), 0, 99)}'";
+        }
+
+        return FormatStatus(match.Status);
+    }
+
     private string GetTopCoinsStatusMessage()
         => ResolveWaitingPanelStatusMessage(
             TopCoinsLoading,
@@ -4260,6 +4450,16 @@ else
 
         return emptyMessage;
     }
+
+    private sealed record TvAvailableMatchCard(
+        int MatchId,
+        string Title,
+        string StatusLabel,
+        string ClockLabel,
+        string ScoreLabel,
+        string Subtitle,
+        string FixedUrl,
+        bool IsCurrent);
 
     private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current, string? scorerOverride = null)
     {
@@ -6474,7 +6674,8 @@ else
             ApplyAudioInteropState(state);
             _broadcastAudioInitialized = true;
             Logger.LogInformation(
-                "TvStage broadcast crowd audio initialized. MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+                "TvStage broadcast crowd audio initialized. Mode={Mode} MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+                IsBroadcastMode ? "rotative" : "fixed-match",
                 Match?.MatchId ?? HotMatch?.MatchId ?? 0,
                 HasActiveOngoingMatch,
                 IsBroadcastMode);
@@ -6488,7 +6689,8 @@ else
                 ApplyAudioInteropState(state);
                 _broadcastAudioInitialized = true;
                 Logger.LogInformation(
-                    "TvStage broadcast crowd audio initialized via fallback. MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+                    "TvStage broadcast crowd audio initialized via fallback. Mode={Mode} MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
+                    IsBroadcastMode ? "rotative" : "fixed-match",
                     Match?.MatchId ?? HotMatch?.MatchId ?? 0,
                     HasActiveOngoingMatch,
                     IsBroadcastMode);
@@ -10326,7 +10528,7 @@ else
         grid-auto-rows: 100%;
         gap: 12px;
         min-width: 0;
-        height: 176px;
+        height: 120px;
         overflow-y: auto;
         overscroll-behavior-y: contain;
         padding-right: 2px;
@@ -11400,6 +11602,93 @@ else
         border-radius: 18px;
         border: 1px solid rgba(255,255,255,0.06);
         background: rgba(255,255,255,0.025);
+    }
+
+    .tv-mode-selector {
+        display: grid;
+        gap: 1rem;
+        margin: 0 0 1.1rem;
+    }
+
+    .tv-mode-selector__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+        color: rgba(232, 243, 255, 0.88);
+    }
+
+    .tv-mode-selector__header span,
+    .tv-mode-card__eyebrow {
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        font-size: .72rem;
+        color: rgba(143, 226, 255, 0.78);
+    }
+
+    .tv-mode-selector__header h2 {
+        margin: .25rem 0 0;
+        font-size: 1.1rem;
+    }
+
+    .tv-mode-selector__header small {
+        color: rgba(214, 226, 240, 0.72);
+    }
+
+    .tv-mode-selector__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: .9rem;
+    }
+
+    .tv-mode-card {
+        display: grid;
+        gap: .7rem;
+        padding: 1rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: linear-gradient(180deg, rgba(12, 20, 34, 0.82), rgba(7, 12, 24, 0.92));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .tv-mode-card.is-active,
+    .tv-mode-card.is-current {
+        border-color: rgba(127, 246, 223, 0.34);
+        box-shadow: 0 16px 34px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .tv-mode-card strong {
+        color: #f7fbff;
+        font-size: 1rem;
+    }
+
+    .tv-mode-card p,
+    .tv-mode-card small,
+    .tv-mode-card span {
+        color: rgba(220, 232, 244, 0.8);
+    }
+
+    .tv-mode-card__meta,
+    .tv-mode-card__stats,
+    .tv-mode-card__actions {
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .tv-inline-link--cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.6rem;
+        padding: 0 .95rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(76,243,141,0.18), rgba(127,246,223,0.26));
+        border: 1px solid rgba(127,246,223,0.26);
+        color: #f5fffb;
     }
 
     .tv-ranking-row strong,

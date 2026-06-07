@@ -1061,6 +1061,8 @@
     "startingSoon": "Comecando em breve",
     "ended": "Encerrada",
     "watchMatch": "Assistir partida",
+    "watchLive": "Assistir ao vivo",
+    "openMatch": "Abrir Match",
     "matchNotFound": "Partida nao encontrada na CriptoVersus TV.",
     "loading": "Carregando transmissao da TV...",
     "offline": "Transmissao offline",
@@ -1179,6 +1181,18 @@
       "dataStatusCurrencyMissing": "O snapshot publico de moedas nao foi encontrado agora. A tela esta segurando o ultimo quadro confiavel.",
       "dataStatusCurrencyStale": "O snapshot de mercado ficou stale. O broadcast segue mostrando o ultimo ranking util enquanto a coleta retoma.",
       "dataStatusStatsStale": "As estatisticas publicas ficaram stale temporariamente. A arena segue no ar com os dados mais recentes disponiveis."
+    },
+    "modes": {
+      "kicker": "Navegacao da TV",
+      "title": "Escolha como assistir",
+      "description": "Fique no canal rotativo ou abra uma partida fixa ao vivo.",
+      "rotativeEyebrow": "TV Rotativa",
+      "rotativeTitle": "Rotacao automatica ao vivo",
+      "rotativeDescription": "O canal continua girando entre as arenas elegiveis mais fortes.",
+      "rotativeCta": "Assistir ao vivo",
+      "matchEyebrow": "Partida disponivel",
+      "openMatchCta": "Abrir Match",
+      "watchLiveCta": "TV Rotativa"
     },
     "promo": {
       "chooseSide": "ESCOLHA UM LADO!",

@@ -163,11 +163,18 @@
                         </article>
                     </div>
 
-                    <a class="arena-cta-button home-hot-hero__cta"
-                       href="@GetTvWatchUrl(hero)"
-                       aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                        @ArenaText("watchLive")
-                    </a>
+                    <div class="home-hot-hero__cta-group">
+                        <a class="arena-cta-button home-hot-hero__cta"
+                           href="@GetTvWatchUrl(hero)"
+                           aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("watchLive")
+                        </a>
+                        <a class="arena-cta-link home-hot-hero__cta-link"
+                           href="@GetTvMatchUrl(hero)"
+                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("openMatch")
+                        </a>
+                    </div>
                 </article>
             }
             else if (HeroFallbackMatch is not null)
@@ -246,11 +253,18 @@
                         </article>
                     </div>
 
-                    <a class="arena-cta-button home-hot-hero__cta"
-                       href="@GetMatchUrl(hero)"
-                       aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                        @ArenaText("openArena")
-                    </a>
+                    <div class="home-hot-hero__cta-group">
+                        <a class="arena-cta-button home-hot-hero__cta"
+                           href="@GetTvBroadcastUrl()"
+                           aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("watchLive")
+                        </a>
+                        <a class="arena-cta-link home-hot-hero__cta-link"
+                           href="@GetTvMatchUrl(hero)"
+                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("openMatch")
+                        </a>
+                    </div>
                 </article>
             }
 
@@ -293,8 +307,8 @@
 
                 <article class="arena-featured-battle @GetArenaLeaderClass(featured) @GetArenaHeatClass(featured)">
                     <a class="arena-card-hitbox"
-                       href="@GetMatchUrl(featured)"
-                       aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)"></a>
+                       href="@GetTvMatchUrl(featured)"
+                       aria-label="@ArenaText("openMatchAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)"></a>
                     <div class="arena-featured-battle__glow" aria-hidden="true"></div>
 
                     <div class="arena-featured-battle__hud">
@@ -385,11 +399,18 @@
                                 <strong>@GetVolatilityLabel(featured)</strong>
                             </div>
 
-                            <a class="arena-cta-button"
-                               href="@GetMatchUrl(featured)"
-                               aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
-                                @ArenaText("openArena")
-                            </a>
+                            <div class="arena-featured-battle__actions">
+                                <a class="arena-cta-button"
+                                   href="@GetTvBroadcastUrl()"
+                                   aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
+                                    @ArenaText("watchLive")
+                                </a>
+                                <a class="arena-cta-link"
+                                   href="@GetTvMatchUrl(featured)"
+                                   aria-label="@ArenaText("openMatchAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
+                                    @ArenaText("openMatch")
+                                </a>
+                            </div>
                         </aside>
                     </div>
                 </article>
@@ -414,8 +435,8 @@
 
                     <article class="arena-match-card @GetArenaLeaderClass(match) @GetArenaHeatClass(match)">
                         <a class="arena-card-hitbox"
-                           href="@GetMatchUrl(match)"
-                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
+                           href="@GetTvMatchUrl(match)"
+                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
                         <div class="arena-match-card__header">
                             <span class="arena-live-pill arena-live-pill--small">
                                 <span class="arena-live-pill__dot" aria-hidden="true"></span>
@@ -471,11 +492,18 @@
 
                         <div class="arena-match-card__footer">
                             <span class="arena-status-subtext">@GetMatchClockLabel(match)</span>
-                            <a class="arena-cta-link"
-                               href="@GetMatchUrl(match)"
-                               aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                @ArenaText("openArena")
-                            </a>
+                            <div class="arena-match-card__actions">
+                                <a class="arena-cta-link"
+                                   href="@GetTvBroadcastUrl()"
+                                   aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                    @ArenaText("watchLive")
+                                </a>
+                                <a class="arena-cta-link"
+                                   href="@GetTvMatchUrl(match)"
+                                   aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                    @ArenaText("openMatch")
+                                </a>
+                            </div>
                         </div>
                     </article>
                 }
@@ -497,8 +525,8 @@
 
                 <article class="arena-match-card arena-match-card--compact @GetArenaLeaderClass(match) @GetArenaHeatClass(match)">
                     <a class="arena-card-hitbox"
-                       href="@GetMatchUrl(match)"
-                       aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
+                       href="@GetTvMatchUrl(match)"
+                       aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
                     <div class="arena-match-card__header">
                         <span class="arena-chip arena-chip--muted">@GetMatchStateLabel(match)</span>
                         <span class="arena-meta">@ArenaText("arenaMatchId", match.MatchId)</span>
@@ -550,11 +578,18 @@
 
                     <div class="arena-match-card__footer">
                         <span class="arena-status-subtext">@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
-                        <a class="arena-cta-link"
-                           href="@GetMatchUrl(match)"
-                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                            @ArenaText("openBattle")
-                        </a>
+                        <div class="arena-match-card__actions">
+                            <a class="arena-cta-link"
+                               href="@GetTvBroadcastUrl()"
+                               aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                @ArenaText("watchLive")
+                            </a>
+                            <a class="arena-cta-link"
+                               href="@GetTvMatchUrl(match)"
+                               aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                @ArenaText("openMatch")
+                            </a>
+                        </div>
                     </div>
                 </article>
             }
@@ -803,7 +838,28 @@
     }
 
     private string GetTvWatchUrl(HotMatchDto match)
-        => RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, match.Slug);
+        => GetTvBroadcastUrl();
+
+    private string GetTvBroadcastUrl()
+        => RouteLocalization.BuildTvPath(CurrentCulture);
+
+    private string GetTvMatchUrl(HotMatchDto match)
+    {
+        var slug = !string.IsNullOrWhiteSpace(match.Slug)
+            ? match.Slug
+            : MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+        return string.IsNullOrWhiteSpace(slug)
+            ? GetTvBroadcastUrl()
+            : RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, slug);
+    }
+
+    private string GetTvMatchUrl(MatchDto match)
+    {
+        var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+        return string.IsNullOrWhiteSpace(slug)
+            ? GetTvBroadcastUrl()
+            : RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, slug);
+    }
 
     private MatchDto ToMatchCard(HotMatchDto match)
         => match.MatchSnapshot ?? new MatchDto
@@ -986,8 +1042,10 @@
             "featuredBattle" => CurrentCulture == "en" ? "Featured Battle" : "Batalha em destaque",
             "openArena" => CurrentCulture == "en" ? "Open Arena" : "Abrir arena",
             "openBattle" => CurrentCulture == "en" ? "Open battle" : "Abrir batalha",
-            "watchLive" => CurrentCulture == "en" ? "WATCH LIVE" : "ASSISTIR AO VIVO",
+            "watchLive" => CurrentCulture == "en" ? "Watch Live" : "Assistir ao vivo",
+            "openMatch" => CurrentCulture == "en" ? "Open Match" : "Abrir Match",
             "watchLiveAria" => CurrentCulture == "en" ? "Watch live match {0} versus {1}, match {2}" : "Assistir ao vivo a partida {0} contra {1}, partida {2}",
+            "openMatchAria" => CurrentCulture == "en" ? "Open fixed TV match {0} versus {1}, match {2}" : "Abrir a partida fixa da TV para {0} contra {1}, partida {2}",
             "hotMatch" => CurrentCulture == "en" ? "HOT MATCH" : "BATALHA QUENTE",
             "trending" => CurrentCulture == "en" ? "TRENDING" : "TRENDING",
             "momentum" => CurrentCulture == "en" ? "MOMENTUM" : "MOMENTUM",
@@ -1939,6 +1997,25 @@
         width: 100%;
     }
 
+    .home-hot-hero__cta-group,
+    .arena-featured-battle__actions,
+    .arena-match-card__actions {
+        display: flex;
+        gap: .75rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .home-hot-hero__cta-group {
+        margin-top: .2rem;
+    }
+
+    .home-hot-hero__cta-link {
+        min-height: 3.2rem;
+        display: inline-flex;
+        align-items: center;
+    }
+
     .home-hot-hero--skeleton,
     .arena-match-card--skeleton {
         pointer-events: none;
@@ -2530,6 +2607,11 @@
     .arena-match-card__footer {
         padding-top: .2rem;
         border-top: 1px solid rgba(255,255,255,.06);
+        display: flex;
+        justify-content: space-between;
+        gap: .75rem;
+        align-items: center;
+        flex-wrap: wrap;
     }
 
     .home-faq-grid {

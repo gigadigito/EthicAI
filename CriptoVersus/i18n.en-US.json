@@ -1159,6 +1159,8 @@
     "startingSoon": "Starting soon",
     "ended": "Ended",
     "watchMatch": "Watch match",
+    "watchLive": "Watch Live",
+    "openMatch": "Open Match",
     "matchNotFound": "Match not found on CriptoVersus TV.",
     "loading": "Loading TV broadcast...",
     "offline": "Broadcast offline",
@@ -1277,6 +1279,18 @@
       "dataStatusCurrencyMissing": "The public currency snapshot is missing right now. The screen is holding the last reliable frame.",
       "dataStatusCurrencyStale": "The market snapshot went stale. The broadcast is still showing the last useful ranking while ingestion recovers.",
       "dataStatusStatsStale": "Public statistics are temporarily stale. The arena remains online with the most recent available data."
+    },
+    "modes": {
+      "kicker": "TV navigation",
+      "title": "Choose how to watch",
+      "description": "Stay on the rotating channel or open a fixed live match.",
+      "rotativeEyebrow": "TV Rotative",
+      "rotativeTitle": "Automatic live rotation",
+      "rotativeDescription": "The channel keeps rotating between the strongest eligible arenas.",
+      "rotativeCta": "Watch Live",
+      "matchEyebrow": "Available match",
+      "openMatchCta": "Open Match",
+      "watchLiveCta": "TV Rotative"
     },
     "promo": {
       "chooseSide": "CHOOSE A SIDE!",
