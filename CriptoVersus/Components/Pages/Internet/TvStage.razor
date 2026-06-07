@@ -12726,10 +12726,19 @@ else
 
     .tv-stage--broadcast .tv-stage__topbar {
         align-items: start;
+        position: relative;
+        min-height: 58px;
+        padding-right: min(44vw, 430px);
     }
 
     .tv-stage--broadcast .tv-stage__topbar-side {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: min(42vw, 392px);
         max-width: min(100%, 392px);
+        justify-items: end;
+        z-index: 2;
     }
 
     .tv-stage--broadcast .tv-stage__grid {
@@ -12930,6 +12939,19 @@ else
 
         .tv-stage--broadcast .tv-football-layout {
             grid-template-columns: minmax(160px, 210px) minmax(0, 1fr) minmax(160px, 210px);
+        }
+    }
+
+    @@media (max-width: 1200px) {
+        .tv-stage--broadcast .tv-stage__topbar {
+            min-height: 0;
+            padding-right: 0;
+        }
+
+        .tv-stage--broadcast .tv-stage__topbar-side {
+            position: static;
+            width: 100%;
+            max-width: none;
         }
     }
 
