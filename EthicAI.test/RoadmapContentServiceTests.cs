@@ -83,6 +83,7 @@ public sealed class RoadmapContentServiceTests
 
     private static RoadmapContentService CreateService()
     {
+        var appCultureService = new AppCultureService();
         var data = new Dictionary<string, string?>
         {
             ["CriptoVersus:PublicBaseUrl"] = PublicBaseUrl
@@ -92,6 +93,6 @@ public sealed class RoadmapContentServiceTests
             .Add(new MemoryConfigurationSource { InitialData = data })
             .Build();
 
-        return new RoadmapContentService(configuration);
+        return new RoadmapContentService(configuration, new RouteLocalizationService(appCultureService));
     }
 }

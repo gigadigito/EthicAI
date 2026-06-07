@@ -34,7 +34,7 @@ public sealed class SystemBalanceWithdrawalServiceTests
         Assert.Equal(5m, reloaded.TotalWithdrawn);
         Assert.Equal(5m, result.ProcessedAmount);
         Assert.Equal("Resgate concluido.", result.Message);
-        Assert.Contains(await db.Ledger.Select(x => x.Type).ToListAsync(), x => x == SystemBalanceWithdrawalService.CompletedLedgerType);
+        Assert.Contains(await db.Ledger.Select(x => x.Type).ToListAsync(), x => x == "SYSTEM_BAL_WITHDRAW");
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class SystemBalanceWithdrawalServiceTests
         var reloaded = await db.User.SingleAsync(x => x.UserID == user.UserID);
         Assert.Equal("WITHDRAW_PROOF_INVALID", ex.Code);
         Assert.Equal(9m, reloaded.Balance);
-        Assert.Contains(await db.Ledger.Select(x => x.Type).ToListAsync(), x => x == SystemBalanceWithdrawalService.FailedLedgerType);
+        Assert.Contains(await db.Ledger.Select(x => x.Type).ToListAsync(), x => x == "WITHDRAW_FAIL");
     }
 
     [Fact]

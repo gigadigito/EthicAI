@@ -1,6 +1,9 @@
 using CriptoVersus.Web.Services;
 using DTOs;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EthicAI.test;
 
@@ -11,7 +14,7 @@ public sealed class MatchSeoServiceTests
     {
         var service = CreateService();
 
-        var canonical = service.BuildCanonicalUrl(39, "ada-vs-bnb");
+        var canonical = service.BuildCanonicalUrl("en", 39, "ada-vs-bnb");
 
         Assert.Equal("https://seudominio.com/match/39/ada-vs-bnb", canonical);
     }
@@ -48,7 +51,7 @@ public sealed class MatchSeoServiceTests
             TeamB = "BNBUSDT"
         };
 
-        Assert.Equal("ADA vs BNB - Resultado da Partida #39 | CriptoVersus", service.BuildTitle(match));
+        Assert.Equal("ADA vs BNB - Resultado da Partida #39 | CriptoVersus", service.BuildTitle(match, "pt"));
         Assert.Contains("ADA vs BNB", service.BuildDescription(match, "pt"));
     }
 
@@ -142,6 +145,7 @@ public sealed class MatchSeoServiceTests
 
     private static MatchSeoService CreateService()
     {
+        var appCultureService = new AppCultureService();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -151,6 +155,29 @@ public sealed class MatchSeoServiceTests
             })
             .Build();
 
-        return new MatchSeoService(configuration, new MatchSlugHelper(), new RouteLocalizationService());
+        var environment = new FakeWebHostEnvironment
+        {
+            ContentRootPath = "C:\\EthicAI\\EthicAI\\CriptoVersus",
+            WebRootPath = "C:\\EthicAI\\EthicAI\\CriptoVersus\\wwwroot",
+            EnvironmentName = "Production"
+        };
+
+        var localization = new LocalizationService(environment, appCultureService, NullLogger<LocalizationService>.Instance);
+        return new MatchSeoService(
+            appCultureService,
+            configuration,
+            localization,
+            new MatchSlugHelper(),
+            new RouteLocalizationService(appCultureService));
+    }
+
+    private sealed class FakeWebHostEnvironment : IWebHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "EthicAI.test";
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+        public string WebRootPath { get; set; } = string.Empty;
+        public string EnvironmentName { get; set; } = "Production";
+        public string ContentRootPath { get; set; } = string.Empty;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }

@@ -5,11 +5,13 @@ using CriptoVersus.API.Services;
 using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace CriptoVersus.Worker.Tests;
 
@@ -118,6 +120,9 @@ public sealed class MatchMetricSnapshotsEndpointTests
             new StubMatchScoreRebuildService(),
             configuration,
             new StubArenaSentimentService(),
+            new StubAudioAssetResolverService(),
+            new StubAudioGenerationQueueService(),
+            Options.Create(new ProceduralAudioFeatureOptions()),
             NullLogger<MatchesController>.Instance);
     }
 
@@ -238,6 +243,36 @@ public sealed class MatchMetricSnapshotsEndpointTests
             => throw new NotSupportedException();
 
         public Task<ArenaSentimentPairDto> GetArenaSentimentForMatchAsync(string homeSymbol, string awaySymbol, CancellationToken ct = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class StubAudioAssetResolverService : IAudioAssetResolverService
+    {
+        public Task<AudioAssetResolveResult?> ResolveAsync(AudioResolveRequest request, CancellationToken ct = default)
+            => Task.FromResult<AudioAssetResolveResult?>(null);
+
+        public Task<AudioResolveDiagnosticResult> DiagnoseAsync(AudioResolveRequest request, bool incrementUsage, CancellationToken ct = default)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class StubAudioGenerationQueueService : IAudioGenerationQueueService
+    {
+        public Task<AudioQueueEnqueueResult> EnqueueIfMissingAsync(AudioResolveRequest request, CancellationToken ct = default)
+            => Task.FromResult(new AudioQueueEnqueueResult(false, false, "skipped", "test stub"));
+
+        public Task<IReadOnlyList<AudioGenerationJobDto>> LeaseJobsAsync(AudioGenerationJobLeaseRequest request, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task<AudioAsset> CompleteJobAsync(long id, AudioGenerationCompleteRequest request, IFormFile audioFile, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task<bool> FailJobAsync(long id, AudioGenerationFailRequest request, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task<AudioAssetTestGenerateResponseDto> EnqueueManualTestAsync(AudioAssetTestGenerateRequestDto request, CancellationToken ct = default)
+            => throw new NotSupportedException();
+
+        public Task<AudioAssetTestStatusResponseDto?> GetJobStatusAsync(long id, CancellationToken ct = default)
             => throw new NotSupportedException();
     }
 

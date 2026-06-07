@@ -19,6 +19,47 @@ function formatBattleTime(time) {
     });
 }
 
+function buildTimelineBuckets(samples, maxDots) {
+    if (!Array.isArray(samples) || samples.length === 0) {
+        return [];
+    }
+
+    if (!Number.isFinite(maxDots) || maxDots <= 0 || samples.length <= maxDots) {
+        return samples.map((sample) => ({
+            winner: sample.winner,
+            count: 1,
+            startTime: sample.time,
+            endTime: sample.time
+        }));
+    }
+
+    const bucketSize = Math.ceil(samples.length / maxDots);
+    const buckets = [];
+
+    for (let index = 0; index < samples.length; index += bucketSize) {
+        const group = samples.slice(index, index + bucketSize);
+        const leftWins = group.filter((item) => item.winner === "left").length;
+        const rightWins = group.filter((item) => item.winner === "right").length;
+        const ties = group.length - leftWins - rightWins;
+        let winner = "tie";
+
+        if (leftWins > rightWins && leftWins >= ties) {
+            winner = "left";
+        } else if (rightWins > leftWins && rightWins >= ties) {
+            winner = "right";
+        }
+
+        buckets.push({
+            winner,
+            count: group.length,
+            startTime: group[0]?.time ?? 0,
+            endTime: group[group.length - 1]?.time ?? 0
+        });
+    }
+
+    return buckets;
+}
+
 function applySeriesMarkers(state, markers) {
     if (typeof state?.series?.setMarkers === "function") {
         state.series.setMarkers(markers);
@@ -96,11 +137,14 @@ function buildTimelineDot(sample, battleState) {
     const dot = document.createElement("button");
     dot.type = "button";
     dot.className = `tv-candle-battle-card__timeline-dot ${sample.winner === "left" ? "is-left" : sample.winner === "right" ? "is-right" : "is-tie"}`;
+    const rangeLabel = sample.count > 1
+        ? `${formatBattleTime(sample.startTime)}-${formatBattleTime(sample.endTime)}`
+        : formatBattleTime(sample.startTime);
     dot.title = sample.winner === "left"
-        ? `${formatBattleTime(sample.time)} - ${battleState.leftMeta.displayBase} venceu`
+        ? `${rangeLabel} - ${battleState.leftMeta.displayBase} venceu${sample.count > 1 ? ` (${sample.count} candles)` : ""}`
         : sample.winner === "right"
-            ? `${formatBattleTime(sample.time)} - ${battleState.rightMeta.displayBase} venceu`
-            : `${formatBattleTime(sample.time)} - Empate`;
+            ? `${rangeLabel} - ${battleState.rightMeta.displayBase} venceu${sample.count > 1 ? ` (${sample.count} candles)` : ""}`
+            : `${rangeLabel} - Empate${sample.count > 1 ? ` (${sample.count} candles)` : ""}`;
     dot.setAttribute("aria-label", dot.title);
 
     if (sample.winner === "left" || sample.winner === "right") {
@@ -126,6 +170,13 @@ function buildTimelineDot(sample, battleState) {
         }
     }
 
+    if (sample.count > 1) {
+        const countBadge = document.createElement("span");
+        countBadge.className = "tv-candle-battle-card__timeline-dot-count";
+        countBadge.textContent = `+${sample.count - 1}`;
+        dot.appendChild(countBadge);
+    }
+
     return dot;
 }
 
@@ -147,8 +198,12 @@ export function renderBattleTimeline(containerId, battleState) {
         return;
     }
 
+    const trackWidth = Math.max(container.clientWidth || 0, 120);
+    const maxDots = Math.max(10, Math.floor(trackWidth / 18));
+    const samples = buildTimelineBuckets(battleState.samples, maxDots);
+
     const fragment = document.createDocumentFragment();
-    battleState.samples.forEach((sample) => {
+    samples.forEach((sample) => {
         fragment.appendChild(buildTimelineDot(sample, battleState));
     });
     container.appendChild(fragment);
