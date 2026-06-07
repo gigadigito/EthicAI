@@ -9793,6 +9793,8 @@ else
         flex-wrap: wrap;
         gap: 10px;
         justify-content: flex-end;
+        align-items: center;
+        white-space: nowrap;
     }
 
     .tv-stage__topbar > :first-child,
@@ -12718,9 +12720,19 @@ else
 
     .tv-stage--broadcast .tv-stage__badges {
         gap: 8px;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+
+    .tv-stage--broadcast .tv-stage__badges::-webkit-scrollbar {
+        display: none;
     }
 
     .tv-stage--broadcast .tv-pill {
+        flex: 0 0 auto;
         min-height: 34px;
         padding: 0 12px;
         font-size: .72rem;
@@ -13082,6 +13094,8 @@ else
 
         .tv-stage__badges {
             justify-content: flex-start;
+            flex-wrap: wrap;
+            white-space: normal;
         }
 
         .tv-broadcast-rotation-gauge,
