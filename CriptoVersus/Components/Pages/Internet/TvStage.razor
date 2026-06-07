@@ -538,6 +538,7 @@
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
                                         <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
+                                                              Culture="@Culture"
                                                               LeftDisplayName="@DisplayLeftSymbol()"
                                                               LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
                                                               LeftPressurePercent="@GetArenaPressureLeftPercent()"
@@ -4786,24 +4787,22 @@ else
     {
         var pair = GetArenaPressurePair();
         if (pair.Left >= 70)
-            return IsPortugueseCulture ? $"{DisplayLeftHeroLabel()} EM PRESSAO CRITICA" : $"{DisplayLeftHeroLabel()} CRITICAL PRESSURE";
+            return T("pressureGauge.statusCritical", DisplayLeftHeroLabel());
 
         if (pair.Right >= 70)
-            return IsPortugueseCulture ? $"{DisplayRightHeroLabel()} EM PRESSAO CRITICA" : $"{DisplayRightHeroLabel()} CRITICAL PRESSURE";
+            return T("pressureGauge.statusCritical", DisplayRightHeroLabel());
 
         if (pair.Left >= 60)
-            return IsPortugueseCulture ? $"{DisplayLeftHeroLabel()} DOMINA A ARENA" : $"{DisplayLeftHeroLabel()} CONTROLS THE ARENA";
+            return T("pressureGauge.statusControlsArena", DisplayLeftHeroLabel());
 
         if (pair.Right >= 60)
-            return IsPortugueseCulture ? $"{DisplayRightHeroLabel()} DOMINA A ARENA" : $"{DisplayRightHeroLabel()} CONTROLS THE ARENA";
+            return T("pressureGauge.statusControlsArena", DisplayRightHeroLabel());
 
-        return IsPortugueseCulture ? "DISPUTA EQUILIBRADA" : "BALANCED DUEL";
+        return T("pressureGauge.statusBalanced");
     }
 
     private string GetArenaPressureDescription()
-        => IsPortugueseCulture
-            ? "A pressao da arena representa o controle territorial e a intensidade das acoes de cada lado. Acima de 60% indica dominio forte. Abaixo de 40% indica perda de controle."
-            : "Arena pressure shows territorial control and the intensity of each side. Above 60% means strong dominance. Below 40% means loss of control.";
+        => T("pressureGauge.description");
 
     private string GetArenaPressureMomentumLabel(bool isLeft)
     {
@@ -4814,15 +4813,15 @@ else
             || string.Equals(CurrentFieldState?.MomentumOwner, symbol, StringComparison.OrdinalIgnoreCase);
 
         if (hasMomentum && pressure >= 55)
-            return IsPortugueseCulture ? "MOMENTUM FORTE" : "STRONG MOMENTUM";
+            return T("pressureGauge.momentumStrong");
 
         if (pressure >= 60)
-            return IsPortugueseCulture ? "PRESSAO CRESCENTE" : "RISING PRESSURE";
+            return T("pressureGauge.momentumRising");
 
         if (pressure is >= 45 and <= 55)
-            return IsPortugueseCulture ? "RITMO NEUTRO" : "NEUTRAL RHYTHM";
+            return T("pressureGauge.momentumNeutral");
 
-        return IsPortugueseCulture ? "EM RECUPERACAO" : "RECOVERING";
+        return T("pressureGauge.momentumRecovering");
     }
 
     private async Task TriggerBroadcastFlipAsync()

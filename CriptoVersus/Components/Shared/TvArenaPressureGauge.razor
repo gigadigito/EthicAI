@@ -1,4 +1,6 @@
 @using System.Globalization
+@using CriptoVersus.Web.Services
+@inject LocalizationService L
 
 <section class="tv-arena-pressure-gauge @StateClass @(IsCompact ? "is-compact" : string.Empty)"
          aria-label="@AriaLabel"
@@ -6,33 +8,33 @@
     <div class="tv-arena-pressure-gauge__panel">
         <header class="tv-arena-pressure-gauge__header">
             <div>
-                <h3>ARENA PRESSURE</h3>
-                <p>POSSE DA BOLA EM DISPUTA</p>
+                <h3>@Tg("title")</h3>
+                <p>@Tg("subtitle")</p>
             </div>
         </header>
 
         <div class="tv-arena-pressure-gauge__layout">
             <section class="tv-arena-pressure-gauge__side tv-arena-pressure-gauge__side--left"
-                     title="@($"{LeftSymbol} {LeftDisplayName} - {LeftPressureDisplay}% de pressão")">
+                     title="@string.Format(CultureInfo.CurrentCulture, Tg("pressureTooltip"), DisplaySymbol(LeftSymbol), DisplayText(LeftDisplayName), LeftPressureDisplay)">
                 <div class="tv-arena-pressure-gauge__identity">
                     <div class="tv-arena-pressure-gauge__logo-ring">
                         @if (!string.IsNullOrWhiteSpace(LeftLogoUrl))
                         {
-                            <img src="@LeftLogoUrl" alt="@($"{LeftSymbol} logo")" />
+                            <img src="@LeftLogoUrl" alt="@string.Format(CultureInfo.CurrentCulture, Tg("logoAlt"), DisplaySymbol(LeftSymbol))" />
                         }
                         else
                         {
-                            <span>@CompactToken(LeftSymbol)</span>
+                            <span>@CompactSymbol(LeftSymbol)</span>
                         }
                     </div>
                     <div class="tv-arena-pressure-gauge__copy">
-                        <strong>@DisplayToken(LeftSymbol)</strong>
-                        <span>@DisplayToken(LeftDisplayName)</span>
+                        <strong>@DisplaySymbol(LeftSymbol)</strong>
+                        <span>@DisplayText(LeftDisplayName)</span>
                     </div>
                 </div>
                 <div class="tv-arena-pressure-gauge__metric">
                     <strong>@LeftPressureDisplay%</strong>
-                    <span>PRESSAO</span>
+                    <span>@Tg("pressureLabel")</span>
                 </div>
             </section>
 
@@ -99,7 +101,7 @@
                     </div>
 
                     <div class="tv-arena-pressure-gauge__center-copy">
-                        <span>PRESSAO ATUAL</span>
+                        <span>@Tg("currentPressureLabel")</span>
                         <strong>@CurrentPressureDisplay%</strong>
                         <em>@DisplayStatusLabel</em>
                     </div>
@@ -107,41 +109,41 @@
             </section>
 
             <section class="tv-arena-pressure-gauge__side tv-arena-pressure-gauge__side--right"
-                     title="@($"{RightSymbol} {RightDisplayName} - {RightPressureDisplay}% de pressão")">
+                     title="@string.Format(CultureInfo.CurrentCulture, Tg("pressureTooltip"), DisplaySymbol(RightSymbol), DisplayText(RightDisplayName), RightPressureDisplay)">
                 <div class="tv-arena-pressure-gauge__identity">
                     <div class="tv-arena-pressure-gauge__copy">
-                        <strong>@DisplayToken(RightSymbol)</strong>
-                        <span>@DisplayToken(RightDisplayName)</span>
+                        <strong>@DisplaySymbol(RightSymbol)</strong>
+                        <span>@DisplayText(RightDisplayName)</span>
                     </div>
                     <div class="tv-arena-pressure-gauge__logo-ring">
                         @if (!string.IsNullOrWhiteSpace(RightLogoUrl))
                         {
-                            <img src="@RightLogoUrl" alt="@($"{RightSymbol} logo")" />
+                            <img src="@RightLogoUrl" alt="@string.Format(CultureInfo.CurrentCulture, Tg("logoAlt"), DisplaySymbol(RightSymbol))" />
                         }
                         else
                         {
-                            <span>@CompactToken(RightSymbol)</span>
+                            <span>@CompactSymbol(RightSymbol)</span>
                         }
                     </div>
                 </div>
                 <div class="tv-arena-pressure-gauge__metric">
                     <strong>@RightPressureDisplay%</strong>
-                    <span>PRESSAO</span>
+                    <span>@Tg("pressureLabel")</span>
                 </div>
             </section>
         </div>
 
         <footer class="tv-arena-pressure-gauge__footer">
             <section class="tv-arena-pressure-gauge__momentum tv-arena-pressure-gauge__momentum--left">
-                <span>MOMENTUM</span>
-                <strong>@DisplayToken(LeftSymbol)</strong>
+                <span>@Tg("momentumLabel")</span>
+                <strong>@DisplaySymbol(LeftSymbol)</strong>
                 <div class="tv-arena-pressure-gauge__bars" aria-hidden="true">
                     @foreach (var bar in LeftBars)
                     {
                         <i style="@bar.Style"></i>
                     }
                 </div>
-                <small>@DisplayToken(LeftMomentumLabel)</small>
+                <small>@DisplayText(LeftMomentumLabel)</small>
             </section>
 
             <section class="tv-arena-pressure-gauge__footer-status">
@@ -155,15 +157,15 @@
             </section>
 
             <section class="tv-arena-pressure-gauge__momentum tv-arena-pressure-gauge__momentum--right">
-                <span>MOMENTUM</span>
-                <strong>@DisplayToken(RightSymbol)</strong>
+                <span>@Tg("momentumLabel")</span>
+                <strong>@DisplaySymbol(RightSymbol)</strong>
                 <div class="tv-arena-pressure-gauge__bars" aria-hidden="true">
                     @foreach (var bar in RightBars)
                     {
                         <i style="@bar.Style"></i>
                     }
                 </div>
-                <small>@DisplayToken(RightMomentumLabel)</small>
+                <small>@DisplayText(RightMomentumLabel)</small>
             </section>
         </footer>
 
@@ -191,6 +193,7 @@
     [Parameter] public string StatusLabel { get; set; } = string.Empty;
     [Parameter] public string Description { get; set; } = string.Empty;
     [Parameter] public bool IsCompact { get; set; }
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
 
     private const double ArcRadius = 165d;
     private const double ArcCenterX = 210d;
@@ -202,35 +205,36 @@
     private int CurrentPressureDisplay => Math.Clamp((int)Math.Round(CurrentPressurePercent ?? Math.Max(LeftPressureDisplay, RightPressureDisplay), MidpointRounding.AwayFromZero), 0, 100);
     private string DisplayStatusLabel => string.IsNullOrWhiteSpace(StatusLabel) ? DefaultStatusLabel : StatusLabel.Trim().ToUpperInvariant();
     private string DisplayDescription => string.IsNullOrWhiteSpace(Description)
-        ? "A pressao da arena representa o controle territorial e a intensidade das acoes de cada lado. Acima de 60% indica dominio forte. Abaixo de 40% indica perda de controle."
+        ? Tg("description")
         : Description.Trim();
     private string StateClass => string.Join(" ", BuildStateClasses());
-    private string AriaLabel => $"{DisplayToken(LeftSymbol)} com {LeftPressureDisplay}% de pressao, {DisplayToken(RightSymbol)} com {RightPressureDisplay}%. Estado atual: {DisplayStatusLabel}.";
+    private string AriaLabel
+        => string.Format(CultureInfo.CurrentCulture, Tg("ariaLabel"), DisplaySymbol(LeftSymbol), LeftPressureDisplay, DisplaySymbol(RightSymbol), RightPressureDisplay, DisplayStatusLabel);
     private string LeftArcStyle => FormattableString.Invariant($"stroke-dasharray:{LeftPressureDisplay} 100;");
     private string RightArcStyle => FormattableString.Invariant($"stroke-dasharray:{RightPressureDisplay} 100;");
     private (int Left, int Right) _pressure => NormalizePressures(LeftPressurePercent, RightPressurePercent);
     private string DefaultStatusLabel
         => LeftPressureDisplay switch
         {
-            >= 70 => $"{DisplayToken(LeftSymbol)} EM PRESSAO CRITICA",
-            >= 60 => $"{DisplayToken(LeftSymbol)} DOMINA A ARENA",
-            _ when RightPressureDisplay >= 70 => $"{DisplayToken(RightSymbol)} EM PRESSAO CRITICA",
-            _ when RightPressureDisplay >= 60 => $"{DisplayToken(RightSymbol)} DOMINA A ARENA",
-            _ when Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10 => "DISPUTA EQUILIBRADA",
-            _ => "POSSE EM TRANSICAO"
+            >= 70 => string.Format(CultureInfo.CurrentCulture, Tg("statusCritical"), DisplaySymbol(LeftSymbol)),
+            >= 60 => string.Format(CultureInfo.CurrentCulture, Tg("statusControlsArena"), DisplaySymbol(LeftSymbol)),
+            _ when RightPressureDisplay >= 70 => string.Format(CultureInfo.CurrentCulture, Tg("statusCritical"), DisplaySymbol(RightSymbol)),
+            _ when RightPressureDisplay >= 60 => string.Format(CultureInfo.CurrentCulture, Tg("statusControlsArena"), DisplaySymbol(RightSymbol)),
+            _ when Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10 => Tg("statusBalanced"),
+            _ => Tg("statusTransition")
         };
     private string FooterPrimaryStatus
         => Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10
-            ? "EM DISPUTA"
+            ? Tg("footerInDispute")
             : LeftPressureDisplay > RightPressureDisplay
-                ? $"{DisplayToken(LeftSymbol)} PRESSIONA"
-                : $"{DisplayToken(RightSymbol)} PRESSIONA";
+                ? string.Format(CultureInfo.CurrentCulture, Tg("footerPressuring"), DisplaySymbol(LeftSymbol))
+                : string.Format(CultureInfo.CurrentCulture, Tg("footerPressuring"), DisplaySymbol(RightSymbol));
     private string FooterSecondaryStatus
         => Math.Abs(LeftPressureDisplay - RightPressureDisplay) <= 10
-            ? "POSSE NEUTRA"
+            ? Tg("footerNeutralPossession")
             : LeftPressureDisplay > RightPressureDisplay
-                ? "LADO ESQUERDO DOMINANTE"
-                : "LADO DIREITO DOMINANTE";
+                ? Tg("footerLeftDominant")
+                : Tg("footerRightDominant");
     private SplitMarkerDto SplitMarker => BuildSplitMarker(LeftPressureDisplay);
     private IReadOnlyList<TickMark> MajorTicks => BuildMajorTicks();
     private IReadOnlyList<TickMark> MinorTicks => BuildMinorTicks();
@@ -277,14 +281,20 @@
         return (normalizedLeft, 100 - normalizedLeft);
     }
 
-    private static string DisplayToken(string? value)
+    private static string DisplaySymbol(string? value)
         => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();
 
-    private static string CompactToken(string? value)
+    private static string DisplayText(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim();
+
+    private static string CompactSymbol(string? value)
     {
-        var normalized = DisplayToken(value);
+        var normalized = DisplaySymbol(value);
         return normalized.Length <= 4 ? normalized : normalized[..4];
     }
+
+    private string Tg(string key, params object?[] args)
+        => L.T($"tv.pressureGauge.{key}", Culture, args);
 
     private static SplitMarkerDto BuildSplitMarker(int leftPercent)
     {
@@ -348,11 +358,13 @@
         --pressure-border: rgba(98, 145, 191, 0.22);
         position: relative;
         min-width: 0;
+        height: 100%;
     }
 
     .tv-arena-pressure-gauge__panel {
         min-width: 0;
         display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto auto;
         gap: clamp(0.9rem, 1.6vw, 1.3rem);
         padding: clamp(1rem, 1.8vw, 1.5rem);
         border-radius: 28px;
@@ -367,6 +379,7 @@
             0 0 38px rgba(13, 33, 56, 0.24);
         overflow: hidden;
         position: relative;
+        height: 100%;
     }
 
     .tv-arena-pressure-gauge__panel::before {
@@ -417,6 +430,7 @@
         grid-template-columns: minmax(150px, 0.85fr) minmax(0, 2fr) minmax(150px, 0.85fr);
         gap: clamp(0.85rem, 1.5vw, 1.4rem);
         align-items: center;
+        min-height: 0;
     }
 
     .tv-arena-pressure-gauge__side {
@@ -556,6 +570,7 @@
     .tv-arena-pressure-gauge__gauge-shell {
         width: min(100%, 760px);
         margin-inline: auto;
+        min-height: clamp(260px, 40vh, 380px);
     }
 
     .tv-arena-pressure-gauge__svg {
@@ -911,7 +926,7 @@
 
     .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
         padding: clamp(0.9rem, 1.4vw, 1.15rem);
-        gap: 0.85rem;
+        gap: 0.95rem;
     }
 
     .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__header h3 {
@@ -920,7 +935,8 @@
     }
 
     .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
-        width: min(100%, 620px);
+        width: min(100%, 680px);
+        min-height: clamp(300px, 44vh, 420px);
     }
 
     .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__description {
