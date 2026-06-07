@@ -369,6 +369,11 @@ namespace CriptoVersus.Worker
             var pendingBettable = await CountBettablePendingAsync(db, nowUtc, ct);
             var pendingClosed = await CountClosedPendingAsync(db, nowUtc, ct);
             var ongoingCount = await db.Match.CountAsync(x => x.Status == MatchStatus.Ongoing, ct);
+            var completedRecent = await db.Match.CountAsync(
+                x => x.Status == MatchStatus.Completed &&
+                     x.EndTime.HasValue &&
+                     x.EndTime.Value >= nowUtc.AddHours(-24),
+                ct);
             var cancelledRecent = await db.Match.CountAsync(
                 x => x.Status == MatchStatus.Cancelled &&
                      x.EndTime.HasValue &&
@@ -376,10 +381,11 @@ namespace CriptoVersus.Worker
                 ct);
 
             _logger.LogInformation(
-                "📦 Pool status: pendingBettable={pendingBettable} pendingClosed={pendingClosed} ongoing={ongoing} cancelledLast30m={cancelled} (targets p={pTarget} o={oTarget})",
+                "📦 Pool status: scheduledOpen={pendingBettable} scheduledClosed={pendingClosed} live={ongoing} finishedLast24h={completed} cancelledLast30m={cancelled} (targets scheduled={pTarget} live={oTarget})",
                 pendingBettable,
                 pendingClosed,
                 ongoingCount,
+                completedRecent,
                 cancelledRecent,
                 GetDesiredPendingCount(),
                 GetDesiredOngoingCount());
@@ -1087,6 +1093,21 @@ namespace CriptoVersus.Worker
                 if (match == null || match.Status != MatchStatus.Ongoing)
                     continue;
 
+                if (TryFinalizeByTimeLimit(match, nowUtc))
+                {
+                    await db.SaveChangesAsync(ct);
+
+                    _logger.LogInformation(
+                        "⏱️ Match {id} atingiu {duration}min. Encerrado por tempo antes dos filtros de snapshot. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
+                        match.MatchId,
+                        GetMatchDuration().TotalMinutes,
+                        match.WinnerTeamId,
+                        match.ScoreA,
+                        match.ScoreB);
+
+                    continue;
+                }
+
                 var symA = match.TeamA?.Currency?.Symbol ?? "";
                 var symB = match.TeamB?.Currency?.Symbol ?? "";
 
@@ -1334,28 +1355,14 @@ namespace CriptoVersus.Worker
                     continue;
                 }
 
-                var startUtc = ToUtcSafe(match.StartTime.Value);
-
-                if (nowUtc - startUtc >= MatchDuration)
+                if (TryFinalizeByTimeLimit(match, nowUtc))
                 {
-                    if (match.ScoreA > match.ScoreB)
-                        match.WinnerTeamId = match.TeamAId;
-                    else if (match.ScoreB > match.ScoreA)
-                        match.WinnerTeamId = match.TeamBId;
-                    else
-                        match.WinnerTeamId = null;
-
-                    match.Status = MatchStatus.Completed;
-                    match.EndTime = nowUtc;
-                    match.EndReasonCode = "TIME_LIMIT";
-                    match.EndReasonDetail = $"Reached {MatchDuration.TotalMinutes}min time limit";
-                    match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
-
                     await db.SaveChangesAsync(ct);
 
                     _logger.LogInformation(
-                        "⏱️ Match {id} atingiu 90min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
+                        "⏱️ Match {id} atingiu {duration}min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
                         match.MatchId,
+                        GetMatchDuration().TotalMinutes,
                         match.WinnerTeamId,
                         match.ScoreA,
                         match.ScoreB);
@@ -1796,6 +1803,31 @@ namespace CriptoVersus.Worker
                 || string.Equals(reasonCode, RuleConstants.RC_BOTH_OUT_SCORE_DECISION, StringComparison.Ordinal)
                 || string.Equals(reasonCode, RuleConstants.RC_BOTH_OUT_DRAW_WO, StringComparison.Ordinal)
                 || string.Equals(reasonCode, "FILTERED_OUT_ONGOING", StringComparison.Ordinal);
+
+        private bool TryFinalizeByTimeLimit(Match match, DateTime nowUtc)
+        {
+            if (!match.StartTime.HasValue)
+                return false;
+
+            var matchDuration = GetMatchDuration();
+            var startUtc = ToUtcSafe(match.StartTime.Value);
+            if (nowUtc - startUtc < matchDuration)
+                return false;
+
+            if (match.ScoreA > match.ScoreB)
+                match.WinnerTeamId = match.TeamAId;
+            else if (match.ScoreB > match.ScoreA)
+                match.WinnerTeamId = match.TeamBId;
+            else
+                match.WinnerTeamId = null;
+
+            match.Status = MatchStatus.Completed;
+            match.EndTime ??= nowUtc;
+            match.EndReasonCode ??= "TIME_LIMIT";
+            match.EndReasonDetail ??= $"Reached {matchDuration.TotalMinutes}min time limit";
+            match.RulesetVersion ??= RuleConstants.DefaultRulesetVersion;
+            return true;
+        }
 
         private void LogSkippedOngoingAutoEnd(
             string routine,
@@ -2296,6 +2328,9 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
         private bool GetAutoEndOngoingMatches()
             => _options.AutoEndOngoingMatches;
+
+        private TimeSpan GetMatchDuration()
+            => TimeSpan.FromMinutes(Math.Max(1, _options.MatchDurationMinutes));
 
         private async Task TouchHeartbeatAsync(DateTime cycleStartUtc, string status, string? stage, CancellationToken ct)
         {

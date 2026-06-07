@@ -313,13 +313,19 @@ namespace CriptoVersus.API.Controllers
                 remaining = Math.Max(0, matchDurationMinutes - elapsed);
             }
 
-            if (m.EndTime != null || m.Status == MatchStatus.Completed)
+            if (m.EndTime != null || m.Status is MatchStatus.Completed or MatchStatus.Cancelled)
             {
                 isFinished = true;
 
                 if (m.StartTime != null && m.EndTime != null)
                     elapsed = (int)Math.Max(0, Math.Floor((m.EndTime.Value - m.StartTime.Value).TotalMinutes));
 
+                remaining = 0;
+            }
+            else if (m.StartTime != null && elapsed >= matchDurationMinutes)
+            {
+                isFinished = true;
+                elapsed = Math.Min(matchDurationMinutes, elapsed);
                 remaining = 0;
             }
 

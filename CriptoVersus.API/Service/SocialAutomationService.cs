@@ -22,15 +22,18 @@ public sealed class SocialAutomationService : ISocialAutomationService
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly SocialAutomationOptions _options;
+    private readonly ILogger<SocialAutomationService> _logger;
 
     public SocialAutomationService(
         EthicAIDbContext db,
         IConfiguration configuration,
-        IOptions<SocialAutomationOptions> options)
+        IOptions<SocialAutomationOptions> options,
+        ILogger<SocialAutomationService> logger)
     {
         _db = db;
         _configuration = configuration;
         _options = options.Value;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<SocialHotMatchDto>> GetHotMatchesAsync(CancellationToken ct)
@@ -192,16 +195,28 @@ public sealed class SocialAutomationService : ISocialAutomationService
 
     private async Task<List<Match>> LoadOngoingMatchesAsync(CancellationToken ct)
     {
-        var matches = await _db.Match
+        var nowUtc = DateTime.UtcNow;
+        var staleCutoffUtc = nowUtc.AddMinutes(-MatchDurationMinutes);
+
+        var allOngoing = await _db.Match
             .AsNoTracking()
             .Include(x => x.TeamA).ThenInclude(x => x.Currency)
             .Include(x => x.TeamB).ThenInclude(x => x.Currency)
             .Where(x => x.Status == MatchStatus.Ongoing)
             .ToListAsync(ct);
 
-        return matches
+        var matches = allOngoing
+            .Where(x => !x.StartTime.HasValue || x.StartTime.Value > staleCutoffUtc)
             .Where(x => !IsForbiddenPair(x))
             .ToList();
+
+        _logger.LogInformation(
+            "[SOCIAL_HOT_MATCHES] ongoingLoaded={LoadedCount} eligible={EligibleCount} discardedExpired={DiscardedExpired}",
+            allOngoing.Count,
+            matches.Count,
+            Math.Max(0, allOngoing.Count - matches.Count));
+
+        return matches;
     }
 
     private async Task<Match?> LoadMatchAsync(int matchId, CancellationToken ct)

@@ -533,11 +533,22 @@ namespace CriptoVersus.API.Controllers
             var winner = match.WinnerTeam?.Currency;
             var effectiveWinnerTeamId = GetEffectiveWinnerTeamId(match);
 
+            var matchDurationMinutes = Math.Max(1, GetInt("CriptoVersusWorker:MatchDurationMinutes", 90));
             var elapsed = 0;
-            var finished = match.Status == MatchStatus.Completed;
+            var finished = match.Status is MatchStatus.Completed or MatchStatus.Cancelled || match.EndTime.HasValue;
 
             if (match.StartTime != null)
                 elapsed = (int)Math.Max(0, (nowUtc - match.StartTime.Value).TotalMinutes);
+
+            if (!finished && match.StartTime.HasValue && elapsed >= matchDurationMinutes)
+                finished = true;
+
+            if (finished)
+            {
+                elapsed = match.StartTime.HasValue && match.EndTime.HasValue
+                    ? (int)Math.Max(0, (match.EndTime.Value - match.StartTime.Value).TotalMinutes)
+                    : Math.Min(matchDurationMinutes, elapsed);
+            }
 
             var teamAStats = aggregates.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamAId);
             var teamBStats = aggregates.FirstOrDefault(x => x.MatchId == match.MatchId && x.TeamId == match.TeamBId);
@@ -572,7 +583,7 @@ namespace CriptoVersus.API.Controllers
                 StartTime = match.StartTime,
                 EndTime = match.EndTime,
                 ElapsedMinutes = elapsed,
-                RemainingMinutes = Math.Max(0, 90 - elapsed),
+                RemainingMinutes = finished ? 0 : Math.Max(0, matchDurationMinutes - elapsed),
                 IsFinished = finished,
                 PctA = (decimal?)a?.PercentageChange,
                 PctB = (decimal?)b?.PercentageChange,

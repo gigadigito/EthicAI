@@ -21,27 +21,36 @@ public sealed class TvHotMatchService : ITvHotMatchService
 
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<TvHotMatchService> _logger;
 
-    public TvHotMatchService(EthicAIDbContext db, IConfiguration configuration)
+    public TvHotMatchService(EthicAIDbContext db, IConfiguration configuration, ILogger<TvHotMatchService> logger)
     {
         _db = db;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task<TvHotMatchDto> GetHotMatchAsync(CancellationToken ct)
     {
         var nowUtc = DateTime.UtcNow;
+        var staleCutoffUtc = nowUtc.AddMinutes(-MatchDurationMinutes);
 
         var matches = await _db.Set<Match>()
             .AsNoTracking()
             .Include(x => x.TeamA).ThenInclude(x => x.Currency)
             .Include(x => x.TeamB).ThenInclude(x => x.Currency)
             .Where(x => x.Status == MatchStatus.Ongoing)
+            .Where(x => !x.StartTime.HasValue || x.StartTime.Value > staleCutoffUtc)
             .OrderBy(x => x.StartTime ?? DateTime.MaxValue)
             .ToListAsync(ct);
 
+        _logger.LogInformation("[TV_HOT_MATCH] ongoingQueried={OngoingCount} staleCutoffUtc={StaleCutoffUtc:o}", matches.Count, staleCutoffUtc);
+
         if (matches.Count == 0)
+        {
+            _logger.LogInformation("[TV_HOT_MATCH] no live candidates found after stale filter.");
             return BuildEmpty("No hot match available right now");
+        }
 
         var matchIds = matches.Select(x => x.MatchId).ToList();
         var recentBetCutoff = nowUtc.AddMinutes(-15);
@@ -69,15 +78,30 @@ public sealed class TvHotMatchService : ITvHotMatchService
             .ThenByDescending(x => x.EventSequence)
             .ToListAsync(ct);
 
-        var best = matches
+        var candidates = matches
             .Select(match => BuildCandidate(match, aggregates, recentEvents, nowUtc))
             .Where(candidate => candidate is not null)
-            .OrderByDescending(candidate => candidate!.HotScore)
-            .ThenByDescending(candidate => candidate!.RemainingMinutes)
-            .FirstOrDefault();
+            .Select(candidate => candidate!)
+            .OrderByDescending(candidate => candidate.HotScore)
+            .ThenByDescending(candidate => candidate.RemainingMinutes)
+            .ToList();
+
+        var best = candidates.FirstOrDefault();
 
         if (best is null || best.HotScore < 25)
+        {
+            _logger.LogInformation(
+                "[TV_HOT_MATCH] no broadcast-eligible match. ongoing={OngoingCount} eligible={EligibleCount}",
+                matches.Count,
+                candidates.Count);
             return BuildEmpty("No hot match available right now");
+        }
+
+        _logger.LogInformation(
+            "[TV_HOT_MATCH] selectedMatchId={MatchId} hotScore={HotScore} remainingMinutes={RemainingMinutes}",
+            best.Dto.MatchId,
+            best.HotScore,
+            best.RemainingMinutes);
 
         return best.Dto;
     }
