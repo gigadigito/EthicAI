@@ -1364,7 +1364,7 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260606-direct-audio-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260608-telemetry-cube-restore-1");
             await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
             await EnsureAudioDebugInteropAsync(force: true);
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");

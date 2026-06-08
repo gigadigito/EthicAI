@@ -209,16 +209,6 @@ export function createTelemetryCubeController(deps) {
             if (!shell.dataset.tvCubeBound) {
                 shell.dataset.tvCubeBound = "1";
 
-                shell.addEventListener("mouseenter", () => {
-                    state.paused = true;
-                    pause("hover");
-                });
-
-                shell.addEventListener("mouseleave", () => {
-                    state.paused = false;
-                    resume();
-                });
-
                 shell.addEventListener("click", () => {
                     if (!state || state.disabled) {
                         return;
