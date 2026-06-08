@@ -67,7 +67,7 @@ import {
     renderBattleTimeline
 } from "./tvCandleBattleMarkers.mjs?v=20260607-candle-battle-1";
 import { renderCandleBattleHud } from "./tvCandleBattleHud.mjs?v=20260607-candle-battle-1";
-import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260603-crossover-marker-1";
+import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260608-telemetry-cube-restore-1";
 import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-crossover-marker-1";
 import {
     tvAudioMap,
