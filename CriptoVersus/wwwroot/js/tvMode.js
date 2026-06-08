@@ -4064,18 +4064,8 @@ export async function updateTelemetryCharts(payload) {
         left.series.setData(leftCandles);
         right.series.setData(rightCandles);
 
-        // Split charts live inside a "virtual face"; render them only if containers exist.
         let splitLeft = null;
         let splitRight = null;
-        if (document.getElementById("tv-telemetry-chart-split-left")) {
-            splitLeft = await ensureCandlestickChart("tv-telemetry-chart-split-left");
-            splitLeft.series.setData(leftCandles);
-        }
-        if (document.getElementById("tv-telemetry-chart-split-right")) {
-            splitRight = await ensureCandlestickChart("tv-telemetry-chart-split-right");
-            splitRight.series.setData(rightCandles);
-        }
-
         compare.leftSeries.setData(normalizeCompareLine(leftPoints));
         compare.rightSeries.setData(normalizeCompareLine(rightPoints));
         compare.leftMeta = leftMeta;
@@ -4084,40 +4074,60 @@ export async function updateTelemetryCharts(payload) {
         setChartEmptyState("tv-telemetry-chart-left", leftCandles.length < 2);
         setChartEmptyState("tv-telemetry-chart-right", rightCandles.length < 2);
         setChartEmptyState("tv-telemetry-chart-compare", leftPoints.length < 2 && rightPoints.length < 2, "coletando fluxo");
-        if (splitLeft) {
-            setChartEmptyState("tv-telemetry-chart-split-left", leftCandles.length < 2);
-        }
-        if (splitRight) {
-            setChartEmptyState("tv-telemetry-chart-split-right", rightCandles.length < 2);
-        }
 
         fitChart(left.chart);
         fitChart(right.chart);
         fitChart(compare.chart);
-        maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
-        maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
-        scheduleCompareOverlayRefresh(compare);
-        if (splitLeft) {
-            fitChart(splitLeft.chart);
-        }
-        if (splitRight) {
-            fitChart(splitRight.chart);
+        try {
+            maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
+            maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
+            scheduleCompareOverlayRefresh(compare);
+        } catch (overlayErr) {
+            const overlayMessage = overlayErr?.message ?? String(overlayErr);
+            if (throttleKey("TV_CHART", `overlay-error:${overlayMessage}`, 4000)) {
+                telemetryChartLog("compare overlay error", overlayMessage);
+            }
         }
 
-        if (splitLeft && splitRight && document.getElementById("tv-candle-battle-root")) {
-            const battleState = buildCandleBattleState({
-                leftCandles,
-                rightCandles,
-                leftMeta,
-                rightMeta
-            });
+        try {
+            // Split charts live inside a virtual face. Keep the core cube alive even if this optional layer fails.
+            if (document.getElementById("tv-telemetry-chart-split-left")) {
+                splitLeft = await ensureCandlestickChart("tv-telemetry-chart-split-left");
+                splitLeft.series.setData(leftCandles);
+                setChartEmptyState("tv-telemetry-chart-split-left", leftCandles.length < 2);
+                fitChart(splitLeft.chart);
+            }
 
-            renderBattleMarkers(splitLeft, battleState, "left");
-            renderBattleMarkers(splitRight, battleState, "right");
-            renderBattleTimeline("tv-candle-battle-timeline-left", battleState);
-            renderBattleTimeline("tv-candle-battle-timeline-right", battleState);
-            renderCandleBattleHud(battleState);
-        } else {
+            if (document.getElementById("tv-telemetry-chart-split-right")) {
+                splitRight = await ensureCandlestickChart("tv-telemetry-chart-split-right");
+                splitRight.series.setData(rightCandles);
+                setChartEmptyState("tv-telemetry-chart-split-right", rightCandles.length < 2);
+                fitChart(splitRight.chart);
+            }
+
+            if (splitLeft && splitRight && document.getElementById("tv-candle-battle-root")) {
+                const battleState = buildCandleBattleState({
+                    leftCandles,
+                    rightCandles,
+                    leftMeta,
+                    rightMeta
+                });
+
+                renderBattleMarkers(splitLeft, battleState, "left");
+                renderBattleMarkers(splitRight, battleState, "right");
+                renderBattleTimeline("tv-candle-battle-timeline-left", battleState);
+                renderBattleTimeline("tv-candle-battle-timeline-right", battleState);
+                renderCandleBattleHud(battleState);
+            } else {
+                clearBattleMarkers(splitLeft);
+                clearBattleMarkers(splitRight);
+            }
+        } catch (splitErr) {
+            const splitMessage = splitErr?.message ?? String(splitErr);
+            if (throttleKey("TV_CHART", `split-error:${splitMessage}`, 4000)) {
+                telemetryChartLog("split variation error", splitMessage);
+            }
+
             clearBattleMarkers(splitLeft);
             clearBattleMarkers(splitRight);
         }
