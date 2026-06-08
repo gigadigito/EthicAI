@@ -469,7 +469,8 @@
                                 </section>
 
                                 <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare">
+                                    <div class="tv-telemetry-cube__virtual-stage">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare tv-telemetry-cube__virtual-panel">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">@T("labels.marketBattleFlow")</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -485,7 +486,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
                                         <section id="tv-candle-battle-root"
                                                  class="tv-candle-battle"
                                                  aria-label="@($"{DisplayLeftTickerLabel()} vs {DisplayRightTickerLabel()} candle battle arena")">
@@ -602,7 +603,7 @@
                                         </section>
                                     </div>
 
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals tv-telemetry-cube__virtual-panel">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">@RootT("grid.metrics.goals")</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -636,10 +637,11 @@
                                                               RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
                                                               RightPressurePercent="@GetArenaPressureRightPercent()"
                                                               RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
-                                                              CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
+                                                             CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
                                                               StatusLabel="@GetArenaPressureStatusLabel()"
                                                               Description="@GetArenaPressureDescription()"
                                                               IsCompact="true" />
+                                    </div>
                                     </div>
                                 </section>
 
@@ -11556,7 +11558,16 @@ else
     .tv-telemetry-cube__face--back { transform: rotateY(180deg) translateZ(var(--tv-cube-depth)); }
     .tv-telemetry-cube__face--left { transform: rotateY(-90deg) translateZ(var(--tv-cube-depth)); }
 
-    /* Virtual 5th face: reuse the back face, but swap content (compare vs split) */
+    /* Virtual subfaces: reuse the back face, but animate internal holographic panels */
+    .tv-telemetry-cube__virtual-stage {
+        position: relative;
+        height: 100%;
+        min-height: 0;
+        isolation: isolate;
+        perspective: 1600px;
+        transform-style: preserve-3d;
+    }
+
     .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
     .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
     .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
@@ -11564,37 +11575,69 @@ else
         height: 100%;
     }
 
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-        display: none;
+    .tv-telemetry-cube__virtual-panel {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform:
+            rotateY(22deg)
+            translate3d(0, 0, -44px)
+            scale(.965);
+        transform-origin: center center;
+        filter: blur(10px) saturate(.82);
+        transition:
+            opacity .28s ease,
+            transform .72s cubic-bezier(.22,.82,.28,1),
+            filter .72s cubic-bezier(.22,.82,.28,1),
+            visibility 0s linear .72s;
+        will-change: opacity, transform, filter;
+        backface-visibility: hidden;
     }
 
-    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare {
-        display: none;
+    .tv-telemetry-cube__virtual-panel::after {
+        content: "";
+        position: absolute;
+        inset: -8%;
+        background:
+            linear-gradient(115deg,
+                transparent 24%,
+                rgba(127, 246, 223, 0.08) 38%,
+                rgba(83, 200, 255, 0.24) 50%,
+                rgba(255, 91, 143, 0.12) 62%,
+                transparent 76%);
+        opacity: 0;
+        transform: translateX(-38%) skewX(-14deg);
+        pointer-events: none;
+        mix-blend-mode: screen;
     }
 
-    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
-        display: grid;
-    }
-
-    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
-        display: none;
-    }
-
-    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals {
-        display: grid;
-    }
-
-    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
-    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals {
-        display: none;
-    }
-
+    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
     .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-        display: grid;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform:
+            rotateY(0deg)
+            translate3d(0, 0, 0)
+            scale(1);
+        filter: blur(0) saturate(1);
+        transition:
+            opacity .26s ease,
+            transform .88s cubic-bezier(.18,.88,.24,1),
+            filter .88s cubic-bezier(.18,.88,.24,1),
+            visibility 0s;
+    }
+
+    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
+    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
+        opacity: .9;
+        animation: tvCubeSubfaceSweep .85s cubic-bezier(.22,.82,.28,1);
     }
 
     .tv-telemetry-cube__inner {
@@ -12345,7 +12388,23 @@ else
             min-height: 0;
         }
 
-        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare {
+        .tv-telemetry-cube__virtual-stage {
+            display: grid;
+        }
+
+        .tv-telemetry-cube__virtual-panel {
+            position: static;
+            inset: auto;
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: none;
+            filter: none;
+            transition: none;
+            display: none;
+        }
+
+        .tv-telemetry-cube__virtual-panel::after {
             display: none;
         }
 
@@ -13711,6 +13770,22 @@ else
         70% {
             opacity: .72;
             transform: translateX(2px);
+        }
+    }
+
+    @@keyframes tvCubeSubfaceSweep {
+        0% {
+            opacity: 0;
+            transform: translateX(-42%) skewX(-14deg);
+        }
+
+        18% {
+            opacity: .82;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translateX(46%) skewX(-14deg);
         }
     }
 

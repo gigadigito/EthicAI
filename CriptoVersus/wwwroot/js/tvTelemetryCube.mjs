@@ -1,6 +1,21 @@
 export function createTelemetryCubeController(deps) {
     let state = null;
 
+    function resolveVirtualFaceKey(faceIndex) {
+        switch (faceIndex) {
+            case 4:
+                return "split";
+            case 5:
+                return "goals";
+            case 6:
+                return "sentiment";
+            case 2:
+                return "compare";
+            default:
+                return "none";
+        }
+    }
+
     function clearSettledTimer() {
         if (!state?.settledTimerId) {
             return;
@@ -88,10 +103,13 @@ export function createTelemetryCubeController(deps) {
             const faceCount = state.faceCount || 7;
             const normalized = ((faceIndex % faceCount) + faceCount) % faceCount;
             state.faceIndex = normalized;
+            const virtualFace = resolveVirtualFaceKey(normalized);
+            state.virtualFace = virtualFace;
             state.cube.classList.remove("is-face-0", "is-face-1", "is-face-2", "is-face-3", "is-face-4", "is-face-5", "is-face-6");
             state.cube.classList.add(`is-face-${normalized}`);
+            state.cube.dataset.virtualFace = virtualFace;
 
-            deps.logCube(`face changed ${normalized}`, reason ? { reason } : undefined);
+            deps.logCube(`face changed ${normalized}`, reason ? { reason, virtualFace } : { virtualFace });
 
             window.setTimeout(() => resizeCharts(), 0);
             window.setTimeout(() => resizeCharts(), 80);
@@ -166,6 +184,7 @@ export function createTelemetryCubeController(deps) {
                 timerId: null,
                 faceIndex: 0,
                 faceCount: 7,
+                virtualFace: "none",
                 paused: false,
                 disabled: false,
                 holdUntil: 0,
