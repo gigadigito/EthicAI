@@ -346,7 +346,7 @@
                                                     <strong>@homeAsset.DisplaySymbol</strong>
                                                 </span>
                                             }
-                                            <span class="stats-matchup__vs">vs</span>
+                                            <span class="stats-matchup__vs">@T("latest.vs")</span>
                                             @if (awayAsset.IsLinkEnabled)
                                             {
                                                 <a class="stats-asset-link" href="@awayAsset.TeamUrl" aria-label="@T("latest.awayAssetAria", awayAsset.DisplaySymbol)" title="@awayAsset.FullSymbol">

@@ -65,7 +65,7 @@
                     <div>
                         <div class="social-share-card__eyebrow">CRIPTO ARENA</div>
                         <div class="social-share-card__title">
-                            <MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" />
+                            @GetMatchTitleSymbol(_match.TeamA) vs @GetMatchTitleSymbol(_match.TeamB)
                         </div>
                     </div>
 
@@ -127,6 +127,15 @@
                             <span class="score-sep">x</span>
                             <span class="score">@_match.ScoreB</span>
                         </div>
+
+                        @if (_match.IsFinished)
+                        {
+                            <div class="mt-2">
+                                <span class="badge rounded-pill text-bg-info border border-info-subtle match-live__pill">
+                                    @GetFinishedAtUtcLabel(_match)
+                                </span>
+                            </div>
+                        }
                     </div>
 
                     <div class="social-share-hero-team social-share-hero-team--b">
@@ -2463,12 +2472,12 @@
 
             await LoadMetricChartsAsync(CancellationToken.None);
 
-            _title = $"{_match.TeamA} vs {_match.TeamB}";
+            _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
 
             SyncAndStartLocalClock();
             UpdateClockTexts();
 
-            _title = $"{_match.TeamA} vs {_match.TeamB}";
+            _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
         }
         catch (Exception ex)
         {
@@ -2538,6 +2547,21 @@
         return normalized;
     }
 
+    private static string GetMatchTitleSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "-";
+
+        var normalized = symbol.Trim().ToUpperInvariant();
+        if (normalized.EndsWith("-USDT", StringComparison.OrdinalIgnoreCase))
+            return normalized[..^5];
+
+        if (normalized.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+            return normalized[..^4];
+
+        return normalized;
+    }
+
     private static string RemoveTrailingUsdt(string? symbol)
     {
         if (string.IsNullOrWhiteSpace(symbol))
@@ -2547,6 +2571,25 @@
             ? symbol[..^4]
             : symbol;
     }
+
+    private string GetFinishedAtUtcLabel(MatchDto match)
+    {
+        if (!match.EndTime.HasValue)
+            return T("finishedAtUtc", "-");
+
+        return T("finishedAtUtc", FormatUtcDateTime(match.EndTime.Value));
+    }
+
+    private static string FormatUtcDateTime(DateTime value)
+        => EnsureUtc(value).ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static DateTime EnsureUtc(DateTime value)
+        => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
     private static bool IsOngoing(string? status)
         => !string.IsNullOrWhiteSpace(status)
@@ -2714,8 +2757,8 @@
             return string.Empty;
 
         return IsEnglish
-            ? $"This public CriptoVersus battle lets users open positions on either side of the live arena between {GetDisplayTeamName(_match.TeamA)} and {GetDisplayTeamName(_match.TeamB)}, using real market performance instead of a static scoreboard."
-            : $"Esta batalha publica do CriptoVersus permite que usuarios abram posicoes em qualquer lado da arena ao vivo entre {GetDisplayTeamName(_match.TeamA)} e {GetDisplayTeamName(_match.TeamB)}, usando desempenho real de mercado em vez de um placar estatico.";
+            ? $"This public CriptoVersus battle lets users open positions on either side of the live arena between {GetMatchTitleSymbol(_match.TeamA)} and {GetMatchTitleSymbol(_match.TeamB)}, using real market performance instead of a static scoreboard."
+            : $"Esta batalha publica do CriptoVersus permite que usuarios abram posicoes em qualquer lado da arena ao vivo entre {GetMatchTitleSymbol(_match.TeamA)} e {GetMatchTitleSymbol(_match.TeamB)}, usando desempenho real de mercado em vez de um placar estatico.";
     }
 
     private string GetSemanticSummaryPools()
@@ -3134,7 +3177,7 @@
             if (updated is not null)
             {
                 _match = updated;
-                _title = $"{_match.TeamA} vs {_match.TeamB}";
+                _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
                 await LoadMetricChartsAsync(ct);
 
                 SyncAndStartLocalClock();

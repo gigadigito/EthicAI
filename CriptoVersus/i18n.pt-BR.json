@@ -403,170 +403,171 @@
   },
   "stats": {
     "seo": {
-      "title": "CriptoVersus Statistics - Public Crypto Battle Rankings",
-      "description": "Explore public CriptoVersus statistics, crypto match rankings, win rates, scores, match history and market battle performance insights."
+      "title": "Estatísticas do CriptoVersus - Rankings públicos de batalhas cripto",
+      "description": "Explore estatísticas públicas do CriptoVersus, rankings de partidas cripto, taxas de vitória, placares, histórico de partidas e insights de desempenho da arena."
     },
     "hero": {
-      "eyebrow": "Public arena intelligence",
-      "title": "CriptoVersus Statistics",
-      "subtitle": "Public crypto battle data, rankings and market performance insights from the CriptoVersus arena.",
-      "seoCopy": "This public statistics page aggregates indexable data about crypto matches, arena rankings, tracked assets, scoreboards and historical performance across the CriptoVersus battleground.",
-      "liveNote": "Updated every 5 minutes",
-      "backToArena": "Back to arena",
-      "backToArenaAria": "Return to the CriptoVersus arena home page",
-      "howScoringWorks": "How scoring works",
-      "howScoringWorksAria": "Read how CriptoVersus arena scoring works",
-      "coverage": "Arena coverage",
-      "coverageHint": "public matches indexed",
-      "finishedBattles": "Finished battles",
-      "finishedBattlesHint": "closed scoreboards",
-      "lastUpdate": "Last update"
+      "eyebrow": "Inteligência pública da arena",
+      "title": "Estatísticas do CriptoVersus",
+      "subtitle": "Dados públicos de batalhas cripto, rankings e insights de desempenho de mercado da arena CriptoVersus.",
+      "seoCopy": "Esta página pública de estatísticas agrega dados indexáveis sobre partidas cripto, rankings da arena, ativos monitorados, placares e desempenho histórico na arena CriptoVersus.",
+      "liveNote": "Atualizada a cada 5 minutos",
+      "backToArena": "Voltar para a arena",
+      "backToArenaAria": "Retornar para a página inicial da arena CriptoVersus",
+      "howScoringWorks": "Como a pontuação funciona",
+      "howScoringWorksAria": "Leia como a pontuação da arena CriptoVersus funciona",
+      "coverage": "Cobertura da arena",
+      "coverageHint": "partidas públicas indexadas",
+      "finishedBattles": "Batalhas finalizadas",
+      "finishedBattlesHint": "placares encerrados",
+      "lastUpdate": "Última atualização"
     },
     "states": {
-      "loadingTitle": "Loading public stats",
-      "loadingBody": "Fetching the latest arena overview and ranking data.",
-      "errorTitle": "Stats temporarily unavailable",
-      "errorBody": "We could not load the public statistics right now. Showing a stable empty board instead.",
-      "emptyTitle": "No public data yet",
-      "emptyBody": "The arena has not published enough completed or tracked matches to fill the statistics board yet. The page stays live and will populate automatically as public match data grows.",
-      "noData": "No data yet"
+      "loadingTitle": "Carregando estatísticas públicas",
+      "loadingBody": "Buscando a visão geral mais recente da arena e os dados de ranking.",
+      "errorTitle": "Estatísticas temporariamente indisponíveis",
+      "errorBody": "Não foi possível carregar as estatísticas públicas agora. Exibindo um painel vazio estável no lugar.",
+      "emptyTitle": "Ainda sem dados públicos",
+      "emptyBody": "A arena ainda não publicou partidas concluídas ou monitoradas suficientes para preencher o painel de estatísticas. A página continua ativa e será preenchida automaticamente conforme os dados públicos crescerem.",
+      "noData": "Ainda sem dados"
     },
     "search": {
       "eyebrow": "Busca de ativos",
       "title": "Encontre uma moeda rapidamente",
-      "description": "Pesquise o ranking publico por simbolo ou nome do ativo sem sair da tela de Stats.",
+      "description": "Pesquise o ranking público por símbolo ou nome do ativo sem sair da tela de Stats.",
       "label": "Buscar moeda",
       "placeholder": "BTC, ETH, STRAX, TON...",
-      "ariaLabel": "Buscar moeda por simbolo ou nome",
+      "ariaLabel": "Buscar moeda por símbolo ou nome",
       "clear": "Limpar",
-      "noResultsTitle": "No asset found for this search.",
-      "noResultsBody": "Tente outro simbolo ou nome de ativo para voltar ao ranking publico."
+      "noResultsTitle": "Nenhum ativo encontrado para esta busca.",
+      "noResultsBody": "Tente outro símbolo ou nome de ativo para voltar ao ranking público."
     },
     "summary": {
-      "ariaLabel": "Public stats summary",
+      "ariaLabel": "Resumo das estatísticas públicas",
       "totalMatches": {
-        "label": "Total Matches",
-        "hint": "public arena match pages"
+        "label": "Partidas totais",
+        "hint": "páginas públicas de partidas da arena"
       },
       "finishedMatches": {
-        "label": "Finished Matches",
-        "hint": "closed scoreboards indexed"
+        "label": "Partidas finalizadas",
+        "hint": "placares encerrados indexados"
       },
       "activeAssets": {
-        "label": "Active Assets",
-        "hint": "symbols seen in public matches"
+        "label": "Ativos ativos",
+        "hint": "símbolos vistos em partidas públicas"
       },
       "averageScore": {
-        "label": "Average Score",
-        "hint": "combined arena score per match"
+        "label": "Pontuação média",
+        "hint": "pontuação combinada da arena por partida"
       },
       "highestScore": {
-        "label": "Highest Score",
-        "hint": "best single-side score registered"
+        "label": "Maior pontuação",
+        "hint": "melhor pontuação de um lado registrada"
       },
       "lastUpdated": {
-        "label": "Last Updated",
-        "hint": "public arena refresh time"
+        "label": "Última atualização",
+        "hint": "horário da última atualização pública da arena"
       }
     },
     "charts": {
       "winRate": {
-        "eyebrow": "Win rate board",
-        "title": "Top Crypto Assets by Win Rate",
-        "description": "Best public arena closing records among the most visible assets.",
-        "ariaLabel": "Top Crypto Assets by Win Rate chart"
+        "eyebrow": "Painel de taxa de vitória",
+        "title": "Principais ativos cripto por taxa de vitória",
+        "description": "Melhores registros públicos de encerramento entre os ativos mais visíveis.",
+        "ariaLabel": "Gráfico dos principais ativos cripto por taxa de vitória"
       },
       "activity": {
-        "eyebrow": "Match tempo",
-        "title": "Match Activity Over Time",
-        "description": "Recent public match publishing cadence across the arena timeline.",
-        "ariaLabel": "Match Activity Over Time chart"
+        "eyebrow": "Ritmo das partidas",
+        "title": "Atividade das partidas ao longo do tempo",
+        "description": "Cadência recente de publicação de partidas públicas ao longo da linha do tempo da arena.",
+        "ariaLabel": "Gráfico de atividade das partidas ao longo do tempo"
       }
     },
     "trending": {
-      "eyebrow": "Arena spotlight",
-      "title": "Trending Assets",
-      "description": "Most active assets based on recent public arena match volume and visibility.",
-      "emptyTitle": "No trending assets yet",
-      "emptyBody": "Trending assets will appear here once the arena records enough public match activity.",
-      "matchesHint": "{0} recent matches",
-      "assetAria": "Open the future stats page for {0}"
+      "eyebrow": "Destaque da arena",
+      "title": "Ativos em alta",
+      "description": "Ativos mais ativos com base no volume e na visibilidade recentes das partidas públicas da arena.",
+      "emptyTitle": "Ainda não há ativos em alta",
+      "emptyBody": "Os ativos em alta aparecerão aqui quando a arena registrar atividade pública suficiente.",
+      "matchesHint": "{0} partidas recentes",
+      "assetAria": "Abrir a futura página de estatísticas de {0}"
     },
     "ranking": {
-      "eyebrow": "HTML ranking table",
-      "title": "Top Crypto Assets by Arena Performance",
-      "description": "Top performing crypto assets based on public CriptoVersus arena battles and historical match performance.",
-      "empty": "No ranked assets yet.",
-      "assetAria": "Open the future stats page for asset {0}",
+      "eyebrow": "Tabela de ranking HTML",
+      "title": "Principais ativos cripto por desempenho na arena",
+      "description": "Ativos cripto com melhor desempenho com base nas batalhas públicas do CriptoVersus e no histórico das partidas.",
+      "empty": "Ainda não há ativos ranqueados.",
+      "assetAria": "Abrir a futura página de estatísticas do ativo {0}",
       "columns": {
-        "rank": "Rank",
-        "asset": "Asset",
-        "matches": "Matches",
-        "wins": "Wins",
-        "losses": "Losses",
-        "winRate": "Win Rate",
-        "averageScore": "Average Score",
-        "totalScore": "Total Score",
-        "lastMatch": "Last Match"
+        "rank": "Posição",
+        "asset": "Ativo",
+        "matches": "Partidas",
+        "wins": "Vitórias",
+        "losses": "Derrotas",
+        "winRate": "Taxa de vitória",
+        "averageScore": "Pontuação média",
+        "totalScore": "Pontuação total",
+        "lastMatch": "Última partida"
       }
     },
     "latest": {
-      "eyebrow": "Latest scoreboards",
-      "title": "Latest Public Matches",
-      "description": "Most recent public arena match pages available for discovery and audit.",
-      "empty": "No public matches available yet.",
-      "openMatch": "Open match",
-      "openMatchAria": "Open the public match page for {0} versus {1}",
-      "homeAssetAria": "Open the future stats page for asset {0}",
-      "awayAssetAria": "Open the future stats page for asset {0}",
-      "unavailable": "Unavailable",
+      "eyebrow": "Últimos placares",
+      "title": "Partidas públicas mais recentes",
+      "description": "As páginas públicas de partidas mais recentes disponíveis para descoberta e auditoria.",
+      "empty": "Ainda não há partidas públicas disponíveis.",
+      "vs": "vs",
+      "openMatch": "Abrir partida",
+      "openMatchAria": "Abrir a página pública da partida de {0} contra {1}",
+      "homeAssetAria": "Abrir a futura página de estatísticas do ativo {0}",
+      "awayAssetAria": "Abrir a futura página de estatísticas do ativo {0}",
+      "unavailable": "Indisponível",
       "columns": {
-        "match": "Match",
-        "score": "Score",
+        "match": "Partida",
+        "score": "Placar",
         "status": "Status",
-        "startedAt": "Started At",
-        "finishedAt": "Finished At",
-        "publicPage": "Public Page"
+        "startedAt": "Início",
+        "finishedAt": "Encerramento",
+        "publicPage": "Página pública"
       }
     },
     "future": {
-      "eyebrow": "Roadmap connectors",
-      "title": "Next public stats hubs",
-      "description": "Explore hubs publicos dedicados construidos sobre os dados ao vivo da arena CriptoVersus.",
-      "availableNow": "Available now",
-      "comingSoon": "Coming soon",
-      "openAria": "Open {0}",
+      "eyebrow": "Conectores do roadmap",
+      "title": "Próximos hubs públicos de estatísticas",
+      "description": "Explore hubs públicos dedicados construídos sobre os dados ao vivo da arena CriptoVersus.",
+      "availableNow": "Disponível agora",
+      "comingSoon": "Em breve",
+      "openAria": "Abrir {0}",
       "links": {
         "teams": {
-          "title": "Teams",
-          "description": "Dedicated team-vs-team public leaderboards."
+          "title": "Times",
+          "description": "Rankings públicos dedicados de time contra time."
         },
         "matches": {
-          "title": "Matches",
-          "description": "Expanded match archive with deeper historical filters."
+          "title": "Partidas",
+          "description": "Arquivo de partidas ampliado com filtros históricos mais profundos."
         },
         "rankings": {
           "title": "Rankings",
-          "description": "Multi-metric ranking boards across public arena categories."
+          "description": "Painéis de ranking multimétrico em várias categorias da arena pública."
         },
         "records": {
-          "title": "Records",
-          "description": "Public arena records, streaks and statistical milestones."
+          "title": "Recordes",
+          "description": "Recordes públicos da arena, sequências e marcos estatísticos."
         }
       }
     },
     "status": {
-      "completed": "Finished",
-      "ongoing": "Live",
-      "pending": "Pending",
-      "cancelled": "Cancelled"
+      "completed": "Finalizado",
+      "ongoing": "Ao vivo",
+      "pending": "Pendente",
+      "cancelled": "Cancelado"
     },
     "structuredData": {
-      "breadcrumbStats": "Statistics"
+      "breadcrumbStats": "Estatísticas"
     },
     "footnote": {
-      "title": "Public arena data context",
-      "body": "CriptoVersus public statistics track crypto match performance, historical arena battles, win rates, scoreboards and public market competition between digital assets."
+      "title": "Contexto dos dados públicos da arena",
+      "body": "As estatísticas públicas do CriptoVersus acompanham o desempenho das partidas cripto, batalhas históricas da arena, taxas de vitória, placares e a competição pública de mercado entre ativos digitais."
     }
   },
   "statsTeams": {
@@ -967,6 +968,7 @@
     "totalDistributed": "Total distributed",
     "settlementSummary": "Settlement summary",
     "finished": "Finished",
+    "finishedAtUtc": "Finalizada em UTC: {0}",
     "actions": "Actions",
     "copyLink": "Copy link",
     "back": "Back",

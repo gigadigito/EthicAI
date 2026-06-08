@@ -166,8 +166,10 @@
                     <div class="home-hot-hero__cta-group">
                         <a class="arena-cta-button home-hot-hero__cta"
                            href="@GetTvWatchUrl(hero)"
-                           aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("watchLive")
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("openArena")
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
@@ -258,8 +260,10 @@
                     <div class="home-hot-hero__cta-group">
                         <a class="arena-cta-button home-hot-hero__cta"
                            href="@GetTvMatchUrl(hero)"
-                           aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("watchLive")
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
+                            @ArenaText("openArena")
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
@@ -310,11 +314,6 @@
                 var featuredEnergyB = 100 - featuredEnergyA;
 
                 <article class="arena-featured-battle @GetArenaLeaderClass(featured) @GetArenaHeatClass(featured)">
-                    <a class="arena-card-hitbox"
-                       href="@GetPublicMatchUrl(featured)"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       aria-label="@ArenaText("openMatchAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)"></a>
                     <div class="arena-featured-battle__glow" aria-hidden="true"></div>
 
                     <div class="arena-featured-battle__hud">
@@ -408,8 +407,10 @@
                             <div class="arena-featured-battle__actions">
                                 <a class="arena-cta-button"
                                    href="@GetTvMatchUrl(featured)"
-                                   aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
-                                    @ArenaText("watchLive")
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   aria-label="@ArenaText("openArenaAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
+                                    @ArenaText("openArena")
                                 </a>
                                 <a class="arena-cta-link"
                                    href="@GetPublicMatchUrl(featured)"
@@ -442,11 +443,6 @@
                     var energyB = 100 - energyA;
 
                     <article class="arena-match-card @GetArenaLeaderClass(match) @GetArenaHeatClass(match)">
-                        <a class="arena-card-hitbox"
-                           href="@GetPublicMatchUrl(match)"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
                         <div class="arena-match-card__header">
                             <span class="arena-live-pill arena-live-pill--small">
                                 <span class="arena-live-pill__dot" aria-hidden="true"></span>
@@ -503,10 +499,12 @@
                         <div class="arena-match-card__footer">
                             <span class="arena-status-subtext">@GetMatchClockLabel(match)</span>
                             <div class="arena-match-card__actions">
-                                <a class="arena-cta-link"
+                                <a class="arena-cta-button"
                                    href="@GetTvMatchUrl(match)"
-                                   aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                    @ArenaText("watchLive")
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                    @ArenaText("openArena")
                                 </a>
                                 <a class="arena-cta-link"
                                    href="@GetPublicMatchUrl(match)"
@@ -536,11 +534,6 @@
                 var energyB = 100 - energyA;
 
                 <article class="arena-match-card arena-match-card--compact @GetArenaLeaderClass(match) @GetArenaHeatClass(match)">
-                    <a class="arena-card-hitbox"
-                       href="@GetPublicMatchUrl(match)"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)"></a>
                     <div class="arena-match-card__header">
                         <span class="arena-chip arena-chip--muted">@GetMatchStateLabel(match)</span>
                         <span class="arena-meta">@ArenaText("arenaMatchId", match.MatchId)</span>
@@ -593,10 +586,12 @@
                     <div class="arena-match-card__footer">
                         <span class="arena-status-subtext">@T("featuredMatchScoreSummary", match.MatchId, match.ScoreA, match.ScoreB)</span>
                         <div class="arena-match-card__actions">
-                            <a class="arena-cta-link"
+                            <a class="arena-cta-button"
                                href="@GetTvMatchUrl(match)"
-                               aria-label="@ArenaText("watchLiveAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
-                                @ArenaText("watchLive")
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               aria-label="@ArenaText("openArenaAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
+                                @ArenaText("openArena")
                             </a>
                             <a class="arena-cta-link"
                                href="@GetPublicMatchUrl(match)"
@@ -1064,12 +1059,10 @@
             "live" => CurrentCulture == "en" ? "LIVE" : "AO VIVO",
             "liveNow" => CurrentCulture == "en" ? "LIVE NOW" : "AO VIVO",
             "featuredBattle" => CurrentCulture == "en" ? "Featured Battle" : "Batalha em destaque",
-            "openArena" => CurrentCulture == "en" ? "Open Arena" : "Abrir arena",
+            "openArena" => CurrentCulture == "en" ? "Open Arena" : "Abrir Arena",
             "openBattle" => CurrentCulture == "en" ? "Open battle" : "Abrir batalha",
-            "watchLive" => CurrentCulture == "en" ? "Watch Live" : "Assistir ao vivo",
             "openMatch" => CurrentCulture == "en" ? "Open Match" : "Abrir Match",
-            "watchLiveAria" => CurrentCulture == "en" ? "Watch live match {0} versus {1}, match {2}" : "Assistir ao vivo a partida {0} contra {1}, partida {2}",
-            "openMatchAria" => CurrentCulture == "en" ? "Open fixed TV match {0} versus {1}, match {2}" : "Abrir a partida fixa da TV para {0} contra {1}, partida {2}",
+            "openMatchAria" => CurrentCulture == "en" ? "Open match {0} versus {1}, match {2}" : "Abrir a partida {0} contra {1}, partida {2}",
             "hotMatch" => CurrentCulture == "en" ? "HOT MATCH" : "BATALHA QUENTE",
             "trending" => CurrentCulture == "en" ? "TRENDING" : "TRENDING",
             "momentum" => CurrentCulture == "en" ? "MOMENTUM" : "MOMENTUM",
@@ -1080,7 +1073,7 @@
             "volatility" => CurrentCulture == "en" ? "Volatility" : "Volatilidade",
             "scoreLine" => CurrentCulture == "en" ? "Scoreline" : "Placar",
             "arenaMatchId" => CurrentCulture == "en" ? "Arena match #{0}" : "Partida da arena #{0}",
-            "openArenaAria" => CurrentCulture == "en" ? "Open arena match {0} versus {1}, match {2}" : "Abrir arena da partida {0} contra {1}, partida {2}",
+            "openArenaAria" => CurrentCulture == "en" ? "Open arena match {0} versus {1}, match {2}" : "Abrir Arena da partida {0} contra {1}, partida {2}",
             "momentumBar" => CurrentCulture == "en" ? "Momentum balance" : "Equilibrio de momentum",
             "finalResultShort" => CurrentCulture == "en" ? "Final result" : "Resultado final",
             "elapsedMinutes" => CurrentCulture == "en" ? "{0}' elapsed" : "{0}' jogados",
@@ -2018,7 +2011,7 @@
     }
 
     .home-hot-hero__cta {
-        width: 100%;
+        width: auto;
     }
 
     .home-hot-hero__cta-group,
@@ -2214,7 +2207,7 @@
     .arena-match-card {
         position: relative;
         overflow: hidden;
-        cursor: pointer;
+        cursor: default;
         border-radius: 28px;
         border: 1px solid rgba(133, 160, 204, 0.22);
         background:
@@ -2249,19 +2242,6 @@
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-    }
-
-    .arena-card-hitbox {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        border-radius: inherit;
-        cursor: pointer;
-    }
-
-    .arena-card-hitbox:focus-visible {
-        outline: 2px solid #7ff6df;
-        outline-offset: -4px;
     }
 
     .arena-featured-battle__chips {
@@ -2567,21 +2547,28 @@
     .arena-cta-link {
         position: relative;
         z-index: 3;
-        text-decoration: none;
-        font-weight: 900;
-        letter-spacing: .08em;
-    }
-
-    .arena-cta-button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         min-height: 3.2rem;
         padding: 0 1.2rem;
         border-radius: 18px;
-        color: #04120d;
-        background: linear-gradient(90deg, #4cf38d, #7ff6df);
-        box-shadow: 0 16px 34px rgba(76,243,141,.24);
+        text-decoration: none;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-align: center;
+        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+
+    .arena-cta-button {
+        color: #f5efff;
+        background: linear-gradient(90deg, #8f53ff, #b06dff);
+        box-shadow: 0 16px 34px rgba(143,83,255,.24);
+    }
+
+    .arena-cta-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 40px rgba(143,83,255,.28);
     }
 
     .arena-match-grid,
@@ -2665,7 +2652,20 @@
     }
 
     .arena-cta-link {
-        color: #7ff6df;
+        color: #04120d;
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        box-shadow: 0 16px 34px rgba(76,243,141,.24);
+    }
+
+    .arena-cta-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 40px rgba(76,243,141,.28);
+    }
+
+    .home-hot-hero__cta-group > a,
+    .arena-featured-battle__actions > a,
+    .arena-match-card__actions > a {
+        flex: 1 1 160px;
     }
 
     .arena-match-card.is-team-a-leading {

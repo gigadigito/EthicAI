@@ -433,13 +433,13 @@
     },
     "search": {
       "eyebrow": "Asset search",
-      "title": "Find a coin instantly",
-      "description": "Search the public ranking by symbol or asset name without leaving the Stats page.",
-      "label": "Search for a coin",
+      "title": "Find a coin quickly",
+      "description": "Search the public ranking by symbol or asset name without leaving the Stats screen.",
+      "label": "Search a coin",
       "placeholder": "BTC, ETH, STRAX, TON...",
       "ariaLabel": "Search for a coin by symbol or name",
       "clear": "Clear",
-      "noResultsTitle": "No asset found for this search.",
+      "noResultsTitle": "No assets found for this search.",
       "noResultsBody": "Try another symbol or asset name to return to the public ranking."
     },
     "summary": {
@@ -515,6 +515,7 @@
       "title": "Latest Public Matches",
       "description": "Most recent public arena match pages available for discovery and audit.",
       "empty": "No public matches available yet.",
+      "vs": "vs",
       "openMatch": "Open match",
       "openMatchAria": "Open the public match page for {0} versus {1}",
       "homeAssetAria": "Open the future stats page for asset {0}",
@@ -1065,6 +1066,7 @@
     "totalDistributed": "Total distributed",
     "settlementSummary": "Settlement summary",
     "finished": "Finished",
+    "finishedAtUtc": "Finished in UTC: {0}",
     "actions": "Actions",
     "copyLink": "Copy link",
     "back": "Back",
