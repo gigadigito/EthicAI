@@ -42,7 +42,7 @@ const [
     tvCandleBattleEngineModule,
     tvCandleBattleMarkersModule,
     tvCandleBattleHudModule,
-    tvBroadcastPanelCarouselModule,
+    tvTelemetryCubeModule,
     tvAudioFacadeModule,
     tvAudioConfigModule,
     tvAudioRuntimeModule,
@@ -60,7 +60,7 @@ const [
     importWithBroadcastVersion("./tvCandleBattleEngine.mjs"),
     importWithBroadcastVersion("./tvCandleBattleMarkers.mjs"),
     importWithBroadcastVersion("./tvCandleBattleHud.mjs"),
-    importWithBroadcastVersion("./tvBroadcastPanelCarousel.mjs"),
+    importWithBroadcastVersion("./tvTelemetryCube.mjs"),
     importWithBroadcastVersion("./tvAudioFacade.mjs"),
     importWithBroadcastVersion("./tvAudioConfig.mjs"),
     importWithBroadcastVersion("./tvAudioRuntime.mjs"),
@@ -111,7 +111,7 @@ const {
     renderBattleTimeline
 } = tvCandleBattleMarkersModule;
 const { renderCandleBattleHud } = tvCandleBattleHudModule;
-const { createBroadcastPanelCarouselController } = tvBroadcastPanelCarouselModule;
+const { createTelemetryCubeController } = tvTelemetryCubeModule;
 const { createTvAudioFacade } = tvAudioFacadeModule;
 const {
     tvAudioMap,
@@ -221,13 +221,13 @@ function throttleKey(prefix, key, minIntervalMs) {
     return true;
 }
 
-function telemetryPanelLog(message, payload) {
+function telemetryCubeLog(message, payload) {
     if (typeof payload === "undefined") {
-        console.log(`[TV_PANEL] ${message}`);
+        console.log(`[TV_CUBE] ${message}`);
         return;
     }
 
-    console.log(`[TV_PANEL] ${message}`, payload);
+    console.log(`[TV_CUBE] ${message}`, payload);
 }
 
 function telemetryChartLog(message, payload) {
@@ -268,10 +268,10 @@ function ensureTelemetryCubeController() {
         return telemetryCubeController;
     }
 
-    telemetryCubeController = createBroadcastPanelCarouselController({
+    telemetryCubeController = createTelemetryCubeController({
         isReducedMotion,
         throttleKey,
-        logPanel: telemetryPanelLog,
+        logCube: telemetryCubeLog,
         logChart: telemetryChartLog,
         hasChartContainers,
         scheduleContainerRetry,
