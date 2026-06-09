@@ -1,17 +1,6 @@
 export function createTelemetryCubeController(deps) {
     let state = null;
 
-    function resolvePhysicalFaceIndex(faceIndex) {
-        switch (faceIndex) {
-            case 4:
-            case 5:
-            case 6:
-                return 2;
-            default:
-                return faceIndex;
-        }
-    }
-
     function resolveVirtualFaceKey(faceIndex) {
         switch (faceIndex) {
             case 4:
@@ -113,16 +102,14 @@ export function createTelemetryCubeController(deps) {
 
             const faceCount = state.faceCount || 7;
             const normalized = ((faceIndex % faceCount) + faceCount) % faceCount;
-            const physicalFaceIndex = resolvePhysicalFaceIndex(normalized);
             state.faceIndex = normalized;
-            state.physicalFaceIndex = physicalFaceIndex;
             const virtualFace = resolveVirtualFaceKey(normalized);
             state.virtualFace = virtualFace;
             state.cube.classList.remove("is-face-0", "is-face-1", "is-face-2", "is-face-3", "is-face-4", "is-face-5", "is-face-6");
-            state.cube.classList.add(`is-face-${physicalFaceIndex}`);
+            state.cube.classList.add(`is-face-${normalized}`);
             state.cube.dataset.virtualFace = virtualFace;
 
-            deps.logCube(`face changed ${normalized}`, reason ? { reason, physicalFaceIndex, virtualFace } : { physicalFaceIndex, virtualFace });
+            deps.logCube(`face changed ${normalized}`, reason ? { reason, virtualFace } : { virtualFace });
 
             window.setTimeout(() => resizeCharts(), 0);
             window.setTimeout(() => resizeCharts(), 80);
@@ -196,7 +183,6 @@ export function createTelemetryCubeController(deps) {
                 intervalMs: resolvedIntervalMs,
                 timerId: null,
                 faceIndex: 0,
-                physicalFaceIndex: 0,
                 faceCount: 7,
                 virtualFace: "none",
                 paused: false,
@@ -222,6 +208,16 @@ export function createTelemetryCubeController(deps) {
 
             if (!shell.dataset.tvCubeBound) {
                 shell.dataset.tvCubeBound = "1";
+
+                shell.addEventListener("mouseenter", () => {
+                    state.paused = true;
+                    pause("hover");
+                });
+
+                shell.addEventListener("mouseleave", () => {
+                    state.paused = false;
+                    resume();
+                });
 
                 shell.addEventListener("click", () => {
                     if (!state || state.disabled) {
