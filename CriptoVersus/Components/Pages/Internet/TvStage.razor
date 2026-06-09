@@ -11577,24 +11577,10 @@ else
     .tv-telemetry-cube__virtual-panel {
         position: absolute;
         inset: 0;
-        opacity: 0;
-        visibility: hidden;
+        display: none;
         pointer-events: none;
-        transform:
-            perspective(1800px)
-            rotateY(16deg)
-            rotateX(4deg)
-            translate3d(0, 0, -34px)
-            scale(.978);
-        transform-origin: center center;
-        filter: blur(8px) saturate(.88);
-        transition:
-            opacity .24s ease,
-            transform .68s cubic-bezier(.2,.82,.24,1),
-            filter .68s cubic-bezier(.2,.82,.24,1),
-            visibility 0s linear .68s;
-        will-change: opacity, transform, filter;
         backface-visibility: hidden;
+        z-index: 0;
     }
 
     .tv-telemetry-cube__virtual-panel::after {
@@ -11614,31 +11600,20 @@ else
         mix-blend-mode: screen;
     }
 
-    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
-    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
-    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-        opacity: 1;
-        visibility: visible;
+    .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+    .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+        display: grid;
         pointer-events: auto;
-        transform:
-            perspective(1800px)
-            rotateY(0deg)
-            rotateX(0deg)
-            translate3d(0, 0, 0)
-            scale(1);
-        filter: blur(0) saturate(1);
-        transition:
-            opacity .22s ease,
-            transform .74s cubic-bezier(.18,.88,.24,1),
-            filter .74s cubic-bezier(.18,.88,.24,1),
-            visibility 0s;
+        z-index: 1;
+        animation: tvCubeSubfaceIn .42s cubic-bezier(.22,.82,.28,1);
     }
 
-    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
-    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
-    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
-    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
+    .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
+    .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
+    .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
+    .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
         opacity: .75;
         animation: tvCubeSubfaceSweep .72s cubic-bezier(.22,.82,.28,1);
     }
@@ -13794,6 +13769,20 @@ else
         100% {
             opacity: 0;
             transform: translateX(46%) skewX(-14deg);
+        }
+    }
+
+    @@keyframes tvCubeSubfaceIn {
+        0% {
+            opacity: 0;
+            transform: perspective(1800px) rotateY(12deg) rotateX(3deg) translate3d(0, 0, -28px) scale(.982);
+            filter: blur(6px) saturate(.9);
+        }
+
+        100% {
+            opacity: 1;
+            transform: perspective(1800px) rotateY(0deg) rotateX(0deg) translate3d(0, 0, 0) scale(1);
+            filter: blur(0) saturate(1);
         }
     }
 
