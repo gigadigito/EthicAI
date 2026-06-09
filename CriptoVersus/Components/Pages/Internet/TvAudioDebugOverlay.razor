@@ -144,6 +144,7 @@
 
 @code {
     [Parameter] public string Culture { get; set; } = "en";
+    [Parameter] public string ScriptVersion { get; set; } = Guid.NewGuid().ToString("N");
 
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _pollCts;
@@ -157,7 +158,7 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260608-telemetry-cube-restore-1");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={ScriptVersion}");
         await RefreshStateAsync();
         _pollCts = new CancellationTokenSource();
         _pollTask = PollStateAsync(_pollCts.Token);

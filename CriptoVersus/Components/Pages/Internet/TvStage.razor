@@ -439,38 +439,16 @@
                     @if (EnableTelemetryCube)
                     {
                         <div id="tv-telemetry-cube-shell"
-                             class="tv-telemetry-cube-shell"
+                             class="tv-broadcast-panel-carousel-shell"
                              data-interval-seconds="@TelemetryCubeIntervalSeconds">
-                            <div id="tv-telemetry-cube" class="tv-telemetry-cube is-face-0">
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--front">
-                                    <div class="tv-telemetry-cube__inner">
-                                        <div class="tv-telemetry-cube__telemetry-grid">
-                                            @TelemetryPanelContent()
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--right">
-                                    <div class="tv-telemetry-cube__inner">
-                                        <header class="tv-telemetry-face-header">
-                                            <span class="tv-telemetry-face-header__kicker">@T("labels.leftAssetChange")</span>
-                                            <div class="tv-telemetry-face-header__row">
-                                                <strong>@DisplayLeftTickerLabel()</strong>
-                                                <em class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</em>
-                                            </div>
-                                            <small>@DisplayMomentumSupportLine()</small>
-                                        </header>
-                                        <div id="tv-telemetry-chart-left" class="tv-telemetry-chart-shell" aria-label="chart ativo A"></div>
-                                        <div class="tv-telemetry-face-footer">
-                                            <span>@T("labels.momentum")</span>
-                                            <strong>@DisplayMomentum()</strong>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
-                                    <div class="tv-telemetry-cube__virtual-stage">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare tv-telemetry-cube__virtual-panel">
+                            <div id="tv-telemetry-cube"
+                                 class="tv-broadcast-panel-carousel is-panel-0"
+                                 data-active-panel="compare"
+                                 data-active-panel-index="0">
+                                <div class="tv-broadcast-panel-carousel__viewport">
+                                    <div class="tv-broadcast-panel-carousel__panel tv-telemetry-cube__inner tv-telemetry-cube__inner--compare"
+                                         data-panel-key="compare"
+                                         data-panel-index="0">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">@T("labels.marketBattleFlow")</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -486,7 +464,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
+                                    <div class="tv-broadcast-panel-carousel__panel tv-telemetry-cube__inner tv-telemetry-cube__inner--split"
+                                         data-panel-key="split"
+                                         data-panel-index="1">
                                         <section id="tv-candle-battle-root"
                                                  class="tv-candle-battle"
                                                  aria-label="@($"{DisplayLeftTickerLabel()} vs {DisplayRightTickerLabel()} candle battle arena")">
@@ -603,7 +583,9 @@
                                         </section>
                                     </div>
 
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals tv-telemetry-cube__virtual-panel">
+                                    <div class="tv-broadcast-panel-carousel__panel tv-telemetry-cube__inner tv-telemetry-cube__inner--goals"
+                                         data-panel-key="goals"
+                                         data-panel-index="2">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">@RootT("grid.metrics.goals")</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -625,7 +607,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment tv-telemetry-cube__virtual-panel">
+                                    <div class="tv-broadcast-panel-carousel__panel tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment"
+                                         data-panel-key="sentiment"
+                                         data-panel-index="3">
                                         <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
                                                               Culture="@Culture"
                                                               LeftDisplayName="@DisplayLeftSymbol()"
@@ -642,27 +626,14 @@
                                                               Description="@GetArenaPressureDescription()"
                                                               IsCompact="true" />
                                     </div>
-                                    </div>
-                                </section>
+                                </div>
 
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--left">
-                                    <div class="tv-telemetry-cube__inner">
-                                        <header class="tv-telemetry-face-header">
-                                            <span class="tv-telemetry-face-header__kicker">@T("labels.rightAssetChange")</span>
-                                            <div class="tv-telemetry-face-header__row">
-                                                <strong>@DisplayRightTickerLabel()</strong>
-                                                <em class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</em>
-                                            </div>
-                                            <small>@DisplayMomentumSupportLine()</small>
-                                        </header>
-                                        <div id="tv-telemetry-chart-right" class="tv-telemetry-chart-shell" aria-label="chart ativo B"></div>
-                                        <div class="tv-telemetry-face-footer">
-                                            <span>@T("labels.momentum")</span>
-                                            <strong>@DisplayMomentum()</strong>
-                                        </div>
-                                    </div>
-                                </section>
-
+                                <div class="tv-broadcast-panel-carousel__nav" aria-label="Broadcast telemetry panels">
+                                    <button type="button" class="tv-broadcast-panel-carousel__dot" data-broadcast-panel-target="0" aria-label="@T("labels.marketBattleFlow")"></button>
+                                    <button type="button" class="tv-broadcast-panel-carousel__dot" data-broadcast-panel-target="1" aria-label="Candle Battle"></button>
+                                    <button type="button" class="tv-broadcast-panel-carousel__dot" data-broadcast-panel-target="2" aria-label="@RootT("grid.metrics.goals")"></button>
+                                    <button type="button" class="tv-broadcast-panel-carousel__dot" data-broadcast-panel-target="3" aria-label="Arena Pressure"></button>
+                                </div>
                             </div>
                         </div>
                     }
@@ -893,7 +864,7 @@ else
 
 @if (_audioDebugEnabled)
 {
-    <TvAudioDebugOverlay Culture="@Culture" />
+    <TvAudioDebugOverlay Culture="@Culture" ScriptVersion="@BroadcastJsVersion" />
 }
 
 @if (ShouldRenderCrowdAudio)
@@ -935,6 +906,7 @@ else
 
 @code {
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public string BroadcastJsVersion { get; set; } = Guid.NewGuid().ToString("N");
     [Parameter] public bool IsBroadcastMode { get; set; }
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
     [Parameter] public MatchDto? Match { get; set; }
@@ -1364,11 +1336,11 @@ else
 
         if (firstRender)
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260608-telemetry-cube-restore-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={BroadcastJsVersion}");
             await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
             await EnsureAudioDebugInteropAsync(force: true);
-            _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
-            _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
+            _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvCinematicCamera.js?v={BroadcastJsVersion}");
+            _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvEventFeed.mjs?v={BroadcastJsVersion}");
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -1487,7 +1459,7 @@ else
         {
             await _tvModule.InvokeVoidAsync("initTelemetryCube", "tv-telemetry-cube-shell", TelemetryCubeIntervalSeconds * 1000);
             _telemetryCubeInitialized = true;
-            await LogAsync("TV_CUBE", "initialized");
+            await LogAsync("TV_PANEL", "initialized");
         }
         catch (ObjectDisposedException)
         {
@@ -11494,17 +11466,15 @@ else
         margin: 0;
     }
 
-    .tv-telemetry-cube-shell {
+    .tv-broadcast-panel-carousel-shell {
         grid-column: 1 / -1;
         position: relative;
         height: clamp(520px, 56vh, 720px);
         min-height: 0;
-        perspective: 1600px;
-        perspective-origin: 50% 44%;
         isolation: isolate;
     }
 
-    .tv-telemetry-cube-shell.is-paused::after {
+    .tv-broadcast-panel-carousel-shell.is-paused::after {
         content: "";
         position: absolute;
         inset: 0;
@@ -11514,23 +11484,11 @@ else
         opacity: .9;
     }
 
-    .tv-telemetry-cube {
-        position: absolute;
+    .tv-broadcast-panel-carousel {
+        position: relative;
         inset: 0;
-        transform-style: preserve-3d;
-        transition: transform 1.1s cubic-bezier(.22,.82,.28,1);
-        will-change: transform;
-        --tv-cube-depth: 280px;
-    }
-
-    .tv-telemetry-cube.is-face-0 { transform: rotateY(0deg); }
-    .tv-telemetry-cube.is-face-1 { transform: rotateY(-90deg); }
-    .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
-    .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
-    .tv-telemetry-cube__face {
-        position: absolute;
-        inset: 0;
-        backface-visibility: hidden;
+        height: 100%;
+        min-height: 0;
         border-radius: 26px;
         border: 1px solid rgba(255,255,255,0.06);
         background:
@@ -11540,7 +11498,7 @@ else
         overflow: hidden;
     }
 
-    .tv-telemetry-cube__face::before {
+    .tv-broadcast-panel-carousel::before {
         content: "";
         position: absolute;
         inset: 0;
@@ -11549,39 +11507,35 @@ else
         pointer-events: none;
     }
 
-    .tv-telemetry-cube__face--front { transform: rotateY(0deg) translateZ(var(--tv-cube-depth)); }
-    .tv-telemetry-cube__face--right { transform: rotateY(90deg) translateZ(var(--tv-cube-depth)); }
-    .tv-telemetry-cube__face--back { transform: rotateY(180deg) translateZ(var(--tv-cube-depth)); }
-    .tv-telemetry-cube__face--left { transform: rotateY(-90deg) translateZ(var(--tv-cube-depth)); }
-
-    .tv-telemetry-cube__virtual-stage {
+    .tv-broadcast-panel-carousel__viewport {
         position: relative;
         height: 100%;
         min-height: 0;
         isolation: isolate;
     }
 
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
-    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-        height: 100%;
-    }
-
-    .tv-telemetry-cube__virtual-panel {
+    .tv-broadcast-panel-carousel__panel {
         position: absolute;
         inset: 0;
+        height: 100%;
+        min-height: 0;
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        backface-visibility: hidden;
         z-index: 0;
+        transform:
+            translate3d(22px, 0, 0)
+            rotateY(7deg)
+            scale(.986);
+        filter: blur(10px) saturate(.9);
         transition:
             opacity .22s ease,
+            transform .42s cubic-bezier(.22,.82,.28,1),
+            filter .42s cubic-bezier(.22,.82,.28,1),
             visibility 0s linear .22s;
     }
 
-    .tv-telemetry-cube__virtual-panel::after {
+    .tv-broadcast-panel-carousel__panel::after {
         content: "";
         position: absolute;
         inset: -8%;
@@ -11598,26 +11552,74 @@ else
         mix-blend-mode: screen;
     }
 
-    .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-    .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
-    .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
-    .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+    .tv-broadcast-panel-carousel[data-active-panel="compare"] .tv-telemetry-cube__inner--compare,
+    .tv-broadcast-panel-carousel[data-active-panel="split"] .tv-telemetry-cube__inner--split,
+    .tv-broadcast-panel-carousel[data-active-panel="goals"] .tv-telemetry-cube__inner--goals,
+    .tv-broadcast-panel-carousel[data-active-panel="sentiment"] .tv-telemetry-cube__inner--sentiment {
+        position: relative;
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
         z-index: 1;
+        transform:
+            translate3d(0, 0, 0)
+            rotateY(0deg)
+            scale(1);
+        filter: blur(0) saturate(1);
         animation: tvCubeSubfaceIn .42s cubic-bezier(.22,.82,.28,1);
         transition:
             opacity .22s ease,
+            transform .42s cubic-bezier(.22,.82,.28,1),
+            filter .42s cubic-bezier(.22,.82,.28,1),
             visibility 0s;
     }
 
-    .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
-    .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
-    .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
-    .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
+    .tv-broadcast-panel-carousel[data-active-panel="compare"] .tv-telemetry-cube__inner--compare::after,
+    .tv-broadcast-panel-carousel[data-active-panel="split"] .tv-telemetry-cube__inner--split::after,
+    .tv-broadcast-panel-carousel[data-active-panel="goals"] .tv-telemetry-cube__inner--goals::after,
+    .tv-broadcast-panel-carousel[data-active-panel="sentiment"] .tv-telemetry-cube__inner--sentiment::after {
         opacity: .75;
         animation: tvCubeSubfaceSweep .72s cubic-bezier(.22,.82,.28,1);
+    }
+
+    .tv-broadcast-panel-carousel__nav {
+        position: absolute;
+        right: 14px;
+        bottom: 14px;
+        z-index: 3;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(4, 10, 20, 0.72);
+        backdrop-filter: blur(16px);
+    }
+
+    .tv-broadcast-panel-carousel__dot {
+        width: 10px;
+        height: 10px;
+        border: 0;
+        padding: 0;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.24);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+        transition: transform .22s ease, background .22s ease, box-shadow .22s ease;
+    }
+
+    .tv-broadcast-panel-carousel__dot:hover {
+        transform: scale(1.08);
+        background: rgba(255,255,255,0.38);
+    }
+
+    .tv-broadcast-panel-carousel[data-active-panel-index="0"] .tv-broadcast-panel-carousel__dot[data-broadcast-panel-target="0"],
+    .tv-broadcast-panel-carousel[data-active-panel-index="1"] .tv-broadcast-panel-carousel__dot[data-broadcast-panel-target="1"],
+    .tv-broadcast-panel-carousel[data-active-panel-index="2"] .tv-broadcast-panel-carousel__dot[data-broadcast-panel-target="2"],
+    .tv-broadcast-panel-carousel[data-active-panel-index="3"] .tv-broadcast-panel-carousel__dot[data-broadcast-panel-target="3"] {
+        background: linear-gradient(135deg, rgba(127, 246, 223, 1), rgba(83, 200, 255, 1));
+        box-shadow: 0 0 0 1px rgba(127, 246, 223, 0.22), 0 0 16px rgba(83, 200, 255, 0.34);
+        transform: scale(1.14);
     }
 
     .tv-telemetry-cube__inner {
@@ -11643,11 +11645,6 @@ else
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 10px;
         align-content: start;
-    }
-
-    .tv-telemetry-cube__face--front .tv-telemetry__match-link,
-    .tv-telemetry-cube__face--front article {
-        animation: none;
     }
 
     .tv-telemetry-face-header {
@@ -12330,73 +12327,44 @@ else
     }
 
     @@media (prefers-reduced-motion: reduce) {
-        .tv-telemetry-cube-shell {
-            perspective: none;
+        .tv-broadcast-panel-carousel-shell {
             height: auto;
         }
 
-        .tv-telemetry-cube {
-            position: static;
-            transform: none !important;
+        .tv-broadcast-panel-carousel,
+        .tv-broadcast-panel-carousel__panel {
             transition: none;
+            animation: none;
         }
 
-        .tv-telemetry-cube__face {
-            position: static;
-            transform: none !important;
-            margin-bottom: 10px;
+        .tv-broadcast-panel-carousel__panel {
+            transform: none;
+            filter: none;
         }
     }
 
     @@media (max-width: 1080px) {
-        .tv-telemetry-cube-shell {
-            perspective: none;
+        .tv-broadcast-panel-carousel-shell {
             height: auto;
         }
 
-        .tv-telemetry-cube {
-            position: static;
-            transform: none !important;
-            display: grid;
-            gap: 10px;
-        }
-
-        .tv-telemetry-cube__face {
-            position: static;
-            transform: none !important;
-            display: block;
+        .tv-broadcast-panel-carousel {
             min-height: 0;
         }
 
-        .tv-telemetry-cube__virtual-stage {
-            position: static;
-            display: grid;
-            gap: 10px;
+        .tv-broadcast-panel-carousel__viewport,
+        .tv-broadcast-panel-carousel__panel {
+            min-height: 0;
         }
 
-        .tv-telemetry-cube__virtual-panel {
-            position: static;
-            inset: auto;
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            max-height: 0;
-            overflow: hidden;
+        .tv-broadcast-panel-carousel__panel {
             transform: none;
             filter: none;
-            transition: none;
         }
 
-        .tv-telemetry-cube__virtual-panel::after {
-            display: none;
-        }
-
-        .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
-        .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
-        .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
-        .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-            max-height: none;
-            overflow: visible;
+        .tv-broadcast-panel-carousel__nav {
+            right: 12px;
+            bottom: 12px;
         }
 
         .tv-candle-battle__header,
@@ -13576,7 +13544,7 @@ else
         align-content: stretch;
     }
 
-    .tv-telemetry-cube-shell {
+    .tv-broadcast-panel-carousel-shell {
         width: 100%;
         max-width: 100%;
         overflow: hidden;
@@ -13584,22 +13552,14 @@ else
         min-height: 800px;
     }
 
-    .tv-telemetry-cube {
-        inset: 0;
-        --tv-cube-depth: 0px;
-    }
-
-    .tv-telemetry-cube__face {
-        width: 100%;
-        max-width: 100%;
-    }
-
-    .tv-stage--broadcast .tv-telemetry-cube-shell,
-    .tv-stage--broadcast .tv-telemetry-cube,
-    .tv-stage--broadcast .tv-telemetry-cube__face {
+    .tv-broadcast-panel-carousel,
+    .tv-broadcast-panel-carousel__viewport,
+    .tv-broadcast-panel-carousel__panel,
+    .tv-stage--broadcast .tv-broadcast-panel-carousel-shell {
         height: 100%;
     }
 
+    .tv-stage--broadcast .tv-broadcast-panel-carousel__panel,
     .tv-stage--broadcast .tv-telemetry-cube__inner,
     .tv-stage--broadcast .tv-telemetry-split,
     .tv-stage--broadcast .tv-goal-log,
@@ -13612,7 +13572,7 @@ else
         align-items: stretch;
     }
 
-    .tv-stage--broadcast .tv-telemetry-cube-shell {
+    .tv-stage--broadcast .tv-broadcast-panel-carousel-shell {
         min-height: 0;
     }
     .tv-stage--broadcast .tv-telemetry {

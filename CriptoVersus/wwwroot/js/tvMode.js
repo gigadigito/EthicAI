@@ -25,51 +25,95 @@ let tvAudioDebugSessionState = {
     enabled: false,
     hydrated: false
 };
-import {
+const broadcastJsVersion = globalThis.__CRIPTVERSUS_BROADCAST_JS_VERSION
+    || new URL(import.meta.url).searchParams.get("v")
+    || `${Date.now()}`;
+
+const importWithBroadcastVersion = (path) => import(`${path}?v=${broadcastJsVersion}`);
+
+const [
+    tvChartDiagnosticsModule,
+    tvChartMarkersModule,
+    tvChartSeriesModule,
+    tvChartResizeModule,
+    tvChartTimeModule,
+    tvScoreEventsModule,
+    tvLineCrossoversModule,
+    tvCandleBattleEngineModule,
+    tvCandleBattleMarkersModule,
+    tvCandleBattleHudModule,
+    tvBroadcastPanelCarouselModule,
+    tvAudioFacadeModule,
+    tvAudioConfigModule,
+    tvAudioRuntimeModule,
+    mediaLocalizationModule,
+    tvAudioTelemetryModule,
+    tvProceduralAudioUtilsModule
+] = await Promise.all([
+    importWithBroadcastVersion("./tvChartDiagnostics.mjs"),
+    importWithBroadcastVersion("./tvChartMarkers.mjs"),
+    importWithBroadcastVersion("./tvChartSeries.mjs"),
+    importWithBroadcastVersion("./tvChartResize.mjs"),
+    importWithBroadcastVersion("./tvChartTime.mjs"),
+    importWithBroadcastVersion("./tvScoreEvents.mjs"),
+    importWithBroadcastVersion("./tvLineCrossovers.mjs"),
+    importWithBroadcastVersion("./tvCandleBattleEngine.mjs"),
+    importWithBroadcastVersion("./tvCandleBattleMarkers.mjs"),
+    importWithBroadcastVersion("./tvCandleBattleHud.mjs"),
+    importWithBroadcastVersion("./tvBroadcastPanelCarousel.mjs"),
+    importWithBroadcastVersion("./tvAudioFacade.mjs"),
+    importWithBroadcastVersion("./tvAudioConfig.mjs"),
+    importWithBroadcastVersion("./tvAudioRuntime.mjs"),
+    importWithBroadcastVersion("./mediaLocalization.mjs"),
+    importWithBroadcastVersion("./tvAudioTelemetry.mjs"),
+    importWithBroadcastVersion("./tvProceduralAudioUtils.mjs")
+]);
+
+const {
     createTvChartDiagnostics,
     logTelemetryChartSummary
-} from "./tvChartDiagnostics.mjs?v=20260603-crossover-marker-1";
-import {
-    ensureCompareCrossoverStyles as ensureCompareCrossoverStylesCore,
-    ensureCompareOverlayRoot as ensureCompareOverlayRootCore,
-    buildCompareMarkerNode as buildCompareMarkerNodeCore,
-    buildScoreEventMarkerNode as buildScoreEventMarkerNodeCore,
+} = tvChartDiagnosticsModule;
+const {
+    ensureCompareCrossoverStyles: ensureCompareCrossoverStylesCore,
+    ensureCompareOverlayRoot: ensureCompareOverlayRootCore,
+    buildCompareMarkerNode: buildCompareMarkerNodeCore,
+    buildScoreEventMarkerNode: buildScoreEventMarkerNodeCore,
     computeScoreMarkerPlacement,
     applyScoreMarkerPlacement
-} from "./tvChartMarkers.mjs?v=20260603-crossover-marker-1";
-import {
-    applyChartTheme as applyChartThemeCore,
-    addLineSeriesCompat as addLineSeriesCompatCore,
-    addCandlestickSeriesCompat as addCandlestickSeriesCompatCore,
-    normalizeSeriesMeta as normalizeSeriesMetaCore,
-    normalizeCompareLine as normalizeCompareLineCore,
-    buildSyntheticCandles as buildSyntheticCandlesCore,
-    setChartEmptyState as setChartEmptyStateCore
-} from "./tvChartSeries.mjs?v=20260603-crossover-marker-1";
-import {
-    fitChart as fitChartCore,
+} = tvChartMarkersModule;
+const {
+    applyChartTheme: applyChartThemeCore,
+    addLineSeriesCompat: addLineSeriesCompatCore,
+    addCandlestickSeriesCompat: addCandlestickSeriesCompatCore,
+    normalizeSeriesMeta: normalizeSeriesMetaCore,
+    normalizeCompareLine: normalizeCompareLineCore,
+    buildSyntheticCandles: buildSyntheticCandlesCore,
+    setChartEmptyState: setChartEmptyStateCore
+} = tvChartSeriesModule;
+const {
+    fitChart: fitChartCore,
     ensureChartResizeObserver,
-    disposeChartEntry as disposeChartEntryCore
-} from "./tvChartResize.mjs?v=20260603-crossover-marker-1";
-import {
-    normalizeChartTime as normalizeChartTimeCore,
+    disposeChartEntry: disposeChartEntryCore
+} = tvChartResizeModule;
+const {
+    normalizeChartTime: normalizeChartTimeCore,
     normalizeChartPoints
-} from "./tvChartTime.mjs?v=20260603-crossover-marker-1";
-import {
-    interpolateSeriesValue as interpolateSeriesValueCore,
-    buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
-} from "./tvScoreEvents.mjs?v=20260603-crossover-marker-1";
-import { findLineCrossovers } from "./tvLineCrossovers.mjs?v=20260603-crossover-marker-1";
-import { buildCandleBattleState } from "./tvCandleBattleEngine.mjs?v=20260607-candle-battle-1";
-import {
+} = tvChartTimeModule;
+const {
+    interpolateSeriesValue: interpolateSeriesValueCore,
+    buildScoreEventMarkersModel: buildScoreEventMarkersModelCore
+} = tvScoreEventsModule;
+const { findLineCrossovers } = tvLineCrossoversModule;
+const { buildCandleBattleState } = tvCandleBattleEngineModule;
+const {
     clearBattleMarkers,
     renderBattleMarkers,
     renderBattleTimeline
-} from "./tvCandleBattleMarkers.mjs?v=20260607-candle-battle-1";
-import { renderCandleBattleHud } from "./tvCandleBattleHud.mjs?v=20260607-candle-battle-1";
-import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260608-telemetry-cube-restore-1";
-import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-crossover-marker-1";
-import {
+} = tvCandleBattleMarkersModule;
+const { renderCandleBattleHud } = tvCandleBattleHudModule;
+const { createBroadcastPanelCarouselController } = tvBroadcastPanelCarouselModule;
+const { createTvAudioFacade } = tvAudioFacadeModule;
+const {
     tvAudioMap,
     ambientTracks,
     chooseNextBackgroundTrack,
@@ -80,8 +124,8 @@ import {
     isTvAudioDebugEnabled,
     logAmbientDebug,
     normalizeAudioError
-} from "./tvAudioConfig.mjs?v=20260603-crossover-marker-1";
-import {
+} = tvAudioConfigModule;
+const {
     ensureTvAudioManager,
     resolveTvAudioChannel,
     getTvAudioContext,
@@ -92,18 +136,22 @@ import {
     cleanupManagedAudio,
     resolveTvAudioUrl,
     resolveTvCueVolume,
-    setTvMediaCulture as setTvMediaCultureCore,
+    setTvMediaCulture: setTvMediaCultureCore,
     getTvMediaCulture
-} from "./tvAudioRuntime.mjs?v=20260603-crossover-marker-1";
-import { normalizeMediaCulture, resolveFirstAvailableMediaPath, resolveLocalizedAudioPath } from "./mediaLocalization.mjs?v=20260603-crossover-marker-1";
-import {
+} = tvAudioRuntimeModule;
+const {
+    normalizeMediaCulture,
+    resolveFirstAvailableMediaPath,
+    resolveLocalizedAudioPath
+} = mediaLocalizationModule;
+const {
     ensureTvAudioTelemetry,
     setTvAudioTelemetryEnabled,
     setTvBackgroundAudioController,
     updateTvBackgroundAudioState,
     getTvAudioTelemetryState
-} from "./tvAudioTelemetry.mjs?v=20260604-audio-debug-1";
-import { isProceduralPlaybackDuplicate } from "./tvProceduralAudioUtils.mjs?v=20260606-narrative-1";
+} = tvAudioTelemetryModule;
+const { isProceduralPlaybackDuplicate } = tvProceduralAudioUtilsModule;
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -173,13 +221,13 @@ function throttleKey(prefix, key, minIntervalMs) {
     return true;
 }
 
-function telemetryCubeLog(message, payload) {
+function telemetryPanelLog(message, payload) {
     if (typeof payload === "undefined") {
-        console.log(`[TV_CUBE] ${message}`);
+        console.log(`[TV_PANEL] ${message}`);
         return;
     }
 
-    console.log(`[TV_CUBE] ${message}`, payload);
+    console.log(`[TV_PANEL] ${message}`, payload);
 }
 
 function telemetryChartLog(message, payload) {
@@ -220,10 +268,10 @@ function ensureTelemetryCubeController() {
         return telemetryCubeController;
     }
 
-    telemetryCubeController = createTelemetryCubeController({
+    telemetryCubeController = createBroadcastPanelCarouselController({
         isReducedMotion,
         throttleKey,
-        logCube: telemetryCubeLog,
+        logPanel: telemetryPanelLog,
         logChart: telemetryChartLog,
         hasChartContainers,
         scheduleContainerRetry,
