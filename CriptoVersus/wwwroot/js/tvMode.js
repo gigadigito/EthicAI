@@ -25,95 +25,51 @@ let tvAudioDebugSessionState = {
     enabled: false,
     hydrated: false
 };
-const broadcastJsVersion = globalThis.__CRIPTVERSUS_BROADCAST_JS_VERSION
-    || new URL(import.meta.url).searchParams.get("v")
-    || `${Date.now()}`;
-
-const importWithBroadcastVersion = (path) => import(`${path}?v=${broadcastJsVersion}`);
-
-const [
-    tvChartDiagnosticsModule,
-    tvChartMarkersModule,
-    tvChartSeriesModule,
-    tvChartResizeModule,
-    tvChartTimeModule,
-    tvScoreEventsModule,
-    tvLineCrossoversModule,
-    tvCandleBattleEngineModule,
-    tvCandleBattleMarkersModule,
-    tvCandleBattleHudModule,
-    tvTelemetryCubeModule,
-    tvAudioFacadeModule,
-    tvAudioConfigModule,
-    tvAudioRuntimeModule,
-    mediaLocalizationModule,
-    tvAudioTelemetryModule,
-    tvProceduralAudioUtilsModule
-] = await Promise.all([
-    importWithBroadcastVersion("./tvChartDiagnostics.mjs"),
-    importWithBroadcastVersion("./tvChartMarkers.mjs"),
-    importWithBroadcastVersion("./tvChartSeries.mjs"),
-    importWithBroadcastVersion("./tvChartResize.mjs"),
-    importWithBroadcastVersion("./tvChartTime.mjs"),
-    importWithBroadcastVersion("./tvScoreEvents.mjs"),
-    importWithBroadcastVersion("./tvLineCrossovers.mjs"),
-    importWithBroadcastVersion("./tvCandleBattleEngine.mjs"),
-    importWithBroadcastVersion("./tvCandleBattleMarkers.mjs"),
-    importWithBroadcastVersion("./tvCandleBattleHud.mjs"),
-    importWithBroadcastVersion("./tvTelemetryCube.mjs"),
-    importWithBroadcastVersion("./tvAudioFacade.mjs"),
-    importWithBroadcastVersion("./tvAudioConfig.mjs"),
-    importWithBroadcastVersion("./tvAudioRuntime.mjs"),
-    importWithBroadcastVersion("./mediaLocalization.mjs"),
-    importWithBroadcastVersion("./tvAudioTelemetry.mjs"),
-    importWithBroadcastVersion("./tvProceduralAudioUtils.mjs")
-]);
-
-const {
+import {
     createTvChartDiagnostics,
     logTelemetryChartSummary
-} = tvChartDiagnosticsModule;
-const {
-    ensureCompareCrossoverStyles: ensureCompareCrossoverStylesCore,
-    ensureCompareOverlayRoot: ensureCompareOverlayRootCore,
-    buildCompareMarkerNode: buildCompareMarkerNodeCore,
-    buildScoreEventMarkerNode: buildScoreEventMarkerNodeCore,
+} from "./tvChartDiagnostics.mjs?v=20260603-crossover-marker-1";
+import {
+    ensureCompareCrossoverStyles as ensureCompareCrossoverStylesCore,
+    ensureCompareOverlayRoot as ensureCompareOverlayRootCore,
+    buildCompareMarkerNode as buildCompareMarkerNodeCore,
+    buildScoreEventMarkerNode as buildScoreEventMarkerNodeCore,
     computeScoreMarkerPlacement,
     applyScoreMarkerPlacement
-} = tvChartMarkersModule;
-const {
-    applyChartTheme: applyChartThemeCore,
-    addLineSeriesCompat: addLineSeriesCompatCore,
-    addCandlestickSeriesCompat: addCandlestickSeriesCompatCore,
-    normalizeSeriesMeta: normalizeSeriesMetaCore,
-    normalizeCompareLine: normalizeCompareLineCore,
-    buildSyntheticCandles: buildSyntheticCandlesCore,
-    setChartEmptyState: setChartEmptyStateCore
-} = tvChartSeriesModule;
-const {
-    fitChart: fitChartCore,
+} from "./tvChartMarkers.mjs?v=20260603-crossover-marker-1";
+import {
+    applyChartTheme as applyChartThemeCore,
+    addLineSeriesCompat as addLineSeriesCompatCore,
+    addCandlestickSeriesCompat as addCandlestickSeriesCompatCore,
+    normalizeSeriesMeta as normalizeSeriesMetaCore,
+    normalizeCompareLine as normalizeCompareLineCore,
+    buildSyntheticCandles as buildSyntheticCandlesCore,
+    setChartEmptyState as setChartEmptyStateCore
+} from "./tvChartSeries.mjs?v=20260603-crossover-marker-1";
+import {
+    fitChart as fitChartCore,
     ensureChartResizeObserver,
-    disposeChartEntry: disposeChartEntryCore
-} = tvChartResizeModule;
-const {
-    normalizeChartTime: normalizeChartTimeCore,
+    disposeChartEntry as disposeChartEntryCore
+} from "./tvChartResize.mjs?v=20260603-crossover-marker-1";
+import {
+    normalizeChartTime as normalizeChartTimeCore,
     normalizeChartPoints
-} = tvChartTimeModule;
-const {
-    interpolateSeriesValue: interpolateSeriesValueCore,
-    buildScoreEventMarkersModel: buildScoreEventMarkersModelCore
-} = tvScoreEventsModule;
-const { findLineCrossovers } = tvLineCrossoversModule;
-const { buildCandleBattleState } = tvCandleBattleEngineModule;
-const {
+} from "./tvChartTime.mjs?v=20260603-crossover-marker-1";
+import {
+    interpolateSeriesValue as interpolateSeriesValueCore,
+    buildScoreEventMarkersModel as buildScoreEventMarkersModelCore
+} from "./tvScoreEvents.mjs?v=20260603-crossover-marker-1";
+import { findLineCrossovers } from "./tvLineCrossovers.mjs?v=20260603-crossover-marker-1";
+import { buildCandleBattleState } from "./tvCandleBattleEngine.mjs?v=20260607-candle-battle-1";
+import {
     clearBattleMarkers,
     renderBattleMarkers,
     renderBattleTimeline
-} = tvCandleBattleMarkersModule;
-const { renderCandleBattleHud } = tvCandleBattleHudModule;
-const { createTelemetryCubeController } = tvTelemetryCubeModule;
-const { createTvAudioFacade } = tvAudioFacadeModule;
-const {
+} from "./tvCandleBattleMarkers.mjs?v=20260607-candle-battle-1";
+import { renderCandleBattleHud } from "./tvCandleBattleHud.mjs?v=20260607-candle-battle-1";
+import { createTelemetryCubeController } from "./tvTelemetryCube.mjs?v=20260603-crossover-marker-1";
+import { createTvAudioFacade } from "./tvAudioFacade.mjs?v=20260603-crossover-marker-1";
+import {
     tvAudioMap,
     ambientTracks,
     chooseNextBackgroundTrack,
@@ -124,8 +80,8 @@ const {
     isTvAudioDebugEnabled,
     logAmbientDebug,
     normalizeAudioError
-} = tvAudioConfigModule;
-const {
+} from "./tvAudioConfig.mjs?v=20260603-crossover-marker-1";
+import {
     ensureTvAudioManager,
     resolveTvAudioChannel,
     getTvAudioContext,
@@ -136,22 +92,18 @@ const {
     cleanupManagedAudio,
     resolveTvAudioUrl,
     resolveTvCueVolume,
-    setTvMediaCulture: setTvMediaCultureCore,
+    setTvMediaCulture as setTvMediaCultureCore,
     getTvMediaCulture
-} = tvAudioRuntimeModule;
-const {
-    normalizeMediaCulture,
-    resolveFirstAvailableMediaPath,
-    resolveLocalizedAudioPath
-} = mediaLocalizationModule;
-const {
+} from "./tvAudioRuntime.mjs?v=20260603-crossover-marker-1";
+import { normalizeMediaCulture, resolveFirstAvailableMediaPath, resolveLocalizedAudioPath } from "./mediaLocalization.mjs?v=20260603-crossover-marker-1";
+import {
     ensureTvAudioTelemetry,
     setTvAudioTelemetryEnabled,
     setTvBackgroundAudioController,
     updateTvBackgroundAudioState,
     getTvAudioTelemetryState
-} = tvAudioTelemetryModule;
-const { isProceduralPlaybackDuplicate } = tvProceduralAudioUtilsModule;
+} from "./tvAudioTelemetry.mjs?v=20260604-audio-debug-1";
+import { isProceduralPlaybackDuplicate } from "./tvProceduralAudioUtils.mjs?v=20260606-narrative-1";
 
 // Field freedom tuning (broadcast-friendly, no jitter)
 const FIELD_FREEDOM = {
@@ -4112,8 +4064,18 @@ export async function updateTelemetryCharts(payload) {
         left.series.setData(leftCandles);
         right.series.setData(rightCandles);
 
+        // Split charts live inside a "virtual face"; render them only if containers exist.
         let splitLeft = null;
         let splitRight = null;
+        if (document.getElementById("tv-telemetry-chart-split-left")) {
+            splitLeft = await ensureCandlestickChart("tv-telemetry-chart-split-left");
+            splitLeft.series.setData(leftCandles);
+        }
+        if (document.getElementById("tv-telemetry-chart-split-right")) {
+            splitRight = await ensureCandlestickChart("tv-telemetry-chart-split-right");
+            splitRight.series.setData(rightCandles);
+        }
+
         compare.leftSeries.setData(normalizeCompareLine(leftPoints));
         compare.rightSeries.setData(normalizeCompareLine(rightPoints));
         compare.leftMeta = leftMeta;
@@ -4122,60 +4084,40 @@ export async function updateTelemetryCharts(payload) {
         setChartEmptyState("tv-telemetry-chart-left", leftCandles.length < 2);
         setChartEmptyState("tv-telemetry-chart-right", rightCandles.length < 2);
         setChartEmptyState("tv-telemetry-chart-compare", leftPoints.length < 2 && rightPoints.length < 2, "coletando fluxo");
+        if (splitLeft) {
+            setChartEmptyState("tv-telemetry-chart-split-left", leftCandles.length < 2);
+        }
+        if (splitRight) {
+            setChartEmptyState("tv-telemetry-chart-split-right", rightCandles.length < 2);
+        }
 
         fitChart(left.chart);
         fitChart(right.chart);
         fitChart(compare.chart);
-        try {
-            maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
-            maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
-            scheduleCompareOverlayRefresh(compare);
-        } catch (overlayErr) {
-            const overlayMessage = overlayErr?.message ?? String(overlayErr);
-            if (throttleKey("TV_CHART", `overlay-error:${overlayMessage}`, 4000)) {
-                telemetryChartLog("compare overlay error", overlayMessage);
-            }
+        maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
+        maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
+        scheduleCompareOverlayRefresh(compare);
+        if (splitLeft) {
+            fitChart(splitLeft.chart);
+        }
+        if (splitRight) {
+            fitChart(splitRight.chart);
         }
 
-        try {
-            // Split charts live inside a virtual face. Keep the core cube alive even if this optional layer fails.
-            if (document.getElementById("tv-telemetry-chart-split-left")) {
-                splitLeft = await ensureCandlestickChart("tv-telemetry-chart-split-left");
-                splitLeft.series.setData(leftCandles);
-                setChartEmptyState("tv-telemetry-chart-split-left", leftCandles.length < 2);
-                fitChart(splitLeft.chart);
-            }
+        if (splitLeft && splitRight && document.getElementById("tv-candle-battle-root")) {
+            const battleState = buildCandleBattleState({
+                leftCandles,
+                rightCandles,
+                leftMeta,
+                rightMeta
+            });
 
-            if (document.getElementById("tv-telemetry-chart-split-right")) {
-                splitRight = await ensureCandlestickChart("tv-telemetry-chart-split-right");
-                splitRight.series.setData(rightCandles);
-                setChartEmptyState("tv-telemetry-chart-split-right", rightCandles.length < 2);
-                fitChart(splitRight.chart);
-            }
-
-            if (splitLeft && splitRight && document.getElementById("tv-candle-battle-root")) {
-                const battleState = buildCandleBattleState({
-                    leftCandles,
-                    rightCandles,
-                    leftMeta,
-                    rightMeta
-                });
-
-                renderBattleMarkers(splitLeft, battleState, "left");
-                renderBattleMarkers(splitRight, battleState, "right");
-                renderBattleTimeline("tv-candle-battle-timeline-left", battleState);
-                renderBattleTimeline("tv-candle-battle-timeline-right", battleState);
-                renderCandleBattleHud(battleState);
-            } else {
-                clearBattleMarkers(splitLeft);
-                clearBattleMarkers(splitRight);
-            }
-        } catch (splitErr) {
-            const splitMessage = splitErr?.message ?? String(splitErr);
-            if (throttleKey("TV_CHART", `split-error:${splitMessage}`, 4000)) {
-                telemetryChartLog("split variation error", splitMessage);
-            }
-
+            renderBattleMarkers(splitLeft, battleState, "left");
+            renderBattleMarkers(splitRight, battleState, "right");
+            renderBattleTimeline("tv-candle-battle-timeline-left", battleState);
+            renderBattleTimeline("tv-candle-battle-timeline-right", battleState);
+            renderCandleBattleHud(battleState);
+        } else {
             clearBattleMarkers(splitLeft);
             clearBattleMarkers(splitRight);
         }

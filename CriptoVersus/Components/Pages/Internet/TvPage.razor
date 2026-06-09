@@ -41,11 +41,9 @@
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
-    <script>window.__CRIPTVERSUS_BROADCAST_JS_VERSION = "@_broadcastJsVersion";</script>
 </HeadContent>
 
 <TvStage Culture="@_culture"
-         BroadcastJsVersion="@_broadcastJsVersion"
          IsBroadcastMode="@_isBroadcastMode"
          HotMatch="@_selectedHotMatch"
          Match="@_selectedMatch"
@@ -87,7 +85,6 @@
     private DateTime _lastBroadcastRotationUtc = DateTime.MinValue;
     private DateTime _nextRefreshAtUtc = DateTime.MinValue;
     private int _refreshInProgress;
-    private readonly string _broadcastJsVersion = Guid.NewGuid().ToString("N");
     private PanelLoadState _topCoinsState = PanelLoadState.Loading();
     private PanelLoadState _latestBattlesState = PanelLoadState.Loading();
     private PanelLoadState _marketPulseState = PanelLoadState.Loading();
@@ -181,7 +178,7 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={_broadcastJsVersion}");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260606-direct-audio-1");
         await LogAsync("loaded");
         if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
             await RefreshAsync(forceInitialSelection: true, CancellationToken.None);

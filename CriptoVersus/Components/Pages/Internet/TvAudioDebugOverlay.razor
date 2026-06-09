@@ -144,7 +144,6 @@
 
 @code {
     [Parameter] public string Culture { get; set; } = "en";
-    [Parameter] public string ScriptVersion { get; set; } = Guid.NewGuid().ToString("N");
 
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _pollCts;
@@ -158,7 +157,7 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={ScriptVersion}");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260604-audio-debug-1");
         await RefreshStateAsync();
         _pollCts = new CancellationTokenSource();
         _pollTask = PollStateAsync(_pollCts.Token);

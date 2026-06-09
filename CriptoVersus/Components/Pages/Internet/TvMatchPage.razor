@@ -39,7 +39,6 @@
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
     <script type="application/ld+json">@StructuredDataMarkup</script>
-    <script>window.__CRIPTVERSUS_BROADCAST_JS_VERSION = "@_broadcastJsVersion";</script>
 </HeadContent>
 
 @if (!string.IsNullOrWhiteSpace(_error))
@@ -52,7 +51,6 @@
 @if (_match is not null)
 {
     <TvStage Culture="@_culture"
-             BroadcastJsVersion="@_broadcastJsVersion"
              IsBroadcastMode="false"
              HotMatch="@_hotMatch"
              Match="@_match"
@@ -68,7 +66,6 @@
 else
 {
     <TvStage Culture="@_culture"
-             BroadcastJsVersion="@_broadcastJsVersion"
              IsBroadcastMode="false"
              Stats="@_stats"
              Snapshot="@_snapshot"
@@ -103,7 +100,6 @@ else
     private string? _topCoinsError;
     private string? _latestBattlesError;
     private string? _marketPulseError;
-    private readonly string _broadcastJsVersion = Guid.NewGuid().ToString("N");
     private string PageTitleText
         => _match is null
             ? L.T("tv.seo.title", _culture)
@@ -147,7 +143,7 @@ else
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={_broadcastJsVersion}");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260606-direct-audio-1");
         await LogAsync("loaded");
         await RefreshAsync(CancellationToken.None);
 
