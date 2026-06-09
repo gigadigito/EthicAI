@@ -11527,10 +11527,6 @@ else
     .tv-telemetry-cube.is-face-1 { transform: rotateY(-90deg); }
     .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
     .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
-    .tv-telemetry-cube.is-face-4 { transform: rotateY(-180deg); }
-    .tv-telemetry-cube.is-face-5 { transform: rotateY(-180deg); }
-    .tv-telemetry-cube.is-face-6 { transform: rotateY(-180deg); }
-
     .tv-telemetry-cube__face {
         position: absolute;
         inset: 0;
@@ -11563,8 +11559,6 @@ else
         height: 100%;
         min-height: 0;
         isolation: isolate;
-        perspective: 1600px;
-        transform-style: preserve-3d;
     }
 
     .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
@@ -11577,10 +11571,14 @@ else
     .tv-telemetry-cube__virtual-panel {
         position: absolute;
         inset: 0;
-        display: none;
+        opacity: 0;
+        visibility: hidden;
         pointer-events: none;
         backface-visibility: hidden;
         z-index: 0;
+        transition:
+            opacity .22s ease,
+            visibility 0s linear .22s;
     }
 
     .tv-telemetry-cube__virtual-panel::after {
@@ -11604,10 +11602,14 @@ else
     .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
     .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
     .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-        display: grid;
+        opacity: 1;
+        visibility: visible;
         pointer-events: auto;
         z-index: 1;
         animation: tvCubeSubfaceIn .42s cubic-bezier(.22,.82,.28,1);
+        transition:
+            opacity .22s ease,
+            visibility 0s;
     }
 
     .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
@@ -12367,6 +12369,7 @@ else
         }
 
         .tv-telemetry-cube__virtual-stage {
+            position: static;
             display: grid;
             gap: 10px;
         }
@@ -12374,25 +12377,26 @@ else
         .tv-telemetry-cube__virtual-panel {
             position: static;
             inset: auto;
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            max-height: 0;
+            overflow: hidden;
             transform: none;
             filter: none;
             transition: none;
-            display: none;
         }
 
         .tv-telemetry-cube__virtual-panel::after {
             display: none;
         }
 
-        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
-            display: grid;
-        }
-
-        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
-            display: grid;
+        .tv-telemetry-cube[data-virtual-face="compare"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+        .tv-telemetry-cube[data-virtual-face="split"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+        .tv-telemetry-cube[data-virtual-face="goals"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+        .tv-telemetry-cube[data-virtual-face="sentiment"] .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+            max-height: none;
+            overflow: visible;
         }
 
         .tv-candle-battle__header,
