@@ -24,11 +24,7 @@ function splitTradingPair(symbol) {
     }
 
     const base = normalized.slice(0, normalized.length - matchedQuote.length) || normalized;
-    return {
-        base,
-        quote: matchedQuote,
-        pairLabel: `${base} - ${matchedQuote}`
-    };
+    return { base, quote: matchedQuote, pairLabel: `${base} - ${matchedQuote}` };
 }
 
 function buildMeta(meta, fallbackAccent, side) {
@@ -46,6 +42,7 @@ function buildMeta(meta, fallbackAccent, side) {
 function toPercentDelta(candle) {
     const open = Number(candle?.open);
     const close = Number(candle?.close);
+
     if (!Number.isFinite(open) || !Number.isFinite(close) || Math.abs(open) < 0.000001) {
         return 0;
     }
@@ -72,6 +69,7 @@ function normalizeCandles(candles) {
 function alignBattleCandles(leftCandles, rightCandles) {
     const left = normalizeCandles(leftCandles);
     const right = normalizeCandles(rightCandles);
+
     if (left.length === 0 || right.length === 0) {
         return [];
     }
@@ -81,6 +79,7 @@ function alignBattleCandles(leftCandles, rightCandles) {
 
     left.forEach((leftCandle, index) => {
         const rightCandle = rightByTime.get(leftCandle.time) ?? right[index];
+
         if (!rightCandle || !Number.isFinite(rightCandle.time)) {
             return;
         }
@@ -98,6 +97,7 @@ function alignBattleCandles(leftCandles, rightCandles) {
 
 function winnerForDeltas(leftDelta, rightDelta) {
     const difference = leftDelta - rightDelta;
+
     if (Math.abs(difference) <= 0.000001) {
         return "tie";
     }
@@ -109,6 +109,7 @@ function buildSamples(aligned) {
     return aligned.map((entry) => {
         const leftDelta = toPercentDelta(entry.leftCandle);
         const rightDelta = toPercentDelta(entry.rightCandle);
+
         return {
             index: entry.index,
             time: entry.time,
@@ -125,6 +126,7 @@ function buildSamples(aligned) {
 function summarizeWins(samples) {
     return samples.reduce((accumulator, sample) => {
         accumulator.total += 1;
+
         if (sample.winner === "left") {
             accumulator.leftWins += 1;
         } else if (sample.winner === "right") {
@@ -149,6 +151,7 @@ function computeCurrentStreak(samples) {
 
     const lastWinner = samples[samples.length - 1]?.winner ?? "tie";
     let count = 0;
+
     for (let index = samples.length - 1; index >= 0; index -= 1) {
         if (samples[index]?.winner !== lastWinner) {
             break;
@@ -162,19 +165,37 @@ function computeCurrentStreak(samples) {
 
 function computeMomentum(samples, windowSize = 10) {
     const recent = samples.slice(-windowSize);
+
     if (recent.length === 0) {
-        return { leftPercent: 50, rightPercent: 50, leftWins: 0, rightWins: 0, ties: 0, windowSize: 0, dominantSide: "tie" };
+        return {
+            leftPercent: 50,
+            rightPercent: 50,
+            leftWins: 0,
+            rightWins: 0,
+            ties: 0,
+            windowSize: 0,
+            dominantSide: "tie"
+        };
     }
 
     const summary = summarizeWins(recent);
     const decisive = summary.leftWins + summary.rightWins;
+
     if (decisive <= 0) {
-        return { leftPercent: 50, rightPercent: 50, leftWins: summary.leftWins, rightWins: summary.rightWins, ties: summary.ties, windowSize: recent.length, dominantSide: "tie" };
+        return {
+            leftPercent: 50,
+            rightPercent: 50,
+            leftWins: summary.leftWins,
+            rightWins: summary.rightWins,
+            ties: summary.ties,
+            windowSize: recent.length,
+            dominantSide: "tie"
+        };
     }
 
     const leftPercent = Math.round((summary.leftWins / decisive) * 100);
     const clampedLeft = clamp(leftPercent, 0, 100);
-    const dominantSide = clampedLeft === 50 ? "tie" : clampedLeft > 50 ? "left" : "right";
+
     return {
         leftPercent: clampedLeft,
         rightPercent: 100 - clampedLeft,
@@ -182,7 +203,7 @@ function computeMomentum(samples, windowSize = 10) {
         rightWins: summary.rightWins,
         ties: summary.ties,
         windowSize: recent.length,
-        dominantSide
+        dominantSide: clampedLeft === 50 ? "tie" : clampedLeft > 50 ? "left" : "right"
     };
 }
 
@@ -196,15 +217,13 @@ function buildLeader(summary) {
 
 function buildScorePercents(summary) {
     const decisive = summary.leftWins + summary.rightWins;
+
     if (decisive <= 0) {
         return { left: 50, right: 50 };
     }
 
     const leftPercent = clamp(Math.round((summary.leftWins / decisive) * 100), 0, 100);
-    return {
-        left: leftPercent,
-        right: 100 - leftPercent
-    };
+    return { left: leftPercent, right: 100 - leftPercent };
 }
 
 function buildStatusLabel(summary, momentum, leftMeta, rightMeta) {
@@ -244,8 +263,9 @@ function buildTimelineSignature(samples) {
 }
 
 export function buildCandleBattleState({ leftCandles, rightCandles, leftMeta, rightMeta }) {
-    const normalizedLeftMeta = buildMeta(leftMeta, "#22f0a2", "left");
-    const normalizedRightMeta = buildMeta(rightMeta, "#ff5b8f", "right");
+    const normalizedLeftMeta = buildMeta(leftMeta, "rgba(42, 201, 255, 0.92)", "left");
+    const normalizedRightMeta = buildMeta(rightMeta, "rgba(255, 166, 0, 0.96)", "right");
+
     const aligned = alignBattleCandles(leftCandles, rightCandles);
     const samples = buildSamples(aligned);
     const summary = summarizeWins(samples);

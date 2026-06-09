@@ -18,6 +18,7 @@ function winnerClass(side) {
 
 function buildStatsMarkup(battleState) {
     const streakClass = winnerClass(battleState.streak?.winner);
+
     return `
 <span class="tv-candle-battle-card__stats-title">ESTATISTICAS</span>
 <div class="tv-candle-battle-card__stats-grid">
@@ -81,11 +82,6 @@ export function renderCandleBattleHud(battleState) {
     setText("tv-candle-battle-score-left", String(battleState.summary.leftWins));
     setText("tv-candle-battle-score-right", String(battleState.summary.rightWins));
     setText("tv-candle-battle-score-leader", buildLeaderLine(battleState));
-
-    setText("tv-candle-battle-momentum-left", `${battleState.leftMeta.displayBase} ${battleState.momentum.leftPercent}%`);
-    setText("tv-candle-battle-momentum-right", `${battleState.rightMeta.displayBase} ${battleState.momentum.rightPercent}%`);
-    setWidth("tv-candle-battle-momentum-left-fill", battleState.momentum.leftPercent);
-    setWidth("tv-candle-battle-momentum-right-fill", battleState.momentum.rightPercent);
 
     setText("tv-candle-battle-score-momentum-left", `${battleState.momentum.leftPercent}%`);
     setText("tv-candle-battle-score-momentum-right", `${battleState.momentum.rightPercent}%`);
