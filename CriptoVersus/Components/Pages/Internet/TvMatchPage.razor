@@ -41,14 +41,34 @@
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
-@if (!string.IsNullOrWhiteSpace(_error))
+@if (_loadState == TvMatchPageLoadState.Loading)
 {
-    <section class="container py-4">
-        <div class="alert alert-warning" role="alert">@_error</div>
+    <section class="tv-match-page-state-shell" aria-live="polite" aria-busy="true">
+        <div class="tv-match-page-state-card">
+            <div class="tv-match-page-state-card__eyebrow">TV MATCH</div>
+            <div class="tv-match-page-state-card__spinner" aria-hidden="true"></div>
+            <h2>@LocalizedTvMatchText("loading")</h2>
+            <p>@LocalizedTvMatchText("loadingBody")</p>
+        </div>
     </section>
 }
-
-@if (_match is not null)
+else if (_loadState != TvMatchPageLoadState.Loaded)
+{
+    <section class="tv-match-page-state-shell" aria-live="polite">
+        <div class="tv-match-page-state-card tv-match-page-state-card--error">
+            <div class="tv-match-page-state-card__eyebrow">TV MATCH</div>
+            <h2>@LoadStateTitle</h2>
+            <p>@LoadStateBody</p>
+            <button type="button"
+                    class="tv-match-page-state-card__retry"
+                    @onclick="RetryLoadAsync"
+                    disabled="@(_loadState == TvMatchPageLoadState.Loading)">
+                @LocalizedTvMatchText("retry")
+            </button>
+        </div>
+    </section>
+}
+else if (_match is not null)
 {
     <TvStage Culture="@_culture"
              IsBroadcastMode="false"
@@ -65,20 +85,124 @@
 }
 else
 {
-    <TvStage Culture="@_culture"
-             IsBroadcastMode="false"
-             Stats="@_stats"
-             Snapshot="@_snapshot"
-             TopCoinsLoading="@_topCoinsLoading"
-             TopCoinsError="@_topCoinsError"
-             LatestBattlesLoading="@_latestBattlesLoading"
-             LatestBattlesError="@_latestBattlesError"
-             MarketPulseLoading="@_marketPulseLoading"
-             MarketPulseError="@_marketPulseError" />
+    <section class="tv-match-page-state-shell" aria-live="polite">
+        <div class="tv-match-page-state-card tv-match-page-state-card--error">
+            <div class="tv-match-page-state-card__eyebrow">TV MATCH</div>
+            <h2>@LocalizedTvMatchText("error")</h2>
+            <p>@LocalizedTvMatchText("errorBody")</p>
+            <button type="button"
+                    class="tv-match-page-state-card__retry"
+                    @onclick="RetryLoadAsync">
+                @LocalizedTvMatchText("retry")
+            </button>
+        </div>
+    </section>
 }
+
+<style>
+    .tv-match-page-state-shell {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 2rem;
+        background:
+            radial-gradient(circle at top left, rgba(83, 200, 255, 0.12), transparent 24%),
+            radial-gradient(circle at top right, rgba(76, 243, 141, 0.14), transparent 22%),
+            linear-gradient(180deg, #02060f, #050914 52%, #040812);
+    }
+
+    .tv-match-page-state-card {
+        width: min(100%, 520px);
+        padding: 1.5rem;
+        border-radius: 28px;
+        border: 1px solid rgba(127, 246, 223, 0.18);
+        background:
+            radial-gradient(circle at top left, rgba(76, 243, 141, 0.12), transparent 28%),
+            radial-gradient(circle at top right, rgba(96, 165, 250, 0.10), transparent 26%),
+            linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+        color: #eef5ff;
+        text-align: center;
+    }
+
+    .tv-match-page-state-card--error {
+        border-color: rgba(255, 118, 160, 0.22);
+    }
+
+    .tv-match-page-state-card__eyebrow {
+        display: block;
+        margin-bottom: 0.75rem;
+        color: #7ff6df;
+        font-size: 0.78rem;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .tv-match-page-state-card h2 {
+        margin: 0 0 0.55rem;
+        font-size: clamp(1.4rem, 2vw, 2rem);
+        line-height: 1.1;
+    }
+
+    .tv-match-page-state-card p {
+        margin: 0;
+        color: #b9c7da;
+        line-height: 1.6;
+    }
+
+    .tv-match-page-state-card__spinner {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 1rem;
+        border-radius: 999px;
+        border: 3px solid rgba(255, 255, 255, 0.12);
+        border-top-color: #7ff6df;
+        animation: tvMatchPageSpin 0.9s linear infinite;
+    }
+
+    .tv-match-page-state-card__retry {
+        margin-top: 1.15rem;
+        min-height: 2.9rem;
+        padding: 0.78rem 1.1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(127, 246, 223, 0.35);
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        color: #03150f;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+    }
+
+    .tv-match-page-state-card__retry:disabled {
+        opacity: 0.7;
+        cursor: wait;
+    }
+
+    @@keyframes tvMatchPageSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .tv-match-page-state-shell {
+            padding: 1rem;
+        }
+
+        .tv-match-page-state-card {
+            padding: 1.2rem;
+            border-radius: 22px;
+        }
+
+        .tv-match-page-state-card__retry {
+            width: 100%;
+        }
+    }
+</style>
 
 @code {
     private const int RefreshIntervalSeconds = 15;
+    private static readonly TimeSpan InitialLoadTimeout = TimeSpan.FromSeconds(5);
 
     [Parameter] public string? Culture { get; set; }
     [Parameter] public int MatchId { get; set; }
@@ -92,14 +216,28 @@ else
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
-    private string? _error;
     private int _refreshInProgress;
+    private TvMatchPageLoadState _loadState = TvMatchPageLoadState.Loading;
     private bool _topCoinsLoading = true;
     private bool _latestBattlesLoading = true;
     private bool _marketPulseLoading = true;
     private string? _topCoinsError;
     private string? _latestBattlesError;
     private string? _marketPulseError;
+    private string LoadStateTitle => _loadState switch
+    {
+        TvMatchPageLoadState.NotFound => LocalizedTvMatchText("notFound"),
+        TvMatchPageLoadState.Unavailable => LocalizedTvMatchText("unavailable"),
+        TvMatchPageLoadState.Error => LocalizedTvMatchText("error"),
+        _ => LocalizedTvMatchText("loading")
+    };
+    private string LoadStateBody => _loadState switch
+    {
+        TvMatchPageLoadState.NotFound => LocalizedTvMatchText("notFoundBody"),
+        TvMatchPageLoadState.Unavailable => LocalizedTvMatchText("unavailableBody"),
+        TvMatchPageLoadState.Error => LocalizedTvMatchText("errorBody"),
+        _ => LocalizedTvMatchText("loadingBody")
+    };
     private string PageTitleText
         => _match is null
             ? L.T("tv.seo.title", _culture)
@@ -138,14 +276,33 @@ else
             : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var initialLoadCts = new CancellationTokenSource(InitialLoadTimeout);
+            await RefreshAsync(initialLoadCts.Token);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "TvMatchPage initial load timed out or failed during prerender. Rendering fallback state. MatchId={MatchId}", MatchId);
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260606-direct-audio-1");
-        await LogAsync("loaded");
-        await RefreshAsync(CancellationToken.None);
+        try
+        {
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260606-direct-audio-1");
+            await LogAsync("loaded");
+        }
+        catch (Exception ex) when (ex is JSException or InvalidOperationException)
+        {
+            Logger.LogWarning(ex, "TvMatchPage JS module import failed. Match data load remains available without TV JS bootstrap. MatchId={MatchId}", MatchId);
+        }
 
         _refreshCts = new CancellationTokenSource();
         _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
@@ -180,7 +337,19 @@ else
         try
         {
             Logger.LogInformation("TvMatchPage refresh started. MatchId={MatchId}", MatchId);
-            _error = null;
+
+            _loadState = TvMatchPageLoadState.Loading;
+            _match = null;
+            _hotMatch = null;
+            await InvokeAsync(StateHasChanged);
+
+            if (MatchId <= 0)
+            {
+                _loadState = TvMatchPageLoadState.NotFound;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
             var matchTask = Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct);
             var hotTask = HotMatches.GetHotMatchesAsync(ct);
             var statsTask = Api.GetStatsOverviewAsync(ct);
@@ -196,9 +365,17 @@ else
             _topCoinsError = null;
             _latestBattlesError = null;
             _marketPulseError = null;
+
             if (_match is null)
             {
-                _error = L.T("tv.matchNotFound", _culture);
+                _loadState = TvMatchPageLoadState.NotFound;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            if (IsUnavailableForTv(_match))
+            {
+                _loadState = TvMatchPageLoadState.Unavailable;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
@@ -223,6 +400,7 @@ else
                 _hotMatch = null;
             }
 
+            _loadState = TvMatchPageLoadState.Loaded;
             await InvokeAsync(StateHasChanged);
             Logger.LogInformation(
                 "TvMatchPage refresh completed. Mode={Mode} MatchId={MatchId} HasHotMatch={HasHotMatch} AvailableMatches={AvailableMatches} DurationMs={DurationMs}",
@@ -234,23 +412,37 @@ else
         }
         catch (OperationCanceledException)
         {
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
+            _loadState = TvMatchPageLoadState.Error;
             _topCoinsLoading = false;
             _latestBattlesLoading = false;
             _marketPulseLoading = false;
-            _topCoinsError ??= ex.Message;
-            _latestBattlesError ??= ex.Message;
-            _marketPulseError ??= ex.Message;
+            _topCoinsError ??= LocalizedTvMatchText("error");
+            _latestBattlesError ??= LocalizedTvMatchText("error");
+            _marketPulseError ??= LocalizedTvMatchText("error");
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _loadState = TvMatchPageLoadState.Error;
+            _topCoinsLoading = false;
+            _latestBattlesLoading = false;
+            _marketPulseLoading = false;
+            _topCoinsError ??= LocalizedTvMatchText("error");
+            _latestBattlesError ??= LocalizedTvMatchText("error");
+            _marketPulseError ??= LocalizedTvMatchText("error");
             Logger.LogWarning(ex, "TvMatchPage refresh failed. MatchId={MatchId}", MatchId);
             await LogAsync("refresh error", ex.Message);
+            await InvokeAsync(StateHasChanged);
         }
         finally
         {
             Interlocked.Exchange(ref _refreshInProgress, 0);
         }
+    }
+
+    private async Task RetryLoadAsync()
+    {
+        await RefreshAsync(CancellationToken.None);
     }
 
     private string BuildAbsolute(string path)
@@ -262,6 +454,52 @@ else
             return;
 
         await _tvModule.InvokeVoidAsync("log", "TV_MODE", message, payload);
+    }
+
+    private string LocalizedTvMatchText(string key)
+    {
+        var isPortuguese = string.Equals(_culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
+        return key switch
+        {
+            "loading" => isPortuguese ? "Carregando partida..." : "Loading match...",
+            "loadingBody" => isPortuguese ? "A arena esta preparando o confronto ao vivo." : "The arena is preparing the live matchup.",
+            "notFound" => isPortuguese ? "Partida não encontrada." : "Match not found.",
+            "notFoundBody" => isPortuguese ? "Não foi possível localizar a partida solicitada." : "We couldn't locate the requested match.",
+            "unavailable" => isPortuguese ? "Esta partida já terminou ou não está mais disponível." : "This match has already ended or is no longer available.",
+            "unavailableBody" => isPortuguese ? "A arena fixa só pode ser aberta enquanto a partida estiver disponível para transmissão." : "The fixed arena can only open while the match is still available for broadcast.",
+            "error" => isPortuguese ? "Não foi possível carregar a arena no momento." : "Unable to load the arena right now.",
+            "errorBody" => isPortuguese ? "Tente novamente em instantes. Se o problema continuar, a transmissão pode estar se atualizando." : "Please try again in a moment. If the problem persists, the broadcast may still be refreshing.",
+            "retry" => isPortuguese ? "Tentar novamente" : "Try again",
+            _ => key
+        };
+    }
+
+    private static bool IsUnavailableForTv(MatchDto match)
+    {
+        if (match.IsFinished)
+            return true;
+
+        return match.Status?.Trim().ToUpperInvariant() switch
+        {
+            "COMPLETED" => true,
+            "CANCELLED" => true,
+            "CANCELED" => true,
+            "CLOSED" => true,
+            "SETTLED" => true,
+            "FINISHED" => true,
+            "EXPIRED" => true,
+            "ABORTED" => true,
+            _ => false
+        };
+    }
+
+    private enum TvMatchPageLoadState
+    {
+        Loading,
+        Loaded,
+        NotFound,
+        Unavailable,
+        Error
     }
 
     public async ValueTask DisposeAsync()
