@@ -21,26 +21,6 @@ function applySeriesMarkers(state, markers) {
     }
 }
 
-function buildSingleMarker(sample, chartSide, battleState) {
-    if (!sample || sample.winner === "tie") {
-        return null;
-    }
-
-    const winnerIsCurrentChart = sample.winner === chartSide;
-    const winnerMeta = sample.winner === "left" ? battleState.leftMeta : battleState.rightMeta;
-
-    return {
-        time: sample.time,
-        position: winnerIsCurrentChart ? "aboveBar" : "belowBar",
-        shape: "circle",
-        color: winnerIsCurrentChart
-            ? winnerMeta.accentColor
-            : chartSide === "left"
-                ? "rgba(255, 166, 0, 0.72)"
-                : "rgba(42, 201, 255, 0.72)"
-    };
-}
-
 export function clearBattleMarkers(state) {
     if (!state?.series) {
         return;
@@ -52,56 +32,42 @@ export function clearBattleMarkers(state) {
     }
 }
 
-export function renderBattleMarkers(state, battleState, chartSide) {
-    if (!state?.series || !battleState?.samples?.length) {
-        clearBattleMarkers(state);
-        return;
-    }
-
-    const markers = battleState.samples
-        .map((sample) => buildSingleMarker(sample, chartSide, battleState))
-        .filter(Boolean);
-
-    applySeriesMarkers(state, markers);
+export function renderBattleMarkers(state) {
+    clearBattleMarkers(state);
 }
 
-function buildTimelineDot(sample, battleState, chartSide) {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.className = "tv-candle-battle-card__timeline-dot";
+function buildTimelineMarker(sample, battleState) {
+    const marker = document.createElement("span");
+    marker.className = "tv-candle-battle-card__timeline-marker";
 
-    const rangeLabel = formatBattleTime(sample.time ?? sample.startTime);
+    const rangeLabel = formatBattleTime(sample.time);
 
-    if (sample.winner === "tie") {
-        dot.classList.add("is-empty");
-        dot.title = `${rangeLabel} - Empate`;
-        dot.setAttribute("aria-label", dot.title);
-        return dot;
+    if (sample.winner === "left") {
+        marker.classList.add("is-left");
+        marker.title = `${rangeLabel} - ${battleState.leftMeta.displayBase} venceu`;
+    } else if (sample.winner === "right") {
+        marker.classList.add("is-right");
+        marker.title = `${rangeLabel} - ${battleState.rightMeta.displayBase} venceu`;
+    } else {
+        marker.classList.add("is-tie");
+        marker.title = `${rangeLabel} - Empate`;
     }
 
-    const currentChartWon = sample.winner === chartSide;
-    const winnerMeta = sample.winner === "left" ? battleState.leftMeta : battleState.rightMeta;
+    marker.setAttribute("aria-label", marker.title);
 
-    dot.classList.add(currentChartWon ? "is-win" : "is-loss");
-    dot.title = `${rangeLabel} - ${winnerMeta.displayBase} venceu`;
-    dot.setAttribute("aria-label", dot.title);
-
-    const icon = document.createElement("span");
-    icon.className = "tv-candle-battle-card__timeline-icon";
-    icon.textContent = currentChartWon ? "✅" : "❌";
-
-    dot.appendChild(icon);
-
-    return dot;
+    return marker;
 }
 
-export function renderBattleTimeline(containerId, battleState, chartSide = "left") {
-    const container = typeof document !== "undefined" ? document.getElementById(containerId) : null;
+export function renderBattleTimeline(containerId, battleState) {
+    const container = typeof document !== "undefined"
+        ? document.getElementById(containerId)
+        : null;
+
     if (!container) {
         return;
     }
 
-    const signature = `${battleState?.timelineSignature ?? ""}:${chartSide}`;
+    const signature = battleState?.timelineSignature ?? "";
     if (container.dataset.timelineSignature === signature) {
         return;
     }
@@ -110,16 +76,19 @@ export function renderBattleTimeline(containerId, battleState, chartSide = "left
     container.replaceChildren();
 
     if (!battleState?.samples?.length) {
+        container.style.gridTemplateColumns = "";
         return;
     }
 
     const samples = battleState.samples;
-    container.style.gridTemplateColumns = `repeat(${samples.length}, minmax(18px, 1fr))`;
+
+    container.style.gridTemplateColumns =
+        `repeat(${samples.length}, minmax(18px, 1fr))`;
 
     const fragment = document.createDocumentFragment();
 
     samples.forEach((sample) => {
-        fragment.appendChild(buildTimelineDot(sample, battleState, chartSide));
+        fragment.appendChild(buildTimelineMarker(sample, battleState));
     });
 
     container.appendChild(fragment);

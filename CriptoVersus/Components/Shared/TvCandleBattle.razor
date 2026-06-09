@@ -396,44 +396,67 @@
     .tv-candle-battle-card__timeline {
         display: grid;
         gap: 8px;
+        padding-top: 2px;
     }
 
         .tv-candle-battle-card__timeline span {
-            color: rgba(220, 232, 246, 0.72);
+            color: rgba(127, 246, 223, 0.86);
             font-size: .68rem;
             font-weight: 900;
             letter-spacing: .14em;
+            text-transform: uppercase;
         }
 
     .tv-candle-battle-card__timeline-track {
+        --battle-candle-gap: 8px;
         display: grid;
         align-items: center;
-        gap: 0;
+        gap: var(--battle-candle-gap);
+        width: 100%;
         min-width: 0;
         overflow-x: auto;
-        padding-bottom: 2px;
+        padding: 4px 2px 2px;
         scrollbar-width: thin;
     }
 
-    .tv-candle-battle-card__timeline-dot {
-        width: 100%;
-        height: 22px;
-        display: grid;
-        place-items: center;
-        background: transparent;
-        border: 0;
-        padding: 0;
-    }
-
-        .tv-candle-battle-card__timeline-dot.is-empty {
-            visibility: hidden;
+        .tv-candle-battle-card__timeline-track::-webkit-scrollbar {
+            height: 6px;
         }
 
-    .tv-candle-battle-card__timeline-icon {
-        font-size: .9rem;
-        line-height: 1;
-        filter: drop-shadow(0 0 4px rgba(255,255,255,0.18));
+        .tv-candle-battle-card__timeline-track::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.16);
+            border-radius: 999px;
+        }
+
+    .tv-candle-battle-card__timeline-marker {
+        width: 100%;
+        height: 8px;
+        border: 0;
+        border-radius: 2px;
+        background: transparent;
+        opacity: .95;
+        box-shadow: none;
     }
+
+        .tv-candle-battle-card__timeline-marker.is-left {
+            background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
+        }
+
+        .tv-candle-battle-card__timeline-marker.is-right {
+            background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
+        }
+
+        .tv-candle-battle-card__timeline-marker.is-tie {
+            height: 3px;
+            border-radius: 999px;
+            background: rgba(154, 167, 184, 0.48);
+            opacity: .75;
+        }
+
+        .tv-candle-battle-card__timeline-marker:hover {
+            opacity: 1;
+            filter: brightness(1.12);
+        }
 
     .tv-candle-battle-card__stats {
         min-height: 0;
