@@ -468,8 +468,9 @@
                                     </div>
                                 </section>
 
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--compare">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare">
+                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
+                                    <div class="tv-telemetry-cube__virtual-stage">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare tv-telemetry-cube__virtual-panel">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">@T("labels.marketBattleFlow")</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -484,10 +485,8 @@
                                             <strong>@DisplayPoolStatus()</strong>
                                         </div>
                                     </div>
-                                </section>
 
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--split">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
                                         <section id="tv-candle-battle-root"
                                                  class="tv-candle-battle"
                                                  aria-label="@($"{DisplayLeftTickerLabel()} vs {DisplayRightTickerLabel()} candle battle arena")">
@@ -603,10 +602,8 @@
                                             </div>
                                         </section>
                                     </div>
-                                </section>
 
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--goals">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals tv-telemetry-cube__virtual-panel">
                                         <header class="tv-telemetry-face-header">
                                             <span class="tv-telemetry-face-header__kicker">@RootT("grid.metrics.goals")</span>
                                             <div class="tv-telemetry-face-header__row">
@@ -627,10 +624,8 @@
                                                              EmptySubtitle="@DisplayGoalLogEmptyState()" />
                                         </div>
                                     </div>
-                                </section>
 
-                                <section class="tv-telemetry-cube__face tv-telemetry-cube__face--sentiment">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
+                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment tv-telemetry-cube__virtual-panel">
                                         <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
                                                               Culture="@Culture"
                                                               LeftDisplayName="@DisplayLeftSymbol()"
@@ -646,6 +641,7 @@
                                                               StatusLabel="@GetArenaPressureStatusLabel()"
                                                               Description="@GetArenaPressureDescription()"
                                                               IsCompact="true" />
+                                    </div>
                                     </div>
                                 </section>
 
@@ -11524,17 +11520,16 @@ else
         transform-style: preserve-3d;
         transition: transform 1.1s cubic-bezier(.22,.82,.28,1);
         will-change: transform;
-        --tv-face-angle: 51.428571deg;
-        --tv-prism-depth: 344px;
+        --tv-cube-depth: 280px;
     }
 
     .tv-telemetry-cube.is-face-0 { transform: rotateY(0deg); }
-    .tv-telemetry-cube.is-face-1 { transform: rotateY(calc(var(--tv-face-angle) * -1)); }
-    .tv-telemetry-cube.is-face-2 { transform: rotateY(calc(var(--tv-face-angle) * -2)); }
-    .tv-telemetry-cube.is-face-3 { transform: rotateY(calc(var(--tv-face-angle) * -3)); }
-    .tv-telemetry-cube.is-face-4 { transform: rotateY(calc(var(--tv-face-angle) * -4)); }
-    .tv-telemetry-cube.is-face-5 { transform: rotateY(calc(var(--tv-face-angle) * -5)); }
-    .tv-telemetry-cube.is-face-6 { transform: rotateY(calc(var(--tv-face-angle) * -6)); }
+    .tv-telemetry-cube.is-face-1 { transform: rotateY(-90deg); }
+    .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
+    .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
+    .tv-telemetry-cube.is-face-4 { transform: rotateY(-180deg); }
+    .tv-telemetry-cube.is-face-5 { transform: rotateY(-180deg); }
+    .tv-telemetry-cube.is-face-6 { transform: rotateY(-180deg); }
 
     .tv-telemetry-cube__face {
         position: absolute;
@@ -11558,13 +11553,95 @@ else
         pointer-events: none;
     }
 
-    .tv-telemetry-cube__face--front { transform: rotateY(calc(var(--tv-face-angle) * 0)) translateZ(var(--tv-prism-depth)); }
-    .tv-telemetry-cube__face--right { transform: rotateY(calc(var(--tv-face-angle) * 1)) translateZ(var(--tv-prism-depth)); }
-    .tv-telemetry-cube__face--compare { transform: rotateY(calc(var(--tv-face-angle) * 2)) translateZ(var(--tv-prism-depth)); }
-    .tv-telemetry-cube__face--left { transform: rotateY(calc(var(--tv-face-angle) * 3)) translateZ(var(--tv-prism-depth)); }
-    .tv-telemetry-cube__face--split { transform: rotateY(calc(var(--tv-face-angle) * 4)) translateZ(var(--tv-prism-depth)); }
-    .tv-telemetry-cube__face--goals { transform: rotateY(calc(var(--tv-face-angle) * 5)) translateZ(var(--tv-prism-depth)); }
-    .tv-telemetry-cube__face--sentiment { transform: rotateY(calc(var(--tv-face-angle) * 6)) translateZ(var(--tv-prism-depth)); }
+    .tv-telemetry-cube__face--front { transform: rotateY(0deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--right { transform: rotateY(90deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--back { transform: rotateY(180deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--left { transform: rotateY(-90deg) translateZ(var(--tv-cube-depth)); }
+
+    .tv-telemetry-cube__virtual-stage {
+        position: relative;
+        height: 100%;
+        min-height: 0;
+        isolation: isolate;
+        perspective: 1600px;
+        transform-style: preserve-3d;
+    }
+
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+    .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+        height: 100%;
+    }
+
+    .tv-telemetry-cube__virtual-panel {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform:
+            perspective(1800px)
+            rotateY(16deg)
+            rotateX(4deg)
+            translate3d(0, 0, -34px)
+            scale(.978);
+        transform-origin: center center;
+        filter: blur(8px) saturate(.88);
+        transition:
+            opacity .24s ease,
+            transform .68s cubic-bezier(.2,.82,.24,1),
+            filter .68s cubic-bezier(.2,.82,.24,1),
+            visibility 0s linear .68s;
+        will-change: opacity, transform, filter;
+        backface-visibility: hidden;
+    }
+
+    .tv-telemetry-cube__virtual-panel::after {
+        content: "";
+        position: absolute;
+        inset: -8%;
+        background:
+            linear-gradient(115deg,
+                transparent 24%,
+                rgba(127, 246, 223, 0.06) 38%,
+                rgba(83, 200, 255, 0.18) 50%,
+                rgba(255, 91, 143, 0.10) 62%,
+                transparent 76%);
+        opacity: 0;
+        transform: translateX(-38%) skewX(-14deg);
+        pointer-events: none;
+        mix-blend-mode: screen;
+    }
+
+    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform:
+            perspective(1800px)
+            rotateY(0deg)
+            rotateX(0deg)
+            translate3d(0, 0, 0)
+            scale(1);
+        filter: blur(0) saturate(1);
+        transition:
+            opacity .22s ease,
+            transform .74s cubic-bezier(.18,.88,.24,1),
+            filter .74s cubic-bezier(.18,.88,.24,1),
+            visibility 0s;
+    }
+
+    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
+    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
+    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
+    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
+        opacity: .75;
+        animation: tvCubeSubfaceSweep .72s cubic-bezier(.22,.82,.28,1);
+    }
 
     .tv-telemetry-cube__inner {
         position: relative;
@@ -11581,7 +11658,6 @@ else
     .tv-telemetry-cube__inner--goals,
     .tv-telemetry-cube__inner--sentiment {
         align-self: stretch;
-        height: 100%;
     }
 
     .tv-telemetry-cube__telemetry-grid {
@@ -12313,6 +12389,35 @@ else
             transform: none !important;
             display: block;
             min-height: 0;
+        }
+
+        .tv-telemetry-cube__virtual-stage {
+            display: grid;
+            gap: 10px;
+        }
+
+        .tv-telemetry-cube__virtual-panel {
+            position: static;
+            inset: auto;
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: none;
+            filter: none;
+            transition: none;
+            display: none;
+        }
+
+        .tv-telemetry-cube__virtual-panel::after {
+            display: none;
+        }
+
+        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split {
+            display: grid;
+        }
+
+        .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+            display: grid;
         }
 
         .tv-candle-battle__header,
