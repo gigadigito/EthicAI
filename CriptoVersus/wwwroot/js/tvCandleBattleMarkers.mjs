@@ -38,7 +38,7 @@ export function renderBattleMarkers(state) {
 
 function buildTimelineMarker(sample, battleState) {
     const marker = document.createElement("span");
-    marker.className = "tv-arena-battle-detail-card__timeline-marker";
+    marker.className = "tv-candle-battle-card__timeline-marker";
     marker.style.width = "100%";
 
     const rangeLabel = formatBattleTime(sample.time);

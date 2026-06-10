@@ -53,7 +53,10 @@
         <div class="tv-candle-battle__cards">
             <section class="tv-candle-battle-card tv-candle-battle-card--left">
                 <div class="tv-candle-battle-card__head">
-                    <strong>@LeftTickerLabel</strong>
+                    <div class="tv-candle-battle-card__head-copy">
+                        <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--left">VARIAÇÃO DO ATIVO A</span>
+                        <strong>MOEDA A - USDT</strong>
+                    </div>
                     <em id="tv-candle-battle-left-live"
                         class="@GetChangeClass(LeftChangePercent)">
                         @FormatChangePercent(LeftChangePercent)
@@ -83,7 +86,10 @@
 
             <section class="tv-candle-battle-card tv-candle-battle-card--right">
                 <div class="tv-candle-battle-card__head">
-                    <strong>@RightTickerLabel</strong>
+                    <div class="tv-candle-battle-card__head-copy">
+                        <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--right">VARIAÇÃO DO ATIVO B</span>
+                        <strong>MOEDA B - USDT</strong>
+                    </div>
                     <em id="tv-candle-battle-right-live"
                         class="@GetChangeClass(RightChangePercent)">
                         @FormatChangePercent(RightChangePercent)
@@ -336,6 +342,29 @@
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
         align-items: center;
+    }
+
+    .tv-candle-battle-card__head-copy {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .tv-candle-battle-card__kicker {
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+    }
+
+    .tv-candle-battle-card__kicker--left {
+        color: rgba(255, 215, 110, 0.94);
+        text-shadow: 0 0 14px rgba(255, 215, 110, 0.18);
+    }
+
+    .tv-candle-battle-card__kicker--right {
+        color: rgba(83, 200, 255, 0.94);
+        text-shadow: 0 0 14px rgba(83, 200, 255, 0.18);
     }
 
         .tv-candle-battle-card__head strong {
