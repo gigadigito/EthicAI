@@ -522,21 +522,21 @@
                                     </div>
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
-                                        <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
-                                                              Culture="@Culture"
-                                                              LeftDisplayName="@DisplayLeftSymbol()"
-                                                              LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                              LeftPressurePercent="@GetArenaPressureLeftPercent()"
-                                                              LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
-                                                              RightSymbol="@DisplayRightHeroLabel()"
-                                                              RightDisplayName="@DisplayRightSymbol()"
-                                                              RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                                              RightPressurePercent="@GetArenaPressureRightPercent()"
-                                                              RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
-                                                             CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
-                                                              StatusLabel="@GetArenaPressureStatusLabel()"
-                                                              Description="@GetArenaPressureDescription()"
-                                                              IsCompact="true" />
+                                      <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
+                                                  Culture="@Culture"
+                                                  LeftDisplayName="@DisplayLeftSymbol()"
+                                                  LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                  LeftPressurePercent="@GetArenaPressureLeftPercent()"
+                                                  LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
+                                                  RightSymbol="@DisplayRightHeroLabel()"
+                                                  RightDisplayName="@DisplayRightSymbol()"
+                                                  RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                  RightPressurePercent="@GetArenaPressureRightPercent()"
+                                                  RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
+                                                  CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
+                                                  StatusLabel="@GetArenaPressureStatusLabel()"
+                                                  Description="@GetArenaPressureDescription()"
+                                                  IsCompact="@ShouldUseCompactArenaGauge()" />
                                     </div>
                                     </div>
                                 </section>
@@ -1220,7 +1220,14 @@ else
 
         return T("broadcast.dataStatusFallback");
     }
+    private bool ShouldUseCompactArenaGauge()
+    {
+        // football broadcast precisa do gauge expandido
+        if (UseFootballFieldLayout && IsBroadcastMode)
+            return false;
 
+        return true;
+    }
     protected override void OnParametersSet()
     {
         SyncAudioDebugFlag();
@@ -14294,5 +14301,43 @@ else
     .tv-stage--broadcast .tv-arena-pressure-gauge,
     .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
         max-height: none !important;
+    }
+
+    /* =========================================================
+       FULL HEIGHT ARENA PRESSURE GAUGE
+       ========================================================= */
+
+    .tv-stage--broadcast .tv-telemetry--football {
+        display: grid;
+        align-items: stretch;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge {
+        flex: 1 1 auto;
+        height: 100%;
+        min-height: 100%;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
+        flex: 1 1 auto;
+        height: 100%;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__center,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
+        flex: 1 1 auto;
+        height: 100%;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__svg {
+        width: 100%;
+        height: 100%;
+        min-height: 540px;
     }
 </style>
