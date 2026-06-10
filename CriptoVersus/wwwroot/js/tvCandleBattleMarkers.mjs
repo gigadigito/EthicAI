@@ -38,7 +38,8 @@ export function renderBattleMarkers(state) {
 
 function buildTimelineMarker(sample, battleState) {
     const marker = document.createElement("span");
-    marker.className = "tv-candle-battle-card__timeline-marker";
+    marker.className = "tv-arena-battle-detail-card__timeline-marker";
+    marker.style.width = "100%";
 
     const rangeLabel = formatBattleTime(sample.time);
 
@@ -135,7 +136,7 @@ export function renderBattleTimeline(containerId, battleState) {
     container.replaceChildren();
 
     container.style.gridTemplateColumns =
-        `repeat(${groupedSamples.length}, minmax(22px, 1fr))`;
+        `repeat(${groupedSamples.length}, minmax(18px, 1fr))`;
 
     const fragment = document.createDocumentFragment();
 

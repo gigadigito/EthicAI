@@ -1,0 +1,247 @@
+<section class="tv-arena-battle-detail-card @GetVariantClass()">
+    <header class="tv-arena-battle-detail-card__header">
+        <div class="tv-arena-battle-detail-card__header-copy">
+            <span class="tv-arena-battle-detail-card__eyebrow">@SmallLabel</span>
+            <strong class="tv-arena-battle-detail-card__title">@Title</strong>
+        </div>
+
+        <em class="@($"tv-arena-battle-detail-card__badge {GetChangeClass(ChangePercent)}")">
+            @FormatChangePercent(ChangePercent)
+        </em>
+    </header>
+
+    <div id="@ChartId"
+         class="tv-telemetry-chart-shell tv-telemetry-chart-shell--battle tv-arena-battle-detail-card__chart"
+         aria-label="@ResolveChartAriaLabel()"></div>
+
+    <div class="tv-arena-battle-detail-card__timeline">
+        <span class="tv-arena-battle-detail-card__timeline-title">VENCEDOR POR CANDLE</span>
+        <div id="@TimelineId" class="tv-arena-battle-detail-card__timeline-track"></div>
+    </div>
+</section>
+
+<style>
+    .tv-arena-battle-detail-card {
+        --tv-arena-battle-detail-accent: #53c8ff;
+        --tv-arena-battle-detail-accent-soft: rgba(83, 200, 255, 0.18);
+        --tv-arena-battle-detail-glow: rgba(83, 200, 255, 0.22);
+        --tv-arena-battle-detail-panel: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)),
+            radial-gradient(circle at top left, rgba(83, 200, 255, 0.08), transparent 34%),
+            radial-gradient(circle at top right, rgba(255, 128, 0, 0.07), transparent 30%);
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: var(--tv-arena-battle-detail-panel);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 18px 42px rgba(0, 0, 0, 0.22);
+        overflow: hidden;
+    }
+
+    .tv-arena-battle-detail-card--asset-a {
+        --tv-arena-battle-detail-accent: #ffd76e;
+        --tv-arena-battle-detail-accent-soft: rgba(255, 215, 110, 0.16);
+        --tv-arena-battle-detail-glow: rgba(255, 215, 110, 0.22);
+        --tv-arena-battle-detail-panel: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)),
+            radial-gradient(circle at top left, rgba(255, 215, 110, 0.08), transparent 34%),
+            radial-gradient(circle at top right, rgba(83, 200, 255, 0.07), transparent 30%);
+    }
+
+    .tv-arena-battle-detail-card--asset-b {
+        --tv-arena-battle-detail-accent: #53c8ff;
+        --tv-arena-battle-detail-accent-soft: rgba(83, 200, 255, 0.16);
+        --tv-arena-battle-detail-glow: rgba(83, 200, 255, 0.22);
+    }
+
+    .tv-arena-battle-detail-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .tv-arena-battle-detail-card__header-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .tv-arena-battle-detail-card__eyebrow {
+        color: var(--tv-arena-battle-detail-accent);
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        text-shadow: 0 0 16px var(--tv-arena-battle-detail-glow);
+    }
+
+    .tv-arena-battle-detail-card__title {
+        color: #f5fbff;
+        font-size: 1.12rem;
+        font-weight: 900;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        text-shadow: 0 0 14px rgba(255, 255, 255, 0.08);
+    }
+
+    .tv-arena-battle-detail-card__badge {
+        align-self: center;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: .88rem;
+        font-weight: 900;
+        letter-spacing: .03em;
+        white-space: nowrap;
+        background: var(--tv-arena-battle-detail-accent-soft);
+        border: 1px solid var(--tv-arena-battle-detail-glow);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 0 18px rgba(0, 0, 0, 0.16);
+    }
+
+    .tv-arena-battle-detail-card__badge.tv-change--positive {
+        color: #53e7b9;
+    }
+
+    .tv-arena-battle-detail-card__badge.tv-change--negative {
+        color: #ff9c8f;
+    }
+
+    .tv-arena-battle-detail-card__badge.tv-change--neutral {
+        color: #dbe7f5;
+    }
+
+    .tv-arena-battle-detail-card__badge.tv-change--missing {
+        color: #dbe7f5;
+    }
+
+    .tv-arena-battle-detail-card__chart {
+        min-width: 0;
+        min-height: 320px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: linear-gradient(180deg, rgba(7, 14, 27, 0.92), rgba(5, 10, 19, 0.98));
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .tv-arena-battle-detail-card__timeline {
+        display: grid;
+        gap: 8px;
+        padding-top: 2px;
+    }
+
+    .tv-arena-battle-detail-card__timeline-title {
+        color: var(--tv-arena-battle-detail-accent);
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .14em;
+        text-transform: uppercase;
+        text-shadow: 0 0 14px var(--tv-arena-battle-detail-glow);
+    }
+
+    .tv-arena-battle-detail-card__timeline-track {
+        display: grid;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        padding: 4px 2px 2px;
+        scrollbar-width: thin;
+    }
+
+        .tv-arena-battle-detail-card__timeline-track::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .tv-arena-battle-detail-card__timeline-track::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+        }
+
+    .tv-arena-battle-detail-card__timeline-marker {
+        width: 100%;
+        height: 8px;
+        border: 0;
+        border-radius: 2px;
+        background: transparent;
+        opacity: .95;
+        box-shadow: none;
+    }
+
+        .tv-arena-battle-detail-card__timeline-marker.is-left {
+            background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
+        }
+
+        .tv-arena-battle-detail-card__timeline-marker.is-right {
+            background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
+        }
+
+        .tv-arena-battle-detail-card__timeline-marker.is-tie {
+            height: 3px;
+            border-radius: 999px;
+            background: rgba(154, 167, 184, 0.48);
+            opacity: .75;
+        }
+
+        .tv-arena-battle-detail-card__timeline-marker:hover {
+            opacity: 1;
+            filter: brightness(1.12);
+        }
+
+    @@media (max-width: 980px) {
+        .tv-arena-battle-detail-card__chart {
+            min-height: 260px;
+        }
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public string SmallLabel { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string ChartId { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string TimelineId { get; set; } = string.Empty;
+
+    [Parameter]
+    public decimal? ChangePercent { get; set; }
+
+    [Parameter]
+    public bool IsAssetA { get; set; }
+
+    [Parameter]
+    public string? ChartAriaLabel { get; set; }
+
+    private string ResolveChartAriaLabel()
+        => !string.IsNullOrWhiteSpace(ChartAriaLabel)
+            ? ChartAriaLabel!
+            : Title;
+
+    private string GetVariantClass()
+        => IsAssetA
+            ? "tv-arena-battle-detail-card--asset-a"
+            : "tv-arena-battle-detail-card--asset-b";
+
+    private static string FormatChangePercent(decimal? value)
+        => value.HasValue
+            ? value.Value > 0m
+                ? $"+{value.Value:0.00}%"
+                : $"{value.Value:0.00}%"
+            : "--";
+
+    private static string GetChangeClass(decimal? value)
+        => value switch
+        {
+            > 0m => "tv-change tv-change--positive",
+            < 0m => "tv-change tv-change--negative",
+            0m => "tv-change tv-change--neutral",
+            _ => "tv-change tv-change--missing"
+        };
+}

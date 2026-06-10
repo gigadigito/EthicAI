@@ -14,7 +14,7 @@
 
         <div class="tv-candle-battle__score-center">
             <span>Candle Battle</span>
-            <strong>⚔</strong>
+            <strong>×</strong>
             <small id="tv-candle-battle-score-leader">Momentum neutro</small>
         </div>
 
@@ -51,70 +51,22 @@
 
     <div class="tv-candle-battle__workspace">
         <div class="tv-candle-battle__cards">
-            <section class="tv-candle-battle-card tv-candle-battle-card--left">
-                <div class="tv-candle-battle-card__head">
-                    <strong>@LeftTickerLabel</strong>
-                    <em id="tv-candle-battle-left-live"
-                        class="@GetChangeClass(LeftChangePercent)">
-                        @FormatChangePercent(LeftChangePercent)
-                    </em>
-                </div>
+            <TvArenaBattleDetailCard SmallLabel="VARIAÇÃO DO ATIVO A"
+                                     Title="MOEDA A - USDT"
+                                     ChangePercent="@LeftChangePercent"
+                                     ChartId="tv-telemetry-chart-split-left"
+                                     TimelineId="tv-candle-battle-timeline-left"
+                                     ChartAriaLabel="chart split ativo A"
+                                     IsAssetA="true" />
 
-                <div class="tv-candle-battle-card__legend">
-                    <span class="is-left">@LeftHeroLabel venceu</span>
-                    <span class="is-right">@RightHeroLabel venceu</span>
-                    <span class="is-tie">Empate</span>
-                </div>
-
-                <div class="tv-candle-battle-card__body">
-                    <div class="tv-candle-battle-card__chart-area">
-                        <div id="tv-telemetry-chart-split-left"
-                             class="tv-telemetry-chart-shell tv-telemetry-chart-shell--battle"
-                             aria-label="chart split ativo A"></div>
-
-                        <div class="tv-candle-battle-card__timeline">
-                            <span>Vencedor por candle</span>
-                            <div id="tv-candle-battle-timeline-left"
-                                 class="tv-candle-battle-card__timeline-track"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="tv-candle-battle-card tv-candle-battle-card--right">
-                <div class="tv-candle-battle-card__head">
-                    <strong>@RightTickerLabel</strong>
-                    <em id="tv-candle-battle-right-live"
-                        class="@GetChangeClass(RightChangePercent)">
-                        @FormatChangePercent(RightChangePercent)
-                    </em>
-                </div>
-
-                <div class="tv-candle-battle-card__legend">
-                    <span class="is-left">@LeftHeroLabel venceu</span>
-                    <span class="is-right">@RightHeroLabel venceu</span>
-                    <span class="is-tie">Empate</span>
-                </div>
-
-                <div class="tv-candle-battle-card__body">
-                    <div class="tv-candle-battle-card__chart-area">
-                        <div id="tv-telemetry-chart-split-right"
-                             class="tv-telemetry-chart-shell tv-telemetry-chart-shell--battle"
-                             aria-label="chart split ativo B"></div>
-
-                        <div class="tv-candle-battle-card__timeline">
-                            <span>Vencedor por candle</span>
-                            <div id="tv-candle-battle-timeline-right"
-                                 class="tv-candle-battle-card__timeline-track"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <TvArenaBattleDetailCard SmallLabel="VARIAÇÃO DO ATIVO B"
+                                     Title="MOEDA B - USDT"
+                                     ChangePercent="@RightChangePercent"
+                                     ChartId="tv-telemetry-chart-split-right"
+                                     TimelineId="tv-candle-battle-timeline-right"
+                                     ChartAriaLabel="chart split ativo B"
+                                     IsAssetA="false" />
         </div>
-
-        <aside id="tv-candle-battle-stats-panel"
-               class="tv-candle-battle__sidebar"
-               aria-label="Painel tático do Candle Battle"></aside>
     </div>
 </section>
 
@@ -127,14 +79,6 @@
         gap: 12px;
     }
 
-    .tv-candle-battle__scoreboard,
-    .tv-candle-battle-card,
-    .tv-candle-battle__sidebar {
-        border: 1px solid rgba(255,255,255,0.06);
-        background: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)), radial-gradient(circle at top left, rgba(42, 201, 255, 0.08), transparent 30%), radial-gradient(circle at top right, rgba(255, 128, 0, 0.10), transparent 28%);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.22);
-    }
-
     .tv-candle-battle__scoreboard {
         border-radius: 22px;
         padding: 14px 16px;
@@ -144,6 +88,11 @@
         align-items: center;
         position: relative;
         overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)),
+            radial-gradient(circle at top left, rgba(42, 201, 255, 0.08), transparent 30%),
+            radial-gradient(circle at top right, rgba(255, 128, 0, 0.10), transparent 28%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 18px 42px rgba(0, 0, 0, 0.22);
     }
 
         .tv-candle-battle__scoreboard::before {
@@ -172,7 +121,7 @@
             width: 42px;
             height: 42px;
             object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.18));
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
         }
 
     .tv-candle-battle__score-copy {
@@ -195,9 +144,7 @@
     .tv-candle-battle__score-center span,
     .tv-candle-battle__score-center small,
     .tv-candle-battle__score-momentum-card span,
-    .tv-candle-battle__score-momentum-card small,
-    .tv-candle-battle-card__legend span,
-    .tv-candle-battle-card__timeline span {
+    .tv-candle-battle__score-momentum-card small {
         text-transform: uppercase;
     }
 
@@ -254,8 +201,8 @@
         gap: 8px;
         padding: 12px 14px;
         border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.05);
-        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.03);
     }
 
         .tv-candle-battle__score-momentum-card span {
@@ -265,33 +212,29 @@
             letter-spacing: .14em;
         }
 
-    .tv-candle-battle__score-momentum-track,
-    .tv-candle-battle__sidebar-momentum {
+    .tv-candle-battle__score-momentum-track {
         position: relative;
         width: 100%;
         height: 10px;
         border-radius: 999px;
         overflow: hidden;
-        background: rgba(255,255,255,0.06);
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+        background: rgba(255, 255, 255, 0.06);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
     }
 
-    .tv-candle-battle__score-momentum-fill,
-    .tv-candle-battle__sidebar-momentum-fill {
+    .tv-candle-battle__score-momentum-fill {
         position: absolute;
         top: 0;
         bottom: 0;
         transition: width .3s ease;
     }
 
-    .tv-candle-battle__score-momentum-fill--left,
-    .tv-candle-battle__sidebar-momentum-fill--left {
+    .tv-candle-battle__score-momentum-fill--left {
         left: 0;
         background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
     }
 
-    .tv-candle-battle__score-momentum-fill--right,
-    .tv-candle-battle__sidebar-momentum-fill--right {
+    .tv-candle-battle__score-momentum-fill--right {
         right: 0;
         background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
     }
@@ -308,9 +251,7 @@
     .tv-candle-battle__workspace {
         min-height: 0;
         display: grid;
-        grid-template-columns: minmax(680px, 1fr) clamp(260px, 22vw, 320px);
-        gap: 12px;
-        align-items: stretch;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .tv-candle-battle__cards {
@@ -321,347 +262,13 @@
         gap: 12px;
     }
 
-    .tv-candle-battle-card {
-        min-width: 0;
-        min-height: 0;
-        display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr);
-        gap: 10px;
-        padding: 14px;
-        border-radius: 22px;
-    }
-
-    .tv-candle-battle-card__head {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: center;
-    }
-
-        .tv-candle-battle-card__head strong {
-            font-size: 1.12rem;
-            letter-spacing: .05em;
-        }
-
-        .tv-candle-battle-card__head em {
-            font-style: normal;
-            font-weight: 900;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(42, 201, 255, 0.08);
-            border: 1px solid rgba(42, 201, 255, 0.14);
-        }
-
-    .tv-candle-battle-card__legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 14px;
-        color: rgba(219, 231, 245, 0.78);
-        font-size: .7rem;
-        font-weight: 800;
-        letter-spacing: .08em;
-    }
-
-        .tv-candle-battle-card__legend .is-left::before,
-        .tv-candle-battle-card__legend .is-right::before,
-        .tv-candle-battle-card__legend .is-tie::before {
-            content: "";
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 7px;
-            vertical-align: middle;
-        }
-
-        .tv-candle-battle-card__legend .is-left::before {
-            background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
-        }
-
-        .tv-candle-battle-card__legend .is-right::before {
-            background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
-        }
-
-        .tv-candle-battle-card__legend .is-tie::before {
-            background: rgba(154, 167, 184, 0.65);
-        }
-
-    .tv-candle-battle-card__body {
-        min-width: 0;
-        min-height: 0;
-        display: grid;
-    }
-
-    .tv-candle-battle-card__chart-area {
-        min-width: 0;
-        min-height: 0;
-        display: grid;
-        grid-template-rows: minmax(0, 1fr) auto;
-        gap: 10px;
-    }
-
-    .tv-telemetry-chart-shell--battle {
-        min-width: 0;
-        min-height: 220px;
-        border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.05);
-        background: linear-gradient(180deg, rgba(7, 14, 27, 0.92), rgba(5, 10, 19, 0.98));
-    }
-
-    .tv-candle-battle-card__timeline {
-        display: grid;
-        gap: 8px;
-        padding-top: 2px;
-    }
-
-        .tv-candle-battle-card__timeline span {
-            color: rgba(127, 246, 223, 0.86);
-            font-size: .68rem;
-            font-weight: 900;
-            letter-spacing: .14em;
-        }
-
-    .tv-candle-battle-card__timeline-track {
-        --battle-candle-gap: 8px;
-        display: grid;
-        align-items: center;
-        gap: var(--battle-candle-gap);
-        width: 100%;
-        min-width: 0;
-        overflow-x: auto;
-        padding: 4px 2px 2px;
-        scrollbar-width: thin;
-    }
-
-        .tv-candle-battle-card__timeline-track::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .tv-candle-battle-card__timeline-track::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.16);
-            border-radius: 999px;
-        }
-
-    .tv-candle-battle-card__timeline-marker {
-        width: 100%;
-        height: 8px;
-        border: 0;
-        border-radius: 2px;
-        background: transparent;
-        opacity: .95;
-        box-shadow: none;
-    }
-
-        .tv-candle-battle-card__timeline-marker.is-left {
-            background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
-        }
-
-        .tv-candle-battle-card__timeline-marker.is-right {
-            background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
-        }
-
-        .tv-candle-battle-card__timeline-marker.is-tie {
-            height: 3px;
-            border-radius: 999px;
-            background: rgba(154, 167, 184, 0.48);
-            opacity: .75;
-        }
-
-        .tv-candle-battle-card__timeline-marker:hover {
-            opacity: 1;
-            filter: brightness(1.12);
-        }
-
-    .tv-candle-battle__sidebar {
-        min-width: 0;
-        min-height: 0;
-        display: grid;
-        align-content: start;
-        gap: 12px;
-        padding: 16px;
-        border-radius: 22px;
-        overflow: hidden;
-    }
-
-    .tv-candle-battle__sidebar-top {
-        display: grid;
-        gap: 10px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .tv-candle-battle__sidebar-kicker,
-    .tv-candle-battle__sidebar-leader,
-    .tv-candle-battle__sidebar-section-head,
-    .tv-candle-battle__sidebar-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-    }
-
-        .tv-candle-battle__sidebar-kicker span,
-        .tv-candle-battle__sidebar-section-head span,
-        .tv-candle-battle__sidebar-muted,
-        .tv-candle-battle__sidebar-row span {
-            text-transform: uppercase;
-            letter-spacing: .14em;
-        }
-
-        .tv-candle-battle__sidebar-kicker span,
-        .tv-candle-battle__sidebar-section-head span {
-            color: rgba(127, 246, 223, 0.9);
-            font-size: .68rem;
-            font-weight: 900;
-        }
-
-        .tv-candle-battle__sidebar-kicker strong,
-        .tv-candle-battle__sidebar-badge {
-            padding: 6px 12px;
-            border-radius: 999px;
-            border: 1px solid rgba(127, 246, 223, 0.22);
-            background: rgba(42, 201, 255, 0.08);
-            color: #f5fbff;
-            font-size: .7rem;
-            font-weight: 900;
-            text-shadow: 0 0 14px rgba(0, 255, 214, 0.18);
-        }
-
-            .tv-candle-battle__sidebar-kicker strong.is-right {
-                border-color: rgba(255, 166, 0, 0.22);
-                background: rgba(255, 128, 0, 0.08);
-                text-shadow: 0 0 14px rgba(255, 128, 0, 0.18);
-            }
-
-        .tv-candle-battle__sidebar-leader span {
-            color: rgba(201, 221, 243, 0.72);
-            font-size: .68rem;
-            font-weight: 900;
-        }
-
-        .tv-candle-battle__sidebar-leader strong {
-            font-size: 1rem;
-            font-weight: 900;
-            color: #ffffff;
-            text-shadow: 0 0 12px rgba(42, 201, 255, 0.14);
-        }
-
-    .tv-candle-battle__sidebar-section {
-        display: grid;
-        gap: 10px;
-        padding-top: 4px;
-        border-top: 1px solid rgba(255,255,255,0.06);
-    }
-
-    .tv-candle-battle__sidebar-section-head strong {
-        color: #96ffd9;
-        font-size: .68rem;
-        font-weight: 900;
-    }
-
-    .tv-candle-battle__sidebar-grid,
-    .tv-candle-battle__sidebar-performance {
-        display: grid;
-        gap: 8px;
-    }
-
-    .tv-candle-battle__sidebar-row {
-        color: rgba(217, 231, 246, 0.74);
-        font-size: .72rem;
-        letter-spacing: .08em;
-    }
-
-        .tv-candle-battle__sidebar-row strong {
-            font-size: 1rem;
-            color: #f5fbff;
-        }
-
-            .tv-candle-battle__sidebar-row strong.is-left {
-                color: rgba(42, 201, 255, 0.92);
-            }
-
-            .tv-candle-battle__sidebar-row strong.is-right {
-                color: rgba(255, 166, 0, 0.96);
-            }
-
-    .tv-candle-battle__sidebar-muted {
-        color: rgba(201, 221, 243, 0.74);
-        font-size: .66rem;
-        font-weight: 800;
-    }
-
-    .tv-candle-battle__sidebar-streak {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        gap: 12px;
-        align-items: center;
-    }
-
-    .tv-candle-battle__sidebar-streak-icon {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.95), rgba(127, 246, 223, 0.82) 38%, rgba(42, 201, 255, 0.92) 68%, rgba(0,0,0,0) 72%), linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02));
-        box-shadow: 0 0 18px rgba(0, 255, 214, 0.24), 0 0 28px rgba(42, 201, 255, 0.12);
-        border: 1px solid rgba(127, 246, 223, 0.22);
-    }
-
-        .tv-candle-battle__sidebar-streak-icon.is-right {
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.96), rgba(255, 166, 0, 0.82) 38%, rgba(255, 128, 0, 0.9) 68%, rgba(0,0,0,0) 72%), linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02));
-            box-shadow: 0 0 18px rgba(255, 128, 0, 0.22), 0 0 28px rgba(255, 166, 0, 0.12);
-            border-color: rgba(255, 166, 0, 0.22);
-        }
-
-        .tv-candle-battle__sidebar-streak-icon.is-tie {
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.92), rgba(154, 167, 184, 0.75) 40%, rgba(154, 167, 184, 0.9) 72%, rgba(0,0,0,0) 74%), linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02));
-            box-shadow: 0 0 18px rgba(154, 167, 184, 0.18), 0 0 28px rgba(154, 167, 184, 0.08);
-            border-color: rgba(154, 167, 184, 0.18);
-        }
-
-    .tv-candle-battle__sidebar-streak small {
-        display: block;
-        color: rgba(201, 221, 243, 0.68);
-        font-size: .62rem;
-        font-weight: 900;
-        letter-spacing: .16em;
-        margin-bottom: 3px;
-    }
-
-    .tv-candle-battle__sidebar-streak strong {
-        font-size: 1.14rem;
-        font-weight: 900;
-    }
-
-        .tv-candle-battle__sidebar-streak strong.is-left {
-            color: rgba(42, 201, 255, 0.92);
-        }
-
-        .tv-candle-battle__sidebar-streak strong.is-right {
-            color: rgba(255, 166, 0, 0.96);
-        }
-
-        .tv-candle-battle__sidebar-streak strong.is-tie {
-            color: rgba(201, 221, 243, 0.88);
-        }
-
-    @@media (max-width: 1180px) {
-        .tv-candle-battle__workspace {
-            grid-template-columns: minmax(0, 1fr) 280px;
-        }
-    }
-
     @@media (max-width: 980px) {
-        .tv-candle-battle__scoreboard,
-        .tv-candle-battle__workspace {
+        .tv-candle-battle__scoreboard {
             grid-template-columns: 1fr;
         }
 
-        .tv-candle-battle__sidebar {
-            order: 2;
-        }
-
-        .tv-candle-battle__cards {
-            order: 1;
+        .tv-candle-battle__score-center {
+            padding-inline: 0;
         }
     }
 </style>
@@ -698,20 +305,4 @@
         => !string.IsNullOrWhiteSpace(AriaLabel)
             ? AriaLabel!
             : $"{LeftTickerLabel} vs {RightTickerLabel} candle battle arena";
-
-    private static string FormatChangePercent(decimal? value)
-        => value.HasValue
-            ? value.Value > 0m
-                ? $"+{value.Value:0.00}%"
-                : $"{value.Value:0.00}%"
-            : "--";
-
-    private static string GetChangeClass(decimal? value)
-        => value switch
-        {
-            > 0m => "tv-change tv-change--positive",
-            < 0m => "tv-change tv-change--negative",
-            0m => "tv-change tv-change--neutral",
-            _ => "tv-change tv-change--missing"
-        };
 }
