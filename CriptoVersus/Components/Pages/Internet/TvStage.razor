@@ -14031,25 +14031,91 @@ else
 
 
 
-    /* Ajuste final: aproveitar melhor a altura útil dos gráficos no Broadcast.
-       Mantém os IDs e a arquitetura atuais, apenas força o painel ativo e o
-       Lightweight Charts a crescerem verticalmente. */
+    /* Ajuste final: altura automática do painel de pressão.
+       Objetivo: fazer o TvArenaPressureGauge acompanhar a altura do
+       .tv-match-card.tv-match-card--football sem usar altura fixa.
+       A linha do grid passa a esticar os dois lados; o cubo/face/painel
+       herdam 100% da altura calculada pelo maior item da linha. */
+    .tv-stage__grid {
+        align-items: stretch;
+    }
+
+    .tv-stage__grid > .tv-match-card--football,
+    .tv-stage__grid > .tv-telemetry--football {
+        align-self: stretch;
+        min-height: 0;
+    }
+
+    .tv-match-card--football {
+        height: 100%;
+    }
+
+    .tv-telemetry--football {
+        position: relative;
+        overflow: hidden;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        align-content: stretch;
+    }
+
+    .tv-telemetry--football .tv-telemetry-cube-shell,
+    .tv-telemetry--football .tv-telemetry-cube,
+    .tv-telemetry--football .tv-telemetry-cube__face {
+        min-height: 0 !important;
+        height: 100% !important;
+        max-height: none !important;
+    }
+
+    .tv-telemetry--football .tv-telemetry-cube__inner,
+    .tv-telemetry--football .tv-telemetry-cube__virtual-stage,
+    .tv-telemetry--football .tv-telemetry-cube__virtual-panel {
+        min-height: 0 !important;
+        height: 100% !important;
+        max-height: none !important;
+    }
+
+    .tv-telemetry-cube__inner--sentiment {
+        display: grid !important;
+        place-items: stretch !important;
+        align-content: stretch !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+
+    .tv-telemetry-cube__inner--sentiment > * {
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+
+    .tv-telemetry-cube__inner--sentiment .tv-arena-pressure-gauge,
+    .tv-telemetry-cube__inner--sentiment .tv-arena-pressure-gauge__panel {
+        min-height: 0 !important;
+        height: 100% !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+    }
+
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
     }
 
-    .tv-stage--broadcast .tv-telemetry,
-    .tv-stage--broadcast .tv-telemetry-cube-shell,
-    .tv-stage--broadcast .tv-telemetry-cube {
-        min-height: clamp(700px, calc(100svh - 150px), 1040px) !important;
-        height: clamp(700px, calc(100svh - 150px), 1040px) !important;
+    .tv-stage--broadcast .tv-stage__grid > .tv-match-card--football,
+    .tv-stage--broadcast .tv-stage__grid > .tv-telemetry--football {
+        align-self: stretch !important;
+        min-height: 0 !important;
+    }
+
+    .tv-stage--broadcast .tv-match-card--football,
+    .tv-stage--broadcast .tv-telemetry--football {
+        height: 100% !important;
         max-height: none !important;
     }
 
-    .tv-stage--broadcast .tv-telemetry-cube__face,
-    .tv-stage--broadcast .tv-telemetry-cube__inner,
-    .tv-stage--broadcast .tv-telemetry-cube__virtual-stage,
-    .tv-stage--broadcast .tv-telemetry-cube__virtual-panel {
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube-shell,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__inner {
         min-height: 0 !important;
         height: 100% !important;
         max-height: none !important;
@@ -14067,7 +14133,7 @@ else
     .tv-stage--broadcast #tv-telemetry-chart-left,
     .tv-stage--broadcast #tv-telemetry-chart-right,
     .tv-stage--broadcast #tv-telemetry-chart-compare {
-        min-height: clamp(540px, calc(100svh - 300px), 900px) !important;
+        min-height: clamp(360px, 42vh, 760px) !important;
         height: 100% !important;
         max-height: none !important;
     }
@@ -14077,26 +14143,35 @@ else
     }
 
     @@media (max-width: 1080px) {
-        .tv-stage--broadcast .tv-telemetry,
-        .tv-stage--broadcast .tv-telemetry-cube-shell,
-        .tv-stage--broadcast .tv-telemetry-cube {
-            min-height: 680px !important;
-            height: 680px !important;
+        .tv-stage__grid,
+        .tv-stage--broadcast .tv-stage__grid {
+            align-items: stretch !important;
         }
 
-        .tv-stage--broadcast #tv-telemetry-chart-left,
-        .tv-stage--broadcast #tv-telemetry-chart-right,
-        .tv-stage--broadcast #tv-telemetry-chart-compare {
-            min-height: 440px !important;
+        .tv-telemetry--football .tv-telemetry-cube-shell,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube-shell {
+            min-height: 560px !important;
+            height: 100% !important;
         }
     }
 
     @@media (max-width: 720px) {
-        .tv-stage--broadcast .tv-telemetry,
-        .tv-stage--broadcast .tv-telemetry-cube-shell,
-        .tv-stage--broadcast .tv-telemetry-cube {
-            min-height: 720px !important;
-            height: 720px !important;
+        .tv-stage__grid,
+        .tv-stage--broadcast .tv-stage__grid {
+            align-items: start !important;
+        }
+
+        .tv-match-card--football,
+        .tv-telemetry--football,
+        .tv-stage--broadcast .tv-match-card--football,
+        .tv-stage--broadcast .tv-telemetry--football {
+            height: auto !important;
+        }
+
+        .tv-telemetry--football .tv-telemetry-cube-shell,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube-shell {
+            min-height: 640px !important;
+            height: 640px !important;
         }
 
         .tv-stage--broadcast #tv-telemetry-chart-left,

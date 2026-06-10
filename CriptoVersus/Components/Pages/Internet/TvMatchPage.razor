@@ -496,7 +496,7 @@ else
             Interlocked.Exchange(ref _refreshInProgress, 0);
         }
     }
-    ,
+    
     private void StartSecondaryDataLoad()
     {
         var token = _refreshCts?.Token ?? CancellationToken.None;
