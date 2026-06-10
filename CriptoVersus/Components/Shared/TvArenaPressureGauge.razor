@@ -64,12 +64,12 @@
                         <path d="@ArcPath" class="tv-arena-pressure-gauge__track" pathLength="100" />
                         @foreach (var tick in MajorTicks)
                         {
-                            <line x1="@tick.LineX1" y1="@tick.LineY1" x2="@tick.LineX2" y2="@tick.LineY2"
+                            <line x1="@SvgNumber(tick.LineX1)" y1="@SvgNumber(tick.LineY1)" x2="@SvgNumber(tick.LineX2)" y2="@SvgNumber(tick.LineY2)"
                                   class="tv-arena-pressure-gauge__tick-line @(tick.IsCenter ? "is-center" : string.Empty)" />
                         }
                         @foreach (var tick in MinorTicks)
                         {
-                            <line x1="@tick.LineX1" y1="@tick.LineY1" x2="@tick.LineX2" y2="@tick.LineY2"
+                            <line x1="@SvgNumber(tick.LineX1)" y1="@SvgNumber(tick.LineY1)" x2="@SvgNumber(tick.LineX2)" y2="@SvgNumber(tick.LineY2)"
                                   class="tv-arena-pressure-gauge__tick-line tv-arena-pressure-gauge__tick-line--minor" />
                         }
 
@@ -82,7 +82,7 @@
                             <title>@($"{RightSymbol}: {RightPressureDisplay}%")</title>
                         </path>
 
-                        <line x1="@SplitMarker.X" y1="@SplitMarker.Y1" x2="@SplitMarker.X" y2="@SplitMarker.Y2"
+                        <line x1="@SvgNumber(SplitMarker.X)" y1="@SvgNumber(SplitMarker.Y1)" x2="@SvgNumber(SplitMarker.X)" y2="@SvgNumber(SplitMarker.Y2)"
                               class="tv-arena-pressure-gauge__split-marker" />
                     </svg>
 
@@ -292,6 +292,9 @@
 
     private static string DisplayText(string? value)
         => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim();
+
+    private static string SvgNumber(double value)
+        => value.ToString(CultureInfo.InvariantCulture);
 
     private static string CompactSymbol(string? value)
     {
