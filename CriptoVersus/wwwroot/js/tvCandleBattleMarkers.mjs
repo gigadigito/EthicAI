@@ -58,6 +58,54 @@ function buildTimelineMarker(sample, battleState) {
     return marker;
 }
 
+function resolveGroupedWinner(samples) {
+    let leftCount = 0;
+    let rightCount = 0;
+
+    samples.forEach((sample) => {
+        if (sample?.winner === "left") {
+            leftCount += 1;
+        } else if (sample?.winner === "right") {
+            rightCount += 1;
+        }
+    });
+
+    if (leftCount > rightCount) {
+        return "left";
+    }
+
+    if (rightCount > leftCount) {
+        return "right";
+    }
+
+    return "tie";
+}
+
+function groupTimelineSamples(samples) {
+    const grouped = new Map();
+
+    samples.forEach((sample) => {
+        if (!sample || !Number.isFinite(sample.time)) {
+            return;
+        }
+
+        const current = grouped.get(sample.time);
+        if (current) {
+            current.samples.push(sample);
+            current.winner = resolveGroupedWinner(current.samples);
+            return;
+        }
+
+        grouped.set(sample.time, {
+            time: sample.time,
+            samples: [sample],
+            winner: sample.winner
+        });
+    });
+
+    return Array.from(grouped.values());
+}
+
 export function renderBattleTimeline(containerId, battleState) {
     const container = typeof document !== "undefined"
         ? document.getElementById(containerId)
@@ -67,27 +115,31 @@ export function renderBattleTimeline(containerId, battleState) {
         return;
     }
 
-    const signature = battleState?.timelineSignature ?? "";
-    if (container.dataset.timelineSignature === signature) {
-        return;
-    }
-
-    container.dataset.timelineSignature = signature;
-    container.replaceChildren();
-
     if (!battleState?.samples?.length) {
+        container.dataset.timelineSignature = "";
+        container.replaceChildren();
         container.style.gridTemplateColumns = "";
         return;
     }
 
-    const samples = battleState.samples;
+    const groupedSamples = groupTimelineSamples(battleState.samples);
+    const groupedSignature = groupedSamples
+        .map((sample) => `${sample.time}:${sample.winner}`)
+        .join("|");
+
+    if (container.dataset.timelineSignature === groupedSignature) {
+        return;
+    }
+
+    container.dataset.timelineSignature = groupedSignature;
+    container.replaceChildren();
 
     container.style.gridTemplateColumns =
-        `repeat(${samples.length}, minmax(18px, 1fr))`;
+        `repeat(${groupedSamples.length}, minmax(22px, 1fr))`;
 
     const fragment = document.createDocumentFragment();
 
-    samples.forEach((sample) => {
+    groupedSamples.forEach((sample) => {
         fragment.appendChild(buildTimelineMarker(sample, battleState));
     });
 
