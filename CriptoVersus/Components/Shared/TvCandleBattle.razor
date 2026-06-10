@@ -1,3 +1,6 @@
+@using System.Globalization
+@inject LocalizationService L
+
 <section id="tv-candle-battle-root"
          class="tv-candle-battle"
          aria-label="@ResolveAriaLabel()">
@@ -7,28 +10,28 @@
             <img src="@LeftLogoUrl" alt="" />
             <div class="tv-candle-battle__score-copy">
                 <strong>@LeftTickerLabel</strong>
-                <span>Candles vencidos</span>
+                <span>@T("labels.candlesWon")</span>
             </div>
             <b id="tv-candle-battle-score-left">0</b>
         </div>
 
         <div class="tv-candle-battle__score-center">
-            <span>Candle Battle</span>
+            <span>@T("labels.candleBattle")</span>
             <strong>⚔</strong>
-            <small id="tv-candle-battle-score-leader">Momentum neutro</small>
+            <small id="tv-candle-battle-score-leader">@T("labels.momentumNeutral")</small>
         </div>
 
         <div class="tv-candle-battle__score-side tv-candle-battle__score-side--right">
             <b id="tv-candle-battle-score-right">0</b>
             <div class="tv-candle-battle__score-copy tv-candle-battle__score-copy--right">
                 <strong>@RightTickerLabel</strong>
-                <span>Candles vencidos</span>
+                <span>@T("labels.candlesWon")</span>
             </div>
             <img src="@RightLogoUrl" alt="" />
         </div>
 
         <aside class="tv-candle-battle__score-momentum-card">
-            <span>Momentum atual</span>
+            <span>@T("labels.momentumCurrent")</span>
 
             <div class="tv-candle-battle__score-momentum-track" aria-hidden="true">
                 <i id="tv-candle-battle-score-momentum-left-fill"
@@ -45,7 +48,7 @@
                 <strong id="tv-candle-battle-score-momentum-right">50%</strong>
             </div>
 
-            <small id="tv-candle-battle-score-momentum-status">Disputa equilibrada</small>
+            <small id="tv-candle-battle-score-momentum-status">@T("labels.tiePressure")</small>
         </aside>
     </section>
 
@@ -54,7 +57,7 @@
             <section class="tv-candle-battle-card tv-candle-battle-card--left">
                 <div class="tv-candle-battle-card__head">
                     <div class="tv-candle-battle-card__head-copy">
-                        <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--left">VARIAÇÃO DO ATIVO A</span>
+                        <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--left">@T("labels.assetVariationA")</span>
                         <strong>MOEDA A - USDT</strong>
                     </div>
                     <em id="tv-candle-battle-left-live"
@@ -64,9 +67,9 @@
                 </div>
 
                 <div class="tv-candle-battle-card__legend">
-                    <span class="is-left">@LeftHeroLabel venceu</span>
-                    <span class="is-right">@RightHeroLabel venceu</span>
-                    <span class="is-tie">Empate</span>
+                    <span class="is-left">@LeftHeroLabel @T("labels.won")</span>
+                    <span class="is-right">@RightHeroLabel @T("labels.won")</span>
+                    <span class="is-tie">@T("labels.tie")</span>
                 </div>
 
                 <div class="tv-candle-battle-card__body">
@@ -76,7 +79,7 @@
                              aria-label="chart split ativo A"></div>
 
                         <div class="tv-candle-battle-card__timeline">
-                            <span>Vencedor por candle</span>
+                            <span>@T("labels.winnerPerCandle")</span>
                             <div id="tv-candle-battle-timeline-left"
                                  class="tv-candle-battle-card__timeline-track"></div>
                         </div>
@@ -87,7 +90,7 @@
             <section class="tv-candle-battle-card tv-candle-battle-card--right">
                 <div class="tv-candle-battle-card__head">
                     <div class="tv-candle-battle-card__head-copy">
-                        <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--right">VARIAÇÃO DO ATIVO B</span>
+                        <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--right">@T("labels.assetVariationB")</span>
                         <strong>MOEDA B - USDT</strong>
                     </div>
                     <em id="tv-candle-battle-right-live"
@@ -97,9 +100,9 @@
                 </div>
 
                 <div class="tv-candle-battle-card__legend">
-                    <span class="is-left">@LeftHeroLabel venceu</span>
-                    <span class="is-right">@RightHeroLabel venceu</span>
-                    <span class="is-tie">Empate</span>
+                    <span class="is-left">@LeftHeroLabel @T("labels.won")</span>
+                    <span class="is-right">@RightHeroLabel @T("labels.won")</span>
+                    <span class="is-tie">@T("labels.tie")</span>
                 </div>
 
                 <div class="tv-candle-battle-card__body">
@@ -109,7 +112,7 @@
                              aria-label="chart split ativo B"></div>
 
                         <div class="tv-candle-battle-card__timeline">
-                            <span>Vencedor por candle</span>
+                            <span>@T("labels.winnerPerCandle")</span>
                             <div id="tv-candle-battle-timeline-right"
                                  class="tv-candle-battle-card__timeline-track"></div>
                         </div>
@@ -743,4 +746,7 @@
             0m => "tv-change tv-change--neutral",
             _ => "tv-change tv-change--missing"
         };
+
+    private string T(string key, params object?[] args)
+        => L.T($"tv.{key}", CultureInfo.CurrentUICulture.Name, args);
 }
