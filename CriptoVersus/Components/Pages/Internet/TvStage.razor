@@ -14180,5 +14180,119 @@ else
             min-height: 360px !important;
         }
     }
+    /* =========================================================
+       TV ARENA PRESSURE GAUGE
+       MATCH HEIGHT SYNC
+       ========================================================= */
 
+    .tv-stage--broadcast .tv-stage__grid {
+        align-items: stretch !important;
+    }
+
+    .tv-stage--broadcast .tv-match-card--football,
+    .tv-stage--broadcast .tv-telemetry--football {
+        min-height: clamp(720px, calc(100svh - 170px), 980px) !important;
+    }
+
+    /* telemetry lateral acompanha altura total */
+    .tv-stage--broadcast .tv-telemetry--football {
+        display: grid !important;
+        align-content: stretch !important;
+        align-items: stretch !important;
+        height: 100% !important;
+    }
+
+    /* shell do cube */
+    .tv-stage--broadcast .tv-telemetry-cube-shell {
+        height: 100% !important;
+        min-height: inherit !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* cube principal */
+    .tv-stage--broadcast .tv-telemetry-cube {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+        min-height: inherit !important;
+    }
+
+    /* faces */
+    .tv-stage--broadcast .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry-cube__face--back {
+        height: 100% !important;
+        min-height: inherit !important;
+    }
+
+    /* virtual stage */
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-stage {
+        display: grid !important;
+        grid-template-rows: 1fr !important;
+        height: 100% !important;
+        min-height: inherit !important;
+    }
+
+    /* sentiment panel */
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
+        display: grid !important;
+        align-items: stretch !important;
+        align-content: stretch !important;
+        height: 100% !important;
+        min-height: inherit !important;
+        padding: 0 !important;
+    }
+
+        /* força gauge ocupar tudo */
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > * {
+            height: 100% !important;
+            min-height: 100% !important;
+        }
+
+    /* gauge principal */
+    .tv-stage--broadcast .tv-arena-pressure-gauge {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: stretch !important;
+        align-items: stretch !important;
+        height: 100% !important;
+        min-height: inherit !important;
+    }
+
+    /* painel do gauge */
+    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        height: 100% !important;
+        min-height: inherit !important;
+    }
+
+    /* SVG central cresce */
+    .tv-stage--broadcast .tv-arena-pressure-gauge__center,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+        min-height: 0 !important;
+    }
+
+    /* SVG ocupa espaço real */
+    .tv-stage--broadcast .tv-arena-pressure-gauge__svg {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 420px !important;
+    }
+
+    /* compact mode não pode limitar */
+    .tv-stage--broadcast .tv-arena-pressure-gauge--compact {
+        height: 100% !important;
+        min-height: inherit !important;
+    }
+
+    /* remove possíveis limites antigos */
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment,
+    .tv-stage--broadcast .tv-arena-pressure-gauge,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
+        max-height: none !important;
+    }
 </style>
