@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
+using System.Diagnostics;
 using System.Data;
 
 using EthicAI.EntityModel;
@@ -17,11 +18,13 @@ namespace CriptoVersus.API.Controllers
     {
         private readonly IDbContextFactory<EthicAIDbContext> _dbFactory;
         private readonly IConfiguration _config;
+        private readonly ILogger<DashboardController> _logger;
 
-        public DashboardController(IDbContextFactory<EthicAIDbContext> dbFactory, IConfiguration config)
+        public DashboardController(IDbContextFactory<EthicAIDbContext> dbFactory, IConfiguration config, ILogger<DashboardController> logger)
         {
             _dbFactory = dbFactory;
             _config = config;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -32,6 +35,7 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] int ongoing = 10,
             CancellationToken ct = default)
         {
+            var sw = Stopwatch.StartNew();
             top = Math.Clamp(top, 1, 50);
             pending = Math.Clamp(pending, 0, 50);
             ongoing = Math.Clamp(ongoing, 0, 50);
@@ -91,7 +95,7 @@ namespace CriptoVersus.API.Controllers
                             ? "currency-snapshot-stale"
                             : null;
 
-            return Ok(new DashboardSnapshotDto
+            var snapshot = new DashboardSnapshotDto
             {
                 ServerTimeUtc = now,
                 Worker = worker,
@@ -108,7 +112,20 @@ namespace CriptoVersus.API.Controllers
                     OngoingList = ongoingListTask.Result,
                     CompletedList = completedListTask.Result
                 }
-            });
+            };
+
+            _logger.LogInformation(
+                "[TV_MATCH_LOAD] API Dashboard.GetSnapshot top={Top} pending={Pending} ongoing={Ongoing} topGainers={TopGainersCount} ongoingList={OngoingListCount} pendingList={PendingListCount} completedList={CompletedListCount} elapsedMs={ElapsedMs}",
+                top,
+                pending,
+                ongoing,
+                snapshot.TopGainers.Count,
+                snapshot.Matches.OngoingList.Count,
+                snapshot.Matches.Upcoming.Count,
+                snapshot.Matches.CompletedList.Count,
+                sw.ElapsedMilliseconds);
+
+            return Ok(snapshot);
         }
 
         private async Task<List<CurrencyDto>> GetTopGainersAsync(int top, CancellationToken ct)

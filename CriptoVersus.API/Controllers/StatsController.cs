@@ -5,6 +5,7 @@ using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace CriptoVersus.API.Controllers;
 
@@ -20,17 +21,20 @@ public sealed class StatsController : ControllerBase
 
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<StatsController> _logger;
 
-    public StatsController(EthicAIDbContext db, IConfiguration configuration)
+    public StatsController(EthicAIDbContext db, IConfiguration configuration, ILogger<StatsController> logger)
     {
         _db = db;
         _configuration = configuration;
+        _logger = logger;
     }
 
     [AllowAnonymous]
     [HttpGet("overview")]
     public async Task<ActionResult<StatsOverviewDto>> GetOverview([FromQuery] string? search = null, CancellationToken ct = default)
     {
+        var sw = Stopwatch.StartNew();
         var activityCutoffUtc = DateTime.UtcNow.Date.AddDays(-(ActivityWindowDays - 1));
         var visibleMatches = await LoadVisibleMatchesAsync(ct);
         visibleMatches = ApplySearchFilter(visibleMatches, search);
@@ -74,6 +78,7 @@ public sealed class StatsController : ControllerBase
         overview.MatchActivity = BuildMatchActivity(visibleMatches, activityCutoffUtc);
         overview.LatestMatches = BuildLatestMatches(visibleMatches);
 
+        _logger.LogInformation("[TV_MATCH_LOAD] API Stats.GetOverview search={Search} visibleMatches={VisibleMatches} latestMatches={LatestMatches} elapsedMs={ElapsedMs}", search, visibleMatches.Count, overview.LatestMatches.Count, sw.ElapsedMilliseconds);
         return Ok(overview);
     }
 

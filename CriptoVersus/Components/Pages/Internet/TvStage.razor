@@ -1,4 +1,5 @@
 @using System.Globalization
+@using System.Diagnostics
 @using System.IO
 @using System.Text
 @using System.Net
@@ -1259,11 +1260,15 @@ else
 
         if (firstRender)
         {
+            var firstRenderSw = Stopwatch.StartNew();
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={Guid.NewGuid():N}");
+            Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
             await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
             await EnsureAudioDebugInteropAsync(force: true);
             _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
+            Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvCinematicCamera matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
             _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
+            Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvEventFeed matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
             await LogAsync("TV_MOTION", "motion system ready");
             await EnsureReplayEngineAsync();
             await InitializeTvAudioManagerAsync();
@@ -1287,6 +1292,7 @@ else
             }
 
             await LogClockDebugAsync();
+            Logger.LogInformation("[TV_MATCH_LOAD] TvStage OnAfterRender firstRender matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
         }
 
         if (_tvEventFeedModule is not null)
@@ -2006,7 +2012,9 @@ else
                 List<MatchMetricSnapshotDto> snapshots;
                 try
                 {
+                    var snapshotsSw = Stopwatch.StartNew();
                     snapshots = await Api.GetMatchMetricSnapshotsAsync(matchId, 160, ct) ?? [];
+                    Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchMetricSnapshotsAsync matchId={MatchId} take=160 count={Count} elapsedMs={ElapsedMs}", matchId, snapshots.Count, snapshotsSw.ElapsedMilliseconds);
                 }
                 catch (OperationCanceledException)
                 {
@@ -2047,7 +2055,9 @@ else
 
                         var previousSentimentA = _arenaSentimentA;
                         var previousSentimentB = _arenaSentimentB;
+                        var sentimentSw = Stopwatch.StartNew();
                         var sentiment = await Api.GetMatchArenaSentimentAsync(matchId, ct);
+                        Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchArenaSentimentAsync matchId={MatchId} elapsedMs={ElapsedMs}", matchId, sentimentSw.ElapsedMilliseconds);
                         _arenaSentimentA = sentiment?.TeamA;
                         _arenaSentimentB = sentiment?.TeamB;
                         _lastArenaSentimentFetchUtc = DateTime.UtcNow;
@@ -3611,7 +3621,9 @@ else
 
         try
         {
+            var scoreEventsSw = Stopwatch.StartNew();
             var events = await Api.GetMatchScoreEventsAsync(matchId, Culture) ?? [];
+            Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchScoreEventsAsync matchId={MatchId} culture={Culture} count={Count} elapsedMs={ElapsedMs}", matchId, Culture, events.Count, scoreEventsSw.ElapsedMilliseconds);
             _allScoreEvents = events
                 .OrderBy(x => x.EventTimeUtc)
                 .ThenBy(x => x.MatchScoreEventId)
@@ -5300,6 +5312,7 @@ else
                 candidate.AudioRequest.Intensity
             });
 
+            var audioSw = Stopwatch.StartNew();
             var response = await Api.ResolveAudioAsync(new AudioResolveRequest
             {
                 EventType = candidate.AudioRequest.EventType,
@@ -5315,6 +5328,13 @@ else
                 QueueIfMissing = candidate.AudioRequest.QueueIfMissing,
                 ForceQueue = forceQueue || candidate.AudioRequest.ForceQueue
             });
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] TvStage.Api.ResolveAudioAsync matchId={MatchId} eventType={EventType} found={Found} queued={Queued} elapsedMs={ElapsedMs}",
+                candidate.MatchId,
+                candidate.AudioRequest.EventType,
+                response?.Found ?? false,
+                response?.Queued ?? false,
+                audioSw.ElapsedMilliseconds);
 
             await LogAsync("TV_ARENA_COMMENTARY", "audio-resolution", new
             {

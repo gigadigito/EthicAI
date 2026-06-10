@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Text.Json;
 
 // Ajuste namespaces conforme seu projeto
@@ -147,6 +148,7 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] bool includeParticipants = true,
             CancellationToken ct = default)
         {
+            var sw = Stopwatch.StartNew();
             var now = DateTime.UtcNow;
 
             var match = await _db.Set<Match>()
@@ -162,7 +164,9 @@ namespace CriptoVersus.API.Controllers
             if (MatchPairRules.IsForbiddenPair(match.TeamA?.Currency?.Symbol, match.TeamB?.Currency?.Symbol, _configuration))
                 return NotFound();
 
-            return Ok(await ToMatchDtoAsync(match, now, includeParticipants, ct));
+            var dto = await ToMatchDtoAsync(match, now, includeParticipants, ct);
+            _logger.LogInformation("[TV_MATCH_LOAD] API Matches.GetById matchId={MatchId} includeParticipants={IncludeParticipants} elapsedMs={ElapsedMs}", id, includeParticipants, sw.ElapsedMilliseconds);
+            return Ok(dto);
         }
 
         [AllowAnonymous]
@@ -172,6 +176,7 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] string? language = null,
             CancellationToken ct = default)
         {
+            var sw = Stopwatch.StartNew();
             var exists = await _db.Set<Match>().AnyAsync(m => m.MatchId == id, ct);
             if (!exists)
                 return NotFound();
@@ -239,6 +244,7 @@ namespace CriptoVersus.API.Controllers
                 results.Add(dto);
             }
 
+            _logger.LogInformation("[TV_MATCH_LOAD] API Matches.GetScoreEvents matchId={MatchId} language={Language} count={Count} elapsedMs={ElapsedMs}", id, language, results.Count, sw.ElapsedMilliseconds);
             return Ok(results);
         }
 
@@ -249,6 +255,7 @@ namespace CriptoVersus.API.Controllers
             [FromQuery] int take = 200,
             CancellationToken ct = default)
         {
+            var sw = Stopwatch.StartNew();
             if (take <= 0) take = 200;
             if (take > 1000) take = 1000;
 
@@ -288,10 +295,12 @@ namespace CriptoVersus.API.Controllers
                     rawItems.Count,
                     match.Status);
 
-                return Ok(rawItems
+                var orderedRawItems = rawItems
                     .OrderBy(x => x.CapturedAtUtc)
                     .ThenBy(x => x.MatchMetricSnapshotId)
-                    .ToList());
+                    .ToList();
+                _logger.LogInformation("[TV_MATCH_LOAD] API Matches.GetMetricSnapshots matchId={MatchId} source=raw take={Take} count={Count} elapsedMs={ElapsedMs}", id, take, orderedRawItems.Count, sw.ElapsedMilliseconds);
+                return Ok(orderedRawItems);
             }
 
             var aggregateItems = await _db.Set<MatchMetricHourlyAggregate>()
@@ -320,10 +329,12 @@ namespace CriptoVersus.API.Controllers
                     aggregateItems.Count,
                     match.Status);
 
-                return Ok(aggregateItems
+                var orderedAggregateItems = aggregateItems
                     .OrderBy(x => x.CapturedAtUtc)
                     .ThenBy(x => x.MatchMetricSnapshotId)
-                    .ToList());
+                    .ToList();
+                _logger.LogInformation("[TV_MATCH_LOAD] API Matches.GetMetricSnapshots matchId={MatchId} source=aggregate take={Take} count={Count} elapsedMs={ElapsedMs}", id, take, orderedAggregateItems.Count, sw.ElapsedMilliseconds);
+                return Ok(orderedAggregateItems);
             }
 
             _logger.LogInformation(
@@ -332,6 +343,7 @@ namespace CriptoVersus.API.Controllers
                 match.Status,
                 true);
 
+            _logger.LogInformation("[TV_MATCH_LOAD] API Matches.GetMetricSnapshots matchId={MatchId} source=empty take={Take} count=0 elapsedMs={ElapsedMs}", id, take, sw.ElapsedMilliseconds);
             return Ok(new List<MatchMetricSnapshotDto>());
         }
 
@@ -339,6 +351,7 @@ namespace CriptoVersus.API.Controllers
         [HttpGet("{id:int}/arena-sentiment")]
         public async Task<ActionResult<ArenaSentimentPairDto>> GetArenaSentiment(int id, CancellationToken ct)
         {
+            var sw = Stopwatch.StartNew();
             var match = await _db.Set<Match>()
                 .AsNoTracking()
                 .Include(m => m.TeamA).ThenInclude(t => t.Currency)
@@ -351,10 +364,12 @@ namespace CriptoVersus.API.Controllers
             if (MatchPairRules.IsForbiddenPair(match.TeamA.Currency.Symbol, match.TeamB.Currency.Symbol, _configuration))
                 return NotFound();
 
-            return Ok(await _arenaSentimentService.GetArenaSentimentForMatchAsync(
+            var sentiment = await _arenaSentimentService.GetArenaSentimentForMatchAsync(
                 match.TeamA.Currency.Symbol,
                 match.TeamB.Currency.Symbol,
-                ct));
+                ct);
+            _logger.LogInformation("[TV_MATCH_LOAD] API Matches.GetArenaSentiment matchId={MatchId} symbols={SymbolA}/{SymbolB} elapsedMs={ElapsedMs}", id, match.TeamA.Currency.Symbol, match.TeamB.Currency.Symbol, sw.ElapsedMilliseconds);
+            return Ok(sentiment);
         }
 
         // =========================

@@ -1,5 +1,6 @@
 @page "/tv/match/{MatchId:int}/{Slug}"
 @page "/{Culture}/tv/match/{MatchId:int}/{Slug}"
+@using System.Diagnostics
 @using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
@@ -278,6 +279,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        var sw = Stopwatch.StartNew();
+        Logger.LogInformation("[TV_MATCH_LOAD] Start matchId={MatchId} slug={Slug} culture={Culture}", MatchId, Slug, Culture);
         try
         {
             using var initialLoadCts = new CancellationTokenSource(InitialLoadTimeout);
@@ -287,6 +290,10 @@ else
         {
             Logger.LogWarning(ex, "TvMatchPage initial load timed out or failed during prerender. Rendering fallback state. MatchId={MatchId}", MatchId);
         }
+        finally
+        {
+            Logger.LogInformation("[TV_MATCH_LOAD] OnInitializedAsync matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, sw.ElapsedMilliseconds);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -294,9 +301,11 @@ else
         if (!firstRender)
             return;
 
+        var sw = Stopwatch.StartNew();
         try
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260606-direct-audio-1");
+            Logger.LogInformation("[TV_MATCH_LOAD] JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, sw.ElapsedMilliseconds);
             await LogAsync("loaded");
         }
         catch (Exception ex) when (ex is JSException or InvalidOperationException)
@@ -317,14 +326,59 @@ else
         {
             while (await timer.WaitForNextTickAsync(ct))
             {
-                await RefreshAsync(ct);
+                await RefreshMatchOnlyAsync(ct);
             }
         }
         catch (OperationCanceledException)
         {
         }
     }
+    private async Task RefreshMatchOnlyAsync(CancellationToken ct)
+    {
+        if (_match is null)
+            return;
 
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            Logger.LogInformation(
+                "[TV_MATCH_REFRESH] Match refresh start matchId={MatchId}",
+                MatchId);
+
+            var updatedMatch = await MeasureLoadCallAsync(
+                $"Api.GetMatchByIdAsync refresh matchId={MatchId}",
+                () => Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct));
+
+            if (updatedMatch is null)
+            {
+                Logger.LogWarning(
+                    "[TV_MATCH_REFRESH] Match became null matchId={MatchId}",
+                    MatchId);
+
+                return;
+            }
+
+            _match = updatedMatch;
+
+            await InvokeAsync(StateHasChanged);
+
+            Logger.LogInformation(
+                "[TV_MATCH_REFRESH] Match refresh completed matchId={MatchId} elapsedMs={ElapsedMs}",
+                MatchId,
+                sw.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(
+                ex,
+                "[TV_MATCH_REFRESH] Match refresh failed matchId={MatchId}",
+                MatchId);
+        }
+    }
     private async Task RefreshAsync(CancellationToken ct)
     {
         if (Interlocked.Exchange(ref _refreshInProgress, 1) == 1)
@@ -334,14 +388,19 @@ else
         }
 
         var startedAtUtc = DateTime.UtcNow;
+        var totalSw = Stopwatch.StartNew();
+        var isInitialLoad = _match is null && _loadState != TvMatchPageLoadState.Loaded;
+
         try
         {
-            Logger.LogInformation("TvMatchPage refresh started. MatchId={MatchId}", MatchId);
+            Logger.LogInformation("[TV_MATCH_LOAD] RefreshAsync start matchId={MatchId} slug={Slug} initial={Initial}", MatchId, Slug, isInitialLoad);
 
-            _loadState = TvMatchPageLoadState.Loading;
-            _match = null;
-            _hotMatch = null;
-            await InvokeAsync(StateHasChanged);
+            if (isInitialLoad)
+            {
+                _loadState = TvMatchPageLoadState.Loading;
+                _hotMatch = null;
+                await InvokeAsync(StateHasChanged);
+            }
 
             if (MatchId <= 0)
             {
@@ -350,37 +409,25 @@ else
                 return;
             }
 
-            var matchTask = Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct);
-            var hotTask = HotMatches.GetHotMatchesAsync(ct);
-            var statsTask = Api.GetStatsOverviewAsync(ct);
-            var snapshotTask = Api.GetDashboardSnapshotAsync(ct);
-            await Task.WhenAll(matchTask, hotTask, statsTask, snapshotTask);
+            var match = await MeasureLoadCallAsync(
+                $"Api.GetMatchByIdAsync matchId={MatchId} includeParticipants=false",
+                () => Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct));
 
-            _match = matchTask.Result;
-            _stats = statsTask.Result;
-            _snapshot = snapshotTask.Result;
-            _topCoinsLoading = false;
-            _latestBattlesLoading = false;
-            _marketPulseLoading = false;
-            _topCoinsError = null;
-            _latestBattlesError = null;
-            _marketPulseError = null;
-
-            if (_match is null)
+            if (match is null)
             {
                 _loadState = TvMatchPageLoadState.NotFound;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
 
-            if (IsUnavailableForTv(_match))
+            if (IsUnavailableForTv(match))
             {
                 _loadState = TvMatchPageLoadState.Unavailable;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
 
-            var expectedPath = RouteLocalization.BuildTvMatchPath(_culture, _match.MatchId, MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB));
+            var expectedPath = RouteLocalization.BuildTvMatchPath(_culture, match.MatchId, MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB));
             var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
             if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -388,23 +435,25 @@ else
                 return;
             }
 
-            var hotMatch = hotTask.Result?.FirstOrDefault(x => x.MatchId == MatchId);
-
-            if (hotMatch is not null)
-            {
-                _hotMatch = HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization);
-                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore });
-            }
-            else
-            {
-                _hotMatch = null;
-            }
-
+            _match = match;
             _loadState = TvMatchPageLoadState.Loaded;
+
             await InvokeAsync(StateHasChanged);
+
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] FirstRenderReady matchId={MatchId} initial={Initial} elapsedMs={ElapsedMs}",
+                MatchId,
+                isInitialLoad,
+                totalSw.ElapsedMilliseconds);
+
+            if (isInitialLoad)
+            {
+                StartSecondaryDataLoad();
+            }
+
             Logger.LogInformation(
                 "TvMatchPage refresh completed. Mode={Mode} MatchId={MatchId} HasHotMatch={HasHotMatch} AvailableMatches={AvailableMatches} DurationMs={DurationMs}",
-                "fixed-match",
+                "fixed-match-fast-path",
                 MatchId,
                 _hotMatch is not null,
                 _stats?.LatestMatches?.Count ?? 0,
@@ -412,31 +461,139 @@ else
         }
         catch (OperationCanceledException)
         {
-            _loadState = TvMatchPageLoadState.Error;
-            _topCoinsLoading = false;
-            _latestBattlesLoading = false;
-            _marketPulseLoading = false;
-            _topCoinsError ??= LocalizedTvMatchText("error");
-            _latestBattlesError ??= LocalizedTvMatchText("error");
-            _marketPulseError ??= LocalizedTvMatchText("error");
-            await InvokeAsync(StateHasChanged);
+            if (isInitialLoad)
+            {
+                _loadState = TvMatchPageLoadState.Error;
+                _topCoinsLoading = false;
+                _latestBattlesLoading = false;
+                _marketPulseLoading = false;
+                _topCoinsError ??= LocalizedTvMatchText("error");
+                _latestBattlesError ??= LocalizedTvMatchText("error");
+                _marketPulseError ??= LocalizedTvMatchText("error");
+                await InvokeAsync(StateHasChanged);
+            }
         }
         catch (Exception ex)
         {
-            _loadState = TvMatchPageLoadState.Error;
-            _topCoinsLoading = false;
-            _latestBattlesLoading = false;
-            _marketPulseLoading = false;
-            _topCoinsError ??= LocalizedTvMatchText("error");
-            _latestBattlesError ??= LocalizedTvMatchText("error");
-            _marketPulseError ??= LocalizedTvMatchText("error");
+            if (isInitialLoad)
+            {
+                _loadState = TvMatchPageLoadState.Error;
+                _topCoinsLoading = false;
+                _latestBattlesLoading = false;
+                _marketPulseLoading = false;
+                _topCoinsError ??= LocalizedTvMatchText("error");
+                _latestBattlesError ??= LocalizedTvMatchText("error");
+                _marketPulseError ??= LocalizedTvMatchText("error");
+            }
+
             Logger.LogWarning(ex, "TvMatchPage refresh failed. MatchId={MatchId}", MatchId);
             await LogAsync("refresh error", ex.Message);
             await InvokeAsync(StateHasChanged);
         }
         finally
         {
+            Logger.LogInformation("[TV_MATCH_LOAD] Total matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, totalSw.ElapsedMilliseconds);
             Interlocked.Exchange(ref _refreshInProgress, 0);
+        }
+    }
+    ,
+    private void StartSecondaryDataLoad()
+    {
+        var token = _refreshCts?.Token ?? CancellationToken.None;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await LoadSecondaryDataAsync(token);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "[TV_MATCH_LOAD] SecondaryData background task crashed. MatchId={MatchId}", MatchId);
+            }
+        }, token);
+    }
+    private async Task LoadSecondaryDataAsync(CancellationToken ct)
+    {
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            Logger.LogInformation("[TV_MATCH_LOAD] SecondaryData start matchId={MatchId}", MatchId);
+
+            var hotTask = MeasureLoadCallAsync(
+                "HotMatchService.GetHotMatchesAsync",
+                () => HotMatches.GetHotMatchesAsync(ct));
+
+            var statsTask = MeasureLoadCallAsync(
+                "Api.GetStatsOverviewAsync",
+                () => Api.GetStatsOverviewAsync(ct));
+
+            var snapshotTask = MeasureLoadCallAsync(
+                "Api.GetDashboardSnapshotAsync",
+                () => Api.GetDashboardSnapshotAsync(ct));
+
+            await Task.WhenAll(hotTask, statsTask, snapshotTask);
+
+            _stats = statsTask.Result;
+            _snapshot = snapshotTask.Result;
+
+            var hotMatch = hotTask.Result?.FirstOrDefault(x => x.MatchId == MatchId);
+
+            _hotMatch = hotMatch is not null
+                ? HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization)
+                : null;
+
+            _topCoinsLoading = false;
+            _latestBattlesLoading = false;
+            _marketPulseLoading = false;
+            _topCoinsError = null;
+            _latestBattlesError = null;
+            _marketPulseError = null;
+
+            if (hotMatch is not null)
+            {
+                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore });
+            }
+
+            await InvokeAsync(StateHasChanged);
+
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] SecondaryData loaded matchId={MatchId} hasHotMatch={HasHotMatch} elapsedMs={ElapsedMs}",
+                MatchId,
+                _hotMatch is not null,
+                sw.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _topCoinsLoading = false;
+            _latestBattlesLoading = false;
+            _marketPulseLoading = false;
+            _topCoinsError ??= LocalizedTvMatchText("error");
+            _latestBattlesError ??= LocalizedTvMatchText("error");
+            _marketPulseError ??= LocalizedTvMatchText("error");
+
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] SecondaryData failed. MatchId={MatchId}", MatchId);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task<T> MeasureLoadCallAsync<T>(string name, Func<Task<T>?> action)
+    {
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var task = action() ?? throw new InvalidOperationException($"TV match load call returned null task: {name}");
+            var result = await task;
+            Logger.LogInformation("[TV_MATCH_LOAD] {Call} elapsedMs={ElapsedMs}", name, sw.ElapsedMilliseconds);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] {Call} failed elapsedMs={ElapsedMs}", name, sw.ElapsedMilliseconds);
+            throw;
         }
     }
 

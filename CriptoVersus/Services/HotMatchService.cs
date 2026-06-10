@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using DTOs;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -30,13 +31,20 @@ public sealed class HotMatchService
     public async Task<IReadOnlyList<HotMatchDto>> GetHotMatchesAsync(CancellationToken ct = default)
     {
         if (_cache.TryGetValue<IReadOnlyList<HotMatchDto>>(CacheKey, out var cached) && cached is not null)
+        {
+            _logger.LogInformation("[TV_MATCH_LOAD] HotMatchService.GetHotMatchesAsync cache-hit count={Count} elapsedMs=0", cached.Count);
             return cached;
+        }
 
+        var sw = Stopwatch.StartNew();
         await CacheLock.WaitAsync(ct);
         try
         {
             if (_cache.TryGetValue<IReadOnlyList<HotMatchDto>>(CacheKey, out cached) && cached is not null)
+            {
+                _logger.LogInformation("[TV_MATCH_LOAD] HotMatchService.GetHotMatchesAsync cache-hit-after-lock count={Count} elapsedMs={ElapsedMs}", cached.Count, sw.ElapsedMilliseconds);
                 return cached;
+            }
 
             var items = await LoadHotMatchesCoreAsync(ct);
             if (items.Count == 0 &&
@@ -50,6 +58,7 @@ public sealed class HotMatchService
             _cache.Set(CacheKey, items, TimeSpan.FromSeconds(10));
             if (items.Count > 0)
                 _cache.Set(LastKnownGoodCacheKey, items, TimeSpan.FromMinutes(2));
+            _logger.LogInformation("[TV_MATCH_LOAD] HotMatchService.GetHotMatchesAsync loaded count={Count} elapsedMs={ElapsedMs}", items.Count, sw.ElapsedMilliseconds);
             return items;
         }
         finally
@@ -97,8 +106,9 @@ public sealed class HotMatchService
 
     private async Task<IReadOnlyList<HotMatchDto>> LoadHotMatchesCoreAsync(CancellationToken ct)
     {
-        var matchesTask = TryGetMatchesAsync(ct);
-        var socialHotMatchesTask = TryGetSocialHotMatchesAsync(ct);
+        var sw = Stopwatch.StartNew();
+        var matchesTask = MeasureHotMatchCallAsync("HotMatchService.TryGetMatchesAsync", () => TryGetMatchesAsync(ct));
+        var socialHotMatchesTask = MeasureHotMatchCallAsync("HotMatchService.TryGetSocialHotMatchesAsync", () => TryGetSocialHotMatchesAsync(ct));
 
         await Task.WhenAll(matchesTask, socialHotMatchesTask);
 
@@ -117,7 +127,24 @@ public sealed class HotMatchService
 
         var fallback = await BuildFallbackHotMatchesAsync(matches, ct);
         _logger.LogWarning("[HOT_MATCH] Falling back to legacy/local ranking. Count={Count}", fallback.Count);
+        _logger.LogInformation("[TV_MATCH_LOAD] HotMatchService.LoadHotMatchesCoreAsync fallback elapsedMs={ElapsedMs}", sw.ElapsedMilliseconds);
         return fallback;
+    }
+
+    private async Task<T> MeasureHotMatchCallAsync<T>(string name, Func<Task<T>> action)
+    {
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var result = await action();
+            _logger.LogInformation("[TV_MATCH_LOAD] {Call} elapsedMs={ElapsedMs}", name, sw.ElapsedMilliseconds);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[TV_MATCH_LOAD] {Call} failed elapsedMs={ElapsedMs}", name, sw.ElapsedMilliseconds);
+            throw;
+        }
     }
 
     private async Task<List<SocialHotMatchDto>?> TryGetSocialHotMatchesAsync(CancellationToken ct)
@@ -151,10 +178,13 @@ public sealed class HotMatchService
         try
         {
             var ongoing = await _api.GetMatchesAsync(includeParticipants: false, status: "Ongoing", take: 100, ct);
+            _logger.LogInformation("[TV_MATCH_LOAD] HotMatchService.TryGetMatchesAsync ongoing count={Count}", ongoing?.Count ?? 0);
             if (ongoing is { Count: > 0 })
                 return ongoing;
 
-            return await _api.GetMatchesAsync(includeParticipants: false, status: null, take: 100, ct);
+            var fallback = await _api.GetMatchesAsync(includeParticipants: false, status: null, take: 100, ct);
+            _logger.LogInformation("[TV_MATCH_LOAD] HotMatchService.TryGetMatchesAsync fallback-all count={Count}", fallback?.Count ?? 0);
+            return fallback;
         }
         catch (OperationCanceledException)
         {

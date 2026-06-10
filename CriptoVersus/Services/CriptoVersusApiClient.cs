@@ -2,6 +2,7 @@
 using Blazored.SessionStorage;
 using BLL.Positions;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -373,11 +374,27 @@ public sealed class CriptoVersusApiClient
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(RequestTimeout);
 
+            var totalSw = Stopwatch.StartNew();
             try
             {
+                var httpSw = Stopwatch.StartNew();
                 using var response = await _http.SendAsync(request, timeoutCts.Token);
+                httpSw.Stop();
                 await EnsureSuccessOrThrowAsync(response, timeoutCts.Token);
-                return await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
+                var deserializeSw = Stopwatch.StartNew();
+                var result = await response.Content.ReadFromJsonAsync<T>(cancellationToken: timeoutCts.Token);
+                deserializeSw.Stop();
+                _logger.LogInformation(
+                    "[TV_MATCH_LOAD] HTTP {Method} {Url} status={StatusCode} attempt={Attempt} fallback={Fallback} httpMs={HttpMs} deserializeMs={DeserializeMs} elapsedMs={ElapsedMs}",
+                    method.Method,
+                    requestUri,
+                    (int)response.StatusCode,
+                    attempt + 1,
+                    isFallbackAttempt,
+                    httpSw.ElapsedMilliseconds,
+                    deserializeSw.ElapsedMilliseconds,
+                    totalSw.ElapsedMilliseconds);
+                return result;
             }
             catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
             {
@@ -393,7 +410,7 @@ public sealed class CriptoVersusApiClient
                     continue;
                 }
 
-                _logger.LogWarning(ex, "Timed out calling {Method} {Url} after {TimeoutSeconds}s.", method.Method, requestUri, RequestTimeout.TotalSeconds);
+                _logger.LogWarning(ex, "[TV_MATCH_LOAD] Timed out calling {Method} {Url} after {TimeoutSeconds}s elapsedMs={ElapsedMs}.", method.Method, requestUri, RequestTimeout.TotalSeconds, totalSw.ElapsedMilliseconds);
                 throw new TimeoutException($"Timed out calling {method.Method} {requestUri}.", ex);
             }
             catch (HttpRequestException ex) when (!isFallbackAttempt && requestUris.Count > 1 && IsRetryablePrimaryApiFailure(ex))
