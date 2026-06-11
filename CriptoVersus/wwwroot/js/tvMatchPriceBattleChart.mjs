@@ -10,6 +10,20 @@ function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
 
+function hexToRgba(color, alpha) {
+    const hex = typeof color === "string" ? color.trim() : "";
+    const match = /^#?([a-f\d]{6})$/i.exec(hex);
+    if (!match) {
+        return color;
+    }
+
+    const numeric = Number.parseInt(match[1], 16);
+    const r = (numeric >> 16) & 255;
+    const g = (numeric >> 8) & 255;
+    const b = numeric & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function nextFrame() {
     return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
 }
@@ -140,7 +154,7 @@ function createSeries(LightweightCharts, chart, color) {
 
     const area = addAreaSeriesCompat(LightweightCharts, chart, {
         ...baseOptions,
-        topColor: `${color}55`,
+        topColor: hexToRgba(color, 0.34),
         bottomColor: "rgba(0,0,0,0)"
     });
 
@@ -232,7 +246,7 @@ function applySeriesData(entry, sidePayload) {
         entry.series.applyOptions({
             color,
             lineColor: color,
-            topColor: `${color}55`,
+            topColor: hexToRgba(color, 0.34),
             bottomColor: "rgba(0,0,0,0)"
         });
     } catch {

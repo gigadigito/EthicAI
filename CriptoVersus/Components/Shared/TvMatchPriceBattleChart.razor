@@ -12,15 +12,15 @@
     <div class="tv-price-battle__panel">
         <header class="tv-price-battle__header">
             <div class="tv-price-battle__header-copy">
-                <span class="tv-price-battle__eyebrow">@T("eyebrow")</span>
-                <h3>@T("title")</h3>
-                <p>@T("subtitle")</p>
+                <span class="tv-price-battle__eyebrow">@HeaderEyebrow()</span>
+                <h3>@HeaderTitle()</h3>
+                <p>@HeaderSubtitle()</p>
             </div>
 
             <div class="tv-price-battle__header-meta">
-                <span class="tv-price-battle__badge">@T("centerHint")</span>
-                <strong>@DisplaySymbol(LeftSymbol) VS @DisplaySymbol(RightSymbol)</strong>
-                <small>@T("competitiveness") @Competitiveness</small>
+                <span class="tv-price-battle__badge">@HeaderBadge()</span>
+                <strong>@BuildMatchHeadline()</strong>
+                <small>@HeaderMetaSubtitle()</small>
             </div>
         </header>
 
@@ -302,6 +302,28 @@
     private string T(string key, params object?[] args)
         => L.T($"tv.priceBattle.{key}", Culture, args);
 
+    private string HeaderEyebrow()
+        => IsPortuguese() ? "ATIVIDADE AO VIVO" : "LIVE ACTIVITY";
+
+    private string HeaderTitle()
+        => IsPortuguese() ? "Movimentação da partida" : "Match movement";
+
+    private string HeaderSubtitle()
+        => IsPortuguese()
+            ? "Eventos, pressão, momentum e mudanças táticas acontecendo em tempo real."
+            : "Events, pressure, momentum and tactical swings happening live.";
+
+    private string HeaderBadge()
+        => IsPortuguese() ? "PARTIDA REAL" : "REAL MATCH";
+
+    private string HeaderMetaSubtitle()
+        => IsPortuguese()
+            ? "Snapshot de mercado dos dois lados da partida."
+            : "Market snapshot for both match sides.";
+
+    private string BuildMatchHeadline()
+        => $"{CompactSymbol(LeftSymbol)}VS {CompactSymbol(RightSymbol)}";
+
     private static string DisplaySymbol(string? value)
         => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();
 
@@ -310,8 +332,22 @@
 
     private static string CompactSymbol(string? value)
     {
-        var symbol = DisplaySymbol(value);
+        var symbol = BaseSymbol(value);
         return symbol.Length <= 4 ? symbol : symbol[..4];
+    }
+
+    private static string BaseSymbol(string? value)
+    {
+        var symbol = DisplaySymbol(value);
+        var suffixes = new[] { "USDT", "USDC", "FDUSD", "BUSD", "TUSD", "USDP", "USD" };
+
+        foreach (var suffix in suffixes)
+        {
+            if (symbol.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && symbol.Length > suffix.Length)
+                return symbol[..^suffix.Length];
+        }
+
+        return symbol;
     }
 
     private static string FormatPrice(decimal? value)
@@ -337,4 +373,7 @@
 
     private static string GetValueClass(decimal? value)
         => value.HasValue ? string.Empty : "tv-price-battle__metric-value--missing";
+
+    private bool IsPortuguese()
+        => Culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase);
 }
