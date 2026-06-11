@@ -1281,7 +1281,7 @@ private bool ShouldUseCompactArenaGauge()
         if (firstRender)
         {
             var firstRenderSw = Stopwatch.StartNew();
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", $"/js/tvMode.js?v={Guid.NewGuid():N}");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
             Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
             await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
             await EnsureAudioDebugInteropAsync(force: true);

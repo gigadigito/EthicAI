@@ -4132,13 +4132,15 @@ export async function updateTelemetryCharts(payload) {
         window.setTimeout(() => resizeTelemetryCharts(), 80);
         window.setTimeout(() => resizeTelemetryCharts(), 350);
 
+        const compareMarkersCount = compare?.scoreEventMarkers?.length ?? 0;
+
         telemetryChartLog("rendered candles left/right + compare", {
             leftCandles: leftCandles.length,
             rightCandles: rightCandles.length,
             leftPoints: leftPoints.length,
             rightPoints: rightPoints.length,
             scoreEvents: Array.isArray(safePayload.scoreEvents) ? safePayload.scoreEvents.length : 0,
-            officialMarkers: compare.scoreEventMarkers?.length ?? 0
+            officialMarkers: compareMarkersCount
         });
 
         const minSeriesTime = Math.min(leftPoints[0]?.time ?? Number.POSITIVE_INFINITY, rightPoints[0]?.time ?? Number.POSITIVE_INFINITY);
@@ -4151,7 +4153,7 @@ export async function updateTelemetryCharts(payload) {
             rightCandles: rightCandles.length,
             leftPoints: leftPoints.length,
             rightPoints: rightPoints.length,
-            officialMarkers: compare.scoreEventMarkers?.length ?? 0,
+            officialMarkers: compareMarkersCount,
             minTime: Number.isFinite(minSeriesTime) ? minSeriesTime : null,
             maxTime: Number.isFinite(maxSeriesTime) ? maxSeriesTime : null
         });
@@ -4171,7 +4173,15 @@ export async function updateTelemetryCharts(payload) {
             telemetryChartLog("error", message);
         }
 
-        setCubeFace(0, "chart-error");
+        console.error("[TV_CUBE] chart update failed", {
+            error: err,
+            stack: err?.stack,
+            compareChartPresent: Boolean(document.getElementById("tv-telemetry-chart-compare")),
+            splitLeftPresent: Boolean(document.getElementById("tv-telemetry-chart-split-left")),
+            splitRightPresent: Boolean(document.getElementById("tv-telemetry-chart-split-right")),
+            leftChartPresent: Boolean(document.getElementById("tv-telemetry-chart-left")),
+            rightChartPresent: Boolean(document.getElementById("tv-telemetry-chart-right"))
+        });
     } finally {
         if (telemetryChartsState) {
             telemetryChartsState.activeDiagnostics = null;

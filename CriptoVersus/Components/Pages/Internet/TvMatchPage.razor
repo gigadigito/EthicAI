@@ -304,7 +304,7 @@ else
         var sw = Stopwatch.StartNew();
         try
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260606-direct-audio-1");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
             Logger.LogInformation("[TV_MATCH_LOAD] JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, sw.ElapsedMilliseconds);
             await LogAsync("loaded");
         }

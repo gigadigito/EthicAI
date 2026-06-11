@@ -178,7 +178,7 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvMode.js?v=20260606-direct-audio-1");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
         await LogAsync("loaded");
         if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
             await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
