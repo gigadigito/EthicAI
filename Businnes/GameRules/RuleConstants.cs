@@ -48,6 +48,9 @@ public sealed class GainerEntry
     /// <summary>Percentual de variação. Opcional.</summary>
     public decimal? PercentageChange { get; init; }
 
+    /// <summary>Último preço negociado no ticker 24h. Opcional.</summary>
+    public decimal? LastPrice { get; init; }
+
     /// <summary>Volume negociado em quote asset no ticker 24h.</summary>
     public decimal? QuoteVolume { get; init; }
 

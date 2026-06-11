@@ -1181,6 +1181,7 @@
       "competitiveness": "Competitividade",
       "chartAria": "Grafico comparativo de preco ao vivo",
       "noData": "Aguardando dados de preco",
+      "waitingHistory": "Aguardando historico de preco",
       "logoAlt": "Logo de {0}",
       "ariaLabel": "{0} contra {1}, competitividade {2}."
     },

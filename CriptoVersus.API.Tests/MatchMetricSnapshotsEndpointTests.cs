@@ -22,8 +22,8 @@ public sealed class MatchMetricSnapshotsEndpointTests
         SeedMatchGraph(db, MatchStatus.Ongoing);
 
         db.MatchMetricSnapshot.AddRange(
-            CreateRawSnapshot(1, 10, new DateTime(2026, 05, 28, 10, 15, 0, DateTimeKind.Utc), 1.25m, 100m, 10),
-            CreateRawSnapshot(1, 10, new DateTime(2026, 05, 28, 10, 45, 0, DateTimeKind.Utc), 2.50m, 200m, 20));
+            CreateRawSnapshot(1, 10, new DateTime(2026, 05, 28, 10, 15, 0, DateTimeKind.Utc), 125.50m, 1.25m, 100m, 10),
+            CreateRawSnapshot(1, 10, new DateTime(2026, 05, 28, 10, 45, 0, DateTimeKind.Utc), 126.75m, 2.50m, 200m, 20));
         db.MatchMetricHourlyAggregate.Add(
             CreateAggregate(1, 10, "BTCUSDT", new DateTime(2026, 05, 28, 10, 0, 0, DateTimeKind.Utc), 99m, 999m, 999));
         await db.SaveChangesAsync();
@@ -41,6 +41,7 @@ public sealed class MatchMetricSnapshotsEndpointTests
             {
                 Assert.Equal(new DateTime(2026, 05, 28, 10, 15, 0, DateTimeKind.Utc), first.CapturedAtUtc);
                 Assert.Equal("BTCUSDT", first.TeamSymbol);
+                Assert.Equal(125.50m, first.LastPrice);
                 Assert.Equal(1.25m, first.PercentageChange);
                 Assert.Equal(100m, first.QuoteVolume);
                 Assert.Equal(10, first.TradeCount);
@@ -48,6 +49,7 @@ public sealed class MatchMetricSnapshotsEndpointTests
             second =>
             {
                 Assert.Equal(new DateTime(2026, 05, 28, 10, 45, 0, DateTimeKind.Utc), second.CapturedAtUtc);
+                Assert.Equal(126.75m, second.LastPrice);
                 Assert.Equal(2.50m, second.PercentageChange);
                 Assert.Equal(200m, second.QuoteVolume);
                 Assert.Equal(20, second.TradeCount);
@@ -78,6 +80,7 @@ public sealed class MatchMetricSnapshotsEndpointTests
             {
                 Assert.Equal(new DateTime(2026, 04, 01, 10, 0, 0, DateTimeKind.Utc), first.CapturedAtUtc);
                 Assert.Equal("BTCUSDT", first.TeamSymbol);
+                Assert.Null(first.LastPrice);
                 Assert.Equal(1.50m, first.PercentageChange);
                 Assert.Equal(150m, first.QuoteVolume);
                 Assert.Equal(15L, first.TradeCount);
@@ -85,6 +88,7 @@ public sealed class MatchMetricSnapshotsEndpointTests
             second =>
             {
                 Assert.Equal(new DateTime(2026, 04, 01, 11, 0, 0, DateTimeKind.Utc), second.CapturedAtUtc);
+                Assert.Null(second.LastPrice);
                 Assert.Equal(2.75m, second.PercentageChange);
                 Assert.Equal(275m, second.QuoteVolume);
                 Assert.Equal(28L, second.TradeCount);
@@ -178,6 +182,7 @@ public sealed class MatchMetricSnapshotsEndpointTests
         int matchId,
         int teamId,
         DateTime capturedAtUtc,
+        decimal? lastPrice,
         decimal percentageChange,
         decimal quoteVolume,
         long tradeCount)
@@ -187,6 +192,7 @@ public sealed class MatchMetricSnapshotsEndpointTests
             MatchId = matchId,
             TeamId = teamId,
             CapturedAtUtc = capturedAtUtc,
+            LastPrice = lastPrice,
             PercentageChange = percentageChange,
             QuoteVolume = quoteVolume,
             TradeCount = tradeCount

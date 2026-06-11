@@ -7,6 +7,7 @@ namespace DTOs
         public int TeamId { get; set; }
         public string TeamSymbol { get; set; } = string.Empty;
         public DateTime CapturedAtUtc { get; set; }
+        public decimal? LastPrice { get; set; }
         public decimal PercentageChange { get; set; }
         public decimal QuoteVolume { get; set; }
         public long TradeCount { get; set; }

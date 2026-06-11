@@ -279,44 +279,6 @@ public sealed class CriptoVersusApiClient
     public async Task<TokenomicsDto?> GetTokenomicsAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<TokenomicsDto>("api/tokenomics", ct);
 
-    public async Task<TokenMarketSnapshotDto?> GetTokenMarketSnapshotAsync(
-        string? contractAddress,
-        CancellationToken ct = default)
-    {
-        if (string.IsNullOrWhiteSpace(contractAddress))
-            return null;
-
-        return await GetFromJsonWithBearerAsync<TokenMarketSnapshotDto>(
-            $"api/token/market?contractAddress={Uri.EscapeDataString(contractAddress)}",
-            ct);
-    }
-
-    public async Task<StatsOverviewDto?> GetStatsOverviewAsync(CancellationToken ct = default)
-        => await GetStatsOverviewAsync(search: null, ct);
-
-    public async Task<StatsOverviewDto?> GetStatsOverviewAsync(string? search, CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<StatsOverviewDto>(
-            string.IsNullOrWhiteSpace(search)
-                ? "api/stats/overview"
-                : $"api/stats/overview?search={Uri.EscapeDataString(search)}",
-            ct);
-
-    public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(CancellationToken ct = default)
-        => await GetStatsTeamsAsync(search: null, ct);
-
-    public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(string? search, CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<List<StatsArenaTeamDto>>(
-            string.IsNullOrWhiteSpace(search)
-                ? "api/stats/teams"
-                : $"api/stats/teams?search={Uri.EscapeDataString(search)}",
-            ct);
-
-    public async Task<StatsArenaTeamDetailDto?> GetStatsTeamDetailAsync(string slug, CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<StatsArenaTeamDetailDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}", ct);
-
-    public async Task<StatsArenaInvestmentContextDto?> GetStatsTeamInvestmentContextAsync(string slug, CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<StatsArenaInvestmentContextDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}/investment-context", ct);
-
     public async Task<CoinSocialProfileDto?> GetCoinSocialProfileAsync(
         string? symbol = null,
         string? coinGeckoId = null,
@@ -350,6 +312,32 @@ public sealed class CriptoVersusApiClient
             return null;
         }
     }
+
+    public async Task<StatsOverviewDto?> GetStatsOverviewAsync(CancellationToken ct = default)
+        => await GetStatsOverviewAsync(search: null, ct);
+
+    public async Task<StatsOverviewDto?> GetStatsOverviewAsync(string? search, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsOverviewDto>(
+            string.IsNullOrWhiteSpace(search)
+                ? "api/stats/overview"
+                : $"api/stats/overview?search={Uri.EscapeDataString(search)}",
+            ct);
+
+    public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(CancellationToken ct = default)
+        => await GetStatsTeamsAsync(search: null, ct);
+
+    public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(string? search, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<List<StatsArenaTeamDto>>(
+            string.IsNullOrWhiteSpace(search)
+                ? "api/stats/teams"
+                : $"api/stats/teams?search={Uri.EscapeDataString(search)}",
+            ct);
+
+    public async Task<StatsArenaTeamDetailDto?> GetStatsTeamDetailAsync(string slug, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsArenaTeamDetailDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}", ct);
+
+    public async Task<StatsArenaInvestmentContextDto?> GetStatsTeamInvestmentContextAsync(string slug, CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<StatsArenaInvestmentContextDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}/investment-context", ct);
 
     private static string BuildCoinSocialProfileCacheKey(string? symbol, string? coinGeckoId)
         => $"{symbol?.Trim().ToUpperInvariant() ?? string.Empty}|{coinGeckoId?.Trim().ToLowerInvariant() ?? string.Empty}";

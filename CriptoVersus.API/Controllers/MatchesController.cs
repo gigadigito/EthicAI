@@ -281,6 +281,7 @@ namespace CriptoVersus.API.Controllers
                     TeamId = x.TeamId,
                     TeamSymbol = x.Team.Currency.Symbol,
                     CapturedAtUtc = x.CapturedAtUtc,
+                    LastPrice = x.LastPrice,
                     PercentageChange = x.PercentageChange,
                     QuoteVolume = x.QuoteVolume,
                     TradeCount = x.TradeCount
@@ -315,6 +316,7 @@ namespace CriptoVersus.API.Controllers
                     TeamId = x.TeamId,
                     TeamSymbol = x.Symbol,
                     CapturedAtUtc = x.HourBucketUtc,
+                    LastPrice = null,
                     PercentageChange = x.AveragePercentageChange,
                     QuoteVolume = x.AverageQuoteVolume,
                     TradeCount = (long)Math.Round(x.AverageTradeCount, MidpointRounding.AwayFromZero)

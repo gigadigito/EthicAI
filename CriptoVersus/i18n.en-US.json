@@ -1279,6 +1279,7 @@
       "competitiveness": "Competitiveness",
       "chartAria": "Live price comparison chart",
       "noData": "Waiting for price data",
+      "waitingHistory": "Waiting for price history",
       "logoAlt": "Logo of {0}",
       "ariaLabel": "{0} versus {1}, competitiveness {2}."
     },

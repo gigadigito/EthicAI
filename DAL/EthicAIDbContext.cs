@@ -644,6 +644,10 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_captured_at");
 
+                entity.Property(e => e.LastPrice)
+                      .HasColumnType("decimal(18, 8)")
+                      .HasColumnName("nr_last_price");
+
                 entity.Property(e => e.PercentageChange)
                       .HasColumnType("decimal(18, 8)")
                       .HasColumnName("nr_percentage_change");

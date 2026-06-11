@@ -6,6 +6,7 @@ namespace DAL.NftFutebol
         public int MatchId { get; set; }
         public int TeamId { get; set; }
         public DateTime CapturedAtUtc { get; set; }
+        public decimal? LastPrice { get; set; }
         public decimal PercentageChange { get; set; }
         public decimal QuoteVolume { get; set; }
         public long TradeCount { get; set; }

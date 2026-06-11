@@ -1331,6 +1331,10 @@ namespace DAL.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dt_captured_at");
 
+                    b.Property<decimal?>("LastPrice")
+                        .HasColumnType("decimal(18, 8)")
+                        .HasColumnName("nr_last_price");
+
                     b.Property<int>("MatchId")
                         .HasColumnType("integer")
                         .HasColumnName("cd_match");

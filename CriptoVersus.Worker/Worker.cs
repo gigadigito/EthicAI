@@ -279,6 +279,7 @@ namespace CriptoVersus.Worker
                     Symbol = c.Symbol ?? "",
                     Rank = idx + 1,
                     PercentageChange = (decimal?)ParsePercent(c.PriceChangePercent),
+                    LastPrice = ParseNullableDecimal(c.LastPrice),
                     QuoteVolume = ParseDecimal(c.QuoteVolume),
                     TradeCount = c.Count
                 })
@@ -1162,26 +1163,44 @@ namespace CriptoVersus.Worker
 
                 var currentTeamA = BuildTeamMetricPoint(match.TeamA);
                 var currentTeamB = BuildTeamMetricPoint(match.TeamB);
+                var currentTeamAPrice = ResolveSnapshotLastPrice(snapshot, symA);
+                var currentTeamBPrice = ResolveSnapshotLastPrice(snapshot, symB);
 
                 db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
                 {
                     MatchId = match.MatchId,
                     TeamId = match.TeamAId,
                     CapturedAtUtc = snapshotUtc,
+                    LastPrice = currentTeamAPrice,
                     PercentageChange = currentTeamA.PercentageChange,
                     QuoteVolume = currentTeamA.QuoteVolume,
                     TradeCount = currentTeamA.TradeCount
                 });
+                _logger.LogInformation(
+                    "[MATCH_SNAPSHOT_PRICE] MatchId={MatchId} TeamId={TeamId} Symbol={Symbol} LastPrice={LastPrice} CapturedAtUtc={CapturedAtUtc:o}",
+                    match.MatchId,
+                    match.TeamAId,
+                    symA,
+                    currentTeamAPrice,
+                    snapshotUtc);
 
                 db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
                 {
                     MatchId = match.MatchId,
                     TeamId = match.TeamBId,
                     CapturedAtUtc = snapshotUtc,
+                    LastPrice = currentTeamBPrice,
                     PercentageChange = currentTeamB.PercentageChange,
                     QuoteVolume = currentTeamB.QuoteVolume,
                     TradeCount = currentTeamB.TradeCount
                 });
+                _logger.LogInformation(
+                    "[MATCH_SNAPSHOT_PRICE] MatchId={MatchId} TeamId={TeamId} Symbol={Symbol} LastPrice={LastPrice} CapturedAtUtc={CapturedAtUtc:o}",
+                    match.MatchId,
+                    match.TeamBId,
+                    symB,
+                    currentTeamBPrice,
+                    snapshotUtc);
 
                 scoreState.LastSnapshotAtUtc = snapshotUtc;
 
@@ -1906,6 +1925,16 @@ namespace CriptoVersus.Worker
             };
         }
 
+        private static decimal? ResolveSnapshotLastPrice(IEnumerable<GainerEntry> snapshot, string symbol)
+        {
+            if (string.IsNullOrWhiteSpace(symbol))
+                return null;
+
+            return snapshot
+                .FirstOrDefault(x => string.Equals(x.Symbol, symbol, StringComparison.OrdinalIgnoreCase))
+                ?.LastPrice;
+        }
+
         private static TeamMetricPoint? ToMetricPoint(MatchMetricSnapshot? snapshot)
         {
             if (snapshot is null)
@@ -2160,6 +2189,16 @@ namespace CriptoVersus.Worker
             return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var value)
                 ? value
                 : 0m;
+        }
+
+        private static decimal? ParseNullableDecimal(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return null;
+
+            return decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var value)
+                ? value
+                : null;
         }
 
         private static decimal SafeMoney(decimal? value) => value ?? 0m;

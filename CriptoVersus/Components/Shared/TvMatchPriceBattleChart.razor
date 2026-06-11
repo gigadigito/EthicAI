@@ -66,7 +66,7 @@
                     @if (LeftPoints.Count == 0)
                     {
                         <div class="tv-price-battle__empty">
-                            <strong>@T("noData")</strong>
+                            <strong>@GetEmptyTitle(LeftHasPriceHistory)</strong>
                             <small>@T("subtitle")</small>
                         </div>
                     }
@@ -122,7 +122,7 @@
                     @if (RightPoints.Count == 0)
                     {
                         <div class="tv-price-battle__empty">
-                            <strong>@T("noData")</strong>
+                            <strong>@GetEmptyTitle(RightHasPriceHistory)</strong>
                             <small>@T("subtitle")</small>
                         </div>
                     }
@@ -148,6 +148,7 @@
     [Parameter] public decimal? LeftChangePercent { get; set; }
     [Parameter] public string LeftColor { get; set; } = "#ff9100";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+    [Parameter] public bool LeftHasPriceHistory { get; set; }
     [Parameter] public string RightSymbol { get; set; } = string.Empty;
     [Parameter] public string RightDisplayName { get; set; } = string.Empty;
     [Parameter] public string RightLogoUrl { get; set; } = string.Empty;
@@ -155,6 +156,7 @@
     [Parameter] public decimal? RightChangePercent { get; set; }
     [Parameter] public string RightColor { get; set; } = "#18d8d2";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+    [Parameter] public bool RightHasPriceHistory { get; set; }
     [Parameter] public int Competitiveness { get; set; }
 
     protected override void OnParametersSet()
@@ -278,11 +280,13 @@
             LeftCurrentPrice?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
             LeftChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
             leftTail,
+            LeftHasPriceHistory ? "1" : "0",
             DisplaySymbol(RightSymbol),
             DisplayText(RightDisplayName),
             RightCurrentPrice?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
             RightChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
             rightTail,
+            RightHasPriceHistory ? "1" : "0",
             Competitiveness.ToString(CultureInfo.InvariantCulture),
             LeftColor,
             RightColor);
@@ -373,6 +377,11 @@
 
     private static string GetValueClass(decimal? value)
         => value.HasValue ? string.Empty : "tv-price-battle__metric-value--missing";
+
+    private string GetEmptyTitle(bool hasPriceHistory)
+        => hasPriceHistory
+            ? T("waitingHistory")
+            : T("noData");
 
     private bool IsPortuguese()
         => Culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase);
