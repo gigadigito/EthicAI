@@ -626,15 +626,18 @@
             StringComparison.OrdinalIgnoreCase);
 }
 
-            <style>
-    ```css
+<style>
     .tv-price-battle {
         --price-battle-left: #ff9100;
         --price-battle-right: #18d8d2;
         position: relative;
+        display: flex;
         width: 100%;
+        height: 100%;
         min-width: 0;
+        min-height: 560px;
         overflow: hidden;
+        flex-direction: column;
         color: #f6f8ff;
         border: 1px solid rgba(116, 182, 216, 0.16);
         border-radius: 22px;
@@ -643,33 +646,36 @@
         isolation: isolate;
     }
 
-    .tv-price-battle::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -2;
-        pointer-events: none;
-        background: linear-gradient( 104deg, rgba(35, 103, 126, 0.12) 0%, rgba(35, 103, 126, 0.05) 33%, rgba(77, 30, 72, 0.12) 33.2%, rgba(77, 30, 72, 0.05) 45%, transparent 45.2% );
-    }
+        .tv-price-battle::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -2;
+            pointer-events: none;
+            background: linear-gradient( 104deg, rgba(35, 103, 126, 0.12) 0%, rgba(35, 103, 126, 0.05) 33%, rgba(77, 30, 72, 0.12) 33.2%, rgba(77, 30, 72, 0.05) 45%, transparent 45.2% );
+        }
 
-    .tv-price-battle::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        pointer-events: none;
-        opacity: 0.18;
-        background-image: linear-gradient( rgba(255, 255, 255, 0.025) 1px, transparent 1px ), linear-gradient( 90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px );
-        background-size: 38px 38px;
-        mask-image: linear-gradient( to bottom, black, transparent 82% );
-    }
+        .tv-price-battle::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.18;
+            background-image: linear-gradient( rgba(255, 255, 255, 0.025) 1px, transparent 1px ), linear-gradient( 90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px );
+            background-size: 38px 38px;
+            mask-image: linear-gradient( to bottom, black, transparent 86% );
+        }
 
     .tv-price-battle__header {
+        position: relative;
+        z-index: 2;
         display: flex;
+        flex: 0 0 auto;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 28px;
-        padding: 28px 30px 20px;
+        gap: 24px;
+        padding: 24px 28px 18px;
     }
 
     .tv-price-battle__header-copy {
@@ -690,8 +696,9 @@
 
     .tv-price-battle__header-copy h3 {
         margin: 0;
+        max-width: 100%;
         color: #f7f8fc;
-        font-size: clamp(1.7rem, 2.7vw, 2.55rem);
+        font-size: clamp(1.9rem, 3vw, 2.8rem);
         font-weight: 900;
         line-height: 0.98;
         letter-spacing: -0.045em;
@@ -701,16 +708,16 @@
     .tv-price-battle__header-copy p {
         margin: 8px 0 0;
         color: rgba(218, 228, 241, 0.74);
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         font-weight: 500;
-        line-height: 1.45;
+        line-height: 1.4;
     }
 
     .tv-price-battle__match-meta {
         display: flex;
+        min-width: 200px;
+        max-width: 320px;
         flex: 0 0 auto;
-        max-width: 330px;
-        min-width: 210px;
         align-items: flex-end;
         flex-direction: column;
         text-align: right;
@@ -718,10 +725,10 @@
 
     .tv-price-battle__match-badge {
         display: inline-flex;
-        align-items: center;
-        gap: 8px;
         min-height: 28px;
         padding: 0 13px;
+        align-items: center;
+        gap: 8px;
         color: #e8f7f6;
         border: 1px solid rgba(108, 205, 199, 0.18);
         border-radius: 999px;
@@ -743,7 +750,7 @@
 
     .tv-price-battle__match-meta > strong {
         display: block;
-        margin-top: 10px;
+        margin-top: 9px;
         color: #f8f9fc;
         font-size: clamp(1.05rem, 1.8vw, 1.45rem);
         font-weight: 900;
@@ -753,31 +760,37 @@
 
     .tv-price-battle__match-meta > small {
         display: block;
-        max-width: 300px;
-        margin-top: 6px;
+        max-width: 290px;
+        margin-top: 5px;
         color: rgba(210, 220, 233, 0.55);
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         font-weight: 600;
         line-height: 1.35;
     }
 
     .tv-price-battle__arena {
+        position: relative;
+        z-index: 2;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
-        gap: 14px;
         width: 100%;
         min-width: 0;
-        padding: 0 24px 24px;
+        min-height: 0;
+        flex: 1 1 auto;
+        grid-template-columns: minmax(0, 1fr) 118px minmax(0, 1fr);
+        align-items: stretch;
+        gap: 12px;
+        padding: 0 20px 20px;
     }
 
     .tv-price-battle__team {
         position: relative;
         display: flex;
         min-width: 0;
-        min-height: 390px;
+        min-height: 0;
+        height: 100%;
         overflow: hidden;
         flex-direction: column;
-        padding: 20px;
+        padding: 18px;
         border: 1px solid rgba(137, 169, 191, 0.14);
         border-radius: 20px;
         background: linear-gradient( 180deg, rgba(14, 28, 42, 0.94), rgba(5, 12, 23, 0.98) );
@@ -819,8 +832,9 @@
         z-index: 2;
         display: flex;
         min-width: 0;
+        flex: 0 0 auto;
         align-items: center;
-        gap: 15px;
+        gap: 14px;
     }
 
     .tv-price-battle__team-header--right {
@@ -830,9 +844,9 @@
     .tv-price-battle__logo-shell {
         position: relative;
         display: grid;
-        width: 78px;
-        height: 78px;
-        flex: 0 0 78px;
+        width: 70px;
+        height: 70px;
+        flex: 0 0 70px;
         overflow: hidden;
         place-items: center;
         border: 1px solid rgba(255, 255, 255, 0.13);
@@ -840,11 +854,13 @@
         background: radial-gradient( circle at 35% 28%, rgba(255, 255, 255, 0.13), rgba(8, 15, 25, 0.96) 66% );
     }
 
-    .tv-price-battle__team--left .tv-price-battle__logo-shell {
+    .tv-price-battle__team--left
+    .tv-price-battle__logo-shell {
         box-shadow: 0 0 0 4px color-mix( in srgb, var(--price-battle-left) 9%, transparent ), 0 0 24px color-mix( in srgb, var(--price-battle-left) 28%, transparent );
     }
 
-    .tv-price-battle__team--right .tv-price-battle__logo-shell {
+    .tv-price-battle__team--right
+    .tv-price-battle__logo-shell {
         box-shadow: 0 0 0 4px color-mix( in srgb, var(--price-battle-right) 9%, transparent ), 0 0 24px color-mix( in srgb, var(--price-battle-right) 26%, transparent );
     }
 
@@ -858,7 +874,7 @@
     }
 
     .tv-price-battle__logo-shell > span {
-        font-size: 1.3rem;
+        font-size: 1.25rem;
         font-weight: 950;
         letter-spacing: -0.04em;
     }
@@ -877,17 +893,19 @@
 
     .tv-price-battle__team-label {
         margin-bottom: 5px;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 950;
         letter-spacing: 0.12em;
         text-transform: uppercase;
     }
 
-    .tv-price-battle__team--left .tv-price-battle__team-label {
+    .tv-price-battle__team--left
+    .tv-price-battle__team-label {
         color: var(--price-battle-left);
     }
 
-    .tv-price-battle__team--right .tv-price-battle__team-label {
+    .tv-price-battle__team--right
+    .tv-price-battle__team-label {
         color: var(--price-battle-right);
     }
 
@@ -895,7 +913,7 @@
         max-width: 100%;
         overflow: hidden;
         color: #f8f9fd;
-        font-size: clamp(1.1rem, 1.8vw, 1.55rem);
+        font-size: clamp(1.15rem, 1.8vw, 1.65rem);
         font-weight: 950;
         line-height: 1.05;
         letter-spacing: -0.025em;
@@ -906,7 +924,7 @@
     .tv-price-battle__identity > small {
         margin-top: 4px;
         color: rgba(210, 221, 235, 0.58);
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         font-weight: 700;
         line-height: 1;
     }
@@ -915,10 +933,12 @@
         position: relative;
         z-index: 2;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
-        gap: 16px;
-        margin-top: 19px;
+        min-width: 0;
+        flex: 0 0 auto;
+        grid-template-columns: minmax(0, 1fr) minmax(116px, auto);
+        gap: 14px;
         align-items: end;
+        margin-top: 17px;
     }
 
     .tv-price-battle__market-row--right {
@@ -935,7 +955,7 @@
             display: block;
             margin-bottom: 6px;
             color: rgba(190, 205, 221, 0.58);
-            font-size: 0.66rem;
+            font-size: 0.64rem;
             font-weight: 900;
             line-height: 1;
             letter-spacing: 0.12em;
@@ -944,8 +964,9 @@
 
         .tv-price-battle__market-value > strong {
             display: block;
+            max-width: 100%;
             overflow: hidden;
-            font-size: clamp(1.3rem, 2.25vw, 2rem);
+            font-size: clamp(1.4rem, 2.3vw, 2.05rem);
             font-weight: 950;
             line-height: 1;
             letter-spacing: -0.04em;
@@ -976,7 +997,7 @@
             border: 1px solid currentColor;
             border-radius: 999px;
             background: rgba(5, 13, 22, 0.65);
-            font-size: clamp(1rem, 1.6vw, 1.32rem);
+            font-size: clamp(1rem, 1.55vw, 1.28rem);
             font-weight: 950;
             line-height: 1;
             letter-spacing: -0.025em;
@@ -1015,9 +1036,10 @@
         position: relative;
         z-index: 2;
         min-width: 0;
-        height: 220px;
-        min-height: 220px;
-        margin-top: 18px;
+        min-height: 230px;
+        height: auto;
+        flex: 1 1 auto;
+        margin-top: 16px;
         overflow: hidden;
         border: 1px solid rgba(112, 146, 172, 0.12);
         border-radius: 17px;
@@ -1030,6 +1052,7 @@
         inset: 0;
         width: 100%;
         height: 100%;
+        min-height: 100%;
     }
 
     .tv-price-battle__empty {
@@ -1069,9 +1092,10 @@
         position: relative;
         display: flex;
         min-width: 0;
-        min-height: 390px;
+        min-height: 0;
+        height: 100%;
         overflow: hidden;
-        padding: 24px 13px;
+        padding: 18px 9px;
         align-items: center;
         justify-content: center;
         flex-direction: column;
@@ -1093,7 +1117,7 @@
         position: relative;
         z-index: 1;
         color: rgba(243, 247, 255, 0.78);
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 950;
         line-height: 1;
         letter-spacing: 0.08em;
@@ -1103,9 +1127,9 @@
         position: relative;
         z-index: 1;
         display: grid;
-        width: 96px;
-        height: 96px;
-        margin: 19px 0;
+        width: 84px;
+        height: 84px;
+        margin: 16px 0;
         place-items: center;
         border-radius: 50%;
         background: conic-gradient( from 210deg, #6d35e8 0deg, #823dcb 125deg, var(--price-battle-right) 300deg, rgba(255, 255, 255, 0.08) 300deg );
@@ -1124,8 +1148,8 @@
         position: relative;
         z-index: 1;
         display: grid;
-        width: 72px;
-        height: 72px;
+        width: 62px;
+        height: 62px;
         place-items: center;
         border-radius: 50%;
         background: radial-gradient( circle at 40% 30%, rgba(107, 58, 189, 0.23), rgba(5, 13, 23, 0.98) 72% );
@@ -1133,7 +1157,7 @@
 
         .tv-price-battle__score-ring-inner strong {
             color: #f8f9fd;
-            font-size: 1.65rem;
+            font-size: 1.5rem;
             font-weight: 950;
             line-height: 1;
         }
@@ -1142,193 +1166,243 @@
         position: relative;
         z-index: 1;
         color: rgba(207, 219, 233, 0.8);
-        font-size: 0.64rem;
+        font-size: 0.58rem;
         font-weight: 950;
         line-height: 1.35;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.11em;
         text-transform: uppercase;
     }
 
     .tv-price-battle__center > small {
         position: relative;
         z-index: 1;
-        max-width: 118px;
-        margin-top: 13px;
+        max-width: 92px;
+        margin-top: 11px;
         color: rgba(190, 202, 216, 0.5);
-        font-size: 0.68rem;
+        font-size: 0.6rem;
         font-weight: 600;
-        line-height: 1.45;
+        line-height: 1.4;
+    }
+
+    @@media (min-width: 1400px) {
+        .tv-price-battle {
+            min-height: 680px;
+        }
+
+        .tv-price-battle__arena {
+            grid-template-columns: minmax(0, 1fr) 132px minmax(0, 1fr);
+            gap: 14px;
+            padding: 0 24px 24px;
+        }
+
+        .tv-price-battle__team {
+            padding: 22px;
+        }
+
+        .tv-price-battle__logo-shell {
+            width: 82px;
+            height: 82px;
+            flex-basis: 82px;
+        }
+
+        .tv-price-battle__chart-shell {
+            min-height: 300px;
+        }
+
+        .tv-price-battle__score-ring {
+            width: 96px;
+            height: 96px;
+        }
+
+        .tv-price-battle__score-ring-inner {
+            width: 72px;
+            height: 72px;
+        }
     }
 
     @@media (max-width: 1100px) {
-        .tv-price-battle__arena
-
-    {
-        grid-template-columns: minmax(0, 1fr) 112px minmax(0, 1fr);
-        gap: 10px;
-        padding-inline: 16px;
-    }
-
-    .tv-price-battle__team {
-        padding: 16px;
-    }
-
-    .tv-price-battle__logo-shell {
-        width: 64px;
-        height: 64px;
-        flex-basis: 64px;
-    }
-
-    .tv-price-battle__market-row {
-        grid-template-columns: minmax(0, 1fr);
-        gap: 12px;
-    }
-
-    .tv-price-battle__market-change {
-        text-align: left;
-    }
-
-    .tv-price-battle__market-row--right
-    .tv-price-battle__market-change {
-        text-align: right;
-    }
-
-    .tv-price-battle__market-change > strong {
-        min-width: 0;
-    }
-
-    .tv-price-battle__score-ring {
-        width: 82px;
-        height: 82px;
-    }
-
-    .tv-price-battle__score-ring-inner {
-        width: 60px;
-        height: 60px;
-    }
-
-    }
-
-    @@media (max-width: 760px) {
-        .tv-price-battle
-
-    {
-        border-radius: 18px;
-    }
-
-    .tv-price-battle__header {
-        padding: 21px 18px 16px;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .tv-price-battle__match-meta {
-        width: 100%;
-        max-width: none;
-        min-width: 0;
-        align-items: flex-start;
-        text-align: left;
-    }
-
-        .tv-price-battle__match-meta > small {
-            max-width: none;
+        .tv-price-battle {
+            min-height: 560px;
         }
 
-    .tv-price-battle__arena {
-        grid-template-columns: minmax(0, 1fr);
-        padding: 0 14px 16px;
-    }
-
-    .tv-price-battle__team {
-        min-height: 360px;
-    }
-
-    .tv-price-battle__center {
-        min-height: 146px;
-        padding: 18px;
-        flex-direction: row;
-        gap: 18px;
-    }
-
-    .tv-price-battle__score-ring {
-        width: 74px;
-        height: 74px;
-        margin: 0;
-    }
-
-    .tv-price-battle__score-ring-inner {
-        width: 54px;
-        height: 54px;
-    }
-
-        .tv-price-battle__score-ring-inner strong {
-            font-size: 1.35rem;
+        .tv-price-battle__arena {
+            grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
+            gap: 9px;
+            padding-inline: 14px;
         }
 
-    .tv-price-battle__center > small {
-        display: none;
-    }
+        .tv-price-battle__team {
+            padding: 15px;
+        }
 
-    .tv-price-battle__chart-shell {
-        height: 210px;
-        min-height: 210px;
-    }
+        .tv-price-battle__logo-shell {
+            width: 60px;
+            height: 60px;
+            flex-basis: 60px;
+        }
 
-    }
+        .tv-price-battle__team-header {
+            gap: 10px;
+        }
 
-    @@media (max-width: 470px) {
-        .tv-price-battle__header-copy h3
+        .tv-price-battle__market-row {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 10px;
+        }
 
-    {
-        font-size: 1.75rem;
-    }
-
-    .tv-price-battle__team-header,
-    .tv-price-battle__team-header--right {
-        justify-content: flex-start;
-    }
-
-    .tv-price-battle__team-header--right {
-        flex-direction: row-reverse;
-    }
-
-    .tv-price-battle__identity--right {
-        align-items: flex-start;
-        text-align: left;
-    }
-
-    .tv-price-battle__market-row,
-    .tv-price-battle__market-row--right {
-        text-align: left;
-    }
-
-        .tv-price-battle__market-row--right
         .tv-price-battle__market-change {
             text-align: left;
         }
 
-    .tv-price-battle__logo-shell {
-        width: 58px;
-        height: 58px;
-        flex-basis: 58px;
+        .tv-price-battle__market-row--right
+        .tv-price-battle__market-change {
+            text-align: right;
+        }
+
+        .tv-price-battle__market-change > strong {
+            min-width: 0;
+        }
+
+        .tv-price-battle__score-ring {
+            width: 72px;
+            height: 72px;
+        }
+
+        .tv-price-battle__score-ring-inner {
+            width: 52px;
+            height: 52px;
+        }
+
+        .tv-price-battle__center {
+            padding-inline: 6px;
+        }
+
+            .tv-price-battle__center > small {
+                max-width: 76px;
+                font-size: 0.56rem;
+            }
     }
 
-    .tv-price-battle__market-value > strong {
-        font-size: 1.45rem;
+    @@media (max-width: 760px) {
+        .tv-price-battle {
+            height: auto;
+            min-height: 0;
+            border-radius: 18px;
+        }
+
+        .tv-price-battle__header {
+            padding: 21px 18px 16px;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tv-price-battle__match-meta {
+            width: 100%;
+            max-width: none;
+            min-width: 0;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+            .tv-price-battle__match-meta > small {
+                max-width: none;
+            }
+
+        .tv-price-battle__arena {
+            grid-template-columns: minmax(0, 1fr);
+            padding: 0 14px 16px;
+        }
+
+        .tv-price-battle__team {
+            min-height: 430px;
+            height: auto;
+        }
+
+        .tv-price-battle__center {
+            min-height: 142px;
+            height: auto;
+            padding: 16px;
+            flex-direction: row;
+            gap: 16px;
+        }
+
+        .tv-price-battle__score-ring {
+            width: 70px;
+            height: 70px;
+            margin: 0;
+        }
+
+        .tv-price-battle__score-ring-inner {
+            width: 50px;
+            height: 50px;
+        }
+
+            .tv-price-battle__score-ring-inner strong {
+                font-size: 1.3rem;
+            }
+
+        .tv-price-battle__center > small {
+            display: none;
+        }
+
+        .tv-price-battle__chart-shell {
+            min-height: 250px;
+        }
     }
 
+    @@media (max-width: 470px) {
+        .tv-price-battle__header-copy h3 {
+            font-size: 1.75rem;
+        }
+
+        .tv-price-battle__team-header,
+        .tv-price-battle__team-header--right {
+            justify-content: flex-start;
+        }
+
+        .tv-price-battle__team-header--right {
+            flex-direction: row-reverse;
+        }
+
+        .tv-price-battle__identity--right {
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .tv-price-battle__market-row,
+        .tv-price-battle__market-row--right {
+            text-align: left;
+        }
+
+            .tv-price-battle__market-row--right
+            .tv-price-battle__market-change {
+                text-align: left;
+            }
+
+        .tv-price-battle__logo-shell {
+            width: 56px;
+            height: 56px;
+            flex-basis: 56px;
+        }
+
+        .tv-price-battle__market-value > strong {
+            font-size: 1.42rem;
+        }
+
+        .tv-price-battle__chart-shell {
+            min-height: 235px;
+        }
     }
 
     @@media (prefers-reduced-motion: reduce) {
-        .tv-price-battle *, .tv-price-battle *::before, .tv-price-battle *::after
-
-    {
-        scroll-behavior: auto !important;
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        .tv-price-battle *,
+        .tv-price-battle *::before,
+        .tv-price-battle *::after {
+            scroll-behavior: auto !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
     }
-
-    }
-    ```
 </style>
+
