@@ -1220,14 +1220,10 @@ else
 
         return T("broadcast.dataStatusFallback");
     }
-    private bool ShouldUseCompactArenaGauge()
-    {
-        // football broadcast precisa do gauge expandido
-        if (UseFootballFieldLayout && IsBroadcastMode)
-            return false;
-
-        return true;
-    }
+private bool ShouldUseCompactArenaGauge()
+{
+    return !(UseFootballFieldLayout && IsBroadcastMode);
+}
     protected override void OnParametersSet()
     {
         SyncAudioDebugFlag();
@@ -8631,123 +8627,121 @@ else
         bool IsLatest);
 }
 
+
 <style>
-.tv-field__ball {
-    position: absolute;
-    bottom: -6px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background:
-        radial-gradient(circle at 35% 30%, #ffffff 0 18%, #dff6ff 19% 42%, #111827 43% 48%, #f8fbff 49% 100%);
-    box-shadow:
-        0 0 10px rgba(255,255,255,.75),
-        0 8px 12px rgba(0,0,0,.35);
-    animation: tvBallBounce .55s ease-in-out infinite;
-}
-
-@@keyframes tvCommentaryEntryIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(.985);
+    .tv-field__ball {
+        position: absolute;
+        bottom: -6px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #ffffff 0 18%, #dff6ff 19% 42%, #111827 43% 48%, #f8fbff 49% 100%);
+        box-shadow: 0 0 10px rgba(255,255,255,.75), 0 8px 12px rgba(0,0,0,.35);
+        animation: tvBallBounce .55s ease-in-out infinite;
     }
 
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
+    @@keyframes tvCommentaryEntryIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px) scale(.985);
+        }
 
-.tv-telemetry__activity-chart {
-    display: grid;
-    gap: 10px;
-    padding: 16px;
-    border-radius: 22px;
-    border: 1px solid rgba(127, 246, 223, 0.14);
-    background:
-        radial-gradient(circle at top left, rgba(89, 255, 172, 0.1), transparent 42%),
-        rgba(255,255,255,0.025);
-    min-height: 160px;
-}
-
-.tv-telemetry__activity-chart-head {
-    display: grid;
-    gap: 4px;
-}
-
-.tv-telemetry__activity-chart-head span {
-    color: var(--tv-green);
-    text-transform: uppercase;
-    letter-spacing: .16em;
-    font-size: .68rem;
-    font-weight: 900;
-}
-
-.tv-telemetry__activity-chart-head strong {
-    color: #eef8ff;
-    font-size: .98rem;
-    font-weight: 900;
-}
-
-.tv-telemetry__activity-chart-head small {
-    color: var(--tv-muted);
-    font-size: .72rem;
-}
-
-.tv-telemetry__activity-chart-surface {
-    position: relative;
-    min-height: 96px;
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.05);
-    background: linear-gradient(180deg, rgba(8, 14, 24, 0.95), rgba(5, 8, 16, 0.92));
-}
-
-.tv-telemetry__activity-chart-surface svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-.tv-telemetry__activity-chart-area {
-    fill: url(#tvActivityFill);
-}
-
-.tv-telemetry__activity-chart-line {
-    fill: none;
-    stroke: #59ffac;
-    stroke-width: 6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    filter: drop-shadow(0 0 10px rgba(89, 255, 172, 0.18));
-}
-
-.tv-field__player.is-left .tv-field__ball {
-    right: -10px;
-    left: auto;
-}
-
-.tv-field__player.is-right .tv-field__ball {
-    left: -10px;
-    right: auto;
-}
-
-@@keyframes tvBallBounce {
-    0%, 100% {
-        transform: translateY(0) scaleX(1.08) scaleY(.92);
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
     }
 
-    45% {
-        transform: translateY(-18px) scaleX(.92) scaleY(1.08);
+    .tv-telemetry__activity-chart {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        border-radius: 22px;
+        border: 1px solid rgba(127, 246, 223, 0.14);
+        background: radial-gradient(circle at top left, rgba(89, 255, 172, 0.1), transparent 42%), rgba(255,255,255,0.025);
+        min-height: 160px;
     }
 
-    70% {
-        transform: translateY(-6px) scaleX(1) scaleY(1);
+    .tv-telemetry__activity-chart-head {
+        display: grid;
+        gap: 4px;
     }
-}
+
+        .tv-telemetry__activity-chart-head span {
+            color: var(--tv-green);
+            text-transform: uppercase;
+            letter-spacing: .16em;
+            font-size: .68rem;
+            font-weight: 900;
+        }
+
+        .tv-telemetry__activity-chart-head strong {
+            color: #eef8ff;
+            font-size: .98rem;
+            font-weight: 900;
+        }
+
+        .tv-telemetry__activity-chart-head small {
+            color: var(--tv-muted);
+            font-size: .72rem;
+        }
+
+    .tv-telemetry__activity-chart-surface {
+        position: relative;
+        min-height: 96px;
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.05);
+        background: linear-gradient(180deg, rgba(8, 14, 24, 0.95), rgba(5, 8, 16, 0.92));
+    }
+
+        .tv-telemetry__activity-chart-surface svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+    .tv-telemetry__activity-chart-area {
+        fill: url(#tvActivityFill);
+    }
+
+    .tv-telemetry__activity-chart-line {
+        fill: none;
+        stroke: #59ffac;
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 10px rgba(89, 255, 172, 0.18));
+    }
+
+    .tv-field__player.is-left .tv-field__ball {
+        right: -10px;
+        left: auto;
+    }
+
+    .tv-field__player.is-right .tv-field__ball {
+        left: -10px;
+        right: auto;
+    }
+
+    @@keyframes tvBallBounce {
+        0%, 100% {
+            transform: translateY(0) scaleX(1.08) scaleY(.92);
+        }
+
+        45% {
+            transform: translateY(-18px) scaleX(.92) scaleY(1.08);
+        }
+
+        70% {
+            transform: translateY(-6px) scaleX(1) scaleY(1);
+        }
+    }
+
     .tv-field__player {
         transition: left 1.2s ease, top 1.2s ease, transform .25s ease;
     }
+
     .tv-stage {
         --tv-text: #f3f7ff;
         --tv-muted: #9cb4d1;
@@ -8764,10 +8758,7 @@ else
         overflow: hidden;
         color: var(--tv-text);
         padding: clamp(18px, 1.8vw, 30px);
-        background:
-            linear-gradient(180deg, rgba(4, 8, 18, 0.95), rgba(3, 7, 15, 0.98)),
-            radial-gradient(circle at top left, rgba(83, 200, 255, 0.18), transparent 24%),
-            radial-gradient(circle at top right, rgba(76, 243, 141, 0.18), transparent 18%);
+        background: linear-gradient(180deg, rgba(4, 8, 18, 0.95), rgba(3, 7, 15, 0.98)), radial-gradient(circle at top left, rgba(83, 200, 255, 0.18), transparent 24%), radial-gradient(circle at top right, rgba(76, 243, 141, 0.18), transparent 18%);
         transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
     }
 
@@ -8798,65 +8789,53 @@ else
         transition: opacity .24s ease, transform .24s ease;
     }
 
-    .tv-replay-stage.is-visible {
-        opacity: 1;
-    }
+        .tv-replay-stage.is-visible {
+            opacity: 1;
+        }
 
     .replay-field-bg {
         position: absolute;
         inset: 0;
-        background:
-            linear-gradient(180deg, rgba(5, 10, 18, 0.96) 0%, rgba(6, 12, 20, 0.90) 18%, rgba(5, 14, 20, 0.72) 34%, rgba(7, 28, 22, 0.30) 43%, rgba(10, 56, 30, 0.90) 44%, rgba(8, 45, 26, 0.98) 100%),
-            radial-gradient(circle at 50% 15%, rgba(83, 200, 255, 0.16), transparent 18%),
-            radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.10), transparent 9%),
-            radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.08), transparent 8%);
+        background: linear-gradient(180deg, rgba(5, 10, 18, 0.96) 0%, rgba(6, 12, 20, 0.90) 18%, rgba(5, 14, 20, 0.72) 34%, rgba(7, 28, 22, 0.30) 43%, rgba(10, 56, 30, 0.90) 44%, rgba(8, 45, 26, 0.98) 100%), radial-gradient(circle at 50% 15%, rgba(83, 200, 255, 0.16), transparent 18%), radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.10), transparent 9%), radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.08), transparent 8%);
         background-size: cover;
         background-position: center;
         transform: scale(1.02);
         filter: saturate(1.08) contrast(1.04);
     }
 
-    .replay-field-bg::before {
-        content: "";
-        position: absolute;
-        inset: 0 0 auto 0;
-        height: 46%;
-        background:
-            radial-gradient(circle at 50% 18%, rgba(127, 246, 223, 0.16), transparent 24%),
-            linear-gradient(180deg, rgba(2, 8, 14, 0.92), rgba(6, 12, 20, 0.28));
-        box-shadow: inset 0 -36px 34px -34px rgba(127, 246, 223, 0.28);
-        opacity: .95;
-        pointer-events: none;
-    }
+        .replay-field-bg::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 46%;
+            background: radial-gradient(circle at 50% 18%, rgba(127, 246, 223, 0.16), transparent 24%), linear-gradient(180deg, rgba(2, 8, 14, 0.92), rgba(6, 12, 20, 0.28));
+            box-shadow: inset 0 -36px 34px -34px rgba(127, 246, 223, 0.28);
+            opacity: .95;
+            pointer-events: none;
+        }
 
-    .replay-field-bg::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 58%;
-        background:
-            linear-gradient(180deg, rgba(12, 82, 45, 0.98), rgba(8, 44, 24, 0.98)),
-            repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 100px),
-            linear-gradient(120deg, transparent 0 35%, rgba(255,255,255,0.08) 35% 36%, transparent 36% 100%);
-        clip-path: polygon(0 14%, 100% 0, 100% 100%, 0 100%);
-        box-shadow: inset 0 26px 30px -28px rgba(127, 246, 223, 0.24);
-        pointer-events: none;
-    }
+        .replay-field-bg::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 58%;
+            background: linear-gradient(180deg, rgba(12, 82, 45, 0.98), rgba(8, 44, 24, 0.98)), repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 100px), linear-gradient(120deg, transparent 0 35%, rgba(255,255,255,0.08) 35% 36%, transparent 36% 100%);
+            clip-path: polygon(0 14%, 100% 0, 100% 100%, 0 100%);
+            box-shadow: inset 0 26px 30px -28px rgba(127, 246, 223, 0.24);
+            pointer-events: none;
+        }
 
-    .replay-field-bg.has-asset {
-        background-size: cover;
-        background-position: center;
-    }
+        .replay-field-bg.has-asset {
+            background-size: cover;
+            background-position: center;
+        }
 
     .replay-field-glow {
         position: absolute;
         inset: 0;
-        background:
-            radial-gradient(circle at 16% 20%, rgba(83, 200, 255, 0.12), transparent 20%),
-            radial-gradient(circle at 78% 18%, rgba(127, 246, 223, 0.1), transparent 18%),
-            linear-gradient(180deg, rgba(1, 4, 12, 0.02), rgba(1, 4, 12, 0.16));
+        background: radial-gradient(circle at 16% 20%, rgba(83, 200, 255, 0.12), transparent 20%), radial-gradient(circle at 78% 18%, rgba(127, 246, 223, 0.1), transparent 18%), linear-gradient(180deg, rgba(1, 4, 12, 0.02), rgba(1, 4, 12, 0.16));
         mix-blend-mode: screen;
     }
 
@@ -8869,18 +8848,16 @@ else
         transform: translateY(-50%);
         transform-origin: center center;
         opacity: 0.98;
-        background:
-            radial-gradient(circle at 50% 46%, rgba(220, 255, 248, 0.04), transparent 42%),
-            linear-gradient(90deg, rgba(172, 228, 255, 0.08), rgba(172, 228, 255, 0.02));
+        background: radial-gradient(circle at 50% 46%, rgba(220, 255, 248, 0.04), transparent 42%), linear-gradient(90deg, rgba(172, 228, 255, 0.08), rgba(172, 228, 255, 0.02));
         display: grid;
         place-items: center;
         filter: drop-shadow(0 0 18px rgba(127, 246, 223, 0.15));
         overflow: visible;
     }
 
-    .replay-goal.has-asset {
-        background: transparent;
-    }
+        .replay-goal.has-asset {
+            background: transparent;
+        }
 
     .replay-goal__image {
         position: absolute;
@@ -8929,9 +8906,7 @@ else
         top: 23%;
         width: 56%;
         height: 55%;
-        background-image:
-            linear-gradient(90deg, rgba(190, 244, 255, 0.28) 1px, transparent 1px),
-            linear-gradient(0deg, rgba(190, 244, 255, 0.2) 1px, transparent 1px);
+        background-image: linear-gradient(90deg, rgba(190, 244, 255, 0.28) 1px, transparent 1px), linear-gradient(0deg, rgba(190, 244, 255, 0.2) 1px, transparent 1px);
         background-size: 18px 18px;
         transform: skewY(1deg);
         opacity: 0.35;
@@ -8957,17 +8932,17 @@ else
         transition: opacity .18s ease;
     }
 
-    .replay-player .replay-player__shadow {
-        position: absolute;
-        left: 50%;
-        bottom: -5px;
-        width: 76px;
-        height: 18px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(0, 0, 0, 0.42), transparent 72%);
-        transform: translateX(-50%);
-        opacity: .76;
-    }
+        .replay-player .replay-player__shadow {
+            position: absolute;
+            left: 50%;
+            bottom: -5px;
+            width: 76px;
+            height: 18px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0.42), transparent 72%);
+            transform: translateX(-50%);
+            opacity: .76;
+        }
 
     .replay-player__body {
         position: absolute;
@@ -8975,13 +8950,9 @@ else
         width: 98px;
         height: 98px;
         border-radius: 50%;
-        background:
-            radial-gradient(circle at 50% 35%, rgba(255,255,255,0.3), transparent 22%),
-            linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.14));
+        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.3), transparent 22%), linear-gradient(180deg, rgba(255,255,255,0.12), rgba(0,0,0,0.14));
         border: 2px solid rgba(255,255,255,0.18);
-        box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,0.05),
-            0 0 22px color-mix(in srgb, var(--team-accent, #53c8ff) 42%, white);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 0 22px color-mix(in srgb, var(--team-accent, #53c8ff) 42%, white);
     }
 
     .replay-player-logo {
@@ -8991,31 +8962,29 @@ else
         display: grid;
         place-items: center;
         overflow: hidden;
-        background:
-            radial-gradient(circle at 45% 35%, rgba(255,255,255,0.24), transparent 24%),
-            linear-gradient(180deg, rgba(12, 18, 28, 0.62), rgba(4, 8, 14, 0.82));
+        background: radial-gradient(circle at 45% 35%, rgba(255,255,255,0.24), transparent 24%), linear-gradient(180deg, rgba(12, 18, 28, 0.62), rgba(4, 8, 14, 0.82));
         color: #fff;
         font-weight: 900;
         letter-spacing: .04em;
         text-transform: uppercase;
     }
 
-    .replay-player-logo img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
+        .replay-player-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
 
-    .replay-player-logo span {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        font-size: 1.1rem;
-        line-height: 1;
-        text-shadow: 0 1px 0 rgba(0,0,0,0.28);
-    }
+        .replay-player-logo span {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            font-size: 1.1rem;
+            line-height: 1;
+            text-shadow: 0 1px 0 rgba(0,0,0,0.28);
+        }
 
     .replay-arm,
     .replay-leg {
@@ -9032,25 +9001,25 @@ else
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
     }
 
-    .replay-arm::after,
-    .replay-leg::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-    }
+        .replay-arm::after,
+        .replay-leg::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
 
-    .replay-arm .replay-hand {
-        position: absolute;
-        left: 50%;
-        bottom: -8px;
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.2));
-        box-shadow: 0 0 10px rgba(255,255,255,0.14);
-    }
+        .replay-arm .replay-hand {
+            position: absolute;
+            left: 50%;
+            bottom: -8px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.2));
+            box-shadow: 0 0 10px rgba(255,255,255,0.14);
+        }
 
     .replay-leg {
         top: 92px;
@@ -9061,17 +9030,17 @@ else
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
     }
 
-    .replay-leg .replay-foot {
-        position: absolute;
-        left: 50%;
-        bottom: -7px;
-        width: 20px;
-        height: 10px;
-        border-radius: 999px;
-        transform: translateX(-50%);
-        background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3));
-        box-shadow: 0 0 10px rgba(255,255,255,0.12);
-    }
+        .replay-leg .replay-foot {
+            position: absolute;
+            left: 50%;
+            bottom: -7px;
+            width: 20px;
+            height: 10px;
+            border-radius: 999px;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.3));
+            box-shadow: 0 0 10px rgba(255,255,255,0.12);
+        }
 
     .replay-arm--left {
         left: 8px;
@@ -9094,15 +9063,11 @@ else
     }
 
     .replay-player.attacker .replay-player__body {
-        background:
-            radial-gradient(circle at 50% 35%, rgba(255,255,255,0.3), transparent 22%),
-            linear-gradient(180deg, rgba(255, 190, 117, 0.82), rgba(135, 82, 26, 0.88));
+        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.3), transparent 22%), linear-gradient(180deg, rgba(255, 190, 117, 0.82), rgba(135, 82, 26, 0.88));
     }
 
     .replay-player.defender .replay-player__body {
-        background:
-            radial-gradient(circle at 50% 35%, rgba(255,255,255,0.22), transparent 22%),
-            linear-gradient(180deg, rgba(115, 255, 208, 0.76), rgba(24, 105, 81, 0.92));
+        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.22), transparent 22%), linear-gradient(180deg, rgba(115, 255, 208, 0.76), rgba(24, 105, 81, 0.92));
     }
 
     .replay-ball {
@@ -9110,34 +9075,28 @@ else
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        background:
-            radial-gradient(circle at 35% 30%, rgba(255,255,255,0.96), rgba(255,255,255,0.76) 24%, rgba(230, 236, 242, 0.98) 45%, rgba(198, 205, 217, 0.98) 100%);
+        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.96), rgba(255,255,255,0.76) 24%, rgba(230, 236, 242, 0.98) 45%, rgba(198, 205, 217, 0.98) 100%);
         border: 1px solid rgba(255,255,255,0.2);
-        box-shadow:
-            0 0 12px rgba(255,255,255,0.16),
-            0 6px 18px rgba(0,0,0,0.22);
+        box-shadow: 0 0 12px rgba(255,255,255,0.16), 0 6px 18px rgba(0,0,0,0.22);
         background-size: cover;
         background-position: center;
         z-index: 110;
         pointer-events: none;
     }
 
-    .replay-ball.has-asset {
-        background-size: cover;
-        background-position: center;
-    }
+        .replay-ball.has-asset {
+            background-size: cover;
+            background-position: center;
+        }
 
-    .replay-ball::before {
-        content: "";
-        position: absolute;
-        inset: 4px;
-        border-radius: 50%;
-        background:
-            radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(20, 25, 32, 0.92) 44% 46%, transparent 48%),
-            radial-gradient(circle at 50% 15%, rgba(20, 25, 32, 0.92) 0 20%, transparent 22%),
-            radial-gradient(circle at 18% 63%, rgba(20, 25, 32, 0.92) 0 14%, transparent 16%);
-        opacity: 0.85;
-    }
+        .replay-ball::before {
+            content: "";
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(20, 25, 32, 0.92) 44% 46%, transparent 48%), radial-gradient(circle at 50% 15%, rgba(20, 25, 32, 0.92) 0 20%, transparent 22%), radial-gradient(circle at 18% 63%, rgba(20, 25, 32, 0.92) 0 14%, transparent 16%);
+            opacity: 0.85;
+        }
 
     .replay-ball-trail {
         position: absolute;
@@ -9178,9 +9137,7 @@ else
         justify-content: center;
         padding: clamp(18px, 6vh, 56px) 16px 16px;
         pointer-events: none;
-        background:
-            radial-gradient(circle at 16% 16%, rgba(83, 200, 255, 0.10), transparent 24%),
-            linear-gradient(180deg, rgba(1, 4, 10, 0.02), rgba(1, 4, 10, 0.14));
+        background: radial-gradient(circle at 16% 16%, rgba(83, 200, 255, 0.10), transparent 24%), linear-gradient(180deg, rgba(1, 4, 10, 0.02), rgba(1, 4, 10, 0.14));
         opacity: 0;
         transition: opacity .22s ease;
     }
@@ -9192,64 +9149,47 @@ else
         padding: 14px 16px;
         border-radius: 18px;
         border: 1px solid rgba(255,255,255,0.10);
-        background:
-            linear-gradient(135deg, rgba(10, 16, 28, 0.86), rgba(6, 10, 20, 0.58));
+        background: linear-gradient(135deg, rgba(10, 16, 28, 0.86), rgba(6, 10, 20, 0.58));
         box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
         backdrop-filter: blur(16px);
         margin-top: clamp(2px, 4vh, 48px);
     }
 
     .replay-overlay[data-animation="POWER_SHOT"] .replay-overlay__panel {
-        box-shadow:
-            0 18px 48px rgba(0, 0, 0, 0.34),
-            0 0 34px rgba(83, 200, 255, 0.12);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), 0 0 34px rgba(83, 200, 255, 0.12);
     }
 
     .replay-overlay[data-animation="SIMPLE_SHOT"] .replay-overlay__panel {
         border-color: rgba(125, 246, 163, 0.16);
-        box-shadow:
-            0 18px 48px rgba(0, 0, 0, 0.34),
-            0 0 28px rgba(125, 246, 163, 0.14);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34), 0 0 28px rgba(125, 246, 163, 0.14);
     }
 
     .replay-overlay[data-animation="BICYCLE_KICK"] .replay-overlay__panel {
         border-color: rgba(255, 190, 117, 0.22);
-        background:
-            linear-gradient(135deg, rgba(31, 13, 9, 0.88), rgba(18, 8, 13, 0.66));
-        box-shadow:
-            0 18px 48px rgba(0, 0, 0, 0.42),
-            0 0 36px rgba(255, 190, 117, 0.16);
+        background: linear-gradient(135deg, rgba(31, 13, 9, 0.88), rgba(18, 8, 13, 0.66));
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42), 0 0 36px rgba(255, 190, 117, 0.16);
     }
 
     .replay-overlay[data-animation="HEADER_GOAL"] .replay-overlay__panel {
         border-color: rgba(127, 246, 223, 0.20);
-        background:
-            linear-gradient(135deg, rgba(8, 22, 24, 0.88), rgba(6, 10, 20, 0.60));
+        background: linear-gradient(135deg, rgba(8, 22, 24, 0.88), rgba(6, 10, 20, 0.60));
     }
 
     .replay-overlay[data-animation="CORNER_GOAL"] .replay-overlay__panel {
         border-color: rgba(162, 123, 255, 0.20);
-        box-shadow:
-            0 18px 48px rgba(0, 0, 0, 0.40),
-            0 0 32px rgba(162, 123, 255, 0.14);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.40), 0 0 32px rgba(162, 123, 255, 0.14);
     }
 
     .replay-overlay[data-animation="PENALTY_KICK"] .replay-overlay__panel {
         border-color: rgba(255, 96, 135, 0.22);
-        background:
-            linear-gradient(135deg, rgba(32, 10, 18, 0.90), rgba(12, 8, 18, 0.68));
-        box-shadow:
-            0 18px 48px rgba(0, 0, 0, 0.40),
-            0 0 30px rgba(255, 96, 135, 0.16);
+        background: linear-gradient(135deg, rgba(32, 10, 18, 0.90), rgba(12, 8, 18, 0.68));
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.40), 0 0 30px rgba(255, 96, 135, 0.16);
     }
 
     .replay-overlay[data-animation="CINEMATIC_SUPER_GOAL"] .replay-overlay__panel {
         border-color: rgba(255, 215, 128, 0.22);
-        background:
-            linear-gradient(135deg, rgba(20, 14, 6, 0.92), rgba(6, 10, 20, 0.62));
-        box-shadow:
-            0 20px 64px rgba(0, 0, 0, 0.46),
-            0 0 38px rgba(255, 215, 128, 0.18);
+        background: linear-gradient(135deg, rgba(20, 14, 6, 0.92), rgba(6, 10, 20, 0.62));
+        box-shadow: 0 20px 64px rgba(0, 0, 0, 0.46), 0 0 38px rgba(255, 215, 128, 0.18);
     }
 
     .replay-overlay[data-animation="BICYCLE_KICK"] .replay-overlay__title,
@@ -9386,9 +9326,7 @@ else
         letter-spacing: .16em;
         text-transform: uppercase;
         color: #fff;
-        text-shadow:
-            0 0 20px rgba(83, 200, 255, 0.3),
-            0 0 48px rgba(127, 246, 223, 0.22);
+        text-shadow: 0 0 20px rgba(83, 200, 255, 0.3), 0 0 48px rgba(127, 246, 223, 0.22);
         opacity: 0;
         transform: translateY(10px) scale(.96);
         transition: opacity .18s ease, transform .18s ease;
@@ -9405,10 +9343,10 @@ else
         transition: opacity .22s ease, visibility .22s ease;
     }
 
-    .tv-replay-scene.is-visible {
-        opacity: 1;
-        visibility: visible;
-    }
+        .tv-replay-scene.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
 
     .tv-replay-canvas {
         position: absolute;
@@ -9427,19 +9365,16 @@ else
         align-items: flex-start;
         justify-content: flex-start;
         padding: clamp(10px, 1.4vw, 18px);
-        background:
-            radial-gradient(circle at 14% 18%, rgba(83, 200, 255, 0.12), transparent 22%),
-            radial-gradient(circle at 36% 18%, rgba(127, 246, 223, 0.08), transparent 18%),
-            linear-gradient(180deg, rgba(2, 6, 16, 0.04), rgba(2, 6, 16, 0.22));
+        background: radial-gradient(circle at 14% 18%, rgba(83, 200, 255, 0.12), transparent 22%), radial-gradient(circle at 36% 18%, rgba(127, 246, 223, 0.08), transparent 18%), linear-gradient(180deg, rgba(2, 6, 16, 0.04), rgba(2, 6, 16, 0.22));
         opacity: 0;
         transform: translateY(12px) scale(.99);
         transition: opacity .24s ease, transform .24s ease;
     }
 
-    .tv-replay-overlay.is-visible {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+        .tv-replay-overlay.is-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
 
     .tv-replay-overlay__panel {
         display: grid;
@@ -9449,27 +9384,23 @@ else
         padding: 12px 14px 12px;
         border-radius: 18px;
         border: 1px solid rgba(255,255,255,0.12);
-        background:
-            linear-gradient(135deg, rgba(10, 16, 28, 0.86), rgba(6, 10, 20, 0.58));
-        box-shadow:
-            0 20px 80px rgba(0,0,0,0.42),
-            inset 0 0 0 1px rgba(255,255,255,0.03);
+        background: linear-gradient(135deg, rgba(10, 16, 28, 0.86), rgba(6, 10, 20, 0.58));
+        box-shadow: 0 20px 80px rgba(0,0,0,0.42), inset 0 0 0 1px rgba(255,255,255,0.03);
         backdrop-filter: blur(18px);
         position: relative;
         overflow: hidden;
     }
 
-    .tv-replay-overlay__panel::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background:
-            linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.08) 45%, transparent 60%);
-        transform: translateX(-130%);
-        animation: tvReplaySweep 2.6s linear infinite;
-        opacity: .45;
-        pointer-events: none;
-    }
+        .tv-replay-overlay__panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.08) 45%, transparent 60%);
+            transform: translateX(-130%);
+            animation: tvReplaySweep 2.6s linear infinite;
+            opacity: .45;
+            pointer-events: none;
+        }
 
     .tv-replay-overlay__eyebrow,
     .tv-replay-overlay__meta {
@@ -9488,14 +9419,14 @@ else
         color: #b9dfff;
     }
 
-    .tv-replay-overlay__eyebrow::before {
-        content: "";
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: radial-gradient(circle, #fff 0%, #8ef7ff 28%, #53c8ff 70%);
-        box-shadow: 0 0 20px rgba(83, 200, 255, 0.65);
-    }
+        .tv-replay-overlay__eyebrow::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: radial-gradient(circle, #fff 0%, #8ef7ff 28%, #53c8ff 70%);
+            box-shadow: 0 0 20px rgba(83, 200, 255, 0.65);
+        }
 
     .tv-replay-overlay__title {
         position: relative;
@@ -9507,9 +9438,7 @@ else
         text-transform: uppercase;
         letter-spacing: .06em;
         color: #f6fbff;
-        text-shadow:
-            0 0 14px rgba(83, 200, 255, 0.25),
-            0 0 32px rgba(127, 246, 223, 0.16);
+        text-shadow: 0 0 14px rgba(83, 200, 255, 0.25), 0 0 32px rgba(127, 246, 223, 0.16);
     }
 
     .tv-replay-overlay__goal {
@@ -9639,13 +9568,23 @@ else
     }
 
     @@keyframes tvReplaySweep {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(120%); }
+        0% {
+            transform: translateX(-120%);
+        }
+
+        100% {
+            transform: translateX(120%);
+        }
     }
 
     @@keyframes tvReplayBarSweep {
-        0% { transform: translateX(-120%); }
-        100% { transform: translateX(120%); }
+        0% {
+            transform: translateX(-120%);
+        }
+
+        100% {
+            transform: translateX(120%);
+        }
     }
 
     .tv-stage--broadcast {
@@ -9657,10 +9596,7 @@ else
     .tv-stage__backdrop {
         position: absolute;
         inset: 0;
-        background:
-            radial-gradient(circle at 12% 18%, rgba(83, 200, 255, 0.22), transparent 22%),
-            radial-gradient(circle at 84% 16%, rgba(76, 243, 141, 0.2), transparent 18%),
-            radial-gradient(circle at 50% 100%, rgba(255, 215, 110, 0.08), transparent 24%);
+        background: radial-gradient(circle at 12% 18%, rgba(83, 200, 255, 0.22), transparent 22%), radial-gradient(circle at 84% 16%, rgba(76, 243, 141, 0.2), transparent 18%), radial-gradient(circle at 50% 100%, rgba(255, 215, 110, 0.08), transparent 24%);
         pointer-events: none;
         animation: tvGlow 8s ease-in-out infinite alternate;
     }
@@ -9681,30 +9617,28 @@ else
         opacity: .7;
         animation: tvAurora 18s ease-in-out infinite;
     }
-    .tv-telemetry-chart-shell {
-    position: relative;
-    min-height: 260px;
-    height: 100%;
-}
 
-.tv-telemetry-chart-shell canvas {
-    display: block !important;
-    width: 100% !important;
-    height: 100% !important;
-}
+    .tv-telemetry-chart-shell {
+        position: relative;
+        min-height: 260px;
+        height: 100%;
+    }
+
+        .tv-telemetry-chart-shell canvas {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
     .tv-stage__fog {
-        background:
-            radial-gradient(circle at 22% 76%, rgba(255,255,255,0.05), transparent 18%),
-            radial-gradient(circle at 76% 72%, rgba(83, 200, 255, 0.05), transparent 16%);
+        background: radial-gradient(circle at 22% 76%, rgba(255,255,255,0.05), transparent 18%), radial-gradient(circle at 76% 72%, rgba(83, 200, 255, 0.05), transparent 16%);
         filter: blur(40px);
         opacity: .72;
         animation: tvFog 20s ease-in-out infinite alternate;
     }
 
     .tv-stage__gridlines {
-        background-image:
-            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
         background-size: 120px 120px;
         mask-image: linear-gradient(180deg, rgba(0,0,0,0.72), transparent 84%);
         opacity: .24;
@@ -9712,9 +9646,7 @@ else
     }
 
     .tv-stage__particles {
-        background:
-            radial-gradient(circle, rgba(255,255,255,0.14) 0 1px, transparent 1.4px) 0 0/160px 160px,
-            radial-gradient(circle, rgba(127, 246, 223, 0.1) 0 1px, transparent 1.5px) 80px 32px/190px 190px;
+        background: radial-gradient(circle, rgba(255,255,255,0.14) 0 1px, transparent 1.4px) 0 0/160px 160px, radial-gradient(circle, rgba(127, 246, 223, 0.1) 0 1px, transparent 1.5px) 80px 32px/190px 190px;
         opacity: .55;
         animation: tvParticles 26s linear infinite;
     }
@@ -9746,6 +9678,7 @@ else
         font-weight: 1000;
         text-shadow: 0 0 10px rgba(255, 180, 0, .55), 0 0 20px rgba(255, 180, 0, .28);
     }
+
     .tv-stage__broadcast-shell {
         position: relative;
         z-index: 1;
@@ -9789,12 +9722,12 @@ else
         text-decoration: none;
     }
 
-    .tv-stage__eyebrow-link:hover,
-    .tv-stage__eyebrow-link:focus-visible {
-        color: var(--tv-green);
-        text-decoration: none;
-        opacity: .92;
-    }
+        .tv-stage__eyebrow-link:hover,
+        .tv-stage__eyebrow-link:focus-visible {
+            color: var(--tv-green);
+            text-decoration: none;
+            opacity: .92;
+        }
 
     .tv-stage__eyebrow::before,
     .tv-pill__dot {
@@ -9823,17 +9756,17 @@ else
     }
 
     .tv-brand-link {
-        font-size:1.8rem;
+        font-size: 1.8rem;
         display: inline-flex;
         align-items: center;
         text-decoration: none;
     }
 
-    .tv-brand-link:hover,
-    .tv-brand-link:focus-visible {
-        text-decoration: none;
-        opacity: .96;
-    }
+        .tv-brand-link:hover,
+        .tv-brand-link:focus-visible {
+            text-decoration: none;
+            opacity: .96;
+        }
 
     .tv-brand-logo {
         display: block;
@@ -9855,14 +9788,14 @@ else
         text-shadow: 0 0 16px rgba(144, 92, 255, 0.38), 0 0 18px rgba(76, 243, 141, 0.22);
     }
 
-    .tv-brand-subtitle::before {
-        content: "";
-        width: 54px;
-        height: 2px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(153, 76, 255, 0), rgba(153, 76, 255, 0.94), rgba(76, 243, 141, 0.94));
-        box-shadow: 0 0 18px rgba(76, 243, 141, 0.24);
-    }
+        .tv-brand-subtitle::before {
+            content: "";
+            width: 54px;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(153, 76, 255, 0), rgba(153, 76, 255, 0.94), rgba(76, 243, 141, 0.94));
+            box-shadow: 0 0 18px rgba(76, 243, 141, 0.24);
+        }
 
     .tv-stage__headline {
         margin: 8px 0 0;
@@ -9917,13 +9850,13 @@ else
         text-decoration: none;
     }
 
-    .tv-pill--nav:hover,
-    .tv-pill--nav:focus-visible {
-        color: #eef5ff;
-        text-decoration: none;
-        border-color: rgba(127, 246, 223, 0.28);
-        background: rgba(127, 246, 223, 0.09);
-    }
+        .tv-pill--nav:hover,
+        .tv-pill--nav:focus-visible {
+            color: #eef5ff;
+            text-decoration: none;
+            border-color: rgba(127, 246, 223, 0.28);
+            background: rgba(127, 246, 223, 0.09);
+        }
 
     .tv-pill--live {
         border-color: rgba(76, 243, 141, 0.26);
@@ -9963,62 +9896,61 @@ else
         flex: 0 0 auto;
     }
 
-    .tv-pill__audio-icon::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 2px;
-        width: 5px;
-        height: 8px;
-        border-radius: 2px;
-        background: currentColor;
-    }
+        .tv-pill__audio-icon::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 5px;
+            height: 8px;
+            border-radius: 2px;
+            background: currentColor;
+        }
 
-    .tv-pill__audio-icon::after {
-        content: "";
-        position: absolute;
-        left: 5px;
-        top: 1px;
-        width: 0;
-        height: 0;
-        border-top: 5px solid transparent;
-        border-bottom: 5px solid transparent;
-        border-left: 7px solid currentColor;
-    }
+        .tv-pill__audio-icon::after {
+            content: "";
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 7px solid currentColor;
+        }
 
     .tv-pill__audio-icon--live {
         color: #9bf8d8;
         filter: drop-shadow(0 0 8px rgba(127,246,223,.24));
     }
 
-    .tv-pill__audio-icon--live span,
-    .tv-pill__audio-icon--muted span {
-        display: none;
-    }
+        .tv-pill__audio-icon--live span,
+        .tv-pill__audio-icon--muted span {
+            display: none;
+        }
 
     .tv-pill__audio-icon--live {
         box-shadow: inset -2px 0 0 0 transparent;
     }
 
-    .tv-pill__audio-icon--live::marker {
-        content: "";
-    }
+        .tv-pill__audio-icon--live::marker {
+            content: "";
+        }
 
     .tv-pill__audio-icon--muted {
         color: #ffb0b0;
     }
 
-    .tv-pill__audio-icon--muted::before {
-        background: color-mix(in srgb, currentColor 88%, #ffffff);
-    }
+        .tv-pill__audio-icon--muted::before {
+            background: color-mix(in srgb, currentColor 88%, #ffffff);
+        }
 
-    .tv-pill__audio-icon--muted::after {
-        border-left-color: color-mix(in srgb, currentColor 88%, #ffffff);
-    }
+        .tv-pill__audio-icon--muted::after {
+            border-left-color: color-mix(in srgb, currentColor 88%, #ffffff);
+        }
 
     .tv-pill__audio-icon--muted {
-        background:
-            linear-gradient(135deg, transparent 42%, currentColor 43%, currentColor 57%, transparent 58%);
+        background: linear-gradient(135deg, transparent 42%, currentColor 43%, currentColor 57%, transparent 58%);
     }
 
     .tv-pill__audio-icon--test {
@@ -10055,28 +9987,28 @@ else
         flex: 0 0 auto;
     }
 
-    .tv-fixed-audio-test__icon::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 2px;
-        width: 5px;
-        height: 8px;
-        border-radius: 2px;
-        background: currentColor;
-    }
+        .tv-fixed-audio-test__icon::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 5px;
+            height: 8px;
+            border-radius: 2px;
+            background: currentColor;
+        }
 
-    .tv-fixed-audio-test__icon::after {
-        content: "";
-        position: absolute;
-        left: 5px;
-        top: 1px;
-        width: 0;
-        height: 0;
-        border-top: 5px solid transparent;
-        border-bottom: 5px solid transparent;
-        border-left: 7px solid currentColor;
-    }
+        .tv-fixed-audio-test__icon::after {
+            content: "";
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 7px solid currentColor;
+        }
 
     .tv-pill--audio-unlock {
         border-color: rgba(127, 246, 223, 0.34);
@@ -10108,17 +10040,17 @@ else
         backdrop-filter: blur(14px);
     }
 
-    .tv-broadcast-notice strong {
-        font-size: .88rem;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        color: var(--tv-green);
-    }
+        .tv-broadcast-notice strong {
+            font-size: .88rem;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--tv-green);
+        }
 
-    .tv-broadcast-notice span {
-        color: var(--tv-muted);
-        font-size: .82rem;
-    }
+        .tv-broadcast-notice span {
+            color: var(--tv-muted);
+            font-size: .82rem;
+        }
 
     .tv-stage__status-banner {
         display: grid;
@@ -10131,18 +10063,18 @@ else
         box-shadow: 0 14px 32px rgba(0,0,0,0.18);
     }
 
-    .tv-stage__status-banner strong {
-        font-size: .8rem;
-        letter-spacing: .14em;
-        text-transform: uppercase;
-        color: #ffd27a;
-    }
+        .tv-stage__status-banner strong {
+            font-size: .8rem;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #ffd27a;
+        }
 
-    .tv-stage__status-banner span {
-        color: rgba(242, 246, 255, 0.84);
-        font-size: .92rem;
-        line-height: 1.45;
-    }
+        .tv-stage__status-banner span {
+            color: rgba(242, 246, 255, 0.84);
+            font-size: .92rem;
+            line-height: 1.45;
+        }
 
     .tv-broadcast-focus-bar {
         position: absolute;
@@ -10209,26 +10141,26 @@ else
         gap: 2px;
     }
 
-    .tv-broadcast-rotation-gauge__copy span {
-        color: rgba(139, 200, 255, 0.9);
-        font-size: .68rem;
-        font-weight: 900;
-        letter-spacing: .18em;
-        text-transform: uppercase;
-    }
+        .tv-broadcast-rotation-gauge__copy span {
+            color: rgba(139, 200, 255, 0.9);
+            font-size: .68rem;
+            font-weight: 900;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
 
-    .tv-broadcast-rotation-gauge__copy strong {
-        color: #eef7ff;
-        font-size: 1.1rem;
-        font-weight: 1000;
-        letter-spacing: .04em;
-    }
+        .tv-broadcast-rotation-gauge__copy strong {
+            color: #eef7ff;
+            font-size: 1.1rem;
+            font-weight: 1000;
+            letter-spacing: .04em;
+        }
 
-    .tv-broadcast-rotation-gauge__copy small {
-        color: rgba(223, 245, 255, 0.72);
-        font-size: .74rem;
-        font-weight: 700;
-    }
+        .tv-broadcast-rotation-gauge__copy small {
+            color: rgba(223, 245, 255, 0.72);
+            font-size: .74rem;
+            font-weight: 700;
+        }
 
     .tv-broadcast-rotation-gauge__track {
         position: relative;
@@ -10276,9 +10208,7 @@ else
         padding: 18px 20px;
         border-radius: 26px;
         border: 1px solid rgba(127, 246, 223, 0.16);
-        background:
-            radial-gradient(circle at top left, rgba(127, 246, 223, 0.14), transparent 38%),
-            linear-gradient(180deg, rgba(9, 16, 28, 0.96), rgba(6, 10, 18, 0.98));
+        background: radial-gradient(circle at top left, rgba(127, 246, 223, 0.14), transparent 38%), linear-gradient(180deg, rgba(9, 16, 28, 0.96), rgba(6, 10, 18, 0.98));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 22px 48px rgba(0,0,0,0.22);
     }
 
@@ -10331,12 +10261,12 @@ else
         white-space: nowrap;
     }
 
-    .tv-broadcast-promo__cta:hover,
-    .tv-broadcast-promo__cta:focus-visible {
-        transform: translateY(-1px);
-        filter: brightness(1.04);
-        box-shadow: 0 18px 36px rgba(38, 210, 151, 0.28);
-    }
+        .tv-broadcast-promo__cta:hover,
+        .tv-broadcast-promo__cta:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+            box-shadow: 0 18px 36px rgba(38, 210, 151, 0.28);
+        }
 
     .tv-stage__grid {
         display: grid;
@@ -10368,11 +10298,11 @@ else
         transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
     }
 
-    .tv-match-card--link:hover {
-        transform: translateY(-2px);
-        border-color: rgba(127, 246, 223, 0.24);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 28px 64px rgba(0,0,0,0.3);
-    }
+        .tv-match-card--link:hover {
+            transform: translateY(-2px);
+            border-color: rgba(127, 246, 223, 0.24);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 28px 64px rgba(0,0,0,0.3);
+        }
 
     .tv-match-card--football {
         padding: 18px 20px 16px;
@@ -10410,19 +10340,19 @@ else
         box-shadow: 0 16px 30px rgba(0,0,0,0.28);
     }
 
-    .tv-match-card__overlay-copy strong {
-        font-size: .84rem;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        color: #59ffac;
-    }
+        .tv-match-card__overlay-copy strong {
+            font-size: .84rem;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #59ffac;
+        }
 
-    .tv-match-card__overlay-copy span {
-        font-size: .98rem;
-        line-height: 1.2;
-        font-weight: 900;
-        color: #f2fbff;
-    }
+        .tv-match-card__overlay-copy span {
+            font-size: .98rem;
+            line-height: 1.2;
+            font-weight: 900;
+            color: #f2fbff;
+        }
 
     .tv-match-card::after {
         content: "";
@@ -10445,10 +10375,10 @@ else
         font-size: .78rem;
     }
 
-    .tv-match-card__meta strong {
-        color: var(--tv-yellow);
-        font-size: 1rem;
-    }
+        .tv-match-card__meta strong {
+            color: var(--tv-yellow);
+            font-size: 1rem;
+        }
 
     .tv-match-card__footer {
         display: flex;
@@ -10483,9 +10413,7 @@ else
         padding: 12px 14px;
         border-radius: 20px;
         border: 1px solid rgba(76, 243, 141, 0.18);
-        background:
-            radial-gradient(circle at top, rgba(76, 243, 141, 0.08), transparent 58%),
-            linear-gradient(180deg, rgba(7, 15, 16, 0.98), rgba(5, 11, 14, 0.98));
+        background: radial-gradient(circle at top, rgba(76, 243, 141, 0.08), transparent 58%), linear-gradient(180deg, rgba(7, 15, 16, 0.98), rgba(5, 11, 14, 0.98));
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 14px 36px rgba(0,0,0,0.18);
         backdrop-filter: blur(16px);
     }
@@ -10514,15 +10442,15 @@ else
         color: #ff9f9f;
     }
 
-    .tv-broadcast-clock__live::before {
-        content: "";
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #ff5454;
-        box-shadow: 0 0 0 8px rgba(255, 84, 84, 0.08);
-        animation: tvLivePulse 2.2s ease-in-out infinite;
-    }
+        .tv-broadcast-clock__live::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff5454;
+            box-shadow: 0 0 0 8px rgba(255, 84, 84, 0.08);
+            animation: tvLivePulse 2.2s ease-in-out infinite;
+        }
 
     .tv-broadcast-clock strong {
         font-size: clamp(1.8rem, 3.4vw, 2.9rem);
@@ -10585,6 +10513,7 @@ else
             letter-spacing: .14em;
             text-transform: uppercase;
         }
+
     .tv-football-layout {
         display: grid;
         grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(180px, 220px);
@@ -10635,38 +10564,24 @@ else
         text-transform: uppercase;
         white-space: nowrap;
         text-shadow: 0 1px 0 rgba(0,0,0,.28);
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.14),
-            inset 0 -12px 20px rgba(0,0,0,.14);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 -12px 20px rgba(0,0,0,.14);
         transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease, filter .18s ease, border-color .18s ease;
     }
 
     .tv-football-side__cta--left,
     .tv-team__cta--left {
         color: #eafff5;
-        background:
-            linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0) 36%),
-            linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #10b981) 74%, #ffffff 6%), color-mix(in srgb, var(--bet-accent, #10b981) 44%, rgba(5, 12, 26, 0.78)));
+        background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0) 36%), linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #10b981) 74%, #ffffff 6%), color-mix(in srgb, var(--bet-accent, #10b981) 44%, rgba(5, 12, 26, 0.78)));
         border-color: color-mix(in srgb, var(--bet-accent, #10b981) 80%, rgba(255,255,255,.18));
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.2),
-            0 0 0 1px color-mix(in srgb, var(--bet-accent, #10b981) 26%, transparent),
-            0 0 30px color-mix(in srgb, var(--bet-accent, #10b981) 34%, transparent),
-            0 18px 32px color-mix(in srgb, var(--bet-accent, #10b981) 28%, rgba(0,0,0,.14));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 1px color-mix(in srgb, var(--bet-accent, #10b981) 26%, transparent), 0 0 30px color-mix(in srgb, var(--bet-accent, #10b981) 34%, transparent), 0 18px 32px color-mix(in srgb, var(--bet-accent, #10b981) 28%, rgba(0,0,0,.14));
     }
 
     .tv-football-side__cta--right,
     .tv-team__cta--right {
         color: #f7f0ff;
-        background:
-            linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0) 36%),
-            linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #3b82f6) 74%, #ffffff 6%), color-mix(in srgb, var(--bet-accent, #3b82f6) 44%, rgba(5, 12, 26, 0.78)));
+        background: linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,0) 36%), linear-gradient(135deg, color-mix(in srgb, var(--bet-accent, #3b82f6) 74%, #ffffff 6%), color-mix(in srgb, var(--bet-accent, #3b82f6) 44%, rgba(5, 12, 26, 0.78)));
         border-color: color-mix(in srgb, var(--bet-accent, #3b82f6) 80%, rgba(255,255,255,.18));
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.2),
-            0 0 0 1px color-mix(in srgb, var(--bet-accent, #3b82f6) 26%, transparent),
-            0 0 30px color-mix(in srgb, var(--bet-accent, #3b82f6) 34%, transparent),
-            0 18px 32px color-mix(in srgb, var(--bet-accent, #3b82f6) 28%, rgba(0,0,0,.14));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 1px color-mix(in srgb, var(--bet-accent, #3b82f6) 26%, transparent), 0 0 30px color-mix(in srgb, var(--bet-accent, #3b82f6) 34%, transparent), 0 18px 32px color-mix(in srgb, var(--bet-accent, #3b82f6) 28%, rgba(0,0,0,.14));
     }
 
     .tv-football-side__cta:hover,
@@ -10676,11 +10591,7 @@ else
         transform: translateY(-2px) scale(1.03);
         filter: brightness(1.12) saturate(1.08);
         border-color: color-mix(in srgb, var(--bet-accent, #53c8ff) 90%, rgba(255,255,255,.26));
-        box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.24),
-            0 0 0 1px color-mix(in srgb, var(--bet-accent, #53c8ff) 36%, transparent),
-            0 0 38px color-mix(in srgb, var(--bet-accent, #53c8ff) 44%, transparent),
-            0 22px 38px color-mix(in srgb, var(--bet-accent, #53c8ff) 30%, rgba(0,0,0,.16));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 0 0 1px color-mix(in srgb, var(--bet-accent, #53c8ff) 36%, transparent), 0 0 38px color-mix(in srgb, var(--bet-accent, #53c8ff) 44%, transparent), 0 22px 38px color-mix(in srgb, var(--bet-accent, #53c8ff) 30%, rgba(0,0,0,.16));
         color: inherit;
     }
 
@@ -10695,17 +10606,13 @@ else
 
     .tv-football-side--left {
         justify-items: center;
-        background:
-            radial-gradient(circle at 0% 50%, rgba(255, 166, 0, 0.12), transparent 42%),
-            linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
+        background: radial-gradient(circle at 0% 50%, rgba(255, 166, 0, 0.12), transparent 42%), linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
     }
 
     .tv-football-side--right {
         justify-items: center;
         text-align: right;
-        background:
-            radial-gradient(circle at 100% 50%, rgba(42, 201, 255, 0.12), transparent 42%),
-            linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
+        background: radial-gradient(circle at 100% 50%, rgba(42, 201, 255, 0.12), transparent 42%), linear-gradient(180deg, rgba(8, 14, 24, 0.94), rgba(7, 11, 18, 0.84));
     }
 
     .tv-football-side__logo {
@@ -10715,18 +10622,16 @@ else
         display: grid;
         place-items: center;
         border: 1px solid rgba(255,255,255,0.08);
-        background:
-            radial-gradient(circle at 28% 28%, rgba(255,255,255,0.14), transparent 44%),
-            linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        background: radial-gradient(circle at 28% 28%, rgba(255,255,255,0.14), transparent 44%), linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
         box-shadow: 0 16px 38px rgba(0,0,0,0.24);
         overflow: hidden;
     }
 
-    .tv-football-side__logo img {
-        width: 72%;
-        height: 72%;
-        object-fit: contain;
-    }
+        .tv-football-side__logo img {
+            width: 72%;
+            height: 72%;
+            object-fit: contain;
+        }
 
     .tv-football-side__symbol {
         color: var(--tv-green);
@@ -10777,21 +10682,21 @@ else
         background: rgba(3, 12, 8, 0.32);
     }
 
-    .tv-football-field-viewport .tv-field {
-        margin: 0;
-    }
+        .tv-football-field-viewport .tv-field {
+            margin: 0;
+        }
 
-    .tv-football-field-viewport .tv-field__surface--asset {
-        overflow: hidden;
-    }
+        .tv-football-field-viewport .tv-field__surface--asset {
+            overflow: hidden;
+        }
 
-    .tv-football-field-viewport .tv-field__asset {
-        filter: saturate(1.02) contrast(1.03);
-    }
+        .tv-football-field-viewport .tv-field__asset {
+            filter: saturate(1.02) contrast(1.03);
+        }
 
-    .tv-football-field-viewport .tv-field__overlay {
-        transform: translateZ(0);
-    }
+        .tv-football-field-viewport .tv-field__overlay {
+            transform: translateZ(0);
+        }
 
     .tv-football-scoreboard {
         display: grid;
@@ -10807,14 +10712,14 @@ else
         z-index: 3;
     }
 
-    .tv-football-scoreboard > span,
-    .tv-football-scoreboard small {
-        color: var(--tv-muted);
-        text-transform: uppercase;
-        letter-spacing: .14em;
-        font-size: .72rem;
-        font-weight: 800;
-    }
+        .tv-football-scoreboard > span,
+        .tv-football-scoreboard small {
+            color: var(--tv-muted);
+            text-transform: uppercase;
+            letter-spacing: .14em;
+            font-size: .72rem;
+            font-weight: 800;
+        }
 
     .tv-football-scoreboard__score {
         display: inline-flex;
@@ -10825,13 +10730,13 @@ else
         letter-spacing: -.08em;
     }
 
-    .tv-football-scoreboard__score em {
-        color: rgba(255,255,255,0.46);
-        font-style: normal;
-        font-size: .48em;
-        letter-spacing: .24em;
-        text-indent: .24em;
-    }
+        .tv-football-scoreboard__score em {
+            color: rgba(255,255,255,0.46);
+            font-style: normal;
+            font-size: .48em;
+            letter-spacing: .24em;
+            text-indent: .24em;
+        }
 
         .tv-football-scoreboard__score strong:first-child {
             color: #ff9100;
@@ -10846,6 +10751,7 @@ else
         .tv-football-scoreboard__score em {
             color: rgba(180, 190, 210, .45);
         }
+
     .tv-team {
         --team-accent: #53c8ff;
         --team-shadow: rgba(83, 200, 255, 0.24);
@@ -10859,14 +10765,12 @@ else
     }
 
     .tv-ai-commentary {
-        height:180px;
+        height: 180px;
         margin-top: 16px;
         padding: 16px 18px;
         border-radius: 22px;
         border: 1px solid rgba(127,246,223,.16);
-        background:
-            radial-gradient(circle at top left, rgba(127,246,223,.08), transparent 36%),
-            rgba(255,255,255,.025);
+        background: radial-gradient(circle at top left, rgba(127,246,223,.08), transparent 36%), rgba(255,255,255,.025);
         min-height: 120px;
         display: grid;
         align-content: start;
@@ -10880,20 +10784,20 @@ else
         margin-bottom: 2px;
     }
 
-    .tv-ai-commentary__header span {
-        color: var(--tv-green);
-        text-transform: uppercase;
-        letter-spacing: .14em;
-        font-size: .74rem;
-        font-weight: 900;
-    }
+        .tv-ai-commentary__header span {
+            color: var(--tv-green);
+            text-transform: uppercase;
+            letter-spacing: .14em;
+            font-size: .74rem;
+            font-weight: 900;
+        }
 
-    .tv-ai-commentary__header small {
-        color: var(--tv-muted);
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-    }
+        .tv-ai-commentary__header small {
+            color: var(--tv-muted);
+            font-size: .78rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
 
     .tv-ai-commentary__text {
         color: #dbe8f7;
@@ -10916,14 +10820,14 @@ else
         scrollbar-color: rgba(255,255,255,.16) transparent;
     }
 
-    .tv-ai-commentary__feed::-webkit-scrollbar {
-        width: 7px;
-    }
+        .tv-ai-commentary__feed::-webkit-scrollbar {
+            width: 7px;
+        }
 
-    .tv-ai-commentary__feed::-webkit-scrollbar-thumb {
-        border-radius: 999px;
-        background: rgba(255,255,255,.14);
-    }
+        .tv-ai-commentary__feed::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(255,255,255,.14);
+        }
 
     .tv-ai-commentary__entry {
         --commentary-accent: #53c8ff;
@@ -10934,8 +10838,7 @@ else
         padding: 12px 14px;
         border-radius: 18px;
         border: 1px solid color-mix(in srgb, var(--commentary-accent) 28%, rgba(255,255,255,.08));
-        background:
-            linear-gradient(135deg, color-mix(in srgb, var(--commentary-accent) 16%, rgba(255,255,255,.035)) 0%, rgba(255,255,255,.025) 100%);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--commentary-accent) 16%, rgba(255,255,255,.035)) 0%, rgba(255,255,255,.025) 100%);
         box-shadow: 0 12px 28px rgba(3,8,22,.18);
         animation: tvCommentaryEntryIn .34s ease;
         scroll-snap-align: start;
@@ -10945,9 +10848,7 @@ else
 
     .tv-ai-commentary__entry--latest {
         border-color: color-mix(in srgb, var(--commentary-accent) 56%, rgba(255,255,255,.14));
-        box-shadow:
-            0 0 0 1px color-mix(in srgb, var(--commentary-accent) 14%, transparent),
-            0 16px 34px rgba(3,8,22,.24);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--commentary-accent) 14%, transparent), 0 16px 34px rgba(3,8,22,.24);
     }
 
     .tv-ai-commentary__entry-meta {
@@ -11028,22 +10929,20 @@ else
         height: clamp(132px, 13vw, 180px);
         border-radius: 50%;
         border: 1px solid rgba(255,255,255,0.08);
-        background:
-            radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 48%),
-            linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+        background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 48%), linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 18px 50px var(--team-shadow);
         overflow: hidden;
     }
 
-    .tv-team__logo-shell::before {
-        content: "";
-        position: absolute;
-        inset: 10%;
-        border-radius: 50%;
-        border: 1px solid color-mix(in srgb, var(--team-accent) 24%, transparent);
-        opacity: .7;
-        animation: tvRingPulse 6s ease-in-out infinite;
-    }
+        .tv-team__logo-shell::before {
+            content: "";
+            position: absolute;
+            inset: 10%;
+            border-radius: 50%;
+            border: 1px solid color-mix(in srgb, var(--team-accent) 24%, transparent);
+            opacity: .7;
+            animation: tvRingPulse 6s ease-in-out infinite;
+        }
 
     .tv-team img {
         width: clamp(96px, 10vw, 144px);
@@ -11113,15 +11012,13 @@ else
         padding: 22px 20px;
         border-radius: 24px;
         border: 1px solid rgba(255,255,255,0.08);
-        background:
-            radial-gradient(circle at top, rgba(83, 200, 255, 0.12), transparent 46%),
-            linear-gradient(180deg, rgba(10, 15, 27, 0.98), rgba(6, 10, 18, 0.98));
+        background: radial-gradient(circle at top, rgba(83, 200, 255, 0.12), transparent 46%), linear-gradient(180deg, rgba(10, 15, 27, 0.98), rgba(6, 10, 18, 0.98));
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24);
     }
 
-    .tv-scoreboard.is-pulsing {
-        animation: tvScoreShellPulse 2.2s ease;
-    }
+        .tv-scoreboard.is-pulsing {
+            animation: tvScoreShellPulse 2.2s ease;
+        }
 
     .tv-scoreboard__status {
         color: var(--tv-muted);
@@ -11200,8 +11097,7 @@ else
         min-height: 124px;
         padding: 14px 16px;
         gap: 10px;
-        background:
-            linear-gradient(180deg, rgba(9, 16, 28, 0.92), rgba(6, 10, 18, 0.88));
+        background: linear-gradient(180deg, rgba(9, 16, 28, 0.92), rgba(6, 10, 18, 0.88));
     }
 
     .tv-telemetry__match-link {
@@ -11211,12 +11107,12 @@ else
         transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
     }
 
-    .tv-telemetry__match-link:hover {
-        transform: translateY(-2px);
-        border-color: rgba(127, 246, 223, 0.34);
-        background: rgba(14, 28, 34, 0.72);
-        box-shadow: 0 12px 26px rgba(0,0,0,0.22);
-    }
+        .tv-telemetry__match-link:hover {
+            transform: translateY(-2px);
+            border-color: rgba(127, 246, 223, 0.34);
+            background: rgba(14, 28, 34, 0.72);
+            box-shadow: 0 12px 26px rgba(0,0,0,0.22);
+        }
 
     .tv-telemetry__events {
         grid-column: 1 / -1;
@@ -11243,33 +11139,33 @@ else
         background: rgba(255,255,255,0.03);
     }
 
-    .tv-telemetry__events-item.is-highlighted {
-        border-color: rgba(127, 246, 223, 0.22);
-        background: rgba(11, 23, 32, 0.72);
-    }
+        .tv-telemetry__events-item.is-highlighted {
+            border-color: rgba(127, 246, 223, 0.22);
+            background: rgba(11, 23, 32, 0.72);
+        }
 
-    .tv-telemetry__events-item strong,
-    .tv-telemetry__events-item em {
-        font-size: .78rem;
-        color: #eef8ff;
-        font-style: normal;
-        letter-spacing: .04em;
-    }
+        .tv-telemetry__events-item strong,
+        .tv-telemetry__events-item em {
+            font-size: .78rem;
+            color: #eef8ff;
+            font-style: normal;
+            letter-spacing: .04em;
+        }
 
-    .tv-telemetry__events-item div {
-        display: grid;
-        gap: 4px;
-        min-width: 0;
-    }
+        .tv-telemetry__events-item div {
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+        }
 
-    .tv-telemetry__events-item span {
-        font-size: .68rem;
-    }
+        .tv-telemetry__events-item span {
+            font-size: .68rem;
+        }
 
-    .tv-telemetry__events-item small {
-        line-height: 1.3;
-        font-size: .75rem;
-    }
+        .tv-telemetry__events-item small {
+            line-height: 1.3;
+            font-size: .75rem;
+        }
 
     .tv-telemetry__gauges {
         grid-column: 1 / -1;
@@ -11307,20 +11203,20 @@ else
         gap: 10px;
     }
 
-    .tv-telemetry__gauge-copy small {
-        color: rgba(223, 245, 255, 0.72);
-        font-size: .72rem;
-        font-weight: 700;
-        letter-spacing: .06em;
-        text-transform: uppercase;
-    }
+        .tv-telemetry__gauge-copy small {
+            color: rgba(223, 245, 255, 0.72);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
 
-    .tv-telemetry__gauge-copy em {
-        color: #eef7ff;
-        font-style: normal;
-        font-weight: 900;
-        letter-spacing: .04em;
-    }
+        .tv-telemetry__gauge-copy em {
+            color: #eef7ff;
+            font-style: normal;
+            font-weight: 900;
+            letter-spacing: .04em;
+        }
 
     .tv-telemetry__gauge-track {
         position: relative;
@@ -11426,15 +11322,15 @@ else
         isolation: isolate;
     }
 
-    .tv-telemetry-cube-shell.is-paused::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 26px;
-        box-shadow: 0 0 0 1px rgba(127, 246, 223, 0.14), 0 0 30px rgba(127, 246, 223, 0.08);
-        pointer-events: none;
-        opacity: .9;
-    }
+        .tv-telemetry-cube-shell.is-paused::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 26px;
+            box-shadow: 0 0 0 1px rgba(127, 246, 223, 0.14), 0 0 30px rgba(127, 246, 223, 0.08);
+            pointer-events: none;
+            opacity: .9;
+        }
 
     .tv-telemetry-cube {
         position: absolute;
@@ -11445,13 +11341,33 @@ else
         --tv-cube-depth: 280px;
     }
 
-    .tv-telemetry-cube.is-face-0 { transform: rotateY(0deg); }
-    .tv-telemetry-cube.is-face-1 { transform: rotateY(-90deg); }
-    .tv-telemetry-cube.is-face-2 { transform: rotateY(-180deg); }
-    .tv-telemetry-cube.is-face-3 { transform: rotateY(-270deg); }
-    .tv-telemetry-cube.is-face-4 { transform: rotateY(-180deg); }
-    .tv-telemetry-cube.is-face-5 { transform: rotateY(-180deg); }
-    .tv-telemetry-cube.is-face-6 { transform: rotateY(-180deg); }
+        .tv-telemetry-cube.is-face-0 {
+            transform: rotateY(0deg);
+        }
+
+        .tv-telemetry-cube.is-face-1 {
+            transform: rotateY(-90deg);
+        }
+
+        .tv-telemetry-cube.is-face-2 {
+            transform: rotateY(-180deg);
+        }
+
+        .tv-telemetry-cube.is-face-3 {
+            transform: rotateY(-270deg);
+        }
+
+        .tv-telemetry-cube.is-face-4 {
+            transform: rotateY(-180deg);
+        }
+
+        .tv-telemetry-cube.is-face-5 {
+            transform: rotateY(-180deg);
+        }
+
+        .tv-telemetry-cube.is-face-6 {
+            transform: rotateY(-180deg);
+        }
 
     .tv-telemetry-cube__face {
         position: absolute;
@@ -11459,26 +11375,35 @@ else
         backface-visibility: hidden;
         border-radius: 26px;
         border: 1px solid rgba(255,255,255,0.06);
-        background:
-            radial-gradient(circle at 10% 10%, rgba(127, 246, 223, 0.10), transparent 58%),
-            linear-gradient(180deg, rgba(10, 16, 28, 0.90), rgba(6, 10, 18, 0.92));
+        background: radial-gradient(circle at 10% 10%, rgba(127, 246, 223, 0.10), transparent 58%), linear-gradient(180deg, rgba(10, 16, 28, 0.90), rgba(6, 10, 18, 0.92));
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 22px 55px rgba(0,0,0,0.28);
         overflow: hidden;
     }
 
-    .tv-telemetry-cube__face::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(circle at 50% -10%, rgba(83, 200, 255, 0.16), transparent 62%);
-        opacity: .9;
-        pointer-events: none;
+        .tv-telemetry-cube__face::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% -10%, rgba(83, 200, 255, 0.16), transparent 62%);
+            opacity: .9;
+            pointer-events: none;
+        }
+
+    .tv-telemetry-cube__face--front {
+        transform: rotateY(0deg) translateZ(var(--tv-cube-depth));
     }
 
-    .tv-telemetry-cube__face--front { transform: rotateY(0deg) translateZ(var(--tv-cube-depth)); }
-    .tv-telemetry-cube__face--right { transform: rotateY(90deg) translateZ(var(--tv-cube-depth)); }
-    .tv-telemetry-cube__face--back { transform: rotateY(180deg) translateZ(var(--tv-cube-depth)); }
-    .tv-telemetry-cube__face--left { transform: rotateY(-90deg) translateZ(var(--tv-cube-depth)); }
+    .tv-telemetry-cube__face--right {
+        transform: rotateY(90deg) translateZ(var(--tv-cube-depth));
+    }
+
+    .tv-telemetry-cube__face--back {
+        transform: rotateY(180deg) translateZ(var(--tv-cube-depth));
+    }
+
+    .tv-telemetry-cube__face--left {
+        transform: rotateY(-90deg) translateZ(var(--tv-cube-depth));
+    }
 
     /* Virtual subfaces: reuse the back face, but animate internal holographic panels */
     .tv-telemetry-cube__virtual-stage {
@@ -11503,37 +11428,24 @@ else
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        transform:
-            rotateY(22deg)
-            translate3d(0, 0, -44px)
-            scale(.965);
+        transform: rotateY(22deg) translate3d(0, 0, -44px) scale(.965);
         transform-origin: center center;
         filter: blur(10px) saturate(.82);
-        transition:
-            opacity .28s ease,
-            transform .72s cubic-bezier(.22,.82,.28,1),
-            filter .72s cubic-bezier(.22,.82,.28,1),
-            visibility 0s linear .72s;
+        transition: opacity .28s ease, transform .72s cubic-bezier(.22,.82,.28,1), filter .72s cubic-bezier(.22,.82,.28,1), visibility 0s linear .72s;
         will-change: opacity, transform, filter;
         backface-visibility: hidden;
     }
 
-    .tv-telemetry-cube__virtual-panel::after {
-        content: "";
-        position: absolute;
-        inset: -8%;
-        background:
-            linear-gradient(115deg,
-                transparent 24%,
-                rgba(127, 246, 223, 0.08) 38%,
-                rgba(83, 200, 255, 0.24) 50%,
-                rgba(255, 91, 143, 0.12) 62%,
-                transparent 76%);
-        opacity: 0;
-        transform: translateX(-38%) skewX(-14deg);
-        pointer-events: none;
-        mix-blend-mode: screen;
-    }
+        .tv-telemetry-cube__virtual-panel::after {
+            content: "";
+            position: absolute;
+            inset: -8%;
+            background: linear-gradient(115deg, transparent 24%, rgba(127, 246, 223, 0.08) 38%, rgba(83, 200, 255, 0.24) 50%, rgba(255, 91, 143, 0.12) 62%, transparent 76%);
+            opacity: 0;
+            transform: translateX(-38%) skewX(-14deg);
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
 
     .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
     .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
@@ -11542,25 +11454,18 @@ else
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
-        transform:
-            rotateY(0deg)
-            translate3d(0, 0, 0)
-            scale(1);
+        transform: rotateY(0deg) translate3d(0, 0, 0) scale(1);
         filter: blur(0) saturate(1);
-        transition:
-            opacity .26s ease,
-            transform .88s cubic-bezier(.18,.88,.24,1),
-            filter .88s cubic-bezier(.18,.88,.24,1),
-            visibility 0s;
+        transition: opacity .26s ease, transform .88s cubic-bezier(.18,.88,.24,1), filter .88s cubic-bezier(.18,.88,.24,1), visibility 0s;
     }
 
-    .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
-    .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
-    .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
-    .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
-        opacity: .9;
-        animation: tvCubeSubfaceSweep .85s cubic-bezier(.22,.82,.28,1);
-    }
+        .tv-telemetry-cube.is-face-2 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare::after,
+        .tv-telemetry-cube.is-face-4 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split::after,
+        .tv-telemetry-cube.is-face-5 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals::after,
+        .tv-telemetry-cube.is-face-6 .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment::after {
+            opacity: .9;
+            animation: tvCubeSubfaceSweep .85s cubic-bezier(.22,.82,.28,1);
+        }
 
     .tv-telemetry-cube__inner {
         position: relative;
@@ -11617,16 +11522,16 @@ else
         gap: 12px;
     }
 
-    .tv-telemetry-face-header__row strong {
-        font-size: clamp(1.2rem, 1.4vw, 1.6rem);
-        letter-spacing: -.02em;
-    }
+        .tv-telemetry-face-header__row strong {
+            font-size: clamp(1.2rem, 1.4vw, 1.6rem);
+            letter-spacing: -.02em;
+        }
 
-    .tv-telemetry-face-header__row em {
-        font-style: normal;
-        font-weight: 900;
-        letter-spacing: .04em;
-    }
+        .tv-telemetry-face-header__row em {
+            font-style: normal;
+            font-weight: 900;
+            letter-spacing: .04em;
+        }
 
     .tv-telemetry-face-header__vs {
         opacity: .7;
@@ -11703,38 +11608,38 @@ else
         background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02));
     }
 
-    .tv-goal-log__item strong,
-    .tv-goal-log__empty strong {
-        font-size: 1rem;
-        letter-spacing: .03em;
-    }
+        .tv-goal-log__item strong,
+        .tv-goal-log__empty strong {
+            font-size: 1rem;
+            letter-spacing: .03em;
+        }
 
-    .tv-goal-log__item div,
-    .tv-goal-log__empty {
-        display: grid;
-        gap: 4px;
-    }
+        .tv-goal-log__item div,
+        .tv-goal-log__empty {
+            display: grid;
+            gap: 4px;
+        }
 
-    .tv-goal-log__item span {
-        color: var(--tv-green);
-        font-size: .74rem;
-        font-weight: 900;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
+        .tv-goal-log__item span {
+            color: var(--tv-green);
+            font-size: .74rem;
+            font-weight: 900;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
 
-    .tv-goal-log__item small,
-    .tv-goal-log__empty small {
-        color: var(--tv-muted);
-        line-height: 1.45;
-    }
+        .tv-goal-log__item small,
+        .tv-goal-log__empty small {
+            color: var(--tv-muted);
+            line-height: 1.45;
+        }
 
-    .tv-goal-log__item em {
-        font-style: normal;
-        font-weight: 900;
-        color: #7ff6df;
-        letter-spacing: .04em;
-    }
+        .tv-goal-log__item em {
+            font-style: normal;
+            font-weight: 900;
+            color: #7ff6df;
+            letter-spacing: .04em;
+        }
 
     .tv-goal-log__empty {
         grid-template-columns: 1fr;
@@ -11775,20 +11680,18 @@ else
         overflow: hidden;
     }
 
-    .tv-event-strip__card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent);
-        transform: translateX(-100%);
-        animation: tvSweep 12s ease-in-out infinite;
-    }
+        .tv-event-strip__card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent);
+            transform: translateX(-100%);
+            animation: tvSweep 12s ease-in-out infinite;
+        }
 
     .tv-event-strip__card--accent {
         border-color: rgba(255, 215, 110, 0.16);
-        background:
-            radial-gradient(circle at top right, rgba(255, 215, 110, 0.1), transparent 28%),
-            linear-gradient(180deg, rgba(11, 15, 27, 0.98), rgba(7, 10, 18, 0.98));
+        background: radial-gradient(circle at top right, rgba(255, 215, 110, 0.1), transparent 28%), linear-gradient(180deg, rgba(11, 15, 27, 0.98), rgba(7, 10, 18, 0.98));
     }
 
     .tv-waiting-hero {
@@ -11821,9 +11724,7 @@ else
         padding: 14px 16px;
         border-radius: 22px;
         border: 1px solid rgba(83, 200, 255, 0.14);
-        background:
-            linear-gradient(180deg, rgba(5, 10, 18, 0.96), rgba(4, 8, 16, 0.98)),
-            radial-gradient(circle at top left, rgba(153, 76, 255, 0.08), transparent 32%);
+        background: linear-gradient(180deg, rgba(5, 10, 18, 0.96), rgba(4, 8, 16, 0.98)), radial-gradient(circle at top left, rgba(153, 76, 255, 0.08), transparent 32%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 20px 44px rgba(0,0,0,0.18);
     }
 
@@ -11862,10 +11763,7 @@ else
         padding: 20px 22px;
         border: 1px solid rgba(127, 246, 223, 0.16);
         border-radius: 28px;
-        background:
-            radial-gradient(circle at top right, rgba(127, 246, 223, 0.08), transparent 22%),
-            radial-gradient(circle at top left, rgba(167, 139, 250, 0.08), transparent 24%),
-            linear-gradient(180deg, rgba(8, 12, 21, 0.96), rgba(5, 9, 18, 0.98));
+        background: radial-gradient(circle at top right, rgba(127, 246, 223, 0.08), transparent 22%), radial-gradient(circle at top left, rgba(167, 139, 250, 0.08), transparent 24%), linear-gradient(180deg, rgba(8, 12, 21, 0.96), rgba(5, 9, 18, 0.98));
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 24px 60px rgba(0,0,0,0.24);
     }
 
@@ -11874,27 +11772,27 @@ else
         gap: 8px;
     }
 
-    .tv-community-callout__copy span {
-        color: #7ff6df;
-        font-size: .76rem;
-        font-weight: 900;
-        letter-spacing: .16em;
-        text-transform: uppercase;
-    }
+        .tv-community-callout__copy span {
+            color: #7ff6df;
+            font-size: .76rem;
+            font-weight: 900;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
 
-    .tv-community-callout__copy h2,
-    .tv-panel--community h2 {
-        margin: 0;
-        font-size: clamp(1.2rem, 2vw, 1.7rem);
-        letter-spacing: -.03em;
-    }
+        .tv-community-callout__copy h2,
+        .tv-panel--community h2 {
+            margin: 0;
+            font-size: clamp(1.2rem, 2vw, 1.7rem);
+            letter-spacing: -.03em;
+        }
 
-    .tv-community-callout__copy p,
-    .tv-community-callout__description {
-        margin: 0;
-        color: var(--tv-muted);
-        line-height: 1.6;
-    }
+        .tv-community-callout__copy p,
+        .tv-community-callout__description {
+            margin: 0;
+            color: var(--tv-muted);
+            line-height: 1.6;
+        }
 
     .tv-community-callout :deep(.community-links--tv),
     .tv-panel--community :deep(.community-links--tv) {
@@ -11911,11 +11809,11 @@ else
         gap: 6px;
     }
 
-    .tv-panel__head h2 {
-        margin: 0;
-        font-size: 1.25rem;
-        letter-spacing: -.03em;
-    }
+        .tv-panel__head h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            letter-spacing: -.03em;
+        }
 
     .tv-ranking-list,
     .tv-latest-list,
@@ -11980,22 +11878,22 @@ else
         color: rgba(232, 243, 255, 0.88);
     }
 
-    .tv-mode-selector__header span,
-    .tv-mode-card__eyebrow {
-        text-transform: uppercase;
-        letter-spacing: .12em;
-        font-size: .72rem;
-        color: rgba(143, 226, 255, 0.78);
-    }
+        .tv-mode-selector__header span,
+        .tv-mode-card__eyebrow {
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            font-size: .72rem;
+            color: rgba(143, 226, 255, 0.78);
+        }
 
-    .tv-mode-selector__header h2 {
-        margin: .25rem 0 0;
-        font-size: 1.1rem;
-    }
+        .tv-mode-selector__header h2 {
+            margin: .25rem 0 0;
+            font-size: 1.1rem;
+        }
 
-    .tv-mode-selector__header small {
-        color: rgba(214, 226, 240, 0.72);
-    }
+        .tv-mode-selector__header small {
+            color: rgba(214, 226, 240, 0.72);
+        }
 
     .tv-mode-selector__grid {
         display: grid;
@@ -12013,22 +11911,22 @@ else
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
     }
 
-    .tv-mode-card.is-active,
-    .tv-mode-card.is-current {
-        border-color: rgba(127, 246, 223, 0.34);
-        box-shadow: 0 16px 34px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
-    }
+        .tv-mode-card.is-active,
+        .tv-mode-card.is-current {
+            border-color: rgba(127, 246, 223, 0.34);
+            box-shadow: 0 16px 34px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
 
-    .tv-mode-card strong {
-        color: #f7fbff;
-        font-size: 1rem;
-    }
+        .tv-mode-card strong {
+            color: #f7fbff;
+            font-size: 1rem;
+        }
 
-    .tv-mode-card p,
-    .tv-mode-card small,
-    .tv-mode-card span {
-        color: rgba(220, 232, 244, 0.8);
-    }
+        .tv-mode-card p,
+        .tv-mode-card small,
+        .tv-mode-card span {
+            color: rgba(220, 232, 244, 0.8);
+        }
 
     .tv-mode-card__meta,
     .tv-mode-card__stats,
@@ -12074,646 +11972,473 @@ else
         letter-spacing: -.02em;
     }
 
-.pirate-signal-backdrop {
-    position: absolute;
-    inset: 0;
-    z-index: 14;
-    display: grid;
-    place-items: start center;
-    overflow: hidden;
-    padding: clamp(16px, 3vw, 36px);
-    background:
-        radial-gradient(circle at 50% 50%, rgba(14, 22, 38, 0.14), rgba(2, 6, 14, 0.76)),
-        linear-gradient(180deg, rgba(2, 10, 24, 0.08), rgba(2, 10, 24, 0.5));
-    pointer-events: none;
-    animation: pirateFadeIn .45s ease-out both;
-}
-
-.pirate-signal-backdrop.is-market-warning {
-    background:
-        radial-gradient(circle at 50% 50%, rgba(90, 18, 18, 0.22), rgba(16, 4, 10, 0.82)),
-        linear-gradient(180deg, rgba(78, 18, 28, 0.12), rgba(16, 8, 20, 0.64));
-}
-
-.pirate-signal-backdrop.is-villain-message {
-    background:
-        radial-gradient(circle at 50% 50%, rgba(60, 16, 90, 0.22), rgba(8, 4, 18, 0.84)),
-        linear-gradient(180deg, rgba(52, 18, 84, 0.12), rgba(10, 8, 22, 0.64));
-}
-
-.pirate-signal-backdrop.is-special-event {
-    background:
-        radial-gradient(circle at 50% 50%, rgba(96, 72, 20, 0.18), rgba(16, 12, 4, 0.82)),
-        linear-gradient(180deg, rgba(84, 66, 20, 0.12), rgba(8, 10, 22, 0.62));
-}
-
-.pirate-signal-panel {
-    position: relative;
-    width: min(84vw, 1100px);
-    min-height: min(70vh, 720px);
-    margin-top: clamp(12px, 4vh, 42px);
-    display: grid;
-    grid-template-rows: auto 1fr;
-    gap: 18px;
-    padding: clamp(18px, 3vw, 34px);
-    color: #dffcff;
-    border-radius: 28px;
-    overflow: hidden;
-    border: 1px solid rgba(102, 228, 255, 0.72);
-    background: linear-gradient(135deg, rgba(4, 18, 34, 0.94), rgba(3, 10, 24, 0.9));
-    box-shadow:
-        0 0 0 1px rgba(120, 244, 255, 0.12) inset,
-        0 28px 80px rgba(0, 0, 0, 0.46),
-        0 0 42px rgba(34, 214, 255, 0.22);
-    animation:
-        pirateGlitch .22s steps(2, end) 2,
-        pirateVhsBurst 1.05s ease-out 1,
-        pirateFloat 5.8s ease-in-out infinite,
-        neonPulse 2.8s ease-in-out infinite;
-}
-
-.pirate-signal-panel.is-market-warning {
-    border-color: rgba(255, 131, 102, 0.74);
-    background: linear-gradient(135deg, rgba(34, 12, 14, 0.96), rgba(18, 8, 20, 0.92));
-}
-
-.pirate-signal-panel.is-villain-message {
-    border-color: rgba(198, 132, 255, 0.7);
-    background: linear-gradient(135deg, rgba(20, 10, 38, 0.96), rgba(12, 8, 24, 0.92));
-}
-
-.pirate-signal-panel.is-special-event {
-    border-color: rgba(255, 226, 124, 0.76);
-    background: linear-gradient(135deg, rgba(30, 22, 8, 0.96), rgba(10, 12, 24, 0.92));
-}
-
-.pirate-signal-panel.is-transition-emergency-alert {
-    animation:
-        pirateGlitch .22s steps(2, end) 2,
-        pirateVhsBurst 1.05s ease-out 1,
-        pirateAlertPulse 1.2s ease-in-out infinite;
-}
-
-.pirate-signal-panel.is-transition-arena-takeover {
-    animation:
-        pirateGlitch .22s steps(2, end) 2,
-        pirateVhsBurst 1.05s ease-out 1,
-        pirateTakeoverShake 2.4s ease-in-out infinite,
-        neonPulse 2.8s ease-in-out infinite;
-}
-
-.pirate-signal-panel::before,
-.pirate-signal-panel::after {
-    content: "";
-    position: absolute;
-    inset: 10px;
-    border: 2px solid rgba(28, 200, 255, 0.68);
-    clip-path: polygon(6% 0, 24% 0, 27% 3%, 92% 3%, 100% 14%, 100% 100%, 45% 100%, 41% 96%, 3% 96%, 0 92%, 0 11%);
-    pointer-events: none;
-}
-
-.pirate-signal-panel::after {
-    inset: 20px;
-    border-color: rgba(111, 250, 255, 0.18);
-    opacity: .8;
-}
-
-.pirate-signal-panel__scanlines,
-.pirate-signal-panel__noise {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-}
-
-.pirate-vhs-glitch {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 1;
-    animation: pirateVhsContainer 1.5s linear infinite;
-}
-
-.pirate-vhs-glitch::before,
-.pirate-vhs-glitch::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    pointer-events: none;
-}
-
-.pirate-vhs-glitch::before {
-    top: 0;
-    height: 22%;
-    background: linear-gradient(180deg, rgba(160, 248, 255, 0.52), rgba(160, 248, 255, 0));
-    opacity: 0;
-    animation: pirateVhsTracking 1.15s linear infinite;
-}
-
-.pirate-vhs-glitch::after {
-    inset: 0;
-    background:
-        linear-gradient(90deg, rgba(255, 0, 84, 0.12), transparent 22%, transparent 78%, rgba(0, 229, 255, 0.12)),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.05));
-    opacity: 0;
-    animation: pirateVhsFlash 2.4s steps(2, end) infinite;
-}
-
-.pirate-vhs-glitch__line {
-    position: absolute;
-    display: block;
-    left: 0;
-    right: 0;
-    top: calc(-8% + (var(--line-index) * 2.85%));
-    height: clamp(2px, .34vw, 6px);
-    opacity: 0;
-    background:
-        linear-gradient(90deg,
-            rgba(115, 245, 255, 0) 0%,
-            rgba(115, 245, 255, 0.3) 18%,
-            rgba(255, 255, 255, 0.88) 46%,
-            rgba(80, 210, 255, 0.42) 78%,
-            rgba(115, 245, 255, 0) 100%);
-    box-shadow:
-        0 0 14px rgba(120, 246, 255, 0.42),
-        0 0 30px rgba(120, 246, 255, 0.18);
-    transform: translateX(0) scaleX(1);
-    animation: pirateVhsLine 1.18s calc(var(--line-index) * 0.035s) infinite;
-}
-
-.pirate-signal-panel__scanlines {
-    background: repeating-linear-gradient(
-        to bottom,
-        rgba(146, 255, 255, 0.09) 0 2px,
-        rgba(2, 8, 14, 0) 2px 6px);
-    mix-blend-mode: screen;
-    opacity: .26;
-    animation: scanlines 8s linear infinite;
-}
-
-.pirate-signal-panel__noise {
-    background:
-        linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.08) 50%, transparent 100%),
-        radial-gradient(circle at 20% 20%, rgba(83, 200, 255, 0.18), transparent 32%),
-        radial-gradient(circle at 78% 12%, rgba(0, 255, 198, 0.14), transparent 28%);
-    opacity: .34;
-    animation: pirateNoise 3.8s steps(3, end) infinite;
-}
-
-.pirate-signal-header {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(104, 227, 255, 0.24);
-    text-transform: uppercase;
-    letter-spacing: .22em;
-    font-size: .74rem;
-}
-
-.pirate-signal-header__left {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-}
-
-.signal-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: #57ebff;
-    box-shadow: 0 0 14px rgba(87, 235, 255, 0.95);
-    animation: signalDotPulse 1.2s ease-in-out infinite;
-    flex: 0 0 auto;
-}
-
-.signal-status {
-    padding: 8px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(127, 245, 255, 0.34);
-    background: rgba(8, 24, 42, 0.8);
-    color: #8ff9ff;
-    box-shadow: 0 0 18px rgba(55, 220, 255, 0.14);
-}
-
-.pirate-signal-body {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: minmax(280px, 1.05fr) minmax(300px, .95fr);
-    gap: clamp(18px, 3vw, 34px);
-    align-items: stretch;
-    min-height: 0;
-}
-
-.pirate-character-frame {
-    position: relative;
-    min-height: clamp(280px, 48vw, 540px);
-    border-radius: 24px;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 50% 28%, rgba(52, 223, 255, 0.22), transparent 34%),
-        linear-gradient(180deg, rgba(3, 12, 28, 0.85), rgba(3, 8, 20, 0.98));
-    border: 1px solid rgba(117, 242, 255, 0.35);
-    box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,0.03),
-        0 0 26px rgba(44, 208, 255, 0.18);
-    display: grid;
-    align-items: end;
-}
-
-.pirate-character-frame__hud {
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(90deg, rgba(50, 200, 255, 0.1), transparent 14%, transparent 86%, rgba(50, 200, 255, 0.1)),
-        linear-gradient(180deg, rgba(50, 200, 255, 0.08), transparent 16%, transparent 84%, rgba(50, 200, 255, 0.08));
-    pointer-events: none;
-}
-
-.pirate-character-frame__portrait {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    filter: saturate(1.02) contrast(1.08);
-}
-
-.pirate-character-frame__video {
-    background: #020814;
-}
-
-.pirate-character-frame__fallback {
-    position: absolute;
-    inset: 0;
-    display: none;
-    place-items: center;
-    background:
-        radial-gradient(circle at 50% 40%, rgba(57, 229, 255, 0.3), transparent 25%),
-        linear-gradient(180deg, rgba(11, 23, 41, 0.15), rgba(3, 8, 20, 0.9));
-    color: rgba(152, 248, 255, 0.92);
-    font-size: clamp(3.8rem, 10vw, 7rem);
-    font-weight: 800;
-    letter-spacing: .2em;
-    text-shadow: 0 0 24px rgba(73, 223, 255, 0.32);
-}
-
-.pirate-character-frame.is-placeholder .pirate-character-frame__fallback {
-    display: grid;
-}
-
-.pirate-character-frame__label {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    gap: 4px;
-    padding: 18px 18px 16px;
-    background: linear-gradient(180deg, rgba(5, 13, 28, 0), rgba(5, 13, 28, 0.86));
-    text-transform: uppercase;
-    letter-spacing: .14em;
-}
-
-.pirate-character-frame__label small {
-    color: rgba(152, 245, 255, 0.72);
-    font-size: .68rem;
-}
-
-.pirate-character-frame__label strong {
-    font-size: clamp(1rem, 2vw, 1.25rem);
-    color: #f2ffff;
-}
-
-.pirate-signal-copy {
-    display: grid;
-    align-content: end;
-    gap: 16px;
-    min-height: 0;
-}
-
-.pirate-signal-copy__eyebrow {
-    text-transform: uppercase;
-    letter-spacing: .22em;
-    font-size: .72rem;
-    color: rgba(123, 242, 255, 0.84);
-}
-
-.pirate-message {
-    position: relative;
-    padding: clamp(18px, 2.4vw, 28px);
-    border-radius: 24px;
-    background:
-        linear-gradient(180deg, rgba(6, 18, 36, 0.88), rgba(3, 10, 22, 0.96));
-    border: 1px solid rgba(112, 236, 255, 0.28);
-    box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,0.02),
-        0 0 24px rgba(40, 207, 255, 0.12);
-    font-size: clamp(1rem, 1.9vw, 1.45rem);
-    line-height: 1.55;
-    color: #f4ffff;
-}
-
-.pirate-message::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(90deg, rgba(48, 229, 255, 0.1), transparent 26%, transparent 74%, rgba(48, 229, 255, 0.1));
-    pointer-events: none;
-}
-
-.pirate-signal-copy__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    justify-content: space-between;
-    text-transform: uppercase;
-    letter-spacing: .16em;
-    font-size: .68rem;
-    color: rgba(135, 239, 255, 0.76);
-}
-
-.tv-event-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 999999;
-    display: grid;
-    place-items: center;
-    pointer-events: none;
-    overflow: hidden;
-    opacity: 0;
-    visibility: hidden;
-    transition:
-        opacity .35s ease,
-        visibility .35s ease;
-}
-
-.tv-event-overlay.is-visible {
-    opacity: 1;
-    visibility: visible;
-}
-
-.tv-event-overlay::before {
-    content: "";
-    position: absolute;
-    inset: -20%;
-    background:
-        radial-gradient(circle at center,
-            rgba(83,200,255,.22) 0%,
-            rgba(83,200,255,.12) 18%,
-            rgba(127,246,223,.08) 28%,
-            transparent 60%);
-    filter: blur(60px);
-    animation: tvOverlayPulse 2.8s ease-in-out infinite;
-}
-
-.tv-event-overlay__card {
-    --event-accent: #53c8ff;
-
-    position: relative;
-
-    width: min(92vw, 1400px);
-    max-width: 1400px;
-
-    padding:
-        clamp(24px, 3vw, 42px)
-        clamp(28px, 5vw, 70px);
-
-    border-radius: 38px;
-
-    display: grid;
-    gap: 14px;
-
-    text-align: center;
-
-    border:
-        1px solid color-mix(
-            in srgb,
-            var(--event-accent) 44%,
-            rgba(255,255,255,.12)
-        );
-
-    background:
-        linear-gradient(
-            180deg,
-            rgba(4,7,16,.72),
-            rgba(3,5,12,.84)
-        );
-
-    backdrop-filter:
-        blur(28px)
-        saturate(160%);
-
-    overflow: hidden;
-
-    box-shadow:
-        0 0 140px rgba(0,0,0,.82),
-        0 0 80px color-mix(
-            in srgb,
-            var(--event-accent) 26%,
-            transparent
-        ),
-        inset 0 0 0 1px rgba(255,255,255,.04);
-
-    animation:
-        tvOverlayEntrance .65s cubic-bezier(.22,1,.36,1),
-        tvOverlayGlow 3.5s ease-in-out infinite;
-}
-
-.tv-event-overlay__card::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-
-    background:
-        linear-gradient(
-            115deg,
-            transparent 0%,
-            rgba(255,255,255,.06) 32%,
-            transparent 58%
-        );
-
-    transform: translateX(-140%);
-    animation: tvOverlaySweep 4.5s linear infinite;
-}
-
-.tv-event-overlay__card::after {
-    content: "";
-    position: absolute;
-    inset: -2px;
-
-    border-radius: inherit;
-
-    background:
-        linear-gradient(
-            135deg,
-            color-mix(in srgb, var(--event-accent) 65%, white),
-            transparent 24%,
-            transparent 76%,
-            color-mix(in srgb, var(--event-accent) 45%, white)
-        );
-
-    opacity: .35;
-
-    mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-
-    -webkit-mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-
-    padding: 1px;
-
-    mask-composite: exclude;
-    -webkit-mask-composite: xor;
-
-    pointer-events: none;
-}
-
-.tv-event-overlay__card span {
-    position: relative;
-
-    color:
-        color-mix(
-            in srgb,
-            var(--event-accent) 82%,
-            white
-        );
-
-    text-transform: uppercase;
-
-    letter-spacing: .38em;
-
-    font-size:
-        clamp(.8rem, 1vw, 1.2rem);
-
-    font-weight: 900;
-
-    text-shadow:
-        0 0 18px color-mix(
-            in srgb,
-            var(--event-accent) 50%,
-            transparent
-        );
-}
-
-.tv-event-overlay__card strong {
-    position: relative;
-
-    font-size:
-        clamp(4rem, 10vw, 12rem);
-
-    line-height: .9;
-
-    font-weight: 1000;
-
-    letter-spacing: -.08em;
-
-    text-transform: uppercase;
-
-    color: #ffffff;
-
-    text-shadow:
-        0 0 12px rgba(255,255,255,.18),
-        0 0 34px color-mix(
-            in srgb,
-            var(--event-accent) 55%,
-            transparent
-        ),
-        0 0 90px color-mix(
-            in srgb,
-            var(--event-accent) 24%,
-            transparent
-        );
-
-    filter:
-        drop-shadow(0 10px 24px rgba(0,0,0,.55));
-}
-
-.tv-event-overlay__card small {
-    position: relative;
-
-    color: rgba(230,240,255,.82);
-
-    font-size:
-        clamp(1rem, 2vw, 2.4rem);
-
-    line-height: 1.4;
-
-    font-weight: 700;
-
-    letter-spacing: .02em;
-
-    text-shadow:
-        0 0 16px rgba(255,255,255,.08);
-}
-
-@@keyframes tvOverlayEntrance {
-    0% {
+    .pirate-signal-backdrop {
+        position: absolute;
+        inset: 0;
+        z-index: 14;
+        display: grid;
+        place-items: start center;
+        overflow: hidden;
+        padding: clamp(16px, 3vw, 36px);
+        background: radial-gradient(circle at 50% 50%, rgba(14, 22, 38, 0.14), rgba(2, 6, 14, 0.76)), linear-gradient(180deg, rgba(2, 10, 24, 0.08), rgba(2, 10, 24, 0.5));
+        pointer-events: none;
+        animation: pirateFadeIn .45s ease-out both;
+    }
+
+        .pirate-signal-backdrop.is-market-warning {
+            background: radial-gradient(circle at 50% 50%, rgba(90, 18, 18, 0.22), rgba(16, 4, 10, 0.82)), linear-gradient(180deg, rgba(78, 18, 28, 0.12), rgba(16, 8, 20, 0.64));
+        }
+
+        .pirate-signal-backdrop.is-villain-message {
+            background: radial-gradient(circle at 50% 50%, rgba(60, 16, 90, 0.22), rgba(8, 4, 18, 0.84)), linear-gradient(180deg, rgba(52, 18, 84, 0.12), rgba(10, 8, 22, 0.64));
+        }
+
+        .pirate-signal-backdrop.is-special-event {
+            background: radial-gradient(circle at 50% 50%, rgba(96, 72, 20, 0.18), rgba(16, 12, 4, 0.82)), linear-gradient(180deg, rgba(84, 66, 20, 0.12), rgba(8, 10, 22, 0.62));
+        }
+
+    .pirate-signal-panel {
+        position: relative;
+        width: min(84vw, 1100px);
+        min-height: min(70vh, 720px);
+        margin-top: clamp(12px, 4vh, 42px);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 18px;
+        padding: clamp(18px, 3vw, 34px);
+        color: #dffcff;
+        border-radius: 28px;
+        overflow: hidden;
+        border: 1px solid rgba(102, 228, 255, 0.72);
+        background: linear-gradient(135deg, rgba(4, 18, 34, 0.94), rgba(3, 10, 24, 0.9));
+        box-shadow: 0 0 0 1px rgba(120, 244, 255, 0.12) inset, 0 28px 80px rgba(0, 0, 0, 0.46), 0 0 42px rgba(34, 214, 255, 0.22);
+        animation: pirateGlitch .22s steps(2, end) 2, pirateVhsBurst 1.05s ease-out 1, pirateFloat 5.8s ease-in-out infinite, neonPulse 2.8s ease-in-out infinite;
+    }
+
+        .pirate-signal-panel.is-market-warning {
+            border-color: rgba(255, 131, 102, 0.74);
+            background: linear-gradient(135deg, rgba(34, 12, 14, 0.96), rgba(18, 8, 20, 0.92));
+        }
+
+        .pirate-signal-panel.is-villain-message {
+            border-color: rgba(198, 132, 255, 0.7);
+            background: linear-gradient(135deg, rgba(20, 10, 38, 0.96), rgba(12, 8, 24, 0.92));
+        }
+
+        .pirate-signal-panel.is-special-event {
+            border-color: rgba(255, 226, 124, 0.76);
+            background: linear-gradient(135deg, rgba(30, 22, 8, 0.96), rgba(10, 12, 24, 0.92));
+        }
+
+        .pirate-signal-panel.is-transition-emergency-alert {
+            animation: pirateGlitch .22s steps(2, end) 2, pirateVhsBurst 1.05s ease-out 1, pirateAlertPulse 1.2s ease-in-out infinite;
+        }
+
+        .pirate-signal-panel.is-transition-arena-takeover {
+            animation: pirateGlitch .22s steps(2, end) 2, pirateVhsBurst 1.05s ease-out 1, pirateTakeoverShake 2.4s ease-in-out infinite, neonPulse 2.8s ease-in-out infinite;
+        }
+
+        .pirate-signal-panel::before,
+        .pirate-signal-panel::after {
+            content: "";
+            position: absolute;
+            inset: 10px;
+            border: 2px solid rgba(28, 200, 255, 0.68);
+            clip-path: polygon(6% 0, 24% 0, 27% 3%, 92% 3%, 100% 14%, 100% 100%, 45% 100%, 41% 96%, 3% 96%, 0 92%, 0 11%);
+            pointer-events: none;
+        }
+
+        .pirate-signal-panel::after {
+            inset: 20px;
+            border-color: rgba(111, 250, 255, 0.18);
+            opacity: .8;
+        }
+
+    .pirate-signal-panel__scanlines,
+    .pirate-signal-panel__noise {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .pirate-vhs-glitch {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 1;
+        animation: pirateVhsContainer 1.5s linear infinite;
+    }
+
+        .pirate-vhs-glitch::before,
+        .pirate-vhs-glitch::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+        }
+
+        .pirate-vhs-glitch::before {
+            top: 0;
+            height: 22%;
+            background: linear-gradient(180deg, rgba(160, 248, 255, 0.52), rgba(160, 248, 255, 0));
+            opacity: 0;
+            animation: pirateVhsTracking 1.15s linear infinite;
+        }
+
+        .pirate-vhs-glitch::after {
+            inset: 0;
+            background: linear-gradient(90deg, rgba(255, 0, 84, 0.12), transparent 22%, transparent 78%, rgba(0, 229, 255, 0.12)), linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 30%, transparent 70%, rgba(255, 255, 255, 0.05));
+            opacity: 0;
+            animation: pirateVhsFlash 2.4s steps(2, end) infinite;
+        }
+
+    .pirate-vhs-glitch__line {
+        position: absolute;
+        display: block;
+        left: 0;
+        right: 0;
+        top: calc(-8% + (var(--line-index) * 2.85%));
+        height: clamp(2px, .34vw, 6px);
         opacity: 0;
-        transform:
-            scale(.78)
-            translateY(80px);
-        filter:
-            blur(26px);
+        background: linear-gradient(90deg, rgba(115, 245, 255, 0) 0%, rgba(115, 245, 255, 0.3) 18%, rgba(255, 255, 255, 0.88) 46%, rgba(80, 210, 255, 0.42) 78%, rgba(115, 245, 255, 0) 100%);
+        box-shadow: 0 0 14px rgba(120, 246, 255, 0.42), 0 0 30px rgba(120, 246, 255, 0.18);
+        transform: translateX(0) scaleX(1);
+        animation: pirateVhsLine 1.18s calc(var(--line-index) * 0.035s) infinite;
     }
 
-    60% {
-        opacity: 1;
-        transform:
-            scale(1.04)
-            translateY(-6px);
-        filter:
-            blur(0);
+    .pirate-signal-panel__scanlines {
+        background: repeating-linear-gradient( to bottom, rgba(146, 255, 255, 0.09) 0 2px, rgba(2, 8, 14, 0) 2px 6px);
+        mix-blend-mode: screen;
+        opacity: .26;
+        animation: scanlines 8s linear infinite;
     }
 
-    100% {
-        opacity: 1;
-        transform:
-            scale(1)
-            translateY(0);
-        filter:
-            blur(0);
-    }
-}
-
-@@keyframes tvOverlayGlow {
-    0%,100% {
-        transform: scale(1);
+    .pirate-signal-panel__noise {
+        background: linear-gradient(90deg, transparent 0%, rgba(0, 255, 255, 0.08) 50%, transparent 100%), radial-gradient(circle at 20% 20%, rgba(83, 200, 255, 0.18), transparent 32%), radial-gradient(circle at 78% 12%, rgba(0, 255, 198, 0.14), transparent 28%);
+        opacity: .34;
+        animation: pirateNoise 3.8s steps(3, end) infinite;
     }
 
-    50% {
-        transform: scale(1.015);
-    }
-}
-
-@@keyframes tvOverlayPulse {
-    0%,100% {
-        transform: scale(1);
-        opacity: .7;
-    }
-
-    50% {
-        transform: scale(1.08);
-        opacity: 1;
-    }
-}
-
-@@keyframes tvOverlaySweep {
-    0% {
-        transform: translateX(-140%);
+    .pirate-signal-header {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(104, 227, 255, 0.24);
+        text-transform: uppercase;
+        letter-spacing: .22em;
+        font-size: .74rem;
     }
 
-    100% {
-        transform: translateX(140%);
+    .pirate-signal-header__left {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
     }
-}
+
+    .signal-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #57ebff;
+        box-shadow: 0 0 14px rgba(87, 235, 255, 0.95);
+        animation: signalDotPulse 1.2s ease-in-out infinite;
+        flex: 0 0 auto;
+    }
+
+    .signal-status {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(127, 245, 255, 0.34);
+        background: rgba(8, 24, 42, 0.8);
+        color: #8ff9ff;
+        box-shadow: 0 0 18px rgba(55, 220, 255, 0.14);
+    }
+
+    .pirate-signal-body {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: minmax(280px, 1.05fr) minmax(300px, .95fr);
+        gap: clamp(18px, 3vw, 34px);
+        align-items: stretch;
+        min-height: 0;
+    }
+
+    .pirate-character-frame {
+        position: relative;
+        min-height: clamp(280px, 48vw, 540px);
+        border-radius: 24px;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 28%, rgba(52, 223, 255, 0.22), transparent 34%), linear-gradient(180deg, rgba(3, 12, 28, 0.85), rgba(3, 8, 20, 0.98));
+        border: 1px solid rgba(117, 242, 255, 0.35);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 26px rgba(44, 208, 255, 0.18);
+        display: grid;
+        align-items: end;
+    }
+
+    .pirate-character-frame__hud {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(50, 200, 255, 0.1), transparent 14%, transparent 86%, rgba(50, 200, 255, 0.1)), linear-gradient(180deg, rgba(50, 200, 255, 0.08), transparent 16%, transparent 84%, rgba(50, 200, 255, 0.08));
+        pointer-events: none;
+    }
+
+    .pirate-character-frame__portrait {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: saturate(1.02) contrast(1.08);
+    }
+
+    .pirate-character-frame__video {
+        background: #020814;
+    }
+
+    .pirate-character-frame__fallback {
+        position: absolute;
+        inset: 0;
+        display: none;
+        place-items: center;
+        background: radial-gradient(circle at 50% 40%, rgba(57, 229, 255, 0.3), transparent 25%), linear-gradient(180deg, rgba(11, 23, 41, 0.15), rgba(3, 8, 20, 0.9));
+        color: rgba(152, 248, 255, 0.92);
+        font-size: clamp(3.8rem, 10vw, 7rem);
+        font-weight: 800;
+        letter-spacing: .2em;
+        text-shadow: 0 0 24px rgba(73, 223, 255, 0.32);
+    }
+
+    .pirate-character-frame.is-placeholder .pirate-character-frame__fallback {
+        display: grid;
+    }
+
+    .pirate-character-frame__label {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 4px;
+        padding: 18px 18px 16px;
+        background: linear-gradient(180deg, rgba(5, 13, 28, 0), rgba(5, 13, 28, 0.86));
+        text-transform: uppercase;
+        letter-spacing: .14em;
+    }
+
+        .pirate-character-frame__label small {
+            color: rgba(152, 245, 255, 0.72);
+            font-size: .68rem;
+        }
+
+        .pirate-character-frame__label strong {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            color: #f2ffff;
+        }
+
+    .pirate-signal-copy {
+        display: grid;
+        align-content: end;
+        gap: 16px;
+        min-height: 0;
+    }
+
+    .pirate-signal-copy__eyebrow {
+        text-transform: uppercase;
+        letter-spacing: .22em;
+        font-size: .72rem;
+        color: rgba(123, 242, 255, 0.84);
+    }
+
+    .pirate-message {
+        position: relative;
+        padding: clamp(18px, 2.4vw, 28px);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(6, 18, 36, 0.88), rgba(3, 10, 22, 0.96));
+        border: 1px solid rgba(112, 236, 255, 0.28);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 0 24px rgba(40, 207, 255, 0.12);
+        font-size: clamp(1rem, 1.9vw, 1.45rem);
+        line-height: 1.55;
+        color: #f4ffff;
+    }
+
+        .pirate-message::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, rgba(48, 229, 255, 0.1), transparent 26%, transparent 74%, rgba(48, 229, 255, 0.1));
+            pointer-events: none;
+        }
+
+    .pirate-signal-copy__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        justify-content: space-between;
+        text-transform: uppercase;
+        letter-spacing: .16em;
+        font-size: .68rem;
+        color: rgba(135, 239, 255, 0.76);
+    }
+
+    .tv-event-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .35s ease, visibility .35s ease;
+    }
+
+        .tv-event-overlay.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tv-event-overlay::before {
+            content: "";
+            position: absolute;
+            inset: -20%;
+            background: radial-gradient(circle at center, rgba(83,200,255,.22) 0%, rgba(83,200,255,.12) 18%, rgba(127,246,223,.08) 28%, transparent 60%);
+            filter: blur(60px);
+            animation: tvOverlayPulse 2.8s ease-in-out infinite;
+        }
+
+    .tv-event-overlay__card {
+        --event-accent: #53c8ff;
+        position: relative;
+        width: min(92vw, 1400px);
+        max-width: 1400px;
+        padding: clamp(24px, 3vw, 42px) clamp(28px, 5vw, 70px);
+        border-radius: 38px;
+        display: grid;
+        gap: 14px;
+        text-align: center;
+        border: 1px solid color-mix( in srgb, var(--event-accent) 44%, rgba(255,255,255,.12) );
+        background: linear-gradient( 180deg, rgba(4,7,16,.72), rgba(3,5,12,.84) );
+        backdrop-filter: blur(28px) saturate(160%);
+        overflow: hidden;
+        box-shadow: 0 0 140px rgba(0,0,0,.82), 0 0 80px color-mix( in srgb, var(--event-accent) 26%, transparent ), inset 0 0 0 1px rgba(255,255,255,.04);
+        animation: tvOverlayEntrance .65s cubic-bezier(.22,1,.36,1), tvOverlayGlow 3.5s ease-in-out infinite;
+    }
+
+        .tv-event-overlay__card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient( 115deg, transparent 0%, rgba(255,255,255,.06) 32%, transparent 58% );
+            transform: translateX(-140%);
+            animation: tvOverlaySweep 4.5s linear infinite;
+        }
+
+        .tv-event-overlay__card::after {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            background: linear-gradient( 135deg, color-mix(in srgb, var(--event-accent) 65%, white), transparent 24%, transparent 76%, color-mix(in srgb, var(--event-accent) 45%, white) );
+            opacity: .35;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            padding: 1px;
+            mask-composite: exclude;
+            -webkit-mask-composite: xor;
+            pointer-events: none;
+        }
+
+        .tv-event-overlay__card span {
+            position: relative;
+            color: color-mix( in srgb, var(--event-accent) 82%, white );
+            text-transform: uppercase;
+            letter-spacing: .38em;
+            font-size: clamp(.8rem, 1vw, 1.2rem);
+            font-weight: 900;
+            text-shadow: 0 0 18px color-mix( in srgb, var(--event-accent) 50%, transparent );
+        }
+
+        .tv-event-overlay__card strong {
+            position: relative;
+            font-size: clamp(4rem, 10vw, 12rem);
+            line-height: .9;
+            font-weight: 1000;
+            letter-spacing: -.08em;
+            text-transform: uppercase;
+            color: #ffffff;
+            text-shadow: 0 0 12px rgba(255,255,255,.18), 0 0 34px color-mix( in srgb, var(--event-accent) 55%, transparent ), 0 0 90px color-mix( in srgb, var(--event-accent) 24%, transparent );
+            filter: drop-shadow(0 10px 24px rgba(0,0,0,.55));
+        }
+
+        .tv-event-overlay__card small {
+            position: relative;
+            color: rgba(230,240,255,.82);
+            font-size: clamp(1rem, 2vw, 2.4rem);
+            line-height: 1.4;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-shadow: 0 0 16px rgba(255,255,255,.08);
+        }
+
+    @@keyframes tvOverlayEntrance {
+        0% {
+            opacity: 0;
+            transform: scale(.78) translateY(80px);
+            filter: blur(26px);
+        }
+
+        60% {
+            opacity: 1;
+            transform: scale(1.04) translateY(-6px);
+            filter: blur(0);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            filter: blur(0);
+        }
+    }
+
+    @@keyframes tvOverlayGlow {
+        0%, 100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.015);
+        }
+    }
+
+    @@keyframes tvOverlayPulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: .7;
+        }
+
+        50% {
+            transform: scale(1.08);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes tvOverlaySweep {
+        0% {
+            transform: translateX(-140%);
+        }
+
+        100% {
+            transform: translateX(140%);
+        }
+    }
 
 
     .tv-ticker__track {
@@ -12729,6 +12454,7 @@ else
         letter-spacing: .08em;
         text-shadow: 0 0 12px rgba(255, 196, 0, .65), 0 0 24px rgba(255, 196, 0, .35);
     }
+
     .tv-ticker__lane {
         height: 100%;
         display: flex;
@@ -12780,10 +12506,10 @@ else
         margin-bottom: 0;
     }
 
-    .tv-stage--broadcast h1,
-    .tv-stage--broadcast .tv-waiting-hero h1 {
-        font-size: clamp(2rem, 3vw, 3rem);
-    }
+        .tv-stage--broadcast h1,
+        .tv-stage--broadcast .tv-waiting-hero h1 {
+            font-size: clamp(2rem, 3vw, 3rem);
+        }
 
     .tv-stage--broadcast .tv-stage__badges {
         gap: 8px;
@@ -12794,9 +12520,9 @@ else
         scrollbar-width: none;
     }
 
-    .tv-stage--broadcast .tv-stage__badges::-webkit-scrollbar {
-        display: none;
-    }
+        .tv-stage--broadcast .tv-stage__badges::-webkit-scrollbar {
+            display: none;
+        }
 
     .tv-stage--broadcast .tv-pill {
         flex: 0 0 auto;
@@ -12836,13 +12562,14 @@ else
         grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(170px, 220px);
         gap: 16px;
     }
-    .tv-stage--broadcast .tv-football-side--left {
-    justify-self: start;
-}
 
-.tv-stage--broadcast .tv-football-side--right {
-    justify-self: end;
-}
+    .tv-stage--broadcast .tv-football-side--left {
+        justify-self: start;
+    }
+
+    .tv-stage--broadcast .tv-football-side--right {
+        justify-self: end;
+    }
 
     .tv-stage--broadcast .tv-football-layout {
         display: grid;
@@ -12850,6 +12577,7 @@ else
         align-items: stretch;
         gap: 18px;
     }
+
     .tv-stage--broadcast .tv-football-side {
         gap: 8px;
         padding: 14px 12px;
@@ -12944,14 +12672,15 @@ else
     .tv-stage--broadcast .tv-telemetry-cube-shell {
         min-height: 0;
     }
+
     .tv-stage--broadcast .tv-telemetry {
         gap: 8px;
     }
 
-    .tv-stage--broadcast .tv-telemetry article {
-        min-height: 108px;
-        padding: 12px 14px;
-    }
+        .tv-stage--broadcast .tv-telemetry article {
+            min-height: 108px;
+            padding: 12px 14px;
+        }
 
     .tv-stage--broadcast .tv-telemetry__match-link {
         min-height: 108px;
@@ -12967,11 +12696,11 @@ else
         padding: 8px 10px;
     }
 
-    .tv-stage--broadcast .tv-telemetry__events-item strong,
-    .tv-stage--broadcast .tv-telemetry__events-item em,
-    .tv-stage--broadcast .tv-telemetry__events-item small {
-        font-size: .72rem;
-    }
+        .tv-stage--broadcast .tv-telemetry__events-item strong,
+        .tv-stage--broadcast .tv-telemetry__events-item em,
+        .tv-stage--broadcast .tv-telemetry__events-item small {
+            font-size: .72rem;
+        }
 
     .tv-stage--broadcast .tv-telemetry small,
     .tv-stage--broadcast .tv-event-strip__card p {
@@ -13053,24 +12782,24 @@ else
         pointer-events: auto;
     }
 
-    .tv-dev-narration-panel button {
-        border: 1px solid rgba(127, 246, 223, 0.18);
-        background: rgba(14, 26, 38, 0.92);
-        color: #dffeff;
-        border-radius: 999px;
-        padding: 8px 12px;
-        font-size: .75rem;
-        font-weight: 800;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        transition: transform .16s ease, border-color .16s ease, background .16s ease;
-    }
+        .tv-dev-narration-panel button {
+            border: 1px solid rgba(127, 246, 223, 0.18);
+            background: rgba(14, 26, 38, 0.92);
+            color: #dffeff;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: .75rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            transition: transform .16s ease, border-color .16s ease, background .16s ease;
+        }
 
-    .tv-dev-narration-panel button:hover {
-        transform: translateY(-1px);
-        border-color: rgba(127, 246, 223, 0.34);
-        background: rgba(20, 38, 56, 0.96);
-    }
+            .tv-dev-narration-panel button:hover {
+                transform: translateY(-1px);
+                border-color: rgba(127, 246, 223, 0.34);
+                background: rgba(20, 38, 56, 0.96);
+            }
 
     @@keyframes tvProceduralLogPulse {
         0%, 100% {
@@ -13258,9 +12987,9 @@ else
             padding: 10px 12px;
         }
 
-        .tv-broadcast-clock strong {
-            font-size: clamp(1.45rem, 7vw, 2rem);
-        }
+            .tv-broadcast-clock strong {
+                font-size: clamp(1.45rem, 7vw, 2rem);
+            }
 
         .tv-telemetry,
         .tv-stage--broadcast .tv-telemetry {
@@ -13521,90 +13250,171 @@ else
     }
 
     @@keyframes pirateFadeIn {
-        0% { opacity: 0; transform: scale(.985); }
-        100% { opacity: 1; transform: scale(1); }
+        0% {
+            opacity: 0;
+            transform: scale(.985);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
 
     @@keyframes pirateGlitch {
-        0% { transform: translate3d(0, 0, 0); filter: hue-rotate(0deg); }
-        22% { transform: translate3d(-2px, 0, 0); }
-        48% { transform: translate3d(3px, -1px, 0); filter: hue-rotate(8deg); }
-        73% { transform: translate3d(-1px, 1px, 0); }
-        100% { transform: translate3d(0, 0, 0); filter: hue-rotate(0deg); }
+        0% {
+            transform: translate3d(0, 0, 0);
+            filter: hue-rotate(0deg);
+        }
+
+        22% {
+            transform: translate3d(-2px, 0, 0);
+        }
+
+        48% {
+            transform: translate3d(3px, -1px, 0);
+            filter: hue-rotate(8deg);
+        }
+
+        73% {
+            transform: translate3d(-1px, 1px, 0);
+        }
+
+        100% {
+            transform: translate3d(0, 0, 0);
+            filter: hue-rotate(0deg);
+        }
     }
 
     @@keyframes pirateFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-4px);
+        }
     }
 
     @@keyframes neonPulse {
         0%, 100% {
-            box-shadow:
-                0 0 0 1px rgba(120, 244, 255, 0.12) inset,
-                0 28px 80px rgba(0, 0, 0, 0.46),
-                0 0 42px rgba(34, 214, 255, 0.22);
+            box-shadow: 0 0 0 1px rgba(120, 244, 255, 0.12) inset, 0 28px 80px rgba(0, 0, 0, 0.46), 0 0 42px rgba(34, 214, 255, 0.22);
         }
 
         50% {
-            box-shadow:
-                0 0 0 1px rgba(120, 244, 255, 0.2) inset,
-                0 28px 84px rgba(0, 0, 0, 0.48),
-                0 0 56px rgba(34, 214, 255, 0.3);
+            box-shadow: 0 0 0 1px rgba(120, 244, 255, 0.2) inset, 0 28px 84px rgba(0, 0, 0, 0.48), 0 0 56px rgba(34, 214, 255, 0.3);
         }
     }
 
     @@keyframes pirateAlertPulse {
         0%, 100% {
-            box-shadow:
-                0 0 0 1px rgba(255, 124, 92, 0.18) inset,
-                0 28px 84px rgba(0, 0, 0, 0.5),
-                0 0 40px rgba(255, 112, 76, 0.2);
+            box-shadow: 0 0 0 1px rgba(255, 124, 92, 0.18) inset, 0 28px 84px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 112, 76, 0.2);
         }
 
         50% {
-            box-shadow:
-                0 0 0 1px rgba(255, 168, 120, 0.34) inset,
-                0 30px 92px rgba(0, 0, 0, 0.56),
-                0 0 64px rgba(255, 112, 76, 0.34);
+            box-shadow: 0 0 0 1px rgba(255, 168, 120, 0.34) inset, 0 30px 92px rgba(0, 0, 0, 0.56), 0 0 64px rgba(255, 112, 76, 0.34);
         }
     }
 
     @@keyframes pirateTakeoverShake {
-        0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-        20% { transform: translate3d(-2px, 0, 0) rotate(-0.2deg); }
-        45% { transform: translate3d(2px, -1px, 0) rotate(0.18deg); }
-        70% { transform: translate3d(-1px, 1px, 0) rotate(-0.14deg); }
+        0%, 100% {
+            transform: translate3d(0, 0, 0) rotate(0deg);
+        }
+
+        20% {
+            transform: translate3d(-2px, 0, 0) rotate(-0.2deg);
+        }
+
+        45% {
+            transform: translate3d(2px, -1px, 0) rotate(0.18deg);
+        }
+
+        70% {
+            transform: translate3d(-1px, 1px, 0) rotate(-0.14deg);
+        }
     }
 
     @@keyframes pirateNoise {
-        0%, 100% { opacity: .22; transform: translate3d(0, 0, 0); }
-        33% { opacity: .36; transform: translate3d(1px, -1px, 0); }
-        66% { opacity: .28; transform: translate3d(-1px, 1px, 0); }
+        0%, 100% {
+            opacity: .22;
+            transform: translate3d(0, 0, 0);
+        }
+
+        33% {
+            opacity: .36;
+            transform: translate3d(1px, -1px, 0);
+        }
+
+        66% {
+            opacity: .28;
+            transform: translate3d(-1px, 1px, 0);
+        }
     }
 
     @@keyframes pirateVhsBurst {
-        0% { filter: contrast(1.3) saturate(1.14) brightness(1.14); }
-        10% { filter: contrast(1.58) saturate(1.3) brightness(1.28); }
-        28% { filter: contrast(1.18) saturate(1.08) brightness(1.04); }
-        100% { filter: contrast(1) saturate(1) brightness(1); }
+        0% {
+            filter: contrast(1.3) saturate(1.14) brightness(1.14);
+        }
+
+        10% {
+            filter: contrast(1.58) saturate(1.3) brightness(1.28);
+        }
+
+        28% {
+            filter: contrast(1.18) saturate(1.08) brightness(1.04);
+        }
+
+        100% {
+            filter: contrast(1) saturate(1) brightness(1);
+        }
     }
 
     @@keyframes pirateVhsContainer {
-        0%, 100% { opacity: 1; }
-        50% { opacity: .94; }
+        0%, 100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: .94;
+        }
     }
 
     @@keyframes pirateVhsFlash {
-        0%, 100% { opacity: 0; }
-        8% { opacity: .4; }
-        12% { opacity: .72; }
-        18% { opacity: .14; }
-        56% { opacity: .08; }
-        62% { opacity: .36; }
-        68% { opacity: 0; }
-        82% { opacity: .18; }
-        100% { opacity: 0; }
+        0%, 100% {
+            opacity: 0;
+        }
+
+        8% {
+            opacity: .4;
+        }
+
+        12% {
+            opacity: .72;
+        }
+
+        18% {
+            opacity: .14;
+        }
+
+        56% {
+            opacity: .08;
+        }
+
+        62% {
+            opacity: .36;
+        }
+
+        68% {
+            opacity: 0;
+        }
+
+        82% {
+            opacity: .18;
+        }
+
+        100% {
+            opacity: 0;
+        }
     }
 
     @@keyframes pirateVhsTracking {
@@ -13662,13 +13472,25 @@ else
     }
 
     @@keyframes scanlines {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(24px); }
+        0% {
+            transform: translateY(0);
+        }
+
+        100% {
+            transform: translateY(24px);
+        }
     }
 
     @@keyframes signalDotPulse {
-        0%, 100% { transform: scale(1); opacity: .8; }
-        50% { transform: scale(1.16); opacity: 1; }
+        0%, 100% {
+            transform: scale(1);
+            opacity: .8;
+        }
+
+        50% {
+            transform: scale(1.16);
+            opacity: 1;
+        }
     }
 
     @@keyframes tvGlow {
@@ -13684,127 +13506,214 @@ else
     }
 
     @@keyframes tvAurora {
-        0% { background-position: 0% 50%; opacity: .48; }
-        50% { background-position: 100% 40%; opacity: .72; }
-        100% { background-position: 0% 60%; opacity: .48; }
+        0% {
+            background-position: 0% 50%;
+            opacity: .48;
+        }
+
+        50% {
+            background-position: 100% 40%;
+            opacity: .72;
+        }
+
+        100% {
+            background-position: 0% 60%;
+            opacity: .48;
+        }
     }
 
     @@keyframes tvFog {
-        from { transform: translate3d(-1.5%, 0, 0); opacity: .52; }
-        to { transform: translate3d(1.5%, -1%, 0); opacity: .78; }
+        from {
+            transform: translate3d(-1.5%, 0, 0);
+            opacity: .52;
+        }
+
+        to {
+            transform: translate3d(1.5%, -1%, 0);
+            opacity: .78;
+        }
     }
 
     @@keyframes tvGridDrift {
-        from { transform: translate3d(0, 0, 0); }
-        to { transform: translate3d(-24px, -24px, 0); }
+        from {
+            transform: translate3d(0, 0, 0);
+        }
+
+        to {
+            transform: translate3d(-24px, -24px, 0);
+        }
     }
 
     @@keyframes tvParticles {
-        from { transform: translate3d(0, 0, 0); }
-        to { transform: translate3d(-32px, 20px, 0); }
+        from {
+            transform: translate3d(0, 0, 0);
+        }
+
+        to {
+            transform: translate3d(-32px, 20px, 0);
+        }
     }
 
     @@keyframes tvLivePulse {
-        0%, 100% { transform: scale(1); opacity: .9; }
-        50% { transform: scale(1.18); opacity: 1; }
+        0%, 100% {
+            transform: scale(1);
+            opacity: .9;
+        }
+
+        50% {
+            transform: scale(1.18);
+            opacity: 1;
+        }
     }
 
     @@keyframes tvTeamFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-8px);
+        }
     }
 
     @@keyframes tvHaloBreathe {
-        0%, 100% { transform: scale(.96); opacity: .72; }
-        50% { transform: scale(1.08); opacity: 1; }
+        0%, 100% {
+            transform: scale(.96);
+            opacity: .72;
+        }
+
+        50% {
+            transform: scale(1.08);
+            opacity: 1;
+        }
     }
 
     @@keyframes tvRingPulse {
-        0%, 100% { transform: scale(.98); opacity: .5; }
-        50% { transform: scale(1.04); opacity: .95; }
+        0%, 100% {
+            transform: scale(.98);
+            opacity: .5;
+        }
+
+        50% {
+            transform: scale(1.04);
+            opacity: .95;
+        }
     }
 
     @@keyframes tvLogoBreathe {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.035); }
+        0%, 100% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.035);
+        }
     }
 
     @@keyframes tvHudFloat {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-4px); }
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-4px);
+        }
     }
 
     @@keyframes tvSweep {
-        0%, 15% { transform: translateX(-110%); }
-        45%, 100% { transform: translateX(120%); }
+        0%, 15% {
+            transform: translateX(-110%);
+        }
+
+        45%, 100% {
+            transform: translateX(120%);
+        }
     }
 
     @@keyframes tvScoreShellPulse {
-        0% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24); }
-        35% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 20px 60px rgba(0,0,0,0.28), 0 0 42px rgba(83, 200, 255, 0.16); }
-        100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24); }
+        0% {
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24);
+        }
+
+        35% {
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 20px 60px rgba(0,0,0,0.28), 0 0 42px rgba(83, 200, 255, 0.16);
+        }
+
+        100% {
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 50px rgba(0,0,0,0.24);
+        }
     }
 
     @@keyframes tvScoreValuePulse {
-        0% { transform: scale(1); text-shadow: none; }
-        30% { transform: scale(1.08); text-shadow: 0 0 24px rgba(255,255,255,0.18); }
-        100% { transform: scale(1); text-shadow: none; }
+        0% {
+            transform: scale(1);
+            text-shadow: none;
+        }
+
+        30% {
+            transform: scale(1.08);
+            text-shadow: 0 0 24px rgba(255,255,255,0.18);
+        }
+
+        100% {
+            transform: scale(1);
+            text-shadow: none;
+        }
     }
 
     @@keyframes tvHudPulse {
-        0% { transform: translateY(0); }
-        30% { transform: translateY(-2px); box-shadow: 0 0 0 8px rgba(83, 200, 255, 0.08); }
-        100% { transform: translateY(0); }
+        0% {
+            transform: translateY(0);
+        }
+
+        30% {
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 8px rgba(83, 200, 255, 0.08);
+        }
+
+        100% {
+            transform: translateY(0);
+        }
     }
 
     @@keyframes tvTicker {
-        from { transform: translateX(0); }
-        to { transform: translateX(-50%); }
+        from {
+            transform: translateX(0);
+        }
+
+        to {
+            transform: translateX(-50%);
+        }
     }
 
     @@keyframes tvBroadcastCubeTurn {
         0% {
             opacity: 1;
-            transform:
-                translateZ(0)
-                rotateY(0deg)
-                scale(1);
+            transform: translateZ(0) rotateY(0deg) scale(1);
             filter: blur(0);
         }
 
         24% {
             opacity: .94;
-            transform:
-                translateZ(-22px)
-                rotateY(-18deg)
-                scale(.992);
+            transform: translateZ(-22px) rotateY(-18deg) scale(.992);
             filter: blur(.6px);
         }
 
         50% {
             opacity: .6;
-            transform:
-                translateZ(-80px)
-                rotateY(-92deg)
-                scale(.968);
+            transform: translateZ(-80px) rotateY(-92deg) scale(.968);
             filter: blur(2px);
         }
 
         76% {
             opacity: .96;
-            transform:
-                translateZ(-18px)
-                rotateY(-12deg)
-                scale(.994);
+            transform: translateZ(-18px) rotateY(-12deg) scale(.994);
             filter: blur(.4px);
         }
 
         100% {
             opacity: 1;
-            transform:
-                translateZ(0)
-                rotateY(0deg)
-                scale(1);
+            transform: translateZ(0) rotateY(0deg) scale(1);
             filter: blur(0);
         }
     }
@@ -13821,20 +13730,20 @@ else
 
 
     /* ==========================================================
-       HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
-       ----------------------------------------------------------
-       Mantém os mesmos IDs usados pelo JS/lightweight-charts:
-       - tv-telemetry-chart-left
-       - tv-telemetry-chart-right
-       - tv-telemetry-chart-compare
-       - tv-telemetry-chart-split-left/right
-       - tv-candle-battle-root
-       - TvArenaPressureGauge
+           HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
+           ----------------------------------------------------------
+           Mantém os mesmos IDs usados pelo JS/lightweight-charts:
+           - tv-telemetry-chart-left
+           - tv-telemetry-chart-right
+           - tv-telemetry-chart-compare
+           - tv-telemetry-chart-split-left/right
+           - tv-candle-battle-root
+           - TvArenaPressureGauge
 
-       Não usa cubo 3D, prisma ou faces físicas extras.
-       O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
-       Essa camada CSS transforma isso em carrossel estável.
-       ========================================================== */
+           Não usa cubo 3D, prisma ou faces físicas extras.
+           O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
+           Essa camada CSS transforma isso em carrossel estável.
+           ========================================================== */
 
     .tv-telemetry-cube-shell {
         --tv-carousel-min-height: clamp(520px, 64vh, 820px);
@@ -13860,15 +13769,15 @@ else
         transition: none !important;
     }
 
-    .tv-telemetry-cube.is-face-0,
-    .tv-telemetry-cube.is-face-1,
-    .tv-telemetry-cube.is-face-2,
-    .tv-telemetry-cube.is-face-3,
-    .tv-telemetry-cube.is-face-4,
-    .tv-telemetry-cube.is-face-5,
-    .tv-telemetry-cube.is-face-6 {
-        transform: none !important;
-    }
+        .tv-telemetry-cube.is-face-0,
+        .tv-telemetry-cube.is-face-1,
+        .tv-telemetry-cube.is-face-2,
+        .tv-telemetry-cube.is-face-3,
+        .tv-telemetry-cube.is-face-4,
+        .tv-telemetry-cube.is-face-5,
+        .tv-telemetry-cube.is-face-6 {
+            transform: none !important;
+        }
 
     .tv-telemetry-cube__face,
     .tv-telemetry-cube__face--front,
@@ -13888,17 +13797,14 @@ else
         visibility: hidden !important;
         pointer-events: none !important;
         z-index: 0 !important;
-        transition:
-            opacity .42s ease,
-            visibility 0s linear .42s,
-            filter .42s ease !important;
+        transition: opacity .42s ease, visibility 0s linear .42s, filter .42s ease !important;
         filter: blur(8px) saturate(.82) brightness(.78);
         overflow: hidden !important;
     }
 
-    .tv-telemetry-cube__face::before {
-        pointer-events: none !important;
-    }
+        .tv-telemetry-cube__face::before {
+            pointer-events: none !important;
+        }
 
     .tv-telemetry-cube.is-face-0 .tv-telemetry-cube__face--front,
     .tv-telemetry-cube.is-face-1 .tv-telemetry-cube__face--right,
@@ -13908,10 +13814,7 @@ else
         pointer-events: auto !important;
         z-index: 4 !important;
         filter: blur(0) saturate(1) brightness(1);
-        transition:
-            opacity .34s ease,
-            visibility 0s,
-            filter .34s ease !important;
+        transition: opacity .34s ease, visibility 0s, filter .34s ease !important;
     }
 
     /* A face back vira somente o palco fixo dos slides internos. */
@@ -13948,11 +13851,7 @@ else
         z-index: 0 !important;
         transform: translate3d(18px, 0, 0) scale(.985) !important;
         filter: blur(8px) saturate(.82) brightness(.84) !important;
-        transition:
-            opacity .42s ease,
-            transform .42s ease,
-            filter .42s ease,
-            visibility 0s linear .42s !important;
+        transition: opacity .42s ease, transform .42s ease, filter .42s ease, visibility 0s linear .42s !important;
         overflow: hidden !important;
     }
 
@@ -13966,11 +13865,7 @@ else
         z-index: 5 !important;
         transform: translate3d(0, 0, 0) scale(1) !important;
         filter: blur(0) saturate(1) brightness(1) !important;
-        transition:
-            opacity .34s ease,
-            transform .34s ease,
-            filter .34s ease,
-            visibility 0s !important;
+        transition: opacity .34s ease, transform .34s ease, filter .34s ease, visibility 0s !important;
     }
 
     .tv-telemetry-cube__inner {
@@ -13995,9 +13890,9 @@ else
         min-height: 0 !important;
     }
 
-    .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
-        min-height: clamp(210px, 28vh, 360px);
-    }
+        .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
+            min-height: clamp(210px, 28vh, 360px);
+        }
 
     .tv-telemetry-cube__inner--sentiment {
         display: grid !important;
@@ -14036,308 +13931,204 @@ else
         }
     }
 
+    /* =========================================================
+           TV FOOTBALL + TELEMETRY CUBE
+           SINCRONIZAÇÃO EXATA DE ALTURA
+           ========================================================= */
 
-
-    /* Ajuste final: altura automática do painel de pressão.
-       Objetivo: fazer o TvArenaPressureGauge acompanhar a altura do
-       .tv-match-card.tv-match-card--football sem usar altura fixa.
-       A linha do grid passa a esticar os dois lados; o cubo/face/painel
-       herdam 100% da altura calculada pelo maior item da linha. */
-    .tv-stage__grid {
-        align-items: stretch;
-    }
-
-    .tv-stage__grid > .tv-match-card--football,
-    .tv-stage__grid > .tv-telemetry--football {
-        align-self: stretch;
-        min-height: 0;
-    }
-
-    .tv-match-card--football {
-        height: 100%;
-    }
-
-    .tv-telemetry--football {
-        position: relative;
-        overflow: hidden;
-        min-width: 0;
-        min-height: 0;
-        height: 100%;
-        align-content: stretch;
-    }
-
-    .tv-telemetry--football .tv-telemetry-cube-shell,
-    .tv-telemetry--football .tv-telemetry-cube,
-    .tv-telemetry--football .tv-telemetry-cube__face {
-        min-height: 0 !important;
-        height: 100% !important;
-        max-height: none !important;
-    }
-
-    .tv-telemetry--football .tv-telemetry-cube__inner,
-    .tv-telemetry--football .tv-telemetry-cube__virtual-stage,
-    .tv-telemetry--football .tv-telemetry-cube__virtual-panel {
-        min-height: 0 !important;
-        height: 100% !important;
-        max-height: none !important;
-    }
-
-    .tv-telemetry-cube__inner--sentiment {
-        display: grid !important;
-        place-items: stretch !important;
-        align-content: stretch !important;
-        min-height: 0 !important;
-        height: 100% !important;
-    }
-
-    .tv-telemetry-cube__inner--sentiment > * {
-        min-height: 0 !important;
-        height: 100% !important;
-    }
-
-    .tv-telemetry-cube__inner--sentiment .tv-arena-pressure-gauge,
-    .tv-telemetry-cube__inner--sentiment .tv-arena-pressure-gauge__panel {
-        min-height: 0 !important;
-        height: 100% !important;
-        max-height: none !important;
-        box-sizing: border-box !important;
-    }
-
+    /*
+           A altura da linha é definida naturalmente pelo card de partida.
+           A coluna de telemetria é esticada pelo CSS Grid e o cube ocupa
+           exatamente toda a área disponível da coluna direita.
+        */
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
     }
 
-    .tv-stage--broadcast .tv-stage__grid > .tv-match-card--football,
-    .tv-stage--broadcast .tv-stage__grid > .tv-telemetry--football {
-        align-self: stretch !important;
-        min-height: 0 !important;
+        .tv-stage--broadcast .tv-stage__grid > .tv-match-card--football,
+        .tv-stage--broadcast .tv-stage__grid > .tv-telemetry--football {
+            align-self: stretch !important;
+            min-height: 0 !important;
+            max-height: none !important;
+        }
+
+    /*
+           O card da esquerda mantém a altura natural do conteúdo.
+           Não usamos height: 100% aqui para evitar que ele crie uma
+           referência circular de altura dentro do próprio grid.
+        */
+    .tv-stage--broadcast .tv-match-card--football {
+        height: auto !important;
     }
 
-    .tv-stage--broadcast .tv-match-card--football,
+    /*
+           A coluna direita recebe exatamente a altura da linha do grid.
+           O shell do cube é posicionado dentro dela usando inset: 0,
+           evitando dependência de cadeias frágeis de height: 100%.
+        */
     .tv-stage--broadcast .tv-telemetry--football {
-        height: 100% !important;
-        max-height: none !important;
-    }
-
-    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube-shell,
-    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
-    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
-    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__inner {
+        position: relative !important;
+        display: block !important;
+        min-width: 0 !important;
         min-height: 0 !important;
-        height: 100% !important;
+        height: auto !important;
         max-height: none !important;
+        overflow: hidden !important;
     }
 
-    .tv-stage--broadcast .tv-telemetry-cube__face--right .tv-telemetry-cube__inner,
-    .tv-stage--broadcast .tv-telemetry-cube__face--left .tv-telemetry-cube__inner,
-    .tv-stage--broadcast .tv-telemetry-cube__inner--compare {
-        display: grid !important;
-        grid-template-rows: auto minmax(0, 1fr) auto !important;
-        align-content: stretch !important;
-        gap: clamp(12px, 1.2vw, 18px) !important;
-    }
-
-    .tv-stage--broadcast #tv-telemetry-chart-left,
-    .tv-stage--broadcast #tv-telemetry-chart-right,
-    .tv-stage--broadcast #tv-telemetry-chart-compare {
-        min-height: clamp(360px, 42vh, 760px) !important;
-        height: 100% !important;
-        max-height: none !important;
-    }
-
-    .tv-stage--broadcast .tv-telemetry-chart-shell canvas {
-        height: 100% !important;
-    }
-
-    @@media (max-width: 1080px) {
-        .tv-stage__grid,
-        .tv-stage--broadcast .tv-stage__grid {
-            align-items: stretch !important;
-        }
-
-        .tv-telemetry--football .tv-telemetry-cube-shell,
-        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube-shell {
-            min-height: 560px !important;
+        .tv-stage--broadcast .tv-telemetry--football > .tv-telemetry-cube-shell {
+            position: absolute !important;
+            inset: 0 !important;
+            display: block !important;
+            width: 100% !important;
             height: 100% !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: hidden !important;
         }
+
+        /*
+           Toda a cadeia interna do cube passa a respeitar a altura
+           exata recebida do shell.
+        */
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face--back,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__virtual-stage,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__virtual-panel,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__inner,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__inner--sentiment {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
+        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face--back {
+            overflow: hidden !important;
+        }
+
+    /*
+           A face de sentiment usa uma única linha flexível.
+           O gauge ocupa integralmente essa linha.
+        */
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        align-content: stretch !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > .tv-arena-pressure-gauge,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > .tv-arena-pressure-gauge.is-compact,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > .tv-arena-pressure-gauge.left-dominant,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > .tv-arena-pressure-gauge.right-dominant,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > .tv-arena-pressure-gauge.left-dominant.is-compact,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > .tv-arena-pressure-gauge.right-dominant.is-compact {
+            display: grid !important;
+            grid-template-rows: minmax(0, 1fr) !important;
+            align-self: stretch !important;
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+
+    /*
+           Estrutura interna do gauge:
+           cabeçalho, área central flexível, status e momentum.
+        */
+    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__center {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__svg {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+    }
+
+    /*
+           Em telas menores as colunas deixam de compartilhar a mesma linha.
+           O cube volta ao fluxo normal e usa uma altura responsiva própria.
+        */
+    @@media (max-width: 1080px) {
+        .tv-stage--broadcast .tv-telemetry--football {
+            position: relative !important;
+            min-height: 640px !important;
+            height: 640px !important;
+            overflow: hidden !important;
+        }
+
+            .tv-stage--broadcast .tv-telemetry--football > .tv-telemetry-cube-shell {
+                position: absolute !important;
+                inset: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+            }
     }
 
     @@media (max-width: 720px) {
-        .tv-stage__grid,
         .tv-stage--broadcast .tv-stage__grid {
             align-items: start !important;
         }
 
-        .tv-match-card--football,
-        .tv-telemetry--football,
-        .tv-stage--broadcast .tv-match-card--football,
-        .tv-stage--broadcast .tv-telemetry--football {
+        .tv-stage--broadcast .tv-match-card--football {
             height: auto !important;
         }
 
-        .tv-telemetry--football .tv-telemetry-cube-shell,
-        .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube-shell {
-            min-height: 640px !important;
-            height: 640px !important;
+        .tv-stage--broadcast .tv-telemetry--football {
+            position: relative !important;
+            min-height: 720px !important;
+            height: 720px !important;
+            max-height: none !important;
         }
 
-        .tv-stage--broadcast #tv-telemetry-chart-left,
-        .tv-stage--broadcast #tv-telemetry-chart-right,
-        .tv-stage--broadcast #tv-telemetry-chart-compare {
-            min-height: 360px !important;
-        }
-    }
-    /* =========================================================
-       TV ARENA PRESSURE GAUGE
-       MATCH HEIGHT SYNC
-       ========================================================= */
-
-    .tv-stage--broadcast .tv-stage__grid {
-        align-items: stretch !important;
-    }
-
-    .tv-stage--broadcast .tv-match-card--football,
-    .tv-stage--broadcast .tv-telemetry--football {
-        min-height: clamp(720px, calc(100svh - 170px), 980px) !important;
-    }
-
-    /* telemetry lateral acompanha altura total */
-    .tv-stage--broadcast .tv-telemetry--football {
-        display: grid !important;
-        align-content: stretch !important;
-        align-items: stretch !important;
-        height: 100% !important;
-    }
-
-    /* shell do cube */
-    .tv-stage--broadcast .tv-telemetry-cube-shell {
-        height: 100% !important;
-        min-height: inherit !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    /* cube principal */
-    .tv-stage--broadcast .tv-telemetry-cube {
-        flex: 1 1 auto !important;
-        height: 100% !important;
-        min-height: inherit !important;
-    }
-
-    /* faces */
-    .tv-stage--broadcast .tv-telemetry-cube__face,
-    .tv-stage--broadcast .tv-telemetry-cube__face--back {
-        height: 100% !important;
-        min-height: inherit !important;
-    }
-
-    /* virtual stage */
-    .tv-stage--broadcast .tv-telemetry-cube__virtual-stage {
-        display: grid !important;
-        grid-template-rows: 1fr !important;
-        height: 100% !important;
-        min-height: inherit !important;
-    }
-
-    /* sentiment panel */
-    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
-        display: grid !important;
-        align-items: stretch !important;
-        align-content: stretch !important;
-        height: 100% !important;
-        min-height: inherit !important;
-        padding: 0 !important;
-    }
-
-        /* força gauge ocupar tudo */
-        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > * {
-            height: 100% !important;
-            min-height: 100% !important;
-        }
-
-    /* gauge principal */
-    .tv-stage--broadcast .tv-arena-pressure-gauge {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: stretch !important;
-        align-items: stretch !important;
-        height: 100% !important;
-        min-height: inherit !important;
-    }
-
-    /* painel do gauge */
-    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
-        flex: 1 1 auto !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important;
-        height: 100% !important;
-        min-height: inherit !important;
-    }
-
-    /* SVG central cresce */
-    .tv-stage--broadcast .tv-arena-pressure-gauge__center,
-    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
-        flex: 1 1 auto !important;
-        height: 100% !important;
-        min-height: 0 !important;
-    }
-
-    /* SVG ocupa espaço real */
-    .tv-stage--broadcast .tv-arena-pressure-gauge__svg {
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 420px !important;
-    }
-
-    /* compact mode não pode limitar */
-    .tv-stage--broadcast .tv-arena-pressure-gauge--compact {
-        height: 100% !important;
-        min-height: inherit !important;
-    }
-
-    /* remove possíveis limites antigos */
-    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment,
-    .tv-stage--broadcast .tv-arena-pressure-gauge,
-    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
-        max-height: none !important;
-    }
-
-    /* =========================================================
-       FULL HEIGHT ARENA PRESSURE GAUGE
-       ========================================================= */
-
-    .tv-stage--broadcast .tv-telemetry--football {
-        display: grid;
-        align-items: stretch;
-    }
-
-    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .tv-stage--broadcast .tv-arena-pressure-gauge {
-        flex: 1 1 auto;
-        height: 100%;
-        min-height: 100%;
-    }
-
-    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
-        flex: 1 1 auto;
-        height: 100%;
-    }
-
-    .tv-stage--broadcast .tv-arena-pressure-gauge__center,
-    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
-        flex: 1 1 auto;
-        height: 100%;
-    }
-
-    .tv-stage--broadcast .tv-arena-pressure-gauge__svg {
-        width: 100%;
-        height: 100%;
-        min-height: 540px;
+            .tv-stage--broadcast .tv-telemetry--football > .tv-telemetry-cube-shell {
+                position: absolute !important;
+                inset: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
     }
 </style>
+
