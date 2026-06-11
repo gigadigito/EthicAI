@@ -16,10 +16,15 @@
                 <h3>@T("title")</h3>
                 <p>@T("subtitle")</p>
             </div>
-            <span class="tv-price-battle__vs">@T("vs")</span>
+
+            <div class="tv-price-battle__header-meta">
+                <span class="tv-price-battle__badge">@T("centerHint")</span>
+                <strong>@DisplaySymbol(LeftSymbol) VS @DisplaySymbol(RightSymbol)</strong>
+                <small>@T("competitiveness") @Competitiveness</small>
+            </div>
         </header>
 
-        <div class="tv-price-battle__battle">
+        <div class="tv-price-battle__body">
             <article class="tv-price-battle__side tv-price-battle__side--left">
                 <div class="tv-price-battle__identity">
                     <div class="tv-price-battle__logo-ring">
@@ -35,31 +40,51 @@
                     </div>
 
                     <div class="tv-price-battle__copy">
+                        <span class="tv-price-battle__team-label">TIME A</span>
                         <strong>@DisplaySymbol(LeftSymbol)</strong>
                         <span>@DisplayText(LeftDisplayName)</span>
                     </div>
                 </div>
 
-                <div class="tv-price-battle__metric">
-                    <span>@T("currentPrice")</span>
-                    <strong>@FormatPrice(LeftCurrentPrice)</strong>
+                <div class="tv-price-battle__metrics">
+                    <div class="tv-price-battle__metric">
+                        <span>@T("currentPrice")</span>
+                        <strong class="@GetValueClass(LeftCurrentPrice)">@FormatPrice(LeftCurrentPrice)</strong>
+                    </div>
+
+                    <div class="tv-price-battle__change @GetChangeClass(LeftChangePercent)">
+                        <span>@T("change")</span>
+                        <strong>@FormatChangePercent(LeftChangePercent)</strong>
+                    </div>
                 </div>
 
-                <div class="tv-price-battle__change @GetChangeClass(LeftChangePercent)">
-                    <span>@T("change")</span>
-                    <strong>@FormatChangePercent(LeftChangePercent)</strong>
+                <div class="tv-price-battle__chart-shell">
+                    <div id="@_leftChartId"
+                         class="tv-price-battle__chart"
+                         aria-label="@T("chartAria")"></div>
+
+                    @if (LeftPoints.Count == 0)
+                    {
+                        <div class="tv-price-battle__empty">
+                            <strong>@T("noData")</strong>
+                            <small>@T("subtitle")</small>
+                        </div>
+                    }
                 </div>
             </article>
 
             <section class="tv-price-battle__center">
-                <span>@T("competitiveness")</span>
-                <strong>@Competitiveness</strong>
+                <div class="tv-price-battle__vs-ring">
+                    <span class="tv-price-battle__vs-label">VS</span>
+                    <strong>@Competitiveness</strong>
+                </div>
                 <small>@T("centerHint")</small>
             </section>
 
             <article class="tv-price-battle__side tv-price-battle__side--right">
                 <div class="tv-price-battle__identity tv-price-battle__identity--right">
                     <div class="tv-price-battle__copy tv-price-battle__copy--right">
+                        <span class="tv-price-battle__team-label">TIME B</span>
                         <strong>@DisplaySymbol(RightSymbol)</strong>
                         <span>@DisplayText(RightDisplayName)</span>
                     </div>
@@ -77,36 +102,39 @@
                     </div>
                 </div>
 
-                <div class="tv-price-battle__metric tv-price-battle__metric--right">
-                    <span>@T("currentPrice")</span>
-                    <strong>@FormatPrice(RightCurrentPrice)</strong>
+                <div class="tv-price-battle__metrics tv-price-battle__metrics--right">
+                    <div class="tv-price-battle__metric">
+                        <span>@T("currentPrice")</span>
+                        <strong class="@GetValueClass(RightCurrentPrice)">@FormatPrice(RightCurrentPrice)</strong>
+                    </div>
+
+                    <div class="tv-price-battle__change @GetChangeClass(RightChangePercent)">
+                        <span>@T("change")</span>
+                        <strong>@FormatChangePercent(RightChangePercent)</strong>
+                    </div>
                 </div>
 
-                <div class="tv-price-battle__change tv-price-battle__change--right @GetChangeClass(RightChangePercent)">
-                    <span>@T("change")</span>
-                    <strong>@FormatChangePercent(RightChangePercent)</strong>
+                <div class="tv-price-battle__chart-shell">
+                    <div id="@_rightChartId"
+                         class="tv-price-battle__chart"
+                         aria-label="@T("chartAria")"></div>
+
+                    @if (RightPoints.Count == 0)
+                    {
+                        <div class="tv-price-battle__empty">
+                            <strong>@T("noData")</strong>
+                            <small>@T("subtitle")</small>
+                        </div>
+                    }
                 </div>
             </article>
-        </div>
-
-        <div class="tv-price-battle__chart-shell">
-            <div id="@_chartId"
-                 class="tv-price-battle__chart"
-                 aria-label="@T("chartAria")"></div>
-
-            @if (!HasChartData)
-            {
-                <div class="tv-price-battle__empty">
-                    <strong>@T("noData")</strong>
-                    <small>@T("subtitle")</small>
-                </div>
-            }
         </div>
     </div>
 </section>
 
 @code {
-    private readonly string _chartId = $"tv-price-battle-{Guid.NewGuid():N}";
+    private readonly string _leftChartId = $"tv-price-battle-left-{Guid.NewGuid():N}";
+    private readonly string _rightChartId = $"tv-price-battle-right-{Guid.NewGuid():N}";
     private IJSObjectReference? _module;
     private bool _pendingSync = true;
     private string _lastSyncSignature = string.Empty;
@@ -129,8 +157,6 @@
     [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public int Competitiveness { get; set; }
 
-    private bool HasChartData => LeftPoints.Count > 0 || RightPoints.Count > 0;
-
     protected override void OnParametersSet()
     {
         _pendingSync = true;
@@ -146,8 +172,8 @@
             try
             {
                 var importSw = Stopwatch.StartNew();
-                _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMatchPriceBattleChart.mjs?v=20260610-1");
-                Logger.LogInformation("[TV_MATCH_LOAD] TvMatchPriceBattleChart JS import chartId={ChartId} elapsedMs={ElapsedMs}", _chartId, importSw.ElapsedMilliseconds);
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMatchPriceBattleChart.mjs?v=20260610-2");
+                Logger.LogInformation("[TV_MATCH_LOAD] TvMatchPriceBattleChart JS import elapsedMs={ElapsedMs}", importSw.ElapsedMilliseconds);
                 _pendingSync = true;
             }
             catch (JSDisconnectedException)
@@ -173,8 +199,27 @@
         try
         {
             var syncSw = Stopwatch.StartNew();
-            await _module.InvokeVoidAsync("updateMatchPriceBattleChart", _chartId, BuildPayload());
-            Logger.LogInformation("[TV_MATCH_LOAD] TvMatchPriceBattleChart update chartId={ChartId} leftPoints={LeftPoints} rightPoints={RightPoints} elapsedMs={ElapsedMs}", _chartId, LeftPoints.Count, RightPoints.Count, syncSw.ElapsedMilliseconds);
+            await _module.InvokeVoidAsync("updateMatchPriceBattleChart", new
+            {
+                left = new
+                {
+                    chartId = _leftChartId,
+                    points = LeftPoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray(),
+                    color = LeftColor,
+                    side = "left",
+                    label = DisplaySymbol(LeftSymbol)
+                },
+                right = new
+                {
+                    chartId = _rightChartId,
+                    points = RightPoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray(),
+                    color = RightColor,
+                    side = "right",
+                    label = DisplaySymbol(RightSymbol)
+                }
+            });
+
+            Logger.LogInformation("[TV_MATCH_LOAD] TvMatchPriceBattleChart update leftPoints={LeftPoints} rightPoints={RightPoints} elapsedMs={ElapsedMs}", LeftPoints.Count, RightPoints.Count, syncSw.ElapsedMilliseconds);
             _lastSyncSignature = signature;
         }
         catch (JSDisconnectedException)
@@ -198,7 +243,8 @@
 
         try
         {
-            await _module.InvokeVoidAsync("disposeMatchPriceBattleChart", _chartId);
+            await _module.InvokeVoidAsync("disposeMatchPriceBattleChart", _leftChartId);
+            await _module.InvokeVoidAsync("disposeMatchPriceBattleChart", _rightChartId);
         }
         catch (JSDisconnectedException)
         {
@@ -215,17 +261,6 @@
         {
         }
     }
-
-    private object BuildPayload()
-        => new
-        {
-            leftPoints = LeftPoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray(),
-            rightPoints = RightPoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray(),
-            leftColor = LeftColor,
-            rightColor = RightColor,
-            leftSymbol = DisplaySymbol(LeftSymbol),
-            rightSymbol = DisplaySymbol(RightSymbol)
-        };
 
     private string BuildSyncSignature()
     {
@@ -299,4 +334,7 @@
             0m => "tv-price-battle__change--neutral",
             _ => "tv-price-battle__change--missing"
         };
+
+    private static string GetValueClass(decimal? value)
+        => value.HasValue ? string.Empty : "tv-price-battle__metric-value--missing";
 }

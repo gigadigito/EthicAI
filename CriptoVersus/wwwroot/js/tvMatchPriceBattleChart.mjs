@@ -1,5 +1,4 @@
 import { normalizeChartPoints } from "./tvChartTime.mjs";
-import { addLineSeriesCompat } from "./tvChartSeries.mjs";
 import { fitChart } from "./tvChartResize.mjs";
 
 const chartsState = {
@@ -11,8 +10,21 @@ function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
 
+function nextFrame() {
+    return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
 function getContainer(chartId) {
     return typeof document === "undefined" ? null : document.getElementById(chartId);
+}
+
+function normalizeSeriesPoints(points) {
+    return normalizeChartPoints(points ?? [])
+        .map((point) => ({
+            time: point.time,
+            value: Number(point.value)
+        }))
+        .filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value));
 }
 
 function loadLightweightCharts() {
@@ -52,33 +64,31 @@ function buildChartOptions(width, height) {
         height,
         layout: {
             background: { type: 0, color: "transparent" },
-            textColor: "rgba(225, 238, 255, 0.74)",
+            textColor: "rgba(225, 238, 247, 0.72)",
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif"
         },
         grid: {
-            vertLines: { color: "rgba(255,255,255,0.05)" },
+            vertLines: { color: "rgba(255,255,255,0.04)" },
             horzLines: { color: "rgba(255,255,255,0.035)" }
-        },
-        leftPriceScale: {
-            visible: true,
-            borderVisible: false,
-            scaleMargins: { top: 0.18, bottom: 0.18 }
         },
         rightPriceScale: {
             visible: true,
             borderVisible: false,
             scaleMargins: { top: 0.18, bottom: 0.18 }
         },
+        leftPriceScale: {
+            visible: false,
+            borderVisible: false
+        },
         timeScale: {
-            visible: true,
+            visible: false,
             borderVisible: false,
-            secondsVisible: true,
-            timeVisible: true,
-            barSpacing: 22
+            secondsVisible: false,
+            timeVisible: false
         },
         crosshair: {
-            vertLine: { visible: true, color: "rgba(255,255,255,0.20)", labelVisible: false },
-            horzLine: { visible: true, color: "rgba(255,255,255,0.18)", labelVisible: false }
+            vertLine: { visible: false },
+            horzLine: { visible: false }
         },
         handleScroll: {
             mouseWheel: false,
@@ -94,34 +104,51 @@ function buildChartOptions(width, height) {
     };
 }
 
-function createSeriesOptions(color, priceScaleId) {
-    return {
+function addAreaSeriesCompat(LightweightCharts, chart, options) {
+    if (typeof chart.addAreaSeries === "function") {
+        return chart.addAreaSeries(options);
+    }
+
+    if (typeof chart.addSeries === "function" && LightweightCharts?.AreaSeries) {
+        return chart.addSeries(LightweightCharts.AreaSeries, options);
+    }
+
+    return null;
+}
+
+function addLineSeriesCompat(LightweightCharts, chart, options) {
+    if (typeof chart.addLineSeries === "function") {
+        return chart.addLineSeries(options);
+    }
+
+    if (typeof chart.addSeries === "function" && LightweightCharts?.LineSeries) {
+        return chart.addSeries(LightweightCharts.LineSeries, options);
+    }
+
+    throw new Error("no supported series API");
+}
+
+function createSeries(LightweightCharts, chart, color) {
+    const baseOptions = {
         color,
-        priceScaleId,
         lineWidth: 2,
         crosshairMarkerVisible: true,
         lastValueVisible: true,
-        priceLineVisible: false
+        priceLineVisible: false,
+        priceScaleId: "right"
     };
-}
 
-function createSeriesStyleOptions(color) {
-    return {
-        color,
-        lineWidth: 2,
-        crosshairMarkerVisible: true,
-        lastValueVisible: true,
-        priceLineVisible: false
-    };
-}
+    const area = addAreaSeriesCompat(LightweightCharts, chart, {
+        ...baseOptions,
+        topColor: `${color}55`,
+        bottomColor: "rgba(0,0,0,0)"
+    });
 
-function normalizeSeriesPoints(points) {
-    return normalizeChartPoints(points ?? [])
-        .map((point) => ({
-            time: point.time,
-            value: Number(point.value)
-        }))
-        .filter((point) => Number.isFinite(point.time) && Number.isFinite(point.value));
+    if (area) {
+        return area;
+    }
+
+    return addLineSeriesCompat(LightweightCharts, chart, baseOptions);
 }
 
 function ensureResizeObserver(chartId, entry) {
@@ -136,84 +163,144 @@ function ensureResizeObserver(chartId, entry) {
     entry.resizeObserver.observe(entry.container);
 }
 
-async function ensureChart(chartId) {
+async function createOrResizeChart(chartId, sidePayload) {
     const existing = chartsState.charts.get(chartId);
-    if (existing?.chart && existing?.container) {
-        return existing;
-    }
+    const container = existing?.container ?? getContainer(chartId);
 
-    const container = getContainer(chartId);
     if (!container) {
         return null;
     }
 
-    const LightweightCharts = await loadLightweightCharts();
     const rect = container.getBoundingClientRect();
     const width = clamp(Math.floor(rect.width), 1, 99999);
     const height = clamp(Math.floor(rect.height), 1, 99999);
 
-    const chart = LightweightCharts.createChart(container, buildChartOptions(width, height));
-    const leftSeries = addLineSeriesCompat(LightweightCharts, chart, createSeriesOptions("#ff9100", "left"));
-    const rightSeries = addLineSeriesCompat(LightweightCharts, chart, createSeriesOptions("#18d8d2", "right"));
+    if (width <= 1 || height <= 1) {
+        if (existing?.retryFrame) {
+            return null;
+        }
 
-    const entry = {
-        chart,
-        container,
-        leftSeries,
-        rightSeries,
-        resizeObserver: null
-    };
+        const entry = existing ?? { chart: null, container, series: null, resizeObserver: null, retryFrame: null, lastSignature: "" };
+        entry.container = container;
+        chartsState.charts.set(chartId, entry);
+        entry.retryFrame = window.requestAnimationFrame(() => {
+            entry.retryFrame = null;
+            updateMatchPriceBattleChart(chartId, sidePayload);
+        });
+        return null;
+    }
 
-    chartsState.charts.set(chartId, entry);
-    ensureResizeObserver(chartId, entry);
-    fitChart(chart);
-    return entry;
-}
+    const LightweightCharts = await loadLightweightCharts();
+    let entry = existing;
 
-function applySeriesData(entry, payload) {
-    const leftColor = typeof payload?.leftColor === "string" && payload.leftColor.trim().length > 0
-        ? payload.leftColor.trim()
-        : "#ff9100";
-    const rightColor = typeof payload?.rightColor === "string" && payload.rightColor.trim().length > 0
-        ? payload.rightColor.trim()
-        : "#18d8d2";
+    if (!entry?.chart) {
+        const chart = LightweightCharts.createChart(container, buildChartOptions(width, height));
+        const series = createSeries(LightweightCharts, chart, sidePayload?.color ?? "#ff9100");
 
-    entry.leftSeries.applyOptions(createSeriesStyleOptions(leftColor));
-    entry.rightSeries.applyOptions(createSeriesStyleOptions(rightColor));
+        entry = {
+            chart,
+            container,
+            series,
+            resizeObserver: null,
+            retryFrame: null,
+            lastSignature: ""
+        };
 
-    const leftPoints = normalizeSeriesPoints(payload?.leftPoints);
-    const rightPoints = normalizeSeriesPoints(payload?.rightPoints);
+        chartsState.charts.set(chartId, entry);
+        ensureResizeObserver(chartId, entry);
+    } else {
+        entry.container = container;
+        entry.chart.applyOptions({ width, height });
+    }
 
-    entry.leftSeries.setData(leftPoints);
-    entry.rightSeries.setData(rightPoints);
-    entry.lastPayload = {
-        leftPoints: leftPoints.length,
-        rightPoints: rightPoints.length,
-        leftColor,
-        rightColor
-    };
-
+    applySeriesData(entry, sidePayload);
     fitChart(entry.chart);
+    return entry;
 }
 
-export async function initMatchPriceBattleChart(chartId, payload) {
-    const entry = await ensureChart(chartId);
+function applySeriesData(entry, sidePayload) {
+    if (!entry?.series) {
+        return;
+    }
+
+    const normalizedPoints = normalizeSeriesPoints(sidePayload?.points);
+    const color = typeof sidePayload?.color === "string" && sidePayload.color.trim().length > 0
+        ? sidePayload.color.trim()
+        : "#ff9100";
+
+    try {
+        entry.series.applyOptions({
+            color,
+            lineColor: color,
+            topColor: `${color}55`,
+            bottomColor: "rgba(0,0,0,0)"
+        });
+    } catch {
+    }
+
+    entry.series.setData(normalizedPoints);
+    entry.lastPayload = {
+        points: normalizedPoints.length,
+        color
+    };
+
+    console.debug("[TV_PRICE_BATTLE] init", {
+        id: sidePayload?.chartId,
+        width: entry.container?.clientWidth ?? 0,
+        height: entry.container?.clientHeight ?? 0,
+        points: normalizedPoints.length
+    });
+}
+
+function buildSignature(sidePayload) {
+    const points = normalizeSeriesPoints(sidePayload?.points);
+    const tail = points.length === 0
+        ? "0"
+        : `${points.length}:${points[points.length - 1].time}:${points[points.length - 1].value.toFixed(8)}`;
+
+    return [
+        sidePayload?.chartId ?? "",
+        sidePayload?.side ?? "",
+        sidePayload?.label ?? "",
+        sidePayload?.color ?? "",
+        tail
+    ].join("|");
+}
+
+async function updateSide(chartId, sidePayload) {
+    const signature = buildSignature(sidePayload);
+    const existing = chartsState.charts.get(chartId);
+    if (existing?.chart && existing.lastSignature === signature) {
+        return existing;
+    }
+
+    const entry = await createOrResizeChart(chartId, sidePayload);
     if (!entry) {
         return null;
     }
 
-    applySeriesData(entry, payload);
+    entry.lastSignature = signature;
     return entry;
 }
 
-export async function updateMatchPriceBattleChart(chartId, payload) {
-    const entry = await ensureChart(chartId);
-    if (!entry) {
-        return null;
+export async function initMatchPriceBattleChart(payload) {
+    return updateMatchPriceBattleChart(payload);
+}
+
+export async function updateMatchPriceBattleChart(payload) {
+    const left = payload?.left ?? null;
+    const right = payload?.right ?? null;
+
+    const tasks = [];
+    if (left?.chartId) {
+        tasks.push(updateSide(left.chartId, left));
+    }
+    if (right?.chartId) {
+        tasks.push(updateSide(right.chartId, right));
     }
 
-    applySeriesData(entry, payload);
-    return entry;
+    await Promise.all(tasks);
+    return true;
 }
 
 export function resizeMatchPriceBattleChart(chartId) {
@@ -237,6 +324,13 @@ export function disposeMatchPriceBattleChart(chartId) {
     const entry = chartsState.charts.get(chartId);
     if (!entry) {
         return;
+    }
+
+    try {
+        if (entry.retryFrame) {
+            window.cancelAnimationFrame(entry.retryFrame);
+        }
+    } catch {
     }
 
     try {
