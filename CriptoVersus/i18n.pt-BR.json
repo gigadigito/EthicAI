@@ -1171,6 +1171,19 @@
         "ariaLabel": "Grafico de atividade da partida ao longo do tempo"
       }
     },
+    "priceBattle": {
+      "eyebrow": "Comparativo de preco",
+      "title": "Batalha de preco ao vivo",
+      "subtitle": "Snapshot de mercado para os dois lados da partida.",
+      "centerHint": "Comparativo de mercado em tempo real",
+      "currentPrice": "Preco atual",
+      "change": "Variacao",
+      "competitiveness": "Competitividade",
+      "chartAria": "Grafico comparativo de preco ao vivo",
+      "noData": "Aguardando dados de preco",
+      "logoAlt": "Logo de {0}",
+      "ariaLabel": "{0} contra {1}, competitividade {2}."
+    },
     "broadcast": {
       "switchingArena": "Mudando para a proxima arena quente...",
       "nextHotArena": "A rotacao ao vivo esta indo para uma janela mais forte da arena.",

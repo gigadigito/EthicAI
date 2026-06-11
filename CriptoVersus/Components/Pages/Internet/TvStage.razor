@@ -471,21 +471,24 @@
 
                                 <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
                                     <div class="tv-telemetry-cube__virtual-stage">
-                                    <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare tv-telemetry-cube__virtual-panel">
-                                        <header class="tv-telemetry-face-header">
-                                            <span class="tv-telemetry-face-header__kicker">@T("labels.marketBattleFlow")</span>
-                                            <div class="tv-telemetry-face-header__row">
-                                                <strong>@DisplayLeftTickerLabel() <span class="tv-telemetry-face-header__vs">@T("vs")</span> @DisplayRightTickerLabel()</strong>
-                                                <em>@DisplayPressureSymbol()</em>
-                                            </div>
-                                            <small>@DisplayPressureHeadline()</small>
-                                        </header>
-                                        <div id="tv-telemetry-chart-compare" class="tv-telemetry-chart-shell" aria-label="chart comparativo"></div>
-                                        <div class="tv-telemetry-face-footer">
-                                            <span>@T("labels.pressure")</span>
-                                            <strong>@DisplayPoolStatus()</strong>
+                                        <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare tv-telemetry-cube__virtual-panel">
+                                            <TvMatchPriceBattleChart Culture="@Culture"
+                                                                    LeftSymbol="@DisplayLeftSymbol()"
+                                                                    LeftDisplayName="@DisplayLeftName()"
+                                                                    LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                                    LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
+                                                                    LeftChangePercent="@DisplayLeftChangePercent()"
+                                                                    LeftColor="#ff9100"
+                                                                    LeftPoints="@LeftPriceBattlePoints"
+                                                                    RightSymbol="@DisplayRightSymbol()"
+                                                                    RightDisplayName="@DisplayRightName()"
+                                                                    RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                                    RightCurrentPrice="@RightPriceBattleCurrentPrice"
+                                                                    RightChangePercent="@DisplayRightChangePercent()"
+                                                                    RightColor="#18d8d2"
+                                                                    RightPoints="@RightPriceBattlePoints"
+                                                                    Competitiveness="@ResolvePriceBattleCompetitiveness()" />
                                         </div>
-                                    </div>
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
                                         <TvCandleBattle LeftTickerLabel="@DisplayLeftTickerLabel()"
@@ -923,6 +926,16 @@ else
     private IReadOnlyList<MatchScoreEventDto> _recentScoreEvents = [];
     private IReadOnlyList<MatchScoreEventDto> _allScoreEvents = [];
     private IReadOnlyList<MatchMetricSnapshotDto> _metricSnapshots = [];
+    private readonly List<TvPriceChartPoint> _leftPriceBattlePoints = [];
+    private readonly List<TvPriceChartPoint> _rightPriceBattlePoints = [];
+    private CoinSocialProfileDto? _leftPriceBattleProfile;
+    private CoinSocialProfileDto? _rightPriceBattleProfile;
+    private TokenMarketSnapshotDto? _leftPriceBattleSnapshot;
+    private TokenMarketSnapshotDto? _rightPriceBattleSnapshot;
+    private string _leftPriceBattleSymbol = string.Empty;
+    private string _rightPriceBattleSymbol = string.Empty;
+    private int _priceBattleMatchId;
+    private bool _priceBattleRefreshInProgress;
     private ArenaSentimentDto? _arenaSentimentA;
     private ArenaSentimentDto? _arenaSentimentB;
     private bool _arenaSentimentLoading;
@@ -1242,6 +1255,10 @@ private bool ShouldUseCompactArenaGauge()
         ProcessBroadcastState();
         BuildTickerItems();
         QueueScoreEventProbe();
+
+        var priceBattleMatchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+        if (priceBattleMatchId != _priceBattleMatchId)
+            ResetPriceBattleState(priceBattleMatchId);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1287,6 +1304,7 @@ private bool ShouldUseCompactArenaGauge()
 
             _metricSnapshotCts = new CancellationTokenSource();
             _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
+            _ = RefreshPriceBattleAsync(Match?.MatchId ?? HotMatch?.MatchId ?? 0, _metricSnapshotCts.Token);
 
             if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
             {
@@ -2089,15 +2107,9 @@ private bool ShouldUseCompactArenaGauge()
                     }
                 }
 
-
-
-
-
-
+                await RefreshPriceBattleAsync(matchId, ct);
 
                 var nowTick = System.Environment.TickCount64;
-
-
 
                 if (nowTick - _metricSnapshotLastLogTick >= 4000)
                 {
@@ -4691,6 +4703,22 @@ private bool ShouldUseCompactArenaGauge()
     private string DisplayHotScore() => (HotMatch?.HotScore ?? 0).ToString(CultureInfo.InvariantCulture);
     private decimal? DisplayLeftChangePercent() => HotMatch?.LeftChangePercent ?? Match?.PctA;
     private decimal? DisplayRightChangePercent() => HotMatch?.RightChangePercent ?? Match?.PctB;
+    private IReadOnlyList<TvPriceChartPoint> LeftPriceBattlePoints => _leftPriceBattlePoints;
+    private IReadOnlyList<TvPriceChartPoint> RightPriceBattlePoints => _rightPriceBattlePoints;
+    private decimal? LeftPriceBattleCurrentPrice => _leftPriceBattleSnapshot?.CurrentPrice;
+    private decimal? RightPriceBattleCurrentPrice => _rightPriceBattleSnapshot?.CurrentPrice;
+    private int ResolvePriceBattleCompetitiveness()
+    {
+        var leftScore = DisplayLeftScore();
+        var rightScore = DisplayRightScore();
+        var leftChange = DisplayLeftChangePercent() ?? 0m;
+        var rightChange = DisplayRightChangePercent() ?? 0m;
+
+        return Math.Clamp(
+            100 - (Math.Abs(leftScore - rightScore) * 18) - (int)(Math.Abs(leftChange - rightChange) * 10m),
+            30,
+            98);
+    }
     private string DisplayLeaderSymbol() => HotMatch?.LeaderSymbol ?? ResolveLeaderSymbol();
     private string DisplayPressureSymbol() => HotMatch?.PressureSymbol ?? ResolvePressureSymbolFallback();
     private string DisplayPoolStatus() => TranslatePoolStatus(HotMatch?.PoolStatusLabel) ?? BuildPoolStatusFallback();
@@ -8340,6 +8368,200 @@ private bool ShouldUseCompactArenaGauge()
             animationSpeed = FieldAnimationSpeed,
             debug = EnableFieldMovementDebug
         };
+
+    private void ResetPriceBattleState(int matchId)
+    {
+        _priceBattleMatchId = matchId;
+        _leftPriceBattleProfile = null;
+        _rightPriceBattleProfile = null;
+        _leftPriceBattleSnapshot = null;
+        _rightPriceBattleSnapshot = null;
+        _leftPriceBattleSymbol = string.Empty;
+        _rightPriceBattleSymbol = string.Empty;
+        _leftPriceBattlePoints.Clear();
+        _rightPriceBattlePoints.Clear();
+    }
+
+    private async Task<bool> RefreshPriceBattleAsync(int matchId, CancellationToken ct)
+    {
+        if (_isDisposed || matchId <= 0)
+            return false;
+
+        if (_priceBattleRefreshInProgress)
+            return false;
+
+        _priceBattleRefreshInProgress = true;
+        var refreshSw = Stopwatch.StartNew();
+        var changed = false;
+
+        try
+        {
+            if (_priceBattleMatchId != matchId)
+            {
+                ResetPriceBattleState(matchId);
+                changed = true;
+            }
+
+            var leftSymbol = DisplayLeftSymbol();
+            var rightSymbol = DisplayRightSymbol();
+
+            var leftTask = RefreshPriceBattleSideAsync(true, leftSymbol, ct);
+            var rightTask = RefreshPriceBattleSideAsync(false, rightSymbol, ct);
+
+            await Task.WhenAll(leftTask, rightTask);
+            changed |= leftTask.Result || rightTask.Result;
+
+            if (changed)
+            {
+                Logger.LogInformation(
+                    "[TV_MATCH_LOAD] TvStage.PriceBattle matchId={MatchId} leftSymbol={LeftSymbol} rightSymbol={RightSymbol} leftPoints={LeftPoints} rightPoints={RightPoints} elapsedMs={ElapsedMs}",
+                    matchId,
+                    leftSymbol,
+                    rightSymbol,
+                    _leftPriceBattlePoints.Count,
+                    _rightPriceBattlePoints.Count,
+                    refreshSw.ElapsedMilliseconds);
+
+                try
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch
+                {
+                }
+            }
+
+            return changed;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] TvStage.PriceBattle refresh failed matchId={MatchId}", matchId);
+            return false;
+        }
+        finally
+        {
+            _priceBattleRefreshInProgress = false;
+        }
+    }
+
+    private async Task<bool> RefreshPriceBattleSideAsync(bool isLeft, string symbol, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return false;
+
+        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
+
+        if (isLeft)
+        {
+            if (!string.Equals(_leftPriceBattleSymbol, normalizedSymbol, StringComparison.Ordinal))
+            {
+                _leftPriceBattleSymbol = normalizedSymbol;
+                _leftPriceBattleProfile = null;
+                _leftPriceBattleSnapshot = null;
+                _leftPriceBattlePoints.Clear();
+            }
+        }
+        else if (!string.Equals(_rightPriceBattleSymbol, normalizedSymbol, StringComparison.Ordinal))
+        {
+            _rightPriceBattleSymbol = normalizedSymbol;
+            _rightPriceBattleProfile = null;
+            _rightPriceBattleSnapshot = null;
+            _rightPriceBattlePoints.Clear();
+        }
+
+        CoinSocialProfileDto? profile;
+        try
+        {
+            profile = await Api.GetCoinSocialProfileAsync(normalizedSymbol, ct: ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] TvStage.PriceBattle profile lookup failed symbol={Symbol}", normalizedSymbol);
+            return false;
+        }
+
+        if (profile is null || string.IsNullOrWhiteSpace(profile.ContractAddress))
+        {
+            if (isLeft)
+                _leftPriceBattleProfile = profile;
+            else
+                _rightPriceBattleProfile = profile;
+
+            return false;
+        }
+
+        if (isLeft)
+            _leftPriceBattleProfile = profile;
+        else
+            _rightPriceBattleProfile = profile;
+
+        var contractAddress = profile.ContractAddress.Trim();
+        var previousSnapshot = isLeft ? _leftPriceBattleSnapshot : _rightPriceBattleSnapshot;
+
+        TokenMarketSnapshotDto? snapshot;
+        try
+        {
+            snapshot = await Api.GetTokenMarketSnapshotAsync(contractAddress, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] TvStage.PriceBattle market lookup failed symbol={Symbol} contract={ContractAddress}", normalizedSymbol, contractAddress);
+            return false;
+        }
+
+        if (snapshot is null)
+            return false;
+
+        if (isLeft)
+            _leftPriceBattleSnapshot = snapshot;
+        else
+            _rightPriceBattleSnapshot = snapshot;
+
+        var snapshotChanged = previousSnapshot is null
+            || previousSnapshot.CurrentPrice != snapshot.CurrentPrice
+            || previousSnapshot.UpdatedAtUtc != snapshot.UpdatedAtUtc
+            || !string.Equals(previousSnapshot.Source, snapshot.Source, StringComparison.Ordinal)
+            || !string.Equals(previousSnapshot.ContractAddress, snapshot.ContractAddress, StringComparison.Ordinal)
+            || !string.Equals(previousSnapshot.Network, snapshot.Network, StringComparison.Ordinal);
+
+        var price = snapshot.CurrentPrice;
+        if (!price.HasValue)
+            return snapshotChanged;
+
+        var effectiveTime = snapshot.UpdatedAtUtc == default
+            ? DateTimeOffset.UtcNow
+            : snapshot.UpdatedAtUtc.ToUniversalTime();
+        var nowUnixSeconds = effectiveTime.ToUnixTimeSeconds();
+        var points = isLeft ? _leftPriceBattlePoints : _rightPriceBattlePoints;
+        var lastPoint = points.Count == 0 ? null : points[^1];
+        var pointAdded = false;
+
+        if (lastPoint is not null
+            && Math.Abs(lastPoint.Value - price.Value) <= 0.00000001m
+            && nowUnixSeconds - lastPoint.Time < 12)
+        {
+            return snapshotChanged;
+        }
+
+        points.Add(new TvPriceChartPoint(nowUnixSeconds, price.Value));
+        if (points.Count > 64)
+            points.RemoveRange(0, points.Count - 64);
+        pointAdded = true;
+
+        return snapshotChanged || pointAdded;
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -14131,4 +14353,3 @@ private bool ShouldUseCompactArenaGauge()
             }
     }
 </style>
-

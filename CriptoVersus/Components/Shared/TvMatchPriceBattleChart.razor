@@ -1,0 +1,302 @@
+@using System.Globalization
+@using System.Diagnostics
+@using DTOs
+@implements IAsyncDisposable
+@inject LocalizationService L
+@inject IJSRuntime JS
+@inject ILogger<TvMatchPriceBattleChart> Logger
+
+<section class="tv-price-battle"
+         aria-label="@ResolveAriaLabel()"
+         style="@BuildCssVariables()">
+    <div class="tv-price-battle__panel">
+        <header class="tv-price-battle__header">
+            <div class="tv-price-battle__header-copy">
+                <span class="tv-price-battle__eyebrow">@T("eyebrow")</span>
+                <h3>@T("title")</h3>
+                <p>@T("subtitle")</p>
+            </div>
+            <span class="tv-price-battle__vs">@T("vs")</span>
+        </header>
+
+        <div class="tv-price-battle__battle">
+            <article class="tv-price-battle__side tv-price-battle__side--left">
+                <div class="tv-price-battle__identity">
+                    <div class="tv-price-battle__logo-ring">
+                        @if (!string.IsNullOrWhiteSpace(LeftLogoUrl))
+                        {
+                            <img src="@LeftLogoUrl"
+                                 alt="@string.Format(CultureInfo.CurrentCulture, T("logoAlt"), DisplaySymbol(LeftSymbol))" />
+                        }
+                        else
+                        {
+                            <span>@CompactSymbol(LeftSymbol)</span>
+                        }
+                    </div>
+
+                    <div class="tv-price-battle__copy">
+                        <strong>@DisplaySymbol(LeftSymbol)</strong>
+                        <span>@DisplayText(LeftDisplayName)</span>
+                    </div>
+                </div>
+
+                <div class="tv-price-battle__metric">
+                    <span>@T("currentPrice")</span>
+                    <strong>@FormatPrice(LeftCurrentPrice)</strong>
+                </div>
+
+                <div class="tv-price-battle__change @GetChangeClass(LeftChangePercent)">
+                    <span>@T("change")</span>
+                    <strong>@FormatChangePercent(LeftChangePercent)</strong>
+                </div>
+            </article>
+
+            <section class="tv-price-battle__center">
+                <span>@T("competitiveness")</span>
+                <strong>@Competitiveness</strong>
+                <small>@T("centerHint")</small>
+            </section>
+
+            <article class="tv-price-battle__side tv-price-battle__side--right">
+                <div class="tv-price-battle__identity tv-price-battle__identity--right">
+                    <div class="tv-price-battle__copy tv-price-battle__copy--right">
+                        <strong>@DisplaySymbol(RightSymbol)</strong>
+                        <span>@DisplayText(RightDisplayName)</span>
+                    </div>
+
+                    <div class="tv-price-battle__logo-ring">
+                        @if (!string.IsNullOrWhiteSpace(RightLogoUrl))
+                        {
+                            <img src="@RightLogoUrl"
+                                 alt="@string.Format(CultureInfo.CurrentCulture, T("logoAlt"), DisplaySymbol(RightSymbol))" />
+                        }
+                        else
+                        {
+                            <span>@CompactSymbol(RightSymbol)</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="tv-price-battle__metric tv-price-battle__metric--right">
+                    <span>@T("currentPrice")</span>
+                    <strong>@FormatPrice(RightCurrentPrice)</strong>
+                </div>
+
+                <div class="tv-price-battle__change tv-price-battle__change--right @GetChangeClass(RightChangePercent)">
+                    <span>@T("change")</span>
+                    <strong>@FormatChangePercent(RightChangePercent)</strong>
+                </div>
+            </article>
+        </div>
+
+        <div class="tv-price-battle__chart-shell">
+            <div id="@_chartId"
+                 class="tv-price-battle__chart"
+                 aria-label="@T("chartAria")"></div>
+
+            @if (!HasChartData)
+            {
+                <div class="tv-price-battle__empty">
+                    <strong>@T("noData")</strong>
+                    <small>@T("subtitle")</small>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private readonly string _chartId = $"tv-price-battle-{Guid.NewGuid():N}";
+    private IJSObjectReference? _module;
+    private bool _pendingSync = true;
+    private string _lastSyncSignature = string.Empty;
+    private bool _disposed;
+
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public string LeftSymbol { get; set; } = string.Empty;
+    [Parameter] public string LeftDisplayName { get; set; } = string.Empty;
+    [Parameter] public string LeftLogoUrl { get; set; } = string.Empty;
+    [Parameter] public decimal? LeftCurrentPrice { get; set; }
+    [Parameter] public decimal? LeftChangePercent { get; set; }
+    [Parameter] public string LeftColor { get; set; } = "#ff9100";
+    [Parameter] public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+    [Parameter] public string RightSymbol { get; set; } = string.Empty;
+    [Parameter] public string RightDisplayName { get; set; } = string.Empty;
+    [Parameter] public string RightLogoUrl { get; set; } = string.Empty;
+    [Parameter] public decimal? RightCurrentPrice { get; set; }
+    [Parameter] public decimal? RightChangePercent { get; set; }
+    [Parameter] public string RightColor { get; set; } = "#18d8d2";
+    [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+    [Parameter] public int Competitiveness { get; set; }
+
+    private bool HasChartData => LeftPoints.Count > 0 || RightPoints.Count > 0;
+
+    protected override void OnParametersSet()
+    {
+        _pendingSync = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed)
+            return;
+
+        if (firstRender && _module is null)
+        {
+            try
+            {
+                var importSw = Stopwatch.StartNew();
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMatchPriceBattleChart.mjs?v=20260610-1");
+                Logger.LogInformation("[TV_MATCH_LOAD] TvMatchPriceBattleChart JS import chartId={ChartId} elapsedMs={ElapsedMs}", _chartId, importSw.ElapsedMilliseconds);
+                _pendingSync = true;
+            }
+            catch (JSDisconnectedException)
+            {
+                return;
+            }
+            catch (ObjectDisposedException)
+            {
+                return;
+            }
+        }
+
+        if (_module is null || !_pendingSync)
+            return;
+
+        var signature = BuildSyncSignature();
+        if (string.Equals(signature, _lastSyncSignature, StringComparison.Ordinal))
+        {
+            _pendingSync = false;
+            return;
+        }
+
+        try
+        {
+            var syncSw = Stopwatch.StartNew();
+            await _module.InvokeVoidAsync("updateMatchPriceBattleChart", _chartId, BuildPayload());
+            Logger.LogInformation("[TV_MATCH_LOAD] TvMatchPriceBattleChart update chartId={ChartId} leftPoints={LeftPoints} rightPoints={RightPoints} elapsedMs={ElapsedMs}", _chartId, LeftPoints.Count, RightPoints.Count, syncSw.ElapsedMilliseconds);
+            _lastSyncSignature = signature;
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            _pendingSync = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+
+        if (_module is null)
+            return;
+
+        try
+        {
+            await _module.InvokeVoidAsync("disposeMatchPriceBattleChart", _chartId);
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch
+        {
+        }
+    }
+
+    private object BuildPayload()
+        => new
+        {
+            leftPoints = LeftPoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray(),
+            rightPoints = RightPoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray(),
+            leftColor = LeftColor,
+            rightColor = RightColor,
+            leftSymbol = DisplaySymbol(LeftSymbol),
+            rightSymbol = DisplaySymbol(RightSymbol)
+        };
+
+    private string BuildSyncSignature()
+    {
+        var leftTail = LeftPoints.Count == 0
+            ? "0"
+            : $"{LeftPoints.Count}:{LeftPoints[LeftPoints.Count - 1].Time}:{LeftPoints[LeftPoints.Count - 1].Value:0.##########}";
+        var rightTail = RightPoints.Count == 0
+            ? "0"
+            : $"{RightPoints.Count}:{RightPoints[RightPoints.Count - 1].Time}:{RightPoints[RightPoints.Count - 1].Value:0.##########}";
+
+        return string.Join("|",
+            Culture,
+            DisplaySymbol(LeftSymbol),
+            DisplayText(LeftDisplayName),
+            LeftCurrentPrice?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
+            LeftChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
+            leftTail,
+            DisplaySymbol(RightSymbol),
+            DisplayText(RightDisplayName),
+            RightCurrentPrice?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
+            RightChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
+            rightTail,
+            Competitiveness.ToString(CultureInfo.InvariantCulture),
+            LeftColor,
+            RightColor);
+    }
+
+    private string BuildCssVariables()
+        => FormattableString.Invariant($"--price-battle-left:{LeftColor}; --price-battle-right:{RightColor};");
+
+    private string ResolveAriaLabel()
+        => string.Format(
+            CultureInfo.CurrentCulture,
+            T("ariaLabel"),
+            DisplaySymbol(LeftSymbol),
+            DisplaySymbol(RightSymbol),
+            Competitiveness);
+
+    private string T(string key, params object?[] args)
+        => L.T($"tv.priceBattle.{key}", Culture, args);
+
+    private static string DisplaySymbol(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();
+
+    private static string DisplayText(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim();
+
+    private static string CompactSymbol(string? value)
+    {
+        var symbol = DisplaySymbol(value);
+        return symbol.Length <= 4 ? symbol : symbol[..4];
+    }
+
+    private static string FormatPrice(decimal? value)
+        => value.HasValue
+            ? $"${value.Value.ToString("0.########", CultureInfo.InvariantCulture)}"
+            : "--";
+
+    private static string FormatChangePercent(decimal? value)
+        => value.HasValue
+            ? value.Value > 0m
+                ? $"+{value.Value:0.00}%"
+                : $"{value.Value:0.00}%"
+            : "--";
+
+    private static string GetChangeClass(decimal? value)
+        => value switch
+        {
+            > 0m => "tv-price-battle__change--positive",
+            < 0m => "tv-price-battle__change--negative",
+            0m => "tv-price-battle__change--neutral",
+            _ => "tv-price-battle__change--missing"
+        };
+}

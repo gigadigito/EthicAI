@@ -3063,7 +3063,6 @@ function hasChartContainers() {
     return Boolean(
         document.getElementById("tv-telemetry-chart-left")
         && document.getElementById("tv-telemetry-chart-right")
-        && document.getElementById("tv-telemetry-chart-compare")
     );
 }
 
@@ -4059,7 +4058,8 @@ export async function updateTelemetryCharts(payload) {
 
         const left = await ensureCandlestickChart("tv-telemetry-chart-left");
         const right = await ensureCandlestickChart("tv-telemetry-chart-right");
-        const compare = await ensureCompareChart("tv-telemetry-chart-compare");
+        const compareContainer = document.getElementById("tv-telemetry-chart-compare");
+        const compare = compareContainer ? await ensureCompareChart("tv-telemetry-chart-compare") : null;
 
         left.series.setData(leftCandles);
         right.series.setData(rightCandles);
@@ -4076,14 +4076,18 @@ export async function updateTelemetryCharts(payload) {
             splitRight.series.setData(rightCandles);
         }
 
-        compare.leftSeries.setData(normalizeCompareLine(leftPoints));
-        compare.rightSeries.setData(normalizeCompareLine(rightPoints));
-        compare.leftMeta = leftMeta;
-        compare.rightMeta = rightMeta;
+        if (compare) {
+            compare.leftSeries.setData(normalizeCompareLine(leftPoints));
+            compare.rightSeries.setData(normalizeCompareLine(rightPoints));
+            compare.leftMeta = leftMeta;
+            compare.rightMeta = rightMeta;
+        }
 
         setChartEmptyState("tv-telemetry-chart-left", leftCandles.length < 2);
         setChartEmptyState("tv-telemetry-chart-right", rightCandles.length < 2);
-        setChartEmptyState("tv-telemetry-chart-compare", leftPoints.length < 2 && rightPoints.length < 2, "coletando fluxo");
+        if (compare) {
+            setChartEmptyState("tv-telemetry-chart-compare", leftPoints.length < 2 && rightPoints.length < 2, "coletando fluxo");
+        }
         if (splitLeft) {
             setChartEmptyState("tv-telemetry-chart-split-left", leftCandles.length < 2);
         }
@@ -4093,10 +4097,12 @@ export async function updateTelemetryCharts(payload) {
 
         fitChart(left.chart);
         fitChart(right.chart);
-        fitChart(compare.chart);
-        maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
-        maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
-        scheduleCompareOverlayRefresh(compare);
+        if (compare) {
+            fitChart(compare.chart);
+            maybeRenderCompareScoreEvents(compare, safePayload, leftPoints, rightPoints, leftMeta, rightMeta);
+            maybeRenderCompareCrossover(compare, leftPoints, rightPoints, leftMeta, rightMeta);
+            scheduleCompareOverlayRefresh(compare);
+        }
         if (splitLeft) {
             fitChart(splitLeft.chart);
         }

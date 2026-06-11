@@ -279,6 +279,18 @@ public sealed class CriptoVersusApiClient
     public async Task<TokenomicsDto?> GetTokenomicsAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<TokenomicsDto>("api/tokenomics", ct);
 
+    public async Task<TokenMarketSnapshotDto?> GetTokenMarketSnapshotAsync(
+        string? contractAddress,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(contractAddress))
+            return null;
+
+        return await GetFromJsonWithBearerAsync<TokenMarketSnapshotDto>(
+            $"api/token/market?contractAddress={Uri.EscapeDataString(contractAddress)}",
+            ct);
+    }
+
     public async Task<StatsOverviewDto?> GetStatsOverviewAsync(CancellationToken ct = default)
         => await GetStatsOverviewAsync(search: null, ct);
 

@@ -1269,6 +1269,19 @@
         "ariaLabel": "Match activity over time chart"
       }
     },
+    "priceBattle": {
+      "eyebrow": "Price comparison",
+      "title": "Live price battle",
+      "subtitle": "Market snapshot for both match sides.",
+      "centerHint": "Real-time market comparison",
+      "currentPrice": "Current price",
+      "change": "Change",
+      "competitiveness": "Competitiveness",
+      "chartAria": "Live price comparison chart",
+      "noData": "Waiting for price data",
+      "logoAlt": "Logo of {0}",
+      "ariaLabel": "{0} versus {1}, competitiveness {2}."
+    },
     "broadcast": {
       "switchingArena": "Switching to the next hot arena...",
       "nextHotArena": "Live rotation is moving to a stronger arena window.",

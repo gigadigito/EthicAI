@@ -1,0 +1,399 @@
+.tv-price-battle {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+}
+
+.tv-price-battle__panel {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) minmax(240px, 1.15fr);
+    gap: 14px;
+    padding: clamp(14px, 1.6vw, 20px);
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background:
+        radial-gradient(circle at top left, rgba(255, 145, 0, 0.08), transparent 28%),
+        radial-gradient(circle at top right, rgba(24, 216, 210, 0.10), transparent 26%),
+        linear-gradient(180deg, rgba(7, 14, 26, 0.98), rgba(5, 10, 18, 0.99));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.05),
+        0 18px 42px rgba(0, 0, 0, 0.26);
+    overflow: hidden;
+    position: relative;
+}
+
+.tv-price-battle__panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(255, 145, 0, 0.06), transparent 28%, transparent 72%, rgba(24, 216, 210, 0.06)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 16%);
+    pointer-events: none;
+}
+
+.tv-price-battle__header,
+.tv-price-battle__battle,
+.tv-price-battle__chart-shell {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.tv-price-battle__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: start;
+}
+
+.tv-price-battle__header-copy {
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.tv-price-battle__eyebrow {
+    color: rgba(255, 220, 168, 0.9);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.tv-price-battle__header-copy h3 {
+    margin: 0;
+    color: #f7fbff;
+    font-size: clamp(1.05rem, 1.7vw, 1.55rem);
+    line-height: 1.06;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tv-price-battle__header-copy p {
+    margin: 0;
+    color: rgba(219, 232, 247, 0.72);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.tv-price-battle__vs {
+    align-self: center;
+    justify-self: end;
+    color: rgba(247, 251, 255, 0.78);
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-shadow:
+        0 0 18px rgba(255, 145, 0, 0.18),
+        0 0 18px rgba(24, 216, 210, 0.18);
+}
+
+.tv-price-battle__battle {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 0.72fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: stretch;
+    min-height: 0;
+}
+
+.tv-price-battle__side,
+.tv-price-battle__center {
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.tv-price-battle__side {
+    min-width: 0;
+    display: grid;
+    gap: 12px;
+    align-content: center;
+    padding: 14px;
+    overflow: hidden;
+}
+
+.tv-price-battle__side--left {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 0 0 1px rgba(255, 145, 0, 0.08),
+        0 0 32px rgba(255, 145, 0, 0.08);
+}
+
+.tv-price-battle__side--right {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 0 0 1px rgba(24, 216, 210, 0.08),
+        0 0 32px rgba(24, 216, 210, 0.08);
+}
+
+.tv-price-battle__identity {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+}
+
+.tv-price-battle__identity--right {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.tv-price-battle__logo-ring {
+    width: clamp(52px, 5.2vw, 78px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    padding: 10px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background:
+        radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.07), rgba(16, 24, 41, 0.88)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+}
+
+.tv-price-battle__side--left .tv-price-battle__logo-ring {
+    box-shadow:
+        0 0 22px rgba(255, 145, 0, 0.22),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.tv-price-battle__side--right .tv-price-battle__logo-ring {
+    box-shadow:
+        0 0 22px rgba(24, 216, 210, 0.22),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.tv-price-battle__logo-ring img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.12));
+}
+
+.tv-price-battle__logo-ring span {
+    color: #f7fbff;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+}
+
+.tv-price-battle__copy {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.tv-price-battle__copy--right {
+    text-align: right;
+}
+
+.tv-price-battle__copy strong,
+.tv-price-battle__copy span,
+.tv-price-battle__metric span,
+.tv-price-battle__change span,
+.tv-price-battle__center span,
+.tv-price-battle__center small {
+    text-transform: uppercase;
+}
+
+.tv-price-battle__copy strong {
+    color: #f7fbff;
+    font-size: clamp(1rem, 1.4vw, 1.5rem);
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+}
+
+.tv-price-battle__copy span {
+    color: rgba(219, 232, 247, 0.72);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    overflow-wrap: anywhere;
+}
+
+.tv-price-battle__metric,
+.tv-price-battle__change,
+.tv-price-battle__center {
+    display: grid;
+    gap: 6px;
+}
+
+.tv-price-battle__metric span,
+.tv-price-battle__change span,
+.tv-price-battle__center span {
+    color: rgba(219, 232, 247, 0.66);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+}
+
+.tv-price-battle__metric strong {
+    color: #f7fbff;
+    font-size: clamp(1.25rem, 2vw, 2.1rem);
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    overflow-wrap: anywhere;
+}
+
+.tv-price-battle__side--left .tv-price-battle__metric strong,
+.tv-price-battle__side--left .tv-price-battle__change strong {
+    color: #ffb14d;
+    text-shadow: 0 0 18px rgba(255, 145, 0, 0.2);
+}
+
+.tv-price-battle__side--right .tv-price-battle__metric strong,
+.tv-price-battle__side--right .tv-price-battle__change strong {
+    color: #7ff6f1;
+    text-shadow: 0 0 18px rgba(24, 216, 210, 0.2);
+}
+
+.tv-price-battle__change strong {
+    font-size: 0.98rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+}
+
+.tv-price-battle__change--positive strong {
+    color: #78ffd1;
+}
+
+.tv-price-battle__change--negative strong {
+    color: #ff8d97;
+}
+
+.tv-price-battle__change--neutral strong,
+.tv-price-battle__change--missing strong {
+    color: rgba(219, 232, 247, 0.82);
+}
+
+.tv-price-battle__center {
+    min-height: 0;
+    align-content: center;
+    justify-items: center;
+    text-align: center;
+    padding: 14px;
+    background:
+        radial-gradient(circle at top, rgba(255, 145, 0, 0.08), transparent 35%),
+        radial-gradient(circle at bottom, rgba(24, 216, 210, 0.08), transparent 38%),
+        rgba(255, 255, 255, 0.03);
+}
+
+.tv-price-battle__center strong {
+    color: #f7fbff;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -0.05em;
+}
+
+.tv-price-battle__center small {
+    color: rgba(219, 232, 247, 0.74);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+
+.tv-price-battle__chart-shell {
+    min-height: 0;
+    position: relative;
+}
+
+.tv-price-battle__chart {
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background:
+        linear-gradient(180deg, rgba(7, 13, 24, 0.98), rgba(5, 9, 17, 0.99));
+    overflow: hidden;
+}
+
+.tv-price-battle__empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.tv-price-battle__empty strong {
+    color: rgba(247, 251, 255, 0.74);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.tv-price-battle__empty small {
+    color: rgba(219, 232, 247, 0.54);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 1120px) {
+    .tv-price-battle__battle {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tv-price-battle__center {
+        order: 0;
+        min-height: 0;
+    }
+
+    .tv-price-battle__side--left {
+        order: 1;
+    }
+
+    .tv-price-battle__side--right {
+        order: 2;
+    }
+}
+
+@media (max-width: 720px) {
+    .tv-price-battle__panel {
+        gap: 12px;
+        padding: 12px;
+        border-radius: 18px;
+        grid-template-rows: auto auto minmax(220px, 1fr);
+    }
+
+    .tv-price-battle__header {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .tv-price-battle__vs {
+        justify-self: start;
+        font-size: 1.35rem;
+    }
+
+    .tv-price-battle__identity {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .tv-price-battle__identity--right {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .tv-price-battle__copy--right {
+        text-align: left;
+    }
+}
