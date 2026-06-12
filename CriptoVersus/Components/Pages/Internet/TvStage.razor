@@ -472,30 +472,35 @@
                                 <section class="tv-telemetry-cube__face tv-telemetry-cube__face--back">
                                     <div class="tv-telemetry-cube__virtual-stage">
                                         <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--compare tv-telemetry-cube__virtual-panel">
-                                            <TvMatchPriceBattleChart Culture="@Culture"
-                                                                     LeftSymbol="@DisplayLeftTickerLabel()"
-                                                                     LeftDisplayName="@DisplayLeftName()"
-                                                                     LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                                     LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
-                                                                     LeftChangePercent="@DisplayLeftChangePercent()"
-                                                                     LeftColor="#ff9100"
-                                                                     LeftPoints="@LeftPriceBattlePoints"
-                                                                     LeftHasPriceHistory="@LeftPriceBattleHasHistory"
-                                                                     RightSymbol="@DisplayRightTickerLabel()"
-                                                                     RightDisplayName="@DisplayRightName()"
-                                                                     RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                                                     RightCurrentPrice="@RightPriceBattleCurrentPrice"
-                                                                     RightChangePercent="@DisplayRightChangePercent()"
-                                                                     RightColor="#18d8d2"
-                                                                     RightPoints="@RightPriceBattlePoints"
-                                                                     RightHasPriceHistory="@RightPriceBattleHasHistory"
-                                                                     Competitiveness="@ResolvePriceBattleCompetitiveness()"
-                                                                     BroadcastFocusLabel="@BroadcastFocusLabel"
-                                                                     BroadcastRotationRemaining="@DisplayBroadcastRotationRemaining()"
-                                                                     BroadcastRotationProgress="@BroadcastRotationProgress"
-                                                                     BroadcastFocusProgress="@BroadcastFocusProgress"
-                                                                     BroadcastFocusColor="@BroadcastFocusColor"
-                                                                     IsSignalStable="@(!IsDataStale)" />
+                                           <TvMatchPriceBattleChart
+    Culture="@Culture"
+
+    LeftSymbol="@DisplayLeftTickerLabel()"
+    LeftDisplayName="@DisplayLeftName()"
+    LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+    LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
+    LeftChangePercent="@DisplayLeftChangePercent()"
+    LeftColor="#ff9100"
+    LeftPoints="@LeftPriceBattlePoints"
+    LeftHasPriceHistory="@LeftPriceBattleHasHistory"
+
+    RightSymbol="@DisplayRightTickerLabel()"
+    RightDisplayName="@DisplayRightName()"
+    RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+    RightCurrentPrice="@RightPriceBattleCurrentPrice"
+    RightChangePercent="@DisplayRightChangePercent()"
+    RightColor="#18d8d2"
+    RightPoints="@RightPriceBattlePoints"
+    RightHasPriceHistory="@RightPriceBattleHasHistory"
+
+    Competitiveness="@ResolvePriceBattleCompetitiveness()"
+
+    BroadcastFocusLabel="@BroadcastFocusLabel"
+    BroadcastRotationRemaining="@DisplayBroadcastRotationRemaining()"
+    BroadcastRotationProgress="@BroadcastRotationProgress"
+    BroadcastFocusProgress="@BroadcastFocusProgress"
+    BroadcastFocusColor="@BroadcastFocusColor"
+    IsSignalStable="@(!IsDataStale)" />
                                         </div>
 
                                     <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
@@ -1000,8 +1005,6 @@ else
     private string _lastClockRenderSignature = string.Empty;
     private string _lastFieldInteropSignature = string.Empty;
     private string _lastCameraInteropSignature = string.Empty;
-    private int _goalEventFeedVersion;
-    private int _lastGoalEventFeedVersion;
     private bool _showPirateOverlay;
     private string _pirateOverlayMessage = string.Empty;
     private string _pirateOverlayReason = string.Empty;
@@ -1313,8 +1316,6 @@ private bool ShouldUseCompactArenaGauge()
             _metricSnapshotCts = new CancellationTokenSource();
             _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
             _ = RefreshPriceBattleAsync(Match?.MatchId ?? HotMatch?.MatchId ?? 0, _metricSnapshotCts.Token);
-            await SyncTelemetryChartsAsync();
-            await RefreshGoalEventFeedAsync(force: true);
 
             if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
             {
@@ -1326,11 +1327,22 @@ private bool ShouldUseCompactArenaGauge()
             Logger.LogInformation("[TV_MATCH_LOAD] TvStage OnAfterRender firstRender matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
         }
 
-        await RefreshGoalEventFeedAsync();
+        if (_tvEventFeedModule is not null)
+        {
+            try
+            {
+                await _tvEventFeedModule.InvokeVoidAsync("initTvEventFeed", GoalEventFeedId);
+                await _tvEventFeedModule.InvokeVoidAsync("refreshTvEventFeed", GoalEventFeedId);
+            }
+            catch
+            {
+            }
+        }
 
         if (EnableTelemetryCube && _tvModule is not null)
         {
             await EnsureTelemetryCubeAsync();
+            await SyncTelemetryChartsAsync();
         }
 
         var fieldState = CurrentFieldState;
@@ -2109,13 +2121,6 @@ private bool ShouldUseCompactArenaGauge()
                 await RefreshPriceBattleAsync(matchId, ct);
 
                 var nowTick = System.Environment.TickCount64;
-                var currentLeftLiveValue = DisplayLeftChangePercent();
-                var currentRightLiveValue = DisplayRightChangePercent();
-                var shouldSyncTelemetryCharts =
-                    latestId != _telemetryCubeLastSnapshotId
-                    || _metricSnapshots.Count != _telemetryCubeLastSnapshotCount
-                    || !Nullable.Equals(currentLeftLiveValue, _telemetryCubeLastLeftLiveValue)
-                    || !Nullable.Equals(currentRightLiveValue, _telemetryCubeLastRightLiveValue);
 
                 if (nowTick - _metricSnapshotLastLogTick >= 4000)
                 {
@@ -2123,15 +2128,12 @@ private bool ShouldUseCompactArenaGauge()
                     Console.WriteLine($"[TV_SNAPSHOTS] match={matchId} count={_metricSnapshots.Count} latestId={_metricSnapshotLastId}");
                 }
 
-                if (shouldRender || shouldSyncTelemetryCharts)
+                try
                 {
-                    try
-                    {
-                        await InvokeAsync(SyncTelemetryChartsAsync);
-                    }
-                    catch
-                    {
-                    }
+                    await InvokeAsync(SyncTelemetryChartsAsync);
+                }
+                catch
+                {
                 }
 
                 if (shouldRender)
@@ -3643,20 +3645,11 @@ private bool ShouldUseCompactArenaGauge()
 
         _isScoreEventProbeRunning = true;
 
-        var shouldRender = false;
-
         try
         {
             var scoreEventsSw = Stopwatch.StartNew();
             var events = await Api.GetMatchScoreEventsAsync(matchId, Culture) ?? [];
             Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchScoreEventsAsync matchId={MatchId} culture={Culture} count={Count} elapsedMs={ElapsedMs}", matchId, Culture, events.Count, scoreEventsSw.ElapsedMilliseconds);
-            var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
-            var previousScoreEventCount = _allScoreEvents.Count;
-            var scoreEventsChanged = _lastScoreEventMatchId != matchId
-                || !_lastSeenScoreEventId.HasValue
-                || previousScoreEventCount != events.Count
-                || _lastSeenScoreEventId.Value != latestEventId;
-
             _allScoreEvents = events
                 .OrderBy(x => x.EventTimeUtc)
                 .ThenBy(x => x.MatchScoreEventId)
@@ -3665,12 +3658,7 @@ private bool ShouldUseCompactArenaGauge()
                 .OrderByDescending(x => x.MatchScoreEventId)
                 .Take(5)
                 .ToList();
-            if (scoreEventsChanged)
-            {
-                _goalEventFeedVersion++;
-                shouldRender = true;
-            }
-
+            var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
             var current = CaptureSnapshot();
             var latestKnownEvent = _recentScoreEvents.FirstOrDefault();
             await SyncProceduralAudioDebugSnapshotAsync(current, latestKnownEvent);
@@ -3739,16 +3727,6 @@ private bool ShouldUseCompactArenaGauge()
         finally
         {
             _isScoreEventProbeRunning = false;
-            if (shouldRender)
-            {
-                try
-                {
-                    await InvokeAsync(StateHasChanged);
-                }
-                catch
-                {
-                }
-            }
         }
     }
 
@@ -8388,27 +8366,6 @@ private bool ShouldUseCompactArenaGauge()
         }
     }
 
-    private async Task RefreshGoalEventFeedAsync(bool force = false)
-    {
-        if (_isDisposed || _tvEventFeedModule is null)
-            return;
-
-        if (!force && _lastGoalEventFeedVersion == _goalEventFeedVersion)
-            return;
-
-        try
-        {
-            if (force || _lastGoalEventFeedVersion == 0)
-                await _tvEventFeedModule.InvokeVoidAsync("initTvEventFeed", GoalEventFeedId);
-
-            await _tvEventFeedModule.InvokeVoidAsync("refreshTvEventFeed", GoalEventFeedId);
-            _lastGoalEventFeedVersion = _goalEventFeedVersion;
-        }
-        catch
-        {
-        }
-    }
-
     private object BuildFieldMovementOptions()
         => new
         {
@@ -8571,12 +8528,6 @@ private bool ShouldUseCompactArenaGauge()
             _clockCts.Dispose();
         }
 
-        if (_broadcastAutomationCts is not null)
-        {
-            _broadcastAutomationCts.Cancel();
-            _broadcastAutomationCts.Dispose();
-        }
-
         if (_metricSnapshotCts is not null)
         {
             _metricSnapshotCts.Cancel();
@@ -8599,17 +8550,6 @@ private bool ShouldUseCompactArenaGauge()
             try
             {
                 await _metricSnapshotLoopTask;
-            }
-            catch
-            {
-            }
-        }
-
-        if (_broadcastAutomationLoopTask is not null)
-        {
-            try
-            {
-                await _broadcastAutomationLoopTask;
             }
             catch
             {
@@ -11644,7 +11584,7 @@ private bool ShouldUseCompactArenaGauge()
     .tv-telemetry-cube__virtual-stage {
         position: relative;
         height: 100%;
-        min-height:1060px;
+        min-height: 0;
         isolation: isolate;
         perspective: 1600px;
         transform-style: preserve-3d;
@@ -14365,4 +14305,292 @@ private bool ShouldUseCompactArenaGauge()
                 height: 100% !important;
             }
     }
+
+
+    /* ==========================================================
+       AJUSTE FINAL — GRÁFICOS COM 100% DA ALTURA DO CONTAINER
+       ========================================================== */
+
+    .tv-stage--broadcast .tv-stage__grid {
+        align-items: stretch !important;
+    }
+
+    .tv-stage--broadcast .tv-stage__grid > .tv-match-card--football,
+    .tv-stage--broadcast .tv-stage__grid > .tv-telemetry--football {
+        align-self: stretch !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-match-card--football {
+        height: auto !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry--football {
+        position: relative !important;
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry--football > .tv-telemetry-cube-shell {
+        position: absolute !important;
+        inset: 0 !important;
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__virtual-stage,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__virtual-panel,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__inner {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__virtual-stage,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__virtual-panel,
+    .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__inner {
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__face--right .tv-telemetry-cube__inner,
+    .tv-stage--broadcast .tv-telemetry-cube__face--left .tv-telemetry-cube__inner {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto !important;
+        align-content: stretch !important;
+        align-items: stretch !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-chart-shell,
+    .tv-stage--broadcast .tv-telemetry-chart-shell--split,
+    .tv-stage--broadcast .tv-telemetry-chart-shell--battle {
+        position: relative !important;
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-chart-shell > div,
+    .tv-stage--broadcast .tv-telemetry-chart-shell canvas,
+    .tv-stage--broadcast .tv-telemetry-chart-shell svg,
+    .tv-stage--broadcast .tv-telemetry-chart-shell--battle > div,
+    .tv-stage--broadcast .tv-telemetry-chart-shell--battle canvas,
+    .tv-stage--broadcast .tv-telemetry-chart-shell--battle svg {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner--compare,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--split,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--goals,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        align-self: stretch !important;
+        align-content: stretch !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner--compare,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--split,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        padding: 0 !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner--compare > *,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--split > *,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > * {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        align-self: stretch !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle,
+    .tv-stage--broadcast .tv-candle-battle__body,
+    .tv-stage--broadcast .tv-candle-battle__cards,
+    .tv-stage--broadcast .tv-candle-battle-card,
+    .tv-stage--broadcast .tv-candle-battle-card__body,
+    .tv-stage--broadcast .tv-candle-battle-card__chart-area {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle {
+        height: 100% !important;
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle__body,
+    .tv-stage--broadcast .tv-candle-battle__cards {
+        height: 100% !important;
+        align-items: stretch !important;
+        align-content: stretch !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle-card {
+        height: 100% !important;
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto !important;
+        align-self: stretch !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle-card__body {
+        height: 100% !important;
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) auto !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle-card__chart-area {
+        height: 100% !important;
+        display: flex !important;
+        align-items: stretch !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+        min-height: 0 !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner--goals {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__inner--goals .tv-goal-log,
+    .tv-stage--broadcast .tv-telemetry-cube__inner--goals .tv-goal-log__list {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__panel,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__center,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__center,
+    .tv-stage--broadcast .tv-arena-pressure-gauge__gauge-shell {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+    }
+
+    .tv-stage--broadcast .tv-arena-pressure-gauge__svg {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+    }
+
+    @@media (max-width: 1700px) {
+        .tv-stage--broadcast .tv-telemetry--football {
+            position: relative !important;
+            height: clamp(640px, 70vh, 860px) !important;
+            min-height: 640px !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry--football > .tv-telemetry-cube-shell {
+            height: 100% !important;
+            min-height: 0 !important;
+        }
+    }
+
+    @@media (max-width: 1080px) {
+        .tv-stage--broadcast .tv-telemetry--football {
+            height: 680px !important;
+            min-height: 680px !important;
+        }
+    }
+
+    @@media (max-width: 720px) {
+        .tv-stage--broadcast .tv-stage__grid {
+            align-items: start !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry--football {
+            height: 740px !important;
+            min-height: 740px !important;
+        }
+
+        .tv-stage--broadcast .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
+            min-height: 0 !important;
+        }
+    }
+
 </style>
