@@ -384,7 +384,10 @@
         --pressure-border: rgba(98, 145, 191, 0.22);
         position: relative;
         min-width: 0;
-        min-height: 900px;
+        min-height: 0;
+        height: 100%;
+        container-type: inline-size;
+        container-name: arena-pressure;
     }
 
     .tv-arena-pressure-gauge__panel {
@@ -395,29 +398,21 @@
         padding: clamp(1rem, 1.8vw, 1.5rem);
         border-radius: 28px;
         border: 1px solid var(--pressure-border);
-        background:
-            radial-gradient(circle at 50% 0%, rgba(46, 232, 242, 0.08), transparent 38%),
-            radial-gradient(circle at 10% 50%, rgba(255, 138, 31, 0.08), transparent 36%),
-            var(--pressure-glass);
-        box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,0.025),
-            0 24px 54px rgba(0, 0, 0, 0.28),
-            0 0 38px rgba(13, 33, 56, 0.24);
+        background: radial-gradient(circle at 50% 0%, rgba(46, 232, 242, 0.08), transparent 38%), radial-gradient(circle at 10% 50%, rgba(255, 138, 31, 0.08), transparent 36%), var(--pressure-glass);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 24px 54px rgba(0, 0, 0, 0.28), 0 0 38px rgba(13, 33, 56, 0.24);
         overflow: hidden;
         position: relative;
         height: 100%;
     }
 
-    .tv-arena-pressure-gauge__panel::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        pointer-events: none;
-        background:
-            linear-gradient(90deg, rgba(255, 138, 31, 0.06), transparent 28%, transparent 72%, rgba(46, 232, 242, 0.06)),
-            linear-gradient(180deg, rgba(255,255,255,0.04), transparent 14%);
-    }
+        .tv-arena-pressure-gauge__panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            pointer-events: none;
+            background: linear-gradient(90deg, rgba(255, 138, 31, 0.06), transparent 28%, transparent 72%, rgba(46, 232, 242, 0.06)), linear-gradient(180deg, rgba(255,255,255,0.04), transparent 14%);
+        }
 
     .tv-arena-pressure-gauge__header,
     .tv-arena-pressure-gauge__layout,
@@ -432,24 +427,24 @@
         text-align: center;
     }
 
-    .tv-arena-pressure-gauge__header h3 {
-        margin: 0;
-        color: #72f7ff;
-        font-size: clamp(1.1rem, 2vw, 1.9rem);
-        font-weight: 900;
-        letter-spacing: 0.24em;
-        text-transform: uppercase;
-        text-shadow: 0 0 18px rgba(70, 245, 255, 0.34);
-    }
+        .tv-arena-pressure-gauge__header h3 {
+            margin: 0;
+            color: #72f7ff;
+            font-size: clamp(1.1rem, 2vw, 1.9rem);
+            font-weight: 900;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            text-shadow: 0 0 18px rgba(70, 245, 255, 0.34);
+        }
 
-    .tv-arena-pressure-gauge__header p {
-        margin: 0.28rem 0 0;
-        color: rgba(214, 231, 255, 0.68);
-        font-size: clamp(0.7rem, 0.85vw, 0.92rem);
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-    }
+        .tv-arena-pressure-gauge__header p {
+            margin: 0.28rem 0 0;
+            color: rgba(214, 231, 255, 0.68);
+            font-size: clamp(0.7rem, 0.85vw, 0.92rem);
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
 
     .tv-arena-pressure-gauge__layout {
         display: grid;
@@ -527,24 +522,24 @@
         gap: 0.22rem;
     }
 
-    .tv-arena-pressure-gauge__copy strong,
-    .tv-arena-pressure-gauge__copy span,
-    .tv-arena-pressure-gauge__metric span,
-    .tv-arena-pressure-gauge__momentum span,
-    .tv-arena-pressure-gauge__momentum small,
-    .tv-arena-pressure-gauge__footer-status small,
-    .tv-arena-pressure-gauge__center-copy span,
-    .tv-arena-pressure-gauge__center-copy em {
-        text-transform: uppercase;
-    }
+        .tv-arena-pressure-gauge__copy strong,
+        .tv-arena-pressure-gauge__copy span,
+        .tv-arena-pressure-gauge__metric span,
+        .tv-arena-pressure-gauge__momentum span,
+        .tv-arena-pressure-gauge__momentum small,
+        .tv-arena-pressure-gauge__footer-status small,
+        .tv-arena-pressure-gauge__center-copy span,
+        .tv-arena-pressure-gauge__center-copy em {
+            text-transform: uppercase;
+        }
 
-    .tv-arena-pressure-gauge__copy strong {
-        color: #f7fbff;
-        font-size: clamp(1.1rem, 2vw, 2rem);
-        font-weight: 900;
-        letter-spacing: 0.08em;
-        line-height: 1;
-    }
+        .tv-arena-pressure-gauge__copy strong {
+            color: #f7fbff;
+            font-size: clamp(1.1rem, 2vw, 2rem);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            line-height: 1;
+        }
 
     .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__copy strong,
     .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__metric strong,
@@ -573,19 +568,19 @@
         gap: 0.25rem;
     }
 
-    .tv-arena-pressure-gauge__metric strong {
-        font-size: clamp(2rem, 4vw, 3.5rem);
-        line-height: 1;
-        font-weight: 900;
-        letter-spacing: -0.05em;
-    }
+        .tv-arena-pressure-gauge__metric strong {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+        }
 
-    .tv-arena-pressure-gauge__metric span {
-        color: rgba(217, 232, 246, 0.62);
-        font-size: clamp(0.78rem, 0.9vw, 1rem);
-        font-weight: 800;
-        letter-spacing: 0.14em;
-    }
+        .tv-arena-pressure-gauge__metric span {
+            color: rgba(217, 232, 246, 0.62);
+            font-size: clamp(0.78rem, 0.9vw, 1rem);
+            font-weight: 800;
+            letter-spacing: 0.14em;
+        }
 
     .tv-arena-pressure-gauge__center,
     .tv-arena-pressure-gauge__gauge-shell {
@@ -621,13 +616,13 @@
     }
 
     .tv-arena-pressure-gauge__fill--left {
-        stroke: url(#@($"{_gradientId}-left"));
-        filter: url(#@($"{_gradientId}-glow-left"));
+        stroke: url(# @($"{_gradientId}-left") );
+        filter: url(# @($"{_gradientId}-glow-left") );
     }
 
     .tv-arena-pressure-gauge__fill--right {
-        stroke: url(#@($"{_gradientId}-right"));
-        filter: url(#@($"{_gradientId}-glow-right"));
+        stroke: url(# @($"{_gradientId}-right") );
+        filter: url(# @($"{_gradientId}-glow-right") );
     }
 
     .tv-arena-pressure-gauge__tick-overlay {
@@ -642,10 +637,10 @@
         stroke-linecap: round;
     }
 
-    .tv-arena-pressure-gauge__tick-line.is-center {
-        stroke: rgba(255,255,255,0.9);
-        stroke-width: 3;
-    }
+        .tv-arena-pressure-gauge__tick-line.is-center {
+            stroke: rgba(255,255,255,0.9);
+            stroke-width: 3;
+        }
 
     .tv-arena-pressure-gauge__tick-line--minor {
         stroke-width: 1.4;
@@ -660,9 +655,9 @@
         text-anchor: middle;
     }
 
-    .tv-arena-pressure-gauge__tick-label.is-center {
-        fill: #f7fbff;
-    }
+        .tv-arena-pressure-gauge__tick-label.is-center {
+            fill: #f7fbff;
+        }
 
     .tv-arena-pressure-gauge__tick-badge {
         position: absolute;
@@ -673,9 +668,9 @@
         letter-spacing: 0.06em;
     }
 
-    .tv-arena-pressure-gauge__tick-badge.is-center {
-        color: #f7fbff;
-    }
+        .tv-arena-pressure-gauge__tick-badge.is-center {
+            color: #f7fbff;
+        }
 
     .tv-arena-pressure-gauge__split-marker {
         stroke: rgba(255,255,255,0.94);
@@ -698,10 +693,7 @@
         width: clamp(54px, 8vw, 86px);
         aspect-ratio: 1;
         border-radius: 50%;
-        box-shadow:
-            0 0 18px rgba(255,255,255,0.18),
-            0 0 32px rgba(46, 232, 242, 0.18),
-            inset 0 0 0 2px rgba(255,255,255,0.18);
+        box-shadow: 0 0 18px rgba(255,255,255,0.18), 0 0 32px rgba(46, 232, 242, 0.18), inset 0 0 0 2px rgba(255,255,255,0.18);
         border: 1px solid rgba(255,255,255,0.22);
         overflow: hidden;
         animation: tvArenaPressureBallSpin var(--ball-spin-duration, 3s) linear infinite;
@@ -740,26 +732,26 @@
         opacity: 0.9;
     }
 
-    .tv-arena-pressure-gauge__arrow::before,
-    .tv-arena-pressure-gauge__arrow::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-    }
+        .tv-arena-pressure-gauge__arrow::before,
+        .tv-arena-pressure-gauge__arrow::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
 
-    .tv-arena-pressure-gauge__arrow::before {
-        width: calc(100% - 14px);
-        height: 4px;
-        border-radius: 999px;
-    }
+        .tv-arena-pressure-gauge__arrow::before {
+            width: calc(100% - 14px);
+            height: 4px;
+            border-radius: 999px;
+        }
 
-    .tv-arena-pressure-gauge__arrow::after {
-        width: 0;
-        height: 0;
-        border-top: 12px solid transparent;
-        border-bottom: 12px solid transparent;
-    }
+        .tv-arena-pressure-gauge__arrow::after {
+            width: 0;
+            height: 0;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+        }
 
     .tv-arena-pressure-gauge__arrow--left::before {
         right: 0;
@@ -795,27 +787,27 @@
         text-align: center;
     }
 
-    .tv-arena-pressure-gauge__center-copy span,
-    .tv-arena-pressure-gauge__center-copy em {
-        color: rgba(212, 228, 245, 0.7);
-        font-size: clamp(0.72rem, 0.8vw, 0.92rem);
-        font-style: normal;
-        font-weight: 800;
-        letter-spacing: 0.14em;
-    }
+        .tv-arena-pressure-gauge__center-copy span,
+        .tv-arena-pressure-gauge__center-copy em {
+            color: rgba(212, 228, 245, 0.7);
+            font-size: clamp(0.72rem, 0.8vw, 0.92rem);
+            font-style: normal;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+        }
 
-    .tv-arena-pressure-gauge__center-copy strong {
-        color: #55f6ff;
-        font-size: clamp(2.3rem, 5vw, 4.2rem);
-        line-height: 1;
-        font-weight: 900;
-        letter-spacing: -0.05em;
-        text-shadow: 0 0 22px rgba(46, 232, 242, 0.28);
-    }
+        .tv-arena-pressure-gauge__center-copy strong {
+            color: #55f6ff;
+            font-size: clamp(2.3rem, 5vw, 4.2rem);
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            text-shadow: 0 0 22px rgba(46, 232, 242, 0.28);
+        }
 
-    .tv-arena-pressure-gauge__center-copy em {
-        color: rgba(247, 251, 255, 0.78);
-    }
+        .tv-arena-pressure-gauge__center-copy em {
+            color: rgba(247, 251, 255, 0.78);
+        }
 
     .tv-arena-pressure-gauge__footer {
         display: grid;
@@ -833,28 +825,28 @@
         gap: 0.35rem;
     }
 
-    .tv-arena-pressure-gauge__momentum span,
-    .tv-arena-pressure-gauge__footer-status small {
-        color: rgba(212, 228, 245, 0.68);
-        font-size: clamp(0.68rem, 0.75vw, 0.84rem);
-        font-weight: 800;
-        letter-spacing: 0.14em;
-    }
+        .tv-arena-pressure-gauge__momentum span,
+        .tv-arena-pressure-gauge__footer-status small {
+            color: rgba(212, 228, 245, 0.68);
+            font-size: clamp(0.68rem, 0.75vw, 0.84rem);
+            font-weight: 800;
+            letter-spacing: 0.14em;
+        }
 
-    .tv-arena-pressure-gauge__momentum strong,
-    .tv-arena-pressure-gauge__footer-status strong {
-        color: #f5fbff;
-        font-size: clamp(1rem, 1.25vw, 1.26rem);
-        font-weight: 900;
-        letter-spacing: 0.08em;
-    }
+        .tv-arena-pressure-gauge__momentum strong,
+        .tv-arena-pressure-gauge__footer-status strong {
+            color: #f5fbff;
+            font-size: clamp(1rem, 1.25vw, 1.26rem);
+            font-weight: 900;
+            letter-spacing: 0.08em;
+        }
 
-    .tv-arena-pressure-gauge__momentum small {
-        color: rgba(212, 228, 245, 0.64);
-        font-size: clamp(0.68rem, 0.74vw, 0.8rem);
-        font-weight: 700;
-        letter-spacing: 0.12em;
-    }
+        .tv-arena-pressure-gauge__momentum small {
+            color: rgba(212, 228, 245, 0.64);
+            font-size: clamp(0.68rem, 0.74vw, 0.8rem);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+        }
 
     .tv-arena-pressure-gauge__momentum--right {
         text-align: right;
@@ -869,12 +861,12 @@
         gap: 4px;
     }
 
-    .tv-arena-pressure-gauge__bars i {
-        display: block;
-        width: 100%;
-        border-radius: 999px 999px 0 0;
-        transition: height 420ms ease;
-    }
+        .tv-arena-pressure-gauge__bars i {
+            display: block;
+            width: 100%;
+            border-radius: 999px 999px 0 0;
+            transition: height 420ms ease;
+        }
 
     .tv-arena-pressure-gauge__momentum--left .tv-arena-pressure-gauge__bars i {
         background: linear-gradient(180deg, rgba(255, 191, 60, 1), rgba(255, 107, 0, 0.76));
@@ -899,23 +891,23 @@
         gap: 0.45rem;
     }
 
-    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow {
-        width: 42px;
-        height: 10px;
-    }
+        .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow {
+            width: 42px;
+            height: 10px;
+        }
 
-    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow::after {
-        border-top-width: 9px;
-        border-bottom-width: 9px;
-    }
+            .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow::after {
+                border-top-width: 9px;
+                border-bottom-width: 9px;
+            }
 
-    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow--left::after {
-        border-right-width: 14px;
-    }
+        .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow--left::after {
+            border-right-width: 14px;
+        }
 
-    .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow--right::after {
-        border-left-width: 14px;
-    }
+        .tv-arena-pressure-gauge__footer-arrows .tv-arena-pressure-gauge__arrow--right::after {
+            border-left-width: 14px;
+        }
 
     .tv-arena-pressure-gauge__description {
         display: grid;
@@ -962,11 +954,7 @@
     }
 
     .tv-arena-pressure-gauge.critical-pressure .tv-arena-pressure-gauge__panel {
-        box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,0.025),
-            0 24px 54px rgba(0, 0, 0, 0.28),
-            0 0 44px rgba(255, 138, 31, 0.1),
-            0 0 44px rgba(46, 232, 242, 0.1);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 24px 54px rgba(0, 0, 0, 0.28), 0 0 44px rgba(255, 138, 31, 0.1), 0 0 44px rgba(46, 232, 242, 0.1);
     }
 
     .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
@@ -1020,10 +1008,10 @@
             text-align: left;
         }
 
-        .tv-arena-pressure-gauge__identity,
-        .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
-            flex-direction: row;
-        }
+            .tv-arena-pressure-gauge__identity,
+            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+                flex-direction: row;
+            }
 
         .tv-arena-pressure-gauge__footer {
             grid-template-columns: 1fr;
@@ -1071,6 +1059,391 @@
         .tv-arena-pressure-gauge__bars {
             overflow-x: auto;
             padding-bottom: 0.2rem;
+        }
+    }
+
+
+    /* ================================================================
+           RESPONSIVIDADE POR TAMANHO REAL DO COMPONENTE
+           ---------------------------------------------------------------
+           A tela de Match pode manter o card estreito mesmo em um viewport
+           grande. Por isso, estas regras usam container queries em vez de
+           depender apenas da largura da janela.
+           ================================================================ */
+
+    .tv-arena-pressure-gauge__layout,
+    .tv-arena-pressure-gauge__center,
+    .tv-arena-pressure-gauge__gauge-shell,
+    .tv-arena-pressure-gauge__side,
+    .tv-arena-pressure-gauge__identity,
+    .tv-arena-pressure-gauge__copy,
+    .tv-arena-pressure-gauge__footer,
+    .tv-arena-pressure-gauge__momentum,
+    .tv-arena-pressure-gauge__footer-status {
+        min-width: 0;
+    }
+
+    .tv-arena-pressure-gauge__gauge-shell {
+        width: min(100%, 680px);
+        min-height: 0;
+        aspect-ratio: 420 / 335;
+        isolation: isolate;
+    }
+
+    .tv-arena-pressure-gauge__svg {
+        position: absolute;
+        inset: 0 0 auto;
+        width: 100%;
+        height: auto;
+        z-index: 1;
+    }
+
+    .tv-arena-pressure-gauge__tick-overlay {
+        z-index: 2;
+    }
+
+    .tv-arena-pressure-gauge__duel {
+        inset: 58% 0 auto;
+        z-index: 3;
+    }
+
+    .tv-arena-pressure-gauge__center-copy {
+        top: 72%;
+        bottom: auto;
+        z-index: 4;
+    }
+
+    .tv-arena-pressure-gauge__identity,
+    .tv-arena-pressure-gauge__copy,
+    .tv-arena-pressure-gauge__copy strong,
+    .tv-arena-pressure-gauge__copy span {
+        max-width: 100%;
+    }
+
+        .tv-arena-pressure-gauge__copy strong,
+        .tv-arena-pressure-gauge__copy span,
+        .tv-arena-pressure-gauge__center-copy em,
+        .tv-arena-pressure-gauge__footer-status strong,
+        .tv-arena-pressure-gauge__footer-status small {
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
+
+    .tv-arena-pressure-gauge__description p {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    @@container arena-pressure (max-width: 760px) {
+        .tv-arena-pressure-gauge__panel {
+            grid-template-rows: auto auto auto auto;
+            gap: 1rem;
+            padding: clamp(0.9rem, 3.5cqi, 1.25rem);
+            border-radius: clamp(20px, 4cqi, 28px);
+        }
+
+        .tv-arena-pressure-gauge__header h3 {
+            font-size: clamp(1.05rem, 5cqi, 1.8rem);
+            letter-spacing: clamp(0.12em, 1.1cqi, 0.22em);
+            line-height: 1.1;
+        }
+
+        .tv-arena-pressure-gauge__header p {
+            font-size: clamp(0.66rem, 2.2cqi, 0.84rem);
+            letter-spacing: clamp(0.08em, 0.75cqi, 0.14em);
+        }
+
+        .tv-arena-pressure-gauge__layout {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-areas:
+                "center center"
+                "left right";
+            gap: clamp(0.85rem, 3cqi, 1.2rem);
+            align-items: stretch;
+        }
+
+        .tv-arena-pressure-gauge__center {
+            grid-area: center;
+            order: initial;
+        }
+
+        .tv-arena-pressure-gauge__side--left {
+            grid-area: left;
+        }
+
+        .tv-arena-pressure-gauge__side--right {
+            grid-area: right;
+        }
+
+        .tv-arena-pressure-gauge__side {
+            order: initial;
+            align-content: start;
+            gap: 0.65rem;
+            padding: clamp(0.7rem, 2.4cqi, 0.95rem);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 18px;
+            background: rgba(4, 11, 24, 0.34);
+        }
+
+        .tv-arena-pressure-gauge__side--left,
+        .tv-arena-pressure-gauge__side--right {
+            justify-items: stretch;
+        }
+
+        .tv-arena-pressure-gauge__side--left {
+            text-align: left;
+        }
+
+        .tv-arena-pressure-gauge__side--right {
+            text-align: right;
+        }
+
+            .tv-arena-pressure-gauge__identity,
+            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.55rem;
+            }
+
+            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+                align-items: flex-end;
+            }
+
+        .tv-arena-pressure-gauge__logo-ring {
+            width: clamp(58px, 17cqi, 84px);
+            padding: clamp(0.48rem, 1.8cqi, 0.72rem);
+        }
+
+        .tv-arena-pressure-gauge__copy {
+            width: 100%;
+        }
+
+            .tv-arena-pressure-gauge__copy strong {
+                font-size: clamp(1rem, 4.6cqi, 1.55rem);
+            }
+
+            .tv-arena-pressure-gauge__copy span {
+                font-size: clamp(0.64rem, 2.5cqi, 0.82rem);
+                letter-spacing: 0.08em;
+            }
+
+        .tv-arena-pressure-gauge__metric strong {
+            font-size: clamp(1.8rem, 9cqi, 3rem);
+        }
+
+        .tv-arena-pressure-gauge__metric span {
+            font-size: clamp(0.65rem, 2.6cqi, 0.82rem);
+            letter-spacing: 0.1em;
+        }
+
+        .tv-arena-pressure-gauge__gauge-shell,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
+            width: min(100%, 620px);
+            min-height: 0;
+            aspect-ratio: 420 / 330;
+        }
+
+        .tv-arena-pressure-gauge__duel {
+            inset: 57% 0 auto;
+            gap: clamp(0.45rem, 2.4cqi, 0.9rem);
+        }
+
+        .tv-arena-pressure-gauge__arrow {
+            width: clamp(42px, 14cqi, 76px);
+        }
+
+        .tv-arena-pressure-gauge__ball {
+            width: clamp(46px, 14cqi, 68px);
+        }
+
+        .tv-arena-pressure-gauge__center-copy {
+            top: 72%;
+            min-width: min(90%, 250px);
+            gap: 0.18rem;
+        }
+
+            .tv-arena-pressure-gauge__center-copy span,
+            .tv-arena-pressure-gauge__center-copy em {
+                font-size: clamp(0.64rem, 2.5cqi, 0.82rem);
+                letter-spacing: 0.1em;
+            }
+
+            .tv-arena-pressure-gauge__center-copy strong {
+                font-size: clamp(2.1rem, 12cqi, 3.8rem);
+            }
+
+        .tv-arena-pressure-gauge__tick-badge {
+            font-size: clamp(0.58rem, 2.25cqi, 0.76rem);
+        }
+
+        .tv-arena-pressure-gauge__footer {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-areas:
+                "momentum-left momentum-right"
+                "status status";
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .tv-arena-pressure-gauge__momentum--left {
+            grid-area: momentum-left;
+        }
+
+        .tv-arena-pressure-gauge__momentum--right {
+            grid-area: momentum-right;
+        }
+
+        .tv-arena-pressure-gauge__footer-status {
+            grid-area: status;
+            justify-items: center;
+            text-align: center;
+            padding-top: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .tv-arena-pressure-gauge__momentum--right {
+            text-align: right;
+        }
+
+        .tv-arena-pressure-gauge__bars {
+            height: clamp(38px, 12cqi, 52px);
+            gap: clamp(2px, 0.8cqi, 4px);
+            overflow: hidden;
+        }
+
+        .tv-arena-pressure-gauge__description {
+            grid-template-columns: auto minmax(0, 1fr);
+            text-align: left;
+        }
+    }
+
+    @@container arena-pressure (max-width: 430px) {
+        .tv-arena-pressure-gauge__panel {
+            padding: 0.82rem;
+            gap: 0.85rem;
+            border-radius: 20px;
+        }
+
+        .tv-arena-pressure-gauge__header h3 {
+            font-size: clamp(0.96rem, 7cqi, 1.35rem);
+            letter-spacing: 0.12em;
+        }
+
+        .tv-arena-pressure-gauge__header p {
+            font-size: 0.62rem;
+            letter-spacing: 0.08em;
+        }
+
+        .tv-arena-pressure-gauge__layout {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "center"
+                "left"
+                "right";
+        }
+
+        .tv-arena-pressure-gauge__side,
+        .tv-arena-pressure-gauge__side--left,
+        .tv-arena-pressure-gauge__side--right {
+            text-align: left;
+            justify-items: stretch;
+        }
+
+            .tv-arena-pressure-gauge__identity,
+            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+                align-items: center;
+            }
+
+        .tv-arena-pressure-gauge__logo-ring {
+            flex: 0 0 auto;
+            width: 62px;
+        }
+
+        .tv-arena-pressure-gauge__metric {
+            grid-template-columns: auto 1fr;
+            align-items: baseline;
+            column-gap: 0.55rem;
+        }
+
+            .tv-arena-pressure-gauge__metric strong {
+                font-size: 2rem;
+            }
+
+        .tv-arena-pressure-gauge__gauge-shell,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
+            aspect-ratio: 420 / 345;
+        }
+
+        .tv-arena-pressure-gauge__duel {
+            inset: 55% 0 auto;
+        }
+
+        .tv-arena-pressure-gauge__arrow {
+            width: clamp(34px, 13cqi, 52px);
+            height: 10px;
+        }
+
+            .tv-arena-pressure-gauge__arrow::after {
+                border-top-width: 9px;
+                border-bottom-width: 9px;
+            }
+
+        .tv-arena-pressure-gauge__arrow--left::after {
+            border-right-width: 14px;
+        }
+
+        .tv-arena-pressure-gauge__arrow--right::after {
+            border-left-width: 14px;
+        }
+
+        .tv-arena-pressure-gauge__ball {
+            width: 44px;
+        }
+
+        .tv-arena-pressure-gauge__center-copy {
+            top: 70%;
+        }
+
+            .tv-arena-pressure-gauge__center-copy strong {
+                font-size: clamp(2rem, 15cqi, 3rem);
+            }
+
+        .tv-arena-pressure-gauge__footer {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                "momentum-left"
+                "momentum-right"
+                "status";
+        }
+
+        .tv-arena-pressure-gauge__momentum--right {
+            text-align: left;
+        }
+
+        .tv-arena-pressure-gauge__description {
+            grid-template-columns: 1fr;
+            padding: 0.8rem;
+        }
+
+        .tv-arena-pressure-gauge__description-icon {
+            width: 30px;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .tv-arena-pressure-gauge__ball {
+            animation: none;
+        }
+
+        .tv-arena-pressure-gauge__fill,
+        .tv-arena-pressure-gauge__bars i {
+            transition: none;
         }
     }
 </style>

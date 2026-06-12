@@ -482,7 +482,7 @@
         }
     }</style>
 
-<div id="@FeedId" class="tv-event-feed">
+<div id="@_resolvedFeedId" class="tv-event-feed">
 
     @if (EventCards.Count > 0)
     {
@@ -500,7 +500,7 @@
 
                     @foreach (var item in EventCards.Skip(1))
                     {
-                        <TvGoalEventCard Model="item" />
+                        <TvGoalEventCard @key="item.EventId" Model="item" />
                     }
 
                 </div>
@@ -540,7 +540,47 @@
     public string EmptySubtitle { get; set; }
         = "Aguardando o proximo evento de pontuacao.";
 
-    private IReadOnlyList<TvGoalEventCardModel> EventCards => BuildCards();
+    private string _resolvedFeedId = "tv-goal-event-feed";
+    private string _itemsSignature = string.Empty;
+    private IReadOnlyList<TvGoalEventCardModel> _eventCards = Array.Empty<TvGoalEventCardModel>();
+
+    protected override void OnParametersSet()
+    {
+        _resolvedFeedId = string.IsNullOrWhiteSpace(FeedId)
+            ? $"tv-goal-event-feed-{Guid.NewGuid():N}"
+            : FeedId.Trim();
+
+        var signature = BuildSignature();
+        if (string.Equals(signature, _itemsSignature, StringComparison.Ordinal))
+            return;
+
+        _itemsSignature = signature;
+        _eventCards = BuildCards();
+    }
+
+    private IReadOnlyList<TvGoalEventCardModel> EventCards => _eventCards;
+
+    private string BuildSignature()
+    {
+        if (Items.Count == 0)
+            return $"{_resolvedFeedId}|0";
+
+        var entries = Items.Select(item => string.Join(":",
+            item.MatchScoreEventId,
+            item.EventSequence,
+            item.TeamId,
+            item.TeamSymbol,
+            item.RuleType,
+            item.EventType,
+            item.Points,
+            item.EventTimeUtc.ToString("O", CultureInfo.InvariantCulture)));
+
+        return string.Join("|",
+            _resolvedFeedId,
+            Culture,
+            Items.Count,
+            string.Join(",", entries));
+    }
 
     private IReadOnlyList<TvGoalEventCardModel> BuildCards()
     {

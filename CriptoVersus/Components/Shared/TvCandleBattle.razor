@@ -129,38 +129,48 @@
 
 <style>
     .tv-candle-battle {
+        container-type: inline-size;
+        container-name: candle-battle;
+        width: 100%;
         height: 100%;
+        min-width: 0;
         min-height: 0;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
         gap: 12px;
     }
 
+        .tv-candle-battle,
+        .tv-candle-battle * {
+            box-sizing: border-box;
+        }
+
     .tv-candle-battle__scoreboard,
     .tv-candle-battle-card,
     .tv-candle-battle__sidebar {
+        min-width: 0;
         border: 1px solid rgba(255,255,255,0.06);
         background: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)), radial-gradient(circle at top left, rgba(42, 201, 255, 0.08), transparent 30%), radial-gradient(circle at top right, rgba(255, 128, 0, 0.10), transparent 28%);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 18px 42px rgba(0,0,0,0.22);
     }
 
     .tv-candle-battle__scoreboard {
-        border-radius: 22px;
-        padding: 14px 16px;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(200px, 0.8fr);
-        gap: 14px;
-        align-items: center;
         position: relative;
         overflow: hidden;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(190px, .8fr);
+        gap: 14px;
+        align-items: center;
+        padding: 14px 16px;
+        border-radius: 22px;
     }
 
         .tv-candle-battle__scoreboard::before {
             content: "";
             position: absolute;
             inset: 0;
-            background: linear-gradient(90deg, rgba(42, 201, 255, 0.06), transparent 34%, transparent 66%, rgba(255, 128, 0, 0.08));
             pointer-events: none;
+            background: linear-gradient(90deg, rgba(42, 201, 255, 0.06), transparent 34%, transparent 66%, rgba(255, 128, 0, 0.08));
         }
 
     .tv-candle-battle__score-side,
@@ -168,6 +178,7 @@
     .tv-candle-battle__score-momentum-card {
         position: relative;
         z-index: 1;
+        min-width: 0;
     }
 
     .tv-candle-battle__score-side {
@@ -181,23 +192,31 @@
             width: 42px;
             height: 42px;
             object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.18));
+            filter: drop-shadow(0 0 10px rgba(255,255,255,.18));
         }
 
     .tv-candle-battle__score-copy {
+        min-width: 0;
         display: grid;
         gap: 3px;
-        min-width: 0;
     }
 
     .tv-candle-battle__score-copy--right {
         text-align: right;
     }
 
+    .tv-candle-battle__score-copy strong,
+    .tv-candle-battle-card__head strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     .tv-candle-battle__score-copy strong {
+        color: #f5fbff;
         font-size: .98rem;
         letter-spacing: .04em;
-        color: #f5fbff;
     }
 
     .tv-candle-battle__score-copy span,
@@ -211,33 +230,34 @@
     }
 
     .tv-candle-battle__score-copy span {
-        color: rgba(201, 221, 243, 0.68);
+        color: rgba(201,221,243,.68);
         font-size: .68rem;
         font-weight: 800;
         letter-spacing: .12em;
     }
 
     .tv-candle-battle__score-side b {
-        font-size: clamp(2.6rem, 5vw, 4.1rem);
+        font-size: clamp(2rem, 4cqi, 4.1rem);
         line-height: 1;
         letter-spacing: -.06em;
     }
 
     .tv-candle-battle__score-side--left b {
-        color: rgba(42, 201, 255, 0.92);
-        text-shadow: 0 0 14px rgba(0, 255, 214, 0.22);
+        color: rgba(42,201,255,.92);
+        text-shadow: 0 0 14px rgba(0,255,214,.22);
     }
 
     .tv-candle-battle__score-side--right b {
-        color: rgba(255, 166, 0, 0.96);
-        text-shadow: 0 0 14px rgba(255, 128, 0, 0.22);
+        color: rgba(255,166,0,.96);
+        text-shadow: 0 0 14px rgba(255,128,0,.22);
     }
 
     .tv-candle-battle__score-center {
         display: grid;
         justify-items: center;
         gap: 4px;
-        padding-inline: 12px;
+        padding-inline: 10px;
+        text-align: center;
     }
 
         .tv-candle-battle__score-center span {
@@ -247,13 +267,13 @@
         }
 
         .tv-candle-battle__score-center strong {
+            color: rgba(240,245,252,.9);
             font-size: 2rem;
-            color: rgba(240, 245, 252, 0.9);
         }
 
         .tv-candle-battle__score-center small,
         .tv-candle-battle__score-momentum-card small {
-            color: rgba(201, 221, 243, 0.74);
+            color: rgba(201,221,243,.74);
             font-weight: 800;
             letter-spacing: .1em;
         }
@@ -262,13 +282,13 @@
         display: grid;
         gap: 8px;
         padding: 12px 14px;
+        border: 1px solid rgba(255,255,255,.05);
         border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.05);
-        background: rgba(255,255,255,0.03);
+        background: rgba(255,255,255,.03);
     }
 
         .tv-candle-battle__score-momentum-card span {
-            color: rgba(224, 235, 247, 0.84);
+            color: rgba(224,235,247,.84);
             font-size: .72rem;
             font-weight: 900;
             letter-spacing: .14em;
@@ -279,45 +299,45 @@
         position: relative;
         width: 100%;
         height: 10px;
-        border-radius: 999px;
         overflow: hidden;
-        background: rgba(255,255,255,0.06);
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+        border-radius: 999px;
+        background: rgba(255,255,255,.06);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
     }
 
     .tv-candle-battle__score-momentum-fill,
     .tv-candle-battle__sidebar-momentum-fill {
         position: absolute;
-        top: 0;
-        bottom: 0;
+        inset-block: 0;
         transition: width .3s ease;
     }
 
     .tv-candle-battle__score-momentum-fill--left,
     .tv-candle-battle__sidebar-momentum-fill--left {
         left: 0;
-        background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
+        background: linear-gradient(90deg, rgba(42,201,255,.92), rgba(0,255,214,.88));
     }
 
     .tv-candle-battle__score-momentum-fill--right,
     .tv-candle-battle__sidebar-momentum-fill--right {
         right: 0;
-        background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
+        background: linear-gradient(90deg, rgba(255,166,0,.96), rgba(255,128,0,.84));
     }
 
     .tv-candle-battle__score-momentum-meta {
-        width: 100%;
         display: flex;
         justify-content: space-between;
         gap: 10px;
+        width: 100%;
         font-size: .8rem;
         font-weight: 900;
     }
 
     .tv-candle-battle__workspace {
+        min-width: 0;
         min-height: 0;
         display: grid;
-        grid-template-columns: minmax(680px, 1fr) clamp(260px, 22vw, 320px);
+        grid-template-columns: minmax(0, 1fr) clamp(250px, 24cqi, 320px);
         gap: 12px;
         align-items: stretch;
     }
@@ -331,16 +351,17 @@
     }
 
     .tv-candle-battle-card {
-        min-width: 0;
         min-height: 0;
         display: grid;
         grid-template-rows: auto auto minmax(0, 1fr);
         gap: 10px;
         padding: 14px;
         border-radius: 22px;
+        overflow: hidden;
     }
 
     .tv-candle-battle-card__head {
+        min-width: 0;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 12px;
@@ -348,9 +369,9 @@
     }
 
     .tv-candle-battle-card__head-copy {
+        min-width: 0;
         display: grid;
         gap: 5px;
-        min-width: 0;
     }
 
     .tv-candle-battle-card__kicker {
@@ -361,34 +382,35 @@
     }
 
     .tv-candle-battle-card__kicker--left {
-        color: rgba(255, 215, 110, 0.94);
-        text-shadow: 0 0 14px rgba(255, 215, 110, 0.18);
+        color: rgba(255,215,110,.94);
     }
 
     .tv-candle-battle-card__kicker--right {
-        color: rgba(83, 200, 255, 0.94);
-        text-shadow: 0 0 14px rgba(83, 200, 255, 0.18);
+        color: rgba(83,200,255,.94);
     }
 
-        .tv-candle-battle-card__head strong {
-            font-size: 1.12rem;
-            letter-spacing: .05em;
-        }
+    .tv-candle-battle-card__head strong {
+        font-size: 1.12rem;
+        letter-spacing: .05em;
+    }
 
-        .tv-candle-battle-card__head em {
-            font-style: normal;
-            font-weight: 900;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(42, 201, 255, 0.08);
-            border: 1px solid rgba(42, 201, 255, 0.14);
-        }
+    .tv-candle-battle-card__head em {
+        flex: 0 0 auto;
+        padding: 6px 12px;
+        border: 1px solid rgba(42,201,255,.14);
+        border-radius: 999px;
+        background: rgba(42,201,255,.08);
+        font-style: normal;
+        font-weight: 900;
+        white-space: nowrap;
+    }
 
     .tv-candle-battle-card__legend {
+        min-width: 0;
         display: flex;
         flex-wrap: wrap;
-        gap: 14px;
-        color: rgba(219, 231, 245, 0.78);
+        gap: 8px 14px;
+        color: rgba(219,231,245,.78);
         font-size: .7rem;
         font-weight: 800;
         letter-spacing: .08em;
@@ -401,53 +423,55 @@
             display: inline-block;
             width: 8px;
             height: 8px;
-            border-radius: 50%;
             margin-right: 7px;
+            border-radius: 50%;
             vertical-align: middle;
         }
 
         .tv-candle-battle-card__legend .is-left::before {
-            background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
+            background: linear-gradient(90deg, rgba(42,201,255,.92), rgba(0,255,214,.88));
         }
 
         .tv-candle-battle-card__legend .is-right::before {
-            background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
+            background: linear-gradient(90deg, rgba(255,166,0,.96), rgba(255,128,0,.84));
         }
 
         .tv-candle-battle-card__legend .is-tie::before {
-            background: rgba(154, 167, 184, 0.65);
+            background: rgba(154,167,184,.65);
         }
 
-    .tv-candle-battle-card__body {
+    .tv-candle-battle-card__body,
+    .tv-candle-battle-card__chart-area {
         min-width: 0;
         min-height: 0;
         display: grid;
     }
 
     .tv-candle-battle-card__chart-area {
-        min-width: 0;
-        min-height: 0;
-        display: grid;
-        grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-rows: minmax(220px, 1fr) auto;
         gap: 10px;
     }
 
     .tv-telemetry-chart-shell--battle {
+        width: 100%;
+        height: 100%;
         min-width: 0;
         min-height: 220px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.05);
         border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.05);
-        background: linear-gradient(180deg, rgba(7, 14, 27, 0.92), rgba(5, 10, 19, 0.98));
+        background: linear-gradient(180deg, rgba(7,14,27,.92), rgba(5,10,19,.98));
     }
 
     .tv-candle-battle-card__timeline {
+        min-width: 0;
         display: grid;
         gap: 8px;
         padding-top: 2px;
     }
 
         .tv-candle-battle-card__timeline span {
-            color: rgba(127, 246, 223, 0.86);
+            color: rgba(127,246,223,.86);
             font-size: .68rem;
             font-weight: 900;
             letter-spacing: .14em;
@@ -460,7 +484,9 @@
         gap: var(--battle-candle-gap);
         width: 100%;
         min-width: 0;
+        max-width: 100%;
         overflow-x: auto;
+        overflow-y: hidden;
         padding: 4px 2px 2px;
         scrollbar-width: thin;
     }
@@ -470,8 +496,8 @@
         }
 
         .tv-candle-battle-card__timeline-track::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.16);
             border-radius: 999px;
+            background: rgba(255,255,255,.16);
         }
 
     .tv-candle-battle-card__timeline-marker {
@@ -485,17 +511,17 @@
     }
 
         .tv-candle-battle-card__timeline-marker.is-left {
-            background: linear-gradient(90deg, rgba(42, 201, 255, 0.92), rgba(0, 255, 214, 0.88));
+            background: linear-gradient(90deg, rgba(42,201,255,.92), rgba(0,255,214,.88));
         }
 
         .tv-candle-battle-card__timeline-marker.is-right {
-            background: linear-gradient(90deg, rgba(255, 166, 0, 0.96), rgba(255, 128, 0, 0.84));
+            background: linear-gradient(90deg, rgba(255,166,0,.96), rgba(255,128,0,.84));
         }
 
         .tv-candle-battle-card__timeline-marker.is-tie {
             height: 3px;
             border-radius: 999px;
-            background: rgba(154, 167, 184, 0.48);
+            background: rgba(154,167,184,.48);
             opacity: .75;
         }
 
@@ -505,21 +531,20 @@
         }
 
     .tv-candle-battle__sidebar {
-        min-width: 0;
         min-height: 0;
         display: grid;
         align-content: start;
         gap: 12px;
         padding: 16px;
         border-radius: 22px;
-        overflow: hidden;
+        overflow: auto;
     }
 
     .tv-candle-battle__sidebar-top {
         display: grid;
         gap: 10px;
         padding-bottom: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
+        border-bottom: 1px solid rgba(255,255,255,.06);
     }
 
     .tv-candle-battle__sidebar-kicker,
@@ -542,7 +567,7 @@
 
         .tv-candle-battle__sidebar-kicker span,
         .tv-candle-battle__sidebar-section-head span {
-            color: rgba(127, 246, 223, 0.9);
+            color: rgba(127,246,223,.9);
             font-size: .68rem;
             font-weight: 900;
         }
@@ -550,39 +575,36 @@
         .tv-candle-battle__sidebar-kicker strong,
         .tv-candle-battle__sidebar-badge {
             padding: 6px 12px;
+            border: 1px solid rgba(127,246,223,.22);
             border-radius: 999px;
-            border: 1px solid rgba(127, 246, 223, 0.22);
-            background: rgba(42, 201, 255, 0.08);
+            background: rgba(42,201,255,.08);
             color: #f5fbff;
             font-size: .7rem;
             font-weight: 900;
-            text-shadow: 0 0 14px rgba(0, 255, 214, 0.18);
         }
 
             .tv-candle-battle__sidebar-kicker strong.is-right {
-                border-color: rgba(255, 166, 0, 0.22);
-                background: rgba(255, 128, 0, 0.08);
-                text-shadow: 0 0 14px rgba(255, 128, 0, 0.18);
+                border-color: rgba(255,166,0,.22);
+                background: rgba(255,128,0,.08);
             }
 
         .tv-candle-battle__sidebar-leader span {
-            color: rgba(201, 221, 243, 0.72);
+            color: rgba(201,221,243,.72);
             font-size: .68rem;
             font-weight: 900;
         }
 
         .tv-candle-battle__sidebar-leader strong {
+            color: #fff;
             font-size: 1rem;
             font-weight: 900;
-            color: #ffffff;
-            text-shadow: 0 0 12px rgba(42, 201, 255, 0.14);
         }
 
     .tv-candle-battle__sidebar-section {
         display: grid;
         gap: 10px;
         padding-top: 4px;
-        border-top: 1px solid rgba(255,255,255,0.06);
+        border-top: 1px solid rgba(255,255,255,.06);
     }
 
     .tv-candle-battle__sidebar-section-head strong {
@@ -598,26 +620,26 @@
     }
 
     .tv-candle-battle__sidebar-row {
-        color: rgba(217, 231, 246, 0.74);
+        color: rgba(217,231,246,.74);
         font-size: .72rem;
         letter-spacing: .08em;
     }
 
         .tv-candle-battle__sidebar-row strong {
-            font-size: 1rem;
             color: #f5fbff;
+            font-size: 1rem;
         }
 
             .tv-candle-battle__sidebar-row strong.is-left {
-                color: rgba(42, 201, 255, 0.92);
+                color: rgba(42,201,255,.92);
             }
 
             .tv-candle-battle__sidebar-row strong.is-right {
-                color: rgba(255, 166, 0, 0.96);
+                color: rgba(255,166,0,.96);
             }
 
     .tv-candle-battle__sidebar-muted {
-        color: rgba(201, 221, 243, 0.74);
+        color: rgba(201,221,243,.74);
         font-size: .66rem;
         font-weight: 800;
     }
@@ -632,31 +654,31 @@
     .tv-candle-battle__sidebar-streak-icon {
         width: 18px;
         height: 18px;
+        border: 1px solid rgba(127,246,223,.22);
         border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.95), rgba(127, 246, 223, 0.82) 38%, rgba(42, 201, 255, 0.92) 68%, rgba(0,0,0,0) 72%), linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02));
-        box-shadow: 0 0 18px rgba(0, 255, 214, 0.24), 0 0 28px rgba(42, 201, 255, 0.12);
-        border: 1px solid rgba(127, 246, 223, 0.22);
+        background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(127,246,223,.82) 38%, rgba(42,201,255,.92) 68%, transparent 72%);
+        box-shadow: 0 0 18px rgba(0,255,214,.24);
     }
 
         .tv-candle-battle__sidebar-streak-icon.is-right {
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.96), rgba(255, 166, 0, 0.82) 38%, rgba(255, 128, 0, 0.9) 68%, rgba(0,0,0,0) 72%), linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02));
-            box-shadow: 0 0 18px rgba(255, 128, 0, 0.22), 0 0 28px rgba(255, 166, 0, 0.12);
-            border-color: rgba(255, 166, 0, 0.22);
+            border-color: rgba(255,166,0,.22);
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.96), rgba(255,166,0,.82) 38%, rgba(255,128,0,.9) 68%, transparent 72%);
+            box-shadow: 0 0 18px rgba(255,128,0,.22);
         }
 
         .tv-candle-battle__sidebar-streak-icon.is-tie {
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.92), rgba(154, 167, 184, 0.75) 40%, rgba(154, 167, 184, 0.9) 72%, rgba(0,0,0,0) 74%), linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02));
-            box-shadow: 0 0 18px rgba(154, 167, 184, 0.18), 0 0 28px rgba(154, 167, 184, 0.08);
-            border-color: rgba(154, 167, 184, 0.18);
+            border-color: rgba(154,167,184,.18);
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.92), rgba(154,167,184,.75) 40%, rgba(154,167,184,.9) 72%, transparent 74%);
+            box-shadow: 0 0 18px rgba(154,167,184,.18);
         }
 
     .tv-candle-battle__sidebar-streak small {
         display: block;
-        color: rgba(201, 221, 243, 0.68);
+        margin-bottom: 3px;
+        color: rgba(201,221,243,.68);
         font-size: .62rem;
         font-weight: 900;
         letter-spacing: .16em;
-        margin-bottom: 3px;
     }
 
     .tv-candle-battle__sidebar-streak strong {
@@ -665,35 +687,184 @@
     }
 
         .tv-candle-battle__sidebar-streak strong.is-left {
-            color: rgba(42, 201, 255, 0.92);
+            color: rgba(42,201,255,.92);
         }
 
         .tv-candle-battle__sidebar-streak strong.is-right {
-            color: rgba(255, 166, 0, 0.96);
+            color: rgba(255,166,0,.96);
         }
 
         .tv-candle-battle__sidebar-streak strong.is-tie {
-            color: rgba(201, 221, 243, 0.88);
+            color: rgba(201,221,243,.88);
         }
 
-    @@media (max-width: 1180px) {
+    @@container candle-battle (max-width: 1100px) {
+        .tv-candle-battle {
+            height: auto;
+            grid-template-rows: auto auto;
+        }
+
+        .tv-candle-battle__scoreboard {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .tv-candle-battle__score-center {
+            order: -1;
+            grid-column: 1 / -1;
+        }
+
+        .tv-candle-battle__score-momentum-card {
+            grid-column: 1 / -1;
+        }
+
         .tv-candle-battle__workspace {
-            grid-template-columns: minmax(0, 1fr) 280px;
-        }
-    }
-
-    @@media (max-width: 980px) {
-        .tv-candle-battle__scoreboard,
-        .tv-candle-battle__workspace {
-            grid-template-columns: 1fr;
-        }
-
-        .tv-candle-battle__sidebar {
-            order: 2;
+            grid-template-columns: minmax(0, 1fr);
         }
 
         .tv-candle-battle__cards {
             order: 1;
+            grid-template-rows: none;
+            grid-auto-rows: auto;
+        }
+
+        .tv-candle-battle__sidebar {
+            order: 2;
+            overflow: visible;
+        }
+
+        .tv-candle-battle-card {
+            min-height: 460px;
+        }
+    }
+
+    @@container candle-battle (max-width: 720px) {
+        .tv-candle-battle__scoreboard {
+            gap: 10px;
+            padding: 12px;
+            border-radius: 18px;
+        }
+
+        .tv-candle-battle__score-side {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 8px;
+        }
+
+            .tv-candle-battle__score-side img {
+                width: 34px;
+                height: 34px;
+            }
+
+            .tv-candle-battle__score-side b {
+                font-size: clamp(1.8rem, 8cqi, 2.8rem);
+            }
+
+        .tv-candle-battle-card {
+            min-height: 420px;
+            padding: 12px;
+            border-radius: 18px;
+        }
+
+        .tv-candle-battle-card__chart-area {
+            grid-template-rows: minmax(240px, 1fr) auto;
+        }
+
+        .tv-candle-battle__sidebar {
+            padding: 14px;
+            border-radius: 18px;
+        }
+    }
+
+    @@container candle-battle (max-width: 520px) {
+        .tv-candle-battle__scoreboard {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .tv-candle-battle__score-center,
+        .tv-candle-battle__score-momentum-card {
+            grid-column: auto;
+        }
+
+        .tv-candle-battle__score-side--right {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+        }
+
+            .tv-candle-battle__score-side--right b {
+                order: 3;
+            }
+
+            .tv-candle-battle__score-side--right img {
+                order: 1;
+            }
+
+            .tv-candle-battle__score-side--right .tv-candle-battle__score-copy {
+                order: 2;
+                text-align: left;
+            }
+
+        .tv-candle-battle-card__head {
+            grid-template-columns: minmax(0, 1fr);
+            align-items: start;
+        }
+
+            .tv-candle-battle-card__head em {
+                justify-self: start;
+            }
+
+        .tv-candle-battle-card__legend {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 6px;
+        }
+
+        .tv-candle-battle-card {
+            min-height: 400px;
+        }
+
+        .tv-candle-battle-card__chart-area {
+            grid-template-rows: minmax(230px, 1fr) auto;
+        }
+
+        .tv-candle-battle__sidebar-kicker,
+        .tv-candle-battle__sidebar-leader,
+        .tv-candle-battle__sidebar-section-head,
+        .tv-candle-battle__sidebar-row {
+            align-items: flex-start;
+        }
+    }
+
+    @@supports not (container-type: inline-size) {
+        @@media (max-width: 1100px) {
+            .tv-candle-battle__workspace {
+                grid-template-columns: 1fr;
+            }
+
+            .tv-candle-battle__scoreboard {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .tv-candle-battle__score-center,
+            .tv-candle-battle__score-momentum-card {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @@media (max-width: 520px) {
+            .tv-candle-battle__scoreboard {
+                grid-template-columns: 1fr;
+            }
+
+            .tv-candle-battle__score-center,
+            .tv-candle-battle__score-momentum-card {
+                grid-column: auto;
+            }
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .tv-candle-battle__score-momentum-fill,
+        .tv-candle-battle__sidebar-momentum-fill,
+        .tv-candle-battle-card__timeline-marker {
+            transition: none;
         }
     }
 </style>

@@ -3,6 +3,7 @@
 @using System.Net.Http
 @using System.Net.Http.Headers
 @using System.Net.Http.Json
+@using System.Globalization
 @using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
@@ -18,6 +19,7 @@
 @inject LocalizationService L
 @rendermode InteractiveServer
 @implements IDisposable
+@implements IAsyncDisposable
 @if (EmitPageTitle)
 {
     <BasicSeoHead Title="@SeoTitle"
@@ -293,182 +295,73 @@
                     </div>
                 </div>
 
-                <div class="social-share-card__charts">
-                    <div class="card match-panel social-share-panel p-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="fw-bold">@GetPercentageCardTitle()</div>
-                            <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
-                        </div>
-
-                        <div class="d-flex gap-2 mt-2 flex-wrap">
-                            <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                                <MarketPairText Symbol="@_match.TeamA" />: @GetPercentageWins(_match.TeamAId) @GetPercentageWinLabel()
-                            </span>
-                            <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                                <MarketPairText Symbol="@_match.TeamB" />: @GetPercentageWins(_match.TeamBId) @GetPercentageWinLabel()
-                            </span>
-                        </div>
-
-                        @if (_percentageChart.HasData)
-                        {
-                            <div class="chart-wrap social-share-chart-wrap mt-3">
-                                @foreach (var tick in GetPercentageAxisTicks())
-                                {
-                                    <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
-                                        @tick.Label
-                                    </div>
-                                }
-                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                    @for (var i = 1; i <= 4; i++)
-                                    {
-                                        var y = i * 64;
-                                        <line x1="0" y1="@FormatSvgNumber(y)" x2="1000" y2="@FormatSvgNumber(y)" class="chart-grid" />
-                                    }
-                                    <line x1="0" y1="@FormatSvgNumber(_percentageChart.ZeroY)" x2="1000" y2="@FormatSvgNumber(_percentageChart.ZeroY)" class="chart-zero" />
-                                    <polyline points="@_percentageChart.PolyA" class="chart-line chart-line-a" />
-                                    <polyline points="@_percentageChart.PolyB" class="chart-line chart-line-b" />
-                                </svg>
-                            </div>
-
-                            <div class="chart-x-axis">
-                                @foreach (var tick in GetPercentageTimeTicks())
-                                {
-                                    <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
-                                }
-                            </div>
-
-                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                                <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatPct(_match.PctA))</div>
-                                <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatPct(_match.PctB))</div>
-                                <div class="ms-auto">Range: @_percentageChart.YMin:0.00% → @_percentageChart.YMax:0.00%</div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-secondary mt-3 mb-0">Sem snapshots suficientes para o grafico percentual.</div>
-                        }
+                <div class="social-share-card__tv-grid">
+                    <div class="social-share-card__tv-slot social-share-card__tv-slot--price">
+                        <TvMatchPriceBattleChart Culture="@CurrentCulture"
+                                                 LeftSymbol="@_match.TeamA"
+                                                 LeftDisplayName="@_match.TeamA"
+                                                 LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
+                                                 LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
+                                                 LeftChangePercent="@_match.PctA"
+                                                 LeftColor="#ff9100"
+                                                 LeftPoints="@LeftPriceBattlePoints"
+                                                 LeftHasPriceHistory="@LeftPriceBattleHasHistory"
+                                                 RightSymbol="@_match.TeamB"
+                                                 RightDisplayName="@_match.TeamB"
+                                                 RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
+                                                 RightCurrentPrice="@RightPriceBattleCurrentPrice"
+                                                 RightChangePercent="@_match.PctB"
+                                                 RightColor="#18d8d2"
+                                                 RightPoints="@RightPriceBattlePoints"
+                                                 RightHasPriceHistory="@RightPriceBattleHasHistory"
+                                                 Competitiveness="@ResolvePriceBattleCompetitiveness()"
+                                                 BroadcastFocusLabel="@GetPresentationStatusText(_match)"
+                                                 BroadcastRotationRemaining="@_remainingLive"
+                                                 BroadcastRotationProgress="@GetRemainingProgress()"
+                                                 BroadcastFocusProgress="@GetFocusProgress()"
+                                                 BroadcastFocusColor="@GetFocusColor()"
+                                                 IsSignalStable="@(!_loading && string.IsNullOrWhiteSpace(_error))" />
                     </div>
 
-                    <div class="card match-panel social-share-panel p-3">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <div class="fw-bold">@GetVolumeCardTitle()</div>
-                                @if (ShouldExplainNoVolumeCross())
-                                {
-                                    <span class="badge text-bg-dark border border-secondary-subtle">?</span>
-                                }
-                            </div>
-                            <div class="small text-muted"><MarketPairText Symbol="@_match.TeamA" /> vs <MarketPairText Symbol="@_match.TeamB" /></div>
-                        </div>
-
-                        <div class="d-flex gap-2 mt-2 flex-wrap">
-                            <span class="badge rounded-pill text-bg-success-subtle border border-success-subtle">
-                                <MarketPairText Symbol="@_match.TeamA" />: @GetVolumeWins(_match.TeamAId) @GetVolumeWinLabel()
-                            </span>
-                            <span class="badge rounded-pill text-bg-danger-subtle border border-danger-subtle">
-                                <MarketPairText Symbol="@_match.TeamB" />: @GetVolumeWins(_match.TeamBId) @GetVolumeWinLabel()
-                            </span>
-                        </div>
-
-                        @if (_volumeChart.HasData)
-                        {
-                            <div class="chart-wrap social-share-chart-wrap mt-3">
-                                @foreach (var tick in GetVolumeAxisTicks())
-                                {
-                                    <div class="chart-axis-tick" style="top:@($"{tick.Y:0.##}px")">
-                                        @tick.Label
-                                    </div>
-                                }
-                                <svg class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none">
-                                    @for (var i = 1; i <= 4; i++)
-                                    {
-                                        var y = i * 64;
-                                        <line x1="0" y1="@FormatSvgNumber(y)" x2="1000" y2="@FormatSvgNumber(y)" class="chart-grid" />
-                                    }
-                                    <line x1="0" y1="@FormatSvgNumber(_volumeChart.ZeroY)" x2="1000" y2="@FormatSvgNumber(_volumeChart.ZeroY)" class="chart-zero" />
-                                    <polyline points="@_volumeChart.PolyA" class="chart-line chart-line-a" />
-                                    <polyline points="@_volumeChart.PolyB" class="chart-line chart-line-b" />
-                                </svg>
-                            </div>
-
-                            <div class="chart-x-axis">
-                                @foreach (var tick in GetVolumeTimeTicks())
-                                {
-                                    <span style="left:@($"{tick.XPercent:0.##}%")">@tick.Label</span>
-                                }
-                            </div>
-
-                            <div class="d-flex gap-3 mt-2 small text-muted flex-wrap">
-                                <div class="legend"><span class="dot dot-a"></span> <MarketPairText Symbol="@_match.TeamA" /> (@FormatCompactNumber(_match.QuoteVolumeA))</div>
-                                <div class="legend"><span class="dot dot-b"></span> <MarketPairText Symbol="@_match.TeamB" /> (@FormatCompactNumber(_match.QuoteVolumeB))</div>
-                                <div class="ms-auto">Range: @FormatCompactNumber((decimal?)_volumeChart.YMin) → @FormatCompactNumber((decimal?)_volumeChart.YMax)</div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-secondary mt-3 mb-0">Sem snapshots suficientes para o grafico de volume.</div>
-                        }
-                    </div>
-                </div>
-
-                <div class="social-share-card__insights">
-                    <div class="social-share-card__sentiment">
-                        <div class="card match-panel social-share-sentiment-panel p-3">
-                            <ArenaPressurePanel LeftSymbol="@RemoveTrailingUsdt(_match.TeamA)"
-                                                RightSymbol="@RemoveTrailingUsdt(_match.TeamB)"
-                                                LeftSentiment="@_arenaSentimentA"
-                                                RightSentiment="@_arenaSentimentB"
-                                                LeftClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
-                                                RightClassificationLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
-                                                IsLoading="@_arenaSentimentLoading"
-                                                GaugeSize="250"
-                                                TitleText="@T("arenaPressureTitle")"
-                                                SubtitleText="@T("arenaPressureSubtitle")"
-                                                GaugeLabelText="@T("arenaPressureLabel")"
-                                                BadgeText="@T("marketPulse")" />
-                        </div>
+                    <div class="social-share-card__tv-slot social-share-card__tv-slot--candle">
+                        <TvCandleBattle LeftTickerLabel="@_match.TeamA"
+                                        RightTickerLabel="@_match.TeamB"
+                                        LeftHeroLabel="@GetBaseSymbol(_match.TeamA)"
+                                        RightHeroLabel="@GetBaseSymbol(_match.TeamB)"
+                                        LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
+                                        RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
+                                        LeftChangePercent="@_match.PctA"
+                                        RightChangePercent="@_match.PctB"
+                                        AriaLabel="@($"{_match.TeamA} vs {_match.TeamB} candle battle arena")" />
                     </div>
 
-                    <div class="social-share-card__events">
-                        <div class="card match-panel social-share-events-panel p-3">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <div>
-                                    <div class="social-share-events-panel__title">@T("scoringLog")</div>
-                                    <div class="social-share-events-panel__subtitle">@T("mostRelevantMomentByMomentEventsFromTheMatch")</div>
-                                </div>
-                                <div class="small text-muted">@_scoreEvents.Count @T("eventS")</div>
-                            </div>
+                    <div class="social-share-card__tv-slot social-share-card__tv-slot--pressure">
+                        <TvArenaPressureGauge LeftSymbol="@RemoveTrailingUsdt(_match.TeamA)"
+                                              LeftDisplayName="@_match.TeamA"
+                                              LeftLogoUrl="@GetCoinIconUrl(_match.TeamA)"
+                                              LeftPressurePercent="@GetArenaPressureScore(_arenaSentimentA)"
+                                              LeftMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentA)"
+                                              RightSymbol="@RemoveTrailingUsdt(_match.TeamB)"
+                                              RightDisplayName="@_match.TeamB"
+                                              RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
+                                              RightPressurePercent="@GetArenaPressureScore(_arenaSentimentB)"
+                                              RightMomentumLabel="@GetArenaSentimentLabel(_arenaSentimentB)"
+                                              CurrentPressurePercent="@GetArenaCurrentPressureScore()"
+                                              StatusLabel="@string.Empty"
+                                              Description="@string.Empty"
+                                              IsCompact="false"
+                                              Culture="@CurrentCulture" />
+                    </div>
 
-                            @if (_scoreEvents.Count == 0)
-                            {
-                                <div class="social-share-events-empty mt-3">
-                                    @T("noScoringEventsHaveBeenRecordedForThisMatchYet")
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="social-share-events-list mt-3">
-                                    @foreach (var scoreEvent in _scoreEvents.OrderByDescending(x => x.EventSequence).Take(4))
-                                    {
-                                        <article class="social-share-event-item">
-                                            <div class="social-share-event-item__meta">
-                                                <div class="social-share-event-item__badges">
-                                                    <span class="match-score-event__icon" title="@GetScoreEventIconTitle(scoreEvent)">
-                                                        @GetScoreEventIcon(scoreEvent)
-                                                    </span>
-                                                    <span class="badge text-bg-dark border border-secondary-subtle">#@scoreEvent.EventSequence</span>
-                                                    <span class="badge @GetTeamEventBadgeClass(scoreEvent.TeamId)">@scoreEvent.TeamSymbol</span>
-                                                    <span class="badge text-bg-dark border border-secondary-subtle">@GetRuleLabel(scoreEvent.RuleType)</span>
-                                                    <span class="badge match-score-event__points">+@scoreEvent.Points</span>
-                                                </div>
-                                                <div class="social-share-event-item__time">@FormatEventTime(scoreEvent.EventTimeUtc)</div>
-                                            </div>
-                                            <div class="social-share-event-item__description">@GetLocalizedScoreEventDescription(scoreEvent)</div>
-                                        </article>
-                                    }
-                                </div>
-                            }
-                        </div>
+                    <div class="social-share-card__tv-slot social-share-card__tv-slot--events">
+                        <TvGoalEventFeed FeedId="@GoalEventFeedId"
+                                         Culture="@CurrentCulture"
+                                         Items="@_scoreEvents.OrderByDescending(x => x.EventSequence).Take(8).ToList()"
+                                         FormatTime="FormatEventTime"
+                                         DescribeFallback="GetLocalizedScoreEventDescription"
+                                         ResolveTeamLogoUrl="GetCoinIconUrl"
+                                         EmptyTitle="@T("scoringLog")"
+                                         EmptySubtitle="@T("noScoringEventsHaveBeenRecordedForThisMatchYet")" />
                     </div>
                 </div>
 
@@ -1933,6 +1826,33 @@
         margin-top: .9rem;
     }
 
+    .social-share-card__tv-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .9rem;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    .social-share-card__tv-slot {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+    }
+
+    .social-share-card__tv-slot > * {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .social-share-card__tv-slot .tv-price-battle,
+    .social-share-card__tv-slot .tv-candle-battle,
+    .social-share-card__tv-slot .tv-event-feed,
+    .social-share-card__tv-slot .tv-arena-pressure-gauge {
+        width: 100%;
+        height: 100%;
+    }
+
     .social-share-card__sentiment,
     .social-share-card__events {
         display: flex;
@@ -2205,6 +2125,10 @@
         .match-invest-grid {
             grid-template-columns: 1fr;
         }
+
+        .social-share-card__tv-grid {
+            gap: .75rem;
+        }
     }
 
     @@media (max-width: 767.98px) {
@@ -2216,6 +2140,11 @@
         .social-share-card__charts,
         .social-share-sentiment-grid {
             grid-template-columns: 1fr;
+        }
+
+        .social-share-card__tv-grid {
+            grid-template-columns: 1fr;
+            gap: .75rem;
         }
 
         .social-share-events-list {
@@ -2415,6 +2344,54 @@
         return CriptoVersus.Web.Services.EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
     }
 
+    private static IReadOnlyList<TvPriceChartPoint> BuildPricePoints(IEnumerable<MatchMetricSnapshotDto> snapshots)
+        => snapshots
+            .Where(x => x.LastPrice.HasValue && x.LastPrice.Value > 0m)
+            .OrderBy(x => x.CapturedAtUtc)
+            .TakeLast(64)
+            .Select(x => new TvPriceChartPoint(
+                new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
+                x.LastPrice!.Value))
+            .ToList();
+
+    private IReadOnlyList<TvPriceChartPoint> LeftPriceBattlePoints => _leftPriceBattlePoints;
+    private IReadOnlyList<TvPriceChartPoint> RightPriceBattlePoints => _rightPriceBattlePoints;
+    private bool LeftPriceBattleHasHistory => _leftPriceBattlePoints.Count > 1;
+    private bool RightPriceBattleHasHistory => _rightPriceBattlePoints.Count > 1;
+    private decimal? LeftPriceBattleCurrentPrice => _leftPriceBattlePoints.Count == 0 ? null : _leftPriceBattlePoints[^1].Value;
+    private decimal? RightPriceBattleCurrentPrice => _rightPriceBattlePoints.Count == 0 ? null : _rightPriceBattlePoints[^1].Value;
+    private int ResolvePriceBattleCompetitiveness()
+    {
+        var leftScore = _match?.ScoreA ?? 0;
+        var rightScore = _match?.ScoreB ?? 0;
+        var leftPct = _match?.PctA ?? 0m;
+        var rightPct = _match?.PctB ?? 0m;
+
+        return Math.Clamp(
+            100 - (Math.Abs(leftScore - rightScore) * 18) - (int)(Math.Abs(leftPct - rightPct) * 10m),
+            30,
+            98);
+    }
+
+    private double GetRemainingProgress()
+    {
+        if (_match is null || _match.RemainingMinutes <= 0)
+            return 0d;
+
+        var progress = Math.Clamp(_match.RemainingMinutes / 90d, 0d, 1d);
+        return progress;
+    }
+
+    private double GetFocusProgress()
+    {
+        var left = Math.Abs((_match?.PctA ?? 0m) - (_match?.PctB ?? 0m));
+        var normalized = 1d - Math.Clamp((double)(left / 100m), 0d, 1d);
+        return Math.Clamp(normalized, 0d, 1d);
+    }
+
+    private string GetFocusColor()
+        => (_match?.PctA ?? 0m) >= (_match?.PctB ?? 0m) ? "#ff9100" : "#18d8d2";
+
     private async Task RefreshAuthenticatedUserAsync()
     {
         _loggedUserId = await SessionStorage.GetItemAsync<int?>("userId");
@@ -2423,31 +2400,158 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (!_tvScriptsInitialized)
+        {
+            try
+            {
+                await BrowserTimeZone.EnsureInitializedAsync();
+                await RefreshAuthenticatedUserAsync();
+                await HubClient.EnsureStartedAsync();
+            }
+            catch (Exception ex) when (CriptoVersus.Web.Services.InteropSafety.IsDeferredInteropException(ex))
+            {
+                return;
+            }
+            catch
+            {
+                // The match detail still works without these extras during prerender.
+            }
+
+            _tvScriptsInitialized = true;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        if (_match is null)
         {
             return;
         }
 
         try
         {
-            await BrowserTimeZone.EnsureInitializedAsync();
-            await RefreshAuthenticatedUserAsync();
-        }
-        catch (Exception ex) when (CriptoVersus.Web.Services.InteropSafety.IsDeferredInteropException(ex))
-        {
-            return;
-        }
-
-        try
-        {
-            await HubClient.EnsureStartedAsync();
+            _tvModeModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
+            _tvEventFeedModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
         }
         catch
         {
-            // O detalhe da partida ainda funciona sem o hub; mantemos o fallback de recarga leve.
+            return;
         }
 
-        await InvokeAsync(StateHasChanged);
+        await SyncTvTelemetryAsync();
+        await SyncTvEventFeedAsync();
+    }
+
+    private async Task SyncTvTelemetryAsync()
+    {
+        if (_tvModeModule is null || _match is null)
+            return;
+
+        var signature = BuildTelemetrySignature();
+        if (string.Equals(signature, _lastTelemetrySignature, StringComparison.Ordinal))
+            return;
+
+        var payload = BuildTelemetryPayload();
+
+        try
+        {
+            await _tvModeModule.InvokeVoidAsync("updateTelemetryCharts", payload);
+            _lastTelemetrySignature = signature;
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task SyncTvEventFeedAsync()
+    {
+        if (_tvEventFeedModule is null || _match is null)
+            return;
+
+        var signature = BuildEventFeedSignature();
+        if (string.Equals(signature, _lastEventFeedSignature, StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            await _tvEventFeedModule.InvokeVoidAsync("initTvEventFeed", GoalEventFeedId);
+            await _tvEventFeedModule.InvokeVoidAsync("refreshTvEventFeed", GoalEventFeedId);
+            _lastEventFeedSignature = signature;
+        }
+        catch
+        {
+        }
+    }
+
+    private object BuildTelemetryPayload()
+    {
+        var leftPoints = _leftPriceBattlePoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray();
+        var rightPoints = _rightPriceBattlePoints.Select(point => new { time = point.Time, value = (double)point.Value }).ToArray();
+
+        return new
+        {
+            left = leftPoints,
+            right = rightPoints,
+            leftMeta = new
+            {
+                symbol = RemoveTrailingUsdt(_match?.TeamA),
+                logoUrl = GetCoinIconUrl(_match?.TeamA ?? string.Empty),
+                accentColor = "#ff9100"
+            },
+            rightMeta = new
+            {
+                symbol = RemoveTrailingUsdt(_match?.TeamB),
+                logoUrl = GetCoinIconUrl(_match?.TeamB ?? string.Empty),
+                accentColor = "#18d8d2"
+            },
+            scoreEvents = _scoreEvents,
+            leftTeamId = _match?.TeamAId ?? 0,
+            rightTeamId = _match?.TeamBId ?? 0,
+            matchStartTimeUtc = _match?.StartTime
+        };
+    }
+
+    private string BuildTelemetrySignature()
+    {
+        var leftTail = string.Join(",",
+            _leftPriceBattlePoints.Select(point => $"{point.Time}:{point.Value:0.##########}"));
+
+        var rightTail = string.Join(",",
+            _rightPriceBattlePoints.Select(point => $"{point.Time}:{point.Value:0.##########}"));
+
+        var scoreTail = string.Join(",",
+            _scoreEvents.Select(item => $"{item.MatchScoreEventId}:{item.EventSequence}:{item.EventTimeUtc:O}"));
+
+        return string.Join("|",
+            CurrentCulture,
+            _match?.MatchId ?? 0,
+            leftTail,
+            rightTail,
+            scoreTail,
+            _arenaSentimentA?.Classification ?? string.Empty,
+            _arenaSentimentB?.Classification ?? string.Empty,
+            _arenaSentimentA?.Score ?? 0,
+            _arenaSentimentB?.Score ?? 0);
+    }
+
+    private string BuildEventFeedSignature()
+    {
+        if (_scoreEvents.Count == 0)
+            return $"{_match?.MatchId ?? 0}|0";
+
+        var entries = _scoreEvents.Select(item => string.Join(":",
+            item.MatchScoreEventId,
+            item.EventSequence,
+            item.TeamId,
+            item.TeamSymbol,
+            item.RuleType,
+            item.EventType,
+            item.Points,
+            item.EventTimeUtc.ToString("O", CultureInfo.InvariantCulture)));
+
+        return string.Join("|",
+            CurrentCulture,
+            _match?.MatchId ?? 0,
+            _scoreEvents.Count,
+            string.Join(",", entries));
     }
 
     protected override async Task OnParametersSetAsync()
@@ -3290,6 +3394,37 @@
         _reloadCts = null;
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        Dispose();
+
+        if (_tvModeModule is not null)
+        {
+            try
+            {
+                await _tvModeModule.DisposeAsync();
+            }
+            catch
+            {
+            }
+
+            _tvModeModule = null;
+        }
+
+        if (_tvEventFeedModule is not null)
+        {
+            try
+            {
+                await _tvEventFeedModule.DisposeAsync();
+            }
+            catch
+            {
+            }
+
+            _tvEventFeedModule = null;
+        }
+    }
+
     private PeriodicTimer? _uiTimer;
     private CancellationTokenSource? _uiCts;
 
@@ -3391,8 +3526,16 @@
     private ArenaSentimentDto? _arenaSentimentA;
     private ArenaSentimentDto? _arenaSentimentB;
     private bool _arenaSentimentLoading;
+    private readonly List<TvPriceChartPoint> _leftPriceBattlePoints = new();
+    private readonly List<TvPriceChartPoint> _rightPriceBattlePoints = new();
     private ChartSeriesState _percentageChart = ChartSeriesState.Empty;
     private ChartSeriesState _volumeChart = ChartSeriesState.Empty;
+    private IJSObjectReference? _tvModeModule;
+    private IJSObjectReference? _tvEventFeedModule;
+    private bool _tvScriptsInitialized;
+    private string _lastTelemetrySignature = string.Empty;
+    private string _lastEventFeedSignature = string.Empty;
+    private string GoalEventFeedId => $"match-goal-event-feed-{_match?.MatchId ?? MatchId}";
 
     private async Task LoadMetricChartsAsync(CancellationToken ct)
     {
@@ -3402,6 +3545,8 @@
             _scoreEvents = new();
             _arenaSentimentA = null;
             _arenaSentimentB = null;
+            _leftPriceBattlePoints.Clear();
+            _rightPriceBattlePoints.Clear();
             _percentageChart = ChartSeriesState.Empty;
             _volumeChart = ChartSeriesState.Empty;
             return;
@@ -3433,6 +3578,10 @@
         _arenaSentimentA = arenaSentiment?.TeamA;
         _arenaSentimentB = arenaSentiment?.TeamB;
         _arenaSentimentLoading = false;
+        _leftPriceBattlePoints.Clear();
+        _leftPriceBattlePoints.AddRange(BuildPricePoints(orderedSnapshots.Where(x => x.TeamId == _match.TeamAId)));
+        _rightPriceBattlePoints.Clear();
+        _rightPriceBattlePoints.AddRange(BuildPricePoints(orderedSnapshots.Where(x => x.TeamId == _match.TeamBId)));
 
         _percentageChart = BuildChartState(
             _metricSnapshots,
@@ -3461,6 +3610,20 @@
             "InsufficientData" => T("arenaInsufficientData"),
             _ => code
         };
+    }
+
+    private double? GetArenaPressureScore(ArenaSentimentDto? sentiment)
+        => sentiment is null ? null : Math.Clamp(sentiment.Score, 0, 100);
+
+    private double? GetArenaCurrentPressureScore()
+    {
+        var left = GetArenaPressureScore(_arenaSentimentA);
+        var right = GetArenaPressureScore(_arenaSentimentB);
+
+        if (left is null && right is null)
+            return null;
+
+        return Math.Max(left ?? 0d, right ?? 0d);
     }
 
     private ChartSeriesState BuildChartState(
@@ -3676,8 +3839,8 @@
             _ => ruleType
         };
 
-    private string FormatEventTime(DateTime eventTimeUtc)
-        => BrowserTimeZone.ConvertUtcToLocal(eventTimeUtc).ToString("dd/MM HH:mm:ss");
+    private string FormatEventTime(MatchScoreEventDto item)
+        => BrowserTimeZone.ConvertUtcToLocal(item.EventTimeUtc).ToString("dd/MM HH:mm:ss");
 
     private IReadOnlyList<ChartAxisTick> GetPercentageAxisTicks()
         => BuildAxisTicks(_percentageChart, value => $"{value:0.00}%");
