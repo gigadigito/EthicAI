@@ -14588,3 +14588,107 @@ private sealed record TvArenaCommentaryEntry(
         }
     }
 </style>
+<style>
+
+    /* =========================================================
+       CORREÇÃO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
+       ========================================================= */
+
+    /*
+       Os slides compare, split e sentiment possuem normalmente
+       apenas um filho direto. Eles precisam de uma única linha
+       flexível, não do template header/content/footer.
+    */
+    .tv-telemetry-cube__inner--compare,
+    .tv-telemetry-cube__inner--split,
+    .tv-telemetry-cube__inner--sentiment {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        align-content: stretch !important;
+        justify-items: stretch !important;
+        justify-content: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 14px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    /*
+       O slide de gols possui cabeçalho e conteúdo.
+    */
+    .tv-telemetry-cube__inner--goals {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        align-items: stretch !important;
+        align-content: stretch !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 14px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    /*
+       Todo filho direto dos slides deve ocupar integralmente
+       a linha flexível que recebeu.
+    */
+    .tv-telemetry-cube__inner--compare > *,
+    .tv-telemetry-cube__inner--split > *,
+    .tv-telemetry-cube__inner--sentiment > * {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: none !important;
+        max-height: none !important;
+        align-self: stretch !important;
+        justify-self: stretch !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+       Conteúdo do slide de gols ocupa toda a segunda linha.
+    */
+    .tv-telemetry-cube__inner--goals > .tv-goal-log {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /*
+       Cadeia interna dos componentes dos slides.
+    */
+    .tv-telemetry-cube__inner--compare :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart ),
+    .tv-telemetry-cube__inner--split :is( .tv-candle-battle, .tv-candle-battle__cards, .tv-candle-battle-card ),
+    .tv-telemetry-cube__inner--sentiment :is( .tv-arena-pressure-gauge, .tv-arena-pressure-gauge__panel ) {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        align-self: stretch !important;
+        box-sizing: border-box !important;
+    }
+
+    /*
+       Remove alturas mínimas que fazem os componentes escolherem
+       altura própria em vez de absorverem o espaço disponível.
+    */
+    .tv-telemetry-cube__inner--compare .tv-telemetry-chart-shell,
+    .tv-telemetry-cube__inner--split .tv-telemetry-chart-shell,
+    .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+    }
+</style>
