@@ -1000,6 +1000,8 @@ else
     private string _lastClockRenderSignature = string.Empty;
     private string _lastFieldInteropSignature = string.Empty;
     private string _lastCameraInteropSignature = string.Empty;
+    private int _goalEventFeedVersion;
+    private int _lastGoalEventFeedVersion;
     private bool _showPirateOverlay;
     private string _pirateOverlayMessage = string.Empty;
     private string _pirateOverlayReason = string.Empty;
@@ -1311,6 +1313,8 @@ private bool ShouldUseCompactArenaGauge()
             _metricSnapshotCts = new CancellationTokenSource();
             _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
             _ = RefreshPriceBattleAsync(Match?.MatchId ?? HotMatch?.MatchId ?? 0, _metricSnapshotCts.Token);
+            await SyncTelemetryChartsAsync();
+            await RefreshGoalEventFeedAsync(force: true);
 
             if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
             {
@@ -1322,22 +1326,11 @@ private bool ShouldUseCompactArenaGauge()
             Logger.LogInformation("[TV_MATCH_LOAD] TvStage OnAfterRender firstRender matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
         }
 
-        if (_tvEventFeedModule is not null)
-        {
-            try
-            {
-                await _tvEventFeedModule.InvokeVoidAsync("initTvEventFeed", GoalEventFeedId);
-                await _tvEventFeedModule.InvokeVoidAsync("refreshTvEventFeed", GoalEventFeedId);
-            }
-            catch
-            {
-            }
-        }
+        await RefreshGoalEventFeedAsync();
 
         if (EnableTelemetryCube && _tvModule is not null)
         {
             await EnsureTelemetryCubeAsync();
-            await SyncTelemetryChartsAsync();
         }
 
         var fieldState = CurrentFieldState;
@@ -2116,6 +2109,13 @@ private bool ShouldUseCompactArenaGauge()
                 await RefreshPriceBattleAsync(matchId, ct);
 
                 var nowTick = System.Environment.TickCount64;
+                var currentLeftLiveValue = DisplayLeftChangePercent();
+                var currentRightLiveValue = DisplayRightChangePercent();
+                var shouldSyncTelemetryCharts =
+                    latestId != _telemetryCubeLastSnapshotId
+                    || _metricSnapshots.Count != _telemetryCubeLastSnapshotCount
+                    || !Nullable.Equals(currentLeftLiveValue, _telemetryCubeLastLeftLiveValue)
+                    || !Nullable.Equals(currentRightLiveValue, _telemetryCubeLastRightLiveValue);
 
                 if (nowTick - _metricSnapshotLastLogTick >= 4000)
                 {
@@ -2123,12 +2123,15 @@ private bool ShouldUseCompactArenaGauge()
                     Console.WriteLine($"[TV_SNAPSHOTS] match={matchId} count={_metricSnapshots.Count} latestId={_metricSnapshotLastId}");
                 }
 
-                try
+                if (shouldRender || shouldSyncTelemetryCharts)
                 {
-                    await InvokeAsync(SyncTelemetryChartsAsync);
-                }
-                catch
-                {
+                    try
+                    {
+                        await InvokeAsync(SyncTelemetryChartsAsync);
+                    }
+                    catch
+                    {
+                    }
                 }
 
                 if (shouldRender)
@@ -3640,11 +3643,20 @@ private bool ShouldUseCompactArenaGauge()
 
         _isScoreEventProbeRunning = true;
 
+        var shouldRender = false;
+
         try
         {
             var scoreEventsSw = Stopwatch.StartNew();
             var events = await Api.GetMatchScoreEventsAsync(matchId, Culture) ?? [];
             Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchScoreEventsAsync matchId={MatchId} culture={Culture} count={Count} elapsedMs={ElapsedMs}", matchId, Culture, events.Count, scoreEventsSw.ElapsedMilliseconds);
+            var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
+            var previousScoreEventCount = _allScoreEvents.Count;
+            var scoreEventsChanged = _lastScoreEventMatchId != matchId
+                || !_lastSeenScoreEventId.HasValue
+                || previousScoreEventCount != events.Count
+                || _lastSeenScoreEventId.Value != latestEventId;
+
             _allScoreEvents = events
                 .OrderBy(x => x.EventTimeUtc)
                 .ThenBy(x => x.MatchScoreEventId)
@@ -3653,7 +3665,12 @@ private bool ShouldUseCompactArenaGauge()
                 .OrderByDescending(x => x.MatchScoreEventId)
                 .Take(5)
                 .ToList();
-            var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
+            if (scoreEventsChanged)
+            {
+                _goalEventFeedVersion++;
+                shouldRender = true;
+            }
+
             var current = CaptureSnapshot();
             var latestKnownEvent = _recentScoreEvents.FirstOrDefault();
             await SyncProceduralAudioDebugSnapshotAsync(current, latestKnownEvent);
@@ -3722,6 +3739,16 @@ private bool ShouldUseCompactArenaGauge()
         finally
         {
             _isScoreEventProbeRunning = false;
+            if (shouldRender)
+            {
+                try
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch
+                {
+                }
+            }
         }
     }
 
@@ -8361,6 +8388,27 @@ private bool ShouldUseCompactArenaGauge()
         }
     }
 
+    private async Task RefreshGoalEventFeedAsync(bool force = false)
+    {
+        if (_isDisposed || _tvEventFeedModule is null)
+            return;
+
+        if (!force && _lastGoalEventFeedVersion == _goalEventFeedVersion)
+            return;
+
+        try
+        {
+            if (force || _lastGoalEventFeedVersion == 0)
+                await _tvEventFeedModule.InvokeVoidAsync("initTvEventFeed", GoalEventFeedId);
+
+            await _tvEventFeedModule.InvokeVoidAsync("refreshTvEventFeed", GoalEventFeedId);
+            _lastGoalEventFeedVersion = _goalEventFeedVersion;
+        }
+        catch
+        {
+        }
+    }
+
     private object BuildFieldMovementOptions()
         => new
         {
@@ -8523,6 +8571,12 @@ private bool ShouldUseCompactArenaGauge()
             _clockCts.Dispose();
         }
 
+        if (_broadcastAutomationCts is not null)
+        {
+            _broadcastAutomationCts.Cancel();
+            _broadcastAutomationCts.Dispose();
+        }
+
         if (_metricSnapshotCts is not null)
         {
             _metricSnapshotCts.Cancel();
@@ -8545,6 +8599,17 @@ private bool ShouldUseCompactArenaGauge()
             try
             {
                 await _metricSnapshotLoopTask;
+            }
+            catch
+            {
+            }
+        }
+
+        if (_broadcastAutomationLoopTask is not null)
+        {
+            try
+            {
+                await _broadcastAutomationLoopTask;
             }
             catch
             {
