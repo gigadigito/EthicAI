@@ -4,7 +4,8 @@
 
 <section class="tv-arena-pressure-gauge @StateClass @(IsCompact ? "is-compact" : string.Empty)"
          aria-label="@AriaLabel"
-         title="@AriaLabel">
+         title="@AriaLabel"
+         style="@BuildColorVariables()">
     <div class="tv-arena-pressure-gauge__panel">
         <header class="tv-arena-pressure-gauge__header">
             <div>
@@ -15,6 +16,7 @@
 
         <div class="tv-arena-pressure-gauge__layout">
             <section class="tv-arena-pressure-gauge__side tv-arena-pressure-gauge__side--left"
+                     style="@BuildSideStyle(LeftColor)"
                      title="@string.Format(CultureInfo.CurrentCulture, Tg("pressureTooltip"), DisplaySymbol(LeftSymbol), DisplayText(LeftDisplayName), LeftPressureDisplay)">
                 <div class="tv-arena-pressure-gauge__identity">
                     <div class="tv-arena-pressure-gauge__logo-ring">
@@ -46,18 +48,18 @@
                          aria-label="@AriaLabel">
                         <defs>
                             <linearGradient id="@($"{_gradientId}-left")" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#ff6b00" />
-                                <stop offset="100%" stop-color="#ffbf3c" />
+                                <stop offset="0%" stop-color="@SafeLeftColor" />
+                                <stop offset="100%" stop-color="@SafeLeftColor" />
                             </linearGradient>
                             <linearGradient id="@($"{_gradientId}-right")" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#24e1ef" />
-                                <stop offset="100%" stop-color="#73fff0" />
+                                <stop offset="0%" stop-color="@SafeRightColor" />
+                                <stop offset="100%" stop-color="@SafeRightColor" />
                             </linearGradient>
                             <filter id="@($"{_gradientId}-glow-left")" x="-40%" y="-40%" width="180%" height="180%">
-                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ff8b1f" flood-opacity="0.85" />
+                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="@SafeLeftColor" flood-opacity="0.85" />
                             </filter>
                             <filter id="@($"{_gradientId}-glow-right")" x="-40%" y="-40%" width="180%" height="180%">
-                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#31f6ff" flood-opacity="0.85" />
+                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="@SafeRightColor" flood-opacity="0.85" />
                             </filter>
                         </defs>
 
@@ -73,14 +75,25 @@
                                   class="tv-arena-pressure-gauge__tick-line tv-arena-pressure-gauge__tick-line--minor" />
                         }
 
-                        <path d="@ArcPath" class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--left"
-                              pathLength="100" style="@LeftArcStyle">
-                            <title>@($"{LeftSymbol}: {LeftPressureDisplay}%")</title>
-                        </path>
-                        <path d="@ArcPath" class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--right"
-                              pathLength="100" transform="translate(420 0) scale(-1 1)" style="@RightArcStyle">
-                            <title>@($"{RightSymbol}: {RightPressureDisplay}%")</title>
-                        </path>
+                        @if (LeftPressureDisplay > 0)
+                        {
+                            <path d="@LeftArcSegmentPath"
+                                  class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--left"
+                                  stroke="@SafeLeftColor"
+                                  filter="@($"url(#{_gradientId}-glow-left)")">
+                                <title>@($"{LeftSymbol}: {LeftPressureDisplay}%")</title>
+                            </path>
+                        }
+
+                        @if (RightPressureDisplay > 0)
+                        {
+                            <path d="@RightArcSegmentPath"
+                                  class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--right"
+                                  stroke="@SafeRightColor"
+                                  filter="@($"url(#{_gradientId}-glow-right)")">
+                                <title>@($"{RightSymbol}: {RightPressureDisplay}%")</title>
+                            </path>
+                        }
 
                         <line x1="@SvgNumber(SplitMarker.X)" y1="@SvgNumber(SplitMarker.Y1)" x2="@SvgNumber(SplitMarker.X)" y2="@SvgNumber(SplitMarker.Y2)"
                               class="tv-arena-pressure-gauge__split-marker" />
@@ -111,6 +124,7 @@
             </section>
 
             <section class="tv-arena-pressure-gauge__side tv-arena-pressure-gauge__side--right"
+                     style="@BuildSideStyle(RightColor)"
                      title="@string.Format(CultureInfo.CurrentCulture, Tg("pressureTooltip"), DisplaySymbol(RightSymbol), DisplayText(RightDisplayName), RightPressureDisplay)">
                 <div class="tv-arena-pressure-gauge__identity">
                     <div class="tv-arena-pressure-gauge__copy">
@@ -188,11 +202,13 @@
     [Parameter] public string LeftLogoUrl { get; set; } = string.Empty;
     [Parameter] public double? LeftPressurePercent { get; set; }
     [Parameter] public string LeftMomentumLabel { get; set; } = string.Empty;
+    [Parameter] public string LeftColor { get; set; } = "#ff8a1f";
     [Parameter] public string RightSymbol { get; set; } = string.Empty;
     [Parameter] public string RightDisplayName { get; set; } = string.Empty;
     [Parameter] public string RightLogoUrl { get; set; } = string.Empty;
     [Parameter] public double? RightPressurePercent { get; set; }
     [Parameter] public string RightMomentumLabel { get; set; } = string.Empty;
+    [Parameter] public string RightColor { get; set; } = "#2ee8f2";
     [Parameter] public double? CurrentPressurePercent { get; set; }
     [Parameter] public string StatusLabel { get; set; } = string.Empty;
     [Parameter] public string Description { get; set; } = string.Empty;
@@ -216,8 +232,8 @@
     private string AriaLabel
         => string.Format(CultureInfo.CurrentCulture, Tg("ariaLabel"), DisplaySymbol(LeftSymbol), LeftPressureDisplay, DisplaySymbol(RightSymbol), RightPressureDisplay, DisplayStatusLabel);
     private string BallSpinStyle => BuildBallSpinStyle();
-    private string LeftArcStyle => FormattableString.Invariant($"stroke-dasharray:{LeftPressureDisplay} 100;");
-    private string RightArcStyle => FormattableString.Invariant($"stroke-dasharray:{RightPressureDisplay} 100;");
+    private string LeftArcSegmentPath => BuildArcSegmentPath(0, LeftPressureDisplay);
+    private string RightArcSegmentPath => BuildArcSegmentPath(LeftPressureDisplay, 100);
     private (int Left, int Right) _pressure => NormalizePressures(LeftPressurePercent, RightPressurePercent);
     private string DefaultStatusLabel
         => LeftPressureDisplay switch
@@ -246,6 +262,8 @@
     private IReadOnlyList<TickMark> MinorTicks => BuildMinorTicks();
     private IReadOnlyList<BarStyle> LeftBars => BuildBars(LeftPressureDisplay, true);
     private IReadOnlyList<BarStyle> RightBars => BuildBars(RightPressureDisplay, false);
+    private string SafeLeftColor => NormalizeColor(LeftColor, "#ff8a1f");
+    private string SafeRightColor => NormalizeColor(RightColor, "#2ee8f2");
 
     private IEnumerable<string> BuildStateClasses()
     {
@@ -302,6 +320,15 @@
         return normalized.Length <= 4 ? normalized : normalized[..4];
     }
 
+    private string BuildColorVariables()
+        => FormattableString.Invariant($"--pressure-left:{SafeLeftColor}; --pressure-right:{SafeRightColor};");
+
+    private string BuildSideStyle(string color)
+        => FormattableString.Invariant($"--side-accent:{NormalizeColor(color, "#53c8ff")};");
+
+    private static string NormalizeColor(string? color, string fallback)
+        => string.IsNullOrWhiteSpace(color) ? fallback : color.Trim();
+
     private string Tg(string key, params object?[] args)
         => L.T($"tv.pressureGauge.{key}", Culture, args);
 
@@ -323,6 +350,27 @@
         var inner = PointOnArc(value, major ? 12d : 7d);
         var label = PointOnArc(value, -28d);
         return new TickMark(value, $"{value}%", outer.X, outer.Y, inner.X, inner.Y, label.X, label.Y, value == 50);
+    }
+
+    private static string BuildArcSegmentPath(int startPercent, int endPercent)
+    {
+        var start = Math.Clamp(startPercent, 0, 100);
+        var end = Math.Clamp(endPercent, 0, 100);
+
+        if (end <= start)
+            return string.Empty;
+
+        var startPoint = PointOnArc(start);
+        var endPoint = PointOnArc(end);
+        // Cada segmento ocupa no máximo meia circunferência visual do gauge.
+        // Mesmo quando a pressão passa de 50%, o trecho continua menor que 180 graus
+        // porque o gauge inteiro já é apenas um semicírculo. Usar largeArcFlag=1 aqui
+        // faz o SVG escolher o arco longo por baixo e ele acaba sendo cortado/parecendo
+        // um pedaço pequeno no canto esquerdo.
+        const int largeArcFlag = 0;
+
+        return FormattableString.Invariant(
+            $"M{startPoint.X:0.###} {startPoint.Y:0.###} A{ArcRadius:0.###} {ArcRadius:0.###} 0 {largeArcFlag} 1 {endPoint.X:0.###} {endPoint.Y:0.###}");
     }
 
     private static string BuildTickBadgeStyle(TickMark tick)
@@ -383,35 +431,47 @@
         --pressure-glass: linear-gradient(180deg, rgba(8, 17, 33, 0.94), rgba(5, 10, 24, 0.92));
         --pressure-border: rgba(98, 145, 191, 0.22);
         position: relative;
+        width: 100%;
         min-width: 0;
         min-height: 0;
-        height: 100%;
+        height: auto;
         container-type: inline-size;
         container-name: arena-pressure;
     }
 
+        .tv-arena-pressure-gauge,
+        .tv-arena-pressure-gauge *,
+        .tv-arena-pressure-gauge *::before,
+        .tv-arena-pressure-gauge *::after {
+            box-sizing: border-box;
+        }
+
     .tv-arena-pressure-gauge__panel {
-        min-width: 0;
+        position: relative;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto auto;
-        gap: clamp(0.9rem, 1.6vw, 1.3rem);
-        padding: clamp(1rem, 1.8vw, 1.5rem);
-        border-radius: 28px;
+        grid-template-rows: auto auto auto auto;
+        gap: clamp(0.7rem, 1.35cqi, 1.05rem);
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        padding: clamp(0.85rem, 1.6cqi, 1.25rem);
+        overflow: hidden;
         border: 1px solid var(--pressure-border);
+        border-radius: clamp(20px, 3cqi, 28px);
+        color: #f5fbff;
         background: radial-gradient(circle at 50% 0%, rgba(46, 232, 242, 0.08), transparent 38%), radial-gradient(circle at 10% 50%, rgba(255, 138, 31, 0.08), transparent 36%), var(--pressure-glass);
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 24px 54px rgba(0, 0, 0, 0.28), 0 0 38px rgba(13, 33, 56, 0.24);
-        overflow: hidden;
-        position: relative;
-        height: 100%;
+        isolation: isolate;
     }
 
         .tv-arena-pressure-gauge__panel::before {
             content: "";
             position: absolute;
             inset: 0;
+            z-index: 0;
             border-radius: inherit;
             pointer-events: none;
-            background: linear-gradient(90deg, rgba(255, 138, 31, 0.06), transparent 28%, transparent 72%, rgba(46, 232, 242, 0.06)), linear-gradient(180deg, rgba(255,255,255,0.04), transparent 14%);
+            background: linear-gradient(90deg, color-mix(in srgb, var(--pressure-left) 10%, transparent), transparent 28%, transparent 72%, color-mix(in srgb, var(--pressure-right) 10%, transparent)), linear-gradient(180deg, rgba(255,255,255,0.04), transparent 14%);
         }
 
     .tv-arena-pressure-gauge__header,
@@ -429,10 +489,11 @@
 
         .tv-arena-pressure-gauge__header h3 {
             margin: 0;
-            color: #72f7ff;
-            font-size: clamp(1.1rem, 2vw, 1.9rem);
+            color: var(--pressure-right);
+            font-size: clamp(1.05rem, 3.1cqi, 1.8rem);
             font-weight: 900;
-            letter-spacing: 0.24em;
+            letter-spacing: clamp(0.14em, 0.95cqi, 0.24em);
+            line-height: 1.05;
             text-transform: uppercase;
             text-shadow: 0 0 18px rgba(70, 245, 255, 0.34);
         }
@@ -440,25 +501,28 @@
         .tv-arena-pressure-gauge__header p {
             margin: 0.28rem 0 0;
             color: rgba(214, 231, 255, 0.68);
-            font-size: clamp(0.7rem, 0.85vw, 0.92rem);
+            font-size: clamp(0.62rem, 1.5cqi, 0.88rem);
             font-weight: 700;
-            letter-spacing: 0.14em;
+            letter-spacing: clamp(0.08em, 0.6cqi, 0.14em);
+            line-height: 1.25;
             text-transform: uppercase;
         }
 
     .tv-arena-pressure-gauge__layout {
         display: grid;
-        grid-template-columns: minmax(150px, 0.85fr) minmax(0, 2fr) minmax(150px, 0.85fr);
-        gap: clamp(0.85rem, 1.5vw, 1.4rem);
+        grid-template-columns: minmax(128px, 0.78fr) minmax(280px, 1.44fr) minmax(128px, 0.78fr);
+        gap: clamp(0.55rem, 1.2cqi, 1rem);
         align-items: center;
         min-height: 0;
     }
 
     .tv-arena-pressure-gauge__side {
-        min-width: 0;
+        position: relative;
+        z-index: 3;
         display: grid;
-        gap: 0.9rem;
         align-content: center;
+        gap: clamp(0.45rem, 1.2cqi, 0.8rem);
+        min-width: 0;
     }
 
     .tv-arena-pressure-gauge__side--left {
@@ -472,10 +536,11 @@
     }
 
     .tv-arena-pressure-gauge__identity {
-        min-width: 0;
         display: flex;
         align-items: center;
-        gap: 0.9rem;
+        gap: clamp(0.45rem, 1.2cqi, 0.8rem);
+        min-width: 0;
+        max-width: 100%;
     }
 
     .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
@@ -483,43 +548,47 @@
     }
 
     .tv-arena-pressure-gauge__logo-ring {
-        width: clamp(82px, 7vw, 112px);
-        aspect-ratio: 1;
-        border-radius: 50%;
-        padding: 0.85rem;
         display: grid;
         place-items: center;
-        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), rgba(16, 24, 41, 0.86));
+        flex: 0 0 auto;
+        width: clamp(54px, 7.2cqi, 82px);
+        aspect-ratio: 1;
+        padding: clamp(0.45rem, 1.15cqi, 0.7rem);
+        overflow: hidden;
         border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), rgba(16, 24, 41, 0.86));
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
     }
 
     .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__logo-ring {
-        box-shadow: 0 0 24px rgba(255, 138, 31, 0.26), inset 0 0 0 1px rgba(255,255,255,0.03);
+        box-shadow: 0 0 24px color-mix(in srgb, var(--side-accent, var(--pressure-left)) 28%, transparent), inset 0 0 0 1px rgba(255,255,255,0.03);
     }
 
     .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__logo-ring {
-        box-shadow: 0 0 24px rgba(46, 232, 242, 0.24), inset 0 0 0 1px rgba(255,255,255,0.03);
+        box-shadow: 0 0 24px color-mix(in srgb, var(--side-accent, var(--pressure-right)) 26%, transparent), inset 0 0 0 1px rgba(255,255,255,0.03);
     }
 
     .tv-arena-pressure-gauge__logo-ring img {
+        display: block;
         width: 100%;
-        height: 100%;
+        height: auto;
         object-fit: contain;
         filter: drop-shadow(0 0 16px rgba(255,255,255,0.18));
     }
 
     .tv-arena-pressure-gauge__logo-ring span {
-        font-size: clamp(1rem, 1.8vw, 1.4rem);
+        color: #f6fbff;
+        font-size: clamp(0.9rem, 1.8cqi, 1.25rem);
         font-weight: 900;
         letter-spacing: 0.08em;
-        color: #f6fbff;
     }
 
     .tv-arena-pressure-gauge__copy {
-        min-width: 0;
         display: grid;
         gap: 0.22rem;
+        min-width: 0;
+        max-width: 100%;
     }
 
         .tv-arena-pressure-gauge__copy strong,
@@ -534,42 +603,46 @@
         }
 
         .tv-arena-pressure-gauge__copy strong {
+            max-width: 100%;
+            overflow-wrap: anywhere;
             color: #f7fbff;
-            font-size: clamp(1.1rem, 2vw, 2rem);
+            font-size: clamp(0.95rem, 2.25cqi, 1.7rem);
             font-weight: 900;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.04em;
             line-height: 1;
+        }
+
+        .tv-arena-pressure-gauge__copy span {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+            color: rgba(210, 226, 245, 0.72);
+            font-size: clamp(0.62rem, 1.45cqi, 0.88rem);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            line-height: 1.25;
         }
 
     .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__copy strong,
     .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__metric strong,
     .tv-arena-pressure-gauge__side--left .tv-arena-pressure-gauge__momentum strong {
-        color: #ff9e2a;
-        text-shadow: 0 0 18px rgba(255, 138, 31, 0.2);
+        color: color-mix(in srgb, var(--side-accent, var(--pressure-left)) 92%, white 8%);
+        text-shadow: 0 0 18px color-mix(in srgb, var(--side-accent, var(--pressure-left)) 24%, transparent);
     }
 
     .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__copy strong,
     .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__metric strong,
     .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__momentum strong {
-        color: #46f4ff;
-        text-shadow: 0 0 18px rgba(46, 232, 242, 0.2);
-    }
-
-    .tv-arena-pressure-gauge__copy span {
-        color: rgba(210, 226, 245, 0.72);
-        font-size: clamp(0.74rem, 0.9vw, 1rem);
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        overflow-wrap: anywhere;
+        color: color-mix(in srgb, var(--side-accent, var(--pressure-right)) 92%, white 8%);
+        text-shadow: 0 0 18px color-mix(in srgb, var(--side-accent, var(--pressure-right)) 24%, transparent);
     }
 
     .tv-arena-pressure-gauge__metric {
         display: grid;
-        gap: 0.25rem;
+        gap: 0.18rem;
     }
 
         .tv-arena-pressure-gauge__metric strong {
-            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-size: clamp(1.75rem, 5.2cqi, 3.15rem);
             line-height: 1;
             font-weight: 900;
             letter-spacing: -0.05em;
@@ -577,57 +650,76 @@
 
         .tv-arena-pressure-gauge__metric span {
             color: rgba(217, 232, 246, 0.62);
-            font-size: clamp(0.78rem, 0.9vw, 1rem);
+            font-size: clamp(0.64rem, 1.45cqi, 0.9rem);
             font-weight: 800;
-            letter-spacing: 0.14em;
+            letter-spacing: 0.12em;
         }
 
-    .tv-arena-pressure-gauge__center,
-    .tv-arena-pressure-gauge__gauge-shell {
-        min-width: 0;
+    .tv-arena-pressure-gauge__center {
         position: relative;
+        z-index: 1;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .tv-arena-pressure-gauge__gauge-shell {
-        width: min(100%, 760px);
+        position: relative;
+        width: min(100%, 500px);
+        min-width: 0;
+        min-height: 0;
         margin-inline: auto;
-        min-height: clamp(260px, 40vh, 380px);
+        aspect-ratio: 420 / 318;
+        overflow: hidden;
+        isolation: isolate;
     }
 
     .tv-arena-pressure-gauge__svg {
+        position: absolute;
+        inset: 0 0 auto;
+        z-index: 1;
+        display: block;
         width: 100%;
         height: auto;
-        display: block;
+        overflow: hidden;
     }
 
     .tv-arena-pressure-gauge__track,
     .tv-arena-pressure-gauge__fill {
         fill: none;
-        stroke-width: 22;
+        stroke-width: 20;
         stroke-linecap: butt;
+        vector-effect: non-scaling-stroke;
     }
 
     .tv-arena-pressure-gauge__track {
-        stroke: var(--pressure-track);
+        stroke: rgba(126, 155, 188, 0.18);
     }
 
     .tv-arena-pressure-gauge__fill {
-        transition: stroke-dasharray 420ms ease, opacity 260ms ease, filter 260ms ease;
+        opacity: 1;
+        transition: d 420ms ease, opacity 260ms ease, filter 260ms ease;
     }
 
     .tv-arena-pressure-gauge__fill--left {
-        stroke: url(# @($"{_gradientId}-left") );
-        filter: url(# @($"{_gradientId}-glow-left") );
+        stroke: var(--pressure-left);
     }
 
     .tv-arena-pressure-gauge__fill--right {
-        stroke: url(# @($"{_gradientId}-right") );
-        filter: url(# @($"{_gradientId}-glow-right") );
+        stroke: var(--pressure-right);
+    }
+
+    .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__track {
+        stroke: color-mix(in srgb, var(--pressure-left) 12%, rgba(126,155,188,0.18));
+    }
+
+    .tv-arena-pressure-gauge.right-dominant .tv-arena-pressure-gauge__track {
+        stroke: color-mix(in srgb, var(--pressure-right) 12%, rgba(126,155,188,0.18));
     }
 
     .tv-arena-pressure-gauge__tick-overlay {
         position: absolute;
         inset: 0;
+        z-index: 2;
         pointer-events: none;
     }
 
@@ -643,29 +735,18 @@
         }
 
     .tv-arena-pressure-gauge__tick-line--minor {
-        stroke-width: 1.4;
         opacity: 0.5;
+        stroke-width: 1.4;
     }
-
-    .tv-arena-pressure-gauge__tick-label {
-        fill: rgba(225, 238, 255, 0.78);
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-anchor: middle;
-    }
-
-        .tv-arena-pressure-gauge__tick-label.is-center {
-            fill: #f7fbff;
-        }
 
     .tv-arena-pressure-gauge__tick-badge {
         position: absolute;
         transform: translate(-50%, -50%);
         color: rgba(225, 238, 255, 0.78);
-        font-size: clamp(0.72rem, 0.8vw, 0.9rem);
+        font-size: clamp(0.58rem, 1.45cqi, 0.82rem);
         font-weight: 800;
         letter-spacing: 0.06em;
+        white-space: nowrap;
     }
 
         .tv-arena-pressure-gauge__tick-badge.is-center {
@@ -673,29 +754,30 @@
         }
 
     .tv-arena-pressure-gauge__split-marker {
-        stroke: rgba(255,255,255,0.94);
+        stroke: rgba(247, 251, 255, 0.92);
         stroke-width: 3;
         stroke-linecap: round;
-        filter: drop-shadow(0 0 6px rgba(255,255,255,0.38));
+        filter: drop-shadow(0 0 8px color-mix(in srgb, var(--pressure-left) 18%, var(--pressure-right) 18%));
     }
 
     .tv-arena-pressure-gauge__duel {
         position: absolute;
-        inset: auto 0 2.8rem;
+        inset: 55% 0 auto;
+        z-index: 3;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: clamp(0.8rem, 2vw, 1.6rem);
+        gap: clamp(0.45rem, 2.1cqi, 1.05rem);
         pointer-events: none;
     }
 
     .tv-arena-pressure-gauge__ball {
-        width: clamp(54px, 8vw, 86px);
+        width: clamp(44px, 8.5cqi, 70px);
         aspect-ratio: 1;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.22);
         border-radius: 50%;
         box-shadow: 0 0 18px rgba(255,255,255,0.18), 0 0 32px rgba(46, 232, 242, 0.18), inset 0 0 0 2px rgba(255,255,255,0.18);
-        border: 1px solid rgba(255,255,255,0.22);
-        overflow: hidden;
         animation: tvArenaPressureBallSpin var(--ball-spin-duration, 3s) linear infinite;
     }
 
@@ -705,13 +787,13 @@
     }
 
     .tv-arena-pressure-gauge__ball-image {
-        width: 100%;
-        height: 100%;
         display: block;
+        width: 100%;
+        height: auto;
         object-fit: contain;
-        filter: drop-shadow(0 0 10px rgba(255,255,255,0.26));
         user-select: none;
         -webkit-user-drag: none;
+        filter: drop-shadow(0 0 10px rgba(255,255,255,0.26));
     }
 
     @@keyframes tvArenaPressureBallSpin {
@@ -725,10 +807,10 @@
     }
 
     .tv-arena-pressure-gauge__arrow {
-        width: clamp(56px, 8vw, 98px);
-        height: 14px;
         position: relative;
         display: inline-block;
+        width: clamp(38px, 8.5cqi, 76px);
+        height: 12px;
         opacity: 0.9;
     }
 
@@ -749,70 +831,77 @@
         .tv-arena-pressure-gauge__arrow::after {
             width: 0;
             height: 0;
-            border-top: 12px solid transparent;
-            border-bottom: 12px solid transparent;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
         }
 
     .tv-arena-pressure-gauge__arrow--left::before {
         right: 0;
         background: linear-gradient(90deg, rgba(255, 138, 31, 0), rgba(255, 138, 31, 1));
-        box-shadow: 0 0 18px rgba(255, 138, 31, 0.38);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-left) 32%, transparent);
     }
 
     .tv-arena-pressure-gauge__arrow--left::after {
         left: 0;
-        border-right: 18px solid #ff9a25;
+        border-right: 16px solid var(--pressure-left);
     }
 
     .tv-arena-pressure-gauge__arrow--right::before {
         left: 0;
         background: linear-gradient(90deg, rgba(46, 232, 242, 1), rgba(46, 232, 242, 0));
-        box-shadow: 0 0 18px rgba(46, 232, 242, 0.38);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-right) 32%, transparent);
     }
 
     .tv-arena-pressure-gauge__arrow--right::after {
         right: 0;
-        border-left: 18px solid #4ff6ff;
+        border-left: 16px solid var(--pressure-right);
     }
 
     .tv-arena-pressure-gauge__center-copy {
         position: absolute;
         left: 50%;
-        bottom: 0.3rem;
+        top: 69%;
+        z-index: 4;
         transform: translateX(-50%);
-        min-width: min(88%, 260px);
         display: grid;
         justify-items: center;
-        gap: 0.25rem;
+        gap: 0.18rem;
+        min-width: min(90%, 250px);
         text-align: center;
     }
 
         .tv-arena-pressure-gauge__center-copy span,
         .tv-arena-pressure-gauge__center-copy em {
             color: rgba(212, 228, 245, 0.7);
-            font-size: clamp(0.72rem, 0.8vw, 0.92rem);
+            font-size: clamp(0.62rem, 1.5cqi, 0.84rem);
             font-style: normal;
             font-weight: 800;
-            letter-spacing: 0.14em;
+            letter-spacing: 0.1em;
         }
 
         .tv-arena-pressure-gauge__center-copy strong {
-            color: #55f6ff;
-            font-size: clamp(2.3rem, 5vw, 4.2rem);
+            color: var(--pressure-right);
+            font-size: clamp(2rem, 7cqi, 3.6rem);
             line-height: 1;
             font-weight: 900;
             letter-spacing: -0.05em;
-            text-shadow: 0 0 22px rgba(46, 232, 242, 0.28);
+            text-shadow: 0 0 22px color-mix(in srgb, var(--pressure-right) 32%, transparent);
         }
 
-        .tv-arena-pressure-gauge__center-copy em {
-            color: rgba(247, 251, 255, 0.78);
-        }
+    .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__center-copy strong {
+        color: var(--pressure-left);
+        text-shadow: 0 0 22px color-mix(in srgb, var(--pressure-left) 30%, transparent);
+    }
+
+    .tv-arena-pressure-gauge.right-dominant .tv-arena-pressure-gauge__center-copy strong,
+    .tv-arena-pressure-gauge.balanced .tv-arena-pressure-gauge__center-copy strong {
+        color: var(--pressure-right);
+    }
 
     .tv-arena-pressure-gauge__footer {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        gap: clamp(0.75rem, 1.4vw, 1.25rem);
+        gap: clamp(0.65rem, 1.25cqi, 1rem);
         align-items: end;
         padding-top: 0.4rem;
         border-top: 1px solid rgba(255,255,255,0.06);
@@ -820,32 +909,32 @@
 
     .tv-arena-pressure-gauge__momentum,
     .tv-arena-pressure-gauge__footer-status {
-        min-width: 0;
         display: grid;
-        gap: 0.35rem;
+        gap: 0.32rem;
+        min-width: 0;
     }
 
         .tv-arena-pressure-gauge__momentum span,
         .tv-arena-pressure-gauge__footer-status small {
             color: rgba(212, 228, 245, 0.68);
-            font-size: clamp(0.68rem, 0.75vw, 0.84rem);
+            font-size: clamp(0.62rem, 1.35cqi, 0.8rem);
             font-weight: 800;
-            letter-spacing: 0.14em;
+            letter-spacing: 0.12em;
         }
 
         .tv-arena-pressure-gauge__momentum strong,
         .tv-arena-pressure-gauge__footer-status strong {
             color: #f5fbff;
-            font-size: clamp(1rem, 1.25vw, 1.26rem);
+            font-size: clamp(0.92rem, 1.75cqi, 1.2rem);
             font-weight: 900;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.07em;
         }
 
         .tv-arena-pressure-gauge__momentum small {
             color: rgba(212, 228, 245, 0.64);
-            font-size: clamp(0.68rem, 0.74vw, 0.8rem);
+            font-size: clamp(0.62rem, 1.25cqi, 0.76rem);
             font-weight: 700;
-            letter-spacing: 0.12em;
+            letter-spacing: 0.1em;
         }
 
     .tv-arena-pressure-gauge__momentum--right {
@@ -853,12 +942,13 @@
     }
 
     .tv-arena-pressure-gauge__bars {
-        height: 52px;
         display: grid;
         grid-auto-flow: column;
         grid-auto-columns: minmax(3px, 1fr);
         align-items: end;
-        gap: 4px;
+        gap: clamp(2px, 0.55cqi, 4px);
+        height: clamp(38px, 7cqi, 52px);
+        overflow: hidden;
     }
 
         .tv-arena-pressure-gauge__bars i {
@@ -870,19 +960,19 @@
 
     .tv-arena-pressure-gauge__momentum--left .tv-arena-pressure-gauge__bars i {
         background: linear-gradient(180deg, rgba(255, 191, 60, 1), rgba(255, 107, 0, 0.76));
-        box-shadow: 0 0 10px rgba(255, 138, 31, 0.26);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--pressure-left) 26%, transparent);
     }
 
     .tv-arena-pressure-gauge__momentum--right .tv-arena-pressure-gauge__bars i {
         background: linear-gradient(180deg, rgba(115, 255, 240, 1), rgba(36, 225, 239, 0.72));
-        box-shadow: 0 0 10px rgba(46, 232, 242, 0.22);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--pressure-right) 24%, transparent);
     }
 
     .tv-arena-pressure-gauge__footer-status {
-        justify-items: center;
-        text-align: center;
         align-content: center;
-        padding-inline: clamp(0.2rem, 1vw, 1rem);
+        justify-items: center;
+        padding-inline: clamp(0.2rem, 1cqi, 0.8rem);
+        text-align: center;
     }
 
     .tv-arena-pressure-gauge__footer-arrows {
@@ -914,257 +1004,119 @@
         grid-template-columns: auto minmax(0, 1fr);
         gap: 0.85rem;
         align-items: center;
-        padding: 0.95rem 1rem;
-        border-radius: 20px;
+        padding: clamp(0.75rem, 1.5cqi, 0.95rem) clamp(0.8rem, 1.6cqi, 1rem);
         border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 20px;
         background: rgba(7, 16, 30, 0.56);
     }
 
     .tv-arena-pressure-gauge__description-icon {
-        width: 36px;
-        aspect-ratio: 1;
         display: grid;
         place-items: center;
+        width: 36px;
+        aspect-ratio: 1;
+        border: 1px solid color-mix(in srgb, var(--pressure-right) 30%, rgba(255,255,255,0.07));
         border-radius: 50%;
-        border: 1px solid rgba(80, 237, 245, 0.3);
-        color: #46f4ff;
+        color: var(--pressure-right);
         font-size: 1.1rem;
         font-weight: 900;
-        box-shadow: 0 0 18px rgba(46, 232, 242, 0.16);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-right) 18%, transparent);
     }
 
     .tv-arena-pressure-gauge__description p {
+        min-width: 0;
         margin: 0;
         color: rgba(213, 228, 245, 0.76);
-        font-size: clamp(0.78rem, 0.84vw, 0.96rem);
+        font-size: clamp(0.72rem, 1.45cqi, 0.9rem);
         line-height: 1.5;
-    }
-
-    .tv-arena-pressure-gauge.balanced .tv-arena-pressure-gauge__center-copy strong {
-        color: #55f6ff;
-    }
-
-    .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__center-copy strong {
-        color: #ffae34;
-        text-shadow: 0 0 22px rgba(255, 138, 31, 0.3);
-    }
-
-    .tv-arena-pressure-gauge.right-dominant .tv-arena-pressure-gauge__center-copy strong {
-        color: #55f6ff;
-    }
-
-    .tv-arena-pressure-gauge.critical-pressure .tv-arena-pressure-gauge__panel {
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 24px 54px rgba(0, 0, 0, 0.28), 0 0 44px rgba(255, 138, 31, 0.1), 0 0 44px rgba(46, 232, 242, 0.1);
-    }
-
-    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
-        padding: clamp(0.9rem, 1.4vw, 1.15rem);
-        gap: 0.95rem;
-    }
-
-    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__header h3 {
-        font-size: clamp(1rem, 1.4vw, 1.35rem);
-        letter-spacing: 0.18em;
-    }
-
-    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
-        width: min(100%, 680px);
-        min-height: clamp(300px, 44vh, 420px);
-    }
-
-    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__description {
-        padding: 0.8rem 0.9rem;
-    }
-
-    @@media (max-width: 1180px) {
-        .tv-arena-pressure-gauge__layout {
-            grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.8fr) minmax(120px, 0.8fr);
-        }
-
-        .tv-arena-pressure-gauge__metric strong {
-            font-size: clamp(1.8rem, 3.2vw, 2.8rem);
-        }
-    }
-
-    @@media (max-width: 860px) {
-        .tv-arena-pressure-gauge__layout {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 1rem;
-        }
-
-        .tv-arena-pressure-gauge__center {
-            order: 1;
-            grid-column: 1 / -1;
-        }
-
-        .tv-arena-pressure-gauge__side {
-            order: 2;
-        }
-
-        .tv-arena-pressure-gauge__side--left,
-        .tv-arena-pressure-gauge__side--right {
-            justify-items: stretch;
-            text-align: left;
-        }
-
-            .tv-arena-pressure-gauge__identity,
-            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
-                flex-direction: row;
-            }
-
-        .tv-arena-pressure-gauge__footer {
-            grid-template-columns: 1fr;
-            gap: 0.95rem;
-        }
-
-        .tv-arena-pressure-gauge__momentum--right,
-        .tv-arena-pressure-gauge__footer-status {
-            text-align: left;
-            justify-items: start;
-        }
-
-        .tv-arena-pressure-gauge__description {
-            grid-template-columns: 1fr;
-            text-align: left;
-        }
-    }
-
-    @@media (max-width: 560px) {
-        .tv-arena-pressure-gauge__panel {
-            border-radius: 22px;
-        }
-
-        .tv-arena-pressure-gauge__layout {
-            grid-template-columns: 1fr;
-        }
-
-        .tv-arena-pressure-gauge__side--right {
-            text-align: left;
-        }
-
-        .tv-arena-pressure-gauge__duel {
-            inset: auto 0 3.7rem;
-            gap: 0.5rem;
-        }
-
-        .tv-arena-pressure-gauge__ball {
-            width: 54px;
-        }
-
-        .tv-arena-pressure-gauge__center-copy {
-            bottom: -0.15rem;
-        }
-
-        .tv-arena-pressure-gauge__bars {
-            overflow-x: auto;
-            padding-bottom: 0.2rem;
-        }
-    }
-
-
-    /* ================================================================
-           RESPONSIVIDADE POR TAMANHO REAL DO COMPONENTE
-           ---------------------------------------------------------------
-           A tela de Match pode manter o card estreito mesmo em um viewport
-           grande. Por isso, estas regras usam container queries em vez de
-           depender apenas da largura da janela.
-           ================================================================ */
-
-    .tv-arena-pressure-gauge__layout,
-    .tv-arena-pressure-gauge__center,
-    .tv-arena-pressure-gauge__gauge-shell,
-    .tv-arena-pressure-gauge__side,
-    .tv-arena-pressure-gauge__identity,
-    .tv-arena-pressure-gauge__copy,
-    .tv-arena-pressure-gauge__footer,
-    .tv-arena-pressure-gauge__momentum,
-    .tv-arena-pressure-gauge__footer-status {
-        min-width: 0;
-    }
-
-    .tv-arena-pressure-gauge__gauge-shell {
-        width: min(100%, 680px);
-        min-height: 0;
-        aspect-ratio: 420 / 335;
-        isolation: isolate;
-    }
-
-    .tv-arena-pressure-gauge__svg {
-        position: absolute;
-        inset: 0 0 auto;
-        width: 100%;
-        height: auto;
-        z-index: 1;
-    }
-
-    .tv-arena-pressure-gauge__tick-overlay {
-        z-index: 2;
-    }
-
-    .tv-arena-pressure-gauge__duel {
-        inset: 58% 0 auto;
-        z-index: 3;
-    }
-
-    .tv-arena-pressure-gauge__center-copy {
-        top: 72%;
-        bottom: auto;
-        z-index: 4;
-    }
-
-    .tv-arena-pressure-gauge__identity,
-    .tv-arena-pressure-gauge__copy,
-    .tv-arena-pressure-gauge__copy strong,
-    .tv-arena-pressure-gauge__copy span {
-        max-width: 100%;
-    }
-
-        .tv-arena-pressure-gauge__copy strong,
-        .tv-arena-pressure-gauge__copy span,
-        .tv-arena-pressure-gauge__center-copy em,
-        .tv-arena-pressure-gauge__footer-status strong,
-        .tv-arena-pressure-gauge__footer-status small {
-            overflow-wrap: anywhere;
-            word-break: normal;
-        }
-
-    .tv-arena-pressure-gauge__description p {
-        min-width: 0;
         overflow-wrap: anywhere;
     }
 
+    .tv-arena-pressure-gauge.critical-pressure .tv-arena-pressure-gauge__panel {
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 24px 54px rgba(0, 0, 0, 0.28), 0 0 44px color-mix(in srgb, var(--pressure-left) 12%, transparent), 0 0 44px color-mix(in srgb, var(--pressure-right) 12%, transparent);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
+        gap: clamp(0.62rem, 1.15cqi, 0.85rem);
+        padding: clamp(0.78rem, 1.35cqi, 1rem);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__layout {
+        grid-template-columns: minmax(112px, 0.7fr) minmax(240px, 1.25fr) minmax(112px, 0.7fr);
+        gap: clamp(0.45rem, 0.9cqi, 0.75rem);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
+        width: min(100%, 430px);
+        aspect-ratio: 420 / 315;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__track,
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__fill {
+        stroke-width: 18;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__header h3 {
+        font-size: clamp(1rem, 2.7cqi, 1.45rem);
+        letter-spacing: clamp(0.12em, 0.75cqi, 0.18em);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__logo-ring {
+        width: clamp(48px, 6cqi, 68px);
+        padding: 0.5rem;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__copy strong {
+        font-size: clamp(0.9rem, 1.9cqi, 1.35rem);
+        letter-spacing: 0.035em;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__copy span {
+        font-size: clamp(0.58rem, 1.25cqi, 0.76rem);
+        letter-spacing: 0.07em;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__metric strong {
+        font-size: clamp(1.75rem, 4.2cqi, 2.7rem);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__center-copy strong {
+        font-size: clamp(2rem, 6.2cqi, 3.2rem);
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__duel {
+        inset: 54% 0 auto;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__center-copy {
+        top: 68%;
+    }
+
+    .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__description {
+        padding: 0.72rem 0.85rem;
+    }
+
     @@container arena-pressure (max-width: 760px) {
-        .tv-arena-pressure-gauge__panel {
+        .tv-arena-pressure-gauge__panel,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
             grid-template-rows: auto auto auto auto;
-            gap: 1rem;
-            padding: clamp(0.9rem, 3.5cqi, 1.25rem);
+            gap: 0.9rem;
+            padding: clamp(0.82rem, 3cqi, 1.1rem);
             border-radius: clamp(20px, 4cqi, 28px);
         }
 
-        .tv-arena-pressure-gauge__header h3 {
-            font-size: clamp(1.05rem, 5cqi, 1.8rem);
-            letter-spacing: clamp(0.12em, 1.1cqi, 0.22em);
-            line-height: 1.1;
-        }
-
-        .tv-arena-pressure-gauge__header p {
-            font-size: clamp(0.66rem, 2.2cqi, 0.84rem);
-            letter-spacing: clamp(0.08em, 0.75cqi, 0.14em);
-        }
-
-        .tv-arena-pressure-gauge__layout {
+        .tv-arena-pressure-gauge__layout,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__layout {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             grid-template-areas:
                 "center center"
                 "left right";
-            gap: clamp(0.85rem, 3cqi, 1.2rem);
+            gap: clamp(0.7rem, 2.5cqi, 1rem);
             align-items: stretch;
         }
 
         .tv-arena-pressure-gauge__center {
             grid-area: center;
-            order: initial;
         }
 
         .tv-arena-pressure-gauge__side--left {
@@ -1176,10 +1128,9 @@
         }
 
         .tv-arena-pressure-gauge__side {
-            order: initial;
             align-content: start;
-            gap: 0.65rem;
-            padding: clamp(0.7rem, 2.4cqi, 0.95rem);
+            gap: 0.55rem;
+            padding: clamp(0.65rem, 2cqi, 0.9rem);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 18px;
             background: rgba(4, 11, 24, 0.34);
@@ -1202,79 +1153,27 @@
             .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
                 width: 100%;
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 0.55rem;
+                gap: 0.5rem;
             }
 
-            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
-                align-items: flex-end;
-            }
-
-        .tv-arena-pressure-gauge__logo-ring {
-            width: clamp(58px, 17cqi, 84px);
-            padding: clamp(0.48rem, 1.8cqi, 0.72rem);
+        .tv-arena-pressure-gauge__identity {
+            align-items: flex-start;
         }
 
-        .tv-arena-pressure-gauge__copy {
-            width: 100%;
-        }
-
-            .tv-arena-pressure-gauge__copy strong {
-                font-size: clamp(1rem, 4.6cqi, 1.55rem);
-            }
-
-            .tv-arena-pressure-gauge__copy span {
-                font-size: clamp(0.64rem, 2.5cqi, 0.82rem);
-                letter-spacing: 0.08em;
-            }
-
-        .tv-arena-pressure-gauge__metric strong {
-            font-size: clamp(1.8rem, 9cqi, 3rem);
-        }
-
-        .tv-arena-pressure-gauge__metric span {
-            font-size: clamp(0.65rem, 2.6cqi, 0.82rem);
-            letter-spacing: 0.1em;
+        .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
+            align-items: flex-end;
         }
 
         .tv-arena-pressure-gauge__gauge-shell,
         .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
-            width: min(100%, 620px);
-            min-height: 0;
-            aspect-ratio: 420 / 330;
+            width: min(100%, 440px);
+            aspect-ratio: 420 / 318;
         }
 
-        .tv-arena-pressure-gauge__duel {
-            inset: 57% 0 auto;
-            gap: clamp(0.45rem, 2.4cqi, 0.9rem);
-        }
-
-        .tv-arena-pressure-gauge__arrow {
-            width: clamp(42px, 14cqi, 76px);
-        }
-
-        .tv-arena-pressure-gauge__ball {
-            width: clamp(46px, 14cqi, 68px);
-        }
-
-        .tv-arena-pressure-gauge__center-copy {
-            top: 72%;
-            min-width: min(90%, 250px);
-            gap: 0.18rem;
-        }
-
-            .tv-arena-pressure-gauge__center-copy span,
-            .tv-arena-pressure-gauge__center-copy em {
-                font-size: clamp(0.64rem, 2.5cqi, 0.82rem);
-                letter-spacing: 0.1em;
-            }
-
-            .tv-arena-pressure-gauge__center-copy strong {
-                font-size: clamp(2.1rem, 12cqi, 3.8rem);
-            }
-
-        .tv-arena-pressure-gauge__tick-badge {
-            font-size: clamp(0.58rem, 2.25cqi, 0.76rem);
+        .tv-arena-pressure-gauge__logo-ring,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__logo-ring {
+            width: clamp(52px, 14cqi, 72px);
+            padding: clamp(0.44rem, 1.5cqi, 0.62rem);
         }
 
         .tv-arena-pressure-gauge__footer {
@@ -1282,7 +1181,7 @@
             grid-template-areas:
                 "momentum-left momentum-right"
                 "status status";
-            gap: 1rem;
+            gap: 0.9rem;
             align-items: stretch;
         }
 
@@ -1292,40 +1191,28 @@
 
         .tv-arena-pressure-gauge__momentum--right {
             grid-area: momentum-right;
+            text-align: right;
         }
 
         .tv-arena-pressure-gauge__footer-status {
             grid-area: status;
             justify-items: center;
-            text-align: center;
-            padding-top: 0.85rem;
+            padding-top: 0.75rem;
             border-top: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .tv-arena-pressure-gauge__momentum--right {
-            text-align: right;
-        }
-
-        .tv-arena-pressure-gauge__bars {
-            height: clamp(38px, 12cqi, 52px);
-            gap: clamp(2px, 0.8cqi, 4px);
-            overflow: hidden;
-        }
-
-        .tv-arena-pressure-gauge__description {
-            grid-template-columns: auto minmax(0, 1fr);
-            text-align: left;
+            text-align: center;
         }
     }
 
     @@container arena-pressure (max-width: 430px) {
-        .tv-arena-pressure-gauge__panel {
-            padding: 0.82rem;
-            gap: 0.85rem;
+        .tv-arena-pressure-gauge__panel,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__panel {
+            gap: 0.78rem;
+            padding: 0.78rem;
             border-radius: 20px;
         }
 
-        .tv-arena-pressure-gauge__header h3 {
+        .tv-arena-pressure-gauge__header h3,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__header h3 {
             font-size: clamp(0.96rem, 7cqi, 1.35rem);
             letter-spacing: 0.12em;
         }
@@ -1335,7 +1222,8 @@
             letter-spacing: 0.08em;
         }
 
-        .tv-arena-pressure-gauge__layout {
+        .tv-arena-pressure-gauge__layout,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__layout {
             grid-template-columns: 1fr;
             grid-template-areas:
                 "center"
@@ -1346,8 +1234,8 @@
         .tv-arena-pressure-gauge__side,
         .tv-arena-pressure-gauge__side--left,
         .tv-arena-pressure-gauge__side--right {
-            text-align: left;
             justify-items: stretch;
+            text-align: left;
         }
 
             .tv-arena-pressure-gauge__identity,
@@ -1356,13 +1244,9 @@
                 align-items: center;
             }
 
-            .tv-arena-pressure-gauge__side--right .tv-arena-pressure-gauge__identity {
-                align-items: center;
-            }
-
-        .tv-arena-pressure-gauge__logo-ring {
-            flex: 0 0 auto;
-            width: 62px;
+        .tv-arena-pressure-gauge__logo-ring,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__logo-ring {
+            width: 58px;
         }
 
         .tv-arena-pressure-gauge__metric {
@@ -1377,11 +1261,12 @@
 
         .tv-arena-pressure-gauge__gauge-shell,
         .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__gauge-shell {
-            aspect-ratio: 420 / 345;
+            aspect-ratio: 420 / 340;
         }
 
-        .tv-arena-pressure-gauge__duel {
-            inset: 55% 0 auto;
+        .tv-arena-pressure-gauge__duel,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__duel {
+            inset: 52% 0 auto;
         }
 
         .tv-arena-pressure-gauge__arrow {
@@ -1406,12 +1291,14 @@
             width: 44px;
         }
 
-        .tv-arena-pressure-gauge__center-copy {
-            top: 70%;
+        .tv-arena-pressure-gauge__center-copy,
+        .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__center-copy {
+            top: 68%;
         }
 
-            .tv-arena-pressure-gauge__center-copy strong {
-                font-size: clamp(2rem, 15cqi, 3rem);
+            .tv-arena-pressure-gauge__center-copy strong,
+            .tv-arena-pressure-gauge.is-compact .tv-arena-pressure-gauge__center-copy strong {
+                font-size: clamp(1.9rem, 14cqi, 2.9rem);
             }
 
         .tv-arena-pressure-gauge__footer {
@@ -1428,7 +1315,7 @@
 
         .tv-arena-pressure-gauge__description {
             grid-template-columns: 1fr;
-            padding: 0.8rem;
+            padding: 0.78rem;
         }
 
         .tv-arena-pressure-gauge__description-icon {

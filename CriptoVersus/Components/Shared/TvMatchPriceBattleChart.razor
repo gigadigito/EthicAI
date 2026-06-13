@@ -12,12 +12,8 @@
 
     <header class="tv-price-battle__header">
         <div class="tv-price-battle__header-copy">
-            <span class="tv-price-battle__eyebrow">
-                @HeaderEyebrow()
-            </span>
-
+            <span class="tv-price-battle__eyebrow">@HeaderEyebrow()</span>
             <h3>@HeaderTitle()</h3>
-
             <p>@HeaderSubtitle()</p>
         </div>
 
@@ -26,40 +22,27 @@
                 <i aria-hidden="true"></i>
                 @HeaderBadge()
             </span>
-
             <strong>@BuildMatchHeadline()</strong>
-
-            <small>@HeaderMetaSubtitle()</small>
+            <small>@MatchIdValue()</small>
         </div>
     </header>
 
     <div class="tv-price-battle__arena">
-
         <article class="tv-price-battle__team tv-price-battle__team--left">
-
             <header class="tv-price-battle__team-header">
                 <div class="tv-price-battle__logo-shell">
                     @if (!string.IsNullOrWhiteSpace(LeftLogoUrl))
                     {
-                        <img src="@LeftLogoUrl"
-                             alt="@string.Format(
-                                                              CultureInfo.CurrentCulture,
-                                                              T("logoAlt"),
-                                                              DisplaySymbol(LeftSymbol))" />
-                                        }
+                        <img src="@LeftLogoUrl" alt="@string.Format(CultureInfo.CurrentCulture, T("logoAlt"), DisplaySymbol(LeftSymbol))" />
+                    }
                     else
                     {
                         <span>@CompactSymbol(LeftSymbol)</span>
                     }
                 </div>
-
                 <div class="tv-price-battle__identity">
-                    <span class="tv-price-battle__team-label">
-                        @TeamALabel()
-                    </span>
-
+                    <span class="tv-price-battle__team-label">@TeamALabel()</span>
                     <strong>@DisplaySymbol(LeftSymbol)</strong>
-
                     <small>@DisplayText(LeftDisplayName)</small>
                 </div>
             </header>
@@ -67,27 +50,16 @@
             <div class="tv-price-battle__market-row">
                 <div class="tv-price-battle__market-value">
                     <span>@T("currentPrice")</span>
-
-                    <strong class="@GetPriceClass(LeftCurrentPrice)">
-                        @FormatPrice(LeftCurrentPrice)
-                    </strong>
+                    <strong class="@GetPriceClass(LeftCurrentPrice)">@FormatPrice(LeftCurrentPrice)</strong>
                 </div>
-
                 <div class="tv-price-battle__market-change @GetChangeClass(LeftChangePercent)">
                     <span>@VariationLabel()</span>
-
-                    <strong>
-                        @FormatChangePercent(LeftChangePercent)
-                    </strong>
+                    <strong>@FormatChangePercent(LeftChangePercent)</strong>
                 </div>
             </div>
 
             <div class="tv-price-battle__chart-shell">
-                <div id="@_leftChartId"
-                     class="tv-price-battle__chart"
-                     aria-label="@T("chartAria")">
-                </div>
-
+                <div id="@LeftChartId" class="tv-price-battle__chart" aria-label="@T("chartAria")"></div>
                 @if (LeftPoints.Count == 0)
                 {
                     <div class="tv-price-battle__empty">
@@ -98,46 +70,29 @@
             </div>
         </article>
 
-        <section class="tv-price-battle__center"
-                 aria-label="@CompetitivenessLabel()">
-
+        <section class="tv-price-battle__center" aria-label="@CompetitivenessLabel()">
             <span class="tv-price-battle__versus">VS</span>
-
+            <span class="tv-price-battle__competitiveness-label">@CompetitivenessLabel()</span>
             <div class="tv-price-battle__score-ring">
                 <div class="tv-price-battle__score-ring-inner">
                     <strong>@Competitiveness</strong>
                 </div>
             </div>
-
-            <span class="tv-price-battle__competitiveness-label">
-                @CompetitivenessLabel()
-            </span>
-
             <small>@CenterDescription()</small>
         </section>
 
         <article class="tv-price-battle__team tv-price-battle__team--right">
-
             <header class="tv-price-battle__team-header tv-price-battle__team-header--right">
                 <div class="tv-price-battle__identity tv-price-battle__identity--right">
-                    <span class="tv-price-battle__team-label">
-                        @TeamBLabel()
-                    </span>
-
+                    <span class="tv-price-battle__team-label">@TeamBLabel()</span>
                     <strong>@DisplaySymbol(RightSymbol)</strong>
-
                     <small>@DisplayText(RightDisplayName)</small>
                 </div>
-
                 <div class="tv-price-battle__logo-shell">
                     @if (!string.IsNullOrWhiteSpace(RightLogoUrl))
                     {
-                        <img src="@RightLogoUrl"
-                             alt="@string.Format(
-                                                              CultureInfo.CurrentCulture,
-                                                              T("logoAlt"),
-                                                              DisplaySymbol(RightSymbol))" />
-                                        }
+                        <img src="@RightLogoUrl" alt="@string.Format(CultureInfo.CurrentCulture, T("logoAlt"), DisplaySymbol(RightSymbol))" />
+                    }
                     else
                     {
                         <span>@CompactSymbol(RightSymbol)</span>
@@ -148,27 +103,16 @@
             <div class="tv-price-battle__market-row tv-price-battle__market-row--right">
                 <div class="tv-price-battle__market-value">
                     <span>@T("currentPrice")</span>
-
-                    <strong class="@GetPriceClass(RightCurrentPrice)">
-                        @FormatPrice(RightCurrentPrice)
-                    </strong>
+                    <strong class="@GetPriceClass(RightCurrentPrice)">@FormatPrice(RightCurrentPrice)</strong>
                 </div>
-
                 <div class="tv-price-battle__market-change @GetChangeClass(RightChangePercent)">
                     <span>@VariationLabel()</span>
-
-                    <strong>
-                        @FormatChangePercent(RightChangePercent)
-                    </strong>
+                    <strong>@FormatChangePercent(RightChangePercent)</strong>
                 </div>
             </div>
 
             <div class="tv-price-battle__chart-shell">
-                <div id="@_rightChartId"
-                     class="tv-price-battle__chart"
-                     aria-label="@T("chartAria")">
-                </div>
-
+                <div id="@RightChartId" class="tv-price-battle__chart" aria-label="@T("chartAria")"></div>
                 @if (RightPoints.Count == 0)
                 {
                     <div class="tv-price-battle__empty">
@@ -179,27 +123,87 @@
             </div>
         </article>
     </div>
-    <footer class="tv-price-battle__broadcast-status">
-        <div class="tv-price-battle__broadcast-heading">
+
+    <section class="tv-price-battle__insights">
+        <article class="tv-price-battle__insight tv-price-battle__insight--left">
             <div>
+                <span>@MomentumTitle()</span>
+                <strong>@MomentumValue()</strong>
+                <small>@MomentumDescription()</small>
+            </div>
+            <i class="tv-price-battle__insight-icon">↗</i>
+        </article>
+
+        <article class="tv-price-battle__insight tv-price-battle__insight--left">
+            <div>
+                <span>@PressureTitle()</span>
+                <strong>@DisplaySymbol(LeftSymbol)</strong>
+                <small>@PressureDescription()</small>
+            </div>
+            <i class="tv-price-battle__insight-icon">◔</i>
+        </article>
+
+        <article class="tv-price-battle__insight tv-price-battle__insight--right">
+            <div>
+                <span>@ReasonTitle()</span>
+                <strong>@ReasonValue()</strong>
+                <small>@ReasonDescription()</small>
+            </div>
+            <i class="tv-price-battle__insight-icon">◉</i>
+        </article>
+
+        <article class="tv-price-battle__insight tv-price-battle__insight--right">
+            <div>
+                <span>@PoolTitle()</span>
+                <strong>@PoolStatusValue()</strong>
+                <small>@PoolValue</small>
+            </div>
+            <i class="tv-price-battle__insight-icon">◌</i>
+        </article>
+    </section>
+
+    <section class="tv-price-battle__variations">
+        <article class="tv-price-battle__variation tv-price-battle__variation--left">
+            <div class="tv-price-battle__variation-head">
+                <div>
+                    <span>@AssetVariationTitle(true)</span>
+                    <small>@DisplaySymbol(LeftSymbol)</small>
+                </div>
+                <strong>@FormatChangePercent(LeftChangePercent)</strong>
+            </div>
+            <div class="tv-price-battle__variation-track">
+                <i style="@BuildVariationStyle(LeftChangePercent, "--price-battle-left")"></i>
+            </div>
+        </article>
+
+        <article class="tv-price-battle__variation tv-price-battle__variation--right">
+            <div class="tv-price-battle__variation-head">
+                <div>
+                    <span>@AssetVariationTitle(false)</span>
+                    <small>@DisplaySymbol(RightSymbol)</small>
+                </div>
+                <strong>@FormatChangePercent(RightChangePercent)</strong>
+            </div>
+            <div class="tv-price-battle__variation-track">
+                <i style="@BuildVariationStyle(RightChangePercent, "--price-battle-right")"></i>
+            </div>
+        </article>
+    </section>
+
+    <section class="tv-price-battle__footer-grid">
+        <footer class="tv-price-battle__broadcast-status">
+            <div class="tv-price-battle__broadcast-heading">
                 <span>@SignalStatusLabel()</span>
                 <strong>@DisplayText(BroadcastFocusLabel)</strong>
             </div>
 
-            <small>@BroadcastStatusDescription()</small>
-        </div>
-
-        <div class="tv-price-battle__broadcast-grid">
             <div class="tv-price-battle__broadcast-metric">
                 <div class="tv-price-battle__broadcast-metric-head">
                     <span>@RotationLabel()</span>
                     <strong>@DisplayText(BroadcastRotationRemaining)</strong>
                 </div>
-
-                <div class="tv-price-battle__broadcast-track"
-                     aria-label="@RotationLabel()">
-                    <i class="tv-price-battle__broadcast-fill tv-price-battle__broadcast-fill--rotation"
-                       style="@BuildRotationStyle()"></i>
+                <div class="tv-price-battle__broadcast-track">
+                    <i class="tv-price-battle__broadcast-fill tv-price-battle__broadcast-fill--rotation" style="@BuildRotationStyle()"></i>
                 </div>
             </div>
 
@@ -208,160 +212,71 @@
                     <span>@CameraFocusLabel()</span>
                     <strong>@FormatProgress(BroadcastFocusProgress)</strong>
                 </div>
-
-                <div class="tv-price-battle__broadcast-track"
-                     aria-label="@CameraFocusLabel()">
-                    <i class="tv-price-battle__broadcast-fill tv-price-battle__broadcast-fill--focus"
-                       style="@BuildFocusStyle()"></i>
+                <div class="tv-price-battle__broadcast-track">
+                    <i class="tv-price-battle__broadcast-fill tv-price-battle__broadcast-fill--focus" style="@BuildFocusStyle()"></i>
                 </div>
             </div>
-        </div>
-    </footer>
+        </footer>
+
+        <article class="tv-price-battle__events">
+            <span class="tv-price-battle__events-title">@LatestEventsTitle()</span>
+            <div class="tv-price-battle__event-row">
+                <time>@LatestEventTimeValue()</time>
+                <div>
+                    <strong>@LatestEventSymbolValue()</strong>
+                    <small>@LatestEventDescriptionValue()</small>
+                </div>
+                <em>@LatestEventScoreValue()</em>
+            </div>
+        </article>
+    </section>
 </section>
 
 @code {
-    private readonly string _leftChartId =
-        $"tv-price-battle-left-{Guid.NewGuid():N}";
-
-    private readonly string _rightChartId =
-        $"tv-price-battle-right-{Guid.NewGuid():N}";
-
     private IJSObjectReference? _module;
     private bool _pendingSync = true;
     private string _lastSyncSignature = string.Empty;
     private bool _disposed;
-    [Parameter]
-    public string BroadcastFocusLabel { get; set; } = string.Empty;
 
-    [Parameter]
-    public string BroadcastRotationRemaining { get; set; } = "00:00";
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public string LeftSymbol { get; set; } = string.Empty;
+    [Parameter] public string LeftDisplayName { get; set; } = string.Empty;
+    [Parameter] public string LeftLogoUrl { get; set; } = string.Empty;
+    [Parameter] public string LeftChartId { get; set; } = $"tv-price-battle-left-{Guid.NewGuid():N}";
+    [Parameter] public decimal? LeftCurrentPrice { get; set; }
+    [Parameter] public decimal? LeftChangePercent { get; set; }
+    [Parameter] public string LeftColor { get; set; } = "#ff9100";
+    [Parameter] public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+    [Parameter] public bool LeftHasPriceHistory { get; set; }
 
-    [Parameter]
-    public double BroadcastRotationProgress { get; set; }
+    [Parameter] public string RightSymbol { get; set; } = string.Empty;
+    [Parameter] public string RightDisplayName { get; set; } = string.Empty;
+    [Parameter] public string RightLogoUrl { get; set; } = string.Empty;
+    [Parameter] public string RightChartId { get; set; } = $"tv-price-battle-right-{Guid.NewGuid():N}";
+    [Parameter] public decimal? RightCurrentPrice { get; set; }
+    [Parameter] public decimal? RightChangePercent { get; set; }
+    [Parameter] public string RightColor { get; set; } = "#18d8d2";
+    [Parameter] public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+    [Parameter] public bool RightHasPriceHistory { get; set; }
 
-    [Parameter]
-    public double BroadcastFocusProgress { get; set; }
+    [Parameter] public int Competitiveness { get; set; }
+    [Parameter] public string BroadcastFocusLabel { get; set; } = string.Empty;
+    [Parameter] public string BroadcastRotationRemaining { get; set; } = "00:00";
+    [Parameter] public double BroadcastRotationProgress { get; set; }
+    [Parameter] public double BroadcastFocusProgress { get; set; }
+    [Parameter] public string BroadcastFocusColor { get; set; } = "#18d8d2";
+    [Parameter] public bool IsSignalStable { get; set; } = true;
 
-    [Parameter]
-    public string BroadcastFocusColor { get; set; } = "#18d8d2";
+    [Parameter] public string MatchIdLabel { get; set; } = string.Empty;
+    [Parameter] public string LatestEventTime { get; set; } = string.Empty;
+    [Parameter] public string LatestEventSymbol { get; set; } = string.Empty;
+    [Parameter] public string LatestEventDescription { get; set; } = string.Empty;
+    [Parameter] public string LatestEventScore { get; set; } = string.Empty;
+    [Parameter] public string PoolStatus { get; set; } = string.Empty;
+    [Parameter] public string PoolValue { get; set; } = "0";
 
-    [Parameter]
-    public bool IsSignalStable { get; set; } = true;
-    [Parameter]
-    public string Culture { get; set; } =
-        AppCultureService.DefaultRouteCulture;
+    protected override void OnParametersSet() => _pendingSync = true;
 
-    [Parameter]
-    public string LeftSymbol { get; set; } = string.Empty;
-
-    [Parameter]
-    public string LeftDisplayName { get; set; } = string.Empty;
-
-    [Parameter]
-    public string LeftLogoUrl { get; set; } = string.Empty;
-
-    [Parameter]
-    public decimal? LeftCurrentPrice { get; set; }
-
-    [Parameter]
-    public decimal? LeftChangePercent { get; set; }
-
-    [Parameter]
-    public string LeftColor { get; set; } = "#ff9100";
-
-    [Parameter]
-    public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } =
-        Array.Empty<TvPriceChartPoint>();
-
-    [Parameter]
-    public bool LeftHasPriceHistory { get; set; }
-
-    [Parameter]
-    public string RightSymbol { get; set; } = string.Empty;
-
-    [Parameter]
-    public string RightDisplayName { get; set; } = string.Empty;
-
-    [Parameter]
-    public string RightLogoUrl { get; set; } = string.Empty;
-
-    [Parameter]
-    public decimal? RightCurrentPrice { get; set; }
-
-    [Parameter]
-    public decimal? RightChangePercent { get; set; }
-
-    [Parameter]
-    public string RightColor { get; set; } = "#18d8d2";
-
-    [Parameter]
-    public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } =
-        Array.Empty<TvPriceChartPoint>();
-
-    [Parameter]
-    public bool RightHasPriceHistory { get; set; }
-
-    [Parameter]
-    public int Competitiveness { get; set; }
-
-    protected override void OnParametersSet()
-    {
-        _pendingSync = true;
-    }
-    private string SignalStatusLabel()
-    => IsSignalStable
-        ? IsPortuguese()
-            ? "SINAL ESTÁVEL"
-            : "STABLE SIGNAL"
-        : IsPortuguese()
-            ? "SINAL DEGRADADO"
-            : "DEGRADED SIGNAL";
-
-    private string BroadcastStatusDescription()
-        => IsPortuguese()
-            ? "Direção automática da transmissão em tempo real."
-            : "Automatic live broadcast direction.";
-
-    private string RotationLabel()
-        => IsPortuguese()
-            ? "ROTAÇÃO DA TRANSMISSÃO"
-            : "BROADCAST ROTATION";
-
-    private string CameraFocusLabel()
-        => IsPortuguese()
-            ? "FOCO DA CÂMERA"
-            : "CAMERA FOCUS";
-
-    private static string FormatProgress(double value)
-    {
-        var normalized = Math.Clamp(value, 0d, 1d);
-
-        return $"{normalized * 100d:0}%";
-    }
-
-    private string BuildRotationStyle()
-    {
-        var progress = Math.Clamp(
-            BroadcastRotationProgress,
-            0d,
-            1d);
-
-        return $"width:{progress * 100d:0.##}%;";
-    }
-
-    private string BuildFocusStyle()
-    {
-        var progress = Math.Clamp(
-            BroadcastFocusProgress,
-            0d,
-            1d);
-
-        var color = string.IsNullOrWhiteSpace(BroadcastFocusColor)
-            ? "#18d8d2"
-            : BroadcastFocusColor.Trim();
-
-        return $"width:{progress * 100d:0.##}%; --broadcast-focus-color:{color};";
-    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_disposed)
@@ -371,15 +286,14 @@
         {
             try
             {
-                var importSw = Stopwatch.StartNew();
-
+                var sw = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/tvMatchPriceBattleChart.mjs?v=20260611-visual-3");
+                    "/js/tvMatchPriceBattleChart.mjs?v=20260612-reference-layout-1");
 
                 Logger.LogInformation(
                     "[TV_MATCH_LOAD] TvMatchPriceBattleChart JS import elapsedMs={ElapsedMs}",
-                    importSw.ElapsedMilliseconds);
+                    sw.ElapsedMilliseconds);
 
                 _pendingSync = true;
             }
@@ -397,11 +311,7 @@
             return;
 
         var signature = BuildSyncSignature();
-
-        if (string.Equals(
-                signature,
-                _lastSyncSignature,
-                StringComparison.Ordinal))
+        if (string.Equals(signature, _lastSyncSignature, StringComparison.Ordinal))
         {
             _pendingSync = false;
             return;
@@ -409,47 +319,35 @@
 
         try
         {
-            var syncSw = Stopwatch.StartNew();
-
             await _module.InvokeVoidAsync(
                 "updateMatchPriceBattleChart",
                 new
                 {
                     left = new
                     {
-                        chartId = _leftChartId,
-                        points = LeftPoints
-                            .Select(point => new
-                            {
-                                time = point.Time,
-                                value = (double)point.Value
-                            })
-                            .ToArray(),
+                        chartId = LeftChartId,
+                        points = LeftPoints.Select(point => new
+                        {
+                            time = point.Time,
+                            value = (double)point.Value
+                        }).ToArray(),
                         color = LeftColor,
                         side = "left",
                         label = DisplaySymbol(LeftSymbol)
                     },
                     right = new
                     {
-                        chartId = _rightChartId,
-                        points = RightPoints
-                            .Select(point => new
-                            {
-                                time = point.Time,
-                                value = (double)point.Value
-                            })
-                            .ToArray(),
+                        chartId = RightChartId,
+                        points = RightPoints.Select(point => new
+                        {
+                            time = point.Time,
+                            value = (double)point.Value
+                        }).ToArray(),
                         color = RightColor,
                         side = "right",
                         label = DisplaySymbol(RightSymbol)
                     }
                 });
-
-            Logger.LogInformation(
-                "[TV_MATCH_LOAD] TvMatchPriceBattleChart update leftPoints={LeftPoints} rightPoints={RightPoints} elapsedMs={ElapsedMs}",
-                LeftPoints.Count,
-                RightPoints.Count,
-                syncSw.ElapsedMilliseconds);
 
             _lastSyncSignature = signature;
         }
@@ -461,9 +359,7 @@
         }
         catch (JSException ex)
         {
-            Logger.LogWarning(
-                ex,
-                "[TV_PRICE_BATTLE] Failed to update price charts.");
+            Logger.LogWarning(ex, "[TV_PRICE_BATTLE] Failed to update price charts.");
         }
         finally
         {
@@ -474,19 +370,13 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
-
         if (_module is null)
             return;
 
         try
         {
-            await _module.InvokeVoidAsync(
-                "disposeMatchPriceBattleChart",
-                _leftChartId);
-
-            await _module.InvokeVoidAsync(
-                "disposeMatchPriceBattleChart",
-                _rightChartId);
+            await _module.InvokeVoidAsync("disposeMatchPriceBattleChart", LeftChartId);
+            await _module.InvokeVoidAsync("disposeMatchPriceBattleChart", RightChartId);
         }
         catch (JSDisconnectedException)
         {
@@ -509,191 +399,143 @@
 
     private string BuildSyncSignature()
     {
-        var leftTail = LeftPoints.Count == 0
-            ? "0"
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"{LeftPoints.Count}:{LeftPoints[^1].Time}:{LeftPoints[^1].Value:0.##########}");
-
-        var rightTail = RightPoints.Count == 0
-            ? "0"
-            : string.Create(
-                CultureInfo.InvariantCulture,
-                $"{RightPoints.Count}:{RightPoints[^1].Time}:{RightPoints[^1].Value:0.##########}");
+        static string Tail(IReadOnlyList<TvPriceChartPoint> points)
+            => points.Count == 0
+                ? "0"
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{points.Count}:{points[^1].Time}:{points[^1].Value:0.##########}");
 
         return string.Join(
-     "|",
-     Culture,
-     DisplaySymbol(LeftSymbol),
-     DisplayText(LeftDisplayName),
-     LeftCurrentPrice?.ToString(
-         "0.##################",
-         CultureInfo.InvariantCulture) ?? string.Empty,
-     LeftChangePercent?.ToString(
-         "0.##########",
-         CultureInfo.InvariantCulture) ?? string.Empty,
-     leftTail,
-     LeftHasPriceHistory ? "1" : "0",
-     DisplaySymbol(RightSymbol),
-     DisplayText(RightDisplayName),
-     RightCurrentPrice?.ToString(
-         "0.##################",
-         CultureInfo.InvariantCulture) ?? string.Empty,
-     RightChangePercent?.ToString(
-         "0.##########",
-         CultureInfo.InvariantCulture) ?? string.Empty,
-     rightTail,
-     RightHasPriceHistory ? "1" : "0",
-     Competitiveness.ToString(
-         CultureInfo.InvariantCulture),
-     DisplayText(BroadcastFocusLabel),
-     DisplayText(BroadcastRotationRemaining),
-     BroadcastRotationProgress.ToString(
-         "0.####",
-         CultureInfo.InvariantCulture),
-     BroadcastFocusProgress.ToString(
-         "0.####",
-         CultureInfo.InvariantCulture),
-     BroadcastFocusColor,
-     IsSignalStable ? "1" : "0",
-     LeftColor,
-     RightColor);
+            "|",
+            Culture,
+            DisplaySymbol(LeftSymbol),
+            LeftCurrentPrice?.ToString("0.##################", CultureInfo.InvariantCulture) ?? string.Empty,
+            LeftChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
+            Tail(LeftPoints),
+            LeftHasPriceHistory ? "1" : "0",
+            DisplaySymbol(RightSymbol),
+            RightCurrentPrice?.ToString("0.##################", CultureInfo.InvariantCulture) ?? string.Empty,
+            RightChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
+            Tail(RightPoints),
+            RightHasPriceHistory ? "1" : "0",
+            Competitiveness.ToString(CultureInfo.InvariantCulture),
+            BroadcastFocusLabel,
+            BroadcastRotationRemaining,
+            BroadcastRotationProgress.ToString("0.####", CultureInfo.InvariantCulture),
+            BroadcastFocusProgress.ToString("0.####", CultureInfo.InvariantCulture),
+            BroadcastFocusColor,
+            IsSignalStable ? "1" : "0",
+            LeftColor,
+            RightColor);
     }
 
     private string BuildCssVariables()
     {
-        var safeLeft = string.IsNullOrWhiteSpace(LeftColor)
-            ? "#ff9100"
-            : LeftColor.Trim();
-
-        var safeRight = string.IsNullOrWhiteSpace(RightColor)
-            ? "#18d8d2"
-            : RightColor.Trim();
+        // Padrao visual fixo dos lados no card publico:
+        // Time/Moeda A = amarelo; Time/Moeda B = azul.
+        // Nao usar a cor dinamica da moeda aqui, para manter consistencia
+        // com os demais blocos da arena.
+        const string left = "#ffd76e";
+        const string right = "#53c8ff";
 
         return FormattableString.Invariant(
-            $"--price-battle-left:{safeLeft}; --price-battle-right:{safeRight};");
+            $"--price-battle-left:{left}; --price-battle-right:{right}; --price-battle-accent:{right};");
     }
 
     private string ResolveAriaLabel()
-    {
-        return string.Format(
+        => string.Format(
             CultureInfo.CurrentCulture,
             T("ariaLabel"),
             DisplaySymbol(LeftSymbol),
             DisplaySymbol(RightSymbol),
             Competitiveness);
-    }
 
     private string T(string key, params object?[] args)
         => L.T($"tv.priceBattle.{key}", Culture, args);
 
-    private string HeaderEyebrow()
-        => IsPortuguese()
-            ? "ATIVIDADE AO VIVO"
-            : "LIVE ACTIVITY";
+    private bool IsPortuguese()
+        => Culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase);
 
-    private string HeaderTitle()
-        => IsPortuguese()
-            ? "Movimentação da partida"
-            : "Match movement";
+    private string HeaderEyebrow() => IsPortuguese() ? "ATIVIDADE AO VIVO" : "LIVE ACTIVITY";
+    private string HeaderTitle() => IsPortuguese() ? "Movimentação da partida" : "Match movement";
+    private string HeaderSubtitle() => IsPortuguese()
+        ? "Eventos, pressão, momentum e mudanças táticas acontecendo em tempo real."
+        : "Events, pressure, momentum and tactical swings happening live.";
+    private string HeaderBadge() => IsPortuguese() ? "PARTIDA REAL" : "REAL MATCH";
+    private string TeamALabel() => IsPortuguese() ? "TIME A" : "TEAM A";
+    private string TeamBLabel() => IsPortuguese() ? "TIME B" : "TEAM B";
+    private string VariationLabel() => IsPortuguese() ? "VARIAÇÃO 24H" : "24H CHANGE";
+    private string CompetitivenessLabel() => IsPortuguese() ? "COMPETITIVIDADE" : "COMPETITIVENESS";
+    private string CenterDescription() => IsPortuguese() ? "Batalha ao vivo por um ponto" : "Live battle for one point";
+    private string WaitingPriceDescription() => IsPortuguese()
+        ? "O histórico será exibido assim que novos snapshots forem registrados."
+        : "History will appear as soon as new snapshots are recorded.";
+    private string BuildMatchHeadline() => $"{CompactSymbol(LeftSymbol)} VS {CompactSymbol(RightSymbol)}";
+    private string MatchIdValue() => string.IsNullOrWhiteSpace(MatchIdLabel)
+        ? (IsPortuguese() ? "Partida" : "Match")
+        : MatchIdLabel.Trim();
 
-    private string HeaderSubtitle()
-        => IsPortuguese()
-            ? "Eventos, pressão, momentum e mudanças táticas acontecendo em tempo real."
-            : "Events, pressure, momentum and tactical swings happening live.";
+    private string SignalStatusLabel() => IsSignalStable
+        ? (IsPortuguese() ? "SINAL ESTÁVEL" : "STABLE SIGNAL")
+        : (IsPortuguese() ? "SINAL DEGRADADO" : "DEGRADED SIGNAL");
+    private string RotationLabel() => IsPortuguese() ? "ROTAÇÃO DA TRANSMISSÃO" : "BROADCAST ROTATION";
+    private string CameraFocusLabel() => IsPortuguese() ? "FOCO DA CÂMERA" : "CAMERA FOCUS";
 
-    private string HeaderBadge()
-        => IsPortuguese()
-            ? "PARTIDA REAL"
-            : "REAL MATCH";
-
-    private string HeaderMetaSubtitle()
-        => IsPortuguese()
-            ? "Snapshot de mercado dos dois lados da partida."
-            : "Market snapshot for both sides of the match.";
-
-    private string TeamALabel()
-        => IsPortuguese() ? "TIME A" : "TEAM A";
-
-    private string TeamBLabel()
-        => IsPortuguese() ? "TIME B" : "TEAM B";
-
-    private string VariationLabel()
-        => IsPortuguese() ? "VARIAÇÃO 24H" : "24H CHANGE";
-
-    private string CompetitivenessLabel()
-        => IsPortuguese()
-            ? "COMPETITIVIDADE"
-            : "COMPETITIVENESS";
-
-    private string CenterDescription()
-        => IsPortuguese()
-            ? "Batalha ao vivo por um ponto"
-            : "Live battle for one point";
-
-    private string WaitingPriceDescription()
-        => IsPortuguese()
-            ? "O histórico será exibido assim que novos snapshots forem registrados."
-            : "History will appear as soon as new snapshots are recorded.";
-
-    private string BuildMatchHeadline()
-        => $"{CompactSymbol(LeftSymbol)} VS {CompactSymbol(RightSymbol)}";
+    private string MomentumTitle() => "MOMENTUM";
+    private string MomentumValue() => $"{DisplaySymbol(LeftSymbol)} momentum rising";
+    private string MomentumDescription() => IsPortuguese() ? "Virada detectada" : "Reversal detected";
+    private string PressureTitle() => IsPortuguese() ? "PRESSÃO" : "PRESSURE";
+    private string PressureDescription() => IsPortuguese() ? "Fluxo ao vivo ativo" : "Live flow active";
+    private string ReasonTitle() => IsPortuguese() ? "MOTIVO" : "REASON";
+    private string ReasonValue() => IsPortuguese() ? "Dinâmica viva de recompensas" : "Live reward dynamics";
+    private string ReasonDescription() => IsPortuguese()
+        ? "Jogo com muitos gols, placar apertado, gol recente."
+        : "High-scoring match, tight score, recent goal.";
+    private string PoolTitle() => IsPortuguese() ? "STATUS DO POOL" : "POOL STATUS";
+    private string PoolStatusValue() => string.IsNullOrWhiteSpace(PoolStatus)
+        ? (IsPortuguese() ? "Fluxo ao vivo ativo" : "Live flow active")
+        : PoolStatus.Trim();
+    private string AssetVariationTitle(bool left) => IsPortuguese()
+        ? $"VARIAÇÃO DO ATIVO {(left ? "A" : "B")}"
+        : $"ASSET {(left ? "A" : "B")} CHANGE";
+    private string LatestEventsTitle() => IsPortuguese() ? "ÚLTIMOS EVENTOS" : "LATEST EVENTS";
+    private string LatestEventTimeValue() => string.IsNullOrWhiteSpace(LatestEventTime) ? "--:--" : LatestEventTime.Trim();
+    private string LatestEventSymbolValue() => string.IsNullOrWhiteSpace(LatestEventSymbol)
+        ? DisplaySymbol(RightSymbol)
+        : DisplaySymbol(LatestEventSymbol);
+    private string LatestEventDescriptionValue() => string.IsNullOrWhiteSpace(LatestEventDescription)
+        ? (IsPortuguese()
+            ? $"{LatestEventSymbolValue()} marcou 1 ponto por cruzar a linha de valorização percentual para cima."
+            : $"{LatestEventSymbolValue()} scored 1 point by crossing the percentage appreciation line upward.")
+        : LatestEventDescription.Trim();
+    private string LatestEventScoreValue() => string.IsNullOrWhiteSpace(LatestEventScore) ? "—" : LatestEventScore.Trim();
 
     private static string DisplaySymbol(string? value)
-        => string.IsNullOrWhiteSpace(value)
-            ? "--"
-            : value.Trim().ToUpperInvariant();
-
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();
     private static string DisplayText(string? value)
-        => string.IsNullOrWhiteSpace(value)
-            ? "--"
-            : value.Trim();
-
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim();
     private static string CompactSymbol(string? value)
     {
         var symbol = BaseSymbol(value);
-
-        return symbol.Length <= 6
-            ? symbol
-            : symbol[..6];
+        return symbol.Length <= 6 ? symbol : symbol[..6];
     }
-
     private static string BaseSymbol(string? value)
     {
         var symbol = DisplaySymbol(value);
-
-        string[] suffixes =
-        [
-            "USDT",
-            "USDC",
-            "FDUSD",
-            "BUSD",
-            "TUSD",
-            "USDP",
-            "USD"
-        ];
-
+        string[] suffixes = ["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "USDP", "USD"];
         foreach (var suffix in suffixes)
         {
-            if (symbol.EndsWith(
-                    suffix,
-                    StringComparison.OrdinalIgnoreCase)
-                && symbol.Length > suffix.Length)
-            {
+            if (symbol.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && symbol.Length > suffix.Length)
                 return symbol[..^suffix.Length];
-            }
         }
-
         return symbol;
     }
-
     private static string FormatPrice(decimal? value)
     {
         if (!value.HasValue || value.Value <= 0m)
             return "--";
-
         var absolute = Math.Abs(value.Value);
-
         var format = absolute switch
         {
             >= 1000m => "N2",
@@ -705,254 +547,232 @@
             >= 0.001m => "0.0000000",
             _ => "0.################"
         };
-
         return $"${value.Value.ToString(format, CultureInfo.InvariantCulture)}";
     }
-
     private static string FormatChangePercent(decimal? value)
+        => !value.HasValue
+            ? "--"
+            : value.Value > 0m
+                ? $"+{value.Value.ToString("0.00", CultureInfo.InvariantCulture)}%"
+                : $"{value.Value.ToString("0.00", CultureInfo.InvariantCulture)}%";
+    private static string GetChangeClass(decimal? value) => value switch
     {
-        if (!value.HasValue)
-            return "--";
-
-        return value.Value > 0m
-            ? $"+{value.Value.ToString("0.00", CultureInfo.InvariantCulture)}%"
-            : $"{value.Value.ToString("0.00", CultureInfo.InvariantCulture)}%";
-    }
-
-    private static string GetChangeClass(decimal? value)
-        => value switch
-        {
-            > 0m => "tv-price-battle__market-change--positive",
-            < 0m => "tv-price-battle__market-change--negative",
-            0m => "tv-price-battle__market-change--neutral",
-            _ => "tv-price-battle__market-change--missing"
-        };
-
+        > 0m => "tv-price-battle__market-change--positive",
+        < 0m => "tv-price-battle__market-change--negative",
+        0m => "tv-price-battle__market-change--neutral",
+        _ => "tv-price-battle__market-change--missing"
+    };
     private static string GetPriceClass(decimal? value)
-        => value.HasValue && value.Value > 0m
-            ? string.Empty
-            : "tv-price-battle__price--missing";
-
+        => value.HasValue && value.Value > 0m ? string.Empty : "tv-price-battle__price--missing";
     private string GetEmptyTitle(bool hasPriceHistory)
-        => hasPriceHistory
-            ? T("waitingHistory")
-            : T("noData");
-
-    private bool IsPortuguese()
-        => Culture.StartsWith(
-            "pt",
-            StringComparison.OrdinalIgnoreCase);
+        => hasPriceHistory ? T("waitingHistory") : T("noData");
+    private static string FormatProgress(double value)
+        => $"{Math.Clamp(value, 0d, 1d) * 100d:0}%";
+    private string BuildRotationStyle()
+        => FormattableString.Invariant($"width:{Math.Clamp(BroadcastRotationProgress, 0d, 1d) * 100d:0.##}%;");
+    private string BuildFocusStyle()
+    {
+        var color = string.IsNullOrWhiteSpace(BroadcastFocusColor) ? "#18d8d2" : BroadcastFocusColor.Trim();
+        return FormattableString.Invariant($"width:{Math.Clamp(BroadcastFocusProgress, 0d, 1d) * 100d:0.##}%; --broadcast-focus-color:{color};");
+    }
+    private static double NormalizeVariation(decimal? value)
+        => !value.HasValue ? 0d : Math.Clamp(Math.Abs((double)value.Value) / 20d, 0d, 1d);
+    private string BuildVariationStyle(decimal? value, string colorVariable)
+        => FormattableString.Invariant($"width:{NormalizeVariation(value) * 100d:0.##}%; --variation-color:var({colorVariable});");
 }
 
 <style>
     .tv-price-battle {
-        --price-battle-left: #ff9100;
-        --price-battle-right: #18d8d2;
+        --price-battle-left: #ffd76e;
+        --price-battle-right: #53c8ff;
+        --price-battle-accent: #53c8ff;
+        --price-battle-accent: var(--price-battle-right);
+        --price-battle-panel: rgba(3, 10, 21, 0.94);
+        --price-battle-panel-strong: rgba(2, 8, 17, 0.98);
+        --price-battle-border: rgba(72, 118, 156, .22);
         position: relative;
-        display: flex;
+        display: grid;
+        grid-template-rows: auto auto auto auto;
+        gap: 8px;
         width: 100%;
-        height: 100%;
+        height: auto;
+        max-height: 720px;
         min-width: 0;
-        min-height: 1060px;
+        min-height: 0;
+        padding: 12px;
+        box-sizing: border-box;
         overflow: hidden;
-        flex-direction: column;
-        color: #f6f8ff;
-        border: 1px solid rgba(116, 182, 216, 0.16);
+        color: #f5f7fb;
+        border: 1px solid var(--price-battle-border);
         border-radius: 22px;
-        background: radial-gradient( circle at 8% 10%, color-mix(in srgb, var(--price-battle-left) 13%, transparent), transparent 34% ), radial-gradient( circle at 94% 10%, color-mix(in srgb, var(--price-battle-right) 12%, transparent), transparent 36% ), linear-gradient( 135deg, rgba(14, 29, 40, 0.98), rgba(7, 14, 25, 0.99) 48%, rgba(5, 14, 23, 0.99) );
-        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+        background: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--price-battle-left) 8%, transparent), transparent 28%), radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--price-battle-right) 8%, transparent), transparent 30%), linear-gradient(180deg, #030914 0%, #020812 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 24px 60px rgba(0,0,0,.30);
         isolation: isolate;
+        container-type: inline-size;
+        container-name: price-battle;
     }
 
         .tv-price-battle::before {
             content: "";
             position: absolute;
             inset: 0;
-            z-index: -2;
             pointer-events: none;
-            background: linear-gradient( 104deg, rgba(35, 103, 126, 0.12) 0%, rgba(35, 103, 126, 0.05) 33%, rgba(77, 30, 72, 0.12) 33.2%, rgba(77, 30, 72, 0.05) 45%, transparent 45.2% );
+            opacity: .10;
+            background-image: linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(180deg, #000, transparent 94%);
         }
 
-        .tv-price-battle::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            z-index: -1;
-            pointer-events: none;
-            opacity: 0.18;
-            background-image: linear-gradient( rgba(255, 255, 255, 0.025) 1px, transparent 1px ), linear-gradient( 90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px );
-            background-size: 38px 38px;
-            mask-image: linear-gradient( to bottom, black, transparent 86% );
-        }
+    .tv-price-battle__header,
+    .tv-price-battle__arena,
+    .tv-price-battle__insights,
+    .tv-price-battle__variations,
+    .tv-price-battle__footer-grid {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        min-height: 0;
+    }
 
     .tv-price-battle__header {
-        position: relative;
-        z-index: 2;
         display: flex;
-        flex: 0 0 auto;
         align-items: flex-start;
         justify-content: space-between;
-        gap: 24px;
-        padding: 24px 28px 18px;
+        gap: 14px;
+        padding: 0 6px 0;
     }
 
     .tv-price-battle__header-copy {
         min-width: 0;
-        max-width: 760px;
     }
 
-    .tv-price-battle__eyebrow {
-        display: block;
-        margin-bottom: 6px;
-        color: #55f4dc;
-        font-size: 0.72rem;
-        font-weight: 900;
-        line-height: 1;
-        letter-spacing: 0.14em;
+    .tv-price-battle__eyebrow,
+    .tv-price-battle__team-label,
+    .tv-price-battle__insight span,
+    .tv-price-battle__variation span,
+    .tv-price-battle__events-title,
+    .tv-price-battle__broadcast-heading span,
+    .tv-price-battle__broadcast-metric-head span {
+        font-size: .60rem;
+        font-weight: 950;
+        letter-spacing: .12em;
         text-transform: uppercase;
     }
 
+    .tv-price-battle__eyebrow,
+    .tv-price-battle__match-badge,
+    .tv-price-battle__events-title,
+    .tv-price-battle__broadcast-heading span,
+    .tv-price-battle__broadcast-metric-head span {
+        color: var(--price-battle-right);
+    }
+
     .tv-price-battle__header-copy h3 {
-        margin: 0;
+        margin: 4px 0 0;
         max-width: 100%;
-        color: #f7f8fc;
-        font-size: clamp(1.9rem, 3vw, 2.8rem);
-        font-weight: 900;
-        line-height: 0.98;
-        letter-spacing: -0.045em;
-        text-wrap: balance;
+        overflow: hidden;
+        color: #f8fbff;
+        font-size: clamp(1.15rem, 1.65vw, 1.7rem);
+        line-height: 1;
+        letter-spacing: -.04em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .tv-price-battle__header-copy p {
-        margin: 8px 0 0;
-        color: rgba(218, 228, 241, 0.74);
-        font-size: 0.88rem;
-        font-weight: 500;
-        line-height: 1.4;
+        display: none;
     }
 
     .tv-price-battle__match-meta {
-        display: flex;
-        min-width: 200px;
-        max-width: 320px;
-        flex: 0 0 auto;
-        align-items: flex-end;
-        flex-direction: column;
+        display: grid;
+        justify-items: end;
+        gap: 4px;
+        min-width: 126px;
         text-align: right;
     }
 
     .tv-price-battle__match-badge {
         display: inline-flex;
-        min-height: 28px;
-        padding: 0 13px;
         align-items: center;
-        gap: 8px;
-        color: #e8f7f6;
-        border: 1px solid rgba(108, 205, 199, 0.18);
+        gap: 6px;
+        min-height: 22px;
+        padding: 0 10px;
         border-radius: 999px;
-        background: rgba(22, 55, 61, 0.55);
-        font-size: 0.68rem;
+        border: 1px solid color-mix(in srgb, var(--price-battle-right) 30%, transparent);
+        background: rgba(9,31,39,.62);
+        font-size: .56rem;
         font-weight: 900;
-        letter-spacing: 0.08em;
+        letter-spacing: .08em;
         text-transform: uppercase;
     }
 
         .tv-price-battle__match-badge i {
-            width: 7px;
-            height: 7px;
-            flex: 0 0 auto;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: var(--price-battle-right);
-            box-shadow: 0 0 8px color-mix( in srgb, var(--price-battle-right) 78%, transparent );
+            box-shadow: 0 0 10px color-mix(in srgb, var(--price-battle-right) 60%, transparent);
         }
 
     .tv-price-battle__match-meta > strong {
-        display: block;
-        margin-top: 9px;
-        color: #f8f9fc;
-        font-size: clamp(1.05rem, 1.8vw, 1.45rem);
-        font-weight: 900;
-        line-height: 1.1;
-        letter-spacing: -0.025em;
+        max-width: 150px;
+        overflow: hidden;
+        color: #f8fbff;
+        font-size: .78rem;
+        font-weight: 950;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .tv-price-battle__match-meta > small {
-        display: block;
-        max-width: 290px;
-        margin-top: 5px;
-        color: rgba(210, 220, 233, 0.55);
-        font-size: 0.68rem;
-        font-weight: 600;
-        line-height: 1.35;
+        color: rgba(205,216,231,.62);
+        font-size: .62rem;
     }
 
     .tv-price-battle__arena {
-        position: relative;
-        z-index: 2;
         display: grid;
-        width: 100%;
-        min-width: 0;
-        min-height: 0;
-        flex: 1 1 auto;
-        grid-template-columns: minmax(0, 1fr) 118px minmax(0, 1fr);
-        align-items: stretch;
-        gap: 12px;
-        padding: 0 20px 20px;
+        grid-template-columns: minmax(0,1fr) 112px minmax(0,1fr);
+        gap: 8px;
+    }
+
+    .tv-price-battle__team,
+    .tv-price-battle__center,
+    .tv-price-battle__insight,
+    .tv-price-battle__variation,
+    .tv-price-battle__broadcast-status,
+    .tv-price-battle__events {
+        border: 1px solid rgba(74,113,149,.22);
+        background: linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
     }
 
     .tv-price-battle__team {
         position: relative;
-        display: flex;
+        display: grid;
+        grid-template-rows: auto auto 220px;
+        gap: 8px;
         min-width: 0;
         min-height: 0;
-        height: 100%;
+        padding: 10px;
         overflow: hidden;
-        flex-direction: column;
-        padding: 18px;
-        border: 1px solid rgba(137, 169, 191, 0.14);
-        border-radius: 20px;
-        background: linear-gradient( 180deg, rgba(14, 28, 42, 0.94), rgba(5, 12, 23, 0.98) );
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 16px 36px rgba(0, 0, 0, 0.2);
+        border-radius: 16px;
     }
-
-        .tv-price-battle__team::before {
-            content: "";
-            position: absolute;
-            top: -110px;
-            width: 290px;
-            height: 290px;
-            pointer-events: none;
-            border-radius: 50%;
-            filter: blur(75px);
-            opacity: 0.13;
-        }
 
     .tv-price-battle__team--left {
-        border-color: color-mix( in srgb, var(--price-battle-left) 22%, rgba(137, 169, 191, 0.13) );
+        border-color: color-mix(in srgb, var(--price-battle-left) 34%, rgba(74,113,149,.22));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.018), inset 1px 0 0 color-mix(in srgb, var(--price-battle-left) 18%, transparent);
     }
-
-        .tv-price-battle__team--left::before {
-            left: -110px;
-            background: var(--price-battle-left);
-        }
 
     .tv-price-battle__team--right {
-        border-color: color-mix( in srgb, var(--price-battle-right) 22%, rgba(137, 169, 191, 0.13) );
+        border-color: color-mix(in srgb, var(--price-battle-right) 34%, rgba(74,113,149,.22));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.018), inset -1px 0 0 color-mix(in srgb, var(--price-battle-right) 18%, transparent);
     }
 
-        .tv-price-battle__team--right::before {
-            right: -110px;
-            background: var(--price-battle-right);
-        }
-
     .tv-price-battle__team-header {
-        position: relative;
-        z-index: 2;
         display: flex;
-        min-width: 0;
-        flex: 0 0 auto;
         align-items: center;
-        gap: 14px;
+        gap: 8px;
+        min-width: 0;
     }
 
     .tv-price-battle__team-header--right {
@@ -960,70 +780,68 @@
     }
 
     .tv-price-battle__logo-shell {
-        position: relative;
         display: grid;
-        width: 70px;
-        height: 70px;
-        flex: 0 0 70px;
-        overflow: hidden;
         place-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.13);
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+        overflow: hidden;
         border-radius: 50%;
-        background: radial-gradient( circle at 35% 28%, rgba(255, 255, 255, 0.13), rgba(8, 15, 25, 0.96) 66% );
+        border: 2px solid currentColor;
+        background: rgba(6,14,25,.96);
     }
 
-    .tv-price-battle__team--left
-    .tv-price-battle__logo-shell {
-        box-shadow: 0 0 0 4px color-mix( in srgb, var(--price-battle-left) 9%, transparent ), 0 0 24px color-mix( in srgb, var(--price-battle-left) 28%, transparent );
+    .tv-price-battle__team--left .tv-price-battle__logo-shell {
+        color: var(--price-battle-left);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--price-battle-left) 12%, transparent), 0 0 16px color-mix(in srgb, var(--price-battle-left) 28%, transparent);
     }
 
-    .tv-price-battle__team--right
-    .tv-price-battle__logo-shell {
-        box-shadow: 0 0 0 4px color-mix( in srgb, var(--price-battle-right) 9%, transparent ), 0 0 24px color-mix( in srgb, var(--price-battle-right) 26%, transparent );
+    .tv-price-battle__team--right .tv-price-battle__logo-shell {
+        color: var(--price-battle-right);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--price-battle-right) 12%, transparent), 0 0 16px color-mix(in srgb, var(--price-battle-right) 28%, transparent);
     }
 
     .tv-price-battle__logo-shell img {
         display: block;
         width: 100%;
         height: 100%;
-        padding: 5px;
+        padding: 4px;
         object-fit: contain;
         border-radius: inherit;
     }
 
     .tv-price-battle__logo-shell > span {
-        font-size: 1.25rem;
+        color: #f8fbff;
+        font-size: .98rem;
         font-weight: 950;
-        letter-spacing: -0.04em;
     }
 
     .tv-price-battle__identity {
-        display: flex;
+        display: grid;
+        gap: 2px;
         min-width: 0;
-        flex-direction: column;
-        align-items: flex-start;
     }
 
     .tv-price-battle__identity--right {
-        align-items: flex-end;
+        justify-items: end;
         text-align: right;
     }
 
-    .tv-price-battle__team-label {
-        margin-bottom: 5px;
-        font-size: 0.68rem;
-        font-weight: 950;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-    }
-
-    .tv-price-battle__team--left
-    .tv-price-battle__team-label {
+    .tv-price-battle__team--left .tv-price-battle__team-label,
+    .tv-price-battle__team--left .tv-price-battle__market-change--positive,
+    .tv-price-battle__variation--left strong,
+    .tv-price-battle__variation--left span,
+    .tv-price-battle__insight--left span,
+    .tv-price-battle__insight--left .tv-price-battle__insight-icon {
         color: var(--price-battle-left);
     }
 
-    .tv-price-battle__team--right
-    .tv-price-battle__team-label {
+    .tv-price-battle__team--right .tv-price-battle__team-label,
+    .tv-price-battle__team--right .tv-price-battle__market-change--positive,
+    .tv-price-battle__variation--right strong,
+    .tv-price-battle__variation--right span,
+    .tv-price-battle__insight--right span,
+    .tv-price-battle__insight--right .tv-price-battle__insight-icon {
         color: var(--price-battle-right);
     }
 
@@ -1031,110 +849,85 @@
         max-width: 100%;
         overflow: hidden;
         color: #f8f9fd;
-        font-size: clamp(1.15rem, 1.8vw, 1.65rem);
+        font-size: clamp(.78rem, 1.1vw, 1rem);
         font-weight: 950;
         line-height: 1.05;
-        letter-spacing: -0.025em;
+        letter-spacing: -.02em;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
     .tv-price-battle__identity > small {
-        margin-top: 4px;
-        color: rgba(210, 221, 235, 0.58);
-        font-size: 0.7rem;
+        overflow: hidden;
+        color: rgba(210,221,235,.58);
+        font-size: .56rem;
         font-weight: 700;
-        line-height: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .tv-price-battle__market-row {
-        position: relative;
-        z-index: 2;
         display: grid;
-        min-width: 0;
-        flex: 0 0 auto;
-        grid-template-columns: minmax(0, 1fr) minmax(116px, auto);
-        gap: 14px;
+        grid-template-columns: minmax(0,1fr) auto;
         align-items: end;
-        margin-top: 17px;
+        gap: 8px;
+        min-width: 0;
     }
 
     .tv-price-battle__market-row--right {
         text-align: right;
     }
 
-    .tv-price-battle__market-value,
+    .tv-price-battle__market-value > span,
+    .tv-price-battle__market-change > span {
+        display: block;
+        margin-bottom: 4px;
+        color: rgba(190,205,221,.64);
+        font-size: .50rem;
+        font-weight: 900;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+    }
+
+    .tv-price-battle__market-value > strong {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        font-size: clamp(.92rem, 1.35vw, 1.25rem);
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: -.04em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tv-price-battle__team--left .tv-price-battle__market-value > strong {
+        color: var(--price-battle-left);
+        text-shadow: 0 0 14px color-mix(in srgb, var(--price-battle-left) 28%, transparent);
+    }
+
+    .tv-price-battle__team--right .tv-price-battle__market-value > strong {
+        color: var(--price-battle-right);
+        text-shadow: 0 0 14px color-mix(in srgb, var(--price-battle-right) 28%, transparent);
+    }
+
     .tv-price-battle__market-change {
         min-width: 0;
-    }
-
-        .tv-price-battle__market-value > span,
-        .tv-price-battle__market-change > span {
-            display: block;
-            margin-bottom: 6px;
-            color: rgba(190, 205, 221, 0.58);
-            font-size: 0.64rem;
-            font-weight: 900;
-            line-height: 1;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        .tv-price-battle__market-value > strong {
-            display: block;
-            max-width: 100%;
-            overflow: hidden;
-            font-size: clamp(1.4rem, 2.3vw, 2.05rem);
-            font-weight: 950;
-            line-height: 1;
-            letter-spacing: -0.04em;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-    .tv-price-battle__team--left
-    .tv-price-battle__market-value > strong {
-        color: var(--price-battle-left);
-        text-shadow: 0 0 16px color-mix( in srgb, var(--price-battle-left) 28%, transparent );
-    }
-
-    .tv-price-battle__team--right
-    .tv-price-battle__market-value > strong {
-        color: var(--price-battle-right);
-        text-shadow: 0 0 16px color-mix( in srgb, var(--price-battle-right) 28%, transparent );
-    }
-
-    .tv-price-battle__market-change {
         text-align: right;
     }
 
         .tv-price-battle__market-change > strong {
             display: inline-block;
-            min-width: 104px;
-            padding: 7px 12px;
+            min-width: 70px;
+            padding: 5px 8px;
             border: 1px solid currentColor;
             border-radius: 999px;
-            background: rgba(5, 13, 22, 0.65);
-            font-size: clamp(1rem, 1.55vw, 1.28rem);
+            background: rgba(5,13,22,.65);
+            font-size: .76rem;
             font-weight: 950;
             line-height: 1;
-            letter-spacing: -0.025em;
             text-align: center;
         }
-
-    .tv-price-battle__market-change--positive {
-        color: #54f3ba;
-    }
-
-    .tv-price-battle__team--left
-    .tv-price-battle__market-change--positive {
-        color: var(--price-battle-left);
-    }
-
-    .tv-price-battle__team--right
-    .tv-price-battle__market-change--positive {
-        color: var(--price-battle-right);
-    }
 
     .tv-price-battle__market-change--negative {
         color: #ff667f;
@@ -1146,23 +939,21 @@
 
     .tv-price-battle__market-change--missing,
     .tv-price-battle__price--missing {
-        color: rgba(190, 202, 216, 0.47) !important;
+        color: rgba(190,202,216,.47) !important;
         text-shadow: none !important;
     }
 
     .tv-price-battle__chart-shell {
         position: relative;
-        z-index: 2;
         min-width: 0;
-        min-height: 230px;
-        height: auto;
-        flex: 1 1 auto;
-        margin-top: 16px;
+        min-height: 0;
+        height: 220px;
+        max-height: 220px;
         overflow: hidden;
-        border: 1px solid rgba(112, 146, 172, 0.12);
-        border-radius: 17px;
-        background: linear-gradient( 180deg, rgba(3, 10, 19, 0.82), rgba(4, 11, 20, 0.96) );
-        box-shadow: inset 0 0 32px rgba(0, 0, 0, 0.18);
+        border: 1px solid rgba(112,146,172,.12);
+        border-radius: 13px;
+        background: linear-gradient(180deg, rgba(3,10,19,.82), rgba(4,11,20,.96));
+        box-shadow: inset 0 0 28px rgba(0,0,0,.18);
     }
 
     .tv-price-battle__chart {
@@ -1177,194 +968,259 @@
         position: absolute;
         inset: 0;
         z-index: 3;
-        display: flex;
-        padding: 24px;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
+        display: grid;
+        place-content: center;
+        padding: 14px;
         text-align: center;
         pointer-events: none;
-        background: linear-gradient( 180deg, rgba(4, 11, 20, 0.72), rgba(4, 11, 20, 0.9) );
+        background: linear-gradient(180deg, rgba(4,11,20,.72), rgba(4,11,20,.9));
     }
 
         .tv-price-battle__empty > strong {
-            max-width: 280px;
-            color: rgba(232, 237, 246, 0.82);
-            font-size: 0.95rem;
+            color: rgba(232,237,246,.82);
+            font-size: .68rem;
             font-weight: 950;
             line-height: 1.35;
-            letter-spacing: 0.11em;
+            letter-spacing: .08em;
             text-transform: uppercase;
         }
 
         .tv-price-battle__empty > small {
-            max-width: 340px;
-            margin-top: 12px;
-            color: rgba(190, 202, 216, 0.47);
-            font-size: 0.69rem;
-            font-weight: 600;
-            line-height: 1.45;
+            margin-top: 6px;
+            color: rgba(190,202,216,.47);
+            font-size: .56rem;
+            line-height: 1.35;
         }
 
     .tv-price-battle__center {
         position: relative;
-        display: flex;
+        display: grid;
+        grid-template-rows: auto auto auto;
+        align-content: center;
+        justify-items: center;
+        gap: 6px;
         min-width: 0;
         min-height: 0;
-        height: 100%;
-        overflow: hidden;
-        padding: 18px 9px;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        border: 1px solid rgba(133, 164, 188, 0.16);
-        border-radius: 20px;
-        background: radial-gradient( circle at 50% 38%, rgba(107, 54, 167, 0.2), transparent 34% ), linear-gradient( 180deg, rgba(24, 20, 35, 0.94), rgba(6, 19, 27, 0.98) );
+        padding: 10px 6px;
+        overflow: visible;
+        border-radius: 16px;
+        background: radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--price-battle-left) 14%, transparent), transparent 34%), radial-gradient(circle at 50% 70%, color-mix(in srgb, var(--price-battle-right) 12%, transparent), transparent 36%), linear-gradient(180deg, rgba(17,18,28,.94), rgba(6,19,27,.98));
         text-align: center;
     }
 
-        .tv-price-battle__center::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: linear-gradient( 180deg, rgba(255, 145, 0, 0.045), transparent 45%, rgba(24, 216, 210, 0.045) );
-        }
-
     .tv-price-battle__versus {
-        position: relative;
-        z-index: 1;
-        color: rgba(243, 247, 255, 0.78);
-        font-size: 1rem;
+        color: rgba(243,247,255,.9);
+        font-size: clamp(1.25rem, 2vw, 1.85rem);
         font-weight: 950;
         line-height: 1;
-        letter-spacing: 0.08em;
+        letter-spacing: -.04em;
     }
 
     .tv-price-battle__score-ring {
         position: relative;
-        z-index: 1;
         display: grid;
-        width: 84px;
-        height: 84px;
-        margin: 16px 0;
         place-items: center;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
-        background: conic-gradient( from 210deg, #6d35e8 0deg, #823dcb 125deg, var(--price-battle-right) 300deg, rgba(255, 255, 255, 0.08) 300deg );
-        box-shadow: 0 0 28px rgba(107, 58, 189, 0.24);
+        background: conic-gradient(from 210deg, var(--price-battle-left) 0deg, color-mix(in srgb, var(--price-battle-left) 70%, var(--price-battle-right) 30%) 125deg, var(--price-battle-right) 300deg, rgba(255,255,255,.08) 300deg);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--price-battle-right) 18%, transparent), 0 0 18px color-mix(in srgb, var(--price-battle-left) 14%, transparent);
     }
 
         .tv-price-battle__score-ring::before {
             content: "";
             position: absolute;
-            inset: 7px;
+            inset: 5px;
             border-radius: 50%;
-            background: #09111d;
+            background: #07101c;
         }
 
     .tv-price-battle__score-ring-inner {
         position: relative;
         z-index: 1;
         display: grid;
-        width: 62px;
-        height: 62px;
         place-items: center;
+        width: 50px;
+        height: 50px;
         border-radius: 50%;
-        background: radial-gradient( circle at 40% 30%, rgba(107, 58, 189, 0.23), rgba(5, 13, 23, 0.98) 72% );
+        background: radial-gradient(circle at 40% 30%, color-mix(in srgb, var(--price-battle-right) 16%, transparent), #06101b 72%);
     }
 
         .tv-price-battle__score-ring-inner strong {
-            color: #f8f9fd;
-            font-size: 1.5rem;
+            color: #f8fbff;
+            font-size: 1.12rem;
             font-weight: 950;
-            line-height: 1;
         }
 
     .tv-price-battle__competitiveness-label {
-        position: relative;
-        z-index: 1;
-        color: rgba(207, 219, 233, 0.8);
-        font-size: 0.58rem;
+        color: rgba(207,219,233,.8);
+        font-size: .42rem;
         font-weight: 950;
         line-height: 1.35;
-        letter-spacing: 0.11em;
+        letter-spacing: .08em;
         text-transform: uppercase;
     }
 
-    .tv-price-battle__center > small {
-        position: relative;
-        z-index: 1;
-        max-width: 92px;
-        margin-top: 11px;
-        color: rgba(190, 202, 216, 0.5);
-        font-size: 0.6rem;
-        font-weight: 600;
-        line-height: 1.4;
+    .tv-price-battle__center small {
+        max-width: 96px;
+        align-self: center;
+        color: rgba(199,211,226,.66);
+        font-size: .54rem;
+        line-height: 1.3;
     }
 
-    .tv-price-battle__broadcast-status {
-        position: relative;
-        z-index: 2;
-        display: grid;
-        grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
-        gap: 26px;
-        flex: 0 0 auto;
-        margin: 0 20px 20px;
-        padding: 18px 20px;
-        border: 1px solid rgba(115, 158, 187, 0.15);
-        border-radius: 18px;
-        background: linear-gradient( 180deg, rgba(7, 17, 28, 0.9), rgba(4, 11, 20, 0.97) );
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    .tv-price-battle__insights {
+        grid-template-columns: repeat(4,minmax(0,1fr));
+        gap: 6px;
     }
 
-    .tv-price-battle__broadcast-heading {
+    .tv-price-battle__insight {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         min-width: 0;
-        flex-direction: column;
-        justify-content: center;
+        min-height: 54px;
+        padding: 8px 10px;
+        border-radius: 12px;
     }
 
-        .tv-price-battle__broadcast-heading > div {
-            display: flex;
+        .tv-price-battle__insight div {
+            display: grid;
+            gap: 2px;
             min-width: 0;
-            flex-direction: column;
         }
 
-        .tv-price-battle__broadcast-heading span {
-            color: #55f4dc;
-            font-size: 0.65rem;
-            font-weight: 950;
-            line-height: 1;
-            letter-spacing: 0.13em;
-            text-transform: uppercase;
-        }
-
-        .tv-price-battle__broadcast-heading strong {
-            margin-top: 7px;
+        .tv-price-battle__insight strong {
             overflow: hidden;
-            color: #f7f9fd;
-            font-size: 1.08rem;
-            font-weight: 900;
-            line-height: 1.15;
+            color: #f7fbff;
+            font-size: .70rem;
+            line-height: 1.12;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        .tv-price-battle__broadcast-heading small {
-            margin-top: 7px;
-            color: rgba(190, 205, 221, 0.52);
-            font-size: 0.68rem;
-            font-weight: 600;
-            line-height: 1.4;
+        .tv-price-battle__insight small {
+            overflow: hidden;
+            color: rgba(203,214,229,.7);
+            font-size: .56rem;
+            line-height: 1.25;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-    .tv-price-battle__broadcast-grid {
+    .tv-price-battle__insight-icon {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 20px;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        flex: 0 0 30px;
+        border-radius: 50%;
+        border: 1px solid currentColor;
+        background: rgba(4,15,25,.72);
+        font-style: normal;
+        font-size: .82rem;
+    }
+
+    .tv-price-battle__variations {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        gap: 8px;
+    }
+
+    .tv-price-battle__variation {
+        display: grid;
+        gap: 6px;
         min-width: 0;
+        min-height: 48px;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .tv-price-battle__variation-head {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+        .tv-price-battle__variation-head div {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .tv-price-battle__variation-head small {
+            overflow: hidden;
+            color: rgba(218,226,237,.86);
+            font-size: .58rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tv-price-battle__variation-head strong {
+            font-size: .82rem;
+            white-space: nowrap;
+        }
+
+    .tv-price-battle__variation-track,
+    .tv-price-battle__broadcast-track {
+        position: relative;
+        height: 5px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #121b2a;
+    }
+
+        .tv-price-battle__variation-track i,
+        .tv-price-battle__broadcast-fill {
+            position: absolute;
+            inset: 0 auto 0 0;
+            display: block;
+            border-radius: inherit;
+        }
+
+        .tv-price-battle__variation-track i {
+            background: var(--variation-color);
+            box-shadow: 0 0 14px color-mix(in srgb,var(--variation-color) 44%,transparent);
+        }
+
+    .tv-price-battle__footer-grid {
+        display: none;
+        grid-template-columns: minmax(0,.94fr) minmax(0,1.06fr);
+        gap: 8px;
+    }
+
+    .tv-price-battle__broadcast-status,
+    .tv-price-battle__events {
+        min-width: 0;
+        min-height: 72px;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .tv-price-battle__broadcast-status {
+        display: grid;
+        grid-template-columns: minmax(120px,.42fr) minmax(0,.58fr);
+        grid-template-rows: repeat(2,1fr);
+        gap: 6px 10px;
         align-items: center;
     }
+
+    .tv-price-battle__broadcast-heading {
+        grid-row: 1 / -1;
+        display: grid;
+        align-content: center;
+        gap: 4px;
+        min-width: 0;
+    }
+
+        .tv-price-battle__broadcast-heading strong {
+            overflow: hidden;
+            color: #f7fbff;
+            font-size: .72rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
     .tv-price-battle__broadcast-metric {
         min-width: 0;
@@ -1372,279 +1228,205 @@
 
     .tv-price-battle__broadcast-metric-head {
         display: flex;
-        min-width: 0;
         align-items: center;
         justify-content: space-between;
-        gap: 14px;
+        gap: 8px;
     }
-
-        .tv-price-battle__broadcast-metric-head span {
-            overflow: hidden;
-            color: rgba(199, 213, 229, 0.68);
-            font-size: 0.62rem;
-            font-weight: 900;
-            line-height: 1;
-            letter-spacing: 0.1em;
-            text-overflow: ellipsis;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
 
         .tv-price-battle__broadcast-metric-head strong {
-            flex: 0 0 auto;
-            color: #f7f9fd;
-            font-size: 0.76rem;
-            font-weight: 900;
-            line-height: 1;
+            color: #f7fbff;
+            font-size: .68rem;
         }
 
-    .tv-price-battle__broadcast-track {
-        position: relative;
-        height: 7px;
-        margin-top: 10px;
-        overflow: hidden;
-        border: 1px solid rgba(111, 146, 171, 0.12);
-        border-radius: 999px;
-        background: rgba(20, 31, 45, 0.8);
+    .tv-price-battle__events {
+        display: grid;
+        grid-template-rows: auto minmax(0,1fr);
+        gap: 6px;
     }
 
-    .tv-price-battle__broadcast-fill {
-        position: absolute;
-        inset: 0 auto 0 0;
-        display: block;
+    .tv-price-battle__event-row {
+        display: grid;
+        grid-template-columns: 38px minmax(0,1fr) auto;
+        gap: 8px;
+        align-items: center;
         min-width: 0;
-        max-width: 100%;
-        border-radius: inherit;
-        transition: width 420ms ease, background-color 250ms ease;
+        padding-top: 6px;
+        border-top: 1px solid rgba(72,113,149,.16);
     }
 
-    .tv-price-battle__broadcast-fill--rotation {
-        background: linear-gradient( 90deg, var(--price-battle-right), #5ff4de );
-        box-shadow: 0 0 12px color-mix( in srgb, var(--price-battle-right) 42%, transparent );
-    }
-
-    .tv-price-battle__broadcast-fill--focus {
-        background: linear-gradient( 90deg, var(--broadcast-focus-color, #18d8d2), color-mix( in srgb, var(--broadcast-focus-color, #18d8d2) 62%, white ) );
-        box-shadow: 0 0 12px color-mix( in srgb, var(--broadcast-focus-color, #18d8d2) 42%, transparent );
-    }
-    @@media (min-width: 1400px) {
-        .tv-price-battle {
-            min-height: 1060px;
+        .tv-price-battle__event-row time {
+            display: grid;
+            place-items: center;
+            min-height: 30px;
+            border-radius: 8px;
+            background: rgba(9,20,34,.82);
+            color: #f1f5fb;
+            font-size: .60rem;
+            font-weight: 900;
         }
 
-        .tv-price-battle__arena {
-            grid-template-columns: minmax(0, 1fr) 132px minmax(0, 1fr);
-            gap: 14px;
-            padding: 0 24px 24px;
-        }
-
-        .tv-price-battle__team {
-            padding: 22px;
-        }
-
-        .tv-price-battle__logo-shell {
-            width: 82px;
-            height: 82px;
-            flex-basis: 82px;
-        }
-
-        .tv-price-battle__chart-shell {
-            min-height: 300px;
-        }
-
-        .tv-price-battle__score-ring {
-            width: 96px;
-            height: 96px;
-        }
-
-        .tv-price-battle__score-ring-inner {
-            width: 72px;
-            height: 72px;
-        }
-    }
-
-    @@media (max-width: 1100px) {
-        .tv-price-battle {
-            min-height: 1060px;
-        }
-
-        .tv-price-battle__arena {
-            grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
-            gap: 9px;
-            padding-inline: 14px;
-        }
-
-        .tv-price-battle__team {
-            padding: 15px;
-        }
-
-        .tv-price-battle__logo-shell {
-            width: 60px;
-            height: 60px;
-            flex-basis: 60px;
-        }
-
-        .tv-price-battle__team-header {
-            gap: 10px;
-        }
-
-        .tv-price-battle__market-row {
-            grid-template-columns: minmax(0, 1fr);
-            gap: 10px;
-        }
-
-        .tv-price-battle__market-change {
-            text-align: left;
-        }
-
-        .tv-price-battle__market-row--right
-        .tv-price-battle__market-change {
-            text-align: right;
-        }
-
-        .tv-price-battle__market-change > strong {
+        .tv-price-battle__event-row div {
+            display: grid;
+            gap: 2px;
             min-width: 0;
         }
 
-        .tv-price-battle__score-ring {
-            width: 72px;
-            height: 72px;
+        .tv-price-battle__event-row strong {
+            color: var(--price-battle-right);
+            font-size: .66rem;
         }
 
-        .tv-price-battle__score-ring-inner {
-            width: 52px;
-            height: 52px;
+        .tv-price-battle__event-row small {
+            overflow: hidden;
+            color: rgba(207,217,232,.78);
+            font-size: .58rem;
+            line-height: 1.25;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tv-price-battle__event-row em {
+            min-width: 40px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(72,113,149,.28);
+            font-size: .60rem;
+            font-style: normal;
+            text-align: center;
+        }
+
+    @@container price-battle (max-width: 980px) {
+        .tv-price-battle {
+            gap: 7px;
+            padding: 10px;
+            max-height: 660px;
+        }
+
+        .tv-price-battle__header {
+            gap: 10px;
+            padding-inline: 4px;
+        }
+
+        .tv-price-battle__header-copy h3 {
+            font-size: clamp(1.05rem, 2.5cqi, 1.45rem);
+        }
+
+        .tv-price-battle__match-meta {
+            min-width: 108px;
+        }
+
+        .tv-price-battle__arena {
+            grid-template-columns: minmax(0,1fr) 104px minmax(0,1fr);
+            gap: 6px;
+        }
+
+        .tv-price-battle__team {
+            grid-template-rows: auto auto 190px;
+            gap: 7px;
+            padding: 9px;
+        }
+
+        .tv-price-battle__chart-shell {
+            height: 190px;
+            max-height: 190px;
+        }
+
+        .tv-price-battle__logo-shell {
+            width: 44px;
+            height: 44px;
+            flex-basis: 44px;
         }
 
         .tv-price-battle__center {
-            padding-inline: 6px;
+            padding: 8px 6px;
+            overflow: visible;
         }
 
-            .tv-price-battle__center > small {
-                max-width: 76px;
-                font-size: 0.56rem;
+            .tv-price-battle__center .tv-price-battle__competitiveness-label,
+            .tv-price-battle__center small {
+                display: none;
             }
+
+        .tv-price-battle__score-ring {
+            width: 56px;
+            height: 56px;
+        }
+
+        .tv-price-battle__score-ring-inner {
+            width: 44px;
+            height: 44px;
+        }
+
+            .tv-price-battle__score-ring-inner strong {
+                font-size: .98rem;
+            }
+
+        .tv-price-battle__insights {
+            grid-template-columns: repeat(2,minmax(0,1fr));
+        }
+
+        .tv-price-battle__insight {
+            min-height: 48px;
+            padding: 7px 8px;
+        }
+
+        .tv-price-battle__insight-icon {
+            width: 26px;
+            height: 26px;
+            flex-basis: 26px;
+        }
+    }
+
+    @@container price-battle (max-width: 680px) {
+        .tv-price-battle {
+            max-height: none;
+        }
+
+        .tv-price-battle__header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .tv-price-battle__match-meta {
+            justify-items: start;
+            text-align: left;
+        }
+
+        .tv-price-battle__arena {
+            grid-template-columns: 1fr;
+        }
+
+        .tv-price-battle__team {
+            grid-template-rows: auto auto 180px;
+        }
+
+        .tv-price-battle__chart-shell {
+            height: 180px;
+            max-height: 180px;
+        }
+
+        .tv-price-battle__center {
+            min-height: 82px;
+            grid-template-columns: auto auto auto auto;
+            grid-template-rows: auto;
+            justify-content: center;
+        }
+
+            .tv-price-battle__center small {
+                max-width: 120px;
+                align-self: center;
+            }
+
+        .tv-price-battle__variations {
+            grid-template-columns: 1fr;
+        }
     }
 
     @@media (max-width: 760px) {
         .tv-price-battle {
-            height: 1600px;
-            min-height: 0;
-            border-radius: 18px;
-        }
-
-        .tv-price-battle__broadcast-status {
-            grid-template-columns: minmax(0, 1fr);
-            gap: 16px;
-            margin: 0 14px 16px;
-            padding: 16px;
-        }
-
-        .tv-price-battle__broadcast-grid {
-            grid-template-columns: minmax(0, 1fr);
-            gap: 16px;
-        }
-        .tv-price-battle__header {
-            padding: 21px 18px 16px;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .tv-price-battle__match-meta {
-            width: 100%;
-            max-width: none;
-            min-width: 0;
-            align-items: flex-start;
-            text-align: left;
-        }
-
-            .tv-price-battle__match-meta > small {
-                max-width: none;
-            }
-
-        .tv-price-battle__arena {
-            grid-template-columns: minmax(0, 1fr);
-            padding: 0 14px 16px;
-        }
-
-        .tv-price-battle__team {
-            min-height: 430px;
             height: auto;
-        }
-
-        .tv-price-battle__center {
-            min-height: 142px;
-            height: auto;
-            padding: 16px;
-            flex-direction: row;
-            gap: 16px;
-        }
-
-        .tv-price-battle__score-ring {
-            width: 70px;
-            height: 70px;
-            margin: 0;
-        }
-
-        .tv-price-battle__score-ring-inner {
-            width: 50px;
-            height: 50px;
-        }
-
-            .tv-price-battle__score-ring-inner strong {
-                font-size: 1.3rem;
-            }
-
-        .tv-price-battle__center > small {
-            display: none;
-        }
-
-        .tv-price-battle__chart-shell {
-            min-height: 250px;
-        }
-    }
-
-    @@media (max-width: 470px) {
-        .tv-price-battle__header-copy h3 {
-            font-size: 1.75rem;
-        }
-
-        .tv-price-battle__team-header,
-        .tv-price-battle__team-header--right {
-            justify-content: flex-start;
-        }
-
-        .tv-price-battle__team-header--right {
-            flex-direction: row-reverse;
-        }
-
-        .tv-price-battle__identity--right {
-            align-items: flex-start;
-            text-align: left;
-        }
-
-        .tv-price-battle__market-row,
-        .tv-price-battle__market-row--right {
-            text-align: left;
-        }
-
-            .tv-price-battle__market-row--right
-            .tv-price-battle__market-change {
-                text-align: left;
-            }
-
-        .tv-price-battle__logo-shell {
-            width: 56px;
-            height: 56px;
-            flex-basis: 56px;
-        }
-
-        .tv-price-battle__market-value > strong {
-            font-size: 1.42rem;
-        }
-
-        .tv-price-battle__chart-shell {
-            min-height: 235px;
+            max-height: none;
+            overflow: visible;
         }
     }
 
@@ -1652,11 +1434,9 @@
         .tv-price-battle *,
         .tv-price-battle *::before,
         .tv-price-battle *::after {
-            scroll-behavior: auto !important;
-            animation-duration: 0.01ms !important;
+            animation-duration: .01ms !important;
             animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
+            transition-duration: .01ms !important;
         }
     }
 </style>
-

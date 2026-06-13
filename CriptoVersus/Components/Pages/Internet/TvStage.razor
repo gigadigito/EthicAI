@@ -478,7 +478,7 @@
                                                                      LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
                                                                      LeftCurrentPrice="@LeftPriceBattleCurrentPrice"
                                                                      LeftChangePercent="@DisplayLeftChangePercent()"
-                                                                     LeftColor="#ff9100"
+                                                                     LeftColor="@MarketAccentPalette.Resolve(DisplayLeftSymbol())"
                                                                      LeftPoints="@LeftPriceBattlePoints"
                                                                      LeftHasPriceHistory="@LeftPriceBattleHasHistory"
                                                                      RightSymbol="@DisplayRightTickerLabel()"
@@ -486,7 +486,7 @@
                                                                      RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
                                                                      RightCurrentPrice="@RightPriceBattleCurrentPrice"
                                                                      RightChangePercent="@DisplayRightChangePercent()"
-                                                                     RightColor="#18d8d2"
+                                                                     RightColor="@MarketAccentPalette.Resolve(DisplayRightSymbol())"
                                                                      RightPoints="@RightPriceBattlePoints"
                                                                      RightHasPriceHistory="@RightPriceBattleHasHistory"
                                                                      Competitiveness="@ResolvePriceBattleCompetitiveness()"
@@ -539,11 +539,13 @@
                                                                   LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
                                                                   LeftPressurePercent="@GetArenaPressureLeftPercent()"
                                                                   LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
+                                                                  LeftColor="@MarketAccentPalette.Resolve(DisplayLeftSymbol())"
                                                                   RightSymbol="@DisplayRightHeroLabel()"
                                                                   RightDisplayName="@DisplayRightSymbol()"
                                                                   RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
                                                                   RightPressurePercent="@GetArenaPressureRightPercent()"
                                                                   RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
+                                                                  RightColor="@MarketAccentPalette.Resolve(DisplayRightSymbol())"
                                                                   CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
                                                                   StatusLabel="@GetArenaPressureStatusLabel()"
                                                                   Description="@GetArenaPressureDescription()"
@@ -8140,30 +8142,7 @@ private string GetEventAccentStyle(string accentHex)
     => $"--event-accent:{accentHex};";
 
 private string GetAccentColor(string? symbol)
-{
-    var normalized = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
-    return normalized switch
-    {
-        "BTC" => "#f5b942",
-        "ETH" => "#7f8df6",
-        "SOL" => "#55f5bf",
-        "BNB" => "#f2d56b",
-        "XRP" => "#71d1ff",
-        "ADA" => "#5dd8ff",
-        "DOGE" => "#efc166",
-        _ => HashAccent(normalized)
-    };
-}
-
-private static string HashAccent(string value)
-{
-    if (string.IsNullOrWhiteSpace(value))
-        return "#53c8ff";
-
-    var seed = value.Sum(ch => ch);
-    var hue = seed % 360;
-    return $"hsl({hue} 78% 64%)";
-}
+    => MarketAccentPalette.Resolve(symbol);
 
 private string ResolveLeaderSymbol()
 {
@@ -8503,12 +8482,11 @@ private bool RefreshPriceBattleSide(bool isLeft, string symbol, IReadOnlyList<Ma
 
 private static IReadOnlyList<TvPriceChartPoint> BuildPricePoints(IEnumerable<MatchMetricSnapshotDto> snapshots)
     => snapshots
-        .Where(x => x.LastPrice.HasValue && x.LastPrice.Value > 0m)
         .OrderBy(x => x.CapturedAtUtc)
         .TakeLast(64)
         .Select(x => new TvPriceChartPoint(
             new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
-            x.LastPrice!.Value))
+            x.LastPrice ?? x.PercentageChange))
         .ToList();
 
 public async ValueTask DisposeAsync()

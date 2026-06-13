@@ -4110,7 +4110,7 @@ export async function updateTelemetryCharts(payload) {
             fitChart(splitRight.chart);
         }
 
-        if (splitLeft && splitRight && document.getElementById("tv-candle-battle-root")) {
+        if (splitLeft && splitRight && document.querySelector("[data-tv-candle-battle-instance]")) {
             const battleState = buildCandleBattleState({
                 leftCandles,
                 rightCandles,

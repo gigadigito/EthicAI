@@ -1,12 +1,10 @@
-function setText(id, value) {
-    const node = typeof document !== "undefined" ? document.getElementById(id) : null;
+function setText(node, value) {
     if (node) {
         node.textContent = value;
     }
 }
 
-function setWidth(id, value) {
-    const node = typeof document !== "undefined" ? document.getElementById(id) : null;
+function setWidth(node, value) {
     if (node) {
         node.style.width = `${Math.max(0, Math.min(100, Number(value) || 0))}%`;
     }
@@ -110,17 +108,21 @@ function buildStatsMarkup(battleState) {
 </section>`;
 }
 
-function renderStatsPanel(id, battleState) {
-    const ids = Array.isArray(id) ? id : [id];
+function renderStatsPanel(root, battleState, instanceId) {
+    const ids = [
+        `${instanceId}-stats-panel`,
+        `${instanceId}-stats-left`,
+        `${instanceId}-stats-right`
+    ];
     const markup = buildStatsMarkup(battleState);
     let rendered = false;
 
-    if (typeof document === "undefined") {
+    if (typeof document === "undefined" || !root) {
         return;
     }
 
     ids.forEach((panelId) => {
-        const node = document.getElementById(panelId);
+        const node = root.querySelector(`[id="${panelId}"]`);
         if (!node || node.dataset.statsMarkup === markup) {
             return;
         }
@@ -162,21 +164,26 @@ export function renderCandleBattleHud(battleState) {
         return;
     }
 
-    setText("tv-candle-battle-score-left", String(battleState.summary.leftWins));
-    setText("tv-candle-battle-score-right", String(battleState.summary.rightWins));
-    setText("tv-candle-battle-score-leader", buildLeaderLine(battleState));
+    if (typeof document === "undefined") {
+        return;
+    }
 
-    setText("tv-candle-battle-score-momentum-left", `${battleState.momentum.leftPercent}%`);
-    setText("tv-candle-battle-score-momentum-right", `${battleState.momentum.rightPercent}%`);
-    setWidth("tv-candle-battle-score-momentum-left-fill", battleState.momentum.leftPercent);
-    setWidth("tv-candle-battle-score-momentum-right-fill", battleState.momentum.rightPercent);
-    setText("tv-candle-battle-score-momentum-status", buildMomentumStatus(battleState));
+    const roots = Array.from(document.querySelectorAll("[data-tv-candle-battle-instance]"));
+    roots.forEach((root) => {
+        const instanceId = root.dataset.tvCandleBattleInstance || root.id || "tv-candle-battle-root";
+        setText(root.querySelector(`[id="${instanceId}-score-left"]`), String(battleState.summary.leftWins));
+        setText(root.querySelector(`[id="${instanceId}-score-right"]`), String(battleState.summary.rightWins));
+        setText(root.querySelector(`[id="${instanceId}-score-leader"]`), buildLeaderLine(battleState));
 
-    renderStatsPanel(["tv-candle-battle-stats-panel", "tv-candle-battle-stats-left", "tv-candle-battle-stats-right"], battleState);
+        setText(root.querySelector(`[id="${instanceId}-score-momentum-left"]`), `${battleState.momentum.leftPercent}%`);
+        setText(root.querySelector(`[id="${instanceId}-score-momentum-right"]`), `${battleState.momentum.rightPercent}%`);
+        setWidth(root.querySelector(`[id="${instanceId}-score-momentum-left-fill"]`), battleState.momentum.leftPercent);
+        setWidth(root.querySelector(`[id="${instanceId}-score-momentum-right-fill"]`), battleState.momentum.rightPercent);
+        setText(root.querySelector(`[id="${instanceId}-score-momentum-status"]`), buildMomentumStatus(battleState));
 
-    const root = typeof document !== "undefined" ? document.getElementById("tv-candle-battle-root") : null;
-    if (root) {
+        renderStatsPanel(root, battleState, instanceId);
+
         root.dataset.battleLeader = battleState.leader;
         root.dataset.battleMomentum = battleState.momentum.dominantSide;
-    }
+    });
 }

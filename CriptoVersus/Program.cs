@@ -111,7 +111,10 @@ if (!app.Environment.IsDevelopment())
 
 
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 var appCultureService = app.Services.GetRequiredService<AppCultureService>();
 app.Use(async (context, next) =>
 {
