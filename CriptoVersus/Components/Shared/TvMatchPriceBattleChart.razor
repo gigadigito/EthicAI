@@ -516,11 +516,11 @@
         --price-battle-border: rgba(72, 118, 156, .24);
         position: relative;
         display: grid;
-        grid-template-rows: auto minmax(320px, 1fr) auto;
+        grid-template-rows: auto minmax(480px, 1fr) auto;
         gap: 10px;
         width: 100%;
         min-width: 0;
-        min-height: 0;
+        min-height: 620px;
         padding: 14px;
         box-sizing: border-box;
         overflow: hidden;
@@ -728,7 +728,9 @@
     }
 
     .tv-price-battle__chart-shell {
-        height: clamp(320px, 42vw, 520px);
+        position: relative;
+        height: clamp(480px, 58vw, 640px);
+        min-height: 480px;
         overflow: hidden;
         border: 1px solid rgba(112,146,172,.16);
         border-radius: 18px;
@@ -865,9 +867,10 @@
 
     @@container price-battle (max-width: 820px) {
         .tv-price-battle {
-            grid-template-rows: auto minmax(280px, 1fr) auto;
+            grid-template-rows: auto minmax(360px, 1fr) auto;
             gap: 8px;
             padding: 10px;
+            min-height: 520px;
         }
 
         .tv-price-battle__compact-header {
@@ -896,7 +899,8 @@
         }
 
         .tv-price-battle__chart-shell {
-            height: 300px;
+            height: 380px;
+            min-height: 380px;
         }
 
         .tv-price-battle__bottom-bar {
@@ -915,6 +919,7 @@
         .tv-price-battle {
             height: auto;
             max-height: none;
+            min-height: 0;
             overflow: visible;
         }
     }
