@@ -1206,73 +1206,71 @@ namespace CriptoVersus.Worker
 
                 scoreState.LastSnapshotAtUtc = snapshotUtc;
 
-                if (match.ScoringRuleType == MatchScoringRuleType.CandleBattleLeadChange)
+                var candleBattleResult = await candleBattleScoringService.EvaluateAsync(match, scoreState, nowUtc, ct);
+
+                if (match.ScoreA != candleBattleResult.ScoreA || match.ScoreB != candleBattleResult.ScoreB)
                 {
-                    var candleBattleResult = await candleBattleScoringService.EvaluateAsync(match, scoreState, nowUtc, ct);
+                    match.ScoreA = candleBattleResult.ScoreA;
+                    match.ScoreB = candleBattleResult.ScoreB;
 
-                    if (match.ScoreA != candleBattleResult.ScoreA || match.ScoreB != candleBattleResult.ScoreB)
-                    {
-                        match.ScoreA = candleBattleResult.ScoreA;
-                        match.ScoreB = candleBattleResult.ScoreB;
-
-                        _logger.LogInformation(
-                            "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
-                            match.MatchId, match.ScoringRuleType, match.ScoreA, match.ScoreB);
-                    }
-
-                    foreach (var scoreEvent in candleBattleResult.Events)
-                    {
-                        scoreState.LastEventSequence++;
-                        var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
-                        var teamName = scoreEvent.TeamId == match.TeamAId
-                            ? match.TeamA?.Currency?.Name
-                            : match.TeamB?.Currency?.Name;
-                        var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
-                        var audioResponse = audioRequest is null
-                            ? null
-                            : await ResolveProceduralAudioAsync(audioRequest, ct);
-
-                        db.MatchScoreEvent.Add(new MatchScoreEvent
-                        {
-                            MatchId = match.MatchId,
-                            TeamId = scoreEvent.TeamId,
-                            RuleType = scoreEvent.RuleType,
-                            EventType = scoreEvent.EventType,
-                            ReasonCode = scoreEvent.ReasonCode,
-                            Points = scoreEvent.Points,
-                            EventSequence = scoreState.LastEventSequence,
-                            TeamPercentageChange = scoreEvent.TeamPercentageChange,
-                            OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
-                            TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
-                            OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
-                            MetricDelta = scoreEvent.MetricDelta,
-                            WindowStartUtc = scoreEvent.WindowStartUtc,
-                            WindowEndUtc = scoreEvent.WindowEndUtc,
-                            Description = scoreEvent.Description,
-                            EventTimeUtc = scoreEvent.EventTimeUtc,
-                            AudioContextKey = audioRequest?.ContextKey,
-                            AudioIntensity = audioRequest?.Intensity,
-                            AudioVoiceKey = audioRequest?.VoiceKey,
-                            AudioAssetId = audioResponse?.AssetId,
-                            AudioUrl = audioResponse?.AudioUrl,
-                            AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
-                            AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
-                        });
-
-                        _logger.LogInformation(
-                            "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
-                            match.MatchId,
-                            scoreState.LastEventSequence,
-                            scoreEvent.TeamId,
-                            scoreEvent.RuleType,
-                            scoreEvent.EventType,
-                            scoreEvent.Description,
-                            audioResponse?.Found ?? false,
-                            audioResponse?.FallbackUsed ?? false,
-                            audioResponse?.Queued ?? false);
-                    }
+                    _logger.LogInformation(
+                        "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
+                        match.MatchId, MatchScoringRuleType.CandleBattleDominance, match.ScoreA, match.ScoreB);
                 }
-                else
+
+                foreach (var scoreEvent in candleBattleResult.Events)
+                {
+                    scoreState.LastEventSequence++;
+                    var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
+                    var teamName = scoreEvent.TeamId == match.TeamAId
+                        ? match.TeamA?.Currency?.Name
+                        : match.TeamB?.Currency?.Name;
+                    var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
+                    var audioResponse = audioRequest is null
+                        ? null
+                        : await ResolveProceduralAudioAsync(audioRequest, ct);
+
+                    db.MatchScoreEvent.Add(new MatchScoreEvent
+                    {
+                        MatchId = match.MatchId,
+                        TeamId = scoreEvent.TeamId,
+                        RuleType = scoreEvent.RuleType,
+                        EventType = scoreEvent.EventType,
+                        ReasonCode = scoreEvent.ReasonCode,
+                        Points = scoreEvent.Points,
+                        EventSequence = scoreState.LastEventSequence,
+                        TeamPercentageChange = scoreEvent.TeamPercentageChange,
+                        OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
+                        TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
+                        OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
+                        MetricDelta = scoreEvent.MetricDelta,
+                        WindowStartUtc = scoreEvent.WindowStartUtc,
+                        WindowEndUtc = scoreEvent.WindowEndUtc,
+                        Description = scoreEvent.Description,
+                        EventTimeUtc = scoreEvent.EventTimeUtc,
+                        AudioContextKey = audioRequest?.ContextKey,
+                        AudioIntensity = audioRequest?.Intensity,
+                        AudioVoiceKey = audioRequest?.VoiceKey,
+                        AudioAssetId = audioResponse?.AssetId,
+                        AudioUrl = audioResponse?.AudioUrl,
+                        AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
+                        AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
+                    });
+
+                    _logger.LogInformation(
+                        "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
+                        match.MatchId,
+                        scoreState.LastEventSequence,
+                        scoreEvent.TeamId,
+                        scoreEvent.RuleType,
+                        scoreEvent.EventType,
+                        scoreEvent.Description,
+                        audioResponse?.Found ?? false,
+                        audioResponse?.FallbackUsed ?? false,
+                        audioResponse?.Queued ?? false);
+                }
+
+                if (match.ScoringRuleType != MatchScoringRuleType.CandleBattleDominance)
                 {
                     var closedWindows = match.ScoringRuleType == MatchScoringRuleType.VolumeWindow && match.StartTime.HasValue
                         ? await LoadClosedVolumeWindowsAsync(

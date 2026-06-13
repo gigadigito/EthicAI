@@ -2,6 +2,7 @@
 using DAL.NftFutebol;
 using DAL.Seed;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace EthicAI.EntityModel
 {
@@ -232,7 +233,7 @@ namespace EthicAI.EntityModel
                       .IsRequired(false);
 
                 entity.Property(e => e.ScoringRuleType)
-                      .HasConversion<string>()
+                      .HasConversion(CreateMatchScoringRuleTypeConverter())
                       .HasColumnName("in_scoring_rule")
                       .HasMaxLength(40)
                       .HasDefaultValue(MatchScoringRuleType.PercentThreshold);
@@ -768,7 +769,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.TeamId).HasColumnName("cd_team");
 
                 entity.Property(e => e.RuleType)
-                      .HasConversion<string>()
+                      .HasConversion(CreateMatchScoringRuleTypeConverter())
                       .HasColumnName("in_rule_type")
                       .HasMaxLength(40);
 
@@ -924,6 +925,23 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.LastCandleBattleClosePriceB)
                       .HasColumnType("numeric(28, 8)")
                       .HasColumnName("nr_last_candle_battle_close_price_b");
+
+                entity.Property(e => e.LastCandleBattleLeftWins)
+                      .HasColumnName("nr_last_candle_battle_left_wins")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastCandleBattleRightWins)
+                      .HasColumnName("nr_last_candle_battle_right_wins")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastCandleBattleDominanceTeamId)
+                      .HasColumnName("cd_last_candle_battle_dominance_team")
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastCandleBattleStateKey)
+                      .HasColumnName("tx_last_candle_battle_state_key")
+                      .HasMaxLength(200)
+                      .IsRequired(false);
 
                 entity.Property(e => e.TeamAPressureCharges)
                       .HasColumnName("nr_pressure_charges_a")
@@ -1355,6 +1373,24 @@ namespace EthicAI.EntityModel
             });
 
             Seed(modelBuilder);
+        }
+
+        private static ValueConverter<MatchScoringRuleType, string> CreateMatchScoringRuleTypeConverter()
+            => new(
+                value => value == MatchScoringRuleType.CandleBattleDominance
+                    ? nameof(MatchScoringRuleType.CandleBattleDominance)
+                    : value.ToString(),
+                value => ParseMatchScoringRuleType(value));
+
+        private static MatchScoringRuleType ParseMatchScoringRuleType(string value)
+        {
+            if (string.Equals(value, "CandleBattleLeadChange", StringComparison.OrdinalIgnoreCase))
+                return MatchScoringRuleType.CandleBattleDominance;
+
+            if (string.Equals(value, nameof(MatchScoringRuleType.CandleBattleDominance), StringComparison.OrdinalIgnoreCase))
+                return MatchScoringRuleType.CandleBattleDominance;
+
+            return Enum.Parse<MatchScoringRuleType>(value, ignoreCase: true);
         }
 
         public void Seed(ModelBuilder modelBuilder)

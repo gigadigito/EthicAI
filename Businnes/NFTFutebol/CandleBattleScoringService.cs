@@ -12,6 +12,8 @@ public interface ICandleBattleScoringService
 
 public sealed class CandleBattleScoringService : ICandleBattleScoringService
 {
+    public const int CandleBattleDominanceThreshold = 3;
+
     private const decimal Epsilon = 0.000001m;
 
     private readonly EthicAIDbContext _db;
@@ -23,169 +25,301 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
         _logger = logger;
     }
 
-    public async Task<CandleBattleScoringResult> EvaluateAsync(Match match, MatchScoreState scoreState, DateTime nowUtc, CancellationToken ct = default)
+    public async Task<CandleBattleScoringResult> EvaluateAsync(
+        Match match,
+        MatchScoreState scoreState,
+        DateTime nowUtc,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(match);
         ArgumentNullException.ThrowIfNull(scoreState);
 
+        _logger.LogInformation("[CandleBattle] Match {MatchId}: start evaluation", match.MatchId);
+
         if (match.Status is not MatchStatus.Pending and not MatchStatus.Ongoing)
+        {
+            _logger.LogInformation(
+                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+                match.MatchId,
+                scoreState.LastCandleBattleLeftWins,
+                scoreState.LastCandleBattleRightWins,
+                Math.Abs(scoreState.LastCandleBattleLeftWins - scoreState.LastCandleBattleRightWins),
+                FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
+                FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
+                "Skipped");
+
             return CandleBattleScoringResult.Empty(scoreState, match.ScoreA, match.ScoreB);
+        }
 
         if (match.TeamA?.Currency is null || match.TeamB?.Currency is null)
+        {
+            _logger.LogInformation(
+                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+                match.MatchId,
+                scoreState.LastCandleBattleLeftWins,
+                scoreState.LastCandleBattleRightWins,
+                Math.Abs(scoreState.LastCandleBattleLeftWins - scoreState.LastCandleBattleRightWins),
+                FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
+                FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
+                "Skipped");
+
             return CandleBattleScoringResult.Empty(scoreState, match.ScoreA, match.ScoreB);
+        }
 
         var pairs = await LoadPairsAsync(match.MatchId, match.TeamAId, match.TeamBId, ct);
         if (pairs.Count == 0)
+        {
+            _logger.LogInformation(
+                "[CandleBattle] Match {MatchId}: candles 0x0, diff=0, dominanceTeam=null, previousDominance=null, action=NoData",
+                match.MatchId);
+
             return CandleBattleScoringResult.Empty(scoreState, match.ScoreA, match.ScoreB);
+        }
 
-        var hasBaseline = scoreState.LastCandleBattleProcessedAtUtc.HasValue
-            && scoreState.LastCandleBattleClosePriceA.HasValue
-            && scoreState.LastCandleBattleClosePriceB.HasValue;
+        var bootstrapOnly = string.IsNullOrWhiteSpace(scoreState.LastCandleBattleStateKey);
+        var processedAtUtc = bootstrapOnly
+            ? null
+            : scoreState.LastCandleBattleProcessedAtUtc;
 
-        var result = hasBaseline
-            ? Simulate(match, scoreState, pairs, match.ScoreA, match.ScoreB, scoreState.LastCandleBattleProcessedAtUtc, emitEvents: true)
-            : Simulate(match, scoreState, pairs, match.ScoreA, match.ScoreB, null, emitEvents: false);
+        if (!bootstrapOnly && !processedAtUtc.HasValue)
+            bootstrapOnly = true;
 
-        ApplyState(scoreState, result);
+        var state = new WorkingState
+        {
+            ScoreA = match.ScoreA,
+            ScoreB = match.ScoreB,
+            LeftWins = bootstrapOnly ? 0 : scoreState.LastCandleBattleLeftWins,
+            RightWins = bootstrapOnly ? 0 : scoreState.LastCandleBattleRightWins,
+            DominanceTeamId = bootstrapOnly ? null : scoreState.LastCandleBattleDominanceTeamId,
+            PreviousDominanceTeamId = bootstrapOnly ? null : scoreState.LastCandleBattleDominanceTeamId,
+            PreviousCloseA = bootstrapOnly ? null : scoreState.LastCandleBattleClosePriceA,
+            PreviousCloseB = bootstrapOnly ? null : scoreState.LastCandleBattleClosePriceB,
+            ProcessedAtUtc = bootstrapOnly ? null : processedAtUtc
+        };
+
+        var events = new List<PendingMatchScoreEvent>();
+        var lastAction = bootstrapOnly ? "InitializedNoRetroactive" : "Skipped";
+
+        foreach (var pair in pairs)
+        {
+            if (state.ProcessedAtUtc.HasValue && pair.CapturedAtUtc <= state.ProcessedAtUtc.Value)
+            {
+                state.PreviousCloseA = pair.ClosePriceA ?? state.PreviousCloseA;
+                state.PreviousCloseB = pair.ClosePriceB ?? state.PreviousCloseB;
+                continue;
+            }
+
+            var candle = ResolveCandle(pair, state.PreviousCloseA, state.PreviousCloseB);
+            state.PreviousCloseA = pair.ClosePriceA ?? state.PreviousCloseA;
+            state.PreviousCloseB = pair.ClosePriceB ?? state.PreviousCloseB;
+
+            if (candle.WinnerSide == CandleWinnerSide.Left)
+                state.LeftWins++;
+            else if (candle.WinnerSide == CandleWinnerSide.Right)
+                state.RightWins++;
+
+            var diff = Math.Abs(state.LeftWins - state.RightWins);
+            var currentDominanceTeamId = ResolveDominanceTeamId(match.TeamAId, match.TeamBId, state.LeftWins, state.RightWins);
+            var currentStateKey = BuildStateKey(match.MatchId, currentDominanceTeamId, state.LeftWins, state.RightWins);
+            var previousDominanceTeamId = state.DominanceTeamId;
+            var action = ResolveAction(
+                bootstrapOnly,
+                state.LeftWins,
+                state.RightWins,
+                previousDominanceTeamId,
+                currentDominanceTeamId,
+                currentStateKey,
+                scoreState.LastCandleBattleStateKey);
+
+            if (bootstrapOnly)
+            {
+                state.DominanceTeamId = currentDominanceTeamId;
+                state.PreviousDominanceTeamId = currentDominanceTeamId;
+                state.ProcessedAtUtc = pair.CapturedAtUtc;
+                state.StateKey = currentStateKey;
+                lastAction = action;
+                continue;
+            }
+
+            if (currentDominanceTeamId is null)
+            {
+                if (diff == 0)
+                {
+                    state.DominanceTeamId = null;
+                    action = "Tie";
+                }
+                else
+                {
+                    action = "Skipped";
+                }
+            }
+            else if (currentDominanceTeamId == state.DominanceTeamId)
+            {
+                action = "SameDominance";
+            }
+            else
+            {
+                action = "GoalCreated";
+                state.ScoreA += currentDominanceTeamId == match.TeamAId ? 1 : 0;
+                state.ScoreB += currentDominanceTeamId == match.TeamBId ? 1 : 0;
+
+                events.Add(BuildScoreEvent(match, candle, currentDominanceTeamId.Value, pair.CapturedAtUtc, state.LeftWins, state.RightWins));
+                state.DominanceTeamId = currentDominanceTeamId;
+                state.PreviousDominanceTeamId = currentDominanceTeamId;
+            }
+
+            state.StateKey = currentStateKey;
+            state.ProcessedAtUtc = pair.CapturedAtUtc;
+            lastAction = action;
+
+            _logger.LogInformation(
+                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+                match.MatchId,
+                state.LeftWins,
+                state.RightWins,
+                diff,
+                FormatTeamId(currentDominanceTeamId),
+                FormatTeamId(previousDominanceTeamId),
+                action);
+        }
+
+        if (bootstrapOnly)
+        {
+            state.DominanceTeamId = ResolveDominanceTeamId(match.TeamAId, match.TeamBId, state.LeftWins, state.RightWins);
+            state.PreviousDominanceTeamId = state.DominanceTeamId;
+            state.StateKey = BuildStateKey(match.MatchId, state.DominanceTeamId, state.LeftWins, state.RightWins);
+            state.ProcessedAtUtc = pairs.Last().CapturedAtUtc;
+            lastAction = "InitializedNoRetroactive";
+        }
+
+        ApplyState(scoreState, state);
         scoreState.UpdatedAtUtc = nowUtc;
 
-        if (result.Events.Count > 0)
+        if (events.Count > 0)
         {
-            match.ScoreA = result.ScoreA;
-            match.ScoreB = result.ScoreB;
+            match.ScoreA = state.ScoreA;
+            match.ScoreB = state.ScoreB;
+        }
 
-            foreach (var scoreEvent in result.Events)
+        _logger.LogInformation(
+            "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+            match.MatchId,
+            state.LeftWins,
+            state.RightWins,
+            Math.Abs(state.LeftWins - state.RightWins),
+            FormatTeamId(state.DominanceTeamId),
+            FormatTeamId(state.PreviousDominanceTeamId),
+            events.Count > 0 ? "GoalCreated" : lastAction);
+
+        return new CandleBattleScoringResult
+        {
+            ScoreA = state.ScoreA,
+            ScoreB = state.ScoreB,
+            State = scoreState,
+            Events = events,
+            CandleWinsA = state.LeftWins,
+            CandleWinsB = state.RightWins,
+            DominanceTeamId = state.DominanceTeamId,
+            StateKey = state.StateKey
+        };
+    }
+
+    private PendingMatchScoreEvent BuildScoreEvent(
+        Match match,
+        CandleResult candle,
+        int teamId,
+        DateTime eventTimeUtc,
+        int candleWinsA,
+        int candleWinsB)
+    {
+        var team = teamId == match.TeamAId ? match.TeamA : match.TeamB;
+        var symbol = team?.Currency?.Symbol ?? string.Empty;
+
+        return new PendingMatchScoreEvent
+        {
+            TeamId = teamId,
+            RuleType = MatchScoringRuleType.CandleBattleDominance,
+            EventType = "CANDLE_BATTLE_DOMINANCE",
+            ReasonCode = "CANDLE_BATTLE_DOMINANCE",
+            Points = 1,
+            TeamPercentageChange = teamId == match.TeamAId ? candle.LeftDeltaPercent : candle.RightDeltaPercent,
+            OpponentPercentageChange = teamId == match.TeamAId ? candle.RightDeltaPercent : candle.LeftDeltaPercent,
+            MetricDelta = Math.Abs(candle.LeftDeltaPercent - candle.RightDeltaPercent),
+            EventTimeUtc = eventTimeUtc,
+            Description = teamId == match.TeamAId
+                ? $"{symbol} abriu dominio no Candle Battle: {candleWinsA} x {candleWinsB} candles."
+                : $"{symbol} abriu dominio no Candle Battle: {candleWinsA} x {candleWinsB} candles."
+        };
+    }
+
+    private static string ResolveAction(
+        bool bootstrapOnly,
+        int leftWins,
+        int rightWins,
+        int? previousDominanceTeamId,
+        int? currentDominanceTeamId,
+        string currentStateKey,
+        string? previousStateKey)
+    {
+        if (bootstrapOnly)
+            return "InitializedNoRetroactive";
+
+        if (string.Equals(currentStateKey, previousStateKey, StringComparison.Ordinal))
+            return currentDominanceTeamId.HasValue ? "SameDominance" : "Tie";
+
+        if (!currentDominanceTeamId.HasValue)
+            return leftWins == rightWins ? "Tie" : "Skipped";
+
+        if (previousDominanceTeamId.HasValue && previousDominanceTeamId.Value == currentDominanceTeamId.Value)
+            return "SameDominance";
+
+        return "GoalCreated";
+    }
+
+    private async Task<List<CandlePair>> LoadPairsAsync(int matchId, int teamAId, int teamBId, CancellationToken ct)
+    {
+        var snapshots = await _db.Set<MatchMetricSnapshot>()
+            .AsNoTracking()
+            .Where(x => x.MatchId == matchId)
+            .OrderBy(x => x.CapturedAtUtc)
+            .ThenBy(x => x.MatchMetricSnapshotId)
+            .ToListAsync(ct);
+
+        var result = new List<CandlePair>();
+        var sequence = 0;
+
+        foreach (var group in snapshots.GroupBy(x => x.CapturedAtUtc).OrderBy(x => x.Key))
+        {
+            var teamASnapshot = group.Where(x => x.TeamId == teamAId).OrderByDescending(x => x.MatchMetricSnapshotId).FirstOrDefault();
+            var teamBSnapshot = group.Where(x => x.TeamId == teamBId).OrderByDescending(x => x.MatchMetricSnapshotId).FirstOrDefault();
+
+            if (teamASnapshot is null || teamBSnapshot is null)
+                continue;
+
+            result.Add(new CandlePair
             {
-                _logger.LogInformation(
-                    "[CANDLE_BATTLE_LEAD_CHANGE] matchId={MatchId} leaderTeamId={LeaderTeamId} score={ScoreA}x{ScoreB} candleWins={CandleWinsA}x{CandleWinsB} eventTimeUtc={EventTimeUtc:o} signature={Signature}",
-                    match.MatchId,
-                    scoreEvent.TeamId,
-                    result.ScoreA,
-                    result.ScoreB,
-                    result.CandleWinsA,
-                    result.CandleWinsB,
-                    scoreEvent.EventTimeUtc,
-                    BuildSignature(match.MatchId, scoreEvent.TeamId, result.CandleWinsA, result.CandleWinsB));
-            }
+                Sequence = sequence++,
+                CapturedAtUtc = group.Key,
+                ClosePriceA = teamASnapshot.LastPrice,
+                ClosePriceB = teamBSnapshot.LastPrice
+            });
         }
 
         return result;
     }
 
-    private CandleBattleScoringResult Simulate(
-        Match match,
-        MatchScoreState scoreState,
-        IReadOnlyList<CandleBattleSnapshotPair> pairs,
-        int currentScoreA,
-        int currentScoreB,
-        DateTime? startFromProcessedAtUtc,
-        bool emitEvents)
-    {
-        var scoreA = currentScoreA;
-        var scoreB = currentScoreB;
-        var winsA = scoreState.CandleBattleWinsA;
-        var winsB = scoreState.CandleBattleWinsB;
-        var leaderTeamId = scoreState.LastCandleBattleLeaderTeamId;
-        var processedAtUtc = scoreState.LastCandleBattleProcessedAtUtc;
-        var prevCloseA = scoreState.LastCandleBattleClosePriceA;
-        var prevCloseB = scoreState.LastCandleBattleClosePriceB;
-        var events = new List<PendingMatchScoreEvent>();
-
-        foreach (var pair in pairs.OrderBy(x => x.CapturedAtUtc).ThenBy(x => x.Sequence))
-        {
-            if (startFromProcessedAtUtc.HasValue && pair.CapturedAtUtc <= startFromProcessedAtUtc.Value)
-            {
-                prevCloseA = pair.ClosePriceA ?? prevCloseA;
-                prevCloseB = pair.ClosePriceB ?? prevCloseB;
-                continue;
-            }
-
-            var candle = ResolveCandle(pair, prevCloseA, prevCloseB);
-            prevCloseA = pair.ClosePriceA ?? prevCloseA;
-            prevCloseB = pair.ClosePriceB ?? prevCloseB;
-
-            if (candle.WinnerSide == CandleWinnerSide.Left)
-                winsA++;
-            else if (candle.WinnerSide == CandleWinnerSide.Right)
-                winsB++;
-
-            var currentLeader = ResolveLeader(match.TeamAId, match.TeamBId, winsA, winsB);
-            processedAtUtc = pair.CapturedAtUtc;
-
-            if (!currentLeader.HasValue)
-                continue;
-
-            if (!leaderTeamId.HasValue)
-            {
-                if (!emitEvents || !scoreState.LastCandleBattleProcessedAtUtc.HasValue)
-                {
-                    leaderTeamId = currentLeader;
-                    continue;
-                }
-            }
-            else if (currentLeader.Value == leaderTeamId.Value)
-            {
-                continue;
-            }
-
-            leaderTeamId = currentLeader;
-
-            if (!emitEvents)
-                continue;
-
-            var awardedTeamId = currentLeader.Value;
-            var leaderSymbol = awardedTeamId == match.TeamAId ? match.TeamA!.Currency!.Symbol : match.TeamB!.Currency!.Symbol;
-            var leaderDelta = awardedTeamId == match.TeamAId ? candle.LeftDeltaPercent : candle.RightDeltaPercent;
-            var opponentDelta = awardedTeamId == match.TeamAId ? candle.RightDeltaPercent : candle.LeftDeltaPercent;
-
-            scoreA += awardedTeamId == match.TeamAId ? 1 : 0;
-            scoreB += awardedTeamId == match.TeamBId ? 1 : 0;
-
-            events.Add(new PendingMatchScoreEvent
-            {
-                TeamId = awardedTeamId,
-                RuleType = MatchScoringRuleType.CandleBattleLeadChange,
-                EventType = "CANDLE_BATTLE_LEAD_CHANGE",
-                ReasonCode = "CANDLE_BATTLE_LEAD_CHANGE",
-                Points = 1,
-                TeamPercentageChange = awardedTeamId == match.TeamAId ? candle.LeftDeltaPercent : candle.RightDeltaPercent,
-                OpponentPercentageChange = awardedTeamId == match.TeamAId ? candle.RightDeltaPercent : candle.LeftDeltaPercent,
-                MetricDelta = Math.Abs(leaderDelta - opponentDelta),
-                EventTimeUtc = pair.CapturedAtUtc,
-                Description = $"{leaderSymbol} virou a liderança no Candle Battle: {winsA} x {winsB} candles."
-            });
-        }
-
-        return new CandleBattleScoringResult
-        {
-            ScoreA = scoreA,
-            ScoreB = scoreB,
-            State = scoreState,
-            Events = events,
-            CandleWinsA = winsA,
-            CandleWinsB = winsB,
-            LastLeaderTeamId = leaderTeamId,
-            LastProcessedAtUtc = processedAtUtc,
-            LastClosePriceA = prevCloseA,
-            LastClosePriceB = prevCloseB
-        };
-    }
-
-    private static CandleCandleResult ResolveCandle(
-        CandleBattleSnapshotPair pair,
-        decimal? previousCloseA,
-        decimal? previousCloseB)
+    private static CandleResult ResolveCandle(CandlePair pair, decimal? previousCloseA, decimal? previousCloseB)
     {
         var leftDelta = ComputePercentChange(previousCloseA, pair.ClosePriceA);
         var rightDelta = ComputePercentChange(previousCloseB, pair.ClosePriceB);
         var difference = leftDelta - rightDelta;
 
         if (Math.Abs(difference) <= Epsilon)
-            return new CandleCandleResult(leftDelta, rightDelta, CandleWinnerSide.Tie);
+            return new CandleResult(leftDelta, rightDelta, CandleWinnerSide.Tie);
 
         return difference > 0m
-            ? new CandleCandleResult(leftDelta, rightDelta, CandleWinnerSide.Left)
-            : new CandleCandleResult(leftDelta, rightDelta, CandleWinnerSide.Right);
+            ? new CandleResult(leftDelta, rightDelta, CandleWinnerSide.Left)
+            : new CandleResult(leftDelta, rightDelta, CandleWinnerSide.Right);
     }
 
     private static decimal ComputePercentChange(decimal? previous, decimal? current)
@@ -199,74 +333,63 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
         return ((current.Value - previous.Value) / Math.Abs(previous.Value)) * 100m;
     }
 
-    private async Task<List<CandleBattleSnapshotPair>> LoadPairsAsync(int matchId, int teamAId, int teamBId, CancellationToken ct)
+    private static int? ResolveDominanceTeamId(int teamAId, int teamBId, int leftWins, int rightWins)
     {
-        var snapshots = await _db.Set<MatchMetricSnapshot>()
-            .AsNoTracking()
-            .Where(x => x.MatchId == matchId)
-            .OrderBy(x => x.CapturedAtUtc)
-            .ThenBy(x => x.MatchMetricSnapshotId)
-            .ToListAsync(ct);
-
-        var result = new List<CandleBattleSnapshotPair>();
-        var sequence = 0;
-
-        foreach (var group in snapshots.GroupBy(x => x.CapturedAtUtc).OrderBy(x => x.Key))
-        {
-            var teamASnapshot = group
-                .Where(x => x.TeamId == teamAId)
-                .OrderByDescending(x => x.MatchMetricSnapshotId)
-                .FirstOrDefault();
-
-            var teamBSnapshot = group
-                .Where(x => x.TeamId == teamBId)
-                .OrderByDescending(x => x.MatchMetricSnapshotId)
-                .FirstOrDefault();
-
-            if (teamASnapshot is null || teamBSnapshot is null)
-                continue;
-
-            result.Add(new CandleBattleSnapshotPair
-            {
-                Sequence = sequence++,
-                CapturedAtUtc = group.Key,
-                ClosePriceA = teamASnapshot.LastPrice,
-                ClosePriceB = teamBSnapshot.LastPrice
-            });
-        }
-
-        return result;
-    }
-
-    private static int? ResolveLeader(int teamAId, int teamBId, int winsA, int winsB)
-    {
-        if (winsA == winsB)
+        var diff = Math.Abs(leftWins - rightWins);
+        if (diff < CandleBattleDominanceThreshold)
             return null;
 
-        return winsA > winsB ? teamAId : teamBId;
+        if (leftWins > rightWins)
+            return teamAId;
+
+        if (rightWins > leftWins)
+            return teamBId;
+
+        return null;
     }
 
-    private static void ApplyState(MatchScoreState state, CandleBattleScoringResult result)
+    private static string BuildStateKey(int matchId, int? dominanceTeamId, int leftWins, int rightWins)
+        => $"CandleBattleDominance:{matchId}:{FormatTeamId(dominanceTeamId)}:{leftWins}:{rightWins}";
+
+    private static string FormatTeamId(int? teamId)
+        => teamId.HasValue ? teamId.Value.ToString() : "null";
+
+    private static void ApplyState(MatchScoreState target, WorkingState source)
     {
-        state.CandleBattleWinsA = result.CandleWinsA;
-        state.CandleBattleWinsB = result.CandleWinsB;
-        state.LastCandleBattleLeaderTeamId = result.LastLeaderTeamId;
-        state.LastCandleBattleProcessedAtUtc = result.LastProcessedAtUtc;
-        state.LastCandleBattleClosePriceA = result.LastClosePriceA;
-        state.LastCandleBattleClosePriceB = result.LastClosePriceB;
+        target.CandleBattleWinsA = source.LeftWins;
+        target.CandleBattleWinsB = source.RightWins;
+        target.LastCandleBattleLeaderTeamId = source.DominanceTeamId;
+        target.LastCandleBattleProcessedAtUtc = source.ProcessedAtUtc;
+        target.LastCandleBattleClosePriceA = source.PreviousCloseA;
+        target.LastCandleBattleClosePriceB = source.PreviousCloseB;
+        target.LastCandleBattleLeftWins = source.LeftWins;
+        target.LastCandleBattleRightWins = source.RightWins;
+        target.LastCandleBattleDominanceTeamId = source.DominanceTeamId;
+        target.LastCandleBattleStateKey = source.StateKey;
     }
 
-    private static string BuildSignature(int matchId, int leaderTeamId, int candleWinsA, int candleWinsB)
-        => $"CandleBattleLeadChange:{matchId}:{leaderTeamId}:{candleWinsA}:{candleWinsB}";
+    private sealed record CandleResult(decimal LeftDeltaPercent, decimal RightDeltaPercent, CandleWinnerSide WinnerSide);
 
-    private sealed record CandleCandleResult(decimal LeftDeltaPercent, decimal RightDeltaPercent, CandleWinnerSide WinnerSide);
-
-    private sealed class CandleBattleSnapshotPair
+    private sealed class CandlePair
     {
         public int Sequence { get; init; }
         public DateTime CapturedAtUtc { get; init; }
         public decimal? ClosePriceA { get; init; }
         public decimal? ClosePriceB { get; init; }
+    }
+
+    private sealed class WorkingState
+    {
+        public int ScoreA { get; set; }
+        public int ScoreB { get; set; }
+        public int LeftWins { get; set; }
+        public int RightWins { get; set; }
+        public int? DominanceTeamId { get; set; }
+        public int? PreviousDominanceTeamId { get; set; }
+        public DateTime? ProcessedAtUtc { get; set; }
+        public decimal? PreviousCloseA { get; set; }
+        public decimal? PreviousCloseB { get; set; }
+        public string? StateKey { get; set; }
     }
 
     private enum CandleWinnerSide
@@ -279,23 +402,21 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
 
 public sealed class CandleBattleScoringResult
 {
-    public bool Initialized { get; init; }
     public int ScoreA { get; init; }
     public int ScoreB { get; init; }
     public MatchScoreState State { get; init; } = null!;
     public IReadOnlyCollection<PendingMatchScoreEvent> Events { get; init; } = Array.Empty<PendingMatchScoreEvent>();
     public int CandleWinsA { get; init; }
     public int CandleWinsB { get; init; }
-    public int? LastLeaderTeamId { get; init; }
-    public DateTime? LastProcessedAtUtc { get; init; }
-    public decimal? LastClosePriceA { get; init; }
-    public decimal? LastClosePriceB { get; init; }
+    public int? DominanceTeamId { get; init; }
+    public string? StateKey { get; init; }
 
     public static CandleBattleScoringResult Empty(MatchScoreState state, int scoreA, int scoreB)
         => new()
         {
-            State = state,
             ScoreA = scoreA,
-            ScoreB = scoreB
+            ScoreB = scoreB,
+            State = state,
+            Events = Array.Empty<PendingMatchScoreEvent>()
         };
 }

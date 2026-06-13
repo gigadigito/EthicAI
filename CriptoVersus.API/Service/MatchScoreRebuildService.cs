@@ -45,7 +45,7 @@ public sealed class MatchScoreRebuildService : IMatchScoreRebuildService
         if (match.ScoringRuleType == MatchScoringRuleType.VolumeWindow)
             throw new InvalidOperationException("Reprocessamento por snapshots ainda nao suporta partidas de janela de volume.");
 
-        if (match.ScoringRuleType == MatchScoringRuleType.CandleBattleLeadChange)
+        if (match.ScoringRuleType == MatchScoringRuleType.CandleBattleDominance)
             throw new InvalidOperationException("Reprocessamento do Candle Battle nao e suportado nesta versao. A regra deve ser processada pelo worker ao vivo.");
 
         var scoreState = match.ScoreState ?? new MatchScoreState

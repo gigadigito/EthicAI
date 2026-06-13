@@ -22,6 +22,10 @@ BEGIN
         ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_candle_battle_processed_at timestamp with time zone NULL;
         ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_candle_battle_close_price_a numeric(28, 8) NULL;
         ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_candle_battle_close_price_b numeric(28, 8) NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_candle_battle_left_wins integer NOT NULL DEFAULT 0;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_candle_battle_right_wins integer NOT NULL DEFAULT 0;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS cd_last_candle_battle_dominance_team integer NULL;
+        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS tx_last_candle_battle_state_key text NULL;
     END IF;
 END $$;
 """;

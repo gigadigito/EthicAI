@@ -6,64 +6,203 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CriptoVersus.Worker.Tests;
 
+[Collection("CandleBattleScoringService")]
 public sealed class CandleBattleScoringServiceTests
 {
     [Fact]
-    public async Task EvaluateAsync_BootstrapsState_WithoutRetroactiveGoal()
+    public async Task EvaluateAsync_BootstrapsWithoutRetroactiveGoal_AndMatchesTheRuleThreshold()
     {
+        _priceA = 100m;
+        _priceB = 100m;
         await using var db = CreateDbContext();
-        SeedBaselineMatch(db);
+        SeedMatch(db, MatchScoringRuleType.CandleBattleDominance, 46001);
 
         var service = CreateService(db);
-        var match = await LoadMatchAsync(db, 45001);
-        var state = match.ScoreState!;
+        var match = await LoadMatchAsync(db, 46001);
 
-        var result = await service.EvaluateAsync(match, state, DateTime.UtcNow);
+        AddTieGroup(db, 46001, new DateTime(2026, 06, 13, 12, 1, 0, DateTimeKind.Utc), ref _priceA, ref _priceB);
+
+        var result = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
 
         Assert.Empty(result.Events);
-        Assert.Equal(1, result.CandleWinsA);
-        Assert.Equal(0, result.CandleWinsB);
-        Assert.Equal(match.ScoreA, result.ScoreA);
-        Assert.Equal(match.ScoreB, result.ScoreB);
-        Assert.Equal(match.TeamAId, result.LastLeaderTeamId);
-        Assert.NotNull(result.LastProcessedAtUtc);
-        Assert.Equal(1, state.CandleBattleWinsA);
-        Assert.Equal(0, state.CandleBattleWinsB);
-        Assert.Equal(match.TeamAId, state.LastCandleBattleLeaderTeamId);
+        Assert.Equal(0, result.ScoreA);
+        Assert.Equal(0, result.ScoreB);
+        Assert.Null(result.DominanceTeamId);
+        Assert.Equal("CandleBattleDominance:46001:null:0:0", result.StateKey);
+    }
+
+    [Theory]
+    [InlineData(MatchScoringRuleType.PercentThreshold)]
+    [InlineData(MatchScoringRuleType.ArenaPressure)]
+    public async Task EvaluateAsync_RunsIndependentlyOfMainRuleType(MatchScoringRuleType ruleType)
+    {
+        _priceA = 100m;
+        _priceB = 100m;
+        await using var db = CreateDbContext();
+        SeedMatch(db, ruleType, 46002);
+
+        var service = CreateService(db);
+        var match = await LoadMatchAsync(db, 46002);
+
+        AddTieGroup(db, 46002, new DateTime(2026, 06, 13, 12, 1, 0, DateTimeKind.Utc), ref _priceA, ref _priceB);
+        var bootstrap = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(bootstrap.Events);
+
+        AddWinnerGroup(db, 46002, new DateTime(2026, 06, 13, 12, 2, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46002, new DateTime(2026, 06, 13, 12, 3, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46002, new DateTime(2026, 06, 13, 12, 4, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+
+        var result = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+
+        Assert.Single(result.Events);
+        Assert.Equal(1, result.ScoreA);
+        Assert.Equal(0, result.ScoreB);
+        Assert.Equal(match.TeamAId, result.DominanceTeamId);
     }
 
     [Fact]
-    public async Task EvaluateAsync_AwardsGoalOnce_WhenLeaderChangesAfterTie()
+    public async Task EvaluateAsync_RewardsProgressiveDominance_AndResetsOnlyOnTie()
     {
+        _priceA = 100m;
+        _priceB = 100m;
         await using var db = CreateDbContext();
-        SeedBaselineMatch(db);
+        SeedMatch(db, MatchScoringRuleType.CandleBattleDominance, 46003);
 
         var service = CreateService(db);
-        var match = await LoadMatchAsync(db, 45001);
-        var state = match.ScoreState!;
+        var match = await LoadMatchAsync(db, 46003);
 
-        var bootstrap = await service.EvaluateAsync(match, state, DateTime.UtcNow);
+        AddTieGroup(db, 46003, new DateTime(2026, 06, 13, 12, 1, 0, DateTimeKind.Utc), ref _priceA, ref _priceB);
+        var step0 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(step0.Events);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 2, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        var step1 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(step1.Events);
+        Assert.Equal(1, step1.CandleWinsA);
+        Assert.Equal(0, step1.CandleWinsB);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 3, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        var step2 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(step2.Events);
+        Assert.Equal(2, step2.CandleWinsA);
+        Assert.Equal(0, step2.CandleWinsB);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 4, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        var step3 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Single(step3.Events);
+        Assert.Equal(match.TeamAId, step3.DominanceTeamId);
+        Assert.Equal(1, step3.ScoreA);
+        Assert.Equal(0, step3.ScoreB);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 5, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        var step4 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(step4.Events);
+        Assert.Equal(4, step4.CandleWinsA);
+        Assert.Equal(0, step4.CandleWinsB);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 6, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 7, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        var step5 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(step5.Events);
+        Assert.Equal(4, step5.CandleWinsA);
+        Assert.Equal(2, step5.CandleWinsB);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 8, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 9, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        var step6 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(step6.Events);
+        Assert.Equal(4, step6.CandleWinsA);
+        Assert.Equal(4, step6.CandleWinsB);
+        Assert.Null(step6.DominanceTeamId);
+
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 10, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 11, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46003, new DateTime(2026, 06, 13, 12, 12, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        var step7 = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Single(step7.Events);
+        Assert.Equal(match.TeamBId, step7.DominanceTeamId);
+        Assert.Equal(1, step7.ScoreB);
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_DoesNotDuplicateTheSameState()
+    {
+        _priceA = 100m;
+        _priceB = 100m;
+        await using var db = CreateDbContext();
+        SeedMatch(db, MatchScoringRuleType.CandleBattleDominance, 46004);
+
+        var service = CreateService(db);
+        var match = await LoadMatchAsync(db, 46004);
+
+        AddTieGroup(db, 46004, new DateTime(2026, 06, 13, 12, 1, 0, DateTimeKind.Utc), ref _priceA, ref _priceB);
+        var bootstrap = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
         Assert.Empty(bootstrap.Events);
 
-        SeedPostBootstrapCandles(db);
+        AddWinnerGroup(db, 46004, new DateTime(2026, 06, 13, 12, 2, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46004, new DateTime(2026, 06, 13, 12, 3, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46004, new DateTime(2026, 06, 13, 12, 4, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
 
-        var beforeScoreA = match.ScoreA;
-        var beforeScoreB = match.ScoreB;
+        var first = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Single(first.Events);
 
-        var firstLiveRun = await service.EvaluateAsync(match, state, DateTime.UtcNow);
-        Assert.Single(firstLiveRun.Events);
-        var scoreEvent = Assert.Single(firstLiveRun.Events);
-        Assert.Equal(match.TeamBId, scoreEvent.TeamId);
-        Assert.Equal(MatchScoringRuleType.CandleBattleLeadChange, scoreEvent.RuleType);
-        Assert.Equal(beforeScoreA, firstLiveRun.ScoreA);
-        Assert.Equal(beforeScoreB + 1, firstLiveRun.ScoreB);
-        Assert.Equal(beforeScoreA, match.ScoreA);
-        Assert.Equal(beforeScoreB + 1, match.ScoreB);
+        var second = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+        Assert.Empty(second.Events);
+        Assert.Equal(first.ScoreA, second.ScoreA);
+        Assert.Equal(first.ScoreB, second.ScoreB);
+    }
 
-        var secondLiveRun = await service.EvaluateAsync(match, state, DateTime.UtcNow);
-        Assert.Empty(secondLiveRun.Events);
-        Assert.Equal(firstLiveRun.ScoreA, secondLiveRun.ScoreA);
-        Assert.Equal(firstLiveRun.ScoreB, secondLiveRun.ScoreB);
+    [Fact]
+    public async Task EvaluateAsync_SkipsCompletedMatches()
+    {
+        _priceA = 100m;
+        _priceB = 100m;
+        await using var db = CreateDbContext();
+        SeedMatch(db, MatchScoringRuleType.CandleBattleDominance, 46005, MatchStatus.Completed);
+
+        var service = CreateService(db);
+        var match = await LoadMatchAsync(db, 46005);
+
+        var result = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+
+        Assert.Empty(result.Events);
+        Assert.Equal(0, result.ScoreA);
+        Assert.Equal(0, result.ScoreB);
+    }
+
+    [Fact]
+    public async Task EvaluateAsync_DoesNotCreateRetroactiveGoal_WhenFirstRunFindsAdvancedDominance()
+    {
+        _priceA = 100m;
+        _priceB = 100m;
+        await using var db = CreateDbContext();
+        SeedMatch(db, MatchScoringRuleType.CandleBattleDominance, 46006);
+
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 1, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 2, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 3, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 4, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 5, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 6, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 7, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 8, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 9, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 10, 0, DateTimeKind.Utc), CandleSide.Left, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 11, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 12, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 13, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+        AddWinnerGroup(db, 46006, new DateTime(2026, 06, 13, 12, 14, 0, DateTimeKind.Utc), CandleSide.Right, ref _priceA, ref _priceB);
+
+        var service = CreateService(db);
+        var match = await LoadMatchAsync(db, 46006);
+
+        var result = await service.EvaluateAsync(match, match.ScoreState!, DateTime.UtcNow);
+
+        Assert.Empty(result.Events);
+        Assert.Equal(10, result.CandleWinsA);
+        Assert.Equal(4, result.CandleWinsB);
+        Assert.Equal(match.ScoreA, result.ScoreA);
+        Assert.Equal(match.ScoreB, result.ScoreB);
     }
 
     private static CandleBattleScoringService CreateService(EthicAIDbContext db)
@@ -87,39 +226,29 @@ public sealed class CandleBattleScoringServiceTests
             .SingleAsync(x => x.MatchId == matchId);
     }
 
-    private static void SeedBaselineMatch(EthicAIDbContext db)
+    private static void SeedMatch(EthicAIDbContext db, MatchScoringRuleType ruleType, int matchId, MatchStatus status = MatchStatus.Ongoing)
     {
         SeedCurrencyAndTeams(db);
 
         db.Match.Add(new Match
         {
-            MatchId = 45001,
-            TeamAId = 45010,
-            TeamBId = 45020,
+            MatchId = matchId,
+            TeamAId = 46010,
+            TeamBId = 46020,
             ScoreA = 0,
             ScoreB = 0,
-            Status = MatchStatus.Ongoing,
-            ScoringRuleType = MatchScoringRuleType.CandleBattleLeadChange,
+            Status = status,
+            ScoringRuleType = ruleType,
             StartTime = new DateTime(2026, 06, 13, 12, 0, 0, DateTimeKind.Utc)
         });
 
         db.MatchScoreState.Add(new MatchScoreState
         {
-            MatchId = 45001,
+            MatchId = matchId,
             CreatedAtUtc = new DateTime(2026, 06, 13, 12, 0, 0, DateTimeKind.Utc),
             UpdatedAtUtc = new DateTime(2026, 06, 13, 12, 0, 0, DateTimeKind.Utc)
         });
 
-        AddSnapshotGroup(db, 45001, new DateTime(2026, 06, 13, 12, 01, 0, DateTimeKind.Utc), 100m, 100m);
-        AddSnapshotGroup(db, 45001, new DateTime(2026, 06, 13, 12, 02, 0, DateTimeKind.Utc), 101m, 99m);
-
-        db.SaveChanges();
-    }
-
-    private static void SeedPostBootstrapCandles(EthicAIDbContext db)
-    {
-        AddSnapshotGroup(db, 45001, new DateTime(2026, 06, 13, 12, 03, 0, DateTimeKind.Utc), 100m, 105m);
-        AddSnapshotGroup(db, 45001, new DateTime(2026, 06, 13, 12, 04, 0, DateTimeKind.Utc), 99m, 106m);
         db.SaveChanges();
     }
 
@@ -127,7 +256,7 @@ public sealed class CandleBattleScoringServiceTests
     {
         db.Currency.Add(new Currency
         {
-            CurrencyId = 4501,
+            CurrencyId = 4601,
             Name = "AXL",
             Symbol = "AXL",
             PercentageChange = 0d,
@@ -138,7 +267,7 @@ public sealed class CandleBattleScoringServiceTests
 
         db.Currency.Add(new Currency
         {
-            CurrencyId = 4502,
+            CurrencyId = 4602,
             Name = "OPG",
             Symbol = "OPG",
             PercentageChange = 0d,
@@ -147,8 +276,30 @@ public sealed class CandleBattleScoringServiceTests
             LastUpdated = DateTime.UtcNow
         });
 
-        db.Team.Add(new Team { TeamId = 45010, CurrencyId = 4501 });
-        db.Team.Add(new Team { TeamId = 45020, CurrencyId = 4502 });
+        db.Team.Add(new Team { TeamId = 46010, CurrencyId = 4601 });
+        db.Team.Add(new Team { TeamId = 46020, CurrencyId = 4602 });
+    }
+
+    private static void AddTieGroup(EthicAIDbContext db, int matchId, DateTime capturedAtUtc, ref decimal priceA, ref decimal priceB)
+    {
+        priceA = Math.Round(priceA * 1.05m, 8);
+        priceB = Math.Round(priceB * 1.05m, 8);
+        AddSnapshotGroup(db, matchId, capturedAtUtc, priceA, priceB);
+    }
+
+    private static void AddWinnerGroup(EthicAIDbContext db, int matchId, DateTime capturedAtUtc, CandleSide side, ref decimal priceA, ref decimal priceB)
+    {
+        switch (side)
+        {
+            case CandleSide.Left:
+                priceA = Math.Round(priceA * 1.10m, 8);
+                break;
+            case CandleSide.Right:
+                priceB = Math.Round(priceB * 1.10m, 8);
+                break;
+        }
+
+        AddSnapshotGroup(db, matchId, capturedAtUtc, priceA, priceB);
     }
 
     private static void AddSnapshotGroup(EthicAIDbContext db, int matchId, DateTime capturedAtUtc, decimal priceA, decimal priceB)
@@ -156,7 +307,7 @@ public sealed class CandleBattleScoringServiceTests
         db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
         {
             MatchId = matchId,
-            TeamId = 45010,
+            TeamId = 46010,
             CapturedAtUtc = capturedAtUtc,
             LastPrice = priceA,
             PercentageChange = 0m,
@@ -167,12 +318,28 @@ public sealed class CandleBattleScoringServiceTests
         db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
         {
             MatchId = matchId,
-            TeamId = 45020,
+            TeamId = 46020,
             CapturedAtUtc = capturedAtUtc,
             LastPrice = priceB,
             PercentageChange = 0m,
             QuoteVolume = 100m,
             TradeCount = 1
         });
+
+        db.SaveChanges();
     }
+
+    private enum CandleSide
+    {
+        Left,
+        Right
+    }
+
+    private static decimal _priceA = 100m;
+    private static decimal _priceB = 100m;
+}
+
+[CollectionDefinition("CandleBattleScoringService", DisableParallelization = true)]
+public sealed class CandleBattleScoringServiceCollectionDefinition
+{
 }
