@@ -796,12 +796,80 @@
 </div>
 
 <style>
+    .social-share-hero-team--a .team-name,
+    .social-share-hero-team--a .market-pair-text,
+    .social-share-card__title-team--left,
+    .score--a {
+        color: #ffd76e;
+        text-shadow: 0 0 14px rgba(255, 215, 110, .36);
+    }
+
+    .social-share-hero-team--b .team-name,
+    .social-share-hero-team--b .market-pair-text,
+    .social-share-card__title-team--right,
+    .score--b {
+        color: #53c8ff;
+        text-shadow: 0 0 14px rgba(83, 200, 255, .36);
+    }
+
+    .social-share-hero-team--a .market-pair-text__quote,
+    .social-share-hero-team--a .market-pair-text__separator {
+        color: #ffd76e;
+        opacity: .72;
+    }
+
+    .social-share-hero-team--b .market-pair-text__quote,
+    .social-share-hero-team--b .market-pair-text__separator {
+        color: #53c8ff;
+        opacity: .72;
+    }
+
+    .team-badge--a {
+        border-color: rgba(255, 215, 110, .55);
+        box-shadow: 0 0 0 2px rgba(255, 215, 110, .12), 0 0 22px rgba(255, 215, 110, .28);
+    }
+
+    .team-badge--b {
+        border-color: rgba(83, 200, 255, .55);
+        box-shadow: 0 0 0 2px rgba(83, 200, 255, .12), 0 0 22px rgba(83, 200, 255, .28);
+    }
+
+    .social-share-hero-team--a .team-sub .pct {
+        color: #ffd76e;
+    }
+
+    .social-share-hero-team--b .team-sub .pct {
+        color: #53c8ff;
+    }
+
+    .score-sep {
+        color: rgba(245, 247, 251, .82);
+        text-shadow: none;
+    }
     .match-hero {
         position: relative;
         background: radial-gradient(1200px 500px at 20% 0%, rgba(0, 230, 118, .14), transparent 60%), radial-gradient(1200px 500px at 80% 0%, rgba(255, 82, 82, .14), transparent 60%), linear-gradient(135deg, #0B1020 0%, #0E1117 55%, #0B1020 100%);
         border: 1px solid rgba(255,255,255,.08);
     }
 
+    .social-share-card__title-team {
+        font-weight: 950;
+    }
+
+    .social-share-card__title-team--left {
+        color: #ffd76e;
+        text-shadow: 0 0 14px rgba(255, 215, 110, .36);
+    }
+
+    .social-share-card__title-team--right {
+        color: #53c8ff;
+        text-shadow: 0 0 14px rgba(83, 200, 255, .36);
+    }
+
+    .social-share-card__title-vs {
+        color: rgba(245, 247, 251, .92);
+        margin: 0 .28rem;
+    }
     .match-detail-wide-container {
         width: 100%;
         max-width: min(1880px, calc(100vw - 24px));
