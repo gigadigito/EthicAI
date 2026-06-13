@@ -357,6 +357,9 @@
                                             RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
                                             LeftChangePercent="@_match.PctA"
                                             RightChangePercent="@_match.PctB"
+                                            LeftPoints="@LeftPriceBattlePoints"
+                                            RightPoints="@RightPriceBattlePoints"
+                                            Culture="@CurrentCulture"
                                             AriaLabel="@($"{_match.TeamA} vs {_match.TeamB} candle battle arena")" />
                         </div>
 

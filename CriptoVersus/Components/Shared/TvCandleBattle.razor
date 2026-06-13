@@ -1,4 +1,5 @@
 @using System.Globalization
+@using DTOs
 @inject LocalizationService L
 
 <section id="@_resolvedInstanceId"
@@ -13,17 +14,17 @@
                 <strong>@LeftTickerLabel</strong>
                 <span>@T("labels.candlesWon")</span>
             </div>
-            <b id="@($"{_resolvedInstanceId}-score-left")">0</b>
+            <b id="@($"{_resolvedInstanceId}-score-left")">@Battle.LeftWins</b>
         </div>
 
         <div class="tv-candle-battle__score-center">
             <span>@T("labels.candleBattle")</span>
             <strong>⚔</strong>
-            <small id="@($"{_resolvedInstanceId}-score-leader")">@T("labels.momentumNeutral")</small>
+            <small id="@($"{_resolvedInstanceId}-score-leader")">@Battle.LeaderLabel</small>
         </div>
 
         <div class="tv-candle-battle__score-side tv-candle-battle__score-side--right">
-            <b id="@($"{_resolvedInstanceId}-score-right")">0</b>
+            <b id="@($"{_resolvedInstanceId}-score-right")">@Battle.RightWins</b>
             <div class="tv-candle-battle__score-copy tv-candle-battle__score-copy--right">
                 <strong>@RightTickerLabel</strong>
                 <span>@T("labels.candlesWon")</span>
@@ -37,19 +38,19 @@
             <div class="tv-candle-battle__score-momentum-track" aria-hidden="true">
                 <i id="@($"{_resolvedInstanceId}-score-momentum-left-fill")"
                    class="tv-candle-battle__score-momentum-fill tv-candle-battle__score-momentum-fill--left"
-                   style="width:50%;"></i>
+                   style="width:@Battle.LeftMomentumPercentString;"></i>
 
                 <i id="@($"{_resolvedInstanceId}-score-momentum-right-fill")"
                    class="tv-candle-battle__score-momentum-fill tv-candle-battle__score-momentum-fill--right"
-                   style="width:50%;"></i>
+                   style="width:@Battle.RightMomentumPercentString;"></i>
             </div>
 
             <div class="tv-candle-battle__score-momentum-meta">
-                <strong id="@($"{_resolvedInstanceId}-score-momentum-left")">50%</strong>
-                <strong id="@($"{_resolvedInstanceId}-score-momentum-right")">50%</strong>
+                <strong id="@($"{_resolvedInstanceId}-score-momentum-left")">@Battle.LeftMomentumPercentString</strong>
+                <strong id="@($"{_resolvedInstanceId}-score-momentum-right")">@Battle.RightMomentumPercentString</strong>
             </div>
 
-            <small id="@($"{_resolvedInstanceId}-score-momentum-status")">@T("labels.tiePressure")</small>
+            <small id="@($"{_resolvedInstanceId}-score-momentum-status")">@Battle.MomentumStatusLabel</small>
         </aside>
     </section>
 
@@ -61,7 +62,7 @@
                         <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--left">@T("labels.assetVariationA")</span>
                         <strong>MOEDA A - USDT</strong>
                     </div>
-                    <em id="tv-candle-battle-left-live"
+                    <em id="@($"{_resolvedInstanceId}-left-live")"
                         class="@GetChangeClass(LeftChangePercent)">
                         @FormatChangePercent(LeftChangePercent)
                     </em>
@@ -77,12 +78,36 @@
                     <div class="tv-candle-battle-card__chart-area">
                         <div id="@($"{_resolvedInstanceId}-chart-split-left")"
                              class="tv-telemetry-chart-shell tv-telemetry-chart-shell--battle"
-                             aria-label="chart split ativo A"></div>
+                             aria-label="chart split ativo A">
+                            @if (!LeftChartCandles.Any())
+                            {
+                                <div class="tv-candle-battle__empty">@WaitingHistoryText</div>
+                            }
+                            else
+                            {
+                                <svg class="tv-candle-battle__svg" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Candles de @LeftTickerLabel">
+                                    <line class="tv-candle-battle__grid-line" x1="0" y1="80" x2="1000" y2="80" />
+                                    <line class="tv-candle-battle__grid-line" x1="0" y1="160" x2="1000" y2="160" />
+                                    <line class="tv-candle-battle__grid-line" x1="0" y1="240" x2="1000" y2="240" />
+                                    @foreach (var candle in LeftChartCandles)
+                                    {
+                                        <line class="@candle.WickClass" x1="@N(candle.X)" y1="@N(candle.HighY)" x2="@N(candle.X)" y2="@N(candle.LowY)" />
+                                        <rect class="@candle.BodyClass" x="@N(candle.BodyX)" y="@N(candle.BodyY)" width="@N(candle.BodyWidth)" height="@N(candle.BodyHeight)" rx="3" />
+                                    }
+                                </svg>
+                            }
+                        </div>
 
                         <div class="tv-candle-battle-card__timeline">
                             <span>@T("labels.winnerPerCandle")</span>
                             <div id="@($"{_resolvedInstanceId}-timeline-left")"
-                                 class="tv-candle-battle-card__timeline-track"></div>
+                                 class="tv-candle-battle-card__timeline-track"
+                                 style="@TimelineStyle">
+                                @foreach (var candle in BattleCandles)
+                                {
+                                    <i class="tv-candle-battle-card__timeline-marker @candle.MarkerClass" title="@candle.Title"></i>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -94,7 +119,7 @@
                         <span class="tv-candle-battle-card__kicker tv-candle-battle-card__kicker--right">@T("labels.assetVariationB")</span>
                         <strong>MOEDA B - USDT</strong>
                     </div>
-                    <em id="tv-candle-battle-right-live"
+                    <em id="@($"{_resolvedInstanceId}-right-live")"
                         class="@GetChangeClass(RightChangePercent)">
                         @FormatChangePercent(RightChangePercent)
                     </em>
@@ -110,12 +135,36 @@
                     <div class="tv-candle-battle-card__chart-area">
                         <div id="@($"{_resolvedInstanceId}-chart-split-right")"
                              class="tv-telemetry-chart-shell tv-telemetry-chart-shell--battle"
-                             aria-label="chart split ativo B"></div>
+                             aria-label="chart split ativo B">
+                            @if (!RightChartCandles.Any())
+                            {
+                                <div class="tv-candle-battle__empty">@WaitingHistoryText</div>
+                            }
+                            else
+                            {
+                                <svg class="tv-candle-battle__svg" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Candles de @RightTickerLabel">
+                                    <line class="tv-candle-battle__grid-line" x1="0" y1="80" x2="1000" y2="80" />
+                                    <line class="tv-candle-battle__grid-line" x1="0" y1="160" x2="1000" y2="160" />
+                                    <line class="tv-candle-battle__grid-line" x1="0" y1="240" x2="1000" y2="240" />
+                                    @foreach (var candle in RightChartCandles)
+                                    {
+                                        <line class="@candle.WickClass" x1="@N(candle.X)" y1="@N(candle.HighY)" x2="@N(candle.X)" y2="@N(candle.LowY)" />
+                                        <rect class="@candle.BodyClass" x="@N(candle.BodyX)" y="@N(candle.BodyY)" width="@N(candle.BodyWidth)" height="@N(candle.BodyHeight)" rx="3" />
+                                    }
+                                </svg>
+                            }
+                        </div>
 
                         <div class="tv-candle-battle-card__timeline">
                             <span>@T("labels.winnerPerCandle")</span>
                             <div id="@($"{_resolvedInstanceId}-timeline-right")"
-                                 class="tv-candle-battle-card__timeline-track"></div>
+                                 class="tv-candle-battle-card__timeline-track"
+                                 style="@TimelineStyle">
+                                @foreach (var candle in BattleCandles)
+                                {
+                                    <i class="tv-candle-battle-card__timeline-marker @candle.MarkerClass" title="@candle.Title"></i>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -124,7 +173,86 @@
 
         <aside id="@($"{_resolvedInstanceId}-stats-panel")"
                class="tv-candle-battle__sidebar"
-               aria-label="Painel tático do Candle Battle"></aside>
+               aria-label="Painel tático do Candle Battle">
+            <div class="tv-candle-battle__sidebar-top">
+                <div class="tv-candle-battle__sidebar-kicker">
+                    <span>@PanelTitle</span>
+                    <strong class="@Battle.LeaderClass">@Battle.ShortLeaderLabel</strong>
+                </div>
+
+                <div class="tv-candle-battle__sidebar-leader">
+                    <span>@LeaderTitle</span>
+                    <strong>@Battle.LeaderLabel</strong>
+                </div>
+
+                <div class="tv-candle-battle__sidebar-momentum" aria-hidden="true">
+                    <i class="tv-candle-battle__sidebar-momentum-fill tv-candle-battle__sidebar-momentum-fill--left"
+                       style="width:@Battle.LeftMomentumPercentString;"></i>
+                    <i class="tv-candle-battle__sidebar-momentum-fill tv-candle-battle__sidebar-momentum-fill--right"
+                       style="width:@Battle.RightMomentumPercentString;"></i>
+                </div>
+            </div>
+
+            <div class="tv-candle-battle__sidebar-section">
+                <div class="tv-candle-battle__sidebar-section-head">
+                    <span>@CandlesAnalyzedTitle</span>
+                    <strong>@Battle.TotalComparableCandles</strong>
+                </div>
+
+                <div class="tv-candle-battle__sidebar-grid">
+                    <div class="tv-candle-battle__sidebar-row">
+                        <span>@LeftHeroLabel</span>
+                        <strong class="is-left">@Battle.LeftWins</strong>
+                    </div>
+                    <div class="tv-candle-battle__sidebar-row">
+                        <span>@RightHeroLabel</span>
+                        <strong class="is-right">@Battle.RightWins</strong>
+                    </div>
+                    <div class="tv-candle-battle__sidebar-row">
+                        <span>@T("labels.tie")</span>
+                        <strong>@Battle.Ties</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tv-candle-battle__sidebar-section">
+                <div class="tv-candle-battle__sidebar-section-head">
+                    <span>@StreakTitle</span>
+                    <strong>@Battle.LastRunLength</strong>
+                </div>
+
+                <div class="tv-candle-battle__sidebar-streak">
+                    <i class="tv-candle-battle__sidebar-streak-icon @Battle.LastRunClass"></i>
+                    <div>
+                        <small>@LastCandleTitle</small>
+                        <strong class="@Battle.LastRunClass">@Battle.LastRunLabel</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tv-candle-battle__sidebar-section">
+                <div class="tv-candle-battle__sidebar-section-head">
+                    <span>@PerformanceTitle</span>
+                    <strong>@Battle.MomentumStatusLabel</strong>
+                </div>
+
+                <div class="tv-candle-battle__sidebar-performance">
+                    <div class="tv-candle-battle__sidebar-row">
+                        <span>@LeftHeroLabel</span>
+                        <strong class="is-left">@FormatDeltaPercent(Battle.LastLeftDeltaPercent)</strong>
+                    </div>
+                    <div class="tv-candle-battle__sidebar-row">
+                        <span>@RightHeroLabel</span>
+                        <strong class="is-right">@FormatDeltaPercent(Battle.LastRightDeltaPercent)</strong>
+                    </div>
+                </div>
+            </div>
+
+            @if (!Battle.HasData)
+            {
+                <div class="tv-candle-battle__sidebar-muted">@WaitingHistoryText</div>
+            }
+        </aside>
     </div>
 </section>
 
@@ -406,6 +534,19 @@
         white-space: nowrap;
     }
 
+    .tv-change--positive {
+        color: #7ff6df;
+    }
+
+    .tv-change--negative {
+        color: #ff9f9f;
+    }
+
+    .tv-change--neutral,
+    .tv-change--missing {
+        color: rgba(219,231,245,.78);
+    }
+
     .tv-candle-battle-card__legend {
         min-width: 0;
         display: flex;
@@ -454,6 +595,7 @@
     }
 
     .tv-telemetry-chart-shell--battle {
+        position: relative;
         width: 100%;
         height: 100%;
         min-width: 0;
@@ -462,6 +604,53 @@
         border: 1px solid rgba(255,255,255,.05);
         border-radius: 18px;
         background: linear-gradient(180deg, rgba(7,14,27,.92), rgba(5,10,19,.98));
+    }
+
+    .tv-candle-battle__svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 180px;
+    }
+
+    .tv-candle-battle__grid-line {
+        stroke: rgba(255,255,255,.055);
+        stroke-width: 1;
+        vector-effect: non-scaling-stroke;
+    }
+
+    .tv-candle-battle__wick {
+        stroke-width: 2.4;
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+    .tv-candle-battle__wick--up,
+    .tv-candle-battle__body--up {
+        stroke: rgba(42,201,255,.96);
+        fill: rgba(42,201,255,.72);
+        filter: drop-shadow(0 0 7px rgba(42,201,255,.18));
+    }
+
+    .tv-candle-battle__wick--down,
+    .tv-candle-battle__body--down {
+        stroke: rgba(255,166,0,.96);
+        fill: rgba(255,166,0,.72);
+        filter: drop-shadow(0 0 7px rgba(255,128,0,.16));
+    }
+
+    .tv-candle-battle__empty {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        color: rgba(201,221,243,.62);
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-align: center;
+        text-transform: uppercase;
     }
 
     .tv-candle-battle-card__timeline {
@@ -503,6 +692,7 @@
 
     .tv-candle-battle-card__timeline-marker {
         width: 100%;
+        min-width: 10px;
         height: 8px;
         border: 0;
         border-radius: 2px;
@@ -589,6 +779,11 @@
                 background: rgba(255,128,0,.08);
             }
 
+            .tv-candle-battle__sidebar-kicker strong.is-tie {
+                border-color: rgba(154,167,184,.22);
+                background: rgba(154,167,184,.08);
+            }
+
         .tv-candle-battle__sidebar-leader span {
             color: rgba(201,221,243,.72);
             font-size: .68rem;
@@ -599,6 +794,7 @@
             color: #fff;
             font-size: 1rem;
             font-weight: 900;
+            text-align: right;
         }
 
     .tv-candle-battle__sidebar-section {
@@ -876,14 +1072,6 @@
     [Parameter]
     public string? InstanceId { get; set; }
 
-    protected override void OnParametersSet()
-    {
-        if (!string.IsNullOrWhiteSpace(InstanceId))
-        {
-            _resolvedInstanceId = InstanceId.Trim();
-        }
-    }
-
     [Parameter, EditorRequired]
     public string LeftTickerLabel { get; set; } = string.Empty;
 
@@ -909,12 +1097,272 @@
     public decimal? RightChangePercent { get; set; }
 
     [Parameter]
+    public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+
+    [Parameter]
+    public IReadOnlyList<TvPriceChartPoint> RightPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
+
+    [Parameter]
+    public string Culture { get; set; } = CultureInfo.CurrentUICulture.Name;
+
+    [Parameter]
     public string? AriaLabel { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(InstanceId))
+            _resolvedInstanceId = InstanceId.Trim();
+    }
+
+    private IReadOnlyList<TvPriceChartPoint> OrderedLeftPoints => NormalizePoints(LeftPoints);
+    private IReadOnlyList<TvPriceChartPoint> OrderedRightPoints => NormalizePoints(RightPoints);
+    private IReadOnlyList<ChartCandleVisual> LeftChartCandles => BuildChartCandles(OrderedLeftPoints);
+    private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints);
+    private IReadOnlyList<BattleCandle> BattleCandles => BuildBattleCandles();
+    private BattleSummary Battle => BuildBattleSummary(BattleCandles);
+
+    private bool IsEnglish => (Culture ?? string.Empty).StartsWith("en", StringComparison.OrdinalIgnoreCase);
+    private string WaitingHistoryText => IsEnglish ? "Waiting for candle history" : "Aguardando histórico de candles";
+    private string PanelTitle => IsEnglish ? "Tactical panel" : "Painel tático";
+    private string LeaderTitle => IsEnglish ? "Leader" : "Liderança";
+    private string CandlesAnalyzedTitle => IsEnglish ? "Analyzed candles" : "Candles analisados";
+    private string StreakTitle => IsEnglish ? "Current streak" : "Sequência atual";
+    private string LastCandleTitle => IsEnglish ? "Last candle" : "Último candle";
+    private string PerformanceTitle => IsEnglish ? "Last variation" : "Última variação";
+
+    private string TimelineStyle
+    {
+        get
+        {
+            var count = Math.Max(BattleCandles.Count, 1);
+            return $"grid-template-columns: repeat({count}, minmax(10px, 1fr));";
+        }
+    }
 
     private string ResolveAriaLabel()
         => !string.IsNullOrWhiteSpace(AriaLabel)
             ? AriaLabel!
             : $"{LeftTickerLabel} vs {RightTickerLabel} candle battle arena";
+
+    private static IReadOnlyList<TvPriceChartPoint> NormalizePoints(IReadOnlyList<TvPriceChartPoint>? points)
+        => points is null
+            ? Array.Empty<TvPriceChartPoint>()
+            : points
+                .Where(x => x.Value != 0m || x.Time > 0)
+                .OrderBy(x => x.Time)
+                .ToList();
+
+    private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPriceChartPoint> points)
+    {
+        if (points.Count < 2)
+            return Array.Empty<ChartCandleVisual>();
+
+        var values = points.Select(x => x.Value).ToList();
+        var min = values.Min();
+        var max = values.Max();
+        var range = max - min;
+
+        if (range == 0m)
+        {
+            min -= 1m;
+            max += 1m;
+            range = 2m;
+        }
+
+        var candleCount = points.Count - 1;
+        var slotWidth = 1000d / Math.Max(candleCount, 1);
+        var bodyWidth = Math.Clamp(slotWidth * 0.46d, 4d, 22d);
+        var result = new List<ChartCandleVisual>(candleCount);
+
+        for (var i = 1; i < points.Count; i++)
+        {
+            var open = points[i - 1].Value;
+            var close = points[i].Value;
+            var high = Math.Max(open, close);
+            var low = Math.Min(open, close);
+            var x = ((i - 1) + .5d) * slotWidth;
+            var openY = MapY(open, min, max);
+            var closeY = MapY(close, min, max);
+            var highY = MapY(high, min, max);
+            var lowY = MapY(low, min, max);
+            var isUp = close >= open;
+            var bodyY = Math.Min(openY, closeY);
+            var bodyHeight = Math.Max(3d, Math.Abs(closeY - openY));
+
+            result.Add(new ChartCandleVisual
+            {
+                X = x,
+                HighY = highY,
+                LowY = lowY,
+                BodyX = x - (bodyWidth / 2d),
+                BodyY = bodyY,
+                BodyWidth = bodyWidth,
+                BodyHeight = bodyHeight,
+                WickClass = isUp ? "tv-candle-battle__wick tv-candle-battle__wick--up" : "tv-candle-battle__wick tv-candle-battle__wick--down",
+                BodyClass = isUp ? "tv-candle-battle__body tv-candle-battle__body--up" : "tv-candle-battle__body tv-candle-battle__body--down"
+            });
+        }
+
+        return result;
+    }
+
+    private IReadOnlyList<BattleCandle> BuildBattleCandles()
+    {
+        var left = OrderedLeftPoints;
+        var right = OrderedRightPoints;
+        var count = Math.Min(left.Count, right.Count);
+
+        if (count < 2)
+            return Array.Empty<BattleCandle>();
+
+        var result = new List<BattleCandle>(count - 1);
+
+        for (var i = 1; i < count; i++)
+        {
+            var leftDelta = ComputePercentChange(left[i - 1].Value, left[i].Value);
+            var rightDelta = ComputePercentChange(right[i - 1].Value, right[i].Value);
+            var diff = leftDelta - rightDelta;
+            var side = Math.Abs(diff) <= 0.00000001m
+                ? BattleSide.Tie
+                : diff > 0m
+                    ? BattleSide.Left
+                    : BattleSide.Right;
+
+            var title = side switch
+            {
+                BattleSide.Left => $"{LeftHeroLabel} {T("labels.won")} • {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}",
+                BattleSide.Right => $"{RightHeroLabel} {T("labels.won")} • {FormatDeltaPercent(rightDelta)} vs {FormatDeltaPercent(leftDelta)}",
+                _ => $"{T("labels.tie")} • {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}"
+            };
+
+            result.Add(new BattleCandle
+            {
+                Index = i,
+                Side = side,
+                LeftDeltaPercent = leftDelta,
+                RightDeltaPercent = rightDelta,
+                MarkerClass = side switch
+                {
+                    BattleSide.Left => "is-left",
+                    BattleSide.Right => "is-right",
+                    _ => "is-tie"
+                },
+                Title = title
+            });
+        }
+
+        return result;
+    }
+
+    private BattleSummary BuildBattleSummary(IReadOnlyList<BattleCandle> candles)
+    {
+        if (candles.Count == 0)
+        {
+            return new BattleSummary
+            {
+                LeaderLabel = T("labels.momentumNeutral"),
+                ShortLeaderLabel = T("labels.tie"),
+                MomentumStatusLabel = T("labels.tiePressure"),
+                LastRunLabel = "-",
+                LastRunClass = "is-tie",
+                LeaderClass = "is-tie",
+                LeftMomentumPercent = 50d,
+                RightMomentumPercent = 50d
+            };
+        }
+
+        var leftWins = candles.Count(x => x.Side == BattleSide.Left);
+        var rightWins = candles.Count(x => x.Side == BattleSide.Right);
+        var ties = candles.Count(x => x.Side == BattleSide.Tie);
+        var scoreLeft = leftWins + (ties * .5d);
+        var scoreRight = rightWins + (ties * .5d);
+        var scoreTotal = Math.Max(1d, scoreLeft + scoreRight);
+        var leftMomentum = Math.Round((scoreLeft / scoreTotal) * 100d);
+        var rightMomentum = 100d - leftMomentum;
+        var last = candles[^1];
+        var lastRunSide = last.Side;
+        var lastRunLength = 0;
+
+        for (var i = candles.Count - 1; i >= 0; i--)
+        {
+            if (candles[i].Side != lastRunSide)
+                break;
+            lastRunLength++;
+        }
+
+        var leaderLabel = leftWins == rightWins
+            ? T("labels.momentumNeutral")
+            : leftWins > rightWins
+                ? $"{LeftHeroLabel} {(IsEnglish ? "controls the candles" : "controla os candles")}"
+                : $"{RightHeroLabel} {(IsEnglish ? "controls the candles" : "controla os candles")}";
+
+        var shortLeaderLabel = leftWins == rightWins
+            ? T("labels.tie")
+            : leftWins > rightWins
+                ? LeftHeroLabel
+                : RightHeroLabel;
+
+        var leaderClass = leftWins == rightWins
+            ? "is-tie"
+            : leftWins > rightWins
+                ? "is-left"
+                : "is-right";
+
+        var momentumStatus = leftWins == rightWins
+            ? T("labels.tiePressure")
+            : leftWins > rightWins
+                ? $"{LeftHeroLabel} {(IsEnglish ? "pressure advantage" : "em vantagem de pressão")}"
+                : $"{RightHeroLabel} {(IsEnglish ? "pressure advantage" : "em vantagem de pressão")}";
+
+        return new BattleSummary
+        {
+            HasData = true,
+            LeftWins = leftWins,
+            RightWins = rightWins,
+            Ties = ties,
+            TotalComparableCandles = candles.Count,
+            LeftMomentumPercent = leftMomentum,
+            RightMomentumPercent = rightMomentum,
+            LeaderLabel = leaderLabel,
+            ShortLeaderLabel = shortLeaderLabel,
+            LeaderClass = leaderClass,
+            MomentumStatusLabel = momentumStatus,
+            LastRunLength = lastRunLength,
+            LastRunClass = lastRunSide switch
+            {
+                BattleSide.Left => "is-left",
+                BattleSide.Right => "is-right",
+                _ => "is-tie"
+            },
+            LastRunLabel = lastRunSide switch
+            {
+                BattleSide.Left => LeftHeroLabel,
+                BattleSide.Right => RightHeroLabel,
+                _ => T("labels.tie")
+            },
+            LastLeftDeltaPercent = last.LeftDeltaPercent,
+            LastRightDeltaPercent = last.RightDeltaPercent
+        };
+    }
+
+    private static decimal ComputePercentChange(decimal previous, decimal current)
+    {
+        if (previous == 0m)
+            return current == 0m ? 0m : (current - previous) * 100m;
+
+        return ((current - previous) / Math.Abs(previous)) * 100m;
+    }
+
+    private static double MapY(decimal value, decimal min, decimal max)
+    {
+        var range = max - min;
+        if (range == 0m)
+            return 160d;
+
+        var ratio = (double)((value - min) / range);
+        ratio = Math.Clamp(ratio, 0d, 1d);
+        return (1d - ratio) * 300d + 10d;
+    }
 
     private static string FormatChangePercent(decimal? value)
         => value.HasValue
@@ -922,6 +1370,11 @@
                 ? $"+{value.Value:0.00}%"
                 : $"{value.Value:0.00}%"
             : "--";
+
+    private static string FormatDeltaPercent(decimal value)
+        => value > 0m
+            ? $"+{value:0.00}%"
+            : $"{value:0.00}%";
 
     private static string GetChangeClass(decimal? value)
         => value switch
@@ -933,5 +1386,60 @@
         };
 
     private string T(string key, params object?[] args)
-        => L.T($"tv.{key}", CultureInfo.CurrentUICulture.Name, args);
+        => L.T($"tv.{key}", string.IsNullOrWhiteSpace(Culture) ? CultureInfo.CurrentUICulture.Name : Culture, args);
+
+    private static string N(double value)
+        => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private enum BattleSide
+    {
+        Left,
+        Right,
+        Tie
+    }
+
+    private sealed class ChartCandleVisual
+    {
+        public double X { get; init; }
+        public double HighY { get; init; }
+        public double LowY { get; init; }
+        public double BodyX { get; init; }
+        public double BodyY { get; init; }
+        public double BodyWidth { get; init; }
+        public double BodyHeight { get; init; }
+        public string WickClass { get; init; } = string.Empty;
+        public string BodyClass { get; init; } = string.Empty;
+    }
+
+    private sealed class BattleCandle
+    {
+        public int Index { get; init; }
+        public BattleSide Side { get; init; }
+        public decimal LeftDeltaPercent { get; init; }
+        public decimal RightDeltaPercent { get; init; }
+        public string MarkerClass { get; init; } = string.Empty;
+        public string Title { get; init; } = string.Empty;
+    }
+
+    private sealed class BattleSummary
+    {
+        public bool HasData { get; init; }
+        public int LeftWins { get; init; }
+        public int RightWins { get; init; }
+        public int Ties { get; init; }
+        public int TotalComparableCandles { get; init; }
+        public double LeftMomentumPercent { get; init; } = 50d;
+        public double RightMomentumPercent { get; init; } = 50d;
+        public string LeftMomentumPercentString => $"{LeftMomentumPercent:0}%";
+        public string RightMomentumPercentString => $"{RightMomentumPercent:0}%";
+        public string LeaderLabel { get; init; } = string.Empty;
+        public string ShortLeaderLabel { get; init; } = string.Empty;
+        public string LeaderClass { get; init; } = string.Empty;
+        public string MomentumStatusLabel { get; init; } = string.Empty;
+        public int LastRunLength { get; init; }
+        public string LastRunClass { get; init; } = string.Empty;
+        public string LastRunLabel { get; init; } = string.Empty;
+        public decimal LastLeftDeltaPercent { get; init; }
+        public decimal LastRightDeltaPercent { get; init; }
+    }
 }
