@@ -166,6 +166,7 @@ namespace CriptoVersus.Worker
             var matchService = scope.ServiceProvider.GetRequiredService<MatchService>();
             var ruleEngine = scope.ServiceProvider.GetRequiredService<IMatchRuleEngine>();
             var scoringEngine = scope.ServiceProvider.GetRequiredService<IMatchScoringEngine>();
+            var candleBattleScoringService = scope.ServiceProvider.GetRequiredService<ICandleBattleScoringService>();
             var arenaSentimentService = scope.ServiceProvider.GetRequiredService<IArenaSentimentService>();
             var ledgerService = scope.ServiceProvider.GetRequiredService<ILedgerService>();
             var positionService = scope.ServiceProvider.GetRequiredService<IPositionOrchestrationService>();
@@ -215,7 +216,7 @@ namespace CriptoVersus.Worker
             if (hasHealthySnapshot)
                 await ExecuteStageAsync("cleanup-out-of-snapshot", cycleStartUtc, true, innerCt => CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, innerCt), ct);
 
-            await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, arenaSentimentService, snapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, candleBattleScoringService, arenaSentimentService, snapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
             await ExecuteStageAsync("settlements", cycleStartUtc, true, innerCt => ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);
@@ -1068,6 +1069,7 @@ namespace CriptoVersus.Worker
             EthicAIDbContext db,
             IMatchRuleEngine ruleEngine,
             IMatchScoringEngine scoringEngine,
+            ICandleBattleScoringService candleBattleScoringService,
             IArenaSentimentService arenaSentimentService,
             List<GainerEntry> snapshot,
             DateTime snapshotUtc,
@@ -1204,91 +1206,160 @@ namespace CriptoVersus.Worker
 
                 scoreState.LastSnapshotAtUtc = snapshotUtc;
 
-                var closedWindows = match.ScoringRuleType == MatchScoringRuleType.VolumeWindow && match.StartTime.HasValue
-                    ? await LoadClosedVolumeWindowsAsync(
-                        currentTeamA.Symbol,
-                        currentTeamB.Symbol,
-                        ToUtcSafe(match.StartTime.Value),
-                        nowUtc,
-                        scoreState.LastProcessedVolumeWindowEndUtc,
-                        ct)
-                    : Array.Empty<ClosedVolumeWindow>();
-
-                var scoringResult = scoringEngine.Evaluate(new MatchScoringContext
+                if (match.ScoringRuleType == MatchScoringRuleType.CandleBattleLeadChange)
                 {
-                    RuleType = match.ScoringRuleType,
-                    CurrentScoreA = match.ScoreA,
-                    CurrentScoreB = match.ScoreB,
-                    TeamA = currentTeamA,
-                    TeamB = currentTeamB,
-                    PreviousTeamA = previousSnapshots.TeamA,
-                    PreviousTeamB = previousSnapshots.TeamB,
-                    State = scoreState,
-                    EvaluatedAtUtc = nowUtc,
-                    PercentThresholds = _options.Scoring.PercentThresholds,
-                    ClosedVolumeWindows = closedWindows
-                });
+                    var candleBattleResult = await candleBattleScoringService.EvaluateAsync(match, scoreState, nowUtc, ct);
 
-                if (match.ScoreA != scoringResult.ScoreA || match.ScoreB != scoringResult.ScoreB)
-                {
-                    match.ScoreA = scoringResult.ScoreA;
-                    match.ScoreB = scoringResult.ScoreB;
-
-                    _logger.LogInformation(
-                        "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
-                        match.MatchId, match.ScoringRuleType, match.ScoreA, match.ScoreB);
-                }
-
-                foreach (var scoreEvent in scoringResult.Events)
-                {
-                    scoreState.LastEventSequence++;
-                    var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
-                    var teamName = scoreEvent.TeamId == match.TeamAId
-                        ? match.TeamA?.Currency?.Name
-                        : match.TeamB?.Currency?.Name;
-                    var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
-                    var audioResponse = audioRequest is null
-                        ? null
-                        : await ResolveProceduralAudioAsync(audioRequest, ct);
-
-                    db.MatchScoreEvent.Add(new MatchScoreEvent
+                    if (match.ScoreA != candleBattleResult.ScoreA || match.ScoreB != candleBattleResult.ScoreB)
                     {
-                        MatchId = match.MatchId,
-                        TeamId = scoreEvent.TeamId,
-                        RuleType = scoreEvent.RuleType,
-                        EventType = scoreEvent.EventType,
-                        ReasonCode = scoreEvent.ReasonCode,
-                        Points = scoreEvent.Points,
-                        EventSequence = scoreState.LastEventSequence,
-                        TeamPercentageChange = scoreEvent.TeamPercentageChange,
-                        OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
-                        TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
-                        OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
-                        MetricDelta = scoreEvent.MetricDelta,
-                        WindowStartUtc = scoreEvent.WindowStartUtc,
-                        WindowEndUtc = scoreEvent.WindowEndUtc,
-                        Description = scoreEvent.Description,
-                        EventTimeUtc = scoreEvent.EventTimeUtc,
-                        AudioContextKey = audioRequest?.ContextKey,
-                        AudioIntensity = audioRequest?.Intensity,
-                        AudioVoiceKey = audioRequest?.VoiceKey,
-                        AudioAssetId = audioResponse?.AssetId,
-                        AudioUrl = audioResponse?.AudioUrl,
-                        AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
-                        AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
+                        match.ScoreA = candleBattleResult.ScoreA;
+                        match.ScoreB = candleBattleResult.ScoreB;
+
+                        _logger.LogInformation(
+                            "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
+                            match.MatchId, match.ScoringRuleType, match.ScoreA, match.ScoreB);
+                    }
+
+                    foreach (var scoreEvent in candleBattleResult.Events)
+                    {
+                        scoreState.LastEventSequence++;
+                        var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
+                        var teamName = scoreEvent.TeamId == match.TeamAId
+                            ? match.TeamA?.Currency?.Name
+                            : match.TeamB?.Currency?.Name;
+                        var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
+                        var audioResponse = audioRequest is null
+                            ? null
+                            : await ResolveProceduralAudioAsync(audioRequest, ct);
+
+                        db.MatchScoreEvent.Add(new MatchScoreEvent
+                        {
+                            MatchId = match.MatchId,
+                            TeamId = scoreEvent.TeamId,
+                            RuleType = scoreEvent.RuleType,
+                            EventType = scoreEvent.EventType,
+                            ReasonCode = scoreEvent.ReasonCode,
+                            Points = scoreEvent.Points,
+                            EventSequence = scoreState.LastEventSequence,
+                            TeamPercentageChange = scoreEvent.TeamPercentageChange,
+                            OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
+                            TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
+                            OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
+                            MetricDelta = scoreEvent.MetricDelta,
+                            WindowStartUtc = scoreEvent.WindowStartUtc,
+                            WindowEndUtc = scoreEvent.WindowEndUtc,
+                            Description = scoreEvent.Description,
+                            EventTimeUtc = scoreEvent.EventTimeUtc,
+                            AudioContextKey = audioRequest?.ContextKey,
+                            AudioIntensity = audioRequest?.Intensity,
+                            AudioVoiceKey = audioRequest?.VoiceKey,
+                            AudioAssetId = audioResponse?.AssetId,
+                            AudioUrl = audioResponse?.AudioUrl,
+                            AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
+                            AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
+                        });
+
+                        _logger.LogInformation(
+                            "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
+                            match.MatchId,
+                            scoreState.LastEventSequence,
+                            scoreEvent.TeamId,
+                            scoreEvent.RuleType,
+                            scoreEvent.EventType,
+                            scoreEvent.Description,
+                            audioResponse?.Found ?? false,
+                            audioResponse?.FallbackUsed ?? false,
+                            audioResponse?.Queued ?? false);
+                    }
+                }
+                else
+                {
+                    var closedWindows = match.ScoringRuleType == MatchScoringRuleType.VolumeWindow && match.StartTime.HasValue
+                        ? await LoadClosedVolumeWindowsAsync(
+                            currentTeamA.Symbol,
+                            currentTeamB.Symbol,
+                            ToUtcSafe(match.StartTime.Value),
+                            nowUtc,
+                            scoreState.LastProcessedVolumeWindowEndUtc,
+                            ct)
+                        : Array.Empty<ClosedVolumeWindow>();
+
+                    var scoringResult = scoringEngine.Evaluate(new MatchScoringContext
+                    {
+                        RuleType = match.ScoringRuleType,
+                        CurrentScoreA = match.ScoreA,
+                        CurrentScoreB = match.ScoreB,
+                        TeamA = currentTeamA,
+                        TeamB = currentTeamB,
+                        PreviousTeamA = previousSnapshots.TeamA,
+                        PreviousTeamB = previousSnapshots.TeamB,
+                        State = scoreState,
+                        EvaluatedAtUtc = nowUtc,
+                        PercentThresholds = _options.Scoring.PercentThresholds,
+                        ClosedVolumeWindows = closedWindows
                     });
 
-                    _logger.LogInformation(
-                        "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
-                        match.MatchId,
-                        scoreState.LastEventSequence,
-                        scoreEvent.TeamId,
-                        scoreEvent.RuleType,
-                        scoreEvent.EventType,
-                        scoreEvent.Description,
-                        audioResponse?.Found ?? false,
-                        audioResponse?.FallbackUsed ?? false,
-                        audioResponse?.Queued ?? false);
+                    if (match.ScoreA != scoringResult.ScoreA || match.ScoreB != scoringResult.ScoreB)
+                    {
+                        match.ScoreA = scoringResult.ScoreA;
+                        match.ScoreB = scoringResult.ScoreB;
+
+                        _logger.LogInformation(
+                            "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
+                            match.MatchId, match.ScoringRuleType, match.ScoreA, match.ScoreB);
+                    }
+
+                    foreach (var scoreEvent in scoringResult.Events)
+                    {
+                        scoreState.LastEventSequence++;
+                        var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
+                        var teamName = scoreEvent.TeamId == match.TeamAId
+                            ? match.TeamA?.Currency?.Name
+                            : match.TeamB?.Currency?.Name;
+                        var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
+                        var audioResponse = audioRequest is null
+                            ? null
+                            : await ResolveProceduralAudioAsync(audioRequest, ct);
+
+                        db.MatchScoreEvent.Add(new MatchScoreEvent
+                        {
+                            MatchId = match.MatchId,
+                            TeamId = scoreEvent.TeamId,
+                            RuleType = scoreEvent.RuleType,
+                            EventType = scoreEvent.EventType,
+                            ReasonCode = scoreEvent.ReasonCode,
+                            Points = scoreEvent.Points,
+                            EventSequence = scoreState.LastEventSequence,
+                            TeamPercentageChange = scoreEvent.TeamPercentageChange,
+                            OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
+                            TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
+                            OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
+                            MetricDelta = scoreEvent.MetricDelta,
+                            WindowStartUtc = scoreEvent.WindowStartUtc,
+                            WindowEndUtc = scoreEvent.WindowEndUtc,
+                            Description = scoreEvent.Description,
+                            EventTimeUtc = scoreEvent.EventTimeUtc,
+                            AudioContextKey = audioRequest?.ContextKey,
+                            AudioIntensity = audioRequest?.Intensity,
+                            AudioVoiceKey = audioRequest?.VoiceKey,
+                            AudioAssetId = audioResponse?.AssetId,
+                            AudioUrl = audioResponse?.AudioUrl,
+                            AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
+                            AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
+                        });
+
+                        _logger.LogInformation(
+                            "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
+                            match.MatchId,
+                            scoreState.LastEventSequence,
+                            scoreEvent.TeamId,
+                            scoreEvent.RuleType,
+                            scoreEvent.EventType,
+                            scoreEvent.Description,
+                            audioResponse?.Found ?? false,
+                            audioResponse?.FallbackUsed ?? false,
+                            audioResponse?.Queued ?? false);
+                    }
                 }
 
                 await arenaSentimentService.CalculateArenaPressureGoalAsync(match.MatchId, ct);
@@ -2259,31 +2330,7 @@ namespace CriptoVersus.Worker
         {
             using var scope = _sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
-
-            var sql = @"
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.tables
-        WHERE table_schema = 'public'
-          AND table_name = 'match_score_state'
-    ) THEN
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_pressure_charges_a integer NOT NULL DEFAULT 0;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_pressure_charges_b integer NOT NULL DEFAULT 0;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_pressure_goals_awarded integer NOT NULL DEFAULT 0;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS cd_last_pressure_leader integer NULL;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS nr_last_pressure_leader_cycles integer NOT NULL DEFAULT 0;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_a timestamp with time zone NULL;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_last_pressure_goal_b timestamp with time zone NULL;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS cd_current_pressure_dominance_leader integer NULL;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS dt_current_pressure_dominance_started timestamp with time zone NULL;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS fl_current_pressure_dominance_resolved boolean NOT NULL DEFAULT FALSE;
-        ALTER TABLE public.match_score_state ADD COLUMN IF NOT EXISTS fl_current_pressure_dominance_goal_awarded boolean NOT NULL DEFAULT FALSE;
-    END IF;
-END $$;";
-
-            await db.Database.ExecuteSqlRawAsync(sql, ct);
+            await MatchScoreStateSchema.EnsureAllAsync(db, ct);
         }
 
         private async Task WriteWorkerStatusAsync(

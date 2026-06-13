@@ -258,6 +258,14 @@
 
 <style>
     .tv-candle-battle {
+        --team-left-color: #ff9100;
+        --team-left-color-soft: rgba(255, 145, 0, .72);
+        --team-left-color-glow: rgba(255, 145, 0, .22);
+        --team-left-color-faint: rgba(255, 145, 0, .08);
+        --team-right-color: #18d8d2;
+        --team-right-color-soft: rgba(24, 216, 210, .72);
+        --team-right-color-glow: rgba(24, 216, 210, .22);
+        --team-right-color-faint: rgba(24, 216, 210, .08);
         container-type: inline-size;
         container-name: candle-battle;
         width: 100%;
@@ -372,13 +380,13 @@
     }
 
     .tv-candle-battle__score-side--left b {
-        color: rgba(42,201,255,.92);
-        text-shadow: 0 0 14px rgba(0,255,214,.22);
+        color: var(--team-left-color);
+        text-shadow: 0 0 14px var(--team-left-color-glow);
     }
 
     .tv-candle-battle__score-side--right b {
-        color: rgba(255,166,0,.96);
-        text-shadow: 0 0 14px rgba(255,128,0,.22);
+        color: var(--team-right-color);
+        text-shadow: 0 0 14px var(--team-right-color-glow);
     }
 
     .tv-candle-battle__score-center {
@@ -444,13 +452,13 @@
     .tv-candle-battle__score-momentum-fill--left,
     .tv-candle-battle__sidebar-momentum-fill--left {
         left: 0;
-        background: linear-gradient(90deg, rgba(42,201,255,.92), rgba(0,255,214,.88));
+        background: linear-gradient(90deg, var(--team-left-color), var(--team-left-color-soft));
     }
 
     .tv-candle-battle__score-momentum-fill--right,
     .tv-candle-battle__sidebar-momentum-fill--right {
         right: 0;
-        background: linear-gradient(90deg, rgba(255,166,0,.96), rgba(255,128,0,.84));
+        background: linear-gradient(90deg, var(--team-right-color), var(--team-right-color-soft));
     }
 
     .tv-candle-battle__score-momentum-meta {
@@ -511,11 +519,11 @@
     }
 
     .tv-candle-battle-card__kicker--left {
-        color: rgba(255,215,110,.94);
+        color: var(--team-left-color);
     }
 
     .tv-candle-battle-card__kicker--right {
-        color: rgba(83,200,255,.94);
+        color: var(--team-right-color);
     }
 
     .tv-candle-battle-card__head strong {
@@ -526,16 +534,26 @@
     .tv-candle-battle-card__head em {
         flex: 0 0 auto;
         padding: 6px 12px;
-        border: 1px solid rgba(42,201,255,.14);
+        border: 1px solid rgba(255,255,255,.10);
         border-radius: 999px;
-        background: rgba(42,201,255,.08);
+        background: rgba(255,255,255,.04);
         font-style: normal;
         font-weight: 900;
         white-space: nowrap;
     }
 
+    .tv-candle-battle-card--left .tv-candle-battle-card__head em {
+        border-color: var(--team-left-color-glow);
+        background: var(--team-left-color-faint);
+    }
+
+    .tv-candle-battle-card--right .tv-candle-battle-card__head em {
+        border-color: var(--team-right-color-glow);
+        background: var(--team-right-color-faint);
+    }
+
     .tv-change--positive {
-        color: #7ff6df;
+        color: var(--team-right-color);
     }
 
     .tv-change--negative {
@@ -571,11 +589,11 @@
         }
 
         .tv-candle-battle-card__legend .is-left::before {
-            background: linear-gradient(90deg, rgba(42,201,255,.92), rgba(0,255,214,.88));
+            background: linear-gradient(90deg, var(--team-left-color), var(--team-left-color-soft));
         }
 
         .tv-candle-battle-card__legend .is-right::before {
-            background: linear-gradient(90deg, rgba(255,166,0,.96), rgba(255,128,0,.84));
+            background: linear-gradient(90deg, var(--team-right-color), var(--team-right-color-soft));
         }
 
         .tv-candle-battle-card__legend .is-tie::before {
@@ -625,18 +643,18 @@
         vector-effect: non-scaling-stroke;
     }
 
-    .tv-candle-battle__wick--up,
-    .tv-candle-battle__body--up {
-        stroke: rgba(42,201,255,.96);
-        fill: rgba(42,201,255,.72);
-        filter: drop-shadow(0 0 7px rgba(42,201,255,.18));
+    .tv-candle-battle__wick--left,
+    .tv-candle-battle__body--left {
+        stroke: var(--team-left-color);
+        fill: var(--team-left-color-soft);
+        filter: drop-shadow(0 0 7px var(--team-left-color-glow));
     }
 
-    .tv-candle-battle__wick--down,
-    .tv-candle-battle__body--down {
-        stroke: rgba(255,166,0,.96);
-        fill: rgba(255,166,0,.72);
-        filter: drop-shadow(0 0 7px rgba(255,128,0,.16));
+    .tv-candle-battle__wick--right,
+    .tv-candle-battle__body--right {
+        stroke: var(--team-right-color);
+        fill: var(--team-right-color-soft);
+        filter: drop-shadow(0 0 7px var(--team-right-color-glow));
     }
 
     .tv-candle-battle__empty {
@@ -702,11 +720,11 @@
     }
 
         .tv-candle-battle-card__timeline-marker.is-left {
-            background: linear-gradient(90deg, rgba(42,201,255,.92), rgba(0,255,214,.88));
+            background: linear-gradient(90deg, var(--team-left-color), var(--team-left-color-soft));
         }
 
         .tv-candle-battle-card__timeline-marker.is-right {
-            background: linear-gradient(90deg, rgba(255,166,0,.96), rgba(255,128,0,.84));
+            background: linear-gradient(90deg, var(--team-right-color), var(--team-right-color-soft));
         }
 
         .tv-candle-battle-card__timeline-marker.is-tie {
@@ -766,17 +784,22 @@
         .tv-candle-battle__sidebar-kicker strong,
         .tv-candle-battle__sidebar-badge {
             padding: 6px 12px;
-            border: 1px solid rgba(127,246,223,.22);
+            border: 1px solid rgba(154,167,184,.22);
             border-radius: 999px;
-            background: rgba(42,201,255,.08);
+            background: rgba(154,167,184,.08);
             color: #f5fbff;
             font-size: .7rem;
             font-weight: 900;
         }
 
+            .tv-candle-battle__sidebar-kicker strong.is-left {
+                border-color: var(--team-left-color-glow);
+                background: var(--team-left-color-faint);
+            }
+
             .tv-candle-battle__sidebar-kicker strong.is-right {
-                border-color: rgba(255,166,0,.22);
-                background: rgba(255,128,0,.08);
+                border-color: var(--team-right-color-glow);
+                background: var(--team-right-color-faint);
             }
 
             .tv-candle-battle__sidebar-kicker strong.is-tie {
@@ -805,7 +828,7 @@
     }
 
     .tv-candle-battle__sidebar-section-head strong {
-        color: #96ffd9;
+        color: var(--team-right-color);
         font-size: .68rem;
         font-weight: 900;
     }
@@ -828,11 +851,11 @@
         }
 
             .tv-candle-battle__sidebar-row strong.is-left {
-                color: rgba(42,201,255,.92);
+                color: var(--team-left-color);
             }
 
             .tv-candle-battle__sidebar-row strong.is-right {
-                color: rgba(255,166,0,.96);
+                color: var(--team-right-color);
             }
 
     .tv-candle-battle__sidebar-muted {
@@ -851,16 +874,22 @@
     .tv-candle-battle__sidebar-streak-icon {
         width: 18px;
         height: 18px;
-        border: 1px solid rgba(127,246,223,.22);
+        border: 1px solid var(--team-left-color-glow);
         border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(127,246,223,.82) 38%, rgba(42,201,255,.92) 68%, transparent 72%);
-        box-shadow: 0 0 18px rgba(0,255,214,.24);
+        background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), var(--team-left-color-soft) 38%, var(--team-left-color) 68%, transparent 72%);
+        box-shadow: 0 0 18px var(--team-left-color-glow);
     }
 
+        .tv-candle-battle__sidebar-streak-icon.is-left {
+            border-color: var(--team-left-color-glow);
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), var(--team-left-color-soft) 38%, var(--team-left-color) 68%, transparent 72%);
+            box-shadow: 0 0 18px var(--team-left-color-glow);
+        }
+
         .tv-candle-battle__sidebar-streak-icon.is-right {
-            border-color: rgba(255,166,0,.22);
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.96), rgba(255,166,0,.82) 38%, rgba(255,128,0,.9) 68%, transparent 72%);
-            box-shadow: 0 0 18px rgba(255,128,0,.22);
+            border-color: var(--team-right-color-glow);
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.96), var(--team-right-color-soft) 38%, var(--team-right-color) 68%, transparent 72%);
+            box-shadow: 0 0 18px var(--team-right-color-glow);
         }
 
         .tv-candle-battle__sidebar-streak-icon.is-tie {
@@ -884,11 +913,11 @@
     }
 
         .tv-candle-battle__sidebar-streak strong.is-left {
-            color: rgba(42,201,255,.92);
+            color: var(--team-left-color);
         }
 
         .tv-candle-battle__sidebar-streak strong.is-right {
-            color: rgba(255,166,0,.96);
+            color: var(--team-right-color);
         }
 
         .tv-candle-battle__sidebar-streak strong.is-tie {
@@ -1116,8 +1145,8 @@
 
     private IReadOnlyList<TvPriceChartPoint> OrderedLeftPoints => NormalizePoints(LeftPoints);
     private IReadOnlyList<TvPriceChartPoint> OrderedRightPoints => NormalizePoints(RightPoints);
-    private IReadOnlyList<ChartCandleVisual> LeftChartCandles => BuildChartCandles(OrderedLeftPoints);
-    private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints);
+    private IReadOnlyList<ChartCandleVisual> LeftChartCandles => BuildChartCandles(OrderedLeftPoints, BattleSide.Left);
+    private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints, BattleSide.Right);
     private IReadOnlyList<BattleCandle> BattleCandles => BuildBattleCandles();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
 
@@ -1152,7 +1181,7 @@
                 .OrderBy(x => x.Time)
                 .ToList();
 
-    private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPriceChartPoint> points)
+    private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPriceChartPoint> points, BattleSide visualSide)
     {
         if (points.Count < 2)
             return Array.Empty<ChartCandleVisual>();
@@ -1185,7 +1214,7 @@
             var closeY = MapY(close, min, max);
             var highY = MapY(high, min, max);
             var lowY = MapY(low, min, max);
-            var isUp = close >= open;
+            var sideClass = visualSide == BattleSide.Left ? "left" : "right";
             var bodyY = Math.Min(openY, closeY);
             var bodyHeight = Math.Max(3d, Math.Abs(closeY - openY));
 
@@ -1198,8 +1227,8 @@
                 BodyY = bodyY,
                 BodyWidth = bodyWidth,
                 BodyHeight = bodyHeight,
-                WickClass = isUp ? "tv-candle-battle__wick tv-candle-battle__wick--up" : "tv-candle-battle__wick tv-candle-battle__wick--down",
-                BodyClass = isUp ? "tv-candle-battle__body tv-candle-battle__body--up" : "tv-candle-battle__body tv-candle-battle__body--down"
+                WickClass = $"tv-candle-battle__wick tv-candle-battle__wick--{sideClass}",
+                BodyClass = $"tv-candle-battle__body tv-candle-battle__body--{sideClass}"
             });
         }
 

@@ -6,6 +6,7 @@ namespace DAL.NftFutebol
         PercentageCrossover = 1,
         VolumeWindow = 2,
         VolumeCrossover = 3,
-        ArenaPressure = 4
+        ArenaPressure = 4,
+        CandleBattleLeadChange = 5
     }
 }

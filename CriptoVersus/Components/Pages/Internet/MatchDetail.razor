@@ -2842,6 +2842,7 @@
             "VolumeWindow" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) by leading the volume window.",
             "VolumeCrossover" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) on an upward volume crossover.",
             "ArenaPressure" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) through Arena Pressure dominance.",
+            "CandleBattleLeadChange" => $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s) by taking the Candle Battle lead.",
             _ => string.IsNullOrWhiteSpace(scoreEvent.Description)
                 ? $"{scoreEvent.TeamSymbol} scored {scoreEvent.Points} point(s)."
                 : scoreEvent.Description
@@ -3834,6 +3835,7 @@
             "PercentageCrossover" => T("crossoverPercent"),
             "VolumeWindow" => T("volumeWindow"),
             "VolumeCrossover" => T("volumeCrossover"),
+            "CandleBattleLeadChange" => T("candleBattleLeadChange"),
             _ => ruleType
         };
 

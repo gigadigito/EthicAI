@@ -16,6 +16,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Microsoft.Extensions.FileProviders;
 using System.Text;
+using DAL.NftFutebol;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,6 +69,7 @@ builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
 builder.Services.AddSingleton<ISocialVsRenderService, SocialVsRenderService>();
 builder.Services.AddSingleton<ISocialComposeFinalService, SocialComposeFinalService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
+builder.Services.AddScoped<BLL.NFTFutebol.ICandleBattleScoringService, BLL.NFTFutebol.CandleBattleScoringService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient(nameof(SocialVsRenderService));
 builder.Services.AddHttpClient(nameof(SocialComposeFinalService));
@@ -189,6 +191,7 @@ using (var scope = app.Services.CreateScope())
     var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<EthicAIDbContext>>();
     using var context = dbContextFactory.CreateDbContext();
     context.Database.Migrate();
+    await MatchScoreStateSchema.EnsureAllAsync(context);
     var seedService = scope.ServiceProvider.GetRequiredService<IProceduralAudioSeedService>();
     await seedService.EnsureSeedAsync();
 }

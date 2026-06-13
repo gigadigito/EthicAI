@@ -13,6 +13,7 @@ using CriptoVersus.Worker;
 using BLL;
 using BLL.Blockchain;
 using DTOs;
+using DAL.NftFutebol;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -129,6 +130,7 @@ builder.Services.AddScoped<DataRetentionService>();
 builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();
 builder.Services.AddScoped<FullOnChainFundsService>();
+builder.Services.AddScoped<ICandleBattleScoringService, CandleBattleScoringService>();
 builder.Services.AddScoped<ICriptoVersusFundsService>(sp =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<CriptoVersusBlockchainOptions>>().Value;
@@ -181,6 +183,7 @@ using (var scope = host.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
     context.Database.Migrate();
+    await MatchScoreStateSchema.EnsureAllAsync(context);
 }
 
 host.Services.GetRequiredService<ILoggerFactory>()

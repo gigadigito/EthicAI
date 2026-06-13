@@ -901,6 +901,30 @@ namespace EthicAI.EntityModel
                       .HasColumnType("timestamp with time zone")
                       .HasColumnName("dt_last_snapshot_at");
 
+                entity.Property(e => e.CandleBattleWinsA)
+                      .HasColumnName("nr_candle_battle_wins_a")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.CandleBattleWinsB)
+                      .HasColumnName("nr_candle_battle_wins_b")
+                      .HasDefaultValue(0);
+
+                entity.Property(e => e.LastCandleBattleLeaderTeamId)
+                      .HasColumnName("cd_last_candle_battle_leader")
+                      .IsRequired(false);
+
+                entity.Property(e => e.LastCandleBattleProcessedAtUtc)
+                      .HasColumnType("timestamp with time zone")
+                      .HasColumnName("dt_last_candle_battle_processed_at");
+
+                entity.Property(e => e.LastCandleBattleClosePriceA)
+                      .HasColumnType("numeric(28, 8)")
+                      .HasColumnName("nr_last_candle_battle_close_price_a");
+
+                entity.Property(e => e.LastCandleBattleClosePriceB)
+                      .HasColumnType("numeric(28, 8)")
+                      .HasColumnName("nr_last_candle_battle_close_price_b");
+
                 entity.Property(e => e.TeamAPressureCharges)
                       .HasColumnName("nr_pressure_charges_a")
                       .HasDefaultValue(0);

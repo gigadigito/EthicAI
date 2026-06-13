@@ -1125,6 +1125,7 @@
     "volumeHistoryCrossover": "Volume history (crossover)",
     "volumeHistory": "Volume history",
     "comparisonBasedOnVolumeCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "Comparison based on volume crossover: a point only appears when one team's line crosses the other's from bottom to top.",
+    "candleBattleLeadChange": "Candle Battle lead change",
     "volumeDisplayedForMatchTracking": "Volume displayed for match tracking.",
     "crossoverPercent": "Crossover %",
     "volumeWindow": "Volume window",

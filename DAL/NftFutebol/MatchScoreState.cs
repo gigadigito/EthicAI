@@ -11,6 +11,12 @@ namespace DAL.NftFutebol
         public DateTime? LastProcessedVolumeWindowEndUtc { get; set; }
         public int LastEventSequence { get; set; }
         public DateTime? LastSnapshotAtUtc { get; set; }
+        public int CandleBattleWinsA { get; set; }
+        public int CandleBattleWinsB { get; set; }
+        public int? LastCandleBattleLeaderTeamId { get; set; }
+        public DateTime? LastCandleBattleProcessedAtUtc { get; set; }
+        public decimal? LastCandleBattleClosePriceA { get; set; }
+        public decimal? LastCandleBattleClosePriceB { get; set; }
         public int TeamAPressureCharges { get; set; }
         public int TeamBPressureCharges { get; set; }
         public int TotalPressureGoalsAwarded { get; set; }

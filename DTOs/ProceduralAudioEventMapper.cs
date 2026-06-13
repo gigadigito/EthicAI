@@ -85,6 +85,7 @@ public static class ProceduralAudioEventMapper
         return normalizedType switch
         {
             "ARENA_PRESSURE_GOAL" => Create(scoreEventType, "goal", normalizedSymbol, "arena_pressure", "hype", 100),
+            "CANDLE_BATTLE_LEAD_CHANGE" => Create(scoreEventType, "goal", normalizedSymbol, "candle_battle", UpgradeIntensity(intensity, "hype"), 99),
             "PERCENT_THRESHOLD_REACHED" => Create(scoreEventType, "market_pump", normalizedSymbol, "threshold_break", UpgradeIntensity(intensity, "hype"), 78),
             "PERCENTAGE_CROSSOVER_UP" => Create(
                 scoreEventType,
