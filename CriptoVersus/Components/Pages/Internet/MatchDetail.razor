@@ -2509,14 +2509,18 @@
 
     private string BuildTelemetrySignature()
     {
+        var leftSnapshot = _leftPriceBattlePoints?.ToArray() ?? Array.Empty<TvPriceChartPoint>();
+        var rightSnapshot = _rightPriceBattlePoints?.ToArray() ?? Array.Empty<TvPriceChartPoint>();
+        var scoreSnapshot = _scoreEvents?.ToArray() ?? Array.Empty<MatchScoreEventDto>();
+
         var leftTail = string.Join(",",
-            _leftPriceBattlePoints.Select(point => $"{point.Time}:{point.Value:0.##########}"));
+            leftSnapshot.Select(point => $"{point.Time}:{point.Value:0.##########}"));
 
         var rightTail = string.Join(",",
-            _rightPriceBattlePoints.Select(point => $"{point.Time}:{point.Value:0.##########}"));
+            rightSnapshot.Select(point => $"{point.Time}:{point.Value:0.##########}"));
 
         var scoreTail = string.Join(",",
-            _scoreEvents.Select(item => $"{item.MatchScoreEventId}:{item.EventSequence}:{item.EventTimeUtc:O}"));
+            scoreSnapshot.Select(item => $"{item.MatchScoreEventId}:{item.EventSequence}:{item.EventTimeUtc:O}"));
 
         return string.Join("|",
             CurrentCulture,
