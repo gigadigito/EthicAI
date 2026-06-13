@@ -106,10 +106,7 @@ else
         display: grid;
         place-items: center;
         padding: 2rem;
-        background:
-            radial-gradient(circle at top left, rgba(83, 200, 255, 0.12), transparent 24%),
-            radial-gradient(circle at top right, rgba(76, 243, 141, 0.14), transparent 22%),
-            linear-gradient(180deg, #02060f, #050914 52%, #040812);
+        background: radial-gradient(circle at top left, rgba(83, 200, 255, 0.12), transparent 24%), radial-gradient(circle at top right, rgba(76, 243, 141, 0.14), transparent 22%), linear-gradient(180deg, #02060f, #050914 52%, #040812);
     }
 
     .tv-match-page-state-card {
@@ -117,10 +114,7 @@ else
         padding: 1.5rem;
         border-radius: 28px;
         border: 1px solid rgba(127, 246, 223, 0.18);
-        background:
-            radial-gradient(circle at top left, rgba(76, 243, 141, 0.12), transparent 28%),
-            radial-gradient(circle at top right, rgba(96, 165, 250, 0.10), transparent 26%),
-            linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
+        background: radial-gradient(circle at top left, rgba(76, 243, 141, 0.12), transparent 28%), radial-gradient(circle at top right, rgba(96, 165, 250, 0.10), transparent 26%), linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
         box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
         color: #eef5ff;
         text-align: center;
@@ -174,10 +168,10 @@ else
         letter-spacing: 0.03em;
     }
 
-    .tv-match-page-state-card__retry:disabled {
-        opacity: 0.7;
-        cursor: wait;
-    }
+        .tv-match-page-state-card__retry:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
 
     @@keyframes tvMatchPageSpin {
         to {
@@ -203,7 +197,7 @@ else
 
 @code {
     private const int RefreshIntervalSeconds = 15;
-    private static readonly TimeSpan InitialLoadTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan InitialLoadTimeout = TimeSpan.FromSeconds(8);
 
     [Parameter] public string? Culture { get; set; }
     [Parameter] public int MatchId { get; set; }
@@ -218,6 +212,7 @@ else
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
     private int _refreshInProgress;
+    private bool _secondaryDataLoadStarted;
     private TvMatchPageLoadState _loadState = TvMatchPageLoadState.Loading;
     private bool _topCoinsLoading = true;
     private bool _latestBattlesLoading = true;
@@ -225,6 +220,7 @@ else
     private string? _topCoinsError;
     private string? _latestBattlesError;
     private string? _marketPulseError;
+
     private string LoadStateTitle => _loadState switch
     {
         TvMatchPageLoadState.NotFound => LocalizedTvMatchText("notFound"),
@@ -232,6 +228,7 @@ else
         TvMatchPageLoadState.Error => LocalizedTvMatchText("error"),
         _ => LocalizedTvMatchText("loading")
     };
+
     private string LoadStateBody => _loadState switch
     {
         TvMatchPageLoadState.NotFound => LocalizedTvMatchText("notFoundBody"),
@@ -239,21 +236,27 @@ else
         TvMatchPageLoadState.Error => LocalizedTvMatchText("errorBody"),
         _ => LocalizedTvMatchText("loadingBody")
     };
+
     private string PageTitleText
         => _match is null
             ? L.T("tv.seo.title", _culture)
             : L.T("tv.seo.matchTitle", _culture, _match.TeamA, _match.TeamB);
+
     private string MetaDescription
         => _match is null
             ? L.T("tv.seo.matchDescriptionFallback", _culture)
             : L.T("tv.seo.matchDescription", _culture, _match.TeamA, _match.TeamB);
+
     private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(_culture, MatchId, ResolvedSlug));
     private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(AppCultureService.DefaultRouteCulture, MatchId, ResolvedSlug));
     private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTvMatchPath(AppCultureService.SecondaryRouteCulture, MatchId, ResolvedSlug));
+
     private string MetaKeywords => _match is null
         ? $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV match, #CriptoVersus TV, crypto battle stream"
         : $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV match, #CriptoVersus TV, {_match.TeamA} vs {_match.TeamB}, crypto match stream";
+
     private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+
     private string StructuredDataMarkup
         => JsonSerializer.Serialize(new Dictionary<string, object?>
         {
@@ -266,6 +269,7 @@ else
             ["keywords"] = MetaKeywords,
             ["inLanguage"] = _culture
         });
+
     private string ResolvedSlug => !string.IsNullOrWhiteSpace(_match?.TeamA) && !string.IsNullOrWhiteSpace(_match?.TeamB)
         ? MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB)
         : Slug?.Trim().ToLowerInvariant() ?? "match";
@@ -280,7 +284,13 @@ else
     protected override async Task OnInitializedAsync()
     {
         var sw = Stopwatch.StartNew();
-        Logger.LogInformation("[TV_MATCH_LOAD] Start matchId={MatchId} slug={Slug} culture={Culture}", MatchId, Slug, Culture);
+
+        Logger.LogInformation(
+            "[TV_MATCH_LOAD] Start matchId={MatchId} slug={Slug} culture={Culture}",
+            MatchId,
+            Slug,
+            Culture);
+
         try
         {
             using var initialLoadCts = new CancellationTokenSource(InitialLoadTimeout);
@@ -288,11 +298,17 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "TvMatchPage initial load timed out or failed during prerender. Rendering fallback state. MatchId={MatchId}", MatchId);
+            Logger.LogWarning(
+                ex,
+                "TvMatchPage initial load timed out or failed during prerender. Rendering fallback state. MatchId={MatchId}",
+                MatchId);
         }
         finally
         {
-            Logger.LogInformation("[TV_MATCH_LOAD] OnInitializedAsync matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, sw.ElapsedMilliseconds);
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] OnInitializedAsync matchId={MatchId} elapsedMs={ElapsedMs}",
+                MatchId,
+                sw.ElapsedMilliseconds);
         }
     }
 
@@ -302,20 +318,33 @@ else
             return;
 
         var sw = Stopwatch.StartNew();
+
         try
         {
             _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
-            Logger.LogInformation("[TV_MATCH_LOAD] JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, sw.ElapsedMilliseconds);
+
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}",
+                MatchId,
+                sw.ElapsedMilliseconds);
+
             await LogAsync("loaded");
         }
         catch (Exception ex) when (ex is JSException or InvalidOperationException)
         {
-            Logger.LogWarning(ex, "TvMatchPage JS module import failed. Match data load remains available without TV JS bootstrap. MatchId={MatchId}", MatchId);
+            Logger.LogWarning(
+                ex,
+                "TvMatchPage JS module import failed. Match data load remains available without TV JS bootstrap. MatchId={MatchId}",
+                MatchId);
         }
 
         _refreshCts = new CancellationTokenSource();
         _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
-        Logger.LogInformation("TvMatchPage refresh loop started. MatchId={MatchId} IntervalSeconds={IntervalSeconds}", MatchId, RefreshIntervalSeconds);
+
+        Logger.LogInformation(
+            "TvMatchPage refresh loop started. MatchId={MatchId} IntervalSeconds={IntervalSeconds}",
+            MatchId,
+            RefreshIntervalSeconds);
     }
 
     private async Task RunRefreshLoopAsync(CancellationToken ct)
@@ -333,6 +362,7 @@ else
         {
         }
     }
+
     private async Task RefreshMatchOnlyAsync(CancellationToken ct)
     {
         if (_match is null)
@@ -379,11 +409,15 @@ else
                 MatchId);
         }
     }
+
     private async Task RefreshAsync(CancellationToken ct)
     {
         if (Interlocked.Exchange(ref _refreshInProgress, 1) == 1)
         {
-            Logger.LogInformation("TvMatchPage refresh skipped because another refresh is already running. MatchId={MatchId}", MatchId);
+            Logger.LogInformation(
+                "TvMatchPage refresh skipped because another refresh is already running. MatchId={MatchId}",
+                MatchId);
+
             return;
         }
 
@@ -393,12 +427,18 @@ else
 
         try
         {
-            Logger.LogInformation("[TV_MATCH_LOAD] RefreshAsync start matchId={MatchId} slug={Slug} initial={Initial}", MatchId, Slug, isInitialLoad);
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] RefreshAsync start matchId={MatchId} slug={Slug} initial={Initial}",
+                MatchId,
+                Slug,
+                isInitialLoad);
 
             if (isInitialLoad)
             {
                 _loadState = TvMatchPageLoadState.Loading;
                 _hotMatch = null;
+                _secondaryDataLoadStarted = false;
+
                 await InvokeAsync(StateHasChanged);
             }
 
@@ -427,8 +467,15 @@ else
                 return;
             }
 
-            var expectedPath = RouteLocalization.BuildTvMatchPath(_culture, match.MatchId, MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB));
-            var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+            var expectedPath = RouteLocalization.BuildTvMatchPath(
+                _culture,
+                match.MatchId,
+                MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB));
+
+            var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri)
+                .Split('?', '#')[0]
+                .Trim('/');
+
             if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
             {
                 Nav.NavigateTo(expectedPath, replace: true);
@@ -436,14 +483,21 @@ else
             }
 
             _match = match;
+
+            if (isInitialLoad)
+            {
+                await TryLoadInitialHotMatchAsync(ct);
+            }
+
             _loadState = TvMatchPageLoadState.Loaded;
 
             await InvokeAsync(StateHasChanged);
 
             Logger.LogInformation(
-                "[TV_MATCH_LOAD] FirstRenderReady matchId={MatchId} initial={Initial} elapsedMs={ElapsedMs}",
+                "[TV_MATCH_LOAD] FirstRenderReady matchId={MatchId} initial={Initial} hasHotMatch={HasHotMatch} elapsedMs={ElapsedMs}",
                 MatchId,
                 isInitialLoad,
+                _hotMatch is not null,
                 totalSw.ElapsedMilliseconds);
 
             if (isInitialLoad)
@@ -470,6 +524,7 @@ else
                 _topCoinsError ??= LocalizedTvMatchText("error");
                 _latestBattlesError ??= LocalizedTvMatchText("error");
                 _marketPulseError ??= LocalizedTvMatchText("error");
+
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -487,18 +542,72 @@ else
             }
 
             Logger.LogWarning(ex, "TvMatchPage refresh failed. MatchId={MatchId}", MatchId);
+
             await LogAsync("refresh error", ex.Message);
             await InvokeAsync(StateHasChanged);
         }
         finally
         {
-            Logger.LogInformation("[TV_MATCH_LOAD] Total matchId={MatchId} elapsedMs={ElapsedMs}", MatchId, totalSw.ElapsedMilliseconds);
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] Total matchId={MatchId} elapsedMs={ElapsedMs}",
+                MatchId,
+                totalSw.ElapsedMilliseconds);
+
             Interlocked.Exchange(ref _refreshInProgress, 0);
         }
     }
-    
+
+    private async Task TryLoadInitialHotMatchAsync(CancellationToken ct)
+    {
+        if (MatchId <= 0)
+            return;
+
+        var sw = Stopwatch.StartNew();
+
+        try
+        {
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] InitialHotMatch start matchId={MatchId}",
+                MatchId);
+
+            var hotMatches = await MeasureLoadCallAsync(
+                "HotMatchService.GetHotMatchesAsync initial",
+                () => HotMatches.GetHotMatchesAsync(ct));
+
+            var hotMatch = hotMatches?.FirstOrDefault(x => x.MatchId == MatchId);
+
+            _hotMatch = hotMatch is not null
+                ? HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization)
+                : null;
+
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] InitialHotMatch completed matchId={MatchId} hasHotMatch={HasHotMatch} elapsedMs={ElapsedMs}",
+                MatchId,
+                _hotMatch is not null,
+                sw.ElapsedMilliseconds);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogWarning(
+                "[TV_MATCH_LOAD] InitialHotMatch canceled. TvStage will render with Match fallback. MatchId={MatchId}",
+                MatchId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(
+                ex,
+                "[TV_MATCH_LOAD] InitialHotMatch failed. TvStage will render with Match fallback. MatchId={MatchId}",
+                MatchId);
+        }
+    }
+
     private void StartSecondaryDataLoad()
     {
+        if (_secondaryDataLoadStarted)
+            return;
+
+        _secondaryDataLoadStarted = true;
+
         var token = _refreshCts?.Token ?? CancellationToken.None;
 
         _ = Task.Run(async () =>
@@ -509,17 +618,23 @@ else
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, "[TV_MATCH_LOAD] SecondaryData background task crashed. MatchId={MatchId}", MatchId);
+                Logger.LogWarning(
+                    ex,
+                    "[TV_MATCH_LOAD] SecondaryData background task crashed. MatchId={MatchId}",
+                    MatchId);
             }
         }, token);
     }
+
     private async Task LoadSecondaryDataAsync(CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
 
         try
         {
-            Logger.LogInformation("[TV_MATCH_LOAD] SecondaryData start matchId={MatchId}", MatchId);
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] SecondaryData start matchId={MatchId}",
+                MatchId);
 
             var hotTask = MeasureLoadCallAsync(
                 "HotMatchService.GetHotMatchesAsync",
@@ -542,7 +657,7 @@ else
 
             _hotMatch = hotMatch is not null
                 ? HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization)
-                : null;
+                : _hotMatch;
 
             _topCoinsLoading = false;
             _latestBattlesLoading = false;
@@ -553,7 +668,14 @@ else
 
             if (hotMatch is not null)
             {
-                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore });
+                await LogAsync(
+                    "[HOT_MATCH] refreshed",
+                    new
+                    {
+                        hotMatch.MatchId,
+                        hotMatch.HotScore,
+                        hotMatch.PriorityScore
+                    });
             }
 
             await InvokeAsync(StateHasChanged);
@@ -576,29 +698,46 @@ else
             _latestBattlesError ??= LocalizedTvMatchText("error");
             _marketPulseError ??= LocalizedTvMatchText("error");
 
-            Logger.LogWarning(ex, "[TV_MATCH_LOAD] SecondaryData failed. MatchId={MatchId}", MatchId);
+            Logger.LogWarning(
+                ex,
+                "[TV_MATCH_LOAD] SecondaryData failed. MatchId={MatchId}",
+                MatchId);
+
             await InvokeAsync(StateHasChanged);
         }
     }
+
     private async Task<T> MeasureLoadCallAsync<T>(string name, Func<Task<T>?> action)
     {
         var sw = Stopwatch.StartNew();
+
         try
         {
             var task = action() ?? throw new InvalidOperationException($"TV match load call returned null task: {name}");
             var result = await task;
-            Logger.LogInformation("[TV_MATCH_LOAD] {Call} elapsedMs={ElapsedMs}", name, sw.ElapsedMilliseconds);
+
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] {Call} elapsedMs={ElapsedMs}",
+                name,
+                sw.ElapsedMilliseconds);
+
             return result;
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "[TV_MATCH_LOAD] {Call} failed elapsedMs={ElapsedMs}", name, sw.ElapsedMilliseconds);
+            Logger.LogWarning(
+                ex,
+                "[TV_MATCH_LOAD] {Call} failed elapsedMs={ElapsedMs}",
+                name,
+                sw.ElapsedMilliseconds);
+
             throw;
         }
     }
 
     private async Task RetryLoadAsync()
     {
+        _secondaryDataLoadStarted = false;
         await RefreshAsync(CancellationToken.None);
     }
 
@@ -615,11 +754,15 @@ else
 
     private string LocalizedTvMatchText(string key)
     {
-        var isPortuguese = string.Equals(_culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
+        var isPortuguese = string.Equals(
+            _culture,
+            AppCultureService.SecondaryRouteCulture,
+            StringComparison.OrdinalIgnoreCase);
+
         return key switch
         {
             "loading" => isPortuguese ? "Carregando partida..." : "Loading match...",
-            "loadingBody" => isPortuguese ? "A arena esta preparando o confronto ao vivo." : "The arena is preparing the live matchup.",
+            "loadingBody" => isPortuguese ? "A arena está preparando o confronto ao vivo." : "The arena is preparing the live matchup.",
             "notFound" => isPortuguese ? "Partida não encontrada." : "Match not found.",
             "notFoundBody" => isPortuguese ? "Não foi possível localizar a partida solicitada." : "We couldn't locate the requested match.",
             "unavailable" => isPortuguese ? "Esta partida já terminou ou não está mais disponível." : "This match has already ended or is no longer available.",
@@ -678,9 +821,19 @@ else
             }
         }
 
-        Logger.LogInformation("TvMatchPage refresh loop disposed. MatchId={MatchId}", MatchId);
+        Logger.LogInformation(
+            "TvMatchPage refresh loop disposed. MatchId={MatchId}",
+            MatchId);
 
         if (_tvModule is not null)
-            await _tvModule.DisposeAsync();
+        {
+            try
+            {
+                await _tvModule.DisposeAsync();
+            }
+            catch
+            {
+            }
+        }
     }
 }
