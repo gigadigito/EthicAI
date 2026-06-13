@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using BLL.NFTFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
@@ -222,6 +223,49 @@ public sealed class ArenaSentimentService : IArenaSentimentService
             };
         }
 
+        var scoreEvent = new PendingMatchScoreEvent
+        {
+            TeamId = leaderTeamId,
+            RuleType = MatchScoringRuleType.ArenaPressure,
+            EventType = "ARENA_PRESSURE_GOAL",
+            ReasonCode = $"ARENA_SENTIMENT_DIFF_GTE_{settings.MinScoreDiff}",
+            Points = 1,
+            TeamPercentageChange = diff > 0 ? (decimal?)match.TeamA.Currency.PercentageChange : (decimal?)match.TeamB.Currency.PercentageChange,
+            OpponentPercentageChange = diff > 0 ? (decimal?)match.TeamB.Currency.PercentageChange : (decimal?)match.TeamA.Currency.PercentageChange,
+            TeamQuoteVolume = diff > 0 ? match.TeamA.Currency.QuoteVolume : match.TeamB.Currency.QuoteVolume,
+            OpponentQuoteVolume = diff > 0 ? match.TeamB.Currency.QuoteVolume : match.TeamA.Currency.QuoteVolume,
+            MetricDelta = Math.Abs(diff),
+            Description = $"Arena Pressure Goal: {leaderSymbol} manteve vantagem de sentimento sobre {loserSymbol} e converteu um gol bonus.",
+            EventTimeUtc = nowUtc
+        };
+
+        var duplicate = await MatchScoreEventDeduplication.FindDuplicateAsync(_db, match.MatchId, scoreEvent, ct);
+        if (duplicate is not null)
+        {
+            _logger.LogInformation(
+                "[ARENA_PRESSURE_GOAL_DUPLICATE_IGNORED] matchId={MatchId} ruleType={RuleType} teamId={TeamId} eventType={EventType} reasonCode={ReasonCode} eventTimeUtc={EventTimeUtc:o} existingEventId={ExistingEventId}",
+                match.MatchId,
+                scoreEvent.RuleType,
+                scoreEvent.TeamId,
+                scoreEvent.EventType,
+                scoreEvent.ReasonCode,
+                scoreEvent.EventTimeUtc,
+                duplicate.MatchScoreEventId);
+
+            return new ArenaPressureGoalResult
+            {
+                DataSufficient = true,
+                WinnerTeamId = leaderTeamId,
+                WinnerSymbol = leaderSymbol,
+                LoserSymbol = loserSymbol,
+                WinnerScore = winnerScore,
+                LoserScore = loserScore,
+                ScoreDiff = Math.Abs(diff),
+                ChargesBefore = chargesBefore,
+                ChargesAfter = chargesAfter
+            };
+        }
+
         if (isTeamA)
         {
             match.ScoreA += 1;
@@ -243,19 +287,19 @@ public sealed class ArenaSentimentService : IArenaSentimentService
         _db.MatchScoreEvent.Add(new MatchScoreEvent
         {
             MatchId = match.MatchId,
-            TeamId = leaderTeamId,
-            RuleType = MatchScoringRuleType.ArenaPressure,
-            EventType = "ARENA_PRESSURE_GOAL",
-            ReasonCode = $"ARENA_SENTIMENT_DIFF_GTE_{settings.MinScoreDiff}",
-            Points = 1,
+            TeamId = scoreEvent.TeamId,
+            RuleType = scoreEvent.RuleType,
+            EventType = scoreEvent.EventType,
+            ReasonCode = scoreEvent.ReasonCode,
+            Points = scoreEvent.Points,
             EventSequence = scoreState.LastEventSequence,
-            TeamPercentageChange = diff > 0 ? (decimal?)match.TeamA.Currency.PercentageChange : (decimal?)match.TeamB.Currency.PercentageChange,
-            OpponentPercentageChange = diff > 0 ? (decimal?)match.TeamB.Currency.PercentageChange : (decimal?)match.TeamA.Currency.PercentageChange,
-            TeamQuoteVolume = diff > 0 ? match.TeamA.Currency.QuoteVolume : match.TeamB.Currency.QuoteVolume,
-            OpponentQuoteVolume = diff > 0 ? match.TeamB.Currency.QuoteVolume : match.TeamA.Currency.QuoteVolume,
-            MetricDelta = Math.Abs(diff),
-            Description = $"Arena Pressure Goal: {leaderSymbol} manteve vantagem de sentimento sobre {loserSymbol} e converteu um gol bonus.",
-            EventTimeUtc = nowUtc
+            TeamPercentageChange = scoreEvent.TeamPercentageChange,
+            OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
+            TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
+            OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
+            MetricDelta = scoreEvent.MetricDelta,
+            Description = scoreEvent.Description,
+            EventTimeUtc = scoreEvent.EventTimeUtc
         });
 
         _logger.LogInformation(

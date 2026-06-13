@@ -1220,54 +1220,7 @@ namespace CriptoVersus.Worker
 
                 foreach (var scoreEvent in candleBattleResult.Events)
                 {
-                    scoreState.LastEventSequence++;
-                    var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
-                    var teamName = scoreEvent.TeamId == match.TeamAId
-                        ? match.TeamA?.Currency?.Name
-                        : match.TeamB?.Currency?.Name;
-                    var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
-                    var audioResponse = audioRequest is null
-                        ? null
-                        : await ResolveProceduralAudioAsync(audioRequest, ct);
-
-                    db.MatchScoreEvent.Add(new MatchScoreEvent
-                    {
-                        MatchId = match.MatchId,
-                        TeamId = scoreEvent.TeamId,
-                        RuleType = scoreEvent.RuleType,
-                        EventType = scoreEvent.EventType,
-                        ReasonCode = scoreEvent.ReasonCode,
-                        Points = scoreEvent.Points,
-                        EventSequence = scoreState.LastEventSequence,
-                        TeamPercentageChange = scoreEvent.TeamPercentageChange,
-                        OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
-                        TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
-                        OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
-                        MetricDelta = scoreEvent.MetricDelta,
-                        WindowStartUtc = scoreEvent.WindowStartUtc,
-                        WindowEndUtc = scoreEvent.WindowEndUtc,
-                        Description = scoreEvent.Description,
-                        EventTimeUtc = scoreEvent.EventTimeUtc,
-                        AudioContextKey = audioRequest?.ContextKey,
-                        AudioIntensity = audioRequest?.Intensity,
-                        AudioVoiceKey = audioRequest?.VoiceKey,
-                        AudioAssetId = audioResponse?.AssetId,
-                        AudioUrl = audioResponse?.AudioUrl,
-                        AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
-                        AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
-                    });
-
-                    _logger.LogInformation(
-                        "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
-                        match.MatchId,
-                        scoreState.LastEventSequence,
-                        scoreEvent.TeamId,
-                        scoreEvent.RuleType,
-                        scoreEvent.EventType,
-                        scoreEvent.Description,
-                        audioResponse?.Found ?? false,
-                        audioResponse?.FallbackUsed ?? false,
-                        audioResponse?.Queued ?? false);
+                    await TryPersistScoreEventAsync(db, match, scoreState, scoreEvent, symA, symB, ct);
                 }
 
                 if (match.ScoringRuleType != MatchScoringRuleType.CandleBattleDominance)
@@ -1309,54 +1262,7 @@ namespace CriptoVersus.Worker
 
                     foreach (var scoreEvent in scoringResult.Events)
                     {
-                        scoreState.LastEventSequence++;
-                        var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
-                        var teamName = scoreEvent.TeamId == match.TeamAId
-                            ? match.TeamA?.Currency?.Name
-                            : match.TeamB?.Currency?.Name;
-                        var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
-                        var audioResponse = audioRequest is null
-                            ? null
-                            : await ResolveProceduralAudioAsync(audioRequest, ct);
-
-                        db.MatchScoreEvent.Add(new MatchScoreEvent
-                        {
-                            MatchId = match.MatchId,
-                            TeamId = scoreEvent.TeamId,
-                            RuleType = scoreEvent.RuleType,
-                            EventType = scoreEvent.EventType,
-                            ReasonCode = scoreEvent.ReasonCode,
-                            Points = scoreEvent.Points,
-                            EventSequence = scoreState.LastEventSequence,
-                            TeamPercentageChange = scoreEvent.TeamPercentageChange,
-                            OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
-                            TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
-                            OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
-                            MetricDelta = scoreEvent.MetricDelta,
-                            WindowStartUtc = scoreEvent.WindowStartUtc,
-                            WindowEndUtc = scoreEvent.WindowEndUtc,
-                            Description = scoreEvent.Description,
-                            EventTimeUtc = scoreEvent.EventTimeUtc,
-                            AudioContextKey = audioRequest?.ContextKey,
-                            AudioIntensity = audioRequest?.Intensity,
-                            AudioVoiceKey = audioRequest?.VoiceKey,
-                            AudioAssetId = audioResponse?.AssetId,
-                            AudioUrl = audioResponse?.AudioUrl,
-                            AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
-                            AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
-                        });
-
-                        _logger.LogInformation(
-                            "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
-                            match.MatchId,
-                            scoreState.LastEventSequence,
-                            scoreEvent.TeamId,
-                            scoreEvent.RuleType,
-                            scoreEvent.EventType,
-                            scoreEvent.Description,
-                            audioResponse?.Found ?? false,
-                            audioResponse?.FallbackUsed ?? false,
-                            audioResponse?.Queued ?? false);
+                        await TryPersistScoreEventAsync(db, match, scoreState, scoreEvent, symA, symB, ct);
                     }
                 }
 
@@ -2097,6 +2003,82 @@ namespace CriptoVersus.Worker
         {
             var aligned = AlignToWindow(utc, windowMinutes);
             return aligned == utc ? aligned : aligned.AddMinutes(windowMinutes);
+        }
+
+        private async Task<bool> TryPersistScoreEventAsync(
+            EthicAIDbContext db,
+            Match match,
+            MatchScoreState scoreState,
+            PendingMatchScoreEvent scoreEvent,
+            string symA,
+            string symB,
+            CancellationToken ct)
+        {
+            var duplicate = await MatchScoreEventDeduplication.FindDuplicateAsync(db, match.MatchId, scoreEvent, ct);
+            if (duplicate is not null)
+            {
+                _logger.LogInformation(
+                    "[SCORE_EVENT_DUPLICATE_IGNORED] MatchId={MatchId} RuleType={RuleType} TeamId={TeamId} EventType={EventType} ReasonCode={ReasonCode} EventTimeUtc={EventTimeUtc:o} ExistingEventId={ExistingEventId}",
+                    match.MatchId,
+                    scoreEvent.RuleType,
+                    scoreEvent.TeamId,
+                    scoreEvent.EventType,
+                    scoreEvent.ReasonCode,
+                    scoreEvent.EventTimeUtc,
+                    duplicate.MatchScoreEventId);
+                return false;
+            }
+
+            scoreState.LastEventSequence++;
+            var teamSymbol = scoreEvent.TeamId == match.TeamAId ? symA : symB;
+            var teamName = scoreEvent.TeamId == match.TeamAId
+                ? match.TeamA?.Currency?.Name
+                : match.TeamB?.Currency?.Name;
+            var audioRequest = BuildAudioResolveRequest(scoreEvent, teamSymbol, teamName);
+            var audioResponse = audioRequest is null
+                ? null
+                : await ResolveProceduralAudioAsync(audioRequest, ct);
+
+            db.MatchScoreEvent.Add(new MatchScoreEvent
+            {
+                MatchId = match.MatchId,
+                TeamId = scoreEvent.TeamId,
+                RuleType = scoreEvent.RuleType,
+                EventType = scoreEvent.EventType,
+                ReasonCode = scoreEvent.ReasonCode,
+                Points = scoreEvent.Points,
+                EventSequence = scoreState.LastEventSequence,
+                TeamPercentageChange = scoreEvent.TeamPercentageChange,
+                OpponentPercentageChange = scoreEvent.OpponentPercentageChange,
+                TeamQuoteVolume = scoreEvent.TeamQuoteVolume,
+                OpponentQuoteVolume = scoreEvent.OpponentQuoteVolume,
+                MetricDelta = scoreEvent.MetricDelta,
+                WindowStartUtc = scoreEvent.WindowStartUtc,
+                WindowEndUtc = scoreEvent.WindowEndUtc,
+                Description = scoreEvent.Description,
+                EventTimeUtc = scoreEvent.EventTimeUtc,
+                AudioContextKey = audioRequest?.ContextKey,
+                AudioIntensity = audioRequest?.Intensity,
+                AudioVoiceKey = audioRequest?.VoiceKey,
+                AudioAssetId = audioResponse?.AssetId,
+                AudioUrl = audioResponse?.AudioUrl,
+                AudioFallbackUsed = audioResponse?.FallbackUsed ?? false,
+                AudioResolvedLanguage = audioResponse?.ResolvedLanguage ?? audioRequest?.Language
+            });
+
+            _logger.LogInformation(
+                "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
+                match.MatchId,
+                scoreState.LastEventSequence,
+                scoreEvent.TeamId,
+                scoreEvent.RuleType,
+                scoreEvent.EventType,
+                scoreEvent.Description,
+                audioResponse?.Found ?? false,
+                audioResponse?.FallbackUsed ?? false,
+                audioResponse?.Queued ?? false);
+
+            return true;
         }
 
         private AudioResolveRequest? BuildAudioResolveRequest(

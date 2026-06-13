@@ -39,13 +39,18 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
         if (match.Status is not MatchStatus.Pending and not MatchStatus.Ongoing)
         {
             _logger.LogInformation(
-                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, dominanceBlockActive={DominanceBlockActive}, shouldScore={ShouldScore}, skipReason={SkipReason}, duplicateFound={DuplicateFound}, existingEventFound={ExistingEventFound}, action={Action}",
                 match.MatchId,
                 scoreState.LastCandleBattleLeftWins,
                 scoreState.LastCandleBattleRightWins,
                 Math.Abs(scoreState.LastCandleBattleLeftWins - scoreState.LastCandleBattleRightWins),
                 FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
                 FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
+                false,
+                false,
+                "not_ongoing",
+                false,
+                false,
                 "Skipped");
 
             return CandleBattleScoringResult.Empty(scoreState, match.ScoreA, match.ScoreB);
@@ -54,13 +59,18 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
         if (match.TeamA?.Currency is null || match.TeamB?.Currency is null)
         {
             _logger.LogInformation(
-                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, dominanceBlockActive={DominanceBlockActive}, shouldScore={ShouldScore}, skipReason={SkipReason}, duplicateFound={DuplicateFound}, existingEventFound={ExistingEventFound}, action={Action}",
                 match.MatchId,
                 scoreState.LastCandleBattleLeftWins,
                 scoreState.LastCandleBattleRightWins,
                 Math.Abs(scoreState.LastCandleBattleLeftWins - scoreState.LastCandleBattleRightWins),
                 FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
                 FormatTeamId(scoreState.LastCandleBattleDominanceTeamId),
+                false,
+                false,
+                "no_team_currency",
+                false,
+                false,
                 "Skipped");
 
             return CandleBattleScoringResult.Empty(scoreState, match.ScoreA, match.ScoreB);
@@ -70,8 +80,14 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
         if (pairs.Count == 0)
         {
             _logger.LogInformation(
-                "[CandleBattle] Match {MatchId}: candles 0x0, diff=0, dominanceTeam=null, previousDominance=null, action=NoData",
-                match.MatchId);
+                "[CandleBattle] Match {MatchId}: candles 0x0, diff=0, dominanceTeam=null, previousDominance=null, dominanceBlockActive={DominanceBlockActive}, shouldScore={ShouldScore}, skipReason={SkipReason}, duplicateFound={DuplicateFound}, existingEventFound={ExistingEventFound}, action={Action}",
+                match.MatchId,
+                false,
+                false,
+                "no_data",
+                false,
+                false,
+                "NoData");
 
             return CandleBattleScoringResult.Empty(scoreState, match.ScoreA, match.ScoreB);
         }
@@ -130,6 +146,18 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
                 currentDominanceTeamId,
                 currentStateKey,
                 scoreState.LastCandleBattleStateKey);
+            var dominanceBlockActive = state.DominanceTeamId.HasValue;
+            var shouldScore = string.Equals(action, "GoalCreated", StringComparison.Ordinal);
+            var skipReason = action switch
+            {
+                "GoalCreated" => "none",
+                "Tie" => "tie",
+                "SameDominance" => "same_dominance",
+                "InitializedNoRetroactive" => "bootstrap",
+                "NoData" => "no_data",
+                "Skipped" => currentDominanceTeamId.HasValue ? "same_block" : "below_threshold",
+                _ => "unknown"
+            };
 
             if (bootstrapOnly)
             {
@@ -173,13 +201,18 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
             lastAction = action;
 
             _logger.LogInformation(
-                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+                "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, dominanceBlockActive={DominanceBlockActive}, shouldScore={ShouldScore}, skipReason={SkipReason}, duplicateFound={DuplicateFound}, existingEventFound={ExistingEventFound}, action={Action}",
                 match.MatchId,
                 state.LeftWins,
                 state.RightWins,
                 diff,
                 FormatTeamId(currentDominanceTeamId),
                 FormatTeamId(previousDominanceTeamId),
+                dominanceBlockActive,
+                shouldScore,
+                skipReason,
+                false,
+                false,
                 action);
         }
 
@@ -202,13 +235,25 @@ public sealed class CandleBattleScoringService : ICandleBattleScoringService
         }
 
         _logger.LogInformation(
-            "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, action={Action}",
+            "[CandleBattle] Match {MatchId}: candles {LeftWins}x{RightWins}, diff={Diff}, dominanceTeam={DominanceTeamId}, previousDominance={PreviousDominanceTeamId}, dominanceBlockActive={DominanceBlockActive}, shouldScore={ShouldScore}, skipReason={SkipReason}, duplicateFound={DuplicateFound}, existingEventFound={ExistingEventFound}, action={Action}",
             match.MatchId,
             state.LeftWins,
             state.RightWins,
             Math.Abs(state.LeftWins - state.RightWins),
             FormatTeamId(state.DominanceTeamId),
             FormatTeamId(state.PreviousDominanceTeamId),
+            state.DominanceTeamId.HasValue,
+            events.Count > 0,
+            events.Count > 0 ? "none" : lastAction switch
+            {
+                "Tie" => "tie",
+                "SameDominance" => "same_dominance",
+                "InitializedNoRetroactive" => "bootstrap",
+                "NoData" => "no_data",
+                _ => "below_threshold"
+            },
+            false,
+            false,
             events.Count > 0 ? "GoalCreated" : lastAction);
 
         return new CandleBattleScoringResult
