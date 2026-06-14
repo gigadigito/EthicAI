@@ -529,7 +529,10 @@
         display: grid;
         gap: 1.35rem;
         position: relative;
-        width: min(1680px, 100%);
+        width: 100%;
+        max-width: min(1880px, calc(100vw - 24px));
+        margin-inline: auto;
+        padding-inline: 12px;
         color: var(--tk-text);
     }
 

@@ -358,7 +358,12 @@
     --faq-gold: #f6c85f;
     display: grid;
     gap: 1.35rem;
-    width: min(1420px, 100%);
+   width: min(1880px, calc(100vw - 24px));
+    max-width: none;
+    margin: 0 auto;
+    padding-inline: 0;
+    box-sizing: border-box;
+    justify-self: center;
     color: var(--faq-text);
 }
 

@@ -210,6 +210,10 @@
 
 <style>
     .token-arena-page {
+        width: 100%;
+        max-width: min(1880px, calc(100vw - 24px));
+        margin-inline: auto;
+        padding: clamp(1rem, 2vw, 1.5rem) 12px;
         position: relative;
         overflow: hidden;
         min-height: calc(100vh - 5rem);
@@ -247,8 +251,10 @@
         z-index: 1;
         display: grid;
         gap: 1rem;
-        width: min(1320px, 100%);
+        width: 100%;
+        max-width: 100%;
         margin: 0 auto;
+        
     }
 
     .token-arena-card {
