@@ -1,5 +1,9 @@
 ﻿const charts = new Map();
 
+const DEFAULT_BACKGROUND = "#030a13";
+const DEFAULT_TEXT_COLOR = "rgba(232, 239, 249, 0.82)";
+const DEFAULT_GRID_COLOR = "rgba(112, 146, 172, 0.12)";
+
 export function updateMatchPriceBattleChart(payload) {
     const chartId = payload?.chartId;
     if (!chartId) {
@@ -18,13 +22,18 @@ export function updateMatchPriceBattleChart(payload) {
     }
 
     state.payload = normalizePayload(payload);
-    requestRender(state);
+    return requestRender(state);
 }
 
 export function disposeMatchPriceBattleChart(chartId) {
     const state = charts.get(chartId);
     if (!state) {
         return;
+    }
+
+    if (state.frameId) {
+        window.cancelAnimationFrame(state.frameId);
+        state.frameId = 0;
     }
 
     state.resizeObserver?.disconnect();
@@ -41,6 +50,7 @@ function createState(host) {
     host.style.height = "100%";
     host.style.minHeight = "100%";
     host.style.overflow = "hidden";
+    host.style.background = DEFAULT_BACKGROUND;
 
     const canvas = document.createElement("canvas");
     canvas.className = "tv-price-battle-canvas";
@@ -50,6 +60,7 @@ function createState(host) {
     canvas.style.height = "100%";
     canvas.style.minHeight = "100%";
     canvas.style.display = "block";
+    canvas.style.background = DEFAULT_BACKGROUND;
 
     const markerLayer = document.createElement("div");
     markerLayer.className = "tv-price-battle-marker-layer";
@@ -71,8 +82,13 @@ function createState(host) {
         resizeObserver: null,
         frameId: 0,
         lastWidth: 0,
-        lastHeight: 0
+        lastHeight: 0,
+        renderPromise: null,
+        resolveRender: null,
+        rejectRender: null
     };
+
+    paintInitialCanvas(canvas, host);
 
     state.resizeObserver = new ResizeObserver(() => requestRender(state));
     state.resizeObserver.observe(host);
@@ -85,14 +101,61 @@ function createState(host) {
 }
 
 function requestRender(state) {
-    if (!state || state.frameId) {
-        return;
+    if (!state) {
+        return Promise.resolve(false);
+    }
+
+    if (!state.renderPromise) {
+        state.renderPromise = new Promise((resolve, reject) => {
+            state.resolveRender = resolve;
+            state.rejectRender = reject;
+        });
+    }
+
+    if (state.frameId) {
+        return state.renderPromise;
     }
 
     state.frameId = window.requestAnimationFrame(() => {
         state.frameId = 0;
-        render(state);
+
+        try {
+            render(state);
+            state.resolveRender?.(true);
+        } catch (error) {
+            state.rejectRender?.(error);
+        } finally {
+            state.renderPromise = null;
+            state.resolveRender = null;
+            state.rejectRender = null;
+        }
     });
+
+    return state.renderPromise;
+}
+
+function paintInitialCanvas(canvas, host) {
+    const rect = host.getBoundingClientRect();
+    const parentRect = host.parentElement
+        ? host.parentElement.getBoundingClientRect()
+        : rect;
+
+    const width = Math.max(320, Math.floor(rect.width || parentRect.width || 320));
+    const height = Math.max(360, Math.floor(rect.height || parentRect.height || 360));
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.minHeight = `${height}px`;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        return;
+    }
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fillChartBackground(ctx, width, height, {});
+    drawEmptyGrid(ctx, width, height, {});
 }
 
 function normalizePayload(payload) {
@@ -192,7 +255,7 @@ function render(state) {
     }
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, width, height);
+    fillChartBackground(ctx, width, height, payload.options);
     state.markerLayer.innerHTML = "";
 
     const left = payload.left.points;
@@ -200,7 +263,7 @@ function render(state) {
     const count = Math.min(left.length, right.length);
 
     if (count < 2) {
-        drawEmptyGrid(ctx, width, height);
+        drawEmptyGrid(ctx, width, height, payload.options);
         return;
     }
 
@@ -229,7 +292,7 @@ function render(state) {
     chart.plotWidth = Math.max(1, width - chart.left - chart.right);
     chart.plotHeight = Math.max(1, height - chart.top - chart.bottom);
 
-    drawGrid(ctx, chart);
+    drawGrid(ctx, chart, payload.options);
     drawArea(ctx, chart, rightPoints, payload.right.color, 0.10);
     drawArea(ctx, chart, leftPoints, payload.left.color, 0.12);
     drawLine(ctx, chart, leftPoints, payload.left.color);
@@ -240,7 +303,7 @@ function render(state) {
     drawCrossovers(ctx, state.markerLayer, chart, payload, leftPoints, rightPoints);
 }
 
-function drawEmptyGrid(ctx, width, height) {
+function drawEmptyGrid(ctx, width, height, options = {}) {
     const chart = {
         left: 48,
         right: 76,
@@ -255,14 +318,14 @@ function drawEmptyGrid(ctx, width, height) {
 
     chart.plotWidth = Math.max(1, width - chart.left - chart.right);
     chart.plotHeight = Math.max(1, height - chart.top - chart.bottom);
-    drawGrid(ctx, chart);
+    drawGrid(ctx, chart, options);
 }
 
-function drawGrid(ctx, chart) {
+function drawGrid(ctx, chart, options = {}) {
     ctx.save();
     ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(120, 158, 190, 0.13)";
-    ctx.fillStyle = "rgba(205, 216, 231, 0.66)";
+    ctx.strokeStyle = options.gridColor || DEFAULT_GRID_COLOR;
+    ctx.fillStyle = options.textColor || DEFAULT_TEXT_COLOR;
     ctx.font = "700 11px system-ui, -apple-system, Segoe UI, sans-serif";
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -279,7 +342,7 @@ function drawGrid(ctx, chart) {
         ctx.fillText(value.toFixed(2), chart.width - 16, y);
     }
 
-    ctx.strokeStyle = "rgba(120, 158, 190, 0.09)";
+    ctx.strokeStyle = softenColor(options.gridColor || DEFAULT_GRID_COLOR, 0.72);
 
     for (let i = 0; i <= 6; i += 1) {
         const x = chart.left + (chart.plotWidth / 6) * i;
@@ -540,6 +603,47 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
+function fillChartBackground(ctx, width, height, options = {}) {
+    const background = options.backgroundColor || DEFAULT_BACKGROUND;
+
+    ctx.save();
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, width, height);
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, "rgba(11, 28, 45, 0.78)");
+    gradient.addColorStop(0.58, "rgba(3, 10, 19, 0.96)");
+    gradient.addColorStop(1, "rgba(2, 8, 18, 1)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+}
+
+function softenColor(color, factor) {
+    if (!color || !color.startsWith("rgba(")) {
+        return color;
+    }
+
+    const match = color.match(/rgba\(([^)]+)\)/);
+    if (!match) {
+        return color;
+    }
+
+    const parts = match[1].split(",").map(part => part.trim());
+    if (parts.length !== 4) {
+        return color;
+    }
+
+    const alpha = Number(parts[3]);
+    if (!Number.isFinite(alpha)) {
+        return color;
+    }
+
+    return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${Math.max(0, Math.min(1, alpha * factor))})`;
+}
+
 function hexToRgba(color, alpha) {
     if (!color || !color.startsWith("#")) {
         return `rgba(83, 200, 255, ${alpha})`;
@@ -573,6 +677,14 @@ if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
     style.id = styleId;
     style.textContent = `
+        .tv-price-battle-canvas {
+            background: #030a13 !important;
+        }
+
+        .tv-price-battle-marker-layer {
+            background: transparent !important;
+        }
+
         .tv-price-battle-chart-marker {
             position: absolute;
             z-index: 4;
