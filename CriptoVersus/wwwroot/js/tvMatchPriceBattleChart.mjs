@@ -4,6 +4,12 @@ const DEFAULT_BACKGROUND = "#030a13";
 const DEFAULT_TEXT_COLOR = "rgba(232, 239, 249, 0.82)";
 const DEFAULT_GRID_COLOR = "rgba(112, 146, 172, 0.12)";
 
+const MIN_RENDER_WIDTH = 320;
+const MIN_RENDER_HEIGHT = 240;
+const FALLBACK_RENDER_HEIGHT = 360;
+const MAX_RENDER_HEIGHT = 760;
+const MAX_DEVICE_PIXEL_RATIO = 2;
+
 export function updateMatchPriceBattleChart(payload) {
     const chartId = payload?.chartId;
     if (!chartId) {
@@ -48,7 +54,8 @@ function createState(host) {
     host.style.inset = "0";
     host.style.width = "100%";
     host.style.height = "100%";
-    host.style.minHeight = "100%";
+    host.style.minHeight = "0";
+    host.style.maxHeight = "100%";
     host.style.overflow = "hidden";
     host.style.background = DEFAULT_BACKGROUND;
 
@@ -58,7 +65,8 @@ function createState(host) {
     canvas.style.inset = "0";
     canvas.style.width = "100%";
     canvas.style.height = "100%";
-    canvas.style.minHeight = "100%";
+    canvas.style.minHeight = "0";
+    canvas.style.maxHeight = "100%";
     canvas.style.display = "block";
     canvas.style.background = DEFAULT_BACKGROUND;
 
@@ -68,7 +76,8 @@ function createState(host) {
     markerLayer.style.inset = "0";
     markerLayer.style.width = "100%";
     markerLayer.style.height = "100%";
-    markerLayer.style.minHeight = "100%";
+    markerLayer.style.minHeight = "0";
+    markerLayer.style.maxHeight = "100%";
     markerLayer.style.pointerEvents = "none";
 
     host.appendChild(canvas);
@@ -140,13 +149,14 @@ function paintInitialCanvas(canvas, host) {
         ? host.parentElement.getBoundingClientRect()
         : rect;
 
-    const width = Math.max(320, Math.floor(rect.width || parentRect.width || 320));
-    const height = Math.max(360, Math.floor(rect.height || parentRect.height || 360));
-    const dpr = window.devicePixelRatio || 1;
+    const width = resolveSafeWidth(rect.width, parentRect.width);
+    const height = resolveSafeHeight(rect.height, parentRect.height);
+    const dpr = resolveSafeDevicePixelRatio();
 
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
-    canvas.style.minHeight = `${height}px`;
+    canvas.style.minHeight = "0";
+    canvas.style.maxHeight = "100%";
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
@@ -206,13 +216,8 @@ function getRenderSize(state) {
         ? state.host.parentElement.getBoundingClientRect()
         : hostRect;
 
-    const parentHeight = Math.floor(parentRect.height || 0);
-    const hostHeight = Math.floor(hostRect.height || 0);
-    const parentWidth = Math.floor(parentRect.width || 0);
-    const hostWidth = Math.floor(hostRect.width || 0);
-
-    const width = Math.max(320, hostWidth, parentWidth);
-    const height = Math.max(360, hostHeight, parentHeight);
+    const width = resolveSafeWidth(hostRect.width, parentRect.width);
+    const height = resolveSafeHeight(hostRect.height, parentRect.height);
 
     return { width, height };
 }
@@ -224,19 +229,22 @@ function render(state) {
     }
 
     const { width, height } = getRenderSize(state);
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = resolveSafeDevicePixelRatio();
 
     state.host.style.width = "100%";
     state.host.style.height = "100%";
-    state.host.style.minHeight = `${height}px`;
+    state.host.style.minHeight = "0";
+    state.host.style.maxHeight = "100%";
 
     state.canvas.style.width = "100%";
     state.canvas.style.height = "100%";
-    state.canvas.style.minHeight = `${height}px`;
+    state.canvas.style.minHeight = "0";
+    state.canvas.style.maxHeight = "100%";
 
     state.markerLayer.style.width = "100%";
     state.markerLayer.style.height = "100%";
-    state.markerLayer.style.minHeight = `${height}px`;
+    state.markerLayer.style.minHeight = "0";
+    state.markerLayer.style.maxHeight = "100%";
 
     const canvasWidth = Math.floor(width * dpr);
     const canvasHeight = Math.floor(height * dpr);
@@ -667,6 +675,31 @@ function hexToRgba(color, alpha) {
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
+function resolveSafeWidth(...values) {
+    const width = values
+        .map(value => Math.floor(Number(value) || 0))
+        .find(value => Number.isFinite(value) && value >= MIN_RENDER_WIDTH && value < 10000);
+
+    return width || MIN_RENDER_WIDTH;
+}
+
+function resolveSafeHeight(...values) {
+    const height = values
+        .map(value => Math.floor(Number(value) || 0))
+        .find(value => Number.isFinite(value) && value >= MIN_RENDER_HEIGHT && value <= 2000);
+
+    if (!height) {
+        return FALLBACK_RENDER_HEIGHT;
+    }
+
+    return clamp(height, MIN_RENDER_HEIGHT, MAX_RENDER_HEIGHT);
+}
+
+function resolveSafeDevicePixelRatio() {
+    const dpr = Number(window.devicePixelRatio) || 1;
+    return clamp(dpr, 1, MAX_DEVICE_PIXEL_RATIO);
+}
+
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }
@@ -679,10 +712,14 @@ if (!document.getElementById(styleId)) {
     style.textContent = `
         .tv-price-battle-canvas {
             background: #030a13 !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
         }
 
         .tv-price-battle-marker-layer {
             background: transparent !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
         }
 
         .tv-price-battle-chart-marker {
