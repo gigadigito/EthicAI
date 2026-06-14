@@ -499,18 +499,19 @@
                                         </div>
 
                                         <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
-                                           <TvCandleBattle Culture="@Culture"
-                                            LeftTickerLabel="@DisplayLeftTickerLabel()"
-                                            RightTickerLabel="@DisplayRightTickerLabel()"
-                                            LeftHeroLabel="@DisplayLeftHeroLabel()"
-                                            RightHeroLabel="@DisplayRightHeroLabel()"
-                                            LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                            RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                            LeftChangePercent="@DisplayLeftChangePercent()"
-                                            RightChangePercent="@DisplayRightChangePercent()"
-                                            LeftPoints="@LeftPriceBattlePoints"
-                                            RightPoints="@RightPriceBattlePoints"
-                                            AriaLabel="@($"{DisplayLeftTickerLabel()} vs {DisplayRightTickerLabel()} candle battle arena")" />
+                                            <TvCandleBattle Culture="@Culture"
+                                                            IsBroadcastCompact="@IsBroadcastMode"
+                                                            LeftTickerLabel="@DisplayLeftTickerLabel()"
+                                                            RightTickerLabel="@DisplayRightTickerLabel()"
+                                                            LeftHeroLabel="@DisplayLeftHeroLabel()"
+                                                            RightHeroLabel="@DisplayRightHeroLabel()"
+                                                            LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                            RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                            LeftChangePercent="@DisplayLeftChangePercent()"
+                                                            RightChangePercent="@DisplayRightChangePercent()"
+                                                            LeftPoints="@LeftPriceBattlePoints"
+                                                            RightPoints="@RightPriceBattlePoints"
+                                                            AriaLabel="@($"{DisplayLeftTickerLabel()} vs {DisplayRightTickerLabel()} candle battle arena")" />
                                         </div>
 
                                         <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--goals tv-telemetry-cube__virtual-panel">
