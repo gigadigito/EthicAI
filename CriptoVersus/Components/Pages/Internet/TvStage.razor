@@ -8390,12 +8390,8 @@ private async Task<bool> RefreshPriceBattleAsync(int matchId, CancellationToken 
 
         var leftSymbol = DisplayLeftSymbol();
         var rightSymbol = DisplayRightSymbol();
-        var leftSnapshots = matchId > 0
-            ? _metricSnapshots.Where(x => string.Equals(x.TeamSymbol, leftSymbol, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.CapturedAtUtc).ToList()
-            : [];
-        var rightSnapshots = matchId > 0
-            ? _metricSnapshots.Where(x => string.Equals(x.TeamSymbol, rightSymbol, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.CapturedAtUtc).ToList()
-            : [];
+        var leftSnapshots = ResolvePriceBattleSnapshots(true, leftSymbol);
+        var rightSnapshots = ResolvePriceBattleSnapshots(false, rightSymbol);
 
         changed |= RefreshPriceBattleSide(true, leftSymbol, leftSnapshots);
         changed |= RefreshPriceBattleSide(false, rightSymbol, rightSnapshots);
@@ -8434,6 +8430,32 @@ private async Task<bool> RefreshPriceBattleAsync(int matchId, CancellationToken 
     {
         _priceBattleRefreshInProgress = false;
     }
+}
+
+private IReadOnlyList<MatchMetricSnapshotDto> ResolvePriceBattleSnapshots(bool isLeft, string symbol)
+{
+    if (_metricSnapshots.Count == 0)
+        return [];
+
+    var matchTeamId = isLeft ? Match?.TeamAId ?? 0 : Match?.TeamBId ?? 0;
+    if (matchTeamId > 0)
+    {
+        return _metricSnapshots
+            .Where(x => x.TeamId == matchTeamId)
+            .OrderBy(x => x.CapturedAtUtc)
+            .ToList();
+    }
+
+    var normalizedSymbol = GetBaseSymbol(symbol);
+    if (string.IsNullOrWhiteSpace(normalizedSymbol))
+        return [];
+
+    return _metricSnapshots
+        .Where(x =>
+            string.Equals(x.TeamSymbol, symbol, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(GetBaseSymbol(x.TeamSymbol), normalizedSymbol, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(x => x.CapturedAtUtc)
+        .ToList();
 }
 
 private bool RefreshPriceBattleSide(bool isLeft, string symbol, IReadOnlyList<MatchMetricSnapshotDto> snapshots)
