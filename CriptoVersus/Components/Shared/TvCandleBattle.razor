@@ -1023,6 +1023,15 @@
         height: 100%;
     }
 
+    .tv-candle-battle--broadcast-compact .tv-candle-battle__wick {
+        stroke-width: 1.9;
+    }
+
+    .tv-candle-battle--broadcast-compact .tv-candle-battle__body--left,
+    .tv-candle-battle--broadcast-compact .tv-candle-battle__body--right {
+        opacity: .9;
+    }
+
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__timeline {
         gap: 4px;
     }
@@ -1286,8 +1295,8 @@
 
     private IReadOnlyList<TvPriceChartPoint> OrderedLeftPoints => NormalizePoints(LeftPoints);
     private IReadOnlyList<TvPriceChartPoint> OrderedRightPoints => NormalizePoints(RightPoints);
-    private IReadOnlyList<ChartCandleVisual> LeftChartCandles => BuildChartCandles(OrderedLeftPoints, BattleSide.Left);
-    private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints, BattleSide.Right);
+    private IReadOnlyList<ChartCandleVisual> LeftChartCandles => BuildChartCandles(OrderedLeftPoints, BattleSide.Left, IsBroadcastCompact);
+    private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints, BattleSide.Right, IsBroadcastCompact);
     private IReadOnlyList<BattleCandle> BattleCandles => BuildBattleCandles();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
 
@@ -1401,7 +1410,7 @@ private static IReadOnlyList<TvPriceChartPoint> NormalizePoints(IReadOnlyList<Tv
             .OrderBy(x => x.Time)
             .ToList();
 
-private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPriceChartPoint> points, BattleSide visualSide)
+private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPriceChartPoint> points, BattleSide visualSide, bool compact)
 {
     if (points.Count < 2)
         return Array.Empty<ChartCandleVisual>();
@@ -1420,7 +1429,16 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
 
     var candleCount = points.Count - 1;
     var slotWidth = 1000d / Math.Max(candleCount, 1);
-    var bodyWidth = Math.Clamp(slotWidth * 0.46d, 4d, 22d);
+
+    // No Match normal mantemos o desenho original.
+    // No Broadcast compact, os pontos podem vir mais espaçados ou em menor quantidade;
+    // se o corpo usar toda a distância entre open/close, o SVG vira um bloco/área preenchida.
+    // Por isso o modo compact mantém pavio completo, mas limita o corpo para continuar
+    // parecendo candle de verdade dentro do cube.
+    var bodyWidth = compact
+        ? Math.Clamp(slotWidth * 0.18d, 3d, 10d)
+        : Math.Clamp(slotWidth * 0.46d, 4d, 22d);
+
     var result = new List<ChartCandleVisual>(candleCount);
 
     for (var i = 1; i < points.Count; i++)
@@ -1435,8 +1453,15 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
         var highY = MapY(high, min, max);
         var lowY = MapY(low, min, max);
         var sideClass = visualSide == BattleSide.Left ? "left" : "right";
-        var bodyY = Math.Min(openY, closeY);
-        var bodyHeight = Math.Max(3d, Math.Abs(closeY - openY));
+        var rawBodyY = Math.Min(openY, closeY);
+        var rawBodyHeight = Math.Max(3d, Math.Abs(closeY - openY));
+        var bodyHeight = compact
+            ? Math.Min(rawBodyHeight, 34d)
+            : rawBodyHeight;
+        var bodyMiddleY = (openY + closeY) / 2d;
+        var bodyY = compact
+            ? Math.Clamp(bodyMiddleY - (bodyHeight / 2d), 10d, 310d - bodyHeight)
+            : rawBodyY;
 
         result.Add(new ChartCandleVisual
         {
