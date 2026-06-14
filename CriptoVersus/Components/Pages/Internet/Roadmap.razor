@@ -36,7 +36,7 @@
     <script type="application/ld+json">@StructuredDataMarkup</script>
 </HeadContent>
 
-<section class="roadmap-page">
+<section class="cvroadmap-page">
     <div class="roadmap-hero">
         <div class="roadmap-banner">
             <div class="roadmap-banner__frame" aria-hidden="true"></div>
@@ -221,14 +221,38 @@
 
 <style>
 
-    .roadmap-page {
+    .cvroadmap-page {
+        --rm-bg: #07090d;
+        --rm-panel: rgba(10, 12, 18, 0.96);
+        --rm-panel-soft: rgba(12, 15, 24, 0.92);
+        --rm-border: rgba(148, 163, 184, 0.14);
+        --rm-text: #eef4ff;
+        --rm-muted: #aebdd2;
+        --rm-purple: #8b5cf6;
+        --rm-purple-strong: #b14bff;
+        --rm-green: #4ade80;
+        --rm-green-strong: #2dff7d;
+        --rm-cyan: #38bdf8;
+        --rm-gold: #fbbf24;
+        display: grid;
+        gap: 26px;
+        position: relative;
         width: min(1880px, calc(100vw - 24px));
         max-width: none;
         margin: 0 auto;
         padding-inline: 0;
         box-sizing: border-box;
-        justify-self: center;
+        color: var(--rm-text);
     }
+
+    .roadmap-hero,
+    .roadmap-strip,
+    .roadmap-section,
+    .roadmap-notice {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
 
     .roadmap-hero,
     .roadmap-phase-card,
@@ -541,7 +565,7 @@
     }
 
     @@media (max-width: 640px) {
-        .roadmap-page {
+        .cvroadmap-page {
             gap: 22px;
         }
 
