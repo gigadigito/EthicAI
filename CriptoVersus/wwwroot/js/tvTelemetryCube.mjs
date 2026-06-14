@@ -34,6 +34,8 @@ export function createTelemetryCubeController(deps) {
             return;
         }
 
+        state.paused = true;
+
         if (state.timerId) {
             window.clearInterval(state.timerId);
             state.timerId = null;
@@ -167,11 +169,22 @@ export function createTelemetryCubeController(deps) {
             const resolvedIntervalMs = typeof intervalMs === "number" && intervalMs >= 3000
                 ? intervalMs
                 : Math.max(3000, (Number(shell.dataset.intervalSeconds) || 12) * 1000);
+            const disabled = deps.isReducedMotion()
+                || (typeof window !== "undefined" && window.innerWidth <= 720);
 
             if (state?.shell === shell && state?.cube === cube) {
                 state.intervalMs = resolvedIntervalMs;
-                state.disabled = deps.isReducedMotion()
-                    || (typeof window !== "undefined" && window.innerWidth <= 720);
+                state.disabled = disabled;
+
+                if (disabled) {
+                    pause("disabled");
+                    setFace(0, "disabled");
+                    deps.logCube("initialized (disabled)");
+                    return;
+                }
+
+                state.paused = false;
+                resume();
                 return;
             }
 
@@ -194,9 +207,6 @@ export function createTelemetryCubeController(deps) {
                 lastFaceChangeReason: "init",
                 lastFaceChangeIndex: 0
             };
-
-            const disabled = deps.isReducedMotion()
-                || (typeof window !== "undefined" && window.innerWidth <= 720);
 
             state.disabled = disabled;
 
