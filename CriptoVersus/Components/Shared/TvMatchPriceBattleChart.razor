@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 @inject ILogger<TvMatchPriceBattleChart> Logger
 
-<section class="tv-price-battle"
+<section class="tv-price-battle @(_chartReady ? "is-chart-ready" : "is-chart-pending")"
          aria-label="@ResolveAriaLabel()"
          style="@BuildCssVariables()">
 
@@ -68,6 +68,13 @@
                 <small>@WaitingPriceDescription()</small>
             </div>
         }
+        else if (!_chartReady)
+        {
+            <div class="tv-price-battle__empty tv-price-battle__empty--loading">
+                <strong>@LoadingChartTitle()</strong>
+                <small>@LoadingChartDescription()</small>
+            </div>
+        }
     </div>
 
     <footer class="tv-price-battle__bottom-bar">
@@ -114,6 +121,7 @@
 @code {
     private IJSObjectReference? _module;
     private bool _pendingSync = true;
+    private bool _chartReady;
     private string _lastSyncSignature = string.Empty;
     private bool _disposed;
     private IReadOnlyList<CrossEventViewModel> CrossEvents { get; set; } = Array.Empty<CrossEventViewModel>();
@@ -162,6 +170,9 @@
     {
         CrossEvents = BuildCrossEvents();
         _pendingSync = true;
+
+        if (!HasEnoughChartData())
+            _chartReady = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -176,7 +187,7 @@
                 var sw = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/tvMatchPriceBattleChart.mjs?v=20260613-combined-crossovers-2");
+                    "/js/tvMatchPriceBattleChart.mjs?v=20260614-price-no-white-start-1");
 
                 Logger.LogInformation(
                     "[TV_MATCH_LOAD] TvMatchPriceBattleChart JS import elapsedMs={ElapsedMs}",
@@ -241,11 +252,21 @@
                     {
                         culture = Culture,
                         showCrossovers = true,
-                        normalize = true
+                        normalize = true,
+                        backgroundColor = "#030a13",
+                        textColor = "rgba(232,239,249,.82)",
+                        gridColor = "rgba(112,146,172,.12)"
                     }
                 });
 
             _lastSyncSignature = signature;
+
+            var shouldShowChart = HasEnoughChartData();
+            if (_chartReady != shouldShowChart)
+            {
+                _chartReady = shouldShowChart;
+                await InvokeAsync(StateHasChanged);
+            }
         }
         catch (JSDisconnectedException)
         {
@@ -255,6 +276,12 @@
         }
         catch (JSException ex)
         {
+            if (_chartReady)
+            {
+                _chartReady = false;
+                await InvokeAsync(StateHasChanged);
+            }
+
             Logger.LogWarning(ex, "[TV_PRICE_BATTLE] Failed to update combined price battle chart.");
         }
         finally
@@ -416,6 +443,10 @@
     private string CrossEventsLabel() => IsPortuguese() ? "Cruzamentos para cima" : "Upward crossovers";
     private string NoCrossEventsText() => IsPortuguese() ? "Sem cruzamento ainda" : "No crossover yet";
     private string EmptyChartTitle() => IsPortuguese() ? "Aguardando histórico das duas moedas" : "Waiting for both assets history";
+    private string LoadingChartTitle() => IsPortuguese() ? "Carregando gráfico de preço" : "Loading price chart";
+    private string LoadingChartDescription() => IsPortuguese()
+        ? "Preparando as linhas antes de exibir a arena."
+        : "Preparing the lines before showing the arena.";
 
     private string WaitingPriceDescription() => IsPortuguese()
         ? "O gráfico aparece quando as duas linhas tiverem snapshots suficientes."
@@ -744,6 +775,23 @@
         width: 100%;
         height: 100%;
         min-height: 100%;
+        background: transparent !important;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .18s ease;
+    }
+
+    .tv-price-battle.is-chart-ready .tv-price-battle__chart {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .tv-price-battle__chart > div,
+    .tv-price-battle__chart table,
+    .tv-price-battle__chart tr,
+    .tv-price-battle__chart td,
+    .tv-price-battle__chart canvas {
+        background: transparent !important;
     }
 
     .tv-price-battle__empty {
