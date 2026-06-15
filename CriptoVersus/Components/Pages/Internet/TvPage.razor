@@ -45,6 +45,7 @@
 
 <TvStage Culture="@_culture"
          IsBroadcastMode="@_isBroadcastMode"
+         IsInitialLoading="@ShouldShowInitialTvLoading"
          HotMatch="@_selectedHotMatch"
          Match="@_selectedMatch"
          Stats="@_stats"
@@ -85,6 +86,8 @@
     private DateTime _lastBroadcastRotationUtc = DateTime.MinValue;
     private DateTime _nextRefreshAtUtc = DateTime.MinValue;
     private int _refreshInProgress;
+    private bool _initialTvLoadCompleted;
+    private bool _initialTvLoadFailed;
     private PanelLoadState _topCoinsState = PanelLoadState.Loading();
     private PanelLoadState _latestBattlesState = PanelLoadState.Loading();
     private PanelLoadState _marketPulseState = PanelLoadState.Loading();
@@ -142,6 +145,10 @@
         }
     }
 
+    private bool HasSelectedTvMatch => (_selectedHotMatch?.HasMatch == true || _selectedMatch is not null);
+    private bool ShouldShowInitialTvLoading => !_initialTvLoadCompleted && !_initialTvLoadFailed && !HasSelectedTvMatch;
+
+
     protected override void OnParametersSet()
     {
         _culture = !string.IsNullOrWhiteSpace(Culture)
@@ -162,12 +169,19 @@
     {
         try
         {
-            using var initialLoadCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            Logger.LogInformation("[TV_MATCH_LOAD] TvPage initial load started. BroadcastMode={BroadcastMode}", _isBroadcastMode);
+            using var initialLoadCts = new CancellationTokenSource(TimeSpan.FromSeconds(12));
             await RefreshAsync(forceInitialSelection: true, initialLoadCts.Token);
+            _initialTvLoadCompleted = true;
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] TvPage initial load completed. BroadcastMode={BroadcastMode} SelectedMatchId={SelectedMatchId}",
+                _isBroadcastMode,
+                _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "TvPage initial load timed out or failed during prerender. Rendering partial TV shell.");
+            _initialTvLoadFailed = true;
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] TvPage initial load timed out or failed during prerender. Rendering partial TV shell.");
         }
 
         _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
@@ -181,7 +195,16 @@
         _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
         await LogAsync("loaded");
         if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
+        {
+            Logger.LogInformation("[TV_MATCH_LOAD] TvPage interactive refresh started because initial selected match was empty.");
             await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+            _initialTvLoadCompleted = true;
+            _initialTvLoadFailed = false;
+            Logger.LogInformation(
+                "[TV_MATCH_LOAD] TvPage interactive refresh completed. SelectedMatchId={SelectedMatchId}",
+                _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0);
+            await InvokeAsync(StateHasChanged);
+        }
         _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
 
         _refreshCts = new CancellationTokenSource();
@@ -230,7 +253,7 @@
         var startedAtUtc = DateTime.UtcNow;
         try
         {
-            Logger.LogInformation("TvPage refresh started. BroadcastMode={BroadcastMode} ForceInitialSelection={ForceInitialSelection}", _isBroadcastMode, forceInitialSelection);
+            Logger.LogInformation("[TV_MATCH_LOAD] TvPage refresh started. BroadcastMode={BroadcastMode} ForceInitialSelection={ForceInitialSelection}", _isBroadcastMode, forceInitialSelection);
             var hotMatchesTask = TryLoadWithTimeoutAsync(
                 token => HotMatches.GetHotMatchesAsync(token),
                 ct,
@@ -265,10 +288,17 @@
             }
 
             await InvokeAsync(StateHasChanged);
+            if (HasSelectedTvMatch)
+            {
+                _initialTvLoadCompleted = true;
+                _initialTvLoadFailed = false;
+            }
+
             Logger.LogInformation(
-                "TvPage refresh completed. BroadcastMode={BroadcastMode} SelectedMatchId={SelectedMatchId} DurationMs={DurationMs}",
+                "[TV_MATCH_LOAD] TvPage refresh completed. BroadcastMode={BroadcastMode} SelectedMatchId={SelectedMatchId} HasSelectedTvMatch={HasSelectedTvMatch} DurationMs={DurationMs}",
                 _isBroadcastMode,
-                _selectedMatch?.MatchId,
+                _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0,
+                HasSelectedTvMatch,
                 (DateTime.UtcNow - startedAtUtc).TotalMilliseconds);
         }
         catch (OperationCanceledException)

@@ -23,7 +23,44 @@
 @inject IOptions<TvBroadcastOptions> TvBroadcastOptionsAccessor
 @implements IAsyncDisposable
 
-@if (HasLiveMatch)
+@if (ShouldRenderInitialLoading)
+{
+    <section class="tv-stage tv-stage--waiting @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)" aria-busy="true">
+        <div class="tv-stage__backdrop"></div>
+        <div class="tv-stage__aurora"></div>
+        <div class="tv-stage__fog"></div>
+        <div class="tv-stage__gridlines"></div>
+        <div class="tv-stage__particles"></div>
+        <TvNarrationOverlay @ref="_narrationOverlay" />
+
+        <header class="tv-waiting-hero">
+            <span class="tv-stage__eyebrow">@T("hero.eyebrow")</span>
+            <h1 class="tv-brand-lockup">
+                <a class="tv-brand-link" href="@RouteLocalization.BuildHomePath(Culture)">
+                    Criptoversus TV
+                </a>
+                <span class="tv-brand-subtitle">Procedural TV</span>
+            </h1>
+            <p class="tv-waiting-hero__lead">@InitialLoadingTitle</p>
+            <p class="tv-waiting-hero__sublead">@InitialLoadingSubtitle</p>
+            <div class="tv-procedural-log" aria-live="polite" aria-atomic="true">
+                <div class="tv-procedural-log__line" style="--tv-log-delay:0s;">
+                    <span class="tv-procedural-log__dot"></span>
+                    <span>@InitialLoadingStepOne</span>
+                </div>
+                <div class="tv-procedural-log__line" style="--tv-log-delay:.55s;">
+                    <span class="tv-procedural-log__dot"></span>
+                    <span>@InitialLoadingStepTwo</span>
+                </div>
+                <div class="tv-procedural-log__line" style="--tv-log-delay:1.1s;">
+                    <span class="tv-procedural-log__dot"></span>
+                    <span>@InitialLoadingStepThree</span>
+                </div>
+            </div>
+        </header>
+    </section>
+}
+else if (HasLiveMatch)
 {
     <section class="tv-stage tv-stage--live @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)">
         <div class="tv-stage__backdrop"></div>
@@ -499,9 +536,7 @@
                                         </div>
 
                                         <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--split tv-telemetry-cube__virtual-panel">
-                                            <TvCandleBattle Culture="@Culture"
-                                                            IsBroadcastCompact="@IsBroadcastMode"
-                                                            LeftTickerLabel="@DisplayLeftTickerLabel()"
+                                            <TvCandleBattle LeftTickerLabel="@DisplayLeftTickerLabel()"
                                                             RightTickerLabel="@DisplayRightTickerLabel()"
                                                             LeftHeroLabel="@DisplayLeftHeroLabel()"
                                                             RightHeroLabel="@DisplayRightHeroLabel()"
@@ -509,8 +544,6 @@
                                                             RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
                                                             LeftChangePercent="@DisplayLeftChangePercent()"
                                                             RightChangePercent="@DisplayRightChangePercent()"
-                                                            LeftPoints="@LeftPriceBattlePoints"
-                                                            RightPoints="@RightPriceBattlePoints"
                                                             AriaLabel="@($"{DisplayLeftTickerLabel()} vs {DisplayRightTickerLabel()} candle battle arena")" />
                                         </div>
 
@@ -537,23 +570,23 @@
                                         </div>
 
                                         <div class="tv-telemetry-cube__inner tv-telemetry-cube__inner--sentiment">
-                                           <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
-                                                                              Culture="@Culture"
-                                                                              LeftDisplayName="@DisplayLeftSymbol()"
-                                                                              LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                                              LeftPressurePercent="@GetArenaPressureLeftPercent()"
-                                                                              LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
-                                                                              LeftColor="#ffd76e"
-                                                                              RightSymbol="@DisplayRightHeroLabel()"
-                                                                              RightDisplayName="@DisplayRightSymbol()"
-                                                                              RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                                                              RightPressurePercent="@GetArenaPressureRightPercent()"
-                                                                              RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
+                                            <TvArenaPressureGauge LeftSymbol="@DisplayLeftHeroLabel()"
+                                                                  Culture="@Culture"
+                                                                  LeftDisplayName="@DisplayLeftSymbol()"
+                                                                  LeftLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                                  LeftPressurePercent="@GetArenaPressureLeftPercent()"
+                                                                  LeftMomentumLabel="@GetArenaPressureMomentumLabel(true)"
+                                                                  LeftColor="#ffd76e"
+                                                                  RightSymbol="@DisplayRightHeroLabel()"
+                                                                  RightDisplayName="@DisplayRightSymbol()"
+                                                                  RightLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                                  RightPressurePercent="@GetArenaPressureRightPercent()"
+                                                                  RightMomentumLabel="@GetArenaPressureMomentumLabel(false)"
                                                                   RightColor="#53c8ff"
-                                                                              CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
-                                                                              StatusLabel="@GetArenaPressureStatusLabel()"
-                                                                              Description="@GetArenaPressureDescription()"
-                                                                              IsCompact="@ShouldUseCompactArenaGauge()" />
+                                                                  CurrentPressurePercent="@GetArenaCurrentPressurePercent()"
+                                                                  StatusLabel="@GetArenaPressureStatusLabel()"
+                                                                  Description="@GetArenaPressureDescription()"
+                                                                  IsCompact="@ShouldUseCompactArenaGauge()" />
                                         </div>
                                     </div>
                                 </section>
@@ -849,6 +882,7 @@ else
 @code {
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
     [Parameter] public bool IsBroadcastMode { get; set; }
+    [Parameter] public bool IsInitialLoading { get; set; }
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
     [Parameter] public MatchDto? Match { get; set; }
     [Parameter] public StatsOverviewDto? Stats { get; set; }
@@ -953,6 +987,8 @@ else
     private bool _arenaSentimentLoading;
     private CancellationTokenSource? _metricSnapshotCts;
     private Task? _metricSnapshotLoopTask;
+    private bool _liveDataLoopsStarted;
+    private int _liveDataLoopsMatchId;
     private int _metricSnapshotMatchId;
     private long _metricSnapshotLastId;
     private long _metricSnapshotLastLogTick;
@@ -1081,6 +1117,16 @@ else
             return !IsMatchFinishedForStage();
         }
     }
+
+    private int CurrentStageMatchId => Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+    private bool ShouldRenderInitialLoading => IsInitialLoading && !HasLiveMatch;
+    private string InitialLoadingTitle => IsPortugueseCulture ? "Carregando arena..." : "Loading arena...";
+    private string InitialLoadingSubtitle => IsPortugueseCulture
+        ? "Aguarde enquanto a transmissão confirma os dados da partida."
+        : "Please wait while the broadcast confirms the match data.";
+    private string InitialLoadingStepOne => IsPortugueseCulture ? "Sincronizando partida" : "Synchronizing match";
+    private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando gráficos e placar" : "Preparing charts and scoreboard";
+    private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissão" : "Activating broadcast";
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private bool EnableTvDebugOverlay => Config.GetValue<bool?>("CriptoVersusTV:EnableDebugOverlay") == true;
@@ -1207,8 +1253,8 @@ else
     private TvFieldStateDto? CurrentFieldState => UseFootballFieldLayout && HasLiveMatch
         ? FieldPositionService.BuildFieldState(Match, HotMatch, _recentScoreEvents, _metricSnapshots, Culture)
         : null;
-    private string CurrentMatchUrl => BuildMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
-    private string CurrentRealMatchUrl => BuildRealMatchUrl(Match?.MatchId ?? HotMatch?.MatchId ?? 0, MatchSlugOrHotSlug());
+    private string CurrentMatchUrl => BuildMatchUrl(CurrentStageMatchId, MatchSlugOrHotSlug());
+    private string CurrentRealMatchUrl => BuildRealMatchUrl(CurrentStageMatchId, MatchSlugOrHotSlug());
     private string BuildArenaInvestmentUrl()
         => string.IsNullOrWhiteSpace(CurrentMatchUrl)
             ? "#"
@@ -1259,16 +1305,18 @@ protected override void OnParametersSet()
     Logger.LogInformation(
         "TvStage mode updated. Mode={Mode} MatchId={MatchId} AvailableMatches={AvailableMatches} CrowdAudioEligible={CrowdAudioEligible}",
         IsBroadcastMode ? "rotative" : "fixed-match",
-        Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+        CurrentStageMatchId,
         AvailableTvMatches.Count,
         ShouldRenderCrowdAudio);
 
     SyncClockAnchor();
     ProcessBroadcastState();
     BuildTickerItems();
-    QueueScoreEventProbe();
 
-    var priceBattleMatchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+    if (!ShouldRenderInitialLoading)
+        QueueScoreEventProbe();
+
+    var priceBattleMatchId = CurrentStageMatchId;
     if (priceBattleMatchId != _priceBattleMatchId)
         ResetPriceBattleState(priceBattleMatchId);
 }
@@ -1277,6 +1325,8 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
 {
     if (_isDisposed)
         return;
+
+    EnsureLiveDataLoopsStarted();
 
     if (!firstRender && _tvModule is not null)
     {
@@ -1294,13 +1344,13 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
         _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
-        Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
+        Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
         _tvCameraModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvCinematicCamera.js?v=20260522-2");
-        Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvCinematicCamera matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
+        Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvCinematicCamera matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         _tvEventFeedModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvEventFeed.mjs?v=20260603-goal-feed-1");
-        Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvEventFeed matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
+        Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvEventFeed matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await LogAsync("TV_MOTION", "motion system ready");
         await EnsureReplayEngineAsync();
         await InitializeTvAudioManagerAsync();
@@ -1314,9 +1364,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
         _broadcastAutomationCts = new CancellationTokenSource();
         _broadcastAutomationLoopTask = RunBroadcastAutomationLoopAsync(_broadcastAutomationCts.Token);
 
-        _metricSnapshotCts = new CancellationTokenSource();
-        _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
-        _ = RefreshPriceBattleAsync(Match?.MatchId ?? HotMatch?.MatchId ?? 0, _metricSnapshotCts.Token);
+        EnsureLiveDataLoopsStarted();
 
         if (EnableNarrationDebugDemo && !_narrationDebugDemoStarted && _narrationOverlay is not null)
         {
@@ -1325,7 +1373,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
         }
 
         await LogClockDebugAsync();
-        Logger.LogInformation("[TV_MATCH_LOAD] TvStage OnAfterRender firstRender matchId={MatchId} elapsedMs={ElapsedMs}", Match?.MatchId ?? HotMatch?.MatchId ?? 0, firstRenderSw.ElapsedMilliseconds);
+        Logger.LogInformation("[TV_MATCH_LOAD] TvStage OnAfterRender firstRender matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
     }
 
     if (_tvEventFeedModule is not null)
@@ -1982,6 +2030,29 @@ private async Task EnsureAudioDebugInteropAsync(bool force = false)
     _lastAppliedAudioDebugCulture = Culture;
 }
 
+private void EnsureLiveDataLoopsStarted()
+{
+    var matchId = CurrentStageMatchId;
+    if (_isDisposed || matchId <= 0)
+        return;
+
+    if (_liveDataLoopsStarted && _liveDataLoopsMatchId == matchId)
+        return;
+
+    _liveDataLoopsStarted = true;
+    _liveDataLoopsMatchId = matchId;
+
+    if (_metricSnapshotCts is null || _metricSnapshotCts.IsCancellationRequested)
+    {
+        _metricSnapshotCts?.Dispose();
+        _metricSnapshotCts = new CancellationTokenSource();
+        _metricSnapshotLoopTask = RunMetricSnapshotLoopAsync(_metricSnapshotCts.Token);
+        Logger.LogInformation("[TV_MATCH_LOAD] TvStage live data loop started. MatchId={MatchId}", matchId);
+    }
+
+    _ = RefreshPriceBattleAsync(matchId, _metricSnapshotCts.Token);
+}
+
 private async Task RunMetricSnapshotLoopAsync(CancellationToken ct)
 {
     using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
@@ -1991,7 +2062,7 @@ private async Task RunMetricSnapshotLoopAsync(CancellationToken ct)
         while (await timer.WaitForNextTickAsync(ct))
         {
             var shouldRender = false;
-            var matchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+            var matchId = CurrentStageMatchId;
             if (matchId <= 0)
             {
                 shouldRender =
@@ -2607,7 +2678,7 @@ private async Task ShowPirateIntroAsync(string reason)
         Logger.LogInformation(
             "TvStage broadcast cinematic shown. Reason={Reason} MatchId={MatchId} Video={Video} Category={Category} Transition={Transition}",
             reason,
-            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            CurrentStageMatchId,
             _currentPirateOpeningVideo ?? "fallback-image",
             selectedVideo?.Category ?? "fallback",
             _currentBroadcastTransition);
@@ -3640,7 +3711,7 @@ private void QueueScoreEventProbe()
 
 private async Task DetectRecentScoreEventsAsync()
 {
-    var matchId = Match?.MatchId ?? HotMatch?.MatchId ?? 0;
+    var matchId = CurrentStageMatchId;
     if (matchId <= 0)
         return;
 
@@ -4283,13 +4354,13 @@ private IReadOnlyList<TvAvailableMatchCard> BuildAvailableTvMatches()
             $"{GetBaseSymbol(leftSymbol)} • {GetBaseSymbol(rightSymbol)}",
             publicUrl,
             watchUrl,
-            (Match?.MatchId ?? HotMatch?.MatchId ?? 0) == matchId));
+            (CurrentStageMatchId) == matchId));
     }
 
     if (HasLiveMatch)
     {
         AddCard(
-            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            CurrentStageMatchId,
             Match?.TeamA ?? HotMatch?.LeftSymbol ?? string.Empty,
             Match?.TeamB ?? HotMatch?.RightSymbol ?? string.Empty,
             Match?.Status ?? (HotMatch?.RemainingSeconds > 0 ? "Ongoing" : null),
@@ -4687,7 +4758,7 @@ private static string ResolveTrailerSymbol(BroadcastSnapshot current)
         : current.LeftSymbol;
 
 private string DisplayMatchId()
-    => (Match?.MatchId ?? HotMatch?.MatchId ?? 0).ToString(CultureInfo.InvariantCulture);
+    => (CurrentStageMatchId).ToString(CultureInfo.InvariantCulture);
 
 private string DisplayLeftSymbol() => HotMatch?.LeftSymbol ?? Match?.TeamA ?? "-";
 private string DisplayRightSymbol() => HotMatch?.RightSymbol ?? Match?.TeamB ?? "-";
@@ -6942,7 +7013,7 @@ private async Task EnsureBroadcastAudioAsync()
         Logger.LogInformation(
             "TvStage broadcast crowd audio initialized. Mode={Mode} MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
             IsBroadcastMode ? "rotative" : "fixed-match",
-            Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+            CurrentStageMatchId,
             HasActiveOngoingMatch,
             IsBroadcastMode);
     }
@@ -6957,7 +7028,7 @@ private async Task EnsureBroadcastAudioAsync()
             Logger.LogInformation(
                 "TvStage broadcast crowd audio initialized via fallback. Mode={Mode} MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
                 IsBroadcastMode ? "rotative" : "fixed-match",
-                Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+                CurrentStageMatchId,
                 HasActiveOngoingMatch,
                 IsBroadcastMode);
         }
@@ -7023,7 +7094,7 @@ private async Task StopBroadcastAudioAsync(string reason)
     Logger.LogInformation(
         "TvStage broadcast crowd audio stopped. Reason={Reason} MatchId={MatchId} HasActiveOngoingMatch={HasActiveOngoingMatch} BroadcastMode={BroadcastMode}",
         reason,
-        Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+        CurrentStageMatchId,
         HasActiveOngoingMatch,
         IsBroadcastMode);
 }
@@ -7780,7 +7851,7 @@ private void SyncClockAnchor()
 
 private string BuildFieldInteropSignature(TvFieldStateDto fieldState)
     => string.Join("|",
-        Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+        CurrentStageMatchId,
         fieldState.MomentumOwner ?? "center",
         fieldState.Leader ?? "none",
         fieldState.TeamPressureA.ToString("0.##", CultureInfo.InvariantCulture),
@@ -7791,7 +7862,7 @@ private string BuildFieldInteropSignature(TvFieldStateDto fieldState)
 
 private string BuildCameraInteropSignature()
     => string.Join("|",
-        Match?.MatchId ?? HotMatch?.MatchId ?? 0,
+        CurrentStageMatchId,
         IsBroadcastMode ? "broadcast" : "single");
 
 private double ResolveRemainingMillisecondsSeed()
@@ -8520,7 +8591,7 @@ private static IReadOnlyList<TvPriceChartPoint> BuildPricePoints(IEnumerable<Mat
 public async ValueTask DisposeAsync()
 {
     _isDisposed = true;
-    Logger.LogInformation("TvStage disposing timers and JS interop resources. BroadcastMode={BroadcastMode} MatchId={MatchId}", IsBroadcastMode, Match?.MatchId ?? HotMatch?.MatchId ?? 0);
+    Logger.LogInformation("TvStage disposing timers and JS interop resources. BroadcastMode={BroadcastMode} MatchId={MatchId}", IsBroadcastMode, CurrentStageMatchId);
     CancelPirateOverlayTimer();
 
     if (_clockCts is not null)
@@ -13906,20 +13977,20 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-               HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
-               ----------------------------------------------------------
-               Mantém os mesmos IDs usados pelo JS/lightweight-charts:
-               - tv-telemetry-chart-left
-               - tv-telemetry-chart-right
-               - tv-telemetry-chart-compare
-               - tv-telemetry-chart-split-left/right
-               - tv-candle-battle-root
-               - TvArenaPressureGauge
+                   HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
+                   ----------------------------------------------------------
+                   Mantém os mesmos IDs usados pelo JS/lightweight-charts:
+                   - tv-telemetry-chart-left
+                   - tv-telemetry-chart-right
+                   - tv-telemetry-chart-compare
+                   - tv-telemetry-chart-split-left/right
+                   - tv-candle-battle-root
+                   - TvArenaPressureGauge
 
-               Não usa cubo 3D, prisma ou faces físicas extras.
-               O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
-               Essa camada CSS transforma isso em carrossel estável.
-               ========================================================== */
+                   Não usa cubo 3D, prisma ou faces físicas extras.
+                   O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
+                   Essa camada CSS transforma isso em carrossel estável.
+                   ========================================================== */
 
     .tv-telemetry-cube-shell {
         --tv-carousel-min-height: clamp(520px, 64vh, 820px);
@@ -14108,15 +14179,15 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /* =========================================================
-               TV FOOTBALL + TELEMETRY CUBE
-               SINCRONIZAÇÃO EXATA DE ALTURA
-               ========================================================= */
+                   TV FOOTBALL + TELEMETRY CUBE
+                   SINCRONIZAÇÃO EXATA DE ALTURA
+                   ========================================================= */
 
     /*
-               A altura da linha é definida naturalmente pelo card de partida.
-               A coluna de telemetria é esticada pelo CSS Grid e o cube ocupa
-               exatamente toda a área disponível da coluna direita.
-            */
+                   A altura da linha é definida naturalmente pelo card de partida.
+                   A coluna de telemetria é esticada pelo CSS Grid e o cube ocupa
+                   exatamente toda a área disponível da coluna direita.
+                */
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
     }
@@ -14129,19 +14200,19 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-               O card da esquerda mantém a altura natural do conteúdo.
-               Não usamos height: 100% aqui para evitar que ele crie uma
-               referência circular de altura dentro do próprio grid.
-            */
+                   O card da esquerda mantém a altura natural do conteúdo.
+                   Não usamos height: 100% aqui para evitar que ele crie uma
+                   referência circular de altura dentro do próprio grid.
+                */
     .tv-stage--broadcast .tv-match-card--football {
         height: auto !important;
     }
 
     /*
-               A coluna direita recebe exatamente a altura da linha do grid.
-               O shell do cube é posicionado dentro dela usando inset: 0,
-               evitando dependência de cadeias frágeis de height: 100%.
-            */
+                   A coluna direita recebe exatamente a altura da linha do grid.
+                   O shell do cube é posicionado dentro dela usando inset: 0,
+                   evitando dependência de cadeias frágeis de height: 100%.
+                */
     .tv-stage--broadcast .tv-telemetry--football {
         position: relative !important;
         display: block !important;
@@ -14164,9 +14235,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
         /*
-               Toda a cadeia interna do cube passa a respeitar a altura
-               exata recebida do shell.
-            */
+                   Toda a cadeia interna do cube passa a respeitar a altura
+                   exata recebida do shell.
+                */
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face--back,
@@ -14187,9 +14258,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-               A face de sentiment usa uma única linha flexível.
-               O gauge ocupa integralmente essa linha.
-            */
+                   A face de sentiment usa uma única linha flexível.
+                   O gauge ocupa integralmente essa linha.
+                */
     .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
         display: grid !important;
         grid-template-rows: minmax(0, 1fr) !important;
@@ -14218,9 +14289,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-               Estrutura interna do gauge:
-               cabeçalho, área central flexível, status e momentum.
-            */
+                   Estrutura interna do gauge:
+                   cabeçalho, área central flexível, status e momentum.
+                */
     .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
         display: grid !important;
         grid-template-rows: auto minmax(0, 1fr) auto auto !important;
@@ -14263,9 +14334,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-               Em telas menores as colunas deixam de compartilhar a mesma linha.
-               O cube volta ao fluxo normal e usa uma altura responsiva própria.
-            */
+                   Em telas menores as colunas deixam de compartilhar a mesma linha.
+                   O cube volta ao fluxo normal e usa uma altura responsiva própria.
+                */
     @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-telemetry--football {
             position: relative !important;
@@ -14309,8 +14380,8 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-           AJUSTE FINAL — GRÁFICOS COM 100% DA ALTURA DO CONTAINER
-           ========================================================== */
+               AJUSTE FINAL — GRÁFICOS COM 100% DA ALTURA DO CONTAINER
+               ========================================================== */
 
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
@@ -14597,14 +14668,14 @@ private sealed record TvArenaCommentaryEntry(
 <style>
 
     /* =========================================================
-       CORREÇÃO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
-       ========================================================= */
+           CORREÇÃO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
+           ========================================================= */
 
     /*
-       Os slides compare, split e sentiment possuem normalmente
-       apenas um filho direto. Eles precisam de uma única linha
-       flexível, não do template header/content/footer.
-    */
+           Os slides compare, split e sentiment possuem normalmente
+           apenas um filho direto. Eles precisam de uma única linha
+           flexível, não do template header/content/footer.
+        */
     .tv-telemetry-cube__inner--compare,
     .tv-telemetry-cube__inner--split,
     .tv-telemetry-cube__inner--sentiment {
@@ -14625,8 +14696,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-       O slide de gols possui cabeçalho e conteúdo.
-    */
+           O slide de gols possui cabeçalho e conteúdo.
+        */
     .tv-telemetry-cube__inner--goals {
         display: grid !important;
         grid-template-rows: auto minmax(0, 1fr) !important;
@@ -14643,9 +14714,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-       Todo filho direto dos slides deve ocupar integralmente
-       a linha flexível que recebeu.
-    */
+           Todo filho direto dos slides deve ocupar integralmente
+           a linha flexível que recebeu.
+        */
     .tv-telemetry-cube__inner--compare > *,
     .tv-telemetry-cube__inner--split > *,
     .tv-telemetry-cube__inner--sentiment > * {
@@ -14661,8 +14732,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-       Conteúdo do slide de gols ocupa toda a segunda linha.
-    */
+           Conteúdo do slide de gols ocupa toda a segunda linha.
+        */
     .tv-telemetry-cube__inner--goals > .tv-goal-log {
         width: 100% !important;
         height: 100% !important;
@@ -14672,8 +14743,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-       Cadeia interna dos componentes dos slides.
-    */
+           Cadeia interna dos componentes dos slides.
+        */
     .tv-telemetry-cube__inner--compare :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart ),
     .tv-telemetry-cube__inner--split :is( .tv-candle-battle, .tv-candle-battle__cards, .tv-candle-battle-card ),
     .tv-telemetry-cube__inner--sentiment :is( .tv-arena-pressure-gauge, .tv-arena-pressure-gauge__panel ) {
@@ -14687,9 +14758,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-       Remove alturas mínimas que fazem os componentes escolherem
-    
-    */
+           Remove alturas mínimas que fazem os componentes escolherem
+
+        */
     .tv-telemetry-cube__inner--compare .tv-telemetry-chart-shell,
     .tv-telemetry-cube__inner--split .tv-telemetry-chart-shell,
     .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
