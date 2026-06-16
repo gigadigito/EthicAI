@@ -5,6 +5,8 @@ using EthicAI.EntityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using System.Data;
 using System.Diagnostics;
 
 namespace CriptoVersus.API.Controllers;
@@ -18,6 +20,7 @@ public sealed class StatsController : ControllerBase
     private const int MaxLatestMatches = 20;
     private const int MaxTeamRivals = 5;
     private const int ActivityWindowDays = 30;
+    private static readonly TimeSpan FreshCurrencyWindow = TimeSpan.FromMinutes(10);
 
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
@@ -544,6 +547,109 @@ public sealed class StatsController : ControllerBase
 
     private async Task<AssetPriceSnapshotDto?> ResolveAssetPriceSnapshotAsync(string normalizedSymbol, CancellationToken ct)
     {
+        var currentPrice = await ResolveFreshCoinPriceCurrentSnapshotAsync(normalizedSymbol, ct);
+        if (currentPrice is not null)
+            return currentPrice;
+
+        return await ResolveMatchMetricSnapshotPriceAsync(normalizedSymbol, ct);
+    }
+
+    private async Task<AssetPriceSnapshotDto?> ResolveFreshCoinPriceCurrentSnapshotAsync(string normalizedSymbol, CancellationToken ct)
+    {
+        var normalizedUpper = normalizedSymbol.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedUpper))
+            return null;
+
+        var candidateSymbols = BuildCandidateMarketSymbols(normalizedSymbol)
+            .Select(symbol => symbol.ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        var preferredSymbol = $"{normalizedUpper}USDT";
+        var freshCutoffUtc = DateTime.UtcNow.Subtract(FreshCurrencyWindow);
+
+        const string sql = @"
+SELECT
+    tx_symbol,
+    tx_base_asset,
+    tx_quote_asset,
+    nr_last_price,
+    nr_price_change_pct_24h,
+    dt_binance_snapshot_utc,
+    dt_updated_at
+FROM coin_price_current
+WHERE
+    nr_last_price IS NOT NULL
+    AND nr_last_price > 0
+    AND dt_updated_at >= @fresh_cutoff_utc
+    AND (
+        upper(tx_symbol) = ANY(@candidate_symbols)
+        OR upper(tx_base_asset) = @base_asset
+    )
+ORDER BY
+    CASE
+        WHEN upper(tx_symbol) = @preferred_symbol THEN 0
+        WHEN upper(tx_base_asset) = @base_asset AND upper(tx_quote_asset) = 'USDT' THEN 1
+        ELSE 2
+    END,
+    dt_updated_at DESC
+LIMIT 1;";
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(_db.Database.GetDbConnection().ConnectionString);
+            await conn.OpenAsync(ct);
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("candidate_symbols", candidateSymbols);
+            cmd.Parameters.AddWithValue("base_asset", normalizedUpper);
+            cmd.Parameters.AddWithValue("preferred_symbol", preferredSymbol);
+            cmd.Parameters.AddWithValue("fresh_cutoff_utc", freshCutoffUtc);
+
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
+            if (!await reader.ReadAsync(ct))
+                return null;
+
+            var marketSymbol = reader.GetString(0);
+            var baseAsset = reader.GetString(1);
+            var lastPrice = reader.GetDecimal(3);
+            var percentageChange = reader.IsDBNull(4) ? (decimal?)null : reader.GetDecimal(4);
+            var binanceSnapshotUtc = reader.GetDateTime(5);
+            var updatedAtUtc = reader.GetDateTime(6);
+
+            return new AssetPriceSnapshotDto
+            {
+                QuerySymbol = normalizedUpper,
+                AssetSymbol = CleanAssetSymbol(baseAsset),
+                MarketSymbol = marketSymbol,
+                TeamId = 0,
+                MatchId = 0,
+                LastPriceUsdt = lastPrice,
+                PercentageChange = percentageChange ?? 0m,
+                CapturedAtUtc = binanceSnapshotUtc == default ? updatedAtUtc : binanceSnapshotUtc,
+                Source = "coin_price_current"
+            };
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            _logger.LogWarning(
+                ex,
+                "coin_price_current ainda nao existe. Falling back to match_metric_snapshot for symbol={Symbol}",
+                normalizedUpper);
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(
+                ex,
+                "Falha ao ler coin_price_current. Falling back to match_metric_snapshot for symbol={Symbol}",
+                normalizedUpper);
+            return null;
+        }
+    }
+
+    private async Task<AssetPriceSnapshotDto?> ResolveMatchMetricSnapshotPriceAsync(string normalizedSymbol, CancellationToken ct)
+    {
         var candidateSymbols = BuildCandidateMarketSymbols(normalizedSymbol)
             .Select(symbol => symbol.ToUpperInvariant())
             .Distinct(StringComparer.Ordinal)
@@ -566,7 +672,7 @@ public sealed class StatsController : ControllerBase
                 LastPriceUsdt = x.LastPrice,
                 PercentageChange = x.PercentageChange,
                 CapturedAtUtc = x.CapturedAtUtc,
-                Source = "match_metric_snapshot"
+                Source = "match_metric_snapshot_fallback"
             })
             .FirstOrDefaultAsync(ct);
     }

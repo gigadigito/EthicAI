@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,6 +61,7 @@ namespace CriptoVersus.Worker
         private const int MoneyScale = 8;
 
         public record HealthItem(bool Ok, string Message);
+        private sealed record BinanceMarketSnapshot(List<Crypto> AllUsdt, List<Crypto> TopGainers);
         public Worker(
             ILogger<Worker> logger,
             IServiceProvider sp,
@@ -81,6 +83,7 @@ namespace CriptoVersus.Worker
             await WaitForPostgresAsync(stoppingToken);
             await EnsureWorkerStatusTableAsync(stoppingToken);
             await EnsureArenaPressureScoreStateColumnsAsync(stoppingToken);
+            await EnsureCoinPriceCurrentTableAsync(stoppingToken);
 
             await WriteWorkerStatusAsync(
                 status: "starting",
@@ -174,12 +177,13 @@ namespace CriptoVersus.Worker
             var nowUtc = DateTime.UtcNow;
             var cycleStartUtc = nowUtc;
 
-            var topGainers = await ExecuteStageAsync(
-                "load-top-gainers",
+            var marketSnapshot = await ExecuteStageAsync(
+                "load-market-snapshot",
                 cycleStartUtc,
                 heartbeatOnly: false,
-                action: innerCt => LoadTopGainersAsync(http, innerCt),
+                action: innerCt => LoadMarketSnapshotAsync(http, innerCt),
                 ct);
+            var topGainers = marketSnapshot.TopGainers;
             var hasHealthySnapshot = topGainers.Count >= 6;
             if (!hasHealthySnapshot)
             {
@@ -197,6 +201,13 @@ namespace CriptoVersus.Worker
 
             Dictionary<string, Currency> currencyBySymbol = new(StringComparer.OrdinalIgnoreCase);
             HashSet<string> allowedSymbols = new(StringComparer.OrdinalIgnoreCase);
+
+            await ExecuteStageAsync(
+                "upsert-coin-prices",
+                cycleStartUtc,
+                heartbeatOnly: true,
+                action: innerCt => UpsertCoinPricesAsync(db, marketSnapshot.AllUsdt, snapshotUtc, innerCt),
+                ct);
 
             if (topGainers.Count > 0)
             {
@@ -228,7 +239,7 @@ namespace CriptoVersus.Worker
             await ExecuteStageAsync("log-pool-status", cycleStartUtc, true, innerCt => LogPoolStatusAsync(db, nowUtc, innerCt), ct);
         }
 
-        private async Task<List<Crypto>> LoadTopGainersAsync(HttpClient http, CancellationToken ct)
+        private async Task<BinanceMarketSnapshot> LoadMarketSnapshotAsync(HttpClient http, CancellationToken ct)
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(ExternalRequestTimeout);
@@ -239,20 +250,26 @@ namespace CriptoVersus.Worker
             if (all == null || all.Count == 0)
             {
                 _logger.LogWarning("⚠️ Binance retornou vazio.");
-                return new List<Crypto>();
+                return new BinanceMarketSnapshot(new List<Crypto>(), new List<Crypto>());
             }
 
             static decimal ParseDec(string? s)
                 => decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var v) ? v : 0m;
 
-            return all
+            var allUsdt = all
                 .Where(c => !string.IsNullOrWhiteSpace(c.Symbol))
                 .Where(c => c.Symbol!.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+                .Where(c => ParseNullableDecimal(c.LastPrice) is > 0)
+                .ToList();
+
+            var topGainers = allUsdt
                 .Where(c => c.Count >= MinTradesCount)
                 .Where(c => ParseDec(c.QuoteVolume) >= MinQuoteVolumeUsdt)
                 .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
                 .Take(GetTopGainersTake())
                 .ToList();
+
+            return new BinanceMarketSnapshot(allUsdt, topGainers);
         }
 
         private void LogTopGainers(List<Crypto> topGainers)
@@ -2306,6 +2323,156 @@ namespace CriptoVersus.Worker
             await db.Database.ExecuteSqlRawAsync(sql, ct);
         }
 
+        private async Task EnsureCoinPriceCurrentTableAsync(CancellationToken ct)
+        {
+            using var scope = _sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<EthicAIDbContext>();
+
+            var freshWindowMinutes = Math.Max(1, (int)Math.Ceiling(FreshCurrencyWindow.TotalMinutes));
+
+            var sql = $@"
+                CREATE TABLE IF NOT EXISTS coin_price_current (
+                  tx_symbol                varchar(30) PRIMARY KEY,
+                  tx_base_asset            varchar(20) NOT NULL,
+                  tx_quote_asset           varchar(20) NOT NULL DEFAULT 'USDT',
+                  nr_last_price            numeric(38,18) NULL,
+                  nr_price_change_pct_24h  numeric(18,8) NULL,
+                  nr_quote_volume          numeric(38,8) NULL,
+                  nr_trade_count           bigint NULL,
+                  dt_binance_snapshot_utc  timestamptz NOT NULL,
+                  dt_updated_at            timestamptz NOT NULL DEFAULT now()
+                );
+
+                CREATE INDEX IF NOT EXISTS ix_coin_price_current_base_asset
+                ON coin_price_current (tx_base_asset);
+
+                CREATE INDEX IF NOT EXISTS ix_coin_price_current_updated_at
+                ON coin_price_current (dt_updated_at);
+
+                CREATE OR REPLACE VIEW coin_price_current_fresh AS
+                SELECT
+                    tx_symbol,
+                    tx_base_asset,
+                    tx_quote_asset,
+                    nr_last_price,
+                    nr_price_change_pct_24h,
+                    nr_quote_volume,
+                    nr_trade_count,
+                    dt_binance_snapshot_utc,
+                    dt_updated_at
+                FROM coin_price_current
+                WHERE dt_updated_at >= now() - interval '{freshWindowMinutes} minutes';";
+
+            await db.Database.ExecuteSqlRawAsync(sql, ct);
+
+            _logger.LogInformation(
+                "💱 coin_price_current garantida. FreshCurrencyWindow={FreshCurrencyWindowMinutes}min view=coin_price_current_fresh",
+                freshWindowMinutes);
+        }
+
+        private async Task UpsertCoinPricesAsync(
+            EthicAIDbContext db,
+            List<Crypto> allUsdt,
+            DateTime snapshotUtc,
+            CancellationToken ct)
+        {
+            if (allUsdt.Count == 0)
+            {
+                _logger.LogWarning("💱 Coin prices: snapshot AllUsdt vazio. Mantendo preços anteriores.");
+                return;
+            }
+
+            static string BaseAssetFromSymbol(string symbol)
+                => symbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase)
+                    ? symbol[..^4]
+                    : symbol;
+
+            var rows = allUsdt
+                .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
+                .Select(x =>
+                {
+                    var symbol = x.Symbol!.ToUpperInvariant();
+                    return new
+                    {
+                        Symbol = symbol,
+                        BaseAsset = BaseAssetFromSymbol(symbol),
+                        LastPrice = ParseNullableDecimal(x.LastPrice) ?? 0m,
+                        PriceChangePct = (decimal)ParsePercent(x.PriceChangePercent),
+                        QuoteVolume = ParseDecimal(x.QuoteVolume),
+                        TradeCount = x.Count
+                    };
+                })
+                .Where(x => x.LastPrice > 0m)
+                .GroupBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            if (rows.Count == 0)
+            {
+                _logger.LogWarning("💱 Coin prices: nenhum par USDT com preço válido. Mantendo preços anteriores.");
+                return;
+            }
+
+            const int batchSize = 200;
+            var totalUpserted = 0;
+
+            for (var offset = 0; offset < rows.Count; offset += batchSize)
+            {
+                var batch = rows.Skip(offset).Take(batchSize).ToList();
+                var sql = new StringBuilder();
+                var parameters = new List<object?>();
+                var parameterIndex = 0;
+
+                sql.AppendLine(@"
+INSERT INTO coin_price_current
+    (tx_symbol, tx_base_asset, tx_quote_asset, nr_last_price, nr_price_change_pct_24h,
+     nr_quote_volume, nr_trade_count, dt_binance_snapshot_utc, dt_updated_at)
+VALUES");
+
+                for (var i = 0; i < batch.Count; i++)
+                {
+                    if (i > 0)
+                        sql.AppendLine(",");
+
+                    sql.Append(
+                        $"    ({{{parameterIndex++}}}, {{{parameterIndex++}}}, 'USDT', {{{parameterIndex++}}}, {{{parameterIndex++}}}, {{{parameterIndex++}}}, {{{parameterIndex++}}}, {{{parameterIndex++}}}, now())");
+
+                    var row = batch[i];
+                    parameters.Add(row.Symbol);
+                    parameters.Add(row.BaseAsset);
+                    parameters.Add(row.LastPrice);
+                    parameters.Add(row.PriceChangePct);
+                    parameters.Add(row.QuoteVolume);
+                    parameters.Add(row.TradeCount);
+                    parameters.Add(snapshotUtc);
+                }
+
+                sql.AppendLine(@"
+ON CONFLICT (tx_symbol) DO UPDATE SET
+    tx_base_asset = EXCLUDED.tx_base_asset,
+    tx_quote_asset = EXCLUDED.tx_quote_asset,
+    nr_last_price = EXCLUDED.nr_last_price,
+    nr_price_change_pct_24h = EXCLUDED.nr_price_change_pct_24h,
+    nr_quote_volume = EXCLUDED.nr_quote_volume,
+    nr_trade_count = EXCLUDED.nr_trade_count,
+    dt_binance_snapshot_utc = EXCLUDED.dt_binance_snapshot_utc,
+    dt_updated_at = now();");
+
+                await db.Database.ExecuteSqlRawAsync(sql.ToString(), parameters.ToArray(), ct);
+                totalUpserted += batch.Count;
+            }
+
+            var freshCutoffUtc = DateTime.UtcNow.Subtract(FreshCurrencyWindow);
+
+            _logger.LogInformation(
+                "💱 Coin prices atualizados para conversão: count={Count} batches={Batches} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
+                totalUpserted,
+                (int)Math.Ceiling(rows.Count / (double)batchSize),
+                snapshotUtc,
+                FreshCurrencyWindow.TotalMinutes,
+                freshCutoffUtc);
+        }
+
         private async Task EnsureArenaPressureScoreStateColumnsAsync(CancellationToken ct)
         {
             using var scope = _sp.CreateScope();
@@ -2330,13 +2497,13 @@ namespace CriptoVersus.Worker
 
             var utcNow = DateTime.UtcNow;
 
-            var sql = @"
+            await db.Database.ExecuteSqlInterpolatedAsync($@"
 INSERT INTO worker_status
   (tx_worker_name, in_status, dt_last_heartbeat, dt_last_cycle_start, dt_last_cycle_end, dt_last_success,
    nr_last_cycle_ms, in_degraded, tx_health_json, tx_last_error, tx_last_error_stack, dt_updated_at)
 VALUES
-  ({0}, {1}, {2}, {3}, {4}, {5},
-   {6}, {7}, {8}, {9}, {10}, now())
+  ({WorkerName}, {status}, {utcNow}, {cycleStartUtc}, {cycleEndUtc}, {lastSuccessUtc},
+   {lastCycleMs}, {degraded}, {healthJson}, {lastErrorMsg}, {lastErrorStack}, now())
 ON CONFLICT (tx_worker_name) DO UPDATE SET
   in_status           = EXCLUDED.in_status,
   dt_last_heartbeat   = EXCLUDED.dt_last_heartbeat,
@@ -2348,24 +2515,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
   tx_health_json      = COALESCE(EXCLUDED.tx_health_json, worker_status.tx_health_json),
   tx_last_error       = EXCLUDED.tx_last_error,
   tx_last_error_stack = COALESCE(EXCLUDED.tx_last_error_stack, worker_status.tx_last_error_stack),
-  dt_updated_at       = now();";
-
-            await db.Database.ExecuteSqlRawAsync(
-                sql,
-                new object?[]
-                {
-                    WorkerName,
-                    status,
-                    utcNow,
-                    cycleStartUtc,
-                    cycleEndUtc,
-                    lastSuccessUtc,
-                    lastCycleMs,
-                    degraded,
-                    healthJson,
-                    lastErrorMsg,
-                    lastErrorStack
-                },
+  dt_updated_at       = now();",
                 ct);
         }
 
