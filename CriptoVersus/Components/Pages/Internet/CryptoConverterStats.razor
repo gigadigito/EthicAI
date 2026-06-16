@@ -136,6 +136,53 @@
                 <small>@T("labels.priceUpdated"): @DisplayPriceUpdatedTime() UTC · @DisplayResolvedSourceSummary()</small>
             </div>
 
+            <div class="crypto-converter-stats__manual-converter" aria-label="@ManualConverterAriaLabel">
+                <div class="crypto-converter-stats__manual-row crypto-converter-stats__manual-row--from">
+                    <label for="manual-from-amount">
+                        <span>@T("table.amount")</span>
+                        <strong>@DisplayFromSymbol</strong>
+                    </label>
+                    <div class="crypto-converter-stats__manual-input-shell">
+                        <input id="manual-from-amount"
+                               class="crypto-converter-stats__manual-input"
+                               inputmode="decimal"
+                               autocomplete="off"
+                               value="@_manualFromAmountText"
+                               @oninput="OnManualFromAmountChanged"
+                               aria-label="@ManualFromAmountAriaLabel" />
+                        <span>@DisplayFromSymbol</span>
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="crypto-converter-stats__manual-swap"
+                        @onclick="SwapManualConverterValues"
+                        aria-label="@ManualSwapAriaLabel">
+                    ⇅
+                </button>
+
+                <div class="crypto-converter-stats__manual-row crypto-converter-stats__manual-row--to">
+                    <label for="manual-to-amount">
+                        <span>@T("table.estimate")</span>
+                        <strong>@DisplayToSymbol</strong>
+                    </label>
+                    <div class="crypto-converter-stats__manual-input-shell">
+                        <input id="manual-to-amount"
+                               class="crypto-converter-stats__manual-input"
+                               inputmode="decimal"
+                               autocomplete="off"
+                               value="@_manualToAmountText"
+                               @oninput="OnManualToAmountChanged"
+                               aria-label="@ManualToAmountAriaLabel" />
+                        <span>@DisplayToSymbol</span>
+                    </div>
+                </div>
+
+                <small class="crypto-converter-stats__manual-hint">
+                    @DisplayManualConverterHint()
+                </small>
+            </div>
+
             <div class="crypto-converter-stats__quick-metrics">
                 <article>
                     <span>@T("labels.directRate")</span>
@@ -577,6 +624,101 @@
             font-size: .72em;
         }
 
+    .crypto-converter-stats__manual-converter {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: end;
+        gap: .85rem;
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,.1);
+        background: linear-gradient(135deg, rgba(255,145,0,.08), rgba(24,216,210,.07)), rgba(0,0,0,.18);
+    }
+
+    .crypto-converter-stats__manual-row {
+        display: grid;
+        gap: .55rem;
+        min-width: 0;
+    }
+
+        .crypto-converter-stats__manual-row label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            color: var(--cv-muted);
+            font-size: .82rem;
+            font-weight: 900;
+        }
+
+            .crypto-converter-stats__manual-row label strong {
+                color: var(--cv-text);
+                font-size: .92rem;
+                letter-spacing: .04em;
+            }
+
+    .crypto-converter-stats__manual-input-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        min-height: 3.5rem;
+        padding: .35rem .75rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(255,255,255,.055);
+    }
+
+    .crypto-converter-stats__manual-row--from .crypto-converter-stats__manual-input-shell {
+        border-color: rgba(255,145,0,.3);
+        box-shadow: inset 3px 0 0 rgba(255,145,0,.75);
+    }
+
+    .crypto-converter-stats__manual-row--to .crypto-converter-stats__manual-input-shell {
+        border-color: rgba(24,216,210,.3);
+        box-shadow: inset 3px 0 0 rgba(24,216,210,.75);
+    }
+
+    .crypto-converter-stats__manual-input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--cv-text);
+        font: inherit;
+        font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+        font-weight: 950;
+        letter-spacing: -.035em;
+    }
+
+    .crypto-converter-stats__manual-input-shell span {
+        color: var(--cv-muted);
+        font-size: .84rem;
+        font-weight: 950;
+    }
+
+    .crypto-converter-stats__manual-swap {
+        align-self: center;
+        width: 3rem;
+        height: 3rem;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(255,145,0,.92), rgba(24,216,210,.88));
+        color: #071018;
+        font-size: 1.35rem;
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .crypto-converter-stats__manual-hint {
+        grid-column: 1 / -1;
+        color: var(--cv-muted);
+        font-size: .78rem;
+        font-weight: 800;
+        line-height: 1.45;
+    }
+
     .crypto-converter-stats__quick-metrics, .crypto-converter-stats__grid, .crypto-converter-stats__battle-grid {
         display: grid;
         gap: 1rem;
@@ -825,6 +967,15 @@
             flex-direction: column;
         }
 
+        .crypto-converter-stats__manual-converter {
+            grid-template-columns: 1fr;
+        }
+
+        .crypto-converter-stats__manual-swap {
+            justify-self: center;
+            transform: rotate(90deg);
+        }
+
         .crypto-converter-stats__cta, .crypto-converter-stats__battle-cta {
             width: 100%;
         }
@@ -880,6 +1031,8 @@
     private decimal? _toChangePercent;
     private DateTime? _priceUpdatedAtUtc;
     private int _snapshotCount;
+    private string _manualFromAmountText = "1";
+    private string _manualToAmountText = string.Empty;
 
     private string DisplayFromSymbol => _fromSymbol;
     private string DisplayToSymbol => _toSymbol;
@@ -905,6 +1058,10 @@
     private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
     private string FromIconUrl => GetIconUrl(DisplayFromSymbol);
     private string ToIconUrl => GetIconUrl(DisplayToSymbol);
+    private string ManualConverterAriaLabel => $"{DisplayFromSymbol} {T("labels.vs")} {DisplayToSymbol} manual converter";
+    private string ManualFromAmountAriaLabel => $"{DisplayFromSymbol} amount";
+    private string ManualToAmountAriaLabel => $"{DisplayToSymbol} amount";
+    private string ManualSwapAriaLabel => $"Swap {DisplayFromSymbol} and {DisplayToSymbol} amounts";
     private string PrimaryCtaUrl => HasBattleData ? BattleCtaUrl : RouteLocalization.BuildStatsMatchesPath(_culture);
     private string PrimaryCtaText => HasBattleData ? T("hero.watchCta", DisplayFromSymbol, DisplayToSymbol) : T("hero.exploreCta");
     private string BattleCtaUrl => HasBattleData
@@ -987,6 +1144,8 @@
         _toChangePercent = null;
         _priceUpdatedAtUtc = null;
         _snapshotCount = 0;
+        _manualFromAmountText = "1";
+        _manualToAmountText = string.Empty;
 
         if (!_isValidSymbolPair)
         {
@@ -1028,7 +1187,93 @@
         _fromChangePercent = _fromPriceSnapshot?.PercentageChange;
         _toChangePercent = _toPriceSnapshot?.PercentageChange;
         _priceUpdatedAtUtc = MaxDate(_fromPriceSnapshot?.CapturedAtUtc, _toPriceSnapshot?.CapturedAtUtc);
+        InitializeManualConverterInputs();
     }
+
+    private void InitializeManualConverterInputs()
+    {
+        if (!IsConversionAvailable)
+        {
+            _manualToAmountText = string.Empty;
+            return;
+        }
+
+        if (!TryParseManualAmount(_manualFromAmountText, out var amount) || amount < 0m)
+            amount = 1m;
+
+        _manualFromAmountText = FormatManualInputAmount(amount);
+        _manualToAmountText = FormatManualInputAmount(ConvertAmount(amount, _fromPriceUsdt, _toPriceUsdt));
+    }
+
+    private void OnManualFromAmountChanged(ChangeEventArgs args)
+    {
+        _manualFromAmountText = args.Value?.ToString() ?? string.Empty;
+
+        if (!IsConversionAvailable || !TryParseManualAmount(_manualFromAmountText, out var amount) || amount < 0m)
+        {
+            _manualToAmountText = string.Empty;
+            return;
+        }
+
+        _manualToAmountText = FormatManualInputAmount(ConvertAmount(amount, _fromPriceUsdt, _toPriceUsdt));
+    }
+
+    private void OnManualToAmountChanged(ChangeEventArgs args)
+    {
+        _manualToAmountText = args.Value?.ToString() ?? string.Empty;
+
+        if (!IsConversionAvailable || !TryParseManualAmount(_manualToAmountText, out var amount) || amount < 0m)
+        {
+            _manualFromAmountText = string.Empty;
+            return;
+        }
+
+        _manualFromAmountText = FormatManualInputAmount(ConvertInverseAmount(amount, _fromPriceUsdt, _toPriceUsdt));
+    }
+
+    private void SwapManualConverterValues()
+    {
+        if (!IsConversionAvailable)
+            return;
+
+        (_manualFromAmountText, _manualToAmountText) = (_manualToAmountText, _manualFromAmountText);
+        OnManualFromAmountChanged(new ChangeEventArgs { Value = _manualFromAmountText });
+    }
+
+    private string DisplayManualConverterHint()
+        => $"1 {DisplayFromSymbol} ≈ {DisplayAmount(DirectConvertedAmount)} {DisplayToSymbol} · 1 {DisplayToSymbol} ≈ {DisplayAmount(ConvertInverseAmount(1m, _fromPriceUsdt, _toPriceUsdt))} {DisplayFromSymbol}";
+
+    private bool TryParseManualAmount(string? raw, out decimal value)
+    {
+        value = 0m;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        var normalized = raw.Trim().Replace(" ", string.Empty);
+        var lastComma = normalized.LastIndexOf(',');
+        var lastDot = normalized.LastIndexOf('.');
+
+        if (lastComma >= 0 && lastDot >= 0)
+        {
+            if (lastComma > lastDot)
+                normalized = normalized.Replace(".", string.Empty).Replace(',', '.');
+            else
+                normalized = normalized.Replace(",", string.Empty);
+        }
+        else if (lastComma >= 0)
+        {
+            normalized = normalized.Replace(',', '.');
+        }
+
+        return decimal.TryParse(
+            normalized,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+            CultureInfo.InvariantCulture,
+            out value);
+    }
+
+    private string FormatManualInputAmount(decimal value)
+        => value == 0m ? "0" : value.ToString("0.##########", CurrentCultureInfo);
 
     private async Task LoadBattleContextAsync()
     {
