@@ -1,5 +1,16 @@
-﻿<h3>CryptoConverterMainRivalsRow</h3>
+@namespace CriptoVersus.Components.Shared
+
+<CryptoBattleRivalsRow FromSymbol="@FromSymbol"
+                       ToSymbol="@ToSymbol"
+                       Culture="@EffectiveCulture" />
 
 @code {
+    [Parameter, EditorRequired] public string FromSymbol { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ToSymbol { get; set; } = string.Empty;
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
 
+    private string EffectiveCulture
+        => string.IsNullOrWhiteSpace(Culture)
+            ? AppCultureService.DefaultRouteCulture
+            : Culture;
 }

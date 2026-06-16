@@ -1,4 +1,5 @@
-﻿@using CriptoVersus.Web.Services
+@namespace CriptoVersus.Components.Shared
+@using CriptoVersus.Web.Services
 
 <div class="crypto-converter-related-row">
     <div class="crypto-converter-related-row__label">
@@ -67,6 +68,7 @@
         var from = Normalize(FromSymbol);
         var to = Normalize(ToSymbol);
         var cards = new List<LiveCard>();
+        var effectiveCulture = EffectiveCulture;
 
         if (HasBattleData && MatchId.GetValueOrDefault() > 0)
         {
@@ -77,13 +79,13 @@
                 "Live",
                 "Now",
                 NormalizeStatus(MatchStatus),
-                BuildMatchPath(from, to, MatchId!.Value),
+                BuildMatchPath(effectiveCulture, from, to, MatchId!.Value),
                 "crypto-related-card--orange"));
         }
 
-        cards.Add(new LiveCard("BTC", from, "2 - 1", "High", "1,248", "Momentum", BuildStatsMatchesPath(), "crypto-related-card--orange"));
-        cards.Add(new LiveCard(to, "SOL", "1 - 1", "Medium", "862", "Volatility", BuildStatsMatchesPath(), "crypto-related-card--purple"));
-        cards.Add(new LiveCard("ETH", from, "3 - 2", "High", "1,532", "Breakout", BuildStatsMatchesPath(), "crypto-related-card--cyan"));
+        cards.Add(new LiveCard("BTC", from, "2 - 1", "High", "1,248", "Momentum", BuildStatsMatchesPath(effectiveCulture), "crypto-related-card--orange"));
+        cards.Add(new LiveCard(to, "SOL", "1 - 1", "Medium", "862", "Volatility", BuildStatsMatchesPath(effectiveCulture), "crypto-related-card--purple"));
+        cards.Add(new LiveCard("ETH", from, "3 - 2", "High", "1,532", "Breakout", BuildStatsMatchesPath(effectiveCulture), "crypto-related-card--cyan"));
 
         return cards
             .Where(card => !string.IsNullOrWhiteSpace(card.Left) && !string.IsNullOrWhiteSpace(card.Right))
@@ -93,11 +95,16 @@
             .ToList();
     }
 
-    private string BuildMatchPath(string left, string right, int matchId)
-        => RouteLocalization.BuildTvMatchPath(Culture, matchId, $"{left.ToLowerInvariant()}-vs-{right.ToLowerInvariant()}");
+    private string BuildMatchPath(string culture, string left, string right, int matchId)
+        => RouteLocalization.BuildTvMatchPath(culture, matchId, $"{left.ToLowerInvariant()}-vs-{right.ToLowerInvariant()}");
 
-    private string BuildStatsMatchesPath()
-        => RouteLocalization.BuildStatsMatchesPath(Culture);
+    private string BuildStatsMatchesPath(string culture)
+        => RouteLocalization.BuildStatsMatchesPath(culture);
+
+    private string EffectiveCulture
+        => string.IsNullOrWhiteSpace(Culture)
+            ? AppCultureService.DefaultRouteCulture
+            : Culture;
 
     private static string NormalizeStatus(string? status)
     {

@@ -1,4 +1,5 @@
-﻿@using CriptoVersus.Web.Services
+@namespace CriptoVersus.Components.Shared
+@using CriptoVersus.Web.Services
 
 <div class="crypto-converter-related-row">
     <div class="crypto-converter-related-row__label">
@@ -63,12 +64,17 @@
     }
 
     private string BuildMatchesPath()
-        => RouteLocalization.BuildStatsMatchesPath(Culture);
+        => RouteLocalization.BuildStatsMatchesPath(EffectiveCulture);
 
     private string BuildStatsPairPath(string left, string right)
-        => Culture == AppCultureService.SecondaryRouteCulture
+        => EffectiveCulture == AppCultureService.SecondaryRouteCulture
             ? $"/pt/stats/{left.ToLowerInvariant()}-para-{right.ToLowerInvariant()}"
             : $"/en/stats/{left.ToLowerInvariant()}-to-{right.ToLowerInvariant()}";
+
+    private string EffectiveCulture
+        => string.IsNullOrWhiteSpace(Culture)
+            ? AppCultureService.DefaultRouteCulture
+            : Culture;
 
     private RenderFragment CoinLogo(string symbol) => builder =>
     {
