@@ -180,7 +180,16 @@ var connStr = builder.Configuration.GetConnectionString("Default");
 if (string.IsNullOrWhiteSpace(connStr))
     throw new InvalidOperationException("ConnectionString não encontrada em ConnectionStrings:Default/EthicAI/Postgres");
 
-builder.Services.AddDbContextFactory<EthicAIDbContext>(opt => opt.UseNpgsql(connStr));
+builder.Services.AddDbContextFactory<EthicAIDbContext>(opt =>
+{
+    opt.UseNpgsql(connStr);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        opt.EnableSensitiveDataLogging();
+        opt.EnableDetailedErrors();
+    }
+});
 
 var app = builder.Build();
 

@@ -159,6 +159,12 @@ builder.Services.AddDbContext<EthicAIDbContext>((sp, options) =>
             errorCodesToAdd: null
         );
     });
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
 });
 
 // ✅ Game Rules (DI) - REGISTRADO DE VERDADE

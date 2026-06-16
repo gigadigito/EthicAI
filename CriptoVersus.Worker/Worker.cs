@@ -2415,12 +2415,13 @@ namespace CriptoVersus.Worker
 
             const int batchSize = 200;
             var totalUpserted = 0;
+            var sw = Stopwatch.StartNew();
 
             for (var offset = 0; offset < rows.Count; offset += batchSize)
             {
                 var batch = rows.Skip(offset).Take(batchSize).ToList();
                 var sql = new StringBuilder();
-                var parameters = new List<object?>();
+                var parameters = new List<object>();
                 var parameterIndex = 0;
 
                 sql.AppendLine(@"
@@ -2463,11 +2464,13 @@ ON CONFLICT (tx_symbol) DO UPDATE SET
             }
 
             var freshCutoffUtc = DateTime.UtcNow.Subtract(FreshCurrencyWindow);
+            sw.Stop();
 
             _logger.LogInformation(
-                "💱 Coin prices atualizados para conversão: count={Count} batches={Batches} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
+                "💱 Coin prices atualizados para conversão: count={Count} batches={Batches} durationMs={DurationMs} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
                 totalUpserted,
                 (int)Math.Ceiling(rows.Count / (double)batchSize),
+                sw.ElapsedMilliseconds,
                 snapshotUtc,
                 FreshCurrencyWindow.TotalMinutes,
                 freshCutoffUtc);
