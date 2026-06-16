@@ -60,33 +60,71 @@
 
         <aside class="crypto-converter-stats__scoreboard" aria-label="@HeroTitleText">
             <div class="crypto-converter-stats__team-card crypto-converter-stats__team-card--from">
-                <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--large" aria-hidden="true">
-                    @if (!string.IsNullOrWhiteSpace(FromIconUrl))
-                    {
-                        <img src="@FromIconUrl" alt="" loading="lazy" width="56" height="56" onerror="this.style.display='none';" />
-                    }
-                    <span class="crypto-converter-stats__fallback">@GetAssetMonogram(DisplayFromSymbol)</span>
-                </span>
-                <div>
-                    <small>@T("table.amount")</small>
-                    <strong>@DisplayFromSymbol</strong>
+                <div class="crypto-converter-stats__team-identity">
+                    <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--large" aria-hidden="true">
+                        @if (!string.IsNullOrWhiteSpace(FromIconUrl))
+                        {
+                            <img src="@FromIconUrl" alt="" loading="lazy" width="56" height="56" onerror="this.style.display='none';" />
+                        }
+                        <span class="crypto-converter-stats__fallback">@GetAssetMonogram(DisplayFromSymbol)</span>
+                    </span>
+                    <div>
+                        <small>@T("table.amount")</small>
+                        <strong>@DisplayFromSymbol</strong>
+                    </div>
                 </div>
+
+                @if (IsConversionAvailable)
+                {
+                    <div class="crypto-converter-stats__hero-manual crypto-converter-stats__hero-manual--from">
+                        <label for="hero-manual-from-amount">@T("table.amount")</label>
+                        <div class="crypto-converter-stats__hero-manual-control">
+                            <input id="hero-manual-from-amount"
+                                   inputmode="decimal"
+                                   autocomplete="off"
+                                   value="@_manualFromAmountText"
+                                   @oninput="OnManualFromAmountChanged"
+                                   aria-label="@ManualFromAmountAriaLabel" />
+                            <span>@DisplayFromSymbol</span>
+                        </div>
+                        <small>@DisplayHeroFromManualHint()</small>
+                    </div>
+                }
             </div>
 
             <div class="crypto-converter-stats__versus-core"><span>@T("labels.vs")</span></div>
 
             <div class="crypto-converter-stats__team-card crypto-converter-stats__team-card--to">
-                <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--large" aria-hidden="true">
-                    @if (!string.IsNullOrWhiteSpace(ToIconUrl))
-                    {
-                        <img src="@ToIconUrl" alt="" loading="lazy" width="56" height="56" onerror="this.style.display='none';" />
-                    }
-                    <span class="crypto-converter-stats__fallback">@GetAssetMonogram(DisplayToSymbol)</span>
-                </span>
-                <div>
-                    <small>@T("table.estimate")</small>
-                    <strong>@DisplayToSymbol</strong>
+                <div class="crypto-converter-stats__team-identity">
+                    <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--large" aria-hidden="true">
+                        @if (!string.IsNullOrWhiteSpace(ToIconUrl))
+                        {
+                            <img src="@ToIconUrl" alt="" loading="lazy" width="56" height="56" onerror="this.style.display='none';" />
+                        }
+                        <span class="crypto-converter-stats__fallback">@GetAssetMonogram(DisplayToSymbol)</span>
+                    </span>
+                    <div>
+                        <small>@T("table.estimate")</small>
+                        <strong>@DisplayToSymbol</strong>
+                    </div>
                 </div>
+
+                @if (IsConversionAvailable)
+                {
+                    <div class="crypto-converter-stats__hero-manual crypto-converter-stats__hero-manual--to">
+                        <label for="hero-manual-to-amount">@T("table.estimate")</label>
+                        <div class="crypto-converter-stats__hero-manual-control">
+                            <input id="hero-manual-to-amount"
+                                   inputmode="decimal"
+                                   autocomplete="off"
+                                   value="@_manualToAmountText"
+                                   @oninput="OnManualToAmountChanged"
+                                   aria-label="@ManualToAmountAriaLabel" />
+                            <span>@DisplayToSymbol</span>
+                        </div>
+                        <small>@DisplayHeroToManualHint()</small>
+                    </div>
+                }
             </div>
 
             <div class="crypto-converter-stats__hero-metric crypto-converter-stats__hero-metric--wide">
@@ -476,9 +514,10 @@
     }
 
     .crypto-converter-stats__team-card {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(160px, auto) minmax(220px, 1fr);
         align-items: center;
-        gap: .85rem;
+        gap: 1rem;
         min-height: 106px;
         padding: 1rem;
         border-radius: 24px;
@@ -496,6 +535,13 @@
         box-shadow: inset 4px 0 0 rgba(24,216,210,.8);
     }
 
+    .crypto-converter-stats__team-identity {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        min-width: 0;
+    }
+
     .crypto-converter-stats__team-card small, .crypto-converter-stats__hero-metric span, .crypto-converter-stats__hero-metric small {
         display: block;
         color: var(--cv-muted);
@@ -508,6 +554,70 @@
         margin-top: .12rem;
         font-size: clamp(1.45rem, 3vw, 2rem);
         line-height: 1;
+    }
+
+    .crypto-converter-stats__hero-manual {
+        display: grid;
+        gap: .4rem;
+        min-width: 0;
+        justify-self: stretch;
+    }
+
+        .crypto-converter-stats__hero-manual label {
+            color: var(--cv-muted);
+            font-size: .72rem;
+            font-weight: 950;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+    .crypto-converter-stats__hero-manual-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        min-height: 3.25rem;
+        padding: .3rem .75rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.12);
+        background: rgba(0,0,0,.2);
+    }
+
+    .crypto-converter-stats__hero-manual--from .crypto-converter-stats__hero-manual-control {
+        border-color: rgba(255,145,0,.34);
+        box-shadow: inset 3px 0 0 rgba(255,145,0,.78);
+    }
+
+    .crypto-converter-stats__hero-manual--to .crypto-converter-stats__hero-manual-control {
+        border-color: rgba(24,216,210,.34);
+        box-shadow: inset 3px 0 0 rgba(24,216,210,.78);
+    }
+
+    .crypto-converter-stats__hero-manual-control input {
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--cv-text);
+        font: inherit;
+        font-size: clamp(1.2rem, 2.4vw, 1.85rem);
+        font-weight: 950;
+        letter-spacing: -.04em;
+    }
+
+    .crypto-converter-stats__hero-manual-control span {
+        color: var(--cv-muted);
+        font-size: .82rem;
+        font-weight: 950;
+    }
+
+    .crypto-converter-stats__hero-manual small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--cv-muted);
+        font-size: .76rem;
+        font-weight: 800;
     }
 
     .crypto-converter-stats__versus-core {
@@ -926,6 +1036,10 @@
             align-items: stretch;
         }
 
+        .crypto-converter-stats__team-card {
+            grid-template-columns: 1fr;
+        }
+
         .crypto-converter-stats__hero-metric--wide {
             grid-column: 1 / -1;
         }
@@ -1242,6 +1356,16 @@
 
     private string DisplayManualConverterHint()
         => $"1 {DisplayFromSymbol} ≈ {DisplayAmount(DirectConvertedAmount)} {DisplayToSymbol} · 1 {DisplayToSymbol} ≈ {DisplayAmount(ConvertInverseAmount(1m, _fromPriceUsdt, _toPriceUsdt))} {DisplayFromSymbol}";
+    private string DisplayHeroFromManualHint()
+        => IsConversionAvailable && !string.IsNullOrWhiteSpace(_manualToAmountText)
+            ? $"= {_manualToAmountText} {DisplayToSymbol}"
+            : DisplayManualConverterHint();
+
+    private string DisplayHeroToManualHint()
+        => IsConversionAvailable && !string.IsNullOrWhiteSpace(_manualFromAmountText)
+            ? $"= {_manualFromAmountText} {DisplayFromSymbol}"
+            : DisplayManualConverterHint();
+
 
     private bool TryParseManualAmount(string? raw, out decimal value)
     {
