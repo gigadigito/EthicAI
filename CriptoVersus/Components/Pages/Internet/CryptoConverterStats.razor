@@ -12,6 +12,7 @@
 @inject RouteLocalizationService RouteLocalization
 @inject IConfiguration Config
 @inject ILogger<CryptoConverterStats> Logger
+
 @rendermode InteractiveServer
 
 <PageTitle>@PageTitleText</PageTitle>
@@ -319,7 +320,7 @@
         </section>
     }
 
-    <CryptoConverterBattleLinksSection FromSymbol="@DisplayFromSymbol"
+    <CryptoBattleDiscoverySection FromSymbol="@DisplayFromSymbol"
                                        ToSymbol="@DisplayToSymbol"
                                        Culture="@_culture"
                                        HasBattleData="@HasBattleData"
