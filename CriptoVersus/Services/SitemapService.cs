@@ -10,7 +10,11 @@ namespace CriptoVersus.Web.Services;
 public sealed class SitemapService
 {
     private const int SitemapCacheMinutes = 5;
+    private const int ConverterTopSymbolLimit = 18;
+    private const int ConverterMaxSymbolLimit = 24;
     private static readonly string[] StatsVisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+    private static readonly string[] ConverterStableSymbols = ["USDT", "USDC", "BUSD", "FDUSD"];
+    private static readonly string[] ConverterSeoSymbols = ["ZEC", "XLM"];
     private const string IndexCacheKey = "sitemap::index";
     private const string PagesCacheKey = "sitemap::pages";
     private const string MatchesEnCacheKey = "sitemap::matches::en";
@@ -122,12 +126,21 @@ public sealed class SitemapService
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildTvBroadcastPath("pt"), now, "hourly", 0.95m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsPath("en"), statsLastModifiedUtc, "hourly", 0.85m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsPath("pt"), statsLastModifiedUtc, "hourly", 0.85m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsMatchesPath("en"), statsLastModifiedUtc, "daily", 0.78m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsMatchesPath("pt"), statsLastModifiedUtc, "daily", 0.78m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsTeamsPath("en"), statsLastModifiedUtc, "daily", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsTeamsPath("pt"), statsLastModifiedUtc, "daily", 0.8m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsRankingsPath("en"), statsLastModifiedUtc, "daily", 0.78m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsRankingsPath("pt"), statsLastModifiedUtc, "daily", 0.78m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildStatsRecordsPath("en"), statsLastModifiedUtc, "daily", 0.75m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildStatsRecordsPath("pt"), statsLastModifiedUtc, "daily", 0.75m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildTokenPath("en"), now, "weekly", 0.74m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildTokenPath("pt"), now, "weekly", 0.74m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRoadmapPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHowItWorksPath("pt"), now, "weekly", 0.8m),
+            CreateAbsoluteEntry(new Uri(baseUri, "/tokenomics/regras-das-partidas").AbsoluteUri, now, "weekly", 0.7m),
             CreateAbsoluteEntry("https://mcp.criptoversus.com/", now, "weekly", 0.6m)
         };
 
@@ -157,6 +170,8 @@ public sealed class SitemapService
                 "daily",
                 0.65m));
         }
+
+        entries.AddRange(BuildConverterEntries(baseUri, statsTeams, statsLastModifiedUtc));
 
         return BuildUrlSet(entries);
     }
@@ -372,15 +387,39 @@ public sealed class SitemapService
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsPath("pt")).AbsoluteUri));
                 return alternates;
+            case "/stats/matches":
+            case "/en/stats/matches":
+            case "/pt/estatisticas/partidas":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsMatchesPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsMatchesPath("pt")).AbsoluteUri));
+                return alternates;
             case "/stats/teams":
             case "/pt/estatisticas/times":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("pt")).AbsoluteUri));
                 return alternates;
+            case "/stats/rankings":
+            case "/en/stats/rankings":
+            case "/pt/estatisticas/rankings":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsRankingsPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsRankingsPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/stats/records":
+            case "/en/stats/records":
+            case "/pt/estatisticas/recordes":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsRecordsPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsRecordsPath("pt")).AbsoluteUri));
+                return alternates;
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/token":
+            case "/en/token":
+            case "/pt/token":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildTokenPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildTokenPath("pt")).AbsoluteUri));
                 return alternates;
         }
 
@@ -388,6 +427,13 @@ public sealed class SitemapService
         {
             alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("en", statsTeamSlug)).AbsoluteUri));
             alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("pt", statsTeamSlug)).AbsoluteUri));
+            return alternates;
+        }
+
+        if (TryExtractConverterPair(relativePath, out var fromSymbol, out var toSymbol))
+        {
+            alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, BuildConverterPath("en", fromSymbol, toSymbol)).AbsoluteUri));
+            alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, BuildConverterPath("pt", fromSymbol, toSymbol)).AbsoluteUri));
             return alternates;
         }
 
@@ -424,16 +470,35 @@ public sealed class SitemapService
             case "/stats":
             case "/pt/estatisticas":
                 return new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri;
+            case "/stats/matches":
+            case "/en/stats/matches":
+            case "/pt/estatisticas/partidas":
+                return new Uri(baseUri, _routeLocalization.BuildStatsMatchesPath("en")).AbsoluteUri;
             case "/stats/teams":
             case "/pt/estatisticas/times":
                 return new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("en")).AbsoluteUri;
+            case "/stats/rankings":
+            case "/en/stats/rankings":
+            case "/pt/estatisticas/rankings":
+                return new Uri(baseUri, _routeLocalization.BuildStatsRankingsPath("en")).AbsoluteUri;
+            case "/stats/records":
+            case "/en/stats/records":
+            case "/pt/estatisticas/recordes":
+                return new Uri(baseUri, _routeLocalization.BuildStatsRecordsPath("en")).AbsoluteUri;
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 return new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri;
+            case "/token":
+            case "/en/token":
+            case "/pt/token":
+                return new Uri(baseUri, _routeLocalization.BuildTokenPath("en")).AbsoluteUri;
         }
 
         if (TryExtractStatsTeamSlug(relativePath, out var statsTeamSlug))
             return new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("en", statsTeamSlug)).AbsoluteUri;
+
+        if (TryExtractConverterPair(relativePath, out var fromSymbol, out var toSymbol))
+            return new Uri(baseUri, BuildConverterPath("en", fromSymbol, toSymbol)).AbsoluteUri;
 
         var segments = relativePath.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (segments.Length >= 4 && int.TryParse(segments[2], out var matchId))
@@ -525,6 +590,118 @@ public sealed class SitemapService
         }
 
         return new string(buffer.ToArray()).Trim('-');
+    }
+
+    private IReadOnlyList<SitemapEntry> BuildConverterEntries(Uri baseUri, IReadOnlyList<StatsArenaTeamDto> statsTeams, DateTime statsLastModifiedUtc)
+    {
+        var symbols = BuildConverterSymbols(statsTeams);
+        var entries = new List<SitemapEntry>(symbols.Count * Math.Max(0, symbols.Count - 1) * 2);
+
+        for (var i = 0; i < symbols.Count; i++)
+        {
+            for (var j = 0; j < symbols.Count; j++)
+            {
+                if (i == j)
+                    continue;
+
+                var fromSymbol = symbols[i];
+                var toSymbol = symbols[j];
+
+                entries.Add(CreateLocalizedEntry(
+                    baseUri,
+                    "en",
+                    BuildConverterPath("en", fromSymbol, toSymbol),
+                    statsLastModifiedUtc,
+                    "hourly",
+                    0.72m));
+
+                entries.Add(CreateLocalizedEntry(
+                    baseUri,
+                    "pt",
+                    BuildConverterPath("pt", fromSymbol, toSymbol),
+                    statsLastModifiedUtc,
+                    "hourly",
+                    0.72m));
+            }
+        }
+
+        return entries;
+    }
+
+    private static IReadOnlyList<string> BuildConverterSymbols(IReadOnlyList<StatsArenaTeamDto> statsTeams)
+    {
+        var symbols = new List<string>(ConverterMaxSymbolLimit);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var team in statsTeams
+            .OrderBy(team => team.Rank)
+            .ThenBy(team => team.DisplaySymbol, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(team => team.Symbol, StringComparer.OrdinalIgnoreCase)
+            .Take(ConverterTopSymbolLimit))
+        {
+            AddConverterSymbol(symbols, seen, team.DisplaySymbol);
+            AddConverterSymbol(symbols, seen, team.Symbol);
+        }
+
+        foreach (var stableSymbol in ConverterStableSymbols)
+            AddConverterSymbol(symbols, seen, stableSymbol);
+
+        foreach (var seoSymbol in ConverterSeoSymbols)
+            AddConverterSymbol(symbols, seen, seoSymbol);
+
+        return symbols.Take(ConverterMaxSymbolLimit).ToArray();
+    }
+
+    private static void AddConverterSymbol(List<string> symbols, HashSet<string> seen, string? symbol)
+    {
+        var normalized = CleanStatsAssetSymbol(symbol);
+        if (string.IsNullOrWhiteSpace(normalized) || normalized == "-" || !seen.Add(normalized))
+            return;
+
+        symbols.Add(normalized.ToLowerInvariant());
+    }
+
+    private static string BuildConverterPath(string culture, string fromSymbol, string toSymbol)
+        => string.Equals(culture, "pt", StringComparison.OrdinalIgnoreCase)
+            ? $"/pt/stats/{fromSymbol}-para-{toSymbol}"
+            : $"/en/stats/{fromSymbol}-to-{toSymbol}";
+
+    private static bool TryExtractConverterPair(string relativePath, out string fromSymbol, out string toSymbol)
+    {
+        fromSymbol = string.Empty;
+        toSymbol = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return false;
+
+        var path = relativePath.Split('?', '#')[0];
+        if (path.StartsWith("/en/stats/", StringComparison.OrdinalIgnoreCase))
+        {
+            var pair = path["/en/stats/".Length..];
+            return TrySplitConverterPair(pair, "-to-", out fromSymbol, out toSymbol);
+        }
+
+        if (path.StartsWith("/pt/stats/", StringComparison.OrdinalIgnoreCase))
+        {
+            var pair = path["/pt/stats/".Length..];
+            return TrySplitConverterPair(pair, "-para-", out fromSymbol, out toSymbol);
+        }
+
+        return false;
+    }
+
+    private static bool TrySplitConverterPair(string pair, string separator, out string fromSymbol, out string toSymbol)
+    {
+        fromSymbol = string.Empty;
+        toSymbol = string.Empty;
+
+        var parts = pair.Split(new[] { separator }, 2, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2)
+            return false;
+
+        fromSymbol = parts[0].Trim().ToLowerInvariant();
+        toSymbol = parts[1].Trim().ToLowerInvariant();
+        return !string.IsNullOrWhiteSpace(fromSymbol) && !string.IsNullOrWhiteSpace(toSymbol) && !string.Equals(fromSymbol, toSymbol, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string CleanStatsAssetSymbol(string? symbol)
