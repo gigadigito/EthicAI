@@ -157,7 +157,7 @@
 
         var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
         var isBroadcastAlias = currentPath.EndsWith("/tv/broadcast", StringComparison.OrdinalIgnoreCase);
-        _isBroadcastMode = true;
+        _isBroadcastMode = isBroadcastAlias;
         var expectedPath = isBroadcastAlias
             ? RouteLocalization.BuildTvBroadcastPath(_culture)
             : RouteLocalization.BuildTvPath(_culture);

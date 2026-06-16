@@ -92,6 +92,37 @@ public sealed class StatsController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpGet("assets/{symbol}/price-snapshot")]
+    public async Task<ActionResult<AssetPriceSnapshotDto>> GetAssetPriceSnapshot(string symbol, CancellationToken ct = default)
+    {
+        var normalizedSymbol = NormalizeTicker(symbol);
+        if (string.IsNullOrWhiteSpace(normalizedSymbol))
+            return NotFound(new { message = "invalid-symbol" });
+
+        if (IsStableUsdSymbol(normalizedSymbol))
+        {
+            return Ok(new AssetPriceSnapshotDto
+            {
+                QuerySymbol = normalizedSymbol.ToUpperInvariant(),
+                AssetSymbol = normalizedSymbol.ToUpperInvariant(),
+                MarketSymbol = normalizedSymbol.ToUpperInvariant(),
+                TeamId = 0,
+                MatchId = 0,
+                LastPriceUsdt = 1m,
+                PercentageChange = 0m,
+                CapturedAtUtc = DateTime.UtcNow,
+                Source = "stablecoin_override"
+            });
+        }
+
+        var snapshot = await ResolveAssetPriceSnapshotAsync(normalizedSymbol, ct);
+
+        return snapshot is null
+            ? NotFound(new { message = "no-positive-market-price", symbol = normalizedSymbol.ToUpperInvariant() })
+            : Ok(snapshot);
+    }
+
+    [AllowAnonymous]
     [HttpGet("teams/{slug}")]
     public async Task<ActionResult<StatsArenaTeamDetailDto>> GetTeamDetail(string slug, CancellationToken ct)
     {
@@ -497,6 +528,52 @@ public sealed class StatsController : ControllerBase
         return normalized;
     }
 
+    private static string[] BuildCandidateMarketSymbols(string normalizedSymbol)
+    {
+        var upper = normalizedSymbol.Trim().ToUpperInvariant();
+        var symbols = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            upper
+        };
+
+        foreach (var suffix in QuoteSuffixes)
+            symbols.Add($"{upper}{suffix}");
+
+        return symbols.ToArray();
+    }
+
+    private async Task<AssetPriceSnapshotDto?> ResolveAssetPriceSnapshotAsync(string normalizedSymbol, CancellationToken ct)
+    {
+        var candidateSymbols = BuildCandidateMarketSymbols(normalizedSymbol)
+            .Select(symbol => symbol.ToUpperInvariant())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        return await _db.Set<MatchMetricSnapshot>()
+            .AsNoTracking()
+            .Include(x => x.Team).ThenInclude(t => t.Currency)
+            .Where(x => x.LastPrice.HasValue && x.LastPrice.Value > 0m)
+            .Where(x => x.Team.Currency != null && candidateSymbols.Contains(x.Team.Currency.Symbol.ToUpper()))
+            .OrderByDescending(x => x.CapturedAtUtc)
+            .ThenByDescending(x => x.MatchMetricSnapshotId)
+            .Select(x => new AssetPriceSnapshotDto
+            {
+                QuerySymbol = normalizedSymbol.ToUpperInvariant(),
+                AssetSymbol = CleanAssetSymbol(x.Team.Currency.Symbol),
+                MarketSymbol = x.Team.Currency.Symbol,
+                TeamId = x.TeamId,
+                MatchId = x.MatchId,
+                LastPriceUsdt = x.LastPrice,
+                PercentageChange = x.PercentageChange,
+                CapturedAtUtc = x.CapturedAtUtc,
+                Source = "match_metric_snapshot"
+            })
+            .FirstOrDefaultAsync(ct);
+    }
+
+    private static bool IsStableUsdSymbol(string symbol)
+        => StableUsdSymbols.Contains(symbol);
+
     private static List<StatsMatchProjection> ApplySearchFilter(List<StatsMatchProjection> matches, string? search)
     {
         var normalizedSearch = search?.Trim();
@@ -590,6 +667,14 @@ public sealed class StatsController : ControllerBase
         "BTC",
         "ETH"
     ];
+
+    private static readonly HashSet<string> StableUsdSymbols = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "USDT",
+        "USDC",
+        "BUSD",
+        "FDUSD"
+    };
 
     private sealed class StatsMatchProjection
     {

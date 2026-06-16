@@ -1049,6 +1049,102 @@
     "arenaExtremeGreed": "Ganância Extrema",
     "arenaInsufficientData": "Dados insuficientes"
   },
+  "cryptoConverterStats": {
+    "seo": {
+      "title": "{0} para {1} Conversor | CriptoVersus",
+      "description": "Estime quanto {0} vale em {1} e depois revise a camada de batalha, a variacao de preco e o contexto publico da arena para o par.",
+      "unavailableDescription": "A conversao ao vivo esta temporariamente indisponivel para este par. O CriptoVersus mantem a pagina acessivel com resposta segura noindex ate os dados publicos voltarem."
+    },
+    "hero": {
+      "eyebrow": "Conversor publico de cripto",
+      "title": "{0} para {1} Conversor e Battle Stats",
+      "subtitle": "Conversao estimada primeiro e, depois, o contexto de batalha da arena para o mesmo par.",
+      "seoCopy": "Pesquise o par, estime o valor e acompanhe a camada de batalha sem sair do CriptoVersus.",
+      "watchCta": "Assistir batalha ao vivo {0} vs {1}",
+      "exploreCta": "Explorar batalhas cripto",
+      "backToStats": "Voltar para stats",
+      "panelHint": "snapshots publicos mais recentes dos ativos",
+      "resultLabel": "Resultado estimado",
+      "unavailableTitle": "Conversao indisponivel para este par",
+      "unavailableBody": "A conversao ao vivo esta temporariamente indisponivel para este par.",
+      "diagnostics": {
+        "title": "Diagnostico temporario",
+        "fromSymbol": "fromSymbol",
+        "toSymbol": "toSymbol",
+        "fromPriceFound": "fromPriceFound",
+        "toPriceFound": "toPriceFound",
+        "fromStatus": "fromEndpointStatus",
+        "toStatus": "toEndpointStatus",
+        "fromReason": "fromReason",
+        "toReason": "toReason",
+        "fromSource": "fromSource",
+        "toSource": "toSource",
+        "reason": "reason"
+      },
+      "disclaimerEyebrow": "Aviso importante",
+      "disclaimerTitle": "Aviso",
+      "disclaimerBody": "Esta e uma conversao estimada usando dados publicos de mercado ja disponiveis no CriptoVersus. Nao promete execucao, qualidade de execucao ou disponibilidade de exchange."
+    },
+    "labels": {
+      "to": "para",
+      "approx": "≈",
+      "vs": "vs",
+      "directRate": "Taxa direta",
+      "priceUpdated": "Preco atualizado",
+      "momentum": "Momentum",
+      "notAvailableYet": "Ainda indisponivel"
+    },
+    "table": {
+      "amount": "Quantidade",
+      "estimate": "Resultado estimado",
+      "direct": {
+        "eyebrow": "Conversao direta",
+        "title": "Tabela de conversao direta",
+        "description": "Quantidades comuns de {0} estimadas em {1} usando a fonte publica de preco mais recente disponivel no CriptoVersus."
+      },
+      "inverse": {
+        "eyebrow": "Conversao inversa",
+        "title": "Tabela de conversao inversa",
+        "description": "Quantidades comuns de {0} estimadas de volta para {1} usando a mesma fonte publica de preco."
+      }
+    },
+    "battle": {
+      "eyebrow": "Desempenho da batalha",
+      "title": "Desempenho da batalha",
+      "description": "Comportamento de preco publico e contexto da arena para este par.",
+      "unavailableTitle": "Os dados da batalha ainda nao estao disponiveis",
+      "unavailableBody": "O CriptoVersus ainda nao publicou uma batalha de arena correspondente para este par.",
+      "priceVariation": "Variacao de preco",
+      "priceVariationHint": "Ultima variacao observada a partir da serie publica de snapshots.",
+      "candleBattle": "Candle battle",
+      "candleBattleHint": "Capturado a partir dos snapshots publicos disponiveis da partida.",
+      "arenaPressure": "Pressao da arena",
+      "momentum": "Momentum",
+      "momentumHint": "Simbolo lider pela variacao observada.",
+      "recentWinner": "Vencedor recente",
+      "recentWinnerHint": "Vencedor publico mais recente, se existir.",
+      "watchCta": "Assistir batalha ao vivo {0} vs {1}",
+      "exploreCta": "Explorar batalhas cripto",
+      "snapshotCount": "{0} snapshots acompanhados",
+      "matchId": "Partida #{0}"
+    },
+    "breadcrumbs": {
+      "home": "Inicio",
+      "stats": "Estatisticas"
+    },
+    "faq": {
+      "questions": {
+        "conversion": "Como a conversao e estimada?",
+        "prices": "De onde vem o preco?",
+        "watch": "Posso assistir a batalha ao vivo?"
+      },
+      "answers": {
+        "conversion": "A pagina multiplica a quantidade de origem pelo preco do ativo de origem e divide pelo preco do ativo de destino usando dados publicos de mercado que ja existem no CriptoVersus.",
+        "prices": "A pagina resolve cada ativo de forma independente a partir dos snapshots publicos de preco ja armazenados no CriptoVersus e cai para um estado seguro de indisponibilidade se algum simbolo nao puder ser resolvido.",
+        "watch": "Quando existe uma batalha publica real para o par, o link ao vivo aponta para esse contexto. Caso contrario, a pagina oferece um caminho seguro para explorar a arena."
+      }
+    }
+  },
   "tv": {
     "seo": {
       "title": "CriptoVersus TV | Transmissao automatica das melhores batalhas cripto",

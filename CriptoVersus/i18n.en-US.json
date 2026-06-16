@@ -1147,6 +1147,102 @@
     "arenaExtremeGreed": "Extreme Greed",
     "arenaInsufficientData": "Insufficient data"
   },
+  "cryptoConverterStats": {
+    "seo": {
+      "title": "{0} to {1} Converter | CriptoVersus",
+      "description": "Estimate how much {0} is worth in {1}, then review the battle layer, live price variation and public arena context for the pair.",
+      "unavailableDescription": "Live conversion is temporarily unavailable for this pair. CriptoVersus keeps the page accessible with a safe noindex response until public price data returns."
+    },
+    "hero": {
+      "eyebrow": "Public crypto converter",
+      "title": "{0} to {1} Converter and Battle Stats",
+      "subtitle": "Estimated conversion first, then the arena battle context for the same pair.",
+      "seoCopy": "Search the pair, estimate the value and inspect the battle layer without leaving CriptoVersus.",
+      "watchCta": "Watch {0} vs {1} Live Battle",
+      "exploreCta": "Explore crypto battles",
+      "backToStats": "Back to stats",
+      "panelHint": "latest public asset snapshots",
+      "resultLabel": "Estimated result",
+      "unavailableTitle": "Conversion unavailable for this pair",
+      "unavailableBody": "Live conversion is temporarily unavailable for this pair.",
+      "diagnostics": {
+        "title": "Temporary diagnostics",
+        "fromSymbol": "fromSymbol",
+        "toSymbol": "toSymbol",
+        "fromPriceFound": "fromPriceFound",
+        "toPriceFound": "toPriceFound",
+        "fromStatus": "fromEndpointStatus",
+        "toStatus": "toEndpointStatus",
+        "fromReason": "fromReason",
+        "toReason": "toReason",
+        "fromSource": "fromSource",
+        "toSource": "toSource",
+        "reason": "reason"
+      },
+      "disclaimerEyebrow": "Important note",
+      "disclaimerTitle": "Disclaimer",
+      "disclaimerBody": "This is an estimated conversion using public market data already available in CriptoVersus. It does not promise execution, execution quality or exchange availability."
+    },
+    "labels": {
+      "to": "to",
+      "approx": "≈",
+      "vs": "vs",
+      "directRate": "Direct rate",
+      "priceUpdated": "Price updated",
+      "momentum": "Momentum",
+      "notAvailableYet": "Not available yet"
+    },
+    "table": {
+      "amount": "Amount",
+      "estimate": "Estimated result",
+      "direct": {
+        "eyebrow": "Direct conversion",
+        "title": "Direct conversion table",
+        "description": "Common {0} amounts estimated into {1} using the latest public price source available in CriptoVersus."
+      },
+      "inverse": {
+        "eyebrow": "Inverse conversion",
+        "title": "Inverse conversion table",
+        "description": "Common {0} amounts estimated back into {1} using the same public price source."
+      }
+    },
+    "battle": {
+      "eyebrow": "Battle Performance",
+      "title": "Battle Performance",
+      "description": "Public price behavior and arena context for this pair.",
+      "unavailableTitle": "Battle data is not available yet",
+      "unavailableBody": "CriptoVersus has not published a matching arena battle for this pair yet.",
+      "priceVariation": "Price variation",
+      "priceVariationHint": "Latest observed change from the public snapshot series.",
+      "candleBattle": "Candle battle",
+      "candleBattleHint": "Captured from the available public match snapshots.",
+      "arenaPressure": "Arena pressure",
+      "momentum": "Momentum",
+      "momentumHint": "Leading symbol by observed change.",
+      "recentWinner": "Recent winner",
+      "recentWinnerHint": "Most recent public winner if one exists.",
+      "watchCta": "Watch {0} vs {1} Live Battle",
+      "exploreCta": "Explore crypto battles",
+      "snapshotCount": "{0} snapshots tracked",
+      "matchId": "Match #{0}"
+    },
+    "breadcrumbs": {
+      "home": "Home",
+      "stats": "Stats"
+    },
+    "faq": {
+      "questions": {
+        "conversion": "How is the conversion estimated?",
+        "prices": "Where do the prices come from?",
+        "watch": "Can I watch the battle live?"
+      },
+      "answers": {
+        "conversion": "The page multiplies the source amount by the from-asset price and divides by the to-asset price using public market data that already exists in CriptoVersus.",
+        "prices": "The page resolves each asset independently from the latest public price snapshots already stored in CriptoVersus, then falls back to a safe unavailable state if either symbol cannot be resolved.",
+        "watch": "When a real public battle exists for the pair, the live battle link points to that arena context. Otherwise the page offers a safe exploration path."
+      }
+    }
+  },
   "tv": {
     "seo": {
       "title": "CriptoVersus TV | Automatic live crypto battle broadcast",

@@ -1,0 +1,1750 @@
+@page "/en/stats/{fromSymbol}-to-{toSymbol}"
+@page "/pt/stats/{fromSymbol}-para-{toSymbol}"
+@using System.Net
+@using System.Net.Http
+@using System.Globalization
+@using System.Text.Json
+@using System.Text.RegularExpressions
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@inject NavigationManager Nav
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject IConfiguration Config
+@inject ILogger<CryptoConverterStats> Logger
+@rendermode InteractiveServer
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="description" content="@MetaDescription" />
+    <meta name="robots" content="@RobotsContent" />
+    <meta name="keywords" content="@MetaKeywords" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@PageTitleText" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@MetaDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@PageTitleText" />
+    <script type="application/ld+json">@StructuredDataMarkup</script>
+</HeadContent>
+
+<section class="crypto-converter-stats">
+    <header class="crypto-converter-stats__hero">
+        <div class="crypto-converter-stats__hero-bg" aria-hidden="true"></div>
+
+        <div class="crypto-converter-stats__copy">
+            <div class="crypto-converter-stats__breadcrumb-line">
+                <a href="@RouteLocalization.BuildStatsPath(_culture)">@T("breadcrumbs.stats")</a>
+                <span>/</span>
+                <strong>@DisplayFromSymbol @T("labels.vs") @DisplayToSymbol</strong>
+            </div>
+
+            <span class="crypto-converter-stats__eyebrow">@T("hero.eyebrow")</span>
+            <h1>@HeroTitleText</h1>
+            <p class="crypto-converter-stats__lead">@T("hero.subtitle")</p>
+
+            <div class="crypto-converter-stats__actions">
+                <a class="crypto-converter-stats__cta" href="@PrimaryCtaUrl">
+                    <span>@PrimaryCtaText</span>
+                </a>
+                <a class="crypto-converter-stats__cta crypto-converter-stats__cta--secondary"
+                   href="@RouteLocalization.BuildStatsPath(_culture)">
+                    @T("hero.backToStats")
+                </a>
+            </div>
+        </div>
+
+        <aside class="crypto-converter-stats__scoreboard" aria-label="@HeroTitleText">
+            <div class="crypto-converter-stats__team-card crypto-converter-stats__team-card--from">
+                <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--large" aria-hidden="true">
+                    @if (!string.IsNullOrWhiteSpace(FromIconUrl))
+                    {
+                        <img src="@FromIconUrl" alt="" loading="lazy" width="56" height="56" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                    }
+                    <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayFromSymbol)</span>
+                </span>
+                <div>
+                    <small>@T("table.amount")</small>
+                    <strong>@DisplayFromSymbol</strong>
+                </div>
+            </div>
+
+            <div class="crypto-converter-stats__versus-core">
+                <span>@T("labels.vs")</span>
+            </div>
+
+            <div class="crypto-converter-stats__team-card crypto-converter-stats__team-card--to">
+                <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--large" aria-hidden="true">
+                    @if (!string.IsNullOrWhiteSpace(ToIconUrl))
+                    {
+                        <img src="@ToIconUrl" alt="" loading="lazy" width="56" height="56" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                    }
+                    <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayToSymbol)</span>
+                </span>
+                <div>
+                    <small>@T("table.estimate")</small>
+                    <strong>@DisplayToSymbol</strong>
+                </div>
+            </div>
+
+            <div class="crypto-converter-stats__hero-metric crypto-converter-stats__hero-metric--wide">
+                <span>@T("labels.directRate")</span>
+                <strong>@DisplayRateSummary()</strong>
+                <small>@DisplayPriceUpdatedSummary()</small>
+            </div>
+        </aside>
+    </header>
+
+    <section class="crypto-converter-stats__conversion-card">
+        <div class="crypto-converter-stats__converter-top">
+            <div class="crypto-converter-stats__converter-pair">
+                <span class="crypto-converter-stats__symbol-chip crypto-converter-stats__symbol-chip--from">
+                    <span class="crypto-converter-stats__logo-shell" aria-hidden="true">
+                        @if (!string.IsNullOrWhiteSpace(FromIconUrl))
+                        {
+                            <img src="@FromIconUrl" alt="" loading="lazy" width="32" height="32" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                        }
+                        <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayFromSymbol)</span>
+                    </span>
+                    <strong>@DisplayFromSymbol</strong>
+                </span>
+
+                <span class="crypto-converter-stats__swap-arrow" aria-hidden="true">→</span>
+
+                <span class="crypto-converter-stats__symbol-chip crypto-converter-stats__symbol-chip--to">
+                    <span class="crypto-converter-stats__logo-shell" aria-hidden="true">
+                        @if (!string.IsNullOrWhiteSpace(ToIconUrl))
+                        {
+                            <img src="@ToIconUrl" alt="" loading="lazy" width="32" height="32" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                        }
+                        <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayToSymbol)</span>
+                    </span>
+                    <strong>@DisplayToSymbol</strong>
+                </span>
+            </div>
+
+            <div class="crypto-converter-stats__status-pill @(IsConversionAvailable ? "is-live" : "is-unavailable")">
+                @(IsConversionAvailable? T("labels.priceUpdated") : T("labels.notAvailableYet"))
+            </div>
+        </div>
+
+        @if (IsConversionAvailable)
+        {
+            <div class="crypto-converter-stats__result">
+                <span>@T("hero.resultLabel")</span>
+                <strong>
+                    1 @DisplayFromSymbol
+                    <em>@T("labels.approx")</em>
+                    @DisplayAmount(DirectConvertedAmount) @DisplayToSymbol
+                </strong>
+                <small>@T("labels.priceUpdated"): @DisplayPriceUpdatedTime() UTC</small>
+            </div>
+
+            <div class="crypto-converter-stats__quick-metrics">
+                <article>
+                    <span>@T("labels.directRate")</span>
+                    <strong>@DisplayAmount(DirectConvertedAmount) @DisplayToSymbol</strong>
+                </article>
+                <article>
+                    <span>@T("table.inverse.title")</span>
+                    <strong>@DisplayAmount(ConvertInverseAmount(1m, _fromPriceUsdt, _toPriceUsdt)) @DisplayFromSymbol</strong>
+                </article>
+                <article>
+                    <span>@T("labels.momentum")</span>
+                    <strong>@DisplayMomentumSummary()</strong>
+                </article>
+            </div>
+        }
+        else
+        {
+            <div class="crypto-converter-stats__unavailable" role="status" aria-live="polite">
+                <div>
+                    <strong>@T("hero.unavailableTitle")</strong>
+                    <span>@T("hero.unavailableBody")</span>
+                </div>
+
+                <details class="crypto-converter-stats__diagnostics">
+                    <summary>@T("hero.diagnostics.title")</summary>
+                    <dl class="crypto-converter-stats__diagnostics-grid">
+                        <div>
+                            <dt>@T("hero.diagnostics.fromSymbol")</dt>
+                            <dd>@DisplayFromSymbol</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.toSymbol")</dt>
+                            <dd>@DisplayToSymbol</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.fromPriceFound")</dt>
+                            <dd>@FormatBoolean(_fromPriceLookup?.PriceFound ?? false)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.toPriceFound")</dt>
+                            <dd>@FormatBoolean(_toPriceLookup?.PriceFound ?? false)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.fromStatus")</dt>
+                            <dd>@FormatEndpointStatus(_fromPriceLookup)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.toStatus")</dt>
+                            <dd>@FormatEndpointStatus(_toPriceLookup)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.fromReason")</dt>
+                            <dd>@FormatLookupReason(_fromPriceLookup)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.toReason")</dt>
+                            <dd>@FormatLookupReason(_toPriceLookup)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.fromSource")</dt>
+                            <dd>@FormatLookupSource(_fromPriceLookup)</dd>
+                        </div>
+                        <div>
+                            <dt>@T("hero.diagnostics.toSource")</dt>
+                            <dd>@FormatLookupSource(_toPriceLookup)</dd>
+                        </div>
+                        <div class="crypto-converter-stats__diagnostics-full">
+                            <dt>@T("hero.diagnostics.reason")</dt>
+                            <dd>@DisplayUnavailableReason()</dd>
+                        </div>
+                    </dl>
+                </details>
+            </div>
+        }
+    </section>
+
+    @if (IsConversionAvailable)
+    {
+        <section class="crypto-converter-stats__grid" aria-labelledby="direct-conversion-heading">
+            <article class="crypto-converter-stats__table-card">
+                <div class="crypto-converter-stats__section-head">
+                    <div>
+                        <span>@T("table.direct.eyebrow")</span>
+                        <h2 id="direct-conversion-heading">@T("table.direct.title")</h2>
+                    </div>
+                    <p>@T("table.direct.description", DisplayFromSymbol, DisplayToSymbol)</p>
+                </div>
+
+                <div class="crypto-converter-stats__table-wrap">
+                    <table class="crypto-converter-stats__table">
+                        <thead>
+                            <tr>
+                                <th>@T("table.amount")</th>
+                                <th>@T("table.estimate")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var amount in DirectAmounts)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="crypto-converter-stats__table-symbol">
+                                            <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--small" aria-hidden="true">
+                                                @if (!string.IsNullOrWhiteSpace(FromIconUrl))
+                                                {
+                                                    <img src="@FromIconUrl" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                }
+                                                <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayFromSymbol)</span>
+                                            </span>
+                                            <strong>@DisplayAmount(amount)</strong>
+                                            <span>@DisplayFromSymbol</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="crypto-converter-stats__table-symbol">
+                                            <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--small" aria-hidden="true">
+                                                @if (!string.IsNullOrWhiteSpace(ToIconUrl))
+                                                {
+                                                    <img src="@ToIconUrl" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                }
+                                                <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayToSymbol)</span>
+                                            </span>
+                                            <strong>@DisplayAmount(ConvertAmount(amount, _fromPriceUsdt, _toPriceUsdt))</strong>
+                                            <span>@DisplayToSymbol</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="crypto-converter-stats__table-card">
+                <div class="crypto-converter-stats__section-head">
+                    <div>
+                        <span>@T("table.inverse.eyebrow")</span>
+                        <h2>@T("table.inverse.title")</h2>
+                    </div>
+                    <p>@T("table.inverse.description", DisplayToSymbol, DisplayFromSymbol)</p>
+                </div>
+
+                <div class="crypto-converter-stats__table-wrap">
+                    <table class="crypto-converter-stats__table">
+                        <thead>
+                            <tr>
+                                <th>@T("table.amount")</th>
+                                <th>@T("table.estimate")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var amount in InverseAmounts)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="crypto-converter-stats__table-symbol">
+                                            <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--small" aria-hidden="true">
+                                                @if (!string.IsNullOrWhiteSpace(ToIconUrl))
+                                                {
+                                                    <img src="@ToIconUrl" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                }
+                                                <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayToSymbol)</span>
+                                            </span>
+                                            <strong>@DisplayAmount(amount)</strong>
+                                            <span>@DisplayToSymbol</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="crypto-converter-stats__table-symbol">
+                                            <span class="crypto-converter-stats__logo-shell crypto-converter-stats__logo-shell--small" aria-hidden="true">
+                                                @if (!string.IsNullOrWhiteSpace(FromIconUrl))
+                                                {
+                                                    <img src="@FromIconUrl" alt="" loading="lazy" width="18" height="18" onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                                }
+                                                <span class="crypto-converter-stats__fallback" aria-hidden="true">@GetAssetMonogram(DisplayFromSymbol)</span>
+                                            </span>
+                                            <strong>@DisplayAmount(ConvertInverseAmount(amount, _fromPriceUsdt, _toPriceUsdt))</strong>
+                                            <span>@DisplayFromSymbol</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    }
+
+    <section class="crypto-converter-stats__battle" aria-labelledby="battle-performance-heading">
+        <div class="crypto-converter-stats__section-head">
+            <div>
+                <span>@T("battle.eyebrow")</span>
+                <h2 id="battle-performance-heading">
+                    @DisplayFromSymbol @T("labels.vs") @DisplayToSymbol @T("battle.title")
+                </h2>
+            </div>
+            <p>@T("battle.description")</p>
+        </div>
+
+        <div class="crypto-converter-stats__battle-grid">
+            <article class="crypto-converter-stats__battle-card crypto-converter-stats__battle-card--from">
+                <span>@T("battle.priceVariation")</span>
+                <strong>@DisplayPriceVariation()</strong>
+                <small>@T("battle.priceVariationHint")</small>
+            </article>
+
+            <article class="crypto-converter-stats__battle-card">
+                <span>@T("battle.candleBattle")</span>
+                <strong>@DisplayCandleBattle()</strong>
+                <small>@T("battle.candleBattleHint")</small>
+            </article>
+
+            <article class="crypto-converter-stats__battle-card crypto-converter-stats__battle-card--center">
+                <span>@T("battle.arenaPressure")</span>
+                <strong>@DisplayArenaPressure()</strong>
+                <small>@DisplayArenaPressureDetail()</small>
+            </article>
+
+            <article class="crypto-converter-stats__battle-card">
+                <span>@T("battle.momentum")</span>
+                <strong>@DisplayBattleMomentum()</strong>
+                <small>@T("battle.momentumHint")</small>
+            </article>
+
+            <article class="crypto-converter-stats__battle-card crypto-converter-stats__battle-card--to">
+                <span>@T("battle.recentWinner")</span>
+                <strong>@DisplayRecentWinner()</strong>
+                <small>@T("battle.recentWinnerHint")</small>
+            </article>
+        </div>
+
+        @if (!HasBattleData)
+        {
+            <div class="crypto-converter-stats__battle-empty" role="status" aria-live="polite">
+                <strong>@T("battle.unavailableTitle")</strong>
+                <span>@T("battle.unavailableBody")</span>
+            </div>
+        }
+
+        <div class="crypto-converter-stats__battle-cta-shell">
+            <a class="crypto-converter-stats__battle-cta" href="@BattleCtaUrl">
+                @BattleCtaText
+            </a>
+        </div>
+    </section>
+
+    <section class="crypto-converter-stats__disclaimer">
+        <div class="crypto-converter-stats__section-head crypto-converter-stats__section-head--stacked">
+            <div>
+                <span>@T("hero.disclaimerEyebrow")</span>
+                <h2>@T("hero.disclaimerTitle")</h2>
+            </div>
+            <p>@T("hero.disclaimerBody")</p>
+        </div>
+    </section>
+</section>
+
+<style>
+    .crypto-converter-stats {
+        --cv-bg: #05070d;
+        --cv-surface: rgba(11, 16, 27, 0.92);
+        --cv-surface-strong: rgba(17, 24, 39, 0.96);
+        --cv-border: rgba(255, 255, 255, 0.09);
+        --cv-border-strong: rgba(255, 255, 255, 0.14);
+        --cv-text: #eef5ff;
+        --cv-muted: #a9b7ca;
+        --cv-orange: #ff9100;
+        --cv-orange-soft: rgba(255, 145, 0, 0.18);
+        --cv-cyan: #18d8d2;
+        --cv-cyan-soft: rgba(24, 216, 210, 0.16);
+        --cv-green: #4cf38d;
+        --cv-radius-xl: 30px;
+        --cv-radius-lg: 24px;
+        width: 100%;
+        max-width: min(1880px, calc(100vw - 24px));
+        margin-inline: auto;
+        padding-inline: 12px;
+        padding-block: clamp(1rem, 2vw, 1.5rem);
+        color: #eef5ff;
+    }
+
+        .crypto-converter-stats *,
+        .crypto-converter-stats *::before,
+        .crypto-converter-stats *::after {
+            box-sizing: border-box;
+        }
+
+    .crypto-converter-stats__hero,
+    .crypto-converter-stats__conversion-card,
+    .crypto-converter-stats__table-card,
+    .crypto-converter-stats__battle,
+    .crypto-converter-stats__disclaimer {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--cv-border);
+        background: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px), radial-gradient(circle at 10% 5%, var(--cv-orange-soft), transparent 30%), radial-gradient(circle at 92% 0%, var(--cv-cyan-soft), transparent 30%), linear-gradient(180deg, rgba(10, 14, 24, 0.98), rgba(5, 8, 15, 0.99));
+        background-size: 34px 34px, 34px 34px, auto, auto, auto;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+    }
+
+    .crypto-converter-stats__hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
+        gap: clamp(1rem, 2vw, 1.5rem);
+        min-height: 430px;
+        padding: clamp(1.15rem, 2.5vw, 2rem);
+        border-radius: var(--cv-radius-xl);
+    }
+
+    .crypto-converter-stats__hero-bg {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.65;
+        background: radial-gradient(circle at 50% 105%, rgba(255, 145, 0, 0.16), transparent 34%), linear-gradient(115deg, transparent 0 43%, rgba(255,255,255,.06) 43% 43.4%, transparent 43.4% 100%);
+    }
+
+    .crypto-converter-stats__copy,
+    .crypto-converter-stats__scoreboard {
+        position: relative;
+        z-index: 1;
+    }
+
+    .crypto-converter-stats__copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .crypto-converter-stats__breadcrumb-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: fit-content;
+        max-width: 100%;
+        margin-bottom: 1rem;
+        padding: 0.45rem 0.7rem;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 999px;
+        background: rgba(255,255,255,.035);
+        color: var(--cv-muted);
+        font-size: 0.82rem;
+    }
+
+        .crypto-converter-stats__breadcrumb-line a {
+            color: var(--cv-cyan);
+            text-decoration: none;
+            font-weight: 800;
+        }
+
+        .crypto-converter-stats__breadcrumb-line strong {
+            color: var(--cv-text);
+            font-weight: 800;
+        }
+
+    .crypto-converter-stats__eyebrow,
+    .crypto-converter-stats__section-head span {
+        display: inline-block;
+        margin-bottom: 0.55rem;
+        color: var(--cv-cyan);
+        font-size: 0.76rem;
+        font-weight: 950;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .crypto-converter-stats__copy h1 {
+        max-width: 900px;
+        margin: 0;
+        font-size: clamp(2.25rem, 5vw, 4.85rem);
+        line-height: 0.94;
+        letter-spacing: -0.055em;
+        text-wrap: balance;
+    }
+
+    .crypto-converter-stats__lead,
+    .crypto-converter-stats__section-head p,
+    .crypto-converter-stats__unavailable span,
+    .crypto-converter-stats__battle-empty span,
+    .crypto-converter-stats__disclaimer p {
+        color: var(--cv-muted);
+        line-height: 1.65;
+    }
+
+    .crypto-converter-stats__lead {
+        max-width: 720px;
+        margin: 1rem 0 0;
+        font-size: clamp(1rem, 1.35vw, 1.15rem);
+    }
+
+    .crypto-converter-stats__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.35rem;
+    }
+
+    .crypto-converter-stats__cta,
+    .crypto-converter-stats__battle-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+        padding: 0.78rem 1.05rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 145, 0, 0.45);
+        background: linear-gradient(135deg, #ffd76e, var(--cv-orange));
+        color: #160a00;
+        font-weight: 950;
+        text-decoration: none;
+        box-shadow: 0 16px 35px rgba(255, 145, 0, 0.18);
+        transition: transform .18s ease, border-color .18s ease, filter .18s ease;
+    }
+
+        .crypto-converter-stats__cta:hover,
+        .crypto-converter-stats__battle-cta:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.03);
+        }
+
+    .crypto-converter-stats__cta--secondary {
+        border-color: rgba(24, 216, 210, 0.32);
+        background: rgba(255, 255, 255, 0.035);
+        color: var(--cv-text);
+        box-shadow: none;
+    }
+
+    .crypto-converter-stats__scoreboard {
+        display: grid;
+        align-content: center;
+        gap: 0.85rem;
+    }
+
+    .crypto-converter-stats__team-card {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        min-height: 106px;
+        padding: 1rem;
+        border-radius: 24px;
+        border: 1px solid var(--cv-border);
+        background: rgba(255, 255, 255, 0.045);
+        backdrop-filter: blur(12px);
+    }
+
+    .crypto-converter-stats__team-card--from {
+        border-color: rgba(255, 145, 0, 0.28);
+        box-shadow: inset 4px 0 0 rgba(255, 145, 0, 0.8);
+    }
+
+    .crypto-converter-stats__team-card--to {
+        border-color: rgba(24, 216, 210, 0.28);
+        box-shadow: inset 4px 0 0 rgba(24, 216, 210, 0.8);
+    }
+
+    .crypto-converter-stats__team-card small,
+    .crypto-converter-stats__hero-metric span,
+    .crypto-converter-stats__hero-metric small {
+        display: block;
+        color: var(--cv-muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+    }
+
+    .crypto-converter-stats__team-card strong {
+        display: block;
+        margin-top: 0.12rem;
+        font-size: clamp(1.45rem, 3vw, 2rem);
+        line-height: 1;
+    }
+
+    .crypto-converter-stats__versus-core {
+        display: grid;
+        place-items: center;
+        margin-block: -0.35rem;
+    }
+
+        .crypto-converter-stats__versus-core span {
+            display: grid;
+            place-items: center;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.16);
+            background: radial-gradient(circle, rgba(255,255,255,.13), transparent 62%), linear-gradient(135deg, rgba(255,145,0,.78), rgba(24,216,210,.78));
+            color: #fff;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+            box-shadow: 0 20px 50px rgba(0,0,0,.32);
+        }
+
+    .crypto-converter-stats__hero-metric {
+        display: grid;
+        gap: 0.35rem;
+        padding: 1rem;
+        border-radius: 20px;
+        border: 1px solid var(--cv-border);
+        background: rgba(0,0,0,.24);
+    }
+
+        .crypto-converter-stats__hero-metric strong {
+            font-size: clamp(1rem, 1.8vw, 1.3rem);
+            line-height: 1.25;
+        }
+
+    .crypto-converter-stats__conversion-card,
+    .crypto-converter-stats__battle,
+    .crypto-converter-stats__disclaimer {
+        margin-top: 1.15rem;
+        padding: clamp(1rem, 2vw, 1.45rem);
+        border-radius: var(--cv-radius-xl);
+    }
+
+    .crypto-converter-stats__converter-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .crypto-converter-stats__converter-pair,
+    .crypto-converter-stats__symbol-chip,
+    .crypto-converter-stats__battle-title,
+    .crypto-converter-stats__table-symbol {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+    }
+
+    .crypto-converter-stats__converter-pair {
+        gap: 0.75rem;
+    }
+
+    .crypto-converter-stats__symbol-chip {
+        padding: 0.5rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid var(--cv-border);
+        background: rgba(255,255,255,.045);
+        font-weight: 950;
+    }
+
+    .crypto-converter-stats__symbol-chip--from {
+        border-color: rgba(255,145,0,.28);
+    }
+
+    .crypto-converter-stats__symbol-chip--to {
+        border-color: rgba(24,216,210,.28);
+    }
+
+    .crypto-converter-stats__swap-arrow {
+        color: var(--cv-cyan);
+        font-size: 1.35rem;
+        font-weight: 950;
+    }
+
+    .crypto-converter-stats__status-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.35rem;
+        padding: 0.45rem 0.8rem;
+        border-radius: 999px;
+        border: 1px solid var(--cv-border);
+        color: var(--cv-muted);
+        background: rgba(255,255,255,.035);
+        font-size: 0.84rem;
+        font-weight: 900;
+    }
+
+        .crypto-converter-stats__status-pill.is-live {
+            border-color: rgba(76, 243, 141, 0.35);
+            color: #bfffd7;
+            background: rgba(76, 243, 141, 0.08);
+        }
+
+        .crypto-converter-stats__status-pill.is-unavailable {
+            border-color: rgba(255, 145, 0, 0.26);
+            color: #ffd7a2;
+            background: rgba(255, 145, 0, 0.07);
+        }
+
+    .crypto-converter-stats__result {
+        display: grid;
+        gap: 0.4rem;
+        min-height: 160px;
+        padding: clamp(1rem, 2.5vw, 1.6rem);
+        border-radius: 26px;
+        border: 1px solid rgba(255,255,255,.1);
+        background: radial-gradient(circle at 0 0, rgba(255,145,0,.18), transparent 34%), radial-gradient(circle at 100% 0, rgba(24,216,210,.16), transparent 32%), rgba(255,255,255,.04);
+    }
+
+        .crypto-converter-stats__result span,
+        .crypto-converter-stats__result small {
+            color: var(--cv-muted);
+            font-weight: 800;
+        }
+
+        .crypto-converter-stats__result strong {
+            font-size: clamp(1.65rem, 4vw, 3.35rem);
+            line-height: 1.05;
+            letter-spacing: -0.04em;
+            text-wrap: balance;
+        }
+
+        .crypto-converter-stats__result em {
+            color: var(--cv-cyan);
+            font-style: normal;
+            font-size: 0.72em;
+        }
+
+    .crypto-converter-stats__quick-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-top: 0.85rem;
+    }
+
+        .crypto-converter-stats__quick-metrics article,
+        .crypto-converter-stats__battle-card {
+            display: grid;
+            gap: 0.35rem;
+            min-width: 0;
+            padding: 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--cv-border);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+            .crypto-converter-stats__quick-metrics span,
+            .crypto-converter-stats__battle-card span,
+            .crypto-converter-stats__battle-card small {
+                color: var(--cv-muted);
+                font-size: 0.82rem;
+                font-weight: 800;
+            }
+
+            .crypto-converter-stats__quick-metrics strong,
+            .crypto-converter-stats__battle-card strong {
+                min-width: 0;
+                color: var(--cv-text);
+                font-size: clamp(1rem, 1.5vw, 1.2rem);
+                line-height: 1.25;
+                word-break: break-word;
+            }
+
+    .crypto-converter-stats__unavailable,
+    .crypto-converter-stats__battle-empty {
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 145, 0, 0.22);
+        background: rgba(255, 145, 0, 0.07);
+    }
+
+        .crypto-converter-stats__unavailable strong,
+        .crypto-converter-stats__battle-empty strong {
+            display: block;
+            margin-bottom: 0.2rem;
+            color: #ffd7a2;
+            font-size: 1.05rem;
+        }
+
+    .crypto-converter-stats__diagnostics {
+        border-top: 1px solid rgba(255, 255, 255, 0.09);
+        padding-top: 0.75rem;
+    }
+
+        .crypto-converter-stats__diagnostics summary {
+            cursor: pointer;
+            color: var(--cv-cyan);
+            font-weight: 900;
+            font-size: 0.86rem;
+        }
+
+    .crypto-converter-stats__diagnostics-grid {
+        margin: 0.75rem 0 0;
+        display: grid;
+        gap: 0.55rem 0.8rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+        .crypto-converter-stats__diagnostics-grid div {
+            min-width: 0;
+        }
+
+        .crypto-converter-stats__diagnostics-grid dt {
+            color: var(--cv-muted);
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .crypto-converter-stats__diagnostics-grid dd {
+            margin: 0.15rem 0 0;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.82rem;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+    .crypto-converter-stats__diagnostics-full {
+        grid-column: 1 / -1;
+    }
+
+    .crypto-converter-stats__grid,
+    .crypto-converter-stats__battle-grid {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .crypto-converter-stats__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .crypto-converter-stats__battle-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .crypto-converter-stats__table-card {
+        padding: 1rem;
+        border-radius: var(--cv-radius-lg);
+    }
+
+    .crypto-converter-stats__section-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.9rem;
+    }
+
+        .crypto-converter-stats__section-head h2 {
+            margin: 0;
+            font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+            line-height: 1.08;
+            letter-spacing: -0.035em;
+        }
+
+        .crypto-converter-stats__section-head p {
+            max-width: 620px;
+            margin: 0;
+        }
+
+    .crypto-converter-stats__section-head--stacked {
+        display: grid;
+    }
+
+    .crypto-converter-stats__table-wrap {
+        overflow-x: auto;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,.075);
+        background: rgba(0,0,0,.16);
+    }
+
+    .crypto-converter-stats__table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 340px;
+    }
+
+        .crypto-converter-stats__table th,
+        .crypto-converter-stats__table td {
+            padding: 0.9rem 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .crypto-converter-stats__table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .crypto-converter-stats__table th {
+            color: var(--cv-muted);
+            font-size: 0.76rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+    .crypto-converter-stats__battle-card--from {
+        border-color: rgba(255,145,0,.26);
+        background: linear-gradient(180deg, rgba(255,145,0,.09), rgba(255,255,255,.035));
+    }
+
+    .crypto-converter-stats__battle-card--to {
+        border-color: rgba(24,216,210,.26);
+        background: linear-gradient(180deg, rgba(24,216,210,.085), rgba(255,255,255,.035));
+    }
+
+    .crypto-converter-stats__battle-card--center {
+        border-color: rgba(255,255,255,.14);
+        background: radial-gradient(circle at 50% 0, rgba(255,255,255,.11), transparent 42%), rgba(255,255,255,.045);
+    }
+
+    .crypto-converter-stats__battle-empty {
+        margin-top: 1rem;
+        border-color: rgba(24,216,210,.18);
+        background: rgba(24,216,210,.055);
+    }
+
+        .crypto-converter-stats__battle-empty strong {
+            color: #a9fffb;
+        }
+
+    .crypto-converter-stats__battle-cta-shell {
+        display: flex;
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    .crypto-converter-stats__disclaimer {
+        border-radius: 22px;
+        opacity: 0.92;
+    }
+
+    .crypto-converter-stats__logo-shell {
+        width: 2rem;
+        height: 2rem;
+        display: inline-grid;
+        place-items: center;
+        position: relative;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.13);
+        background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.16), transparent 34%), rgba(255, 255, 255, 0.055);
+        overflow: hidden;
+        flex: 0 0 auto;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.16);
+    }
+
+    .crypto-converter-stats__logo-shell--large {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+
+    .crypto-converter-stats__logo-shell--small {
+        width: 1.45rem;
+        height: 1.45rem;
+    }
+
+    .crypto-converter-stats__logo-shell img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        position: relative;
+        z-index: 2;
+    }
+
+    .crypto-converter-stats__fallback {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-size: 0.64rem;
+        font-weight: 950;
+        color: #eff8ff;
+        letter-spacing: 0.04em;
+    }
+
+    .crypto-converter-stats__logo-shell--large .crypto-converter-stats__fallback {
+        font-size: 1rem;
+    }
+
+    .crypto-converter-stats__table-symbol {
+        font-weight: 800;
+    }
+
+    @@media (max-width: 1180px) {
+        .crypto-converter-stats__hero {
+            grid-template-columns: 1fr;
+            min-height: auto;
+        }
+
+        .crypto-converter-stats__scoreboard {
+            grid-template-columns: 1fr auto 1fr;
+            align-items: stretch;
+        }
+
+        .crypto-converter-stats__hero-metric--wide {
+            grid-column: 1 / -1;
+        }
+
+        .crypto-converter-stats__versus-core {
+            margin: 0;
+        }
+    }
+
+    @@media (max-width: 1024px) {
+        .crypto-converter-stats__grid,
+        .crypto-converter-stats__battle-grid,
+        .crypto-converter-stats__quick-metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .crypto-converter-stats__section-head {
+            display: grid;
+        }
+    }
+
+    @@media (max-width: 720px) {
+        .crypto-converter-stats {
+            padding: 0.75rem;
+        }
+
+        .crypto-converter-stats__hero,
+        .crypto-converter-stats__conversion-card,
+        .crypto-converter-stats__battle {
+            border-radius: 22px;
+        }
+
+        .crypto-converter-stats__copy h1 {
+            font-size: clamp(2rem, 13vw, 3.1rem);
+        }
+
+        .crypto-converter-stats__scoreboard {
+            grid-template-columns: 1fr;
+        }
+
+        .crypto-converter-stats__versus-core span {
+            width: 3.25rem;
+            height: 3.25rem;
+        }
+
+        .crypto-converter-stats__converter-top {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .crypto-converter-stats__converter-pair {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+        }
+
+        .crypto-converter-stats__symbol-chip {
+            justify-content: center;
+        }
+
+        .crypto-converter-stats__cta,
+        .crypto-converter-stats__battle-cta {
+            width: 100%;
+        }
+
+        .crypto-converter-stats__diagnostics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+
+@code {
+    private static readonly Regex SymbolRegex = new("^[a-zA-Z0-9]{2,15}$", RegexOptions.Compiled);
+    private static readonly decimal[] DirectAmounts = [1m, 5m, 10m, 25m, 50m];
+    private static readonly decimal[] InverseAmounts = [1m, 10m, 100m];
+    private static readonly HashSet<string> StableUsdSymbols = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "USDT",
+        "USDC",
+        "BUSD",
+        "FDUSD"
+    };
+
+    private sealed class ConverterPriceLookupResult
+    {
+        public string Symbol { get; init; } = string.Empty;
+        public AssetPriceSnapshotDto? Snapshot { get; init; }
+        public HttpStatusCode? StatusCode { get; init; }
+        public string FailureReason { get; init; } = string.Empty;
+        public string Source { get; init; } = string.Empty;
+        public bool PriceFound => Snapshot?.LastPriceUsdt is decimal lastPrice && lastPrice > 0m;
+    }
+
+    [Parameter] public string FromSymbol { get; set; } = string.Empty;
+    [Parameter] public string ToSymbol { get; set; } = string.Empty;
+
+    private string _culture = AppCultureService.DefaultRouteCulture;
+    private string _fromSymbol = string.Empty;
+    private string _toSymbol = string.Empty;
+    private string _loadSignature = string.Empty;
+    private string? _canonicalPath;
+    private string? _pageTitleText;
+    private string? _metaDescription;
+    private bool _isValidSymbolPair;
+    private MatchDto? _match;
+    private IReadOnlyList<MatchMetricSnapshotDto> _snapshots = Array.Empty<MatchMetricSnapshotDto>();
+    private ConverterPriceLookupResult? _fromPriceLookup;
+    private ConverterPriceLookupResult? _toPriceLookup;
+    private AssetPriceSnapshotDto? _fromPriceSnapshot;
+    private AssetPriceSnapshotDto? _toPriceSnapshot;
+    private decimal? _fromPriceUsdt;
+    private decimal? _toPriceUsdt;
+    private decimal? _fromChangePercent;
+    private decimal? _toChangePercent;
+    private DateTime? _priceUpdatedAtUtc;
+    private int _snapshotCount;
+
+    private string DisplayFromSymbol => _fromSymbol;
+    private string DisplayToSymbol => _toSymbol;
+    private CultureInfo CurrentCultureInfo => CultureInfo.GetCultureInfo(_culture);
+    private bool IsConversionAvailable => _isValidSymbolPair && _fromPriceUsdt.GetValueOrDefault() > 0m && _toPriceUsdt.GetValueOrDefault() > 0m;
+    private bool ShouldIndex => _isValidSymbolPair && IsConversionAvailable;
+    private bool HasBattleData => _match is not null;
+    private string RobotsContent => ShouldIndex ? "index,follow" : "noindex,follow";
+    private string PageTitleText => _pageTitleText ?? T("seo.title", DisplayFromSymbol, DisplayToSymbol);
+    private string HeroTitleText => T("hero.title", DisplayFromSymbol, DisplayToSymbol);
+    private string MetaDescription => _metaDescription ?? T("seo.unavailableDescription");
+    private string MetaKeywords => ShouldIndex
+        ? $"{SeoDefaults.GlobalKeywords}, {DisplayFromSymbol} to {DisplayToSymbol}, {DisplayFromSymbol} vs {DisplayToSymbol}, crypto converter, battle stats"
+        : $"{SeoDefaults.GlobalKeywords}, crypto converter, battle stats";
+    private string CurrentPath => "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+    private string CanonicalUrl => BuildAbsolute(_canonicalPath ?? CurrentPath);
+    private string EnglishUrl => BuildAbsolute(_isValidSymbolPair
+        ? BuildRoutePath(AppCultureService.DefaultRouteCulture, DisplayFromSymbol, DisplayToSymbol)
+        : CurrentPath);
+    private string PortugueseUrl => BuildAbsolute(_isValidSymbolPair
+        ? BuildRoutePath(AppCultureService.SecondaryRouteCulture, DisplayFromSymbol, DisplayToSymbol)
+        : CurrentPath);
+    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+    private string FromIconUrl => GetIconUrl(DisplayFromSymbol);
+    private string ToIconUrl => GetIconUrl(DisplayToSymbol);
+    private string PrimaryCtaUrl => HasBattleData
+        ? BattleCtaUrl
+        : RouteLocalization.BuildStatsMatchesPath(_culture);
+    private string PrimaryCtaText => HasBattleData
+        ? T("hero.watchCta", DisplayFromSymbol, DisplayToSymbol)
+        : T("hero.exploreCta");
+    private string BattleCtaUrl => HasBattleData
+        ? RouteLocalization.BuildTvMatchPath(_culture, _match!.MatchId, BuildBattleSlug())
+        : RouteLocalization.BuildStatsMatchesPath(_culture);
+    private string BattleCtaText => HasBattleData
+        ? T("battle.watchCta", DisplayFromSymbol, DisplayToSymbol)
+        : T("battle.exploreCta");
+    private decimal DirectConvertedAmount => ConvertAmount(1m, _fromPriceUsdt, _toPriceUsdt);
+
+    private string StructuredDataMarkup
+        => JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@graph"] = new object[]
+            {
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "WebPage",
+                    ["name"] = PageTitleText,
+                    ["description"] = MetaDescription,
+                    ["url"] = CanonicalUrl,
+                    ["inLanguage"] = _culture,
+                    ["isAccessibleForFree"] = true
+                },
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "BreadcrumbList",
+                    ["itemListElement"] = new object[]
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "ListItem",
+                            ["position"] = 1,
+                            ["name"] = T("breadcrumbs.home"),
+                            ["item"] = BuildAbsolute("/")
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "ListItem",
+                            ["position"] = 2,
+                            ["name"] = T("breadcrumbs.stats"),
+                            ["item"] = BuildAbsolute(RouteLocalization.BuildStatsPath(_culture))
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "ListItem",
+                            ["position"] = 3,
+                            ["name"] = PageTitleText,
+                            ["item"] = CanonicalUrl
+                        }
+                    }
+                },
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "FAQPage",
+                    ["mainEntity"] = new object[]
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "Question",
+                            ["name"] = T("faq.questions.conversion"),
+                            ["acceptedAnswer"] = new Dictionary<string, object?>
+                            {
+                                ["@type"] = "Answer",
+                                ["text"] = T("faq.answers.conversion")
+                            }
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "Question",
+                            ["name"] = T("faq.questions.prices"),
+                            ["acceptedAnswer"] = new Dictionary<string, object?>
+                            {
+                                ["@type"] = "Answer",
+                                ["text"] = T("faq.answers.prices")
+                            }
+                        },
+                        new Dictionary<string, object?>
+                        {
+                            ["@type"] = "Question",
+                            ["name"] = T("faq.questions.watch"),
+                            ["acceptedAnswer"] = new Dictionary<string, object?>
+                            {
+                                ["@type"] = "Answer",
+                                ["text"] = T("faq.answers.watch")
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _culture = GetCultureFromPath();
+
+        _fromSymbol = NormalizeSymbol(FromSymbol);
+        _toSymbol = NormalizeSymbol(ToSymbol);
+        _isValidSymbolPair = !string.IsNullOrWhiteSpace(_fromSymbol) && !string.IsNullOrWhiteSpace(_toSymbol);
+        _canonicalPath = _isValidSymbolPair
+            ? BuildRoutePath(_culture, _fromSymbol, _toSymbol)
+            : null;
+
+        if (_isValidSymbolPair && !CurrentPath.Equals(_canonicalPath, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo(_canonicalPath!, replace: true);
+            return;
+        }
+
+        var signature = $"{_culture}|{_fromSymbol}|{_toSymbol}";
+        if (string.Equals(signature, _loadSignature, StringComparison.Ordinal))
+            return;
+
+        _loadSignature = signature;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _match = null;
+        _snapshots = Array.Empty<MatchMetricSnapshotDto>();
+        _fromPriceLookup = null;
+        _toPriceLookup = null;
+        _fromPriceSnapshot = null;
+        _toPriceSnapshot = null;
+        _fromPriceUsdt = null;
+        _toPriceUsdt = null;
+        _fromChangePercent = null;
+        _toChangePercent = null;
+        _priceUpdatedAtUtc = null;
+        _snapshotCount = 0;
+
+        if (!_isValidSymbolPair)
+        {
+            _pageTitleText = T("seo.title", DisplayFromSymbol, DisplayToSymbol);
+            _metaDescription = T("seo.unavailableDescription");
+            return;
+        }
+
+        try
+        {
+            var fromPriceTask = ResolveAssetPriceAsync(_fromSymbol);
+            var toPriceTask = ResolveAssetPriceAsync(_toSymbol);
+
+            await Task.WhenAll(fromPriceTask, toPriceTask);
+
+            _fromPriceLookup = await fromPriceTask;
+            _toPriceLookup = await toPriceTask;
+            ApplyPriceLookupResults();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "CryptoConverterStats failed to load conversion prices for {From}/{To}", _fromSymbol, _toSymbol);
+            _fromPriceLookup ??= BuildLocalLookupFailure(_fromSymbol, "price-lookup-exception");
+            _toPriceLookup ??= BuildLocalLookupFailure(_toSymbol, "price-lookup-exception");
+            ApplyPriceLookupResults();
+        }
+
+        await LoadBattleContextAsync();
+
+        _pageTitleText = T("seo.title", DisplayFromSymbol, DisplayToSymbol);
+        _metaDescription = IsConversionAvailable
+            ? T("seo.description", DisplayFromSymbol, DisplayToSymbol)
+            : T("seo.unavailableDescription");
+    }
+
+    private void ApplyPriceLookupResults()
+    {
+        _fromPriceSnapshot = _fromPriceLookup?.Snapshot;
+        _toPriceSnapshot = _toPriceLookup?.Snapshot;
+        _fromPriceUsdt = _fromPriceSnapshot?.LastPriceUsdt;
+        _toPriceUsdt = _toPriceSnapshot?.LastPriceUsdt;
+        _fromChangePercent = _fromPriceSnapshot?.PercentageChange;
+        _toChangePercent = _toPriceSnapshot?.PercentageChange;
+        _priceUpdatedAtUtc = MaxDate(
+            _fromPriceSnapshot?.CapturedAtUtc,
+            _toPriceSnapshot?.CapturedAtUtc);
+    }
+
+    private async Task LoadBattleContextAsync()
+    {
+        try
+        {
+            _match = await Api.GetMatchBySymbolsAsync(_fromSymbol, _toSymbol);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _match = null;
+            Logger.LogInformation("CryptoConverterStats did not find an arena match for {From}/{To}. Conversion remains independent from battle data.", _fromSymbol, _toSymbol);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _match = null;
+            Logger.LogWarning(ex, "CryptoConverterStats failed to load optional battle context for {From}/{To}", _fromSymbol, _toSymbol);
+        }
+
+        if (_match is null)
+            return;
+
+        try
+        {
+            var snapshots = await Api.GetMatchMetricSnapshotsAsync(_match.MatchId, take: 200) ?? [];
+            _snapshots = snapshots
+                .OrderBy(x => x.CapturedAtUtc)
+                .ThenBy(x => x.MatchMetricSnapshotId)
+                .ToList();
+            _snapshotCount = _snapshots.Count;
+            _priceUpdatedAtUtc = _priceUpdatedAtUtc
+                ?? _snapshots.LastOrDefault()?.CapturedAtUtc
+                ?? _match.EndTime
+                ?? _match.StartTime;
+
+            var fromSeries = _snapshots
+                .Where(x => NormalizeComparisonSymbol(x.TeamSymbol) == _fromSymbol)
+                .ToList();
+            var toSeries = _snapshots
+                .Where(x => NormalizeComparisonSymbol(x.TeamSymbol) == _toSymbol)
+                .ToList();
+
+            if (!_fromPriceUsdt.HasValue)
+                _fromPriceUsdt = LatestPrice(fromSeries);
+            if (!_toPriceUsdt.HasValue)
+                _toPriceUsdt = LatestPrice(toSeries);
+            if (!_fromChangePercent.HasValue)
+                _fromChangePercent = ComputeSeriesChangePercent(fromSeries);
+            if (!_toChangePercent.HasValue)
+                _toChangePercent = ComputeSeriesChangePercent(toSeries);
+            _priceUpdatedAtUtc ??= _snapshots.LastOrDefault()?.CapturedAtUtc;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogWarning(ex, "CryptoConverterStats failed to load optional battle snapshots for match {MatchId} and pair {From}/{To}", _match.MatchId, _fromSymbol, _toSymbol);
+            _snapshots = Array.Empty<MatchMetricSnapshotDto>();
+            _snapshotCount = 0;
+        }
+    }
+
+    private static ConverterPriceLookupResult BuildLocalLookupFailure(string symbol, string reason)
+        => new()
+        {
+            Symbol = symbol,
+            FailureReason = reason
+        };
+
+    private string DisplayRateSummary()
+        => IsConversionAvailable
+            ? $"1 {DisplayFromSymbol} \u2248 {DisplayAmount(DirectConvertedAmount)} {DisplayToSymbol}"
+            : T("hero.unavailableTitle");
+
+    private string DisplayPriceUpdatedSummary()
+        => IsConversionAvailable && _priceUpdatedAtUtc.HasValue
+            ? $"{T("labels.priceUpdated")} {DisplayPriceUpdatedTime()}"
+            : T("labels.notAvailableYet");
+
+    private string DisplayPriceUpdatedTime()
+        => _priceUpdatedAtUtc.HasValue
+            ? _priceUpdatedAtUtc.Value.ToUniversalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+            : T("labels.notAvailableYet");
+
+    private string DisplayMomentumSummary()
+    {
+        if (!IsConversionAvailable)
+            return T("labels.notAvailableYet");
+
+        if (_fromChangePercent.HasValue || _toChangePercent.HasValue)
+        {
+            var symbols = new List<(string Symbol, decimal Value)>();
+            if (_fromChangePercent.HasValue)
+                symbols.Add((DisplayFromSymbol, _fromChangePercent.Value));
+            if (_toChangePercent.HasValue)
+                symbols.Add((DisplayToSymbol, _toChangePercent.Value));
+
+            return symbols.OrderByDescending(item => item.Value).First().Symbol;
+        }
+
+        return T("labels.notAvailableYet");
+    }
+
+    private string DisplayPriceVariation()
+    {
+        if (!HasBattleData)
+            return T("labels.notAvailableYet");
+
+        var parts = new List<string>(2);
+        if (_fromChangePercent.HasValue)
+            parts.Add($"{DisplayFromSymbol} {FormatPercent(_fromChangePercent.Value, CurrentCultureInfo)}");
+        if (_toChangePercent.HasValue)
+            parts.Add($"{DisplayToSymbol} {FormatPercent(_toChangePercent.Value, CurrentCultureInfo)}");
+
+        return parts.Count == 0 ? T("labels.notAvailableYet") : string.Join(" · ", parts);
+    }
+
+    private string DisplayCandleBattle()
+        => _snapshotCount > 0
+            ? T("battle.snapshotCount", _snapshotCount)
+            : T("labels.notAvailableYet");
+
+    private string DisplayArenaPressure()
+        => _match is null
+            ? T("labels.notAvailableYet")
+            : $"{TranslateMatchStatus(_match.Status)} · {_match.ScoreA}-{_match.ScoreB}";
+
+    private string DisplayArenaPressureDetail()
+        => _match is null
+            ? T("labels.notAvailableYet")
+            : T("battle.matchId", _match.MatchId);
+
+    private string DisplayBattleMomentum()
+        => HasBattleData && (_fromChangePercent.HasValue || _toChangePercent.HasValue)
+            ? (Math.Abs(_fromChangePercent ?? 0m) >= Math.Abs(_toChangePercent ?? 0m) ? DisplayFromSymbol : DisplayToSymbol)
+            : T("labels.notAvailableYet");
+
+    private string DisplayRecentWinner()
+        => !string.IsNullOrWhiteSpace(_match?.WinnerTeamSymbol)
+            ? NormalizeComparisonSymbol(_match.WinnerTeamSymbol)
+            : T("labels.notAvailableYet");
+
+    private static decimal? LatestPrice(IReadOnlyList<MatchMetricSnapshotDto> series)
+        => series
+            .Where(x => x.LastPrice.HasValue && x.LastPrice.Value > 0m)
+            .Select(x => x.LastPrice!.Value)
+            .LastOrDefault();
+
+    private static decimal? ComputeSeriesChangePercent(IReadOnlyList<MatchMetricSnapshotDto> series)
+    {
+        var prices = series
+            .Where(x => x.LastPrice.HasValue && x.LastPrice.Value > 0m)
+            .Select(x => x.LastPrice!.Value)
+            .ToList();
+
+        if (prices.Count < 2)
+            return null;
+
+        var first = prices[0];
+        var last = prices[^1];
+        if (first <= 0m)
+            return null;
+
+        return ((last - first) / first) * 100m;
+    }
+
+    private static decimal ConvertAmount(decimal amount, decimal? fromPriceUsdt, decimal? toPriceUsdt)
+        => amount * (fromPriceUsdt ?? 0m) / (toPriceUsdt ?? 1m);
+
+    private static decimal ConvertInverseAmount(decimal amount, decimal? fromPriceUsdt, decimal? toPriceUsdt)
+        => amount * (toPriceUsdt ?? 0m) / (fromPriceUsdt ?? 1m);
+
+    private async Task<ConverterPriceLookupResult> ResolveAssetPriceAsync(string symbol)
+    {
+        var normalizedSymbol = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalizedSymbol))
+            return BuildLocalLookupFailure(string.Empty, "empty-symbol");
+
+        if (StableUsdSymbols.Contains(normalizedSymbol))
+        {
+            return new ConverterPriceLookupResult
+            {
+                Symbol = normalizedSymbol,
+                StatusCode = HttpStatusCode.OK,
+                Source = "stablecoin_override",
+                Snapshot = new AssetPriceSnapshotDto
+                {
+                    QuerySymbol = normalizedSymbol,
+                    AssetSymbol = normalizedSymbol,
+                    MarketSymbol = normalizedSymbol,
+                    LastPriceUsdt = 1m,
+                    PercentageChange = 0m,
+                    CapturedAtUtc = DateTime.UtcNow
+                }
+            };
+        }
+
+        try
+        {
+            var snapshot = await Api.GetAssetPriceSnapshotAsync(normalizedSymbol);
+            if (snapshot?.LastPriceUsdt is decimal lastPrice && lastPrice > 0m)
+            {
+                return new ConverterPriceLookupResult
+                {
+                    Symbol = normalizedSymbol,
+                    StatusCode = HttpStatusCode.OK,
+                    Source = "api-price-snapshot",
+                    Snapshot = snapshot
+                };
+            }
+
+            return new ConverterPriceLookupResult
+            {
+                Symbol = normalizedSymbol,
+                StatusCode = snapshot is null ? HttpStatusCode.NotFound : HttpStatusCode.OK,
+                Source = snapshot is null ? string.Empty : "api-price-snapshot",
+                Snapshot = snapshot,
+                FailureReason = snapshot is null
+                    ? "no-positive-market-price"
+                    : "endpoint-ok-without-positive-lastprice"
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            return new ConverterPriceLookupResult
+            {
+                Symbol = normalizedSymbol,
+                StatusCode = ex.StatusCode,
+                FailureReason = ex.StatusCode == HttpStatusCode.NotFound
+                    ? "no-positive-market-price"
+                    : ex.StatusCode.HasValue
+                        ? $"endpoint-http-{(int)ex.StatusCode.Value}"
+                        : "endpoint-http-error"
+            };
+        }
+        catch (TimeoutException)
+        {
+            return BuildLocalLookupFailure(normalizedSymbol, "endpoint-timeout");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return BuildLocalLookupFailure(normalizedSymbol, "endpoint-call-failed");
+        }
+    }
+
+    private string GetIconUrl(string? symbol)
+    {
+        var baseSymbol = CleanAssetSymbol(symbol);
+        return EnvironmentIsolationGuard.BuildBinanceIconUrl(baseSymbol);
+    }
+
+    private static string NormalizeSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var trimmed = symbol.Trim();
+        return SymbolRegex.IsMatch(trimmed)
+            ? trimmed.ToUpperInvariant()
+            : string.Empty;
+    }
+
+    private static string NormalizeComparisonSymbol(string? symbol)
+        => string.IsNullOrWhiteSpace(symbol)
+            ? string.Empty
+            : CleanAssetSymbol(new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray()));
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in AssetSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var text = symbol.Trim().ToUpperInvariant();
+        return text.Length >= 2 ? text[..2] : text;
+    }
+
+    private string DisplayAmount(decimal? value)
+        => value.HasValue
+            ? FormatAmount(value.Value, CurrentCultureInfo)
+            : "—";
+
+    private string DisplayAmount(decimal value)
+        => FormatAmount(value, CurrentCultureInfo);
+
+    private static string FormatAmount(decimal value, CultureInfo culture)
+    {
+        var abs = Math.Abs(value);
+        return abs >= 100000m
+            ? value.ToString("N2", culture)
+            : abs >= 1m
+                ? value.ToString("N4", culture)
+                : value.ToString("0.##########", culture);
+    }
+
+    private static string FormatPercent(decimal value, CultureInfo culture)
+        => $"{value.ToString("+0.##;-0.##;0", culture)}%";
+
+    private string FormatBoolean(bool value)
+        => value ? "true" : "false";
+
+    private static string FormatEndpointStatus(ConverterPriceLookupResult? lookup)
+        => lookup?.StatusCode is HttpStatusCode statusCode
+            ? $"{(int)statusCode} {statusCode}"
+            : "n/a";
+
+    private static string FormatLookupReason(ConverterPriceLookupResult? lookup)
+    {
+        if (lookup is null)
+            return "lookup-not-executed";
+
+        if (lookup.PriceFound)
+            return string.IsNullOrWhiteSpace(lookup.FailureReason)
+                ? "resolved"
+                : lookup.FailureReason;
+
+        return string.IsNullOrWhiteSpace(lookup.FailureReason)
+            ? "missing-price-lookup-result"
+            : lookup.FailureReason;
+    }
+
+    private static string FormatLookupSource(ConverterPriceLookupResult? lookup)
+        => string.IsNullOrWhiteSpace(lookup?.Source)
+            ? "n/a"
+            : lookup!.Source;
+
+    private string DisplayUnavailableReason()
+    {
+        if (!_isValidSymbolPair)
+            return "invalid-symbol-pair";
+
+        var reasons = new List<string>();
+        if (!(_fromPriceLookup?.PriceFound ?? false))
+            reasons.Add($"{DisplayFromSymbol}:{FormatLookupReason(_fromPriceLookup)}");
+        if (!(_toPriceLookup?.PriceFound ?? false))
+            reasons.Add($"{DisplayToSymbol}:{FormatLookupReason(_toPriceLookup)}");
+
+        return reasons.Count > 0
+            ? string.Join(" | ", reasons)
+            : "conversion-unavailable-without-specific-lookup-failure";
+    }
+
+    private static DateTime? MaxDate(DateTime? left, DateTime? right)
+        => left.HasValue && right.HasValue
+            ? (left.Value >= right.Value ? left : right)
+            : left ?? right;
+
+    private string BuildBattleSlug()
+        => $"{DisplayFromSymbol.ToLowerInvariant()}-vs-{DisplayToSymbol.ToLowerInvariant()}";
+
+    private string TranslateMatchStatus(string? status)
+        => status?.Trim().ToLowerInvariant() switch
+        {
+            "ongoing" => L.T("match.status.ongoing", _culture),
+            "completed" => L.T("match.status.completed", _culture),
+            "pending" => L.T("match.status.pending", _culture),
+            "cancelled" => L.T("match.status.cancelled", _culture),
+            _ => status ?? T("labels.notAvailableYet")
+        };
+
+    private string T(string key, params object?[] args)
+        => L.T($"cryptoConverterStats.{key}", _culture, args);
+
+    private string BuildAbsolute(string relativePath)
+        => new Uri(new Uri(Nav.BaseUri), relativePath).AbsoluteUri;
+
+    private string BuildRoutePath(string culture, string from, string to)
+        => culture == AppCultureService.SecondaryRouteCulture
+            ? $"/pt/stats/{from.ToLowerInvariant()}-para-{to.ToLowerInvariant()}"
+            : $"/en/stats/{from.ToLowerInvariant()}-to-{to.ToLowerInvariant()}";
+
+    private string GetCultureFromPath()
+    {
+        var currentPath = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].Trim('/');
+        return currentPath.StartsWith("/pt/", StringComparison.OrdinalIgnoreCase)
+            ? AppCultureService.SecondaryRouteCulture
+            : AppCultureService.DefaultRouteCulture;
+    }
+
+    private static readonly string[] AssetSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+}

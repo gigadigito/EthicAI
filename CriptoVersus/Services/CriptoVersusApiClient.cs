@@ -45,7 +45,26 @@ public sealed class CriptoVersusApiClient
 
         return new Uri(_http.BaseAddress, relativePath.TrimStart('/')).ToString();
     }
+    public async Task<AssetPriceSnapshotDto?> GetAssetPriceSnapshotAsync(
+    string symbol,
+    CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return null;
 
+        var safeSymbol = Uri.EscapeDataString(symbol.Trim());
+
+        try
+        {
+            return await GetFromJsonWithBearerAsync<AssetPriceSnapshotDto>(
+                $"api/stats/assets/{safeSymbol}/price-snapshot",
+                ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
     public string BuildBinanceIconUrl(string? symbol)
     {
         return EnvironmentIsolationGuard.BuildBinanceIconUrl(symbol);
