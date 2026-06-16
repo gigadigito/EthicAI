@@ -1,0 +1,438 @@
+﻿@using CriptoVersus.Web.Services
+
+<section class="crypto-converter-related" aria-labelledby="battle-performance-heading">
+    <div class="crypto-converter-related__top">
+        <div>
+            <span class="crypto-converter-related__eyebrow">Battle Performance</span>
+            <h2 id="battle-performance-heading">@FromSymbol @VsText @ToSymbol</h2>
+        </div>
+        <p>Discover related stats pages and live arena battles for this pair.</p>
+    </div>
+
+    <CryptoConverterMainRivalsRow FromSymbol="@FromSymbol" ToSymbol="@ToSymbol" Culture="@Culture" />
+    <CryptoConverterRecentBlowoutsRow FromSymbol="@FromSymbol" ToSymbol="@ToSymbol" Culture="@Culture" />
+    <CryptoConverterLiveBattlesRow FromSymbol="@FromSymbol"
+                                   ToSymbol="@ToSymbol"
+                                   Culture="@Culture"
+                                   HasBattleData="@HasBattleData"
+                                   MatchId="@MatchId"
+                                   MatchStatus="@MatchStatus"
+                                   ScoreA="@ScoreA"
+                                   ScoreB="@ScoreB" />
+
+    <div class="crypto-converter-related__footer">
+        <a class="crypto-converter-related__primary" href="@BuildStatsMatchesPath()">⚔ Explore crypto battles</a>
+        <a class="crypto-converter-related__secondary" href="@BuildStatsRootPath()">Browse all stats →</a>
+    </div>
+</section>
+
+<style>
+    .crypto-converter-related {
+        --cv-related-border: rgba(255, 255, 255, .10);
+        --cv-related-muted: #a9b7ca;
+        --cv-related-text: #eef5ff;
+        --cv-related-orange: #ff9100;
+        --cv-related-cyan: #18d8d2;
+        position: relative;
+        overflow: hidden;
+        margin-top: 1.15rem;
+        padding: clamp(1rem, 2vw, 1.45rem);
+        border: 1px solid var(--cv-related-border);
+        border-radius: 30px;
+        color: var(--cv-related-text);
+        background:
+            linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+            radial-gradient(circle at 0 0, rgba(255,145,0,.18), transparent 34%),
+            radial-gradient(circle at 100% 0, rgba(24,216,210,.17), transparent 34%),
+            linear-gradient(180deg, rgba(10, 14, 24, .98), rgba(5, 8, 15, .99));
+        background-size: 34px 34px, 34px 34px, auto, auto, auto;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .38);
+    }
+
+    .crypto-converter-related__top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .crypto-converter-related__eyebrow {
+        display: inline-block;
+        margin-bottom: .45rem;
+        padding: .15rem .35rem;
+        color: rgba(255,255,255,.78);
+        background: rgba(255,255,255,.14);
+        font-size: .72rem;
+        font-weight: 950;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+    }
+
+    .crypto-converter-related__top h2 {
+        margin: 0;
+        font-size: clamp(2.35rem, 4vw, 4.1rem);
+        line-height: .95;
+        letter-spacing: -.055em;
+    }
+
+    .crypto-converter-related__top p {
+        max-width: 580px;
+        margin: .4rem 0 0;
+        color: var(--cv-related-muted);
+        line-height: 1.5;
+        text-align: right;
+    }
+
+    .crypto-converter-related-row {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        gap: 1rem;
+        align-items: stretch;
+        margin-top: 1rem;
+    }
+
+    .crypto-converter-related-row__label {
+        display: grid;
+        align-content: start;
+        gap: .35rem;
+        min-height: 8rem;
+        padding: 1.15rem;
+        border: 1px solid rgba(255,255,255,.07);
+        border-radius: 22px;
+        background: rgba(255,255,255,.035);
+    }
+
+    .crypto-converter-related-row__label strong {
+        color: var(--cv-related-text);
+        font-size: 1.05rem;
+        line-height: 1.1;
+        text-transform: uppercase;
+    }
+
+    .crypto-converter-related-row__label span {
+        color: var(--cv-related-muted);
+        line-height: 1.45;
+    }
+
+    .crypto-converter-related-row__label-icon {
+        color: var(--cv-related-orange);
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .crypto-converter-related-row__cards {
+        display: grid;
+        gap: 1rem;
+        min-width: 0;
+    }
+
+    .crypto-converter-related-row__cards--rivals,
+    .crypto-converter-related-row__cards--blowouts {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .crypto-converter-related-row__cards--live {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .crypto-related-card {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        gap: .75rem;
+        min-width: 0;
+        padding: .95rem;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at 0 0, rgba(255,145,0,.12), transparent 38%),
+            radial-gradient(circle at 100% 0, rgba(24,216,210,.10), transparent 38%),
+            rgba(6, 10, 18, .78);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+    }
+
+    .crypto-related-card--orange { border-color: rgba(255,145,0,.32); }
+    .crypto-related-card--cyan { border-color: rgba(24,216,210,.32); }
+    .crypto-related-card--purple { border-color: rgba(135,92,255,.42); }
+
+    .crypto-related-card__pair {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: .55rem;
+    }
+
+    .crypto-related-card__coin {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        min-width: 0;
+        color: var(--cv-related-text);
+        font-weight: 950;
+    }
+
+    .crypto-related-card__coin--right {
+        justify-content: flex-end;
+    }
+
+    .crypto-related-card__vs {
+        color: var(--cv-related-muted);
+        font-size: .78rem;
+        font-weight: 950;
+        text-transform: uppercase;
+    }
+
+    .crypto-related-card__logo {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        flex: 0 0 auto;
+        overflow: hidden;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.16);
+        background: rgba(255,255,255,.06);
+    }
+
+    .crypto-related-card__logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: relative;
+        z-index: 2;
+    }
+
+    .crypto-related-card__mono {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: .66rem;
+        font-weight: 950;
+    }
+
+    .crypto-related-card__hint {
+        color: var(--cv-related-muted);
+        font-size: .82rem;
+        line-height: 1.35;
+    }
+
+    .crypto-related-card__spark {
+        justify-self: end;
+        color: var(--cv-related-cyan);
+        font-weight: 950;
+        letter-spacing: .08em;
+    }
+
+    .crypto-related-card__button,
+    .crypto-related-card__button-secondary,
+    .crypto-related-card__button-strong {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.35rem;
+        padding: .55rem .75rem;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 10px;
+        background: rgba(255,255,255,.045);
+        color: var(--cv-related-text);
+        font-size: .84rem;
+        font-weight: 950;
+        text-decoration: none;
+    }
+
+    .crypto-related-card__button {
+        border-color: rgba(255,145,0,.30);
+        color: #ffbd66;
+    }
+
+    .crypto-related-card__button-strong {
+        border-color: rgba(255,145,0,.42);
+        background: linear-gradient(135deg, rgba(255,145,0,.82), rgba(255,183,64,.72));
+        color: #160a00;
+    }
+
+    .crypto-related-card__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .45rem;
+    }
+
+    .crypto-related-card__score {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: .65rem;
+        color: var(--cv-related-text);
+        font-size: clamp(1.9rem, 3vw, 2.7rem);
+        font-weight: 950;
+        letter-spacing: -.04em;
+    }
+
+    .crypto-related-card__score--orange { color: var(--cv-related-orange); }
+    .crypto-related-card__score--cyan { color: var(--cv-related-cyan); }
+    .crypto-related-card__score--purple { color: #8f6bff; }
+
+    .crypto-related-card__date {
+        color: var(--cv-related-muted);
+        text-align: center;
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .crypto-related-live {
+        min-height: 15rem;
+        padding: 1rem;
+        background:
+            radial-gradient(circle at 10% 10%, rgba(255,145,0,.23), transparent 35%),
+            radial-gradient(circle at 90% 0%, rgba(24,216,210,.22), transparent 38%),
+            linear-gradient(135deg, rgba(255,145,0,.08), rgba(24,216,210,.07)),
+            rgba(6, 10, 18, .86);
+    }
+
+    .crypto-related-live__badge {
+        width: fit-content;
+        padding: .25rem .45rem;
+        border-radius: 6px;
+        background: #ee2d42;
+        color: #fff;
+        font-size: .7rem;
+        font-weight: 950;
+        text-transform: uppercase;
+    }
+
+    .crypto-related-live__score {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        gap: .55rem;
+        font-size: 1.55rem;
+        font-weight: 950;
+    }
+
+    .crypto-related-live__score strong {
+        text-align: center;
+        color: var(--cv-related-text);
+        font-size: 2rem;
+    }
+
+    .crypto-related-live__metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .45rem;
+    }
+
+    .crypto-related-live__metric {
+        display: grid;
+        gap: .2rem;
+        min-width: 0;
+        padding: .55rem;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 10px;
+        background: rgba(0,0,0,.22);
+    }
+
+    .crypto-related-live__metric span {
+        color: var(--cv-related-muted);
+        font-size: .62rem;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .crypto-related-live__metric strong {
+        color: var(--cv-related-text);
+        font-size: .82rem;
+    }
+
+    .crypto-converter-related__footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.15rem;
+        margin-top: 1.15rem;
+    }
+
+    .crypto-converter-related__primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3.35rem;
+        padding: .85rem 1.4rem;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #ffd76e, var(--cv-related-orange));
+        color: #160a00;
+        font-weight: 950;
+        text-decoration: none;
+        box-shadow: 0 18px 45px rgba(255,145,0,.18);
+    }
+
+    .crypto-converter-related__secondary {
+        color: #b7d6e9;
+        font-weight: 800;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(183,214,233,.35);
+    }
+
+    @@media (max-width: 1280px) {
+        .crypto-converter-related-row {
+            grid-template-columns: 1fr;
+        }
+
+        .crypto-converter-related-row__cards--rivals,
+        .crypto-converter-related-row__cards--blowouts {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 900px) {
+        .crypto-converter-related__top {
+            display: grid;
+        }
+
+        .crypto-converter-related__top p {
+            text-align: left;
+        }
+
+        .crypto-converter-related-row__cards--rivals,
+        .crypto-converter-related-row__cards--blowouts,
+        .crypto-converter-related-row__cards--live {
+            grid-template-columns: 1fr;
+        }
+
+        .crypto-converter-related__footer {
+            display: grid;
+            justify-items: stretch;
+        }
+
+        .crypto-converter-related__primary,
+        .crypto-converter-related__secondary {
+            justify-content: center;
+            text-align: center;
+        }
+    }
+</style>
+
+@code {
+    [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string FromSymbol { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ToSymbol { get; set; } = string.Empty;
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public bool HasBattleData { get; set; }
+    [Parameter] public int? MatchId { get; set; }
+    [Parameter] public string? MatchStatus { get; set; }
+    [Parameter] public int? ScoreA { get; set; }
+    [Parameter] public int? ScoreB { get; set; }
+
+    private string VsText => Culture == AppCultureService.SecondaryRouteCulture ? "contra" : "vs";
+
+    private string BuildStatsRootPath()
+        => RouteLocalization.BuildStatsPath(Culture);
+
+    private string BuildStatsMatchesPath()
+        => RouteLocalization.BuildStatsMatchesPath(Culture);
+}

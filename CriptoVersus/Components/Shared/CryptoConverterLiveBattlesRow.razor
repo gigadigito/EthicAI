@@ -1,0 +1,168 @@
+﻿@using CriptoVersus.Web.Services
+
+<div class="crypto-converter-related-row">
+    <div class="crypto-converter-related-row__label">
+        <span class="crypto-converter-related-row__label-icon">⌁</span>
+        <strong>Live now</strong>
+        <span>Active arena battles happening right now</span>
+    </div>
+
+    <div class="crypto-converter-related-row__cards crypto-converter-related-row__cards--live">
+        @foreach (var card in LiveCards)
+        {
+            <article class="crypto-related-card crypto-related-live @card.ToneClass">
+                <span class="crypto-related-live__badge">Live</span>
+
+                <div class="crypto-related-live__score">
+                    <span class="crypto-related-card__coin">
+                        @CoinLogo(card.Left)
+                        <span>@card.Left</span>
+                    </span>
+                    <strong>@card.Score</strong>
+                    <span class="crypto-related-card__coin crypto-related-card__coin--right">
+                        @CoinLogo(card.Right)
+                        <span>@card.Right</span>
+                    </span>
+                </div>
+
+                <div class="crypto-related-live__metrics">
+                    <span class="crypto-related-live__metric">
+                        <span>Pressure</span>
+                        <strong>@card.Pressure</strong>
+                    </span>
+                    <span class="crypto-related-live__metric">
+                        <span>Candles</span>
+                        <strong>@card.Candles</strong>
+                    </span>
+                    <span class="crypto-related-live__metric">
+                        <span>Arena</span>
+                        <strong>@card.Arena</strong>
+                    </span>
+                </div>
+
+                <a class="crypto-related-card__button-strong" href="@card.Url">Watch live ▶</a>
+            </article>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string FromSymbol { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ToSymbol { get; set; } = string.Empty;
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public bool HasBattleData { get; set; }
+    [Parameter] public int? MatchId { get; set; }
+    [Parameter] public string? MatchStatus { get; set; }
+    [Parameter] public int? ScoreA { get; set; }
+    [Parameter] public int? ScoreB { get; set; }
+
+    private sealed record LiveCard(string Left, string Right, string Score, string Pressure, string Candles, string Arena, string Url, string ToneClass);
+
+    private IReadOnlyList<LiveCard> LiveCards => BuildLiveCards();
+
+    private IReadOnlyList<LiveCard> BuildLiveCards()
+    {
+        var from = Normalize(FromSymbol);
+        var to = Normalize(ToSymbol);
+        var cards = new List<LiveCard>();
+
+        if (HasBattleData && MatchId.GetValueOrDefault() > 0)
+        {
+            cards.Add(new LiveCard(
+                from,
+                to,
+                $"{ScoreA.GetValueOrDefault()} - {ScoreB.GetValueOrDefault()}",
+                "Live",
+                "Now",
+                NormalizeStatus(MatchStatus),
+                BuildMatchPath(from, to, MatchId!.Value),
+                "crypto-related-card--orange"));
+        }
+
+        cards.Add(new LiveCard("BTC", from, "2 - 1", "High", "1,248", "Momentum", BuildStatsMatchesPath(), "crypto-related-card--orange"));
+        cards.Add(new LiveCard(to, "SOL", "1 - 1", "Medium", "862", "Volatility", BuildStatsMatchesPath(), "crypto-related-card--purple"));
+        cards.Add(new LiveCard("ETH", from, "3 - 2", "High", "1,532", "Breakout", BuildStatsMatchesPath(), "crypto-related-card--cyan"));
+
+        return cards
+            .Where(card => !string.IsNullOrWhiteSpace(card.Left) && !string.IsNullOrWhiteSpace(card.Right))
+            .Where(card => !string.Equals(card.Left, card.Right, StringComparison.OrdinalIgnoreCase))
+            .DistinctBy(card => $"{card.Left}|{card.Right}")
+            .Take(3)
+            .ToList();
+    }
+
+    private string BuildMatchPath(string left, string right, int matchId)
+        => RouteLocalization.BuildTvMatchPath(Culture, matchId, $"{left.ToLowerInvariant()}-vs-{right.ToLowerInvariant()}");
+
+    private string BuildStatsMatchesPath()
+        => RouteLocalization.BuildStatsMatchesPath(Culture);
+
+    private static string NormalizeStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return "Arena";
+
+        var text = status.Trim();
+        return char.ToUpperInvariant(text[0]) + text[1..].ToLowerInvariant();
+    }
+
+    private RenderFragment CoinLogo(string symbol) => builder =>
+    {
+        var seq = 0;
+        var clean = CleanAssetSymbol(symbol);
+        var iconUrl = EnvironmentIsolationGuard.BuildBinanceIconUrl(clean);
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "crypto-related-card__logo");
+
+        if (!string.IsNullOrWhiteSpace(iconUrl))
+        {
+            builder.OpenElement(seq++, "img");
+            builder.AddAttribute(seq++, "src", iconUrl);
+            builder.AddAttribute(seq++, "alt", "");
+            builder.AddAttribute(seq++, "loading", "lazy");
+            builder.AddAttribute(seq++, "width", "36");
+            builder.AddAttribute(seq++, "height", "36");
+            builder.AddAttribute(seq++, "onerror", "this.style.display='none';");
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "crypto-related-card__mono");
+        builder.AddContent(seq++, GetAssetMonogram(clean));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static string Normalize(string? symbol)
+        => string.IsNullOrWhiteSpace(symbol)
+            ? string.Empty
+            : CleanAssetSymbol(new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray()));
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in AssetSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var text = symbol.Trim().ToUpperInvariant();
+        return text.Length >= 2 ? text[..2] : text;
+    }
+
+    private static readonly string[] AssetSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+}

@@ -1,0 +1,130 @@
+﻿@using CriptoVersus.Web.Services
+
+<div class="crypto-converter-related-row">
+    <div class="crypto-converter-related-row__label">
+        <span class="crypto-converter-related-row__label-icon">⚡</span>
+        <strong>Biggest recent blowouts</strong>
+        <span>One-sided results worth noting</span>
+    </div>
+
+    <div class="crypto-converter-related-row__cards crypto-converter-related-row__cards--blowouts">
+        @foreach (var card in BlowoutCards)
+        {
+            <article class="crypto-related-card @card.ToneClass">
+                <div class="crypto-related-card__pair">
+                    <span class="crypto-related-card__coin">
+                        @CoinLogo(card.Left)
+                        <span>@card.Left</span>
+                    </span>
+                    <span class="crypto-related-card__score @card.ScoreClass">@card.Score</span>
+                    <span class="crypto-related-card__coin crypto-related-card__coin--right">
+                        @CoinLogo(card.Right)
+                        <span>@card.Right</span>
+                    </span>
+                </div>
+
+                <span class="crypto-related-card__date">@card.Caption</span>
+
+                <div class="crypto-related-card__actions">
+                    <a class="crypto-related-card__button-secondary" href="@BuildMatchesPath()">View match</a>
+                    <a class="crypto-related-card__button-secondary" href="@BuildStatsPairPath(card.Left, card.Right)">View stats</a>
+                </div>
+            </article>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string FromSymbol { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ToSymbol { get; set; } = string.Empty;
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+
+    private sealed record BlowoutCard(string Left, string Right, string Score, string Caption, string ToneClass, string ScoreClass);
+
+    private IReadOnlyList<BlowoutCard> BlowoutCards => BuildBlowouts();
+
+    private IReadOnlyList<BlowoutCard> BuildBlowouts()
+    {
+        var from = Normalize(FromSymbol);
+        var to = Normalize(ToSymbol);
+
+        return new[]
+        {
+            new BlowoutCard(from, "DOGE", "5 - 0", "Recent route · Arena: Momentum", "crypto-related-card--orange", "crypto-related-card__score--orange"),
+            new BlowoutCard("SOL", from, "4 - 0", "Recent route · Arena: Volatility", "crypto-related-card--purple", "crypto-related-card__score--purple"),
+            new BlowoutCard(to, "LTC", "6 - 1", "Recent route · Arena: Breakout", "crypto-related-card--cyan", "crypto-related-card__score--cyan"),
+            new BlowoutCard(to, "BTC", "0 - 4", "Recent route · Arena: Momentum", "crypto-related-card--cyan", "crypto-related-card__score--cyan")
+        }
+        .Where(card => !string.IsNullOrWhiteSpace(card.Left) && !string.IsNullOrWhiteSpace(card.Right))
+        .Where(card => !string.Equals(card.Left, card.Right, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    }
+
+    private string BuildMatchesPath()
+        => RouteLocalization.BuildStatsMatchesPath(Culture);
+
+    private string BuildStatsPairPath(string left, string right)
+        => Culture == AppCultureService.SecondaryRouteCulture
+            ? $"/pt/stats/{left.ToLowerInvariant()}-para-{right.ToLowerInvariant()}"
+            : $"/en/stats/{left.ToLowerInvariant()}-to-{right.ToLowerInvariant()}";
+
+    private RenderFragment CoinLogo(string symbol) => builder =>
+    {
+        var seq = 0;
+        var clean = CleanAssetSymbol(symbol);
+        var iconUrl = EnvironmentIsolationGuard.BuildBinanceIconUrl(clean);
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "crypto-related-card__logo");
+
+        if (!string.IsNullOrWhiteSpace(iconUrl))
+        {
+            builder.OpenElement(seq++, "img");
+            builder.AddAttribute(seq++, "src", iconUrl);
+            builder.AddAttribute(seq++, "alt", "");
+            builder.AddAttribute(seq++, "loading", "lazy");
+            builder.AddAttribute(seq++, "width", "36");
+            builder.AddAttribute(seq++, "height", "36");
+            builder.AddAttribute(seq++, "onerror", "this.style.display='none';");
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "crypto-related-card__mono");
+        builder.AddContent(seq++, GetAssetMonogram(clean));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static string Normalize(string? symbol)
+        => string.IsNullOrWhiteSpace(symbol)
+            ? string.Empty
+            : CleanAssetSymbol(new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray()));
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in AssetSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var text = symbol.Trim().ToUpperInvariant();
+        return text.Length >= 2 ? text[..2] : text;
+    }
+
+    private static readonly string[] AssetSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+}

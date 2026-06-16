@@ -1,0 +1,139 @@
+﻿@using CriptoVersus.Web.Services
+
+<div class="crypto-converter-related-row">
+    <div class="crypto-converter-related-row__label">
+        <span class="crypto-converter-related-row__label-icon">⚔</span>
+        <strong>Main rivals</strong>
+        <span>Other top matchups to watch</span>
+    </div>
+
+    <div class="crypto-converter-related-row__cards crypto-converter-related-row__cards--rivals">
+        @foreach (var card in RivalCards)
+        {
+            <article class="crypto-related-card @card.ToneClass">
+                <div class="crypto-related-card__pair">
+                    <span class="crypto-related-card__coin">
+                        @CoinLogo(card.Left)
+                        <span>@card.Left</span>
+                    </span>
+                    <span class="crypto-related-card__vs">vs</span>
+                    <span class="crypto-related-card__coin crypto-related-card__coin--right">
+                        @CoinLogo(card.Right)
+                        <span>@card.Right</span>
+                    </span>
+                </div>
+
+                <span class="crypto-related-card__hint">@card.Left vs @card.Right head-to-head</span>
+                <span class="crypto-related-card__spark">⌁⌁</span>
+                <a class="crypto-related-card__button" href="@BuildStatsPairPath(card.Left, card.Right)">Open stats →</a>
+            </article>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string FromSymbol { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ToSymbol { get; set; } = string.Empty;
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+
+    private sealed record RivalCard(string Left, string Right, string ToneClass);
+
+    private IReadOnlyList<RivalCard> RivalCards => BuildRivals();
+
+    private IReadOnlyList<RivalCard> BuildRivals()
+    {
+        var result = new List<RivalCard>();
+        Add(result, FromSymbol, "BTC", "crypto-related-card--orange");
+        Add(result, FromSymbol, "SOL", "crypto-related-card--orange");
+        Add(result, ToSymbol, "XRP", "crypto-related-card--cyan");
+        Add(result, ToSymbol, "BTC", "crypto-related-card--cyan");
+
+        if (result.Count < 4)
+        {
+            Add(result, FromSymbol, "ETH", "crypto-related-card--orange");
+            Add(result, ToSymbol, "ETH", "crypto-related-card--cyan");
+            Add(result, FromSymbol, ToSymbol, "crypto-related-card--purple");
+        }
+
+        return result.Take(4).ToList();
+    }
+
+    private static void Add(List<RivalCard> cards, string left, string right, string toneClass)
+    {
+        left = Normalize(left);
+        right = Normalize(right);
+
+        if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right) || string.Equals(left, right, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var exists = cards.Any(card =>
+            (string.Equals(card.Left, left, StringComparison.OrdinalIgnoreCase) && string.Equals(card.Right, right, StringComparison.OrdinalIgnoreCase)) ||
+            (string.Equals(card.Left, right, StringComparison.OrdinalIgnoreCase) && string.Equals(card.Right, left, StringComparison.OrdinalIgnoreCase)));
+
+        if (!exists)
+            cards.Add(new RivalCard(left, right, toneClass));
+    }
+
+    private string BuildStatsPairPath(string left, string right)
+        => Culture == AppCultureService.SecondaryRouteCulture
+            ? $"/pt/stats/{left.ToLowerInvariant()}-para-{right.ToLowerInvariant()}"
+            : $"/en/stats/{left.ToLowerInvariant()}-to-{right.ToLowerInvariant()}";
+
+    private RenderFragment CoinLogo(string symbol) => builder =>
+    {
+        var seq = 0;
+        var clean = CleanAssetSymbol(symbol);
+        var iconUrl = EnvironmentIsolationGuard.BuildBinanceIconUrl(clean);
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "crypto-related-card__logo");
+
+        if (!string.IsNullOrWhiteSpace(iconUrl))
+        {
+            builder.OpenElement(seq++, "img");
+            builder.AddAttribute(seq++, "src", iconUrl);
+            builder.AddAttribute(seq++, "alt", "");
+            builder.AddAttribute(seq++, "loading", "lazy");
+            builder.AddAttribute(seq++, "width", "36");
+            builder.AddAttribute(seq++, "height", "36");
+            builder.AddAttribute(seq++, "onerror", "this.style.display='none';");
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(seq++, "span");
+        builder.AddAttribute(seq++, "class", "crypto-related-card__mono");
+        builder.AddContent(seq++, GetAssetMonogram(clean));
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static string Normalize(string? symbol)
+        => string.IsNullOrWhiteSpace(symbol)
+            ? string.Empty
+            : CleanAssetSymbol(new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray()));
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in AssetSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1 && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var text = symbol.Trim().ToUpperInvariant();
+        return text.Length >= 2 ? text[..2] : text;
+    }
+
+    private static readonly string[] AssetSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
+}
