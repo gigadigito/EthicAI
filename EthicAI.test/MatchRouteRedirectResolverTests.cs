@@ -27,7 +27,7 @@ public sealed class MatchRouteRedirectResolverTests
             _slugHelper,
             _routeLocalization);
 
-        Assert.Equal("/match/39/ada-vs-bnb", redirect);
+        Assert.Equal("/en/match/39/ada-vs-bnb", redirect);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class MatchRouteRedirectResolverTests
             _slugHelper,
             _routeLocalization);
 
-        Assert.Equal("/match/39/ada-vs-bnb", redirect);
+        Assert.Equal("/en/match/39/ada-vs-bnb", redirect);
     }
 
     [Fact]

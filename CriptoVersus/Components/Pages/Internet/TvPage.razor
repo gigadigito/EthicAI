@@ -40,7 +40,7 @@
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <TvStage Culture="@_culture"
@@ -106,7 +106,7 @@
     private string MetaKeywords => _isBroadcastMode
         ? $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV broadcast, #CriptoVersus TV, crypto broadcast, live crypto arena"
         : $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV, #CriptoVersus TV, crypto match stream, live crypto battles";
-    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup
         => JsonSerializer.Serialize(new Dictionary<string, object?>
         {
@@ -773,7 +773,7 @@
     }
 
     private string BuildAbsolute(string path)
-        => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";
+        => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
 
     private void ApplyHotMatchFeedResult(LoadAttemptResult<IReadOnlyList<HotMatchDto>> result)
     {

@@ -39,7 +39,7 @@
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 @if (_loadState == TvMatchPageLoadState.Loading)
@@ -255,7 +255,7 @@ else
         ? $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV match, #CriptoVersus TV, crypto battle stream"
         : $"{SeoDefaults.GlobalKeywords}, CriptoVersus TV match, #CriptoVersus TV, {_match.TeamA} vs {_match.TeamB}, crypto match stream";
 
-    private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
 
     private string StructuredDataMarkup
         => JsonSerializer.Serialize(new Dictionary<string, object?>
@@ -742,7 +742,7 @@ else
     }
 
     private string BuildAbsolute(string path)
-        => $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{path}";
+        => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
 
     private async Task LogAsync(string message, object? payload = null)
     {

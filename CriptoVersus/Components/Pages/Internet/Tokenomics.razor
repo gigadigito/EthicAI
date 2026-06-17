@@ -17,13 +17,13 @@
 <HeadContent>
     <meta name="description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
     <meta name="keywords" content="@MetaKeywords" />
-    <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
-    <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("en"))" />
-    <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("pt"))" />
-    <link rel="alternate" hreflang="x-default" href="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath("en"))" />
+    <link rel="canonical" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
+    <link rel="alternate" hreflang="en-US" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("en"))" />
+    <link rel="alternate" hreflang="pt-BR" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("pt"))" />
+    <link rel="alternate" hreflang="x-default" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("en"))" />
     <meta property="og:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <meta property="og:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
-    <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
+    <meta property="og:url" content="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="@SocialImageUrl" />
     <meta property="og:image:alt" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
@@ -34,7 +34,7 @@
     <meta name="twitter:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="tokenomics-page">
@@ -338,14 +338,8 @@
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private bool IsEnglish => CurrentCulture == "en";
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus how it works, #CriptoVersus rules, crypto scoring rules";
-    private string SocialImageUrl => BuildAbsolute(IsEnglish ? "/img/tokenomics-hero-banner-en.png" : "/img/tokenomics-hero-banner.png");
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, IsEnglish ? "/img/tokenomics-hero-banner-en.png" : "/img/tokenomics-hero-banner.png");
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
-
-    private string BuildAbsolute(string relativePath)
-    {
-        var baseUrl = Config["CriptoVersus:PublicBaseUrl"]?.TrimEnd('/') ?? Nav.BaseUri.TrimEnd('/');
-        return $"{baseUrl}{relativePath}";
-    }
 
     private string DisplayCustodyWalletLabel
         => string.IsNullOrWhiteSpace(_data?.CustodyWalletLabel)
@@ -448,7 +442,7 @@
 
     private string BuildStructuredDataJson()
     {
-        var pageUrl = BuildAbsolute(RouteLocalization.BuildHowItWorksPath(CurrentCulture));
+        var pageUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath(CurrentCulture));
         var description = L.T("howItWorks.seo.description", CurrentCulture);
         var about = IsEnglish
             ? new[]
@@ -498,7 +492,7 @@
                             ["@type"] = "ListItem",
                             ["position"] = 1,
                             ["name"] = "CriptoVersus",
-                            ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))
+                            ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture))
                         },
                         new Dictionary<string, object?>
                         {

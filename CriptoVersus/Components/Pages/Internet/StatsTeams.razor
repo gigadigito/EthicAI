@@ -35,7 +35,7 @@
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="teams-page">
@@ -302,10 +302,10 @@
     private string PageTitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus teams, #CriptoVersus teams, crypto team rankings";
-    private string CanonicalUrl => BuildAbsolute("/stats/teams");
-    private string EnglishUrl => BuildAbsolute("/stats/teams");
-    private string PortugueseUrl => BuildAbsolute("/pt/estatisticas/times");
-    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/stats/teams");
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/stats/teams");
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/pt/estatisticas/times");
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
     private int TotalBattlesIndexed => _teams.Sum(team => team.Matches) / 2;
 
@@ -379,7 +379,7 @@
                 ["@type"] = "ListItem",
                 ["position"] = index + 1,
                 ["name"] = GetDisplaySymbol(team),
-                ["url"] = BuildAbsolute(GetTeamUrl(team))
+                ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, GetTeamUrl(team))
             })
             .ToArray();
 
@@ -412,14 +412,14 @@
                         ["@type"] = "ListItem",
                         ["position"] = 1,
                         ["name"] = "CriptoVersus",
-                        ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))
+                        ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture))
                     },
                     new Dictionary<string, object?>
                     {
                         ["@type"] = "ListItem",
                         ["position"] = 2,
                         ["name"] = T("structuredData.breadcrumbStats"),
-                        ["item"] = BuildAbsolute(RouteLocalization.BuildStatsPath(CurrentCulture))
+                        ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsPath(CurrentCulture))
                     },
                     new Dictionary<string, object?>
                     {
@@ -531,9 +531,6 @@
 
     private static string FormatDecimal(decimal value)
         => value.ToString("0.##", CultureInfo.InvariantCulture);
-
-    private string BuildAbsolute(string path)
-        => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
 
     private string T(string key, params object?[] args)
         => L.T($"statsTeams.{key}", CurrentCulture, args);

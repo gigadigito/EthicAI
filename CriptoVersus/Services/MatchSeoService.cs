@@ -29,20 +29,20 @@ public sealed class MatchSeoService
     }
 
     public string BuildCanonicalUrl(string? culture, int id, string slug, string? fallbackBaseUri = null)
-        => BuildAbsoluteUrl(_routeLocalization.BuildLocalizedPath(_appCultureService.NormalizeRouteCulture(culture), id, slug), fallbackBaseUri);
+        => SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath(_appCultureService.NormalizeRouteCulture(culture), id, slug));
 
     public string BuildSocialImageUrl(string? culture, int id, string slug, string? fallbackBaseUri = null)
-        => BuildAbsoluteUrl($"/social-images/match/{id}/{slug}.svg", fallbackBaseUri);
+        => SeoDefaults.BuildPublicAbsoluteUrl(_configuration, $"/social-images/match/{id}/{slug}.svg");
 
     public IReadOnlyList<AlternateLink> BuildAlternateLinks(int id, string slug, string? fallbackBaseUri = null)
         =>
         [
             new AlternateLink(
                 _routeLocalization.GetHrefLang("pt"),
-                BuildAbsoluteUrl(_routeLocalization.BuildLocalizedPath("pt", id, slug), fallbackBaseUri)),
+                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("pt", id, slug))),
             new AlternateLink(
                 _routeLocalization.GetHrefLang("en"),
-                BuildAbsoluteUrl(_routeLocalization.BuildLocalizedPath("en", id, slug), fallbackBaseUri))
+                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("en", id, slug)))
         ];
 
     public string BuildTitle(MatchDto match, string? culture)
@@ -105,7 +105,7 @@ public sealed class MatchSeoService
             SocialImageAlt = _localizationService.T("match.seo.fallback.title", normalizedCulture, FormatCoinLabel(match.TeamA), FormatCoinLabel(match.TeamB)),
             TwitterTitle = BuildTitle(match, normalizedCulture),
             TwitterDescription = description,
-            XDefaultUrl = BuildAbsoluteUrl(_routeLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, match.MatchId, slug), fallbackBaseUri),
+            XDefaultUrl = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, match.MatchId, slug)),
             TwitterCard = "summary_large_image",
             StructuredDataMarkup = BuildStructuredDataMarkup(match, normalizedCulture, canonicalUrl, socialImageUrl)
         };
@@ -191,19 +191,6 @@ public sealed class MatchSeoService
   <text x="96" y="578" fill="rgba(255,255,255,.88)" font-size="32" font-family="Arial, Helvetica, sans-serif" font-weight="900" letter-spacing="2">CRIPTOVERSUS</text>
 </svg>
 """;
-    }
-
-    private string BuildAbsoluteUrl(string path, string? fallbackBaseUri)
-    {
-        var configuredBaseUrl = _configuration["CriptoVersus:PublicBaseUrl"];
-        var baseUrl = !string.IsNullOrWhiteSpace(configuredBaseUrl)
-            ? configuredBaseUrl
-            : fallbackBaseUri;
-
-        if (string.IsNullOrWhiteSpace(baseUrl))
-            throw new InvalidOperationException("Configure CriptoVersus:PublicBaseUrl para gerar URLs SEO absolutas.");
-
-        return new Uri(new Uri(baseUrl.TrimEnd('/') + "/"), path.TrimStart('/')).ToString();
     }
 
     private (string CoinA, string CoinB) GetCoinLabels(MatchDto match)
@@ -292,7 +279,7 @@ public sealed class MatchSeoService
             {
                 ["@type"] = "Organization",
                 ["name"] = "CriptoVersus",
-                ["url"] = BuildAbsoluteUrl(_routeLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture), canonicalUrl)
+                ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture))
             },
             ["competitor"] = competitors,
             ["performer"] = competitors,

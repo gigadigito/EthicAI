@@ -42,7 +42,7 @@
     <meta name="twitter:description" content="@SeoDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@SeoTitle" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="home-landing public-home-arena">
@@ -737,11 +737,11 @@
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
     private string SeoDescription => T("seoDescription");
     private string MetaKeywords => SeoDefaults.GlobalKeywords;
-    private string HomeRootUrl => SeoDefaults.BuildCanonicalRootUrl(Config, Nav);
-    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private string HomeRootUrl => SeoDefaults.BuildPublicBaseUrl(Config, Nav);
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string CanonicalUrl => CurrentCulture == "pt" ? PortugueseUrl : HomeRootUrl;
-    private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildHomePath("en"));
-    private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildHomePath("pt"));
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en"));
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("pt"));
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
     private IReadOnlyList<string> HeroSemanticHighlights => new[]
     {
@@ -864,12 +864,6 @@
     private string T(string key, params object?[] args)
         => L.T($"publicHome.{key}", CurrentCulture, args);
 
-    private string BuildAbsolute(string relativePath)
-    {
-        var baseUrl = Config["CriptoVersus:PublicBaseUrl"]?.TrimEnd('/') ?? Nav.BaseUri.TrimEnd('/');
-        return $"{baseUrl}{relativePath}";
-    }
-
     private string GetMatchUrl(MatchDto match)
     {
         var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
@@ -888,8 +882,8 @@
     {
         var slug = MatchSlugHelper.BuildSlug(teamA ?? string.Empty, teamB ?? string.Empty);
         return string.IsNullOrWhiteSpace(slug)
-            ? BuildAbsolute(RouteLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture))
-            : BuildAbsolute(RouteLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, matchId, slug));
+            ? SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture))
+            : SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, matchId, slug));
     }
 
     private string GetTvMatchUrl(HotMatchDto match)
@@ -1368,7 +1362,7 @@
     private string BuildStructuredDataJson()
     {
         var graph = new List<Dictionary<string, object?>>();
-        var siteUrl = BuildAbsolute("");
+        var siteUrl = SeoDefaults.BuildPublicBaseUrl(Config, Nav);
         var organizer = new Dictionary<string, object?>
         {
             ["@type"] = "Organization",
@@ -1385,15 +1379,15 @@
         {
             ["@type"] = "Organization",
             ["name"] = "CriptoVersus",
-            ["url"] = BuildAbsolute(RouteLocalization.BuildHomePath("en")),
-            ["logo"] = BuildAbsolute("/favicon-round-preview.png")
+            ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en")),
+            ["logo"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, "/favicon-round-preview.png")
         });
 
         graph.Add(new Dictionary<string, object?>
         {
             ["@type"] = "WebSite",
             ["name"] = "CriptoVersus",
-            ["url"] = BuildAbsolute(RouteLocalization.BuildHomePath("en")),
+            ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en")),
             ["inLanguage"] = new[] { "en-US", "pt-BR" }
         });
 
@@ -1427,7 +1421,7 @@
         foreach (var match in FeaturedMatches.Take(3))
         {
             var slug = MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
-            var eventUrl = BuildAbsolute(GetMatchUrl(match));
+            var eventUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, GetMatchUrl(match));
             var competitors = new[]
             {
                 new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = match.TeamA },
@@ -1521,9 +1515,9 @@
     private string GetSchemaImageUrl(MatchDto match, string slug)
     {
         if (!string.IsNullOrWhiteSpace(slug))
-            return BuildAbsolute($"/social-images/match/{match.MatchId}/{slug}.svg");
+            return SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/social-images/match/{match.MatchId}/{slug}.svg");
 
-        return BuildAbsolute("/favicon-round-preview.png");
+        return SeoDefaults.BuildPublicAbsoluteUrl(Config, "/favicon-round-preview.png");
     }
 
     private string GetStructuredEventDescription(MatchDto match)

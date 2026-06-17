@@ -45,7 +45,7 @@
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="team-detail-page">
@@ -601,12 +601,12 @@
     private string MetaDescription => T("seo.description", SeoSymbol);
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, {SeoSymbol}, #CriptoVersus {SeoSymbol}, crypto asset profile";
 
-    private string CanonicalUrl => BuildAbsolute($"/stats/teams/{NormalizedSlug}");
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/stats/teams/{NormalizedSlug}");
 
-    private string EnglishUrl => BuildAbsolute($"/stats/teams/{NormalizedSlug}");
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/stats/teams/{NormalizedSlug}");
 
-    private string PortugueseUrl => BuildAbsolute($"/pt/estatisticas/times/{NormalizedSlug}");
-    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/pt/estatisticas/times/{NormalizedSlug}");
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
 
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
 
@@ -955,9 +955,9 @@
                 ["@type"] = "BreadcrumbList",
                 ["itemListElement"] = new object[]
                 {
-                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "CriptoVersus", ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture)) },
-                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 2, ["name"] = T("structuredData.breadcrumbStats"), ["item"] = BuildAbsolute(RouteLocalization.BuildStatsPath(CurrentCulture)) },
-                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 3, ["name"] = T("structuredData.breadcrumbTeams"), ["item"] = BuildAbsolute(RouteLocalization.BuildStatsTeamsPath(CurrentCulture)) },
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "CriptoVersus", ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture)) },
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 2, ["name"] = T("structuredData.breadcrumbStats"), ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsPath(CurrentCulture)) },
+                    new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 3, ["name"] = T("structuredData.breadcrumbTeams"), ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamsPath(CurrentCulture)) },
                     new Dictionary<string, object?> { ["@type"] = "ListItem", ["position"] = 4, ["name"] = SeoSymbol, ["item"] = CanonicalUrl }
                 }
             }
@@ -1888,7 +1888,7 @@
 
     private static string DisplayDateTime(DateTime? value) => value.HasValue ? EnsureUtc(value.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "-";
 
-    private string BuildAbsolute(string path) => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
+    private string BuildAbsolute(string path) => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
 
     private string T(string key, params object?[] args) => L.T($"statsTeamDetail.{key}", CurrentCulture, args);
 

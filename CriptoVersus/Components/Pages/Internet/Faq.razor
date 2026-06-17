@@ -5,6 +5,7 @@
 @using System.Text.Json
 @using CriptoVersus.Web.Services
 @inject NavigationManager Nav
+@inject IConfiguration Config
 @inject AppCultureService AppCulture
 @inject LocalizationService L
 @inject RouteLocalizationService RouteLocalization
@@ -13,13 +14,13 @@
 <HeadContent>
     <meta name="description" content="@T("seo.description")" />
     <meta name="keywords" content="@MetaKeywords" />
-    <link rel="canonical" href="@BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture))" />
-    <link rel="alternate" hreflang="en-US" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("en"))" />
-    <link rel="alternate" hreflang="pt-BR" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("pt"))" />
-    <link rel="alternate" hreflang="x-default" href="@BuildAbsolute(RouteLocalization.BuildFaqPath("en"))" />
+    <link rel="canonical" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath(CurrentCulture))" />
+    <link rel="alternate" hreflang="en-US" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("en"))" />
+    <link rel="alternate" hreflang="pt-BR" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("pt"))" />
+    <link rel="alternate" hreflang="x-default" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("en"))" />
     <meta property="og:title" content="@T("seo.title")" />
     <meta property="og:description" content="@T("seo.description")" />
-    <meta property="og:url" content="@BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture))" />
+    <meta property="og:url" content="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath(CurrentCulture))" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="@SocialImageUrl" />
     <meta property="og:image:alt" content="@T("seo.title")" />
@@ -30,7 +31,7 @@
     <meta name="twitter:description" content="@T("seo.description")" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@T("seo.title")" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="cvfaq-arena">
@@ -644,7 +645,7 @@
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus FAQ, #CriptoVersus FAQ";
-    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private IEnumerable<FaqEntry> BasicsItems => _items.Where(item => string.Equals(item.Group, "basics", StringComparison.OrdinalIgnoreCase));
     private IEnumerable<FaqEntry> DeepItems => _items.Where(item => string.Equals(item.Group, "deep", StringComparison.OrdinalIgnoreCase));
 
@@ -712,9 +713,6 @@
     private string T(string key, params object?[] args)
         => L.T($"faq.{key}", CurrentCulture, args);
 
-    private string BuildAbsolute(string relativePath)
-        => new Uri(new Uri(Nav.BaseUri), relativePath.TrimStart('/')).ToString();
-
     private void Toggle(string id)
     {
         if (!_openIds.Add(id))
@@ -726,8 +724,8 @@
 
     private string BuildStructuredData()
     {
-        var pageUrl = BuildAbsolute(RouteLocalization.BuildFaqPath(CurrentCulture));
-        var homeUrl = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
+        var pageUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath(CurrentCulture));
+        var homeUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture));
 
         var schema = new object[]
         {
@@ -786,4 +784,3 @@
         public string Answer { get; set; } = string.Empty;
     }
 }
-

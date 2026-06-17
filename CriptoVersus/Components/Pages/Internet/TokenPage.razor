@@ -9,6 +9,7 @@
 @inject AppCultureService AppCulture
 @inject IJSRuntime JS
 @inject LocalizationService L
+@inject IConfiguration Config
 @inject NavigationManager Nav
 @inject RouteLocalizationService RouteLocalization
 @inject TokenMarketService TokenMarket
@@ -34,7 +35,7 @@
     <meta name="twitter:description" content="@SeoDescription" />
     <meta name="twitter:image" content="@HeroImageAbsoluteUrl" />
     <meta name="twitter:image:alt" content="@L.T("token.hero.title", CurrentCulture)" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="token-arena-page">
@@ -965,7 +966,7 @@
     private CultureInfo ResolveCulture()
         => CultureInfo.GetCultureInfo(AppCulture.ToCultureCode(CurrentCulture));
 
-    private string BuildAbsolute(string path) => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
+    private string BuildAbsolute(string path) => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
 
     private string BuildStructuredDataMarkup()
     {

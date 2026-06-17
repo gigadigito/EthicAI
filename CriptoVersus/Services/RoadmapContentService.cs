@@ -14,18 +14,17 @@ public sealed class RoadmapContentService
     public RoadmapPageContent BuildPage(string? culture, string? fallbackBaseUri = null)
     {
         var normalizedCulture = NormalizeCulture(culture);
-        var baseUrl = ResolveBaseUrl(fallbackBaseUri);
-        var canonicalUrl = BuildAbsoluteUrl(baseUrl, _routeLocalization.BuildRoadmapPath(normalizedCulture));
+        var canonicalUrl = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildRoadmapPath(normalizedCulture));
 
         return normalizedCulture == "en"
-            ? BuildEnglishPage(baseUrl, canonicalUrl)
-            : BuildPortuguesePage(baseUrl, canonicalUrl);
+            ? BuildEnglishPage(canonicalUrl)
+            : BuildPortuguesePage(canonicalUrl);
     }
 
     public string NormalizeCulture(string? culture)
         => string.Equals(culture, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "pt";
 
-    private RoadmapPageContent BuildPortuguesePage(string baseUrl, string canonicalUrl)
+    private RoadmapPageContent BuildPortuguesePage(string canonicalUrl)
     {
         return new RoadmapPageContent
         {
@@ -35,8 +34,8 @@ public sealed class RoadmapContentService
             CanonicalUrl = canonicalUrl,
             AlternateLinks =
             [
-                new AlternateLink("pt-br", BuildAbsoluteUrl(baseUrl, "/pt/roadmap")),
-                new AlternateLink("en", BuildAbsoluteUrl(baseUrl, "/en/roadmap"))
+                new AlternateLink("pt-br", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
+                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap"))
             ],
             OpenGraph = new RoadmapOpenGraphMetadata
             {
@@ -170,7 +169,7 @@ public sealed class RoadmapContentService
         };
     }
 
-    private RoadmapPageContent BuildEnglishPage(string baseUrl, string canonicalUrl)
+    private RoadmapPageContent BuildEnglishPage(string canonicalUrl)
     {
         return new RoadmapPageContent
         {
@@ -180,8 +179,8 @@ public sealed class RoadmapContentService
             CanonicalUrl = canonicalUrl,
             AlternateLinks =
             [
-                new AlternateLink("pt-br", BuildAbsoluteUrl(baseUrl, "/pt/roadmap")),
-                new AlternateLink("en", BuildAbsoluteUrl(baseUrl, "/en/roadmap"))
+                new AlternateLink("pt-br", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
+                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap"))
             ],
             OpenGraph = new RoadmapOpenGraphMetadata
             {
@@ -280,21 +279,6 @@ public sealed class RoadmapContentService
         };
     }
 
-    private string ResolveBaseUrl(string? fallbackBaseUri)
-    {
-        var configuredBaseUrl = _configuration["CriptoVersus:PublicBaseUrl"];
-        var baseUrl = !string.IsNullOrWhiteSpace(configuredBaseUrl)
-            ? configuredBaseUrl
-            : fallbackBaseUri;
-
-        if (string.IsNullOrWhiteSpace(baseUrl))
-            throw new InvalidOperationException("Configure CriptoVersus:PublicBaseUrl para gerar URLs absolutas do roadmap.");
-
-        return baseUrl.TrimEnd('/');
-    }
-
-    private static string BuildAbsoluteUrl(string baseUrl, string path)
-        => new Uri(new Uri(baseUrl.TrimEnd('/') + "/"), path.TrimStart('/')).ToString();
 }
 
 public sealed class RoadmapPageContent

@@ -133,10 +133,7 @@ else
     private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
 
     private string BuildAbsolute(string relativePath)
-    {
-        var baseUrl = Config["CriptoVersus:PublicBaseUrl"]?.TrimEnd('/') ?? Nav.BaseUri.TrimEnd('/');
-        return $"{baseUrl}{relativePath}";
-    }
+        => SeoDefaults.BuildPublicAbsoluteUrl(Config, relativePath);
 
 
 

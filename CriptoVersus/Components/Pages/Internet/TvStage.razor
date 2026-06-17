@@ -4202,7 +4202,7 @@ private void BuildTickerItems()
 
     {
 
-        items.Add("https://criptoversus.com");
+        items.Add(SeoDefaults.BuildPublicAbsoluteUrl(Config, "/"));
 
         items.Add(T("ticker.visitSite"));
 
@@ -4278,7 +4278,7 @@ private void BuildTickerItems()
     {
         items.Add(T("states.waitingForNextHotBattle"));
         items.Add(T("labels.automaticBroadcast"));
-        items.Add("https://criptoversus.com");
+        items.Add(SeoDefaults.BuildPublicAbsoluteUrl(Config, "/"));
         items.Add(T("ticker.visitSite"));
         items.Add(T("ticker.liveBattles"));
 
@@ -4341,7 +4341,7 @@ private IReadOnlyList<TvAvailableMatchCard> BuildAvailableTvMatches()
     {
         var slug = MatchSlugHelper.BuildSlug(leftSymbol, rightSymbol);
         var watchUrl = BuildMatchUrl(matchId, slug);
-        var publicUrl = $"{new Uri(Nav.BaseUri).GetLeftPart(UriPartial.Authority)}{RouteLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, matchId, slug)}";
+        var publicUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, matchId, slug));
         if (matchId <= 0 || string.IsNullOrWhiteSpace(watchUrl) || string.IsNullOrWhiteSpace(slug) || !seen.Add(matchId))
             return;
 

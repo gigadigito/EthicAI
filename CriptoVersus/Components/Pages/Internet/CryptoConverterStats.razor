@@ -35,7 +35,7 @@
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="crypto-converter-stats">
@@ -1682,7 +1682,7 @@
         => L.T($"cryptoConverterStats.{key}", _culture, args);
 
     private string BuildAbsolute(string relativePath)
-        => new Uri(new Uri(Nav.BaseUri), relativePath).AbsoluteUri;
+        => SeoDefaults.BuildPublicAbsoluteUrl(Config, relativePath);
 
     private string BuildRoutePath(string culture, string from, string to)
         => culture == AppCultureService.SecondaryRouteCulture

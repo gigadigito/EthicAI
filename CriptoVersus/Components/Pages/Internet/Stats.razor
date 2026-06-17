@@ -38,7 +38,7 @@
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@PageTitleText" />
-    <script type="application/ld+json">@StructuredDataMarkup</script>
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
 <section class="stats-page">
@@ -455,10 +455,10 @@
     private string PageTitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus stats, #CriptoVersus stats, crypto market stats";
-    private string CanonicalUrl => BuildAbsolute("/stats");
-    private string EnglishUrl => BuildAbsolute("/stats");
-    private string PortugueseUrl => BuildAbsolute("/pt/estatisticas");
-    private string SocialImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/stats");
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/stats");
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/pt/estatisticas");
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
     private HashSet<string> LinkableTeamSlugs => _stats.TopTeams
         .Select(team => BuildAssetSlug(CleanAssetSymbol(team.Symbol)))
@@ -646,7 +646,7 @@
                         ["@type"] = "ListItem",
                         ["position"] = 1,
                         ["name"] = "CriptoVersus",
-                        ["item"] = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture))
+                        ["item"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture))
                     },
                     new Dictionary<string, object?>
                     {
@@ -781,9 +781,6 @@
         => value.HasValue
             ? EnsureUtc(value.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
             : "-";
-
-    private string BuildAbsolute(string path)
-        => new Uri(new Uri(Nav.BaseUri), path).AbsoluteUri;
 
     private string T(string key, params object?[] args)
         => L.T($"stats.{key}", CurrentCulture, args);

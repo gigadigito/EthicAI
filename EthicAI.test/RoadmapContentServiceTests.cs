@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration.Memory;
 
 public sealed class RoadmapContentServiceTests
 {
-    private const string PublicBaseUrl = "https://criptoversus.com";
+    private const string PublicBaseUrl = "https://www.criptoversus.com";
 
     [Fact]
     public void BuildPage_UsesCanonicalRoadmapUrl()
@@ -12,7 +12,7 @@ public sealed class RoadmapContentServiceTests
 
         var page = service.BuildPage("pt");
 
-        Assert.Equal("https://criptoversus.com/roadmap", page.CanonicalUrl);
+        Assert.Equal("https://www.criptoversus.com/pt/roadmap", page.CanonicalUrl);
     }
 
     [Fact]
@@ -22,8 +22,8 @@ public sealed class RoadmapContentServiceTests
 
         var page = service.BuildPage("pt");
 
-        Assert.Contains(page.AlternateLinks, x => x.HrefLang == "pt-br" && x.Href == "https://criptoversus.com/pt/roadmap");
-        Assert.Contains(page.AlternateLinks, x => x.HrefLang == "en" && x.Href == "https://criptoversus.com/en/roadmap");
+        Assert.Contains(page.AlternateLinks, x => x.HrefLang == "pt-br" && x.Href == "https://www.criptoversus.com/pt/roadmap");
+        Assert.Contains(page.AlternateLinks, x => x.HrefLang == "en" && x.Href == "https://www.criptoversus.com/en/roadmap");
     }
 
     [Fact]

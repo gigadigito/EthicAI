@@ -91,7 +91,7 @@
 
     @if (!string.IsNullOrWhiteSpace(_structuredDataMarkup))
     {
-        <script type="application/ld+json">@_structuredDataMarkup</script>
+        <script type="application/ld+json">@((MarkupString)_structuredDataMarkup)</script>
     }
 </HeadContent>
 
