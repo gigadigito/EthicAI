@@ -327,7 +327,7 @@ else
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
     private bool IsPublicHomeRoute => IsHomeRoute(Nav.Uri);
     private bool IsTvRoute => IsTvModeRoute(Nav.Uri);
-    private bool ShouldHideInitialLoader => IsTvRoute || (IsPublicSeoRoute && !IsPublicHomeRoute);
+    private bool ShouldHideInitialLoader => IsTvRoute || IsPublicSeoRoute;
     private bool ShowWalletUi => _interactiveChromeReady && !IsTvRoute;
 
     private bool IsLoggedIn
