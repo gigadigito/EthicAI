@@ -766,7 +766,7 @@
 
     private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
     private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
-    private MatchDto? HeroFallbackMatch => !_hotMatchesLoading && HeroHotMatch is null ? FeaturedBattle : null;
+    private MatchDto? HeroFallbackMatch => HeroHotMatch is null ? FeaturedBattle : null;
     private MatchDto? HeroArenaFieldMatch => HeroHotMatch is not null
         ? ToMatchCard(HeroHotMatch)
         : HeroFallbackMatch;
@@ -1928,6 +1928,9 @@
         font-weight: 800;
     }
 
+    .home-cta:hover {
+       color:black
+    }
     .home-cta--primary {
         background: linear-gradient(90deg, #4cf38d, #7ff6df);
         color: #03150f;
@@ -2648,6 +2651,9 @@
         transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
     }
 
+    .arena-cta-link :hover {
+        color:black;
+    }
     .arena-cta-button {
         color: #f5efff;
         background: linear-gradient(90deg, #8f53ff, #b06dff);
