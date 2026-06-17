@@ -3,6 +3,7 @@
 @page "/pt"
 @using Microsoft.AspNetCore.Components
 @using System.Diagnostics
+@using System.Globalization
 @using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
@@ -79,7 +80,7 @@
             </div>
         </div>
         <div class="home-hero__visual">
-            @if (_hotMatchesLoading && HeroHotMatch is null && HeroFallbackMatch is null)
+            @if (_hotMatchesLoading && HeroArenaFieldMatch is null)
             {
                 <div class="home-hot-hero home-hot-hero--skeleton" aria-hidden="true">
                     <span></span>
@@ -87,193 +88,28 @@
                     <span></span>
                 </div>
             }
-            else if (HeroHotMatch is not null)
+            else if (HeroArenaFieldMatch is not null)
             {
-                var hero = HeroHotMatch!;
-                var heroEnergyA = GetEnergyPercentA(hero);
-                var heroEnergyB = 100 - heroEnergyA;
+                var heroField = HeroArenaFieldMatch!;
+                var heroFieldHot = HeroArenaFieldHotMatch;
+                var heroFieldEnergyA = GetEnergyPercentA(heroField);
 
-                <article class="home-hot-hero @GetArenaLeaderClass(hero) @GetArenaHeatClass(hero)">
-                    <div class="home-hot-hero__header">
-                        <div class="home-hot-hero__badges">
-                            @foreach (var badge in GetBattleBadges(hero, isFeatured: true))
-                            {
-                                <span class="arena-chip @GetArenaChipClass(badge.Tone)">@badge.Text</span>
-                            }
-                        </div>
-                        <span class="arena-meta">@ArenaText("arenaMatchId", hero.MatchId)</span>
-                    </div>
-
-                    <div class="home-hot-hero__scoreboard">
-                        <div class="home-hot-hero__team">
-                            <img class="home-hot-hero__logo"
-                                 src="@hero.HomeLogoUrl"
-                                 width="56"
-                                 height="56"
-                                 alt="@hero.HomeSymbol"
-                                 loading="lazy"
-                                 onerror="this.remove();" />
-                            <div>
-                                <strong>@GetBaseSymbol(hero.TeamA)</strong>
-                                <span class="@GetSignedChangeClass(hero.PctA)">@FormatPct(hero.PctA)</span>
-                            </div>
-                        </div>
-
-                        <div class="home-hot-hero__center">
-                            <small>@GetMatchClockLabel(hero)</small>
-                            <div class="arena-scoreboard arena-scoreboard--featured">
-                                <strong>@hero.ScoreA</strong>
-                                <span class="arena-vs-badge">@T("vs")</span>
-                                <strong>@hero.ScoreB</strong>
-                            </div>
-                        </div>
-
-                        <div class="home-hot-hero__team home-hot-hero__team--right">
-                            <div>
-                                <strong>@GetBaseSymbol(hero.TeamB)</strong>
-                                <span class="@GetSignedChangeClass(hero.PctB)">@FormatPct(hero.PctB)</span>
-                            </div>
-                            <img class="home-hot-hero__logo"
-                                 src="@hero.AwayLogoUrl"
-                                 width="56"
-                                 height="56"
-                                 alt="@hero.AwaySymbol"
-                                 loading="lazy"
-                                 onerror="this.remove();" />
-                        </div>
-                    </div>
-
-                    <div class="arena-energy-bar arena-energy-bar--featured" aria-hidden="true">
-                        <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(heroEnergyA)"></span>
-                        <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(heroEnergyB)"></span>
-                    </div>
-
-                    <div class="home-hot-hero__metrics">
-                        <article>
-                            <span>@ArenaText("momentum")</span>
-                            <strong>@GetMomentumLabel(heroEnergyA)</strong>
-                        </article>
-                        <article>
-                            <span>@ArenaText("arenaPressure")</span>
-                            <strong>@hero.ArenaPressure</strong>
-                        </article>
-                        <article>
-                            <span>@ArenaText("hotScore")</span>
-                            <strong>@hero.HotScore</strong>
-                        </article>
-                    </div>
-
-                    <div class="home-hot-hero__cta-group">
-                        <a class="arena-cta-button home-hot-hero__cta"
-                           href="@GetTvWatchUrl(hero)"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openArena")
-                        </a>
-                        <a class="arena-cta-link home-hot-hero__cta-link"
-                           href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openMatch")
-                        </a>
-                    </div>
-                </article>
-            }
-            else if (HeroFallbackMatch is not null)
-            {
-                var hero = HeroFallbackMatch!;
-                var heroEnergyA = GetEnergyPercentA(hero);
-                var heroEnergyB = 100 - heroEnergyA;
-
-                <article class="home-hot-hero @GetArenaLeaderClass(hero) @GetArenaHeatClass(hero)">
-                    <div class="home-hot-hero__header">
-                        <div class="home-hot-hero__badges">
-                            @foreach (var badge in GetBattleBadges(hero, isFeatured: true))
-                            {
-                                <span class="arena-chip @GetArenaChipClass(badge.Tone)">@badge.Text</span>
-                            }
-                        </div>
-                        <span class="arena-meta">@ArenaText("arenaMatchId", hero.MatchId)</span>
-                    </div>
-
-                    <div class="home-hot-hero__scoreboard">
-                        <div class="home-hot-hero__team">
-                            <img class="home-hot-hero__logo"
-                                 src="@GetCoinIconUrl(hero.TeamA)"
-                                 width="56"
-                                 height="56"
-                                 alt="@hero.TeamA"
-                                 loading="lazy"
-                                 onerror="this.remove();" />
-                            <div>
-                                <strong>@GetBaseSymbol(hero.TeamA)</strong>
-                                <span class="@GetSignedChangeClass(hero.PctA)">@FormatPct(hero.PctA)</span>
-                            </div>
-                        </div>
-
-                        <div class="home-hot-hero__center">
-                            <small>@GetMatchClockLabel(hero)</small>
-                            <div class="arena-scoreboard arena-scoreboard--featured">
-                                <strong>@hero.ScoreA</strong>
-                                <span class="arena-vs-badge">@T("vs")</span>
-                                <strong>@hero.ScoreB</strong>
-                            </div>
-                        </div>
-
-                        <div class="home-hot-hero__team home-hot-hero__team--right">
-                            <div>
-                                <strong>@GetBaseSymbol(hero.TeamB)</strong>
-                                <span class="@GetSignedChangeClass(hero.PctB)">@FormatPct(hero.PctB)</span>
-                            </div>
-                            <img class="home-hot-hero__logo"
-                                 src="@GetCoinIconUrl(hero.TeamB)"
-                                 width="56"
-                                 height="56"
-                                 alt="@hero.TeamB"
-                                 loading="lazy"
-                                 onerror="this.remove();" />
-                        </div>
-                    </div>
-
-                    <div class="arena-energy-bar arena-energy-bar--featured" aria-hidden="true">
-                        <span class="arena-energy-bar__side arena-energy-bar__side--left" style="@BuildEnergyWidthStyle(heroEnergyA)"></span>
-                        <span class="arena-energy-bar__side arena-energy-bar__side--right" style="@BuildEnergyWidthStyle(heroEnergyB)"></span>
-                    </div>
-
-                    <div class="home-hot-hero__metrics">
-                        <article>
-                            <span>@ArenaText("momentum")</span>
-                            <strong>@GetMomentumLabel(heroEnergyA)</strong>
-                        </article>
-                        <article>
-                            <span>@ArenaText("volatility")</span>
-                            <strong>@GetVolatilityLabel(hero)</strong>
-                        </article>
-                        <article>
-                            <span>@ArenaText("scoreLine")</span>
-                            <strong>@GetMatchStateLabel(hero)</strong>
-                        </article>
-                    </div>
-
-                    <div class="home-hot-hero__cta-group">
-                        <a class="arena-cta-button home-hot-hero__cta"
-                           href="@GetTvMatchUrl(hero)"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           aria-label="@ArenaText("openArenaAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openArena")
-                        </a>
-                        <a class="arena-cta-link home-hot-hero__cta-link"
-                           href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
-                            @ArenaText("openMatch")
-                        </a>
-                    </div>
-                </article>
+                <CryptoArenaFieldVisual MatchId="@heroField.MatchId"
+                                        LeftSymbol="@heroField.TeamA"
+                                        RightSymbol="@heroField.TeamB"
+                                        LeftScore="@heroField.ScoreA"
+                                        RightScore="@heroField.ScoreB"
+                                        LeftChangePercent="@heroField.PctA"
+                                        RightChangePercent="@heroField.PctB"
+                                        PressurePercentA="@heroFieldEnergyA"
+                                        ArenaPressure="@GetHeroFieldArenaPressure(heroField, heroFieldHot, heroFieldEnergyA)"
+                                        HotScore="@GetHeroFieldHotScore(heroField, heroFieldHot)"
+                                        ClockLabel="@GetMatchClockLabel(heroField)"
+                                        IsLive="@(!heroField.IsFinished)"
+                                        TvUrl="@GetTvMatchUrl(heroField)"
+                                        MatchUrl="@GetPublicMatchUrl(heroField)"
+                                        TvText="@ArenaText("openArena")"
+                                        MatchText="@ArenaText("openMatch")" />
             }
 
             <div class="home-hero__stats" aria-label="@T("platformHighlights")">
@@ -743,6 +579,12 @@
     private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
     private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
     private MatchDto? HeroFallbackMatch => !_hotMatchesLoading && HeroHotMatch is null ? FeaturedBattle : null;
+    private MatchDto? HeroArenaFieldMatch => HeroHotMatch is not null
+        ? ToMatchCard(HeroHotMatch)
+        : HeroFallbackMatch;
+
+    private HotMatchDto? HeroArenaFieldHotMatch => HeroHotMatch
+        ?? (HeroArenaFieldMatch is not null ? FindHotMatch(HeroArenaFieldMatch.MatchId) : null);
     private List<MatchDto> SnapshotLiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? [])
         .Take(HomeMatchLimit)
         .ToList();
@@ -1276,6 +1118,55 @@
                 ? "is-trending"
                 : string.Empty;
 
+    private decimal GetHeroFieldArenaPressure(MatchDto match, HotMatchDto? hotMatch, double energyA)
+    {
+        var hotArenaPressure = TryReadDecimalProperty(hotMatch, "ArenaPressure");
+        if (hotArenaPressure.HasValue)
+            return hotArenaPressure.Value;
+
+        var matchArenaPressure = TryReadDecimalProperty(match, "ArenaPressure");
+        if (matchArenaPressure.HasValue)
+            return matchArenaPressure.Value;
+
+        return Convert.ToDecimal(Math.Round(energyA));
+    }
+
+    private decimal GetHeroFieldHotScore(MatchDto match, HotMatchDto? hotMatch)
+    {
+        var hotScore = TryReadDecimalProperty(hotMatch, "HotScore");
+        if (hotScore.HasValue)
+            return hotScore.Value;
+
+        var matchHotScore = TryReadDecimalProperty(match, "HotScore");
+        if (matchHotScore.HasValue)
+            return matchHotScore.Value;
+
+        return 0m;
+    }
+
+    private static decimal? TryReadDecimalProperty(object? source, string propertyName)
+    {
+        if (source is null)
+            return null;
+
+        var property = source.GetType().GetProperty(propertyName);
+        if (property is null)
+            return null;
+
+        var value = property.GetValue(source);
+        if (value is null)
+            return null;
+
+        try
+        {
+            return Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private sealed record ArenaBadge(string Text, string Tone);
     private sealed record FaqItem(string Question, string Answer);
 
@@ -1779,10 +1670,7 @@
     .home-anchor-nav {
         border: 1px solid rgba(118,131,164,.18);
         border-radius: 28px;
-        background:
-            radial-gradient(circle at top left, rgba(76,243,141,.08), transparent 24%),
-            radial-gradient(circle at top right, rgba(159,92,255,.08), transparent 26%),
-            linear-gradient(180deg, rgba(10,13,21,.98), rgba(7,9,15,.99));
+        background: radial-gradient(circle at top left, rgba(76,243,141,.08), transparent 24%), radial-gradient(circle at top right, rgba(159,92,255,.08), transparent 26%), linear-gradient(180deg, rgba(10,13,21,.98), rgba(7,9,15,.99));
         box-shadow: 0 24px 70px rgba(0,0,0,.28);
         overflow: hidden;
     }
@@ -1832,15 +1720,15 @@
         gap: .65rem;
     }
 
-    .home-hero__semantic-list li {
-        padding: .7rem .95rem;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,.08);
-        background: rgba(255,255,255,.04);
-        color: #d9e4f2;
-        font-size: .86rem;
-        line-height: 1.4;
-    }
+        .home-hero__semantic-list li {
+            padding: .7rem .95rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: rgba(255,255,255,.04);
+            color: #d9e4f2;
+            font-size: .86rem;
+            line-height: 1.4;
+        }
 
     .home-cta,
     .home-inline-link,
@@ -1880,23 +1768,23 @@
         overflow: hidden;
     }
 
-    .home-hero__stats article {
-        padding: 1.2rem 1.3rem;
-        background: rgba(8,11,18,.95);
-        display: grid;
-        gap: .3rem;
-    }
+        .home-hero__stats article {
+            padding: 1.2rem 1.3rem;
+            background: rgba(8,11,18,.95);
+            display: grid;
+            gap: .3rem;
+        }
 
-    .home-hero__stats span {
-        color: #8fa1b8;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        font-size: .75rem;
-    }
+        .home-hero__stats span {
+            color: #8fa1b8;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            font-size: .75rem;
+        }
 
-    .home-hero__stats strong {
-        font-size: 2rem;
-    }
+        .home-hero__stats strong {
+            font-size: 2rem;
+        }
 
     .home-hero__visual {
         display: grid;
@@ -1908,10 +1796,7 @@
         padding: 1.2rem;
         border-radius: 26px;
         border: 1px solid rgba(127,246,223,.18);
-        background:
-            radial-gradient(circle at top left, rgba(127,246,223,.12), transparent 32%),
-            radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%),
-            linear-gradient(180deg, rgba(8,14,24,.96), rgba(5,9,17,.98));
+        background: radial-gradient(circle at top left, rgba(127,246,223,.12), transparent 32%), radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%), linear-gradient(180deg, rgba(8,14,24,.96), rgba(5,9,17,.98));
         box-shadow: 0 24px 55px rgba(0,0,0,.28);
         display: grid;
         gap: 1rem;
@@ -1981,12 +1866,12 @@
         text-align: center;
     }
 
-    .home-hot-hero__center small {
-        color: #8ea4c1;
-        text-transform: uppercase;
-        letter-spacing: .14em;
-        font-weight: 800;
-    }
+        .home-hot-hero__center small {
+            color: #8ea4c1;
+            text-transform: uppercase;
+            letter-spacing: .14em;
+            font-weight: 800;
+        }
 
     .home-hot-hero__metrics {
         display: grid;
@@ -1994,25 +1879,25 @@
         gap: .8rem;
     }
 
-    .home-hot-hero__metrics article {
-        padding: .9rem 1rem;
-        border-radius: 18px;
-        border: 1px solid rgba(255,255,255,.06);
-        background: rgba(255,255,255,.035);
-        display: grid;
-        gap: .25rem;
-    }
+        .home-hot-hero__metrics article {
+            padding: .9rem 1rem;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,.06);
+            background: rgba(255,255,255,.035);
+            display: grid;
+            gap: .25rem;
+        }
 
-    .home-hot-hero__metrics span {
-        color: #89a0be;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        font-size: .72rem;
-    }
+        .home-hot-hero__metrics span {
+            color: #89a0be;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            font-size: .72rem;
+        }
 
-    .home-hot-hero__metrics strong {
-        font-size: 1rem;
-    }
+        .home-hot-hero__metrics strong {
+            font-size: 1rem;
+        }
 
     .home-hot-hero__cta {
         width: auto;
@@ -2042,28 +1927,28 @@
         pointer-events: none;
     }
 
-    .home-hot-hero--skeleton span,
-    .arena-match-card--skeleton span {
-        display: block;
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(127,246,223,.08), rgba(191,114,255,.14), rgba(127,246,223,.08));
-        background-size: 200% 100%;
-        animation: arena-skeleton 2s linear infinite;
-    }
+        .home-hot-hero--skeleton span,
+        .arena-match-card--skeleton span {
+            display: block;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(127,246,223,.08), rgba(191,114,255,.14), rgba(127,246,223,.08));
+            background-size: 200% 100%;
+            animation: arena-skeleton 2s linear infinite;
+        }
 
-    .home-hot-hero--skeleton span:nth-child(1) {
-        height: 16px;
-        width: 42%;
-    }
+            .home-hot-hero--skeleton span:nth-child(1) {
+                height: 16px;
+                width: 42%;
+            }
 
-    .home-hot-hero--skeleton span:nth-child(2) {
-        height: 88px;
-    }
+            .home-hot-hero--skeleton span:nth-child(2) {
+                height: 88px;
+            }
 
-    .home-hot-hero--skeleton span:nth-child(3) {
-        height: 44px;
-        width: 58%;
-    }
+            .home-hot-hero--skeleton span:nth-child(3) {
+                height: 44px;
+                width: 58%;
+            }
 
     .arena-match-card--skeleton {
         padding: 1rem;
@@ -2071,19 +1956,19 @@
         gap: .85rem;
     }
 
-    .arena-match-card--skeleton span:nth-child(1) {
-        height: 14px;
-        width: 34%;
-    }
+        .arena-match-card--skeleton span:nth-child(1) {
+            height: 14px;
+            width: 34%;
+        }
 
-    .arena-match-card--skeleton span:nth-child(2) {
-        height: 96px;
-    }
+        .arena-match-card--skeleton span:nth-child(2) {
+            height: 96px;
+        }
 
-    .arena-match-card--skeleton span:nth-child(3) {
-        height: 12px;
-        width: 60%;
-    }
+        .arena-match-card--skeleton span:nth-child(3) {
+            height: 12px;
+            width: 60%;
+        }
 
     .home-anchor-nav {
         display: flex;
@@ -2092,13 +1977,13 @@
         padding: 1rem 1.2rem;
     }
 
-    .home-anchor-nav a {
-        color: #dce7f7;
-        text-decoration: none;
-        padding: .6rem .9rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,.04);
-    }
+        .home-anchor-nav a {
+            color: #dce7f7;
+            text-decoration: none;
+            padding: .6rem .9rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,.04);
+        }
 
     .home-section {
         padding: 1.5rem;
@@ -2119,13 +2004,13 @@
         gap: 1rem;
     }
 
-    .home-coin-card,
-    .home-feature-grid article {
-        padding: 1.15rem;
-        border-radius: 22px;
-        border: 1px solid rgba(255,255,255,.08);
-        background: rgba(255,255,255,.025);
-    }
+        .home-coin-card,
+        .home-feature-grid article {
+            padding: 1.15rem;
+            border-radius: 22px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: rgba(255,255,255,.025);
+        }
 
     .home-coin-card__rank {
         color: #8ea0b7;
@@ -2170,13 +2055,13 @@
         margin: 0;
     }
 
-    .home-ranking-list li {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        padding-bottom: .65rem;
-        border-bottom: 1px solid rgba(255,255,255,.06);
-    }
+        .home-ranking-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding-bottom: .65rem;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
 
     .public-home-arena__deck {
         display: grid;
@@ -2207,6 +2092,7 @@
         height: auto;
         align-self: start;
     }
+
     .arena-featured-battle,
     .arena-match-card {
         position: relative;
@@ -2214,10 +2100,7 @@
         cursor: default;
         border-radius: 28px;
         border: 1px solid rgba(133, 160, 204, 0.22);
-        background:
-            radial-gradient(circle at top left, rgba(127,246,223,.14), transparent 28%),
-            radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%),
-            linear-gradient(180deg, rgba(11,17,28,.98), rgba(6,10,18,.98));
+        background: radial-gradient(circle at top left, rgba(127,246,223,.14), transparent 28%), radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%), linear-gradient(180deg, rgba(11,17,28,.98), rgba(6,10,18,.98));
         box-shadow: 0 24px 60px rgba(0, 0, 0, .32);
     }
 
@@ -2230,10 +2113,7 @@
     .arena-featured-battle__glow {
         position: absolute;
         inset: 0;
-        background:
-            radial-gradient(circle at 20% 20%, rgba(127,246,223,.14), transparent 32%),
-            radial-gradient(circle at 80% 18%, rgba(190,72,255,.18), transparent 30%),
-            radial-gradient(circle at 50% 100%, rgba(41,214,255,.08), transparent 45%);
+        background: radial-gradient(circle at 20% 20%, rgba(127,246,223,.14), transparent 32%), radial-gradient(circle at 80% 18%, rgba(190,72,255,.18), transparent 30%), radial-gradient(circle at 50% 100%, rgba(41,214,255,.08), transparent 45%);
         pointer-events: none;
     }
 
@@ -2381,11 +2261,11 @@
         background: rgba(255,255,255,.035);
     }
 
-    .arena-team-panel.is-leading,
-    .arena-match-card__team.is-leading {
-        border-color: rgba(127,246,223,.32);
-        box-shadow: 0 0 0 1px rgba(127,246,223,.14), 0 0 24px rgba(127,246,223,.12);
-    }
+        .arena-team-panel.is-leading,
+        .arena-match-card__team.is-leading {
+            border-color: rgba(127,246,223,.32);
+            box-shadow: 0 0 0 1px rgba(127,246,223,.14), 0 0 24px rgba(127,246,223,.12);
+        }
 
     .arena-team-panel__identity,
     .arena-match-card__team {
@@ -2456,20 +2336,20 @@
         box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 10px 30px rgba(0,0,0,.24);
     }
 
-    .arena-scoreboard--featured strong {
-        font-size: clamp(2.6rem, 6vw, 4.6rem);
-        line-height: 1;
-    }
+        .arena-scoreboard--featured strong {
+            font-size: clamp(2.6rem, 6vw, 4.6rem);
+            line-height: 1;
+        }
 
     .arena-scoreboard--card {
         gap: .45rem;
         font-size: 1.55rem;
     }
 
-    .arena-scoreboard--card strong {
-        font-size: 1.9rem;
-        line-height: 1;
-    }
+        .arena-scoreboard--card strong {
+            font-size: 1.9rem;
+            line-height: 1;
+        }
 
     .arena-vs-badge {
         min-width: 3.1rem;
@@ -2535,17 +2415,17 @@
         gap: .35rem;
     }
 
-    .arena-stat-chip span {
-        color: #8ea0b7;
-        text-transform: uppercase;
-        letter-spacing: .09em;
-        font-size: .72rem;
-    }
+        .arena-stat-chip span {
+            color: #8ea0b7;
+            text-transform: uppercase;
+            letter-spacing: .09em;
+            font-size: .72rem;
+        }
 
-    .arena-stat-chip strong {
-        font-size: 1rem;
-        line-height: 1.4;
-    }
+        .arena-stat-chip strong {
+            font-size: 1rem;
+            line-height: 1.4;
+        }
 
     .arena-cta-button,
     .arena-cta-link {
@@ -2570,10 +2450,10 @@
         box-shadow: 0 16px 34px rgba(143,83,255,.24);
     }
 
-    .arena-cta-button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 20px 40px rgba(143,83,255,.28);
-    }
+        .arena-cta-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 40px rgba(143,83,255,.28);
+        }
 
     .arena-match-grid,
     .arena-top-battle-grid {
@@ -2606,18 +2486,18 @@
         text-align: right;
     }
 
-    .arena-match-card__team--right .arena-match-card__team-copy {
-        order: -1;
-    }
+        .arena-match-card__team--right .arena-match-card__team-copy {
+            order: -1;
+        }
 
     .arena-match-card__team-copy {
         min-width: 0;
     }
 
-    .arena-match-card__team-copy strong {
-        font-size: 1.05rem;
-        line-height: 1.1;
-    }
+        .arena-match-card__team-copy strong {
+            font-size: 1.05rem;
+            line-height: 1.1;
+        }
 
     .arena-match-card__footer {
         padding-top: .2rem;
@@ -2643,17 +2523,17 @@
         box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
     }
 
-    .home-faq-card h3 {
-        margin: 0 0 .65rem;
-        font-size: 1.02rem;
-        line-height: 1.35;
-    }
+        .home-faq-card h3 {
+            margin: 0 0 .65rem;
+            font-size: 1.02rem;
+            line-height: 1.35;
+        }
 
-    .home-faq-card p {
-        margin: 0;
-        color: #b8c7d8;
-        line-height: 1.7;
-    }
+        .home-faq-card p {
+            margin: 0;
+            color: #b8c7d8;
+            line-height: 1.7;
+        }
 
     .arena-cta-link {
         color: #04120d;
@@ -2661,10 +2541,10 @@
         box-shadow: 0 16px 34px rgba(76,243,141,.24);
     }
 
-    .arena-cta-link:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 20px 40px rgba(76,243,141,.28);
-    }
+        .arena-cta-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 20px 40px rgba(76,243,141,.28);
+        }
 
     .home-hot-hero__cta-group > a,
     .arena-featured-battle__actions > a,
@@ -2720,23 +2600,25 @@
             grid-template-columns: 1fr;
         }
     }
+
     @@media (max-width: 1199.98px) {
-    .public-home-arena__deck {
-        grid-template-columns: 1fr;
+        .public-home-arena__deck {
+            grid-template-columns: 1fr;
+        }
+
+        .arena-featured-battle {
+            width: 100%;
+        }
+
+        .arena-featured-battle__body {
+            grid-template-columns: 1fr;
+        }
+
+        .arena-match-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
-    .arena-featured-battle {
-        width: 100%;
-    }
-
-    .arena-featured-battle__body {
-        grid-template-columns: 1fr;
-    }
-
-    .arena-match-grid {
-        grid-template-columns: 1fr;
-    }
-}
     @@media (max-width: 760px) {
         .home-hot-hero__scoreboard,
         .home-hot-hero__metrics {
@@ -2769,9 +2651,9 @@
             text-align: left;
         }
 
-        .arena-match-card__team--right .arena-match-card__team-copy {
-            order: 0;
-        }
+            .arena-match-card__team--right .arena-match-card__team-copy {
+                order: 0;
+            }
 
         .arena-featured-battle__center,
         .arena-match-card__center {

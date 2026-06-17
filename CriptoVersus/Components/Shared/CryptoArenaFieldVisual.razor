@@ -1,0 +1,302 @@
+﻿@namespace CriptoVersus.Web.Components.Shared
+@using System.Globalization
+
+<article class="crypto-arena-field-card @LeaderClass"
+         aria-label="@AriaLabel">
+    <svg class="crypto-arena-field-svg"
+         viewBox="0 0 900 360"
+         role="img"
+         aria-label="@AriaLabel">
+
+        <defs>
+            <linearGradient id="@SurfaceId" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="@LeftColorResolved" stop-opacity="0.20" />
+                <stop offset="48%" stop-color="#0a1020" stop-opacity="0.96" />
+                <stop offset="100%" stop-color="@RightColorResolved" stop-opacity="0.22" />
+            </linearGradient>
+
+            <radialGradient id="@LeftGlowId" cx="18%" cy="50%" r="48%">
+                <stop offset="0%" stop-color="@LeftColorResolved" stop-opacity="0.40" />
+                <stop offset="100%" stop-color="@LeftColorResolved" stop-opacity="0" />
+            </radialGradient>
+
+            <radialGradient id="@RightGlowId" cx="82%" cy="50%" r="48%">
+                <stop offset="0%" stop-color="@RightColorResolved" stop-opacity="0.36" />
+                <stop offset="100%" stop-color="@RightColorResolved" stop-opacity="0" />
+            </radialGradient>
+
+            <filter id="@SoftGlowId">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+
+        <rect x="20" y="20" width="860" height="320" rx="34"
+              fill="url(#@SurfaceId)"
+              stroke="rgba(255,255,255,.16)"
+              stroke-width="2" />
+
+        <rect x="20" y="20" width="860" height="320" rx="34" fill="url(#@LeftGlowId)" />
+        <rect x="20" y="20" width="860" height="320" rx="34" fill="url(#@RightGlowId)" />
+
+        <g opacity="0.16">
+            <path d="M80 20 V340 M140 20 V340 M200 20 V340 M260 20 V340 M320 20 V340 M380 20 V340 M440 20 V340 M500 20 V340 M560 20 V340 M620 20 V340 M680 20 V340 M740 20 V340 M800 20 V340"
+                  stroke="#ffffff"
+                  stroke-width="1" />
+            <path d="M20 80 H880 M20 140 H880 M20 200 H880 M20 260 H880"
+                  stroke="#ffffff"
+                  stroke-width="1" />
+        </g>
+
+        <g fill="none" stroke="rgba(238,245,255,.42)" stroke-width="3">
+            <line x1="450" y1="35" x2="450" y2="325" />
+            <circle cx="450" cy="180" r="62" />
+            <circle cx="450" cy="180" r="6" fill="rgba(238,245,255,.68)" />
+
+            <rect x="42" y="105" width="120" height="150" rx="18" />
+            <rect x="738" y="105" width="120" height="150" rx="18" />
+
+            <rect x="42" y="142" width="54" height="76" rx="12" />
+            <rect x="804" y="142" width="54" height="76" rx="12" />
+        </g>
+
+        <path d="@MomentumPath"
+              fill="none"
+              stroke="@RightColorResolved"
+              stroke-width="5"
+              stroke-linecap="round"
+              opacity="0.78"
+              filter="url(#@SoftGlowId)" />
+
+        <path d="@MomentumPath"
+              fill="none"
+              stroke="@LeftColorResolved"
+              stroke-width="2"
+              stroke-linecap="round"
+              opacity="0.68" />
+
+        <circle cx="@BallX" cy="@BallY" r="17"
+                fill="@BallColor"
+                stroke="#ffffff"
+                stroke-opacity="0.78"
+                stroke-width="3"
+                filter="url(#@SoftGlowId)" />
+
+        <circle cx="@BallX" cy="@BallY" r="34"
+                fill="none"
+                stroke="@BallColor"
+                stroke-opacity="0.30"
+                stroke-width="3" />
+
+        <g font-family="Inter, Arial, sans-serif">
+            <text x="95" y="75"
+                  fill="#ffffff"
+                  font-size="34"
+                  font-weight="900">@LeftSymbolResolved</text>
+
+            <text x="95" y="105"
+                  fill="@LeftColorResolved"
+                  font-size="18"
+                  font-weight="800">@LeftChangeText</text>
+
+            <text x="805" y="75"
+                  text-anchor="end"
+                  fill="#ffffff"
+                  font-size="34"
+                  font-weight="900">@RightSymbolResolved</text>
+
+            <text x="805" y="105"
+                  text-anchor="end"
+                  fill="@RightColorResolved"
+                  font-size="18"
+                  font-weight="800">@RightChangeText</text>
+        </g>
+
+        <g font-family="Inter, Arial, sans-serif">
+            <rect x="350" y="132" width="200" height="96" rx="26"
+                  fill="rgba(4,8,18,.74)"
+                  stroke="rgba(255,255,255,.14)" />
+
+            <text x="402" y="197"
+                  text-anchor="middle"
+                  fill="#ffffff"
+                  font-size="62"
+                  font-weight="950">@LeftScoreResolved</text>
+
+            <text x="450" y="192"
+                  text-anchor="middle"
+                  fill="@RightColorResolved"
+                  font-size="16"
+                  font-weight="950">VS</text>
+
+            <text x="498" y="197"
+                  text-anchor="middle"
+                  fill="#ffffff"
+                  font-size="62"
+                  font-weight="950">@RightScoreResolved</text>
+        </g>
+
+        <g font-family="Inter, Arial, sans-serif">
+            <rect x="70" y="275" width="190" height="42" rx="14"
+                  fill="rgba(0,0,0,.35)"
+                  stroke="rgba(255,255,255,.10)" />
+            <text x="88" y="293" fill="#92a4c3" font-size="11" font-weight="900">MOMENTUM</text>
+            <text x="88" y="309" fill="#ffffff" font-size="15" font-weight="900">@MomentumText</text>
+
+            <rect x="355" y="275" width="190" height="42" rx="14"
+                  fill="rgba(0,0,0,.35)"
+                  stroke="rgba(255,255,255,.10)" />
+            <text x="373" y="293" fill="#92a4c3" font-size="11" font-weight="900">ARENA PRESSURE</text>
+            <text x="373" y="309" fill="#ffffff" font-size="15" font-weight="900">@ArenaPressureText</text>
+
+            <rect x="640" y="275" width="190" height="42" rx="14"
+                  fill="rgba(0,0,0,.35)"
+                  stroke="rgba(255,255,255,.10)" />
+            <text x="658" y="293" fill="#92a4c3" font-size="11" font-weight="900">HOT SCORE</text>
+            <text x="658" y="309" fill="#ffffff" font-size="15" font-weight="900">@HotScoreText</text>
+        </g>
+
+        @if (IsLive)
+        {
+            <g font-family="Inter, Arial, sans-serif">
+                <circle cx="410" cy="342" r="6" fill="#ff3d5a" />
+                <text x="426" y="348"
+                      fill="#ff5a72"
+                      font-size="16"
+                      font-weight="950"
+                      letter-spacing=".12em">LIVE</text>
+            </g>
+        }
+
+        <g font-family="Inter, Arial, sans-serif">
+            <rect x="376" y="40" width="148" height="38" rx="19"
+                  fill="rgba(4,20,28,.86)"
+                  stroke="rgba(127,246,223,.35)" />
+            <text x="450" y="65"
+                  text-anchor="middle"
+                  fill="#7ff6df"
+                  font-size="17"
+                  font-weight="950">@ClockLabel</text>
+        </g>
+    </svg>
+
+    <div class="crypto-arena-field-card__actions">
+        @if (!string.IsNullOrWhiteSpace(TvUrl))
+        {
+            <a class="arena-cta-button"
+               href="@TvUrl"
+               target="_blank"
+               rel="noopener noreferrer">
+                @TvText
+            </a>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(MatchUrl))
+        {
+            <a class="arena-cta-link"
+               href="@MatchUrl"
+               target="_blank"
+               rel="noopener noreferrer">
+                @MatchText
+            </a>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string? LeftSymbol { get; set; }
+    [Parameter] public string? RightSymbol { get; set; }
+    [Parameter] public int? LeftScore { get; set; }
+    [Parameter] public int? RightScore { get; set; }
+    [Parameter] public decimal? LeftChangePercent { get; set; }
+    [Parameter] public decimal? RightChangePercent { get; set; }
+    [Parameter] public double? PressurePercentA { get; set; }
+    [Parameter] public decimal? ArenaPressure { get; set; }
+    [Parameter] public decimal? HotScore { get; set; }
+    [Parameter] public string? ClockLabel { get; set; }
+    [Parameter] public bool IsLive { get; set; }
+    [Parameter] public string? TvUrl { get; set; }
+    [Parameter] public string? MatchUrl { get; set; }
+    [Parameter] public string TvText { get; set; } = "Open Arena";
+    [Parameter] public string MatchText { get; set; } = "Open Match";
+    [Parameter] public string? LeftColor { get; set; }
+    [Parameter] public string? RightColor { get; set; }
+
+    private string SafeId => $"cv-field-{Math.Max(1, MatchId)}";
+    private string SurfaceId => $"{SafeId}-surface";
+    private string LeftGlowId => $"{SafeId}-left-glow";
+    private string RightGlowId => $"{SafeId}-right-glow";
+    private string SoftGlowId => $"{SafeId}-soft-glow";
+
+    private string LeftColorResolved => string.IsNullOrWhiteSpace(LeftColor) ? "#ff9100" : LeftColor!;
+    private string RightColorResolved => string.IsNullOrWhiteSpace(RightColor) ? "#18d8d2" : RightColor!;
+
+    private string LeftSymbolResolved => NormalizeSymbol(LeftSymbol, "AAA");
+    private string RightSymbolResolved => NormalizeSymbol(RightSymbol, "BBB");
+
+    private int LeftScoreResolved => Math.Max(0, LeftScore ?? 0);
+    private int RightScoreResolved => Math.Max(0, RightScore ?? 0);
+
+    private double PressureA => Math.Clamp(PressurePercentA ?? 50d, 0d, 100d);
+    private string BallX => (80d + (PressureA / 100d * 740d)).ToString("0.##", CultureInfo.InvariantCulture);
+    private string BallY => Math.Clamp(180d - ((PressureA - 50d) * .9d), 120d, 240d).ToString("0.##", CultureInfo.InvariantCulture);
+    private string BallColor => PressureA >= 50d ? RightColorResolved : LeftColorResolved;
+
+    private string MomentumPath
+        => PressureA >= 50d
+            ? "M120 230 C230 115, 330 250, 450 175 S680 95, 780 210"
+            : "M780 230 C670 115, 570 250, 450 175 S220 95, 120 210";
+
+    private string MomentumText
+        => PressureA >= 50d
+            ? $"{Math.Round(PressureA).ToString(CultureInfo.InvariantCulture)}% left-side pressure"
+            : $"{Math.Round(100d - PressureA).ToString(CultureInfo.InvariantCulture)}% right-side pressure";
+
+    private string ArenaPressureText
+        => (ArenaPressure ?? 0m).ToString("0", CultureInfo.InvariantCulture);
+
+    private string HotScoreText
+        => (HotScore ?? 0m).ToString("0", CultureInfo.InvariantCulture);
+
+    private string LeftChangeText => FormatPct(LeftChangePercent);
+    private string RightChangeText => FormatPct(RightChangePercent);
+
+    private string LeaderClass
+        => LeftScoreResolved > RightScoreResolved
+            ? "is-team-a-leading"
+            : RightScoreResolved > LeftScoreResolved
+                ? "is-team-b-leading"
+                : "is-even";
+
+    private string AriaLabel
+        => $"Crypto arena field showing {LeftSymbolResolved} versus {RightSymbolResolved}, score {LeftScoreResolved} to {RightScoreResolved}.";
+
+    private static string NormalizeSymbol(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return fallback;
+
+        var normalized = new string(value.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+
+        foreach (var quote in new[] { "USDT", "USDC", "BUSD", "FDUSD", "BRL", "EUR", "BTC", "ETH" })
+        {
+            if (normalized.Length > quote.Length + 1 && normalized.EndsWith(quote, StringComparison.Ordinal))
+                normalized = normalized[..^quote.Length];
+        }
+
+        return string.IsNullOrWhiteSpace(normalized)
+            ? fallback
+            : normalized.Length > 6
+                ? normalized[..6]
+                : normalized;
+    }
+
+    private static string FormatPct(decimal? value)
+        => value.HasValue
+            ? $"{value.Value.ToString("+0.##;-0.##;0.##", CultureInfo.InvariantCulture)}%"
+            : "—";
+}
