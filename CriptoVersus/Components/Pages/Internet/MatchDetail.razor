@@ -5,7 +5,7 @@
 @using System.Net.Http.Json
 @using System.Globalization
 @using System.Text.Json
-@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
@@ -18,7 +18,8 @@
 @inject CriptoVersus.Web.Services.BrowserTimeZoneService BrowserTimeZone
 @inject AppCultureService AppCulture
 @inject LocalizationService L
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject PersistentComponentState PersistentState
+@rendermode InteractiveServer
 @implements IDisposable
 @implements IAsyncDisposable
 @if (EmitPageTitle)
@@ -35,29 +36,10 @@
 
     @if (_loading && _match is null)
     {
-        <section class="match-loading-shell mb-4" aria-busy="true" aria-live="polite">
-            <div class="match-loading-shell__bg"></div>
-            <div class="match-loading-shell__content">
-                <div class="d-flex align-items-center gap-2 text-muted mb-3">
-                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                    <span>@T("loadingMatch")</span>
-                </div>
-                <div class="match-loading-shell__hero">
-                    <div class="match-loading-shell__team"></div>
-                    <div class="match-loading-shell__score"></div>
-                    <div class="match-loading-shell__team"></div>
-                </div>
-                <div class="match-loading-shell__cards">
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                </div>
-                <div class="match-loading-shell__grid">
-                    <div></div>
-                    <div></div>
-                </div>
-            </div>
-        </section>
+        <div class="d-flex align-items-center gap-2 text-muted">
+            <div class="spinner-border spinner-border-sm" role="status"></div>
+            <span>@T("loadingMatch")</span>
+        </div>
     }
     else if (!string.IsNullOrWhiteSpace(_error) && _match is null)
     {
@@ -586,18 +568,18 @@
             </div>
         </div>
 
-        @if (MatchParticipants.Count > 0)
+        @if (_match.Participants.Count > 0)
         {
             <div class="row g-3 mt-1">
                 <div class="col-12">
                     <div class="card match-panel p-3">
                         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div class="fw-bold">@T("matchParticipants")</div>
-                            <div class="small text-muted">@MatchParticipants.Count @T("participantS")</div>
+                            <div class="small text-muted">@_match.Participants.Count @T("participantS")</div>
                         </div>
 
                         <div class="mt-3 d-flex flex-column gap-2">
-                            @foreach (var participant in MatchParticipants)
+                            @foreach (var participant in _match.Participants)
                             {
                                 <div class="border border-secondary-subtle rounded-4 p-3 small">
                                     <strong>@participant.WalletMasked</strong>
@@ -837,101 +819,6 @@
 </div>
 
 <style>
-
-    .match-loading-shell {
-        position: relative;
-        display: block;
-        width: 100%;
-        max-width: 1800px;
-        min-height: 675px;
-        margin-inline: auto;
-        border-radius: 32px;
-        overflow: hidden;
-        background: radial-gradient(circle at top left, rgba(0, 230, 118, .12), transparent 28%), radial-gradient(circle at top right, rgba(83, 200, 255, .12), transparent 28%), linear-gradient(145deg, #081018 0%, #0b1220 48%, #060b12 100%);
-        border: 1px solid rgba(255, 255, 255, .09);
-        box-shadow: 0 28px 90px rgba(0, 0, 0, .42);
-    }
-
-    .match-loading-shell__bg {
-        position: absolute;
-        inset: 0;
-        background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-        background-size: 34px 34px;
-        opacity: .16;
-        pointer-events: none;
-    }
-
-    .match-loading-shell__content {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        gap: 1.15rem;
-        min-height: 675px;
-        padding: 1.5rem;
-    }
-
-    .match-loading-shell__hero,
-    .match-loading-shell__cards,
-    .match-loading-shell__grid {
-        display: grid;
-        gap: .9rem;
-    }
-
-    .match-loading-shell__hero {
-        grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr);
-    }
-
-    .match-loading-shell__cards {
-        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
-    }
-
-    .match-loading-shell__grid {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-
-        .match-loading-shell__team,
-        .match-loading-shell__score,
-        .match-loading-shell__cards > div,
-        .match-loading-shell__grid > div {
-            min-height: 150px;
-            border-radius: 24px;
-            border: 1px solid rgba(255,255,255,.08);
-            background: linear-gradient(90deg, rgba(255,255,255,.035), rgba(255,255,255,.09), rgba(255,255,255,.035));
-            background-size: 220% 100%;
-            animation: matchLoadingShimmer 1.2s ease-in-out infinite;
-        }
-
-    .match-loading-shell__score {
-        min-height: 180px;
-    }
-
-    .match-loading-shell__grid > div {
-        min-height: 260px;
-    }
-
-    @@keyframes matchLoadingShimmer {
-        0% {
-            background-position: 200% 0;
-        }
-
-        100% {
-            background-position: -200% 0;
-        }
-    }
-
-    @@media (max-width: 767.98px) {
-        .match-loading-shell,
-        .match-loading-shell__content {
-            min-height: 760px;
-        }
-
-        .match-loading-shell__hero,
-        .match-loading-shell__cards,
-        .match-loading-shell__grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
     .social-share-card__title-team {
         font-weight: 950;
     }
@@ -2475,8 +2362,6 @@
     [Parameter] public int? MatchId { get; set; }
     [Parameter] public bool EmitPageTitle { get; set; } = true;
 
-    private IReadOnlyList<MatchParticipantDto> MatchParticipants => _match?.Participants ?? [];
-
     private bool _loading = true;
     private string? _error;
     private string _title = "Match";
@@ -2827,29 +2712,43 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _loading = true;
         _error = null;
+
+        if (_match is null && TryRestorePersistedMatchState())
+        {
+            _loading = false;
+            return;
+        }
+
+        var hasVisibleMatchForThisRoute = IsMatchForCurrentRoute(_match);
+        _loading = !hasVisibleMatchForThisRoute;
 
         try
         {
-            _match = await LoadRequestedMatchAsync(CancellationToken.None);
+            var loadedMatch = await LoadRequestedMatchAsync(CancellationToken.None);
 
-            if (_match is null)
+            if (loadedMatch is null)
             {
-                var a = NormalizeSlugToSymbol(SlugA);
-                var b = NormalizeSlugToSymbol(SlugB);
-                _error = MatchId is int requestedId
-                    ? $"Nenhuma partida encontrada para o match #{requestedId}."
-                    : $"Nenhuma partida encontrada para {a} vs {b}.";
+                if (!hasVisibleMatchForThisRoute)
+                {
+                    _match = null;
+                    var a = NormalizeSlugToSymbol(SlugA);
+                    var b = NormalizeSlugToSymbol(SlugB);
+                    _error = MatchId is int requestedId
+                        ? $"Nenhuma partida encontrada para o match #{requestedId}."
+                        : $"Nenhuma partida encontrada para {a} vs {b}.";
+                }
+
                 return;
             }
 
-            await LoadMetricChartsAsync(CancellationToken.None);
-
+            _match = loadedMatch;
             _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
 
             SyncAndStartLocalClock();
             UpdateClockTexts();
+
+            await LoadMetricChartsAsync(CancellationToken.None);
 
             _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
         }
@@ -3504,14 +3403,88 @@
     private CancellationTokenSource? _reloadCts;
     private int _reloadSeq;
     private DateTime _lastAutoReloadUtc = DateTime.MinValue;
+    private PersistingComponentStateSubscription? _persistingSubscription;
+
+    private string PersistentMatchStateKey
+    {
+        get
+        {
+            var routeKey = MatchId is int requestedId && requestedId > 0
+                ? requestedId.ToString(CultureInfo.InvariantCulture)
+                : $"{NormalizeSlugToSymbol(SlugA)}-vs-{NormalizeSlugToSymbol(SlugB)}";
+
+            return $"match-detail:{CurrentCulture}:{routeKey}";
+        }
+    }
 
     protected override void OnInitialized()
     {
+        _persistingSubscription ??= PersistentState.RegisterOnPersisting(PersistMatchStateAsync);
+
         if (!_hubWired)
         {
             _hubWired = true;
             HubClient.DashboardChanged += OnDashboardChanged;
         }
+    }
+
+    private Task PersistMatchStateAsync()
+    {
+        if (_match is null)
+            return Task.CompletedTask;
+
+        PersistentState.PersistAsJson(PersistentMatchStateKey, new MatchDetailPersistedState
+        {
+            Match = _match,
+            MetricSnapshots = _metricSnapshots.ToList(),
+            ScoreEvents = _scoreEvents.ToList(),
+            ArenaSentimentA = _arenaSentimentA,
+            ArenaSentimentB = _arenaSentimentB,
+            Title = _title
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private bool TryRestorePersistedMatchState()
+    {
+        if (!PersistentState.TryTakeFromJson<MatchDetailPersistedState>(PersistentMatchStateKey, out var persisted)
+            || persisted?.Match is null)
+            return false;
+
+        _match = persisted.Match;
+        _title = string.IsNullOrWhiteSpace(persisted.Title)
+            ? $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}"
+            : persisted.Title!;
+
+        ApplyMetricChartState(
+            persisted.MetricSnapshots ?? [],
+            persisted.ScoreEvents ?? [],
+            persisted.ArenaSentimentA,
+            persisted.ArenaSentimentB);
+
+        _arenaSentimentLoading = false;
+        SyncAndStartLocalClock();
+        UpdateClockTexts();
+        return true;
+    }
+
+    private bool IsMatchForCurrentRoute(MatchDto? match)
+    {
+        if (match is null)
+            return false;
+
+        if (MatchId is int requestedId && requestedId > 0)
+            return match.MatchId == requestedId;
+
+        var routeA = NormalizeSlugToSymbol(SlugA);
+        var routeB = NormalizeSlugToSymbol(SlugB);
+
+        if (string.IsNullOrWhiteSpace(routeA) || string.IsNullOrWhiteSpace(routeB))
+            return false;
+
+        return string.Equals(NormalizeSlugToSymbol(match.TeamA), routeA, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(NormalizeSlugToSymbol(match.TeamB), routeB, StringComparison.OrdinalIgnoreCase);
     }
 
     private void OnDashboardChanged(string? _)
@@ -3664,6 +3637,9 @@
         _reloadCts?.Cancel();
         _reloadCts?.Dispose();
         _reloadCts = null;
+
+        _persistingSubscription?.Dispose();
+        _persistingSubscription = null;
     }
 
     public async ValueTask DisposeAsync()
@@ -3831,9 +3807,23 @@
 
         await Task.WhenAll(snapshotsTask, scoreEventsTask, arenaSentimentTask);
 
-        var snapshots = snapshotsTask.Result ?? [];
-        var scoreEvents = scoreEventsTask.Result ?? [];
-        var arenaSentiment = arenaSentimentTask.Result;
+        ApplyMetricChartState(
+            snapshotsTask.Result ?? [],
+            scoreEventsTask.Result ?? [],
+            arenaSentimentTask.Result?.TeamA,
+            arenaSentimentTask.Result?.TeamB);
+
+        _arenaSentimentLoading = false;
+    }
+
+    private void ApplyMetricChartState(
+        IEnumerable<MatchMetricSnapshotDto> snapshots,
+        IEnumerable<MatchScoreEventDto> scoreEvents,
+        ArenaSentimentDto? arenaSentimentA,
+        ArenaSentimentDto? arenaSentimentB)
+    {
+        if (_match is null)
+            return;
 
         var orderedSnapshots = snapshots
             .OrderBy(x => x.CapturedAtUtc)
@@ -3847,11 +3837,12 @@
 
         _metricSnapshots = orderedSnapshots;
         _scoreEvents = orderedScoreEvents;
-        _arenaSentimentA = arenaSentiment?.TeamA;
-        _arenaSentimentB = arenaSentiment?.TeamB;
-        _arenaSentimentLoading = false;
+        _arenaSentimentA = arenaSentimentA;
+        _arenaSentimentB = arenaSentimentB;
+
         _leftPriceBattlePoints.Clear();
         _leftPriceBattlePoints.AddRange(BuildPricePoints(orderedSnapshots.Where(x => x.TeamId == _match.TeamAId)));
+
         _rightPriceBattlePoints.Clear();
         _rightPriceBattlePoints.AddRange(BuildPricePoints(orderedSnapshots.Where(x => x.TeamId == _match.TeamBId)));
 
@@ -4225,6 +4216,16 @@
             return T("thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere");
 
         return T("notEnoughPointsToDrawLines", _match.TeamA, teamACount, _match.TeamB, teamBCount);
+    }
+
+    private sealed class MatchDetailPersistedState
+    {
+        public MatchDto? Match { get; set; }
+        public List<MatchMetricSnapshotDto>? MetricSnapshots { get; set; }
+        public List<MatchScoreEventDto>? ScoreEvents { get; set; }
+        public ArenaSentimentDto? ArenaSentimentA { get; set; }
+        public ArenaSentimentDto? ArenaSentimentB { get; set; }
+        public string? Title { get; set; }
     }
 
     private sealed class ChartSeriesState
