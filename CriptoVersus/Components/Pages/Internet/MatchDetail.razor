@@ -32,7 +32,7 @@
 
 <div class="match-detail-wide-container py-3">
 
-    @if (_loading && _match is null)
+    @if (_match is null && ShouldShowInitialLoadingShell)
     {
         <section class="match-loading-shell mb-4" aria-busy="true" aria-live="polite">
             <div class="match-loading-shell__bg"></div>
@@ -2581,6 +2581,7 @@
     [Parameter] public bool EmitPageTitle { get; set; } = true;
 
     private bool _loading = true;
+    private bool _initialLoadCompleted;
     private string? _error;
     private string _title = "Match";
     private MatchDto? _match;
@@ -2590,6 +2591,7 @@
         : "Rota legada de detalhe de partida do CriptoVersus mantida por compatibilidade, enquanto o SEO indexado principal fica nas paginas canonicas de partida.";
     private string SeoCanonicalUrl => BuildAbsolute("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimStart('/'));
     private string SeoImageUrl => BuildAbsolute(SeoDefaults.DefaultSocialImagePath);
+    private bool ShouldShowInitialLoadingShell => !_initialLoadCompleted || _loading || string.IsNullOrWhiteSpace(_error);
 
     private bool _isSendingBet;
     private bool _betRequestOk;
@@ -2770,6 +2772,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        await EnsureCurrentMatchLoadedAsync(CancellationToken.None);
+
+        if (_match is null)
+            return;
+
         if (!_tvScriptsInitialized)
         {
             try
@@ -2788,13 +2795,6 @@
             }
 
             _tvScriptsInitialized = true;
-        }
-
-        await EnsureCurrentMatchLoadedAsync(CancellationToken.None);
-
-        if (_match is null)
-        {
-            return;
         }
 
         try
@@ -2972,6 +2972,7 @@
                 _error = MatchId is int requestedId
                     ? $"Nenhuma partida encontrada para o match #{requestedId}."
                     : $"Nenhuma partida encontrada para {a} vs {b}.";
+                _initialLoadCompleted = true;
                 return;
             }
 
@@ -2984,6 +2985,7 @@
             UpdateClockTexts();
 
             _loadedRouteKey = routeKey;
+            _initialLoadCompleted = true;
         }
         catch (OperationCanceledException)
         {
@@ -2991,6 +2993,7 @@
         catch (Exception ex)
         {
             _error = ex.Message;
+            _initialLoadCompleted = true;
         }
         finally
         {
@@ -3013,6 +3016,7 @@
     private void ResetMatchVisualStateForRouteChange()
     {
         _loading = true;
+        _initialLoadCompleted = false;
         _error = null;
         _match = null;
         _title = "Match";
