@@ -20,6 +20,17 @@ public sealed class MatchSeoServiceTests
     }
 
     [Fact]
+    public void BuildCanonicalUrl_EncodesUnicodeSlugSegments()
+    {
+        var service = CreateService();
+        var slug = "币安人生-vs-ビットコイン";
+
+        var canonical = service.BuildCanonicalUrl("en", 39, slug);
+
+        Assert.Equal($"https://seudominio.com/en/match/39/{Uri.EscapeDataString(slug)}", canonical);
+    }
+
+    [Fact]
     public void BuildAlternateLinks_ReturnsPtAndEnHreflangUrls()
     {
         var service = CreateService();
@@ -38,6 +49,20 @@ public sealed class MatchSeoServiceTests
                 Assert.Equal("en-US", en.HrefLang);
                 Assert.Equal("https://seudominio.com/en/match/39/ada-vs-bnb", en.Href);
             });
+    }
+
+    [Fact]
+    public void BuildAlternateLinks_EncodesUnicodeSlugSegments()
+    {
+        var service = CreateService();
+        var slug = "币安人生-vs-ビットコイン";
+
+        var links = service.BuildAlternateLinks(39, slug);
+
+        Assert.Collection(
+            links,
+            pt => Assert.Equal($"https://seudominio.com/pt/partida/39/{Uri.EscapeDataString(slug)}", pt.Href),
+            en => Assert.Equal($"https://seudominio.com/en/match/39/{Uri.EscapeDataString(slug)}", en.Href));
     }
 
     [Fact]

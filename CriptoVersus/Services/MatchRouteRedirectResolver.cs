@@ -195,13 +195,26 @@ public sealed class MatchRouteRedirectResolver
             return null;
 
         var expectedPath = expectedPathFactory(officialRoute.Slug);
-        if (requestedPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase)
-            && requestedSlug.Equals(officialRoute.Slug, StringComparison.Ordinal))
+        var normalizedRequestedSlug = SafeUnescape(requestedSlug);
+        if (SafeUnescape(requestedPath).Equals(SafeUnescape(expectedPath), StringComparison.OrdinalIgnoreCase)
+            && normalizedRequestedSlug.Equals(officialRoute.Slug, StringComparison.Ordinal))
         {
             return null;
         }
 
         return AppendQueryString(expectedPath, queryString);
+    }
+
+    private static string SafeUnescape(string value)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch
+        {
+            return value;
+        }
     }
 
     private static string AppendQueryString(string path, string? queryString)

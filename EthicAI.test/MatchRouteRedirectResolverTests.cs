@@ -46,6 +46,24 @@ public sealed class MatchRouteRedirectResolverTests
     }
 
     [Fact]
+    public async Task UnicodeSlugRedirectsToEncodedCanonicalRoute()
+    {
+        var unicodeSlug = "币安人生-vs-ビットコイン";
+        var encodedSlug = Uri.EscapeDataString(unicodeSlug);
+
+        var redirect = await _resolver.ResolveRedirectPathAsync(
+            $"/match/39/{unicodeSlug}",
+            null,
+            BuildHttpContext(),
+            _appCultureService,
+            new FakeLookupService(unicodeSlug),
+            _slugHelper,
+            _routeLocalization);
+
+        Assert.Equal($"/en/match/39/{encodedSlug}", redirect);
+    }
+
+    [Fact]
     public async Task PortugueseRouteWithWrongSegmentRedirectsToLocalizedPath()
     {
         var redirect = await _resolver.ResolveRedirectPathAsync(

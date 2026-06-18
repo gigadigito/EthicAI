@@ -19,6 +19,15 @@ public sealed class RouteLocalizationServiceTests
     }
 
     [Fact]
+    public void BuildLocalizedPath_EncodesUnicodeSlugSegments()
+    {
+        var slug = "币安人生-vs-ビットコイン";
+        var expected = $"/en/match/39/{Uri.EscapeDataString(slug)}";
+
+        Assert.Equal(expected, _service.BuildLocalizedPath("en", 39, slug));
+    }
+
+    [Fact]
     public void BuildBestPath_WithoutCulture_FallsBackToCanonicalRoute()
     {
         Assert.Equal("/en/match/39/ada-vs-bnb", _service.BuildBestPath(null, 39, "ada-vs-bnb"));
@@ -36,6 +45,15 @@ public sealed class RouteLocalizationServiceTests
     {
         Assert.Equal("/pt/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("pt", 39, "ada-vs-bnb"));
         Assert.Equal("/en/tv/match/39/ada-vs-bnb", _service.BuildTvMatchPath("en", 39, "ada-vs-bnb"));
+    }
+
+    [Fact]
+    public void BuildTvMatchPath_EncodesUnicodeSlugSegments()
+    {
+        var slug = "币安人生-vs-ビットコイン";
+        var expected = $"/en/tv/match/39/{Uri.EscapeDataString(slug)}";
+
+        Assert.Equal(expected, _service.BuildTvMatchPath("en", 39, slug));
     }
 
     [Fact]

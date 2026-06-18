@@ -476,7 +476,7 @@ else
                 .Split('?', '#')[0]
                 .Trim('/');
 
-            if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
+            if (!PathsEquivalent(currentPath, expectedPath))
             {
                 Nav.NavigateTo(expectedPath, replace: true);
                 return;
@@ -834,6 +834,21 @@ else
             catch
             {
             }
+        }
+    }
+
+    private static bool PathsEquivalent(string left, string right)
+        => SafeUnescape(left).Equals(SafeUnescape(right), StringComparison.OrdinalIgnoreCase);
+
+    private static string SafeUnescape(string value)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch
+        {
+            return value;
         }
     }
 }

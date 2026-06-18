@@ -18,7 +18,8 @@ public static class SeoDefaults
     public static string BuildPublicAbsoluteUrl(IConfiguration configuration, NavigationManager? navigationManager, string relativePath)
     {
         var baseUrl = ResolvePublicBaseUrl(configuration, navigationManager);
-        return new Uri(new Uri(baseUrl + "/"), relativePath.TrimStart('/')).ToString();
+        var normalizedRelativePath = NormalizeRelativePath(relativePath);
+        return new Uri(new Uri(baseUrl + "/"), normalizedRelativePath).AbsoluteUri;
     }
 
     public static string BuildCanonicalRootUrl(IConfiguration configuration, NavigationManager navigationManager)
@@ -58,6 +59,28 @@ public static class SeoDefaults
         }
 
         return baseUri.ToString().TrimEnd('/');
+    }
+
+    private static string NormalizeRelativePath(string relativePath)
+    {
+        var trimmed = relativePath.TrimStart('/');
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return string.Empty;
+
+        return string.Join(
+            "/",
+            trimmed.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(segment =>
+                {
+                    try
+                    {
+                        return Uri.EscapeDataString(Uri.UnescapeDataString(segment));
+                    }
+                    catch
+                    {
+                        return Uri.EscapeDataString(segment);
+                    }
+                }));
     }
 
     private static bool IsLoopbackHost(string host)

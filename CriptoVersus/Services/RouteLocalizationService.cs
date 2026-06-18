@@ -34,7 +34,7 @@ public sealed class RouteLocalizationService
     public string BuildLocalizedPath(string culture, int id, string slug)
     {
         var normalizedCulture = NormalizeCulture(culture);
-        return $"/{normalizedCulture}/{GetMatchSegment(normalizedCulture)}/{id}/{slug}";
+        return $"/{normalizedCulture}/{GetMatchSegment(normalizedCulture)}/{id}/{NormalizeRouteSegment(slug)}";
     }
 
     public string BuildBestPath(string? culture, int id, string slug)
@@ -97,7 +97,7 @@ public sealed class RouteLocalizationService
 
     public string BuildStatsTeamDetailPath(string? culture, string slug)
     {
-        var normalizedSlug = slug.Trim().ToLowerInvariant();
+        var normalizedSlug = NormalizeRouteSegment(slug);
         return $"{BuildStatsTeamsPath(culture)}/{normalizedSlug}";
     }
 
@@ -111,18 +111,18 @@ public sealed class RouteLocalizationService
         => $"{BuildTvPath(culture)}/broadcast";
 
     public string BuildTvMatchPath(string? culture, int id, string slug)
-        => $"{BuildTvPath(culture)}/match/{id}/{slug.Trim().ToLowerInvariant()}";
+        => $"{BuildTvPath(culture)}/match/{id}/{NormalizeRouteSegment(slug)}";
 
     public string BuildLegacyTvPath()
         => "/tv";
 
     public string BuildLegacyTvMatchPath(int id, string slug)
-        => $"/tv/match/{id}/{slug.Trim().ToLowerInvariant()}";
+        => $"/tv/match/{id}/{NormalizeRouteSegment(slug)}";
 
     public string BuildLegacyMatchPath(string? culture, int id, string slug)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
-            ? $"/partida/{id}/{slug}"
-            : $"/match/{id}/{slug}";
+            ? $"/partida/{id}/{NormalizeRouteSegment(slug)}"
+            : $"/match/{id}/{NormalizeRouteSegment(slug)}";
 
     public string BuildLocalizedPathForCurrentPage(string targetCulture, string currentRelativePath)
     {
@@ -246,5 +246,21 @@ public sealed class RouteLocalizationService
         }
 
         return path;
+    }
+
+    private static string NormalizeRouteSegment(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var trimmed = value.Trim();
+        try
+        {
+            return Uri.EscapeDataString(Uri.UnescapeDataString(trimmed));
+        }
+        catch
+        {
+            return Uri.EscapeDataString(trimmed);
+        }
     }
 }

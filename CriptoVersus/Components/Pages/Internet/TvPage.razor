@@ -148,6 +148,21 @@
     private bool HasSelectedTvMatch => (_selectedHotMatch?.HasMatch == true || _selectedMatch is not null);
     private bool ShouldShowInitialTvLoading => !_initialTvLoadCompleted && !_initialTvLoadFailed && !HasSelectedTvMatch;
 
+    private static bool PathsEquivalent(string left, string right)
+        => SafeUnescape(left).Equals(SafeUnescape(right), StringComparison.OrdinalIgnoreCase);
+
+    private static string SafeUnescape(string value)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch
+        {
+            return value;
+        }
+    }
+
 
     protected override void OnParametersSet()
     {
@@ -161,7 +176,7 @@
         var expectedPath = isBroadcastAlias
             ? RouteLocalization.BuildTvBroadcastPath(_culture)
             : RouteLocalization.BuildTvPath(_culture);
-        if (!currentPath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
+        if (!PathsEquivalent(currentPath, expectedPath))
             Nav.NavigateTo(expectedPath, replace: true);
     }
 
