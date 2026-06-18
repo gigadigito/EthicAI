@@ -12,12 +12,6 @@
 @inject PublishedVersionService PublishedVersion
 @implements IAsyncDisposable
 
-@if (!ShouldHideInitialLoader)
-{
-    <InitialBrandLoader IsVisible="_showInitialLoader"
-                        Hidden="HandleLoaderHiddenAsync" />
-}
-
 @if (IsTvRoute)
 {
     <main class="tv-layout-shell">
@@ -327,7 +321,7 @@ else
     private bool IsPublicSeoRoute => IsPublicRoute(Nav.Uri);
     private bool IsPublicHomeRoute => IsHomeRoute(Nav.Uri);
     private bool IsTvRoute => IsTvModeRoute(Nav.Uri);
-    private bool ShouldHideInitialLoader => IsTvRoute || IsPublicSeoRoute;
+    private bool ShouldHideInitialLoader => true;
     private bool ShowWalletUi => _interactiveChromeReady && !IsTvRoute;
 
     private bool IsLoggedIn
