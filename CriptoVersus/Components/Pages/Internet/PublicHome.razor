@@ -1928,9 +1928,14 @@
         font-weight: 800;
     }
 
-    .home-cta:hover {
-       color:black
+    .home-cta--primary:hover {
+        color: #03150f;
     }
+
+    .home-cta--secondary:hover {
+        color: #eef5ff;
+    }
+
     .home-cta--primary {
         background: linear-gradient(90deg, #4cf38d, #7ff6df);
         color: #03150f;
@@ -2129,9 +2134,6 @@
         align-items: center;
     }
 
-    .home-hot-hero__cta-link :hover{
-            color: black!important
-    }
     .home-hot-hero--skeleton,
     .arena-match-card--skeleton {
         pointer-events: none;
@@ -2654,9 +2656,6 @@
         transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
     }
 
-    .arena-cta-link :hover {
-        color:black;
-    }
     .arena-cta-button {
         color: #f5efff;
         background: linear-gradient(90deg, #8f53ff, #b06dff);
@@ -2755,8 +2754,10 @@
     }
 
         .arena-cta-link:hover,
+        .arena-cta-link:focus,
         .arena-cta-link:focus-visible,
-        .arena-cta-link:active {
+        .arena-cta-link:active,
+        .arena-cta-link:visited {
             color: #04120d;
             transform: translateY(-1px);
             box-shadow: 0 20px 40px rgba(76,243,141,.28);
@@ -2847,6 +2848,26 @@
             border-radius: 22px;
         }
 
+        .home-hero__actions {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: .45rem;
+            width: 100%;
+        }
+
+            .home-hero__actions .home-cta {
+                flex: 1 1 0;
+                min-width: 0;
+                min-height: 2.45rem;
+                padding: 0 .5rem;
+                border-radius: 15px;
+                font-size: .72rem;
+                letter-spacing: .01em;
+                line-height: 1.12;
+                text-align: center;
+                white-space: normal;
+            }
+
         .home-section,
         .home-anchor-nav,
         .arena-featured-battle,
@@ -2862,6 +2883,27 @@
             .home-hero__field-slot .crypto-arena-field-card {
                 padding: .45rem;
                 border-radius: 18px;
+            }
+
+        .home-hot-hero__cta-group,
+        .arena-featured-battle__actions,
+        .arena-match-card__actions {
+            flex-wrap: nowrap;
+            gap: .45rem;
+            width: 100%;
+        }
+
+            .home-hot-hero__cta-group > a,
+            .arena-featured-battle__actions > a,
+            .arena-match-card__actions > a {
+                flex: 1 1 0;
+                min-width: 0;
+                min-height: 2.45rem;
+                padding: 0 .5rem;
+                border-radius: 15px;
+                font-size: .72rem;
+                letter-spacing: .03em;
+                line-height: 1.12;
             }
 
         .home-hot-hero__scoreboard,
@@ -2920,6 +2962,18 @@
             border-radius: 20px;
         }
 
+        .home-hero__actions {
+            gap: .35rem;
+        }
+
+            .home-hero__actions .home-cta {
+                min-height: 2.28rem;
+                padding: 0 .35rem;
+                border-radius: 13px;
+                font-size: .66rem;
+                letter-spacing: 0;
+            }
+
         .home-section,
         .home-anchor-nav,
         .arena-featured-battle,
@@ -2930,6 +2984,22 @@
         .home-hero__field-slot .crypto-arena-field-card {
             padding: .35rem;
         }
+
+        .home-hot-hero__cta-group,
+        .arena-featured-battle__actions,
+        .arena-match-card__actions {
+            gap: .35rem;
+        }
+
+            .home-hot-hero__cta-group > a,
+            .arena-featured-battle__actions > a,
+            .arena-match-card__actions > a {
+                min-height: 2.3rem;
+                padding: 0 .35rem;
+                border-radius: 13px;
+                font-size: .66rem;
+                letter-spacing: .02em;
+            }
     }
 
     @@media (prefers-reduced-motion: reduce) {
