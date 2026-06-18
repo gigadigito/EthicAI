@@ -235,6 +235,7 @@
 
 @media (max-width: 760px) {
     .faq-arena {
+        width: 100%;
         gap: 1rem;
     }
 
@@ -246,7 +247,15 @@
     }
 
     .faq-hero {
-        padding: 1.1rem;
+        padding: .95rem .8rem;
+    }
+
+    .faq-intel-card,
+    .faq-strip__card,
+    .faq-item,
+    .faq-footnote {
+        padding-left: .85rem;
+        padding-right: .85rem;
     }
 
     .faq-item__toggle {
@@ -262,5 +271,30 @@
 
     .faq-item__answer {
         padding: 0 1rem 1rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .faq-arena {
+        gap: .85rem;
+    }
+
+    .faq-hero,
+    .faq-strip__card,
+    .faq-item,
+    .faq-footnote {
+        border-radius: 20px;
+    }
+
+    .faq-hero {
+        padding: .85rem .6rem;
+    }
+
+    .faq-item__toggle {
+        padding: .9rem .8rem;
+    }
+
+    .faq-item__answer {
+        padding: 0 .8rem .8rem .8rem;
     }
 }

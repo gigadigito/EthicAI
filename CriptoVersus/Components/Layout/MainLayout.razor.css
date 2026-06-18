@@ -318,3 +318,15 @@ main {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 760px) {
+    .app-content {
+        padding: .55rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-content {
+        padding: .35rem !important;
+    }
+}

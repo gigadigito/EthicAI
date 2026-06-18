@@ -765,14 +765,15 @@
 
     @@media (max-width: 720px) {
         .token-arena-page {
-            padding: 0.85rem;
+            max-width: 100%;
+            padding: .75rem .6rem;
         }
 
         .token-arena-hero,
         .token-arena-contract,
         .token-arena-panel,
         .token-arena-footer {
-            padding: 1rem;
+            padding: .9rem .75rem;
         }
 
         .token-arena-stats,
@@ -796,6 +797,23 @@
 
         .token-arena-visual__image {
             min-height: 260px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .token-arena-page {
+            padding: .65rem .4rem;
+        }
+
+        .token-arena-hero,
+        .token-arena-contract,
+        .token-arena-panel,
+        .token-arena-footer {
+            padding: .75rem .55rem;
+        }
+
+        .token-arena-visual {
+            min-height: 250px;
         }
     }
 </style>

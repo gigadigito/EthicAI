@@ -1500,6 +1500,8 @@
 
     @@media (max-width: 760px) {
         .stats-page {
+            max-width: 100%;
+            padding-inline: 6px;
             gap: 1rem;
         }
 
@@ -1509,7 +1511,7 @@
         .stats-card,
         .stats-trending-section,
         .stats-seo-footnote {
-            padding: 1rem;
+            padding: .9rem .8rem;
         }
 
         .stats-summary-grid,
@@ -1525,6 +1527,21 @@
         .stats-table th,
         .stats-table td {
             padding: .8rem .7rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .stats-page {
+            padding-inline: 4px;
+        }
+
+        .stats-hero,
+        .stats-chart-card,
+        .stats-table-section,
+        .stats-card,
+        .stats-trending-section,
+        .stats-seo-footnote {
+            padding: .75rem .6rem;
         }
     }
 

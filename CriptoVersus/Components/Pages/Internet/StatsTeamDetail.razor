@@ -2793,22 +2793,28 @@
     }
 
     @@media (max-width: 760px) {
+        .team-detail-page {
+            max-width: 100%;
+            padding-inline: 6px;
+            gap: 1rem;
+        }
+
         .team-detail-summary-grid {
             grid-template-columns: 1fr;
         }
 
         .team-detail-hero, .team-detail-card, .team-detail-chart-card, .team-detail-rivals-card, .team-detail-table-section {
-            padding: 1rem;
+            padding: .9rem .75rem;
         }
 
         .team-detail-quickstats-section {
-            padding: 1rem;
+            padding: .9rem .75rem;
         }
 
         .team-detail-profile-meta summary,
         .team-detail-profile-meta__grid {
-            padding-left: 1rem;
-            padding-right: 1rem;
+            padding-left: .75rem;
+            padding-right: .75rem;
         }
 
         .team-detail-hero__socials, .team-detail-hero__actions {
@@ -2851,8 +2857,12 @@
     }
 
     @@media (max-width: 430px) {
+        .team-detail-page {
+            padding-inline: 4px;
+        }
+
         .team-detail-hero {
-            padding: 1rem;
+            padding: .85rem .6rem;
         }
 
         .team-detail-hero__socials, .team-detail-hero__actions, .team-detail-quickstats-grid, .team-detail-hero__visual-badges {

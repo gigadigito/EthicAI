@@ -1082,6 +1082,8 @@
 
     @@media (max-width: 760px) {
         .teams-page {
+            max-width: 100%;
+            padding-inline: 6px;
             gap: 1rem;
         }
 
@@ -1091,7 +1093,7 @@
         .team-table-section,
         .top-rivalries,
         .team-card {
-            padding: 1rem;
+            padding: .9rem .75rem;
         }
 
         .teams-summary-grid {
@@ -1106,6 +1108,21 @@
         .team-table th,
         .team-table td {
             padding: .8rem .7rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .teams-page {
+            padding-inline: 4px;
+        }
+
+        .teams-hero,
+        .teams-card,
+        .teams-search-shell,
+        .team-table-section,
+        .top-rivalries,
+        .team-card {
+            padding: .75rem .6rem;
         }
     }
 

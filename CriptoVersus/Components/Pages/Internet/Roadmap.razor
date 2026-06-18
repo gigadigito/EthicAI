@@ -567,6 +567,9 @@
     @@media (max-width: 640px) {
         .cvroadmap-page {
             gap: 22px;
+            width: 100%;
+            max-width: 100%;
+            padding-inline: 6px;
         }
 
         .roadmap-hero,
@@ -616,6 +619,30 @@
 
         .roadmap-phase-card__list {
             text-align: left;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .cvroadmap-page {
+            gap: 18px;
+            padding-inline: 4px;
+        }
+
+        .roadmap-hero,
+        .roadmap-phase-card,
+        .roadmap-info-card,
+        .roadmap-notice {
+            border-radius: 18px;
+        }
+
+        .roadmap-hero {
+            padding: 16px 12px;
+        }
+
+        .roadmap-phase-card,
+        .roadmap-info-card,
+        .roadmap-notice {
+            padding: 16px 14px;
         }
     }
 </style>

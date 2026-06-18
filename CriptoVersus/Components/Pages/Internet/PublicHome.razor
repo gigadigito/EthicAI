@@ -2836,6 +2836,34 @@
     }
 
     @@media (max-width: 760px) {
+        .home-landing {
+            max-width: 100%;
+            padding-inline: 6px;
+            gap: 1rem;
+        }
+
+        .home-hero {
+            padding: 1rem .75rem;
+            border-radius: 22px;
+        }
+
+        .home-section,
+        .home-anchor-nav,
+        .arena-featured-battle,
+        .arena-match-card {
+            padding: .85rem .7rem;
+        }
+
+        .home-hero__field-slot {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+            .home-hero__field-slot .crypto-arena-field-card {
+                padding: .45rem;
+                border-radius: 18px;
+            }
+
         .home-hot-hero__scoreboard,
         .home-hot-hero__metrics {
             grid-template-columns: 1fr;
@@ -2846,12 +2874,6 @@
         .home-hot-hero__team--right {
             justify-content: flex-start;
             text-align: left;
-        }
-
-        .arena-featured-battle,
-        .arena-match-card,
-        .home-section {
-            padding: 1rem;
         }
 
         .arena-featured-battle__scoreboard,
@@ -2885,6 +2907,28 @@
         .home-coin-grid,
         .home-link-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .home-landing {
+            padding-inline: 4px;
+        }
+
+        .home-hero {
+            padding: .85rem .55rem;
+            border-radius: 20px;
+        }
+
+        .home-section,
+        .home-anchor-nav,
+        .arena-featured-battle,
+        .arena-match-card {
+            padding: .7rem .55rem;
+        }
+
+        .home-hero__field-slot .crypto-arena-field-card {
+            padding: .35rem;
         }
     }
 

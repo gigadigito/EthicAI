@@ -937,6 +937,8 @@
 
 @media (max-width: 640px) {
     .roadmap-page {
+        width: 100%;
+        max-width: 100%;
         gap: 22px;
     }
 
@@ -949,7 +951,7 @@
     }
 
     .roadmap-hero {
-        padding: 22px;
+        padding: 18px 14px;
     }
 
     .roadmap-banner {
@@ -1004,5 +1006,28 @@
 
     .roadmap-phase-card__list {
         text-align: left;
+    }
+}
+
+@media (max-width: 480px) {
+    .roadmap-page {
+        gap: 18px;
+    }
+
+    .roadmap-hero,
+    .roadmap-phase-card,
+    .roadmap-info-card,
+    .roadmap-notice {
+        border-radius: 18px;
+    }
+
+    .roadmap-hero {
+        padding: 16px 12px;
+    }
+
+    .roadmap-phase-card,
+    .roadmap-info-card,
+    .roadmap-notice {
+        padding: 16px 14px;
     }
 }

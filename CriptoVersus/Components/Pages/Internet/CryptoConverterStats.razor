@@ -1020,7 +1020,8 @@
 
     @@media (max-width: 720px) {
         .crypto-converter-stats {
-            padding: .75rem;
+            max-width: 100%;
+            padding: .65rem .5rem;
         }
 
         .crypto-converter-stats__hero, .crypto-converter-stats__conversion-card, .crypto-converter-stats__battle {
@@ -1055,6 +1056,31 @@
 
         .crypto-converter-stats__diagnostics-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .crypto-converter-stats {
+            padding: .45rem .35rem;
+        }
+
+        .crypto-converter-stats__hero,
+        .crypto-converter-stats__conversion-card,
+        .crypto-converter-stats__table-card,
+        .crypto-converter-stats__battle,
+        .crypto-converter-stats__disclaimer {
+            border-radius: 20px;
+        }
+
+        .crypto-converter-stats__hero {
+            padding: .9rem .7rem;
+        }
+
+        .crypto-converter-stats__conversion-card,
+        .crypto-converter-stats__battle,
+        .crypto-converter-stats__disclaimer,
+        .crypto-converter-stats__table-card {
+            padding: .8rem .65rem;
         }
     }
 </style>
