@@ -35,10 +35,29 @@
 
     @if (_loading && _match is null)
     {
-        <div class="d-flex align-items-center gap-2 text-muted">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
-            <span>@T("loadingMatch")</span>
-        </div>
+        <section class="match-loading-shell mb-4" aria-busy="true" aria-live="polite">
+            <div class="match-loading-shell__bg"></div>
+            <div class="match-loading-shell__content">
+                <div class="d-flex align-items-center gap-2 text-muted mb-3">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <span>@T("loadingMatch")</span>
+                </div>
+                <div class="match-loading-shell__hero">
+                    <div class="match-loading-shell__team"></div>
+                    <div class="match-loading-shell__score"></div>
+                    <div class="match-loading-shell__team"></div>
+                </div>
+                <div class="match-loading-shell__cards">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+                <div class="match-loading-shell__grid">
+                    <div></div>
+                    <div></div>
+                </div>
+            </div>
+        </section>
     }
     else if (!string.IsNullOrWhiteSpace(_error) && _match is null)
     {
@@ -818,6 +837,101 @@
 </div>
 
 <style>
+
+    .match-loading-shell {
+        position: relative;
+        display: block;
+        width: 100%;
+        max-width: 1800px;
+        min-height: 675px;
+        margin-inline: auto;
+        border-radius: 32px;
+        overflow: hidden;
+        background: radial-gradient(circle at top left, rgba(0, 230, 118, .12), transparent 28%), radial-gradient(circle at top right, rgba(83, 200, 255, .12), transparent 28%), linear-gradient(145deg, #081018 0%, #0b1220 48%, #060b12 100%);
+        border: 1px solid rgba(255, 255, 255, .09);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, .42);
+    }
+
+    .match-loading-shell__bg {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+        background-size: 34px 34px;
+        opacity: .16;
+        pointer-events: none;
+    }
+
+    .match-loading-shell__content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 1.15rem;
+        min-height: 675px;
+        padding: 1.5rem;
+    }
+
+    .match-loading-shell__hero,
+    .match-loading-shell__cards,
+    .match-loading-shell__grid {
+        display: grid;
+        gap: .9rem;
+    }
+
+    .match-loading-shell__hero {
+        grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr);
+    }
+
+    .match-loading-shell__cards {
+        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+    }
+
+    .match-loading-shell__grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+        .match-loading-shell__team,
+        .match-loading-shell__score,
+        .match-loading-shell__cards > div,
+        .match-loading-shell__grid > div {
+            min-height: 150px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: linear-gradient(90deg, rgba(255,255,255,.035), rgba(255,255,255,.09), rgba(255,255,255,.035));
+            background-size: 220% 100%;
+            animation: matchLoadingShimmer 1.2s ease-in-out infinite;
+        }
+
+    .match-loading-shell__score {
+        min-height: 180px;
+    }
+
+    .match-loading-shell__grid > div {
+        min-height: 260px;
+    }
+
+    @@keyframes matchLoadingShimmer {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .match-loading-shell,
+        .match-loading-shell__content {
+            min-height: 760px;
+        }
+
+        .match-loading-shell__hero,
+        .match-loading-shell__cards,
+        .match-loading-shell__grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     .social-share-card__title-team {
         font-weight: 950;
     }
