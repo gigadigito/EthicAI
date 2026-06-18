@@ -297,6 +297,9 @@ export function cleanupManagedAudio(audio) {
     }
 
     try {
+        audio.onended = null;
+        audio.onpause = null;
+        audio.onerror = null;
         audio.removeAttribute?.("src");
         audio.load?.();
     } catch {

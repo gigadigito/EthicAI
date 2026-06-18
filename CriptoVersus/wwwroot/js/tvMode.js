@@ -20,7 +20,11 @@ let activeProceduralAudio = null;
 let activeProceduralAudioMeta = null;
 let lastProceduralPlaybackSignature = "";
 let lastProceduralPlaybackAt = 0;
+let foregroundAudioQueueState = null;
 const PROCEDURAL_PLAY_TIMEOUT_MS = 4000;
+const FOREGROUND_AUDIO_QUEUE_LIMIT = 8;
+const FOREGROUND_AUDIO_DEDUPE_WINDOW_MS = 1500;
+const FOREGROUND_AUDIO_HISTORY_TTL_MS = 60000;
 let tvAudioDebugSessionState = {
     enabled: false,
     hydrated: false
@@ -422,6 +426,437 @@ function debugProceduralAudioState(audio, extra = {}) {
     });
 }
 
+function ensureForegroundAudioQueueState() {
+    if (foregroundAudioQueueState) {
+        return foregroundAudioQueueState;
+    }
+
+    foregroundAudioQueueState = {
+        activeRequest: null,
+        queue: [],
+        draining: false,
+        drainRequested: false,
+        autoplayBlocked: false,
+        nextOrder: 0,
+        pendingSignatures: new Set(),
+        recentSignatures: new Map()
+    };
+
+    return foregroundAudioQueueState;
+}
+
+function purgeForegroundAudioHistory(state, now = Date.now()) {
+    for (const [signature, playedAt] of state.recentSignatures.entries()) {
+        if (now - playedAt > FOREGROUND_AUDIO_HISTORY_TTL_MS) {
+            state.recentSignatures.delete(signature);
+        }
+    }
+}
+
+function buildForegroundAudioSignature(...parts) {
+    return parts
+        .flat()
+        .filter((part) => typeof part === "string" && part.trim().length > 0)
+        .map((part) => part.trim())
+        .join("|")
+        .toLowerCase();
+}
+
+function isForegroundAudioDuplicate(state, signature, now = Date.now()) {
+    if (!signature) {
+        return false;
+    }
+
+    const recentAt = state.recentSignatures.get(signature) ?? 0;
+    if (recentAt > 0 && now - recentAt < FOREGROUND_AUDIO_DEDUPE_WINDOW_MS) {
+        return true;
+    }
+
+    if (state.activeRequest?.signature === signature) {
+        return true;
+    }
+
+    if (state.pendingSignatures.has(signature)) {
+        return true;
+    }
+
+    return state.queue.some((item) => item.signature === signature);
+}
+
+function normalizeForegroundAudioMeta(request = {}) {
+    const signature = buildForegroundAudioSignature(
+        request.signature,
+        request.key,
+        request.audioUrl,
+        request.eventType,
+        request.teamSymbol,
+        request.contextKey,
+        request.textHash,
+        request.normalizedText
+    );
+
+    return {
+        key: request.key ?? null,
+        signature,
+        priority: Number.isFinite(Number(request.priority)) ? Number(request.priority) : 0,
+        cooldownMs: Number.isFinite(Number(request.cooldownMs)) ? Number(request.cooldownMs) : 1500,
+        channel: request.channel ?? "fx",
+        audioUrl: request.audioUrl ?? null,
+        loop: Boolean(request.loop),
+        muted: Boolean(request.muted),
+        unlockSource: request.unlockSource ?? "foreground-audio",
+        reason: request.reason ?? "foreground"
+    };
+}
+
+function orderForegroundAudioQueue(queue) {
+    queue.sort((left, right) => {
+        if (right.priority !== left.priority) {
+            return right.priority - left.priority;
+        }
+
+        return left.order - right.order;
+    });
+}
+
+function trimForegroundAudioQueue(state) {
+    if (state.queue.length <= FOREGROUND_AUDIO_QUEUE_LIMIT) {
+        return [];
+    }
+
+    orderForegroundAudioQueue(state.queue);
+    const removed = state.queue.splice(FOREGROUND_AUDIO_QUEUE_LIMIT);
+    removed.forEach((entry) => {
+        if (entry?.signature) {
+            state.pendingSignatures.delete(entry.signature);
+        }
+    });
+    return removed;
+}
+
+function markForegroundAudioComplete(state, request, now = Date.now()) {
+    if (!request?.signature) {
+        return;
+    }
+
+    state.pendingSignatures.delete(request.signature);
+    state.recentSignatures.set(request.signature, now);
+    purgeForegroundAudioHistory(state, now);
+}
+
+function clearForegroundActiveRequest(state, request, reason = "completed") {
+    if (state.activeRequest !== request) {
+        return;
+    }
+
+    state.activeRequest = null;
+    const manager = ensureTvAudioManager();
+    manager.activeKey = null;
+    manager.activePriority = -1;
+    clearActiveProceduralAudio(reason, request?.audio ?? activeProceduralAudio);
+}
+
+function scheduleForegroundAudioDrain(reason = "scheduled") {
+    const state = ensureForegroundAudioQueueState();
+    if (state.draining) {
+        state.drainRequested = true;
+        return;
+    }
+
+    if (typeof queueMicrotask === "function") {
+        queueMicrotask(() => {
+            drainForegroundAudioQueue(reason).catch((error) => {
+                console.debug("[TV_FOREGROUND_AUDIO]", {
+                    reason,
+                    stage: "drain-failed",
+                    error: error?.message ?? String(error)
+                });
+            });
+        });
+        return;
+    }
+
+    if (typeof window !== "undefined") {
+        window.setTimeout(() => {
+            drainForegroundAudioQueue(reason).catch((error) => {
+                console.debug("[TV_FOREGROUND_AUDIO]", {
+                    reason,
+                    stage: "drain-failed",
+                    error: error?.message ?? String(error)
+                });
+            });
+        }, 0);
+    }
+}
+
+async function finalizeForegroundAudioRequest(state, request, outcome, audio = request?.audio ?? null) {
+    if (request?.cleanup) {
+        try {
+            request.cleanup(audio);
+        } catch {
+        }
+    }
+
+    if (outcome === "ended" || outcome === "played") {
+        markForegroundAudioComplete(state, request);
+    } else if (request?.signature) {
+        state.pendingSignatures.delete(request.signature);
+    }
+
+    if (outcome === "ended" || outcome === "stopped" || outcome === "failed") {
+        clearForegroundActiveRequest(state, request, outcome);
+    }
+
+    if (outcome === "ended" || outcome === "stopped") {
+        scheduleForegroundAudioDrain(outcome);
+    }
+}
+
+async function drainForegroundAudioQueue(reason = "scheduled") {
+    const state = ensureForegroundAudioQueueState();
+    if (state.draining) {
+        state.drainRequested = true;
+        return;
+    }
+
+    state.draining = true;
+    try {
+        while (!state.activeRequest && state.queue.length > 0) {
+            if (state.autoplayBlocked) {
+                return;
+            }
+
+            const nextRequest = state.queue.shift();
+            if (!nextRequest || nextRequest.cancelled) {
+                if (nextRequest?.signature) {
+                    state.pendingSignatures.delete(nextRequest.signature);
+                }
+                continue;
+            }
+
+            const started = await startForegroundAudioRequest(nextRequest, reason);
+            if (started) {
+                return;
+            }
+
+            if (state.autoplayBlocked) {
+                return;
+            }
+        }
+    } finally {
+        state.draining = false;
+        if (state.drainRequested) {
+            state.drainRequested = false;
+            scheduleForegroundAudioDrain("rescheduled");
+        }
+    }
+}
+
+async function startForegroundAudioRequest(request, reason = "scheduled") {
+    const state = ensureForegroundAudioQueueState();
+    const manager = ensureTvAudioManager();
+    const now = Date.now();
+
+    if (!request || request.cancelled) {
+        return false;
+    }
+
+    if (!request.audio && typeof request.createAudio !== "function") {
+        return false;
+    }
+
+    const audio = typeof request.createAudio === "function"
+        ? request.createAudio()
+        : request.audio;
+
+    if (!(audio instanceof HTMLAudioElement)) {
+        return false;
+    }
+
+    request.audio = audio;
+    state.activeRequest = request;
+    manager.activeKey = request.key ?? request.signature ?? null;
+    manager.activePriority = request.priority ?? -1;
+    manager.diagnostics.queued.push({ key: request.key ?? request.signature ?? "foreground", at: now, priority: request.priority ?? 0 });
+
+    activeProceduralAudio = audio;
+    activeProceduralAudioMeta = {
+        priority: request.priority ?? 0,
+        signature: request.signature ?? null,
+        audioUrl: request.audioUrl ?? audio.currentSrc ?? audio.src ?? null,
+        startedAt: now,
+        reason,
+        key: request.key ?? null,
+        channel: request.channel ?? null
+    };
+
+    const handleEnded = () => {
+        if (typeof request.onEnded === "function") {
+            try {
+                request.onEnded(audio, manager, request);
+            } catch {
+            }
+        }
+        finalizeForegroundAudioRequest(state, request, "ended", audio).catch(() => { });
+    };
+
+    const handleError = (error) => {
+        const normalized = error ? normalizeAudioError(error) : { name: "Error", message: "audio error" };
+        if (typeof request.onError === "function") {
+            try {
+                request.onError(normalized, audio, manager, request);
+            } catch {
+            }
+        }
+        manager.lastError = normalized;
+        manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+        if (manager.autoplayBlocked) {
+            request.cancelled = false;
+            state.queue.unshift(request);
+            state.autoplayBlocked = true;
+            clearForegroundActiveRequest(state, request, "autoplay-blocked");
+            state.activeRequest = null;
+            return;
+        }
+
+        finalizeForegroundAudioRequest(state, request, "failed", audio).catch(() => { });
+    };
+
+    try {
+        audio.muted = Boolean(request.muted ?? manager.muted);
+        audio.loop = Boolean(request.loop);
+        if (typeof request.volume === "number") {
+            audio.volume = clamp(request.volume, 0, 1);
+        }
+
+        const unlocked = await unlockTvAudioContext(request.unlockSource ?? "foreground-audio");
+        if (!unlocked) {
+            state.autoplayBlocked = true;
+            request.cancelled = false;
+            state.queue.unshift(request);
+            clearForegroundActiveRequest(state, request, "autoplay-blocked");
+            state.activeRequest = null;
+            return false;
+        }
+
+        if (typeof request.beforePlay === "function") {
+            await request.beforePlay(audio, manager, request);
+        }
+
+        audio.onended = handleEnded;
+        audio.onerror = handleError;
+        const playback = audio.play();
+        if (playback && typeof playback.catch === "function") {
+            await playback;
+        }
+
+        manager.unlocked = true;
+        manager.autoplayBlocked = false;
+        state.autoplayBlocked = false;
+        manager.lastPlayedAt.set(request.key ?? request.signature ?? `foreground-${state.nextOrder}`, now);
+        if (request.key) {
+            manager.lastPlayedAt.set(request.key, now);
+        }
+        if (request.signature) {
+            state.pendingSignatures.add(request.signature);
+        }
+
+        manager.diagnostics.played.push({ key: request.key ?? request.signature ?? "foreground", at: Date.now(), priority: request.priority ?? 0 });
+        consoleAudio("AUDIO_PLAY_OK", {
+            key: request.key ?? request.signature ?? "foreground",
+            channel: request.channel ?? "fx",
+            loop: audio.loop,
+            reason
+        });
+        logTvAudio("played", {
+            key: request.key ?? request.signature ?? "foreground",
+            priority: request.priority ?? 0,
+            volume: audio.volume,
+            muted: audio.muted,
+            reason
+        });
+
+        if (typeof request.onStart === "function") {
+            await request.onStart(audio, manager, request);
+        }
+
+        return true;
+    } catch (error) {
+        const normalized = normalizeAudioError(error);
+        if (typeof request.onError === "function") {
+            try {
+                request.onError(normalized, audio, manager, request);
+            } catch {
+            }
+        }
+        manager.lastError = normalized;
+        manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+        state.autoplayBlocked = manager.autoplayBlocked;
+
+        if (manager.autoplayBlocked) {
+            request.cancelled = false;
+            state.queue.unshift(request);
+            clearForegroundActiveRequest(state, request, "autoplay-blocked");
+            state.activeRequest = null;
+            return false;
+        }
+
+        consoleAudio("AUDIO_PLAY_FAIL", {
+            key: request.key ?? request.signature ?? "foreground",
+            channel: request.channel ?? "fx",
+            ...normalized,
+            reason
+        });
+        await finalizeForegroundAudioRequest(state, request, "failed", audio);
+        return false;
+    }
+}
+
+function stopForegroundAudioQueue(reason = "manual") {
+    const state = ensureForegroundAudioQueueState();
+    const manager = ensureTvAudioManager();
+    const activeRequest = state.activeRequest;
+    const activeAudio = activeRequest?.audio ?? activeProceduralAudio;
+
+    state.queue.forEach((request) => {
+        request.cancelled = true;
+    });
+    state.queue = [];
+    state.pendingSignatures.clear();
+    state.recentSignatures.clear();
+    state.autoplayBlocked = false;
+    state.draining = false;
+    state.drainRequested = false;
+    manager.lastPlayedAt.clear();
+
+    if (activeAudio) {
+        try {
+            activeAudio.pause();
+            activeAudio.currentTime = 0;
+        } catch {
+        }
+    }
+
+    if (activeRequest) {
+        if (typeof activeRequest.cleanup === "function") {
+            try {
+                activeRequest.cleanup(activeAudio, manager, activeRequest);
+            } catch {
+            }
+        }
+        clearForegroundActiveRequest(state, activeRequest, reason);
+    } else {
+        clearActiveProceduralAudio(reason, activeAudio);
+    }
+
+    activeProceduralAudio = null;
+    activeProceduralAudioMeta = null;
+    state.activeRequest = null;
+    manager.activeKey = null;
+    manager.activePriority = -1;
+    consoleAudio("AUDIO_QUEUE_STOPPED", { reason });
+}
+
 function clearActiveProceduralAudio(reason, audio = activeProceduralAudio) {
     if (audio && activeProceduralAudio === audio) {
         activeProceduralAudio = null;
@@ -773,6 +1208,7 @@ async function playTvAudio(key, options = {}) {
         return false;
     }
 
+    const channel = options.channel ?? resolveTvAudioChannel(key);
     const priority = Number.isFinite(options.priority) ? options.priority : (tvAudioPriority[key] ?? 10);
     const cooldownMs = Number.isFinite(options.cooldownMs) ? options.cooldownMs : (tvAudioCooldownDefaults[key] ?? 2500);
     const now = Date.now();
@@ -782,85 +1218,119 @@ async function playTvAudio(key, options = {}) {
         return false;
     }
 
-    if (priority < manager.activePriority && manager.activeKey && now - (manager.lastPlayedAt.get(manager.activeKey) ?? 0) < 900) {
-        logTvAudio("skipped", { key, reason: "priority", priority, activeKey: manager.activeKey, activePriority: manager.activePriority });
-        return false;
-    }
+    if (channel === "ambient" && Boolean(options.loop)) {
+        const resolvedVolume = resolveTvCueVolume(key, channel, options.volume, manager);
+        const audio = createPlaybackAudio(url, channel, resolvedVolume, Boolean(options.muted ?? manager.muted));
+        audio.muted = Boolean(options.muted ?? manager.muted);
+        audio.loop = true;
+        audio.volume = 1;
+        consoleAudio("AUDIO_EVENT_TRIGGERED", { key, channel, priority, loop: audio.loop, resolvedVolume });
 
-    const channel = options.channel ?? resolveTvAudioChannel(key);
-    const resolvedVolume = resolveTvCueVolume(key, channel, options.volume, manager);
-    const audio = createPlaybackAudio(url, channel, resolvedVolume, Boolean(options.muted ?? manager.muted));
-    audio.muted = Boolean(options.muted ?? manager.muted);
-    audio.loop = Boolean(options.loop);
-    consoleAudio("AUDIO_EVENT_TRIGGERED", { key, channel, priority, loop: audio.loop, resolvedVolume });
-
-    try {
-        if (!audio.loop) {
+        try {
             audio.pause();
             audio.currentTime = 0;
+        } catch {
         }
-    } catch {
-    }
 
-    if (channel === "ambient" && audio.loop) {
-        audio.volume = 1;
         const ambientGain = ensureTvAudioManager().instanceGains.get(audio);
         if (ambientGain) {
             ambientGain.gain.value = 0;
         }
-    } else {
-        duckAmbientForCue(key, manager);
-    }
 
-    consoleAudio("AUDIO_PLAY_REQUEST", { key, channel, loop: audio.loop, muted: audio.muted });
-    const playback = audio.play();
-    manager.lastPlayedAt.set(key, now);
-    manager.activeKey = key;
-    manager.activePriority = priority;
-    manager.diagnostics.queued.push({ key, at: now, priority });
+        consoleAudio("AUDIO_PLAY_REQUEST", { key, channel, loop: audio.loop, muted: audio.muted });
+        const playback = audio.play();
+        manager.lastPlayedAt.set(key, now);
+        manager.activeKey = key;
+        manager.activePriority = priority;
 
-    if (playback && typeof playback.catch === "function") {
-        playback
-            .then(() => {
-                manager.unlocked = true;
-                manager.autoplayBlocked = false;
-                manager.diagnostics.played.push({ key, at: Date.now(), priority });
-                consoleAudio("AUDIO_PLAY_OK", { key, channel, loop: audio.loop });
-                logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
-                if (channel === "ambient" && audio.loop) {
+        if (playback && typeof playback.catch === "function") {
+            playback
+                .then(() => {
+                    manager.unlocked = true;
+                    manager.autoplayBlocked = false;
+                    manager.diagnostics.played.push({ key, at: Date.now(), priority });
+                    consoleAudio("AUDIO_PLAY_OK", { key, channel, loop: audio.loop });
+                    logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
                     manager.ambientStarted = true;
                     consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key });
-                }
-            })
-            .catch((error) => {
-                const normalized = normalizeAudioError(error);
-                manager.lastError = normalized;
-                manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
-                consoleAudio("AUDIO_PLAY_FAIL", { key, channel, ...normalized });
-                logTvAudio("play failed", { key, error: error?.message ?? String(error) });
-            });
-    } else {
-        manager.unlocked = true;
-        manager.autoplayBlocked = false;
-        manager.diagnostics.played.push({ key, at: Date.now(), priority });
-        consoleAudio("AUDIO_PLAY_OK", { key, channel, loop: audio.loop });
-        logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
-        if (channel === "ambient" && audio.loop) {
+                })
+                .catch((error) => {
+                    const normalized = normalizeAudioError(error);
+                    manager.lastError = normalized;
+                    manager.autoplayBlocked = normalized.name === "NotAllowedError" || /allow|gesture|interact/i.test(normalized.message);
+                    consoleAudio("AUDIO_PLAY_FAIL", { key, channel, ...normalized });
+                    logTvAudio("play failed", { key, error: error?.message ?? String(error) });
+                });
+        } else {
+            manager.unlocked = true;
+            manager.autoplayBlocked = false;
+            manager.diagnostics.played.push({ key, at: Date.now(), priority });
+            consoleAudio("AUDIO_PLAY_OK", { key, channel, loop: audio.loop });
+            logTvAudio("played", { key, priority, volume: audio.volume, muted: audio.muted });
             manager.ambientStarted = true;
             consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key });
         }
+
+        return true;
     }
 
-    if (!audio.loop) {
-        const timer = window.setTimeout(() => {
-            if (manager.activeKey === key) {
-                manager.activeKey = null;
-                manager.activePriority = -1;
+    const signature = buildForegroundAudioSignature(
+        key,
+        url,
+        options.eventType,
+        options.teamSymbol,
+        options.contextKey,
+        options.textHash,
+        options.normalizedText,
+        options.audioUrl
+    );
+    const foregroundState = ensureForegroundAudioQueueState();
+    if (isForegroundAudioDuplicate(foregroundState, signature, now)) {
+        logTvAudio("skipped", { key, reason: "duplicate", signature });
+        return false;
+    }
+
+    const resolvedVolume = resolveTvCueVolume(key, channel, options.volume, manager);
+    const request = {
+        key,
+        signature,
+        priority,
+        cooldownMs,
+        channel,
+        audioUrl: url,
+        muted: Boolean(options.muted ?? manager.muted),
+        loop: Boolean(options.loop),
+        volume: resolvedVolume,
+        unlockSource: `playTvAudioCue:${key}`,
+        cleanup: (element) => cleanupManagedAudio(element),
+        createAudio: () => createPlaybackAudio(url, channel, resolvedVolume, Boolean(options.muted ?? manager.muted)),
+        beforePlay: (audio) => {
+            if (!audio.loop) {
+                try {
+                    audio.pause();
+                    audio.currentTime = 0;
+                } catch {
+                }
+                duckAmbientForCue(key, manager);
             }
-        }, 1200);
-        manager.diagnostics.cleanupTimer = timer;
-    }
+        },
+        onStart: async (audio) => {
+            consoleAudio("AUDIO_EVENT_TRIGGERED", { key, channel, priority, loop: audio.loop, resolvedVolume });
+            consoleAudio("AUDIO_PLAY_REQUEST", { key, channel, loop: audio.loop, muted: audio.muted });
+            if (audio.loop) {
+                manager.ambientStarted = true;
+                consoleAudio("AUDIO_BACKGROUND_LOOP_STARTED", { key });
+            }
+        }
+    };
 
+    foregroundState.pendingSignatures.add(signature);
+    request.order = foregroundState.nextOrder++;
+    foregroundState.queue.push(request);
+    orderForegroundAudioQueue(foregroundState.queue);
+    trimForegroundAudioQueue(foregroundState);
+    manager.lastPlayedAt.set(key, now);
+    scheduleForegroundAudioDrain(`cue:${key}`);
     return true;
 }
 
@@ -881,6 +1351,7 @@ async function unlockTvAudioContext(source = "manual") {
         manager.autoplayBlocked = false;
         manager.lastUnlockSource = source;
         consoleAudio("AUDIO_UNLOCKED", { source, contextState: context.state });
+        scheduleForegroundAudioDrain(`unlock:${source}`);
         return manager.unlocked;
     } catch (error) {
         const normalized = normalizeAudioError(error);
@@ -903,6 +1374,8 @@ function ensureAudioUnlockListeners() {
         if (manager.ambientElementId && !manager.muted) {
             await initBroadcastAudio(manager.ambientElementId, manager.ambientTargetVolume, manager.muted);
         }
+
+        scheduleForegroundAudioDrain(`listener:${source}`);
     };
 
     manager.unlockListenersAttached = true;
@@ -914,6 +1387,7 @@ function ensureAudioUnlockListeners() {
 function getTvAudioState() {
     const manager = ensureTvAudioManager();
     const context = getTvAudioContext();
+    const foregroundState = ensureForegroundAudioQueueState();
     return {
         unlocked: Boolean(manager.unlocked),
         autoplayBlocked: Boolean(manager.autoplayBlocked),
@@ -922,7 +1396,10 @@ function getTvAudioState() {
         contextState: context?.state ?? "none",
         initCount: manager.initCount,
         ambientElementId: manager.ambientElementId,
-        lastError: manager.lastError?.message ?? null
+        lastError: manager.lastError?.message ?? null,
+        foregroundQueueLength: foregroundState.queue.length,
+        foregroundActiveKey: foregroundState.activeRequest?.key ?? null,
+        foregroundAutoplayBlocked: Boolean(foregroundState.autoplayBlocked)
     };
 }
 
@@ -946,6 +1423,13 @@ function setTvAudioSettings(volume, muted) {
 
         audio.muted = manager.muted;
     });
+
+    if (activeProceduralAudio) {
+        activeProceduralAudio.muted = manager.muted;
+        if (typeof activeProceduralAudio.volume === "number") {
+            activeProceduralAudio.volume = clamp(Number(activeProceduralAudio.volume), 0, 1);
+        }
+    }
 
     const currentGain = manager.ambient.currentAudio ? manager.instanceGains.get(manager.ambient.currentAudio) : null;
     if (currentGain) {
@@ -4345,6 +4829,27 @@ export async function unlockBroadcastAudio(elementId, configOrVolume, muted) {
 function stopTvAudioCueLegacy(key) {
     const manager = ensureTvAudioManager();
     const audio = manager.preload.get(key);
+    const queueState = ensureForegroundAudioQueueState();
+    const normalizedKey = String(key ?? "").trim().toLowerCase();
+
+    queueState.queue = queueState.queue.filter((request) => {
+        const requestKey = String(request?.key ?? "").trim().toLowerCase();
+        const shouldRemove = Boolean(normalizedKey)
+            && (requestKey === normalizedKey
+                || String(request?.signature ?? "").trim().toLowerCase().includes(normalizedKey));
+        if (shouldRemove && request?.signature) {
+            queueState.pendingSignatures.delete(request.signature);
+        }
+        return !shouldRemove;
+    });
+
+    if (queueState.activeRequest) {
+        const activeKey = String(queueState.activeRequest?.key ?? activeProceduralAudioMeta?.key ?? "").trim().toLowerCase();
+        if (normalizedKey && (activeKey === normalizedKey || String(activeProceduralAudioMeta?.signature ?? "").trim().toLowerCase().includes(normalizedKey))) {
+            stopForegroundAudioQueue(`stop:${key}`);
+        }
+    }
+
     if (!audio) {
         return;
     }
@@ -4424,30 +4929,6 @@ async function playProceduralAudioNode(audio, payload = {}) {
     ].join("|");
     normalized.playbackPriority = requestedPriority;
 
-    if (activeProceduralAudio && activeProceduralAudio !== audio && !isProceduralAudioEffectivelyActive(activeProceduralAudio)) {
-        clearActiveProceduralAudio("stale-audio-reference", activeProceduralAudio);
-    }
-
-    if (activeProceduralAudio && activeProceduralAudio !== audio && isProceduralAudioEffectivelyActive(activeProceduralAudio)) {
-        const activePriority = Number(activeProceduralAudioMeta?.priority ?? 0);
-        const activeUrl = activeProceduralAudioMeta?.audioUrl ?? activeProceduralAudio.currentSrc ?? activeProceduralAudio.src ?? null;
-        if (activeUrl && normalized.audioUrl && activeUrl === normalized.audioUrl) {
-            reportProceduralSkip("same-audio-url", normalized, activeProceduralAudio, {
-                activePriority,
-                requestedPriority
-            });
-            return false;
-        }
-
-        if (requestedPriority <= activePriority) {
-            reportProceduralSkip("already-playing", normalized, activeProceduralAudio, {
-                activePriority,
-                requestedPriority
-            });
-            return false;
-        }
-    }
-
     if (shouldSkipProceduralPlayback(playbackSignature)) {
         reportProceduralSkip("cooldown-active", normalized, activeProceduralAudio, {
             playbackSignature,
@@ -4457,77 +4938,84 @@ async function playProceduralAudioNode(audio, payload = {}) {
         return false;
     }
 
-    try {
-        const unlocked = await unlockTvAudioContext("procedural-audio");
-        if (!unlocked) {
-            reportProceduralSkip("autoplay-blocked", normalized, audio, {
-                playbackSignature
-            });
-            return false;
-        }
-
-        if (activeProceduralAudio && activeProceduralAudio !== audio) {
-            try {
-                debugProceduralAudioState(activeProceduralAudio, {
-                    source: "interrupt-before-play",
-                    requestedPriority,
-                    activePriority: activeProceduralAudioMeta?.priority ?? 0
-                });
-                activeProceduralAudio.pause();
-                activeProceduralAudio.currentTime = 0;
-                clearActiveProceduralAudio("interrupted-by-higher-priority", activeProceduralAudio);
-            } catch {
-            }
-        }
-
-        debugProceduralAudioState(audio, { source: "before-reset", requestedPriority });
-        audio.pause();
-        audio.currentTime = 0;
-        audio.loop = false;
-        prepareProceduralAudioElement(audio);
-        attachProceduralAudioLifecycle(audio, {
-            ...normalized,
-            priority: requestedPriority,
-            playbackSignature
-        });
-        const playOutcome = await awaitProceduralPlay(audio.play());
-        if (playOutcome.unresolved) {
-            reportProceduralFailure("unresolved-promise", normalized, audio, null, {
-                playbackSignature,
-                requestedPriority
-            });
-            clearActiveProceduralAudio("unresolved-promise", audio);
-            return false;
-        }
-
-        if (!playOutcome.ok) {
-            const reason = isAutoplayBlockedError(playOutcome.error) ? "autoplay-blocked" : "play-exception";
-            reportProceduralFailure(reason, normalized, audio, playOutcome.error, {
-                playbackSignature,
-                requestedPriority
-            });
-            clearActiveProceduralAudio(reason, audio);
-            return false;
-        }
-
-        lastProceduralPlaybackSignature = playbackSignature;
-        lastProceduralPlaybackAt = Date.now();
-        debugProceduralAudioState(audio, {
-            source: "play-ok",
-            requestedPriority,
-            playbackSignature
-        });
-        pushAudioDebugLog("playing", "info", normalized);
-        return true;
-    } catch (error) {
-        const reason = isAutoplayBlockedError(error) ? "autoplay-blocked" : "play-exception";
-        reportProceduralFailure(reason, normalized, audio, error, {
+    const queueState = ensureForegroundAudioQueueState();
+    if (isForegroundAudioDuplicate(queueState, playbackSignature)) {
+        reportProceduralSkip("duplicate-foreground", normalized, activeProceduralAudio, {
             playbackSignature,
             requestedPriority
         });
-        clearActiveProceduralAudio(reason, audio);
         return false;
     }
+
+    const request = {
+        key: normalized.eventType ?? normalized.audioUrl ?? "procedural-audio",
+        signature: playbackSignature,
+        priority: requestedPriority,
+        cooldownMs: 1200,
+        channel: "fx",
+        audioUrl: normalized.audioUrl ?? null,
+        muted: false,
+        loop: false,
+        volume: getProceduralAudioDebugVolume(),
+        unlockSource: "procedural-audio",
+        cleanup: (element) => cleanupManagedAudio(element),
+        createAudio: () => audio,
+        beforePlay: async (element) => {
+            debugProceduralAudioState(element, { source: "before-reset", requestedPriority });
+            element.pause();
+            element.currentTime = 0;
+            element.loop = false;
+            prepareProceduralAudioElement(element);
+        },
+        onStart: async (element) => {
+            lastProceduralPlaybackSignature = playbackSignature;
+            lastProceduralPlaybackAt = Date.now();
+            debugProceduralAudioState(element, {
+                source: "play-ok",
+                requestedPriority,
+                playbackSignature
+            });
+            pushAudioDebugLog("playing", "info", normalized);
+            notifyProceduralAudioEvent("playing", {
+                ...normalized,
+                priority: requestedPriority,
+                playbackSignature
+            });
+        },
+        onEnded: (element) => {
+            notifyProceduralAudioEvent("played", {
+                ...normalized,
+                priority: requestedPriority,
+                playbackSignature
+            });
+            pushAudioDebugLog("played", "info", normalized);
+            debugProceduralAudioState(element, {
+                source: "ended",
+                requestedPriority,
+                playbackSignature
+            });
+        },
+        onError: (errorInfo, element) => {
+            reportProceduralFailure(
+                isAutoplayBlockedError(errorInfo) ? "autoplay-blocked" : "play-exception",
+                normalized,
+                element,
+                errorInfo instanceof Error ? errorInfo : new Error(errorInfo?.message ?? "audio play failed"),
+                {
+                    playbackSignature,
+                    requestedPriority
+                }
+            );
+        }
+    };
+
+    queueState.pendingSignatures.add(playbackSignature);
+    request.order = queueState.nextOrder++;
+    queueState.queue.push(request);
+    orderForegroundAudioQueue(queueState.queue);
+    trimForegroundAudioQueue(queueState);
+    scheduleForegroundAudioDrain("procedural");
+    return true;
 }
 
 function buildBackgroundDebugController() {
@@ -4659,6 +5147,11 @@ export function destroyBroadcastAudio(elementId) {
     return ensureTvAudioFacade().destroyBroadcastAudio(elementId);
 }
 
+export function destroyForegroundAudio(reason = "route-dispose") {
+    stopForegroundAudioQueue(reason);
+    return true;
+}
+
 export function setTvAudioDebugEnabled(enabled, options = {}) {
     const active = setTvAudioTelemetryEnabled(enabled);
     setTvBackgroundAudioController(buildBackgroundDebugController());
@@ -4755,6 +5248,29 @@ export async function playDirectAudioUrl(url, payload = {}) {
         return false;
     }
 
+    const requestedPriority = Number.isFinite(Number(payload?.priority))
+        ? Number(payload.priority)
+        : Number(payload?.playbackPriority ?? 0);
+    const playbackSignature = buildForegroundAudioSignature(
+        url,
+        payload?.eventType,
+        payload?.teamSymbol,
+        payload?.contextKey,
+        payload?.textHash,
+        payload?.normalizedText,
+        payload?.source ?? "direct-audio"
+    );
+    const queueState = ensureForegroundAudioQueueState();
+    if (isForegroundAudioDuplicate(queueState, playbackSignature)) {
+        notifyProceduralAudioEvent("skipped", {
+            ...payload,
+            audioUrl: url,
+            source: "direct-audio",
+            reason: "duplicate"
+        });
+        return false;
+    }
+
     const audio = new Audio();
     audio.crossOrigin = "anonymous";
     audio.preload = "auto";
@@ -4762,51 +5278,66 @@ export async function playDirectAudioUrl(url, payload = {}) {
     audio.volume = clamp(Number(payload?.volume) || 0.8, 0, 1);
     audio.muted = false;
 
-    try {
-        const unlocked = await unlockTvAudioContext("direct-audio");
-        console.debug("[TV_AUDIO_STATE]", {
-            paused: audio.paused,
-            ended: audio.ended,
-            currentTime: audio.currentTime,
-            src: audio.currentSrc || audio.src || null,
-            readyState: audio.readyState,
-            networkState: audio.networkState,
-            source: "direct-before-play",
-            unlocked
-        });
-
-        await audio.play();
-        notifyProceduralAudioEvent("playing", {
-            ...payload,
-            audioUrl: url,
-            source: "direct-audio"
-        });
-
-        audio.onended = () => cleanupManagedAudio(audio);
-        return true;
-    } catch (error) {
-        reportProceduralFailure("play-exception", {
-            ...payload,
-            audioUrl: url,
-            source: "direct-audio"
-        }, audio, error);
-        return false;
-    }
+    queueState.pendingSignatures.add(playbackSignature);
+    queueState.queue.push({
+        key: payload?.contextKey ?? payload?.eventType ?? "direct-audio",
+        signature: playbackSignature,
+        order: queueState.nextOrder++,
+        priority: requestedPriority,
+        cooldownMs: Number.isFinite(Number(payload?.cooldownMs)) ? Number(payload.cooldownMs) : 1200,
+        channel: "fx",
+        audioUrl: url,
+        muted: false,
+        loop: false,
+        volume: audio.volume,
+        unlockSource: "direct-audio",
+        cleanup: (element) => cleanupManagedAudio(element),
+        createAudio: () => audio,
+        beforePlay: async (element) => {
+            element.pause();
+            element.currentTime = 0;
+            console.debug("[TV_AUDIO_STATE]", {
+                paused: element.paused,
+                ended: element.ended,
+                currentTime: element.currentTime,
+                src: element.currentSrc || element.src || null,
+                readyState: element.readyState,
+                networkState: element.networkState,
+                source: "direct-before-play"
+            });
+        },
+        onStart: async (element) => {
+            notifyProceduralAudioEvent("playing", {
+                ...payload,
+                audioUrl: url,
+                source: "direct-audio"
+            });
+        },
+        onError: (errorInfo, element) => {
+            reportProceduralFailure(
+                isAutoplayBlockedError(errorInfo) ? "autoplay-blocked" : "play-exception",
+                {
+                    ...payload,
+                    audioUrl: url,
+                    source: "direct-audio"
+                },
+                element,
+                errorInfo instanceof Error ? errorInfo : new Error(errorInfo?.message ?? "direct audio failed")
+            );
+        }
+    });
+    orderForegroundAudioQueue(queueState.queue);
+    trimForegroundAudioQueue(queueState);
+    scheduleForegroundAudioDrain("direct-audio");
+    return true;
 }
 
 export function stopProceduralAudioDebug() {
-    if (!activeProceduralAudio) {
+    if (!activeProceduralAudio && ensureForegroundAudioQueueState().queue.length === 0) {
         return false;
     }
 
-    try {
-        activeProceduralAudio.pause();
-        activeProceduralAudio.currentTime = 0;
-    } catch {
-    }
-
-    activeProceduralAudio = null;
-    activeProceduralAudioMeta = null;
+    stopForegroundAudioQueue("procedural-debug-stop");
     pushAudioDebugLog("procedural-stop", "info");
     return true;
 }
@@ -4866,6 +5397,7 @@ if (typeof globalThis !== "undefined") {
     globalThis.stopTvAudioCue = stopTvAudioCue;
     globalThis.unlockBroadcastAudio = unlockBroadcastAudio;
     globalThis.destroyBroadcastAudio = destroyBroadcastAudio;
+    globalThis.destroyForegroundAudio = destroyForegroundAudio;
     globalThis.getTvAudioState = getTvAudioState;
     globalThis.playDirectAudioUrl = playDirectAudioUrl;
     globalThis.setTvAudioDebugEnabled = setTvAudioDebugEnabled;
@@ -4893,6 +5425,7 @@ if (typeof globalThis !== "undefined") {
         diagnose: diagnoseTvAudio,
         unlock: unlockBroadcastAudio,
         destroy: destroyBroadcastAudio,
+        destroyForeground: destroyForegroundAudio,
         state: getTvAudioState,
         setCulture: setTvMediaCulture,
         setDebug: setTvAudioDebugEnabled,

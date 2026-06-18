@@ -2230,6 +2230,7 @@ private void ProcessBroadcastState()
     var current = CaptureSnapshot();
     if (current is null)
     {
+        _ = StopForegroundAudioAsync("no-active-match");
         CancelPirateOverlayTimer();
         _showPirateOverlay = false;
         _pirateOverlayReason = string.Empty;
@@ -2261,6 +2262,7 @@ private void ProcessBroadcastState()
     if (_lastAiNarrationMatchId != current.MatchId)
     {
         var hadPreviousMatch = _lastAiNarrationMatchId.HasValue;
+        _ = StopForegroundAudioAsync("match-changed");
         if (IsBroadcastMode && hadPreviousMatch)
         {
             _broadcastNoticeUntilUtc = DateTime.UtcNow.AddSeconds(4);
@@ -7099,6 +7101,30 @@ private async Task StopBroadcastAudioAsync(string reason)
         IsBroadcastMode);
 }
 
+private async Task StopForegroundAudioAsync(string reason)
+{
+    try
+    {
+        if (_tvModule is not null)
+            await _tvModule.InvokeVoidAsync("destroyForegroundAudio", reason);
+        else
+            await JS.InvokeVoidAsync("destroyForegroundAudio", reason);
+    }
+    catch (JSException)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("destroyForegroundAudio", reason);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+    catch (ObjectDisposedException)
+    {
+    }
+}
+
 private static bool IsGoalLikeScoreEvent(MatchScoreEventDto scoreEvent)
     => ResolveMappedEventType(scoreEvent) switch
     {
@@ -8641,6 +8667,17 @@ public async ValueTask DisposeAsync()
     try
     {
         await JS.InvokeVoidAsync("destroyBroadcastAudio", "tv-broadcast-crowd");
+    }
+    catch (ObjectDisposedException)
+    {
+    }
+    catch
+    {
+    }
+
+    try
+    {
+        await JS.InvokeVoidAsync("destroyForegroundAudio", "dispose");
     }
     catch (ObjectDisposedException)
     {
