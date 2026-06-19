@@ -88,6 +88,14 @@ else
                 <div class="app-footer__summary">
                     <p>@L.T("layout.footer.semanticDescription", CurrentCulture)</p>
                 </div>
+                <div class="app-footer__institutional">
+                    <span class="app-footer__institutional-heading">@L.T("layout.footer.institutionalTitle", CurrentCulture)</span>
+                    <div class="app-footer__institutional-links">
+                        <a href="@RouteLocalization.BuildAboutPath(CurrentCulture)">@L.T("layout.footer.about", CurrentCulture)</a>
+                        <a href="@RouteLocalization.BuildScoringRulesPath(CurrentCulture)">@L.T("layout.footer.scoringRules", CurrentCulture)</a>
+                        <a href="@RouteLocalization.BuildRiskDisclaimerPath(CurrentCulture)">@L.T("layout.footer.riskDisclaimer", CurrentCulture)</a>
+                    </div>
+                </div>
                 <CommunityLinks Culture="@CurrentCulture"
                                 Variant="footer"
                                 ShowHeading="true"
@@ -279,6 +287,47 @@ else
         font-size: .95rem;
     }
 
+    .app-footer__institutional {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .8rem 1rem;
+        margin-top: .9rem;
+    }
+
+    .app-footer__institutional-heading {
+        font-size: .78rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+        color: #7ff6df;
+    }
+
+    .app-footer__institutional-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .55rem;
+    }
+
+    .app-footer__institutional-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.3rem;
+        padding: .35rem .8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(127, 246, 223, .18);
+        background: rgba(255,255,255,.03);
+        color: #eef5ff;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .app-footer__institutional-links a:hover {
+        border-color: rgba(127, 246, 223, .34);
+        background: rgba(127, 246, 223, .08);
+        color: #ffffff;
+    }
+
     @@media (max-width: 480px) {
         .post-login-dialog {
             padding: 1.15rem;
@@ -295,6 +344,10 @@ else
 
         .app-footer--public {
             margin: 0 1rem 1rem;
+        }
+
+        .app-footer__institutional {
+            align-items: flex-start;
         }
     }
 
@@ -527,7 +580,7 @@ else
 
         return path switch
         {
-            "" or "/" or "/en" or "/pt" or "/en/roadmap" or "/pt/roadmap" or "/en/how-it-works" or "/pt/como-funciona" or "/en/faq" or "/pt/faq" => true,
+            "" or "/" or "/en" or "/pt" or "/en/roadmap" or "/pt/roadmap" or "/en/how-it-works" or "/pt/como-funciona" or "/en/faq" or "/pt/faq" or "/en/about" or "/pt/about" or "/en/scoring-rules" or "/pt/scoring-rules" or "/en/risk-disclaimer" or "/pt/risk-disclaimer" => true,
             _ => path.StartsWith("/en/match/", StringComparison.Ordinal)
                  || path.StartsWith("/pt/partida/", StringComparison.Ordinal)
         };

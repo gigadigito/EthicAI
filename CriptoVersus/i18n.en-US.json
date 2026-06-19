@@ -17,7 +17,11 @@
       "goToWallet": "Go to My Wallet"
     },
     "footer": {
-      "semanticDescription": "CriptoVersus is a gamified crypto market-data arena where users choose sides in public simulations and review market performance through sports-style scoring."
+      "semanticDescription": "CriptoVersus is a gamified crypto market-data arena where users choose sides in public simulations and review market performance through sports-style scoring.",
+      "institutionalTitle": "Institutional pages",
+      "about": "About",
+      "scoringRules": "Scoring rules",
+      "riskDisclaimer": "Risk disclaimer"
     }
   },
   "nav": {
@@ -1067,6 +1071,161 @@
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
     "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
     "structuredDataDescription": "Public crypto market-data simulation between {0} and {1} on CriptoVersus."
+  },
+  "public": {
+    "about": {
+      "seo": {
+        "title": "About CriptoVersus | Public Market Data Arena",
+        "description": "Learn how CriptoVersus turns public crypto market data into football-style simulations for analysis, education and entertainment."
+      },
+      "hero": {
+        "eyebrow": "About",
+        "title": "Public market data, visualized as live arena simulations.",
+        "lead": "CriptoVersus is a gamified market-data visualization platform. It helps users explore public crypto signals, side selection and match-style scoreboards without presenting itself as a financial product.",
+        "backToArena": "Back to arena",
+        "viewScoringRules": "View scoring rules",
+        "panelLabel": "CriptoVersus overview",
+        "panel": {
+          "publicDataLabel": "Public data",
+          "publicDataTitle": "Open market signals",
+          "publicDataBody": "The arena is built from public crypto market signals, not private market access.",
+          "simulationLabel": "Simulation",
+          "simulationTitle": "Football-style visuals",
+          "simulationBody": "Match-style scoreboards help people read price action and momentum at a glance.",
+          "useLabel": "Responsible use",
+          "useTitle": "Analysis first",
+          "useBody": "Use the site for education, entertainment and market visualization."
+        }
+      },
+      "sections": {
+        "overviewLabel": "About CriptoVersus sections"
+      },
+      "cards": {
+        "platform": {
+          "label": "What it is",
+          "title": "A public analysis layer",
+          "body": "CriptoVersus is designed for education, entertainment and market visualization around public crypto data."
+        },
+        "how": {
+          "label": "How it works",
+          "title": "Signals become simulations",
+          "body": "Public signals are grouped into football-style match views so users can inspect momentum, pressure and match context."
+        },
+        "responsible": {
+          "label": "Responsible use",
+          "title": "Information, not advice",
+          "body": "The platform does not promise profit, predict future prices or replace independent judgment."
+        }
+      },
+      "dataSources": {
+        "title": "Data Sources",
+        "description": "CriptoVersus uses public crypto market data and market signals, including Binance-traded pairs when available. These signals may include price movement, percentage variation, candle behavior, trading activity and other market-derived indicators used to generate football-style simulated matches. CriptoVersus is not affiliated with, endorsed by, sponsored by, or officially connected to Binance.",
+        "binanceNotice": "When Binance-traded pairs are available, they are included as one public market source among others and do not imply endorsement or partnership.",
+        "notAffiliated": "The presence of a Binance-traded pair does not mean approval, recommendation or validation of the underlying asset.",
+        "usage": "The data is used for visualization, analysis, simulation and entertainment.",
+        "reliability": "Signals can lag, fail, diverge or become temporarily unavailable."
+      }
+    },
+    "scoringRules": {
+      "seo": {
+        "title": "Scoring Rules | CriptoVersus",
+        "description": "See how public market signals turn into match scores, arena states and educational simulations in CriptoVersus."
+      },
+      "hero": {
+        "eyebrow": "Scoring rules",
+        "title": "Score updates come from public market signals.",
+        "lead": "CriptoVersus uses market-derived indicators to generate football-style simulated matches. Scores reflect public signals and should be read as analysis, not as a prediction or recommendation.",
+        "backToAbout": "Read about CriptoVersus",
+        "backToArena": "Back to arena",
+        "panelLabel": "Scoring overview",
+        "panel": {
+          "signalsLabel": "Signals",
+          "signalsTitle": "Public inputs first",
+          "signalsBody": "Price movement, percentage variation, candle behavior and trading activity feed the arena.",
+          "scoringLabel": "Scoring",
+          "scoringTitle": "Match events",
+          "scoringBody": "Those public inputs create score changes, pressure shifts and live context.",
+          "resultLabel": "Results",
+          "resultTitle": "Final leader or none",
+          "resultBody": "A cycle can end with a final leader or with no final leader."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Scoring rules sections"
+      },
+      "cards": {
+        "signals": {
+          "label": "Signal collection",
+          "title": "Public market data is read",
+          "body": "The platform reads market movement, percentage variation, candle behavior and trading activity, including Binance-traded pairs when available."
+        },
+        "scoring": {
+          "label": "Score events",
+          "title": "Signals become score events",
+          "body": "Public inputs feed the active match rules and create scoring events, pressure changes and live arena context."
+        },
+        "settlement": {
+          "label": "Cycle outcome",
+          "title": "The cycle closes cleanly",
+          "body": "The final result is part of the simulation and does not forecast future token prices."
+        }
+      },
+      "dataSourcesNoticeLabel": "Data source note",
+      "dataSourcesNotice": "Scoring events are generated from public market signals, including Binance-traded pairs when available. CriptoVersus is not affiliated with or endorsed by Binance.",
+      "noPrediction": {
+        "title": "No prediction layer",
+        "body": "A match score is an educational visualization of market behavior. It is not investment advice, a trading signal or a guaranteed outcome."
+      }
+    },
+    "riskDisclaimer": {
+      "seo": {
+        "title": "Risk Disclaimer | CriptoVersus",
+        "description": "Read the risk, data and use disclaimer for CriptoVersus before interpreting match scores or market simulations."
+      },
+      "hero": {
+        "eyebrow": "Risk disclaimer",
+        "title": "Use the arena as a visualization, not as advice.",
+        "lead": "CriptoVersus is for analysis, education and entertainment. It does not provide financial advice, investment recommendations or guaranteed results.",
+        "backToAbout": "About CriptoVersus",
+        "backToScoringRules": "Scoring rules",
+        "panelLabel": "Risk summary",
+        "panel": {
+          "adviceLabel": "Advice",
+          "adviceTitle": "No financial advice",
+          "adviceBody": "The site does not tell you what to buy, sell or hold.",
+          "dataLabel": "Data quality",
+          "dataTitle": "Public data can change",
+          "dataBody": "Public sources may lag, fail, diverge or become temporarily unavailable.",
+          "outcomeLabel": "Outcome",
+          "outcomeTitle": "No guaranteed result",
+          "outcomeBody": "Scores and simulated results are not promises of future performance."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Risk disclaimer sections"
+      },
+      "cards": {
+        "noAdvice": {
+          "label": "Advice",
+          "title": "No financial advice",
+          "body": "The platform does not tell you what to buy, sell or hold."
+        },
+        "data": {
+          "label": "Data",
+          "title": "Signals can change",
+          "body": "Public sources may lag, fail, diverge or become temporarily unavailable."
+        },
+        "outcome": {
+          "label": "Outcome",
+          "title": "No guaranteed result",
+          "body": "Scores and simulated results are not promises of future performance."
+        }
+      },
+      "dataProviderNoticeLabel": "Data provider notice",
+      "dataProviderNotice": "CriptoVersus uses public crypto market data and market signals. When Binance-traded pairs are available, they may be part of the mix. The platform is not affiliated with or endorsed by Binance.",
+      "dataProviderNote": "The presence of a Binance-traded pair does not mean approval, recommendation or validation of the underlying asset.",
+      "dataProviderNoGuarantee": "The platform is built for visualization, analysis, simulation and entertainment, not as an investment product or guaranteed-return service."
+    }
   },
   "matchDetail": {
     "loadingMatch": "Loading match...",

@@ -1,0 +1,310 @@
+@page "/en/about"
+@page "/pt/about"
+@using System.Text.Json
+@using CriptoVersus.Web.Services
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@rendermode InteractiveServer
+
+<PageTitle>@T("seo.title")</PageTitle>
+<HeadContent>
+    <meta name="description" content="@MetaDescription" />
+    <meta name="keywords" content="@MetaKeywords" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@TitleText" />
+    <meta property="og:description" content="@MetaDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@TitleText" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@TitleText" />
+    <meta name="twitter:description" content="@MetaDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@TitleText" />
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
+</HeadContent>
+
+<section class="institutional-page institutional-page--about">
+    <header class="institutional-hero">
+        <div class="institutional-hero__copy">
+            <span class="institutional-hero__eyebrow">@T("hero.eyebrow")</span>
+            <h1>@T("hero.title")</h1>
+            <p class="institutional-hero__lead">@T("hero.lead")</p>
+
+            <div class="institutional-hero__actions">
+                <a class="institutional-button institutional-button--primary" href="@RouteLocalization.BuildHomePath(CurrentCulture)">
+                    @T("hero.backToArena")
+                </a>
+                <a class="institutional-button institutional-button--secondary" href="@RouteLocalization.BuildScoringRulesPath(CurrentCulture)">
+                    @T("hero.viewScoringRules")
+                </a>
+            </div>
+        </div>
+
+        <aside class="institutional-hero__panel" aria-label="@T("hero.panelLabel")">
+            <article class="institutional-metric-card">
+                <span>@T("hero.panel.publicDataLabel")</span>
+                <strong>@T("hero.panel.publicDataTitle")</strong>
+                <p>@T("hero.panel.publicDataBody")</p>
+            </article>
+
+            <article class="institutional-metric-card">
+                <span>@T("hero.panel.simulationLabel")</span>
+                <strong>@T("hero.panel.simulationTitle")</strong>
+                <p>@T("hero.panel.simulationBody")</p>
+            </article>
+
+            <article class="institutional-metric-card institutional-metric-card--accent">
+                <span>@T("hero.panel.useLabel")</span>
+                <strong>@T("hero.panel.useTitle")</strong>
+                <p>@T("hero.panel.useBody")</p>
+            </article>
+        </aside>
+    </header>
+
+    <section class="institutional-grid" aria-label="@T("sections.overviewLabel")">
+        <article class="institutional-card">
+            <span>@T("cards.platform.label")</span>
+            <h2>@T("cards.platform.title")</h2>
+            <p>@T("cards.platform.body")</p>
+        </article>
+
+        <article class="institutional-card">
+            <span>@T("cards.how.label")</span>
+            <h2>@T("cards.how.title")</h2>
+            <p>@T("cards.how.body")</p>
+        </article>
+
+        <article class="institutional-card">
+            <span>@T("cards.responsible.label")</span>
+            <h2>@T("cards.responsible.title")</h2>
+            <p>@T("cards.responsible.body")</p>
+        </article>
+    </section>
+
+    <section class="institutional-source-card">
+        <span class="institutional-source-card__eyebrow">@T("dataSources.title")</span>
+        <h2>@T("dataSources.title")</h2>
+        <p>@T("dataSources.description")</p>
+        <p>@T("dataSources.binanceNotice")</p>
+        <p>@T("dataSources.notAffiliated")</p>
+        <p>@T("dataSources.usage")</p>
+        <p>@T("dataSources.reliability")</p>
+    </section>
+</section>
+
+<style>
+    .institutional-page {
+        min-height: 100%;
+        display: grid;
+        gap: 1rem;
+        padding: 1.2rem;
+        color: #eef5ff;
+        background:
+            radial-gradient(circle at top left, rgba(76, 243, 141, 0.12), transparent 24%),
+            radial-gradient(circle at top right, rgba(83, 200, 255, 0.12), transparent 22%),
+            linear-gradient(180deg, #050814, #070c18 48%, #05060d);
+    }
+
+    .institutional-hero,
+    .institutional-source-card,
+    .institutional-card,
+    .institutional-metric-card {
+        border: 1px solid rgba(127, 246, 223, 0.14);
+        background:
+            radial-gradient(circle at top right, rgba(127, 246, 223, 0.08), transparent 28%),
+            linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(6, 10, 20, 0.98));
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+    }
+
+    .institutional-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+        gap: 1rem;
+        padding: clamp(1.2rem, 2vw, 1.8rem);
+        border-radius: 28px;
+    }
+
+    .institutional-hero__copy {
+        display: grid;
+        gap: .9rem;
+        align-content: start;
+    }
+
+    .institutional-hero__eyebrow,
+    .institutional-source-card__eyebrow,
+    .institutional-card span,
+    .institutional-metric-card span {
+        font-size: .78rem;
+        font-weight: 900;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+        color: #7ff6df;
+    }
+
+    .institutional-hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 4rem);
+        line-height: .98;
+        letter-spacing: -.04em;
+    }
+
+    .institutional-hero__lead,
+    .institutional-card p,
+    .institutional-source-card p,
+    .institutional-metric-card p {
+        margin: 0;
+        color: #bfd0e4;
+        line-height: 1.7;
+        font-size: 1rem;
+    }
+
+    .institutional-hero__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .7rem;
+        margin-top: .3rem;
+    }
+
+    .institutional-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.95rem;
+        padding: .72rem 1rem;
+        border-radius: 16px;
+        text-decoration: none;
+        font-weight: 800;
+        letter-spacing: .03em;
+        border: 1px solid rgba(255,255,255,.1);
+    }
+
+    .institutional-button--primary {
+        color: #03150f;
+        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        border-color: rgba(127, 246, 223, 0.34);
+    }
+
+    .institutional-button--secondary {
+        color: #eef5ff;
+        background: rgba(255,255,255,.04);
+    }
+
+    .institutional-hero__panel {
+        display: grid;
+        gap: .85rem;
+        align-content: start;
+    }
+
+    .institutional-metric-card {
+        border-radius: 22px;
+        padding: 1rem;
+    }
+
+    .institutional-metric-card strong,
+    .institutional-card h2,
+    .institutional-source-card h2 {
+        display: block;
+        margin: .25rem 0 .45rem;
+        font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+        line-height: 1.15;
+    }
+
+    .institutional-metric-card--accent {
+        background:
+            radial-gradient(circle at top left, rgba(76, 243, 141, 0.1), transparent 28%),
+            linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(8, 12, 21, 0.98));
+    }
+
+    .institutional-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .institutional-card {
+        border-radius: 24px;
+        padding: 1.1rem;
+    }
+
+    .institutional-source-card {
+        border-radius: 26px;
+        padding: 1.2rem;
+    }
+
+    .institutional-source-card p + p {
+        margin-top: .8rem;
+    }
+
+    @@media (max-width: 960px) {
+        .institutional-hero,
+        .institutional-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .institutional-page {
+            padding: .9rem;
+        }
+
+        .institutional-hero,
+        .institutional-card,
+        .institutional-source-card {
+            border-radius: 22px;
+        }
+
+        .institutional-button {
+            width: 100%;
+        }
+    }
+</style>
+
+@code {
+    private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
+    private string TitleText => T("seo.title");
+    private string MetaDescription => T("seo.description");
+    private string MetaKeywords => "CriptoVersus, about, public crypto market data, market signals, data sources, market visualization, educational simulation";
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildAboutPath(CurrentCulture));
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildAboutPath("en"));
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildAboutPath("pt"));
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
+    private string StructuredDataMarkup => BuildStructuredDataMarkup();
+
+    private string T(string key)
+        => L.T($"public.about.{key}", CurrentCulture);
+
+    private string BuildStructuredDataMarkup()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["@context"] = "https://schema.org",
+            ["@type"] = "WebPage",
+            ["name"] = TitleText,
+            ["description"] = MetaDescription,
+            ["about"] = new[]
+            {
+                "public crypto market data",
+                "market signals",
+                "football-style simulations",
+                "responsible use",
+                "Binance-traded pairs when available"
+            },
+            ["keywords"] = MetaKeywords,
+            ["url"] = CanonicalUrl,
+            ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture)
+        };
+
+        return JsonSerializer.Serialize(data);
+    }
+}

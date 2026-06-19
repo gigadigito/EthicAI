@@ -52,6 +52,15 @@ public sealed class RouteLocalizationService
     public string BuildFaqPath(string? culture)
         => $"/{NormalizeCulture(culture)}/faq";
 
+    public string BuildAboutPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/about";
+
+    public string BuildScoringRulesPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/scoring-rules";
+
+    public string BuildRiskDisclaimerPath(string? culture)
+        => $"/{NormalizeCulture(culture)}/risk-disclaimer";
+
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/como-funciona"
@@ -147,6 +156,21 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/en/faq", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase))
             return BuildFaqPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/about", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/about", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/about", StringComparison.OrdinalIgnoreCase))
+            return BuildAboutPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/scoring-rules", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/scoring-rules", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/scoring-rules", StringComparison.OrdinalIgnoreCase))
+            return BuildScoringRulesPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/risk-disclaimer", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/risk-disclaimer", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/risk-disclaimer", StringComparison.OrdinalIgnoreCase))
+            return BuildRiskDisclaimerPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)

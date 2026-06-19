@@ -140,6 +140,12 @@ public sealed class SitemapService
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRoadmapPath("pt"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHowItWorksPath("en"), now, "weekly", 0.8m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHowItWorksPath("pt"), now, "weekly", 0.8m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildAboutPath("en"), now, "weekly", 0.78m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildAboutPath("pt"), now, "weekly", 0.78m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildScoringRulesPath("en"), now, "weekly", 0.76m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildScoringRulesPath("pt"), now, "weekly", 0.76m),
+            CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildRiskDisclaimerPath("en"), now, "weekly", 0.74m),
+            CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildRiskDisclaimerPath("pt"), now, "weekly", 0.74m),
             CreateAbsoluteEntry(new Uri(baseUri, "/tokenomics/regras-das-partidas").AbsoluteUri, now, "weekly", 0.7m),
             CreateAbsoluteEntry("https://mcp.criptoversus.com/", now, "weekly", 0.6m)
         };
@@ -415,6 +421,21 @@ public sealed class SitemapService
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("pt")).AbsoluteUri));
                 return alternates;
+            case "/en/about":
+            case "/pt/about":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildAboutPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildAboutPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/en/scoring-rules":
+            case "/pt/scoring-rules":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildScoringRulesPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildScoringRulesPath("pt")).AbsoluteUri));
+                return alternates;
+            case "/en/risk-disclaimer":
+            case "/pt/risk-disclaimer":
+                alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildRiskDisclaimerPath("en")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildRiskDisclaimerPath("pt")).AbsoluteUri));
+                return alternates;
             case "/token":
             case "/en/token":
             case "/pt/token":
@@ -488,6 +509,15 @@ public sealed class SitemapService
             case "/en/how-it-works":
             case "/pt/como-funciona":
                 return new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri;
+            case "/en/about":
+            case "/pt/about":
+                return new Uri(baseUri, _routeLocalization.BuildAboutPath("en")).AbsoluteUri;
+            case "/en/scoring-rules":
+            case "/pt/scoring-rules":
+                return new Uri(baseUri, _routeLocalization.BuildScoringRulesPath("en")).AbsoluteUri;
+            case "/en/risk-disclaimer":
+            case "/pt/risk-disclaimer":
+                return new Uri(baseUri, _routeLocalization.BuildRiskDisclaimerPath("en")).AbsoluteUri;
             case "/token":
             case "/en/token":
             case "/pt/token":

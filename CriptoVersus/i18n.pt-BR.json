@@ -17,7 +17,166 @@
       "goToWallet": "Go to My Wallet"
     },
     "footer": {
-      "semanticDescription": "CriptoVersus e uma arena gamificada de dados de mercado cripto onde usuarios escolhem lados em simulacoes publicas e acompanham o desempenho do mercado com placar esportivo."
+      "semanticDescription": "CriptoVersus e uma arena gamificada de dados de mercado cripto onde usuarios escolhem lados em simulacoes publicas e acompanham o desempenho do mercado com placar esportivo.",
+      "institutionalTitle": "Paginas institucionais",
+      "about": "Sobre",
+      "scoringRules": "Regras de pontuacao",
+      "riskDisclaimer": "Aviso de risco"
+    }
+  },
+  "public": {
+    "about": {
+      "seo": {
+        "title": "Sobre o CriptoVersus | Arena de dados de mercado",
+        "description": "Saiba como o CriptoVersus transforma dados publicos do mercado cripto em simulacoes no estilo futebol para analise, educacao e entretenimento."
+      },
+      "hero": {
+        "eyebrow": "Sobre",
+        "title": "Dados publicos de mercado, visualizados como simulacoes de arena ao vivo.",
+        "lead": "O CriptoVersus e uma plataforma gamificada de visualizacao de dados de mercado. Ela ajuda usuarios a explorar sinais publicos de cripto, selecao de lado e placares no estilo de partida sem se apresentar como produto financeiro.",
+        "backToArena": "Voltar para a arena",
+        "viewScoringRules": "Ver regras de pontuacao",
+        "panelLabel": "Visao geral do CriptoVersus",
+        "panel": {
+          "publicDataLabel": "Dados publicos",
+          "publicDataTitle": "Sinais abertos de mercado",
+          "publicDataBody": "A arena e construida a partir de sinais publicos do mercado cripto, nao de acesso privado ao mercado.",
+          "simulationLabel": "Simulacao",
+          "simulationTitle": "Visuais no estilo futebol",
+          "simulationBody": "Placares no estilo de partida ajudam a ler preco e momentum de forma rapida.",
+          "useLabel": "Uso responsavel",
+          "useTitle": "Analise em primeiro lugar",
+          "useBody": "Use o site para educacao, entretenimento e visualizacao de mercado."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Secoes sobre o CriptoVersus"
+      },
+      "cards": {
+        "platform": {
+          "label": "O que e",
+          "title": "Uma camada publica de analise",
+          "body": "O CriptoVersus foi pensado para educacao, entretenimento e visualizacao de mercado em torno de dados publicos de cripto."
+        },
+        "how": {
+          "label": "Como funciona",
+          "title": "Sinais viram simulacoes",
+          "body": "Os sinais publicos sao agrupados em visoes de partida no estilo futebol para que usuarios observem momentum, pressao e contexto."
+        },
+        "responsible": {
+          "label": "Uso responsavel",
+          "title": "Informacao, nao conselho",
+          "body": "A plataforma nao promete lucro, nao prevê precos futuros e nao substitui julgamento independente."
+        }
+      },
+      "dataSources": {
+        "title": "Fontes dos dados",
+        "description": "O CriptoVersus usa dados publicos do mercado cripto e sinais de mercado, incluindo pares negociados na Binance quando disponiveis. Esses sinais podem incluir movimento de preco, variacao percentual, comportamento de candles, atividade de negociacao e outros indicadores derivados do mercado usados para gerar partidas simuladas no estilo futebol. O CriptoVersus nao e afiliado, endossado, patrocinado ou oficialmente conectado a Binance.",
+        "binanceNotice": "Quando pares negociados na Binance estao disponiveis, eles entram como uma fonte publica de mercado entre outras e nao implicam endosso ou parceria.",
+        "notAffiliated": "A presenca de um par negociado na Binance nao significa aprovacao, recomendacao ou validacao do ativo subjacente.",
+        "usage": "Os dados sao usados para visualizacao, analise, simulacao e entretenimento.",
+        "reliability": "Os sinais podem atrasar, falhar, divergir ou ficar temporariamente indisponiveis."
+      }
+    },
+    "scoringRules": {
+      "seo": {
+        "title": "Regras de pontuacao | CriptoVersus",
+        "description": "Veja como sinais publicos de mercado se transformam em placares, estados de arena e simulacoes educacionais no CriptoVersus."
+      },
+      "hero": {
+        "eyebrow": "Regras de pontuacao",
+        "title": "As atualizacoes de placar vem de sinais publicos de mercado.",
+        "lead": "O CriptoVersus usa indicadores derivados do mercado para gerar partidas simuladas no estilo futebol. Os placares refletem sinais publicos e devem ser lidos como analise, nao como previsao ou recomendacao.",
+        "backToAbout": "Ler sobre o CriptoVersus",
+        "backToArena": "Voltar para a arena",
+        "panelLabel": "Visao da pontuacao",
+        "panel": {
+          "signalsLabel": "Sinais",
+          "signalsTitle": "Entradas publicas primeiro",
+          "signalsBody": "Movimento de preco, variacao percentual, comportamento de candles e atividade de negociacao alimentam a arena.",
+          "scoringLabel": "Pontuacao",
+          "scoringTitle": "Eventos da partida",
+          "scoringBody": "Essas entradas publicas criam mudancas de placar, deslocamentos de pressao e contexto ao vivo.",
+          "resultLabel": "Resultados",
+          "resultTitle": "Lider final ou nenhum",
+          "resultBody": "Um ciclo pode terminar com um lider final ou sem lider final."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Secoes das regras de pontuacao"
+      },
+      "cards": {
+        "signals": {
+          "label": "Coleta de sinais",
+          "title": "Dados publicos de mercado sao lidos",
+          "body": "A plataforma lê movimento de mercado, variacao percentual, comportamento de candles e atividade de negociacao, incluindo pares negociados na Binance quando disponiveis."
+        },
+        "scoring": {
+          "label": "Eventos de pontuacao",
+          "title": "Sinais viram eventos de pontuacao",
+          "body": "As entradas publicas alimentam as regras ativas da partida e criam eventos de pontuacao, mudancas de pressao e contexto ao vivo."
+        },
+        "settlement": {
+          "label": "Resultado do ciclo",
+          "title": "O ciclo fecha de forma limpa",
+          "body": "O resultado final faz parte da simulacao e nao prevê precos futuros de token."
+        }
+      },
+      "dataSourcesNoticeLabel": "Nota sobre fontes",
+      "dataSourcesNotice": "Os eventos de pontuacao sao gerados a partir de sinais publicos de mercado, incluindo pares negociados na Binance quando disponiveis. O CriptoVersus nao e afiliado nem endossado pela Binance.",
+      "noPrediction": {
+        "title": "Sem camada de previsao",
+        "body": "Um placar e uma visualizacao educacional do comportamento de mercado. Nao e aconselhamento de investimento, sinal de negociacao nem garantia de resultado."
+      }
+    },
+    "riskDisclaimer": {
+      "seo": {
+        "title": "Aviso de risco | CriptoVersus",
+        "description": "Leia o aviso de risco, dados e uso do CriptoVersus antes de interpretar placares ou simulacoes de mercado."
+      },
+      "hero": {
+        "eyebrow": "Aviso de risco",
+        "title": "Use a arena como visualizacao, nao como conselho.",
+        "lead": "O CriptoVersus serve para analise, educacao e entretenimento. Ele nao oferece conselho financeiro, recomendacao de investimento nem resultados garantidos.",
+        "backToAbout": "Sobre o CriptoVersus",
+        "backToScoringRules": "Regras de pontuacao",
+        "panelLabel": "Resumo de risco",
+        "panel": {
+          "adviceLabel": "Conselho",
+          "adviceTitle": "Sem conselho financeiro",
+          "adviceBody": "O site nao diz o que comprar, vender ou manter.",
+          "dataLabel": "Qualidade dos dados",
+          "dataTitle": "Dados publicos podem mudar",
+          "dataBody": "Fontes publicas podem atrasar, falhar, divergir ou ficar temporariamente indisponiveis.",
+          "outcomeLabel": "Resultado",
+          "outcomeTitle": "Sem resultado garantido",
+          "outcomeBody": "Placares e resultados simulados nao sao promessa de desempenho futuro."
+        }
+      },
+      "sections": {
+        "overviewLabel": "Secoes do aviso de risco"
+      },
+      "cards": {
+        "noAdvice": {
+          "label": "Conselho",
+          "title": "Sem conselho financeiro",
+          "body": "A plataforma nao diz o que comprar, vender ou manter."
+        },
+        "data": {
+          "label": "Dados",
+          "title": "Sinais podem mudar",
+          "body": "Fontes publicas podem atrasar, falhar, divergir ou ficar temporariamente indisponiveis."
+        },
+        "outcome": {
+          "label": "Resultado",
+          "title": "Sem resultado garantido",
+          "body": "Placares e resultados simulados nao sao promessa de desempenho futuro."
+        }
+      },
+      "dataProviderNoticeLabel": "Aviso sobre provedor de dados",
+      "dataProviderNotice": "O CriptoVersus usa dados publicos do mercado cripto e sinais de mercado. Quando pares negociados na Binance estao disponiveis, eles podem fazer parte do conjunto. A plataforma nao e afiliada nem endossada pela Binance.",
+      "dataProviderNote": "A presenca de um par negociado na Binance nao significa aprovacao, recomendacao ou validacao do ativo subjacente.",
+      "dataProviderNoGuarantee": "A plataforma foi criada para visualizacao, analise, simulacao e entretenimento, nao como produto de investimento ou servico com retorno garantido."
     }
   },
   "nav": {
