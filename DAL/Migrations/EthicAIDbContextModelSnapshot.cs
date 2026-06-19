@@ -839,7 +839,7 @@ namespace DAL.Migrations
                         .HasColumnName("tx_name");
 
                     b.Property<double>("PercentageChange")
-                        .HasColumnType("decimal(5, 2)")
+                        .HasColumnType("decimal(12, 4)")
                         .HasColumnName("nr_percentage_change");
 
                     b.Property<decimal>("QuoteVolume")

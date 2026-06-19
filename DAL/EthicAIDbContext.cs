@@ -339,7 +339,7 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.CurrencyId).HasColumnName("cd_currency");
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(50).HasColumnName("tx_name");
                 entity.Property(e => e.Symbol).IsRequired().HasMaxLength(50).HasColumnName("tx_symbol");
-                entity.Property(e => e.PercentageChange).HasColumnType("decimal(5, 2)").HasColumnName("nr_percentage_change");
+                entity.Property(e => e.PercentageChange).HasColumnType("decimal(12, 4)").HasColumnName("nr_percentage_change");
 
                 entity.Property(e => e.QuoteVolume)
                       .HasColumnType("decimal(28, 8)")

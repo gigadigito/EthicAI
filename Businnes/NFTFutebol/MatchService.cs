@@ -8,6 +8,8 @@ using DAL.NftFutebol;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 using static BLL.BinanceService;
 
 namespace BLL.NFTFutebol
@@ -16,11 +18,13 @@ namespace BLL.NFTFutebol
     {
         private readonly EthicAIDbContext _context;
         private readonly IConfiguration? _configuration;
+        private readonly ILogger<MatchService> _logger;
 
-        public MatchService(EthicAIDbContext context, IConfiguration? configuration = null)
+        public MatchService(EthicAIDbContext context, IConfiguration? configuration = null, ILogger<MatchService>? logger = null)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<MatchService>.Instance;
         }
 
         public async Task AutoEndOldOngoingMatchesAsync(TimeSpan duration)
@@ -312,10 +316,10 @@ namespace BLL.NFTFutebol
                 {
                     currency = new Currency
                     {
-                        Name = crypto.Symbol.Replace("USDT", ""),
-                        Symbol = crypto.Symbol,
-                        PercentageChange = decimal.TryParse(crypto.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent) ? (double)percent : 0,
-                        QuoteVolume = decimal.TryParse(crypto.QuoteVolume, NumberStyles.Any, CultureInfo.InvariantCulture, out var quoteVolume) ? quoteVolume : 0m,
+                        Name = (crypto.Symbol ?? string.Empty).Replace("USDT", ""),
+                        Symbol = crypto.Symbol ?? string.Empty,
+                        PercentageChange = 0d,
+                        QuoteVolume = 0m,
                         TradesCount = crypto.Count,
                         LastUpdated = DateTime.UtcNow
                     };
@@ -323,17 +327,18 @@ namespace BLL.NFTFutebol
                 }
                 else
                 {
-                    currency.PercentageChange = decimal.TryParse(crypto.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent) ? (double)percent : 0;
-                    currency.QuoteVolume = decimal.TryParse(crypto.QuoteVolume, NumberStyles.Any, CultureInfo.InvariantCulture, out var quoteVolume) ? quoteVolume : 0m;
-                    currency.TradesCount = crypto.Count;
-                    currency.LastUpdated = DateTime.UtcNow;
                     _context.Currency.Update(currency);
                 }
 
-                currencies.Add(currency);
+                ApplyCurrencySnapshot(currency, crypto, legacyClamp: false);
+                currency.LastUpdated = DateTime.UtcNow;
+
+                if (await TrySaveCurrencyAsync(currency, crypto.Symbol ?? string.Empty, legacyClamp: false))
+                {
+                    currencies.Add(currency);
+                }
             }
 
-            await _context.SaveChangesAsync();
             return currencies;
         }
         // Método para criar uma nova partida
@@ -363,8 +368,16 @@ namespace BLL.NFTFutebol
         // Adicionar uma moeda
         public async Task AddCurrencyAsync(Currency currency)
         {
+            ApplyCurrencySnapshot(currency, new Crypto
+            {
+                Symbol = currency.Symbol ?? string.Empty,
+                LastPrice = "0",
+                PriceChangePercent = currency.PercentageChange.ToString(CultureInfo.InvariantCulture),
+                QuoteVolume = currency.QuoteVolume.ToString(CultureInfo.InvariantCulture),
+                Count = currency.TradesCount
+            }, legacyClamp: false);
             _context.Currency.Add(currency);
-            await _context.SaveChangesAsync();
+            await TrySaveCurrencyAsync(currency, currency.Symbol ?? string.Empty, legacyClamp: false);
         }
 
         // Obter moeda por símbolo
@@ -461,8 +474,16 @@ namespace BLL.NFTFutebol
         // Atualizar moeda
         public async Task UpdateCurrencyAsync(Currency currency)
         {
+            ApplyCurrencySnapshot(currency, new Crypto
+            {
+                Symbol = currency.Symbol ?? string.Empty,
+                LastPrice = "0",
+                PriceChangePercent = currency.PercentageChange.ToString(CultureInfo.InvariantCulture),
+                QuoteVolume = currency.QuoteVolume.ToString(CultureInfo.InvariantCulture),
+                Count = currency.TradesCount
+            }, legacyClamp: false);
             _context.Currency.Update(currency);
-            await _context.SaveChangesAsync();
+            await TrySaveCurrencyAsync(currency, currency.Symbol ?? string.Empty, legacyClamp: false);
         }
         // Método para iniciar uma partida
         public async Task StartMatchAsync(int matchId)
@@ -575,8 +596,140 @@ namespace BLL.NFTFutebol
             // currency.PercentageChange = await _currencyService.GetPercentageChangeAsync(currency.Name);
             // currency.LastUpdated = DateTime.UtcNow;
 
+            ApplyCurrencySnapshot(currency, new Crypto
+            {
+                Symbol = currency.Symbol ?? string.Empty,
+                LastPrice = "0",
+                PriceChangePercent = currency.PercentageChange.ToString(CultureInfo.InvariantCulture),
+                QuoteVolume = currency.QuoteVolume.ToString(CultureInfo.InvariantCulture),
+                Count = currency.TradesCount
+            }, legacyClamp: false);
             _context.Currency.Update(currency);
-            await _context.SaveChangesAsync();
+            await TrySaveCurrencyAsync(currency, currency.Symbol ?? string.Empty, legacyClamp: false);
+        }
+
+        private async Task<bool> TrySaveCurrencyAsync(Currency currency, string symbol, bool legacyClamp)
+        {
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException ex) when (IsNumericOverflow(ex))
+            {
+                if (legacyClamp)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Currency value overflow persisted after legacy clamp. symbol={Symbol}. Skipping currency for this cycle.",
+                        symbol);
+                    _context.Entry(currency).State = EntityState.Detached;
+                    return false;
+                }
+
+                ApplyCurrencySnapshot(currency, new Crypto
+                {
+                    Symbol = currency.Symbol,
+                    PriceChangePercent = currency.PercentageChange.ToString(CultureInfo.InvariantCulture),
+                    QuoteVolume = currency.QuoteVolume.ToString(CultureInfo.InvariantCulture),
+                    Count = currency.TradesCount
+                }, legacyClamp: true);
+
+                _logger.LogWarning(
+                    ex,
+                    "Currency value overflow detected. Retrying with legacy clamp. symbol={Symbol}",
+                    symbol);
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                catch (DbUpdateException retryEx) when (IsNumericOverflow(retryEx))
+                {
+                    _logger.LogWarning(
+                        retryEx,
+                        "Currency value overflow persisted after retry. symbol={Symbol}. Skipping currency for this cycle.",
+                        symbol);
+                    _context.Entry(currency).State = EntityState.Detached;
+                    return false;
+                }
+            }
+        }
+
+        private void ApplyCurrencySnapshot(Currency currency, Crypto crypto, bool legacyClamp)
+        {
+            var symbol = crypto.Symbol ?? string.Empty;
+            currency.Name = symbol.Replace("USDT", "");
+            currency.Symbol = symbol;
+
+            if (decimal.TryParse(crypto.PriceChangePercent, NumberStyles.Any, CultureInfo.InvariantCulture, out var percent))
+            {
+                var normalizedPercent = ClampPercentageChange(percent, legacyClamp, symbol);
+                currency.PercentageChange = (double)normalizedPercent;
+            }
+            else
+            {
+                currency.PercentageChange = 0d;
+            }
+
+            if (decimal.TryParse(crypto.QuoteVolume, NumberStyles.Any, CultureInfo.InvariantCulture, out var quoteVolume))
+            {
+                currency.QuoteVolume = NormalizeQuoteVolume(quoteVolume);
+            }
+            else
+            {
+                currency.QuoteVolume = 0m;
+            }
+
+            currency.TradesCount = crypto.Count < 0 ? 0 : crypto.Count;
+        }
+
+        private decimal ClampPercentageChange(decimal value, bool legacyClamp, string symbol)
+        {
+            var rounded = Math.Round(value, legacyClamp ? 2 : 4, MidpointRounding.AwayFromZero);
+            var max = legacyClamp ? 999.99m : 9999.9999m;
+
+            if (rounded > max)
+            {
+                _logger.LogWarning(
+                    "Currency value clamped. symbol={Symbol} field={Field} original={Original} saved={Saved}",
+                    symbol,
+                    nameof(Currency.PercentageChange),
+                    value,
+                    max);
+                return max;
+            }
+
+            if (rounded < -max)
+            {
+                _logger.LogWarning(
+                    "Currency value clamped. symbol={Symbol} field={Field} original={Original} saved={Saved}",
+                    symbol,
+                    nameof(Currency.PercentageChange),
+                    value,
+                    -max);
+                return -max;
+            }
+
+            return rounded;
+        }
+
+        private static decimal NormalizeQuoteVolume(decimal value)
+            => Math.Round(value, 8, MidpointRounding.AwayFromZero);
+
+        private static bool IsNumericOverflow(DbUpdateException exception)
+        {
+            for (Exception? current = exception; current != null; current = current.InnerException)
+            {
+                if (current is PostgresException postgresException &&
+                    string.Equals(postgresException.SqlState, PostgresErrorCodes.NumericValueOutOfRange, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
         // Método para atualizar o status e o horário de início de uma partida
         public async Task<bool> UpdateMatchStatusAndStartTimeAsync(int matchId, MatchStatus newStatus, DateTime startTime)
