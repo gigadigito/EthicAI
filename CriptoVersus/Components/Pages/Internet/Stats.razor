@@ -53,6 +53,7 @@
                 <a class="stats-pill-link" href="@RouteLocalization.BuildHomePath(CurrentCulture)" aria-label="@T("hero.backToArenaAria")">@T("hero.backToArena")</a>
                 <a class="stats-pill-link stats-pill-link--accent" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)" aria-label="@T("hero.howScoringWorksAria")">@T("hero.howScoringWorks")</a>
             </div>
+            <p class="small text-muted mt-3 mb-0">@T("marketDataDisclaimer")</p>
         </div>
         <div class="stats-hero__panel">
             <article>
@@ -615,7 +616,7 @@
             new Dictionary<string, object?>
             {
                 ["@context"] = "https://schema.org",
-                ["@type"] = "WebPage",
+                ["@type"] = "WebApplication",
                 ["name"] = title,
                 ["description"] = description,
                 ["url"] = CanonicalUrl

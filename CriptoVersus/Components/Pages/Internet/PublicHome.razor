@@ -80,6 +80,8 @@
                 </a>
             </div>
 
+            <p class="small text-muted mt-3 mb-0">@T("marketDataDisclaimer")</p>
+
             @if (HeroArenaFieldMatch is not null)
             {
                 var heroField = HeroArenaFieldMatch!;
@@ -1393,7 +1395,7 @@
 
         graph.Add(new Dictionary<string, object?>
         {
-            ["@type"] = "WebPage",
+            ["@type"] = "WebApplication",
             ["name"] = SeoTitle,
             ["url"] = CanonicalUrl,
             ["description"] = SeoDescription,
@@ -1522,57 +1524,57 @@
 
     private string GetStructuredEventDescription(MatchDto match)
         => CurrentCulture == "en"
-            ? $"Live crypto battle between {match.TeamA} and {match.TeamB} on CriptoVersus, where users can open positions on either side, join cyclical arena pools and follow reward redistribution driven by real market performance."
-            : $"Batalha cripto ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, onde usuarios podem abrir posicoes em qualquer lado, participar de pools ciclicos da arena e acompanhar a redistribuicao de recompensas baseada em desempenho real de mercado.";
+            ? $"Live crypto market simulation between {match.TeamA} and {match.TeamB} on CriptoVersus, where users can choose a side, review match pools and follow public market signals for educational analysis."
+            : $"Simulacao cripto de mercado ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, onde usuarios podem escolher um lado, revisar match pools e acompanhar sinais publicos de mercado para analise educacional.";
 
     private string[] GetStructuredAbout()
         => CurrentCulture == "en"
             ?
             [
-                "live crypto battle arena",
-                "cyclical reward pools",
-                "open positions",
-                "competitive staking",
-                "side-based arena mechanics",
-                "crypto performance battles",
-                "reward redistribution",
-                "gamified crypto competition"
+                "gamified market-data visualization",
+                "crypto market simulation",
+                "side selection",
+                "match pools",
+                "football-style crypto analytics",
+                "educational market analysis",
+                "public market signals",
+                "gamified scoring"
             ]
             :
             [
-                "arena competitiva de criptomoedas ao vivo",
-                "pools ciclicos de recompensas",
-                "abertura de posicoes",
-                "staking competitivo",
-                "mecanicas de lados da arena",
-                "batalhas de performance cripto",
-                "redistribuicao de recompensas",
-                "competicao cripto gamificada"
+                "visualizacao gamificada de dados de mercado",
+                "simulacao de mercado cripto",
+                "selecao de lado",
+                "match pools",
+                "analise cripto em estilo futebol",
+                "analise educacional de mercado",
+                "sinais publicos de mercado",
+                "placar gamificado"
             ];
 
     private string[] GetStructuredKeywords()
         => CurrentCulture == "en"
             ?
             [
-                "live crypto battle arena",
-                "cyclical reward pools",
-                "open positions",
-                "competitive staking",
-                "side-based arena mechanics",
-                "crypto performance battles",
-                "reward redistribution",
-                "gamified crypto competition"
+                "gamified market-data visualization",
+                "crypto market simulation",
+                "side selection",
+                "match pools",
+                "football-style crypto analytics",
+                "educational market analysis",
+                "public market signals",
+                "gamified scoring"
             ]
             :
             [
-                "arena competitiva de criptomoedas ao vivo",
-                "pools ciclicos de recompensas",
-                "abertura de posicoes",
-                "staking competitivo",
-                "mecanicas de lados da arena",
-                "batalhas de performance cripto",
-                "redistribuicao de recompensas",
-                "competicao cripto gamificada"
+                "visualizacao gamificada de dados de mercado",
+                "simulacao de mercado cripto",
+                "selecao de lado",
+                "match pools",
+                "analise cripto em estilo futebol",
+                "analise educacional de mercado",
+                "sinais publicos de mercado",
+                "placar gamificado"
             ];
 
     private static void RemoveNullValues(Dictionary<string, object?> data)

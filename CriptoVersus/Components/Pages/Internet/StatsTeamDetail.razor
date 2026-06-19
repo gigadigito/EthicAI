@@ -1526,7 +1526,7 @@
 
                 _investmentStatusMessage = T("investment.messages.walletRequired", _detail.DisplaySymbol);
 
-                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com a aposta.");
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com a selecao.");
 
                 return;
 
@@ -1568,7 +1568,7 @@
 
                 _investmentStatusMessage = T("investment.messages.submitError", _detail.DisplaySymbol);
 
-                ShowInvestmentPopup("Aposta não concluída", "Não foi possível registrar sua aposta agora. Tente novamente em instantes.");
+                ShowInvestmentPopup("Selecao nao concluida", "Nao foi possivel registrar sua selecao agora. Tente novamente em instantes.");
 
             }
 
@@ -1580,7 +1580,7 @@
 
             _investmentStatusMessage = ex.Message;
 
-            ShowInvestmentPopup("Aposta não concluída", GetBetPopupExceptionMessage(ex));
+            ShowInvestmentPopup("Selecao nao concluida", GetBetPopupExceptionMessage(ex));
 
         }
 

@@ -17,7 +17,7 @@
       "goToWallet": "Go to My Wallet"
     },
     "footer": {
-      "semanticDescription": "CriptoVersus is a live crypto battle arena where users open positions on competing assets and participate in cyclical reward pools driven by real market performance."
+      "semanticDescription": "CriptoVersus is a gamified crypto market-data arena where users choose sides in public simulations and review market performance through sports-style scoring."
     }
   },
   "nav": {
@@ -79,13 +79,13 @@
       "pending": "Pending",
       "ongoing": "Live",
       "completed24h": "Completed (24h)",
-      "investments": "Investments",
-      "openMarkets": "Matches with open market",
-      "noOpenMarkets": "No matches currently available for investment.",
+      "investments": "Selections",
+      "openMarkets": "Matches with open selection",
+      "noOpenMarkets": "No matches currently available for selection.",
       "matchId": "Match #{0}",
-      "invest": "Bet",
-      "investIn": "Bet on {0}",
-      "closedInvestments": "Investments closed",
+      "invest": "Pick",
+      "investIn": "Pick {0}",
+      "closedInvestments": "Selections closed",
       "follow": "Follow",
       "liveEyebrow": "Live",
       "liveMatches": "Live matches",
@@ -113,19 +113,19 @@
     "seo": {
       "live": {
         "title": "{0} vs {1} Live Match | CriptoVersus",
-        "description": "Watch the live crypto match between {0} and {1} on CriptoVersus. Open positions on either side, follow cyclical arena pools, reward redistribution, competitive staking mechanics and real-time market performance."
+        "description": "Watch the live crypto match between {0} and {1} on CriptoVersus. Explore side selection, public score changes, match pools and real-time market performance."
       },
       "completed": {
         "title": "{0} vs {1} Completed Match | CriptoVersus",
-        "description": "Review the completed crypto match between {0} and {1} on CriptoVersus. Final score, pool dynamics, reward redistribution, side competition and market-driven arena results."
+        "description": "Review the completed crypto match between {0} and {1} on CriptoVersus. Final score, market context, side performance and arena history are presented for educational analysis."
       },
       "pending": {
         "title": "{0} vs {1} Upcoming Match | CriptoVersus",
-        "description": "Preview the upcoming crypto match between {0} and {1} on CriptoVersus, where users can open positions for the next arena cycle and join side-based competitive pools."
+        "description": "Preview the upcoming crypto match between {0} and {1} on CriptoVersus, where users can choose a side for the next arena cycle and follow public market signals."
       },
       "fallback": {
         "title": "{0} vs {1} Match | CriptoVersus",
-        "description": "See match details for {0} vs {1} on CriptoVersus, including open position context, cyclical pools, side competition and reward mechanics."
+        "description": "See match details for {0} vs {1} on CriptoVersus, including side selection context, match pools, market pressure and score history."
       }
     },
     "status": {
@@ -192,7 +192,7 @@
       },
       "ranking": {
         "title": "Ranking",
-        "subtitle": "Rewards and progression"
+        "subtitle": "Scoring and progression"
       },
       "global": {
         "title": "Global",
@@ -222,7 +222,7 @@
         "icon": "🏆",
         "accent": "gold",
         "title": "Ranking",
-        "subtitle": "Rewards and progression"
+        "subtitle": "Scoring and progression"
       },
       {
         "icon": "◎",
@@ -311,7 +311,7 @@
           "Automatic participation in future cycles",
           "Better balance control",
           "Reduced abrupt losses",
-          "A model closer to a competitive pool than a traditional bet",
+          "A model closer to a competitive pool than a traditional wager",
           "Simulations and tuning before broader production"
         ],
         "sortOrder": 4
@@ -337,7 +337,7 @@
         "description": "An experimental on-chain layer focused on auditability and infrastructure where it makes sense.",
         "items": [
           "Solana Devnet/Mainnet integration",
-          "On-chain positions and balances where appropriate",
+          "On-chain selections and balances where appropriate",
           "Separation between off-chain logic and on-chain settlement",
           "Stronger public auditability"
         ],
@@ -386,12 +386,12 @@
       }
     ],
     "noticeTitle": "Important notice",
-    "noticeText": "CriptoVersus is an experimental platform for crypto matches based on market data. Rules, economic models and integrations may evolve over time. Nothing on this page represents a promise of financial gain."
+    "noticeText": "CriptoVersus is an experimental platform for crypto market simulations based on public data. Rules, economic models and integrations may evolve over time. Nothing on this page represents a promise of financial gain."
   },
   "howItWorks": {
     "seo": {
       "title": "How It Works | CriptoVersus",
-      "description": "Learn how CriptoVersus works: open positions, cyclical pools, side selection, reward redistribution, settlement and market-driven crypto competition."
+      "description": "Learn how CriptoVersus works: side selection, match scoring, market-driven competition, settlement logic and educational crypto analysis."
     }
   },
   "social": {
@@ -404,7 +404,7 @@
   "stats": {
     "seo": {
       "title": "CriptoVersus Statistics - Public Crypto Battle Rankings",
-      "description": "Explore public CriptoVersus statistics, crypto match rankings, win rates, scores, match history and market battle performance insights."
+      "description": "Explore public CriptoVersus statistics, crypto match rankings, performance trends, scores, match history and market battle insights."
     },
     "hero": {
       "eyebrow": "Public arena intelligence",
@@ -567,7 +567,7 @@
     },
     "footnote": {
       "title": "Public arena data context",
-      "body": "CriptoVersus public statistics track crypto match performance, historical arena battles, win rates, scoreboards and public market competition between digital assets."
+      "body": "CriptoVersus public statistics track crypto match performance, historical arena battles, performance trends, scoreboards and public market competition between digital assets."
     }
   },
   "statsMatches": {
@@ -671,7 +671,7 @@
   "statsTeams": {
     "seo": {
       "title": "Crypto Arena Teams - CriptoVersus Rankings",
-      "description": "Explore public crypto arena teams, historical win rates, rankings and battle statistics across the CriptoVersus ecosystem."
+      "description": "Explore public crypto arena teams, historical performance trends, rankings and battle statistics across the CriptoVersus ecosystem."
     },
     "hero": {
       "eyebrow": "Arena team directory",
@@ -754,7 +754,7 @@
     "table": {
       "eyebrow": "HTML ranking table",
       "title": "Top Arena Teams",
-      "description": "Indexable ranking table for public crypto arena teams, historical win rates and battle statistics.",
+      "description": "Indexable ranking table for public crypto arena teams, historical performance trends and battle statistics.",
       "empty": "No arena teams available yet.",
       "assetAria": "Open the future team page for {0}",
       "columns": {
@@ -800,11 +800,11 @@
       "eyebrow": "Arena team profile",
       "title": "{0} Team Profile",
       "subtitle": "Public battle history, rivals and arena performance insights for {0}.",
-      "seoCopy": "{0} competes as a public arena team inside CriptoVersus, with historical match results, rankings, win rates and relative performance visible for search and discovery.",
+      "seoCopy": "{0} competes as a public arena team inside CriptoVersus, with historical match results, rankings, performance trends and relative performance visible for search and discovery.",
       "backToTeams": "Back to teams",
       "backToStats": "Back to stats",
       "rank": "Arena rank",
-      "rankHint": "current public ranking position",
+      "rankHint": "current public rank",
       "momentum": "Momentum",
       "momentumHint": "current arena form label",
       "lastMatch": "Last match",
@@ -853,33 +853,33 @@
       }
     },
     "investment": {
-      "eyebrow": "Live betting",
-      "title": "Bet on {0}",
-      "cta": "Bet on {0}",
+      "eyebrow": "Live selection",
+      "title": "Choose {0}",
+      "cta": "Choose {0}",
       "loadingCta": "Loading market",
       "openMatch": "Open match",
       "states": {
         "loading": "Loading",
         "available": "Available",
-        "positionAvailable": "Position available",
+        "positionAvailable": "Selection available",
         "blocked": "Blocked",
         "walletRequired": "Connect wallet",
         "unavailable": "Unavailable"
       },
       "messages": {
-        "loading": "Looking up the latest investable match or cycle for this team.",
-        "available": "Persistent position available for {0}.",
-        "positionAvailable": "Persistent position available for {0}.",
-        "positionAvailableNoMatch": "You can open a persistent position in this asset. It may automatically participate in future cycles.",
-        "walletRequired": "Connect your wallet to open or increase a persistent position in {0}.",
-        "unavailable": "This team has no public investable market right now.",
+        "loading": "Looking up the latest selectable match or cycle for this team.",
+        "available": "Persistent selection available for {0}.",
+        "positionAvailable": "Persistent selection available for {0}.",
+        "positionAvailableNoMatch": "You can choose a persistent side in this asset. It may automatically participate in future cycles.",
+        "walletRequired": "Connect your wallet to choose or increase a persistent side in {0}.",
+        "unavailable": "This team has no public selection market right now.",
         "noMatch": "We could not find an active public match for this team yet.",
-        "closed": "Recent matches for this team are no longer inside the investment window.",
+        "closed": "Recent matches for this team are no longer inside the selection window.",
         "advancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
         "blockedAdvancedLive": "This asset is currently in an advanced live match. Wait for the next cycle to increase your exposure.",
-        "error": "We could not validate the investable context right now. Please try again shortly.",
-        "success": "Investment submitted for {0}.",
-        "submitError": "We could not submit the investment for {0} right now."
+        "error": "We could not validate the selectable context right now. Please try again shortly.",
+        "success": "Selection submitted for {0}.",
+        "submitError": "We could not submit the selection for {0} right now."
       }
     },
     "states": {
@@ -983,55 +983,98 @@
     "featuredMatch": "Featured match",
     "criptoversusLiveCryptoMatchArena": "CriptoVersus | Live Crypto Match Arena",
     "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore live crypto matches, public scoreboards, trending coins and market battles on CriptoVersus with SEO-ready public pages.",
-    "seoDescription": "CriptoVersus is a live crypto battle arena where users open positions on competing assets, join cyclical reward pools, follow side-based competition and track market-driven reward mechanics.",
-    "heroTitle": "Live crypto battles in a gamified cyclical arena.",
-    "heroDescription": "CriptoVersus transforms live market performance into cyclical crypto battles where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and arena-style storytelling powered by real market movement.",
+    "seoDescription": "CriptoVersus is a gamified market-data visualization platform where public crypto signals become football-style simulations for educational analysis.",
+    "heroTitle": "Live crypto market battles in a gamified visual arena.",
+    "heroDescription": "CriptoVersus transforms public market performance into football-style crypto simulations where assets compete like teams. Each cycle creates new matchups, public scoreboards, rankings and educational storytelling powered by real market movement.",
     "heroSemanticLabel": "Arena mechanics highlights",
-    "heroSemantic1": "Open positions on live crypto battles",
-    "heroSemantic2": "Join cyclical arena pools",
-    "heroSemantic3": "Choose a side and compete for rewards",
-    "heroSemantic4": "Real-time crypto battles with gamified reward mechanics",
-    "heroSemantic5": "Competitive arena economics driven by real market performance",
+    "heroSemantic1": "Choose a side in live crypto battles",
+    "heroSemantic2": "Follow match pools and score changes",
+    "heroSemantic3": "Select a side for educational analysis",
+    "heroSemantic4": "Real-time crypto simulations with gamified scoring",
+    "heroSemantic5": "Competitive arena analysis driven by real market performance",
+    "marketDataDisclaimer": "CriptoVersus is a gamified market-data visualization platform. Match scores are generated from public market signals and should not be interpreted as financial advice, investment recommendations, or guaranteed outcomes.",
+    "sections": {
+      "basics": {
+        "eyebrow": "About CriptoVersus",
+        "title": "About CriptoVersus",
+        "description": "What the platform is, what it is not, and how the public arena is framed."
+      },
+      "analysis": {
+        "eyebrow": "How It Works",
+        "title": "How CriptoVersus Works",
+        "description": "Side selection, public match scoring and market-data simulations explained clearly."
+      },
+      "score": {
+        "eyebrow": "Scoring Rules",
+        "title": "Scoring Rules",
+        "description": "How public signals turn into score changes, match states and arena history."
+      },
+      "wallet": {
+        "eyebrow": "Responsible Use",
+        "title": "Responsible Use",
+        "description": "Practical guidance for using the platform carefully and with realistic expectations."
+      },
+      "risk": {
+        "eyebrow": "Risk Disclaimer",
+        "title": "Risk Disclaimer",
+        "description": "The site is not a promise of return, a gambling product or an investment recommendation."
+      },
+      "tv": {
+        "eyebrow": "Live Broadcast",
+        "title": "TV Broadcast",
+        "description": "How the automated broadcast presents public match context and live arena state."
+      },
+      "stats": {
+        "eyebrow": "Data Sources",
+        "title": "Data Sources",
+        "description": "Where the public signals, scoreboards and arena metrics come from."
+      },
+      "deep": {
+        "eyebrow": "No Financial Advice",
+        "title": "No Financial Advice",
+        "description": "CriptoVersus should not be read as financial advice, an investment plan or a guaranteed strategy."
+      }
+    },
     "faqTitle": "CriptoVersus FAQ",
-    "faqSubtitle": "Direct answers for search engines, AI systems and users who want to understand the arena economy behind each battle.",
-    "structuredDataAbstract": "CriptoVersus is a live cyclical crypto battle arena with competitive staking pools, open positions, side-based participation and reward redistribution driven by real market performance.",
+    "faqSubtitle": "Direct answers for search engines, AI systems and users who want to understand the educational simulation and scoring model behind each battle.",
+    "structuredDataAbstract": "CriptoVersus is a gamified market-data visualization arena with side selection, match scoring, public simulations and educational market analysis driven by real market performance.",
     "faq": {
       "onlyScoreboard": {
-        "question": "Is CriptoVersus only a crypto scoreboard?",
-        "answer": "No. CriptoVersus is a competitive crypto arena where users open positions on either side of live battles, join cyclical pools and follow reward redistribution based on real market performance."
+      "question": "Is CriptoVersus only a crypto scoreboard?",
+      "answer": "No. CriptoVersus is a gamified market-data visualization arena for analytics, education and entertainment. Users choose a side in live simulations, follow match pools and review public market signals. It is not financial advice or a prediction of future token prices."
       },
       "openPositions": {
-        "question": "Can users open positions on crypto battles?",
-        "answer": "Yes. Users can open positions by selecting a side in a live arena battle, increasing competitive staking exposure while the market-driven cycle is active."
+      "question": "Can users choose sides in crypto battles?",
+      "answer": "Yes. Users can choose a side in a live arena simulation while the market-driven cycle is active. That choice is for participation and analysis, not for financial advice."
       },
       "arenaPools": {
-        "question": "How do CriptoVersus arena pools work?",
-        "answer": "Each side concentrates participants into a competitive pool. Those pools evolve during the live arena, respond to real market performance and feed the reward mechanics used at settlement."
+      "question": "How do CriptoVersus match pools work?",
+      "answer": "Each side concentrates participants into a match pool. Those pools evolve during the live arena, respond to real market performance and feed the scoring logic used at settlement. They are visual and educational, not investment products."
       },
       "cyclicalPools": {
-        "question": "What are cyclical crypto pools?",
-        "answer": "Cyclical pools are recurring arena participation layers that reconnect positions and side selection across multiple battle cycles instead of treating every match as an isolated scoreboard."
+      "question": "What are cyclical match pools?",
+      "answer": "Cyclical pools are recurring arena participation layers that reconnect side selection across multiple battle cycles instead of treating every match as an isolated scoreboard."
       },
       "rewardDistribution": {
-        "question": "How are rewards distributed?",
-        "answer": "Rewards are redistributed according to the active match rule, side performance, pool composition and the settlement logic that turns live market results into competitive arena outcomes."
+      "question": "How are scores and outcomes distributed?",
+      "answer": "Scores and outcomes are determined according to the active match rule, side performance, pool composition and the settlement logic that turns live market results into competitive arena outcomes. They do not guarantee any future token price move or profit."
       },
       "battleCycle": {
-        "question": "How does a crypto battle cycle work?",
-        "answer": "A battle cycle opens an entry window, allows side selection, tracks market performance in real time, updates the live arena and ends with pool settlement plus reward redistribution for the next cycle."
+      "question": "How does a crypto battle cycle work?",
+      "answer": "A battle cycle opens an entry window, allows side selection, tracks market performance in real time, updates the live arena and ends with pool settlement plus scoring updates for the next cycle."
       }
     },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
     "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
-    "structuredDataDescription": "Live crypto match between {0} and {1} on CriptoVersus."
+    "structuredDataDescription": "Public crypto market-data simulation between {0} and {1} on CriptoVersus."
   },
   "matchDetail": {
     "loadingMatch": "Loading match...",
     "error": "Error:",
     "matchNotFound": "Match not found.",
     "live": "LIVE",
-    "invest": "Bet",
-    "bets": "Bets",
+    "invest": "Pick",
+    "bets": "Selections",
     "finalResult": "FINAL RESULT",
     "finalScore": "Final score",
     "matchClock": "MATCH CLOCK",
@@ -1040,23 +1083,23 @@
     "mostRelevantMomentByMomentEventsFromTheMatch": "Most relevant moment-by-moment events from the match",
     "eventS": "event(s)",
     "noScoringEventsHaveBeenRecordedForThisMatchYet": "No scoring events have been recorded for this match yet.",
-    "investmentResponse": "Investment response",
+    "investmentResponse": "Selection response",
     "matchPanel": "Match panel",
     "elapsed": "Elapsed",
     "score": "Score",
     "match": "Match",
     "activeRule": "Active rule",
-    "winner": "Winner",
-    "noWinner": "No winner",
+    "winner": "Match leader",
+    "noWinner": "No final leader",
     "settlementReason": "Settlement reason",
     "validFinancialDispute": "Valid financial dispute?",
     "yes": "Yes",
     "no": "No",
-    "betsOnBothSides": "Bets on both sides?",
+    "betsOnBothSides": "Selections on both sides?",
     "walletsOnTeamA": "Wallets on Team A",
     "walletsOnTeamB": "Wallets on Team B",
-    "betsOnTeamA": "Bets on Team A",
-    "betsOnTeamB": "Bets on Team B",
+    "betsOnTeamA": "Selections on Team A",
+    "betsOnTeamB": "Selections on Team B",
     "totalOnTeamA": "Total on Team A",
     "totalOnTeamB": "Total on Team B",
     "winningPool": "Winning pool",
@@ -1073,19 +1116,19 @@
     "tipShareTheLinkToOpenTheMatchDirectlyInArenaMode": "Tip: share the link to open the match directly in arena mode.",
     "matchParticipants": "Match participants",
     "participantS": "participant(s)",
-    "bet": "Bet:",
+    "bet": "Pick:",
     "result": "Result:",
     "received": "Received:",
     "securePosition": "secure position",
-    "investmentsOpen": "Investments open",
-    "investmentsClosed": "Investments closed",
-    "investmentsAreUnavailableForThisMatch": "Investments are unavailable for this match.",
+    "investmentsOpen": "Selections open",
+    "investmentsClosed": "Selections closed",
+    "investmentsAreUnavailableForThisMatch": "Selections are unavailable for this match.",
     "status": "Status:",
     "elapsedTime": "elapsed time:",
-    "investIn": "Bet on",
+    "investIn": "Pick",
     "chooseTheAmountInSol": "Choose the amount in SOL",
     "close": "Close",
-    "investmentIn": "Bet on",
+    "investmentIn": "Pick",
     "quickValuesInSol": "Quick values in SOL",
     "quickAdjustment": "Quick adjustment:",
     "orEnterAnyAmountInSol": "Or enter any amount in SOL",
@@ -1102,15 +1145,15 @@
     "closing": "Closing",
     "live2": "Live",
     "pending": "Pending",
-    "noWinner2": "NO WINNER",
+    "noWinner2": "NO FINAL LEADER",
     "scoringEvent": "Scoring event",
-    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "The match ended without a winner. No fee was charged and all bets must be fully refunded.",
-    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "There was a technical winner on the scoreboard, but there was no valid opposing pool. No financial gain or house fee was applied.",
-    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "There was no valid financial counterparty. No financial loss or house fee was applied.",
-    "matchCanceledNoHouseFeeAndFullRefundOfBets": "Match canceled. No house fee and full refund of bets.",
-    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "Match finished without a valid financial winner. Bets must be refunded.",
+    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "The match ended without a final leader. No fee was charged and all selections must be fully refunded.",
+    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "There was a technical leader on the scoreboard, but there was no valid opposing pool. No financial gain or house fee was applied.",
+    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "There was no valid counterparty. No financial loss or house fee was applied.",
+    "matchCanceledNoHouseFeeAndFullRefundOfBets": "Match canceled. No house fee and full refund of selections.",
+    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "Match finished without a valid final leader. Selections must be refunded.",
     "settlementCompletedAccordingToTheMatchRule": "Settlement completed according to the match rule.",
-    "chooseACoinToInvestIn": "Choose a coin to bet on.",
+    "chooseACoinToInvestIn": "Choose a coin to follow.",
     "enterAnAmountGreaterThanZero": "Enter an amount greater than zero.",
     "theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly": "The match has not been created on-chain on devnet yet. Please try again shortly.",
     "itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly": "It was not possible to prepare this coin's on-chain position right now. Please try again shortly.",
@@ -1181,7 +1224,7 @@
       },
       "disclaimerEyebrow": "Important note",
       "disclaimerTitle": "Disclaimer",
-      "disclaimerBody": "This is an estimated conversion using public market data already available in CriptoVersus. It does not promise execution, execution quality or exchange availability."
+      "disclaimerBody": "CriptoVersus is a gamified market-data visualization platform. Match scores are generated from public market signals and should not be interpreted as financial advice, investment recommendations, or guaranteed outcomes."
     },
     "labels": {
       "to": "to",
@@ -1219,8 +1262,8 @@
       "arenaPressure": "Arena pressure",
       "momentum": "Momentum",
       "momentumHint": "Leading symbol by observed change.",
-      "recentWinner": "Recent winner",
-      "recentWinnerHint": "Most recent public winner if one exists.",
+    "recentWinner": "Recent leader",
+    "recentWinnerHint": "Most recent public match leader if one exists.",
       "watchCta": "Watch {0} vs {1} Live Battle",
       "exploreCta": "Explore crypto battles",
       "snapshotCount": "{0} snapshots tracked",
@@ -1245,14 +1288,15 @@
   },
   "tv": {
     "seo": {
-      "title": "CriptoVersus TV | Automatic live crypto battle broadcast",
-      "description": "Automatic no-login broadcast for OBS Studio featuring the hottest live CriptoVersus match or a waiting screen with arena rankings and market stats.",
-      "broadcastTitle": "CriptoVersus TV Broadcast | OBS-ready live crypto arena feed",
-      "broadcastDescription": "Broadcast-ready CriptoVersus TV scene for YouTube and OBS with rotating hot arenas, deterministic commentary, ticker and ambient crowd audio support.",
+      "title": "CriptoVersus TV | Live crypto market-data broadcast",
+      "description": "Automatic no-login broadcast for OBS Studio featuring live market simulations, public scoreboards and market stats from CriptoVersus.",
+      "broadcastTitle": "CriptoVersus TV Broadcast | OBS-ready market-data feed",
+      "broadcastDescription": "Broadcast-ready CriptoVersus TV scene for YouTube and OBS with rotating live market simulations, deterministic commentary, ticker and ambient crowd audio support.",
       "matchTitle": "{0} vs {1} | CriptoVersus TV",
-      "matchDescription": "Watch {0} vs {1} on CriptoVersus TV with the live arena overlay, arena commentary and market-driven match telemetry.",
-      "matchDescriptionFallback": "CriptoVersus TV live arena scene optimized for browser-source broadcast in OBS Studio."
+      "matchDescription": "Watch {0} vs {1} on CriptoVersus TV with the live arena overlay, arena commentary and public market telemetry.",
+      "matchDescriptionFallback": "CriptoVersus TV live market scene optimized for browser-source broadcast in OBS Studio."
     },
+    "disclaimer": "CriptoVersus is a gamified market-data visualization platform. Match scores are generated from public market signals and should not be interpreted as financial advice, investment recommendations, gambling outcomes, or guaranteed results.",
     "title": "CriptoVersus TV",
     "subtitle": "Automatic live crypto arena broadcast",
     "liveNow": "Live now",
@@ -1318,7 +1362,7 @@
       "change": "Change",
       "remainingTime": "Remaining time",
       "reason": "Reason",
-      "competitivePool": "Competitive pool",
+      "competitivePool": "Match pool",
       "arenaCycle": "Arena cycle",
       "leader": "Leader",
       "pressure": "Pressure",
@@ -1333,16 +1377,16 @@
       "assetVariationB": "Asset variation B",
       "won": "won",
       "tie": "Tie",
-      "winnerPerCandle": "Winner per candle",
+      "winnerPerCandle": "Leader per candle",
       "competitiveness": "Competitiveness",
       "poolStatus": "Pool status",
       "poolStatusActiveFlow": "Active live flow",
-      "poolStatusIdle": "Low pool activity",
-      "poolStatusBalanced": "Balanced pool",
-      "poolStatusOpen": "Open competitive pool",
+      "poolStatusIdle": "Low match activity",
+      "poolStatusBalanced": "Balanced match pool",
+      "poolStatusOpen": "Open match pool",
       "eventZone": "Event zone",
       "marketDrivenArena": "Market-driven arena",
-      "liveRewardDynamics": "Live reward dynamics",
+      "liveRewardDynamics": "Live scoring dynamics",
       "sideCompetition": "Side competition",
       "tiePressure": "Balanced arena pressure",
       "onePointBattle": "One-point live battle",
@@ -1353,7 +1397,7 @@
       "broadcastTicker": "Broadcast ticker",
       "aiCommentary": "AI commentary",
       "remainingWithClock": "Remaining ({0})",
-      "pressureSummary": "Competitive pool | {0} | {1}",
+      "pressureSummary": "Match pool | {0} | {1}",
       "marketBattleFlow": "Market battle flow",
       "assetVariationSplit": "Asset variation split",
       "testCommentary": "Test commentary",
@@ -1733,21 +1777,21 @@
   "walletPage": {
     "heading": {
       "eyebrow": "My Wallet",
-      "title": "Your investments",
-      "body": "Track system balance, open positions and asset performance without leaving the arena."
+      "title": "Your selections",
+      "body": "Track system balance, side selections and asset performance without leaving the arena."
     },
     "states": {
       "loading": "Loading your wallet...",
       "loadingShort": "Loading...",
-      "walletRequired": "Sign in with your Solana wallet to view your investments."
+      "walletRequired": "Sign in with your Solana wallet to view your selections."
     },
     "fallbackUser": "User #{0}",
     "walletNetworkBalance": "On-chain balance",
     "onChainBalanceTitle": "Live balance on {0}",
     "openPosition": {
-      "cta": "Place Bet",
-      "modalTitle": "Place a new bet",
-      "amountTitle": "Choose bet amount",
+      "cta": "Choose Side",
+      "modalTitle": "Choose a side",
+      "amountTitle": "Choose selection amount",
       "back": "Back",
       "close": "Close",
       "searchLabel": "Choose the asset",
@@ -1756,10 +1800,10 @@
       "emptyAssets": "No assets found for this search.",
       "loadAssetsError": "Could not load assets.",
       "priceUnavailable": "Price unavailable",
-      "openingOn": "You are opening a position on {0}",
-      "investmentIn": "Bet on {0}",
+      "openingOn": "You are choosing a side on {0}",
+      "investmentIn": "Choose {0}",
       "valueInSol": "Value in SOL",
-      "chooseAmount": "Choose bet amount",
+      "chooseAmount": "Choose selection amount",
       "quickValues": "Quick values in SOL",
       "sliderLabel": "Quick adjustment",
       "amountInputLabel": "Manual amount",
@@ -1771,38 +1815,38 @@
       "networkFeeReserve": "You need to keep a small reserve for the Solana network fee.",
       "custodyWalletLabel": "Custody wallet",
       "directFundingTitle": "On-chain payment via Phantom.",
-      "directFundingLine1": "Your investment will be sent directly from your wallet to the arena.",
+      "directFundingLine1": "Your selection will be sent directly from your wallet to the arena.",
       "directFundingLine2": "Funds will be sent to the CriptoVersus custody wallet.",
       "cancel": "Cancel",
-      "investing": "Placing bet...",
-      "investCta": "Bet {0}",
+      "investing": "Submitting selection...",
+      "investCta": "Choose {0}",
       "invalidAmount": "Enter an amount greater than zero.",
       "assetBlocked": "This asset is not open for new exposure right now.",
       "availableNow": "Entry open",
       "blockedNow": "Entry blocked",
-      "walletFundingRequired": "Connect and approve the wallet to use the on-chain balance in this investment.",
+      "walletFundingRequired": "Connect and approve the wallet to use the on-chain balance in this selection.",
       "walletMismatch": "The connected wallet does not match the authenticated account.",
       "phantomRejected": "The Phantom signature or transaction was cancelled.",
-      "duplicateSignature": "This transaction was already used. Refresh the wallet before retrying if the position did not appear.",
+      "duplicateSignature": "This transaction was already used. Refresh the wallet before retrying if the selection did not appear.",
       "statusAwaitingSignature": "Awaiting Phantom signature.",
       "statusConfirmingBlockchain": "Confirming on-chain transfer.",
-      "statusOpeningPosition": "Opening position in the backend.",
-      "statusPositionOpened": "Position opened with confirmed payment.",
+      "statusOpeningPosition": "Opening selection in the backend.",
+      "statusPositionOpened": "Selection opened with confirmed payment.",
       "transactionHash": "Transaction hash: {0}",
-      "successInline": "Position opened on {0} with {1}.",
-      "successToast": "Position opened on {0} with {1}."
+      "successInline": "Selection opened on {0} with {1}.",
+      "successToast": "Selection opened on {0} with {1}."
     },
     "openPositions": {
-      "title": "Open Positions",
+      "title": "Open Selections",
       "count": "{0} active",
-      "empty": "You do not have open positions yet. Open a position and your capital will start tracking that asset in the arena.",
+      "empty": "You do not have open selections yet. Open a side selection and your capital will start tracking that asset in the arena.",
       "invested": "Invested",
       "entry": "Entry",
       "pnl": "Simple PnL",
-      "time": "Position time",
+      "time": "Selection time",
       "action": "Action",
       "exitRequested": "Exit requested",
-      "closeNow": "Close position",
+      "closeNow": "Close selection",
       "requestExit": "Request exit"
     }
   }

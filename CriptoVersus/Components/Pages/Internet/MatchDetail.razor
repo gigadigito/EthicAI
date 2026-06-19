@@ -110,6 +110,8 @@
             <p>@GetSemanticSummaryRewards()</p>
         </section>
 
+        <p class="small text-muted mb-4">@T("marketDataDisclaimer")</p>
+
         <section id="social-share-card" class="social-share-card mb-4" aria-label="Social share card">
             <div class="social-share-card__bg"></div>
             <div class="social-share-card__shell">
@@ -274,7 +276,7 @@
                         @if (ShouldShowResultStage(_match))
                         {
                             <div class="clock-title">@T("finalResult")</div>
-                            <div class="winner-label">WINNER IS</div>
+                            <div class="winner-label">@T("winner")</div>
                             <div class="winner-name">@GetWinnerDisplayText(_match)</div>
                             <div class="clock-remaining">
                                 @T("finalScore") <span class="fw-semibold">@_match.ScoreA x @_match.ScoreB</span>
@@ -633,7 +635,7 @@
         }
 
         <!-- =========================
-             BET PANEL
+             SELECTION PANEL
              ========================= -->
         <div class="row g-3 mt-1">
             <div class="col-12">
@@ -2620,7 +2622,7 @@
     private string LoggedUserDisplay
         => _loggedUserId is int userId && userId > 0
             ? $"Usuario #{userId}"
-            : "Faça login para apostar";
+            : "Faça login para escolher";
 
     private string LoggedWalletDisplay
         => string.IsNullOrWhiteSpace(_loggedWalletPublicKey)
@@ -3305,19 +3307,19 @@
             return string.Empty;
 
         return IsEnglish
-            ? $"This public CriptoVersus battle lets users open positions on either side of the live arena between {GetMatchTitleSymbol(_match.TeamA)} and {GetMatchTitleSymbol(_match.TeamB)}, using real market performance instead of a static scoreboard."
-            : $"Esta batalha publica do CriptoVersus permite que usuarios abram posicoes em qualquer lado da arena ao vivo entre {GetMatchTitleSymbol(_match.TeamA)} e {GetMatchTitleSymbol(_match.TeamB)}, usando desempenho real de mercado em vez de um placar estatico.";
+            ? $"This public CriptoVersus match lets users choose a side in the live arena between {GetMatchTitleSymbol(_match.TeamA)} and {GetMatchTitleSymbol(_match.TeamB)}, using real market performance instead of a static scoreboard."
+            : $"Esta partida publica do CriptoVersus permite que usuarios escolham um lado na arena ao vivo entre {GetMatchTitleSymbol(_match.TeamA)} e {GetMatchTitleSymbol(_match.TeamB)}, usando desempenho real de mercado em vez de um placar estatico.";
     }
 
     private string GetSemanticSummaryPools()
         => IsEnglish
-            ? "Each side concentrates a competitive pool with live reward dynamics, side selection, cyclical arena participation and staking-style exposure that can continue across future battle cycles."
-            : "Cada lado concentra um pool competitivo com dinamica de recompensas ao vivo, selecao de lado, participacao ciclica na arena e exposicao em estilo staking que pode continuar em ciclos futuros de batalha.";
+            ? "Each side concentrates a match pool with live scoring dynamics, side selection, cyclical arena participation and educational exposure that can continue across future battle cycles."
+            : "Cada lado concentra um match pool com dinamica de placar ao vivo, selecao de lado, participacao ciclica na arena e exposicao educacional que pode continuar em ciclos futuros de batalha.";
 
     private string GetSemanticSummaryRewards()
         => IsEnglish
-            ? "Reward redistribution follows the match rule, the relative market performance of both assets and the arena cycle status, preserving the sports-style battle framing while exposing the economic layer for search engines and AI systems."
-            : "A redistribuicao de recompensas segue a regra da partida, a performance relativa de mercado dos dois ativos e o status do ciclo da arena, preservando o enquadramento esportivo da batalha enquanto expoe a camada economica para mecanismos de busca e sistemas de IA.";
+            ? "Scoring follows the match rule, the relative market performance of both assets and the arena cycle status, preserving the sports-style battle framing while exposing the analytical layer for search engines and AI systems."
+            : "O placar segue a regra da partida, a performance relativa de mercado dos dois ativos e o status do ciclo da arena, preservando o enquadramento esportivo da batalha enquanto expoe a camada analitica para mecanismos de busca e sistemas de IA.";
 
     private async Task CopyLink()
     {
@@ -3513,8 +3515,8 @@
             if (string.IsNullOrWhiteSpace(token) || !_loggedUserId.HasValue || _loggedUserId.Value <= 0)
             {
                 _betRequestOk = false;
-                _betStatusMessage = "Faça login com a carteira Solana antes de apostar.";
-                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com a aposta.");
+                _betStatusMessage = "Faça login com a carteira Solana antes de escolher.";
+                ShowInvestmentPopup("Conecte sua carteira", "Faça login com sua carteira Solana para continuar com a escolha.");
                 return;
             }
 
@@ -3547,15 +3549,15 @@
             if (response.IsSuccessStatusCode)
             {
                 _betRequestOk = true;
-                _betStatusMessage = $"Aposta enviada com sucesso para {teamName}. Usuário={LoggedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
-                ShowInvestmentPopup("Aposta confirmada", $"Sua aposta de {FmtSolAmount(amountSol)} em {teamName} foi registrada com sucesso.");
+                _betStatusMessage = $"Selecao enviada com sucesso para {teamName}. Usuario={LoggedUserDisplay}. MatchId={matchId}, TeamId={teamId}.";
+                ShowInvestmentPopup("Selecao confirmada", $"Sua selecao de {FmtSolAmount(amountSol)} em {teamName} foi registrada com sucesso.");
                 await ReloadMatchAsync(CancellationToken.None);
             }
             else
             {
                 _betRequestOk = false;
-                _betStatusMessage = $"Falha ao apostar em {teamName}. Usuário={LoggedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
-                ShowInvestmentPopup("Aposta não concluída", "Não foi possível registrar sua aposta agora. Tente novamente em instantes.");
+                _betStatusMessage = $"Falha ao registrar selecao em {teamName}. Usuario={LoggedUserDisplay}. HTTP {(int)response.StatusCode} - {response.ReasonPhrase}";
+                ShowInvestmentPopup("Selecao nao concluida", "Nao foi possivel registrar sua selecao agora. Tente novamente em instantes.");
             }
         }
         catch (Exception ex)
@@ -3563,7 +3565,7 @@
             _betRequestOk = false;
             _betStatusMessage = GetBetExceptionMessage(ex, LoggedUserDisplay);
             _betResponseBody = ex.ToString();
-            ShowInvestmentPopup("Aposta não concluída", GetBetPopupExceptionMessage(ex));
+            ShowInvestmentPopup("Selecao nao concluida", GetBetPopupExceptionMessage(ex));
         }
         finally
         {
