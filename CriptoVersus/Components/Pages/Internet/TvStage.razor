@@ -9978,6 +9978,13 @@ private sealed record TvArenaCommentaryEntry(
         will-change: transform, opacity, filter;
     }
 
+    .tv-stage--broadcast .tv-stage__broadcast-shell {
+        min-height: calc(100svh - (clamp(12px, 1vw, 18px) * 2));
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+        align-content: stretch;
+    }
+
     .tv-stage--broadcast {
         perspective: 2200px;
     }
@@ -12838,7 +12845,11 @@ private sealed record TvArenaCommentaryEntry(
 
     .tv-stage--broadcast .tv-stage__grid {
         grid-template-columns: minmax(0, 1.62fr) minmax(380px, .86fr);
+        grid-template-rows: minmax(0, 1fr);
         gap: 12px;
+        height: 100%;
+        min-height: 0;
+        align-items: stretch;
     }
 
     .tv-stage--broadcast .tv-match-card {
@@ -12918,15 +12929,23 @@ private sealed record TvArenaCommentaryEntry(
         overflow: hidden;
         min-width: 0;
         height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
         align-content: stretch;
+        align-items: stretch;
     }
 
     .tv-telemetry-cube-shell {
         width: 100%;
         max-width: 100%;
         overflow: hidden;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube-shell {
         height: 100%;
-        min-height: 800px;
+        min-height: 0;
     }
 
     .tv-telemetry-cube {
@@ -12958,7 +12977,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     .tv-stage--broadcast .tv-telemetry-cube-shell {
+        height: 100%;
         min-height: 0;
+        align-self: stretch;
     }
 
     .tv-stage--broadcast .tv-telemetry {
@@ -14018,20 +14039,20 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-                   HOTFIX ÃNTEGRO â€” Broadcast telemetry as simple carousel
-                   ----------------------------------------------------------
-                   MantÃ©m os mesmos IDs usados pelo JS/lightweight-charts:
-                   - tv-telemetry-chart-left
-                   - tv-telemetry-chart-right
-                   - tv-telemetry-chart-compare
-                   - tv-telemetry-chart-split-left/right
-                   - tv-candle-battle-root
-                   - TvArenaPressureGauge
+                       HOTFIX ÃNTEGRO â€” Broadcast telemetry as simple carousel
+                       ----------------------------------------------------------
+                       MantÃ©m os mesmos IDs usados pelo JS/lightweight-charts:
+                       - tv-telemetry-chart-left
+                       - tv-telemetry-chart-right
+                       - tv-telemetry-chart-compare
+                       - tv-telemetry-chart-split-left/right
+                       - tv-candle-battle-root
+                       - TvArenaPressureGauge
 
-                   NÃ£o usa cubo 3D, prisma ou faces fÃ­sicas extras.
-                   O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
-                   Essa camada CSS transforma isso em carrossel estÃ¡vel.
-                   ========================================================== */
+                       NÃ£o usa cubo 3D, prisma ou faces fÃ­sicas extras.
+                       O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
+                       Essa camada CSS transforma isso em carrossel estÃ¡vel.
+                       ========================================================== */
 
     .tv-telemetry-cube-shell {
         --tv-carousel-min-height: clamp(520px, 64vh, 820px);
@@ -14220,15 +14241,15 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /* =========================================================
-                   TV FOOTBALL + TELEMETRY CUBE
-                   SINCRONIZAÃ‡ÃƒO EXATA DE ALTURA
-                   ========================================================= */
+                       TV FOOTBALL + TELEMETRY CUBE
+                       SINCRONIZAÃ‡ÃƒO EXATA DE ALTURA
+                       ========================================================= */
 
     /*
-                   A altura da linha Ã© definida naturalmente pelo card de partida.
-                   A coluna de telemetria Ã© esticada pelo CSS Grid e o cube ocupa
-                   exatamente toda a Ã¡rea disponÃ­vel da coluna direita.
-                */
+                       A altura da linha Ã© definida naturalmente pelo card de partida.
+                       A coluna de telemetria Ã© esticada pelo CSS Grid e o cube ocupa
+                       exatamente toda a Ã¡rea disponÃ­vel da coluna direita.
+                    */
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
     }
@@ -14241,19 +14262,19 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                   O card da esquerda mantÃ©m a altura natural do conteÃºdo.
-                   NÃ£o usamos height: 100% aqui para evitar que ele crie uma
-                   referÃªncia circular de altura dentro do prÃ³prio grid.
-                */
+                       O card da esquerda mantÃ©m a altura natural do conteÃºdo.
+                       NÃ£o usamos height: 100% aqui para evitar que ele crie uma
+                       referÃªncia circular de altura dentro do prÃ³prio grid.
+                    */
     .tv-stage--broadcast .tv-match-card--football {
         height: auto !important;
     }
 
     /*
-                   A coluna direita recebe exatamente a altura da linha do grid.
-                   O shell do cube Ã© posicionado dentro dela usando inset: 0,
-                   evitando dependÃªncia de cadeias frÃ¡geis de height: 100%.
-                */
+                       A coluna direita recebe exatamente a altura da linha do grid.
+                       O shell do cube Ã© posicionado dentro dela usando inset: 0,
+                       evitando dependÃªncia de cadeias frÃ¡geis de height: 100%.
+                    */
     .tv-stage--broadcast .tv-telemetry--football {
         position: relative !important;
         display: block !important;
@@ -14276,9 +14297,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
         /*
-                   Toda a cadeia interna do cube passa a respeitar a altura
-                   exata recebida do shell.
-                */
+                       Toda a cadeia interna do cube passa a respeitar a altura
+                       exata recebida do shell.
+                    */
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face--back,
@@ -14299,9 +14320,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                   A face de sentiment usa uma Ãºnica linha flexÃ­vel.
-                   O gauge ocupa integralmente essa linha.
-                */
+                       A face de sentiment usa uma Ãºnica linha flexÃ­vel.
+                       O gauge ocupa integralmente essa linha.
+                    */
     .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
         display: grid !important;
         grid-template-rows: minmax(0, 1fr) !important;
@@ -14330,9 +14351,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                   Estrutura interna do gauge:
-                   cabeÃ§alho, Ã¡rea central flexÃ­vel, status e momentum.
-                */
+                       Estrutura interna do gauge:
+                       cabeÃ§alho, Ã¡rea central flexÃ­vel, status e momentum.
+                    */
     .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
         display: grid !important;
         grid-template-rows: auto minmax(0, 1fr) auto auto !important;
@@ -14375,9 +14396,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-                   Em telas menores as colunas deixam de compartilhar a mesma linha.
-                   O cube volta ao fluxo normal e usa uma altura responsiva prÃ³pria.
-                */
+                       Em telas menores as colunas deixam de compartilhar a mesma linha.
+                       O cube volta ao fluxo normal e usa uma altura responsiva prÃ³pria.
+                    */
     @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-telemetry--football {
             position: relative !important;
@@ -14421,8 +14442,8 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-               AJUSTE FINAL â€” GRÃFICOS COM 100% DA ALTURA DO CONTAINER
-               ========================================================== */
+                   AJUSTE FINAL â€” GRÃFICOS COM 100% DA ALTURA DO CONTAINER
+                   ========================================================== */
 
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
@@ -14495,6 +14516,29 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     .tv-stage--broadcast .tv-telemetry-chart-shell,
+    .tv-stage--broadcast .tv-match-card,
+    .tv-stage--broadcast .tv-telemetry--football {
+        height: 100%;
+        min-height: 0;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry-cube__face--back,
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-stage,
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-panel {
+        height: 100% !important;
+        min-height: 0 !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube__face--back {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+    }
+
+        .tv-stage--broadcast .tv-telemetry-cube__face--back > .tv-telemetry-cube__virtual-stage {
+            min-height: 0 !important;
+        }
+
     .tv-stage--broadcast .tv-telemetry-chart-shell--split,
     .tv-stage--broadcast .tv-telemetry-chart-shell--battle {
         position: relative !important;
@@ -14648,11 +14692,11 @@ private sealed record TvArenaCommentaryEntry(
         font-size: clamp(.54rem, .72cqi, .82rem) !important;
     }
 
-        .tv-stage--broadcast .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
-            flex: 1 1 auto !important;
-            height: 100% !important;
-            min-height: 0 !important;
-        }
+    .tv-stage--broadcast .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+        min-height: 0 !important;
+    }
 
     .tv-stage--broadcast .tv-telemetry-cube__inner--goals {
         display: grid !important;
@@ -14747,14 +14791,14 @@ private sealed record TvArenaCommentaryEntry(
 <style>
 
     /* =========================================================
-           CORREÃ‡ÃƒO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
-           ========================================================= */
+               CORREÃ‡ÃƒO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
+               ========================================================= */
 
     /*
-           Os slides compare, split e sentiment possuem normalmente
-           apenas um filho direto. Eles precisam de uma Ãºnica linha
-           flexÃ­vel, nÃ£o do template header/content/footer.
-        */
+               Os slides compare, split e sentiment possuem normalmente
+               apenas um filho direto. Eles precisam de uma Ãºnica linha
+               flexÃ­vel, nÃ£o do template header/content/footer.
+            */
     .tv-telemetry-cube__inner--compare,
     .tv-telemetry-cube__inner--split,
     .tv-telemetry-cube__inner--sentiment {
@@ -14775,8 +14819,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           O slide de gols possui cabeÃ§alho e conteÃºdo.
-        */
+               O slide de gols possui cabeÃ§alho e conteÃºdo.
+            */
     .tv-telemetry-cube__inner--goals {
         display: grid !important;
         grid-template-rows: auto minmax(0, 1fr) !important;
@@ -14793,9 +14837,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           Todo filho direto dos slides deve ocupar integralmente
-           a linha flexÃ­vel que recebeu.
-        */
+               Todo filho direto dos slides deve ocupar integralmente
+               a linha flexÃ­vel que recebeu.
+            */
     .tv-telemetry-cube__inner--compare > *,
     .tv-telemetry-cube__inner--split > *,
     .tv-telemetry-cube__inner--sentiment > * {
@@ -14811,8 +14855,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           ConteÃºdo do slide de gols ocupa toda a segunda linha.
-        */
+               ConteÃºdo do slide de gols ocupa toda a segunda linha.
+            */
     .tv-telemetry-cube__inner--goals > .tv-goal-log {
         width: 100% !important;
         height: 100% !important;
@@ -14822,8 +14866,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           Cadeia interna dos componentes dos slides.
-        */
+               Cadeia interna dos componentes dos slides.
+            */
     .tv-telemetry-cube__inner--compare :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart ),
     .tv-telemetry-cube__inner--split :is( .tv-candle-battle, .tv-candle-battle__cards, .tv-candle-battle-card ),
     .tv-telemetry-cube__inner--sentiment :is( .tv-arena-pressure-gauge, .tv-arena-pressure-gauge__panel ) {
@@ -14837,9 +14881,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           Remove alturas mÃ­nimas que fazem os componentes escolherem
+               Remove alturas mÃ­nimas que fazem os componentes escolherem
 
-        */
+            */
     .tv-telemetry-cube__inner--compare .tv-telemetry-chart-shell,
     .tv-telemetry-cube__inner--split .tv-telemetry-chart-shell,
     .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
