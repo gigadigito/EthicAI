@@ -25,7 +25,7 @@
 
 @if (ShouldRenderInitialLoading)
 {
-    <section class="tv-stage tv-stage--waiting @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)" aria-busy="true">
+    <section class="tv-stage tv-stage--waiting @TvStageBroadcastClass" aria-busy="true">
         <div class="tv-stage__backdrop"></div>
         <div class="tv-stage__aurora"></div>
         <div class="tv-stage__fog"></div>
@@ -63,7 +63,7 @@
 }
 else if (HasLiveMatch)
 {
-    <section class="tv-stage tv-stage--live @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)">
+    <section class="tv-stage tv-stage--live @TvStageBroadcastClass">
         <div class="tv-stage__backdrop"></div>
         <div class="tv-stage__aurora"></div>
         <div class="tv-stage__fog"></div>
@@ -671,7 +671,10 @@ else if (HasLiveMatch)
                     </div>
                 </section>
             }
-            @RenderTvModeSelector("tv-mode-selector-heading")
+            @if (ShouldShowTvModeSelector)
+            {
+                @RenderTvModeSelector("tv-mode-selector-heading")
+            }
 
 
         </div>
@@ -679,7 +682,7 @@ else if (HasLiveMatch)
 }
 else
 {
-    <section class="tv-stage tv-stage--waiting @(IsBroadcastMode ? "tv-stage--broadcast" : string.Empty)">
+    <section class="tv-stage tv-stage--waiting @TvStageBroadcastClass">
         <div class="tv-stage__backdrop"></div>
         <div class="tv-stage__aurora"></div>
         <div class="tv-stage__fog"></div>
@@ -819,7 +822,10 @@ else
             </article>
         </div>
 
-        @RenderTvModeSelector("tv-mode-selector-waiting-heading")
+        @if (ShouldShowTvModeSelector)
+        {
+            @RenderTvModeSelector("tv-mode-selector-waiting-heading")
+        }
 
         @if (_tickerItems.Count > 0)
         {
@@ -1185,7 +1191,24 @@ else
     private IReadOnlyList<CurrencyDto> TopGainers => Snapshot?.TopGainers?.Take(6).ToList() ?? [];
     private string RotativeTvUrl => RouteLocalization.BuildTvPath(Culture);
     private IReadOnlyList<TvAvailableMatchCard> AvailableTvMatches => BuildAvailableTvMatches();
-    private bool ShouldShowTvModeSelector => AvailableTvMatches.Count > 0 || !IsBroadcastMode;
+    private bool ShouldShowTvModeSelector => !IsTvFullscreenLayout && (AvailableTvMatches.Count > 0 || !IsBroadcastMode);
+    private bool IsTvFullscreenLayout => IsBroadcastMode || IsCurrentTvStageRoute();
+    private string TvStageBroadcastClass => IsTvFullscreenLayout ? "tv-stage--broadcast" : string.Empty;
+
+    private bool IsCurrentTvStageRoute()
+    {
+        try
+        {
+            var absolutePath = new Uri(Nav.Uri, UriKind.Absolute).AbsolutePath.TrimEnd('/');
+            return absolutePath.EndsWith("/tv", StringComparison.OrdinalIgnoreCase)
+                || absolutePath.Contains("/tv/broadcast", StringComparison.OrdinalIgnoreCase)
+                || absolutePath.Contains("/tv/match/", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return IsBroadcastMode;
+        }
+    }
     private RenderFragment RenderTvModeSelector(string headingId) => @<section class="tv-mode-selector" aria-labelledby="@headingId">
 @if (ShouldShowTvModeSelector)
     {
@@ -13073,6 +13096,102 @@ private sealed record TvArenaCommentaryEntry(
             max-width: none;
         }
     }
+
+
+    /* =========================================================
+           TV/OBS FULLSCREEN HEIGHT FIX
+           ---------------------------------------------------------
+           The TV pages (/tv/broadcast and /tv/match) must behave as a
+           single fixed-height scene. This also protects the fixed match
+           route when it renders the same broadcast chrome but does not
+           receive IsBroadcastMode=true from the parent page.
+           ========================================================= */
+    .tv-stage--broadcast {
+        width: 100% !important;
+        min-height: 100dvh !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+    }
+
+        .tv-stage--broadcast .tv-stage__broadcast-shell {
+            width: 100% !important;
+            min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            display: grid !important;
+            grid-template-rows: auto minmax(0, auto) minmax(0, 1fr) auto !important;
+            align-content: stretch !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__status-banner {
+            min-height: 0 !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__grid {
+            min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            align-items: stretch !important;
+        }
+
+        .tv-stage--broadcast .tv-match-card,
+        .tv-stage--broadcast .tv-telemetry {
+            min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-match-card,
+        .tv-stage--broadcast .tv-match-card--football {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) minmax(0, 132px) !important;
+        }
+
+        .tv-stage--broadcast .tv-football-layout,
+        .tv-stage--broadcast .tv-football-center,
+        .tv-stage--broadcast .tv-football-field-viewport,
+        .tv-stage--broadcast .tv-field,
+        .tv-stage--broadcast .tv-field__broadcast-shell,
+        .tv-stage--broadcast .tv-camera-viewport {
+            min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-cube-shell,
+        .tv-stage--broadcast .tv-telemetry-cube,
+        .tv-stage--broadcast .tv-telemetry-cube__face,
+        .tv-stage--broadcast .tv-telemetry-cube__inner,
+        .tv-stage--broadcast .tv-telemetry-cube__virtual-stage,
+        .tv-stage--broadcast .tv-telemetry-cube__virtual-panel,
+        .tv-stage--broadcast .tv-price-battle,
+        .tv-stage--broadcast .tv-candle-battle,
+        .tv-stage--broadcast .tv-goal-log,
+        .tv-stage--broadcast .tv-event-feed,
+        .tv-stage--broadcast .tv-arena-pressure-gauge {
+            min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--compare,
+        .tv-stage--broadcast .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--split,
+        .tv-stage--broadcast .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--goals,
+        .tv-stage--broadcast .tv-telemetry-cube__face--back .tv-telemetry-cube__inner--sentiment {
+            inset: 0 !important;
+        }
+
+        .tv-stage--broadcast .tv-mode-selector {
+            display: none !important;
+        }
 
     .tv-dev-narration-panel {
         position: fixed;
