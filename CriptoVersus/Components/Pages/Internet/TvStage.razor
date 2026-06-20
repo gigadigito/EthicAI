@@ -14892,3 +14892,189 @@ private sealed record TvArenaCommentaryEntry(
         max-height: none !important;
     }
 </style>
+
+<style>
+    /* =========================================================
+           FINAL TV BROADCAST VIEWPORT HEIGHT FIX
+           Mantem o broadcast dentro de uma viewport de TV/OBS e faz
+           a coluna direita ocupar a mesma altura util do painel esquerdo.
+           ========================================================= */
+
+    @@media (min-width: 1081px) {
+        .tv-stage.tv-stage--broadcast.tv-stage--live {
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__broadcast-shell {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            display: grid !important;
+            grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+            gap: clamp(6px, .8vh, 12px) !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__topbar {
+            grid-row: 1 !important;
+            min-height: 0 !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__status-banner {
+            grid-row: 2 !important;
+            min-height: 0 !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__grid {
+            grid-row: 3 !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            align-items: stretch !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-ticker {
+            grid-row: 4 !important;
+            min-height: 0 !important;
+        }
+        /* Em modo broadcast/OBS, a navegacao inferior nao deve roubar altura da transmissao. */
+        .tv-stage--broadcast .tv-mode-selector {
+            display: none !important;
+        }
+
+        .tv-stage--broadcast .tv-match-card--football,
+        .tv-stage--broadcast .tv-telemetry--football {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            align-self: stretch !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-match-card--football {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) minmax(92px, 18vh) !important;
+            gap: clamp(6px, .9vh, 12px) !important;
+        }
+
+        .tv-stage--broadcast .tv-football-layout {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-ai-commentary {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry--football {
+            position: relative !important;
+            display: grid !important;
+            grid-template-rows: minmax(0, 1fr) !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+        }
+
+            .tv-stage--broadcast .tv-telemetry--football > .tv-telemetry-cube-shell {
+                position: relative !important;
+                inset: auto !important;
+                display: block !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-width: 0 !important;
+                min-height: 0 !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
+            }
+
+        .tv-stage--broadcast .tv-telemetry-cube,
+        .tv-stage--broadcast .tv-telemetry-cube__face,
+        .tv-stage--broadcast .tv-telemetry-cube__virtual-stage,
+        .tv-stage--broadcast .tv-telemetry-cube__virtual-panel,
+        .tv-stage--broadcast .tv-telemetry-cube__inner {
+            width: 100% !important;
+            height: 100% !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-cube__inner--compare,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--split,
+        .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
+            display: grid !important;
+            grid-template-rows: minmax(0, 1fr) !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+            align-items: stretch !important;
+            align-content: stretch !important;
+            justify-items: stretch !important;
+            justify-content: stretch !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-cube__inner--goals {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+        }
+
+            .tv-stage--broadcast .tv-telemetry-cube__inner--compare > *,
+            .tv-stage--broadcast .tv-telemetry-cube__inner--split > *,
+            .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment > *,
+            .tv-stage--broadcast .tv-telemetry-cube__inner--goals > .tv-goal-log {
+                width: 100% !important;
+                height: 100% !important;
+                min-width: 0 !important;
+                min-height: 0 !important;
+                max-width: 100% !important;
+                max-height: 100% !important;
+                align-self: stretch !important;
+                justify-self: stretch !important;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
+            }
+
+        .tv-stage--broadcast .tv-goal-log,
+        .tv-stage--broadcast .tv-goal-log > *,
+        .tv-stage--broadcast .tv-goal-event-feed,
+        .tv-stage--broadcast .tv-goal-event-feed__list,
+        .tv-stage--broadcast .tv-goal-event-feed__items {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-candle-battle,
+        .tv-stage--broadcast .tv-candle-battle__cards,
+        .tv-stage--broadcast .tv-candle-battle-card,
+        .tv-stage--broadcast .tv-candle-battle-card__body,
+        .tv-stage--broadcast .tv-candle-battle-card__chart-area,
+        .tv-stage--broadcast .tv-telemetry-chart-shell,
+        .tv-stage--broadcast .tv-telemetry-chart-shell--battle {
+            width: 100% !important;
+            height: 100% !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+    }
+</style>
