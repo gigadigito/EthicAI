@@ -1436,46 +1436,68 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
     if (points.Count < 2)
         return Array.Empty<ChartCandleVisual>();
 
-    var values = points.Select(x => x.Value).ToList();
-    var min = values.Min();
-    var max = values.Max();
-    var range = max - min;
-
-    if (range == 0m)
-    {
-        min -= 1m;
-        max += 1m;
-        range = 2m;
-    }
-
-    var candleCount = points.Count - 1;
-    var slotWidth = 1000d / Math.Max(candleCount, 1);
-    var bodyWidth = compact
-        ? Math.Clamp(slotWidth * 0.18d, 3d, 10d)
-        : Math.Clamp(slotWidth * 0.22d, 3d, 12d);
-
-    var result = new List<ChartCandleVisual>(candleCount);
+    var deltas = new List<decimal>();
 
     for (var i = 1; i < points.Count; i++)
     {
-        var open = points[i - 1].Value;
-        var close = points[i].Value;
-        var high = Math.Max(open, close);
-        var low = Math.Min(open, close);
-        var x = ((i - 1) + .5d) * slotWidth;
-        var openY = MapY(open, min, max);
-        var closeY = MapY(close, min, max);
-        var highY = MapY(high, min, max);
-        var lowY = MapY(low, min, max);
-        var sideClass = visualSide == BattleSide.Left ? "left" : "right";
-        var rawBodyHeight = Math.Max(3d, Math.Abs(closeY - openY));
+        deltas.Add(ComputePercentChange(points[i - 1].Value, points[i].Value));
+    }
 
-        // Evita que poucos pontos ou grandes saltos transformem o candle em uma área sólida.
-        // O pavio continua mostrando a amplitude completa; o corpo fica limitado e legível.
-        var maxBodyHeight = compact ? 34d : 28d;
-        var bodyHeight = Math.Min(rawBodyHeight, maxBodyHeight);
-        var bodyMiddleY = (openY + closeY) / 2d;
-        var bodyY = Math.Clamp(bodyMiddleY - (bodyHeight / 2d), 10d, 310d - bodyHeight);
+    if (deltas.Count == 0)
+        return Array.Empty<ChartCandleVisual>();
+
+    var maxAbsDelta = deltas
+        .Select(x => Math.Abs(x))
+        .DefaultIfEmpty(0.0001m)
+        .Max();
+
+    if (maxAbsDelta <= 0m)
+        maxAbsDelta = 0.0001m;
+
+    var candleCount = points.Count - 1;
+    var slotWidth = 1000d / Math.Max(candleCount, 1);
+
+    var bodyWidth = compact
+        ? Math.Clamp(slotWidth * 0.22d, 3d, 9d)
+        : Math.Clamp(slotWidth * 0.28d, 4d, 13d);
+
+    var result = new List<ChartCandleVisual>(candleCount);
+    var sideClass = visualSide == BattleSide.Left ? "left" : "right";
+
+    const double centerY = 160d;
+    const double minBodyHeight = 8d;
+    const double maxBodyHeight = 78d;
+    const double minWickHeight = 28d;
+    const double maxWickHeight = 128d;
+
+    for (var i = 1; i < points.Count; i++)
+    {
+        var delta = ComputePercentChange(points[i - 1].Value, points[i].Value);
+        var strength = (double)(Math.Abs(delta) / maxAbsDelta);
+        strength = Math.Clamp(strength, 0d, 1d);
+
+        var bodyHeight = minBodyHeight + ((maxBodyHeight - minBodyHeight) * strength);
+        var wickHeight = minWickHeight + ((maxWickHeight - minWickHeight) * strength);
+
+        var x = ((i - 1) + .5d) * slotWidth;
+
+        var isUp = delta >= 0m;
+
+        var bodyY = isUp
+            ? centerY - bodyHeight
+            : centerY;
+
+        var highY = isUp
+            ? centerY - wickHeight
+            : centerY;
+
+        var lowY = isUp
+            ? centerY
+            : centerY + wickHeight;
+
+        bodyY = Math.Clamp(bodyY, 10d, 310d - bodyHeight);
+        highY = Math.Clamp(highY, 10d, 310d);
+        lowY = Math.Clamp(lowY, 10d, 310d);
 
         result.Add(new ChartCandleVisual
         {
