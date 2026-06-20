@@ -181,8 +181,9 @@ export function renderCandleBattleHud(battleState) {
         setWidth(root.querySelector(`[id="${instanceId}-score-momentum-right-fill"]`), battleState.momentum.rightPercent);
         setText(root.querySelector(`[id="${instanceId}-score-momentum-status"]`), buildMomentumStatus(battleState));
 
-        renderStatsPanel(root, battleState, instanceId);
-
+        //renderStatsPanel(root, battleState, instanceId);
+        // O painel tático agora é controlado pelo TvCandleBattle.razor.
+        // Não sobrescrever HTML renderizado pelo Razor.
         root.dataset.battleLeader = battleState.leader;
         root.dataset.battleMomentum = battleState.momentum.dominantSide;
     });
