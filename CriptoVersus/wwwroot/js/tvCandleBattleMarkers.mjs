@@ -135,8 +135,10 @@ export function renderBattleTimeline(containerId, battleState) {
     container.dataset.timelineSignature = groupedSignature;
     container.replaceChildren();
 
+    const minWidth = groupedSamples.length <= 30 ? "10px" : "0";
+
     container.style.gridTemplateColumns =
-        `repeat(${groupedSamples.length}, minmax(0, 1fr))`;
+        `repeat(${groupedSamples.length}, minmax(${minWidth}, 1fr))`;
 
     const fragment = document.createDocumentFragment();
 
