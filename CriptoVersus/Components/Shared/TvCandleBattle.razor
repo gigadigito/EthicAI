@@ -1452,7 +1452,7 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
     var slotWidth = 1000d / Math.Max(candleCount, 1);
     var bodyWidth = compact
         ? Math.Clamp(slotWidth * 0.18d, 3d, 10d)
-        : Math.Clamp(slotWidth * 0.46d, 4d, 22d);
+        : Math.Clamp(slotWidth * 0.22d, 3d, 12d);
 
     var result = new List<ChartCandleVisual>(candleCount);
 
@@ -1468,15 +1468,14 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
         var highY = MapY(high, min, max);
         var lowY = MapY(low, min, max);
         var sideClass = visualSide == BattleSide.Left ? "left" : "right";
-        var rawBodyY = Math.Min(openY, closeY);
         var rawBodyHeight = Math.Max(3d, Math.Abs(closeY - openY));
-        var bodyHeight = compact
-            ? Math.Min(rawBodyHeight, 34d)
-            : rawBodyHeight;
+
+        // Evita que poucos pontos ou grandes saltos transformem o candle em uma área sólida.
+        // O pavio continua mostrando a amplitude completa; o corpo fica limitado e legível.
+        var maxBodyHeight = compact ? 34d : 28d;
+        var bodyHeight = Math.Min(rawBodyHeight, maxBodyHeight);
         var bodyMiddleY = (openY + closeY) / 2d;
-        var bodyY = compact
-            ? Math.Clamp(bodyMiddleY - (bodyHeight / 2d), 10d, 310d - bodyHeight)
-            : rawBodyY;
+        var bodyY = Math.Clamp(bodyMiddleY - (bodyHeight / 2d), 10d, 310d - bodyHeight);
 
         result.Add(new ChartCandleVisual
         {
