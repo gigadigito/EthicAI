@@ -94,94 +94,97 @@
             </aside>
         </section>
 
-        <div class="tv-candle-battle__workspace">
+        <div class="@WorkspaceClass">
             <div class="tv-candle-battle__cards">
                 @RenderCandleCard(true, compact: false)
                 @RenderCandleCard(false, compact: false)
             </div>
 
-            <aside id="@($"{_resolvedInstanceId}-stats-panel")"
-                   class="tv-candle-battle__sidebar"
-                   aria-label="@T("labels.tacticalPanelA11y")">
-                <div class="tv-candle-battle__sidebar-top">
-                    <div class="tv-candle-battle__sidebar-kicker">
-                        <span>@PanelTitle</span>
-                        <strong class="@Battle.LeaderClass">@Battle.ShortLeaderLabel</strong>
-                    </div>
-
-                    <div class="tv-candle-battle__sidebar-leader">
-                        <span>@LeaderTitle</span>
-                        <strong>@Battle.LeaderLabel</strong>
-                    </div>
-
-                    <div class="tv-candle-battle__sidebar-momentum" aria-hidden="true">
-                        <i class="tv-candle-battle__sidebar-momentum-fill tv-candle-battle__sidebar-momentum-fill--left"
-                           style="width:@Battle.LeftMomentumPercentString;"></i>
-                        <i class="tv-candle-battle__sidebar-momentum-fill tv-candle-battle__sidebar-momentum-fill--right"
-                           style="width:@Battle.RightMomentumPercentString;"></i>
-                    </div>
-                </div>
-
-                <div class="tv-candle-battle__sidebar-section">
-                    <div class="tv-candle-battle__sidebar-section-head">
-                        <span>@CandlesAnalyzedTitle</span>
-                        <strong>@Battle.TotalComparableCandles</strong>
-                    </div>
-
-                    <div class="tv-candle-battle__sidebar-grid">
-                        <div class="tv-candle-battle__sidebar-row">
-                            <span>@LeftHeroLabel</span>
-                            <strong class="is-left">@Battle.LeftWins</strong>
+            @if (ShowTacticalPanel)
+            {
+                <aside id="@($"{_resolvedInstanceId}-stats-panel")"
+                       class="tv-candle-battle__sidebar"
+                       aria-label="@T("labels.tacticalPanelA11y")">
+                    <div class="tv-candle-battle__sidebar-top">
+                        <div class="tv-candle-battle__sidebar-kicker">
+                            <span>@PanelTitle</span>
+                            <strong class="@Battle.LeaderClass">@Battle.ShortLeaderLabel</strong>
                         </div>
-                        <div class="tv-candle-battle__sidebar-row">
-                            <span>@RightHeroLabel</span>
-                            <strong class="is-right">@Battle.RightWins</strong>
+
+                        <div class="tv-candle-battle__sidebar-leader">
+                            <span>@LeaderTitle</span>
+                            <strong>@Battle.LeaderLabel</strong>
                         </div>
-                        <div class="tv-candle-battle__sidebar-row">
-                            <span>@T("labels.tie")</span>
-                            <strong>@Battle.Ties</strong>
+
+                        <div class="tv-candle-battle__sidebar-momentum" aria-hidden="true">
+                            <i class="tv-candle-battle__sidebar-momentum-fill tv-candle-battle__sidebar-momentum-fill--left"
+                               style="width:@Battle.LeftMomentumPercentString;"></i>
+                            <i class="tv-candle-battle__sidebar-momentum-fill tv-candle-battle__sidebar-momentum-fill--right"
+                               style="width:@Battle.RightMomentumPercentString;"></i>
                         </div>
                     </div>
-                </div>
 
-                <div class="tv-candle-battle__sidebar-section">
-                    <div class="tv-candle-battle__sidebar-section-head">
-                        <span>@StreakTitle</span>
-                        <strong>@Battle.LastRunLength</strong>
-                    </div>
+                    <div class="tv-candle-battle__sidebar-section">
+                        <div class="tv-candle-battle__sidebar-section-head">
+                            <span>@CandlesAnalyzedTitle</span>
+                            <strong>@Battle.TotalComparableCandles</strong>
+                        </div>
 
-                    <div class="tv-candle-battle__sidebar-streak">
-                        <i class="tv-candle-battle__sidebar-streak-icon @Battle.LastRunClass"></i>
-                        <div>
-                            <small>@LastCandleTitle</small>
-                            <strong class="@Battle.LastRunClass">@Battle.LastRunLabel</strong>
+                        <div class="tv-candle-battle__sidebar-grid">
+                            <div class="tv-candle-battle__sidebar-row">
+                                <span>@LeftHeroLabel</span>
+                                <strong class="is-left">@Battle.LeftWins</strong>
+                            </div>
+                            <div class="tv-candle-battle__sidebar-row">
+                                <span>@RightHeroLabel</span>
+                                <strong class="is-right">@Battle.RightWins</strong>
+                            </div>
+                            <div class="tv-candle-battle__sidebar-row">
+                                <span>@T("labels.tie")</span>
+                                <strong>@Battle.Ties</strong>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="tv-candle-battle__sidebar-section">
-                    <div class="tv-candle-battle__sidebar-section-head">
-                        <span>@PerformanceTitle</span>
-                        <strong>@Battle.MomentumStatusLabel</strong>
-                    </div>
-
-                    <div class="tv-candle-battle__sidebar-performance">
-                        <div class="tv-candle-battle__sidebar-row">
-                            <span>@LeftHeroLabel</span>
-                            <strong class="is-left">@FormatDeltaPercent(Battle.LastLeftDeltaPercent)</strong>
+                    <div class="tv-candle-battle__sidebar-section">
+                        <div class="tv-candle-battle__sidebar-section-head">
+                            <span>@StreakTitle</span>
+                            <strong>@Battle.LastRunLength</strong>
                         </div>
-                        <div class="tv-candle-battle__sidebar-row">
-                            <span>@RightHeroLabel</span>
-                            <strong class="is-right">@FormatDeltaPercent(Battle.LastRightDeltaPercent)</strong>
+
+                        <div class="tv-candle-battle__sidebar-streak">
+                            <i class="tv-candle-battle__sidebar-streak-icon @Battle.LastRunClass"></i>
+                            <div>
+                                <small>@LastCandleTitle</small>
+                                <strong class="@Battle.LastRunClass">@Battle.LastRunLabel</strong>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                @if (!Battle.HasData)
-                {
-                    <div class="tv-candle-battle__sidebar-muted">@WaitingHistoryText</div>
-                }
-            </aside>
+                    <div class="tv-candle-battle__sidebar-section">
+                        <div class="tv-candle-battle__sidebar-section-head">
+                            <span>@PerformanceTitle</span>
+                            <strong>@Battle.MomentumStatusLabel</strong>
+                        </div>
+
+                        <div class="tv-candle-battle__sidebar-performance">
+                            <div class="tv-candle-battle__sidebar-row">
+                                <span>@LeftHeroLabel</span>
+                                <strong class="is-left">@FormatDeltaPercent(Battle.LastLeftDeltaPercent)</strong>
+                            </div>
+                            <div class="tv-candle-battle__sidebar-row">
+                                <span>@RightHeroLabel</span>
+                                <strong class="is-right">@FormatDeltaPercent(Battle.LastRightDeltaPercent)</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!Battle.HasData)
+                    {
+                        <div class="tv-candle-battle__sidebar-muted">@WaitingHistoryText</div>
+                    }
+                </aside>
+            }
         </div>
     }
 </section>
@@ -421,6 +424,14 @@
         gap: 12px;
         align-items: stretch;
     }
+
+    .tv-candle-battle__workspace--no-sidebar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+        .tv-candle-battle__workspace--no-sidebar .tv-candle-battle__cards {
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+        }
 
     .tv-candle-battle__cards {
         min-width: 0;
@@ -1287,9 +1298,16 @@
     [Parameter]
     public bool IsBroadcastCompact { get; set; }
 
+    [Parameter]
+    public bool ShowTacticalPanel { get; set; } = true;
+
     private string RootClass => IsBroadcastCompact
         ? "tv-candle-battle tv-candle-battle--broadcast-compact"
         : "tv-candle-battle";
+
+    private string WorkspaceClass => ShowTacticalPanel
+        ? "tv-candle-battle__workspace"
+        : "tv-candle-battle__workspace tv-candle-battle__workspace--no-sidebar";
 
     protected override void OnParametersSet()
     {
@@ -1304,7 +1322,6 @@
     private IReadOnlyList<BattleCandle> BattleCandles => BuildBattleCandles();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
 
-    private bool IsEnglish => (Culture ?? string.Empty).StartsWith("en", StringComparison.OrdinalIgnoreCase);
     private string WaitingHistoryText => T("labels.waitingCandleHistory");
     private string PanelTitle => T("labels.tacticalPanel");
     private string LeaderTitle => T("labels.leadership");
@@ -1433,12 +1450,6 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
 
     var candleCount = points.Count - 1;
     var slotWidth = 1000d / Math.Max(candleCount, 1);
-
-    // No Match normal mantemos o desenho original.
-    // No Broadcast compact, os pontos podem vir mais espaçados ou em menor quantidade;
-    // se o corpo usar toda a distância entre open/close, o SVG vira um bloco/área preenchida.
-    // Por isso o modo compact mantém pavio completo, mas limita o corpo para continuar
-    // parecendo candle de verdade dentro do cube.
     var bodyWidth = compact
         ? Math.Clamp(slotWidth * 0.18d, 3d, 10d)
         : Math.Clamp(slotWidth * 0.46d, 4d, 22d);
