@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using System.Diagnostics
 @using System.IO
 @using System.Text
@@ -1126,11 +1126,11 @@ else
     private bool ShouldRenderInitialLoading => IsInitialLoading && !HasLiveMatch;
     private string InitialLoadingTitle => IsPortugueseCulture ? "Carregando arena..." : "Loading arena...";
     private string InitialLoadingSubtitle => IsPortugueseCulture
-        ? "Aguarde enquanto a transmissão confirma os dados da partida."
+        ? "Aguarde enquanto a transmissÃ£o confirma os dados da partida."
         : "Please wait while the broadcast confirms the match data.";
     private string InitialLoadingStepOne => IsPortugueseCulture ? "Sincronizando partida" : "Synchronizing match";
-    private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando gráficos e placar" : "Preparing charts and scoreboard";
-    private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissão" : "Activating broadcast";
+    private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando grÃ¡ficos e placar" : "Preparing charts and scoreboard";
+    private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissÃ£o" : "Activating broadcast";
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private bool EnableTvDebugOverlay => Config.GetValue<bool?>("CriptoVersusTV:EnableDebugOverlay") == true;
@@ -2808,46 +2808,46 @@ private string GetRandomPirateMessage(string reason, BroadcastCinematicVideoAsse
             "pirate-transmission" =>
             [
                 "Sinal pirata capturado. O feed foi invadido.",
-                    "Transmissão clandestina no ar. Mantenha os olhos na arena.",
+                    "TransmissÃ£o clandestina no ar. Mantenha os olhos na arena.",
                     "Canal comprometido. Uma nova mensagem entrou no sistema."
             ],
             "market-warning" =>
             [
-                "Alerta de mercado. A pressão está rompendo o painel.",
+                "Alerta de mercado. A pressÃ£o estÃ¡ rompendo o painel.",
                     "A volatilidade escalou. Proteja a linha defensiva.",
                     "Sinais extremos detectados. O canal entrou em modo de risco."
             ],
             "villain-message" =>
             [
-                "O arquiteto da arena voltou a falar. Nada aqui é aleatório.",
-                    "A mente por trás do caos assumiu o sinal.",
+                "O arquiteto da arena voltou a falar. Nada aqui Ã© aleatÃ³rio.",
+                    "A mente por trÃ¡s do caos assumiu o sinal.",
                     "Mensagem hostil recebida. A arena foi observada o tempo inteiro."
             ],
             "meme-coin-event" =>
             [
                 "As meme coins tomaram o palco. A plateia enlouqueceu.",
-                    "O caos dos memes invadiu a transmissão oficial.",
+                    "O caos dos memes invadiu a transmissÃ£o oficial.",
                     "Rali detectado. Os mascotes da cripto querem dominar a arena."
             ],
             "special-event" =>
             [
                 "Evento especial no ar. A arena mudou de estado.",
-                    "Sequência cinemática acionada. Todos os olhos no centro do campo.",
-                    "Sinal premium detectado. Algo grande está prestes a acontecer."
+                    "SequÃªncia cinemÃ¡tica acionada. Todos os olhos no centro do campo.",
+                    "Sinal premium detectado. Algo grande estÃ¡ prestes a acontecer."
             ],
             _ when string.Equals(reason, "initial", StringComparison.Ordinal) =>
             [
-                "O mercado nunca dorme... e hoje, fortunas serão reescritas.",
+                "O mercado nunca dorme... e hoje, fortunas serÃ£o reescritas.",
                     "A arena desperta. Cada vela pode mudar um imperio.",
-                    "Os sinais estão vivos. Observe quem domina o próximo impacto."
+                    "Os sinais estÃ£o vivos. Observe quem domina o prÃ³ximo impacto."
             ],
             _ =>
             [
                 "Sinal interceptado. Nova batalha detectada.",
-                    "A arena mudou. Observe com atenção.",
-                    "A volatilidade está subindo. Alguém vai cair.",
-                    "Transmissão CriptoVersus retomada.",
-                    "Uma nova guerra de mercado começa agora."
+                    "A arena mudou. Observe com atenÃ§Ã£o.",
+                    "A volatilidade estÃ¡ subindo. AlguÃ©m vai cair.",
+                    "TransmissÃ£o CriptoVersus retomada.",
+                    "Uma nova guerra de mercado comeÃ§a agora."
             ]
         };
 
@@ -4100,8 +4100,8 @@ private static string BuildReplayReason(MatchScoreEventDto scoreEvent)
                 "VolumeWindow" => "Dominou a janela de volume",
                 "VolumeCrossover" => "Virou o volume a favor",
                 "ArenaPressure" => "Pressao de arena convertida",
-                "CandleBattleDominance" => "Abriu domínio no Candle Battle",
-                "CandleBattleLeadChange" => "Abriu domínio no Candle Battle",
+                "CandleBattleDominance" => "Abriu domÃ­nio no Candle Battle",
+                "CandleBattleLeadChange" => "Abriu domÃ­nio no Candle Battle",
                 _ => "Evento de pontuacao detectado"
             };
 
@@ -4357,7 +4357,7 @@ private IReadOnlyList<TvAvailableMatchCard> BuildAvailableTvMatches()
             FormatStatus(status),
             clockLabel,
             $"{scoreA}:{scoreB}",
-            $"{GetBaseSymbol(leftSymbol)} • {GetBaseSymbol(rightSymbol)}",
+            $"{GetBaseSymbol(leftSymbol)} â€¢ {GetBaseSymbol(rightSymbol)}",
             publicUrl,
             watchUrl,
             (CurrentStageMatchId) == matchId));
@@ -6037,47 +6037,47 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             {
                 NarrativeBallZone.Defensive => BuildTemplates("offensive-defensive-zone",
                 [
-                    $"{symbol} toca a bola tranquilamente na sua área.",
+                    $"{symbol} toca a bola tranquilamente na sua Ã¡rea.",
                         $"{symbol} troca passes no campo defensivo.",
-                        $"{symbol} prefere não arriscar e segura a posse atrás."
+                        $"{symbol} prefere nÃ£o arriscar e segura a posse atrÃ¡s."
                 ]),
                 NarrativeBallZone.Middle => BuildTemplates("offensive-middle-zone",
                 [
                     $"{symbol} trabalha a bola pelo meio da arena.",
-                        $"{symbol} tenta encontrar espaço entre as linhas.",
-                        $"{symbol} mantém a posse e controla o ritmo."
+                        $"{symbol} tenta encontrar espaÃ§o entre as linhas.",
+                        $"{symbol} mantÃ©m a posse e controla o ritmo."
                 ]),
                 _ => BuildTemplates("offensive-attack-zone",
                 [
-                    $"{symbol} toca a bola para a área inimiga.",
-                        $"{symbol} avança para o campo adversário.",
-                        $"{symbol} começa a pressionar perto da área rival.",
+                    $"{symbol} toca a bola para a Ã¡rea inimiga.",
+                        $"{symbol} avanÃ§a para o campo adversÃ¡rio.",
+                        $"{symbol} comeÃ§a a pressionar perto da Ã¡rea rival.",
                         $"{symbol} leva perigo no ataque."
                 ])
             },
             NarrativeEventKind.DefensivePossession => BuildTemplates("defensive-possession",
             [
-                $"{symbol} toca a bola na sua área, sem querer arriscar muito.",
-                    $"{symbol} recua a jogada e tenta organizar a saída.",
-                    $"{symbol} prefere manter a posse com segurança."
+                $"{symbol} toca a bola na sua Ã¡rea, sem querer arriscar muito.",
+                    $"{symbol} recua a jogada e tenta organizar a saÃ­da.",
+                    $"{symbol} prefere manter a posse com seguranÃ§a."
             ]),
             NarrativeEventKind.Dominance => BuildTemplates("dominance",
             [
-                $"A dominância da bola está com {symbol}.",
+                $"A dominÃ¢ncia da bola estÃ¡ com {symbol}.",
                     $"{symbol} controla o ritmo da partida neste momento.",
                     $"{symbol} parece mais confortavel com a posse."
             ]),
             NarrativeEventKind.Transition => BuildTemplates("transition",
             [
                 "A bola fica viva no meio da arena.",
-                    "As duas moedas disputam espaço no campo.",
+                    "As duas moedas disputam espaÃ§o no campo.",
                     "O jogo fica equilibrado neste momento."
             ]),
             NarrativeEventKind.PressureGrowth => BuildTemplates("pressure-growth",
             [
-                $"{symbol} aumenta a pressão ofensiva.",
+                $"{symbol} aumenta a pressÃ£o ofensiva.",
                     $"O time de {symbol} sobe suas linhas.",
-                    $"{symbol} empurra o adversário para trás."
+                    $"{symbol} empurra o adversÃ¡rio para trÃ¡s."
             ]),
             NarrativeEventKind.PossessionRecovery => BuildTemplates("possession-recovery",
             [
@@ -6087,7 +6087,7 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             ]),
             NarrativeEventKind.Tension => BuildTemplates("tension",
             [
-                "A arena sente o aumento da tensão.",
+                "A arena sente o aumento da tensÃ£o.",
                     "O confronto fica mais intenso neste momento.",
                     "A torcida virtual acompanha cada movimento."
             ]),
@@ -6095,14 +6095,14 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             {
                 NarrativeBallZone.Defensive => BuildTemplates("non-possession-defensive-zone",
                 [
-                    $"{symbol} mesmo sem posse de bola defende a sua área.",
-                        $"{symbol} fecha os espaços e tenta impedir o avanço adversário.",
-                        $"{symbol} segura a pressão perto da sua área."
+                    $"{symbol} mesmo sem posse de bola defende a sua Ã¡rea.",
+                        $"{symbol} fecha os espaÃ§os e tenta impedir o avanÃ§o adversÃ¡rio.",
+                        $"{symbol} segura a pressÃ£o perto da sua Ã¡rea."
                 ]),
                 _ => BuildTemplates("non-possession-defense",
                 [
-                    $"{symbol} mesmo sem posse de bola protege bem a sua área.",
-                        $"{symbol} fecha os espaços e tenta impedir o avanço adversário.",
+                    $"{symbol} mesmo sem posse de bola protege bem a sua Ã¡rea.",
+                        $"{symbol} fecha os espaÃ§os e tenta impedir o avanÃ§o adversÃ¡rio.",
                         $"{symbol} se reorganiza defensivamente."
                 ])
             },
@@ -6117,8 +6117,8 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             NarrativeEventKind.RecoveryAttempt => BuildTemplates("recovery-attempt",
             [
                 $"{symbol} tenta recuperar a posse no campo de defesa.",
-                    $"{symbol} tenta reagir e encurtar os espaços.",
-                    $"{symbol} busca retomar o controle mesmo sob pressão."
+                    $"{symbol} tenta reagir e encurtar os espaÃ§os.",
+                    $"{symbol} busca retomar o controle mesmo sob pressÃ£o."
             ]),
             _ => []
         }
@@ -6301,14 +6301,14 @@ private string DescribeNarrativeEventType(NarrativeEventKind type)
             NarrativeEventKind.MatchOpening => "Abertura",
             NarrativeEventKind.OffensivePossession => "Posse ofensiva",
             NarrativeEventKind.DefensivePossession => "Posse defensiva",
-            NarrativeEventKind.Dominance => "Dominância",
-            NarrativeEventKind.Transition => "Transição",
-            NarrativeEventKind.PressureGrowth => "Pressão",
-            NarrativeEventKind.PossessionRecovery => "Recuperação",
+            NarrativeEventKind.Dominance => "DominÃ¢ncia",
+            NarrativeEventKind.Transition => "TransiÃ§Ã£o",
+            NarrativeEventKind.PressureGrowth => "PressÃ£o",
+            NarrativeEventKind.PossessionRecovery => "RecuperaÃ§Ã£o",
             NarrativeEventKind.NonPossessionDefense => "Defesa sem posse",
             NarrativeEventKind.ScoreboardNeutral => "Placar",
-            NarrativeEventKind.RecoveryAttempt => "Reação",
-            NarrativeEventKind.Tension => "Tensão",
+            NarrativeEventKind.RecoveryAttempt => "ReaÃ§Ã£o",
+            NarrativeEventKind.Tension => "TensÃ£o",
             _ => "Arena"
         }
         : type switch
@@ -13368,16 +13368,16 @@ private sealed record TvArenaCommentaryEntry(
         }
 
         .tv-candle-battle__title-block strong {
-            font-size: 1rem;
+            font-size: clamp(1rem, 1.4cqi, 1.3rem);
         }
 
         .tv-candle-battle__score-side b {
-            font-size: 2.4rem;
+            font-size: clamp(1.5rem, 2.8cqi, 2.4rem);
         }
 
         .tv-candle-battle-card__legend {
             gap: 10px;
-            font-size: .62rem;
+            font-size: .56rem;
         }
 
         .tv-candle-battle-card__stats {
@@ -14018,9 +14018,9 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-                   HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
+                   HOTFIX ÃNTEGRO â€” Broadcast telemetry as simple carousel
                    ----------------------------------------------------------
-                   Mantém os mesmos IDs usados pelo JS/lightweight-charts:
+                   MantÃ©m os mesmos IDs usados pelo JS/lightweight-charts:
                    - tv-telemetry-chart-left
                    - tv-telemetry-chart-right
                    - tv-telemetry-chart-compare
@@ -14028,9 +14028,9 @@ private sealed record TvArenaCommentaryEntry(
                    - tv-candle-battle-root
                    - TvArenaPressureGauge
 
-                   Não usa cubo 3D, prisma ou faces físicas extras.
+                   NÃ£o usa cubo 3D, prisma ou faces fÃ­sicas extras.
                    O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
-                   Essa camada CSS transforma isso em carrossel estável.
+                   Essa camada CSS transforma isso em carrossel estÃ¡vel.
                    ========================================================== */
 
     .tv-telemetry-cube-shell {
@@ -14221,13 +14221,13 @@ private sealed record TvArenaCommentaryEntry(
 
     /* =========================================================
                    TV FOOTBALL + TELEMETRY CUBE
-                   SINCRONIZAÇÃO EXATA DE ALTURA
+                   SINCRONIZAÃ‡ÃƒO EXATA DE ALTURA
                    ========================================================= */
 
     /*
-                   A altura da linha é definida naturalmente pelo card de partida.
-                   A coluna de telemetria é esticada pelo CSS Grid e o cube ocupa
-                   exatamente toda a área disponível da coluna direita.
+                   A altura da linha Ã© definida naturalmente pelo card de partida.
+                   A coluna de telemetria Ã© esticada pelo CSS Grid e o cube ocupa
+                   exatamente toda a Ã¡rea disponÃ­vel da coluna direita.
                 */
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
@@ -14241,9 +14241,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                   O card da esquerda mantém a altura natural do conteúdo.
-                   Não usamos height: 100% aqui para evitar que ele crie uma
-                   referência circular de altura dentro do próprio grid.
+                   O card da esquerda mantÃ©m a altura natural do conteÃºdo.
+                   NÃ£o usamos height: 100% aqui para evitar que ele crie uma
+                   referÃªncia circular de altura dentro do prÃ³prio grid.
                 */
     .tv-stage--broadcast .tv-match-card--football {
         height: auto !important;
@@ -14251,8 +14251,8 @@ private sealed record TvArenaCommentaryEntry(
 
     /*
                    A coluna direita recebe exatamente a altura da linha do grid.
-                   O shell do cube é posicionado dentro dela usando inset: 0,
-                   evitando dependência de cadeias frágeis de height: 100%.
+                   O shell do cube Ã© posicionado dentro dela usando inset: 0,
+                   evitando dependÃªncia de cadeias frÃ¡geis de height: 100%.
                 */
     .tv-stage--broadcast .tv-telemetry--football {
         position: relative !important;
@@ -14299,7 +14299,7 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                   A face de sentiment usa uma única linha flexível.
+                   A face de sentiment usa uma Ãºnica linha flexÃ­vel.
                    O gauge ocupa integralmente essa linha.
                 */
     .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
@@ -14331,7 +14331,7 @@ private sealed record TvArenaCommentaryEntry(
 
     /*
                    Estrutura interna do gauge:
-                   cabeçalho, área central flexível, status e momentum.
+                   cabeÃ§alho, Ã¡rea central flexÃ­vel, status e momentum.
                 */
     .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
         display: grid !important;
@@ -14376,7 +14376,7 @@ private sealed record TvArenaCommentaryEntry(
 
     /*
                    Em telas menores as colunas deixam de compartilhar a mesma linha.
-                   O cube volta ao fluxo normal e usa uma altura responsiva própria.
+                   O cube volta ao fluxo normal e usa uma altura responsiva prÃ³pria.
                 */
     @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-telemetry--football {
@@ -14421,7 +14421,7 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-               AJUSTE FINAL — GRÁFICOS COM 100% DA ALTURA DO CONTAINER
+               AJUSTE FINAL â€” GRÃFICOS COM 100% DA ALTURA DO CONTAINER
                ========================================================== */
 
     .tv-stage--broadcast .tv-stage__grid {
@@ -14562,7 +14562,9 @@ private sealed record TvArenaCommentaryEntry(
 
     .tv-stage--broadcast .tv-candle-battle,
     .tv-stage--broadcast .tv-candle-battle__body,
+    .tv-stage--broadcast .tv-candle-battle__workspace,
     .tv-stage--broadcast .tv-candle-battle__cards,
+    .tv-stage--broadcast .tv-candle-battle__sidebar,
     .tv-stage--broadcast .tv-candle-battle-card,
     .tv-stage--broadcast .tv-candle-battle-card__body,
     .tv-stage--broadcast .tv-candle-battle-card__chart-area {
@@ -14581,8 +14583,11 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     .tv-stage--broadcast .tv-candle-battle__body,
-    .tv-stage--broadcast .tv-candle-battle__cards {
+    .tv-stage--broadcast .tv-candle-battle__workspace,
+    .tv-stage--broadcast .tv-candle-battle__cards,
+    .tv-stage--broadcast .tv-candle-battle__sidebar {
         height: 100% !important;
+        min-height: 0 !important;
         align-items: stretch !important;
         align-content: stretch !important;
         overflow: hidden !important;
@@ -14608,6 +14613,39 @@ private sealed record TvArenaCommentaryEntry(
         display: flex !important;
         align-items: stretch !important;
         overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle__sidebar {
+        align-content: stretch !important;
+        justify-content: start !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle__sidebar-leader strong,
+    .tv-stage--broadcast .tv-candle-battle__sidebar-row strong,
+    .tv-stage--broadcast .tv-candle-battle__sidebar-streak strong,
+    .tv-stage--broadcast .tv-candle-battle-card__head strong,
+    .tv-stage--broadcast .tv-candle-battle__score-copy strong,
+    .tv-stage--broadcast .tv-candle-battle__score-side b,
+    .tv-stage--broadcast .tv-candle-battle__score-center strong,
+    .tv-stage--broadcast .tv-candle-battle__compact-team strong,
+    .tv-stage--broadcast .tv-candle-battle__compact-team b {
+        font-size: clamp(.82rem, 1.2cqi, 1.9rem) !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle__score-side b {
+        font-size: clamp(1.55rem, 3.2cqi, 2.9rem) !important;
+    }
+
+    .tv-stage--broadcast .tv-candle-battle__score-center span,
+    .tv-stage--broadcast .tv-candle-battle__score-momentum-card span,
+    .tv-stage--broadcast .tv-candle-battle-card__kicker,
+    .tv-stage--broadcast .tv-candle-battle-card__legend,
+    .tv-stage--broadcast .tv-candle-battle__sidebar-kicker span,
+    .tv-stage--broadcast .tv-candle-battle__sidebar-section-head span,
+    .tv-stage--broadcast .tv-candle-battle__sidebar-row,
+    .tv-stage--broadcast .tv-candle-battle__sidebar-muted,
+    .tv-stage--broadcast .tv-candle-battle-card__timeline span {
+        font-size: clamp(.54rem, .72cqi, .82rem) !important;
     }
 
         .tv-stage--broadcast .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
@@ -14709,13 +14747,13 @@ private sealed record TvArenaCommentaryEntry(
 <style>
 
     /* =========================================================
-           CORREÇÃO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
+           CORREÃ‡ÃƒO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
            ========================================================= */
 
     /*
            Os slides compare, split e sentiment possuem normalmente
-           apenas um filho direto. Eles precisam de uma única linha
-           flexível, não do template header/content/footer.
+           apenas um filho direto. Eles precisam de uma Ãºnica linha
+           flexÃ­vel, nÃ£o do template header/content/footer.
         */
     .tv-telemetry-cube__inner--compare,
     .tv-telemetry-cube__inner--split,
@@ -14737,7 +14775,7 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           O slide de gols possui cabeçalho e conteúdo.
+           O slide de gols possui cabeÃ§alho e conteÃºdo.
         */
     .tv-telemetry-cube__inner--goals {
         display: grid !important;
@@ -14756,7 +14794,7 @@ private sealed record TvArenaCommentaryEntry(
 
     /*
            Todo filho direto dos slides deve ocupar integralmente
-           a linha flexível que recebeu.
+           a linha flexÃ­vel que recebeu.
         */
     .tv-telemetry-cube__inner--compare > *,
     .tv-telemetry-cube__inner--split > *,
@@ -14773,7 +14811,7 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           Conteúdo do slide de gols ocupa toda a segunda linha.
+           ConteÃºdo do slide de gols ocupa toda a segunda linha.
         */
     .tv-telemetry-cube__inner--goals > .tv-goal-log {
         width: 100% !important;
@@ -14799,7 +14837,7 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-           Remove alturas mínimas que fazem os componentes escolherem
+           Remove alturas mÃ­nimas que fazem os componentes escolherem
 
         */
     .tv-telemetry-cube__inner--compare .tv-telemetry-chart-shell,

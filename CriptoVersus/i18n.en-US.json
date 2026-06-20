@@ -1,4 +1,4 @@
-{
+﻿{
   "layout": {
     "topbar": {
       "eyebrow": "CriptoVersus Arena",
@@ -7,7 +7,7 @@
       "connectWallet": "Connect Wallet",
       "language": "Language",
       "english": "English",
-      "portuguese": "Português"
+      "portuguese": "PortuguÃªs"
     },
     "postLogin": {
       "eyebrow": "Wallet connected",
@@ -107,7 +107,7 @@
       "marketEyebrow": "Market",
       "noData": "No data.",
       "awaitingStart": "Awaiting start",
-      "liveClock": "{0}' played · -{1}'",
+      "liveClock": "{0}' played Â· -{1}'",
       "elapsedOnly": "{0}' played",
       "statusOpen": "OPEN",
       "statusClosed": "CLOSED"
@@ -205,31 +205,31 @@
     },
     "brandPillars": [
       {
-        "icon": "✦",
+        "icon": "âœ¦",
         "accent": "purple",
         "title": "Competition",
         "subtitle": "Between digital assets"
       },
       {
-        "icon": "↗",
+        "icon": "â†—",
         "accent": "green",
         "title": "Strategy",
         "subtitle": "Performance and timing"
       },
       {
-        "icon": "⬢",
+        "icon": "â¬¢",
         "accent": "cyan",
         "title": "Technology",
         "subtitle": "Blockchain infrastructure"
       },
       {
-        "icon": "🏆",
+        "icon": "ðŸ†",
         "accent": "gold",
         "title": "Ranking",
         "subtitle": "Scoring and progression"
       },
       {
-        "icon": "◎",
+        "icon": "â—Ž",
         "accent": "purple",
         "title": "Global",
         "subtitle": "Decentralized arena"
@@ -825,8 +825,8 @@
       "marketCapHint": "latest social profile market cap ranking",
       "historicalRecord": "Historical record",
       "historicalRecordHint": "wins, losses and draws in the arena",
-      "historicalRecordValue": "{0}W • {1}L • {2}D",
-      "historicalRecordLegend": "Wins • Losses • Draws",
+      "historicalRecordValue": "{0}W â€¢ {1}L â€¢ {2}D",
+      "historicalRecordLegend": "Wins â€¢ Losses â€¢ Draws",
       "streakWinValue": "{0} wins",
       "streakLossValue": "{0} losses",
       "streakDrawValue": "{0} draws"
@@ -914,7 +914,7 @@
       "description": "Public rivals that faced this team most often in completed arena battles.",
       "empty": "No rival data yet.",
       "openAria": "Open the team profile for {0}",
-      "record": "{0} wins · {1} losses · {2} matches"
+      "record": "{0} wins Â· {1} losses Â· {2} matches"
     },
     "latest": {
       "eyebrow": "Latest scoreboards",
@@ -1069,7 +1069,7 @@
       }
     },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
-    "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
+    "featuredMatchScoreSummary": "Match #{0} â€¢ score {1} x {2}",
     "structuredDataDescription": "Public crypto market-data simulation between {0} and {1} on CriptoVersus."
   },
   "public": {
@@ -1128,51 +1128,156 @@
     },
     "scoringRules": {
       "seo": {
-        "title": "Scoring Rules | CriptoVersus",
-        "description": "See how public market signals turn into match scores, arena states and educational simulations in CriptoVersus."
+        "title": "CriptoVersus Scoring Rules | Public Market Signals",
+        "description": "See how public market signals become scoring events in CriptoVersus through percentage, crossover, volume and Candle Battle rules."
       },
       "hero": {
         "eyebrow": "Scoring rules",
-        "title": "Score updates come from public market signals.",
-        "lead": "CriptoVersus uses market-derived indicators to generate football-style simulated matches. Scores reflect public signals and should be read as analysis, not as a prediction or recommendation.",
+        "title": "Public market signals turn into match scoring.",
+        "lead": "CriptoVersus uses market-derived indicators to create simulated matches. The published score follows the active rule set and should be read as analysis, not as financial advice or a price forecast.",
         "backToAbout": "Read about CriptoVersus",
         "backToArena": "Back to arena",
         "panelLabel": "Scoring overview",
         "panel": {
           "signalsLabel": "Signals",
           "signalsTitle": "Public inputs first",
-          "signalsBody": "Price movement, percentage variation, candle behavior and trading activity feed the arena.",
+          "signalsBody": "Price movement, percentage variation, candle behavior, quote volume and trading activity feed the arena, including Binance-traded pairs when available.",
+          "leftTeam": "Side A",
+          "versus": "vs",
+          "simulated": "Simulated match",
+          "rightTeam": "Side B",
           "scoringLabel": "Scoring",
           "scoringTitle": "Match events",
-          "scoringBody": "Those public inputs create score changes, pressure shifts and live context.",
+          "scoringBody": "Those public inputs can create scoring events through percentage thresholds, crossovers, volume windows, volume crossovers and Candle Battle dominance.",
           "resultLabel": "Results",
           "resultTitle": "Final leader or none",
-          "resultBody": "A cycle can end with a final leader or with no final leader."
+          "resultBody": "A cycle can end with a final leader or with no final leader, and the score does not predict future token prices."
         }
       },
       "sections": {
-        "overviewLabel": "Scoring rules sections"
+        "overviewLabel": "Scoring rules overview",
+        "overviewEyebrow": "How the arena is read",
+        "overviewTitle": "Public signals, clear rules, visible cycles.",
+        "overviewLead": "This page explains how public market signals become scoring events, how the simulated match advances and how the public scoreboard should be interpreted.",
+        "realRulesLabel": "Real rules",
+        "realRulesEyebrow": "What actually awards points",
+        "realRulesTitle": "Only the documented scoring rules create score events.",
+        "realRulesLead": "The public arena uses specific rules for percentage, crossover, volume and Candle Battle scoring. Visual widgets can help read the match, but they do not replace the rule engine.",
+        "simulationsLabel": "Simulations",
+        "simulationsEyebrow": "How the cycle is presented",
+        "simulationsTitle": "Each cycle is shown as a simulated match.",
+        "simulationsLead": "The public page uses a match-style timeline so people can understand signal flow without mistaking the arena for a trading product.",
+        "simulationsTimelineLabel": "Simulation timeline",
+        "visualIndicatorsLabel": "Visual indicators",
+        "visualIndicatorsEyebrow": "Helpful context",
+        "visualIndicatorsTitle": "Some panels are visual only.",
+        "visualIndicatorsLead": "Arena Pressure, Momentum and market flow help explain the match state. They are visual indicators, not score triggers by themselves.",
+        "meaningLabel": "What the score means"
       },
       "cards": {
         "signals": {
           "label": "Signal collection",
           "title": "Public market data is read",
-          "body": "The platform reads market movement, percentage variation, candle behavior and trading activity, including Binance-traded pairs when available."
+          "body": "The platform reads market movement, percentage variation, candle behavior, quote volume and trading activity from public sources, including Binance-traded pairs when available."
         },
         "scoring": {
           "label": "Score events",
           "title": "Signals become score events",
-          "body": "Public inputs feed the active match rules and create scoring events, pressure changes and live arena context."
+          "body": "Percent-threshold rules award points when the gap reaches configured levels. Crossover rules award points only when one side moves from below to above the opponent. Volume-window and volume-crossover rules follow the same public-signal logic on quote volume, while Candle Battle dominance adds a separate scoring path."
         },
         "settlement": {
           "label": "Cycle outcome",
           "title": "The cycle closes cleanly",
-          "body": "The final result is part of the simulation and does not forecast future token prices."
+          "body": "The published score is an educational visualization of market behavior. It is not investment advice, a trading signal or a guaranteed outcome."
+        }
+      },
+      "rules": {
+        "percentage": {
+          "label": "Percentage rule",
+          "title": "Percentage thresholds",
+          "body": "Points can be awarded when the relative percentage gap reaches the configured thresholds.",
+          "point1": "The larger percentage change leads the rule.",
+          "point2": "Each configured threshold can be counted once per side.",
+          "point3": "The score reflects public market movement, not future performance."
+        },
+        "crossover": {
+          "label": "Crossover rule",
+          "title": "Percentage crossover",
+          "body": "Points can be awarded when one side crosses from below to above the other side on percentage movement.",
+          "point1": "The crossover must move upward through the opponent.",
+          "point2": "Touching the line is not enough if no crossover occurs.",
+          "point3": "This is a market-signal rule, not financial advice."
+        },
+        "candleBattle": {
+          "label": "Candle Battle rule",
+          "title": "Candle Battle dominance",
+          "body": "Points can be awarded when Candle Battle dominance becomes clear from the candle sequence.",
+          "point1": "The rule compares candle-to-candle relative movement.",
+          "point2": "A stronger sequence can create a scoring event.",
+          "point3": "It is a simulated match based on public market data."
+        },
+        "dominance": {
+          "label": "Dominance rule",
+          "title": "Continuous dominance",
+          "body": "Sustained dominance can keep the match leader stable and make the result easier to read.",
+          "point1": "The rule follows the active dominance state.",
+          "point2": "It reflects match control, not a guaranteed outcome.",
+          "point3": "The leaderboard remains an educational visualization."
+        }
+      },
+      "simulations": {
+        "step1": {
+          "title": "1. Signals are collected",
+          "body": "Public market data is collected from available sources and normalized for the match."
+        },
+        "step2": {
+          "title": "2. Rules create score events",
+          "body": "The active rule set turns qualifying market movements into scoring events."
+        },
+        "step3": {
+          "title": "3. The cycle closes",
+          "body": "The simulated match ends with a final leader or with no final leader."
+        }
+      },
+      "indicators": {
+        "arenaPressure": {
+          "label": "Arena Pressure",
+          "title": "Visual pressure gauge",
+          "body": "Shows the arena pressure context as an indicator of match intensity. It does not award points by itself."
+        },
+        "momentum": {
+          "label": "Momentum",
+          "title": "Momentum balance",
+          "body": "Shows which side currently has stronger market momentum. It is a visual indicator, not a scoring rule on its own."
+        },
+        "marketFlow": {
+          "label": "Market flow",
+          "title": "Recent flow summary",
+          "body": "Summarizes the recent direction of public market signals so the match is easier to interpret."
+        }
+      },
+      "meaning": {
+        "notAdvice": {
+          "label": "No financial advice",
+          "title": "No financial advice",
+          "body": "CriptoVersus is for analysis, education and entertainment. It does not tell users what to buy, sell or hold."
+        },
+        "notPrediction": {
+          "label": "No prediction",
+          "title": "No prediction",
+          "body": "The score is not a forecast of future token prices or market direction."
+        },
+        "notGuarantee": {
+          "label": "No guarantee",
+          "title": "No guarantee",
+          "body": "Scores and simulated results are not promises of future performance."
         }
       },
       "dataSourcesNoticeLabel": "Data source note",
+      "dataSourcesNoticeTitle": "Data sources",
       "dataSourcesNotice": "Scoring events are generated from public market signals, including Binance-traded pairs when available. CriptoVersus is not affiliated with or endorsed by Binance.",
       "noPrediction": {
+        "label": "Meaning",
         "title": "No prediction layer",
         "body": "A match score is an educational visualization of market behavior. It is not investment advice, a trading signal or a guaranteed outcome."
       }
@@ -1387,7 +1492,7 @@
     },
     "labels": {
       "to": "to",
-      "approx": "≈",
+      "approx": "â‰ˆ",
       "vs": "vs",
       "directRate": "Direct rate",
       "priceUpdated": "Price updated",
@@ -1529,6 +1634,18 @@
       "candleBattle": "Candle Battle",
       "candlesWon": "Candles won",
       "momentumCurrent": "Current momentum",
+      "tacticalPanel": "Tactical panel",
+      "tacticalPanelA11y": "Candle Battle tactical panel",
+      "leadership": "Leadership",
+      "candlesAnalyzed": "Candles analyzed",
+      "currentStreak": "Current streak",
+      "lastCandle": "Last candle",
+      "lastVariation": "Last variation",
+      "waitingCandleHistory": "Waiting for candle history",
+      "chartForAsset": "Candles for {0}",
+      "candleBattleA11y": "{0} vs {1} candle battle arena",
+      "controlsCandlesBy": "{0} controls the candles",
+      "pressureAdvantageBy": "{0} pressure advantage",
       "momentumNeutral": "Neutral momentum",
       "leftAssetChange": "Left asset change",
       "rightAssetChange": "Right asset change",

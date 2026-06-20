@@ -10,14 +10,17 @@
 @rendermode InteractiveServer
 
 <PageTitle>@T("seo.title")</PageTitle>
+
 <HeadContent>
     <meta name="description" content="@MetaDescription" />
     <meta name="keywords" content="@MetaKeywords" />
     <meta name="robots" content="index, follow" />
+
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
     <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+
     <meta property="og:title" content="@TitleText" />
     <meta property="og:description" content="@MetaDescription" />
     <meta property="og:url" content="@CanonicalUrl" />
@@ -26,245 +29,727 @@
     <meta property="og:image:alt" content="@TitleText" />
     <meta property="og:locale" content="@AppCulture.ToOgLocale(CurrentCulture)" />
     <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(CurrentCulture)" />
+
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="@TitleText" />
     <meta name="twitter:description" content="@MetaDescription" />
     <meta name="twitter:image" content="@SocialImageUrl" />
     <meta name="twitter:image:alt" content="@TitleText" />
+
     <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
 </HeadContent>
 
-<section class="institutional-page institutional-page--scoring">
-    <header class="institutional-hero">
-        <div class="institutional-hero__copy">
-            <span class="institutional-hero__eyebrow">@T("hero.eyebrow")</span>
+<section class="scoring-page">
+    <header class="scoring-hero">
+        <div class="scoring-hero__copy">
+            <span class="scoring-eyebrow">@T("hero.eyebrow")</span>
             <h1>@T("hero.title")</h1>
-            <p class="institutional-hero__lead">@T("hero.lead")</p>
+            <p class="scoring-hero__lead">@T("hero.lead")</p>
 
-            <div class="institutional-hero__actions">
-                <a class="institutional-button institutional-button--primary" href="@RouteLocalization.BuildAboutPath(CurrentCulture)">
+            <div class="scoring-hero__actions">
+                <a class="scoring-button scoring-button--primary" href="@RouteLocalization.BuildAboutPath(CurrentCulture)">
                     @T("hero.backToAbout")
                 </a>
-                <a class="institutional-button institutional-button--secondary" href="@RouteLocalization.BuildHomePath(CurrentCulture)">
+                <a class="scoring-button scoring-button--secondary" href="@RouteLocalization.BuildHomePath(CurrentCulture)">
                     @T("hero.backToArena")
                 </a>
             </div>
         </div>
 
-        <aside class="institutional-hero__panel" aria-label="@T("hero.panelLabel")">
-            <article class="institutional-metric-card">
+        <aside class="scoring-scoreboard" aria-label="@T("hero.panelLabel")">
+            <div class="scoring-scoreboard__topline">
                 <span>@T("hero.panel.signalsLabel")</span>
                 <strong>@T("hero.panel.signalsTitle")</strong>
-                <p>@T("hero.panel.signalsBody")</p>
-            </article>
+            </div>
 
-            <article class="institutional-metric-card">
-                <span>@T("hero.panel.scoringLabel")</span>
-                <strong>@T("hero.panel.scoringTitle")</strong>
-                <p>@T("hero.panel.scoringBody")</p>
-            </article>
+            <div class="scoring-scoreboard__match">
+                <div class="scoring-team scoring-team--left">
+                    <span>@T("hero.panel.leftTeam")</span>
+                    <strong>2</strong>
+                </div>
 
-            <article class="institutional-metric-card institutional-metric-card--accent">
-                <span>@T("hero.panel.resultLabel")</span>
-                <strong>@T("hero.panel.resultTitle")</strong>
-                <p>@T("hero.panel.resultBody")</p>
-            </article>
+                <div class="scoring-scoreboard__versus">
+                    <span>@T("hero.panel.versus")</span>
+                    <small>@T("hero.panel.simulated")</small>
+                </div>
+
+                <div class="scoring-team scoring-team--right">
+                    <span>@T("hero.panel.rightTeam")</span>
+                    <strong>1</strong>
+                </div>
+            </div>
+
+            <p>@T("hero.panel.signalsBody")</p>
+
+            <div class="scoring-mini-grid">
+                <article>
+                    <span>@T("hero.panel.scoringLabel")</span>
+                    <strong>@T("hero.panel.scoringTitle")</strong>
+                    <p>@T("hero.panel.scoringBody")</p>
+                </article>
+
+                <article>
+                    <span>@T("hero.panel.resultLabel")</span>
+                    <strong>@T("hero.panel.resultTitle")</strong>
+                    <p>@T("hero.panel.resultBody")</p>
+                </article>
+            </div>
         </aside>
     </header>
 
-    <section class="institutional-grid" aria-label="@T("sections.overviewLabel")">
-        <article class="institutional-card">
-            <span>@T("cards.signals.label")</span>
-            <h2>@T("cards.signals.title")</h2>
-            <p>@T("cards.signals.body")</p>
-        </article>
+    <section class="scoring-section scoring-section--intro" aria-label="@T("sections.overviewLabel")">
+        <div class="scoring-section__heading">
+            <span class="scoring-eyebrow">@T("sections.overviewEyebrow")</span>
+            <h2>@T("sections.overviewTitle")</h2>
+            <p>@T("sections.overviewLead")</p>
+        </div>
 
-        <article class="institutional-card">
-            <span>@T("cards.scoring.label")</span>
-            <h2>@T("cards.scoring.title")</h2>
-            <p>@T("cards.scoring.body")</p>
-        </article>
+        <div class="scoring-grid scoring-grid--three">
+            <article class="scoring-card">
+                <span>@T("cards.signals.label")</span>
+                <h3>@T("cards.signals.title")</h3>
+                <p>@T("cards.signals.body")</p>
+            </article>
 
-        <article class="institutional-card">
-            <span>@T("cards.settlement.label")</span>
-            <h2>@T("cards.settlement.title")</h2>
-            <p>@T("cards.settlement.body")</p>
-        </article>
+            <article class="scoring-card">
+                <span>@T("cards.scoring.label")</span>
+                <h3>@T("cards.scoring.title")</h3>
+                <p>@T("cards.scoring.body")</p>
+            </article>
+
+            <article class="scoring-card">
+                <span>@T("cards.settlement.label")</span>
+                <h3>@T("cards.settlement.title")</h3>
+                <p>@T("cards.settlement.body")</p>
+            </article>
+        </div>
     </section>
 
-    <section class="institutional-source-card">
-        <span class="institutional-source-card__eyebrow">@T("dataSourcesNoticeLabel")</span>
-        <h2>@T("dataSourcesNoticeLabel")</h2>
+    <section class="scoring-section" aria-label="@T("sections.realRulesLabel")">
+        <div class="scoring-section__heading">
+            <span class="scoring-eyebrow">@T("sections.realRulesEyebrow")</span>
+            <h2>@T("sections.realRulesTitle")</h2>
+            <p>@T("sections.realRulesLead")</p>
+        </div>
+
+        <div class="scoring-grid scoring-grid--two">
+            <article class="scoring-rule-card scoring-rule-card--primary">
+                <div class="scoring-rule-card__icon">%</div>
+                <div>
+                    <span>@T("rules.percentage.label")</span>
+                    <h3>@T("rules.percentage.title")</h3>
+                    <p>@T("rules.percentage.body")</p>
+                    <ul>
+                        <li>@T("rules.percentage.point1")</li>
+                        <li>@T("rules.percentage.point2")</li>
+                        <li>@T("rules.percentage.point3")</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="scoring-rule-card">
+                <div class="scoring-rule-card__icon">?</div>
+                <div>
+                    <span>@T("rules.crossover.label")</span>
+                    <h3>@T("rules.crossover.title")</h3>
+                    <p>@T("rules.crossover.body")</p>
+                    <ul>
+                        <li>@T("rules.crossover.point1")</li>
+                        <li>@T("rules.crossover.point2")</li>
+                        <li>@T("rules.crossover.point3")</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="scoring-rule-card">
+                <div class="scoring-rule-card__icon">?</div>
+                <div>
+                    <span>@T("rules.candleBattle.label")</span>
+                    <h3>@T("rules.candleBattle.title")</h3>
+                    <p>@T("rules.candleBattle.body")</p>
+                    <ul>
+                        <li>@T("rules.candleBattle.point1")</li>
+                        <li>@T("rules.candleBattle.point2")</li>
+                        <li>@T("rules.candleBattle.point3")</li>
+                    </ul>
+                </div>
+            </article>
+
+            <article class="scoring-rule-card scoring-rule-card--accent">
+                <div class="scoring-rule-card__icon">+3</div>
+                <div>
+                    <span>@T("rules.dominance.label")</span>
+                    <h3>@T("rules.dominance.title")</h3>
+                    <p>@T("rules.dominance.body")</p>
+                    <ul>
+                        <li>@T("rules.dominance.point1")</li>
+                        <li>@T("rules.dominance.point2")</li>
+                        <li>@T("rules.dominance.point3")</li>
+                    </ul>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="scoring-section" aria-label="@T("sections.simulationsLabel")">
+        <div class="scoring-feature">
+            <div class="scoring-feature__copy">
+                <span class="scoring-eyebrow">@T("sections.simulationsEyebrow")</span>
+                <h2>@T("sections.simulationsTitle")</h2>
+                <p>@T("sections.simulationsLead")</p>
+            </div>
+
+            <div class="scoring-timeline" aria-label="@T("sections.simulationsTimelineLabel")">
+                <article>
+                    <span>01</span>
+                    <strong>@T("simulations.step1.title")</strong>
+                    <p>@T("simulations.step1.body")</p>
+                </article>
+
+                <article>
+                    <span>02</span>
+                    <strong>@T("simulations.step2.title")</strong>
+                    <p>@T("simulations.step2.body")</p>
+                </article>
+
+                <article>
+                    <span>03</span>
+                    <strong>@T("simulations.step3.title")</strong>
+                    <p>@T("simulations.step3.body")</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="scoring-section" aria-label="@T("sections.visualIndicatorsLabel")">
+        <div class="scoring-section__heading">
+            <span class="scoring-eyebrow">@T("sections.visualIndicatorsEyebrow")</span>
+            <h2>@T("sections.visualIndicatorsTitle")</h2>
+            <p>@T("sections.visualIndicatorsLead")</p>
+        </div>
+
+        <div class="scoring-grid scoring-grid--three">
+            <article class="scoring-card scoring-card--indicator">
+                <span>@T("indicators.arenaPressure.label")</span>
+                <h3>@T("indicators.arenaPressure.title")</h3>
+                <p>@T("indicators.arenaPressure.body")</p>
+            </article>
+
+            <article class="scoring-card scoring-card--indicator">
+                <span>@T("indicators.momentum.label")</span>
+                <h3>@T("indicators.momentum.title")</h3>
+                <p>@T("indicators.momentum.body")</p>
+            </article>
+
+            <article class="scoring-card scoring-card--indicator">
+                <span>@T("indicators.marketFlow.label")</span>
+                <h3>@T("indicators.marketFlow.title")</h3>
+                <p>@T("indicators.marketFlow.body")</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="scoring-section scoring-section--meaning" aria-label="@T("sections.meaningLabel")">
+        <div class="scoring-meaning-card">
+            <div>
+                <span class="scoring-eyebrow">@T("noPrediction.label")</span>
+                <h2>@T("noPrediction.title")</h2>
+                <p>@T("noPrediction.body")</p>
+            </div>
+
+            <div class="scoring-meaning-list">
+                <article>
+                    <strong>@T("meaning.notAdvice.title")</strong>
+                    <p>@T("meaning.notAdvice.body")</p>
+                </article>
+
+                <article>
+                    <strong>@T("meaning.notPrediction.title")</strong>
+                    <p>@T("meaning.notPrediction.body")</p>
+                </article>
+
+                <article>
+                    <strong>@T("meaning.notGuarantee.title")</strong>
+                    <p>@T("meaning.notGuarantee.body")</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="scoring-source-card">
+        <span class="scoring-eyebrow">@T("dataSourcesNoticeLabel")</span>
+        <h2>@T("dataSourcesNoticeTitle")</h2>
         <p>@T("dataSourcesNotice")</p>
-        <p>@T("noPrediction.title")</p>
-        <p>@T("noPrediction.body")</p>
     </section>
 </section>
 
 <style>
-    .institutional-page {
-        min-height: 100%;
+    .scoring-page {
+        width: 100%;
+        max-width: min(1880px, calc(100vw - 24px));
+        margin-inline: auto;
         display: grid;
         gap: 1rem;
-        padding: 1.2rem;
+        padding: 1.2rem 0 1.4rem;
         color: #eef5ff;
-        background:
-            radial-gradient(circle at top left, rgba(76, 243, 141, 0.12), transparent 24%),
-            radial-gradient(circle at top right, rgba(83, 200, 255, 0.12), transparent 22%),
-            linear-gradient(180deg, #050814, #070c18 48%, #05060d);
     }
 
-    .institutional-hero,
-    .institutional-source-card,
-    .institutional-card,
-    .institutional-metric-card {
+        .scoring-page *,
+        .scoring-page *::before,
+        .scoring-page *::after {
+            box-sizing: border-box;
+        }
+
+    .scoring-hero,
+    .scoring-section,
+    .scoring-source-card {
         border: 1px solid rgba(127, 246, 223, 0.14);
-        background:
-            radial-gradient(circle at top right, rgba(127, 246, 223, 0.08), transparent 28%),
-            linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(6, 10, 20, 0.98));
+        background: radial-gradient(circle at top left, rgba(255, 145, 0, 0.12), transparent 25%), radial-gradient(circle at top right, rgba(24, 216, 210, 0.12), transparent 24%), linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(6, 10, 20, 0.98));
         box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+        overflow: hidden;
     }
 
-    .institutional-hero {
+    .scoring-hero {
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, .8fr);
         gap: 1rem;
-        padding: clamp(1.2rem, 2vw, 1.8rem);
-        border-radius: 28px;
+        min-height: 420px;
+        padding: clamp(1.2rem, 2.4vw, 2rem);
+        border-radius: 30px;
+        position: relative;
     }
 
-    .institutional-hero__copy {
+        .scoring-hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: .14;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px);
+            background-size: 34px 34px;
+        }
+
+    .scoring-hero__copy,
+    .scoring-scoreboard,
+    .scoring-section,
+    .scoring-source-card {
+        position: relative;
+        z-index: 1;
+    }
+
+    .scoring-hero__copy {
         display: grid;
-        gap: .9rem;
-        align-content: start;
+        gap: .95rem;
+        align-content: center;
+        max-width: 920px;
     }
 
-    .institutional-hero__eyebrow,
-    .institutional-source-card__eyebrow,
-    .institutional-card span,
-    .institutional-metric-card span {
-        font-size: .78rem;
+    .scoring-eyebrow,
+    .scoring-card span,
+    .scoring-rule-card span,
+    .scoring-scoreboard__topline span,
+    .scoring-mini-grid span {
+        font-size: .76rem;
         font-weight: 900;
         letter-spacing: .16em;
         text-transform: uppercase;
         color: #7ff6df;
     }
 
-    .institutional-hero h1 {
+    .scoring-hero h1,
+    .scoring-section__heading h2,
+    .scoring-feature h2,
+    .scoring-meaning-card h2,
+    .scoring-source-card h2 {
         margin: 0;
-        font-size: clamp(2rem, 4vw, 4rem);
-        line-height: .98;
         letter-spacing: -.04em;
+        line-height: 1;
     }
 
-    .institutional-hero__lead,
-    .institutional-card p,
-    .institutional-source-card p,
-    .institutional-metric-card p {
+    .scoring-hero h1 {
+        font-size: clamp(2.35rem, 5vw, 5.1rem);
+        max-width: 900px;
+    }
+
+    .scoring-hero__lead {
+        max-width: 780px;
         margin: 0;
         color: #bfd0e4;
-        line-height: 1.7;
-        font-size: 1rem;
+        line-height: 1.72;
+        font-size: clamp(1rem, 1.4vw, 1.16rem);
     }
 
-    .institutional-hero__actions {
+    .scoring-hero__actions {
         display: flex;
         flex-wrap: wrap;
-        gap: .7rem;
-        margin-top: .3rem;
+        gap: .75rem;
+        margin-top: .35rem;
     }
 
-    .institutional-button {
+    .scoring-button {
+        min-height: 2.95rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.95rem;
-        padding: .72rem 1rem;
+        padding: .76rem 1.08rem;
         border-radius: 16px;
-        text-decoration: none;
-        font-weight: 800;
-        letter-spacing: .03em;
         border: 1px solid rgba(255,255,255,.1);
+        text-decoration: none;
+        font-weight: 900;
+        letter-spacing: .03em;
     }
 
-    .institutional-button--primary {
-        color: #03150f;
-        background: linear-gradient(90deg, #4cf38d, #7ff6df);
-        border-color: rgba(127, 246, 223, 0.34);
+    .scoring-button--primary {
+        color: #170b00;
+        background: linear-gradient(90deg, #ff9100, #ffd36a);
+        border-color: rgba(255, 211, 106, .42);
     }
 
-    .institutional-button--secondary {
+    .scoring-button--secondary {
         color: #eef5ff;
-        background: rgba(255,255,255,.04);
+        background: rgba(255,255,255,.05);
     }
 
-    .institutional-hero__panel {
+    .scoring-scoreboard {
+        align-self: stretch;
         display: grid;
-        gap: .85rem;
-        align-content: start;
-    }
-
-    .institutional-metric-card {
-        border-radius: 22px;
+        gap: 1rem;
+        align-content: center;
         padding: 1rem;
+        border-radius: 26px;
+        border: 1px solid rgba(255,255,255,.1);
+        background: radial-gradient(circle at top left, rgba(255,145,0,.13), transparent 30%), radial-gradient(circle at bottom right, rgba(24,216,210,.13), transparent 32%), rgba(255,255,255,.035);
     }
 
-    .institutional-metric-card strong,
-    .institutional-card h2,
-    .institutional-source-card h2 {
+    .scoring-scoreboard__topline strong {
         display: block;
-        margin: .25rem 0 .45rem;
-        font-size: clamp(1.05rem, 1.5vw, 1.3rem);
-        line-height: 1.15;
+        margin-top: .35rem;
+        font-size: clamp(1.15rem, 2vw, 1.65rem);
+        line-height: 1.12;
     }
 
-    .institutional-metric-card--accent {
-        background:
-            radial-gradient(circle at top left, rgba(76, 243, 141, 0.1), transparent 28%),
-            linear-gradient(180deg, rgba(11, 16, 28, 0.98), rgba(8, 12, 21, 0.98));
-    }
-
-    .institutional-grid {
+    .scoring-scoreboard__match {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: 1fr auto 1fr;
+        gap: .8rem;
+        align-items: center;
+    }
+
+    .scoring-team,
+    .scoring-scoreboard__versus {
+        min-height: 118px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: .25rem;
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,.1);
+        background: rgba(0,0,0,.22);
+    }
+
+        .scoring-team span,
+        .scoring-scoreboard__versus span,
+        .scoring-scoreboard__versus small {
+            color: #9fb1c7;
+            font-size: .78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .scoring-team strong {
+            font-size: clamp(2.4rem, 4vw, 4rem);
+            line-height: .9;
+        }
+
+    .scoring-team--left strong {
+        color: #ffb23f;
+    }
+
+    .scoring-team--right strong {
+        color: #18d8d2;
+    }
+
+    .scoring-scoreboard__versus {
+        min-width: 76px;
+        padding: .75rem;
+    }
+
+        .scoring-scoreboard__versus span {
+            color: #eef5ff;
+            font-size: 1rem;
+        }
+
+    .scoring-scoreboard p,
+    .scoring-card p,
+    .scoring-rule-card p,
+    .scoring-rule-card li,
+    .scoring-section__heading p,
+    .scoring-feature p,
+    .scoring-timeline p,
+    .scoring-meaning-card p,
+    .scoring-source-card p {
+        margin: 0;
+        color: #bfd0e4;
+        line-height: 1.7;
+        font-size: .98rem;
+    }
+
+    .scoring-mini-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .75rem;
+    }
+
+        .scoring-mini-grid article {
+            padding: .95rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.09);
+            background: rgba(255,255,255,.035);
+        }
+
+        .scoring-mini-grid strong {
+            display: block;
+            margin: .3rem 0 .25rem;
+            line-height: 1.18;
+        }
+
+    .scoring-section,
+    .scoring-source-card {
+        display: grid;
+        gap: 1rem;
+        padding: clamp(1.05rem, 2vw, 1.45rem);
+        border-radius: 28px;
+    }
+
+    .scoring-section__heading {
+        display: grid;
+        gap: .55rem;
+        max-width: 980px;
+    }
+
+        .scoring-section__heading h2,
+        .scoring-feature h2,
+        .scoring-meaning-card h2,
+        .scoring-source-card h2 {
+            font-size: clamp(1.55rem, 3vw, 2.6rem);
+        }
+
+    .scoring-grid {
+        display: grid;
         gap: 1rem;
     }
 
-    .institutional-card {
-        border-radius: 24px;
+    .scoring-grid--three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .scoring-grid--two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scoring-card,
+    .scoring-rule-card,
+    .scoring-timeline article,
+    .scoring-meaning-list article {
+        border: 1px solid rgba(127, 246, 223, 0.12);
+        background: radial-gradient(circle at top right, rgba(127, 246, 223, 0.08), transparent 30%), linear-gradient(180deg, rgba(13, 19, 32, 0.96), rgba(8, 12, 22, 0.96));
+        box-shadow: 0 18px 60px rgba(0,0,0,.24);
+    }
+
+    .scoring-card {
+        display: grid;
+        gap: .45rem;
+        min-height: 190px;
+        align-content: start;
         padding: 1.1rem;
+        border-radius: 24px;
     }
 
-    .institutional-source-card {
+        .scoring-card h3,
+        .scoring-rule-card h3 {
+            margin: 0;
+            font-size: clamp(1.08rem, 1.5vw, 1.34rem);
+            line-height: 1.15;
+        }
+
+    .scoring-rule-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 1rem;
+        padding: 1.1rem;
         border-radius: 26px;
-        padding: 1.2rem;
     }
 
-    .institutional-source-card p + p {
-        margin-top: .8rem;
+    .scoring-rule-card--primary {
+        border-color: rgba(255,145,0,.24);
     }
 
-    @@media (max-width: 960px) {
-        .institutional-hero,
-        .institutional-grid {
-            grid-template-columns: 1fr;
-        }
+    .scoring-rule-card--accent {
+        border-color: rgba(24,216,210,.25);
     }
 
-    @@media (max-width: 640px) {
-        .institutional-page {
-            padding: .9rem;
-        }
+    .scoring-rule-card__icon {
+        width: 3rem;
+        height: 3rem;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        color: #06120f;
+        background: linear-gradient(135deg, #ff9100, #18d8d2);
+        font-weight: 1000;
+        box-shadow: 0 16px 32px rgba(0,0,0,.26);
+    }
 
-        .institutional-hero,
-        .institutional-card,
-        .institutional-source-card {
+    .scoring-rule-card ul {
+        display: grid;
+        gap: .45rem;
+        margin: .8rem 0 0;
+        padding-left: 1.1rem;
+    }
+
+    .scoring-feature {
+        display: grid;
+        grid-template-columns: minmax(0, .82fr) minmax(320px, 1.18fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .scoring-feature__copy {
+        display: grid;
+        gap: .65rem;
+        align-content: center;
+        padding: .5rem 0;
+    }
+
+    .scoring-timeline {
+        display: grid;
+        gap: .75rem;
+    }
+
+        .scoring-timeline article {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            column-gap: .9rem;
+            row-gap: .25rem;
+            padding: 1rem;
             border-radius: 22px;
         }
 
-        .institutional-button {
+            .scoring-timeline article span {
+                grid-row: span 2;
+                width: 2.65rem;
+                height: 2.65rem;
+                display: grid;
+                place-items: center;
+                border-radius: 16px;
+                color: #04110f;
+                background: linear-gradient(135deg, #7ff6df, #ffd36a);
+                font-weight: 1000;
+            }
+
+            .scoring-timeline article strong {
+                font-size: 1.05rem;
+                line-height: 1.18;
+            }
+
+    .scoring-card--indicator {
+        min-height: 168px;
+        border-color: rgba(255,255,255,.09);
+    }
+
+    .scoring-meaning-card {
+        display: grid;
+        grid-template-columns: minmax(0, .9fr) minmax(320px, 1.1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+        .scoring-meaning-card > div:first-child {
+            display: grid;
+            gap: .65rem;
+        }
+
+    .scoring-meaning-list {
+        display: grid;
+        gap: .75rem;
+    }
+
+        .scoring-meaning-list article {
+            padding: 1rem;
+            border-radius: 20px;
+        }
+
+        .scoring-meaning-list strong {
+            display: block;
+            margin-bottom: .3rem;
+            color: #eef5ff;
+        }
+
+    @@media (max-width: 1080px) {
+        .scoring-hero,
+        .scoring-feature,
+        .scoring-meaning-card {
+            grid-template-columns: 1fr;
+        }
+
+        .scoring-grid--three,
+        .scoring-grid--two {
+            grid-template-columns: 1fr;
+        }
+
+        .scoring-hero {
+            min-height: auto;
+        }
+    }
+
+    @@media (max-width: 680px) {
+        .scoring-page {
+            max-width: min(100%, calc(100vw - 16px));
+            padding-top: .85rem;
+        }
+
+        .scoring-hero,
+        .scoring-section,
+        .scoring-source-card {
+            border-radius: 22px;
+        }
+
+        .scoring-hero {
+            padding: 1rem;
+        }
+
+        .scoring-hero__actions,
+        .scoring-mini-grid,
+        .scoring-scoreboard__match {
+            grid-template-columns: 1fr;
+            display: grid;
+        }
+
+        .scoring-button {
             width: 100%;
         }
+
+        .scoring-scoreboard__versus {
+            min-height: 58px;
+        }
+
+        .scoring-rule-card {
+            grid-template-columns: 1fr;
+        }
+
+        .scoring-rule-card__icon {
+            width: 2.8rem;
+            height: 2.8rem;
+        }
+
+        .scoring-timeline article {
+            grid-template-columns: 1fr;
+        }
+
+            .scoring-timeline article span {
+                grid-row: auto;
+            }
     }
 </style>
 
@@ -272,7 +757,10 @@
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string TitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
-    private string MetaKeywords => "CriptoVersus, scoring rules, public market signals, market data, match scoring, educational simulations";
+
+    private string MetaKeywords =>
+        "CriptoVersus, crypto scoring rules, public market signals, candle battle, candle dominance, percentage movement, market simulation, arena pressure, momentum indicators";
+
     private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath(CurrentCulture));
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath("en"));
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath("pt"));
@@ -292,10 +780,15 @@
             ["description"] = MetaDescription,
             ["about"] = new[]
             {
-                "public market signals",
+                "public crypto market data",
                 "football-style simulated matches",
-                "market-derived scoring events",
-                "Binance-traded pairs when available"
+                "percentage movement scoring",
+                "candle battle comparison",
+                "candle dominance scoring",
+                "simulated scoring events",
+                "visual market indicators",
+                "Binance-traded pairs when available",
+                "not financial advice"
             },
             ["keywords"] = MetaKeywords,
             ["url"] = CanonicalUrl,
