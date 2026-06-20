@@ -136,7 +136,7 @@ export function renderBattleTimeline(containerId, battleState) {
     container.replaceChildren();
 
     container.style.gridTemplateColumns =
-        `repeat(${groupedSamples.length}, minmax(22px, 1fr))`;
+        `repeat(${groupedSamples.length}, minmax(0, 1fr))`;
 
     const fragment = document.createDocumentFragment();
 
