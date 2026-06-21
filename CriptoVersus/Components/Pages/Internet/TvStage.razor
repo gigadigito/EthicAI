@@ -242,239 +242,242 @@ else if (HasLiveMatch)
                 </div>
             }
 
-            <div class="tv-stage__grid">
-                <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
+            <div class="tv-stage__grid @(ShouldHideBroadcastArenaForMobile ? "tv-stage__grid--mobile-telemetry-only" : string.Empty)" style="@MobileBroadcastGridStyle">
+                @if (!ShouldHideBroadcastArenaForMobile)
+                {
+                    <article class="tv-match-card @(UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
 
-                    <div class="tv-match-card__meta">
-                        <span>@T("labels.hotMatch")</span>
-                        <strong>@DisplayRemainingTime()</strong>
-                    </div>
-
-                    @if (UseFootballFieldLayout && CurrentFieldState is not null)
-                    {
-                        <div class="tv-football-layout">
-                            <section class="tv-football-side tv-football-side--left">
-                                <div class="tv-football-side__cta-wrap">
-                                    @if (CanInvestInArena())
-                                    {
-                                        <a class="tv-football-side__cta tv-football-side__cta--left"
-                                           style="@GetBetButtonStyle(DisplayLeftSymbol())"
-                                           href="@BuildArenaInvestmentUrl()">
-                                            @MatchGaugeT("invest")
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <button type="button"
-                                                class="tv-football-side__cta tv-football-side__cta--left"
-                                                style="@GetBetButtonStyle(DisplayLeftSymbol())"
-                                                disabled>
-                                            @MatchGaugeT("invest")
-                                        </button>
-                                    }
-                                </div>
-                                <div class="tv-football-side__logo">
-                                    <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
-                                </div>
-                                <span class="tv-football-side__symbol">@DisplayLeftTickerLabel()</span>
-                                <strong>@DisplayLeftHeroLabel()</strong>
-                                <small>@DisplayLeftName()</small>
-                                <span class="tv-football-side__change @GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
-                            </section>
-
-                            <section class="tv-football-center">
-
-                                @if (ShouldShowBroadcastRotationGauge)
-                                {
-                                    <div class="tv-broadcast-rotation-gauge tv-broadcast-rotation-gauge--topbar" aria-live="polite" aria-atomic="true">
-                                        <div class="tv-broadcast-rotation-gauge__copy">
-                                            <span>@T("broadcast.rotationGaugeLabel")</span>
-                                            <strong>@DisplayBroadcastRotationRemaining()</strong>
-                                            <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
-                                        </div>
-                                        <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
-                                            <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
-                                        </div>
-                                    </div>
-                                }
-                                <div class="tv-football-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
-                                    <span>@T("field.scoreboard")</span>
-                                    <div class="tv-football-scoreboard__score">
-                                        <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
-                                        <em>@T("vs")</em>
-                                        <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
-                                    </div>
-                                    <div class="tv-football-scoreboard__clock">
-                                        <strong>@DisplayClockPrimary()</strong>
-                                        <span>@T("field.remainingTime")</span>
-                                    </div>
-                                </div>
-
-                                <div class="tv-football-field-viewport">
-                                    <TvCryptoFootballField Culture="@Culture"
-                                                           FieldState="@CurrentFieldState"
-                                                           TeamALogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                           TeamBLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />
-                                </div>
-
-                            </section>
-
-                            <section class="tv-football-side tv-football-side--right">
-                                <div class="tv-football-side__cta-wrap">
-                                    @if (CanInvestInArena())
-                                    {
-                                        <a class="tv-football-side__cta tv-football-side__cta--right"
-                                           style="@GetBetButtonStyle(DisplayRightSymbol())"
-                                           href="@BuildArenaInvestmentUrl()">
-                                            @MatchGaugeT("invest")
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <button type="button"
-                                                class="tv-football-side__cta tv-football-side__cta--right"
-                                                style="@GetBetButtonStyle(DisplayRightSymbol())"
-                                                disabled>
-                                            @MatchGaugeT("invest")
-                                        </button>
-                                    }
-                                </div>
-                                <div class="tv-football-side__logo">
-                                    <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
-                                </div>
-                                <span class="tv-football-side__symbol">@DisplayRightTickerLabel()</span>
-                                <strong>@DisplayRightHeroLabel()</strong>
-                                <small>@DisplayRightName()</small>
-                                <span class="tv-football-side__change @GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
-                            </section>
+                        <div class="tv-match-card__meta">
+                            <span>@T("labels.hotMatch")</span>
+                            <strong>@DisplayRemainingTime()</strong>
                         </div>
-                    }
-                    else
-                    {
-                        <div class="tv-match-card__arena">
-                            <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
-                                <div class="tv-team__halo"></div>
-                                <div class="tv-team__cta-wrap">
-                                    @if (CanInvestInArena())
-                                    {
-                                        <a class="tv-team__cta tv-team__cta--left"
-                                           style="@GetBetButtonStyle(DisplayLeftSymbol())"
-                                           href="@BuildArenaInvestmentUrl()">
-                                            @MatchGaugeT("invest")
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <button type="button"
-                                                class="tv-team__cta tv-team__cta--left"
-                                                style="@GetBetButtonStyle(DisplayLeftSymbol())"
-                                                disabled>
-                                            @MatchGaugeT("invest")
-                                        </button>
-                                    }
-                                </div>
-                                <div class="tv-team__logo-shell">
-                                    <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
-                                </div>
-                                <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
-                                <strong>@DisplayLeftName()</strong>
-                                <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
-                            </div>
 
-                            <div class="tv-center-hud">
-                                <div class="tv-broadcast-clock">
-                                    <div class="tv-broadcast-clock__header">
-                                        <span>@T("labels.matchClock")</span>
-                                        @if (IsClockLive())
+                        @if (UseFootballFieldLayout && CurrentFieldState is not null)
+                        {
+                            <div class="tv-football-layout">
+                                <section class="tv-football-side tv-football-side--left">
+                                    <div class="tv-football-side__cta-wrap">
+                                        @if (CanInvestInArena())
                                         {
-                                            <span class="tv-broadcast-clock__live">@T("labels.live")</span>
+                                            <a class="tv-football-side__cta tv-football-side__cta--left"
+                                               style="@GetBetButtonStyle(DisplayLeftSymbol())"
+                                               href="@BuildArenaInvestmentUrl()">
+                                                @MatchGaugeT("invest")
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="tv-football-side__cta tv-football-side__cta--left"
+                                                    style="@GetBetButtonStyle(DisplayLeftSymbol())"
+                                                    disabled>
+                                                @MatchGaugeT("invest")
+                                            </button>
                                         }
                                     </div>
-                                    <strong>@DisplayClockPrimary()</strong>
-                                    <small>@DisplayClockPhaseLabel()</small>
-                                </div>
-
-                                <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
-                                    <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
-                                    <div class="tv-scoreboard__score">
-                                        <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
-                                        <span class="tv-scoreboard__versus">@T("vs")</span>
-                                        <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                                    <div class="tv-football-side__logo">
+                                        <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
                                     </div>
-                                    <small>@DisplayScoreContext()</small>
-                                </div>
-                            </div>
+                                    <span class="tv-football-side__symbol">@DisplayLeftTickerLabel()</span>
+                                    <strong>@DisplayLeftHeroLabel()</strong>
+                                    <small>@DisplayLeftName()</small>
+                                    <span class="tv-football-side__change @GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
+                                </section>
 
-                            <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
-                                <div class="tv-team__halo"></div>
-                                <div class="tv-team__cta-wrap">
-                                    @if (CanInvestInArena())
+                                <section class="tv-football-center">
+
+                                    @if (ShouldShowBroadcastRotationGauge)
                                     {
-                                        <a class="tv-team__cta tv-team__cta--right"
-                                           style="@GetBetButtonStyle(DisplayRightSymbol())"
-                                           href="@BuildArenaInvestmentUrl()">
-                                            @MatchGaugeT("invest")
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <button type="button"
-                                                class="tv-team__cta tv-team__cta--right"
-                                                style="@GetBetButtonStyle(DisplayRightSymbol())"
-                                                disabled>
-                                            @MatchGaugeT("invest")
-                                        </button>
-                                    }
-                                </div>
-                                <div class="tv-team__logo-shell">
-                                    <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
-                                </div>
-                                <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
-                                <strong>@DisplayRightName()</strong>
-                                <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
-                            </div>
-                        </div>
-                    }
-
-                    <section class="tv-ai-commentary">
-                        <div class="tv-ai-commentary__header">
-                            <span>@(UseFootballFieldLayout? T("field.arenaCommentary") : T("commentary.title"))</span>
-                            <small>@DisplayCommentaryMeta()</small>
-                        </div>
-
-                        @if (HasArenaCommentaryFeed)
-                        {
-                            <div class="tv-ai-commentary__feed" aria-live="polite" aria-atomic="false">
-                                @foreach (var commentary in ArenaCommentaryFeed)
-                                {
-                                    <article @key="commentary.Id"
-                                             class="@(commentary.IsLatest ? "tv-ai-commentary__entry tv-ai-commentary__entry--latest" : "tv-ai-commentary__entry")"
-                                             style="@GetArenaCommentaryAccentStyle(commentary.AccentHex)"
-                                             @onclick="() => HandleArenaCommentaryClickAsync(commentary)"
-                                             title="@GetArenaCommentaryClickTitle(commentary)">
-                                        <div class="tv-ai-commentary__entry-meta">
-                                            <span class="tv-ai-commentary__minute">@commentary.MinuteLabel</span>
-                                            <span class="tv-ai-commentary__type">@commentary.TypeLabel</span>
+                                        <div class="tv-broadcast-rotation-gauge tv-broadcast-rotation-gauge--topbar" aria-live="polite" aria-atomic="true">
+                                            <div class="tv-broadcast-rotation-gauge__copy">
+                                                <span>@T("broadcast.rotationGaugeLabel")</span>
+                                                <strong>@DisplayBroadcastRotationRemaining()</strong>
+                                                <small>@T("broadcast.rotationGaugeTitle", BroadcastRotationMinutes)</small>
+                                            </div>
+                                            <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
+                                                <i class="tv-broadcast-rotation-gauge__fill" style="width:@BroadcastRotationWidthCss%;"></i>
+                                            </div>
                                         </div>
-                                        <div class="tv-ai-commentary__entry-body">
-                                            <strong class="tv-ai-commentary__asset">@commentary.HighlightSymbol</strong>
-                                            <p class="tv-ai-commentary__copy">@commentary.Text</p>
+                                    }
+                                    <div class="tv-football-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                                        <span>@T("field.scoreboard")</span>
+                                        <div class="tv-football-scoreboard__score">
+                                            <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                                            <em>@T("vs")</em>
+                                            <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
                                         </div>
-                                    </article>
-                                }
+                                        <div class="tv-football-scoreboard__clock">
+                                            <strong>@DisplayClockPrimary()</strong>
+                                            <span>@T("field.remainingTime")</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="tv-football-field-viewport">
+                                        <TvCryptoFootballField Culture="@Culture"
+                                                               FieldState="@CurrentFieldState"
+                                                               TeamALogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                               TeamBLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />
+                                    </div>
+
+                                </section>
+
+                                <section class="tv-football-side tv-football-side--right">
+                                    <div class="tv-football-side__cta-wrap">
+                                        @if (CanInvestInArena())
+                                        {
+                                            <a class="tv-football-side__cta tv-football-side__cta--right"
+                                               style="@GetBetButtonStyle(DisplayRightSymbol())"
+                                               href="@BuildArenaInvestmentUrl()">
+                                                @MatchGaugeT("invest")
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="tv-football-side__cta tv-football-side__cta--right"
+                                                    style="@GetBetButtonStyle(DisplayRightSymbol())"
+                                                    disabled>
+                                                @MatchGaugeT("invest")
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="tv-football-side__logo">
+                                        <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
+                                    </div>
+                                    <span class="tv-football-side__symbol">@DisplayRightTickerLabel()</span>
+                                    <strong>@DisplayRightHeroLabel()</strong>
+                                    <small>@DisplayRightName()</small>
+                                    <span class="tv-football-side__change @GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                                </section>
                             </div>
                         }
                         else
                         {
-                            <div class="tv-ai-commentary__text">
-                                @DisplayCommentaryText()
+                            <div class="tv-match-card__arena">
+                                <div class="tv-team tv-team--left" style="@GetTeamStyle(DisplayLeftSymbol(), true)">
+                                    <div class="tv-team__halo"></div>
+                                    <div class="tv-team__cta-wrap">
+                                        @if (CanInvestInArena())
+                                        {
+                                            <a class="tv-team__cta tv-team__cta--left"
+                                               style="@GetBetButtonStyle(DisplayLeftSymbol())"
+                                               href="@BuildArenaInvestmentUrl()">
+                                                @MatchGaugeT("invest")
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="tv-team__cta tv-team__cta--left"
+                                                    style="@GetBetButtonStyle(DisplayLeftSymbol())"
+                                                    disabled>
+                                                @MatchGaugeT("invest")
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="tv-team__logo-shell">
+                                        <img src="@GetLogoUrl(DisplayLeftLogoUrl())" alt="" />
+                                    </div>
+                                    <span class="tv-team__symbol">@DisplayLeftTickerLabel()</span>
+                                    <strong>@DisplayLeftName()</strong>
+                                    <span class="@GetChangeClass(DisplayLeftChangePercent())">@FormatChangePercent(DisplayLeftChangePercent())</span>
+                                </div>
+
+                                <div class="tv-center-hud">
+                                    <div class="tv-broadcast-clock">
+                                        <div class="tv-broadcast-clock__header">
+                                            <span>@T("labels.matchClock")</span>
+                                            @if (IsClockLive())
+                                            {
+                                                <span class="tv-broadcast-clock__live">@T("labels.live")</span>
+                                            }
+                                        </div>
+                                        <strong>@DisplayClockPrimary()</strong>
+                                        <small>@DisplayClockPhaseLabel()</small>
+                                    </div>
+
+                                    <div class="tv-scoreboard @(_pulseScoreboard ? "is-pulsing" : string.Empty)">
+                                        <span class="tv-scoreboard__status">@T("labels.matchArena")</span>
+                                        <div class="tv-scoreboard__score">
+                                            <strong class="@(_pulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayLeftScore()</strong>
+                                            <span class="tv-scoreboard__versus">@T("vs")</span>
+                                            <strong class="@(_pulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@DisplayRightScore()</strong>
+                                        </div>
+                                        <small>@DisplayScoreContext()</small>
+                                    </div>
+                                </div>
+
+                                <div class="tv-team tv-team--right" style="@GetTeamStyle(DisplayRightSymbol(), false)">
+                                    <div class="tv-team__halo"></div>
+                                    <div class="tv-team__cta-wrap">
+                                        @if (CanInvestInArena())
+                                        {
+                                            <a class="tv-team__cta tv-team__cta--right"
+                                               style="@GetBetButtonStyle(DisplayRightSymbol())"
+                                               href="@BuildArenaInvestmentUrl()">
+                                                @MatchGaugeT("invest")
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="tv-team__cta tv-team__cta--right"
+                                                    style="@GetBetButtonStyle(DisplayRightSymbol())"
+                                                    disabled>
+                                                @MatchGaugeT("invest")
+                                            </button>
+                                        }
+                                    </div>
+                                    <div class="tv-team__logo-shell">
+                                        <img src="@GetLogoUrl(DisplayRightLogoUrl())" alt="" />
+                                    </div>
+                                    <span class="tv-team__symbol">@DisplayRightTickerLabel()</span>
+                                    <strong>@DisplayRightName()</strong>
+                                    <span class="@GetChangeClass(DisplayRightChangePercent())">@FormatChangePercent(DisplayRightChangePercent())</span>
+                                </div>
                             </div>
                         }
-                    </section>
 
-                </article>
+                        <section class="tv-ai-commentary">
+                            <div class="tv-ai-commentary__header">
+                                <span>@(UseFootballFieldLayout? T("field.arenaCommentary") : T("commentary.title"))</span>
+                                <small>@DisplayCommentaryMeta()</small>
+                            </div>
 
-                <aside class="tv-telemetry @(UseFootballFieldLayout ? "tv-telemetry--football" : string.Empty) @(IsMobileTelemetryLayout ? "tv-telemetry--mobile-stack" : string.Empty)">
+                            @if (HasArenaCommentaryFeed)
+                            {
+                                <div class="tv-ai-commentary__feed" aria-live="polite" aria-atomic="false">
+                                    @foreach (var commentary in ArenaCommentaryFeed)
+                                    {
+                                        <article @key="commentary.Id"
+                                                 class="@(commentary.IsLatest ? "tv-ai-commentary__entry tv-ai-commentary__entry--latest" : "tv-ai-commentary__entry")"
+                                                 style="@GetArenaCommentaryAccentStyle(commentary.AccentHex)"
+                                                 @onclick="() => HandleArenaCommentaryClickAsync(commentary)"
+                                                 title="@GetArenaCommentaryClickTitle(commentary)">
+                                            <div class="tv-ai-commentary__entry-meta">
+                                                <span class="tv-ai-commentary__minute">@commentary.MinuteLabel</span>
+                                                <span class="tv-ai-commentary__type">@commentary.TypeLabel</span>
+                                            </div>
+                                            <div class="tv-ai-commentary__entry-body">
+                                                <strong class="tv-ai-commentary__asset">@commentary.HighlightSymbol</strong>
+                                                <p class="tv-ai-commentary__copy">@commentary.Text</p>
+                                            </div>
+                                        </article>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="tv-ai-commentary__text">
+                                    @DisplayCommentaryText()
+                                </div>
+                            }
+                        </section>
+
+                    </article>
+                }
+
+                <aside class="tv-telemetry @(UseFootballFieldLayout ? "tv-telemetry--football" : string.Empty) @(IsMobileTelemetryLayout ? "tv-telemetry--mobile-stack" : string.Empty)" style="@MobileBroadcastTelemetryStyle">
                     @if (ShouldRenderMobileTelemetryStack)
                     {
                         <div class="tv-telemetry-mobile-stack">
@@ -1230,6 +1233,9 @@ else
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private bool UseTelemetryCube => EnableTelemetryCube && !IsMobileTelemetryLayout;
     private bool ShouldRenderMobileTelemetryStack => EnableTelemetryCube && IsMobileTelemetryLayout;
+    private bool ShouldHideBroadcastArenaForMobile => IsBroadcastMode && IsMobileTelemetryLayout;
+    private string MobileBroadcastGridStyle => ShouldHideBroadcastArenaForMobile ? "grid-template-columns:minmax(0,1fr); align-items:stretch;" : string.Empty;
+    private string MobileBroadcastTelemetryStyle => ShouldHideBroadcastArenaForMobile ? "grid-column:1 / -1; width:100%; max-width:100%;" : string.Empty;
     private bool IsMobileTelemetryLayout => _isMobileTelemetryLayout == true;
     private const int MobileTelemetryBreakpointPx = 720;
     private readonly string _mobileTelemetryLayoutObserverKey = $"tv-mobile-telemetry-{Guid.NewGuid():N}";
@@ -11608,9 +11614,9 @@ private sealed record TvArenaCommentaryEntry(
         min-width: 0;
     }
 
-    .tv-telemetry-mobile-stack__panel > * {
-        min-width: 0;
-    }
+        .tv-telemetry-mobile-stack__panel > * {
+            min-width: 0;
+        }
 
     .tv-telemetry-mobile-stack__panel--compare,
     .tv-telemetry-mobile-stack__panel--split,
@@ -13324,13 +13330,13 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* =========================================================
-           TV/OBS FULLSCREEN HEIGHT FIX
-           ---------------------------------------------------------
-           The TV pages (/tv/broadcast and /tv/match) must behave as a
-           single fixed-height scene. This also protects the fixed match
-           route when it renders the same broadcast chrome but does not
-           receive IsBroadcastMode=true from the parent page.
-           ========================================================= */
+               TV/OBS FULLSCREEN HEIGHT FIX
+               ---------------------------------------------------------
+               The TV pages (/tv/broadcast and /tv/match) must behave as a
+               single fixed-height scene. This also protects the fixed match
+               route when it renders the same broadcast chrome but does not
+               receive IsBroadcastMode=true from the parent page.
+               ========================================================= */
     .tv-stage--broadcast {
         width: 100% !important;
         min-height: 100dvh !important;
@@ -14383,20 +14389,20 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-                       HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
-                       ----------------------------------------------------------
-                       Mantém os mesmos IDs usados pelo JS/lightweight-charts:
-                       - tv-telemetry-chart-left
-                       - tv-telemetry-chart-right
-                       - tv-telemetry-chart-compare
-                       - tv-telemetry-chart-split-left/right
-                       - tv-candle-battle-root
-                       - TvArenaPressureGauge
+                           HOTFIX ÍNTEGRO — Broadcast telemetry as simple carousel
+                           ----------------------------------------------------------
+                           Mantém os mesmos IDs usados pelo JS/lightweight-charts:
+                           - tv-telemetry-chart-left
+                           - tv-telemetry-chart-right
+                           - tv-telemetry-chart-compare
+                           - tv-telemetry-chart-split-left/right
+                           - tv-candle-battle-root
+                           - TvArenaPressureGauge
 
-                       Não usa cubo 3D, prisma ou faces físicas extras.
-                       O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
-                       Essa camada CSS transforma isso em carrossel estável.
-                       ========================================================== */
+                           Não usa cubo 3D, prisma ou faces físicas extras.
+                           O tvTelemetryCube.mjs pode continuar apenas trocando is-face-*.
+                           Essa camada CSS transforma isso em carrossel estável.
+                           ========================================================== */
 
     .tv-telemetry-cube-shell {
         --tv-carousel-min-height: clamp(520px, 64vh, 820px);
@@ -14585,15 +14591,15 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /* =========================================================
-                       TV FOOTBALL + TELEMETRY CUBE
-                       SINCRONIZAÇÃO EXATA DE ALTURA
-                       ========================================================= */
+                           TV FOOTBALL + TELEMETRY CUBE
+                           SINCRONIZAÇÃO EXATA DE ALTURA
+                           ========================================================= */
 
     /*
-                       A altura da linha é definida naturalmente pelo card de partida.
-                       A coluna de telemetria é esticada pelo CSS Grid e o cube ocupa
-                       exatamente toda a área disponível da coluna direita.
-                    */
+                           A altura da linha é definida naturalmente pelo card de partida.
+                           A coluna de telemetria é esticada pelo CSS Grid e o cube ocupa
+                           exatamente toda a área disponível da coluna direita.
+                        */
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
     }
@@ -14606,19 +14612,19 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                       O card da esquerda mantém a altura natural do conteúdo.
-                       Não usamos height: 100% aqui para evitar que ele crie uma
-                       referência circular de altura dentro do próprio grid.
-                    */
+                           O card da esquerda mantém a altura natural do conteúdo.
+                           Não usamos height: 100% aqui para evitar que ele crie uma
+                           referência circular de altura dentro do próprio grid.
+                        */
     .tv-stage--broadcast .tv-match-card--football {
         height: auto !important;
     }
 
     /*
-                       A coluna direita recebe exatamente a altura da linha do grid.
-                       O shell do cube é posicionado dentro dela usando inset: 0,
-                       evitando dependência de cadeias frágeis de height: 100%.
-                    */
+                           A coluna direita recebe exatamente a altura da linha do grid.
+                           O shell do cube é posicionado dentro dela usando inset: 0,
+                           evitando dependência de cadeias frágeis de height: 100%.
+                        */
     .tv-stage--broadcast .tv-telemetry--football {
         position: relative !important;
         display: block !important;
@@ -14641,9 +14647,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
         /*
-                       Toda a cadeia interna do cube passa a respeitar a altura
-                       exata recebida do shell.
-                    */
+                           Toda a cadeia interna do cube passa a respeitar a altura
+                           exata recebida do shell.
+                        */
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube,
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face,
         .tv-stage--broadcast .tv-telemetry--football .tv-telemetry-cube__face--back,
@@ -14664,9 +14670,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                       A face de sentiment usa uma única linha flexível.
-                       O gauge ocupa integralmente essa linha.
-                    */
+                           A face de sentiment usa uma única linha flexível.
+                           O gauge ocupa integralmente essa linha.
+                        */
     .tv-stage--broadcast .tv-telemetry-cube__inner--sentiment {
         display: grid !important;
         grid-template-rows: minmax(0, 1fr) !important;
@@ -14695,9 +14701,9 @@ private sealed record TvArenaCommentaryEntry(
         }
 
     /*
-                       Estrutura interna do gauge:
-                       cabeçalho, área central flexível, status e momentum.
-                    */
+                           Estrutura interna do gauge:
+                           cabeçalho, área central flexível, status e momentum.
+                        */
     .tv-stage--broadcast .tv-arena-pressure-gauge__panel {
         display: grid !important;
         grid-template-rows: auto minmax(0, 1fr) auto auto !important;
@@ -14740,9 +14746,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-                       Em telas menores as colunas deixam de compartilhar a mesma linha.
-                       O cube volta ao fluxo normal e usa uma altura responsiva própria.
-                    */
+                           Em telas menores as colunas deixam de compartilhar a mesma linha.
+                           O cube volta ao fluxo normal e usa uma altura responsiva própria.
+                        */
     @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-telemetry--football {
             position: relative !important;
@@ -14786,8 +14792,8 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* ==========================================================
-                   AJUSTE FINAL — GRÁFICOS COM 100% DA ALTURA DO CONTAINER
-                   ========================================================== */
+                       AJUSTE FINAL — GRÁFICOS COM 100% DA ALTURA DO CONTAINER
+                       ========================================================== */
 
     .tv-stage--broadcast .tv-stage__grid {
         align-items: stretch !important;
@@ -15135,14 +15141,14 @@ private sealed record TvArenaCommentaryEntry(
 <style>
 
     /* =========================================================
-               CORREÇÃO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
-               ========================================================= */
+                   CORREÇÃO DA ALTURA DOS SLIDES INTERNOS DA TELEMETRIA
+                   ========================================================= */
 
     /*
-               Os slides compare, split e sentiment possuem normalmente
-               apenas um filho direto. Eles precisam de uma única linha
-               flexível, não do template header/content/footer.
-            */
+                   Os slides compare, split e sentiment possuem normalmente
+                   apenas um filho direto. Eles precisam de uma única linha
+                   flexível, não do template header/content/footer.
+                */
     .tv-telemetry-cube__inner--compare,
     .tv-telemetry-cube__inner--split,
     .tv-telemetry-cube__inner--sentiment {
@@ -15163,8 +15169,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-               O slide de gols possui cabeçalho e conteúdo.
-            */
+                   O slide de gols possui cabeçalho e conteúdo.
+                */
     .tv-telemetry-cube__inner--goals {
         display: grid !important;
         grid-template-rows: auto minmax(0, 1fr) !important;
@@ -15181,9 +15187,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-               Todo filho direto dos slides deve ocupar integralmente
-               a linha flexível que recebeu.
-            */
+                   Todo filho direto dos slides deve ocupar integralmente
+                   a linha flexível que recebeu.
+                */
     .tv-telemetry-cube__inner--compare > *,
     .tv-telemetry-cube__inner--split > *,
     .tv-telemetry-cube__inner--sentiment > * {
@@ -15199,8 +15205,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-               Conteúdo do slide de gols ocupa toda a segunda linha.
-            */
+                   Conteúdo do slide de gols ocupa toda a segunda linha.
+                */
     .tv-telemetry-cube__inner--goals > .tv-goal-log {
         width: 100% !important;
         height: 100% !important;
@@ -15210,8 +15216,8 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-               Cadeia interna dos componentes dos slides.
-            */
+                   Cadeia interna dos componentes dos slides.
+                */
     .tv-telemetry-cube__inner--compare :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart ),
     .tv-telemetry-cube__inner--split :is( .tv-candle-battle, .tv-candle-battle__cards, .tv-candle-battle-card ),
     .tv-telemetry-cube__inner--sentiment :is( .tv-arena-pressure-gauge, .tv-arena-pressure-gauge__panel ) {
@@ -15225,9 +15231,9 @@ private sealed record TvArenaCommentaryEntry(
     }
 
     /*
-               Remove alturas mínimas que fazem os componentes escolherem
+                   Remove alturas mínimas que fazem os componentes escolherem
 
-            */
+                */
     .tv-telemetry-cube__inner--compare .tv-telemetry-chart-shell,
     .tv-telemetry-cube__inner--split .tv-telemetry-chart-shell,
     .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
@@ -15239,10 +15245,10 @@ private sealed record TvArenaCommentaryEntry(
 
 <style>
     /* =========================================================
-           FINAL TV BROADCAST VIEWPORT HEIGHT FIX
-           Mantem o broadcast dentro de uma viewport de TV/OBS e faz
-           a coluna direita ocupar a mesma altura util do painel esquerdo.
-           ========================================================= */
+               FINAL TV BROADCAST VIEWPORT HEIGHT FIX
+               Mantem o broadcast dentro de uma viewport de TV/OBS e faz
+               a coluna direita ocupar a mesma altura util do painel esquerdo.
+               ========================================================= */
 
     @@media (min-width: 1081px) {
         .tv-stage.tv-stage--broadcast.tv-stage--live {
