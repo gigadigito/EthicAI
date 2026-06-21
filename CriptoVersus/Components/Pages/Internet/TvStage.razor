@@ -1548,7 +1548,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-broadcast-no-cube-v11");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-broadcast-no-cube-v12");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
@@ -17558,7 +17558,7 @@ private sealed record TvArenaCommentaryEntry(
        HOTFIX V11 — Broadcast sem cube, com gráficos visíveis
        ---------------------------------------------------------
        A V10 impedia a montagem do cube no broadcast, mas no
-       desktop/tablet o aside não recebia a classe
+       desktop/tablet o <aside> não recebia a classe
        tv-telemetry--mobile-stack. Com isso a stack estática era
        renderizada dentro da grade antiga e podia ficar comprimida,
        escondendo Price Battle, Candle Battle, Goal Log e Pressure.
@@ -17675,6 +17675,142 @@ private sealed record TvArenaCommentaryEntry(
             height: auto !important;
             min-height: 260px !important;
             max-height: none !important;
+        }
+    }
+
+
+    /* =========================================================
+       HOTFIX V12 — Broadcast sem cube com gráficos visíveis
+       Causa da V11: um bloco posterior tinha .tv-telemetry-mobile-stack
+       display:none !important; e só reabria em media query. No desktop
+       a stack era renderizada, mas ficava invisível. Aqui o broadcast
+       força a stack sempre visível em qualquer largura.
+       ========================================================= */
+
+    .tv-stage--broadcast .tv-telemetry,
+    .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 12px !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry > .tv-telemetry-mobile-stack,
+    .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack > .tv-telemetry-mobile-stack,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-auto-rows: auto !important;
+        align-content: start !important;
+        gap: 12px !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        overflow: visible !important;
+        transform: none !important;
+        pointer-events: auto !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-cube-shell,
+    .tv-stage--broadcast .tv-telemetry-cube,
+    .tv-stage--broadcast .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry-cube__inner,
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-stage,
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-panel {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel {
+        display: block !important;
+        position: relative !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        transform: none !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > * {
+        display: block !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--compare {
+        order: 1 !important;
+        min-height: 270px !important;
+        height: 270px !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--split {
+        order: 2 !important;
+        min-height: 250px !important;
+        height: 250px !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--goals {
+        order: 3 !important;
+        min-height: 175px !important;
+        height: 175px !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--sentiment {
+        order: 4 !important;
+        min-height: 205px !important;
+        height: 205px !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack :is(canvas, svg) {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    @@media (max-width: 720px) {
+        .tv-stage--broadcast .tv-telemetry,
+        .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack,
+        .tv-stage--broadcast .tv-telemetry > .tv-telemetry-mobile-stack,
+        .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack > .tv-telemetry-mobile-stack {
+            display: flex !important;
+            flex-direction: column !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--compare,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--split,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--goals,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel--sentiment {
+            height: auto !important;
+            min-height: 260px !important;
+            max-height: none !important;
+            overflow: visible !important;
         }
     }
 </style>
