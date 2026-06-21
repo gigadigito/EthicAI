@@ -978,7 +978,7 @@ else
         @onclick="PlayKnownArenaAudioAsync"
         title="@KnownArenaAudioButtonTitle">
     <span class="tv-fixed-audio-test__icon" aria-hidden="true"></span>
-    <span>@(KnownArenaAudioButtonLabel)</span>
+    <span>@KnownArenaAudioButtonLabel</span>
 </button>
 
 @code {
@@ -1547,7 +1547,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260620-mobile-phone-v5");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260620-mobile-field-first-v6");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
@@ -16813,6 +16813,251 @@ private sealed record TvArenaCommentaryEntry(
         max-width: calc(100vw - 16px) !important;
         z-index: 10020 !important;
     }
+
+    }
+
+
+    /* =========================================================
+           HOTFIX V6 — Phone: campo primeiro + apenas um scroll
+           ---------------------------------------------------------
+           A V5 removeu o campo no telefone. Esta camada final devolve
+           a partida/campo para o topo do fluxo mobile e deixa somente
+           o scroll principal da página. Mantém desktop e tablet intactos.
+           ========================================================= */
+    @@media (max-width: 560px) {
+        html
+
+    {
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-height: 100% !important;
+        height: auto !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    body {
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-height: 100% !important;
+        height: auto !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior-y: auto !important;
+    }
+
+    #app,
+    .page,
+    main,
+    .content,
+    .page-content,
+    .tv-page,
+    .tv-stage,
+    .tv-stage--broadcast,
+    .tv-stage.tv-stage--broadcast,
+    .tv-stage--broadcast.tv-stage--live,
+    .tv-stage--broadcast .tv-stage__broadcast-shell,
+    .tv-stage--broadcast .tv-stage__grid,
+    .tv-stage--broadcast .tv-telemetry,
+    .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-x: hidden !important;
+        overflow-y: visible !important;
+        scrollbar-width: none !important;
+    }
+
+        #app::-webkit-scrollbar,
+        .page::-webkit-scrollbar,
+        main::-webkit-scrollbar,
+        .content::-webkit-scrollbar,
+        .page-content::-webkit-scrollbar,
+        .tv-page::-webkit-scrollbar,
+        .tv-stage::-webkit-scrollbar,
+        .tv-stage--broadcast::-webkit-scrollbar,
+        .tv-stage--broadcast .tv-stage__broadcast-shell::-webkit-scrollbar,
+        .tv-stage--broadcast .tv-stage__grid::-webkit-scrollbar,
+        .tv-stage--broadcast .tv-telemetry::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        .tv-stage--broadcast .tv-stage__grid {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 12px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* A partida/campo volta a ser a primeira informação no telefone. */
+        .tv-stage--broadcast .tv-match-card,
+        .tv-stage--broadcast .tv-match-card--football {
+            display: block !important;
+            order: 1 !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 12px !important;
+            box-sizing: border-box !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry,
+        .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack {
+            order: 2 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .tv-stage--broadcast .tv-ai-commentary {
+            display: none !important;
+        }
+
+        .tv-stage--broadcast .tv-football-layout {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+            grid-template-areas:
+                "center center"
+                "left right" !important;
+            gap: 10px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .tv-stage--broadcast .tv-football-center {
+            grid-area: center !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .tv-stage--broadcast .tv-football-side--left {
+            grid-area: left !important;
+        }
+
+        .tv-stage--broadcast .tv-football-side--right {
+            grid-area: right !important;
+        }
+
+        .tv-stage--broadcast .tv-football-side {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            padding: 10px 8px !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-football-side__cta-wrap {
+            display: none !important;
+        }
+
+        .tv-stage--broadcast .tv-football-side__logo {
+            width: 44px !important;
+            height: 44px !important;
+            margin-inline: auto !important;
+        }
+
+        .tv-stage--broadcast .tv-football-side strong {
+            font-size: 1.05rem !important;
+            line-height: 1.05 !important;
+            overflow-wrap: anywhere !important;
+        }
+
+        .tv-stage--broadcast .tv-broadcast-rotation-gauge {
+            display: none !important;
+        }
+
+        .tv-stage--broadcast .tv-football-scoreboard {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 0 8px 0 !important;
+            transform: none !important;
+        }
+
+        .tv-stage--broadcast .tv-football-field-viewport {
+            width: 100% !important;
+            max-width: 100% !important;
+            height: clamp(220px, 62vw, 320px) !important;
+            min-height: 220px !important;
+            max-height: 320px !important;
+            overflow: hidden !important;
+            border-radius: 18px !important;
+            margin: 0 !important;
+            transform: none !important;
+        }
+
+            .tv-stage--broadcast .tv-football-field-viewport > *,
+            .tv-stage--broadcast .tv-football-field-viewport svg,
+            .tv-stage--broadcast .tv-football-field-viewport canvas {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 100% !important;
+                max-height: 100% !important;
+            }
+
+        .tv-stage--broadcast .tv-match-card__arena {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+            grid-template-areas:
+                "center center"
+                "left right" !important;
+            gap: 10px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .tv-stage--broadcast .tv-center-hud {
+            grid-area: center !important;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .tv-stage--broadcast .tv-team--left {
+            grid-area: left !important;
+        }
+
+        .tv-stage--broadcast .tv-team--right {
+            grid-area: right !important;
+        }
+
+        .tv-stage--broadcast .tv-team {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            padding: 10px 8px !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-team__cta-wrap {
+            display: none !important;
+        }
+
+        .tv-stage--broadcast .tv-ticker {
+            display: none !important;
+        }
 
     }</style>
 
