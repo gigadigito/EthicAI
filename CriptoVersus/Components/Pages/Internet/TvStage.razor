@@ -1548,7 +1548,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-broadcast-no-cube-v12");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-broadcast-no-cube-v13");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
@@ -11646,7 +11646,7 @@ private sealed record TvArenaCommentaryEntry(
         min-width: 0;
     }
 
-        .tv-telemetry-mobile-stack__panel > * {
+        .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template) {
             min-width: 0;
         }
 
@@ -15367,7 +15367,7 @@ private sealed record TvArenaCommentaryEntry(
             order: 4 !important;
         }
 
-        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template),
         .tv-stage--broadcast .tv-telemetry-mobile-stack :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart, .tv-candle-battle, .tv-goal-log, .tv-goal-event-feed, .tv-arena-pressure-gauge ) {
             width: 100% !important;
             min-width: 0 !important;
@@ -15712,7 +15712,7 @@ private sealed record TvArenaCommentaryEntry(
             order: 4 !important;
         }
 
-        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template),
         .tv-stage--broadcast .tv-telemetry-mobile-stack :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart, .tv-candle-battle, .tv-goal-log, .tv-goal-event-feed, .tv-arena-pressure-gauge ) {
             width: 100% !important;
             min-width: 0 !important;
@@ -16139,7 +16139,7 @@ private sealed record TvArenaCommentaryEntry(
             order: 4 !important;
         }
 
-        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template),
         .tv-stage--broadcast .tv-telemetry-mobile-stack :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart, .tv-candle-battle, .tv-goal-log, .tv-goal-event-feed, .tv-arena-pressure-gauge ) {
             width: 100% !important;
             min-width: 0 !important;
@@ -16274,7 +16274,7 @@ private sealed record TvArenaCommentaryEntry(
             box-sizing: border-box !important;
         }
 
-            .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > * {
+            .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template) {
                 width: 100% !important;
                 max-width: 100% !important;
                 height: auto !important;
@@ -16516,7 +16516,7 @@ private sealed record TvArenaCommentaryEntry(
             order: 4 !important;
         }
 
-        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template),
         .tv-stage--broadcast .tv-telemetry-mobile-stack :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart, .tv-candle-battle, .tv-goal-log, .tv-goal-event-feed, .tv-arena-pressure-gauge ) {
             width: 100% !important;
             min-width: 0 !important;
@@ -16794,7 +16794,7 @@ private sealed record TvArenaCommentaryEntry(
             order: 4 !important;
         }
 
-        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *,
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template),
         .tv-stage--broadcast .tv-telemetry-mobile-stack :is( .tv-match-price-battle, .tv-match-price-battle-chart, .tv-price-battle, .tv-price-battle-chart, .tv-candle-battle, .tv-candle-battle__cards, .tv-candle-battle-card, .tv-candle-battle-card__body, .tv-candle-battle-card__chart-area, .tv-goal-log, .tv-goal-event-feed, .tv-goal-event-feed__list, .tv-goal-event-feed__items, .tv-arena-pressure-gauge, .tv-arena-pressure-gauge__panel ) {
             width: 100% !important;
             min-width: 0 !important;
@@ -17603,7 +17603,7 @@ private sealed record TvArenaCommentaryEntry(
         transform: none !important;
     }
 
-    .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack .tv-telemetry-mobile-stack__panel > * {
+    .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template) {
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
@@ -17749,7 +17749,7 @@ private sealed record TvArenaCommentaryEntry(
         transform: none !important;
     }
 
-    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > * {
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template) {
         display: block !important;
         min-width: 0 !important;
         width: 100% !important;
@@ -17813,4 +17813,56 @@ private sealed record TvArenaCommentaryEntry(
             overflow: visible !important;
         }
     }
+</style>
+
+
+<style>
+    /* =========================================================
+       HOTFIX V13 — não exibir CSS dos componentes como texto
+       ---------------------------------------------------------
+       A V12 tinha regras genéricas com > * { display:block } para
+       forçar os componentes da stack a aparecerem. Isso também
+       pegava tags <style> renderizadas por componentes internos
+       como TvMatchPriceBattleChart, e o navegador passava a mostrar
+       o CSS como texto dentro da página.
+
+       Esta camada final mantém o broadcast sem cube, mas garante
+       que style/script/link/template continuem invisíveis.
+       ========================================================= */
+
+    .tv-stage--broadcast style,
+    .tv-stage--broadcast script,
+    .tv-stage--broadcast link,
+    .tv-stage--broadcast template,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack style,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack script,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack link,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack template,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel style,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel script,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel link,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel template {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel > *:not(style):not(script):not(link):not(template) {
+        display: block !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        box-sizing: border-box !important;
+    }
+</style>
 </style>
