@@ -1,4 +1,4 @@
-﻿const charts = new Map();
+const charts = new Map();
 
 const DEFAULT_BACKGROUND = "#030a13";
 const DEFAULT_TEXT_COLOR = "rgba(232, 239, 249, 0.82)";
@@ -21,13 +21,22 @@ export function updateMatchPriceBattleChart(payload) {
         return;
     }
 
+    const canRender = isRenderableHost(host);
     let state = charts.get(chartId);
     if (!state) {
+        if (!canRender) {
+            return;
+        }
+
         state = createState(host);
         charts.set(chartId, state);
     }
 
     state.payload = normalizePayload(payload);
+    if (!canRender) {
+        return;
+    }
+
     return requestRender(state);
 }
 
@@ -46,6 +55,15 @@ export function disposeMatchPriceBattleChart(chartId) {
     state.canvas?.remove();
     state.markerLayer?.remove();
     charts.delete(chartId);
+}
+
+function isRenderableHost(host) {
+    if (!host || host.offsetParent === null) {
+        return false;
+    }
+
+    const rect = host.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
 }
 
 function createState(host) {

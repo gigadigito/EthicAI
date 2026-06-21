@@ -11,6 +11,7 @@
 @inject CriptoVersusApiClient Api
 @inject LocalizationService L
 @inject IConfiguration Config
+@inject IHttpContextAccessor HttpContextAccessor
 @inject IJSRuntime JS
 @inject IWebHostEnvironment Environment
 @inject MatchSlugHelper MatchSlugHelper
@@ -475,10 +476,7 @@ else if (HasLiveMatch)
                 </article>
 
                 <aside class="tv-telemetry @(UseFootballFieldLayout ? "tv-telemetry--football" : string.Empty) @(IsMobileTelemetryLayout ? "tv-telemetry--mobile-stack" : string.Empty)">
-                    @* Mobile stack is always rendered when the cube feature is enabled.
-                       CSS decides what is visible by breakpoint, so mobile does not depend on
-                       a JS resize callback before receiving the stacked panels. *@
-                    @if (EnableTelemetryCube)
+                    @if (ShouldRenderMobileTelemetryStack)
                     {
                         <div class="tv-telemetry-mobile-stack" aria-label="Mobile broadcast telemetry panels">
                             <section class="tv-telemetry-mobile-stack__panel tv-telemetry-mobile-stack__panel--compare">
@@ -566,7 +564,7 @@ else if (HasLiveMatch)
                             </section>
                         </div>
                     }
-                    @if (UseTelemetryCube)
+                    else if (UseTelemetryCube)
                     {
                         <div id="tv-telemetry-cube-shell"
                              class="tv-telemetry-cube-shell"
@@ -1262,6 +1260,7 @@ else
     private double FieldAnimationSpeed
         => Math.Clamp(Config.GetValue<double?>("CriptoVersusTV:AnimationSpeed") ?? 1.0d, 0.3d, 2.5d);
     private bool IsBroadcastSwitchNoticeVisible => IsBroadcastMode && DateTime.UtcNow <= _broadcastNoticeUntilUtc;
+    private bool _seededMobileTelemetryLayoutFromRequest;
     private bool IsBroadcastFlipActive => IsBroadcastMode && _isBroadcastFlipActive;
     private TvBackgroundAudioSettings BackgroundAudioSettings
         => TvBroadcastOptionsAccessor.Value.BuildEffectiveBackgroundAudioSettings();
@@ -1501,6 +1500,7 @@ public async Task OnMobileTelemetryLayoutChanged(bool isMobile)
 }
 protected override void OnParametersSet()
 {
+    SeedMobileTelemetryLayoutFromRequest();
     SyncAudioDebugFlag();
 
     if (!ShouldRenderCrowdAudio)
@@ -2237,6 +2237,40 @@ private async Task EnsureAudioDebugInteropAsync(bool force = false)
 
     _lastAppliedAudioDebugEnabled = _audioDebugEnabled;
     _lastAppliedAudioDebugCulture = Culture;
+}
+
+private void SeedMobileTelemetryLayoutFromRequest()
+{
+    if (_seededMobileTelemetryLayoutFromRequest || _isMobileTelemetryLayout.HasValue)
+        return;
+
+    _seededMobileTelemetryLayoutFromRequest = true;
+
+    try
+    {
+        var userAgent = HttpContextAccessor.HttpContext?.Request.Headers.UserAgent.ToString();
+        if (string.IsNullOrWhiteSpace(userAgent))
+            return;
+
+        if (IsLikelyMobileUserAgent(userAgent))
+            _isMobileTelemetryLayout = true;
+    }
+    catch
+    {
+    }
+}
+
+private static bool IsLikelyMobileUserAgent(string userAgent)
+{
+    if (string.IsNullOrWhiteSpace(userAgent))
+        return false;
+
+    return userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase)
+        || userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) && userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase)
+        || userAgent.Contains("IEMobile", StringComparison.OrdinalIgnoreCase)
+        || userAgent.Contains("Opera Mini", StringComparison.OrdinalIgnoreCase)
+        || userAgent.Contains("webOS", StringComparison.OrdinalIgnoreCase)
+        || userAgent.Contains("BlackBerry", StringComparison.OrdinalIgnoreCase);
 }
 
 private void EnsureLiveDataLoopsStarted()

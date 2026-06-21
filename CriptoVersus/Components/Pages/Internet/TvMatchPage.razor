@@ -212,6 +212,7 @@ else
     private CancellationTokenSource? _refreshCts;
     private Task? _refreshLoopTask;
     private int _refreshInProgress;
+    private bool _interactiveLoadRetryAttempted;
     private bool _secondaryDataLoadStarted;
     private TvMatchPageLoadState _loadState = TvMatchPageLoadState.Loading;
     private bool _topCoinsLoading = true;
@@ -336,6 +337,12 @@ else
                 ex,
                 "TvMatchPage JS module import failed. Match data load remains available without TV JS bootstrap. MatchId={MatchId}",
                 MatchId);
+        }
+
+        if (_loadState == TvMatchPageLoadState.Loading && !_interactiveLoadRetryAttempted)
+        {
+            _interactiveLoadRetryAttempted = true;
+            await RefreshAsync(CancellationToken.None);
         }
 
         _refreshCts = new CancellationTokenSource();
@@ -515,7 +522,7 @@ else
         }
         catch (OperationCanceledException)
         {
-            if (isInitialLoad)
+            if (isInitialLoad && _interactiveLoadRetryAttempted)
             {
                 _loadState = TvMatchPageLoadState.Error;
                 _topCoinsLoading = false;
@@ -530,7 +537,7 @@ else
         }
         catch (Exception ex)
         {
-            if (isInitialLoad)
+            if (isInitialLoad && _interactiveLoadRetryAttempted)
             {
                 _loadState = TvMatchPageLoadState.Error;
                 _topCoinsLoading = false;
@@ -762,13 +769,13 @@ else
         return key switch
         {
             "loading" => isPortuguese ? "Carregando partida..." : "Loading match...",
-            "loadingBody" => isPortuguese ? "A arena está preparando o confronto ao vivo." : "The arena is preparing the live matchup.",
-            "notFound" => isPortuguese ? "Partida não encontrada." : "Match not found.",
-            "notFoundBody" => isPortuguese ? "Não foi possível localizar a partida solicitada." : "We couldn't locate the requested match.",
-            "unavailable" => isPortuguese ? "Esta partida já terminou ou não está mais disponível." : "This match has already ended or is no longer available.",
-            "unavailableBody" => isPortuguese ? "A arena fixa só pode ser aberta enquanto a partida estiver disponível para transmissão." : "The fixed arena can only open while the match is still available for broadcast.",
-            "error" => isPortuguese ? "Não foi possível carregar a arena no momento." : "Unable to load the arena right now.",
-            "errorBody" => isPortuguese ? "Tente novamente em instantes. Se o problema continuar, a transmissão pode estar se atualizando." : "Please try again in a moment. If the problem persists, the broadcast may still be refreshing.",
+            "loadingBody" => isPortuguese ? "A arena esta preparando o confronto ao vivo." : "The arena is preparing the live matchup.",
+            "notFound" => isPortuguese ? "Partida nao encontrada." : "Match not found.",
+            "notFoundBody" => isPortuguese ? "Nao foi possivel localizar a partida solicitada." : "We couldn't locate the requested match.",
+            "unavailable" => isPortuguese ? "Esta partida ja terminou ou nao esta mais disponivel." : "This match has already ended or is no longer available.",
+            "unavailableBody" => isPortuguese ? "A arena fixa so pode ser aberta enquanto a partida estiver disponivel para transmissao." : "The fixed arena can only open while the match is still available for broadcast.",
+            "error" => isPortuguese ? "Nao foi possivel carregar a arena no momento." : "Unable to load the arena right now.",
+            "errorBody" => isPortuguese ? "Tente novamente em instantes. Se o problema continuar, a transmissao pode estar se atualizando." : "Please try again in a moment. If the problem persists, the broadcast may still be refreshing.",
             "retry" => isPortuguese ? "Tentar novamente" : "Try again",
             _ => key
         };
