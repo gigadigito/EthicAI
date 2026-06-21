@@ -946,6 +946,7 @@ else
             : $"{CurrentMatchUrl}#match-investment";
     private TvStageRenderModel StageModel => new()
     {
+        CurrentStageMatchId = CurrentStageMatchId,
         Culture = Culture,
         IsBroadcastMode = IsBroadcastMode,
         IsTvFullscreenLayout = IsTvFullscreenLayout,

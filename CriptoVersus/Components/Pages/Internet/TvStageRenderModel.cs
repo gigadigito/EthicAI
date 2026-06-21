@@ -5,6 +5,7 @@ namespace CriptoVersus.Components.Pages.Internet;
 
 public sealed class TvStageRenderModel
 {
+    public int CurrentStageMatchId { get; init; }
     public string Culture { get; init; } = string.Empty;
     public bool IsBroadcastMode { get; init; }
     public bool IsTvFullscreenLayout { get; init; }
