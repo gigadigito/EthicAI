@@ -1229,8 +1229,9 @@ else
     private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissão" : "Activating broadcast";
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") == true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
-    private bool UseTelemetryCube => EnableTelemetryCube && !IsMobileTelemetryLayout;
-    private bool ShouldRenderMobileTelemetryStack => EnableTelemetryCube && IsMobileTelemetryLayout;
+    private bool ShouldUseStaticTelemetryStack => IsBroadcastMode || IsMobileTelemetryLayout;
+    private bool UseTelemetryCube => EnableTelemetryCube && !ShouldUseStaticTelemetryStack;
+    private bool ShouldRenderMobileTelemetryStack => EnableTelemetryCube && ShouldUseStaticTelemetryStack;
     private bool IsMobileTelemetryLayout => _isMobileTelemetryLayout == true;
     private const int MobileTelemetryBreakpointPx = 1180;
     private readonly string _mobileTelemetryLayoutObserverKey = $"tv-mobile-telemetry-{Guid.NewGuid():N}";
@@ -1547,7 +1548,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-mobile-flow-1180-v9");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-broadcast-no-cube-v10");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
@@ -17448,3 +17449,85 @@ private sealed record TvArenaCommentaryEntry(
     }
 </style>
 
+
+
+<style>
+    /* =========================================================
+           HOTFIX V10 — Broadcast sem cube em qualquer largura
+           ---------------------------------------------------------
+           Sintoma corrigido:
+           - acima de 1180px o campo travava porque o broadcast voltava
+             a montar o cube/carrossel desktop.
+
+           Regra final:
+           - /tv/broadcast nunca monta o cube/carrossel;
+           - /tv/broadcast usa a stack estática de telemetria em todas as larguras;
+           - /tv/match ainda pode usar o cube desktop quando não estiver em mobile.
+           ========================================================= */
+
+    .tv-stage--broadcast .tv-telemetry-cube-shell,
+    .tv-stage--broadcast .tv-telemetry-cube,
+    .tv-stage--broadcast .tv-telemetry-cube__face,
+    .tv-stage--broadcast .tv-telemetry-cube__inner,
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-stage,
+    .tv-stage--broadcast .tv-telemetry-cube__virtual-panel {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: none !important;
+        animation: none !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack {
+        display: grid !important;
+        gap: 12px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack__panel {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage--broadcast .tv-telemetry-mobile-stack *,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack *::before,
+    .tv-stage--broadcast .tv-telemetry-mobile-stack *::after {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    @@media (min-width: 1181px) {
+        .tv-stage--broadcast .tv-telemetry.tv-telemetry--mobile-stack {
+            display: block !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-mobile-stack {
+            grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: 100% !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage--broadcast .tv-telemetry-mobile-stack__panel {
+            min-height: 0 !important;
+            height: 100% !important;
+            max-height: 100% !important;
+        }
+    }
+</style>
