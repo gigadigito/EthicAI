@@ -1,0 +1,396 @@
+@using DTOs
+@using CriptoVersus.Components.Shared
+@namespace CriptoVersus.Components.Pages.Internet
+
+@if (IsDesktop)
+{
+    <section class="tv-stage-telemetry-stack tv-stage-telemetry-stack--desktop">
+        <div id="@CarouselId"
+             class="carousel slide tv-stage-telemetry-carousel"
+             data-bs-ride="carousel"
+             data-bs-interval="9000"
+             data-bs-touch="true"
+             data-bs-pause="hover">
+            <div class="tv-stage-telemetry-carousel__caption" aria-hidden="true">
+                Market Battle Flow • Candle Battle • Goal Log • Arena Pressure
+            </div>
+
+            <div class="carousel-indicators tv-stage-telemetry-carousel__indicators">
+                <button type="button" data-bs-target="#@CarouselId" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Market Battle Flow"></button>
+                <button type="button" data-bs-target="#@CarouselId" data-bs-slide-to="1" aria-label="Candle Battle"></button>
+                <button type="button" data-bs-target="#@CarouselId" data-bs-slide-to="2" aria-label="Goal Log"></button>
+                <button type="button" data-bs-target="#@CarouselId" data-bs-slide-to="3" aria-label="Arena Pressure"></button>
+            </div>
+
+            <div class="carousel-inner tv-stage-telemetry-carousel__inner">
+                <section class="carousel-item active tv-stage-telemetry-carousel__item">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--compare">
+                        @PriceBattleContent
+                    </div>
+                </section>
+
+                <section class="carousel-item tv-stage-telemetry-carousel__item">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--split">
+                        @CandleBattleContent
+                    </div>
+                </section>
+
+                <section class="carousel-item tv-stage-telemetry-carousel__item">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--goals">
+                        @GoalLogContent
+                    </div>
+                </section>
+
+                <section class="carousel-item tv-stage-telemetry-carousel__item">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--sentiment">
+                        @ArenaPressureContent
+                    </div>
+                </section>
+            </div>
+
+            <button class="carousel-control-prev tv-stage-telemetry-carousel__control tv-stage-telemetry-carousel__control--prev"
+                    type="button"
+                    data-bs-target="#@CarouselId"
+                    data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+
+            <button class="carousel-control-next tv-stage-telemetry-carousel__control tv-stage-telemetry-carousel__control--next"
+                    type="button"
+                    data-bs-target="#@CarouselId"
+                    data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </section>
+}
+else
+{
+    <section class="tv-stage-telemetry-stack tv-stage-telemetry-stack--@Variant">
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--compare">
+            @PriceBattleContent
+        </section>
+
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--split">
+            @CandleBattleContent
+        </section>
+
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--goals">
+            @GoalLogContent
+        </section>
+
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--sentiment">
+            @ArenaPressureContent
+        </section>
+    </section>
+}
+
+<style>
+    .tv-stage-telemetry-stack {
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .tv-stage-telemetry-stack__panel {
+        min-width: 0;
+        overflow: visible;
+    }
+
+    .tv-stage-telemetry-stack__header {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+
+    .tv-stage-telemetry-stack__headline {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .tv-stage-telemetry-stack--mobile .tv-stage-telemetry-stack__panel--compare {
+        min-height: 420px;
+    }
+
+    .tv-stage-telemetry-stack--mobile .tv-stage-telemetry-stack__panel--split {
+        min-height: 360px;
+    }
+
+    .tv-stage-telemetry-stack--mobile .tv-stage-telemetry-stack__panel--goals {
+        min-height: 300px;
+    }
+
+    .tv-stage-telemetry-stack--mobile .tv-stage-telemetry-stack__panel--sentiment {
+        min-height: 300px;
+    }
+
+    .tv-stage-telemetry-stack--tablet {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tv-stage-telemetry-stack--tablet .tv-stage-telemetry-stack__panel--compare {
+        min-height: 360px;
+    }
+
+    .tv-stage-telemetry-stack--tablet .tv-stage-telemetry-stack__panel--split {
+        min-height: 320px;
+    }
+
+    .tv-stage-telemetry-stack--tablet .tv-stage-telemetry-stack__panel--goals {
+        min-height: 280px;
+    }
+
+    .tv-stage-telemetry-stack--tablet .tv-stage-telemetry-stack__panel--sentiment {
+        min-height: 280px;
+    }
+
+    .tv-stage-telemetry-stack--desktop {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .tv-stage-telemetry-carousel {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        border-radius: 22px;
+    }
+
+    .tv-stage-telemetry-carousel__caption {
+        color: rgba(235, 245, 255, .62);
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        line-height: 1.2;
+        margin: 0 0 8px;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .tv-stage-telemetry-carousel__inner {
+        width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        border-radius: 22px;
+    }
+
+    .tv-stage-telemetry-carousel__item {
+        min-height: min(58svh, 560px);
+        width: 100%;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel {
+        min-height: min(58svh, 560px);
+        width: 100%;
+    }
+
+    .tv-stage-telemetry-carousel__indicators {
+        position: absolute;
+        right: 76px;
+        bottom: 10px;
+        left: auto;
+        z-index: 8;
+        display: flex;
+        justify-content: flex-end;
+        gap: 7px;
+        width: auto;
+        margin: 0;
+        padding: 7px 10px;
+        background: rgba(3, 10, 18, .68);
+        border: 1px solid rgba(138, 207, 255, .18);
+        border-radius: 999px;
+        backdrop-filter: blur(10px);
+    }
+
+    .tv-stage-telemetry-carousel__indicators [data-bs-target] {
+        width: 9px;
+        height: 9px;
+        margin: 0;
+        border: 0;
+        border-radius: 999px;
+        background-color: rgba(235, 245, 255, .42);
+        opacity: 1;
+    }
+
+    .tv-stage-telemetry-carousel__indicators .active {
+        width: 26px;
+        background: linear-gradient(90deg, #ffd76e, #53c8ff);
+    }
+
+    .tv-stage-telemetry-carousel__control {
+        top: auto;
+        bottom: 8px;
+        z-index: 9;
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(138, 207, 255, .24);
+        border-radius: 999px;
+        background: rgba(3, 10, 18, .78);
+        opacity: .92;
+        transform: none;
+    }
+
+    .tv-stage-telemetry-carousel__control:hover,
+    .tv-stage-telemetry-carousel__control:focus {
+        opacity: 1;
+        background: rgba(12, 28, 42, .92);
+    }
+
+    .tv-stage-telemetry-carousel__control--prev {
+        right: 44px;
+        left: auto;
+    }
+
+    .tv-stage-telemetry-carousel__control--next {
+        right: 8px;
+        left: auto;
+    }
+
+    .tv-stage-telemetry-carousel__control .carousel-control-prev-icon,
+    .tv-stage-telemetry-carousel__control .carousel-control-next-icon {
+        width: 15px;
+        height: 15px;
+        filter: drop-shadow(0 0 8px rgba(83, 200, 255, .55));
+    }
+
+    @@media (max-width: 720px) {
+        .tv-stage-telemetry-stack--tablet {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public TvStageRenderModel Model { get; set; } = default!;
+    [Parameter] public string Variant { get; set; } = "desktop";
+    [Parameter] public string FeedId { get; set; } = "tv-goal-event-feed";
+    [Parameter] public bool ShowTacticalPanel { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? FormatGoalLogTime { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? DescribeGoalLog { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? ResolveGoalLogTeamLogoUrl { get; set; }
+
+    private string CarouselId => $"tv-stage-telemetry-carousel-{Model?.CurrentStageMatchId ?? 0}-{Variant}";
+    private bool IsDesktop => string.Equals(Variant, "desktop", StringComparison.OrdinalIgnoreCase);
+
+    private RenderFragment PriceBattleContent => @<TvMatchPriceBattleChart Culture="@Model.Culture"
+                                 LeftSymbol="@Model.LeftTickerLabel"
+                                 LeftDisplayName="@Model.LeftName"
+                                 LeftLogoUrl="@Model.LeftLogoUrl"
+                                 LeftCurrentPrice="@Model.LeftCurrentPrice"
+                                 LeftChangePercent="@Model.LeftChangePercent"
+                                 LeftColor="@Model.LeftPriceBattleColor"
+                                 LeftPoints="@Model.LeftPriceBattlePoints"
+                                 LeftHasPriceHistory="@Model.LeftPriceBattleHasHistory"
+                                 RightSymbol="@Model.RightTickerLabel"
+                                 RightDisplayName="@Model.RightName"
+                                 RightLogoUrl="@Model.RightLogoUrl"
+                                 RightCurrentPrice="@Model.RightCurrentPrice"
+                                 RightChangePercent="@Model.RightChangePercent"
+                                 RightColor="@Model.RightPriceBattleColor"
+                                 RightPoints="@Model.RightPriceBattlePoints"
+                                 RightHasPriceHistory="@Model.RightPriceBattleHasHistory"
+                                 Competitiveness="@Model.Competitiveness"
+                                 BroadcastFocusLabel="@Model.BroadcastFocusLabel"
+                                 BroadcastRotationRemaining="@Model.BroadcastRotationRemaining"
+                                 BroadcastRotationProgress="@Model.BroadcastRotationProgress"
+                                 BroadcastFocusProgress="@Model.BroadcastFocusProgress"
+                                 BroadcastFocusColor="@Model.BroadcastFocusColor"
+                                 IsSignalStable="@Model.IsSignalStable" />;
+
+    private RenderFragment CandleBattleContent => @<TvCandleBattle LeftTickerLabel="@Model.LeftTickerLabel"
+                        RightTickerLabel="@Model.RightTickerLabel"
+                        LeftHeroLabel="@Model.LeftHeroLabel"
+                        RightHeroLabel="@Model.RightHeroLabel"
+                        LeftLogoUrl="@Model.LeftLogoUrl"
+                        RightLogoUrl="@Model.RightLogoUrl"
+                        LeftChangePercent="@Model.LeftChangePercent"
+                        RightChangePercent="@Model.RightChangePercent"
+                        LeftPoints="@Model.LeftPriceBattlePoints"
+                        RightPoints="@Model.RightPriceBattlePoints"
+                        ShowTacticalPanel="@ShowTacticalPanel"
+                        AriaLabel="@($"{Model.LeftTickerLabel} vs {Model.RightTickerLabel} candle battle arena")" />;
+
+    private RenderFragment GoalLogContent => @<text>
+        <header class="tv-stage-telemetry-stack__header">
+            <span>@Model.GoalLogTitle</span>
+            <div class="tv-stage-telemetry-stack__headline">
+                <strong>@Model.ScoreContext</strong>
+                <em>@Model.GoalLogLeaderSymbol</em>
+            </div>
+            <small>@Model.GoalLogHeadline</small>
+        </header>
+
+        <div class="tv-goal-log">
+            <TvGoalEventFeed FeedId="@FeedId"
+                             Culture="@Model.Culture"
+                             Items="@Model.RecentScoreEvents"
+                             FormatTime="FormatTime"
+                             DescribeFallback="DescribeFallback"
+                             ResolveTeamLogoUrl="ResolveTeamLogoUrl"
+                             EmptyTitle="@Model.GoalLogTitle"
+                             EmptySubtitle="@Model.GoalLogEmptyState" />
+        </div>
+    </text>;
+
+    private RenderFragment ArenaPressureContent => @<TvArenaPressureGauge LeftSymbol="@Model.LeftHeroLabel"
+                              Culture="@Model.Culture"
+                              LeftDisplayName="@Model.LeftSymbol"
+                              LeftLogoUrl="@Model.LeftLogoUrl"
+                              LeftPressurePercent="@Model.ArenaPressureLeftPercent"
+                              LeftMomentumLabel="@Model.ArenaPressureLeftMomentumLabel"
+                              LeftColor="#ffd76e"
+                              RightSymbol="@Model.RightHeroLabel"
+                              RightDisplayName="@Model.RightSymbol"
+                              RightLogoUrl="@Model.RightLogoUrl"
+                              RightPressurePercent="@Model.ArenaPressureRightPercent"
+                              RightMomentumLabel="@Model.ArenaPressureRightMomentumLabel"
+                              RightColor="#53c8ff"
+                              CurrentPressurePercent="@Model.ArenaCurrentPressurePercent"
+                              StatusLabel="@Model.ArenaPressureStatusLabel"
+                              Description="@Model.ArenaPressureDescription"
+                              IsCompact="@Model.UseCompactArenaGauge" />;
+
+    private string FormatTime(MatchScoreEventDto item) => FormatGoalLogTime?.Invoke(item) ?? string.Empty;
+    private string DescribeFallback(MatchScoreEventDto item) => DescribeGoalLog?.Invoke(item) ?? string.Empty;
+    private string ResolveTeamLogoUrl(string teamSymbol)
+    {
+        var normalized = (teamSymbol ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
+        var matchingEvent = Model?.RecentScoreEvents.FirstOrDefault(item =>
+            string.Equals(item.NormalizedTeamSymbol, normalized, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(item.TeamSymbol, normalized, StringComparison.OrdinalIgnoreCase));
+
+        if (matchingEvent is not null && ResolveGoalLogTeamLogoUrl is not null)
+            return ResolveGoalLogTeamLogoUrl.Invoke(matchingEvent);
+
+        if (Model is not null)
+        {
+            if (string.Equals(Model.LeftSymbol, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.LeftHeroLabel, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.LeftTickerLabel, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return Model.LeftLogoUrl ?? string.Empty;
+            }
+
+            if (string.Equals(Model.RightSymbol, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.RightHeroLabel, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.RightTickerLabel, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return Model.RightLogoUrl ?? string.Empty;
+            }
+        }
+
+        return string.Empty;
+    }
+}

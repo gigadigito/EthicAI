@@ -1,0 +1,133 @@
+@using DTOs
+@using CriptoVersus.Components.Shared
+@namespace CriptoVersus.Components.Pages.Internet
+
+<section class="tv-stage-desktop">
+    <TvStageTopbar Model="@Model"
+                   LiveArenaLabel="@LiveArenaLabel"
+                   AutomaticBroadcastLabel="@AutomaticBroadcastLabel"
+                   SignalBadgeClass="@SignalBadgeClass"
+                   SignalBadgeLabel="@SignalBadgeLabel"
+                   HotScoreLabel="@HotScoreLabel"
+                   HotScoreValue="@HotScoreValue"
+                   PulseHotScore="@PulseHotScore"
+                   KnownArenaAudioButtonTitle="@KnownArenaAudioButtonTitle"
+                   KnownArenaAudioButtonLabel="@KnownArenaAudioButtonLabel"
+                   ShouldRenderCrowdAudio="@ShouldRenderCrowdAudio"
+                   ShouldShowAudioUnlockButton="@ShouldShowAudioUnlockButton"
+                   CrowdAudioLabel="@CrowdAudioLabel"
+                   CrowdAudioIconClass="@CrowdAudioIconClass"
+                   StartBroadcastAudioLabel="@StartBroadcastAudioLabel"
+                   PlayKnownArenaAudioAsync="@PlayKnownArenaAudioAsync"
+                   ToggleCrowdAudioAsync="@ToggleCrowdAudioAsync"
+                   EnableBroadcastAudioAsync="@EnableBroadcastAudioAsync" />
+
+    @if (ShouldShowDataStatusBanner)
+    {
+        <div class="tv-stage__status-banner" aria-live="polite" aria-atomic="true">
+            <strong>@DataStatusTitle</strong>
+            <span>@BroadcastDataStatusMessage</span>
+        </div>
+    }
+
+    <div class="tv-stage-desktop__grid">
+        <TvStageFieldPanel Model="@Model"
+                           HotMatchLabel="@HotMatchLabel"
+                           ScoreboardLabel="@ScoreboardLabel"
+                           RemainingTimeLabel="@RemainingTimeLabel"
+                           CommentaryTitle="@CommentaryTitle"
+                           MatchClockLabel="@MatchClockLabel"
+                           LiveLabel="@LiveLabel"
+                           MatchArenaLabel="@MatchArenaLabel"
+                           VersusLabel="@VersusLabel"
+                           IsClockLive="@IsClockLive"
+                           BuildArenaCommentaryAccentStyle="@BuildArenaCommentaryAccentStyle"
+                           GetArenaCommentaryClickTitle="@GetArenaCommentaryClickTitle"
+                           OnCommentaryClick="@OnCommentaryClick"
+                           FieldContent="@FieldContent" />
+
+        <aside class="tv-stage-desktop__telemetry">
+            <TvStageTelemetryStack Model="@Model"
+                                   Variant="desktop"
+                                   FeedId="@FeedId"
+                                   ShowTacticalPanel="@ShowTacticalPanel"
+                                   FormatGoalLogTime="@FormatGoalLogTime"
+                                   DescribeGoalLog="@DescribeGoalLog"
+                                   ResolveGoalLogTeamLogoUrl="@ResolveGoalLogTeamLogoUrl" />
+        </aside>
+    </div>
+
+    @if (TickerContent is not null)
+    {
+        @TickerContent
+    }
+</section>
+
+<style>
+    .tv-stage-desktop {
+        display: grid;
+        gap: 18px;
+        min-width: 0;
+    }
+
+    .tv-stage-desktop__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, .85fr);
+        gap: 18px;
+        align-items: start;
+        min-width: 0;
+    }
+
+    .tv-stage-desktop__telemetry {
+        min-width: 0;
+    }
+
+    @@media (max-width: 1180px) {
+        .tv-stage-desktop__grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public TvStageRenderModel Model { get; set; } = default!;
+    [Parameter] public string LiveArenaLabel { get; set; } = string.Empty;
+    [Parameter] public string AutomaticBroadcastLabel { get; set; } = string.Empty;
+    [Parameter] public string SignalBadgeClass { get; set; } = string.Empty;
+    [Parameter] public string SignalBadgeLabel { get; set; } = string.Empty;
+    [Parameter] public string HotScoreLabel { get; set; } = string.Empty;
+    [Parameter] public string HotScoreValue { get; set; } = string.Empty;
+    [Parameter] public bool PulseHotScore { get; set; }
+    [Parameter] public string KnownArenaAudioButtonTitle { get; set; } = string.Empty;
+    [Parameter] public string KnownArenaAudioButtonLabel { get; set; } = string.Empty;
+    [Parameter] public bool ShouldRenderCrowdAudio { get; set; }
+    [Parameter] public bool ShouldShowAudioUnlockButton { get; set; }
+    [Parameter] public string CrowdAudioLabel { get; set; } = string.Empty;
+    [Parameter] public string CrowdAudioIconClass { get; set; } = string.Empty;
+    [Parameter] public string StartBroadcastAudioLabel { get; set; } = string.Empty;
+    [Parameter] public EventCallback PlayKnownArenaAudioAsync { get; set; }
+    [Parameter] public EventCallback ToggleCrowdAudioAsync { get; set; }
+    [Parameter] public EventCallback EnableBroadcastAudioAsync { get; set; }
+    [Parameter] public bool ShouldShowDataStatusBanner { get; set; }
+    [Parameter] public string DataStatusTitle { get; set; } = string.Empty;
+    [Parameter] public string BroadcastDataStatusMessage { get; set; } = string.Empty;
+    [Parameter] public string HotMatchLabel { get; set; } = string.Empty;
+    [Parameter] public string ScoreboardLabel { get; set; } = string.Empty;
+    [Parameter] public string RemainingTimeLabel { get; set; } = string.Empty;
+    [Parameter] public string CommentaryTitle { get; set; } = string.Empty;
+    [Parameter] public string MatchClockLabel { get; set; } = string.Empty;
+    [Parameter] public string LiveLabel { get; set; } = string.Empty;
+    [Parameter] public string MatchArenaLabel { get; set; } = string.Empty;
+    [Parameter] public string VersusLabel { get; set; } = "vs";
+    [Parameter] public bool IsClockLive { get; set; }
+    [Parameter] public string FeedId { get; set; } = "tv-goal-event-feed";
+    [Parameter] public bool ShowTacticalPanel { get; set; }
+    [Parameter] public Func<string, string>? BuildArenaCommentaryAccentStyle { get; set; }
+    [Parameter] public Func<TvStageCommentaryEntryModel, string>? GetArenaCommentaryClickTitle { get; set; }
+    [Parameter] public Func<TvStageCommentaryEntryModel, Task>? OnCommentaryClick { get; set; }
+    [Parameter] public RenderFragment? FieldContent { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? FormatGoalLogTime { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? DescribeGoalLog { get; set; }
+    [Parameter] public Func<MatchScoreEventDto, string>? ResolveGoalLogTeamLogoUrl { get; set; }
+    [Parameter] public RenderFragment? TickerContent { get; set; }
+}

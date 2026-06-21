@@ -1,0 +1,91 @@
+@namespace CriptoVersus.Components.Pages.Internet
+
+<header class="tv-stage-topbar">
+    <div class="tv-stage-topbar__copy">
+        <a class="tv-stage__eyebrow tv-stage__eyebrow-link" href="@Model.HomeUrl">
+            @Model.EyebrowLabel
+        </a>
+        <p class="tv-stage__headline">@Model.Headline</p>
+    </div>
+
+    <div class="tv-stage-topbar__actions">
+        <div class="tv-stage__badges">
+            <span class="tv-pill tv-pill--live">
+                <span class="tv-pill__dot"></span>
+                @LiveArenaLabel
+            </span>
+            <span class="tv-pill">@AutomaticBroadcastLabel</span>
+            @if (!string.IsNullOrWhiteSpace(Model.CurrentRealMatchUrl))
+            {
+                <a target="_blank" class="tv-pill tv-pill--nav" href="@Model.CurrentRealMatchUrl">Match</a>
+            }
+            <span class="@SignalBadgeClass">@SignalBadgeLabel</span>
+            <span class="tv-pill tv-pill--score @(PulseHotScore ? "is-pulsing" : string.Empty)">@HotScoreLabel @HotScoreValue</span>
+            <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-test" @onclick="PlayKnownArenaAudioAsync" title="@KnownArenaAudioButtonTitle">
+                <span class="tv-pill__audio-icon tv-pill__audio-icon--test" aria-hidden="true"></span>
+                <span>@KnownArenaAudioButtonLabel</span>
+            </button>
+            @if (ShouldRenderCrowdAudio)
+            {
+                <button type="button" class="tv-pill tv-pill--audio" @onclick="ToggleCrowdAudioAsync" title="@CrowdAudioLabel">
+                    <span class="@CrowdAudioIconClass" aria-hidden="true"></span>
+                    <span>@CrowdAudioLabel</span>
+                </button>
+                @if (ShouldShowAudioUnlockButton)
+                {
+                    <button type="button" class="tv-pill tv-pill--audio tv-pill--audio-unlock" @onclick="EnableBroadcastAudioAsync">@StartBroadcastAudioLabel</button>
+                }
+            }
+        </div>
+    </div>
+</header>
+
+<style>
+    .tv-stage-topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+    }
+
+    .tv-stage-topbar__copy,
+    .tv-stage-topbar__actions {
+        min-width: 0;
+    }
+
+    .tv-stage-topbar__actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    @@media (max-width: 900px) {
+        .tv-stage-topbar {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .tv-stage-topbar__actions {
+            justify-content: flex-start;
+        }
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public TvStageRenderModel Model { get; set; } = default!;
+    [Parameter] public string LiveArenaLabel { get; set; } = string.Empty;
+    [Parameter] public string AutomaticBroadcastLabel { get; set; } = string.Empty;
+    [Parameter] public string SignalBadgeClass { get; set; } = string.Empty;
+    [Parameter] public string SignalBadgeLabel { get; set; } = string.Empty;
+    [Parameter] public string HotScoreLabel { get; set; } = string.Empty;
+    [Parameter] public string HotScoreValue { get; set; } = string.Empty;
+    [Parameter] public bool PulseHotScore { get; set; }
+    [Parameter] public string KnownArenaAudioButtonTitle { get; set; } = string.Empty;
+    [Parameter] public string KnownArenaAudioButtonLabel { get; set; } = string.Empty;
+    [Parameter] public bool ShouldRenderCrowdAudio { get; set; }
+    [Parameter] public bool ShouldShowAudioUnlockButton { get; set; }
+    [Parameter] public string CrowdAudioLabel { get; set; } = string.Empty;
+    [Parameter] public string CrowdAudioIconClass { get; set; } = string.Empty;
+    [Parameter] public string StartBroadcastAudioLabel { get; set; } = string.Empty;
+    [Parameter] public EventCallback PlayKnownArenaAudioAsync { get; set; }
+    [Parameter] public EventCallback ToggleCrowdAudioAsync { get; set; }
+    [Parameter] public EventCallback EnableBroadcastAudioAsync { get; set; }
+}

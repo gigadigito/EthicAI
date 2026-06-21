@@ -1,0 +1,337 @@
+@using DTOs
+@using CriptoVersus.Components.Shared
+@namespace CriptoVersus.Components.Pages.Internet
+
+<article class="tv-stage-field-panel">
+    <div class="tv-match-card @(Model.UseFootballFieldLayout ? "tv-match-card--football" : string.Empty)">
+        <div class="tv-match-card__meta">
+            <span>@HotMatchLabel</span>
+            <strong>@Model.RemainingTime</strong>
+        </div>
+
+        @if (Model.UseFootballFieldLayout && Model.FieldState is not null)
+        {
+            <div class="tv-football-layout">
+                <section class="tv-football-side tv-football-side--left">
+                    <div class="tv-football-side__cta-wrap">
+                        @if (Model.CanInvestInArena)
+                        {
+                            <a class="tv-football-side__cta tv-football-side__cta--left"
+                               style="@Model.LeftBetButtonStyle"
+                               href="@Model.ArenaInvestmentUrl">
+                                @Model.InvestLabel
+                            </a>
+                        }
+                        else
+                        {
+                            <button type="button" class="tv-football-side__cta tv-football-side__cta--left" style="@Model.LeftBetButtonStyle" disabled>
+                                @Model.InvestLabel
+                            </button>
+                        }
+                    </div>
+                    <div class="tv-football-side__logo">
+                        <img src="@Model.LeftLogoUrl" alt="" />
+                    </div>
+                    <span class="tv-football-side__symbol">@Model.LeftTickerLabel</span>
+                    <strong>@Model.LeftHeroLabel</strong>
+                    <small>@Model.LeftName</small>
+                    <span class="tv-football-side__change @Model.LeftChangeClass">@Model.LeftChangeDisplay</span>
+                </section>
+
+                <section class="tv-football-center">
+                    @if (Model.ShowBroadcastRotationGauge)
+                    {
+                        <div class="tv-broadcast-rotation-gauge tv-broadcast-rotation-gauge--topbar" aria-live="polite" aria-atomic="true">
+                            <div class="tv-broadcast-rotation-gauge__copy">
+                                <span>@Model.BroadcastRotationLabel</span>
+                                <strong>@Model.BroadcastRotationRemaining</strong>
+                                <small>@Model.BroadcastRotationTitle</small>
+                            </div>
+                            <div class="tv-broadcast-rotation-gauge__track" aria-hidden="true">
+                                <i class="tv-broadcast-rotation-gauge__fill" style="width:@Model.BroadcastRotationPercent%;"></i>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="tv-football-scoreboard @(Model.PulseScoreboard ? "is-pulsing" : string.Empty)">
+                        <span>@ScoreboardLabel</span>
+                        <div class="tv-football-scoreboard__score">
+                            <strong class="@(Model.PulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.LeftScore</strong>
+                            <em>@VersusLabel</em>
+                            <strong class="@(Model.PulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.RightScore</strong>
+                        </div>
+                        <div class="tv-football-scoreboard__clock">
+                            <strong>@Model.ClockPrimary</strong>
+                            <span>@RemainingTimeLabel</span>
+                        </div>
+                    </div>
+
+                    <div class="tv-football-field-viewport">
+                        @if (FieldContent is not null)
+                        {
+                            @FieldContent
+                        }
+                    </div>
+                </section>
+
+                <section class="tv-football-side tv-football-side--right">
+                    <div class="tv-football-side__cta-wrap">
+                        @if (Model.CanInvestInArena)
+                        {
+                            <a class="tv-football-side__cta tv-football-side__cta--right"
+                               style="@Model.RightBetButtonStyle"
+                               href="@Model.ArenaInvestmentUrl">
+                                @Model.InvestLabel
+                            </a>
+                        }
+                        else
+                        {
+                            <button type="button" class="tv-football-side__cta tv-football-side__cta--right" style="@Model.RightBetButtonStyle" disabled>
+                                @Model.InvestLabel
+                            </button>
+                        }
+                    </div>
+                    <div class="tv-football-side__logo">
+                        <img src="@Model.RightLogoUrl" alt="" />
+                    </div>
+                    <span class="tv-football-side__symbol">@Model.RightTickerLabel</span>
+                    <strong>@Model.RightHeroLabel</strong>
+                    <small>@Model.RightName</small>
+                    <span class="tv-football-side__change @Model.RightChangeClass">@Model.RightChangeDisplay</span>
+                </section>
+            </div>
+        }
+        else
+        {
+            <div class="tv-match-card__arena">
+                <div class="tv-team tv-team--left" style="@Model.TeamLeftStyle">
+                    <div class="tv-team__halo"></div>
+                    <div class="tv-team__cta-wrap">
+                        @if (Model.CanInvestInArena)
+                        {
+                            <a class="tv-team__cta tv-team__cta--left" style="@Model.LeftBetButtonStyle" href="@Model.ArenaInvestmentUrl">@Model.InvestLabel</a>
+                        }
+                        else
+                        {
+                            <button type="button" class="tv-team__cta tv-team__cta--left" style="@Model.LeftBetButtonStyle" disabled>@Model.InvestLabel</button>
+                        }
+                    </div>
+                    <div class="tv-team__logo-shell">
+                        <img src="@Model.LeftLogoUrl" alt="" />
+                    </div>
+                    <span class="tv-team__symbol">@Model.LeftTickerLabel</span>
+                    <strong>@Model.LeftName</strong>
+                    <span class="@Model.LeftChangeClass">@Model.LeftChangeDisplay</span>
+                </div>
+
+                <div class="tv-center-hud">
+                    <div class="tv-broadcast-clock">
+                        <div class="tv-broadcast-clock__header">
+                            <span>@MatchClockLabel</span>
+                            @if (IsClockLive)
+                            {
+                                <span class="tv-broadcast-clock__live">@LiveLabel</span>
+                            }
+                        </div>
+                        <strong>@Model.ClockPrimary</strong>
+                        <small>@Model.ClockPhaseLabel</small>
+                    </div>
+
+                    <div class="tv-scoreboard @(Model.PulseScoreboard ? "is-pulsing" : string.Empty)">
+                        <span class="tv-scoreboard__status">@MatchArenaLabel</span>
+                        <div class="tv-scoreboard__score">
+                            <strong class="@(Model.PulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.LeftScore</strong>
+                            <span class="tv-scoreboard__versus">@VersusLabel</span>
+                            <strong class="@(Model.PulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.RightScore</strong>
+                        </div>
+                        <small>@Model.ScoreContext</small>
+                    </div>
+                </div>
+
+                <div class="tv-team tv-team--right" style="@Model.TeamRightStyle">
+                    <div class="tv-team__halo"></div>
+                    <div class="tv-team__cta-wrap">
+                        @if (Model.CanInvestInArena)
+                        {
+                            <a class="tv-team__cta tv-team__cta--right" style="@Model.RightBetButtonStyle" href="@Model.ArenaInvestmentUrl">@Model.InvestLabel</a>
+                        }
+                        else
+                        {
+                            <button type="button" class="tv-team__cta tv-team__cta--right" style="@Model.RightBetButtonStyle" disabled>@Model.InvestLabel</button>
+                        }
+                    </div>
+                    <div class="tv-team__logo-shell">
+                        <img src="@Model.RightLogoUrl" alt="" />
+                    </div>
+                    <span class="tv-team__symbol">@Model.RightTickerLabel</span>
+                    <strong>@Model.RightName</strong>
+                    <span class="@Model.RightChangeClass">@Model.RightChangeDisplay</span>
+                </div>
+            </div>
+        }
+
+        <section class="tv-ai-commentary">
+            <div class="tv-ai-commentary__header">
+                <span>@CommentaryTitle</span>
+                <small>@Model.CommentaryMeta</small>
+            </div>
+
+            @if (Model.CommentaryEntries.Count > 0)
+            {
+                <div class="tv-ai-commentary__feed" aria-live="polite" aria-atomic="false">
+                    @foreach (var commentary in Model.CommentaryEntries)
+                    {
+                        <article @key="commentary.Id"
+                                 class="@(commentary.IsLatest ? "tv-ai-commentary__entry tv-ai-commentary__entry--latest" : "tv-ai-commentary__entry")"
+                                 style="@BuildArenaCommentaryAccentStyle(commentary.AccentHex)"
+                                 @onclick="() => InvokeCommentaryClickAsync(commentary)"
+                                 title="@ResolveCommentaryClickTitle(commentary)">
+                            <div class="tv-ai-commentary__entry-meta">
+                                <span class="tv-ai-commentary__minute">@commentary.MinuteLabel</span>
+                                <span class="tv-ai-commentary__type">@commentary.TypeLabel</span>
+                            </div>
+                            <div class="tv-ai-commentary__entry-body">
+                                <strong class="tv-ai-commentary__asset">@commentary.HighlightSymbol</strong>
+                                <p class="tv-ai-commentary__copy">@commentary.Text</p>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="tv-ai-commentary__text">
+                    @Model.CommentaryText
+                </div>
+            }
+        </section>
+    </div>
+</article>
+
+<style>
+    .tv-stage-field-panel {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .tv-stage-field-panel .tv-match-card {
+        min-width: 0;
+        height: auto;
+        overflow: visible;
+    }
+
+    .tv-stage-field-panel .tv-match-card--football {
+        display: grid;
+        grid-template-rows: auto minmax(320px, auto) auto;
+    }
+
+    .tv-stage-field-panel .tv-football-layout {
+        min-height: clamp(420px, 42vw, 680px);
+        height: auto;
+        overflow: visible;
+    }
+
+    .tv-stage-field-panel .tv-football-center {
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .tv-stage-field-panel .tv-football-field-viewport {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        min-height: clamp(320px, 34vw, 560px);
+        overflow: hidden;
+        position: relative;
+        isolation: isolate;
+        border-radius: 18px;
+        background: rgba(3, 12, 8, 0.32);
+        perspective: 1600px;
+        perspective-origin: 50% 44%;
+    }
+
+    .tv-stage-field-panel .tv-football-field-viewport .tv-field {
+        margin: 0;
+    }
+
+    .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset {
+        overflow: hidden;
+    }
+
+    .tv-stage-field-panel .tv-football-field-viewport .tv-field__asset {
+        filter: saturate(1.02) contrast(1.03);
+    }
+
+    .tv-stage-field-panel .tv-football-field-viewport .tv-field__overlay {
+        transform: translateZ(0);
+    }
+
+    .tv-stage-field-panel .tv-ai-commentary {
+        min-width: 0;
+        overflow: visible;
+    }
+
+    @@media (max-width: 720px) {
+        .tv-stage-field-panel .tv-match-card--football {
+            grid-template-rows: auto auto auto;
+        }
+
+        .tv-stage-field-panel .tv-football-layout {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-areas:
+                "score score"
+                "field field"
+                "left right";
+            min-height: 0;
+            gap: 14px;
+        }
+
+        .tv-stage-field-panel .tv-football-side--left {
+            grid-area: left;
+        }
+
+        .tv-stage-field-panel .tv-football-side--right {
+            grid-area: right;
+        }
+
+        .tv-stage-field-panel .tv-football-center {
+            display: contents;
+        }
+
+        .tv-stage-field-panel .tv-football-scoreboard {
+            grid-area: score;
+        }
+
+        .tv-stage-field-panel .tv-football-field-viewport {
+            grid-area: field;
+            min-height: 320px;
+        }
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public TvStageRenderModel Model { get; set; } = default!;
+    [Parameter] public string HotMatchLabel { get; set; } = string.Empty;
+    [Parameter] public string ScoreboardLabel { get; set; } = string.Empty;
+    [Parameter] public string RemainingTimeLabel { get; set; } = string.Empty;
+    [Parameter] public string CommentaryTitle { get; set; } = string.Empty;
+    [Parameter] public string MatchClockLabel { get; set; } = string.Empty;
+    [Parameter] public string LiveLabel { get; set; } = string.Empty;
+    [Parameter] public string MatchArenaLabel { get; set; } = string.Empty;
+    [Parameter] public string VersusLabel { get; set; } = "vs";
+    [Parameter] public bool IsClockLive { get; set; }
+    [Parameter] public Func<string, string>? BuildArenaCommentaryAccentStyle { get; set; }
+    [Parameter] public Func<TvStageCommentaryEntryModel, string>? GetArenaCommentaryClickTitle { get; set; }
+    [Parameter] public Func<TvStageCommentaryEntryModel, Task>? OnCommentaryClick { get; set; }
+    [Parameter] public RenderFragment? FieldContent { get; set; }
+
+    private string ResolveCommentaryClickTitle(TvStageCommentaryEntryModel commentary)
+        => GetArenaCommentaryClickTitle?.Invoke(commentary) ?? string.Empty;
+
+    private async Task InvokeCommentaryClickAsync(TvStageCommentaryEntryModel commentary)
+    {
+        if (OnCommentaryClick is not null)
+            await OnCommentaryClick.Invoke(commentary);
+    }
+}
+
