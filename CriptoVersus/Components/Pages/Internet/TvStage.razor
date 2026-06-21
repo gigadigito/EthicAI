@@ -1547,7 +1547,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260620-mobile-field-first-v6");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260620-mobile-field-first-720-v7");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
@@ -16529,12 +16529,12 @@ private sealed record TvArenaCommentaryEntry(
 
 <style>
     /* =========================================================
-           HOTFIX V5 — Phone layout real, sem carrossel e sem largura fantasma
+           HOTFIX V5 — Mobile layout real, sem carrossel e sem largura fantasma
            ---------------------------------------------------------
-           Mantém tablet/desktop como estão. Abaixo de 560px o broadcast deixa
+           Mantém desktop como está. Abaixo de 720px o broadcast deixa
            de se comportar como cena OBS e vira documento normal com blocos.
            ========================================================= */
-    @@media (max-width: 560px) {
+    @@media (max-width: 720px) {
         html, body, #app, .page, main
 
     {
@@ -16818,13 +16818,13 @@ private sealed record TvArenaCommentaryEntry(
 
 
     /* =========================================================
-           HOTFIX V6 — Phone: campo primeiro + apenas um scroll
+           HOTFIX V7 — Mobile/tablet narrow: campo primeiro + apenas um scroll
            ---------------------------------------------------------
-           A V5 removeu o campo no telefone. Esta camada final devolve
+           A V5 removeu o campo no mobile estreito. Esta camada final devolve
            a partida/campo para o topo do fluxo mobile e deixa somente
            o scroll principal da página. Mantém desktop e tablet intactos.
            ========================================================= */
-    @@media (max-width: 560px) {
+    @@media (max-width: 720px) {
         html
 
     {
@@ -16893,7 +16893,7 @@ private sealed record TvArenaCommentaryEntry(
             max-width: 100% !important;
         }
 
-        /* A partida/campo volta a ser a primeira informação no telefone. */
+        /* A partida/campo volta a ser a primeira informação no mobile estreito. */
         .tv-stage--broadcast .tv-match-card,
         .tv-stage--broadcast .tv-match-card--football {
             display: block !important;
