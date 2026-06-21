@@ -1234,7 +1234,7 @@ else
     private bool UseTelemetryCube => EnableTelemetryCube && !IsMobileTelemetryLayout;
     private bool ShouldRenderMobileTelemetryStack => EnableTelemetryCube && IsMobileTelemetryLayout;
     private bool IsMobileTelemetryLayout => _isMobileTelemetryLayout == true;
-    private const int MobileTelemetryBreakpointPx = 720;
+    private const int MobileTelemetryBreakpointPx = 1080;
     private readonly string _mobileTelemetryLayoutObserverKey = $"tv-mobile-telemetry-{Guid.NewGuid():N}";
     private DotNetObjectReference<TvStage>? _mobileTelemetryLayoutRef;
     private bool? _isMobileTelemetryLayout;
@@ -1547,7 +1547,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260620-mobile-field-first-720-v7");
+        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260620-mobile-field-first-1080-v8");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
         await EnsureAudioDebugInteropAsync(force: true);
@@ -11861,7 +11861,7 @@ private sealed record TvArenaCommentaryEntry(
     .tv-telemetry-cube-shell {
         grid-column: 1 / -1;
         position: relative;
-        height: clamp(520px, 56vh, 720px);
+        height: clamp(520px, 56vh, 1080px);
         min-height: 0;
         perspective: 1600px;
         perspective-origin: 50% 44%;
@@ -12546,7 +12546,7 @@ private sealed record TvArenaCommentaryEntry(
     .pirate-signal-panel {
         position: relative;
         width: min(84vw, 1100px);
-        min-height: min(70vh, 720px);
+        min-height: min(70vh, 1080px);
         margin-top: clamp(12px, 4vh, 42px);
         display: grid;
         grid-template-rows: auto 1fr;
@@ -14374,7 +14374,7 @@ private sealed record TvArenaCommentaryEntry(
         }
     }
 
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         .tv-fixed-audio-test {
             right: 12px;
             left: 12px;
@@ -14575,11 +14575,11 @@ private sealed record TvArenaCommentaryEntry(
         }
     }
 
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         .tv-telemetry-cube-shell,
         .tv-stage--broadcast .tv-telemetry-cube-shell {
-            min-height: 720px !important;
-            height: 720px !important;
+            min-height: 1080px !important;
+            height: 1080px !important;
         }
 
         .tv-candle-battle-card__chart-area .tv-telemetry-chart-shell--battle {
@@ -14763,7 +14763,7 @@ private sealed record TvArenaCommentaryEntry(
             }
     }
 
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-stage__grid {
             align-items: start !important;
         }
@@ -14774,8 +14774,8 @@ private sealed record TvArenaCommentaryEntry(
 
         .tv-stage--broadcast .tv-telemetry--football {
             position: relative !important;
-            min-height: 720px !important;
-            height: 720px !important;
+            min-height: 1080px !important;
+            height: 1080px !important;
             max-height: none !important;
         }
 
@@ -15120,7 +15120,7 @@ private sealed record TvArenaCommentaryEntry(
         }
     }
 
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-stage__grid {
             align-items: start !important;
         }
@@ -15144,7 +15144,7 @@ private sealed record TvArenaCommentaryEntry(
            só o primeiro painel aparece e não existe scroll. Este override vem
            por último de propósito.
            ========================================================= */
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         html, body
 
     {
@@ -15489,7 +15489,7 @@ private sealed record TvArenaCommentaryEntry(
            só o primeiro painel aparece e não existe scroll. Este override vem
            por último de propósito.
            ========================================================= */
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         html, body
 
     {
@@ -15916,7 +15916,7 @@ private sealed record TvArenaCommentaryEntry(
            só o primeiro painel aparece e não existe scroll. Este override vem
            por último de propósito.
            ========================================================= */
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         html, body
 
     {
@@ -16160,7 +16160,7 @@ private sealed record TvArenaCommentaryEntry(
         display: none !important;
     }
 
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         .tv-stage--broadcast .tv-stage__broadcast-shell {
             height: auto !important;
             min-height: 100dvh !important;
@@ -16293,7 +16293,7 @@ private sealed record TvArenaCommentaryEntry(
            só o primeiro painel aparece e não existe scroll. Este override vem
            por último de propósito.
            ========================================================= */
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         html, body
 
     {
@@ -16531,10 +16531,10 @@ private sealed record TvArenaCommentaryEntry(
     /* =========================================================
            HOTFIX V5 — Mobile layout real, sem carrossel e sem largura fantasma
            ---------------------------------------------------------
-           Mantém desktop como está. Abaixo de 720px o broadcast deixa
+           Mantém desktop como está. Abaixo de 1080px o broadcast deixa
            de se comportar como cena OBS e vira documento normal com blocos.
            ========================================================= */
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         html, body, #app, .page, main
 
     {
@@ -16824,7 +16824,7 @@ private sealed record TvArenaCommentaryEntry(
            a partida/campo para o topo do fluxo mobile e deixa somente
            o scroll principal da página. Mantém desktop e tablet intactos.
            ========================================================= */
-    @@media (max-width: 720px) {
+    @@media (max-width: 1080px) {
         html
 
     {
