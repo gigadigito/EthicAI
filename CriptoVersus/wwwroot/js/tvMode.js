@@ -1,4 +1,4 @@
-﻿export function log(prefixOrEventName, eventNameOrPayload, maybePayload) {
+export function log(prefixOrEventName, eventNameOrPayload, maybePayload) {
     const hasExplicitPrefix = typeof maybePayload !== "undefined";
     const prefix = hasExplicitPrefix ? prefixOrEventName : "TV_MODE";
     const eventName = hasExplicitPrefix ? eventNameOrPayload : prefixOrEventName;
@@ -15,6 +15,7 @@
 let telemetryChartsState = null;
 let fieldFreedomState = null;
 let telemetryCubeController = null;
+const mobileTelemetryLayoutWatchers = new Map();
 let tvAudioFacade = null;
 let activeProceduralAudio = null;
 let activeProceduralAudioMeta = null;
@@ -3499,10 +3500,66 @@ function setCubeFace(faceIndex, reason) {
     ensureTelemetryCubeController().setFace(faceIndex, reason);
 }
 
-function resumeCubeRotation() {
+export function resumeCubeRotation() {
     ensureTelemetryCubeController().resume();
 }
 
+export function isMobileTelemetryLayout(breakpointPx = 720) {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+        return false;
+    }
+
+    const normalized = Math.max(0, Number(breakpointPx) || 720);
+    return window.matchMedia(`(max-width: ${normalized}px)`).matches;
+}
+
+export function watchMobileTelemetryLayout(observerKey, dotNetRef, breakpointPx = 720) {
+    if (!observerKey || !dotNetRef || typeof window === "undefined" || typeof window.matchMedia !== "function") {
+        return isMobileTelemetryLayout(breakpointPx);
+    }
+
+    unwatchMobileTelemetryLayout(observerKey);
+
+    const query = window.matchMedia(`(max-width: ${Math.max(0, Number(breakpointPx) || 720)}px)`);
+    const listener = () => {
+        try {
+            dotNetRef.invokeMethodAsync("OnMobileTelemetryLayoutChanged", query.matches);
+        } catch {
+        }
+    };
+
+    if (typeof query.addEventListener === "function") {
+        query.addEventListener("change", listener);
+    } else if (typeof query.addListener === "function") {
+        query.addListener(listener);
+    }
+
+    mobileTelemetryLayoutWatchers.set(observerKey, { query, listener, dotNetRef });
+    listener();
+    return query.matches;
+}
+
+export function unwatchMobileTelemetryLayout(observerKey) {
+    if (!observerKey) {
+        return;
+    }
+
+    const entry = mobileTelemetryLayoutWatchers.get(observerKey);
+    if (!entry) {
+        return;
+    }
+
+    try {
+        if (typeof entry.query?.removeEventListener === "function") {
+            entry.query.removeEventListener("change", entry.listener);
+        } else if (typeof entry.query?.removeListener === "function") {
+            entry.query.removeListener(entry.listener);
+        }
+    } catch {
+    }
+
+    mobileTelemetryLayoutWatchers.delete(observerKey);
+}
 function resizeTelemetryCharts() {
     if (!telemetryChartsState?.charts) {
         return;
@@ -3539,7 +3596,7 @@ function resizeTelemetryCharts() {
     });
 }
 
-function pauseCubeRotation(reason) {
+export function pauseCubeRotation(reason) {
     ensureTelemetryCubeController().pause(reason);
 }
 
@@ -4043,7 +4100,7 @@ function maybeRenderCompareCrossover(state, leftPoints, rightPoints, leftMeta, r
             position: "inBar",
             color: winnerMeta?.accentColor || "#f4fbff",
             shape: "circle",
-            text: "⚔"
+            text: "?"
         });
     }
 
@@ -5439,3 +5496,5 @@ if (typeof globalThis !== "undefined") {
         destroyFieldSway
     };
 }
+
+
