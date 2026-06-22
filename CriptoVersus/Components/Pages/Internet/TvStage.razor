@@ -1009,7 +1009,7 @@ else
         RightPriceBattleHasHistory = RightPriceBattleHasHistory,
         LeftPriceBattleColor = MarketAccentPalette.Resolve(DisplayLeftSymbol()),
         RightPriceBattleColor = MarketAccentPalette.Resolve(DisplayRightSymbol()),
-        GoalLogTitle = RootT("grid.metrics.goals"),
+        GoalLogTitle = T("grid.metrics.goals"),
         GoalLogHeadline = DisplayGoalLogHeadline(),
         GoalLogLeaderSymbol = _recentScoreEvents.Count > 0 ? (_recentScoreEvents[0].TeamSymbol ?? string.Empty) : DisplayPressureSymbol(),
         GoalLogEmptyState = DisplayGoalLogEmptyState(),
@@ -7929,8 +7929,12 @@ private async Task<bool> RefreshPriceBattleAsync(int matchId, CancellationToken 
         if (changed)
         {
             Logger.LogInformation(
-                "[TV_PRICE_BATTLE] MatchId={MatchId} LeftPrice={LeftPrice} RightPrice={RightPrice} LeftPoints={LeftPoints} RightPoints={RightPoints}",
+                "[TV_PRICE_BATTLE] MatchId={MatchId} LeftSymbol={LeftSymbol} RightSymbol={RightSymbol} LeftSnapshots={LeftSnapshots} RightSnapshots={RightSnapshots} LeftPrice={LeftPrice} RightPrice={RightPrice} LeftPoints={LeftPoints} RightPoints={RightPoints}",
                 matchId,
+                leftSymbol,
+                rightSymbol,
+                leftSnapshots.Count,
+                rightSnapshots.Count,
                 LeftPriceBattleCurrentPrice,
                 RightPriceBattleCurrentPrice,
                 _leftPriceBattlePoints.Count,
@@ -7970,10 +7974,15 @@ private IReadOnlyList<MatchMetricSnapshotDto> ResolvePriceBattleSnapshots(bool i
     var matchTeamId = isLeft ? Match?.TeamAId ?? 0 : Match?.TeamBId ?? 0;
     if (matchTeamId > 0)
     {
-        return _metricSnapshots
+        var byTeamId = _metricSnapshots
             .Where(x => x.TeamId == matchTeamId)
             .OrderBy(x => x.CapturedAtUtc)
             .ToList();
+
+        // In broadcast mode the hot-match payload can be ahead of the fixed Match DTO,
+        // so do not stop here if the team id mapping produced no snapshots.
+        if (byTeamId.Count > 0)
+            return byTeamId;
     }
 
     var normalizedSymbol = GetBaseSymbol(symbol);
@@ -7982,8 +7991,14 @@ private IReadOnlyList<MatchMetricSnapshotDto> ResolvePriceBattleSnapshots(bool i
 
     return _metricSnapshots
         .Where(x =>
-            string.Equals(x.TeamSymbol, symbol, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(GetBaseSymbol(x.TeamSymbol), normalizedSymbol, StringComparison.OrdinalIgnoreCase))
+        {
+            var snapshotSymbol = x.TeamSymbol ?? string.Empty;
+            var normalizedSnapshotSymbol = GetBaseSymbol(snapshotSymbol);
+
+            return string.Equals(snapshotSymbol, symbol, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(normalizedSnapshotSymbol, normalizedSymbol, StringComparison.OrdinalIgnoreCase)
+                || snapshotSymbol.StartsWith(normalizedSymbol, StringComparison.OrdinalIgnoreCase);
+        })
         .OrderBy(x => x.CapturedAtUtc)
         .ToList();
 }
@@ -13603,8 +13618,7 @@ private sealed record TvArenaCommentaryEntry(
     }
 
 
-    /* Refactor recovery v10: the new mobile/tablet/desktop components use normal page scroll.
-       These overrides intentionally beat the old fixed-height cube/carousel broadcast rules. */
+    /* Refactor runtime v19: desktop uses a fixed broadcast viewport, mobile/tablet keep normal scroll. */
     .tv-stage.tv-stage--broadcast {
         display: block !important;
         height: auto !important;
@@ -13626,21 +13640,9 @@ private sealed record TvArenaCommentaryEntry(
         overflow: visible !important;
     }
 
-    .tv-stage.tv-stage--broadcast .tv-stage-desktop,
     .tv-stage.tv-stage--broadcast .tv-stage-tablet,
     .tv-stage.tv-stage--broadcast .tv-stage-mobile {
         min-height: 0 !important;
-        height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
-    }
-
-    .tv-stage.tv-stage--broadcast .tv-stage-field-panel,
-    .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card,
-    .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card--football,
-    .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-layout,
-    .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center,
-    .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-ai-commentary {
         height: auto !important;
         max-height: none !important;
         overflow: visible !important;
@@ -13650,10 +13652,68 @@ private sealed record TvArenaCommentaryEntry(
     .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
     .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell,
     .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport {
-        height: auto !important;
-        max-height: none !important;
         min-height: clamp(320px, 34vw, 560px) !important;
-        overflow: visible !important;
+    }
+
+    @@media (min-width: 1181px) {
+        .tv-stage.tv-stage--broadcast {
+            display: grid !important;
+            height: 100svh !important;
+            max-height: 100svh !important;
+            min-height: 100svh !important;
+            overflow: hidden !important;
+            padding-bottom: 0 !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage__broadcast-shell {
+            display: block !important;
+            height: calc(100svh - 42px) !important;
+            max-height: calc(100svh - 42px) !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop__grid,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop__telemetry,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card--football,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-layout,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card--football {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) auto !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-layout {
+            display: grid !important;
+            grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(170px, 220px) !important;
+            grid-template-rows: minmax(0, 1fr) !important;
+            align-items: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) !important;
+            align-items: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport {
+            height: 100% !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: hidden !important;
+        }
     }
 
     @@media (max-width: 720px) {
@@ -13668,4 +13728,51 @@ private sealed record TvArenaCommentaryEntry(
             min-height: 320px !important;
         }
     }
+
+    /* Runtime v22: final desktop override for vertical field fill. Keep this after v19 rules. */
+    @@media (min-width: 1181px) {
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport {
+            height: 100% !important;
+            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
+            max-height: none !important;
+            display: grid !important;
+            align-items: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell {
+            height: 100% !important;
+            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
+            max-height: none !important;
+            display: grid !important;
+            align-items: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell {
+            grid-template-rows: minmax(0, 1fr) auto !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__surface,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__surface--asset {
+            height: 100% !important;
+            min-height: clamp(455px, calc(100svh - 285px), 680px) !important;
+            max-height: none !important;
+            align-self: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__asset,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel img.tv-field__asset {
+            height: 100% !important;
+            min-height: clamp(455px, calc(100svh - 285px), 680px) !important;
+            object-fit: cover !important;
+            object-position: center center !important;
+        }
+    }
+
 </style>

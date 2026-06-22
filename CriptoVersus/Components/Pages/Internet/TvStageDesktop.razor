@@ -66,25 +66,51 @@
 <style>
     .tv-stage-desktop {
         display: grid;
-        gap: 18px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        width: 100%;
         min-width: 0;
+        height: calc(100svh - 42px);
+        min-height: 680px;
+        overflow: hidden;
     }
 
     .tv-stage-desktop__grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.65fr) minmax(320px, .85fr);
-        gap: 18px;
-        align-items: start;
+        grid-template-columns: minmax(0, 1.7fr) minmax(420px, .9fr);
+        gap: 16px;
+        align-items: stretch;
+        width: 100%;
         min-width: 0;
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
     }
 
     .tv-stage-desktop__telemetry {
+        display: block;
         min-width: 0;
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
     }
 
     @@media (max-width: 1180px) {
+        .tv-stage-desktop {
+            height: auto;
+            min-height: 0;
+            overflow: visible;
+        }
+
         .tv-stage-desktop__grid {
             grid-template-columns: minmax(0, 1fr);
+            height: auto;
+            overflow: visible;
+        }
+
+        .tv-stage-desktop__telemetry {
+            height: auto;
+            overflow: visible;
         }
     }
 </style>
