@@ -226,6 +226,77 @@
         min-width: 0;
     }
 
+
+
+    /* v32 - desktop field height recovery: keep the desktop field filling the left arena column.
+       These selectors intentionally include the TvStage parent because TvStage.razor still has old
+       broadcast overrides with !important that force some children back to height:auto. */
+    @@media (min-width: 1181px) {
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel {
+            height: 100% !important;
+            min-height: 0 !important;
+            display: grid !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-match-card,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-match-card--football {
+            height: 100% !important;
+            min-height: 0 !important;
+            display: grid !important;
+            grid-template-rows: minmax(0, 1fr) auto !important;
+            align-content: stretch !important;
+            overflow: hidden !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-layout {
+            height: 100% !important;
+            min-height: 0 !important;
+            display: grid !important;
+            grid-template-columns: minmax(72px, .10fr) minmax(0, 1fr) minmax(72px, .10fr) !important;
+            align-items: stretch !important;
+            gap: clamp(12px, 1.2vw, 20px) !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-center {
+            height: 100% !important;
+            min-height: 0 !important;
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) !important;
+            align-content: stretch !important;
+            justify-items: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport {
+            width: 100% !important;
+            max-width: none !important;
+            height: 100% !important;
+            min-height: clamp(500px, calc(100svh - 258px), 760px) !important;
+            max-height: none !important;
+            align-self: stretch !important;
+            justify-self: stretch !important;
+            overflow: visible !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__broadcast-shell,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-camera-viewport,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset,
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__asset {
+            width: 100% !important;
+            max-width: none !important;
+            height: 100% !important;
+            min-height: inherit !important;
+            max-height: none !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-ai-commentary {
+            min-height: 74px !important;
+            max-height: 118px !important;
+            overflow: hidden !important;
+        }
+    }
+
     @@media (max-width: 720px) {
         .tv-stage-mobile .tv-stage-field-panel,
         .tv-stage-mobile .tv-stage-field-panel .tv-match-card,

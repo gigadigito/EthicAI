@@ -1,5 +1,4 @@
 @using DTOs
-@using CriptoVersus.Components.Shared
 @namespace CriptoVersus.Components.Pages.Internet
 
 <section class="tv-stage-desktop">
@@ -47,13 +46,20 @@
                            FieldContent="@FieldContent" />
 
         <aside class="tv-stage-desktop__telemetry">
-            <TvStageTelemetryStack Model="@Model"
-                                   Variant="desktop"
-                                   FeedId="@FeedId"
-                                   ShowTacticalPanel="@ShowTacticalPanel"
-                                   FormatGoalLogTime="@FormatGoalLogTime"
-                                   DescribeGoalLog="@DescribeGoalLog"
-                                   ResolveGoalLogTeamLogoUrl="@ResolveGoalLogTeamLogoUrl" />
+            @if (UseLegacyCube && LegacyCubeContent is not null)
+            {
+                @LegacyCubeContent
+            }
+            else
+            {
+                <TvStageTelemetryStack Model="@Model"
+                                       Variant="desktop"
+                                       FeedId="@FeedId"
+                                       ShowTacticalPanel="@ShowTacticalPanel"
+                                       FormatGoalLogTime="@FormatGoalLogTime"
+                                       DescribeGoalLog="@DescribeGoalLog"
+                                       ResolveGoalLogTeamLogoUrl="@ResolveGoalLogTeamLogoUrl" />
+            }
         </aside>
     </div>
 
@@ -66,51 +72,49 @@
 <style>
     .tv-stage-desktop {
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        gap: 12px;
-        width: 100%;
+        gap: 18px;
         min-width: 0;
-        height: calc(100svh - 42px);
-        min-height: 680px;
-        overflow: hidden;
     }
 
     .tv-stage-desktop__grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.7fr) minmax(420px, .9fr);
-        gap: 16px;
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, .85fr);
+        gap: 18px;
         align-items: stretch;
-        width: 100%;
         min-width: 0;
-        min-height: 0;
-        height: 100%;
-        overflow: hidden;
     }
 
     .tv-stage-desktop__telemetry {
-        display: block;
         min-width: 0;
-        min-height: 0;
-        height: 100%;
-        overflow: hidden;
+    }
+
+    @@media (min-width: 1181px) {
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop {
+            height: calc(100svh - 42px) !important;
+            min-height: 640px !important;
+            max-height: calc(100svh - 42px) !important;
+            grid-template-rows: auto minmax(0, 1fr) auto !important;
+            overflow: hidden !important;
+            align-content: stretch !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop__grid {
+            height: 100% !important;
+            min-height: 0 !important;
+            align-items: stretch !important;
+            grid-template-columns: minmax(0, 1.72fr) minmax(340px, .82fr) !important;
+        }
+
+        .tv-stage.tv-stage--broadcast .tv-stage-desktop__telemetry {
+            height: 100% !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
     }
 
     @@media (max-width: 1180px) {
-        .tv-stage-desktop {
-            height: auto;
-            min-height: 0;
-            overflow: visible;
-        }
-
         .tv-stage-desktop__grid {
             grid-template-columns: minmax(0, 1fr);
-            height: auto;
-            overflow: visible;
-        }
-
-        .tv-stage-desktop__telemetry {
-            height: auto;
-            overflow: visible;
         }
     }
 </style>
@@ -148,12 +152,14 @@
     [Parameter] public bool IsClockLive { get; set; }
     [Parameter] public string FeedId { get; set; } = "tv-goal-event-feed";
     [Parameter] public bool ShowTacticalPanel { get; set; }
+    [Parameter] public bool UseLegacyCube { get; set; }
+    [Parameter] public RenderFragment? LegacyCubeContent { get; set; }
     [Parameter] public Func<string, string>? BuildArenaCommentaryAccentStyle { get; set; }
     [Parameter] public Func<TvStageCommentaryEntryModel, string>? GetArenaCommentaryClickTitle { get; set; }
-    [Parameter] public Func<TvStageCommentaryEntryModel, Task>? OnCommentaryClick { get; set; }
-    [Parameter] public RenderFragment? FieldContent { get; set; }
+    [Parameter] public EventCallback<TvStageCommentaryEntryModel> OnCommentaryClick { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? FormatGoalLogTime { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? DescribeGoalLog { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? ResolveGoalLogTeamLogoUrl { get; set; }
+    [Parameter] public RenderFragment? FieldContent { get; set; }
     [Parameter] public RenderFragment? TickerContent { get; set; }
 }
