@@ -1,5 +1,4 @@
 @using DTOs
-@using CriptoVersus.Components.Shared
 @namespace CriptoVersus.Components.Pages.Internet
 
 <article class="tv-stage-field-panel">
@@ -184,7 +183,7 @@
                         <article @key="commentary.Id"
                                  class="@(commentary.IsLatest ? "tv-ai-commentary__entry tv-ai-commentary__entry--latest" : "tv-ai-commentary__entry")"
                                  style="@BuildArenaCommentaryAccentStyle(commentary.AccentHex)"
-                                 @onclick="() => InvokeCommentaryClickAsync(commentary)"
+                                 @onclick="() => OnCommentaryClick.InvokeAsync(commentary)"
                                  title="@ResolveCommentaryClickTitle(commentary)">
                             <div class="tv-ai-commentary__entry-meta">
                                 <span class="tv-ai-commentary__minute">@commentary.MinuteLabel</span>
@@ -212,277 +211,62 @@
     .tv-stage-field-panel {
         min-width: 0;
         width: 100%;
-        height: 100%;
-        min-height: 0;
     }
 
     .tv-stage-field-panel .tv-match-card {
         min-width: 0;
         height: 100%;
-        min-height: 0;
-        overflow: hidden;
-    }
-
-    .tv-stage-field-panel .tv-match-card--football {
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-    }
-
-    .tv-stage-field-panel .tv-football-layout {
-        min-height: 0;
-        height: 100%;
-        overflow: hidden;
-    }
-
-    .tv-stage-field-panel .tv-football-center {
-        min-height: 0;
-        overflow: visible;
     }
 
     .tv-stage-field-panel .tv-football-field-viewport {
-        display: block;
-        width: 100%;
-        min-width: 0;
-        height: 100%;
-        min-height: 320px;
-        overflow: hidden;
-        position: relative;
-        isolation: isolate;
-        border-radius: 18px;
-        background: rgba(3, 12, 8, 0.32);
-        perspective: 1600px;
-        perspective-origin: 50% 44%;
-    }
-
-    .tv-stage-field-panel .tv-football-field-viewport .tv-field {
-        margin: 0;
-    }
-
-    .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset {
-        overflow: hidden;
-    }
-
-    .tv-stage-field-panel .tv-football-field-viewport .tv-field__asset {
-        filter: saturate(1.02) contrast(1.03);
-    }
-
-    .tv-stage-field-panel .tv-football-field-viewport .tv-field__overlay {
-        transform: translateZ(0);
+        min-height: clamp(260px, 34vw, 480px);
     }
 
     .tv-stage-field-panel .tv-ai-commentary {
         min-width: 0;
-        overflow: visible;
     }
 
     @@media (max-width: 720px) {
-        .tv-stage-field-panel {
-            height: auto;
-            min-height: 0;
+        .tv-stage-mobile .tv-stage-field-panel,
+        .tv-stage-mobile .tv-stage-field-panel .tv-match-card,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-layout,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-center,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport {
+            width: 100% !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
         }
 
-        .tv-stage-field-panel .tv-match-card {
-            height: auto;
-            overflow: visible;
-        }
-
-        .tv-stage-field-panel .tv-match-card--football {
-            grid-template-rows: auto auto auto;
-        }
-
-        .tv-stage-field-panel .tv-football-layout {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-areas:
-                "score score"
-                "field field"
-                "left right";
-            min-height: 0;
-            height: auto;
-            overflow: visible;
-            gap: 14px;
-        }
-
-        .tv-stage-field-panel .tv-football-side--left {
-            grid-area: left;
-        }
-
-        .tv-stage-field-panel .tv-football-side--right {
-            grid-area: right;
-        }
-
-        .tv-stage-field-panel .tv-football-center {
-            display: contents;
-        }
-
-        .tv-stage-field-panel .tv-football-scoreboard {
-            grid-area: score;
-        }
-
-        .tv-stage-field-panel .tv-football-field-viewport {
-            grid-area: field;
-            min-height: 320px;
-        }
-    }
-
-
-    /* V18: no desktop, o campo em perspectiva preenche a altura útil da coluna esquerda. */
-    .tv-stage-desktop .tv-stage-field-panel,
-    .tv-stage-desktop .tv-stage-field-panel .tv-match-card,
-    .tv-stage-desktop .tv-stage-field-panel .tv-match-card--football {
-        height: 100%;
-        min-height: 0;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-match-card--football {
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-layout {
-        height: 100%;
-        min-height: 0;
-        display: grid;
-        grid-template-columns: minmax(92px, .14fr) minmax(0, 1fr) minmax(92px, .14fr);
-        grid-template-rows: minmax(0, 1fr);
-        align-items: stretch;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-side {
-        height: 100%;
-        align-self: stretch;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-center {
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr);
-        height: 100%;
-        min-height: 0;
-        align-self: stretch;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-scoreboard {
-        align-self: start;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport {
-        height: 100%;
-        min-height: 0;
-        max-height: none;
-        align-self: stretch;
-    }
-
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport > *,
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field,
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface,
-    .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset {
-        height: 100%;
-        min-height: 0;
-        max-height: none;
-    }
-
-
-    /* V21: desktop field must consume the empty lateral space inside the center column.
-       The TvCryptoFootballField keeps its own perspective; these rules only remove
-       max-width/aspect-ratio bottlenecks from the host chain. */
-    @media (min-width: 1181px) {
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-layout {
-            grid-template-columns: minmax(86px, 0.10fr) minmax(0, 1fr) minmax(86px, 0.10fr);
-            column-gap: clamp(8px, 0.75vw, 14px);
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-side {
-            min-width: 0;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-center {
-            width: 100%;
-            max-width: none;
-            justify-self: stretch;
-            overflow: hidden;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport {
-            width: 100%;
-            max-width: none;
-            justify-self: stretch;
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-layout {
             display: grid;
-            place-items: stretch;
-            overflow: hidden;
+            grid-template-columns: 1fr 1fr;
         }
 
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport > *,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__broadcast-shell,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-camera-viewport,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__overlay {
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-center {
+            grid-column: 1 / -1;
+            grid-row: 1;
+        }
+
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-side--left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-side--right {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport .tv-field,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport .tv-field__broadcast-shell,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport .tv-camera-viewport,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset,
+        .tv-stage-mobile .tv-stage-field-panel .tv-football-field-viewport .tv-field__asset {
             width: 100% !important;
             max-width: none !important;
-            height: 100% !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            aspect-ratio: auto !important;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__asset,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport img.tv-field__asset {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: none !important;
-            object-fit: cover !important;
-        }
-    }
-
-
-    /* V22: desktop vertical fill for the real perspective field.
-       The TvCryptoFootballField was filling width, but its internal camera/surface
-       kept a short asset height and left empty space before the possession bar.
-       These rules give the camera/surface a real viewport-based height while
-       keeping the possession strip visible at the bottom. */
-    @media (min-width: 1181px) {
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-center {
-            grid-template-rows: auto minmax(0, 1fr);
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport {
-            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
-            height: 100% !important;
-            display: grid !important;
-            align-items: stretch !important;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field {
-            display: grid !important;
-            grid-template-rows: minmax(0, 1fr) !important;
-            height: 100% !important;
-            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
-            align-items: stretch !important;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__broadcast-shell {
-            display: grid !important;
-            grid-template-rows: minmax(0, 1fr) auto !important;
-            height: 100% !important;
-            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
-            align-items: stretch !important;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-camera-viewport,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__surface--asset {
-            height: 100% !important;
-            min-height: clamp(455px, calc(100svh - 285px), 680px) !important;
-            max-height: none !important;
-            align-self: stretch !important;
-        }
-
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field__asset,
-        .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport img.tv-field__asset {
-            height: 100% !important;
-            min-height: clamp(455px, calc(100svh - 285px), 680px) !important;
-            object-fit: cover !important;
-            object-position: center center !important;
+            min-width: 0 !important;
         }
     }
 
@@ -498,19 +282,13 @@
     [Parameter] public string LiveLabel { get; set; } = string.Empty;
     [Parameter] public string MatchArenaLabel { get; set; } = string.Empty;
     [Parameter] public string VersusLabel { get; set; } = "vs";
+    [Parameter] public RenderFragment? FieldContent { get; set; }
     [Parameter] public bool IsClockLive { get; set; }
     [Parameter] public Func<string, string>? BuildArenaCommentaryAccentStyle { get; set; }
     [Parameter] public Func<TvStageCommentaryEntryModel, string>? GetArenaCommentaryClickTitle { get; set; }
-    [Parameter] public Func<TvStageCommentaryEntryModel, Task>? OnCommentaryClick { get; set; }
-    [Parameter] public RenderFragment? FieldContent { get; set; }
+    [Parameter] public EventCallback<TvStageCommentaryEntryModel> OnCommentaryClick { get; set; }
 
     private string ResolveCommentaryClickTitle(TvStageCommentaryEntryModel commentary)
         => GetArenaCommentaryClickTitle?.Invoke(commentary) ?? string.Empty;
-
-    private async Task InvokeCommentaryClickAsync(TvStageCommentaryEntryModel commentary)
-    {
-        if (OnCommentaryClick is not null)
-            await OnCommentaryClick.Invoke(commentary);
-    }
 }
 
