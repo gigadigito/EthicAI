@@ -1,91 +1,101 @@
 @using DTOs
+@using CriptoVersus.Components.Shared
 @namespace CriptoVersus.Components.Pages.Internet
+@implements IAsyncDisposable
 
-<section class="tv-stage-telemetry-stack tv-stage-telemetry-stack--@Variant">
-    <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--compare">
-        <TvMatchPriceBattleChart Culture="@Model.Culture"
-                                 LeftSymbol="@Model.LeftTickerLabel"
-                                 LeftDisplayName="@Model.LeftName"
-                                 LeftLogoUrl="@Model.LeftLogoUrl"
-                                 LeftCurrentPrice="@Model.LeftCurrentPrice"
-                                 LeftChangePercent="@Model.LeftChangePercent"
-                                 LeftColor="@Model.LeftPriceBattleColor"
-                                 LeftPoints="@Model.LeftPriceBattlePoints"
-                                 LeftHasPriceHistory="@Model.LeftPriceBattleHasHistory"
-                                 RightSymbol="@Model.RightTickerLabel"
-                                 RightDisplayName="@Model.RightName"
-                                 RightLogoUrl="@Model.RightLogoUrl"
-                                 RightCurrentPrice="@Model.RightCurrentPrice"
-                                 RightChangePercent="@Model.RightChangePercent"
-                                 RightColor="@Model.RightPriceBattleColor"
-                                 RightPoints="@Model.RightPriceBattlePoints"
-                                 RightHasPriceHistory="@Model.RightPriceBattleHasHistory"
-                                 Competitiveness="@Model.Competitiveness"
-                                 BroadcastFocusLabel="@Model.BroadcastFocusLabel"
-                                 BroadcastRotationRemaining="@Model.BroadcastRotationRemaining"
-                                 BroadcastRotationProgress="@Model.BroadcastRotationProgress"
-                                 BroadcastFocusProgress="@Model.BroadcastFocusProgress"
-                                 BroadcastFocusColor="@Model.BroadcastFocusColor"
-                                 IsSignalStable="@Model.IsSignalStable" />
-    </section>
-
-    <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--split">
-        <TvCandleBattle LeftTickerLabel="@Model.LeftTickerLabel"
-                        RightTickerLabel="@Model.RightTickerLabel"
-                        LeftHeroLabel="@Model.LeftHeroLabel"
-                        RightHeroLabel="@Model.RightHeroLabel"
-                        LeftLogoUrl="@Model.LeftLogoUrl"
-                        RightLogoUrl="@Model.RightLogoUrl"
-                        LeftChangePercent="@Model.LeftChangePercent"
-                        RightChangePercent="@Model.RightChangePercent"
-                        LeftPoints="@Model.LeftPriceBattlePoints"
-                        RightPoints="@Model.RightPriceBattlePoints"
-                        ShowTacticalPanel="@ShowTacticalPanel"
-                        AriaLabel="@($"{Model.LeftTickerLabel} vs {Model.RightTickerLabel} candle battle arena")" />
-    </section>
-
-    <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--goals">
-        <header class="tv-stage-telemetry-stack__header">
-            <span>@Model.GoalLogTitle</span>
-            <div class="tv-stage-telemetry-stack__headline">
-                <strong>@Model.ScoreContext</strong>
-                <em>@Model.GoalLogLeaderSymbol</em>
+@if (IsDesktop)
+{
+    <section class="tv-stage-telemetry-stack tv-stage-telemetry-stack--desktop">
+        <div id="@CarouselId"
+             class="carousel slide tv-stage-telemetry-carousel"
+             data-tv-stage-carousel="true"
+             aria-roledescription="carousel"
+             data-left-points="@Model.LeftPriceBattlePoints.Count"
+             data-right-points="@Model.RightPriceBattlePoints.Count"
+             data-goal-events="@Model.RecentScoreEvents.Count"
+             data-arena-left="@Model.ArenaPressureLeftPercent"
+             data-arena-right="@Model.ArenaPressureRightPercent"
+             aria-label="@($"{SlideTitle(_activeSlide)} telemetry carousel")">
+            <div class="tv-stage-telemetry-carousel__caption" aria-hidden="true">
+                @SlideTitle(_activeSlide)
             </div>
-            <small>@Model.GoalLogHeadline</small>
-        </header>
 
-        <div class="tv-goal-log">
-            <TvGoalEventFeed FeedId="@FeedId"
-                             Culture="@Model.Culture"
-                             Items="@Model.RecentScoreEvents"
-                             FormatTime="FormatTime"
-                             DescribeFallback="DescribeFallback"
-                             ResolveTeamLogoUrl="@ResolveTeamLogoUrl"
-                             EmptyTitle="@Model.GoalLogTitle"
-                             EmptySubtitle="@Model.GoalLogEmptyState" />
+            <div class="carousel-indicators tv-stage-telemetry-carousel__indicators">
+                @for (var i = 0; i < SlideCount; i++)
+                {
+                    var slideIndex = i;
+                    <button type="button"
+                            class="@(slideIndex == _activeSlide ? "active" : string.Empty)"
+                            aria-current="@(slideIndex == _activeSlide ? "true" : null)"
+                            aria-label="@SlideTitle(slideIndex)"
+                            @onclick="() => GoToSlideAsync(slideIndex)"></button>
+                }
+            </div>
+
+            <div class="carousel-inner tv-stage-telemetry-carousel__inner">
+                <section class="@GetCarouselItemClass(0)">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--compare">
+                        @PriceBattleContent
+                    </div>
+                </section>
+
+                <section class="@GetCarouselItemClass(1)">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--split">
+                        @CandleBattleContent
+                    </div>
+                </section>
+
+                <section class="@GetCarouselItemClass(2)">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--goals">
+                        @GoalLogContent
+                    </div>
+                </section>
+
+                <section class="@GetCarouselItemClass(3)">
+                    <div class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--sentiment">
+                        @ArenaPressureContent
+                    </div>
+                </section>
+            </div>
+
+            <button class="carousel-control-prev tv-stage-telemetry-carousel__control tv-stage-telemetry-carousel__control--prev"
+                    type="button"
+                    aria-label="Previous"
+                    @onclick="PreviousSlideAsync">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+
+            <button class="carousel-control-next tv-stage-telemetry-carousel__control tv-stage-telemetry-carousel__control--next"
+                    type="button"
+                    aria-label="Next"
+                    @onclick="NextSlideAsync">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
         </div>
     </section>
+}
+else
+{
+    <section class="tv-stage-telemetry-stack tv-stage-telemetry-stack--@Variant">
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--compare">
+            @PriceBattleContent
+        </section>
 
-    <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--sentiment">
-        <TvArenaPressureGauge LeftSymbol="@Model.LeftHeroLabel"
-                              Culture="@Model.Culture"
-                              LeftDisplayName="@Model.LeftSymbol"
-                              LeftLogoUrl="@Model.LeftLogoUrl"
-                              LeftPressurePercent="@Model.ArenaPressureLeftPercent"
-                              LeftMomentumLabel="@Model.ArenaPressureLeftMomentumLabel"
-                              LeftColor="#ffd76e"
-                              RightSymbol="@Model.RightHeroLabel"
-                              RightDisplayName="@Model.RightSymbol"
-                              RightLogoUrl="@Model.RightLogoUrl"
-                              RightPressurePercent="@Model.ArenaPressureRightPercent"
-                              RightMomentumLabel="@Model.ArenaPressureRightMomentumLabel"
-                              RightColor="#53c8ff"
-                              CurrentPressurePercent="@Model.ArenaCurrentPressurePercent"
-                              StatusLabel="@Model.ArenaPressureStatusLabel"
-                              Description="@Model.ArenaPressureDescription"
-                              IsCompact="@Model.UseCompactArenaGauge" />
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--split">
+            @CandleBattleContent
+        </section>
+
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--goals">
+            @GoalLogContent
+        </section>
+
+        <section class="tv-stage-telemetry-stack__panel tv-stage-telemetry-stack__panel--sentiment">
+            @ArenaPressureContent
+        </section>
     </section>
-</section>
+}
 
 <style>
     .tv-stage-telemetry-stack {
@@ -97,6 +107,7 @@
 
     .tv-stage-telemetry-stack__panel {
         min-width: 0;
+        overflow: visible;
     }
 
     .tv-stage-telemetry-stack__header {
@@ -148,26 +159,290 @@
         min-height: 280px;
     }
 
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--compare {
-        min-height: 300px;
+    .tv-stage-telemetry-stack--desktop {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        height: calc(100svh - 86px);
+        min-height: 560px;
+        overflow: hidden;
     }
 
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--split {
-        min-height: 280px;
+    .tv-stage-telemetry-carousel {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 560px;
+        overflow: hidden;
+        border-radius: 22px;
     }
 
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals {
-        min-height: 260px;
+    .tv-stage-telemetry-carousel__caption {
+        color: rgba(235, 245, 255, .62);
+        font-size: .68rem;
+        font-weight: 900;
+        letter-spacing: .12em;
+        line-height: 1.2;
+        margin: 0 0 8px;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .tv-stage-telemetry-carousel__inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        border-radius: 22px;
+    }
+
+    .tv-stage-telemetry-carousel__item {
+        position: absolute;
+        inset: 0;
+        display: block !important;
+        height: 100%;
+        min-height: 540px;
+        width: 100%;
+        float: none;
+        margin-right: 0;
+        transform: none !important;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity .28s ease, visibility .28s ease;
+    }
+
+    .tv-stage-telemetry-carousel__item.active {
+        z-index: 2;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel {
+        height: 100%;
+        min-height: 540px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-price-battle,
+    .tv-stage-telemetry-stack--desktop .tv-candle-battle,
+    .tv-stage-telemetry-stack--desktop .tv-goal-log,
+    .tv-stage-telemetry-stack--desktop .tv-goal-event-feed,
+    .tv-stage-telemetry-stack--desktop .tv-goal-event-feed__list,
+    .tv-stage-telemetry-stack--desktop .tv-arena-pressure,
+    .tv-stage-telemetry-stack--desktop .tv-arena-pressure-gauge,
+    .tv-stage-telemetry-stack--desktop .tv-arena-pressure-gauge__panel,
+    .tv-stage-telemetry-stack--desktop .tv-arena-pressure-gauge__center,
+    .tv-stage-telemetry-stack--desktop .tv-arena-pressure-gauge__gauge-shell {
+        height: 100%;
+        min-height: 540px;
     }
 
     .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--sentiment {
-        min-height: 260px;
+        display: grid;
+        min-height: 540px;
     }
 
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel,
-    .tv-stage-telemetry-stack--tablet .tv-stage-telemetry-stack__panel,
-    .tv-stage-telemetry-stack--mobile .tv-stage-telemetry-stack__panel {
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--sentiment > * {
+        min-height: 540px;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-arena-pressure-gauge__svg {
+        width: 100%;
+        height: auto;
+        min-height: 280px;
+    }
+
+
+    /* Desktop Goal Log compact mode: keep each event as a short row instead of a tall card. */
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-log,
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed {
+        height: 100%;
+        min-height: 0;
         overflow: hidden;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__list,
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__items {
+        height: 100%;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-right: 6px;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__items > *,
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__list > * {
+        min-height: 56px !important;
+        max-height: 64px !important;
+        height: 60px !important;
+        overflow: hidden !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+        align-items: center !important;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__items > * img,
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__list > * img,
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__items > * svg,
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__list > * svg {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__items > * :is(p, small),
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__list > * :is(p, small) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0 !important;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__items > * :is(h3, h4, strong),
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals .tv-goal-event-feed__list > * :is(h3, h4, strong) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin: 0 !important;
+    }
+
+
+
+    /* Desktop Market Battle Flow fill: make the active price chart consume the whole carousel viewport. */
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--compare {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--compare > :not(style):not(script):not(link):not(template) {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        height: 100%;
+        min-height: 0;
+        max-height: none;
+        overflow: hidden;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--compare :is(
+        .tv-price-battle,
+        .tv-price-battle-chart,
+        .tv-match-price-battle,
+        .tv-match-price-battle-chart
+    ) {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto !important;
+        height: 100% !important;
+        min-height: 100% !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--compare :is(
+        .tv-price-battle__body,
+        .tv-price-battle__surface,
+        .tv-price-battle__chart,
+        .tv-price-battle__chart-wrap,
+        .tv-price-battle__chart-surface,
+        .tv-price-battle__canvas,
+        .tv-price-battle-chart__body,
+        .tv-price-battle-chart__surface,
+        .tv-match-price-battle__body,
+        .tv-match-price-battle__surface,
+        .tv-match-price-battle__chart,
+        .tv-match-price-battle__chart-wrap,
+        .tv-match-price-battle__chart-surface
+    ) {
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: none !important;
+    }
+
+    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--compare canvas {
+        max-height: none !important;
+    }
+
+
+    .tv-stage-telemetry-carousel__indicators {
+        position: absolute;
+        right: 76px;
+        bottom: 10px;
+        left: auto;
+        z-index: 8;
+        display: flex;
+        justify-content: flex-end;
+        gap: 7px;
+        width: auto;
+        margin: 0;
+        padding: 7px 10px;
+        background: rgba(3, 10, 18, .68);
+        border: 1px solid rgba(138, 207, 255, .18);
+        border-radius: 999px;
+        backdrop-filter: blur(10px);
+    }
+
+    .tv-stage-telemetry-carousel__indicators button {
+        width: 9px;
+        height: 9px;
+        margin: 0;
+        border: 0;
+        border-radius: 999px;
+        background-color: rgba(235, 245, 255, .42);
+        opacity: 1;
+    }
+
+    .tv-stage-telemetry-carousel__indicators .active {
+        width: 26px;
+        background: linear-gradient(90deg, #ffd76e, #53c8ff);
+    }
+
+    .tv-stage-telemetry-carousel__control {
+        top: auto;
+        bottom: 8px;
+        z-index: 9;
+        width: 34px;
+        height: 34px;
+        border: 1px solid rgba(138, 207, 255, .24);
+        border-radius: 999px;
+        background: rgba(3, 10, 18, .78);
+        opacity: .92;
+        transform: none;
+    }
+
+    .tv-stage-telemetry-carousel__control:hover,
+    .tv-stage-telemetry-carousel__control:focus {
+        opacity: 1;
+        background: rgba(12, 28, 42, .92);
+    }
+
+    .tv-stage-telemetry-carousel__control--prev {
+        right: 44px;
+        left: auto;
+    }
+
+    .tv-stage-telemetry-carousel__control--next {
+        right: 8px;
+        left: auto;
+    }
+
+    .tv-stage-telemetry-carousel__control .carousel-control-prev-icon,
+    .tv-stage-telemetry-carousel__control .carousel-control-next-icon {
+        width: 15px;
+        height: 15px;
+        filter: drop-shadow(0 0 8px rgba(83, 200, 255, .55));
     }
 
     @@media (max-width: 720px) {
@@ -175,42 +450,6 @@
             grid-template-columns: minmax(0, 1fr);
         }
     }
-
-
-    /* Goal Log compact event cards. Prevent event cards from stretching to the
-       full carousel/tbarena height. */
-    .tv-stage-telemetry-stack .tv-event-card,
-    .tv-stage-telemetry-stack .tv-goal-event-feed__card,
-    .tv-stage-telemetry-stack .tv-goal-event-feed__item {
-        max-height: 130px !important;
-        min-height: 56px;
-        overflow: hidden;
-    }
-
-    .tv-stage-telemetry-stack .tv-goal-log,
-    .tv-stage-telemetry-stack .tv-goal-event-feed,
-    .tv-stage-telemetry-stack .tv-goal-event-feed__list {
-        min-height: 0;
-        overflow-y: auto;
-    }
-
-    /* Let non-compare telemetry panels use the available carousel/tbarena height
-       without forcing Market Battle Flow into absolute positioning. */
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--split,
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--goals,
-    .tv-stage-telemetry-stack--desktop .tv-stage-telemetry-stack__panel--sentiment {
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr);
-        min-height: 0;
-        height: 100%;
-    }
-
-    .tv-stage-telemetry-stack--desktop .tv-candle-battle,
-    .tv-stage-telemetry-stack--desktop .tv-arena-pressure-gauge {
-        min-height: 0;
-        height: 100%;
-    }
-
 </style>
 
 @code {
@@ -221,6 +460,195 @@
     [Parameter] public Func<MatchScoreEventDto, string>? FormatGoalLogTime { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? DescribeGoalLog { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? ResolveGoalLogTeamLogoUrl { get; set; }
+
+    private const int SlideCount = 4;
+    private static readonly TimeSpan CarouselInterval = TimeSpan.FromSeconds(9);
+    private CancellationTokenSource? _carouselCts;
+    private Task? _carouselTask;
+    private int _activeSlide;
+
+    private string CarouselId => $"tv-stage-telemetry-carousel-{Model?.CurrentStageMatchId ?? 0}-{Variant}";
+    private bool IsDesktop => string.Equals(Variant, "desktop", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnParametersSet()
+    {
+        if (!IsDesktop)
+            _activeSlide = 0;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && IsDesktop)
+            StartCarouselLoop();
+
+        return Task.CompletedTask;
+    }
+
+    private void StartCarouselLoop()
+    {
+        if (_carouselTask is not null)
+            return;
+
+        _carouselCts = new CancellationTokenSource();
+        _carouselTask = RunCarouselLoopAsync(_carouselCts.Token);
+    }
+
+    private async Task RunCarouselLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(CarouselInterval);
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                await InvokeAsync(() =>
+                {
+                    _activeSlide = (_activeSlide + 1) % SlideCount;
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private Task GoToSlideAsync(int slideIndex)
+    {
+        _activeSlide = Math.Clamp(slideIndex, 0, SlideCount - 1);
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task PreviousSlideAsync()
+    {
+        _activeSlide = (_activeSlide + SlideCount - 1) % SlideCount;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private Task NextSlideAsync()
+    {
+        _activeSlide = (_activeSlide + 1) % SlideCount;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private string GetCarouselItemClass(int slideIndex)
+        => slideIndex == _activeSlide
+            ? "carousel-item tv-stage-telemetry-carousel__item active"
+            : "carousel-item tv-stage-telemetry-carousel__item";
+
+    private static string SlideTitle(int slideIndex)
+        => slideIndex switch
+        {
+            0 => "Market Battle Flow",
+            1 => "Candle Battle",
+            2 => "Goal Log",
+            3 => "Arena Pressure",
+            _ => "Telemetry"
+        };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_carouselCts is not null)
+        {
+            try
+            {
+                _carouselCts.Cancel();
+            }
+            catch
+            {
+            }
+
+            if (_carouselTask is not null)
+            {
+                try
+                {
+                    await _carouselTask;
+                }
+                catch
+                {
+                }
+            }
+
+            _carouselCts.Dispose();
+        }
+    }
+
+    private RenderFragment PriceBattleContent => @<TvMatchPriceBattleChart Culture="@Model.Culture"
+                                 LeftSymbol="@Model.LeftTickerLabel"
+                                 LeftDisplayName="@Model.LeftName"
+                                 LeftLogoUrl="@Model.LeftLogoUrl"
+                                 LeftCurrentPrice="@Model.LeftCurrentPrice"
+                                 LeftChangePercent="@Model.LeftChangePercent"
+                                 LeftColor="@Model.LeftPriceBattleColor"
+                                 LeftPoints="@Model.LeftPriceBattlePoints"
+                                 LeftHasPriceHistory="@Model.LeftPriceBattleHasHistory"
+                                 RightSymbol="@Model.RightTickerLabel"
+                                 RightDisplayName="@Model.RightName"
+                                 RightLogoUrl="@Model.RightLogoUrl"
+                                 RightCurrentPrice="@Model.RightCurrentPrice"
+                                 RightChangePercent="@Model.RightChangePercent"
+                                 RightColor="@Model.RightPriceBattleColor"
+                                 RightPoints="@Model.RightPriceBattlePoints"
+                                 RightHasPriceHistory="@Model.RightPriceBattleHasHistory"
+                                 Competitiveness="@Model.Competitiveness"
+                                 BroadcastFocusLabel="@Model.BroadcastFocusLabel"
+                                 BroadcastRotationRemaining="@Model.BroadcastRotationRemaining"
+                                 BroadcastRotationProgress="@Model.BroadcastRotationProgress"
+                                 BroadcastFocusProgress="@Model.BroadcastFocusProgress"
+                                 BroadcastFocusColor="@Model.BroadcastFocusColor"
+                                 IsSignalStable="@Model.IsSignalStable" />;
+
+    private RenderFragment CandleBattleContent => @<TvCandleBattle LeftTickerLabel="@Model.LeftTickerLabel"
+                        RightTickerLabel="@Model.RightTickerLabel"
+                        LeftHeroLabel="@Model.LeftHeroLabel"
+                        RightHeroLabel="@Model.RightHeroLabel"
+                        LeftLogoUrl="@Model.LeftLogoUrl"
+                        RightLogoUrl="@Model.RightLogoUrl"
+                        LeftChangePercent="@Model.LeftChangePercent"
+                        RightChangePercent="@Model.RightChangePercent"
+                        LeftPoints="@Model.LeftPriceBattlePoints"
+                        RightPoints="@Model.RightPriceBattlePoints"
+                        ShowTacticalPanel="@ShowTacticalPanel"
+                        AriaLabel="@($"{Model.LeftTickerLabel} vs {Model.RightTickerLabel} candle battle arena")" />;
+
+    private RenderFragment GoalLogContent => @<text>
+        <header class="tv-stage-telemetry-stack__header">
+            <span>@Model.GoalLogTitle</span>
+            <div class="tv-stage-telemetry-stack__headline">
+                <strong>@Model.ScoreContext</strong>
+                <em>@Model.GoalLogLeaderSymbol</em>
+            </div>
+            <small>@Model.GoalLogHeadline</small>
+        </header>
+
+        <div class="tv-goal-log">
+            <TvGoalEventFeed FeedId="@FeedId"
+                             Culture="@Model.Culture"
+                             Items="@Model.RecentScoreEvents"
+                             FormatTime="FormatTime"
+                             DescribeFallback="DescribeFallback"
+                             ResolveTeamLogoUrl="ResolveTeamLogoUrl"
+                             EmptyTitle="@Model.GoalLogTitle"
+                             EmptySubtitle="@Model.GoalLogEmptyState" />
+        </div>
+    </text>;
+
+    private RenderFragment ArenaPressureContent => @<TvArenaPressureGauge LeftSymbol="@Model.LeftHeroLabel"
+                              Culture="@Model.Culture"
+                              LeftDisplayName="@Model.LeftSymbol"
+                              LeftLogoUrl="@Model.LeftLogoUrl"
+                              LeftPressurePercent="@Model.ArenaPressureLeftPercent"
+                              LeftMomentumLabel="@Model.ArenaPressureLeftMomentumLabel"
+                              LeftColor="#ffd76e"
+                              RightSymbol="@Model.RightHeroLabel"
+                              RightDisplayName="@Model.RightSymbol"
+                              RightLogoUrl="@Model.RightLogoUrl"
+                              RightPressurePercent="@Model.ArenaPressureRightPercent"
+                              RightMomentumLabel="@Model.ArenaPressureRightMomentumLabel"
+                              RightColor="#53c8ff"
+                              CurrentPressurePercent="@Model.ArenaCurrentPressurePercent"
+                              StatusLabel="@Model.ArenaPressureStatusLabel"
+                              Description="@Model.ArenaPressureDescription"
+                              IsCompact="@(IsDesktop ? false : Model.UseCompactArenaGauge)" />;
 
     private string FormatTime(MatchScoreEventDto item) => FormatGoalLogTime?.Invoke(item) ?? string.Empty;
     private string DescribeFallback(MatchScoreEventDto item) => DescribeGoalLog?.Invoke(item) ?? string.Empty;
