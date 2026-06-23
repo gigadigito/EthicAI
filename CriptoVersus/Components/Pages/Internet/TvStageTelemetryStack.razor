@@ -60,7 +60,7 @@
                              Items="@Model.RecentScoreEvents"
                              FormatTime="FormatTime"
                              DescribeFallback="DescribeFallback"
-                             ResolveTeamLogoUrl="ResolveTeamLogoUrl"
+                             ResolveTeamLogoUrl="@ResolveTeamLogoUrl"
                              EmptyTitle="@Model.GoalLogTitle"
                              EmptySubtitle="@Model.GoalLogEmptyState" />
         </div>
@@ -224,5 +224,36 @@
 
     private string FormatTime(MatchScoreEventDto item) => FormatGoalLogTime?.Invoke(item) ?? string.Empty;
     private string DescribeFallback(MatchScoreEventDto item) => DescribeGoalLog?.Invoke(item) ?? string.Empty;
-    private string ResolveTeamLogoUrl(MatchScoreEventDto item) => ResolveGoalLogTeamLogoUrl?.Invoke(item) ?? string.Empty;
+    private string ResolveTeamLogoUrl(string teamSymbol)
+    {
+        var normalized = (teamSymbol ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
+        var matchingEvent = Model?.RecentScoreEvents.FirstOrDefault(item =>
+            string.Equals(item.NormalizedTeamSymbol, normalized, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(item.TeamSymbol, normalized, StringComparison.OrdinalIgnoreCase));
+
+        if (matchingEvent is not null && ResolveGoalLogTeamLogoUrl is not null)
+            return ResolveGoalLogTeamLogoUrl.Invoke(matchingEvent);
+
+        if (Model is not null)
+        {
+            if (string.Equals(Model.LeftSymbol, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.LeftHeroLabel, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.LeftTickerLabel, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return Model.LeftLogoUrl ?? string.Empty;
+            }
+
+            if (string.Equals(Model.RightSymbol, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.RightHeroLabel, normalized, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Model.RightTickerLabel, normalized, StringComparison.OrdinalIgnoreCase))
+            {
+                return Model.RightLogoUrl ?? string.Empty;
+            }
+        }
+
+        return string.Empty;
+    }
 }
