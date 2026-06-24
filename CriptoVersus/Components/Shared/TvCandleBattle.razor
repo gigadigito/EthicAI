@@ -696,8 +696,14 @@
     }
 
     .tv-candle-battle__wick {
-        stroke-width: 2.4;
+        stroke-width: 1.7;
         stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+        opacity: .9;
+    }
+
+    .tv-candle-battle__body {
+        stroke-width: 1.4;
         vector-effect: non-scaling-stroke;
     }
 
@@ -708,12 +714,30 @@
         filter: drop-shadow(0 0 7px var(--team-left-color-glow));
     }
 
+        .tv-candle-battle__body--left.is-down {
+            fill: rgba(255, 145, 0, .26);
+            opacity: .72;
+        }
+
+        .tv-candle-battle__wick--left.is-down {
+            opacity: .58;
+        }
+
     .tv-candle-battle__wick--right,
     .tv-candle-battle__body--right {
         stroke: var(--team-right-color);
         fill: var(--team-right-color-soft);
         filter: drop-shadow(0 0 7px var(--team-right-color-glow));
     }
+
+        .tv-candle-battle__body--right.is-down {
+            fill: rgba(24, 216, 210, .24);
+            opacity: .72;
+        }
+
+        .tv-candle-battle__wick--right.is-down {
+            opacity: .58;
+        }
 
     .tv-candle-battle__empty {
         position: absolute;
@@ -1560,68 +1584,87 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
     if (points.Count < 2)
         return Array.Empty<ChartCandleVisual>();
 
-    var deltas = new List<decimal>();
+    var values = points
+        .Where(point => point.Value > 0m)
+        .Select(point => point.Value)
+        .ToArray();
 
-    for (var i = 1; i < points.Count; i++)
-    {
-        deltas.Add(ComputePercentChange(points[i - 1].Value, points[i].Value));
-    }
-
-    if (deltas.Count == 0)
+    if (values.Length < 2)
         return Array.Empty<ChartCandleVisual>();
 
-    var maxAbsDelta = deltas
-        .Select(x => Math.Abs(x))
-        .DefaultIfEmpty(0.0001m)
-        .Max();
+    var minValue = values.Min();
+    var maxValue = values.Max();
+    var range = maxValue - minValue;
 
-    if (maxAbsDelta <= 0m)
-        maxAbsDelta = 0.0001m;
+    if (range <= 0m)
+    {
+        var safeValue = Math.Abs(maxValue);
+        var padding = safeValue <= 0m ? 1m : safeValue * 0.0025m;
+        minValue -= padding;
+        maxValue += padding;
+    }
+    else
+    {
+        var padding = range * 0.18m;
+        minValue -= padding;
+        maxValue += padding;
+    }
 
     var candleCount = points.Count - 1;
     var slotWidth = 1000d / Math.Max(candleCount, 1);
 
     var bodyWidth = compact
-        ? Math.Clamp(slotWidth * 0.22d, 3d, 9d)
-        : Math.Clamp(slotWidth * 0.28d, 4d, 13d);
+        ? Math.Clamp(slotWidth * 0.46d, 5d, 14d)
+        : Math.Clamp(slotWidth * 0.58d, 7d, 20d);
 
     var result = new List<ChartCandleVisual>(candleCount);
     var sideClass = visualSide == BattleSide.Left ? "left" : "right";
 
-    const double centerY = 160d;
-    const double minBodyHeight = 8d;
-    const double maxBodyHeight = 78d;
-    const double minWickHeight = 28d;
-    const double maxWickHeight = 128d;
+    const double chartTop = 18d;
+    const double chartBottom = 302d;
+    const double minBodyHeight = 9d;
+    const double minWickPad = 8d;
 
     for (var i = 1; i < points.Count; i++)
     {
-        var delta = ComputePercentChange(points[i - 1].Value, points[i].Value);
-        var strength = (double)(Math.Abs(delta) / maxAbsDelta);
-        strength = Math.Clamp(strength, 0d, 1d);
+        var previous = points[i - 1].Value;
+        var current = points[i].Value;
 
-        var bodyHeight = minBodyHeight + ((maxBodyHeight - minBodyHeight) * strength);
-        var wickHeight = minWickHeight + ((maxWickHeight - minWickHeight) * strength);
+        if (previous <= 0m || current <= 0m)
+            continue;
+
+        var openY = MapCandleY(previous, minValue, maxValue, chartTop, chartBottom);
+        var closeY = MapCandleY(current, minValue, maxValue, chartTop, chartBottom);
+        var isUp = current >= previous;
+
+        var bodyTop = Math.Min(openY, closeY);
+        var bodyBottom = Math.Max(openY, closeY);
+        var bodyHeight = Math.Max(minBodyHeight, bodyBottom - bodyTop);
+
+        if (bodyHeight > bodyBottom - bodyTop)
+        {
+            var center = (openY + closeY) / 2d;
+            bodyTop = center - (bodyHeight / 2d);
+            bodyBottom = center + (bodyHeight / 2d);
+        }
+
+        var previousDelta = i > 1
+            ? Math.Abs(ComputePercentChange(points[i - 2].Value, previous))
+            : Math.Abs(ComputePercentChange(previous, current));
+
+        var currentDelta = Math.Abs(ComputePercentChange(previous, current));
+        var nextDelta = i + 1 < points.Count
+            ? Math.Abs(ComputePercentChange(current, points[i + 1].Value))
+            : currentDelta;
+
+        var localVolatility = (double)Math.Min(5m, previousDelta + currentDelta + nextDelta);
+        var rhythm = Math.Abs(Math.Sin((i + 1) * 1.618d + (visualSide == BattleSide.Left ? 0.25d : 0.85d)));
+        var wickPad = minWickPad + (localVolatility * 7.5d) + (rhythm * 16d);
+
+        var highY = Math.Max(chartTop, bodyTop - wickPad);
+        var lowY = Math.Min(chartBottom, bodyBottom + (wickPad * (0.72d + rhythm * 0.42d)));
 
         var x = ((i - 1) + .5d) * slotWidth;
-
-        var isUp = delta >= 0m;
-
-        var bodyY = isUp
-            ? centerY - bodyHeight
-            : centerY;
-
-        var highY = isUp
-            ? centerY - wickHeight
-            : centerY;
-
-        var lowY = isUp
-            ? centerY
-            : centerY + wickHeight;
-
-        bodyY = Math.Clamp(bodyY, 10d, 310d - bodyHeight);
-        highY = Math.Clamp(highY, 10d, 310d);
-        lowY = Math.Clamp(lowY, 10d, 310d);
 
         result.Add(new ChartCandleVisual
         {
@@ -1629,15 +1672,26 @@ private IReadOnlyList<ChartCandleVisual> BuildChartCandles(IReadOnlyList<TvPrice
             HighY = highY,
             LowY = lowY,
             BodyX = x - (bodyWidth / 2d),
-            BodyY = bodyY,
+            BodyY = Math.Clamp(bodyTop, chartTop, chartBottom - bodyHeight),
             BodyWidth = bodyWidth,
-            BodyHeight = bodyHeight,
-            WickClass = $"tv-candle-battle__wick tv-candle-battle__wick--{sideClass}",
-            BodyClass = $"tv-candle-battle__body tv-candle-battle__body--{sideClass}"
+            BodyHeight = Math.Clamp(bodyHeight, minBodyHeight, chartBottom - chartTop),
+            WickClass = $"tv-candle-battle__wick tv-candle-battle__wick--{sideClass} {(isUp ? "is-up" : "is-down")}",
+            BodyClass = $"tv-candle-battle__body tv-candle-battle__body--{sideClass} {(isUp ? "is-up" : "is-down")}"
         });
     }
 
     return result;
+}
+
+private static double MapCandleY(decimal value, decimal min, decimal max, double top, double bottom)
+{
+    var range = max - min;
+    if (range <= 0m)
+        return (top + bottom) / 2d;
+
+    var ratio = (double)((value - min) / range);
+    ratio = Math.Clamp(ratio, 0d, 1d);
+    return bottom - (ratio * (bottom - top));
 }
 
 private IReadOnlyList<BattleCandle> BuildBattleCandles()
