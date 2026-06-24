@@ -273,7 +273,7 @@
                     options = new
                     {
                         culture = Culture,
-                        showCrossovers = true,
+                        showCrossovers = false,
                         normalize = true,
                         backgroundColor = "#030a13",
                         textColor = "rgba(232,239,249,.82)",
@@ -416,35 +416,50 @@
 
         for (var index = 1; index < count; index++)
         {
-            var previousDelta = left[index - 1].Value - right[index - 1].Value;
-            var currentDelta = left[index].Value - right[index].Value;
+            var leftPrev = left[index - 1];
+            var leftCurr = left[index];
+            var rightPrev = right[index - 1];
+            var rightCurr = right[index];
 
-            if (previousDelta <= 0d && currentDelta > 0d)
-            {
-                var time = Math.Max(left[index].Time, right[index].Time);
-                var value = (left[index].Value + right[index].Value) / 2d;
+            var previousDelta = leftPrev.Value - rightPrev.Value;
+            var currentDelta = leftCurr.Value - rightCurr.Value;
 
-                guides.Add(new CrossGuideViewModel(
-                    true,
-                    time,
-                    NormalizeGuidePercent(time, minTime, maxTime),
-                    NormalizeGuideYPercent(value, minValue, maxValue)));
-            }
-            else if (previousDelta >= 0d && currentDelta < 0d)
-            {
-                var time = Math.Max(left[index].Time, right[index].Time);
-                var value = (left[index].Value + right[index].Value) / 2d;
+            var crossedToLeft = previousDelta <= 0d && currentDelta > 0d;
+            var crossedToRight = previousDelta >= 0d && currentDelta < 0d;
 
-                guides.Add(new CrossGuideViewModel(
-                    false,
-                    time,
-                    NormalizeGuidePercent(time, minTime, maxTime),
-                    NormalizeGuideYPercent(value, minValue, maxValue)));
-            }
+            if (!crossedToLeft && !crossedToRight)
+                continue;
+
+            var interpolation = ResolveCrossInterpolation(previousDelta, currentDelta);
+            var crossoverTime = InterpolateLong(leftPrev.Time, leftCurr.Time, interpolation);
+            var leftValue = InterpolateDouble(leftPrev.Value, leftCurr.Value, interpolation);
+            var rightValue = InterpolateDouble(rightPrev.Value, rightCurr.Value, interpolation);
+            var crossoverValue = (leftValue + rightValue) / 2d;
+
+            guides.Add(new CrossGuideViewModel(
+                crossedToLeft,
+                crossoverTime,
+                NormalizeGuidePercent(crossoverTime, minTime, maxTime),
+                NormalizeGuideYPercent(crossoverValue, minValue, maxValue)));
         }
 
         return guides.ToArray();
     }
+
+    private static double ResolveCrossInterpolation(double previousDelta, double currentDelta)
+    {
+        var denominator = Math.Abs(previousDelta) + Math.Abs(currentDelta);
+        if (denominator <= 0.0000001d)
+            return 0.5d;
+
+        return Math.Clamp(Math.Abs(previousDelta) / denominator, 0d, 1d);
+    }
+
+    private static long InterpolateLong(long from, long to, double ratio)
+        => from + (long)Math.Round((to - from) * ratio, MidpointRounding.AwayFromZero);
+
+    private static double InterpolateDouble(double from, double to, double ratio)
+        => from + ((to - from) * ratio);
 
     private static double NormalizeGuidePercent(long time, long minTime, long maxTime)
     {
