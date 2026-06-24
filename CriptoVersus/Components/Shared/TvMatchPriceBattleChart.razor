@@ -65,6 +65,17 @@
              class="tv-price-battle__chart"
              aria-label="@ChartAriaLabel()"></div>
 
+        @if (_chartReady && CrossGuides.Count > 0)
+        {
+            <div class="tv-price-battle__cross-guides" aria-hidden="true">
+                @foreach (var guide in CrossGuides)
+                {
+                    <span class="tv-price-battle__cross-guide @(guide.IsLeft ? "tv-price-battle__cross-guide--left" : "tv-price-battle__cross-guide--right")"
+                          style="@BuildCrossGuideStyle(guide)"></span>
+                }
+            </div>
+        }
+
         @if (!HasEnoughChartData())
         {
             <div class="tv-price-battle__empty">
@@ -129,6 +140,7 @@
     private string _lastSyncSignature = string.Empty;
     private bool _disposed;
     private IReadOnlyList<CrossEventViewModel> CrossEvents { get; set; } = Array.Empty<CrossEventViewModel>();
+    private IReadOnlyList<CrossGuideViewModel> CrossGuides { get; set; } = Array.Empty<CrossGuideViewModel>();
 
     private PriceBattleScoreSummary PriceScore => BuildPriceScore();
     private int LeftPricePointCount => PriceScore.LeftPoints;
@@ -178,6 +190,7 @@
     protected override void OnParametersSet()
     {
         CrossEvents = BuildCrossEvents();
+        CrossGuides = BuildCrossGuides();
         _pendingSync = true;
 
         if (!HasEnoughChartData())
@@ -196,7 +209,7 @@
                 var sw = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/tvMatchPriceBattleChart.mjs?v=20260624-price-fill-height-2");
+                    "/js/tvMatchPriceBattleChart.mjs?v=20260614-price-no-white-start-1");
 
                 Logger.LogInformation(
                     "[TV_MATCH_LOAD] TvMatchPriceBattleChart JS import elapsedMs={ElapsedMs}",
@@ -363,6 +376,66 @@
         return FormattableString.Invariant(
             $"--price-battle-left:{left}; --price-battle-right:{right}; --price-battle-accent:{right};");
     }
+
+    private IReadOnlyList<CrossGuideViewModel> BuildCrossGuides()
+    {
+        var left = NormalizePoints(LeftPoints);
+        var right = NormalizePoints(RightPoints);
+        var count = Math.Min(left.Count, right.Count);
+
+        if (count < 2)
+            return Array.Empty<CrossGuideViewModel>();
+
+        var minTime = Math.Min(
+            left.Min(point => point.Time),
+            right.Min(point => point.Time));
+
+        var maxTime = Math.Max(
+            left.Max(point => point.Time),
+            right.Max(point => point.Time));
+
+        if (maxTime <= minTime)
+            return Array.Empty<CrossGuideViewModel>();
+
+        var guides = new List<CrossGuideViewModel>();
+
+        for (var index = 1; index < count; index++)
+        {
+            var previousDelta = left[index - 1].Value - right[index - 1].Value;
+            var currentDelta = left[index].Value - right[index].Value;
+
+            if (previousDelta <= 0d && currentDelta > 0d)
+            {
+                var time = Math.Max(left[index].Time, right[index].Time);
+                guides.Add(new CrossGuideViewModel(
+                    true,
+                    time,
+                    NormalizeGuidePercent(time, minTime, maxTime)));
+            }
+            else if (previousDelta >= 0d && currentDelta < 0d)
+            {
+                var time = Math.Max(left[index].Time, right[index].Time);
+                guides.Add(new CrossGuideViewModel(
+                    false,
+                    time,
+                    NormalizeGuidePercent(time, minTime, maxTime)));
+            }
+        }
+
+        return guides.ToArray();
+    }
+
+    private static double NormalizeGuidePercent(long time, long minTime, long maxTime)
+    {
+        if (maxTime <= minTime)
+            return 0d;
+
+        var percent = ((double)(time - minTime) / (double)(maxTime - minTime)) * 100d;
+        return Math.Clamp(percent, 0d, 100d);
+    }
+
+    private static string BuildCrossGuideStyle(CrossGuideViewModel guide)
+        => FormattableString.Invariant($"left:{guide.Percent:0.###}%;");
 
     private PriceBattleScoreSummary BuildPriceScore()
     {
@@ -575,6 +648,7 @@
     private sealed record NormalizedPoint(long Time, double Value);
     private sealed record PriceBattleScoreSummary(int LeftPoints, int RightPoints);
     private sealed record CrossEventViewModel(bool IsLeft, string Symbol, string LogoUrl, long Time);
+    private sealed record CrossGuideViewModel(bool IsLeft, long Time, double Percent);
 }
 
 <style>
@@ -587,14 +661,11 @@
         --price-battle-border: rgba(72, 118, 156, .24);
         position: relative;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        align-items: stretch;
+        grid-template-rows: auto minmax(480px, 1fr) auto;
         gap: 10px;
         width: 100%;
-        height: 100%;
-        max-height: 100%;
         min-width: 0;
-        min-height: 0;
+        min-height: 620px;
         padding: 14px;
         box-sizing: border-box;
         overflow: hidden;
@@ -990,10 +1061,8 @@
 
     .tv-price-battle__chart-shell {
         position: relative;
-        align-self: stretch;
-        width: 100%;
-        height: 100%;
-        min-height: 0;
+        height: clamp(480px, 58vw, 640px);
+        min-height: 480px;
         overflow: hidden;
         border: 1px solid rgba(112,146,172,.16);
         border-radius: 18px;
@@ -1004,14 +1073,59 @@
     .tv-price-battle__chart {
         position: absolute;
         inset: 0;
+        z-index: 1;
         width: 100%;
         height: 100%;
-        min-width: 0;
-        min-height: 0;
+        min-height: 100%;
         background: transparent !important;
         opacity: 0;
         visibility: hidden;
         transition: opacity .18s ease;
+    }
+
+    .tv-price-battle__cross-guides {
+        position: absolute;
+        inset: 18px 42px 44px 36px;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .tv-price-battle__cross-guide {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 0;
+        transform: translateX(-50%);
+        opacity: .82;
+    }
+
+        .tv-price-battle__cross-guide::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 0;
+            border-left: 1px dashed currentColor;
+            opacity: .55;
+        }
+
+        .tv-price-battle__cross-guide::after {
+            content: "";
+            position: absolute;
+            left: -4px;
+            top: 0;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 14px currentColor;
+        }
+
+    .tv-price-battle__cross-guide--left {
+        color: var(--price-battle-left);
+    }
+
+    .tv-price-battle__cross-guide--right {
+        color: var(--price-battle-right);
     }
 
     .tv-price-battle.is-chart-ready .tv-price-battle__chart {
@@ -1024,16 +1138,13 @@
     .tv-price-battle__chart tr,
     .tv-price-battle__chart td,
     .tv-price-battle__chart canvas {
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 0 !important;
         background: transparent !important;
     }
 
     .tv-price-battle__empty {
         position: absolute;
         inset: 0;
-        z-index: 3;
+        z-index: 4;
         display: grid;
         place-content: center;
         padding: 14px;
@@ -1151,11 +1262,10 @@
 
     @@container price-battle (max-width: 820px) {
         .tv-price-battle {
-            grid-template-rows: auto minmax(0, 1fr) auto;
+            grid-template-rows: auto minmax(360px, 1fr) auto;
             gap: 8px;
             padding: 10px;
-            height: 100%;
-            min-height: 0;
+            min-height: 520px;
         }
 
         .tv-price-battle__scoreboard {
@@ -1203,8 +1313,12 @@
         }
 
         .tv-price-battle__chart-shell {
-            height: 100%;
-            min-height: 0;
+            height: 380px;
+            min-height: 380px;
+        }
+
+        .tv-price-battle__cross-guides {
+            inset: 16px 32px 42px 26px;
         }
 
         .tv-price-battle__bottom-bar {
@@ -1225,11 +1339,6 @@
             max-height: none;
             min-height: 0;
             overflow: visible;
-        }
-
-        .tv-price-battle__chart-shell {
-            height: 360px;
-            min-height: 360px;
         }
     }
 
