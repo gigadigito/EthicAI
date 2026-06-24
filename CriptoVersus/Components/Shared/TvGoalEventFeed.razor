@@ -3,74 +3,265 @@
 
 <style>
     .tv-event-feed {
+        --event-feed-left: #ff9100;
+        --event-feed-left-soft: rgba(255, 145, 0, .72);
+        --event-feed-left-glow: rgba(255, 145, 0, .28);
+        --event-feed-left-faint: rgba(255, 145, 0, .10);
+        --event-feed-right: #18d8d2;
+        --event-feed-right-soft: rgba(24, 216, 210, .74);
+        --event-feed-right-glow: rgba(24, 216, 210, .28);
+        --event-feed-right-faint: rgba(24, 216, 210, .10);
         min-height: 100%;
         height: 100%;
+        min-width: 0;
         display: grid;
-        grid-template-rows: auto minmax(0,1fr);
-        gap: 14px;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 12px;
         padding: 2px 0 0;
-        overflow: hidden
+        overflow: hidden;
+        container-type: inline-size;
+        container-name: goal-event-feed;
     }
 
-    .tv-event-feed__hero {
-        position: relative
+        .tv-event-feed,
+        .tv-event-feed * {
+            box-sizing: border-box;
+        }
+
+    .tv-event-feed__scoreboard {
+        min-width: 0;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(108px, 142px) minmax(0, 1fr);
+        gap: 10px;
+        align-items: stretch;
     }
+
+    .tv-event-feed__score-team,
+    .tv-event-feed__score-center {
+        position: relative;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .08);
+        background: linear-gradient(180deg, rgba(7, 15, 28, .98), rgba(4, 10, 20, .98)), radial-gradient(circle at 8% 50%, rgba(255,255,255,.07), transparent 38%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.055), 0 16px 34px rgba(0,0,0,.24);
+    }
+
+    .tv-event-feed__score-team {
+        min-height: clamp(58px, 6.8cqi, 76px);
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: clamp(8px, 1.2cqi, 14px);
+        align-items: center;
+        padding: clamp(8px, 1cqi, 12px);
+        border-radius: 18px;
+    }
+
+    .tv-event-feed__score-team--left {
+        border-color: color-mix(in srgb, var(--event-feed-left) 70%, rgba(255,255,255,.08));
+        background: linear-gradient(90deg, color-mix(in srgb, var(--event-feed-left) 13%, transparent), transparent 44%), linear-gradient(180deg, rgba(8, 16, 30, .98), rgba(4, 10, 20, .98));
+    }
+
+    .tv-event-feed__score-team--right {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        border-color: color-mix(in srgb, var(--event-feed-right) 70%, rgba(255,255,255,.08));
+        background: linear-gradient(270deg, color-mix(in srgb, var(--event-feed-right) 13%, transparent), transparent 44%), linear-gradient(180deg, rgba(8, 16, 30, .98), rgba(4, 10, 20, .98));
+    }
+
+    .tv-event-feed__score-logo {
+        display: grid;
+        place-items: center;
+        width: clamp(34px, 4.3cqi, 46px);
+        aspect-ratio: 1;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 50%;
+        background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.18), rgba(5, 12, 24, .94) 62%);
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,.04);
+    }
+
+    .tv-event-feed__score-team--left .tv-event-feed__score-logo {
+        box-shadow: 0 0 18px var(--event-feed-left-glow), inset 0 0 0 2px rgba(255,255,255,.04);
+    }
+
+    .tv-event-feed__score-team--right .tv-event-feed__score-logo {
+        box-shadow: 0 0 18px var(--event-feed-right-glow), inset 0 0 0 2px rgba(255,255,255,.04);
+    }
+
+    .tv-event-feed__score-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+    }
+
+    .tv-event-feed__score-logo span {
+        color: #f5fbff;
+        font-size: .72rem;
+        font-weight: 1000;
+        letter-spacing: .08em;
+    }
+
+    .tv-event-feed__score-copy {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+    }
+
+    .tv-event-feed__score-team--right .tv-event-feed__score-copy {
+        text-align: right;
+    }
+
+    .tv-event-feed__score-copy small,
+    .tv-event-feed__score-copy span,
+    .tv-event-feed__score-center small,
+    .tv-event-feed__score-center span {
+        text-transform: uppercase;
+    }
+
+    .tv-event-feed__score-copy small {
+        color: rgba(255, 216, 116, .98);
+        font-size: clamp(.54rem, .76cqi, .68rem);
+        font-weight: 1000;
+        letter-spacing: .16em;
+        line-height: 1;
+    }
+
+    .tv-event-feed__score-team--right .tv-event-feed__score-copy small {
+        color: color-mix(in srgb, var(--event-feed-right) 82%, white 18%);
+    }
+
+    .tv-event-feed__score-copy strong {
+        min-width: 0;
+        overflow: hidden;
+        color: #f7fbff;
+        font-size: clamp(.96rem, 1.45cqi, 1.18rem);
+        font-weight: 1000;
+        letter-spacing: .04em;
+        line-height: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tv-event-feed__score-copy span {
+        color: rgba(201, 221, 243, .72);
+        font-size: clamp(.54rem, .72cqi, .64rem);
+        font-weight: 900;
+        letter-spacing: .12em;
+        line-height: 1;
+    }
+
+    .tv-event-feed__score-count {
+        justify-self: end;
+        color: var(--event-feed-left);
+        font-size: clamp(2rem, 5.4cqi, 3.5rem);
+        font-weight: 1000;
+        line-height: .86;
+        letter-spacing: -.08em;
+        text-shadow: 0 0 22px var(--event-feed-left-glow);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tv-event-feed__score-team--right .tv-event-feed__score-count {
+        order: 1;
+        justify-self: start;
+        color: var(--event-feed-right);
+        text-shadow: 0 0 22px var(--event-feed-right-glow);
+    }
+
+    .tv-event-feed__score-team--right .tv-event-feed__score-copy {
+        order: 2;
+    }
+
+    .tv-event-feed__score-team--right .tv-event-feed__score-logo {
+        order: 3;
+    }
+
+    .tv-event-feed__score-center {
+        min-height: clamp(58px, 6.8cqi, 76px);
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 2px;
+        padding: 8px 10px;
+        border-color: color-mix(in srgb, var(--event-feed-right) 46%, rgba(255,255,255,.08));
+        border-radius: 999px;
+        background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--event-feed-right) 20%, transparent), transparent 70%), linear-gradient(180deg, rgba(6, 19, 34, .98), rgba(4, 10, 20, .98));
+        text-align: center;
+    }
+
+        .tv-event-feed__score-center strong {
+            max-width: 100%;
+            overflow: hidden;
+            color: #f6fbff;
+            font-size: clamp(.62rem, .9cqi, .78rem);
+            font-weight: 1000;
+            letter-spacing: .12em;
+            line-height: 1;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .tv-event-feed__score-center span {
+            max-width: 100%;
+            overflow: hidden;
+            color: rgba(226, 238, 251, .78);
+            font-size: clamp(.54rem, .74cqi, .64rem);
+            font-weight: 900;
+            letter-spacing: .09em;
+            line-height: 1.1;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tv-event-feed__score-center small {
+            color: rgba(245, 251, 255, .9);
+            font-size: clamp(.54rem, .72cqi, .62rem);
+            font-weight: 1000;
+            letter-spacing: .16em;
+            line-height: 1;
+        }
 
     .tv-event-feed__timeline {
         position: relative;
         min-height: 0;
         height: 100%;
-        display: grid;
-        grid-template-columns: 28px minmax(0,1fr);
-        overflow: hidden
+        width: 100%;
+        overflow: hidden;
     }
-
-    .tv-event-feed__rail {
-        position: relative;
-        width: 100%
-    }
-
-        .tv-event-feed__rail::before {
-            content: "";
-            position: absolute;
-            left: 14px;
-            top: 8px;
-            bottom: 8px;
-            width: 2px;
-            transform: translateX(-50%);
-            background: linear-gradient(180deg,rgba(116,221,255,.54),rgba(116,221,255,.08));
-            box-shadow: 0 0 18px rgba(83,200,255,.18)
-        }
 
     .tv-event-feed__stack {
         min-height: 0;
         height: 100%;
-        display: grid;
-        gap: 12px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         overflow: auto;
-        padding-right: 8px;
+        padding: 0 8px 2px 0;
         overscroll-behavior: contain;
         scrollbar-width: thin;
-        scrollbar-color: rgba(122,235,255,.45) rgba(255,255,255,.03)
+        scrollbar-color: rgba(122,235,255,.45) rgba(255,255,255,.03);
     }
 
         .tv-event-feed__stack::-webkit-scrollbar {
-            width: 8px
+            width: 8px;
         }
 
         .tv-event-feed__stack::-webkit-scrollbar-track {
             background: rgba(255,255,255,.03);
-            border-radius: 999px
+            border-radius: 999px;
         }
 
         .tv-event-feed__stack::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg,rgba(122,235,255,.55),rgba(122,235,255,.22));
+            background: linear-gradient(180deg, rgba(122,235,255,.55), rgba(122,235,255,.22));
             border-radius: 999px;
-            border: 1px solid rgba(255,255,255,.08)
+            border: 1px solid rgba(255,255,255,.08);
         }
 
     .tv-event-feed__empty {
-        min-height: 240px;
+        min-height: 220px;
         display: grid;
         place-content: center;
         gap: 8px;
@@ -78,35 +269,37 @@
         text-align: center;
         border-radius: 24px;
         border: 1px solid rgba(255,255,255,.07);
-        background: linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02))
+        background: linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.02));
     }
 
         .tv-event-feed__empty strong {
             font-size: 1rem;
             letter-spacing: .14em;
-            color: #f6fbff
+            color: #f6fbff;
+            text-transform: uppercase;
         }
 
         .tv-event-feed__empty small {
             color: rgba(207,222,238,.76);
-            line-height: 1.5
+            line-height: 1.5;
         }
 
     .tv-event-card {
         min-height: 120px;
         position: relative;
         display: grid;
-        grid-template-columns: clamp(72px, 8vw, 104px) clamp(40px, 4.5vw, 56px) minmax(0, 1fr) minmax(108px, auto);
-        grid-template-areas: "event team content meta";
+        grid-template-columns: clamp(78px, 7.2cqi, 94px) minmax(0, 1fr) minmax(108px, auto);
+        grid-template-areas: "event content meta";
         align-items: center;
-        gap: clamp(10px, 1.4vw, 18px);
+        gap: clamp(10px, 1.2cqi, 16px);
         padding: clamp(14px, 1.6vw, 20px);
         min-width: 0;
         overflow: hidden;
         border-radius: 26px;
-        border: 1px solid rgba(255,255,255,.08);
-        background: linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.01) 30%), linear-gradient(180deg,rgba(6,14,26,.96),rgba(5,10,21,.98));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 18px 42px rgba(0,0,0,.28), 0 0 0 1px rgba(255,255,255,.02);
+        border: 1px solid color-mix(in srgb, var(--event-accent-start,#53c8ff) 72%, rgba(255,255,255,.10));
+        border-left-width: 3px;
+        background: linear-gradient(90deg, color-mix(in srgb, var(--event-accent-start,#53c8ff) 13%, transparent), transparent 34%), linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.01) 30%), linear-gradient(180deg,rgba(6,14,26,.96),rgba(5,10,21,.98));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 0 1px color-mix(in srgb, var(--event-accent-start,#53c8ff) 12%, transparent), 0 18px 42px rgba(0,0,0,.28);
         transform: translate3d(0,20px,0) scale(.985);
         opacity: 0;
         will-change: transform,opacity;
@@ -138,8 +331,9 @@
 
     .tv-event-card--compact {
         min-height: 108px;
-        grid-template-columns: clamp(60px, 6vw, 82px) clamp(36px, 3.8vw, 48px) minmax(0, 1fr) minmax(84px, auto);
-        gap: clamp(8px, 1vw, 14px);
+        grid-template-columns: clamp(74px, 6.6cqi, 88px) minmax(0, 1fr) minmax(84px, auto);
+        grid-template-areas: "event content meta";
+        gap: clamp(8px, 1cqi, 14px);
     }
 
     .tv-event-card--high-priority {
@@ -177,18 +371,24 @@
 
     .tv-event-card__event-icon-shell {
         grid-area: event;
+        justify-self: start;
+        align-self: center;
+        width: 100%;
     }
 
     .tv-event-card__team-coin-shell {
-        grid-area: team;
-        align-self: start;
+        grid-area: event;
+        justify-self: end;
+        align-self: center;
+        z-index: 3;
+        transform: translateX(-2px);
     }
 
     .tv-event-card__event-icon-art {
         position: relative;
-        width: clamp(60px, 7vw, 96px);
-        height: clamp(60px, 7vw, 96px);
-        border-radius: 24px;
+        width: clamp(56px, 5.7cqi, 66px);
+        height: clamp(56px, 5.7cqi, 66px);
+        border-radius: 18px;
         display: grid;
         place-items: center;
         overflow: hidden;
@@ -216,22 +416,23 @@
     }
 
     .tv-event-card__team-coin {
-        width: clamp(36px, 4vw, 52px);
-        height: clamp(36px, 4vw, 52px);
-        border-radius: clamp(12px, 1.2vw, 16px);
+        width: clamp(34px, 3.6cqi, 42px);
+        height: clamp(34px, 3.6cqi, 42px);
+        border-radius: 50%;
         display: grid;
         place-items: center;
         overflow: hidden;
-        border: 2px solid rgba(255,255,255,.16);
-        background: linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 1px rgba(255,255,255,.03), 0 18px 28px rgba(0,0,0,.22)
+        border: 2px solid color-mix(in srgb, var(--event-accent-start,#53c8ff) 48%, rgba(255,255,255,.16));
+        background: radial-gradient(circle at 38% 32%, rgba(255,255,255,.18), rgba(5, 12, 24, .94) 62%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 18px color-mix(in srgb, var(--event-accent-start,#53c8ff) 28%, transparent), 0 18px 28px rgba(0,0,0,.22)
     }
 
         .tv-event-card__team-coin img {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            display: block
+            object-fit: contain;
+            display: block;
+            padding: 3px;
         }
 
         .tv-event-card__team-coin span {
@@ -383,27 +584,25 @@
         }
 
     @@keyframes tvEventParticle {
-        0%
+        0% {
+            opacity: 0;
+            transform: translate3d(0,8px,0) scale(.65)
+        }
 
-    {
-        opacity: 0;
-        transform: translate3d(0,8px,0) scale(.65)
-    }
+        25% {
+            opacity: 1
+        }
 
-    25% {
-        opacity: 1
-    }
-
-    100% {
-        opacity: 0;
-        transform: translate3d(0,-12px,0) scale(1)
-    }
-
+        100% {
+            opacity: 0;
+            transform: translate3d(0,-12px,0) scale(1)
+        }
     }
 
     @@media (max-width:900px) {
         .tv-event-card {
-            grid-template-columns: 76px 44px minmax(0,1fr) minmax(96px,auto);
+            grid-template-columns: 78px minmax(0,1fr) minmax(96px,auto);
+            grid-template-areas: "event content meta";
             gap: 12px;
         }
 
@@ -428,22 +627,23 @@
         .tv-event-card,
         .tv-event-card--compact,
         .tv-event-card--hero {
-            grid-template-columns: 62px minmax(0,1fr) auto;
-            grid-template-areas:
-                "event content meta"
-                "team content meta";
-            align-items: start;
+            grid-template-columns: 76px minmax(0,1fr) auto;
+            grid-template-areas: "event content meta";
+            align-items: center;
             gap: 10px;
         }
 
         .tv-event-card__event-icon-art {
-            width: 62px;
-            height: 62px;
+            width: 58px;
+            height: 58px;
             border-radius: 18px;
         }
 
         .tv-event-card__team-coin-shell {
-            justify-self: center;
+            display: grid;
+            justify-self: end;
+            align-self: center;
+            transform: translateX(-2px);
         }
 
         .tv-event-card__meta {
@@ -462,11 +662,10 @@
         .tv-event-card,
         .tv-event-card--compact,
         .tv-event-card--hero {
-            grid-template-columns: 54px minmax(0,1fr);
+            grid-template-columns: 72px minmax(0,1fr);
             grid-template-areas:
                 "event meta"
-                "content content"
-                "team team";
+                "content content";
         }
 
         .tv-event-card__meta {
@@ -475,39 +674,147 @@
         }
 
         .tv-event-card__team-coin-shell {
-            justify-self: start;
+            justify-self: end;
+            align-self: center;
         }
 
         .tv-event-card__reward {
             display: none;
         }
-    }</style>
+    }
 
-<div id="@_resolvedFeedId" class="tv-event-feed">
+    @@container goal-event-feed (max-width: 760px) {
+        .tv-event-feed {
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 10px;
+        }
+
+        .tv-event-feed__scoreboard {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .tv-event-feed__score-center {
+            order: -1;
+            min-height: 54px;
+            border-radius: 18px;
+        }
+
+        .tv-event-feed__score-team,
+        .tv-event-feed__score-center {
+            min-height: 58px;
+        }
+
+        .tv-event-feed__score-team--right {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+        }
+
+            .tv-event-feed__score-team--right .tv-event-feed__score-logo {
+                order: 1;
+            }
+
+            .tv-event-feed__score-team--right .tv-event-feed__score-copy {
+                order: 2;
+                text-align: left;
+            }
+
+            .tv-event-feed__score-team--right .tv-event-feed__score-count {
+                order: 3;
+                justify-self: end;
+            }
+
+        .tv-event-feed__stack {
+            padding-right: 2px;
+        }
+    }
+
+    @@container goal-event-feed (max-width: 430px) {
+        .tv-event-feed__score-team {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            border-radius: 16px;
+        }
+
+        .tv-event-feed__score-count {
+            font-size: clamp(1.75rem, 12cqi, 2.55rem);
+        }
+
+        .tv-event-feed__score-logo {
+            width: 34px;
+        }
+    }
+</style>
+
+
+<div id="@_resolvedFeedId"
+     class="tv-event-feed"
+     style="@BuildFeedVars()">
+
+    @if (ShowScoreHeader)
+    {
+        <header class="tv-event-feed__scoreboard" aria-label="@HeaderAriaLabel">
+            <section class="tv-event-feed__score-team tv-event-feed__score-team--left"
+                     title="@($"{HeaderLeftSymbol}: {LeftEventCount} {EventCountLabel}")">
+                <div class="tv-event-feed__score-logo" aria-hidden="true">
+                    @if (!string.IsNullOrWhiteSpace(HeaderLeftLogoUrl))
+                    {
+                        <img src="@HeaderLeftLogoUrl" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                        <span style="display:none;">@CompactSymbol(HeaderLeftSymbol)</span>
+                    }
+                    else
+                    {
+                        <span>@CompactSymbol(HeaderLeftSymbol)</span>
+                    }
+                </div>
+
+                <div class="tv-event-feed__score-copy">
+                    <small>@AssetALabel</small>
+                    <strong>@HeaderLeftSymbol</strong>
+                    <span>@EventCountLabel</span>
+                </div>
+
+                <b class="tv-event-feed__score-count">@LeftEventCount</b>
+            </section>
+
+            <section class="tv-event-feed__score-center">
+                <strong>@HeaderTitleLabel</strong>
+                <span>@HeaderStatusLabel</span>
+                <small>@LiveLabel</small>
+            </section>
+
+            <section class="tv-event-feed__score-team tv-event-feed__score-team--right"
+                     title="@($"{HeaderRightSymbol}: {RightEventCount} {EventCountLabel}")">
+                <b class="tv-event-feed__score-count">@RightEventCount</b>
+
+                <div class="tv-event-feed__score-copy">
+                    <small>@AssetBLabel</small>
+                    <strong>@HeaderRightSymbol</strong>
+                    <span>@EventCountLabel</span>
+                </div>
+
+                <div class="tv-event-feed__score-logo" aria-hidden="true">
+                    @if (!string.IsNullOrWhiteSpace(HeaderRightLogoUrl))
+                    {
+                        <img src="@HeaderRightLogoUrl" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                        <span style="display:none;">@CompactSymbol(HeaderRightSymbol)</span>
+                    }
+                    else
+                    {
+                        <span>@CompactSymbol(HeaderRightSymbol)</span>
+                    }
+                </div>
+            </section>
+        </header>
+    }
 
     @if (EventCards.Count > 0)
     {
-        <section class="tv-event-feed__hero">
-            <TvGoalEventCard Model="EventCards[0]" />
+        <section class="tv-event-feed__timeline" aria-label="@HeaderTitleLabel">
+            <div class="tv-event-feed__stack">
+                @foreach (var item in EventCards)
+                {
+                    <TvGoalEventCard @key="item.EventId" Model="item" />
+                }
+            </div>
         </section>
-
-        @if (EventCards.Count > 1)
-        {
-            <section class="tv-event-feed__timeline">
-
-                <div class="tv-event-feed__rail" aria-hidden="true"></div>
-
-                <div class="tv-event-feed__stack">
-
-                    @foreach (var item in EventCards.Skip(1))
-                    {
-                        <TvGoalEventCard @key="item.EventId" Model="item" />
-                    }
-
-                </div>
-
-            </section>
-        }
     }
     else
     {
@@ -541,6 +848,20 @@
     public string EmptySubtitle { get; set; }
         = "Aguardando o proximo evento de pontuacao.";
 
+    [Parameter] public bool ShowScoreHeader { get; set; } = true;
+
+    [Parameter] public string? LeftSymbol { get; set; }
+
+    [Parameter] public string? RightSymbol { get; set; }
+
+    [Parameter] public string? LeftLogoUrl { get; set; }
+
+    [Parameter] public string? RightLogoUrl { get; set; }
+
+    [Parameter] public string LeftColor { get; set; } = "#ff9100";
+
+    [Parameter] public string RightColor { get; set; } = "#18d8d2";
+
     private string _resolvedFeedId = "tv-goal-event-feed";
     private string _itemsSignature = string.Empty;
     private IReadOnlyList<TvGoalEventCardModel> _eventCards = Array.Empty<TvGoalEventCardModel>();
@@ -561,6 +882,166 @@
 
     private IReadOnlyList<TvGoalEventCardModel> EventCards => _eventCards;
 
+    private IReadOnlyList<string> HeaderTeamSymbols => BuildHeaderTeamSymbols();
+
+    private string HeaderLeftSymbol => ResolveHeaderSymbol(LeftSymbol, 0);
+
+    private string HeaderRightSymbol => ResolveHeaderSymbol(RightSymbol, 1);
+
+    private string HeaderLeftLogoUrl => ResolveHeaderLogo(LeftLogoUrl, HeaderLeftSymbol);
+
+    private string HeaderRightLogoUrl => ResolveHeaderLogo(RightLogoUrl, HeaderRightSymbol);
+
+    private int LeftEventCount => CountEventsFor(HeaderLeftSymbol);
+
+    private int RightEventCount => CountEventsFor(HeaderRightSymbol);
+
+    private string HeaderTitleLabel => IsPortuguese ? "GOAL LOG" : "GOAL LOG";
+
+    private string HeaderStatusLabel
+        => EventCards.Count == 0
+            ? (IsPortuguese ? "AGUARDANDO EVENTOS" : "WAITING EVENTS")
+            : string.Format(CultureInfo.CurrentCulture, IsPortuguese ? "{0} EVENTOS" : "{0} EVENTS", EventCards.Count);
+
+    private string LiveLabel => "LIVE";
+
+    private string EventCountLabel => IsPortuguese ? "EVENTOS" : "EVENTS";
+
+    private string AssetALabel => IsPortuguese ? "ATIVO A" : "ASSET A";
+
+    private string AssetBLabel => IsPortuguese ? "ATIVO B" : "ASSET B";
+
+    private string HeaderAriaLabel
+        => $"{HeaderTitleLabel}: {HeaderLeftSymbol} {LeftEventCount} {EventCountLabel}, {HeaderRightSymbol} {RightEventCount} {EventCountLabel}";
+
+    private bool IsPortuguese
+        => !string.IsNullOrWhiteSpace(Culture)
+           && Culture.StartsWith("pt", StringComparison.OrdinalIgnoreCase);
+
+    private string BuildFeedVars()
+        => FormattableString.Invariant($"--event-feed-left:{NormalizeColor(LeftColor, "#ff9100")}; --event-feed-right:{NormalizeColor(RightColor, "#18d8d2")};");
+
+    private IReadOnlyList<string> BuildHeaderTeamSymbols()
+    {
+        if (Items.Count == 0)
+            return Array.Empty<string>();
+
+        return Items
+            .Select(item => DisplaySymbol(item.TeamSymbol))
+            .Where(symbol => symbol != "--")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+    }
+
+    private string ResolveHeaderSymbol(string? explicitSymbol, int index)
+    {
+        var normalized = DisplaySymbol(explicitSymbol);
+        if (normalized != "--")
+            return normalized;
+
+        var symbols = HeaderTeamSymbols;
+        if (symbols.Count > index)
+            return symbols[index];
+
+        return index == 0 ? "--" : "--";
+    }
+
+    private string ResolveHeaderLogo(string? explicitLogoUrl, string symbol)
+    {
+        if (!string.IsNullOrWhiteSpace(explicitLogoUrl))
+            return explicitLogoUrl.Trim();
+
+        return ResolveBestTeamLogoUrl(symbol);
+    }
+
+    private int CountEventsFor(string symbol)
+    {
+        var normalized = DisplaySymbol(symbol);
+        if (normalized == "--")
+            return 0;
+
+        return Items.Count(item => SameAsset(item.TeamSymbol, normalized));
+    }
+
+    private static string DisplaySymbol(string? value)
+        => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();
+
+    private static string CompactSymbol(string? value)
+    {
+        var normalized = StripQuoteSuffix(value);
+        return normalized.Length <= 4 ? normalized : normalized[..4];
+    }
+
+    private static string NormalizeColor(string? color, string fallback)
+        => string.IsNullOrWhiteSpace(color) ? fallback : color.Trim();
+
+    private string ResolveBestTeamLogoUrl(string? symbol)
+    {
+        if (ResolveTeamLogoUrl is null)
+            return string.Empty;
+
+        var normalized = DisplaySymbol(symbol);
+        var direct = ResolveTeamLogoUrl.Invoke(normalized);
+        if (!string.IsNullOrWhiteSpace(direct))
+            return direct.Trim();
+
+        var baseSymbol = StripQuoteSuffix(normalized);
+        if (!string.Equals(baseSymbol, normalized, StringComparison.OrdinalIgnoreCase))
+        {
+            var fallback = ResolveTeamLogoUrl.Invoke(baseSymbol);
+            if (!string.IsNullOrWhiteSpace(fallback))
+                return fallback.Trim();
+        }
+
+        return string.Empty;
+    }
+
+    private bool IsLeftTeam(string? symbol)
+        => SameAsset(symbol, HeaderLeftSymbol);
+
+    private bool IsRightTeam(string? symbol)
+        => SameAsset(symbol, HeaderRightSymbol);
+
+    private bool SameAsset(string? first, string? second)
+    {
+        var a = DisplaySymbol(first);
+        var b = DisplaySymbol(second);
+
+        if (a == "--" || b == "--")
+            return false;
+
+        return string.Equals(a, b, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(StripQuoteSuffix(a), StripQuoteSuffix(b), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string StripQuoteSuffix(string? symbol)
+    {
+        var normalized = DisplaySymbol(symbol);
+        if (normalized == "--")
+            return normalized;
+
+        foreach (var suffix in new[] { "USDT", "BUSD", "USDC", "FDUSD", "BTC", "ETH", "BRL", "TRY", "EUR" })
+        {
+            if (normalized.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && normalized.Length > suffix.Length)
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private (string Start, string End, string Glow) ResolveTeamEventColors(string? symbol, string fallbackStart, string fallbackEnd, string fallbackGlow)
+    {
+        if (IsLeftTeam(symbol))
+            return (NormalizeColor(LeftColor, "#ff9100"), "#ffb347", "rgba(255, 145, 0, .42)");
+
+        if (IsRightTeam(symbol))
+            return (NormalizeColor(RightColor, "#18d8d2"), "#70fff4", "rgba(24, 216, 210, .42)");
+
+        return (fallbackStart, fallbackEnd, fallbackGlow);
+    }
+
+
     private string BuildSignature()
     {
         if (Items.Count == 0)
@@ -579,6 +1060,12 @@
         return string.Join("|",
             _resolvedFeedId,
             Culture,
+            LeftSymbol,
+            RightSymbol,
+            LeftLogoUrl,
+            RightLogoUrl,
+            LeftColor,
+            RightColor,
             Items.Count,
             string.Join(",", entries));
     }
@@ -612,13 +1099,15 @@
                     : (index % 2 == 0 ? "right" : "left");
 
             var priority = definition.PriorityLevel;
+            var teamLogoUrl = ResolveBestTeamLogoUrl(item.TeamSymbol);
+            var teamColors = ResolveTeamEventColors(item.TeamSymbol, definition.AccentStart, definition.AccentEnd, definition.GlowColor);
 
             result.Add(
                 new TvGoalEventCardModel(
                     item.MatchScoreEventId,
                     definition.Id,
                     item.TeamSymbol,
-                    ResolveTeamLogoUrl?.Invoke(item.TeamSymbol) ?? string.Empty,
+                    teamLogoUrl,
                     definition.GetTitle(Culture),
                     subtitle,
                     FormatTime?.Invoke(item)
@@ -626,13 +1115,13 @@
                     $"+{item.Points}",
                     definition.IconAssetPath,
                     definition.IconFallback,
-                    definition.AccentStart,
-                    definition.AccentEnd,
-                    definition.GlowColor,
+                    teamColors.Start,
+                    teamColors.End,
+                    teamColors.Glow,
                     definition.AnimationStyle,
                     definition.SoundCueId,
                     priority,
-                    index == 0,
+                    false,
                     priority >= 4,
                     enterFrom,
                     rawSubtitle

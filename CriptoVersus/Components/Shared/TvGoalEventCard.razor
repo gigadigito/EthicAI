@@ -20,11 +20,12 @@
         <div class="tv-event-card__team-coin">
             @if (!string.IsNullOrWhiteSpace(Model.TeamLogoUrl))
             {
-                <img src="@Model.TeamLogoUrl" alt="" />
+                <img src="@Model.TeamLogoUrl" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
+                <span class="tv-event-card__team-coin-fallback">@CompactTeamSymbol(Model.TeamSymbol)</span>
             }
             else
             {
-                <span>@Model.TeamSymbol</span>
+                <span class="tv-event-card__team-coin-fallback is-visible">@CompactTeamSymbol(Model.TeamSymbol)</span>
             }
         </div>
     </div>
@@ -60,6 +61,22 @@
 
     private string BuildCssVars()
         => $"--event-accent-start:{Model.AccentStart};--event-accent-end:{Model.AccentEnd};--event-glow:{Model.GlowColor};";
+
+    private static string CompactTeamSymbol(string? symbol)
+    {
+        var normalized = string.IsNullOrWhiteSpace(symbol) ? "--" : symbol.Trim().ToUpperInvariant();
+
+        foreach (var suffix in new[] { "USDT", "BUSD", "USDC", "FDUSD", "BTC", "ETH", "BRL", "TRY", "EUR" })
+        {
+            if (normalized.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && normalized.Length > suffix.Length)
+            {
+                normalized = normalized[..^suffix.Length];
+                break;
+            }
+        }
+
+        return normalized.Length <= 4 ? normalized : normalized[..4];
+    }
 
     private string GetEventIconSrc()
     {
@@ -143,11 +160,14 @@
         height: auto;
         max-height: 130px;
         display: grid;
-        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        grid-template-columns: 78px minmax(0, 1fr) auto;
+        grid-template-areas: "event content meta";
         align-items: center;
         gap: 0.75rem;
         padding: 0.65rem 0.9rem;
         overflow: hidden;
+        border-color: color-mix(in srgb, var(--event-accent-start,#53c8ff) 72%, rgba(255,255,255,.10));
+        border-left-width: 3px;
     }
 
     .tv-event-card--hero,
@@ -158,9 +178,12 @@
     }
 
     .tv-event-card__event-icon-shell {
-        width: 58px;
+        grid-area: event;
+        justify-self: start;
+        align-self: center;
+        width: 78px;
         height: 58px;
-        min-width: 58px;
+        min-width: 78px;
     }
 
     .tv-event-card__event-icon-art {
@@ -176,17 +199,22 @@
     }
 
     .tv-event-card__team-coin-shell {
-        width: 42px;
-        min-width: 42px;
+        grid-area: event;
+        justify-self: end;
         align-self: center;
+        z-index: 3;
+        width: 38px;
+        min-width: 38px;
+        transform: translateX(-2px);
     }
 
     .tv-event-card__team-coin {
-        width: 42px;
-        height: 42px;
+        width: 38px;
+        height: 38px;
     }
 
     .tv-event-card__content {
+        grid-area: content;
         min-width: 0;
         align-self: center;
     }
@@ -219,6 +247,7 @@
         }
 
     .tv-event-card__meta {
+        grid-area: meta;
         align-self: stretch;
         min-width: 86px;
         display: flex;
@@ -245,15 +274,39 @@
         pointer-events: none;
     }
 
+    .tv-event-card__team-coin-fallback {
+        display: none;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        color: #fff;
+        font-size: .72rem;
+        font-weight: 1000;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+        .tv-event-card__team-coin-fallback.is-visible {
+            display: grid;
+        }
+
+    .tv-event-card__team-coin img {
+        object-fit: contain;
+        padding: 3px;
+    }
+
     @@media (max-width: 720px) {
         .tv-event-card {
             max-height: none;
-            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-columns: 76px minmax(0, 1fr) auto;
+            grid-template-areas: "event content meta";
             padding: 0.7rem;
         }
 
         .tv-event-card__team-coin-shell {
-            display: none;
+            display: grid;
+            justify-self: end;
+            align-self: center;
         }
 
         .tv-event-card__copy h3 {
@@ -292,4 +345,18 @@
             -webkit-box-orient: vertical !important;
             overflow: hidden !important;
         }
+
+    [data-tv-event-card] .tv-event-card__event-icon-shell {
+        grid-area: event !important;
+        justify-self: start !important;
+        align-self: center !important;
+    }
+
+    [data-tv-event-card] .tv-event-card__team-coin-shell {
+        grid-area: event !important;
+        justify-self: end !important;
+        align-self: center !important;
+        z-index: 3 !important;
+        transform: translateX(-2px) !important;
+    }
 </style>
