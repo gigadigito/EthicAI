@@ -51,7 +51,6 @@
             <h2>@LocalizedTvMatchText("loading")</h2>
             <p>@LocalizedTvMatchText("loadingBody")</p>
         </div>
-     
     </section>
 }
 else if (_loadState != TvMatchPageLoadState.Loaded)
@@ -211,10 +210,14 @@ else
     private DashboardSnapshotDto? _snapshot;
     private IJSObjectReference? _tvModule;
     private CancellationTokenSource? _refreshCts;
+    private CancellationTokenSource? _routeLoadCts;
     private Task? _refreshLoopTask;
     private int _refreshInProgress;
     private bool _interactiveLoadRetryAttempted;
     private bool _secondaryDataLoadStarted;
+    private bool _hasRenderedInteractiveOnce;
+    private bool _isDisposed;
+    private string _activeRouteKey = string.Empty;
     private TvMatchPageLoadState _loadState = TvMatchPageLoadState.Loading;
     private bool _topCoinsLoading = true;
     private bool _latestBattlesLoading = true;
@@ -276,42 +279,62 @@ else
         ? MatchSlugHelper.BuildSlug(_match.TeamA, _match.TeamB)
         : Slug?.Trim().ToLowerInvariant() ?? "match";
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
         _culture = !string.IsNullOrWhiteSpace(Culture)
             ? AppCulture.NormalizeRouteCulture(Culture)
             : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
-    }
 
-    protected override async Task OnInitializedAsync()
-    {
+        var nextRouteKey = BuildRouteKey();
+        if (string.Equals(_activeRouteKey, nextRouteKey, StringComparison.Ordinal))
+            return;
+
+        _activeRouteKey = nextRouteKey;
+
+        CancelRouteLoad();
+        ResetPageStateForRouteChange();
+
         var sw = Stopwatch.StartNew();
 
         Logger.LogInformation(
-            "[TV_MATCH_LOAD] Start matchId={MatchId} slug={Slug} culture={Culture}",
+            "[TV_MATCH_LOAD] Route parameters changed. Loading matchId={MatchId} slug={Slug} culture={Culture}",
             MatchId,
             Slug,
-            Culture);
+            _culture);
 
         try
         {
-            using var initialLoadCts = new CancellationTokenSource(InitialLoadTimeout);
-            await RefreshAsync(initialLoadCts.Token);
+            _routeLoadCts = new CancellationTokenSource(InitialLoadTimeout);
+            await RefreshAsync(_routeLoadCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogWarning(
+                "[TV_MATCH_LOAD] Route load timeout. Waiting for interactive retry. MatchId={MatchId}",
+                MatchId);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(
                 ex,
-                "TvMatchPage initial load timed out or failed during prerender. Rendering fallback state. MatchId={MatchId}",
+                "[TV_MATCH_LOAD] Route load failed. MatchId={MatchId}",
                 MatchId);
         }
         finally
         {
             Logger.LogInformation(
-                "[TV_MATCH_LOAD] OnInitializedAsync matchId={MatchId} elapsedMs={ElapsedMs}",
+                "[TV_MATCH_LOAD] OnParametersSetAsync completed matchId={MatchId} elapsedMs={ElapsedMs}",
                 MatchId,
                 sw.ElapsedMilliseconds);
         }
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        // Loading is intentionally handled in OnParametersSetAsync.
+        // Blazor can reuse this component when navigating between /tv/match routes;
+        // OnInitializedAsync would not run again, leaving the page stuck on Loading until F5.
+        return Task.CompletedTask;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -319,11 +342,12 @@ else
         if (!firstRender)
             return;
 
+        _hasRenderedInteractiveOnce = true;
         var sw = Stopwatch.StartNew();
 
         try
         {
-            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260624-tvmatch-route-reload-1");
 
             Logger.LogInformation(
                 "[TV_MATCH_LOAD] JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}",
@@ -346,6 +370,75 @@ else
             await RefreshAsync(CancellationToken.None);
         }
 
+        EnsureRefreshLoopStarted();
+    }
+
+    private string BuildRouteKey()
+        => $"{_culture}|{MatchId}|{Slug?.Trim().ToLowerInvariant()}";
+
+    private void ResetPageStateForRouteChange()
+    {
+        _match = null;
+        _hotMatch = null;
+        _stats = null;
+        _snapshot = null;
+
+        _loadState = TvMatchPageLoadState.Loading;
+
+        _topCoinsLoading = true;
+        _latestBattlesLoading = true;
+        _marketPulseLoading = true;
+
+        _topCoinsError = null;
+        _latestBattlesError = null;
+        _marketPulseError = null;
+
+        _interactiveLoadRetryAttempted = false;
+        _secondaryDataLoadStarted = false;
+
+        Interlocked.Exchange(ref _refreshInProgress, 0);
+
+        CancelRefreshLoop();
+    }
+
+    private void CancelRouteLoad()
+    {
+        try
+        {
+            _routeLoadCts?.Cancel();
+        }
+        catch
+        {
+        }
+
+        _routeLoadCts?.Dispose();
+        _routeLoadCts = null;
+    }
+
+    private void CancelRefreshLoop()
+    {
+        try
+        {
+            _refreshCts?.Cancel();
+        }
+        catch
+        {
+        }
+
+        _refreshCts?.Dispose();
+        _refreshCts = null;
+        _refreshLoopTask = null;
+    }
+
+    private void EnsureRefreshLoopStarted()
+    {
+        if (_isDisposed)
+            return;
+
+        if (_refreshLoopTask is not null && !_refreshLoopTask.IsCompleted)
+            return;
+
+        _refreshCts?.Dispose();
         _refreshCts = new CancellationTokenSource();
         _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
 
@@ -373,7 +466,7 @@ else
 
     private async Task RefreshMatchOnlyAsync(CancellationToken ct)
     {
-        if (_match is null)
+        if (_match is null || _isDisposed)
             return;
 
         var sw = Stopwatch.StartNew();
@@ -420,6 +513,9 @@ else
 
     private async Task RefreshAsync(CancellationToken ct)
     {
+        if (_isDisposed)
+            return;
+
         if (Interlocked.Exchange(ref _refreshInProgress, 1) == 1)
         {
             Logger.LogInformation(
@@ -500,6 +596,8 @@ else
             _loadState = TvMatchPageLoadState.Loaded;
 
             await InvokeAsync(StateHasChanged);
+
+            EnsureRefreshLoopStarted();
 
             Logger.LogInformation(
                 "[TV_MATCH_LOAD] FirstRenderReady matchId={MatchId} initial={Initial} hasHotMatch={HasHotMatch} elapsedMs={ElapsedMs}",
@@ -611,7 +709,7 @@ else
 
     private void StartSecondaryDataLoad()
     {
-        if (_secondaryDataLoadStarted)
+        if (_secondaryDataLoadStarted || _isDisposed)
             return;
 
         _secondaryDataLoadStarted = true;
@@ -745,6 +843,7 @@ else
 
     private async Task RetryLoadAsync()
     {
+        _interactiveLoadRetryAttempted = true;
         _secondaryDataLoadStarted = false;
         await RefreshAsync(CancellationToken.None);
     }
@@ -757,7 +856,13 @@ else
         if (_tvModule is null)
             return;
 
-        await _tvModule.InvokeVoidAsync("log", "TV_MODE", message, payload);
+        try
+        {
+            await _tvModule.InvokeVoidAsync("log", "TV_MODE", message, payload);
+        }
+        catch
+        {
+        }
     }
 
     private string LocalizedTvMatchText(string key)
@@ -812,9 +917,20 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        _isDisposed = true;
+
+        CancelRouteLoad();
+
         if (_refreshCts is not null)
         {
-            _refreshCts.Cancel();
+            try
+            {
+                _refreshCts.Cancel();
+            }
+            catch
+            {
+            }
+
             _refreshCts.Dispose();
         }
 
