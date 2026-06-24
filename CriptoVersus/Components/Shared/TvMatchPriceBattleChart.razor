@@ -397,6 +397,21 @@
         if (maxTime <= minTime)
             return Array.Empty<CrossGuideViewModel>();
 
+        var allValues = left
+            .Take(count)
+            .Select(point => point.Value)
+            .Concat(right.Take(count).Select(point => point.Value))
+            .ToArray();
+
+        var minValue = allValues.Min();
+        var maxValue = allValues.Max();
+
+        if (Math.Abs(maxValue - minValue) <= 0.0000001d)
+        {
+            minValue -= 0.01d;
+            maxValue += 0.01d;
+        }
+
         var guides = new List<CrossGuideViewModel>();
 
         for (var index = 1; index < count; index++)
@@ -407,18 +422,24 @@
             if (previousDelta <= 0d && currentDelta > 0d)
             {
                 var time = Math.Max(left[index].Time, right[index].Time);
+                var value = (left[index].Value + right[index].Value) / 2d;
+
                 guides.Add(new CrossGuideViewModel(
                     true,
                     time,
-                    NormalizeGuidePercent(time, minTime, maxTime)));
+                    NormalizeGuidePercent(time, minTime, maxTime),
+                    NormalizeGuideYPercent(value, minValue, maxValue)));
             }
             else if (previousDelta >= 0d && currentDelta < 0d)
             {
                 var time = Math.Max(left[index].Time, right[index].Time);
+                var value = (left[index].Value + right[index].Value) / 2d;
+
                 guides.Add(new CrossGuideViewModel(
                     false,
                     time,
-                    NormalizeGuidePercent(time, minTime, maxTime)));
+                    NormalizeGuidePercent(time, minTime, maxTime),
+                    NormalizeGuideYPercent(value, minValue, maxValue)));
             }
         }
 
@@ -434,8 +455,17 @@
         return Math.Clamp(percent, 0d, 100d);
     }
 
+    private static double NormalizeGuideYPercent(double value, double minValue, double maxValue)
+    {
+        if (maxValue <= minValue)
+            return 50d;
+
+        var percent = ((maxValue - value) / (maxValue - minValue)) * 100d;
+        return Math.Clamp(percent, 0d, 100d);
+    }
+
     private static string BuildCrossGuideStyle(CrossGuideViewModel guide)
-        => FormattableString.Invariant($"left:{guide.Percent:0.###}%;");
+        => FormattableString.Invariant($"left:{guide.Percent:0.###}%; --cross-guide-y:{guide.YPercent:0.###}%;");
 
     private PriceBattleScoreSummary BuildPriceScore()
     {
@@ -648,7 +678,7 @@
     private sealed record NormalizedPoint(long Time, double Value);
     private sealed record PriceBattleScoreSummary(int LeftPoints, int RightPoints);
     private sealed record CrossEventViewModel(bool IsLeft, string Symbol, string LogoUrl, long Time);
-    private sealed record CrossGuideViewModel(bool IsLeft, long Time, double Percent);
+    private sealed record CrossGuideViewModel(bool IsLeft, long Time, double Percent, double YPercent);
 }
 
 <style>
@@ -1093,10 +1123,10 @@
     .tv-price-battle__cross-guide {
         position: absolute;
         top: 0;
-        bottom: 0;
+        height: var(--cross-guide-y, 50%);
         width: 0;
         transform: translateX(-50%);
-        opacity: .82;
+        opacity: .9;
     }
 
         .tv-price-battle__cross-guide::before {
@@ -1104,20 +1134,22 @@
             position: absolute;
             inset: 0 auto 0 0;
             width: 0;
-            border-left: 1px dashed currentColor;
-            opacity: .55;
+            border-left: 2px dashed currentColor;
+            opacity: .68;
+            filter: drop-shadow(0 0 6px currentColor);
         }
 
         .tv-price-battle__cross-guide::after {
             content: "";
             position: absolute;
-            left: -4px;
-            top: 0;
-            width: 8px;
-            height: 8px;
+            left: -5px;
+            bottom: -5px;
+            width: 10px;
+            height: 10px;
+            border: 2px solid rgba(255,255,255,.92);
             border-radius: 50%;
             background: currentColor;
-            box-shadow: 0 0 14px currentColor;
+            box-shadow: 0 0 14px currentColor, 0 0 22px currentColor;
         }
 
     .tv-price-battle__cross-guide--left {
