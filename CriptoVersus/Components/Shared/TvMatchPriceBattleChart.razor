@@ -10,9 +10,9 @@
          aria-label="@ResolveAriaLabel()"
          style="@BuildCssVariables()">
 
-    <header class="tv-price-battle__compact-header">
-        <article class="tv-price-battle__asset tv-price-battle__asset--left">
-            <div class="tv-price-battle__logo-shell">
+    <header class="tv-price-battle__scoreboard">
+        <article class="tv-price-battle__score-team tv-price-battle__score-team--left">
+            <div class="tv-price-battle__score-logo">
                 @if (!string.IsNullOrWhiteSpace(LeftLogoUrl))
                 {
                     <img src="@LeftLogoUrl" alt="@string.Format(CultureInfo.CurrentCulture, T("logoAlt"), DisplaySymbol(LeftSymbol))" />
@@ -23,27 +23,31 @@
                 }
             </div>
 
-            <div class="tv-price-battle__asset-copy">
+            <div class="tv-price-battle__score-copy">
                 <span>@TeamALabel()</span>
                 <strong>@DisplaySymbol(LeftSymbol)</strong>
-                <small>@FormatPrice(LeftCurrentPrice) · @FormatChangePercent(LeftChangePercent)</small>
+                <small>@PricePointsLabel()</small>
             </div>
+
+            <b id="@($"{CombinedChartId}-score-left")">@LeftPricePointCount</b>
         </article>
 
-        <div class="tv-price-battle__match-chip" aria-label="@BuildMatchHeadline()">
-            <span class="tv-price-battle__live-dot" aria-hidden="true"></span>
-            <strong>@BuildMatchHeadline()</strong>
-            <small>@MatchIdValue()</small>
+        <div class="tv-price-battle__score-center" aria-label="@BuildMatchHeadline()">
+            <span>@PriceBattleTitle()</span>
+            <strong>@TotalPricePointCount @PointsShortLabel()</strong>
+            <small>@LiveLabel()</small>
         </div>
 
-        <article class="tv-price-battle__asset tv-price-battle__asset--right">
-            <div class="tv-price-battle__asset-copy tv-price-battle__asset-copy--right">
+        <article class="tv-price-battle__score-team tv-price-battle__score-team--right">
+            <b id="@($"{CombinedChartId}-score-right")">@RightPricePointCount</b>
+
+            <div class="tv-price-battle__score-copy tv-price-battle__score-copy--right">
                 <span>@TeamBLabel()</span>
                 <strong>@DisplaySymbol(RightSymbol)</strong>
-                <small>@FormatPrice(RightCurrentPrice) · @FormatChangePercent(RightChangePercent)</small>
+                <small>@PricePointsLabel()</small>
             </div>
 
-            <div class="tv-price-battle__logo-shell">
+            <div class="tv-price-battle__score-logo">
                 @if (!string.IsNullOrWhiteSpace(RightLogoUrl))
                 {
                     <img src="@RightLogoUrl" alt="@string.Format(CultureInfo.CurrentCulture, T("logoAlt"), DisplaySymbol(RightSymbol))" />
@@ -125,6 +129,11 @@
     private string _lastSyncSignature = string.Empty;
     private bool _disposed;
     private IReadOnlyList<CrossEventViewModel> CrossEvents { get; set; } = Array.Empty<CrossEventViewModel>();
+
+    private PriceBattleScoreSummary PriceScore => BuildPriceScore();
+    private int LeftPricePointCount => PriceScore.LeftPoints;
+    private int RightPricePointCount => PriceScore.RightPoints;
+    private int TotalPricePointCount => LeftPricePointCount + RightPricePointCount;
 
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
 
@@ -229,7 +238,7 @@
                             time = point.Time,
                             value = (double)point.Value
                         }).ToArray(),
-                        color = "#ffd76e",
+                        color = "#ff9100",
                         side = "left",
                         label = DisplaySymbol(LeftSymbol),
                         compactLabel = CompactSymbol(LeftSymbol),
@@ -242,7 +251,7 @@
                             time = point.Time,
                             value = (double)point.Value
                         }).ToArray(),
-                        color = "#53c8ff",
+                        color = "#18d8d2",
                         side = "right",
                         label = DisplaySymbol(RightSymbol),
                         compactLabel = CompactSymbol(RightSymbol),
@@ -348,11 +357,37 @@
 
     private string BuildCssVariables()
     {
-        const string left = "#ffd76e";
-        const string right = "#53c8ff";
+        const string left = "#ff9100";
+        const string right = "#18d8d2";
 
         return FormattableString.Invariant(
             $"--price-battle-left:{left}; --price-battle-right:{right}; --price-battle-accent:{right};");
+    }
+
+    private PriceBattleScoreSummary BuildPriceScore()
+    {
+        var left = NormalizePoints(LeftPoints);
+        var right = NormalizePoints(RightPoints);
+        var count = Math.Min(left.Count, right.Count);
+
+        if (count < 2)
+            return new PriceBattleScoreSummary(0, 0);
+
+        var leftPoints = 0;
+        var rightPoints = 0;
+
+        for (var index = 1; index < count; index++)
+        {
+            var previousDelta = left[index - 1].Value - right[index - 1].Value;
+            var currentDelta = left[index].Value - right[index].Value;
+
+            if (previousDelta <= 0d && currentDelta > 0d)
+                leftPoints++;
+            else if (previousDelta >= 0d && currentDelta < 0d)
+                rightPoints++;
+        }
+
+        return new PriceBattleScoreSummary(leftPoints, rightPoints);
     }
 
     private IReadOnlyList<CrossEventViewModel> BuildCrossEvents()
@@ -442,6 +477,10 @@
     private string TeamBLabel() => IsPortuguese() ? "MOEDA B" : "ASSET B";
     private string CrossEventsLabel() => IsPortuguese() ? "Cruzamentos para cima" : "Upward crossovers";
     private string NoCrossEventsText() => IsPortuguese() ? "Sem cruzamento ainda" : "No crossover yet";
+    private string PriceBattleTitle() => IsPortuguese() ? "BATALHA DE PREÇO" : "PRICE BATTLE";
+    private string PricePointsLabel() => IsPortuguese() ? "PONTOS DE PREÇO" : "PRICE POINTS";
+    private string PointsShortLabel() => IsPortuguese() ? "PTS" : "PTS";
+    private string LiveLabel() => IsPortuguese() ? "AO VIVO" : "LIVE";
     private string EmptyChartTitle() => IsPortuguese() ? "Aguardando histórico das duas moedas" : "Waiting for both assets history";
     private string LoadingChartTitle() => IsPortuguese() ? "Carregando gráfico de preço" : "Loading price chart";
     private string LoadingChartDescription() => IsPortuguese()
@@ -534,6 +573,7 @@
     }
 
     private sealed record NormalizedPoint(long Time, double Value);
+    private sealed record PriceBattleScoreSummary(int LeftPoints, int RightPoints);
     private sealed record CrossEventViewModel(bool IsLeft, string Symbol, string LogoUrl, long Time);
 }
 
@@ -547,11 +587,13 @@
         --price-battle-border: rgba(72, 118, 156, .24);
         position: relative;
         display: grid;
-        grid-template-rows: auto minmax(480px, 1fr) auto;
+        grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 10px;
         width: 100%;
+        height: 100%;
+        max-height: 100%;
         min-width: 0;
-        min-height: 620px;
+        min-height: 0;
         padding: 14px;
         box-sizing: border-box;
         overflow: hidden;
@@ -758,6 +800,193 @@
         font-size: .48rem;
     }
 
+
+    .tv-price-battle__scoreboard {
+        position: relative;
+        z-index: 1;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(112px, auto) minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .tv-price-battle__score-team,
+    .tv-price-battle__score-center {
+        min-width: 0;
+        border: 1px solid rgba(74,113,149,.22);
+        background: linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+    }
+
+    .tv-price-battle__score-team {
+        min-height: 72px;
+        display: grid;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .tv-price-battle__score-team--left {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        border-color: color-mix(in srgb, var(--price-battle-left) 62%, rgba(74,113,149,.22));
+        background: radial-gradient(circle at 0% 50%, color-mix(in srgb, var(--price-battle-left) 13%, transparent), transparent 48%), linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
+    }
+
+    .tv-price-battle__score-team--right {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        border-color: color-mix(in srgb, var(--price-battle-right) 62%, rgba(74,113,149,.22));
+        background: radial-gradient(circle at 100% 50%, color-mix(in srgb, var(--price-battle-right) 15%, transparent), transparent 48%), linear-gradient(180deg, var(--price-battle-panel), var(--price-battle-panel-strong));
+    }
+
+    .tv-price-battle__score-logo {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        overflow: hidden;
+        border-radius: 50%;
+        background: rgba(6,14,25,.96);
+    }
+
+    .tv-price-battle__score-team--left .tv-price-battle__score-logo {
+        color: var(--price-battle-left);
+        border: 2px solid color-mix(in srgb, var(--price-battle-left) 72%, rgba(255,255,255,.18));
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--price-battle-left) 12%, transparent), 0 0 18px color-mix(in srgb, var(--price-battle-left) 30%, transparent);
+    }
+
+    .tv-price-battle__score-team--right .tv-price-battle__score-logo {
+        color: var(--price-battle-right);
+        border: 2px solid color-mix(in srgb, var(--price-battle-right) 72%, rgba(255,255,255,.18));
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--price-battle-right) 12%, transparent), 0 0 18px color-mix(in srgb, var(--price-battle-right) 30%, transparent);
+    }
+
+    .tv-price-battle__score-logo img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+        object-fit: contain;
+        border-radius: inherit;
+    }
+
+    .tv-price-battle__score-logo span {
+        color: #f8fbff;
+        font-size: .82rem;
+        font-weight: 950;
+        letter-spacing: .04em;
+    }
+
+    .tv-price-battle__score-copy {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+    }
+
+    .tv-price-battle__score-copy--right {
+        justify-items: end;
+        text-align: right;
+    }
+
+    .tv-price-battle__score-copy span,
+    .tv-price-battle__score-copy small,
+    .tv-price-battle__score-center span,
+    .tv-price-battle__score-center small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-transform: uppercase;
+        font-weight: 950;
+        letter-spacing: .12em;
+    }
+
+    .tv-price-battle__score-copy span {
+        font-size: .58rem;
+    }
+
+    .tv-price-battle__score-copy small {
+        color: rgba(190,205,221,.66);
+        font-size: .56rem;
+    }
+
+    .tv-price-battle__score-team--left .tv-price-battle__score-copy span {
+        color: var(--price-battle-left);
+    }
+
+    .tv-price-battle__score-team--right .tv-price-battle__score-copy span {
+        color: var(--price-battle-right);
+    }
+
+    .tv-price-battle__score-copy strong {
+        min-width: 0;
+        overflow: hidden;
+        color: #f8f9fd;
+        font-size: clamp(.94rem, 1.35cqi, 1.18rem);
+        font-weight: 950;
+        line-height: 1.05;
+        letter-spacing: .01em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tv-price-battle__score-team b {
+        min-width: 0;
+        font-size: clamp(2.65rem, 5.2cqi, 4.35rem);
+        font-weight: 1000;
+        line-height: .9;
+        letter-spacing: -.07em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tv-price-battle__score-team--left b {
+        color: var(--price-battle-left);
+        text-shadow: 0 0 20px color-mix(in srgb, var(--price-battle-left) 38%, transparent);
+    }
+
+    .tv-price-battle__score-team--right b {
+        color: var(--price-battle-right);
+        text-shadow: 0 0 20px color-mix(in srgb, var(--price-battle-right) 38%, transparent);
+    }
+
+    .tv-price-battle__score-center {
+        min-height: 64px;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 2px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        text-align: center;
+        border-color: color-mix(in srgb, var(--price-battle-right) 42%, rgba(74,113,149,.22));
+        background: radial-gradient(circle at 50% 28%, color-mix(in srgb, var(--price-battle-right) 18%, transparent), rgba(3,10,21,.96) 72%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 0 18px color-mix(in srgb, var(--price-battle-right) 12%, transparent);
+    }
+
+        .tv-price-battle__score-center span {
+            color: #f8fbff;
+            font-size: .62rem;
+        }
+
+        .tv-price-battle__score-center strong {
+            max-width: 100%;
+            overflow: hidden;
+            color: rgba(232,239,249,.86);
+            font-size: .64rem;
+            font-weight: 950;
+            letter-spacing: .08em;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .tv-price-battle__score-center small {
+            color: rgba(190,205,221,.72);
+            font-size: .52rem;
+        }
+
+
     .tv-price-battle__chart-shell {
         position: relative;
         height: clamp(480px, 58vw, 640px);
@@ -915,10 +1144,30 @@
 
     @@container price-battle (max-width: 820px) {
         .tv-price-battle {
-            grid-template-rows: auto minmax(360px, 1fr) auto;
+            grid-template-rows: auto minmax(0, 1fr) auto;
             gap: 8px;
             padding: 10px;
-            min-height: 520px;
+            height: 100%;
+            min-height: 0;
+        }
+
+        .tv-price-battle__scoreboard {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .tv-price-battle__score-team {
+            min-height: 64px;
+        }
+
+        .tv-price-battle__score-center {
+            order: -1;
+            min-height: 54px;
+            border-radius: 16px;
+        }
+
+        .tv-price-battle__score-team b {
+            font-size: clamp(2.2rem, 10cqi, 3.2rem);
         }
 
         .tv-price-battle__compact-header {
@@ -947,8 +1196,8 @@
         }
 
         .tv-price-battle__chart-shell {
-            height: 380px;
-            min-height: 380px;
+            height: 100%;
+            min-height: 0;
         }
 
         .tv-price-battle__bottom-bar {
@@ -969,6 +1218,11 @@
             max-height: none;
             min-height: 0;
             overflow: visible;
+        }
+
+        .tv-price-battle__chart-shell {
+            height: 360px;
+            min-height: 360px;
         }
     }
 
