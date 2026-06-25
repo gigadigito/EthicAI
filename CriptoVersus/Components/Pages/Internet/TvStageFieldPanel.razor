@@ -56,7 +56,9 @@
                         <span>@ScoreboardLabel</span>
                         <div class="tv-football-scoreboard__score">
                             <strong class="@(Model.PulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.LeftScore</strong>
-                            <em>@VersusLabel</em>
+                            <img class="tv-versus-image"
+                                 src="~/img/vs.png"
+                                 alt="@VersusLabel" />
                             <strong class="@(Model.PulseRightScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.RightScore</strong>
                         </div>
                         <div class="tv-football-scoreboard__clock">
@@ -341,7 +343,41 @@
         }
     }
 
-</style>
+    .tv-versus-image {
+        width: clamp(42px, 5vw, 96px);
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
+        display: inline-block;
+        vertical-align: middle;
+        pointer-events: none;
+        user-select: none;
+        filter: drop-shadow(0 0 12px rgba(24, 216, 210, .25));
+    }
+
+    .tv-football-scoreboard__score .tv-versus-image,
+    .tv-scoreboard__score .tv-versus-image {
+        flex: 0 0 auto;
+        align-self: center;
+    }
+
+    @@media (max-width: 1180px) {
+        .tv-versus-image
+
+    {
+        width: clamp(36px, 7vw, 76px);
+    }
+
+    }
+
+    @@media (max-width: 720px) {
+        .tv-versus-image
+
+    {
+        width: clamp(30px, 13vw, 58px);
+    }
+
+    }</style>
 
 @code {
     [Parameter, EditorRequired] public TvStageRenderModel Model { get; set; } = default!;
