@@ -184,7 +184,7 @@
 
                         <div class="scoreline">
                             <span class="score">@_match.ScoreA</span>
-                            <span class="score-sep">x</span>
+                            <span class="score-sep"><img src="img/vs.png" /></span>
                             <span class="score">@_match.ScoreB</span>
                         </div>
 
@@ -2574,7 +2574,50 @@
             gap: .5rem;
         }
     }
-</style>
+
+    .tv-football-scoreboard__score {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(8px, 1.2vw, 18px);
+    }
+
+    .tv-versus-image {
+        width: clamp(54px, 5.5vw, 112px);
+        height: auto;
+        max-height: clamp(44px, 5vw, 92px);
+        object-fit: contain;
+        display: block;
+        flex: 0 0 auto;
+        margin: 0 clamp(2px, .4vw, 8px);
+        pointer-events: none;
+        user-select: none;
+        filter: drop-shadow(0 0 10px rgba(255, 145, 0, .45)) drop-shadow(0 0 10px rgba(24, 216, 210, .35));
+    }
+
+    @@media (max-width: 1180px) {
+        .tv-versus-image
+
+    {
+        width: clamp(48px, 7vw, 88px);
+        max-height: clamp(38px, 6vw, 72px);
+    }
+
+    }
+
+    @@media (max-width: 720px) {
+        .tv-versus-image
+
+    {
+        width: clamp(38px, 13vw, 64px);
+        max-height: clamp(32px, 11vw, 54px);
+    }
+
+    .tv-football-scoreboard__score {
+        gap: 6px;
+    }
+
+    }</style>
 
 @code {
     [Parameter] public string? SlugA { get; set; }
