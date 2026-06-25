@@ -21,22 +21,14 @@ export function updateMatchPriceBattleChart(payload) {
         return;
     }
 
-    const canRender = isRenderableHost(host);
+
     let state = charts.get(chartId);
     if (!state) {
-        if (!canRender) {
-            return;
-        }
-
         state = createState(host);
         charts.set(chartId, state);
     }
 
     state.payload = normalizePayload(payload);
-    if (!canRender) {
-        return;
-    }
-
     return requestRender(state);
 }
 
@@ -57,21 +49,12 @@ export function disposeMatchPriceBattleChart(chartId) {
     charts.delete(chartId);
 }
 
-function isRenderableHost(host) {
-    if (!host || host.offsetParent === null) {
-        return false;
-    }
-
-    const rect = host.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-}
 
 function createState(host) {
     host.innerHTML = "";
-    host.style.position = "absolute";
-    host.style.inset = "0";
+    host.style.position = "relative";
     host.style.width = "100%";
-    host.style.height = "100%";
+
     host.style.minHeight = "0";
     host.style.maxHeight = "100%";
     host.style.overflow = "hidden";
@@ -249,10 +232,6 @@ function render(state) {
     const { width, height } = getRenderSize(state);
     const dpr = resolveSafeDevicePixelRatio();
 
-    state.host.style.width = "100%";
-    state.host.style.height = "100%";
-    state.host.style.minHeight = "0";
-    state.host.style.maxHeight = "100%";
 
     state.canvas.style.width = "100%";
     state.canvas.style.height = "100%";
