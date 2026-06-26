@@ -307,7 +307,7 @@
 }
 
 .tv-price-battle__chart-shell {
-    min-height: 350px !important;
+    min-height: 525px !important;
     position: relative;
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.06);
