@@ -183,9 +183,9 @@
                         }
 
                         <div class="scoreline">
-                            <span class="score">@_match.ScoreA</span>
+                            <span class="score score--left">@_match.ScoreA</span>
                             <span class="score-sep"><img class="tv-versus-image" src="img/vs.png" /></span>
-                            <span class="score">@_match.ScoreB</span>
+                            <span class="score score--right">@_match.ScoreB</span>
                         </div>
 
                         @if (_match.IsFinished)
@@ -854,6 +854,14 @@
 </div>
 
 <style>
+
+    .score--left {
+        color: var(--score-left, #ff9100);
+    }
+
+    .score--right {
+        color: var(--score-right, #18d8d2);
+    }
     .social-share-card__title-team {
         font-weight: 950;
     }
