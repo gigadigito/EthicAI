@@ -9,7 +9,7 @@
     <div class="tv-arena-pressure-gauge__panel">
         <header class="tv-arena-pressure-gauge__scoreboard">
             <section class="tv-arena-pressure-gauge__score-team tv-arena-pressure-gauge__score-team--left"
-                     style="@BuildSideStyle(LeftColor)"
+                     style="@BuildSideStyle(SafeLeftColor)"
                      title="@string.Format(CultureInfo.CurrentCulture, Tg("pressureTooltip"), DisplaySymbol(LeftSymbol), DisplayText(LeftDisplayName), LeftPressureDisplay)">
                 <div class="tv-arena-pressure-gauge__score-identity">
                     <div class="tv-arena-pressure-gauge__score-logo">
@@ -40,7 +40,7 @@
             </div>
 
             <section class="tv-arena-pressure-gauge__score-team tv-arena-pressure-gauge__score-team--right"
-                     style="@BuildSideStyle(RightColor)"
+                     style="@BuildSideStyle(SafeRightColor)"
                      title="@string.Format(CultureInfo.CurrentCulture, Tg("pressureTooltip"), DisplaySymbol(RightSymbol), DisplayText(RightDisplayName), RightPressureDisplay)">
                 <strong class="tv-arena-pressure-gauge__score-value tv-arena-pressure-gauge__score-value--right">@RightPressureDisplay%</strong>
 
@@ -81,11 +81,13 @@
                                 <stop offset="0%" stop-color="@SafeRightColor" />
                                 <stop offset="100%" stop-color="@SafeRightColor" />
                             </linearGradient>
-                            <filter id="@($"{_gradientId}-glow-left")" x="-40%" y="-40%" width="180%" height="180%">
-                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="@SafeLeftColor" flood-opacity="0.85" />
+                            <filter id="@($"{_gradientId}-glow-left")" x="-55%" y="-55%" width="210%" height="210%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="5.4" flood-color="#ff9100" flood-opacity="0.92" />
+                                <feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#ff6f00" flood-opacity="0.32" />
                             </filter>
-                            <filter id="@($"{_gradientId}-glow-right")" x="-40%" y="-40%" width="180%" height="180%">
-                                <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="@SafeRightColor" flood-opacity="0.85" />
+                            <filter id="@($"{_gradientId}-glow-right")" x="-60%" y="-60%" width="220%" height="220%">
+                                <feDropShadow dx="0" dy="0" stdDeviation="6.4" flood-color="#58ecff" flood-opacity="1" />
+                                <feDropShadow dx="0" dy="0" stdDeviation="11" flood-color="#18d8d2" flood-opacity="0.34" />
                             </filter>
                         </defs>
 
@@ -105,7 +107,7 @@
                         {
                             <path d="@LeftArcSegmentPath"
                                   class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--left"
-                                  stroke="@SafeLeftColor"
+                                  stroke="var(--pressure-left)"
                                   filter="@($"url(#{_gradientId}-glow-left)")">
                                 <title>@($"{LeftSymbol}: {LeftPressureDisplay}%")</title>
                             </path>
@@ -115,7 +117,7 @@
                         {
                             <path d="@RightArcSegmentPath"
                                   class="tv-arena-pressure-gauge__fill tv-arena-pressure-gauge__fill--right"
-                                  stroke="@SafeRightColor"
+                                  stroke="var(--pressure-right)"
                                   filter="@($"url(#{_gradientId}-glow-right)")">
                                 <title>@($"{RightSymbol}: {RightPressureDisplay}%")</title>
                             </path>
@@ -204,13 +206,13 @@
     [Parameter] public string LeftLogoUrl { get; set; } = string.Empty;
     [Parameter] public double? LeftPressurePercent { get; set; }
     [Parameter] public string LeftMomentumLabel { get; set; } = string.Empty;
-    [Parameter] public string LeftColor { get; set; } = "#ff8a1f";
+    [Parameter] public string LeftColor { get; set; } = "#ff9100";
     [Parameter] public string RightSymbol { get; set; } = string.Empty;
     [Parameter] public string RightDisplayName { get; set; } = string.Empty;
     [Parameter] public string RightLogoUrl { get; set; } = string.Empty;
     [Parameter] public double? RightPressurePercent { get; set; }
     [Parameter] public string RightMomentumLabel { get; set; } = string.Empty;
-    [Parameter] public string RightColor { get; set; } = "#2ee8f2";
+    [Parameter] public string RightColor { get; set; } = "#58ecff";
     [Parameter] public double? CurrentPressurePercent { get; set; }
     [Parameter] public string StatusLabel { get; set; } = string.Empty;
     [Parameter] public string Description { get; set; } = string.Empty;
@@ -264,8 +266,8 @@
     private IReadOnlyList<TickMark> MinorTicks => BuildMinorTicks();
     private IReadOnlyList<BarStyle> LeftBars => BuildBars(LeftPressureDisplay, true);
     private IReadOnlyList<BarStyle> RightBars => BuildBars(RightPressureDisplay, false);
-    private string SafeLeftColor => NormalizeColor(LeftColor, "#ff8a1f");
-    private string SafeRightColor => NormalizeColor(RightColor, "#2ee8f2");
+    private string SafeLeftColor => NormalizeLeftColor(LeftColor);
+    private string SafeRightColor => NormalizeColor(RightColor, "#58ecff");
 
     private IEnumerable<string> BuildStateClasses()
     {
@@ -330,6 +332,22 @@
 
     private static string NormalizeColor(string? color, string fallback)
         => string.IsNullOrWhiteSpace(color) ? fallback : color.Trim();
+
+    private static string NormalizeLeftColor(string? color)
+    {
+        var normalized = NormalizeColor(color, "#ff9100");
+
+        // Mantém o lado A no padrão laranja do CriptoVersus mesmo se algum pai
+        // ainda enviar as versões antigas mais amareladas do gauge.
+        return normalized.Equals("#ffd54a", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("#ffd84a", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("#ff9f1c", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("#ff8a1f", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("#ffd76e", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("#ffbf3c", StringComparison.OrdinalIgnoreCase)
+            ? "#ff9100"
+            : normalized;
+    }
 
     private string Tg(string key, params object?[] args)
         => L.T($"tv.pressureGauge.{key}", Culture, args);
@@ -427,8 +445,8 @@
 
 <style>
     .tv-arena-pressure-gauge {
-        --pressure-left: #ff8a1f;
-        --pressure-right: #2ee8f2;
+        --pressure-left: #ff9100;
+        --pressure-right: #58ecff;
         --pressure-track: rgba(206, 232, 255, 0.16);
         --pressure-glass: linear-gradient(180deg, rgba(8, 17, 33, 0.94), rgba(5, 10, 24, 0.92));
         --pressure-border: rgba(98, 145, 191, 0.22);
@@ -466,7 +484,7 @@
         border: 1px solid var(--pressure-border);
         border-radius: clamp(20px, 3cqi, 28px);
         color: #f5fbff;
-        background: radial-gradient(circle at 50% 0%, rgba(46, 232, 242, 0.08), transparent 38%), radial-gradient(circle at 10% 50%, rgba(255, 138, 31, 0.08), transparent 36%), var(--pressure-glass);
+        background: radial-gradient(circle at 50% 0%, rgba(88, 236, 255, 0.12), transparent 38%), radial-gradient(circle at 10% 50%, rgba(255, 145, 0, 0.13), transparent 36%), radial-gradient(circle at 90% 50%, rgba(88, 236, 255, 0.08), transparent 30%), var(--pressure-glass);
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025), 0 24px 54px rgba(0, 0, 0, 0.28), 0 0 38px rgba(13, 33, 56, 0.24);
         isolation: isolate;
     }
@@ -531,22 +549,22 @@
         }
 
     .tv-arena-pressure-gauge__score-team--left {
-        border-color: color-mix(in srgb, var(--pressure-left) 60%, rgba(255,255,255,.08));
+        border-color: color-mix(in srgb, var(--pressure-left) 72%, rgba(255,255,255,.08));
         border-radius: 16px 6px 6px 16px;
     }
 
         .tv-arena-pressure-gauge__score-team--left::before {
-            background: radial-gradient(circle at 6% 50%, color-mix(in srgb, var(--pressure-left) 18%, transparent), transparent 34%), linear-gradient(90deg, color-mix(in srgb, var(--pressure-left) 8%, transparent), transparent 72%);
+            background: radial-gradient(circle at 6% 50%, color-mix(in srgb, var(--pressure-left) 26%, transparent), transparent 34%), linear-gradient(90deg, color-mix(in srgb, var(--pressure-left) 14%, transparent), transparent 72%);
         }
 
     .tv-arena-pressure-gauge__score-team--right {
         grid-template-columns: auto minmax(0, 1fr);
-        border-color: color-mix(in srgb, var(--pressure-right) 60%, rgba(255,255,255,.08));
+        border-color: color-mix(in srgb, var(--pressure-right) 72%, rgba(255,255,255,.08));
         border-radius: 6px 16px 16px 6px;
     }
 
         .tv-arena-pressure-gauge__score-team--right::before {
-            background: radial-gradient(circle at 94% 50%, color-mix(in srgb, var(--pressure-right) 18%, transparent), transparent 34%), linear-gradient(270deg, color-mix(in srgb, var(--pressure-right) 8%, transparent), transparent 72%);
+            background: radial-gradient(circle at 94% 50%, color-mix(in srgb, var(--pressure-right) 28%, transparent), transparent 34%), linear-gradient(270deg, color-mix(in srgb, var(--pressure-right) 14%, transparent), transparent 72%);
         }
 
     .tv-arena-pressure-gauge__score-identity {
@@ -576,11 +594,11 @@
     }
 
     .tv-arena-pressure-gauge__score-team--left .tv-arena-pressure-gauge__score-logo {
-        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-left) 32%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--pressure-left) 20%, transparent);
+        box-shadow: 0 0 20px color-mix(in srgb, var(--pressure-left) 42%, transparent), 0 0 30px rgba(255, 111, 0, .14), inset 0 0 0 1px color-mix(in srgb, var(--pressure-left) 28%, transparent);
     }
 
     .tv-arena-pressure-gauge__score-team--right .tv-arena-pressure-gauge__score-logo {
-        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-right) 32%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--pressure-right) 20%, transparent);
+        box-shadow: 0 0 24px color-mix(in srgb, var(--pressure-right) 52%, transparent), 0 0 38px color-mix(in srgb, var(--pressure-right) 20%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--pressure-right) 32%, transparent);
     }
 
     .tv-arena-pressure-gauge__score-logo img {
@@ -664,12 +682,12 @@
 
     .tv-arena-pressure-gauge__score-value--left {
         color: var(--pressure-left);
-        text-shadow: 0 0 22px color-mix(in srgb, var(--pressure-left) 38%, transparent);
+        text-shadow: 0 0 22px rgba(255, 145, 0, 0.50), 0 0 42px rgba(255, 111, 0, 0.24);
     }
 
     .tv-arena-pressure-gauge__score-value--right {
         color: var(--pressure-right);
-        text-shadow: 0 0 22px color-mix(in srgb, var(--pressure-right) 38%, transparent);
+        text-shadow: 0 0 24px rgba(88, 236, 255, 0.60), 0 0 46px rgba(24, 216, 210, 0.30);
     }
 
     .tv-arena-pressure-gauge__score-center {
@@ -946,10 +964,12 @@
 
     .tv-arena-pressure-gauge__fill--left {
         stroke: var(--pressure-left);
+        filter: drop-shadow(0 0 10px rgba(255, 145, 0, .48)) drop-shadow(0 0 18px rgba(255, 111, 0, .22));
     }
 
     .tv-arena-pressure-gauge__fill--right {
         stroke: var(--pressure-right);
+        filter: drop-shadow(0 0 12px rgba(88, 236, 255, .62)) drop-shadow(0 0 22px rgba(24, 216, 210, .30));
     }
 
     .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__track {
@@ -1025,7 +1045,7 @@
         overflow: hidden;
         border: 1px solid rgba(255,255,255,0.22);
         border-radius: 50%;
-        box-shadow: 0 0 18px rgba(255,255,255,0.18), 0 0 32px rgba(46, 232, 242, 0.18), inset 0 0 0 2px rgba(255,255,255,0.18);
+        box-shadow: 0 0 18px rgba(255,255,255,0.18), 0 0 24px rgba(255, 145, 0, 0.12), 0 0 36px rgba(88, 236, 255, 0.22), inset 0 0 0 2px rgba(255,255,255,0.18);
         animation: tvArenaPressureBallSpin var(--ball-spin-duration, 3s) linear infinite;
     }
 
@@ -1085,8 +1105,8 @@
 
     .tv-arena-pressure-gauge__arrow--left::before {
         right: 0;
-        background: linear-gradient(90deg, rgba(255, 138, 31, 0), rgba(255, 138, 31, 1));
-        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-left) 32%, transparent);
+        background: linear-gradient(90deg, rgba(255, 145, 0, 0), rgba(255, 145, 0, 1));
+        box-shadow: 0 0 18px rgba(255, 145, 0, .46), 0 0 30px rgba(255, 111, 0, .20);
     }
 
     .tv-arena-pressure-gauge__arrow--left::after {
@@ -1096,8 +1116,8 @@
 
     .tv-arena-pressure-gauge__arrow--right::before {
         left: 0;
-        background: linear-gradient(90deg, rgba(46, 232, 242, 1), rgba(46, 232, 242, 0));
-        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-right) 32%, transparent);
+        background: linear-gradient(90deg, rgba(88, 236, 255, 1), rgba(88, 236, 255, 0));
+        box-shadow: 0 0 20px rgba(88, 236, 255, .50), 0 0 34px rgba(24, 216, 210, .22);
     }
 
     .tv-arena-pressure-gauge__arrow--right::after {
@@ -1136,12 +1156,12 @@
             line-height: 1;
             font-weight: 900;
             letter-spacing: -0.05em;
-            text-shadow: 0 0 22px color-mix(in srgb, var(--pressure-right) 32%, transparent);
+            text-shadow: 0 0 26px color-mix(in srgb, var(--pressure-right) 50%, transparent), 0 0 48px color-mix(in srgb, var(--pressure-right) 26%, transparent);
         }
 
     .tv-arena-pressure-gauge.left-dominant .tv-arena-pressure-gauge__center-copy strong {
         color: var(--pressure-left);
-        text-shadow: 0 0 22px color-mix(in srgb, var(--pressure-left) 30%, transparent);
+        text-shadow: 0 0 24px rgba(255, 145, 0, .52), 0 0 44px rgba(255, 111, 0, .24);
     }
 
     .tv-arena-pressure-gauge.right-dominant .tv-arena-pressure-gauge__center-copy strong,
@@ -1212,13 +1232,13 @@
         }
 
     .tv-arena-pressure-gauge__momentum--left .tv-arena-pressure-gauge__bars i {
-        background: linear-gradient(180deg, rgba(255, 191, 60, 1), rgba(255, 107, 0, 0.76));
-        box-shadow: 0 0 10px color-mix(in srgb, var(--pressure-left) 26%, transparent);
+        background: linear-gradient(180deg, rgba(255, 190, 70, 1), rgba(255, 145, 0, 0.92));
+        box-shadow: 0 0 12px rgba(255, 145, 0, .44), 0 0 22px rgba(255, 111, 0, .20);
     }
 
     .tv-arena-pressure-gauge__momentum--right .tv-arena-pressure-gauge__bars i {
-        background: linear-gradient(180deg, rgba(115, 255, 240, 1), rgba(36, 225, 239, 0.72));
-        box-shadow: 0 0 10px color-mix(in srgb, var(--pressure-right) 24%, transparent);
+        background: linear-gradient(180deg, rgba(150, 255, 255, 1), rgba(88, 236, 255, 0.86));
+        box-shadow: 0 0 14px color-mix(in srgb, var(--pressure-right) 46%, transparent), 0 0 26px color-mix(in srgb, var(--pressure-right) 20%, transparent);
     }
 
     .tv-arena-pressure-gauge__footer-status {
@@ -1269,12 +1289,12 @@
         place-items: center;
         width: 36px;
         aspect-ratio: 1;
-        border: 1px solid color-mix(in srgb, var(--pressure-right) 30%, rgba(255,255,255,0.07));
+        border: 1px solid color-mix(in srgb, var(--pressure-right) 42%, rgba(255,255,255,0.07));
         border-radius: 50%;
         color: var(--pressure-right);
         font-size: 1.1rem;
         font-weight: 900;
-        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-right) 18%, transparent);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--pressure-right) 24%, transparent);
     }
 
     .tv-arena-pressure-gauge__description p {
