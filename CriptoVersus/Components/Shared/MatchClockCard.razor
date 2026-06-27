@@ -391,6 +391,12 @@
         box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 20px rgba(0,0,0,.22), 0 0 18px rgba(255,214,10,.10);
     }
 
+    .clock-card--draw .final-result-card__score {
+        border-color: rgba(24, 216, 210, .20);
+        background: radial-gradient(circle at 22% 50%, rgba(255, 145, 0, .16), transparent 34%), radial-gradient(circle at 78% 50%, rgba(24, 216, 210, .16), transparent 34%), rgba(2, 8, 18, .56);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 20px rgba(0,0,0,.22), 0 0 18px rgba(24,216,210,.08), 0 0 18px rgba(255,145,0,.06);
+    }
+
     .final-result-card__score-value {
         font-size: clamp(1.35rem, 2.2vw, 1.85rem);
         font-weight: 950;
@@ -407,10 +413,14 @@
         text-shadow: 0 0 12px rgba(255,255,255,.18);
     }
 
-    .clock-card--draw .final-result-card__score-value--left,
+    .clock-card--draw .final-result-card__score-value--left {
+        color: #ff9100;
+        text-shadow: 0 0 12px rgba(255, 145, 0, .44), 0 6px 16px rgba(0, 0, 0, .4);
+    }
+
     .clock-card--draw .final-result-card__score-value--right {
-        color: #22c7ff;
-        text-shadow: 0 0 12px rgba(34,199,255,.42), 0 6px 16px rgba(0,0,0,.4);
+        color: #18d8d2;
+        text-shadow: 0 0 12px rgba(24, 216, 210, .44), 0 6px 16px rgba(0, 0, 0, .4);
     }
 
     .final-result-card__score strong {
@@ -418,6 +428,7 @@
         font-size: .95rem;
         font-weight: 950;
         text-transform: uppercase;
+        text-shadow: 0 0 10px rgba(255,255,255,.18);
     }
 
     .final-result-card__caption {
