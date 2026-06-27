@@ -155,7 +155,7 @@
     [Parameter] public string LeftChartId { get; set; } = $"tv-price-battle-left-{Guid.NewGuid():N}";
     [Parameter] public decimal? LeftCurrentPrice { get; set; }
     [Parameter] public decimal? LeftChangePercent { get; set; }
-    [Parameter] public string LeftColor { get; set; } = "#ffd76e";
+    [Parameter] public string LeftColor { get; set; } = "#ff9100";
     [Parameter] public IReadOnlyList<TvPriceChartPoint> LeftPoints { get; set; } = Array.Empty<TvPriceChartPoint>();
     [Parameter] public bool LeftHasPriceHistory { get; set; }
 
@@ -698,7 +698,7 @@
 
 <style>
     .tv-price-battle {
-        --price-battle-left: #ffd76e;
+        --price-battle-left: #ff9100;
         --price-battle-right: #53c8ff;
         --price-battle-accent: var(--price-battle-right);
         --price-battle-panel: rgba(3, 10, 21, 0.94);

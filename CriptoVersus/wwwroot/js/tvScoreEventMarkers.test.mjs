@@ -49,7 +49,7 @@ function testBuildsEveryOfficialScoreEvent() {
             { matchScoreEventId: 3, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTimeUtc: "2026-06-02T15:32:35Z", description: "Threshold %." },
             { matchScoreEventId: 4, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTimeUtc: "2026-06-02T15:37:00Z", description: "Threshold %." }
         ],
-        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ff9100" },
         rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
         leftTeamId: 10,
         rightTeamId: 20,
@@ -73,7 +73,7 @@ function testKeepsMarkerAtSameTimestampAsSeriesPoint() {
         scoreEvents: [
             { matchScoreEventId: 101, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTime: 160, description: "Threshold %." }
         ],
-        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ff9100" },
         rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
         leftTeamId: 10,
         rightTeamId: 20,
@@ -97,7 +97,7 @@ function testInterpolatesMarkerBetweenTwoSeriesPoints() {
         scoreEvents: [
             { matchScoreEventId: 102, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTime: 130, description: "Threshold %." }
         ],
-        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ff9100" },
         rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
         leftTeamId: 10,
         rightTeamId: 20,
@@ -124,7 +124,7 @@ function testKeepsSameMinuteEventsByStacking() {
             { matchScoreEventId: 11, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTimeUtc: "2026-06-02T15:32:01Z", description: "A." },
             { matchScoreEventId: 12, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTimeUtc: "2026-06-02T15:32:40Z", description: "B." }
         ],
-        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ff9100" },
         rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
         leftTeamId: 10,
         rightTeamId: 20,
@@ -151,7 +151,7 @@ function testOutOfRangeEventDoesNotBreakChart() {
         scoreEvents: [
             { matchScoreEventId: 103, teamId: 10, teamSymbol: "XAUTUSDT", points: 1, eventTime: 99, description: "Too early." }
         ],
-        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ffd76e" },
+        leftMeta: { symbol: "XAUTUSDT", logoUrl: "/xaut.png", accentColor: "#ff9100" },
         rightMeta: { symbol: "CHZUSDT", logoUrl: "/chz.png", accentColor: "#86c9ff" },
         leftTeamId: 10,
         rightTeamId: 20
@@ -190,7 +190,7 @@ function testPositionsCrossoverMarkerAtRealIntersection() {
                 description: "FET marcou 1 ponto por cruzar a linha de valorizacao percentual para cima."
             }
         ],
-        leftMeta: { symbol: "CHIPUSDT", logoUrl: "/chip.png", accentColor: "#ffd76e" },
+        leftMeta: { symbol: "CHIPUSDT", logoUrl: "/chip.png", accentColor: "#ff9100" },
         rightMeta: { symbol: "FETUSDT", logoUrl: "/fet.png", accentColor: "#86c9ff" },
         leftTeamId: 10,
         rightTeamId: 20,

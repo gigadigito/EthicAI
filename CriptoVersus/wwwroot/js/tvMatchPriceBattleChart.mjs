@@ -170,7 +170,7 @@ function paintInitialCanvas(canvas, host) {
 }
 
 function normalizePayload(payload) {
-    const left = normalizeSide(payload.left, "#ffd76e", "left");
+    const left = normalizeSide(payload.left, "#ff9100", "left");
     const right = normalizeSide(payload.right, "#53c8ff", "right");
 
     return {

@@ -4084,7 +4084,7 @@ private TvOverlayEvent? CreateEvent(string key)
     {
         "hotMatchDetected" => new TvOverlayEvent("hotMatchDetected", T("events.hotMatchKicker"), T("events.hotMatchTitle"), T("events.hotMatchBody"), GetAccentColor(ResolveLeaderSymbol())),
         "momentumReversal" => new TvOverlayEvent("momentumReversal", T("events.momentumReversalKicker"), T("events.momentumReversalTitle"), T("events.momentumReversalBody"), "#7ff6df"),
-        "fearSurge" => new TvOverlayEvent("fearSurge", T("events.fearSurgeKicker"), T("events.fearSurgeTitle"), T("events.fearSurgeBody"), "#ffd76e"),
+        "fearSurge" => new TvOverlayEvent("fearSurge", T("events.fearSurgeKicker"), T("events.fearSurgeTitle"), T("events.fearSurgeBody"), "#ff9100"),
         "hotScoreSpike" => new TvOverlayEvent("hotScoreSpike", T("events.hotScoreSpikeKicker"), T("events.hotScoreSpikeTitle"), T("events.hotScoreSpikeBody"), "#53c8ff"),
         "finalMoments" => new TvOverlayEvent("finalMoments", T("events.finalMomentsKicker"), T("events.finalMomentsTitle"), T("events.finalMomentsBody"), "#ff8e8e"),
         _ => null
@@ -8492,7 +8492,7 @@ private sealed record TvArenaCommentaryEntry(
         --tv-muted: #9cb4d1;
         --tv-green: #7ff6df;
         --tv-blue: #53c8ff;
-        --tv-yellow: #ffd76e;
+        --tv-yellow: #ff9100;
         --tv-border: rgba(118, 143, 190, 0.16);
         position: relative;
         display: grid;

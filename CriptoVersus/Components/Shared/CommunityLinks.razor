@@ -26,10 +26,11 @@
                    aria-label="@link.AriaLabel"
                    title="@link.Name">
                     <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
-                        <img src="@link.IconPath" alt="" />
+                        <i class="@link.IconClass"></i>
                     </span>
                 </a>
                 break;
+
             case "footer":
                 <a class="community-links__row"
                    href="@link.Url"
@@ -38,13 +39,14 @@
                    aria-label="@link.AriaLabel">
                     <span class="community-links__row-brand">
                         <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
-                            <img src="@link.IconPath" alt="" />
+                            <i class="@link.IconClass"></i>
                         </span>
                         <strong>@link.Name</strong>
                     </span>
                     <small>@link.ActionLabel</small>
                 </a>
                 break;
+
             case "tv":
                 <a class="community-links__cta community-links__cta--@link.Key"
                    href="@link.Url"
@@ -52,11 +54,12 @@
                    rel="noopener noreferrer"
                    aria-label="@link.AriaLabel">
                     <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
-                        <img src="@link.IconPath" alt="" />
+                        <i class="@link.IconClass"></i>
                     </span>
                     <span>@link.CtaLabel</span>
                 </a>
                 break;
+
             default:
                 <a class="community-links__nav-link"
                    href="@link.Url"
@@ -65,7 +68,7 @@
                    aria-label="@link.AriaLabel">
                     <span class="community-links__row-brand">
                         <span class="community-links__icon community-links__icon--@link.Key" aria-hidden="true">
-                            <img src="@link.IconPath" alt="" />
+                            <i class="@link.IconClass"></i>
                         </span>
                         <strong>@link.Name</strong>
                     </span>
@@ -91,7 +94,7 @@
         new(
             "youtube",
             "https://www.youtube.com/@Criptoversus-i7d",
-            "/img/community/youtube.png",
+            "bi bi-youtube",
             T("community.youtube.name"),
             T("community.youtube.action"),
             T("community.youtube.cta"),
@@ -99,7 +102,7 @@
         new(
             "pump",
             "https://pump.fun/coin/Hc61Hz6a7sUpbwvzwQXAxbKr5ziQrRmUmxjXMmddpump",
-            "/img/community/pump.png",
+            "bi bi-rocket-takeoff-fill",
             T("community.pump.name"),
             T("community.pump.action"),
             T("community.pump.cta"),
@@ -107,7 +110,7 @@
         new(
             "x",
             "https://x.com/criptoversus",
-            "/img/community/x.png",
+            "bi bi-twitter-x",
             T("community.x.name"),
             T("community.x.action"),
             T("community.x.cta"),
@@ -115,7 +118,7 @@
         new(
             "telegram",
             "https://t.me/criptoversus",
-            "/img/community/telegram.png",
+            "bi bi-telegram",
             T("community.telegram.name"),
             T("community.telegram.action"),
             T("community.telegram.cta"),
@@ -127,9 +130,302 @@
     private sealed record CommunityItem(
         string Key,
         string Url,
-        string IconPath,
+        string IconClass,
         string Name,
         string ActionLabel,
         string CtaLabel,
         string AriaLabel);
 }
+
+<style>
+    .community-links {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+    }
+
+        .community-links,
+        .community-links *,
+        .community-links *::before,
+        .community-links *::after {
+            box-sizing: border-box;
+        }
+
+    .community-links__heading {
+        display: grid;
+        gap: .12rem;
+        margin-right: .25rem;
+    }
+
+        .community-links__heading span {
+            color: rgba(255, 255, 255, .92);
+            font-size: .78rem;
+            font-weight: 900;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .community-links__heading small {
+            color: rgba(255, 255, 255, .58);
+            font-size: .72rem;
+            font-weight: 700;
+        }
+
+    .community-links__icon-link,
+    .community-links__row,
+    .community-links__cta,
+    .community-links__nav-link {
+        color: #ffffff;
+        text-decoration: none;
+    }
+
+    .community-links__icon {
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 38px;
+        height: 38px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 999px;
+        color: #ffffff;
+        background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, .16), transparent 36%), rgba(255, 255, 255, .055);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 10px 24px rgba(0, 0, 0, .22);
+        transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+        .community-links__icon i {
+            color: #ffffff;
+            font-size: 1.18rem;
+            line-height: 1;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, .18));
+        }
+
+    .community-links__icon-link:hover .community-links__icon,
+    .community-links__row:hover .community-links__icon,
+    .community-links__cta:hover .community-links__icon,
+    .community-links__nav-link:hover .community-links__icon,
+    .community-links__icon-link:focus-visible .community-links__icon,
+    .community-links__row:focus-visible .community-links__icon,
+    .community-links__cta:focus-visible .community-links__icon,
+    .community-links__nav-link:focus-visible .community-links__icon {
+        transform: translateY(-1px);
+        border-color: rgba(255, 255, 255, .34);
+        background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, .24), transparent 38%), rgba(255, 255, 255, .105);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 12px 28px rgba(0, 0, 0, .28), 0 0 18px rgba(255, 255, 255, .08);
+    }
+
+    .community-links__icon-link:focus-visible,
+    .community-links__row:focus-visible,
+    .community-links__cta:focus-visible,
+    .community-links__nav-link:focus-visible {
+        outline: 2px solid rgba(255, 255, 255, .58);
+        outline-offset: 3px;
+    }
+
+    .community-links--header {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+    }
+
+        .community-links--header .community-links__icon {
+            width: 36px;
+            height: 36px;
+        }
+
+            .community-links--header .community-links__icon i {
+                font-size: 1.08rem;
+            }
+
+    .community-links--footer .community-links__icon,
+    .community-links--default .community-links__icon {
+        width: 28px;
+        height: 28px;
+    }
+
+        .community-links--footer .community-links__icon i,
+        .community-links--default .community-links__icon i {
+            font-size: .88rem;
+        }
+
+    .community-links--footer,
+    .community-links--default {
+        display: grid;
+        align-items: stretch;
+        gap: .42rem;
+        width: min(100%, 680px);
+    }
+
+    .community-links__row,
+    .community-links__nav-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .65rem;
+        min-width: 0;
+        min-height: 42px;
+        padding: .46rem .58rem;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .045);
+        transition: border-color .18s ease, background .18s ease, transform .18s ease;
+    }
+
+        .community-links__row:hover,
+        .community-links__nav-link:hover {
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, .18);
+            background: rgba(255, 255, 255, .075);
+        }
+
+    .community-links__row-brand {
+        display: flex;
+        align-items: center;
+        gap: .48rem;
+        min-width: 0;
+    }
+
+        .community-links__row-brand strong {
+            min-width: 0;
+            overflow: hidden;
+            color: #ffffff;
+            font-size: .82rem;
+            font-weight: 900;
+            letter-spacing: .02em;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+    .community-links__row small,
+    .community-links__nav-link small {
+        color: rgba(255, 255, 255, .62);
+        font-size: .64rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .community-links--tv {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .65rem;
+    }
+
+    .community-links__cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .55rem;
+        min-height: 42px;
+        padding: .48rem .78rem .48rem .48rem;
+        border: 1px solid rgba(255, 255, 255, .11);
+        border-radius: 999px;
+        color: #ffffff;
+        background: linear-gradient(135deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .035));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 12px 26px rgba(0, 0, 0, .22);
+        transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+        .community-links__cta span:last-child {
+            color: #ffffff;
+            font-size: .76rem;
+            font-weight: 950;
+            letter-spacing: .075em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .community-links__cta:hover,
+        .community-links__cta:focus-visible {
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, .24);
+            background: linear-gradient(135deg, rgba(255, 255, 255, .13), rgba(255, 255, 255, .06));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 14px 30px rgba(0, 0, 0, .28), 0 0 20px rgba(255, 255, 255, .07);
+        }
+
+        .community-links__cta .community-links__icon {
+            width: 30px;
+            height: 30px;
+            border-color: rgba(255, 255, 255, .14);
+            background: rgba(255, 255, 255, .06);
+            box-shadow: none;
+        }
+
+            .community-links__cta .community-links__icon i {
+                font-size: .98rem;
+            }
+
+    .community-links__icon--youtube:hover,
+    .community-links__cta--youtube:hover .community-links__icon,
+    .community-links__row:hover .community-links__icon--youtube,
+    .community-links__nav-link:hover .community-links__icon--youtube {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 0 18px rgba(255, 0, 0, .28);
+    }
+
+    .community-links__icon--telegram:hover,
+    .community-links__cta--telegram:hover .community-links__icon,
+    .community-links__row:hover .community-links__icon--telegram,
+    .community-links__nav-link:hover .community-links__icon--telegram {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 0 18px rgba(88, 236, 255, .28);
+    }
+
+    .community-links__icon--x:hover,
+    .community-links__cta--x:hover .community-links__icon,
+    .community-links__row:hover .community-links__icon--x,
+    .community-links__nav-link:hover .community-links__icon--x {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 0 18px rgba(255, 255, 255, .22);
+    }
+
+    .community-links__icon--pump:hover,
+    .community-links__cta--pump:hover .community-links__icon,
+    .community-links__row:hover .community-links__icon--pump,
+    .community-links__nav-link:hover .community-links__icon--pump {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .13), 0 0 18px rgba(255, 145, 0, .26);
+    }
+
+    @@media (max-width: 575.98px) {
+        .community-links {
+            gap: .45rem;
+        }
+
+        .community-links__icon {
+            width: 34px;
+            height: 34px;
+        }
+
+            .community-links__icon i {
+                font-size: 1rem;
+            }
+
+        .community-links--tv {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .community-links__cta {
+            width: 100%;
+            padding: .48rem .6rem;
+        }
+
+            .community-links__cta span:last-child {
+                min-width: 0;
+                overflow: hidden;
+                font-size: .68rem;
+                text-overflow: ellipsis;
+            }
+
+        .community-links__row,
+        .community-links__nav-link {
+            min-height: 38px;
+            padding: .42rem .55rem;
+            border-radius: 11px;
+        }
+
+            .community-links__row small,
+            .community-links__nav-link small {
+                display: none;
+            }
+    }
+</style>
