@@ -883,9 +883,10 @@
     private string GetPublicMatchUrl(int matchId, string? teamA, string? teamB)
     {
         var slug = MatchSlugHelper.BuildSlug(teamA ?? string.Empty, teamB ?? string.Empty);
+
         return string.IsNullOrWhiteSpace(slug)
-            ? SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture))
-            : SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildLocalizedPath(AppCultureService.DefaultRouteCulture, matchId, slug));
+            ? RouteLocalization.BuildHomePath(CurrentCulture)
+            : RouteLocalization.BuildLocalizedPath(CurrentCulture, matchId, slug);
     }
 
     private string GetTvMatchUrl(HotMatchDto match)

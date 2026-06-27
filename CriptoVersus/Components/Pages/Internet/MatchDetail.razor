@@ -7,6 +7,7 @@
 @using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
+@using CriptoVersus.Web.Components.Shared
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -265,52 +266,28 @@
                         </div>
                     </div>
 
-                    <div class="card clock-card social-share-clock-card p-3 text-center d-flex flex-column justify-content-center @(HasWinnerCelebration(_match) ? "clock-card--winner" : string.Empty)">
-                        @if (HasWinnerCelebration(_match))
-                        {
-                            <span class="winner-firework winner-firework--card winner-firework--card-a"></span>
-                            <span class="winner-firework winner-firework--card winner-firework--card-b"></span>
-                            <span class="winner-firework winner-firework--card winner-firework--card-c"></span>
-                            <span class="winner-firework winner-firework--card winner-firework--card-d"></span>
-                        }
-                        @if (ShouldShowResultStage(_match))
-                        {
-                            <div class="clock-title">@T("finalResult")</div>
-                            <div class="winner-label">@T("winner")</div>
-                            <div class="winner-name">@GetWinnerDisplayText(_match)</div>
-                            <div class="clock-remaining">
-                                @T("finalScore") <span class="fw-semibold">@_match.ScoreA x @_match.ScoreB</span>
-                            </div>
-                            <div class="mt-2">
-                                <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
-                                    @GetPresentationStatusText(_match)
-                                </span>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="clock-title">@T("matchClock")</div>
-                            <div class="clock-time">@_clockLive</div>
-                            <div class="clock-remaining">
-                                @T("remaining") <span class="fw-semibold">@_remainingLive</span>
-                            </div>
-                            <div class="mt-2">
-                                @if (ShouldShowLiveBadge(_match))
-                                {
-                                    <span class="badge rounded-pill bg-danger match-live__pill">
-                                        <span class="match-live__dot"></span>
-                                        @T("live")
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
-                                        @GetPresentationStatusText(_match)
-                                    </span>
-                                }
-                            </div>
-                        }
-                    </div>
+                    <MatchClockCard ShowWinnerCelebration="@HasWinnerCelebration(_match)"
+                                    ShowResultStage="@ShouldShowResultStage(_match)"
+                                    ShowLiveBadge="@ShouldShowLiveBadge(_match)"
+                                    HasWinner="@HasWinnerCelebration(_match)"
+                                    ScoreA="@_match.ScoreA"
+                                    ScoreB="@_match.ScoreB"
+                                    ClockText="@_clockLive"
+                                    RemainingValue="@_remainingLive"
+                                    WinnerName="@GetFinalCardHeadline(_match)"
+                                    WinnerLogoUrl="@GetWinnerLogoUrl(_match)"
+                                    StatusText="@GetPresentationStatusText(_match)"
+                                    FinalResultText="@T("finalResult")"
+                                    WinnerLabelText="@T("winner")"
+                                    NoLeaderLabelText="@T("matchLeader")"
+                                    FinalScoreText="@T("finalScore")"
+                                    MatchClockText="@T("matchClock")"
+                                    RemainingText="@T("remaining")"
+                                    LiveText="@T("live")"
+                                    WinnerSummaryText="@T("wonTheMatch")"
+                                    DrawSummaryText="@T("noLeaderDefined")" />
+
+                   
 
                     <div class="card match-card social-share-match-card p-3">
                         <div class="social-share-team-card__top">
@@ -1024,7 +1001,7 @@
 
     .scoreline {
         display: inline-flex;
-        align-items: baseline;
+        align-items: normal;
         gap: .6rem;
     }
 
@@ -2050,7 +2027,7 @@
 
     .social-share-card__stats {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+        grid-template-columns: minmax(0, .9fr) minmax(520px, 640px) minmax(0, .9fr);
         gap: .9rem;
         align-items: stretch;
     }
@@ -2240,6 +2217,13 @@
         min-height: 0;
     }
 
+    .match-live__pill {
+        font-size: 0.95rem;
+        font-weight: 800;
+        line-height: 1.25;
+        padding: 0.45rem 0.8rem;
+        letter-spacing: 0.02em;
+    }
     .social-share-sentiment-panel {
         border-radius: 24px;
         width: 100%;
@@ -2619,7 +2603,14 @@
     }
 
     }
+    @@media (max-width: 1180px) {
+        .social-share-card__stats
 
+    {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    }
     @@media (max-width: 720px) {
         .tv-versus-image
 
@@ -2695,7 +2686,13 @@
         => _walletMaxSpendableSol.HasValue
             ? decimal.Round((decimal)Math.Max(0d, _walletMaxSpendableSol.Value), 8, MidpointRounding.ToZero)
             : 0m;
+    private string GetFinalCardHeadline(MatchDto match)
+    {
+        if (HasWinnerCelebration(match))
+            return GetWinnerDisplayText(match);
 
+        return IsEnglish ? "DRAW" : "EMPATE";
+    }
     private string WalletBalanceText
         => _walletBalanceLoading
             ? (IsEnglish ? "Loading..." : "Carregando...")
@@ -3152,7 +3149,18 @@
 
         return normalized;
     }
+    private string GetWinnerLogoUrl(MatchDto match)
+    {
+        var winnerTeamId = GetEffectiveWinnerTeamId(match);
 
+        if (winnerTeamId == match.TeamAId)
+            return GetCoinIconUrl(match.TeamA);
+
+        if (winnerTeamId == match.TeamBId)
+            return GetCoinIconUrl(match.TeamB);
+
+        return string.Empty;
+    }
     private static string GetMatchTitleSymbol(string? symbol)
     {
         if (string.IsNullOrWhiteSpace(symbol))

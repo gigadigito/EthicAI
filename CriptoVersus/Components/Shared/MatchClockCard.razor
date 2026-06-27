@@ -1,0 +1,633 @@
+﻿<div class="@BuildCardClass()">
+    @if (ShowWinnerCelebration && ShowResultStage && HasWinner)
+    {
+        <span class="winner-firework winner-firework--card winner-firework--card-a"></span>
+        <span class="winner-firework winner-firework--card winner-firework--card-b"></span>
+    }
+
+    @if (ShowResultStage)
+    {
+        <div class="final-result-card__scene @(HasWinner ? "final-result-card__scene--winner" : "final-result-card__scene--draw")"></div>
+        <div class="final-result-card__floor"></div>
+
+        <div class="final-result-card__content">
+            <div class="final-result-card__icon" aria-hidden="true">
+                @if (HasWinner)
+                {
+                    <span class="final-result-card__trophy">🏆</span>
+                }
+                else
+                {
+                    <span class="final-result-card__handshake">🤝</span>
+                }
+            </div>
+
+            <div class="final-result-card__eyebrow @(HasWinner ? "final-result-card__eyebrow--winner" : "final-result-card__eyebrow--draw")">
+                @FinalResultText
+            </div>
+
+            <div class="final-result-card__label">
+                @(HasWinner? WinnerLabelText : NoLeaderLabelText)
+            </div>
+
+            <div class="final-result-card__winner-line @(HasWinner ? "final-result-card__winner-line--winner" : "final-result-card__winner-line--draw")">
+                @if (HasWinner && !string.IsNullOrWhiteSpace(WinnerLogoUrl))
+                {
+                    <span class="final-result-card__winner-coin">
+                        <img src="@WinnerLogoUrl"
+                             alt=""
+                             loading="lazy"
+                             onerror="this.parentElement?.classList.add('d-none');" />
+                    </span>
+                }
+
+                <span class="final-result-card__winner @(HasWinner ? "final-result-card__winner--winner" : "final-result-card__winner--draw")">
+                    @WinnerName
+                </span>
+            </div>
+
+            <div class="final-result-card__summary">
+                @GetResultSummaryText()
+            </div>
+
+            <div class="final-result-card__score">
+                <span class="final-result-card__score-value final-result-card__score-value--left">@ScoreA</span>
+                <strong>x</strong>
+                <span class="final-result-card__score-value final-result-card__score-value--right">@ScoreB</span>
+            </div>
+
+            <div class="final-result-card__caption">
+                @FinalScoreText
+            </div>
+
+            <div class="mt-2">
+                <span class="badge rounded-pill match-live__pill final-result-card__status">
+                    <span class="final-result-card__status-dot" aria-hidden="true"></span>
+                    @StatusText
+                </span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="clock-live-card__content">
+            <div class="clock-title">@MatchClockText</div>
+
+            <div class="clock-time">@ClockText</div>
+
+            <div class="clock-remaining">
+                @RemainingText <span class="fw-semibold">@RemainingValue</span>
+            </div>
+
+            <div class="mt-2">
+                @if (ShowLiveBadge)
+                {
+                    <span class="badge rounded-pill bg-danger match-live__pill">
+                        <span class="match-live__dot"></span>
+                        @LiveText
+                    </span>
+                }
+                else
+                {
+                    <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
+                        @StatusText
+                    </span>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .social-share-clock-card {
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        max-height: 280px;
+        height: auto;
+        border-radius: 24px;
+        overflow: hidden;
+        position: relative;
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: 0 20px 40px rgba(0,0,0,.45);
+        background: radial-gradient(600px 200px at 50% 0%, rgba(0,230,118,.15), transparent 60%), #0E1117;
+        isolation: isolate;
+    }
+
+    .clock-card {
+        min-height: 226px;
+        height: 226px;
+    }
+
+    .clock-live-card__content,
+    .final-result-card__content {
+        position: relative;
+        z-index: 3;
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        min-height: 100%;
+        text-align: center;
+    }
+
+    .clock-title {
+        font-size: .75rem;
+        letter-spacing: .3em;
+        font-weight: 800;
+        color: rgba(255,255,255,.55);
+        margin-bottom: .5rem;
+        text-transform: uppercase;
+    }
+
+    .clock-time {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+        font-weight: 900;
+        font-size: clamp(2.2rem, 4vw, 3rem);
+        color: #00E676;
+        text-shadow: 0 0 18px rgba(0,230,118,.35);
+        line-height: 1;
+    }
+
+    .clock-remaining {
+        margin-top: .5rem;
+        font-size: .95rem;
+        color: rgba(255,255,255,.68);
+    }
+
+    .match-live__pill {
+        font-size: .95rem;
+        font-weight: 800;
+        line-height: 1.25;
+        padding: .45rem .8rem;
+        letter-spacing: .02em;
+    }
+
+    .match-live__dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: .45rem;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 0 0 0 rgba(255,82,82,.8);
+        animation: pulseDot 1.2s infinite;
+        vertical-align: middle;
+    }
+
+    .clock-card--winner,
+    .clock-card--draw {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .clock-card--winner {
+        background: radial-gradient(circle at 50% 8%, rgba(255, 222, 89, .20), transparent 32%), radial-gradient(circle at 18% 18%, rgba(255, 183, 0, .14), transparent 26%), radial-gradient(circle at 82% 18%, rgba(255, 183, 0, .14), transparent 26%), linear-gradient(180deg, #111408 0%, #08100b 46%, #040812 100%);
+        border: 1px solid rgba(255, 196, 0, .55);
+        box-shadow: 0 22px 48px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,214,10,.14), 0 0 38px rgba(255,214,10,.14);
+    }
+
+    .clock-card--draw {
+        background: radial-gradient(circle at 50% 8%, rgba(56, 189, 248, .16), transparent 34%), radial-gradient(circle at 50% 58%, rgba(255,255,255,.05), transparent 34%), linear-gradient(180deg, #061521 0%, #07101c 48%, #030812 100%);
+        border: 1px solid rgba(148, 213, 255, .34);
+        box-shadow: 0 22px 48px rgba(0,0,0,.42), inset 0 0 0 1px rgba(148,213,255,.08), 0 0 34px rgba(56,189,248,.08);
+    }
+
+    .final-result-card__scene {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    .final-result-card__scene--winner {
+        background: radial-gradient(circle at 50% 45%, rgba(0, 0, 0, .42), transparent 34%), radial-gradient(circle at 50% 12%, rgba(255, 222, 89, .24), transparent 28%), radial-gradient(circle at 16% 24%, rgba(255, 214, 10, .16), transparent 22%), radial-gradient(circle at 84% 24%, rgba(255, 214, 10, .16), transparent 22%), linear-gradient(70deg, transparent 0 18%, rgba(255,214,10,.12) 18.4%, transparent 21%), linear-gradient(110deg, transparent 0 79%, rgba(255,214,10,.12) 79.4%, transparent 82%), linear-gradient(180deg, rgba(28, 48, 18, .32), rgba(3,8,15,.16));
+    }
+
+        .final-result-card__scene--winner::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 18% 26%, rgba(255,214,10,.92) 0 2px, transparent 3px), radial-gradient(circle at 82% 24%, rgba(255,214,10,.92) 0 2px, transparent 3px), radial-gradient(circle at 16% 28%, rgba(255,214,10,.34) 0 18px, transparent 20px), radial-gradient(circle at 84% 26%, rgba(255,214,10,.34) 0 18px, transparent 20px), radial-gradient(circle at 32% 18%, rgba(255,214,10,.42) 0 1.5px, transparent 2.5px), radial-gradient(circle at 66% 20%, rgba(255,214,10,.38) 0 1.5px, transparent 2.5px);
+            opacity: .95;
+        }
+
+        .final-result-card__scene--winner::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 46%;
+            background: linear-gradient(70deg, transparent 0 16%, rgba(255,214,10,.24) 16.4%, transparent 18%), linear-gradient(110deg, transparent 0 82%, rgba(255,214,10,.24) 82.4%, transparent 84%), radial-gradient(circle at 50% 100%, rgba(255,214,10,.20), transparent 42%);
+            opacity: .8;
+        }
+
+    .final-result-card__scene--draw {
+        background: radial-gradient(circle at 50% 13%, rgba(56,189,248,.20), transparent 28%), radial-gradient(circle at 20% 18%, rgba(14,165,233,.12), transparent 22%), radial-gradient(circle at 82% 16%, rgba(96,165,250,.12), transparent 24%), radial-gradient(circle at 50% 100%, rgba(14,165,233,.14), transparent 42%), linear-gradient(180deg, rgba(4,18,32,.4), rgba(2,6,14,.12));
+    }
+
+        .final-result-card__scene--draw::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 12% 22%, rgba(56,189,248,.9) 0 1.5px, transparent 2.5px), radial-gradient(circle at 18% 42%, rgba(56,189,248,.45) 0 1px, transparent 2px), radial-gradient(circle at 24% 18%, rgba(96,165,250,.55) 0 1.5px, transparent 2.5px), radial-gradient(circle at 32% 31%, rgba(56,189,248,.35) 0 1px, transparent 2px), radial-gradient(circle at 72% 18%, rgba(96,165,250,.65) 0 1.5px, transparent 2.5px), radial-gradient(circle at 80% 38%, rgba(56,189,248,.42) 0 1px, transparent 2px), radial-gradient(circle at 88% 24%, rgba(56,189,248,.8) 0 1.5px, transparent 2.5px), radial-gradient(circle at 62% 28%, rgba(147,197,253,.38) 0 1px, transparent 2px), radial-gradient(circle at 42% 18%, rgba(56,189,248,.32) 0 1px, transparent 2px);
+            opacity: .95;
+        }
+
+        .final-result-card__scene--draw::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 42%;
+            background: linear-gradient(90deg, transparent 0 12%, rgba(56,189,248,.18) 12.4%, transparent 13%), linear-gradient(90deg, transparent 0 32%, rgba(56,189,248,.14) 32.4%, transparent 33%), linear-gradient(90deg, transparent 0 50%, rgba(56,189,248,.22) 50.4%, transparent 51%), linear-gradient(90deg, transparent 0 68%, rgba(56,189,248,.14) 68.4%, transparent 69%), linear-gradient(90deg, transparent 0 88%, rgba(56,189,248,.18) 88.4%, transparent 89%);
+            opacity: .5;
+        }
+
+    .final-result-card__floor {
+        position: absolute;
+        left: -10%;
+        right: -10%;
+        bottom: -20%;
+        height: 46%;
+        z-index: 1;
+        pointer-events: none;
+        background: linear-gradient(to top, rgba(56,189,248,.22), transparent 60%), linear-gradient(rgba(56,189,248,.32) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,.28) 1px, transparent 1px);
+        background-size: 100% 100%, 100% 18px, 22px 100%;
+        transform: perspective(260px) rotateX(66deg);
+        transform-origin: bottom center;
+        opacity: .42;
+        filter: drop-shadow(0 0 8px rgba(56,189,248,.22));
+    }
+
+    .clock-card--winner .final-result-card__floor {
+        background: linear-gradient(to top, rgba(255,214,10,.22), transparent 60%), linear-gradient(rgba(255,214,10,.26) 1px, transparent 1px), linear-gradient(90deg, rgba(255,214,10,.22) 1px, transparent 1px);
+        opacity: .42;
+        filter: drop-shadow(0 0 8px rgba(255,214,10,.22));
+    }
+
+    .final-result-card__content {
+        gap: .1rem;
+        padding-inline: .9rem;
+    }
+
+    .final-result-card__icon {
+        display: inline-grid;
+        place-items: center;
+        font-size: 1.45rem;
+        line-height: 1;
+        margin-bottom: .02rem;
+        filter: drop-shadow(0 0 12px rgba(255,255,255,.18));
+    }
+
+    .final-result-card__trophy {
+        filter: drop-shadow(0 0 10px rgba(255, 214, 10, .7)) drop-shadow(0 0 22px rgba(255, 145, 0, .28));
+    }
+
+    .final-result-card__handshake {
+        display: inline-block;
+        transform: translateY(-1px);
+        filter: drop-shadow(0 0 10px rgba(56,189,248,.38));
+    }
+
+    .final-result-card__eyebrow {
+        font-size: .68rem;
+        font-weight: 950;
+        letter-spacing: .26em;
+        text-transform: uppercase;
+        margin-bottom: .06rem;
+    }
+
+    .final-result-card__eyebrow--winner {
+        color: rgba(255,236,179,.95);
+        text-shadow: 0 0 12px rgba(255,214,10,.30);
+    }
+
+    .final-result-card__eyebrow--draw {
+        color: #22d3ee;
+        text-shadow: 0 0 12px rgba(34,211,238,.38);
+    }
+
+    .final-result-card__label {
+        color: rgba(255,255,255,.90);
+        font-size: .76rem;
+        font-weight: 850;
+        letter-spacing: .02em;
+        line-height: 1.15;
+    }
+
+    .final-result-card__winner-line {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .65rem;
+        min-width: 0;
+        max-width: 100%;
+        margin-top: .12rem;
+    }
+
+    .final-result-card__winner-coin {
+        width: clamp(44px, 4vw, 50px);
+        height: clamp(44px, 4vw, 50px);
+        display: inline-grid;
+        place-items: center;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, .34);
+        border: 1px solid rgba(255, 214, 10, .32);
+        box-shadow: 0 0 18px rgba(255, 214, 10, .18), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+        .final-result-card__winner-coin img {
+            width: 78%;
+            height: 78%;
+            object-fit: contain;
+            filter: drop-shadow(0 8px 14px rgba(0,0,0,.35));
+        }
+
+    .final-result-card__winner {
+        font-weight: 950;
+        line-height: .9;
+        letter-spacing: .025em;
+        text-transform: uppercase;
+    }
+
+    .final-result-card__winner--winner {
+        color: #ffd84a;
+        font-size: clamp(2.35rem, 3.8vw, 3.35rem);
+        text-shadow: 0 0 16px rgba(255, 214, 10, .55), 0 0 34px rgba(255, 214, 10, .18), 0 8px 28px rgba(0,0,0,.65);
+    }
+
+    .final-result-card__winner--draw {
+        font-size: clamp(1.65rem, 2.55vw, 2.15rem);
+        background: linear-gradient(180deg, #ffffff 0%, #f5f7fb 38%, #9ca3af 72%, #ffffff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 2px 0 rgba(255,255,255,.12), 0 0 18px rgba(255,255,255,.20), 0 8px 24px rgba(0,0,0,.58);
+    }
+
+    .final-result-card__summary {
+        margin-top: .16rem;
+        color: rgba(255,255,255,.82);
+        font-size: .78rem;
+        font-weight: 750;
+        line-height: 1.15;
+    }
+
+    .final-result-card__score {
+        margin-top: .36rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .9rem;
+        padding: .26rem 1rem;
+        border-radius: 999px;
+        background: rgba(2,8,18,.50);
+        border: 1px solid rgba(148,213,255,.14);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 20px rgba(0,0,0,.22), 0 0 18px rgba(56,189,248,.08);
+    }
+
+    .clock-card--winner .final-result-card__score {
+        border-color: rgba(255,214,10,.18);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 20px rgba(0,0,0,.22), 0 0 18px rgba(255,214,10,.10);
+    }
+
+    .final-result-card__score-value {
+        font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+        font-weight: 950;
+        line-height: 1;
+    }
+
+    .final-result-card__score-value--left {
+        color: #ffd84a;
+        text-shadow: 0 0 12px rgba(255,214,10,.36);
+    }
+
+    .final-result-card__score-value--right {
+        color: #f3f4f6;
+        text-shadow: 0 0 12px rgba(255,255,255,.18);
+    }
+
+    .clock-card--draw .final-result-card__score-value--left,
+    .clock-card--draw .final-result-card__score-value--right {
+        color: #22c7ff;
+        text-shadow: 0 0 12px rgba(34,199,255,.42), 0 6px 16px rgba(0,0,0,.4);
+    }
+
+    .final-result-card__score strong {
+        color: #ffffff;
+        font-size: .95rem;
+        font-weight: 950;
+        text-transform: uppercase;
+    }
+
+    .final-result-card__caption {
+        margin-top: .22rem;
+        color: rgba(255,255,255,.62);
+        font-size: .78rem;
+        font-weight: 800;
+    }
+
+    .final-result-card__status {
+        display: inline-flex;
+        align-items: center;
+        gap: .42rem;
+        font-size: .78rem;
+        font-weight: 950;
+        padding: .34rem .8rem;
+        color: #22ff88 !important;
+        background: rgba(2,34,22,.62) !important;
+        border: 1px solid rgba(34,255,136,.38) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 0 16px rgba(34,255,136,.12);
+        text-transform: uppercase;
+    }
+
+    .final-result-card__status-dot {
+        display: inline-block;
+        width: .58rem;
+        height: .58rem;
+        border-radius: 999px;
+        border: 1px solid rgba(34,255,136,.72);
+        position: relative;
+    }
+
+        .final-result-card__status-dot::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 43%;
+            width: .25rem;
+            height: .42rem;
+            border-right: 2px solid #22ff88;
+            border-bottom: 2px solid #22ff88;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+    .winner-firework {
+        pointer-events: none;
+        position: absolute;
+        z-index: 2;
+    }
+
+        .winner-firework::before,
+        .winner-firework::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+        }
+
+        .winner-firework::before {
+            background: radial-gradient(circle, currentColor 0 3px, transparent 4px), repeating-conic-gradient(from 0deg, currentColor 0deg 8deg, transparent 8deg 18deg);
+            -webkit-mask: radial-gradient(circle, transparent 0 11px, #000 13px 44px, transparent 46px);
+            mask: radial-gradient(circle, transparent 0 11px, #000 13px 44px, transparent 46px);
+            filter: drop-shadow(0 0 8px currentColor);
+            opacity: .92;
+        }
+
+        .winner-firework::after {
+            background: radial-gradient(circle at 50% 8%, rgba(255,255,255,.98) 0 2px, transparent 3px), radial-gradient(circle at 92% 50%, rgba(255,255,255,.95) 0 2px, transparent 3px), radial-gradient(circle at 50% 92%, rgba(255,255,255,.98) 0 2px, transparent 3px), radial-gradient(circle at 8% 50%, rgba(255,255,255,.95) 0 2px, transparent 3px), radial-gradient(circle at 20% 20%, currentColor 0 2px, transparent 3px), radial-gradient(circle at 80% 20%, currentColor 0 2px, transparent 3px), radial-gradient(circle at 80% 80%, currentColor 0 2px, transparent 3px), radial-gradient(circle at 20% 80%, currentColor 0 2px, transparent 3px);
+            filter: drop-shadow(0 0 6px currentColor);
+            opacity: .82;
+        }
+
+    .winner-firework--card {
+        width: 86px;
+        height: 86px;
+        opacity: .58;
+    }
+
+    .winner-firework--card-a {
+        color: rgba(255,214,10,.95);
+        left: 7%;
+        top: 16%;
+        animation: fireworkPop 2.2s ease-out infinite;
+    }
+
+    .winner-firework--card-b {
+        color: rgba(255,214,10,.95);
+        right: 7%;
+        top: 14%;
+        animation: fireworkPop 2.2s ease-out infinite .55s;
+    }
+
+    @@keyframes pulseDot {
+        0% {
+            box-shadow: 0 0 0 0 rgba(255,82,82,.65);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(255,82,82,0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(255,82,82,0);
+        }
+    }
+
+    @@keyframes fireworkPop {
+        0% {
+            opacity: 0;
+            transform: scale(.16);
+        }
+
+        14% {
+            opacity: 1;
+            transform: scale(.44);
+        }
+
+        32% {
+            opacity: .98;
+            transform: scale(1);
+        }
+
+        58% {
+            opacity: .44;
+            transform: scale(1.18);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(1.34);
+        }
+    }
+
+    @@media (max-width: 991.98px) {
+        .clock-card {
+            min-height: 0;
+            height: auto;
+        }
+    }
+
+    @@media (max-width: 420px) {
+        .final-result-card__winner-line {
+            gap: .45rem;
+        }
+
+        .final-result-card__winner-coin {
+            width: 32px;
+            height: 32px;
+        }
+
+        .final-result-card__winner--winner,
+        .final-result-card__winner--draw {
+            font-size: clamp(1.65rem, 9vw, 2.15rem);
+        }
+
+        .final-result-card__score-value {
+            font-size: clamp(1.2rem, 6vw, 1.55rem);
+        }
+
+        .final-result-card__eyebrow {
+            font-size: .58rem;
+            letter-spacing: .18em;
+        }
+
+        .social-share-clock-card {
+            min-width: 0;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public bool ShowWinnerCelebration { get; set; }
+    [Parameter] public bool ShowResultStage { get; set; }
+    [Parameter] public bool ShowLiveBadge { get; set; }
+    [Parameter] public bool HasWinner { get; set; }
+
+    [Parameter] public int ScoreA { get; set; }
+    [Parameter] public int ScoreB { get; set; }
+
+    [Parameter] public string ClockText { get; set; } = "00:00.000";
+    [Parameter] public string RemainingValue { get; set; } = "(90:00.000)";
+    [Parameter] public string WinnerName { get; set; } = "-";
+    [Parameter] public string? WinnerLogoUrl { get; set; }
+    [Parameter] public string StatusText { get; set; } = "-";
+
+    [Parameter] public string FinalResultText { get; set; } = "Final Result";
+    [Parameter] public string WinnerLabelText { get; set; } = "Winner";
+    [Parameter] public string NoLeaderLabelText { get; set; } = "No leader";
+    [Parameter] public string FinalScoreText { get; set; } = "Final score";
+    [Parameter] public string MatchClockText { get; set; } = "Match Clock";
+    [Parameter] public string RemainingText { get; set; } = "Remaining";
+    [Parameter] public string LiveText { get; set; } = "LIVE";
+    [Parameter] public string WinnerSummaryText { get; set; } = "won the match";
+    [Parameter] public string DrawSummaryText { get; set; } = "No leader defined";
+
+    [Parameter] public string? Class { get; set; }
+
+    private string BuildCardClass()
+    {
+        var classes = "card clock-card social-share-clock-card p-3 text-center d-flex flex-column justify-content-center";
+
+        if (ShowResultStage)
+            classes += HasWinner ? " clock-card--winner" : " clock-card--draw";
+
+        if (!string.IsNullOrWhiteSpace(Class))
+            classes += $" {Class}";
+
+        return classes;
+    }
+
+    private string GetResultSummaryText()
+        => HasWinner ? WinnerSummaryText : DrawSummaryText;
+}
