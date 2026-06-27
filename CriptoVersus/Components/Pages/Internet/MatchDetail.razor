@@ -2467,7 +2467,31 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+    @@media (min-width: 1024px) {
+        .social-share-card__hero .team-badge
 
+    {
+        width: 104px;
+        height: 104px;
+        border-radius: 28px;
+    }
+
+    .social-share-card__hero .coin-wrap {
+        width: 104px;
+        height: 104px;
+        border-radius: 28px;
+    }
+
+    .social-share-card__hero .coin-img {
+        width: 84px;
+        height: 84px;
+    }
+
+    .social-share-card__hero .coin-fallback {
+        font-size: 1.7rem;
+    }
+
+    }
     @@media (max-width: 1023.98px) {
         .social-share-card__insights {
             grid-template-columns: minmax(0, 1fr);
