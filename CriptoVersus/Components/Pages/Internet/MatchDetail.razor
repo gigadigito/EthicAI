@@ -158,6 +158,7 @@
                         </div>
                         <div>
                             <div class="team-name"><MarketPairText Symbol="@_match.TeamA" /></div>
+                            <div class="team-price">@FormatMarketPrice(LeftMarketDisplayPrice)</div>
                             <div class="team-sub">
                                 <span class="@GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</span>
                             </div>
@@ -202,6 +203,7 @@
                     <div class="social-share-hero-team social-share-hero-team--b">
                         <div>
                             <div class="team-name"><MarketPairText Symbol="@_match.TeamB" /></div>
+                            <div class="team-price">@FormatMarketPrice(RightMarketDisplayPrice)</div>
                             <div class="team-sub">
                                 <span class="@GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</span>
                             </div>
@@ -240,6 +242,7 @@
                             </div>
                             <div class="social-share-team-card__identity">
                                 <div class="social-share-team-card__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
+                                <div class="social-share-team-card__price">@FormatMarketPrice(LeftMarketDisplayPrice)</div>
                                 <div class="social-share-team-card__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
                             </div>
                             <button class="btn social-share-team-card__cta social-share-team-card__cta--a"
@@ -303,6 +306,7 @@
                             </div>
                             <div class="social-share-team-card__identity">
                                 <div class="social-share-team-card__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
+                                <div class="social-share-team-card__price">@FormatMarketPrice(RightMarketDisplayPrice)</div>
                                 <div class="social-share-team-card__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
                             </div>
                             <button class="btn social-share-team-card__cta social-share-team-card__cta--b"
@@ -649,6 +653,7 @@
 
                                     <div class="match-invest-option__identity">
                                         <div class="match-invest-option__symbol"><MarketPairText Symbol="@_match.TeamA" /></div>
+                                        <div class="match-invest-option__price">@FormatMarketPrice(LeftMarketDisplayPrice)</div>
                                         <div class="match-invest-option__pct @GetPctClass(_match.PctA)">@FormatPct(_match.PctA)</div>
                                     </div>
 
@@ -690,6 +695,7 @@
 
                                     <div class="match-invest-option__identity">
                                         <div class="match-invest-option__symbol"><MarketPairText Symbol="@_match.TeamB" /></div>
+                                        <div class="match-invest-option__price">@FormatMarketPrice(RightMarketDisplayPrice)</div>
                                         <div class="match-invest-option__pct @GetPctClass(_match.PctB)">@FormatPct(_match.PctB)</div>
                                     </div>
 
@@ -833,12 +839,13 @@
 <style>
 
     .score--left {
-        color:  #ff9100!important;
+        color: #ff9100 !important;
     }
 
     .score--right {
         color: #18d8d2 !important;
     }
+
     .social-share-card__title-team {
         font-weight: 950;
     }
@@ -979,7 +986,19 @@
     }
 
     .team-sub {
+        margin-top: .14rem;
         font-size: .95rem;
+    }
+
+    .team-price {
+        margin-top: .18rem;
+        font-size: clamp(.92rem, 1.05vw, 1.08rem);
+        font-weight: 800;
+        line-height: 1.1;
+        color: rgba(255,255,255,.82);
+        letter-spacing: .02em;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 14px rgba(255,255,255,.08);
     }
 
     .pct {
@@ -1020,6 +1039,7 @@
     .score--right {
         color: #18d8d2 !important;
     }
+
     .score-sep {
         font-weight: 800;
         font-size: clamp(1.2rem, 2vw, 1.6rem);
@@ -2065,6 +2085,7 @@
     .social-share-team-card--b .social-share-team-card__symbol {
         text-shadow: 0 0 18px rgba(24, 216, 210, .22);
     }
+
     .social-share-match-card,
     .social-share-panel {
         border-radius: 24px;
@@ -2108,8 +2129,19 @@
         line-height: 1.05;
     }
 
+    .social-share-team-card__price {
+        margin-top: .28rem;
+        color: rgba(255,255,255,.78);
+        font-size: .98rem;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: .02em;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 12px rgba(255,255,255,.08);
+    }
+
     .social-share-team-card__pct {
-        margin-top: .35rem;
+        margin-top: .28rem;
         font-size: 1.05rem;
         font-weight: 900;
     }
@@ -2249,6 +2281,7 @@
         padding: 0.45rem 0.8rem;
         letter-spacing: 0.02em;
     }
+
     .social-share-sentiment-panel {
         border-radius: 24px;
         width: 100%;
@@ -2403,8 +2436,18 @@
         line-height: 1.05;
     }
 
+    .match-invest-option__price {
+        margin-top: .24rem;
+        color: rgba(255,255,255,.74);
+        font-size: .9rem;
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: .02em;
+        font-variant-numeric: tabular-nums;
+    }
+
     .match-invest-option__pct {
-        margin-top: .28rem;
+        margin-top: .24rem;
         font-size: .95rem;
         font-weight: 900;
     }
@@ -2467,31 +2510,30 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
     @@media (min-width: 1024px) {
-        .social-share-card__hero .team-badge
+        .social-share-card__hero .team-badge {
+            width: 104px;
+            height: 104px;
+            border-radius: 28px;
+        }
 
-    {
-        width: 104px;
-        height: 104px;
-        border-radius: 28px;
+        .social-share-card__hero .coin-wrap {
+            width: 104px;
+            height: 104px;
+            border-radius: 28px;
+        }
+
+        .social-share-card__hero .coin-img {
+            width: 84px;
+            height: 84px;
+        }
+
+        .social-share-card__hero .coin-fallback {
+            font-size: 1.7rem;
+        }
     }
 
-    .social-share-card__hero .coin-wrap {
-        width: 104px;
-        height: 104px;
-        border-radius: 28px;
-    }
-
-    .social-share-card__hero .coin-img {
-        width: 84px;
-        height: 84px;
-    }
-
-    .social-share-card__hero .coin-fallback {
-        font-size: 1.7rem;
-    }
-
-    }
     @@media (max-width: 1023.98px) {
         .social-share-card__insights {
             grid-template-columns: minmax(0, 1fr);
@@ -2644,34 +2686,27 @@
     }
 
     @@media (max-width: 1180px) {
-        .tv-versus-image
-
-    {
-        width: clamp(48px, 7vw, 88px);
-        max-height: clamp(38px, 6vw, 72px);
+        .tv-versus-image {
+            width: clamp(48px, 7vw, 88px);
+            max-height: clamp(38px, 6vw, 72px);
+        }
     }
 
-    }
     @@media (max-width: 1180px) {
-        .social-share-card__stats
-
-    {
-        grid-template-columns: minmax(0, 1fr);
+        .social-share-card__stats {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 
-    }
     @@media (max-width: 720px) {
-        .tv-versus-image
+        .tv-versus-image {
+            width: clamp(38px, 13vw, 64px);
+            max-height: clamp(32px, 11vw, 54px);
+        }
 
-    {
-        width: clamp(38px, 13vw, 64px);
-        max-height: clamp(32px, 11vw, 54px);
-    }
-
-    .tv-football-scoreboard__score {
-        gap: 6px;
-    }
-
+        .tv-football-scoreboard__score {
+            gap: 6px;
+        }
     }</style>
 
 @code {
@@ -2836,6 +2871,16 @@
     private bool RightPriceBattleHasHistory => _rightPriceBattlePoints.Count > 1;
     private decimal? LeftPriceBattleCurrentPrice => _leftPriceBattlePoints.Count == 0 ? null : _leftPriceBattlePoints[^1].Value;
     private decimal? RightPriceBattleCurrentPrice => _rightPriceBattlePoints.Count == 0 ? null : _rightPriceBattlePoints[^1].Value;
+    private decimal? LeftMarketDisplayPrice => _match is null ? null : GetLatestMarketPrice(_match.TeamAId);
+    private decimal? RightMarketDisplayPrice => _match is null ? null : GetLatestMarketPrice(_match.TeamBId);
+
+    private decimal? GetLatestMarketPrice(int teamId)
+        => _metricSnapshots
+            .Where(x => x.TeamId == teamId && x.LastPrice.HasValue)
+            .OrderBy(x => x.CapturedAtUtc)
+            .Select(x => x.LastPrice)
+            .LastOrDefault();
+
     private int ResolvePriceBattleCompetitiveness()
     {
         var leftScore = _match?.ScoreA ?? 0;
@@ -3150,6 +3195,25 @@
 
     private static string FormatPct(decimal? v)
         => v is null ? "—" : $"{(v.Value >= 0 ? "+" : "")}{v.Value:0.00}%";
+
+    private string FormatMarketPrice(decimal? value)
+    {
+        if (value is null)
+            return "—";
+
+        var culture = CultureInfo.GetCultureInfo(CurrentCulture == "en" ? "en-US" : "pt-BR");
+        var prefix = CurrentCulture == "en" ? "$" : "US$ ";
+        var abs = Math.Abs(value.Value);
+        var format = abs switch
+        {
+            >= 1000m => "N2",
+            >= 1m => "N4",
+            >= 0.01m => "N6",
+            _ => "N8"
+        };
+
+        return $"{prefix}{value.Value.ToString(format, culture)}";
+    }
 
     private static string FormatSvgNumber(double value)
         => value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
