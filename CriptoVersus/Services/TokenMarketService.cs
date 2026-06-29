@@ -5,8 +5,8 @@ namespace CriptoVersus.Web.Services;
 
 public sealed class TokenMarketService
 {
-    public const string OfficialContractAddress = "8t2EWhbCSgbRu2kWiRyp7qeCgokav1BAgYvZWTL6aYpR";
-    public const string OfficialPumpFunUrl = "https://pump.fun/coin/Hc61Hz6a7sUpbwvzwQXAxbKr5ziQrRmUmxjXMmddpump?clip=20260523_150404%3A2242457_20260523_150330";
+    public const string OfficialContractAddress = "Hc61Hz6a7sUpbwvzwQXAxbKr5ziQrRmUmxjXMmddpump";
+    public const string OfficialPumpFunUrl = "https://pump.fun/coin/Hc61Hz6a7sUpbwvzwQXAxbKr5ziQrRmUmxjXMmddpump?clip=20260627_212331%3A2330257_20260627_212301";
     public const string OfficialNetwork = "Solana";
 
     private readonly HttpClient _http;
