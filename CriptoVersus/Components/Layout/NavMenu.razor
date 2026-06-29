@@ -17,55 +17,63 @@
     </a>
 </div>
 
-<input type="checkbox" title="Abrir menu de navegacao" class="navbar-toggler" />
+<input type="checkbox" title="Abrir menu de navegação" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler')?.click()">
     <nav class="app-nav pump-style-nav">
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildHomePath(CurrentCulture)" Match="NavLinkMatch.All">
-                <i class="bi bi-house-door nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-a"
+                     href="@RouteLocalization.BuildHomePath(CurrentCulture)"
+                     Match="NavLinkMatch.All">
+                <i class="bi bi-house-door nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.home", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
-                <i class="bi bi-controller nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-b"
+                     href="@RouteLocalization.BuildHowItWorksPath(CurrentCulture)">
+                <i class="bi bi-controller nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.howItWorks", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildTokenPath(CurrentCulture)">
-                <i class="bi bi-coin nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-a"
+                     href="@RouteLocalization.BuildTokenPath(CurrentCulture)">
+                <i class="bi bi-coin nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.token", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildStatsPath(CurrentCulture)">
-                <i class="bi bi-bar-chart-line nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-b"
+                     href="@RouteLocalization.BuildStatsPath(CurrentCulture)">
+                <i class="bi bi-bar-chart-line nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.stats", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
-                <i class="bi bi-signpost-2 nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-a"
+                     href="@RouteLocalization.BuildRoadmapPath(CurrentCulture)">
+                <i class="bi bi-signpost-2 nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.roadmap", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildFaqPath(CurrentCulture)">
-                <i class="bi bi-question-circle nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-b"
+                     href="@RouteLocalization.BuildFaqPath(CurrentCulture)">
+                <i class="bi bi-question-circle nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.faq", CurrentCulture)</span>
             </NavLink>
         </div>
 
         <div class="nav-item">
-            <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">
-                <i class="bi bi-broadcast-pin nav-icon"></i>
+            <NavLink class="nav-link pump-nav-link nav-team-a"
+                     href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">
+                <i class="bi bi-broadcast-pin nav-icon" aria-hidden="true"></i>
                 <span>@L.T("nav.tvBroadcast", CurrentCulture)</span>
             </NavLink>
         </div>
@@ -73,8 +81,9 @@
         @if (IsLoggedIn)
         {
             <div class="nav-item">
-                <NavLink class="nav-link pump-nav-link nav-green" href="@RouteLocalization.BuildWalletPath(CurrentCulture)">
-                    <i class="bi bi-wallet2 nav-icon"></i>
+                <NavLink class="nav-link pump-nav-link nav-team-b"
+                         href="@RouteLocalization.BuildWalletPath(CurrentCulture)">
+                    <i class="bi bi-wallet2 nav-icon" aria-hidden="true"></i>
                     <span>@L.T("nav.wallet", CurrentCulture)</span>
                 </NavLink>
             </div>
@@ -82,8 +91,9 @@
             @if (IsAdminWallet)
             {
                 <div class="nav-item">
-                    <NavLink class="nav-link pump-nav-link nav-purple" href="@RouteLocalization.BuildAdminPath(CurrentCulture)">
-                        <i class="bi bi-shield-lock nav-icon"></i>
+                    <NavLink class="nav-link pump-nav-link nav-team-a"
+                             href="@RouteLocalization.BuildAdminPath(CurrentCulture)">
+                        <i class="bi bi-shield-lock nav-icon" aria-hidden="true"></i>
                         <span>@L.T("nav.admin", CurrentCulture)</span>
                     </NavLink>
                 </div>
@@ -104,22 +114,128 @@
     <span>@L.T("nav.connected", CurrentCulture)</span>
 </div>
 
+<style>
+    .pump-style-nav {
+        --team-a-color: #ff9100;
+        --team-b-color: #18d8d2;
+        --nav-text-color: #f8fafc;
+        --nav-muted-color: rgba(248, 250, 252, 0.78);
+        --nav-card-bg: rgba(15, 23, 42, 0.72);
+    }
+
+        .pump-style-nav .pump-nav-link {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--nav-muted-color);
+            border: 1px solid transparent;
+            border-radius: 0.85rem;
+            transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+        }
+
+            .pump-style-nav .pump-nav-link span {
+                color: inherit;
+            }
+
+            .pump-style-nav .pump-nav-link .nav-icon {
+                width: 32px;
+                height: 32px;
+                min-width: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 9px;
+                color: #ffffff !important;
+                font-size: 1rem;
+                line-height: 1;
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+            }
+
+                .pump-style-nav .pump-nav-link .nav-icon::before {
+                    color: #ffffff !important;
+                    line-height: 1;
+                }
+
+            .pump-style-nav .pump-nav-link.nav-team-a {
+                --nav-team-color: var(--team-a-color);
+                --nav-team-rgb: 255, 145, 0;
+            }
+
+            .pump-style-nav .pump-nav-link.nav-team-b {
+                --nav-team-color: var(--team-b-color);
+                --nav-team-rgb: 24, 216, 210;
+            }
+
+            .pump-style-nav .pump-nav-link.nav-team-a .nav-icon {
+                background: rgba(255, 145, 0, 0.14);
+                border-color: rgba(255, 145, 0, 0.38);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 14px rgba(255, 145, 0, 0.12);
+            }
+
+            .pump-style-nav .pump-nav-link.nav-team-b .nav-icon {
+                background: rgba(24, 216, 210, 0.14);
+                border-color: rgba(24, 216, 210, 0.38);
+                box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 14px rgba(24, 216, 210, 0.12);
+            }
+
+            .pump-style-nav .pump-nav-link:hover,
+            .pump-style-nav .pump-nav-link:focus {
+                color: var(--nav-text-color);
+                background: rgba(var(--nav-team-rgb), 0.10);
+                border-color: rgba(var(--nav-team-rgb), 0.34);
+                box-shadow: 0 0 20px rgba(var(--nav-team-rgb), 0.12);
+                transform: translateX(2px);
+            }
+
+                .pump-style-nav .pump-nav-link:hover .nav-icon,
+                .pump-style-nav .pump-nav-link:focus .nav-icon {
+                    color: #ffffff !important;
+                    background: rgba(var(--nav-team-rgb), 0.22);
+                    border-color: rgba(var(--nav-team-rgb), 0.58);
+                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07), 0 0 18px rgba(var(--nav-team-rgb), 0.24);
+                }
+
+            .pump-style-nav .pump-nav-link.active {
+                color: #ffffff;
+                background: linear-gradient(90deg, rgba(var(--nav-team-rgb), 0.24), rgba(var(--nav-team-rgb), 0.11)), var(--nav-card-bg);
+                border-color: rgba(var(--nav-team-rgb), 0.62);
+                box-shadow: 0 0 0 1px rgba(var(--nav-team-rgb), 0.12), 0 0 24px rgba(var(--nav-team-rgb), 0.20);
+            }
+
+                .pump-style-nav .pump-nav-link.active .nav-icon {
+                    color: #ffffff !important;
+                    background: rgba(var(--nav-team-rgb), 0.30);
+                    border-color: rgba(var(--nav-team-rgb), 0.78);
+                    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 18px rgba(var(--nav-team-rgb), 0.32);
+                }
+
+                    .pump-style-nav .pump-nav-link.active .nav-icon::before,
+                    .pump-style-nav .pump-nav-link:hover .nav-icon::before,
+                    .pump-style-nav .pump-nav-link:focus .nav-icon::before {
+                        color: #ffffff !important;
+                    }
+</style>
+
 @code {
     [Inject] private RouteLocalizationService RouteLocalization { get; set; } = default!;
+
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
 
-    private bool IsLoggedIn
-        => !string.IsNullOrWhiteSpace(WalletState.AuthToken)
-            && !string.IsNullOrWhiteSpace(WalletState.WalletPublicKey);
+    private bool IsLoggedIn =>
+        !string.IsNullOrWhiteSpace(WalletState.AuthToken)
+        && !string.IsNullOrWhiteSpace(WalletState.WalletPublicKey);
 
-    private bool IsAdminWallet
-        => IsConfiguredWallet(WalletState.WalletPublicKey, Config["CriptoVersus:AdminWallet"])
-            || IsConfiguredWallet(WalletState.WalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
+    private bool IsAdminWallet =>
+        IsConfiguredWallet(WalletState.WalletPublicKey, Config["CriptoVersus:AdminWallet"])
+        || IsConfiguredWallet(WalletState.WalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
 
-    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet)
-        => !string.IsNullOrWhiteSpace(wallet)
-            && !string.IsNullOrWhiteSpace(configuredWallet)
-            && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
+    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet) =>
+        !string.IsNullOrWhiteSpace(wallet)
+        && !string.IsNullOrWhiteSpace(configuredWallet)
+        && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
 
     protected override void OnInitialized()
     {

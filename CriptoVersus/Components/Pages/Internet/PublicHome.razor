@@ -63,7 +63,6 @@
                 }
             </ul>
 
-
             <div class="home-hero__actions">
                 <a class="home-cta home-cta--primary" href="#live-matches">
                     @T("exploreLiveMatches")
@@ -104,6 +103,7 @@
                 </div>
             }
         </div>
+
         <div class="home-hero__visual">
             @if (_hotMatchesLoading && HeroHotMatch is null && HeroFallbackMatch is null)
             {
@@ -719,7 +719,6 @@
             <a href="#rankings">@T("rankings")</a>
         </div>
     </section>
-
 </section>
 
 @code {
@@ -745,6 +744,7 @@
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en"));
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("pt"));
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
+
     private IReadOnlyList<string> HeroSemanticHighlights => new[]
     {
         T("heroSemantic1"),
@@ -753,6 +753,7 @@
         T("heroSemantic4"),
         T("heroSemantic5")
     };
+
     private IReadOnlyList<FaqItem> FaqItems => new[]
     {
         new FaqItem(T("faq.onlyScoreboard.question"), T("faq.onlyScoreboard.answer")),
@@ -769,20 +770,24 @@
     private List<HotMatchDto> HotMatchFeed => _hotMatches.Take(HomeMatchLimit).ToList();
     private HotMatchDto? HeroHotMatch => HotMatchFeed.FirstOrDefault();
     private MatchDto? HeroFallbackMatch => HeroHotMatch is null ? FeaturedBattle : null;
+
     private MatchDto? HeroArenaFieldMatch => HeroHotMatch is not null
         ? ToMatchCard(HeroHotMatch)
         : HeroFallbackMatch;
 
     private HotMatchDto? HeroArenaFieldHotMatch => HeroHotMatch
         ?? (HeroArenaFieldMatch is not null ? FindHotMatch(HeroArenaFieldMatch.MatchId) : null);
+
     private List<MatchDto> SnapshotLiveMatches => RankHomeMatches(_snapshot?.Matches.OngoingList ?? [])
         .Take(HomeMatchLimit)
         .ToList();
+
     private List<MatchDto> SnapshotFeaturedMatches => RankHomeMatches(
             (_snapshot?.Matches.OngoingList ?? [])
                 .Concat(_snapshot?.Matches.CompletedList ?? []))
         .Take(HomeMatchLimit)
         .ToList();
+
     private List<MatchDto> LiveMatches => HotMatchFeed.Count > 0
         ? HotMatchFeed
             .Where(x => !x.IsFinished && string.Equals(x.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
@@ -790,28 +795,35 @@
             .Take(HomeMatchLimit)
             .ToList()
         : SnapshotLiveMatches;
+
     private List<MatchDto> FeaturedMatches => HotMatchFeed.Count > 0
         ? HotMatchFeed
             .Select(ToMatchCard)
             .Take(HomeMatchLimit)
             .ToList()
         : SnapshotFeaturedMatches;
+
     private MatchDto? FeaturedBattle => SelectFeaturedBattle();
+
     private List<MatchDto> ArenaLiveMatches => LiveMatches
         .Where(x => x.MatchId != FeaturedBattle?.MatchId)
         .Take(HomeMatchLimit - 1)
         .ToList();
+
     private List<MatchDto> TopBattleMatches => FeaturedMatches
         .Where(x => x.MatchId != FeaturedBattle?.MatchId)
         .Take(HomeMatchLimit)
         .ToList();
+
     private List<CurrencyDto> TrendingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(6).ToList();
     private List<CurrencyDto> RankingCoins => (_snapshot?.TopGainers ?? []).OrderBy(x => x.Rank).Take(10).ToList();
+
     private Dictionary<string, int> TopGainerRankMap => (_snapshot?.TopGainers ?? [])
         .Where(x => !string.IsNullOrWhiteSpace(x.Symbol))
         .OrderBy(x => x.Rank)
         .GroupBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
         .ToDictionary(x => x.Key, x => x.First().Rank, StringComparer.OrdinalIgnoreCase);
+
     private string GetCoinIconUrl(string pair)
     {
         var baseSymbol = GetBaseSymbol(pair);
@@ -820,7 +832,8 @@
 
     private static string GetBaseSymbol(string pair)
     {
-        if (string.IsNullOrWhiteSpace(pair)) return "";
+        if (string.IsNullOrWhiteSpace(pair))
+            return "";
 
         pair = pair.ToUpperInvariant();
 
@@ -834,6 +847,7 @@
 
         return pair;
     }
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -894,6 +908,7 @@
         var slug = !string.IsNullOrWhiteSpace(match.Slug)
             ? match.Slug
             : MatchSlugHelper.BuildSlug(match.TeamA, match.TeamB);
+
         return string.IsNullOrWhiteSpace(slug)
             ? RouteLocalization.BuildTvPath(CurrentCulture)
             : RouteLocalization.BuildTvMatchPath(CurrentCulture, match.MatchId, slug);
@@ -1804,10 +1819,12 @@
             _hotMatches
                 .Take(5)
                 .Select(x => $"{x.MatchId}:{x.HomeScore}-{x.AwayScore}:{x.HotScore}:{x.RemainingMinutes}:{x.Status}"));
+
         var snapshotSignature = string.Join("|",
             _snapshot?.Matches.Ongoing ?? -1,
             _snapshot?.Matches.CompletedLast24h ?? -1,
             _snapshot?.TopGainers.Count ?? -1);
+
         var signature = $"{snapshotSignature}|{hotSignature}";
         var changed = !string.Equals(signature, _lastRefreshSignature, StringComparison.Ordinal);
         _lastRefreshSignature = signature;
@@ -1817,8 +1834,10 @@
     public ValueTask DisposeAsync()
     {
         _disposed = true;
+
         if (_hubSubscribed)
             HubClient.DashboardChanged -= OnDashboardChanged;
+
         Logger.LogInformation("PublicHome disposing refresh resources.");
 
         try
@@ -1831,9 +1850,11 @@
 
         _debounceCts?.Dispose();
         _debounceCts = null;
+
         _homeRefreshCts?.Cancel();
         _homeRefreshCts?.Dispose();
         _homeRefreshCts = null;
+
         _reloadLock.Dispose();
 
         return ValueTask.CompletedTask;
@@ -1841,6 +1862,13 @@
 }
 
 <style>
+    .public-home-arena {
+        --team-a-color: #ff9100;
+        --team-a-rgb: 255, 145, 0;
+        --team-b-color: #18d8d2;
+        --team-b-rgb: 24, 216, 210;
+    }
+
     .home-landing {
         width: 100%;
         max-width: min(1880px, calc(100vw - 24px));
@@ -1855,7 +1883,7 @@
     .home-anchor-nav {
         border: 1px solid rgba(118,131,164,.18);
         border-radius: 28px;
-        background: radial-gradient(circle at top left, rgba(76,243,141,.08), transparent 24%), radial-gradient(circle at top right, rgba(159,92,255,.08), transparent 26%), linear-gradient(180deg, rgba(10,13,21,.98), rgba(7,9,15,.99));
+        background: radial-gradient(circle at top left, rgba(255,145,0,.08), transparent 24%), radial-gradient(circle at top right, rgba(24,216,210,.08), transparent 26%), linear-gradient(180deg, rgba(10,13,21,.98), rgba(7,9,15,.99));
         box-shadow: 0 24px 70px rgba(0,0,0,.28);
         overflow: hidden;
     }
@@ -1869,7 +1897,7 @@
 
     .home-hero__eyebrow,
     .home-section__header h2 {
-        color: #7ff6df;
+        color: var(--team-b-color);
         letter-spacing: .12em;
         text-transform: uppercase;
         font-weight: 900;
@@ -1931,18 +1959,14 @@
         font-weight: 800;
     }
 
-    .home-cta--primary:hover {
-        color: #03150f;
-    }
-
-    .home-cta--secondary:hover {
-        color: #eef5ff;
-    }
-
     .home-cta--primary {
-        background: linear-gradient(90deg, #4cf38d, #7ff6df);
+        background: linear-gradient(90deg, var(--team-a-color), var(--team-b-color));
         color: #03150f;
     }
+
+        .home-cta--primary:hover {
+            color: #03150f;
+        }
 
     .home-cta--secondary,
     .home-link-grid a {
@@ -1953,6 +1977,9 @@
         border-radius: 18px;
     }
 
+        .home-cta--secondary:hover {
+            color: #eef5ff;
+        }
 
     .home-hero__field-slot {
         margin-top: clamp(1.4rem, 5vw, 5rem);
@@ -2010,8 +2037,8 @@
     .home-hot-hero {
         padding: 1.2rem;
         border-radius: 26px;
-        border: 1px solid rgba(127,246,223,.18);
-        background: radial-gradient(circle at top left, rgba(127,246,223,.12), transparent 32%), radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%), linear-gradient(180deg, rgba(8,14,24,.96), rgba(5,9,17,.98));
+        border: 1px solid rgba(var(--team-b-rgb),.18);
+        background: radial-gradient(circle at top left, rgba(var(--team-a-rgb),.12), transparent 32%), radial-gradient(circle at top right, rgba(var(--team-b-rgb),.14), transparent 34%), linear-gradient(180deg, rgba(8,14,24,.96), rgba(5,9,17,.98));
         box-shadow: 0 24px 55px rgba(0,0,0,.28);
         display: grid;
         gap: 1rem;
@@ -2146,7 +2173,7 @@
         .arena-match-card--skeleton span {
             display: block;
             border-radius: 999px;
-            background: linear-gradient(90deg, rgba(127,246,223,.08), rgba(191,114,255,.14), rgba(127,246,223,.08));
+            background: linear-gradient(90deg, rgba(var(--team-a-rgb),.08), rgba(var(--team-b-rgb),.14), rgba(var(--team-a-rgb),.08));
             background-size: 200% 100%;
             animation: arena-skeleton 2s linear infinite;
         }
@@ -2250,17 +2277,17 @@
     }
 
     .home-inline-link {
-        color: #7ff6df;
+        color: var(--team-b-color);
         font-weight: 700;
     }
 
     .home-coin-card strong.is-up,
     .home-ranking-list span {
-        color: #4cf38d;
+        color: var(--team-b-color);
     }
 
     .home-coin-card strong.is-down {
-        color: #ff6b6b;
+        color: #ff7d9b;
     }
 
     .home-ranking-list {
@@ -2292,20 +2319,16 @@
         height: auto;
     }
 
-    .arena-match-grid {
+    .arena-match-grid,
+    .arena-top-battle-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
         align-content: start;
     }
 
-    .public-home-arena__deck {
-        align-items: start;
-    }
-
-    .arena-featured-battle {
-        height: auto;
-        align-self: start;
+    .arena-top-battle-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
 
     .arena-featured-battle,
@@ -2315,7 +2338,7 @@
         cursor: default;
         border-radius: 28px;
         border: 1px solid rgba(133, 160, 204, 0.22);
-        background: radial-gradient(circle at top left, rgba(127,246,223,.14), transparent 28%), radial-gradient(circle at top right, rgba(163,92,255,.18), transparent 34%), linear-gradient(180deg, rgba(11,17,28,.98), rgba(6,10,18,.98));
+        background: radial-gradient(circle at top left, rgba(var(--team-a-rgb),.14), transparent 28%), radial-gradient(circle at top right, rgba(var(--team-b-rgb),.14), transparent 34%), linear-gradient(180deg, rgba(11,17,28,.98), rgba(6,10,18,.98));
         box-shadow: 0 24px 60px rgba(0, 0, 0, .32);
     }
 
@@ -2328,7 +2351,7 @@
     .arena-featured-battle__glow {
         position: absolute;
         inset: 0;
-        background: radial-gradient(circle at 20% 20%, rgba(127,246,223,.14), transparent 32%), radial-gradient(circle at 80% 18%, rgba(190,72,255,.18), transparent 30%), radial-gradient(circle at 50% 100%, rgba(41,214,255,.08), transparent 45%);
+        background: radial-gradient(circle at 20% 20%, rgba(var(--team-a-rgb),.14), transparent 32%), radial-gradient(circle at 80% 18%, rgba(var(--team-b-rgb),.18), transparent 30%), radial-gradient(circle at 50% 100%, rgba(41,214,255,.08), transparent 45%);
         pointer-events: none;
     }
 
@@ -2358,7 +2381,7 @@
     }
 
     .arena-overline {
-        color: #7ff6df;
+        color: var(--team-b-color);
         letter-spacing: .18em;
         text-transform: uppercase;
         font-size: .78rem;
@@ -2383,8 +2406,8 @@
 
     .arena-live-pill {
         padding: .55rem .95rem;
-        color: #8affd8;
-        border-color: rgba(127,246,223,.32);
+        color: var(--team-b-color);
+        border-color: rgba(var(--team-b-rgb),.32);
         background: rgba(7, 29, 25, .72);
     }
 
@@ -2397,8 +2420,8 @@
         width: .58rem;
         height: .58rem;
         border-radius: 50%;
-        background: #4cf38d;
-        box-shadow: 0 0 0 6px rgba(76,243,141,.16);
+        background: var(--team-b-color);
+        box-shadow: 0 0 0 6px rgba(var(--team-b-rgb),.16);
     }
 
     .arena-chip {
@@ -2407,21 +2430,21 @@
     }
 
     .arena-chip--hot {
-        color: #091310;
-        background: linear-gradient(135deg, #7ff6df, #4cf38d);
+        color: #160900;
+        background: linear-gradient(135deg, #ffbd5a, var(--team-a-color));
         border-color: transparent;
     }
 
     .arena-chip--momentum {
         color: #d7fcff;
-        background: rgba(0, 197, 255, .16);
-        border-color: rgba(0, 197, 255, .28);
+        background: rgba(var(--team-b-rgb), .16);
+        border-color: rgba(var(--team-b-rgb), .28);
     }
 
     .arena-chip--volatility {
-        color: #ffe8ff;
-        background: rgba(163,92,255,.18);
-        border-color: rgba(163,92,255,.3);
+        color: #fff3e4;
+        background: rgba(var(--team-a-rgb),.16);
+        border-color: rgba(var(--team-a-rgb),.3);
     }
 
     .arena-chip--fear {
@@ -2478,8 +2501,8 @@
 
         .arena-team-panel.is-leading,
         .arena-match-card__team.is-leading {
-            border-color: rgba(127,246,223,.32);
-            box-shadow: 0 0 0 1px rgba(127,246,223,.14), 0 0 24px rgba(127,246,223,.12);
+            border-color: rgba(var(--team-b-rgb),.32);
+            box-shadow: 0 0 0 1px rgba(var(--team-b-rgb),.14), 0 0 24px rgba(var(--team-b-rgb),.12);
         }
 
     .arena-team-panel__identity,
@@ -2528,7 +2551,7 @@
     }
 
     .arena-status-text {
-        color: #8affd8;
+        color: var(--team-b-color);
         font-size: .74rem;
         font-weight: 900;
         letter-spacing: .18em;
@@ -2569,10 +2592,10 @@
     .arena-vs-badge {
         min-width: 3.1rem;
         padding: .55rem .85rem;
-        color: #7ff6df;
+        color: var(--team-b-color);
         background: rgba(7, 29, 25, .74);
-        border-color: rgba(127,246,223,.24);
-        box-shadow: 0 0 18px rgba(127,246,223,.1);
+        border-color: rgba(var(--team-b-rgb),.24);
+        box-shadow: 0 0 18px rgba(var(--team-b-rgb),.1);
         font-size: .72rem;
     }
 
@@ -2603,12 +2626,14 @@
     }
 
     .arena-energy-bar__side--left {
-        background: linear-gradient(90deg, rgba(76,243,141,.42), #4cf38d 75%, #7ff6df);
+        background: linear-gradient(90deg, rgba(var(--team-a-rgb),.42), var(--team-a-color) 70%, #ffbd5a);
+        box-shadow: 0 0 16px rgba(var(--team-a-rgb),.24);
     }
 
     .arena-energy-bar__side--right {
         margin-left: auto;
-        background: linear-gradient(90deg, #8e57ff, #bf72ff 65%, rgba(255,255,255,.85));
+        background: linear-gradient(90deg, #0ea5a4, var(--team-b-color) 68%, #8ffffb);
+        box-shadow: 0 0 16px rgba(var(--team-b-rgb),.24);
     }
 
     .arena-featured-battle__insights {
@@ -2656,30 +2681,50 @@
         font-weight: 900;
         letter-spacing: .08em;
         text-align: center;
-        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+        border: 1px solid transparent;
+        transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease, border-color .18s ease;
     }
 
     .arena-cta-button {
-        color: #f5efff;
-        background: linear-gradient(90deg, #8f53ff, #b06dff);
-        box-shadow: 0 16px 34px rgba(143,83,255,.24);
+        color: #160900;
+        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 34%), linear-gradient(135deg, #ffb347 0%, var(--team-a-color) 48%, #ff6b00 100%);
+        border-color: rgba(var(--team-a-rgb), .72);
+        box-shadow: 0 16px 34px rgba(var(--team-a-rgb), .24), inset 0 1px 0 rgba(255,255,255,.24);
     }
 
-        .arena-cta-button:hover {
+        .arena-cta-button:hover,
+        .arena-cta-button:focus,
+        .arena-cta-button:focus-visible,
+        .arena-cta-button:active,
+        .arena-cta-button:visited {
+            color: #160900;
             transform: translateY(-1px);
-            box-shadow: 0 20px 40px rgba(143,83,255,.28);
+            filter: saturate(1.08) brightness(1.04);
+            box-shadow: 0 20px 42px rgba(var(--team-a-rgb), .32), 0 0 0 1px rgba(var(--team-a-rgb), .28), inset 0 1px 0 rgba(255,255,255,.28);
         }
 
-    .arena-match-grid,
-    .arena-top-battle-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem;
-        align-content: start;
+    .arena-cta-link {
+        color: #001414;
+        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 34%), linear-gradient(135deg, #7ffaf6 0%, var(--team-b-color) 52%, #0ea5a4 100%);
+        border-color: rgba(var(--team-b-rgb), .72);
+        box-shadow: 0 16px 34px rgba(var(--team-b-rgb), .24), inset 0 1px 0 rgba(255,255,255,.24);
     }
 
-    .arena-top-battle-grid {
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        .arena-cta-link:hover,
+        .arena-cta-link:focus,
+        .arena-cta-link:focus-visible,
+        .arena-cta-link:active,
+        .arena-cta-link:visited {
+            color: #001414;
+            transform: translateY(-1px);
+            filter: saturate(1.08) brightness(1.04);
+            box-shadow: 0 20px 42px rgba(var(--team-b-rgb), .32), 0 0 0 1px rgba(var(--team-b-rgb), .28), inset 0 1px 0 rgba(255,255,255,.28);
+        }
+
+    .home-hot-hero__cta-group > a,
+    .arena-featured-battle__actions > a,
+    .arena-match-card__actions > a {
+        flex: 1 1 160px;
     }
 
     .arena-match-card {
@@ -2750,34 +2795,12 @@
             line-height: 1.7;
         }
 
-    .arena-cta-link {
-        color: #04120d;
-        background: linear-gradient(90deg, #4cf38d, #7ff6df);
-        box-shadow: 0 16px 34px rgba(76,243,141,.24);
-    }
-
-        .arena-cta-link:hover,
-        .arena-cta-link:focus,
-        .arena-cta-link:focus-visible,
-        .arena-cta-link:active,
-        .arena-cta-link:visited {
-            color: #04120d;
-            transform: translateY(-1px);
-            box-shadow: 0 20px 40px rgba(76,243,141,.28);
-        }
-
-    .home-hot-hero__cta-group > a,
-    .arena-featured-battle__actions > a,
-    .arena-match-card__actions > a {
-        flex: 1 1 160px;
-    }
-
     .arena-match-card.is-team-a-leading {
-        box-shadow: 0 24px 60px rgba(0,0,0,.32), inset 1px 0 0 rgba(127,246,223,.16);
+        box-shadow: 0 24px 60px rgba(0,0,0,.32), inset 1px 0 0 rgba(var(--team-a-rgb),.22);
     }
 
     .arena-match-card.is-team-b-leading {
-        box-shadow: 0 24px 60px rgba(0,0,0,.32), inset -1px 0 0 rgba(187,114,255,.18);
+        box-shadow: 0 24px 60px rgba(0,0,0,.32), inset -1px 0 0 rgba(var(--team-b-rgb),.24);
     }
 
     .is-trending {
@@ -2790,7 +2813,7 @@
     }
 
     .is-up {
-        color: #68ffb1;
+        color: var(--team-b-color);
     }
 
     .is-down {
@@ -2804,7 +2827,7 @@
     .arena-featured-battle:hover,
     .arena-match-card:hover {
         transform: translateY(-3px);
-        border-color: rgba(127,246,223,.32);
+        border-color: rgba(var(--team-b-rgb),.32);
         box-shadow: 0 30px 75px rgba(0,0,0,.36);
     }
 
@@ -2819,23 +2842,9 @@
         .arena-match-grid {
             grid-template-columns: 1fr;
         }
-    }
-
-    @@media (max-width: 1199.98px) {
-        .public-home-arena__deck {
-            grid-template-columns: 1fr;
-        }
 
         .arena-featured-battle {
             width: 100%;
-        }
-
-        .arena-featured-battle__body {
-            grid-template-columns: 1fr;
-        }
-
-        .arena-match-grid {
-            grid-template-columns: 1fr;
         }
     }
 
@@ -3033,12 +3042,12 @@
     @@keyframes arena-live-pulse {
         0%, 100% {
             transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(76,243,141,.22);
+            box-shadow: 0 0 0 0 rgba(var(--team-b-rgb),.22);
         }
 
         50% {
             transform: scale(1.08);
-            box-shadow: 0 0 0 8px rgba(76,243,141,0);
+            box-shadow: 0 0 0 8px rgba(var(--team-b-rgb),0);
         }
     }
 
@@ -3048,19 +3057,19 @@
         }
 
         50% {
-            box-shadow: 0 28px 72px rgba(0,0,0,.36), 0 0 0 1px rgba(127,246,223,.14), 0 0 35px rgba(127,246,223,.08);
+            box-shadow: 0 28px 72px rgba(0,0,0,.36), 0 0 0 1px rgba(var(--team-b-rgb),.14), 0 0 35px rgba(var(--team-b-rgb),.08);
         }
     }
 
     @@keyframes arena-vs-breathe {
         0%, 100% {
             transform: translateY(0);
-            box-shadow: 0 0 12px rgba(127,246,223,.08);
+            box-shadow: 0 0 12px rgba(var(--team-b-rgb),.08);
         }
 
         50% {
             transform: translateY(-1px);
-            box-shadow: 0 0 20px rgba(127,246,223,.14);
+            box-shadow: 0 0 20px rgba(var(--team-b-rgb),.14);
         }
     }
 
