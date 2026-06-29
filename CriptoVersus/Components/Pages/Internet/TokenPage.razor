@@ -41,6 +41,7 @@
 <section class="token-arena-page">
     <div class="token-arena-page__backdrop token-arena-page__backdrop--red"></div>
     <div class="token-arena-page__backdrop token-arena-page__backdrop--blue"></div>
+
     <div class="token-arena-page__grid">
         <section class="token-arena-hero token-arena-card">
             <div class="token-arena-hero__copy">
@@ -53,17 +54,28 @@
                     <a class="token-arena-button token-arena-button--primary"
                        href="@PumpFunUrl"
                        target="_blank"
-                       rel="noopener noreferrer">@L.T("token.action.buy", CurrentCulture)</a>
+                       rel="noopener noreferrer">
+                        @L.T("token.action.buy", CurrentCulture)
+                    </a>
+
                     <a class="token-arena-button token-arena-button--ghost"
-                       href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">@L.T("token.action.watch", CurrentCulture)</a>
+                       href="@RouteLocalization.BuildTvBroadcastPath(CurrentCulture)">
+                        @L.T("token.action.watch", CurrentCulture)
+                    </a>
+
                     <button type="button"
                             class="token-arena-button token-arena-button--outline"
                             @onclick="CopyContractAsync"
-                            disabled="@(!_isInteractive)">@CopyButtonText</button>
+                            disabled="@(!_isInteractive)">
+                        @CopyButtonText
+                    </button>
+
                     <a class="token-arena-button token-arena-button--outline"
                        href="@PumpFunUrl"
                        target="_blank"
-                       rel="noopener noreferrer">@L.T("token.action.viewPump", CurrentCulture)</a>
+                       rel="noopener noreferrer">
+                        @L.T("token.action.viewPump", CurrentCulture)
+                    </a>
                 </div>
             </div>
 
@@ -86,32 +98,40 @@
                             <span class="token-arena-kicker">@L.T("token.contract.kicker", CurrentCulture)</span>
                             <h3>@L.T("token.contract.title", CurrentCulture)</h3>
                         </div>
+
                         <button type="button"
                                 class="token-arena-button token-arena-button--outline token-arena-button--small"
                                 @onclick="CopyContractAsync"
-                                disabled="@(!_isInteractive)">@CopyButtonText</button>
+                                disabled="@(!_isInteractive)">
+                            @CopyButtonText
+                        </button>
                     </div>
 
                     <div class="token-arena-market-status @MarketStatusCssClass" role="status" aria-live="polite">
                         <strong>@MarketStatusTitle</strong>
                         <span>@MarketStatusBody</span>
+
                         @if (ShowNotIndexedBadge)
                         {
                             <span class="token-arena-market-badge">@L.T("token.market.notIndexedYet", CurrentCulture)</span>
                         }
                     </div>
 
-                    <div class="token-arena-contract__address">@(MarketSnapshot?.ContractAddress ?? TokenMarketService.OfficialContractAddress)</div>
+                    <div class="token-arena-contract__address">
+                        @(MarketSnapshot?.ContractAddress ?? TokenMarketService.OfficialContractAddress)
+                    </div>
 
                     <div class="token-arena-contract__meta">
                         <article>
                             <span>@L.T("token.contract.network", CurrentCulture)</span>
                             <strong>@(MarketSnapshot?.Network ?? TokenMarketService.OfficialNetwork)</strong>
                         </article>
+
                         <article>
                             <span>@L.T("token.contract.buyTax", CurrentCulture)</span>
                             <strong>@FormatPercent(MarketSnapshot?.BuyTaxPercent)</strong>
                         </article>
+
                         <article>
                             <span>@L.T("token.contract.sellTax", CurrentCulture)</span>
                             <strong>@FormatPercent(MarketSnapshot?.SellTaxPercent)</strong>
@@ -121,17 +141,22 @@
 
                 <aside class="token-arena-qr token-arena-card">
                     <span class="token-arena-kicker">@L.T("token.contract.qrKicker", CurrentCulture)</span>
+
                     <div class="token-arena-qr__code-shell">
                         <img class="token-arena-qr__image"
                              src="@QrCodeUrl"
                              alt="@L.T("token.contract.qrAlt", CurrentCulture)"
                              loading="lazy" />
                     </div>
+
                     <p class="token-arena-qr__copy">@L.T("token.contract.qrDescription", CurrentCulture)</p>
+
                     <a class="token-arena-button token-arena-button--primary token-arena-button--small"
                        href="@PumpFunUrl"
                        target="_blank"
-                       rel="noopener noreferrer">@L.T("token.contract.qrAction", CurrentCulture)</a>
+                       rel="noopener noreferrer">
+                        @L.T("token.contract.qrAction", CurrentCulture)
+                    </a>
                 </aside>
             </div>
         </section>
@@ -149,28 +174,31 @@
 
                 <ul class="token-arena-list">
                     <li>
-                        <span class="token-arena-list__icon">A</span>
+                        <span class="token-arena-list__icon token-arena-list__icon--team-a">A</span>
                         <div>
                             <strong>@L.T("token.utility.items.participate.title", CurrentCulture)</strong>
                             <p>@L.T("token.utility.items.participate.description", CurrentCulture)</p>
                         </div>
                     </li>
+
                     <li>
-                        <span class="token-arena-list__icon">C</span>
+                        <span class="token-arena-list__icon token-arena-list__icon--team-b">C</span>
                         <div>
                             <strong>@L.T("token.utility.items.community.title", CurrentCulture)</strong>
                             <p>@L.T("token.utility.items.community.description", CurrentCulture)</p>
                         </div>
                     </li>
+
                     <li>
-                        <span class="token-arena-list__icon">U</span>
+                        <span class="token-arena-list__icon token-arena-list__icon--team-a">U</span>
                         <div>
                             <strong>@L.T("token.utility.items.utility.title", CurrentCulture)</strong>
                             <p>@L.T("token.utility.items.utility.description", CurrentCulture)</p>
                         </div>
                     </li>
+
                     <li>
-                        <span class="token-arena-list__icon">ID</span>
+                        <span class="token-arena-list__icon token-arena-list__icon--team-b">ID</span>
                         <div>
                             <strong>@L.T("token.utility.items.identity.title", CurrentCulture)</strong>
                             <p>@L.T("token.utility.items.identity.description", CurrentCulture)</p>
@@ -201,28 +229,31 @@
                 <span class="token-arena-kicker">@L.T("token.footer.kicker", CurrentCulture)</span>
                 <h3>@L.T("token.footer.cta", CurrentCulture)</h3>
             </div>
+
             <a class="token-arena-button token-arena-button--primary"
                href="@PumpFunUrl"
                target="_blank"
-               rel="noopener noreferrer">@L.T("token.footer.button", CurrentCulture)</a>
+               rel="noopener noreferrer">
+                @L.T("token.footer.button", CurrentCulture)
+            </a>
         </section>
     </div>
 </section>
 
 <style>
     .token-arena-page {
+        --team-a-color: #ff9100;
+        --team-a-rgb: 255, 145, 0;
+        --team-b-color: #18d8d2;
+        --team-b-rgb: 24, 216, 210;
         width: 100%;
         max-width: min(1880px, calc(100vw - 24px));
         margin-inline: auto;
-        padding: clamp(1rem, 2vw, 1.5rem) 12px;
+        padding: clamp(1rem, 2vw, 1.5rem);
         position: relative;
         overflow: hidden;
         min-height: calc(100vh - 5rem);
-        padding: clamp(1rem, 2vw, 1.5rem);
-        background:
-            radial-gradient(circle at top left, rgba(255, 33, 82, 0.18), transparent 28%),
-            radial-gradient(circle at top right, rgba(77, 121, 255, 0.18), transparent 32%),
-            linear-gradient(180deg, #050811 0%, #070d17 35%, #040812 100%);
+        background: radial-gradient(circle at top left, rgba(var(--team-a-rgb), 0.20), transparent 28%), radial-gradient(circle at top right, rgba(var(--team-b-rgb), 0.18), transparent 32%), linear-gradient(180deg, #050811 0%, #070d17 35%, #040812 100%);
     }
 
     .token-arena-page__backdrop {
@@ -238,13 +269,13 @@
     .token-arena-page__backdrop--red {
         top: -8rem;
         left: -6rem;
-        background: rgba(255, 38, 87, 0.28);
+        background: rgba(var(--team-a-rgb), 0.30);
     }
 
     .token-arena-page__backdrop--blue {
         right: -7rem;
         top: 9rem;
-        background: rgba(79, 118, 255, 0.26);
+        background: rgba(var(--team-b-rgb), 0.26);
     }
 
     .token-arena-page__grid {
@@ -255,30 +286,24 @@
         width: 100%;
         max-width: 100%;
         margin: 0 auto;
-        
     }
 
     .token-arena-card {
         position: relative;
         overflow: hidden;
-        border: 1px solid rgba(130, 154, 255, 0.24);
+        border: 1px solid rgba(var(--team-b-rgb), 0.24);
         border-radius: 1.5rem;
-        background:
-            linear-gradient(135deg, rgba(11, 18, 33, 0.94), rgba(7, 12, 24, 0.96)),
-            linear-gradient(135deg, rgba(255, 43, 93, 0.24), rgba(93, 73, 255, 0.18));
-        box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-            0 22px 60px rgba(0, 0, 0, 0.35),
-            0 0 35px rgba(86, 99, 255, 0.08);
+        background: linear-gradient(135deg, rgba(11, 18, 33, 0.94), rgba(7, 12, 24, 0.96)), linear-gradient(135deg, rgba(var(--team-a-rgb), 0.20), rgba(var(--team-b-rgb), 0.16));
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 22px 60px rgba(0, 0, 0, 0.35), 0 0 35px rgba(var(--team-b-rgb), 0.08);
     }
 
-    .token-arena-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(120deg, rgba(255, 52, 102, 0.08), transparent 38%, rgba(84, 129, 255, 0.08));
-        pointer-events: none;
-    }
+        .token-arena-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(var(--team-a-rgb), 0.09), transparent 38%, rgba(var(--team-b-rgb), 0.08));
+            pointer-events: none;
+        }
 
     .token-arena-hero {
         display: grid;
@@ -302,7 +327,7 @@
         align-items: center;
         gap: 0.45rem;
         margin-bottom: 0.85rem;
-        color: #83fff0;
+        color: var(--team-b-color);
         font-size: 0.8rem;
         font-weight: 800;
         letter-spacing: 0.18em;
@@ -320,7 +345,7 @@
 
     .token-arena-hero h2 {
         margin: 0.9rem 0 0;
-        color: #b48dff;
+        color: var(--team-a-color);
         font-size: clamp(1.15rem, 2vw, 1.65rem);
         font-weight: 800;
     }
@@ -348,40 +373,67 @@
         min-height: 3rem;
         padding: 0.8rem 1.2rem;
         border-radius: 0.95rem;
-        border: 1px solid rgba(144, 165, 255, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.14);
         color: #f7f8ff;
-        font-weight: 700;
+        font-weight: 800;
         text-decoration: none;
         background: rgba(12, 16, 28, 0.82);
-        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+        transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, filter 160ms ease;
         cursor: pointer;
     }
 
-    .token-arena-button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
-        border-color: rgba(176, 194, 255, 0.42);
-    }
+        .token-arena-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+            filter: saturate(1.08) brightness(1.04);
+        }
 
-    .token-arena-button:disabled {
-        cursor: wait;
-        opacity: 0.6;
-    }
+        .token-arena-button:disabled {
+            cursor: wait;
+            opacity: 0.6;
+        }
 
     .token-arena-button--primary {
-        border-color: rgba(255, 96, 139, 0.45);
-        background: linear-gradient(135deg, #ff365f, #ff642f);
-        box-shadow: 0 14px 30px rgba(255, 71, 108, 0.28);
+        color: #160900;
+        border-color: rgba(var(--team-a-rgb), 0.72);
+        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 34%), linear-gradient(135deg, #ffb347 0%, var(--team-a-color) 48%, #ff6b00 100%);
+        box-shadow: 0 14px 30px rgba(var(--team-a-rgb), 0.28), inset 0 1px 0 rgba(255,255,255,.24);
     }
+
+        .token-arena-button--primary:hover:not(:disabled),
+        .token-arena-button--primary:focus-visible {
+            color: #160900;
+            border-color: rgba(var(--team-a-rgb), 0.88);
+            box-shadow: 0 18px 38px rgba(var(--team-a-rgb), 0.34), 0 0 0 1px rgba(var(--team-a-rgb), 0.28), inset 0 1px 0 rgba(255,255,255,.28);
+        }
 
     .token-arena-button--ghost {
-        border-color: rgba(95, 154, 255, 0.45);
-        background: linear-gradient(135deg, rgba(34, 72, 146, 0.78), rgba(63, 38, 161, 0.78));
+        color: #001414;
+        border-color: rgba(var(--team-b-rgb), 0.72);
+        background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 34%), linear-gradient(135deg, #7ffaf6 0%, var(--team-b-color) 52%, #0ea5a4 100%);
+        box-shadow: 0 14px 30px rgba(var(--team-b-rgb), 0.24), inset 0 1px 0 rgba(255,255,255,.24);
     }
 
+        .token-arena-button--ghost:hover:not(:disabled),
+        .token-arena-button--ghost:focus-visible {
+            color: #001414;
+            border-color: rgba(var(--team-b-rgb), 0.88);
+            box-shadow: 0 18px 38px rgba(var(--team-b-rgb), 0.32), 0 0 0 1px rgba(var(--team-b-rgb), 0.28), inset 0 1px 0 rgba(255,255,255,.28);
+        }
+
     .token-arena-button--outline {
-        background: rgba(7, 11, 21, 0.55);
+        color: #f7f8ff;
+        background: rgba(7, 11, 21, 0.58);
+        border-color: rgba(var(--team-b-rgb), 0.28);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.03);
     }
+
+        .token-arena-button--outline:hover:not(:disabled),
+        .token-arena-button--outline:focus-visible {
+            color: #ffffff;
+            border-color: rgba(var(--team-b-rgb), 0.52);
+            box-shadow: 0 14px 30px rgba(var(--team-b-rgb), 0.12), inset 0 0 0 1px rgba(255,255,255,.04);
+        }
 
     .token-arena-button--small {
         min-height: 2.6rem;
@@ -393,11 +445,8 @@
         align-items: center;
         min-height: 420px;
         border-radius: 1.35rem;
-        border: 1px solid rgba(130, 154, 255, 0.18);
-        background:
-            linear-gradient(180deg, rgba(16, 17, 40, 0.3), rgba(6, 10, 21, 0.72)),
-            radial-gradient(circle at 25% 24%, rgba(255, 37, 81, 0.24), transparent 33%),
-            radial-gradient(circle at 78% 22%, rgba(70, 136, 255, 0.2), transparent 33%);
+        border: 1px solid rgba(var(--team-b-rgb), 0.18);
+        background: linear-gradient(180deg, rgba(16, 17, 40, 0.3), rgba(6, 10, 21, 0.72)), radial-gradient(circle at 25% 24%, rgba(var(--team-a-rgb), 0.22), transparent 33%), radial-gradient(circle at 78% 22%, rgba(var(--team-b-rgb), 0.20), transparent 33%);
         padding: clamp(0.85rem, 2vw, 1.15rem);
     }
 
@@ -407,14 +456,9 @@
         min-height: 100%;
         overflow: hidden;
         border-radius: 1.2rem;
-        border: 1px solid rgba(164, 182, 255, 0.24);
-        background:
-            linear-gradient(135deg, rgba(255, 61, 95, 0.14), rgba(89, 127, 255, 0.14)),
-            rgba(8, 11, 21, 0.88);
-        box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-            0 0 0 1px rgba(148, 163, 255, 0.08),
-            0 24px 60px rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(var(--team-b-rgb), 0.24);
+        background: linear-gradient(135deg, rgba(var(--team-a-rgb), 0.14), rgba(var(--team-b-rgb), 0.14)), rgba(8, 11, 21, 0.88);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 0 1px rgba(var(--team-b-rgb), 0.08), 0 24px 60px rgba(0, 0, 0, 0.35);
         isolation: isolate;
     }
 
@@ -426,17 +470,13 @@
     }
 
     .token-arena-visual__frame-glow {
-        background:
-            linear-gradient(90deg, rgba(255, 56, 102, 0.2), transparent 26%, transparent 74%, rgba(66, 129, 255, 0.2)),
-            radial-gradient(circle at top left, rgba(255, 61, 95, 0.24), transparent 28%),
-            radial-gradient(circle at top right, rgba(75, 135, 255, 0.24), transparent 28%);
+        background: linear-gradient(90deg, rgba(var(--team-a-rgb), 0.20), transparent 26%, transparent 74%, rgba(var(--team-b-rgb), 0.20)), radial-gradient(circle at top left, rgba(var(--team-a-rgb), 0.24), transparent 28%), radial-gradient(circle at top right, rgba(var(--team-b-rgb), 0.24), transparent 28%);
         mix-blend-mode: screen;
         z-index: 1;
     }
 
     .token-arena-visual__overlay {
-        background:
-            linear-gradient(180deg, rgba(5, 8, 17, 0.08) 0%, rgba(5, 8, 17, 0) 22%, rgba(5, 8, 17, 0.18) 100%);
+        background: linear-gradient(180deg, rgba(5, 8, 17, 0.08) 0%, rgba(5, 8, 17, 0) 22%, rgba(5, 8, 17, 0.18) 100%);
         z-index: 3;
     }
 
@@ -449,9 +489,7 @@
         min-height: 390px;
         object-fit: contain;
         object-position: center;
-        filter:
-            drop-shadow(0 0 24px rgba(255, 61, 95, 0.18))
-            drop-shadow(0 0 28px rgba(81, 129, 255, 0.18));
+        filter: drop-shadow(0 0 24px rgba(var(--team-a-rgb), 0.18)) drop-shadow(0 0 28px rgba(var(--team-b-rgb), 0.18));
     }
 
     .token-arena-contract {
@@ -477,34 +515,34 @@
         gap: 1rem;
     }
 
-    .token-arena-card__head h3,
-    .token-arena-footer h3 {
-        margin: 0;
-        color: #f4f7ff;
-        font-size: clamp(1.2rem, 2vw, 1.55rem);
-    }
+        .token-arena-card__head h3,
+        .token-arena-footer h3 {
+            margin: 0;
+            color: #f4f7ff;
+            font-size: clamp(1.2rem, 2vw, 1.55rem);
+        }
 
     .token-arena-market-status {
         display: grid;
         gap: 0.2rem;
         padding: 0.9rem 1rem;
         border-radius: 1rem;
-        border: 1px solid rgba(156, 177, 255, 0.16);
+        border: 1px solid rgba(var(--team-b-rgb), 0.16);
         background: rgba(8, 12, 23, 0.64);
     }
 
-    .token-arena-market-status strong {
-        color: #f6f8ff;
-    }
+        .token-arena-market-status strong {
+            color: #f6f8ff;
+        }
 
-    .token-arena-market-status span {
-        color: rgba(214, 223, 255, 0.76);
-        line-height: 1.55;
-    }
+        .token-arena-market-status span {
+            color: rgba(214, 223, 255, 0.76);
+            line-height: 1.55;
+        }
 
     .token-arena-market-status--fallback {
-        border-color: rgba(255, 191, 116, 0.2);
-        background: linear-gradient(135deg, rgba(255, 164, 63, 0.08), rgba(255, 110, 74, 0.04));
+        border-color: rgba(var(--team-a-rgb), 0.22);
+        background: linear-gradient(135deg, rgba(var(--team-a-rgb), 0.08), rgba(255, 110, 74, 0.04));
     }
 
     .token-arena-market-status--error {
@@ -519,8 +557,8 @@
         margin-top: 0.3rem;
         padding: 0.38rem 0.7rem;
         border-radius: 999px;
-        border: 1px solid rgba(255, 194, 110, 0.22);
-        background: rgba(255, 182, 72, 0.08);
+        border: 1px solid rgba(var(--team-a-rgb), 0.28);
+        background: rgba(var(--team-a-rgb), 0.10);
         color: #ffd597;
         font-size: 0.8rem;
         font-weight: 700;
@@ -531,7 +569,7 @@
         margin-top: 0;
         padding: 1rem 1.1rem;
         border-radius: 1rem;
-        border: 1px solid rgba(175, 191, 255, 0.18);
+        border: 1px solid rgba(var(--team-b-rgb), 0.18);
         background: rgba(7, 11, 21, 0.64);
         color: #eef2ff;
         font-family: Consolas, "Courier New", monospace;
@@ -545,19 +583,37 @@
         gap: 0.9rem;
     }
 
+        .token-arena-contract__meta article,
+        .token-arena-stat {
+            padding: 1rem;
+            border-radius: 1rem;
+            background: rgba(6, 10, 20, 0.6);
+            border: 1px solid rgba(var(--team-b-rgb), 0.14);
+        }
+
+            .token-arena-contract__meta span,
+            .token-arena-stat small {
+                display: block;
+                color: rgba(204, 215, 255, 0.7);
+                font-size: 0.9rem;
+            }
+
+            .token-arena-contract__meta strong,
+            .token-arena-stat strong {
+                display: block;
+                margin-top: 0.45rem;
+                color: #ffffff;
+                font-size: clamp(1.05rem, 1.8vw, 1.4rem);
+            }
+
     .token-arena-qr {
         display: grid;
         align-content: start;
         gap: 0.9rem;
         padding: 1rem;
-        background:
-            linear-gradient(160deg, rgba(36, 10, 18, 0.92), rgba(14, 11, 28, 0.96)),
-            linear-gradient(135deg, rgba(255, 57, 103, 0.18), rgba(88, 120, 255, 0.14));
-        border-color: rgba(255, 109, 151, 0.22);
-        box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-            0 18px 40px rgba(0, 0, 0, 0.28),
-            0 0 40px rgba(255, 76, 121, 0.08);
+        background: linear-gradient(160deg, rgba(36, 20, 5, 0.92), rgba(8, 22, 24, 0.96)), linear-gradient(135deg, rgba(var(--team-a-rgb), 0.18), rgba(var(--team-b-rgb), 0.14));
+        border-color: rgba(var(--team-a-rgb), 0.24);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset, 0 18px 40px rgba(0, 0, 0, 0.28), 0 0 40px rgba(var(--team-a-rgb), 0.08);
     }
 
     .token-arena-qr__code-shell {
@@ -565,10 +621,8 @@
         place-items: center;
         padding: 0.85rem;
         border-radius: 1rem;
-        background:
-            linear-gradient(135deg, rgba(255, 68, 111, 0.16), rgba(94, 118, 255, 0.14)),
-            rgba(7, 10, 18, 0.86);
-        border: 1px solid rgba(178, 185, 255, 0.16);
+        background: linear-gradient(135deg, rgba(var(--team-a-rgb), 0.16), rgba(var(--team-b-rgb), 0.14)), rgba(7, 10, 18, 0.86);
+        border: 1px solid rgba(var(--team-b-rgb), 0.16);
     }
 
     .token-arena-qr__image {
@@ -578,9 +632,7 @@
         border-radius: 0.8rem;
         background: #ffffff;
         object-fit: cover;
-        box-shadow:
-            0 10px 25px rgba(0, 0, 0, 0.26),
-            0 0 24px rgba(255, 79, 121, 0.1);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.26), 0 0 24px rgba(var(--team-a-rgb), 0.1);
     }
 
     .token-arena-qr__copy {
@@ -588,29 +640,6 @@
         color: rgba(232, 236, 255, 0.78);
         line-height: 1.55;
         font-size: 0.95rem;
-    }
-
-    .token-arena-contract__meta article,
-    .token-arena-stat {
-        padding: 1rem;
-        border-radius: 1rem;
-        background: rgba(6, 10, 20, 0.6);
-        border: 1px solid rgba(163, 182, 255, 0.14);
-    }
-
-    .token-arena-contract__meta span,
-    .token-arena-stat small {
-        display: block;
-        color: rgba(204, 215, 255, 0.7);
-        font-size: 0.9rem;
-    }
-
-    .token-arena-contract__meta strong,
-    .token-arena-stat strong {
-        display: block;
-        margin-top: 0.45rem;
-        color: #ffffff;
-        font-size: clamp(1.05rem, 1.8vw, 1.4rem);
     }
 
     .token-arena-stats {
@@ -623,14 +652,14 @@
         min-height: 150px;
     }
 
-    .token-arena-stat strong {
-        font-size: clamp(1.4rem, 2.1vw, 1.95rem);
-    }
+        .token-arena-stat strong {
+            font-size: clamp(1.4rem, 2.1vw, 1.95rem);
+        }
 
     .token-arena-skeleton {
         display: block;
         border-radius: 999px;
-        background: linear-gradient(90deg, rgba(34, 43, 72, 0.55), rgba(86, 103, 161, 0.35), rgba(34, 43, 72, 0.55));
+        background: linear-gradient(90deg, rgba(var(--team-a-rgb), 0.12), rgba(var(--team-b-rgb), 0.14), rgba(var(--team-a-rgb), 0.12));
         background-size: 220% 100%;
         animation: tokenArenaShimmer 1.8s linear infinite;
     }
@@ -675,25 +704,25 @@
         list-style: none;
     }
 
-    .token-arena-list li {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 0.9rem;
-        align-items: start;
-        padding: 0.95rem 1rem;
-        border-radius: 1rem;
-        background: rgba(7, 12, 22, 0.62);
-        border: 1px solid rgba(150, 167, 255, 0.14);
-    }
+        .token-arena-list li {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.9rem;
+            align-items: start;
+            padding: 0.95rem 1rem;
+            border-radius: 1rem;
+            background: rgba(7, 12, 22, 0.62);
+            border: 1px solid rgba(var(--team-b-rgb), 0.14);
+        }
 
-    .token-arena-list strong {
-        color: #f6f7ff;
-    }
+        .token-arena-list strong {
+            color: #f6f7ff;
+        }
 
-    .token-arena-list p {
-        margin-top: 0.35rem;
-        font-size: 0.96rem;
-    }
+        .token-arena-list p {
+            margin-top: 0.35rem;
+            font-size: 0.96rem;
+        }
 
     .token-arena-list__icon {
         display: inline-flex;
@@ -703,28 +732,40 @@
         height: 2.8rem;
         padding-inline: 0.35rem;
         border-radius: 999px;
-        color: #89fff0;
+        color: #ffffff;
         font-size: 0.82rem;
         font-weight: 900;
-        background: linear-gradient(135deg, rgba(255, 50, 96, 0.18), rgba(97, 83, 255, 0.22));
-        border: 1px solid rgba(136, 176, 255, 0.18);
+        border: 1px solid rgba(255,255,255,0.16);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 0 18px rgba(0,0,0,0.22);
+    }
+
+    .token-arena-list__icon--team-a {
+        background: linear-gradient(135deg, rgba(var(--team-a-rgb), 0.34), rgba(var(--team-a-rgb), 0.16));
+        border-color: rgba(var(--team-a-rgb), 0.34);
+        box-shadow: 0 0 18px rgba(var(--team-a-rgb), 0.12), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .token-arena-list__icon--team-b {
+        background: linear-gradient(135deg, rgba(var(--team-b-rgb), 0.34), rgba(var(--team-b-rgb), 0.16));
+        border-color: rgba(var(--team-b-rgb), 0.34);
+        box-shadow: 0 0 18px rgba(var(--team-b-rgb), 0.12), inset 0 1px 0 rgba(255,255,255,0.08);
     }
 
     .token-arena-notice {
         margin-top: 1.2rem;
         padding: 1rem 1.05rem;
         border-radius: 1rem;
-        border: 1px solid rgba(255, 173, 78, 0.24);
-        background: linear-gradient(135deg, rgba(255, 154, 44, 0.08), rgba(255, 70, 70, 0.06));
+        border: 1px solid rgba(var(--team-a-rgb), 0.26);
+        background: linear-gradient(135deg, rgba(var(--team-a-rgb), 0.08), rgba(var(--team-b-rgb), 0.04));
     }
 
-    .token-arena-notice strong {
-        color: #ffbf73;
-    }
+        .token-arena-notice strong {
+            color: #ffbd5a;
+        }
 
-    .token-arena-notice p {
-        margin-top: 0.45rem;
-    }
+        .token-arena-notice p {
+            margin-top: 0.45rem;
+        }
 
     .token-arena-footer {
         display: flex;
@@ -819,7 +860,7 @@
 </style>
 
 @code {
-    private const string HeroImagePath = "/images/token/criptoversus-token-arena.png";
+    private const string HeroImagePath = "/images/token/criptoversus-token-arena.jpg";
 
     private static readonly string[] StatKeyOrder =
     [
@@ -848,6 +889,7 @@
     private string QrCodeUrl => $"https://api.qrserver.com/v1/create-qr-code/?size=320x320&data={Uri.EscapeDataString(PumpFunUrl)}";
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
     private TokenMarketSnapshot? MarketSnapshot => _marketResult?.Snapshot;
+
     private string MarketStatusCssClass
         => _marketLoading
             ? string.Empty
@@ -856,12 +898,15 @@
                 : _marketResult?.HasError == true
                     ? "token-arena-market-status--fallback"
                     : _marketResult?.IsFallback == true
-                    ? "token-arena-market-status--fallback"
-                    : string.Empty;
+                        ? "token-arena-market-status--fallback"
+                        : string.Empty;
+
     private bool ShowNotIndexedBadge
         => !_marketLoading && (IsUnavailableSource || string.Equals(MarketSnapshot?.Source, "fallback", StringComparison.OrdinalIgnoreCase));
+
     private bool IsUnavailableSource
         => string.Equals(MarketSnapshot?.Source, "unavailable", StringComparison.OrdinalIgnoreCase);
+
     private string MarketStatusTitle
         => _marketLoading
             ? L.T("token.market.loadingTitle", CurrentCulture)
@@ -869,9 +914,10 @@
                 ? L.T("token.market.unavailableTitle", CurrentCulture)
                 : _marketResult?.HasError == true
                     ? L.T("token.market.fallbackTitle", CurrentCulture)
-                : _marketResult?.IsFallback == true
-                    ? L.T("token.market.fallbackTitle", CurrentCulture)
-                    : L.T("token.market.liveTitle", CurrentCulture);
+                    : _marketResult?.IsFallback == true
+                        ? L.T("token.market.fallbackTitle", CurrentCulture)
+                        : L.T("token.market.liveTitle", CurrentCulture);
+
     private string MarketStatusBody
         => _marketLoading
             ? L.T("token.market.loadingBody", CurrentCulture)
@@ -879,9 +925,9 @@
                 ? L.T("token.market.unavailableBody", CurrentCulture)
                 : _marketResult?.HasError == true
                     ? L.T("token.market.fallbackBody", CurrentCulture)
-                : _marketResult?.IsFallback == true
-                    ? L.T("token.market.fallbackBody", CurrentCulture)
-                    : L.T("token.market.liveBody", CurrentCulture, FormatUpdatedAt(MarketSnapshot?.UpdatedAtUtc));
+                    : _marketResult?.IsFallback == true
+                        ? L.T("token.market.fallbackBody", CurrentCulture)
+                        : L.T("token.market.liveBody", CurrentCulture, FormatUpdatedAt(MarketSnapshot?.UpdatedAtUtc));
 
     protected override async Task OnInitializedAsync()
     {
@@ -984,11 +1030,13 @@
     private CultureInfo ResolveCulture()
         => CultureInfo.GetCultureInfo(AppCulture.ToCultureCode(CurrentCulture));
 
-    private string BuildAbsolute(string path) => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
+    private string BuildAbsolute(string path)
+        => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
 
     private string BuildStructuredDataMarkup()
     {
         var snapshot = MarketSnapshot ?? TokenMarketService.CreateFallbackSnapshot();
+
         var data = new Dictionary<string, object?>
         {
             ["@context"] = "https://schema.org",
