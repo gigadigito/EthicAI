@@ -133,7 +133,7 @@
                     <div class="home-hot-hero__scoreboard">
                         <div class="home-hot-hero__team">
                             <img class="home-hot-hero__logo"
-                                 src="@hero.HomeLogoUrl"
+                                 src="@GetCoinIconUrl(hero.TeamA)"
                                  width="56"
                                  height="56"
                                  alt="@hero.HomeSymbol"
@@ -148,9 +148,9 @@
                         <div class="home-hot-hero__center">
                             <small>@GetMatchClockLabel(hero)</small>
                             <div class="arena-scoreboard arena-scoreboard--featured">
-                                <strong>@hero.ScoreA</strong>
+                                <strong class="arena-score-number arena-score-number--left">@hero.ScoreA</strong>
                                 <span class="arena-vs-badge">@T("vs")</span>
-                                <strong>@hero.ScoreB</strong>
+                                <strong class="arena-score-number arena-score-number--right">@hero.ScoreB</strong>
                             </div>
                         </div>
 
@@ -160,7 +160,7 @@
                                 <span class="@GetSignedChangeClass(hero.PctB)">@FormatPct(hero.PctB)</span>
                             </div>
                             <img class="home-hot-hero__logo"
-                                 src="@hero.AwayLogoUrl"
+                                 src="@GetCoinIconUrl(hero.TeamB)"
                                  width="56"
                                  height="56"
                                  alt="@hero.AwaySymbol"
@@ -242,9 +242,9 @@
                         <div class="home-hot-hero__center">
                             <small>@GetMatchClockLabel(hero)</small>
                             <div class="arena-scoreboard arena-scoreboard--featured">
-                                <strong>@hero.ScoreA</strong>
+                                <strong class="arena-score-number arena-score-number--left">@hero.ScoreA</strong>
                                 <span class="arena-vs-badge">@T("vs")</span>
-                                <strong>@hero.ScoreB</strong>
+                                <strong class="arena-score-number arena-score-number--right">@hero.ScoreB</strong>
                             </div>
                         </div>
 
@@ -384,9 +384,9 @@
                                 <div class="arena-featured-battle__center">
                                     <span class="arena-status-text">@GetMatchStateLabel(featured)</span>
                                     <div class="arena-scoreboard arena-scoreboard--featured">
-                                        <strong>@featured.ScoreA</strong>
+                                        <strong class="arena-score-number arena-score-number--left">@featured.ScoreA</strong>
                                         <span class="arena-vs-badge">@T("vs")</span>
-                                        <strong>@featured.ScoreB</strong>
+                                        <strong class="arena-score-number arena-score-number--right">@featured.ScoreB</strong>
                                     </div>
                                     <span class="arena-status-subtext">@GetMatchClockLabel(featured)</span>
                                 </div>
@@ -496,9 +496,9 @@
                             <div class="arena-match-card__center">
                                 <span class="arena-vs-badge arena-vs-badge--compact">@T("vs")</span>
                                 <div class="arena-scoreboard arena-scoreboard--card">
-                                    <strong>@match.ScoreA</strong>
+                                    <strong class="arena-score-number arena-score-number--left">@match.ScoreA</strong>
                                     <span>:</span>
-                                    <strong>@match.ScoreB</strong>
+                                    <strong class="arena-score-number arena-score-number--right">@match.ScoreB</strong>
                                 </div>
                             </div>
 
@@ -583,9 +583,9 @@
                         <div class="arena-match-card__center">
                             <span class="arena-vs-badge arena-vs-badge--compact">@T("vs")</span>
                             <div class="arena-scoreboard arena-scoreboard--card">
-                                <strong>@match.ScoreA</strong>
+                                <strong class="arena-score-number arena-score-number--left">@match.ScoreA</strong>
                                 <span>:</span>
-                                <strong>@match.ScoreB</strong>
+                                <strong class="arena-score-number arena-score-number--right">@match.ScoreB</strong>
                             </div>
                         </div>
 
@@ -1869,6 +1869,10 @@
         --team-b-rgb: 24, 216, 210;
     }
 
+        .public-home-arena img[class*="__logo"] {
+            box-sizing: border-box;
+        }
+
     .home-landing {
         width: 100%;
         max-width: min(1880px, calc(100vw - 24px));
@@ -2099,6 +2103,16 @@
         object-fit: contain;
         padding: .3rem;
         flex-shrink: 0;
+    }
+
+    .home-hot-hero__team:not(.home-hot-hero__team--right) .home-hot-hero__logo {
+        border: 2px solid rgba(var(--team-a-rgb), .9);
+        box-shadow: 0 0 0 3px rgba(var(--team-a-rgb), .14), 0 0 22px rgba(var(--team-a-rgb), .22);
+    }
+
+    .home-hot-hero__team--right .home-hot-hero__logo {
+        border: 2px solid rgba(var(--team-b-rgb), .9);
+        box-shadow: 0 0 0 3px rgba(var(--team-b-rgb), .14), 0 0 22px rgba(var(--team-b-rgb), .22);
     }
 
     .home-hot-hero__center {
@@ -2521,6 +2535,18 @@
         flex-shrink: 0;
     }
 
+    .arena-featured-battle__scoreboard > .arena-team-panel:first-child .arena-team-panel__logo,
+    .arena-match-card__team:not(.arena-match-card__team--right) .arena-match-card__logo {
+        border: 2px solid rgba(var(--team-a-rgb), .9);
+        box-shadow: 0 0 0 3px rgba(var(--team-a-rgb), .14), 0 0 22px rgba(var(--team-a-rgb), .2);
+    }
+
+    .arena-featured-battle__scoreboard > .arena-team-panel:last-child .arena-team-panel__logo,
+    .arena-match-card__team--right .arena-match-card__logo {
+        border: 2px solid rgba(var(--team-b-rgb), .9);
+        box-shadow: 0 0 0 3px rgba(var(--team-b-rgb), .14), 0 0 22px rgba(var(--team-b-rgb), .2);
+    }
+
     .arena-team-panel__identity strong,
     .arena-match-card__team-copy strong {
         display: block;
@@ -2564,6 +2590,20 @@
         gap: .8rem;
         font-weight: 900;
         color: #f7fbff;
+    }
+
+
+    .arena-score-number {
+        display: inline-block;
+        text-shadow: 0 0 16px currentColor;
+    }
+
+    .arena-score-number--left {
+        color: var(--team-a-color);
+    }
+
+    .arena-score-number--right {
+        color: var(--team-b-color);
     }
 
     .arena-scoreboard--featured {
