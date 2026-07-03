@@ -1,4 +1,4 @@
-using DAL.NftFutebol;
+﻿using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
@@ -91,6 +91,22 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         var resolvedVoiceKey = ResolveVoiceKey(normalized);
         var template = await ResolveTemplateAsync(normalized, ct);
         var textPrompt = BuildPrompt(normalized, template);
+        if (TextMojibakeRepair.LooksLikeMojibake(textPrompt))
+        {
+            var repairedTextPrompt = TextMojibakeRepair.Normalize(textPrompt);
+            if (!string.Equals(repairedTextPrompt, textPrompt, StringComparison.Ordinal))
+            {
+                _logger.LogWarning(
+                    "Suspicious audio prompt repaired before enqueue. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} OriginalTextPrompt={OriginalTextPrompt} RepairedTextPrompt={RepairedTextPrompt}",
+                    normalized.EventType,
+                    normalized.Language,
+                    normalized.NormalizedSymbol,
+                    normalized.ContextKey,
+                    textPrompt,
+                    repairedTextPrompt);
+                textPrompt = repairedTextPrompt;
+            }
+        }
         var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(textPrompt);
         var textHash = string.IsNullOrWhiteSpace(normalizedText)
             ? null
@@ -429,6 +445,22 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
                     VoiceKey = resolvedVoiceKey
                 },
             template);
+        if (TextMojibakeRepair.LooksLikeMojibake(textPrompt))
+        {
+            var repairedTextPrompt = TextMojibakeRepair.Normalize(textPrompt);
+            if (!string.Equals(repairedTextPrompt, textPrompt, StringComparison.Ordinal))
+            {
+                _logger.LogWarning(
+                    "Suspicious audio prompt repaired before manual test enqueue. EventType={EventType} Language={Language} TeamSymbol={TeamSymbol} ContextKey={ContextKey} OriginalTextPrompt={OriginalTextPrompt} RepairedTextPrompt={RepairedTextPrompt}",
+                    normalized.EventType,
+                    normalized.Language,
+                    normalized.TeamSymbol,
+                    normalized.ContextKey,
+                    textPrompt,
+                    repairedTextPrompt);
+                textPrompt = repairedTextPrompt;
+            }
+        }
         var normalizedText = ProceduralAudioTextDeduplication.NormalizeNarrationText(textPrompt);
         var textHash = string.IsNullOrWhiteSpace(normalizedText)
             ? null
@@ -529,7 +561,7 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
     private static string BuildPrompt(AudioResolveRequest request, AudioPhraseTemplate? template)
     {
         if (!string.IsNullOrWhiteSpace(request.TextPrompt))
-            return request.TextPrompt!;
+            return TextMojibakeRepair.Normalize(request.TextPrompt);
 
         var text = template?.TemplateText
             ?? ProceduralNarrativeText.BuildTextPrompt(
@@ -537,11 +569,13 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
                 request.Language,
                 request.TeamName ?? request.NormalizedSymbol ?? request.TeamSymbol ?? "CriptoVersus");
 
-        return text
+        var resolvedText = text
             .Replace("{TEAM_SYMBOL}", request.NormalizedSymbol ?? request.TeamSymbol ?? "GENERIC", StringComparison.OrdinalIgnoreCase)
             .Replace("{TEAM_NAME}", request.TeamName ?? request.NormalizedSymbol ?? request.TeamSymbol ?? "CriptoVersus", StringComparison.OrdinalIgnoreCase)
             .Replace("{EVENT_TYPE}", request.EventType, StringComparison.OrdinalIgnoreCase)
             .Replace("{LANGUAGE}", request.Language, StringComparison.OrdinalIgnoreCase);
+
+        return TextMojibakeRepair.Normalize(resolvedText);
     }
 
     private static string BuildTargetRelativePath(AudioResolveRequest request)
@@ -644,3 +678,6 @@ public sealed class AudioGenerationQueueService : IAudioGenerationQueueService
         return request.WorkerId;
     }
 }
+
+
+

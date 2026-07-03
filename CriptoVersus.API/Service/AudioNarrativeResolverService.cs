@@ -1,4 +1,4 @@
-using DAL.NftFutebol;
+﻿using DAL.NftFutebol;
 using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
@@ -39,12 +39,26 @@ public sealed class AudioNarrativeResolverService : IAudioNarrativeResolverServi
             currencyNames.CurrencyName,
             currencyNames.CoinProfileName);
 
-        var textPrompt = string.IsNullOrWhiteSpace(request.TextPrompt)
+        var requestedTextPrompt = string.IsNullOrWhiteSpace(request.TextPrompt)
+            ? null
+            : request.TextPrompt.Trim();
+
+        var textPrompt = string.IsNullOrWhiteSpace(requestedTextPrompt)
             ? ProceduralNarrativeText.BuildTextPrompt(
                 request.EventType,
                 request.Language,
                 teamName)
-            : request.TextPrompt!.Trim();
+            : TextMojibakeRepair.Normalize(requestedTextPrompt);
+
+        if (!string.IsNullOrWhiteSpace(requestedTextPrompt)
+            && TextMojibakeRepair.LooksLikeMojibake(requestedTextPrompt)
+            && !string.Equals(requestedTextPrompt, textPrompt, StringComparison.Ordinal))
+        {
+            _logger.LogWarning(
+                "Suspicious audio prompt repaired before normalization. OriginalTextPrompt={OriginalTextPrompt} RepairedTextPrompt={RepairedTextPrompt}",
+                requestedTextPrompt,
+                textPrompt);
+        }
 
         var normalized = AudioRequestNormalizer.Normalize(new AudioResolveRequest
         {
@@ -114,3 +128,5 @@ public sealed class AudioNarrativeResolverService : IAudioNarrativeResolverServi
         return (currencyName, profileName);
     }
 }
+
+

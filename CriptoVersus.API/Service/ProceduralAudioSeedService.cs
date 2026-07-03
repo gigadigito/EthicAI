@@ -1,4 +1,5 @@
-using DAL.NftFutebol;
+﻿using DAL.NftFutebol;
+using DTOs;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,6 +49,8 @@ public sealed class ProceduralAudioSeedService : IProceduralAudioSeedService
 
         foreach (var seed in seeds)
         {
+            seed.TemplateText = TextMojibakeRepair.Normalize(seed.TemplateText);
+
             var current = await _db.AudioPhraseTemplate
                 .FirstOrDefaultAsync(x => x.TemplateKey == seed.TemplateKey, ct);
 
@@ -131,3 +134,9 @@ public sealed class ProceduralAudioSeedService : IProceduralAudioSeedService
         await _db.SaveChangesAsync(ct);
     }
 }
+
+
+
+
+
+

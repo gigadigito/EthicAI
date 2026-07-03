@@ -1,4 +1,4 @@
-using DTOs;
+﻿using DTOs;
 
 namespace CriptoVersus.API.Services;
 
@@ -21,8 +21,8 @@ internal static class AudioRequestNormalizer
             RawSymbol = string.IsNullOrWhiteSpace(request.RawSymbol) ? null : request.RawSymbol.Trim().ToUpperInvariant(),
             NormalizedSymbol = NormalizeTeamSymbol(request.NormalizedSymbol ?? request.TeamSymbol ?? request.RawSymbol),
             TeamSymbol = NormalizeTeamSymbol(request.TeamSymbol ?? request.NormalizedSymbol ?? request.RawSymbol),
-            TeamName = string.IsNullOrWhiteSpace(request.TeamName) ? null : request.TeamName.Trim(),
-            TextPrompt = string.IsNullOrWhiteSpace(request.TextPrompt) ? null : request.TextPrompt.Trim(),
+            TeamName = TextMojibakeRepair.NormalizeOrNull(request.TeamName),
+            TextPrompt = TextMojibakeRepair.NormalizeOrNull(request.TextPrompt),
             ContextKey = NormalizeToken(request.ContextKey),
             Intensity = NormalizeToken(request.Intensity),
             VoiceKey = NormalizeToken(request.VoiceKey),
@@ -31,3 +31,4 @@ internal static class AudioRequestNormalizer
         };
     }
 }
+

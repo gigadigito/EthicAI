@@ -1,4 +1,4 @@
-namespace DTOs;
+﻿namespace DTOs;
 
 public static class ProceduralNarrativeText
 {
@@ -110,3 +110,5 @@ public static class ProceduralNarrativeText
         return false;
     }
 }
+
+

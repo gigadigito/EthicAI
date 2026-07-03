@@ -1,4 +1,4 @@
-using CriptoVersus.API.Services;
+﻿using CriptoVersus.API.Services;
 using EthicAI.EntityModel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -21,14 +21,14 @@ public sealed class AudioNarrativeResolverServiceTests
             NormalizedSymbol = "FIDA",
             TeamSymbol = "FIDA",
             TeamName = "FIDA",
-            TextPrompt = "FIDA mesmo sem posse de bola defende a sua area.",
+            TextPrompt = "PENDLE mesmo sem posse de bola protege bem a sua área.",
             ContextKey = "non_possession_defense",
             Intensity = "normal"
         };
 
         var resolved = await service.ResolveAsync(request, CancellationToken.None);
 
-        Assert.Equal("FIDA mesmo sem posse de bola defende a sua area.", resolved.TextPrompt);
+        Assert.Equal("PENDLE mesmo sem posse de bola protege bem a sua área.", resolved.TextPrompt);
     }
 
     [Fact]
@@ -63,3 +63,4 @@ public sealed class AudioNarrativeResolverServiceTests
         return new EthicAIDbContext(options);
     }
 }
+
