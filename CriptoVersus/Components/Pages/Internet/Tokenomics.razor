@@ -1,7 +1,8 @@
-﻿@rendermode InteractiveServer
+@rendermode InteractiveServer
 @page "/tokenomics"
 @page "/en/how-it-works"
 @page "/pt/como-funciona"
+@page "/zh/how-it-works"
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
@@ -51,7 +52,7 @@
 
     @if (_loading)
     {
-        <p>@(CurrentCulture == "en" ? "Loading protocol rules..." : "Carregando regras do protocolo...")</p>
+        <p>@(IsEnglish ? "Loading protocol rules..." : "Carregando regras do protocolo...")</p>
     }
     else if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -336,7 +337,7 @@
         => string.Equals(_data?.BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
-    private bool IsEnglish => CurrentCulture == "en";
+    private bool IsEnglish => CurrentCulture != "pt";
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus how it works, #CriptoVersus rules, crypto scoring rules";
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, IsEnglish ? "/img/tokenomics-hero-banner-en.png" : "/img/tokenomics-hero-banner.png");
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());

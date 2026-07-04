@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Net.Http.Headers;
 
@@ -10,6 +10,8 @@ public sealed class AppCultureService
     public const string DefaultCultureCode = "en-US";
     public const string SecondaryRouteCulture = "pt";
     public const string SecondaryCultureCode = "pt-BR";
+    public const string TertiaryRouteCulture = "zh";
+    public const string TertiaryCultureCode = "zh-CN";
     public const string PreferenceCookieName = "cv_culture";
 
     public string NormalizeRouteCulture(string? culture)
@@ -22,30 +24,45 @@ public sealed class AppCultureService
         {
             "en" or "en-us" => DefaultRouteCulture,
             "pt" or "pt-br" => SecondaryRouteCulture,
+            "zh" or "zh-cn" or "zh-hans" or "zh-hans-cn" => TertiaryRouteCulture,
             _ => DefaultRouteCulture
         };
     }
 
     public string ToCultureCode(string? culture)
-        => NormalizeRouteCulture(culture) == SecondaryRouteCulture
-            ? SecondaryCultureCode
-            : DefaultCultureCode;
+        => NormalizeRouteCulture(culture) switch
+        {
+            SecondaryRouteCulture => SecondaryCultureCode,
+            TertiaryRouteCulture => TertiaryCultureCode,
+            _ => DefaultCultureCode
+        };
 
     public string ToHtmlLang(string? culture)
         => ToCultureCode(culture);
 
     public string ToHrefLang(string? culture)
-        => NormalizeRouteCulture(culture) == SecondaryRouteCulture
-            ? "pt-BR"
-            : "en-US";
+        => NormalizeRouteCulture(culture) switch
+        {
+            SecondaryRouteCulture => "pt-BR",
+            TertiaryRouteCulture => "zh-CN",
+            _ => "en-US"
+        };
 
     public string ToOgLocale(string? culture)
-        => NormalizeRouteCulture(culture) == SecondaryRouteCulture
-            ? "pt_BR"
-            : "en_US";
+        => NormalizeRouteCulture(culture) switch
+        {
+            SecondaryRouteCulture => "pt_BR",
+            TertiaryRouteCulture => "zh_CN",
+            _ => "en_US"
+        };
 
     public string GetAlternateOgLocale(string? culture)
-        => NormalizeRouteCulture(culture) == SecondaryRouteCulture ? "en_US" : "pt_BR";
+        => NormalizeRouteCulture(culture) switch
+        {
+            SecondaryRouteCulture => "en_US",
+            TertiaryRouteCulture => "en_US",
+            _ => "pt_BR"
+        };
 
     public string GetCurrentRouteCulture(NavigationManager navigationManager)
         => GetRouteCultureFromRelativePath(navigationManager.ToBaseRelativePath(navigationManager.Uri));
@@ -92,7 +109,12 @@ public sealed class AppCultureService
 
         return firstSegment is null
             ? null
-            : firstSegment.Equals("en", StringComparison.OrdinalIgnoreCase) || firstSegment.Equals("pt", StringComparison.OrdinalIgnoreCase)
+            : firstSegment.Equals("en", StringComparison.OrdinalIgnoreCase)
+               || firstSegment.Equals("pt", StringComparison.OrdinalIgnoreCase)
+               || firstSegment.Equals("zh", StringComparison.OrdinalIgnoreCase)
+               || firstSegment.Equals("zh-cn", StringComparison.OrdinalIgnoreCase)
+               || firstSegment.Equals("zh-hans", StringComparison.OrdinalIgnoreCase)
+               || firstSegment.Equals("zh-hans-cn", StringComparison.OrdinalIgnoreCase)
                 ? NormalizeRouteCulture(firstSegment)
                 : null;
     }
@@ -113,6 +135,9 @@ public sealed class AppCultureService
         foreach (var item in rawHeader.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var language = item.Split(';', StringSplitOptions.TrimEntries)[0];
+            if (language.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+                return TertiaryRouteCulture;
+
             if (language.StartsWith("pt", StringComparison.OrdinalIgnoreCase))
                 return SecondaryRouteCulture;
 
@@ -123,3 +148,5 @@ public sealed class AppCultureService
         return null;
     }
 }
+
+

@@ -1,6 +1,7 @@
-﻿@page "/roadmap"
+@page "/roadmap"
 @page "/pt/roadmap"
 @page "/en/roadmap"
+@page "/zh/roadmap"
 @using System.Text.Json
 @using CriptoVersus.Web.Services
 @inject NavigationManager Nav
@@ -664,6 +665,9 @@
 
         if (relativePath.StartsWith("pt/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "pt/roadmap", StringComparison.OrdinalIgnoreCase))
             return "pt";
+
+        if (relativePath.StartsWith("zh/", StringComparison.OrdinalIgnoreCase) || string.Equals(relativePath, "zh/roadmap", StringComparison.OrdinalIgnoreCase))
+            return "zh";
 
         return "en";
     }

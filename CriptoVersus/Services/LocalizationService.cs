@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Globalization;
+using DTOs;
 using Microsoft.Extensions.Logging;
 
 namespace CriptoVersus.Web.Services;
@@ -144,7 +145,7 @@ public sealed class LocalizationService
                 continue;
 
             var cultureCode = segments[1];
-            result[cultureCode] = JsonNode.Parse(File.ReadAllText(filePath));
+            result[cultureCode] = NormalizeJsonNode(JsonNode.Parse(File.ReadAllText(filePath)));
         }
 
         foreach (var filePath in Directory.GetFiles(contentRootPath, "i18n.*.*.json", SearchOption.TopDirectoryOnly))
@@ -159,14 +160,40 @@ public sealed class LocalizationService
             if (!result.TryGetValue(cultureCode, out var root) || root is not JsonObject rootObject)
                 continue;
 
-            var extensionRoot = JsonNode.Parse(File.ReadAllText(filePath));
+            var extensionRoot = NormalizeJsonNode(JsonNode.Parse(File.ReadAllText(filePath)));
             if (extensionRoot is null)
                 continue;
 
-            rootObject[sectionName] = extensionRoot;
+            rootObject[sectionName] = extensionRoot.DeepClone();
         }
 
         return result;
+    }
+
+    private static JsonNode? NormalizeJsonNode(JsonNode? node)
+    {
+        if (node is JsonObject obj)
+        {
+            var normalized = new JsonObject();
+            foreach (var property in obj)
+                normalized[property.Key] = NormalizeJsonNode(property.Value)?.DeepClone();
+
+            return normalized;
+        }
+
+        if (node is JsonArray array)
+        {
+            var normalized = new JsonArray();
+            foreach (var item in array)
+                normalized.Add(NormalizeJsonNode(item)?.DeepClone());
+
+            return normalized;
+        }
+
+        if (node is JsonValue value && value.TryGetValue<string>(out var text) && TextMojibakeRepair.LooksLikeMojibake(text))
+            return JsonValue.Create(TextMojibakeRepair.Normalize(text));
+
+        return node is null ? null : node.DeepClone();
     }
 
     private static DateTime GetResourcesLastWriteUtc(string contentRootPath)

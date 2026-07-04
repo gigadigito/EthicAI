@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using DTOs;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
 
 namespace CriptoVersus.Web.Services;
 
@@ -13,15 +15,21 @@ public sealed class TvArenaCommentaryService
     private readonly LocalizationService _localization;
     private readonly AppCultureService _appCulture;
     private readonly IMemoryCache _cache;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<TvArenaCommentaryService> _logger;
 
     public TvArenaCommentaryService(
         LocalizationService localization,
         AppCultureService appCulture,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IWebHostEnvironment environment,
+        ILogger<TvArenaCommentaryService> logger)
     {
         _localization = localization;
         _appCulture = appCulture;
         _cache = cache;
+        _environment = environment;
+        _logger = logger;
     }
 
     public TvArenaCommentaryResult Generate(TvArenaCommentaryContext context)
@@ -41,6 +49,10 @@ public sealed class TvArenaCommentaryService
                 templates = _localization.GetSection<string[]>("tv.commentary.templates.balanced", culture) ?? [];
 
             var templateIndex = PickTemplateIndex(context, state, category, templates.Length);
+            var sourceKey = templates.Length > 0
+                ? $"tv.commentary.templates.{category}"
+                : "tv.commentary.fallback";
+
             var template = templates.Length > 0
                 ? templates[templateIndex]
                 : _localization.T("tv.commentary.fallback", culture, context.TeamA, context.TeamB);
@@ -72,6 +84,8 @@ public sealed class TvArenaCommentaryService
                 context.Competitiveness,
                 context.ScoreGap,
                 context.EventType);
+
+            LogCommentaryEncodingIfNeeded(culture, sourceKey, text);
 
             var entry = new CommentaryEntry(category, templateIndex, text, context.EventType, DateTime.UtcNow);
             state.LastCategory = category;
@@ -174,6 +188,19 @@ public sealed class TvArenaCommentaryService
 
     private string BuildCacheKey(int matchId, string culture)
         => $"tv-commentary:{matchId}:{culture}";
+
+    private void LogCommentaryEncodingIfNeeded(string culture, string sourceKey, string text)
+    {
+        if (!_environment.IsDevelopment() || !TextMojibakeRepair.LooksLikeMojibake(text))
+            return;
+
+        _logger.LogWarning(
+            "[TV_COMMENTARY_ENCODING] origin=i18n.{Culture}.json key={Key} culture={Culture} text={Text}",
+            culture,
+            sourceKey,
+            culture,
+            text);
+    }
 
     private static string FormatPercent(decimal value)
         => value >= 0m

@@ -1,6 +1,7 @@
 @page "/stats/teams/{Slug}"
 @page "/en/stats/teams/{Slug}"
 @page "/pt/estatisticas/times/{Slug}"
+@page "/zh/stats/teams/{Slug}"
 @using System.Net.Http.Headers
 @using System.Net.Http.Json
 @using System.Globalization
@@ -31,6 +32,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@CanonicalUrl" />
     <meta property="og:title" content="@PageTitleText" />
     <meta property="og:description" content="@MetaDescription" />
@@ -606,6 +608,7 @@
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/stats/teams/{NormalizedSlug}");
 
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/pt/estatisticas/times/{NormalizedSlug}");
+    private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, $"/zh/stats/teams/{NormalizedSlug}");
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
 
     private string StructuredDataMarkup => BuildStructuredDataMarkup();

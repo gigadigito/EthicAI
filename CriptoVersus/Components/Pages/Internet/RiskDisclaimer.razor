@@ -1,5 +1,6 @@
 @page "/en/risk-disclaimer"
 @page "/pt/risk-disclaimer"
+@page "/zh/risk-disclaimer"
 @using System.Text.Json
 @using CriptoVersus.Web.Services
 @inject NavigationManager Nav
@@ -17,6 +18,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
     <meta property="og:title" content="@TitleText" />
     <meta property="og:description" content="@MetaDescription" />
@@ -276,6 +278,7 @@
     private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildRiskDisclaimerPath(CurrentCulture));
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildRiskDisclaimerPath("en"));
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildRiskDisclaimerPath("pt"));
+    private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildRiskDisclaimerPath("zh"));
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
 

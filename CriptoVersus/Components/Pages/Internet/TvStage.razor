@@ -783,11 +783,11 @@ else
     private bool ShouldRenderInitialLoading => IsInitialLoading && !HasLiveMatch;
     private string InitialLoadingTitle => IsPortugueseCulture ? "Carregando arena..." : "Loading arena...";
     private string InitialLoadingSubtitle => IsPortugueseCulture
-        ? "Aguarde enquanto a transmissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o confirma os dados da partida."
+        ? "Aguarde enquanto a transmissão confirma os dados da partida."
         : "Please wait while the broadcast confirms the match data.";
     private string InitialLoadingStepOne => IsPortugueseCulture ? "Sincronizando partida" : "Synchronizing match";
-    private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando grÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ficos e placar" : "Preparing charts and scoreboard";
-    private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o" : "Activating broadcast";
+    private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando gráficos e placar" : "Preparing charts and scoreboard";
+    private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissão" : "Activating broadcast";
     private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") != false;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private TvStageViewportMode ViewportMode
@@ -2158,46 +2158,46 @@ private string GetRandomPirateMessage(string reason, BroadcastCinematicVideoAsse
             "pirate-transmission" =>
             [
                 "Sinal pirata capturado. O feed foi invadido.",
-                    "TransmissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o clandestina no ar. Mantenha os olhos na arena.",
+                    "Transmissão clandestina no ar. Mantenha os olhos na arena.",
                     "Canal comprometido. Uma nova mensagem entrou no sistema."
             ],
             "market-warning" =>
             [
-                "Alerta de mercado. A pressÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ rompendo o painel.",
+                "Alerta de mercado. A pressão está rompendo o painel.",
                     "A volatilidade escalou. Proteja a linha defensiva.",
                     "Sinais extremos detectados. O canal entrou em modo de risco."
             ],
             "villain-message" =>
             [
-                "O arquiteto da arena voltou a falar. Nada aqui ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© aleatÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³rio.",
-                    "A mente por trÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡s do caos assumiu o sinal.",
+                "O arquiteto da arena voltou a falar. Nada aqui é aleatório.",
+                    "A mente por trás do caos assumiu o sinal.",
                     "Mensagem hostil recebida. A arena foi observada o tempo inteiro."
             ],
             "meme-coin-event" =>
             [
                 "As meme coins tomaram o palco. A plateia enlouqueceu.",
-                    "O caos dos memes invadiu a transmissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o oficial.",
+                    "O caos dos memes invadiu a transmissão oficial.",
                     "Rali detectado. Os mascotes da cripto querem dominar a arena."
             ],
             "special-event" =>
             [
                 "Evento especial no ar. A arena mudou de estado.",
-                    "SequÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªncia cinemÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡tica acionada. Todos os olhos no centro do campo.",
-                    "Sinal premium detectado. Algo grande estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ prestes a acontecer."
+                    "Sequência cinemática acionada. Todos os olhos no centro do campo.",
+                    "Sinal premium detectado. Algo grande está prestes a acontecer."
             ],
             _ when string.Equals(reason, "initial", StringComparison.Ordinal) =>
             [
-                "O mercado nunca dorme... e hoje, fortunas serÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o reescritas.",
+                "O mercado nunca dorme... e hoje, fortunas serão reescritas.",
                     "A arena desperta. Cada vela pode mudar um imperio.",
-                    "Os sinais estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o vivos. Observe quem domina o prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ximo impacto."
+                    "Os sinais estão vivos. Observe quem domina o próximo impacto."
             ],
             _ =>
             [
                 "Sinal interceptado. Nova batalha detectada.",
-                    "A arena mudou. Observe com atenÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o.",
-                    "A volatilidade estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ subindo. AlguÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©m vai cair.",
-                    "TransmissÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o CriptoVersus retomada.",
-                    "Uma nova guerra de mercado comeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§a agora."
+                    "A arena mudou. Observe com atenção.",
+                    "A volatilidade está subindo. Alguém vai cair.",
+                    "Transmissão CriptoVersus retomada.",
+                    "Uma nova guerra de mercado começa agora."
             ]
         };
 
@@ -3439,8 +3439,8 @@ private static string BuildReplayReason(MatchScoreEventDto scoreEvent)
                 "VolumeWindow" => "Dominou a janela de volume",
                 "VolumeCrossover" => "Virou o volume a favor",
                 "ArenaPressure" => "Pressao de arena convertida",
-                "CandleBattleDominance" => "Abriu domÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­nio no Candle Battle",
-                "CandleBattleLeadChange" => "Abriu domÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­nio no Candle Battle",
+                "CandleBattleDominance" => "Abriu domínio no Candle Battle",
+                "CandleBattleLeadChange" => "Abriu domínio no Candle Battle",
                 _ => "Evento de pontuacao detectado"
             };
 
@@ -3696,7 +3696,7 @@ private IReadOnlyList<TvAvailableMatchCard> BuildAvailableTvMatches()
             FormatStatus(status),
             clockLabel,
             $"{scoreA}:{scoreB}",
-            $"{GetBaseSymbol(leftSymbol)} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ {GetBaseSymbol(rightSymbol)}",
+            $"{GetBaseSymbol(leftSymbol)} • {GetBaseSymbol(rightSymbol)}",
             publicUrl,
             watchUrl,
             (CurrentStageMatchId) == matchId));
@@ -5346,6 +5346,9 @@ private TvArenaNarrativeTextChoice SelectArenaNarrativeText(
         }
     }
 
+    if (best is not null)
+        LogArenaCommentaryEncodingIssue("TvStage.razor:BuildArenaNarrativeTemplates", best.TemplateKey, best.Text, best.Text);
+
     return best is null
         ? new TvArenaNarrativeTextChoice(string.Empty, string.Empty)
         : new TvArenaNarrativeTextChoice(best.Text, best.TemplateKey);
@@ -5376,47 +5379,47 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             {
                 NarrativeBallZone.Defensive => BuildTemplates("offensive-defensive-zone",
                 [
-                    $"{symbol} toca a bola tranquilamente na sua ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea.",
+                    $"{symbol} toca a bola tranquilamente na sua área.",
                         $"{symbol} troca passes no campo defensivo.",
-                        $"{symbol} prefere nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o arriscar e segura a posse atrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡s."
+                        $"{symbol} prefere não arriscar e segura a posse atrás."
                 ]),
                 NarrativeBallZone.Middle => BuildTemplates("offensive-middle-zone",
                 [
                     $"{symbol} trabalha a bola pelo meio da arena.",
-                        $"{symbol} tenta encontrar espaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o entre as linhas.",
-                        $"{symbol} mantÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©m a posse e controla o ritmo."
+                        $"{symbol} tenta encontrar espaço entre as linhas.",
+                        $"{symbol} mantém a posse e controla o ritmo."
                 ]),
                 _ => BuildTemplates("offensive-attack-zone",
                 [
-                    $"{symbol} toca a bola para a ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea inimiga.",
-                        $"{symbol} avanÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§a para o campo adversÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rio.",
-                        $"{symbol} comeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§a a pressionar perto da ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea rival.",
+                    $"{symbol} toca a bola para a área inimiga.",
+                        $"{symbol} avança para o campo adversário.",
+                        $"{symbol} começa a pressionar perto da área rival.",
                         $"{symbol} leva perigo no ataque."
                 ])
             },
             NarrativeEventKind.DefensivePossession => BuildTemplates("defensive-possession",
             [
-                $"{symbol} toca a bola na sua ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea, sem querer arriscar muito.",
-                    $"{symbol} recua a jogada e tenta organizar a saÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­da.",
-                    $"{symbol} prefere manter a posse com seguranÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§a."
+                $"{symbol} toca a bola na sua área, sem querer arriscar muito.",
+                    $"{symbol} recua a jogada e tenta organizar a saída.",
+                    $"{symbol} prefere manter a posse com segurança."
             ]),
             NarrativeEventKind.Dominance => BuildTemplates("dominance",
             [
-                $"A dominÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ncia da bola estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ com {symbol}.",
+                $"A dominância da bola está com {symbol}.",
                     $"{symbol} controla o ritmo da partida neste momento.",
-                    $"{symbol} parece mais confortavel com a posse."
+                    $"{symbol} parece mais confortável com a posse."
             ]),
             NarrativeEventKind.Transition => BuildTemplates("transition",
             [
                 "A bola fica viva no meio da arena.",
-                    "As duas moedas disputam espaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o no campo.",
+                    "As duas moedas disputam espaço no campo.",
                     "O jogo fica equilibrado neste momento."
             ]),
             NarrativeEventKind.PressureGrowth => BuildTemplates("pressure-growth",
             [
-                $"{symbol} aumenta a pressÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o ofensiva.",
+                $"{symbol} aumenta a pressão ofensiva.",
                     $"O time de {symbol} sobe suas linhas.",
-                    $"{symbol} empurra o adversÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rio para trÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡s."
+                    $"{symbol} empurra o adversário para trás."
             ]),
             NarrativeEventKind.PossessionRecovery => BuildTemplates("possession-recovery",
             [
@@ -5426,7 +5429,7 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             ]),
             NarrativeEventKind.Tension => BuildTemplates("tension",
             [
-                "A arena sente o aumento da tensÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o.",
+                "A arena sente o aumento da tensão.",
                     "O confronto fica mais intenso neste momento.",
                     "A torcida virtual acompanha cada movimento."
             ]),
@@ -5434,14 +5437,14 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             {
                 NarrativeBallZone.Defensive => BuildTemplates("non-possession-defensive-zone",
                 [
-                    $"{symbol} mesmo sem posse de bola defende a sua ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea.",
-                        $"{symbol} fecha os espaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§os e tenta impedir o avanÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o adversÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rio.",
-                        $"{symbol} segura a pressÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o perto da sua ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea."
+                    $"{symbol} mesmo sem posse de bola defende a sua área.",
+                        $"{symbol} fecha os espaços e tenta impedir o avanço adversário.",
+                        $"{symbol} segura a pressão perto da sua área."
                 ]),
                 _ => BuildTemplates("non-possession-defense",
                 [
-                    $"{symbol} mesmo sem posse de bola protege bem a sua ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rea.",
-                        $"{symbol} fecha os espaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§os e tenta impedir o avanÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§o adversÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡rio.",
+                    $"{symbol} mesmo sem posse de bola protege bem a sua área.",
+                        $"{symbol} fecha os espaços e tenta impedir o avanço adversário.",
                         $"{symbol} se reorganiza defensivamente."
                 ])
             },
@@ -5456,8 +5459,8 @@ private TvArenaNarrativeTemplate[] BuildArenaNarrativeTemplates(
             NarrativeEventKind.RecoveryAttempt => BuildTemplates("recovery-attempt",
             [
                 $"{symbol} tenta recuperar a posse no campo de defesa.",
-                    $"{symbol} tenta reagir e encurtar os espaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§os.",
-                    $"{symbol} busca retomar o controle mesmo sob pressÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o."
+                    $"{symbol} tenta reagir e encurtar os espaços.",
+                    $"{symbol} busca retomar o controle mesmo sob pressão."
             ]),
             _ => []
         }
@@ -5640,14 +5643,14 @@ private string DescribeNarrativeEventType(NarrativeEventKind type)
             NarrativeEventKind.MatchOpening => "Abertura",
             NarrativeEventKind.OffensivePossession => "Posse ofensiva",
             NarrativeEventKind.DefensivePossession => "Posse defensiva",
-            NarrativeEventKind.Dominance => "DominÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ncia",
-            NarrativeEventKind.Transition => "TransiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o",
-            NarrativeEventKind.PressureGrowth => "PressÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o",
-            NarrativeEventKind.PossessionRecovery => "RecuperaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o",
+            NarrativeEventKind.Dominance => "Dominância",
+            NarrativeEventKind.Transition => "Transição",
+            NarrativeEventKind.PressureGrowth => "Pressão",
+            NarrativeEventKind.PossessionRecovery => "Recuperação",
             NarrativeEventKind.NonPossessionDefense => "Defesa sem posse",
             NarrativeEventKind.ScoreboardNeutral => "Placar",
-            NarrativeEventKind.RecoveryAttempt => "ReaÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o",
-            NarrativeEventKind.Tension => "TensÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o",
+            NarrativeEventKind.RecoveryAttempt => "Reação",
+            NarrativeEventKind.Tension => "Tensão",
             _ => "Arena"
         }
         : type switch
@@ -5822,14 +5825,28 @@ private static NarrativeBallZone ResolveNarrativeBallZone(TvFieldStateDto fieldS
 private string GetArenaCommentaryAccentStyle(string accentHex)
     => $"--commentary-accent:{accentHex};";
 
+private void LogArenaCommentaryEncodingIssue(string origin, string key, string rawText, string finalText)
+{
+    if (!Environment.IsDevelopment() || (!TextMojibakeRepair.LooksLikeMojibake(rawText) && !TextMojibakeRepair.LooksLikeMojibake(finalText)))
+        return;
+
+    Logger.LogWarning(
+        "[TV_COMMENTARY_ENCODING] origin={Origin} culture={Culture} key={Key} rawText={RawText} finalText={FinalText}",
+        origin,
+        Culture,
+        key,
+        rawText,
+        finalText);
+}
+
 private TvStageCommentaryEntryModel MapArenaCommentaryEntry(TvArenaCommentaryEntry entry)
     => new(
         entry.Id,
         entry.MatchId,
         entry.TypeKey,
-        entry.TypeLabel,
+        TextMojibakeRepair.Normalize(entry.TypeLabel),
         entry.MinuteLabel,
-        entry.Text,
+        TextMojibakeRepair.Normalize(entry.Text),
         entry.HighlightSymbol,
         entry.AccentHex,
         entry.Priority,

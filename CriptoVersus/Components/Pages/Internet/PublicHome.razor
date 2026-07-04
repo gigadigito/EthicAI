@@ -1,6 +1,7 @@
 @page "/"
 @page "/en"
 @page "/pt"
+@page "/zh"
 @using Microsoft.AspNetCore.Components
 @using System.Diagnostics
 @using System.Globalization
@@ -28,6 +29,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@HomeRootUrl" />
     <meta property="og:title" content="@SeoTitle" />
     <meta property="og:description" content="@SeoDescription" />
@@ -740,9 +742,15 @@
     private string MetaKeywords => SeoDefaults.GlobalKeywords;
     private string HomeRootUrl => SeoDefaults.BuildPublicBaseUrl(Config, Nav);
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
-    private string CanonicalUrl => CurrentCulture == "pt" ? PortugueseUrl : HomeRootUrl;
+    private string CanonicalUrl => CurrentCulture switch
+    {
+        "pt" => PortugueseUrl,
+        "zh" => ZhUrl,
+        _ => HomeRootUrl
+    };
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en"));
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("pt"));
+    private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("zh"));
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
 
     private IReadOnlyList<string> HeroSemanticHighlights => new[]

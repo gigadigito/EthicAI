@@ -34,7 +34,8 @@ public sealed class MatchRouteRedirectResolver
             return AppendQueryString(routeLocalization.BuildTvBroadcastPath(preferredCulture), queryString);
 
         if (cleanPath.Equals("/en/tv", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/tv", StringComparison.OrdinalIgnoreCase))
         {
             var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
                 ?? preferredCulture;
@@ -47,7 +48,8 @@ public sealed class MatchRouteRedirectResolver
         }
 
         if (cleanPath.Equals("/en/tv/broadcast", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/tv/broadcast", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/tv/broadcast", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/tv/broadcast", StringComparison.OrdinalIgnoreCase))
         {
             var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
                 ?? preferredCulture;
@@ -60,7 +62,8 @@ public sealed class MatchRouteRedirectResolver
         }
 
         if (cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/how-it-works", StringComparison.OrdinalIgnoreCase))
         {
             var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
                 ?? preferredCulture;
@@ -73,7 +76,8 @@ public sealed class MatchRouteRedirectResolver
         }
 
         if (cleanPath.Equals("/en/faq", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/faq", StringComparison.OrdinalIgnoreCase))
         {
             var explicitCulture = appCultureService.TryGetExplicitCultureFromPath(cleanPath)
                 ?? preferredCulture;

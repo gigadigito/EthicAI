@@ -1,5 +1,6 @@
 @page "/en/scoring-rules"
 @page "/pt/scoring-rules"
+@page "/zh/scoring-rules"
 @using System.Text.Json
 @using CriptoVersus.Web.Services
 @inject NavigationManager Nav
@@ -19,6 +20,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
 
     <meta property="og:title" content="@TitleText" />
@@ -764,6 +766,7 @@
     private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath(CurrentCulture));
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath("en"));
     private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath("pt"));
+    private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildScoringRulesPath("zh"));
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
 

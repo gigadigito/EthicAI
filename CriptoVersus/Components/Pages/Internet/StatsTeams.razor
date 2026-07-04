@@ -1,6 +1,7 @@
 @page "/stats/teams"
 @page "/en/stats/teams"
 @page "/pt/estatisticas/times"
+@page "/zh/stats/teams"
 @using System.Globalization
 @using System.Text.Json
 @using DTOs
@@ -21,6 +22,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@CanonicalUrl" />
     <meta property="og:title" content="@PageTitleText" />
     <meta property="og:description" content="@MetaDescription" />
@@ -302,9 +304,10 @@
     private string PageTitleText => T("seo.title");
     private string MetaDescription => T("seo.description");
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus teams, #CriptoVersus teams, crypto team rankings";
-    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/stats/teams");
-    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/stats/teams");
-    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, "/pt/estatisticas/times");
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamsPath(CurrentCulture));
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamsPath("en"));
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamsPath("pt"));
+    private string ZhUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildStatsTeamsPath("zh"));
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
     private string StructuredDataMarkup => BuildStructuredDataMarkup();
     private int TotalBattlesIndexed => _teams.Sum(team => team.Matches) / 2;

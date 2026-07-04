@@ -1,0 +1,605 @@
+﻿{
+  "seo": {
+    "title": "CriptoVersus 常见问题 | 策略竞技场指南",
+    "description": "了解 CriptoVersus 作为游戏化加密货币竞技场的运作方式：仓位、风险、比分、资金池、动量、恐惧指标、波动性以及策略性对战解读。"
+  },
+  "hero": {
+    "eyebrow": "策略理解中心",
+    "title": "CriptoVersus 常见问题",
+    "description": "一份快速策略手册，帮助你解读竞技场、理解仓位、尊重风险，并跟随由市场驱动的对战，而不是把系统当作赌场。",
+    "chipsLabel": "策略主题",
+    "chips": {
+      "strategy": "策略",
+      "risk": "风险",
+      "momentum": "动量",
+      "poolDynamics": "资金池动态",
+      "liveReading": "实时解读"
+    },
+    "cards": {
+      "liveReadingLabel": "实时解读",
+      "liveReadingTitle": "竞技场跟随市场行为",
+      "liveReadingBody": "比分、压力和叙事来自资产之间的相对表现，而不是随机转动。",
+      "riskLabel": "风险",
+      "riskTitle": "波动性依然真实存在",
+      "riskBody": "强势资产也可能输掉一个周期，错误解读也可能随着时间侵蚀资金。",
+      "strategyLabel": "策略",
+      "strategyTitle": "选择阵营前先读懂对战",
+      "strategyBody": "动量、资金池行为、波动性和恐惧情绪都可能改变入场质量。"
+    }
+  },
+  "summary": {
+    "quickStartLabel": "快速开始",
+    "quickStartTitle": "选择一方，而不是相信承诺",
+    "quickStartBody": "开启仓位意味着在一个由市场驱动的竞技场周期中暴露于其中一方。",
+    "marketLogicLabel": "市场逻辑",
+    "marketLogicTitle": "计分板抽象呈现相对表现",
+    "marketLogicBody": "资产看起来像对手，因为系统会把比较性的市场变化转化为压力和比分。",
+    "noPromiseLabel": "没有承诺",
+    "noPromiseTitle": "不存在保证利润",
+    "noPromiseBody": "CriptoVersus 具有策略性，但资产依然会波动，糟糕的仓位选择仍可能造成损失。"
+  },
+  "sections": {
+    "basics": {
+      "eyebrow": "核心问题",
+      "title": "竞技场在实际中如何运作",
+      "description": "为需要快速理解仓位、比分、资金池和风险的新手提供简短回答。"
+    },
+    "deep": {
+      "eyebrow": "深度解读",
+      "title": "高级策略问题",
+      "description": "为希望从市场结构、反转和情绪角度思考的用户提供更概念化的视角。"
+    },
+    "betting": {
+      "eyebrow": "竞技场仓位",
+      "title": "仓位与竞争性敞口",
+      "description": "了解在实时市场对战中，开启仓位、时机选择和重新分配如何运作。"
+    },
+    "score": {
+      "eyebrow": "计分引擎",
+      "title": "计分板如何表现",
+      "description": "理解压力、动量、得分、相对强度和对战走势。"
+    },
+    "wallet": {
+      "eyebrow": "钱包与托管",
+      "title": "钱包和余额如何运作",
+      "description": "了解充值、托管、领取和提现如何与竞技场交互。"
+    },
+    "risk": {
+      "eyebrow": "风险管理",
+      "title": "波动性与敞口",
+      "description": "竞技场具有策略性，但风险、时机和波动性依然真实存在。"
+    },
+    "tv": {
+      "eyebrow": "实时直播",
+      "title": "TV、解说与实时竞技场",
+      "description": "跟随实时对战、AI 解说、公开计分板和动量变化。"
+    },
+    "stats": {
+      "eyebrow": "竞技场情报",
+      "title": "统计与排名",
+      "description": "历史表现、排名、趋势和策略数据层。"
+    }
+  },
+  "structuredData": {
+    "breadcrumbFaq": "常见问题"
+  },
+  "footnote": {
+    "title": "重要背景",
+    "body": "CriptoVersus 是建立在真实资产表现之上的游戏化竞技场。它不是利润承诺，也不应被视为无风险敞口。"
+  },
+  "items": [
+    {
+      "id": "betting-team",
+      "group": "basics",
+      "category": "仓位",
+      "icon": "S",
+      "tone": "green",
+      "question": "押注一个团队是什么意思？",
+      "answer": "在 CriptoVersus 中，一个团队就是实时竞技场中的一个资产阵营。开启仓位意味着在某个周期内对该资产承担策略性敞口，并期待它在驱动对战的指标上优于对手。"
+    },
+    {
+      "id": "score-calculated",
+      "group": "basics",
+      "category": "比分",
+      "icon": "9",
+      "tone": "cyan",
+      "question": "计分板是如何计算的？",
+      "answer": "计分板不是随机的。它来自相对市场行为，并通过已配置的对战规则，把比较表现、压力和事件逻辑转化为分数。"
+    },
+    {
+      "id": "lose-all",
+      "group": "basics",
+      "category": "风险",
+      "icon": "R",
+      "tone": "gold",
+      "question": "我可能损失全部价值吗？",
+      "answer": "你应该假设存在真实风险。根据当前规则以及你的暴露时间，损失可能累积。竞技场围绕重新分配和竞争构建，但波动性仍然是市场波动性。"
+    },
+    {
+      "id": "team-wins",
+      "group": "basics",
+      "category": "结算",
+      "icon": "W",
+      "tone": "green",
+      "question": "如果我的团队获胜会怎样？",
+      "answer": "如果你选择的一方赢得周期，你的仓位可能根据竞技场结算逻辑获得相应收益。具体结果取决于资金池动态、当前规则以及双方的竞争性资金规模。"
+    },
+    {
+      "id": "momentum-meaning",
+      "group": "basics",
+      "category": "解读",
+      "icon": "M",
+      "tone": "purple",
+      "question": "动量是什么意思？",
+      "answer": "动量表示某一方正在主导竞技场节奏。它通常出现在市场压力、得分事件和短期相对表现开始持续偏向某个资产时。"
+    },
+    {
+      "id": "fear-gauge",
+      "group": "basics",
+      "category": "情绪",
+      "icon": "F",
+      "tone": "gold",
+      "question": "Fear Gauge 是什么？",
+      "answer": "Fear Gauge 是一种观察市场压力的情绪指标。它帮助你判断竞技场是否处于恐慌、谨慎或情绪过热状态，而这些都会影响入场看起来是清晰还是危险。"
+    },
+    {
+      "id": "choose-side",
+      "group": "basics",
+      "category": "策略",
+      "icon": "C",
+      "tone": "green",
+      "question": "我该如何选择更好的阵营？",
+      "answer": "关注相对强度，而不只是热度。比较动量、波动性、恐惧情绪、比分压力、周期剩余时间，以及资金池是否拥挤或仍存在低效。"
+    },
+    {
+      "id": "not-casino",
+      "group": "basics",
+      "category": "模型",
+      "icon": "A",
+      "tone": "cyan",
+      "question": "CriptoVersus 是赌场吗？",
+      "answer": "按传统意义来说不是。竞技场是游戏化的，但其机制锚定于真实资产表现和策略解读，而不是纯粹运气或老虎机式随机性。"
+    },
+    {
+      "id": "strategy-exists",
+      "group": "basics",
+      "category": "策略",
+      "icon": "X",
+      "tone": "purple",
+      "question": "这里真的有策略吗？",
+      "answer": "有，但这里的策略意味着更好地解读市场、控制敞口规模并理解周期。它不会消除风险，也不保证正收益。"
+    },
+    {
+      "id": "pools-work",
+      "group": "basics",
+      "category": "资金池",
+      "icon": "P",
+      "tone": "cyan",
+      "question": "资金池如何运作？",
+      "answer": "资金池代表围绕对战形成的竞争性资金结构。它们很重要，因为过薄或过度拥挤的一方会改变结算质量、压力以及竞技场的风险回报特征。"
+    },
+    {
+      "id": "losers-happen",
+      "group": "basics",
+      "category": "结算",
+      "icon": "L",
+      "tone": "gold",
+      "question": "失败的一方会怎样？",
+      "answer": "失败的一方会根据当前规则承担该周期的不利结果。竞技场并不提供神奇保护；糟糕的相对表现可能随着时间减少资金。"
+    },
+    {
+      "id": "redistribution",
+      "group": "basics",
+      "category": "结算",
+      "icon": "D",
+      "tone": "green",
+      "question": "重新分配如何运作？",
+      "answer": "重新分配意味着周期会在双方之间以竞争方式结算，而不是像静态钱包余额那样不变。谁获得价值、谁让出价值，取决于规则、阵营表现和资金池结构。"
+    },
+    {
+      "id": "favorite-underdog",
+      "group": "basics",
+      "category": "策略",
+      "icon": "U",
+      "tone": "purple",
+      "question": "支持热门方还是弱势方更好？",
+      "answer": "没有哪一方天然更好。热门方可能拥有更清晰的趋势确认，而如果市场过度自信，弱势方可能提供更强的反转不对称性。"
+    },
+    {
+      "id": "volatility-match",
+      "group": "basics",
+      "category": "波动性",
+      "icon": "V",
+      "tone": "gold",
+      "question": "对战中的波动性是什么意思？",
+      "answer": "波动性是竞技场中价格变化的强度和不稳定性。高波动会创造机会，但也会让糟糕入场和迟来的反应付出更高代价。"
+    },
+    {
+      "id": "market-influences-score",
+      "group": "basics",
+      "category": "比分",
+      "icon": "G",
+      "tone": "cyan",
+      "question": "市场如何影响计分板？",
+      "answer": "市场是对战的原始素材。相对表现、压力变化和事件规则会把价格行为转化为你看到的比分和动量这一游戏层。"
+    },
+    {
+      "id": "balanced-match",
+      "group": "basics",
+      "category": "解读",
+      "icon": "B",
+      "tone": "green",
+      "question": "什么是均衡对战？",
+      "answer": "均衡对战是指没有一方完全掌控局面。比分接近，压力仍可争夺，走势中的小变化就可能迅速改变叙事。"
+    },
+    {
+      "id": "identify-reversals",
+      "group": "basics",
+      "category": "动量",
+      "icon": "T",
+      "tone": "purple",
+      "question": "如何识别反转？",
+      "answer": "观察领先方压力减弱、比分差距收窄、情绪极端以及短期相对表现转向。反转通常会在计分板完全体现之前就开始。"
+    },
+    {
+      "id": "volume-influences",
+      "group": "basics",
+      "category": "成交量",
+      "icon": "O",
+      "tone": "cyan",
+      "question": "成交量如何影响游戏？",
+      "answer": "成交量有助于判断某次走势是有真实力度，还是只是噪音。流动性薄弱可能制造虚假稳定，而强成交量可以验证压力并让动量更可信。"
+    },
+    {
+      "id": "cycles",
+      "group": "basics",
+      "category": "周期",
+      "icon": "Y",
+      "tone": "green",
+      "question": "周期是什么？",
+      "answer": "周期是竞技场中重复出现的对战窗口。它们定义仓位何时竞争、比分何时影响结算，以及新的策略环境何时开始。"
+    },
+    {
+      "id": "position-persistence",
+      "group": "basics",
+      "category": "仓位",
+      "icon": "H",
+      "tone": "cyan",
+      "question": "仓位持续性如何运作？",
+      "answer": "持续仓位并不是一次点击后立即消失的选择。根据运行规则，它可能在竞技场流程中继续暴露，因此时机和风险管理更加重要。"
+    },
+    {
+      "id": "bet-vs-invest",
+      "group": "basics",
+      "category": "模型",
+      "icon": "I",
+      "tone": "gold",
+      "question": "这里的投注和投资有什么区别？",
+      "answer": "在 CriptoVersus 中，这两个概念通过游戏化市场敞口发生重叠。你并不只是购买一个被动的长期观点；你是在实时竞技场中选择竞争时机和阵营。"
+    },
+    {
+      "id": "rankings",
+      "group": "basics",
+      "category": "排名",
+      "icon": "K",
+      "tone": "purple",
+      "question": "排名如何运作？",
+      "answer": "排名总结了谁在竞技场逻辑中表现更好。它们是有用的背景信息，但不是省去实时解读的捷径。"
+    },
+    {
+      "id": "ai-usage",
+      "group": "basics",
+      "category": "系统",
+      "icon": "N",
+      "tone": "cyan",
+      "question": "系统会使用 AI 吗？",
+      "answer": "竞技场可以使用自动化和解说层，但对战核心仍应通过市场规则、比分形成和可观察的资产行为来理解。"
+    },
+    {
+      "id": "live-follow",
+      "group": "basics",
+      "category": "直播",
+      "icon": "Q",
+      "tone": "green",
+      "question": "我可以实时跟随对战吗？",
+      "answer": "可以。实时计分板、TV 视图和公开对战页面都是体验的一部分，用户可以随着竞技场演化追踪动量、比分和背景。"
+    },
+    {
+      "id": "history-replay",
+      "group": "basics",
+      "category": "历史",
+      "icon": "J",
+      "tone": "purple",
+      "question": "回放和历史记录如何运作？",
+      "answer": "历史层让你回顾已完成的对战、比分行为和公开背景。这很重要，因为复盘压力实际如何释放，有助于提升策略学习。"
+    },
+    {
+      "id": "rival-assets",
+      "group": "deep",
+      "category": "理论",
+      "icon": "Z",
+      "tone": "purple",
+      "question": "为什么两种币可以像对手球队一样表现？",
+      "answer": "因为 CriptoVersus 会把相对市场竞争转化为可读的竞技场结构。这种对抗是一种策略抽象：两个资产在同一周期内争夺表现领先权。"
+    },
+    {
+      "id": "three-bodies",
+      "group": "deep",
+      "category": "理论",
+      "icon": "3",
+      "tone": "gold",
+      "question": "抽象金融三体问题是什么意思？",
+      "answer": "它意味着把混乱的市场交互简化为人类可以阅读的竞争框架。竞技场不会消除复杂性，但会把复杂性压缩成比分、压力、资金池和时机。"
+    },
+    {
+      "id": "momentum-battle",
+      "group": "deep",
+      "category": "动量",
+      "icon": "!",
+      "tone": "green",
+      "question": "什么是动量对战？",
+      "answer": "动量对战是控制权比静态快照更重要的对战。一方也许尚未占据绝对优势，但如果它持续赢得短期走势，竞技场可能迅速倾斜。"
+    },
+    {
+      "id": "market-manipulate",
+      "group": "deep",
+      "category": "风险",
+      "icon": "?",
+      "tone": "gold",
+      "question": "市场会操纵一场对战吗？",
+      "answer": "竞技场继承市场现实，因此扭曲、群体行为和外部冲击都可能影响结果。这就是为什么任何单一信号都不应被视为确定性。"
+    },
+    {
+      "id": "euphoria",
+      "group": "deep",
+      "category": "情绪",
+      "icon": "E",
+      "tone": "cyan",
+      "question": "如何识别过度亢奋？",
+      "answer": "观察单边信心、过度延伸的动量、拥挤仓位以及对坏消息的低容忍度。在竞技场中，亢奋往往在市场开始要求确认之前看起来最强。"
+    },
+    {
+      "id": "fear-opportunity",
+      "group": "deep",
+      "category": "情绪",
+      "icon": "Y",
+      "tone": "green",
+      "question": "极端恐惧会变成机会吗？",
+      "answer": "有时可以。极端恐惧可能造成错误定价和剧烈反弹，但前提是相关一方开始稳定。恐惧本身不是买入信号；它只是背景。"
+    },
+    {
+      "id": "strong-assets-lose",
+      "group": "deep",
+      "category": "相对表现",
+      "icon": "S",
+      "tone": "purple",
+      "question": "为什么强势资产有时也会失败？",
+      "answer": "因为对战是相对的，不是绝对的。如果对手在该周期更强、时机更差，或市场已经计入过多乐观预期，强势资产仍可能失败。"
+    },
+    {
+      "id": "global-events",
+      "group": "deep",
+      "category": "宏观",
+      "icon": "G",
+      "tone": "cyan",
+      "question": "全球事件如何影响对战？",
+      "answer": "宏观冲击、政策新闻、交易所压力和流动性变化都可能迅速重新定价竞技场。全球背景不仅改变方向，也改变节奏、恐惧程度和反转概率。"
+    },
+    {
+      "id": "betting-entry-timing",
+      "group": "betting",
+      "category": "仓位",
+      "icon": "T",
+      "tone": "green",
+      "question": "入场时机重要吗？",
+      "answer": "重要。太晚追入亢奋动量可能带来糟糕的不对称性，而在没有确认时过早进入则可能让你暴露于不必要的波动。"
+    },
+    {
+      "id": "betting-pool-imbalance",
+      "group": "betting",
+      "category": "资金池",
+      "icon": "P",
+      "tone": "cyan",
+      "question": "当一方过度拥挤时会发生什么？",
+      "answer": "过度拥挤的一方可能产生不稳定的风险回报条件。如果太多资金集中在一个方向，反转和重新分配效应可能变得更激烈。"
+    },
+    {
+      "id": "betting-cycle-end",
+      "group": "betting",
+      "category": "结算",
+      "icon": "C",
+      "tone": "gold",
+      "question": "周期结束时会发生什么？",
+      "answer": "周期结束时，竞技场会根据当前结算逻辑、比分行为和重新分配规则，结算双方之间的竞争状态。"
+    },
+    {
+      "id": "betting-side-selection",
+      "group": "betting",
+      "category": "策略",
+      "icon": "S",
+      "tone": "purple",
+      "question": "为什么阵营选择很重要？",
+      "answer": "CriptoVersus 不只是判断市场方向。在竞技场结构中选择相对更强的一方，是最重要的策略决策之一。"
+    },
+    {
+      "id": "score-pressure",
+      "group": "score",
+      "category": "压力",
+      "icon": "!",
+      "tone": "green",
+      "question": "什么是计分板压力？",
+      "answer": "压力指的是某一方正在迫使竞技场节奏向自己倾斜的感觉。它可能在较大比分差完全形成之前就出现。"
+    },
+    {
+      "id": "score-comeback",
+      "group": "score",
+      "category": "动量",
+      "icon": "R",
+      "tone": "purple",
+      "question": "落后的一方可以恢复吗？",
+      "answer": "可以。竞技场是动态的。动量转移、恐惧压缩和相对强度反转都可能彻底改变一场对战的叙事。"
+    },
+    {
+      "id": "score-relative-strength",
+      "group": "score",
+      "category": "相对表现",
+      "icon": "G",
+      "tone": "cyan",
+      "question": "为什么相对强度比绝对价格更重要？",
+      "answer": "因为竞技场比较的是资产之间的相对表现。一个资产即使价格上涨，如果对手上涨得更强，也仍然可能输。"
+    },
+    {
+      "id": "score-goals",
+      "group": "score",
+      "category": "事件",
+      "icon": "9",
+      "tone": "gold",
+      "question": "竞技场中的得分是如何产生的？",
+      "answer": "得分是由已配置的市场事件、比较性走势以及对战规则定义的动量逻辑生成的抽象结果。"
+    },
+    {
+      "id": "wallet-custody",
+      "group": "wallet",
+      "category": "托管",
+      "icon": "W",
+      "tone": "green",
+      "question": "托管如何运作？",
+      "answer": "根据运行模式，竞技场可以使用基于钱包的流程、托管逻辑或混合系统来处理充值、领取和提现。"
+    },
+    {
+      "id": "wallet-withdrawals",
+      "group": "wallet",
+      "category": "提现",
+      "icon": "D",
+      "tone": "cyan",
+      "question": "周期结束后我可以提现吗？",
+      "answer": "如果运行条件允许且你的余额可用，可以根据当前托管模型执行提现。"
+    },
+    {
+      "id": "wallet-phantom",
+      "group": "wallet",
+      "category": "钱包",
+      "icon": "P",
+      "tone": "purple",
+      "question": "我可以使用 Phantom 钱包吗？",
+      "answer": "可以。CriptoVersus 支持现代 Solana 钱包流程，并可根据环境配置与兼容钱包交互。"
+    },
+    {
+      "id": "wallet-security",
+      "group": "wallet",
+      "category": "安全",
+      "icon": "L",
+      "tone": "gold",
+      "question": "我应该信任要求钱包授权的随机链接吗？",
+      "answer": "不应该。请始终仔细核对域名、交易意图和钱包提示。钱包安全仍然是你的责任。"
+    },
+    {
+      "id": "risk-overconfidence",
+      "group": "risk",
+      "category": "心理",
+      "icon": "X",
+      "tone": "gold",
+      "question": "为什么过度自信很危险？",
+      "answer": "市场会惩罚情绪化的确定感。过度自信通常会导致仓位规模不当、入场过晚，以及在竞技场改变方向时拒绝反应。"
+    },
+    {
+      "id": "risk-revenge",
+      "group": "risk",
+      "category": "行为",
+      "icon": "V",
+      "tone": "purple",
+      "question": "什么是报复性仓位？",
+      "answer": "它是通过冲动敞口试图立即弥补损失的情绪化行为。报复性行为通常会增加不稳定性，并降低决策质量。"
+    },
+    {
+      "id": "risk-sizing",
+      "group": "risk",
+      "category": "敞口",
+      "icon": "E",
+      "tone": "green",
+      "question": "为什么敞口规模很重要？",
+      "answer": "即使强判断也可能失败。合理的仓位规模可以防止一个糟糕周期摧毁长期策略生存能力。"
+    },
+    {
+      "id": "risk-volatility-expansion",
+      "group": "risk",
+      "category": "波动性",
+      "icon": "M",
+      "tone": "cyan",
+      "question": "什么是波动性扩张？",
+      "answer": "波动性扩张发生在价格波动强度快速加速时。它可能创造爆发性机会，也可能带来混乱反转。"
+    },
+    {
+      "id": "tv-live-arena",
+      "group": "tv",
+      "category": "直播",
+      "icon": "Q",
+      "tone": "green",
+      "question": "什么是实时竞技场 TV？",
+      "answer": "TV 层把市场竞争转化为可观看的体验，包含计分板、动量、解说和实时对战氛围。"
+    },
+    {
+      "id": "tv-ai-commentary",
+      "group": "tv",
+      "category": "AI",
+      "icon": "A",
+      "tone": "purple",
+      "question": "AI 解说如何运作？",
+      "answer": "AI 解说会解读市场事件、动量变化和比分行为，并生成叙事风格的对战报道。"
+    },
+    {
+      "id": "tv-hot-matches",
+      "group": "tv",
+      "category": "动量",
+      "icon": "H",
+      "tone": "gold",
+      "question": "什么会让一场对战变热？",
+      "answer": "热门对战通常结合了强烈动量波动、比分压力、群体情绪行为和快速竞争变化。"
+    },
+    {
+      "id": "tv-public-matches",
+      "group": "tv",
+      "category": "可见性",
+      "icon": "B",
+      "tone": "cyan",
+      "question": "对战可以公开查看吗？",
+      "answer": "可以。公开对战页面、计分板和 TV 视图都是竞技场体验的一部分。"
+    },
+    {
+      "id": "stats-history",
+      "group": "stats",
+      "category": "历史",
+      "icon": "J",
+      "tone": "green",
+      "question": "为什么历史分析很重要？",
+      "answer": "回顾过去对战有助于识别重复出现的动量结构、反转行为和策略错误。"
+    },
+    {
+      "id": "stats-rankings",
+      "group": "stats",
+      "category": "排名",
+      "icon": "K",
+      "tone": "purple",
+      "question": "排名能预测未来赢家吗？",
+      "answer": "不一定。排名总结的是过去的相对表现，但当动量转移时，竞技场可能迅速变化。"
+    },
+    {
+      "id": "stats-pressure-reading",
+      "group": "stats",
+      "category": "压力",
+      "icon": "F",
+      "tone": "cyan",
+      "question": "压力数据能改善决策吗？",
+      "answer": "压力读数可以帮助判断某次走势是否有真实力度，或者市场内部是否正在走弱。"
+    },
+    {
+      "id": "stats-cycle-patterns",
+      "group": "stats",
+      "category": "周期",
+      "icon": "Y",
+      "tone": "gold",
+      "question": "周期会重复行为模式吗？",
+      "answer": "市场经常重复情绪结构。虽然没有两个周期完全相同，但随着时间推移，重复的压力和动量模式可能会出现。"
+    }
+  ]
+}

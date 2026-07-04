@@ -1,4 +1,4 @@
-using DTOs;
+﻿using DTOs;
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -38,11 +38,14 @@ public sealed class MatchSeoService
         =>
         [
             new AlternateLink(
+                _routeLocalization.GetHrefLang("en"),
+                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("en", id, slug))),
+            new AlternateLink(
                 _routeLocalization.GetHrefLang("pt"),
                 SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("pt", id, slug))),
             new AlternateLink(
-                _routeLocalization.GetHrefLang("en"),
-                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("en", id, slug)))
+                _routeLocalization.GetHrefLang("zh"),
+                SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildLocalizedPath("zh", id, slug)))
         ];
 
     public string BuildTitle(MatchDto match, string? culture)
@@ -390,3 +393,4 @@ public enum MatchSeoStatus
     Ongoing,
     Completed
 }
+

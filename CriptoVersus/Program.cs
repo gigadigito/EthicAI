@@ -197,6 +197,18 @@ app.MapMethods("/sitemap-matches-pt.xml", ["GET", "HEAD"], async (HttpContext ht
     return Results.Content(xml, "application/xml; charset=utf-8");
 });
 
+app.MapMethods("/sitemap-matches-zh.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
+{
+    var xml = await sitemapService.GetMatchSitemapXmlAsync("zh", ct);
+    httpContext.Response.ContentType = "application/xml; charset=utf-8";
+    httpContext.Response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(xml);
+
+    if (HttpMethods.IsHead(httpContext.Request.Method))
+        return Results.Empty;
+
+    return Results.Content(xml, "application/xml; charset=utf-8");
+});
+
 app.MapGet("/robots.txt", async (SitemapService sitemapService, CancellationToken ct) =>
 {
     var content = await sitemapService.GetRobotsTxtAsync(ct);

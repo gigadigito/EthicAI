@@ -1206,24 +1206,24 @@
     "structuredDataAbstract": "CriptoVersus e uma arena gamificada de visualizacao de dados de mercado com selecao de lado, placar da partida, simulacoes publicas e analise educacional guiada pelo desempenho real de mercado.",
     "faq": {
       "onlyScoreboard": {
-      "question": "O CriptoVersus e apenas um placar de criptomoedas?",
-      "answer": "Nao. O CriptoVersus e uma arena gamificada de visualizacao de dados de mercado para analise, educacao e entretenimento. Usuarios escolhem um lado em simulacoes ao vivo, acompanham match pools e revisam sinais publicos de mercado. Nao e aconselhamento financeiro nem previsao de preco futuro."
+        "question": "O CriptoVersus e apenas um placar de criptomoedas?",
+        "answer": "Nao. O CriptoVersus e uma arena gamificada de visualizacao de dados de mercado para analise, educacao e entretenimento. Usuarios escolhem um lado em simulacoes ao vivo, acompanham match pools e revisam sinais publicos de mercado. Nao e aconselhamento financeiro nem previsao de preco futuro."
       },
       "openPositions": {
-      "question": "Usuarios podem escolher lados nas batalhas?",
-      "answer": "Sim. Usuarios podem escolher um lado em uma simulacao da arena ao vivo enquanto o ciclo guiado pelo mercado esta ativo. Essa escolha serve para participacao e analise, nao como aconselhamento financeiro."
+        "question": "Usuarios podem escolher lados nas batalhas?",
+        "answer": "Sim. Usuarios podem escolher um lado em uma simulacao da arena ao vivo enquanto o ciclo guiado pelo mercado esta ativo. Essa escolha serve para participacao e analise, nao como aconselhamento financeiro."
       },
       "arenaPools": {
-      "question": "Como funcionam os match pools da arena?",
-      "answer": "Cada lado concentra participantes em um match pool. Esses pools evoluem durante a arena ao vivo, respondem ao desempenho real de mercado e alimentam a logica de placar usada na liquidacao. Sao visuais e educacionais, nao produtos de investimento."
+        "question": "Como funcionam os match pools da arena?",
+        "answer": "Cada lado concentra participantes em um match pool. Esses pools evoluem durante a arena ao vivo, respondem ao desempenho real de mercado e alimentam a logica de placar usada na liquidacao. Sao visuais e educacionais, nao produtos de investimento."
       },
       "cyclicalPools": {
         "question": "O que sao match pools ciclicos?",
         "answer": "Match pools ciclicos sao camadas recorrentes de participacao na arena que reconectam a selecao de lado ao longo de varios ciclos de batalha, em vez de tratar cada partida como um placar isolado."
       },
       "rewardDistribution": {
-      "question": "Como os placares e resultados sao distribuídos?",
-      "answer": "Os placares e resultados sao definidos de acordo com a regra ativa da partida, a performance de cada lado, a composicao dos pools e a logica de liquidacao que transforma o mercado ao vivo em resultado competitivo de arena. Eles nao garantem movimento futuro de preco nem lucro."
+        "question": "Como os placares e resultados sao distribuídos?",
+        "answer": "Os placares e resultados sao definidos de acordo com a regra ativa da partida, a performance de cada lado, a composicao dos pools e a logica de liquidacao que transforma o mercado ao vivo em resultado competitivo de arena. Eles nao garantem movimento futuro de preco nem lucro."
       },
       "battleCycle": {
         "question": "Como funciona o ciclo de uma batalha?",
@@ -2033,13 +2033,28 @@
     }
   },
   "statsMatches": {
-    "seo": { "title": "Estatisticas de Partidas CriptoVersus", "description": "Explore partidas publicas, filtre por status e acompanhe resultados por ativo na arena." },
-    "hero": { "eyebrow": "Hub publico de partidas", "title": "Stats Matches", "subtitle": "Busque batalhas publicas, revise placares recentes e compare resultados por moeda.", "backToStats": "Voltar para stats", "openTeams": "Abrir times" },
+    "seo": {
+      "title": "Estatisticas de Partidas CriptoVersus",
+      "description": "Explore partidas publicas, filtre por status e acompanhe resultados por ativo na arena."
+    },
+    "hero": {
+      "eyebrow": "Hub publico de partidas",
+      "title": "Stats Matches",
+      "subtitle": "Busque batalhas publicas, revise placares recentes e compare resultados por moeda.",
+      "backToStats": "Voltar para stats",
+      "openTeams": "Abrir times"
+    },
     "filters": {
       "searchLabel": "Buscar por moeda ou time",
       "searchPlaceholder": "BTC, ETH, STRAX, TON...",
       "statusLabel": "Status",
-      "status": { "all": "Todos", "ongoing": "Ao vivo", "completed": "Finalizadas", "pending": "Pendentes", "cancelled": "Canceladas" }
+      "status": {
+        "all": "Todos",
+        "ongoing": "Ao vivo",
+        "completed": "Finalizadas",
+        "pending": "Pendentes",
+        "cancelled": "Canceladas"
+      }
     },
     "states": {
       "loadingTitle": "Carregando partidas publicas",
@@ -2049,26 +2064,63 @@
       "emptyTitle": "Nenhuma partida encontrada",
       "emptyBody": "Tente outro ativo, time ou filtro de status."
     },
-    "summary": { "totalMatches": "Partidas totais", "completed": "Finalizadas", "live": "Ao vivo", "assets": "Ativos rastreados" },
+    "summary": {
+      "totalMatches": "Partidas totais",
+      "completed": "Finalizadas",
+      "live": "Ao vivo",
+      "assets": "Ativos rastreados"
+    },
     "matches": {
       "eyebrow": "Arquivo recente",
       "title": "Ultimas partidas publicas",
       "description": "Abra qualquer pagina de partida e revise os placares publicos mais recentes.",
       "openMatch": "Abrir partida",
-      "columns": { "match": "Partida", "score": "Placar", "status": "Status", "date": "Data", "link": "Link" }
+      "columns": {
+        "match": "Partida",
+        "score": "Placar",
+        "status": "Status",
+        "date": "Data",
+        "link": "Link"
+      }
     },
     "teams": {
       "eyebrow": "Desempenho por ativo",
       "title": "Vitorias, derrotas e empates por ativo",
       "description": "Resumo publico por ativo com base no conjunto de partidas atualmente filtrado.",
-      "columns": { "asset": "Ativo", "matches": "Partidas", "wins": "Vitorias", "draws": "Empates", "losses": "Derrotas", "goals": "Gols", "winRate": "Aproveitamento" }
+      "columns": {
+        "asset": "Ativo",
+        "matches": "Partidas",
+        "wins": "Vitorias",
+        "draws": "Empates",
+        "losses": "Derrotas",
+        "goals": "Gols",
+        "winRate": "Aproveitamento"
+      }
     },
-    "status": { "completed": "Finalizada", "ongoing": "Ao vivo", "pending": "Pendente", "cancelled": "Cancelada", "unknown": "Desconhecido" }
+    "status": {
+      "completed": "Finalizada",
+      "ongoing": "Ao vivo",
+      "pending": "Pendente",
+      "cancelled": "Cancelada",
+      "unknown": "Desconhecido"
+    }
   },
   "statsRankings": {
-    "seo": { "title": "Rankings CriptoVersus", "description": "Compare rankings publicos por vitorias, aproveitamento, gols e invencibilidade." },
-    "hero": { "eyebrow": "Hub publico de rankings", "title": "Stats Rankings", "subtitle": "Quadros publicos de ranking por multiplas metricas da arena CriptoVersus.", "backToStats": "Voltar para stats", "openMatches": "Abrir partidas" },
-    "filters": { "searchLabel": "Buscar por ativo", "searchPlaceholder": "BTC, ETH, STRAX, TON..." },
+    "seo": {
+      "title": "Rankings CriptoVersus",
+      "description": "Compare rankings publicos por vitorias, aproveitamento, gols e invencibilidade."
+    },
+    "hero": {
+      "eyebrow": "Hub publico de rankings",
+      "title": "Stats Rankings",
+      "subtitle": "Quadros publicos de ranking por multiplas metricas da arena CriptoVersus.",
+      "backToStats": "Voltar para stats",
+      "openMatches": "Abrir partidas"
+    },
+    "filters": {
+      "searchLabel": "Buscar por ativo",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON..."
+    },
     "states": {
       "loadingTitle": "Carregando rankings publicos",
       "loadingBody": "Calculando os quadros de ranking com base nas partidas publicas mais recentes.",
@@ -2077,18 +2129,57 @@
       "emptyTitle": "Nenhum ranking disponivel ainda",
       "emptyBody": "A arena ainda precisa de mais partidas publicas finalizadas para ranquear os ativos aqui."
     },
-    "summary": { "assets": "Ativos ranqueados", "topWins": "Mais vitorias", "topEfficiency": "Melhor aproveitamento", "topStreak": "Melhor invencibilidade" },
+    "summary": {
+      "assets": "Ativos ranqueados",
+      "topWins": "Mais vitorias",
+      "topEfficiency": "Melhor aproveitamento",
+      "topStreak": "Melhor invencibilidade"
+    },
     "boards": {
-      "columns": { "rank": "Pos.", "asset": "Ativo", "matches": "Partidas", "winRate": "Aproveitamento" },
-      "wins": { "eyebrow": "Quadro de vitorias", "title": "Ranking por vitorias", "description": "Ativos ordenados pelo total de vitorias em partidas publicas finalizadas.", "metric": "Vitorias" },
-      "efficiency": { "eyebrow": "Quadro de aproveitamento", "title": "Ranking por aproveitamento", "description": "Taxa de aproveitamento em sistema de tres pontos nas batalhas publicas finalizadas.", "metric": "Aproveitamento" },
-      "goals": { "eyebrow": "Quadro ofensivo", "title": "Ranking por gols", "description": "Ativos com a maior producao ofensiva publica.", "metric": "Gols" },
-      "streak": { "eyebrow": "Quadro de momento", "title": "Ranking por invencibilidade", "description": "Sequencias atuais de invencibilidade com base no historico publico mais recente.", "metric": "Streak" }
+      "columns": {
+        "rank": "Pos.",
+        "asset": "Ativo",
+        "matches": "Partidas",
+        "winRate": "Aproveitamento"
+      },
+      "wins": {
+        "eyebrow": "Quadro de vitorias",
+        "title": "Ranking por vitorias",
+        "description": "Ativos ordenados pelo total de vitorias em partidas publicas finalizadas.",
+        "metric": "Vitorias"
+      },
+      "efficiency": {
+        "eyebrow": "Quadro de aproveitamento",
+        "title": "Ranking por aproveitamento",
+        "description": "Taxa de aproveitamento em sistema de tres pontos nas batalhas publicas finalizadas.",
+        "metric": "Aproveitamento"
+      },
+      "goals": {
+        "eyebrow": "Quadro ofensivo",
+        "title": "Ranking por gols",
+        "description": "Ativos com a maior producao ofensiva publica.",
+        "metric": "Gols"
+      },
+      "streak": {
+        "eyebrow": "Quadro de momento",
+        "title": "Ranking por invencibilidade",
+        "description": "Sequencias atuais de invencibilidade com base no historico publico mais recente.",
+        "metric": "Streak"
+      }
     }
   },
   "statsRecords": {
-    "seo": { "title": "Recordes CriptoVersus", "description": "Revise os maiores recordes publicos, goleadas e partidas historicas da arena." },
-    "hero": { "eyebrow": "Hub publico de recordes", "title": "Stats Records", "subtitle": "Marcos publicos e placares historicos da arena CriptoVersus.", "backToStats": "Voltar para stats", "openRankings": "Abrir rankings" },
+    "seo": {
+      "title": "Recordes CriptoVersus",
+      "description": "Revise os maiores recordes publicos, goleadas e partidas historicas da arena."
+    },
+    "hero": {
+      "eyebrow": "Hub publico de recordes",
+      "title": "Stats Records",
+      "subtitle": "Marcos publicos e placares historicos da arena CriptoVersus.",
+      "backToStats": "Voltar para stats",
+      "openRankings": "Abrir rankings"
+    },
     "states": {
       "loadingTitle": "Carregando recordes publicos",
       "loadingBody": "Varrendo as partidas publicas finalizadas em busca de recordes e marcos relevantes.",
@@ -2097,7 +2188,12 @@
       "emptyTitle": "Nenhum recorde disponivel ainda",
       "emptyBody": "A arena ainda precisa de mais partidas publicas finalizadas antes de destacar recordes."
     },
-    "summary": { "longestWinStreak": "Maior sequencia de vitorias", "biggestBlowout": "Maior goleada", "mostGoals": "Mais gols em uma partida", "bestCampaign": "Melhor campanha" },
+    "summary": {
+      "longestWinStreak": "Maior sequencia de vitorias",
+      "biggestBlowout": "Maior goleada",
+      "mostGoals": "Mais gols em uma partida",
+      "bestCampaign": "Melhor campanha"
+    },
     "records": {
       "eyebrow": "Marcos",
       "title": "Painel de recordes da arena",
@@ -2121,7 +2217,12 @@
       "title": "Partidas historicas relevantes",
       "description": "Placares de alto impacto que valem revisita no arquivo publico.",
       "openMatch": "Abrir partida",
-      "columns": { "match": "Partida", "score": "Placar", "note": "Motivo", "link": "Link" },
+      "columns": {
+        "match": "Partida",
+        "score": "Placar",
+        "note": "Motivo",
+        "link": "Link"
+      },
       "notes": {
         "blowout": "Maior goleada publica registrada.",
         "mostGoals": "Partida publica com mais gols ate agora.",

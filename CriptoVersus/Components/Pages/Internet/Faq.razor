@@ -1,6 +1,7 @@
 @page "/faq"
 @page "/en/faq"
 @page "/pt/faq"
+@page "/zh/faq"
 @rendermode InteractiveServer
 @using System.Text.Json
 @using CriptoVersus.Web.Services
@@ -17,6 +18,7 @@
     <link rel="canonical" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath(CurrentCulture))" />
     <link rel="alternate" hreflang="en-US" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("en"))" />
     <link rel="alternate" hreflang="pt-BR" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("pt"))" />
+    <link rel="alternate" hreflang="zh-CN" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("zh"))" />
     <link rel="alternate" hreflang="x-default" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildFaqPath("en"))" />
     <meta property="og:title" content="@T("seo.title")" />
     <meta property="og:description" content="@T("seo.description")" />

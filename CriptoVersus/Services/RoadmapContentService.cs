@@ -16,26 +16,36 @@ public sealed class RoadmapContentService
         var normalizedCulture = NormalizeCulture(culture);
         var canonicalUrl = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildRoadmapPath(normalizedCulture));
 
-        return normalizedCulture == "en"
-            ? BuildEnglishPage(canonicalUrl)
-            : BuildPortuguesePage(canonicalUrl);
+        return normalizedCulture switch
+        {
+            "pt" => BuildPortuguesePage(canonicalUrl, normalizedCulture),
+            "zh" => BuildEnglishPage(canonicalUrl, normalizedCulture),
+            _ => BuildEnglishPage(canonicalUrl, normalizedCulture)
+        };
     }
 
     public string NormalizeCulture(string? culture)
-        => string.Equals(culture, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "pt";
+        => string.Equals(culture, "en", StringComparison.OrdinalIgnoreCase)
+            ? "en"
+            : string.Equals(culture, "zh", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(culture, "zh-CN", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(culture, "zh-hans", StringComparison.OrdinalIgnoreCase)
+                ? "zh"
+                : "pt";
 
-    private RoadmapPageContent BuildPortuguesePage(string canonicalUrl)
+    private RoadmapPageContent BuildPortuguesePage(string canonicalUrl, string culture)
     {
         return new RoadmapPageContent
         {
-            Culture = "pt",
+            Culture = culture,
             PageTitle = "Roadmap CriptoVersus | Evolução da Plataforma",
             MetaDescription = "Acompanhe o roadmap público do CriptoVersus: partidas cripto, histórico público, regras de pontuação, transparência, internacionalização e futuras integrações blockchain.",
             CanonicalUrl = canonicalUrl,
             AlternateLinks =
             [
-                new AlternateLink("pt-br", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
-                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap"))
+                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap")),
+                new AlternateLink("pt-BR", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
+                new AlternateLink("zh-CN", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/zh/roadmap"))
             ],
             OpenGraph = new RoadmapOpenGraphMetadata
             {
@@ -169,18 +179,19 @@ public sealed class RoadmapContentService
         };
     }
 
-    private RoadmapPageContent BuildEnglishPage(string canonicalUrl)
+    private RoadmapPageContent BuildEnglishPage(string canonicalUrl, string culture)
     {
         return new RoadmapPageContent
         {
-            Culture = "en",
+            Culture = culture,
             PageTitle = "CriptoVersus Roadmap | Platform Evolution",
             MetaDescription = "Follow the public CriptoVersus roadmap: crypto matches, public match history, scoring rules, transparency, internationalization and future blockchain integrations.",
             CanonicalUrl = canonicalUrl,
             AlternateLinks =
             [
-                new AlternateLink("pt-br", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
-                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap"))
+                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap")),
+                new AlternateLink("pt-BR", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
+                new AlternateLink("zh-CN", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/zh/roadmap"))
             ],
             OpenGraph = new RoadmapOpenGraphMetadata
             {

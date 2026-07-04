@@ -1,4 +1,4 @@
-namespace CriptoVersus.Web.Services;
+﻿namespace CriptoVersus.Web.Services;
 
 public sealed class RouteLocalizationService
 {
@@ -8,7 +8,8 @@ public sealed class RouteLocalizationService
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             [AppCultureService.SecondaryRouteCulture] = "partida",
-            [AppCultureService.DefaultRouteCulture] = "match"
+            [AppCultureService.DefaultRouteCulture] = "match",
+            [AppCultureService.TertiaryRouteCulture] = "match"
         };
 
     public RouteLocalizationService(AppCultureService appCultureService)
@@ -47,62 +48,64 @@ public sealed class RouteLocalizationService
         => $"/{NormalizeCulture(culture)}";
 
     public string BuildRoadmapPath(string? culture)
-        => $"/{NormalizeCulture(culture)}/roadmap";
+        => BuildGenericLocalizedPath(culture, "roadmap");
 
     public string BuildFaqPath(string? culture)
-        => $"/{NormalizeCulture(culture)}/faq";
+        => BuildGenericLocalizedPath(culture, "faq");
 
     public string BuildAboutPath(string? culture)
-        => $"/{NormalizeCulture(culture)}/about";
+        => BuildGenericLocalizedPath(culture, "about");
 
     public string BuildScoringRulesPath(string? culture)
-        => $"/{NormalizeCulture(culture)}/scoring-rules";
+        => BuildGenericLocalizedPath(culture, "scoring-rules");
 
     public string BuildRiskDisclaimerPath(string? culture)
-        => $"/{NormalizeCulture(culture)}/risk-disclaimer";
+        => BuildGenericLocalizedPath(culture, "risk-disclaimer");
 
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/como-funciona"
-            : "/en/how-it-works";
+            : $"/{NormalizeCulture(culture)}/how-it-works";
+
     public string BuildWalletPath(string? culture)
-    => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
-        ? "/pt/minha-carteira"
-        : "/en/my-wallet";
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? "/pt/minha-carteira"
+            : $"/{NormalizeCulture(culture)}/my-wallet";
 
     public string BuildAdminPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/admin-sistema"
-            : "/en/admin-system";
+            : $"/{NormalizeCulture(culture)}/admin-system";
 
     public string BuildAdminAudioAssetsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/admin/audio-assets"
-            : "/en/admin/audio-assets";
+            : $"/{NormalizeCulture(culture)}/admin/audio-assets";
+
     public string BuildStatsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas"
-            : "/stats";
+            : $"/{NormalizeCulture(culture)}/stats";
 
     public string BuildStatsTeamsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas/times"
-            : "/stats/teams";
+            : $"/{NormalizeCulture(culture)}/stats/teams";
 
     public string BuildStatsMatchesPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas/partidas"
-            : "/stats/matches";
+            : $"/{NormalizeCulture(culture)}/stats/matches";
 
     public string BuildStatsRankingsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas/rankings"
-            : "/stats/rankings";
+            : $"/{NormalizeCulture(culture)}/stats/rankings";
 
     public string BuildStatsRecordsPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
             ? "/pt/estatisticas/recordes"
-            : "/stats/records";
+            : $"/{NormalizeCulture(culture)}/stats/records";
 
     public string BuildStatsTeamDetailPath(string? culture, string slug)
     {
@@ -149,67 +152,80 @@ public sealed class RouteLocalizationService
 
         if (cleanPath.Equals("/roadmap", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/roadmap", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/roadmap", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/roadmap", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/roadmap", StringComparison.OrdinalIgnoreCase))
             return BuildRoadmapPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/faq", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/faq", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/faq", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/faq", StringComparison.OrdinalIgnoreCase))
             return BuildFaqPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/about", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/about", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/about", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/about", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/about", StringComparison.OrdinalIgnoreCase))
             return BuildAboutPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/scoring-rules", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/scoring-rules", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/scoring-rules", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/scoring-rules", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/scoring-rules", StringComparison.OrdinalIgnoreCase))
             return BuildScoringRulesPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/risk-disclaimer", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/risk-disclaimer", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/risk-disclaimer", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/risk-disclaimer", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/risk-disclaimer", StringComparison.OrdinalIgnoreCase))
             return BuildRiskDisclaimerPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/como-funciona", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/how-it-works", StringComparison.OrdinalIgnoreCase))
             return BuildHowItWorksPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/stats", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/stats", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/estatisticas", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/estatisticas", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/stats", StringComparison.OrdinalIgnoreCase))
             return BuildStatsPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/stats/teams", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/stats/teams", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/estatisticas/times", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/estatisticas/times", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/stats/teams", StringComparison.OrdinalIgnoreCase))
             return BuildStatsTeamsPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/stats/matches", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/stats/matches", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/estatisticas/partidas", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/estatisticas/partidas", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/stats/matches", StringComparison.OrdinalIgnoreCase))
             return BuildStatsMatchesPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/stats/rankings", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/stats/rankings", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/estatisticas/rankings", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/estatisticas/rankings", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/stats/rankings", StringComparison.OrdinalIgnoreCase))
             return BuildStatsRankingsPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/stats/records", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/stats/records", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/estatisticas/recordes", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/estatisticas/recordes", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/stats/records", StringComparison.OrdinalIgnoreCase))
             return BuildStatsRecordsPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/token", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/token", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/token", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/token", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/token", StringComparison.OrdinalIgnoreCase))
             return BuildTokenPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/admin/audio-assets", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/admin/audio-assets", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/admin/audio-assets", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/admin/audio-assets", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/admin/audio-assets", StringComparison.OrdinalIgnoreCase))
         {
             return BuildAdminAudioAssetsPath(normalizedTarget) + querySuffix;
         }
@@ -218,14 +234,16 @@ public sealed class RouteLocalizationService
 
         if (cleanPath.Equals("/tv", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/tv", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/tv", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/tv", StringComparison.OrdinalIgnoreCase))
         {
             return BuildTvPath(normalizedTarget) + querySuffix;
         }
 
         if (cleanPath.Equals("/tv/broadcast", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/tv/broadcast", StringComparison.OrdinalIgnoreCase)
-            || cleanPath.Equals("/pt/tv/broadcast", StringComparison.OrdinalIgnoreCase))
+            || cleanPath.Equals("/pt/tv/broadcast", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/tv/broadcast", StringComparison.OrdinalIgnoreCase))
         {
             return BuildTvBroadcastPath(normalizedTarget) + querySuffix;
         }
@@ -244,11 +262,13 @@ public sealed class RouteLocalizationService
         {
             return BuildTvMatchPath(normalizedTarget, localizedTvMatchId, segments[4]) + querySuffix;
         }
+
         if (segments.Length >= 3)
         {
             if (cleanPath.StartsWith("/stats/teams/", StringComparison.OrdinalIgnoreCase)
                 || cleanPath.StartsWith("/en/stats/teams/", StringComparison.OrdinalIgnoreCase)
-                || cleanPath.StartsWith("/pt/estatisticas/times/", StringComparison.OrdinalIgnoreCase))
+                || cleanPath.StartsWith("/pt/estatisticas/times/", StringComparison.OrdinalIgnoreCase)
+                || cleanPath.StartsWith("/zh/stats/teams/", StringComparison.OrdinalIgnoreCase))
             {
                 var slug = segments[^1];
                 return BuildStatsTeamDetailPath(normalizedTarget, slug) + querySuffix;
@@ -271,6 +291,11 @@ public sealed class RouteLocalizationService
 
         return path;
     }
+
+    private string BuildGenericLocalizedPath(string? culture, string slug)
+        => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
+            ? $"/pt/{slug}"
+            : $"/{NormalizeCulture(culture)}/{slug}";
 
     private static string NormalizeRouteSegment(string? value)
     {

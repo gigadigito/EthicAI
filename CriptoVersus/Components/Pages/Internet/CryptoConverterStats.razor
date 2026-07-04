@@ -1,5 +1,6 @@
 @page "/en/stats/{fromSymbol}-to-{toSymbol}"
 @page "/pt/stats/{fromSymbol}-para-{toSymbol}"
+@page "/zh/stats/{fromSymbol}-to-{toSymbol}"
 @using System.Net
 @using System.Globalization
 @using System.Text.Json
@@ -23,6 +24,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
     <meta property="og:title" content="@PageTitleText" />
     <meta property="og:description" content="@MetaDescription" />
@@ -1153,6 +1155,9 @@
         : CurrentPath);
     private string PortugueseUrl => BuildAbsolute(_isValidSymbolPair
         ? BuildRoutePath(AppCultureService.SecondaryRouteCulture, DisplayFromSymbol, DisplayToSymbol)
+        : CurrentPath);
+    private string ZhUrl => BuildAbsolute(_isValidSymbolPair
+        ? BuildRoutePath(AppCultureService.TertiaryRouteCulture, DisplayFromSymbol, DisplayToSymbol)
         : CurrentPath);
     private string SocialImageUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath);
     private string FromIconUrl => GetIconUrl(DisplayFromSymbol);

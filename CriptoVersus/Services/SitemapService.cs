@@ -19,6 +19,7 @@ public sealed class SitemapService
     private const string PagesCacheKey = "sitemap::pages";
     private const string MatchesEnCacheKey = "sitemap::matches::en";
     private const string MatchesPtCacheKey = "sitemap::matches::pt";
+    private const string MatchesZhCacheKey = "sitemap::matches::zh";
 
     private static readonly XNamespace SitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
     private static readonly XNamespace XhtmlNamespace = "http://www.w3.org/1999/xhtml";
@@ -55,7 +56,11 @@ public sealed class SitemapService
     public async Task<string> GetMatchSitemapXmlAsync(string culture, CancellationToken ct = default)
     {
         var normalizedCulture = _routeLocalization.NormalizeCulture(culture);
-        var cacheKey = normalizedCulture == "pt" ? MatchesPtCacheKey : MatchesEnCacheKey;
+        var cacheKey = normalizedCulture == "pt"
+            ? MatchesPtCacheKey
+            : normalizedCulture == "zh"
+                ? MatchesZhCacheKey
+                : MatchesEnCacheKey;
         return await GetCachedXmlAsync(cacheKey, () => BuildMatchSitemapXmlAsync(normalizedCulture, ct));
     }
 
@@ -88,7 +93,8 @@ public sealed class SitemapService
             {
                 "/sitemap-pages.xml",
                 "/sitemap-matches-en.xml",
-                "/sitemap-matches-pt.xml"
+                "/sitemap-matches-pt.xml",
+                "/sitemap-matches-zh.xml"
             }
             .Select(path => new XElement(
                 SitemapNamespace + "sitemap",
@@ -118,6 +124,7 @@ public sealed class SitemapService
         {
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildHomePath("en"), now, "daily", 1.0m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildHomePath("pt"), now, "daily", 0.9m),
+            CreateLocalizedEntry(baseUri, "zh", _routeLocalization.BuildHomePath("zh"), now, "daily", 0.9m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildFaqPath("en"), now, "weekly", 0.86m),
             CreateLocalizedEntry(baseUri, "pt", _routeLocalization.BuildFaqPath("pt"), now, "weekly", 0.86m),
             CreateLocalizedEntry(baseUri, "en", _routeLocalization.BuildTvPath("en"), now, "hourly", 0.9m),
@@ -365,82 +372,113 @@ public sealed class SitemapService
         {
             case "/en":
             case "/pt":
+            case "/zh":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHomePath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildHomePath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildHomePath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/roadmap":
             case "/pt/roadmap":
+            case "/zh/roadmap":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildRoadmapPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/faq":
             case "/pt/faq":
+            case "/zh/faq":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildFaqPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildFaqPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildFaqPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/tv":
             case "/pt/tv":
+            case "/zh/tv":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildTvPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildTvPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildTvPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/tv/broadcast":
             case "/pt/tv/broadcast":
+            case "/zh/tv/broadcast":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildTvBroadcastPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildTvBroadcastPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildTvBroadcastPath("zh")).AbsoluteUri));
                 return alternates;
             case "/stats":
+            case "/en/stats":
             case "/pt/estatisticas":
+            case "/zh/stats":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildStatsPath("zh")).AbsoluteUri));
                 return alternates;
             case "/stats/matches":
             case "/en/stats/matches":
             case "/pt/estatisticas/partidas":
+            case "/zh/stats/matches":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsMatchesPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsMatchesPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildStatsMatchesPath("zh")).AbsoluteUri));
                 return alternates;
             case "/stats/teams":
             case "/pt/estatisticas/times":
+            case "/zh/stats/teams":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildStatsTeamsPath("zh")).AbsoluteUri));
                 return alternates;
             case "/stats/rankings":
             case "/en/stats/rankings":
             case "/pt/estatisticas/rankings":
+            case "/zh/stats/rankings":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsRankingsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsRankingsPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildStatsRankingsPath("zh")).AbsoluteUri));
                 return alternates;
             case "/stats/records":
             case "/en/stats/records":
             case "/pt/estatisticas/recordes":
+            case "/zh/stats/records":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsRecordsPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsRecordsPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildStatsRecordsPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/how-it-works":
             case "/pt/como-funciona":
+            case "/zh/how-it-works":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildHowItWorksPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/about":
             case "/pt/about":
+            case "/zh/about":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildAboutPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildAboutPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildAboutPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/scoring-rules":
             case "/pt/scoring-rules":
+            case "/zh/scoring-rules":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildScoringRulesPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildScoringRulesPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildScoringRulesPath("zh")).AbsoluteUri));
                 return alternates;
             case "/en/risk-disclaimer":
             case "/pt/risk-disclaimer":
+            case "/zh/risk-disclaimer":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildRiskDisclaimerPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildRiskDisclaimerPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildRiskDisclaimerPath("zh")).AbsoluteUri));
                 return alternates;
             case "/token":
             case "/en/token":
             case "/pt/token":
+            case "/zh/token":
                 alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildTokenPath("en")).AbsoluteUri));
                 alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildTokenPath("pt")).AbsoluteUri));
+                alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildTokenPath("zh")).AbsoluteUri));
                 return alternates;
         }
 
@@ -448,6 +486,7 @@ public sealed class SitemapService
         {
             alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("en", statsTeamSlug)).AbsoluteUri));
             alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("pt", statsTeamSlug)).AbsoluteUri));
+            alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, _routeLocalization.BuildStatsTeamDetailPath("zh", statsTeamSlug)).AbsoluteUri));
             return alternates;
         }
 
@@ -455,6 +494,7 @@ public sealed class SitemapService
         {
             alternates.Add(new SitemapAlternate("en-US", new Uri(baseUri, BuildConverterPath("en", fromSymbol, toSymbol)).AbsoluteUri));
             alternates.Add(new SitemapAlternate("pt-BR", new Uri(baseUri, BuildConverterPath("pt", fromSymbol, toSymbol)).AbsoluteUri));
+            alternates.Add(new SitemapAlternate("zh-CN", new Uri(baseUri, BuildConverterPath("zh", fromSymbol, toSymbol)).AbsoluteUri));
             return alternates;
         }
 
@@ -601,6 +641,12 @@ public sealed class SitemapService
             return !string.IsNullOrWhiteSpace(slug);
         }
 
+        if (relativePath.StartsWith("/zh/stats/teams/", StringComparison.OrdinalIgnoreCase))
+        {
+            slug = relativePath["/zh/stats/teams/".Length..].Trim('/');
+            return !string.IsNullOrWhiteSpace(slug);
+        }
+
         return false;
     }
 
@@ -652,6 +698,14 @@ public sealed class SitemapService
                     statsLastModifiedUtc,
                     "hourly",
                     0.72m));
+
+                entries.Add(CreateLocalizedEntry(
+                    baseUri,
+                    "zh",
+                    BuildConverterPath("zh", fromSymbol, toSymbol),
+                    statsLastModifiedUtc,
+                    "hourly",
+                    0.72m));
             }
         }
 
@@ -694,7 +748,9 @@ public sealed class SitemapService
     private static string BuildConverterPath(string culture, string fromSymbol, string toSymbol)
         => string.Equals(culture, "pt", StringComparison.OrdinalIgnoreCase)
             ? $"/pt/stats/{fromSymbol}-para-{toSymbol}"
-            : $"/en/stats/{fromSymbol}-to-{toSymbol}";
+            : string.Equals(culture, "zh", StringComparison.OrdinalIgnoreCase)
+                ? $"/zh/stats/{fromSymbol}-to-{toSymbol}"
+                : $"/en/stats/{fromSymbol}-to-{toSymbol}";
 
     private static bool TryExtractConverterPair(string relativePath, out string fromSymbol, out string toSymbol)
     {
@@ -715,6 +771,12 @@ public sealed class SitemapService
         {
             var pair = path["/pt/stats/".Length..];
             return TrySplitConverterPair(pair, "-para-", out fromSymbol, out toSymbol);
+        }
+
+        if (path.StartsWith("/zh/stats/", StringComparison.OrdinalIgnoreCase))
+        {
+            var pair = path["/zh/stats/".Length..];
+            return TrySplitConverterPair(pair, "-to-", out fromSymbol, out toSymbol);
         }
 
         return false;

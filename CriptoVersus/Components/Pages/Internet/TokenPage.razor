@@ -1,6 +1,7 @@
 @page "/token"
 @page "/en/token"
 @page "/pt/token"
+@page "/zh/token"
 @rendermode InteractiveServer
 @using System.Globalization
 @using System.Text.Json
@@ -21,6 +22,7 @@
     <link rel="canonical" href="@CanonicalUrl" />
     <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
     <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ZhUrl" />
     <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
     <meta property="og:title" content="@SeoTitle" />
     <meta property="og:description" content="@SeoDescription" />
@@ -882,6 +884,7 @@
     private string CanonicalUrl => BuildAbsolute(RouteLocalization.BuildTokenPath(CurrentCulture));
     private string EnglishUrl => BuildAbsolute(RouteLocalization.BuildTokenPath("en"));
     private string PortugueseUrl => BuildAbsolute(RouteLocalization.BuildTokenPath("pt"));
+    private string ZhUrl => BuildAbsolute(RouteLocalization.BuildTokenPath("zh"));
     private string SeoTitle => L.T("token.seo.title", CurrentCulture);
     private string SeoDescription => L.T("token.seo.description", CurrentCulture);
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus token, #CriptoVersus token, Solana meme token";

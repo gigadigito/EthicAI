@@ -1,0 +1,2342 @@
+{
+  "layout": {
+    "topbar": {
+      "eyebrow": "CriptoVersus 竞技场",
+      "title": "对战市场",
+      "login": "连接",
+      "connectWallet": "连接钱包",
+      "language": "语言",
+      "english": "English",
+      "portuguese": "Português"
+    },
+    "postLogin": {
+      "eyebrow": "钱包已连接",
+      "title": "要现在打开你的钱包吗？",
+      "body": "你的钱包已成功连接。你可以现在打开“我的钱包”，也可以留在当前页面。",
+      "stay": "留在此页面",
+      "goToWallet": "前往我的钱包"
+    },
+    "footer": {
+      "semanticDescription": "CriptoVersus 是一个游戏化的加密货币市场数据竞技场，用户可以在公开模拟中选择阵营，并通过体育风格计分查看市场表现。",
+      "institutionalTitle": "机构页面",
+      "about": "关于",
+      "scoringRules": "计分规则",
+      "riskDisclaimer": "风险提示"
+    }
+  },
+  "nav": {
+    "brandSubtitle": "交易竞技场",
+    "home": "首页",
+    "howItWorks": "玩法说明",
+    "token": "代币",
+    "stats": "数据",
+    "roadmap": "路线图",
+    "faq": "常见问题",
+    "tvBroadcast": "TV 直播",
+    "wallet": "我的钱包",
+    "admin": "管理",
+    "connected": "已连接环境"
+  },
+  "community": {
+    "title": "社区",
+    "kicker": "竞技场网络",
+    "joinArena": "加入竞技场",
+    "description": "通过 CriptoVersus 官方频道，关注实时社区、直播节奏和对战更新。",
+    "youtube": {
+      "name": "YouTube",
+      "action": "观看频道",
+      "cta": "打开 YouTube",
+      "aria": "打开 CriptoVersus 官方 YouTube 频道"
+    },
+    "pump": {
+      "name": "Pump.fun",
+      "action": "查看代币",
+      "cta": "打开 Pump.fun",
+      "aria": "打开 CriptoVersus 官方 Pump.fun 代币页面"
+    },
+    "x": {
+      "name": "X",
+      "action": "关注更新",
+      "cta": "在 X 上关注",
+      "aria": "打开 CriptoVersus 官方 X 主页"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "action": "加入社区",
+      "cta": "加入 Telegram",
+      "aria": "打开 CriptoVersus 官方 Telegram 社区"
+    }
+  },
+  "home": {
+    "seo": {
+      "title": "CriptoVersus | 实时加密货币对战竞技场",
+      "description": "在 CriptoVersus 关注实时加密货币对战、比分、市场表现、数据以及面向全球用户的公开对战页面。",
+      "ogTitle": "CriptoVersus | 实时加密货币对战竞技场",
+      "ogDescription": "在 CriptoVersus 观看实时加密货币对战、比分板和市场竞技。"
+    },
+    "page": {
+      "title": "仪表盘",
+      "loading": "加载中...",
+      "emptySnapshot": "暂无快照数据。"
+    },
+    "dashboard": {
+      "pending": "待开始",
+      "ongoing": "实时",
+      "completed24h": "已完成（24小时）",
+      "investments": "选择",
+      "openMarkets": "开放选择的对战",
+      "noOpenMarkets": "当前没有可选择的对战。",
+      "matchId": "对战 #{0}",
+      "invest": "选择",
+      "investIn": "选择 {0}",
+      "closedInvestments": "选择关闭",
+      "follow": "关注",
+      "liveEyebrow": "实时",
+      "liveMatches": "实时对战",
+      "noLiveMatches": "当前没有实时对战。",
+      "liveTracking": "实时覆盖",
+      "openMatchPanel": "打开对战面板",
+      "marketRealtime": "市场实时追踪价格变化",
+      "details": "详情",
+      "completedEyebrow": "已完成",
+      "completedMatches": "已完成对战",
+      "noCompletedMatches": "过去24小时内没有完成的对战。",
+      "matchCompleted": "对战已完成",
+      "internalStatus": "内部状态",
+      "historyAvailable": "对战历史和日志可用",
+      "marketEyebrow": "市场",
+      "noData": "暂无数据。",
+      "awaitingStart": "等待开始",
+      "liveClock": "已进行 {0}' · 剩余 -{1}'",
+      "elapsedOnly": "已进行 {0}'",
+      "statusOpen": "开放",
+      "statusClosed": "关闭"
+    }
+  },
+  "match": {
+    "seo": {
+      "live": {
+        "title": "{0} vs {1} 实时对战 | CriptoVersus",
+        "description": "在 CriptoVersus 观看 {0} 与 {1} 的实时加密货币对战，查看阵营选择、公开比分变化、对战池和实时市场表现。"
+      },
+      "completed": {
+        "title": "{0} vs {1} 已完成对战 | CriptoVersus",
+        "description": "回顾 CriptoVersus 上 {0} 与 {1} 的已完成加密货币对战，包括最终比分、市场背景、阵营表现和竞技场历史，用于教育性分析。"
+      },
+      "pending": {
+        "title": "{0} vs {1} 即将开始的对战 | CriptoVersus",
+        "description": "预览 CriptoVersus 上 {0} 与 {1} 即将开始的加密货币对战，用户可以为下一个竞技场周期选择阵营并关注公开市场信号。"
+      },
+      "fallback": {
+        "title": "{0} vs {1} 对战 | CriptoVersus",
+        "description": "查看 CriptoVersus 上 {0} vs {1} 的对战详情，包括阵营选择背景、对战池、市场压力和比分历史。"
+      }
+    },
+    "status": {
+      "ongoing": "实时",
+      "completed": "已完成",
+      "pending": "待开始"
+    }
+  },
+  "roadmap": {
+    "pageTitle": "CriptoVersus 路线图 | 平台演进",
+    "metaDescription": "关注 CriptoVersus 公开路线图：加密货币对战、公开对战历史、计分规则、透明度、国际化以及未来区块链集成。",
+    "openGraph": {
+      "title": "CriptoVersus 路线图",
+      "description": "查看 CriptoVersus 的规划演进，包括加密货币对战、公开对战历史、高级规则、国际化和区块链集成。",
+      "type": "网站"
+    },
+    "hero": {
+      "eyebrow": "公开产品概览",
+      "title": "CriptoVersus 路线图",
+      "subtitle": "关注平台演进、新对战规则、透明度改进和未来集成。",
+      "primaryCtaLabel": "查看实时对战",
+      "secondaryCtaLabel": "阅读规则"
+    },
+    "labels": {
+      "phasesMapped": "已规划阶段",
+      "workstreamsActive": "活跃工作流",
+      "workstreamsDescription": "状态卡片、原则和可见的路线图里程碑。",
+      "publicEvolution": "从基础能力到 AI 解说的公开演进。",
+      "currentFocus": "当前重点",
+      "nextMilestone": "下一个里程碑",
+      "brandPillars": "品牌支柱",
+      "statusSummary": "实验性平台路线图",
+      "currentFocusFallback": "路线图正在执行",
+      "nextMilestoneFallback": "路线图正在扩展",
+      "nextMilestoneFallbackItem": "即将发布后续交付细节。"
+    },
+    "section": {
+      "roadmap": "路线图",
+      "projectStatus": "项目状态",
+      "currentPlatformDirection": "当前平台方向",
+      "plannedEvolutionByPhase": "按阶段规划的演进",
+      "guidingPrinciples": "指导原则",
+      "howProductDecisionsAreFramed": "产品决策方式"
+    },
+    "status": {
+      "completed": "已完成",
+      "inProgress": "进行中",
+      "planned": "计划中",
+      "future": "未来",
+      "experimental": "实验性"
+    },
+    "pillars": {
+      "competition": {
+        "title": "竞争",
+        "subtitle": "数字资产之间"
+      },
+      "strategy": {
+        "title": "策略",
+        "subtitle": "表现与时机"
+      },
+      "technology": {
+        "title": "技术",
+        "subtitle": "区块链基础设施"
+      },
+      "ranking": {
+        "title": "排名",
+        "subtitle": "计分与进展"
+      },
+      "global": {
+        "title": "全球",
+        "subtitle": "去中心化竞技场"
+      }
+    },
+    "brandPillars": [
+      {
+        "icon": "✦",
+        "accent": "purple",
+        "title": "竞争",
+        "subtitle": "数字资产之间"
+      },
+      {
+        "icon": "↗",
+        "accent": "green",
+        "title": "策略",
+        "subtitle": "表现与时机"
+      },
+      {
+        "icon": "⬢",
+        "accent": "cyan",
+        "title": "技术",
+        "subtitle": "区块链基础设施"
+      },
+      {
+        "icon": "🏆",
+        "accent": "gold",
+        "title": "排名",
+        "subtitle": "计分与进展"
+      },
+      {
+        "icon": "◎",
+        "accent": "purple",
+        "title": "全球",
+        "subtitle": "去中心化竞技场"
+      }
+    ],
+    "statusCards": [
+      {
+        "title": "活跃开发",
+        "description": "平台正在通过公开发布和运营优化持续演进。",
+        "tag": "活跃"
+      },
+      {
+        "title": "自动化加密货币对战",
+        "description": "基于市场的资产周期对战，带有比分追踪和持续更新。",
+        "tag": "自动化"
+      },
+      {
+        "title": "公开历史",
+        "description": "结果和对战背景正在逐步公开，便于审计和复盘。",
+        "tag": "透明度"
+      },
+      {
+        "title": "规则持续演进",
+        "description": "计分模型和经济动态仍在测试和优化中。",
+        "tag": "迭代"
+      },
+      {
+        "title": "准备进行国际化扩展",
+        "description": "路由、SEO 和本地时区支持正在面向多区域完善。",
+        "tag": "国际化就绪"
+      }
+    ],
+    "phases": [
+      {
+        "phaseLabel": "第 1 阶段",
+        "title": "平台基础",
+        "status": "加密货币竞技场信息",
+        "description": "面向公开对战、早期周期和市场驱动流程的运营基础。",
+        "items": [
+          "创建币种之间的对战",
+          "市场数据集成",
+          "实时对战视图",
+          "已完成对战历史",
+          "结果与比分记录"
+        ],
+        "sortOrder": 1
+      },
+      {
+        "phaseLabel": "第 2 阶段",
+        "title": "透明度与可审计性",
+        "status": "加密货币竞技场信息",
+        "description": "公开展示每场对战如何演进，以及结果如何复盘。",
+        "items": [
+          "公开历史页面",
+          "公开对战详情页",
+          "清晰展示比分、表现和结果",
+          "SEO 改进",
+          "每场对战的公开元数据",
+          "用于未来审计的对战事件记录"
+        ],
+        "sortOrder": 2
+      },
+      {
+        "phaseLabel": "第 3 阶段",
+        "title": "高级计分规则",
+        "status": "计划中",
+        "description": "更丰富且保持可解释、数据驱动的对战逻辑。",
+        "items": [
+          "按百分比差异计分",
+          "按图表交叉计分",
+          "按成交量窗口计分",
+          "对战事件日志",
+          "未来 AI 解说的基础"
+        ],
+        "sortOrder": 3
+      },
+      {
+        "phaseLabel": "第 4 阶段",
+        "title": "周期性经济模型",
+        "status": "计划中",
+        "description": "向更具实验性的竞争池模型演进。",
+        "items": [
+          "自动参与未来周期",
+          "更好的平衡控制",
+          "减少突然损失",
+          "更接近竞争池而非传统押注的模型",
+          "扩大上线前进行模拟和调优"
+        ],
+        "sortOrder": 4
+      },
+      {
+        "phaseLabel": "第 5 阶段",
+        "title": "国际化",
+        "status": "计划中",
+        "description": "为多语言扩展准备路由和内容结构。",
+        "items": [
+          "国际化路由",
+          "葡萄牙语和英语内容",
+          "Hreflang",
+          "国际 SEO",
+          "按地区显示本地时区"
+        ],
+        "sortOrder": 5
+      },
+      {
+        "phaseLabel": "第 6 阶段",
+        "title": "区块链集成",
+        "status": "实验性",
+        "description": "在合适场景中聚焦可审计性和基础设施的实验性链上层。",
+        "items": [
+          "Solana Devnet/Mainnet 集成",
+          "在合适场景中支持链上选择与余额",
+          "链下逻辑与链上结算分离",
+          "更强的公开可审计性"
+        ],
+        "sortOrder": 6
+      },
+      {
+        "phaseLabel": "第 7 阶段",
+        "title": "AI 解说与体验",
+        "status": "未来",
+        "description": "基于可验证对战数据和公开历史的体验增强。",
+        "items": [
+          "自动化对战解说",
+          "赛后总结",
+          "对战精彩片段",
+          "关键事件解释",
+          "社交分享"
+        ],
+        "sortOrder": 7
+      }
+    ],
+    "principles": [
+      {
+        "title": "先透明，再扩张",
+        "description": "在扩大传播前，先解释系统如何运行。",
+        "tag": "原则"
+      },
+      {
+        "title": "先明确规则，再考虑变现",
+        "description": "产品在扩大前应保持清晰可理解。",
+        "tag": "原则"
+      },
+      {
+        "title": "先安全，再自动化",
+        "description": "只有在流程充分验证后才进行自动化。",
+        "tag": "原则"
+      },
+      {
+        "title": "先公开历史，再做排名",
+        "description": "在加入更大的竞争层之前，先让结果可观察。",
+        "tag": "原则"
+      },
+      {
+        "title": "先可验证数据，再叙事",
+        "description": "未来任何叙事层都应基于日志、事件和结果。",
+        "tag": "原则"
+      }
+    ],
+    "noticeTitle": "重要提示",
+    "noticeText": "CriptoVersus 是一个基于公开数据的实验性加密货币市场模拟平台。规则、经济模型和集成可能会随时间演进。本页面任何内容都不代表财务收益承诺。"
+  },
+  "howItWorks": {
+    "seo": {
+      "title": "玩法说明 | CriptoVersus",
+      "description": "了解 CriptoVersus 如何运作：阵营选择、对战计分、市场驱动竞争、结算逻辑和教育性加密货币分析。"
+    }
+  },
+  "social": {
+    "match": {
+      "live": {
+        "text": "{0} 和 {1} 正在 CriptoVersus 激烈对战。当前比分：{2}。实时关注：{3}"
+      }
+    }
+  },
+  "stats": {
+    "seo": {
+      "title": "CriptoVersus 数据 - 公开加密货币对战排名",
+      "description": "探索 CriptoVersus 公开数据、加密货币对战排名、表现趋势、比分、对战历史和市场竞技洞察。"
+    },
+    "hero": {
+      "eyebrow": "公开竞技场情报",
+      "title": "CriptoVersus 数据",
+      "subtitle": "来自 CriptoVersus 竞技场的公开加密货币对战数据、排名和市场表现洞察。",
+      "seoCopy": "该公开数据页面汇总 CriptoVersus 战场中的加密货币对战、竞技场排名、追踪资产、比分板和历史表现等可索引数据。",
+      "liveNote": "每 5 分钟更新",
+      "backToArena": "返回竞技场",
+      "backToArenaAria": "返回 CriptoVersus 竞技场首页",
+      "howScoringWorks": "计分如何运作",
+      "howScoringWorksAria": "阅读 CriptoVersus 竞技场计分方式",
+      "coverage": "竞技场覆盖",
+      "coverageHint": "已索引的公开对战",
+      "finishedBattles": "已结束对战",
+      "finishedBattlesHint": "已关闭比分板",
+      "lastUpdate": "最后更新"
+    },
+    "states": {
+      "loadingTitle": "正在加载公开数据",
+      "loadingBody": "正在获取最新竞技场概览和排名数据。",
+      "errorTitle": "数据暂时不可用",
+      "errorBody": "当前无法加载公开数据，暂时显示稳定的空面板。",
+      "emptyTitle": "暂无公开数据",
+      "emptyBody": "竞技场尚未发布足够的已完成或已追踪对战来填充数据面板。随着公开对战数据增长，页面会自动更新。",
+      "noData": "暂无数据"
+    },
+    "search": {
+      "eyebrow": "资产搜索",
+      "title": "快速查找币种",
+      "description": "无需离开数据页面，即可按符号或资产名称搜索公开排名。",
+      "label": "搜索币种",
+      "placeholder": "BTC、ETH、STRAX、TON...",
+      "ariaLabel": "按符号或名称搜索币种",
+      "clear": "清除",
+      "noResultsTitle": "未找到匹配资产。",
+      "noResultsBody": "请尝试其他符号或资产名称以返回公开排名。"
+    },
+    "summary": {
+      "ariaLabel": "公开数据摘要",
+      "totalMatches": {
+        "label": "总对战数",
+        "hint": "加密货币竞技场信息"
+      },
+      "finishedMatches": {
+        "label": "已结束对战",
+        "hint": "加密货币竞技场信息"
+      },
+      "activeAssets": {
+        "label": "活跃资产",
+        "hint": "加密货币竞技场信息"
+      },
+      "averageScore": {
+        "label": "平均比分",
+        "hint": "每场对战综合竞技场比分"
+      },
+      "highestScore": {
+        "label": "最高比分",
+        "hint": "已记录的最佳单侧比分"
+      },
+      "lastUpdated": {
+        "label": "最后更新",
+        "hint": "公开竞技场刷新时间"
+      }
+    },
+    "charts": {
+      "winRate": {
+        "eyebrow": "胜率榜",
+        "title": "按胜率排名的热门加密资产",
+        "description": "最受关注资产中的最佳公开竞技场收盘记录。",
+        "ariaLabel": "按胜率排名的热门加密资产图表"
+      },
+      "activity": {
+        "eyebrow": "对战节奏",
+        "title": "随时间变化的对战活动",
+        "description": "竞技场时间线上的近期公开对战发布节奏。",
+        "ariaLabel": "随时间变化的对战活动图表"
+      }
+    },
+    "trending": {
+      "eyebrow": "竞技场焦点",
+      "title": "热门资产",
+      "description": "基于近期公开竞技场对战量和可见度的最活跃资产。",
+      "emptyTitle": "暂无热门资产",
+      "emptyBody": "当竞技场记录足够多的公开对战活动后，热门资产会显示在这里。",
+      "matchesHint": "近期 {0} 场对战",
+      "assetAria": "打开 {0} 的未来数据页面"
+    },
+    "ranking": {
+      "eyebrow": "HTML 排名表",
+      "title": "按竞技场表现排名的热门加密资产",
+      "description": "基于 CriptoVersus 公开竞技场对战和历史对战表现的热门加密资产。",
+      "empty": "暂无排名资产。",
+      "assetAria": "打开资产 {0} 的未来数据页面",
+      "columns": {
+        "rank": "排名",
+        "asset": "资产",
+        "matches": "对战",
+        "wins": "胜场",
+        "losses": "负场",
+        "winRate": "胜率",
+        "averageScore": "平均比分",
+        "totalScore": "总比分",
+        "lastMatch": "最近对战"
+      }
+    },
+    "latest": {
+      "eyebrow": "最新比分板",
+      "title": "最新公开对战",
+      "description": "可用于发现和审计的最新公开竞技场对战页面。",
+      "empty": "暂无公开对战。",
+      "vs": "vs",
+      "openMatch": "打开对战",
+      "openMatchAria": "打开 {0} 对阵 {1} 的公开对战页面",
+      "homeAssetAria": "打开资产 {0} 的未来数据页面",
+      "awayAssetAria": "打开资产 {0} 的未来数据页面",
+      "unavailable": "不可用",
+      "columns": {
+        "match": "对战",
+        "score": "比分",
+        "status": "状态",
+        "startedAt": "开始时间",
+        "finishedAt": "结束时间",
+        "publicPage": "公开页面"
+      }
+    },
+    "future": {
+      "eyebrow": "路线图连接",
+      "title": "下一个公开数据中心",
+      "description": "探索基于 CriptoVersus 实时竞技场数据构建的专属公开中心。",
+      "availableNow": "现在可用",
+      "comingSoon": "即将上线",
+      "openAria": "打开 {0}",
+      "links": {
+        "teams": {
+          "title": "团队",
+          "description": "专属团队对团队公开排行榜。"
+        },
+        "matches": {
+          "title": "对战",
+          "description": "带有更深入历史筛选的扩展对战档案。"
+        },
+        "rankings": {
+          "title": "排名",
+          "description": "跨公开竞技场类别的多指标排行榜。"
+        },
+        "records": {
+          "title": "记录",
+          "description": "公开竞技场记录、连胜/连败和统计里程碑。"
+        }
+      }
+    },
+    "status": {
+      "completed": "已结束",
+      "ongoing": "实时",
+      "pending": "待开始",
+      "cancelled": "已取消"
+    },
+    "structuredData": {
+      "breadcrumbStats": "数据"
+    },
+    "footnote": {
+      "title": "公开竞技场数据背景",
+      "body": "CriptoVersus 公开数据追踪加密货币对战表现、历史竞技场对战、表现趋势、比分板以及数字资产之间的公开市场竞争。"
+    }
+  },
+  "statsMatches": {
+    "seo": {
+      "title": "CriptoVersus 对战数据",
+      "description": "浏览公开加密货币对战，按状态筛选，并查看竞技场中的资产结果。"
+    },
+    "hero": {
+      "eyebrow": "公开对战中心",
+      "title": "对战数据",
+      "subtitle": "搜索公开对战、查看近期比分板，并按资产比较结果。",
+      "backToStats": "返回数据",
+      "openTeams": "打开团队"
+    },
+    "filters": {
+      "searchLabel": "按币种或团队搜索",
+      "searchPlaceholder": "BTC、ETH、STRAX、TON...",
+      "statusLabel": "状态",
+      "status": {
+        "all": "全部",
+        "ongoing": "实时",
+        "completed": "已结束",
+        "pending": "待开始",
+        "cancelled": "已取消"
+      }
+    },
+    "states": {
+      "loadingTitle": "正在加载公开对战",
+      "loadingBody": "正在收集公开比分板和近期对战历史。",
+      "errorTitle": "对战暂时不可用",
+      "errorBody": "当前无法加载公开对战档案。",
+      "emptyTitle": "未找到对战",
+      "emptyBody": "请尝试其他资产、团队或状态筛选。"
+    },
+    "summary": {
+      "totalMatches": "总对战数",
+      "completed": "已结束",
+      "live": "实时",
+      "assets": "加密货币竞技场信息"
+    },
+    "matches": {
+      "eyebrow": "近期档案",
+      "title": "标题",
+      "description": "打开任意对战页面并查看最新公开比分板。",
+      "openMatch": "打开对战",
+      "columns": {
+        "match": "对战",
+        "score": "比分",
+        "status": "状态",
+        "date": "日期",
+        "link": "链接"
+      }
+    },
+    "teams": {
+      "eyebrow": "资产表现",
+      "title": "按资产统计胜、负、平",
+      "description": "基于当前筛选对战集生成的公开资产摘要。",
+      "columns": {
+        "asset": "资产",
+        "matches": "对战",
+        "wins": "胜场",
+        "draws": "平局",
+        "losses": "负场",
+        "goals": "得分",
+        "winRate": "胜率"
+      }
+    },
+    "status": {
+      "completed": "已结束",
+      "ongoing": "实时",
+      "pending": "待开始",
+      "cancelled": "已取消",
+      "unknown": "未知"
+    }
+  },
+  "statsRankings": {
+    "seo": {
+      "title": "CriptoVersus 排名",
+      "description": "按胜场、效率、得分和不败纪录比较公开排名。"
+    },
+    "hero": {
+      "eyebrow": "公开排名中心",
+      "title": "数据排名",
+      "subtitle": "CriptoVersus 竞技场的多指标公开排行榜。",
+      "backToStats": "返回数据",
+      "openMatches": "打开对战"
+    },
+    "filters": {
+      "searchLabel": "按资产搜索",
+      "searchPlaceholder": "BTC、ETH、STRAX、TON..."
+    },
+    "states": {
+      "loadingTitle": "正在加载公开排名",
+      "loadingBody": "正在根据最新公开对战数据计算排行榜。",
+      "errorTitle": "排名暂时不可用",
+      "errorBody": "当前无法加载公开排行榜。",
+      "emptyTitle": "暂无可用排名",
+      "emptyBody": "竞技场还需要更多已完成的公开对战来为资产排名。"
+    },
+    "summary": {
+      "assets": "已排名资产",
+      "topWins": "最多胜场",
+      "topEfficiency": "最佳效率",
+      "topStreak": "最佳不败纪录"
+    },
+    "boards": {
+      "columns": {
+        "rank": "排名",
+        "asset": "资产",
+        "matches": "对战",
+        "winRate": "胜率"
+      },
+      "wins": {
+        "eyebrow": "胜利榜",
+        "title": "按胜场排名",
+        "description": "按已完成公开对战中的总胜场排序资产。",
+        "metric": "胜场"
+      },
+      "efficiency": {
+        "eyebrow": "效率榜",
+        "title": "按效率排名",
+        "description": "已完成公开对战中的三分效率率。",
+        "metric": "效率"
+      },
+      "goals": {
+        "eyebrow": "进攻榜",
+        "title": "按得分排名",
+        "description": "公开得分输出最高的资产。",
+        "metric": "得分"
+      },
+      "streak": {
+        "eyebrow": "动量榜",
+        "title": "按不败纪录排名",
+        "description": "基于最新已完成对战历史的当前不败走势。",
+        "metric": "连续纪录"
+      }
+    }
+  },
+  "statsRecords": {
+    "seo": {
+      "title": "CriptoVersus 记录",
+      "description": "查看竞技场中最大的公开记录、大比分对战和突出的历史对战。"
+    },
+    "hero": {
+      "eyebrow": "公开记录中心",
+      "title": "数据记录",
+      "subtitle": "来自 CriptoVersus 竞技场的公开里程碑和历史比分板。",
+      "backToStats": "返回数据",
+      "openRankings": "打开排名"
+    },
+    "states": {
+      "loadingTitle": "正在加载公开记录",
+      "loadingBody": "正在扫描已完成公开对战中的突出记录和里程碑。",
+      "errorTitle": "记录暂时不可用",
+      "errorBody": "当前无法加载公开记录面板。",
+      "emptyTitle": "暂无可用记录",
+      "emptyBody": "竞技场仍需要更多已完成公开对战后才能突出显示记录。"
+    },
+    "summary": {
+      "longestWinStreak": "最长连胜",
+      "biggestBlowout": "最大分差",
+      "mostGoals": "单场最高得分",
+      "bestCampaign": "最佳表现"
+    },
+    "records": {
+      "eyebrow": "里程碑",
+      "title": "竞技场记录榜",
+      "description": "基于现有公开对战数据在前端临时计算的记录。",
+      "openMatch": "打开对战",
+      "cards": {
+        "longestWinStreak": "最长连胜",
+        "longestWinStreakDetail": "公开竞技场资产的最佳连续胜场。",
+        "biggestBlowout": "最大分差",
+        "biggestBlowoutDetail": "公开对战中记录的最大净胜分。",
+        "mostGoals": "单场最多得分",
+        "mostGoalsDetail": "公开比分板上发布的最高合计比分。",
+        "bestCampaign": "最佳表现",
+        "bestCampaignDetail": "在具有有效公开样本的资产中最佳效率率。",
+        "worstCampaign": "最差表现",
+        "worstCampaignDetail": "已索引公开资产中最低效率率。"
+      }
+    },
+    "history": {
+      "eyebrow": "历史对战",
+      "title": "相关历史对战",
+      "description": "公开档案中值得回顾的高影响比分板。",
+      "openMatch": "打开对战",
+      "columns": {
+        "match": "对战",
+        "score": "比分",
+        "note": "重要原因",
+        "link": "链接"
+      },
+      "notes": {
+        "blowout": "记录中最大公开分差。",
+        "mostGoals": "截至目前得分最高的公开对战。",
+        "closeClassic": "比分接近且高得分的经典对战。",
+        "highImpact": "历史档案中的高影响公开对战。"
+      }
+    }
+  },
+  "statsTeams": {
+    "seo": {
+      "title": "加密货币竞技场团队 - CriptoVersus 排名",
+      "description": "探索 CriptoVersus 生态中的公开加密货币竞技场团队、历史表现趋势、排名和对战统计。"
+    },
+    "hero": {
+      "eyebrow": "竞技场团队目录",
+      "title": "加密货币竞技场团队",
+      "subtitle": "探索历史 CriptoVersus 竞技场对战中的公开加密资产表现。",
+      "seoCopy": "CriptoVersus 将加密资产转化为公开竞技场团队，并在生态中提供历史排名、相对表现、公开数据和可索引对战记录。",
+      "backToStats": "返回数据",
+      "backToStatsAria": "打开相关公开页面",
+      "howArenaWorks": "竞技场如何运作",
+      "howArenaWorksAria": "阅读 CriptoVersus 竞技场如何运作",
+      "liveDirectory": "实时目录",
+      "liveDirectoryHint": "已索引公开资产团队",
+      "totalIndexedBattles": "已索引总对战数",
+      "totalIndexedBattlesHint": "已完成公开对战记录",
+      "updatedStatus": "实时竞技场状态",
+      "updatedStatusValue": "公开团队数据",
+      "updatedStatusHint": "随最新公开历史刷新"
+    },
+    "states": {
+      "loadingTitle": "正在加载竞技场团队",
+      "loadingBody": "正在获取最新公开团队目录和排名数据。",
+      "errorTitle": "团队暂时不可用",
+      "errorBody": "当前无法加载公开竞技场团队，暂时显示稳定的空面板。",
+      "emptyTitle": "暂无公开团队",
+      "emptyBody": "竞技场尚未索引足够多的已完成公开对战来构建团队目录。"
+    },
+    "summary": {
+      "ariaLabel": "竞技场团队摘要",
+      "totalAssets": {
+        "label": "总资产",
+        "hint": "已追踪公开加密团队"
+      },
+      "mostDominantAsset": {
+        "label": "最具统治力资产",
+        "hint": "当前最高排名竞技场领先者"
+      },
+      "highestWinRate": {
+        "label": "最高胜率",
+        "hint": "最佳公开收盘百分比"
+      },
+      "mostActiveTeam": {
+        "label": "最活跃团队",
+        "hint": "最大公开对战样本"
+      },
+      "totalBattlesIndexed": {
+        "label": "已索引总对战数",
+        "hint": "加密货币竞技场信息"
+      }
+    },
+    "search": {
+      "eyebrow": "搜索目录",
+      "title": "查找加密团队",
+      "description": "按符号或资产名称即时筛选公开竞技场面板。",
+      "label": "搜索加密团队",
+      "placeholder": "搜索加密团队...",
+      "ariaLabel": "搜索加密团队",
+      "noResultsTitle": "没有匹配团队",
+      "noResultsBody": "尝试不同符号或更宽泛的搜索词。"
+    },
+    "grid": {
+      "eyebrow": "竞争面板",
+      "title": "竞技场团队目录",
+      "description": "基于历史 CriptoVersus 对战表现，为最强加密团队提供高级公开卡片。",
+      "rankValue": "竞技场排名 #{0}",
+      "viewTeam": "查看团队",
+      "viewTeamAria": "打开 {0} 的未来团队页面",
+      "metrics": {
+        "winRate": "胜率",
+        "matches": "对战",
+        "goals": "得分",
+        "averageScore": "平均比分"
+      },
+      "details": {
+        "wins": "胜场",
+        "losses": "负场",
+        "totalScore": "总比分",
+        "momentum": "动量"
+      }
+    },
+    "table": {
+      "eyebrow": "HTML 排名表",
+      "title": "顶级竞技场团队",
+      "description": "面向公开加密竞技场团队、历史表现趋势和对战统计的可索引排名表。",
+      "empty": "暂无竞技场团队。",
+      "assetAria": "打开 {0} 的未来团队页面",
+      "columns": {
+        "rank": "排名",
+        "asset": "资产",
+        "matches": "对战",
+        "wins": "胜场",
+        "losses": "负场",
+        "winRate": "胜率",
+        "averageScore": "平均比分",
+        "totalScore": "总比分",
+        "momentum": "动量"
+      }
+    },
+    "rivalries": {
+      "eyebrow": "竞技场故事线",
+      "title": "主要对手关系",
+      "description": "由最强公开竞技场团队构成的精选竞争配对。",
+      "emptyTitle": "暂无对手关系",
+      "emptyBody": "当公开团队面板拥有足够数据后，对手关系会显示在这里。",
+      "teamAria": "打开 {0} 的未来团队页面"
+    },
+    "momentum": {
+      "dominant": "统治中",
+      "hot": "热门",
+      "rising": "上升中",
+      "aggressive": "激进",
+      "veteran": "老练",
+      "struggling": "承压",
+      "volatile": "波动"
+    },
+    "structuredData": {
+      "breadcrumbStats": "数据",
+      "breadcrumbTeams": "团队"
+    }
+  },
+  "statsTeamDetail": {
+    "seo": {
+      "title": "{0} 团队档案 - CriptoVersus 竞技场数据",
+      "description": "探索 {0} 的 CriptoVersus 公开竞技场数据、近期对战、对手和历史表现。"
+    },
+    "hero": {
+      "eyebrow": "竞技场团队档案",
+      "title": "{0} 团队档案",
+      "subtitle": "{0} 的公开对战历史、对手和竞技场表现洞察。",
+      "seoCopy": "{0} 作为 CriptoVersus 内的公开竞技场团队参赛，其历史对战结果、排名、表现趋势和相对表现可用于搜索和发现。",
+      "backToTeams": "返回团队",
+      "backToStats": "返回数据",
+      "rank": "竞技场排名",
+      "rankHint": "当前公开排名",
+      "momentum": "动量",
+      "momentumHint": "当前竞技场状态标签",
+      "lastMatch": "最近对战",
+      "lastMatchHint": "最新公开对战日期",
+      "winRate": "胜率",
+      "winRateHint": "已完成对战中的收盘百分比",
+      "matchesPlayed": "已进行对战",
+      "matchesPlayedHint": "已索引公开对战样本",
+      "streak": "连续纪录",
+      "streakHint": "当前已完成结果走势",
+      "quickStatsEyebrow": "快速数据",
+      "quickStatsTitle": "竞技场表现概览",
+      "quickStatsDescription": "{0} 的关键公开指标，独立于视觉主区域以便快速阅读。",
+      "marketCapHint": "最新社交资料市值排名",
+      "historicalRecord": "历史战绩",
+      "historicalRecordHint": "竞技场中的胜、负、平",
+      "historicalRecordValue": "{0}胜 • {1}负 • {2}平",
+      "historicalRecordLegend": "胜 • 负 • 平",
+      "streakWinValue": "{0} 胜",
+      "streakLossValue": "{0} 负",
+      "streakDrawValue": "{0} 平"
+    },
+    "social": {
+      "imageAlt": "{0} 高级档案图像",
+      "identity": {
+        "name": "名称",
+        "coinGeckoId": "CoinGecko ID",
+        "contract": "合约",
+        "marketCapRank": "市值排名",
+        "visualStyle": "视觉风格",
+        "category": "类别",
+        "memeCoin": "Meme 币"
+      },
+      "links": {
+        "website": "网站",
+        "twitter": "X / Twitter",
+        "telegram": "Telegram"
+      },
+      "reference": {
+        "title": "参考档案",
+        "subtitle": "官方元数据和社交资料参考",
+        "source": "来源",
+        "lastChecked": "最后检查 UTC",
+        "marketCapRank": "市值排名",
+        "memeCoin": "Meme 币"
+      }
+    },
+    "investment": {
+      "eyebrow": "实时选择",
+      "title": "选择 {0}",
+      "cta": "选择 {0}",
+      "loadingCta": "正在加载市场",
+      "openMatch": "打开对战",
+      "states": {
+        "loading": "加载中",
+        "available": "可用",
+        "positionAvailable": "可选择",
+        "blocked": "已阻止",
+        "walletRequired": "连接钱包",
+        "unavailable": "不可用"
+      },
+      "messages": {
+        "loading": "正在查询该团队最新可选择的对战或周期。",
+        "available": "{0} 可进行持续选择。",
+        "positionAvailable": "{0} 可进行持续选择。",
+        "positionAvailableNoMatch": "你可以在该资产中选择一个持续阵营，它可能会自动参与未来周期。",
+        "walletRequired": "连接钱包以选择或增加 {0} 的持续阵营。",
+        "unavailable": "该团队当前没有公开选择市场。",
+        "noMatch": "暂未找到该团队的活跃公开对战。",
+        "closed": "该团队的近期对战已不在选择窗口内。",
+        "advancedLive": "该资产当前处于高级实时对战中。请等待下一个周期再增加参与。",
+        "blockedAdvancedLive": "该资产当前处于高级实时对战中。请等待下一个周期再增加参与。",
+        "error": "当前无法验证可选择上下文，请稍后重试。",
+        "success": "已提交 {0} 的选择。",
+        "submitError": "当前无法提交 {0} 的选择。"
+      }
+    },
+    "states": {
+      "loadingTitle": "正在加载团队档案",
+      "loadingBody": "正在获取该加密团队最新公开竞技场详情。",
+      "errorTitle": "团队档案不可用",
+      "errorBody": "当前无法加载该公开团队档案。",
+      "notFoundBody": "当前公开目录中找不到该竞技场团队。",
+      "noData": "暂无数据"
+    },
+    "summary": {
+      "matches": "对战",
+      "wins": "胜场",
+      "losses": "负场",
+      "winRate": "胜率",
+      "averageScore": "平均比分",
+      "totalScore": "总比分"
+    },
+    "activity": {
+      "eyebrow": "竞技场",
+      "title": "随时间变化的对战活动",
+      "description": "CriptoVersus 竞技场时间线中 {0} 的近期公开对战节奏。",
+      "ariaLabel": "{0} 随时间变化的对战活动图表"
+    },
+    "rivals": {
+      "eyebrow": "主要对手",
+      "title": "主要对手",
+      "description": "在已完成竞技场对战中最常面对该团队的公开对手。",
+      "empty": "暂无对手数据。",
+      "openAria": "打开 {0} 的团队档案",
+      "record": "{0} 胜 · {1} 负 · {2} 场对战"
+    },
+    "latest": {
+      "eyebrow": "最新比分板",
+      "title": "最新公开对战",
+      "description": "CriptoVersus 竞技场中包含 {0} 的近期公开对战。",
+      "empty": "暂无公开对战。",
+      "openMatch": "打开对战",
+      "unavailable": "不可用",
+      "columns": {
+        "match": "对战",
+        "score": "比分",
+        "status": "状态",
+        "startedAt": "开始时间",
+        "finishedAt": "结束时间",
+        "publicPage": "公开页面"
+      }
+    },
+    "momentum": {
+      "dominant": "统治中",
+      "hot": "热门",
+      "rising": "上升中",
+      "aggressive": "激进",
+      "veteran": "老练",
+      "struggling": "承压",
+      "volatile": "波动"
+    },
+    "status": {
+      "completed": "已结束",
+      "ongoing": "实时",
+      "pending": "待开始",
+      "cancelled": "已取消"
+    },
+    "structuredData": {
+      "breadcrumbStats": "数据",
+      "breadcrumbTeams": "团队"
+    }
+  },
+  "publicHome": {
+    "globalCryptoArena": "全球加密货币竞技场",
+    "exploreLiveMatches": "探索实时对战",
+    "howItWorks": "玩法说明",
+    "platformHighlights": "平台亮点",
+    "liveMatches": "实时对战",
+    "completedIn24h": "24小时内完成",
+    "trackedCoins": "追踪币种",
+    "homeSections": "首页栏目",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "通过可抓取的公开页面关注正在进行的加密货币对战，查看比分、动量和对战背景。",
+    "roadmap": "路线图",
+    "liveBattle": "实时对战",
+    "vs": "vs",
+    "openMatch": "打开对战",
+    "topCryptoBattles": "热门加密货币对战",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "精选公开对战页面连接市场表现、计分规则和透明的历史背景。",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus 追踪资产之间的市场变化，将配置规则转换为比分事件，并发布可索引、可分享、可审计的对战页面。",
+    "readTheFullRules": "阅读完整规则",
+    "publicMatchLogic": "公开对战逻辑",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "每场对战的比分、状态、成交量、价格变化和基于规则的事件都会显示在公开页面上。",
+    "arenaStyleExperience": "竞技场式体验",
+    "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "产品融合加密货币数据、实时对抗和适合社交传播的叙事。",
+    "globalSeoReadyRouting": "全球 SEO 就绪路由",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "本地化公开路由、canonical URL 和 hreflang 支持让国际发现更清晰。",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "快速查看当前在竞技场中最受关注的资产。",
+    "trackedMarketAsset": "追踪的市场资产",
+    "trendingCoins": "热门币种",
+    "cryptoArenaRankings": "加密货币竞技场排名",
+    "rankings": "排名",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "热门资产、精选对战和公开对战页面共同构建竞技场的竞争排名层。",
+    "exploreTheProduct": "探索产品",
+    "howItWorks2": "玩法说明",
+    "featuredMatch": "精选对战",
+    "criptoversusLiveCryptoMatchArena": "CriptoVersus | 实时加密货币对战竞技场",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "通过 SEO 就绪的公开页面，在 CriptoVersus 探索实时加密货币对战、公开比分板、热门币种和市场竞技。",
+    "seoDescription": "CriptoVersus 是一个游戏化市场数据可视化平台，将公开加密货币信号转化为足球风格模拟，用于教育性分析。",
+    "heroTitle": "在游戏化视觉竞技场中观看实时加密货币市场对战。",
+    "heroDescription": "CriptoVersus 将公开市场表现转化为足球风格的加密货币模拟对战，让不同资产像球队一样竞争。每个周期都会生成新的对战、公开比分、排名，以及由真实市场波动驱动的教育型叙事。",
+    "heroSemanticLabel": "竞技场机制亮点",
+    "heroSemantic1": "在实时加密货币对战中选择一方",
+    "heroSemantic2": "关注对战池与比分变化",
+    "heroSemantic3": "选择一方进行教育性分析",
+    "heroSemantic4": "带有游戏化计分的实时加密货币模拟",
+    "heroSemantic5": "由真实市场表现驱动的竞技场分析",
+    "marketDataDisclaimer": "CriptoVersus 是一个游戏化的市场数据可视化平台。对战比分由公开市场信号生成，不应被视为金融建议、投资推荐或结果保证。",
+    "sections": {
+      "basics": {
+        "eyebrow": "关于 CriptoVersus",
+        "title": "关于 CriptoVersus",
+        "description": "了解该平台是什么、不是什么，以及公开竞技场如何被定义。"
+      },
+      "analysis": {
+        "eyebrow": "玩法说明",
+        "title": "CriptoVersus 如何运作",
+        "description": "清晰解释阵营选择、公开对战计分和市场数据模拟。"
+      },
+      "score": {
+        "eyebrow": "竞技场",
+        "title": "标题",
+        "description": "公开信号如何转化为比分变化、对战状态和竞技场历史。"
+      },
+      "wallet": {
+        "eyebrow": "负责任使用",
+        "title": "负责任使用",
+        "description": "以谨慎和现实预期使用平台的实用指南。"
+      },
+      "risk": {
+        "eyebrow": "竞技场",
+        "title": "标题",
+        "description": "本站不是收益承诺、赌博产品或投资推荐。"
+      },
+      "tv": {
+        "eyebrow": "实时直播",
+        "title": "TV 直播",
+        "description": "自动直播如何呈现公开对战背景和实时竞技场状态。"
+      },
+      "stats": {
+        "eyebrow": "数据来源",
+        "title": "数据来源",
+        "description": "公开信号、比分板和竞技场指标的来源。"
+      },
+      "deep": {
+        "eyebrow": "非投资建议",
+        "title": "非投资建议",
+        "description": "CriptoVersus 不应被视为金融建议、投资计划或保证策略。"
+      }
+    },
+    "faqTitle": "CriptoVersus 常见问题",
+    "faqSubtitle": "为搜索引擎、AI 系统以及想了解每场对战背后教育性模拟和计分模型的用户提供直接答案。",
+    "structuredDataAbstract": "CriptoVersus 是一个游戏化市场数据可视化竞技场，包含阵营选择、对战计分、公开模拟以及由真实市场表现驱动的教育性市场分析。",
+    "faq": {
+      "onlyScoreboard": {
+        "question": "CriptoVersus 只是加密货币比分板吗？",
+        "answer": "不是。CriptoVersus 是用于分析、教育和娱乐的游戏化市场数据可视化竞技场。用户可以在实时模拟中选择阵营、关注对战池并查看公开市场信号。它不是金融建议，也不是未来代币价格预测。"
+      },
+      "openPositions": {
+        "question": "用户可以在加密货币对战中选择阵营吗？",
+        "answer": "可以。用户可以在市场驱动周期活跃时，在实时竞技场模拟中选择阵营。该选择用于参与和分析，不构成金融建议。"
+      },
+      "arenaPools": {
+        "question": "CriptoVersus 对战池如何运作？",
+        "answer": "每一方都会将参与者集中到一个对战池中。这些池会在实时竞技场中演进，响应真实市场表现，并参与结算时使用的计分逻辑。它们是视觉化和教育性的，不是投资产品。"
+      },
+      "cyclicalPools": {
+        "question": "什么是周期性对战池？",
+        "answer": "周期性池是重复出现的竞技场参与层，它会在多个对战周期之间连接阵营选择，而不是把每场对战视为孤立比分板。"
+      },
+      "rewardDistribution": {
+        "question": "比分和结果如何分配？",
+        "answer": "比分和结果由当前对战规则、阵营表现、池组成以及将实时市场结果转化为竞技场结果的结算逻辑决定。它们不保证任何未来代币价格变化或收益。"
+      },
+      "battleCycle": {
+        "question": "加密货币对战周期如何运作？",
+        "answer": "一个对战周期会打开参与窗口，允许阵营选择，实时追踪市场表现，更新实时竞技场，并以池结算和下一个周期的计分更新结束。"
+      }
+    },
+    "liveMatchRealtimeSummary": "当前比分 {0} x {1}。价格变化和公开对战信号实时更新。",
+    "featuredMatchScoreSummary": "对战 #{0} • 比分 {1} x {2}",
+    "structuredDataDescription": "CriptoVersus 上 {0} 与 {1} 之间的公开加密货币市场数据模拟。"
+  },
+  "public": {
+    "about": {
+      "seo": {
+        "title": "关于 CriptoVersus | 公开市场数据竞技场",
+        "description": "了解 CriptoVersus 如何将公开加密货币市场数据转化为足球风格的模拟对战，用于分析、教育和娱乐。"
+      },
+      "hero": {
+        "eyebrow": "关于",
+        "title": "标题",
+        "lead": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。",
+        "backToArena": "返回竞技场",
+        "viewScoringRules": "加密货币竞技场信息",
+        "panelLabel": "加密货币竞技场信息",
+        "panel": {
+          "publicDataLabel": "加密货币竞技场信息",
+          "publicDataTitle": "加密货币竞技场信息",
+          "publicDataBody": "加密货币竞技场信息",
+          "simulationLabel": "加密货币竞技场信息",
+          "simulationTitle": "加密货币竞技场信息",
+          "simulationBody": "加密货币竞技场信息",
+          "useLabel": "加密货币竞技场信息",
+          "useTitle": "加密货币竞技场信息",
+          "useBody": "加密货币竞技场信息"
+        }
+      },
+      "sections": {
+        "overviewLabel": "加密货币竞技场信息"
+      },
+      "cards": {
+        "platform": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "how": {
+          "label": "玩法说明",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "responsible": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        }
+      },
+      "dataSources": {
+        "title": "数据来源",
+        "description": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。",
+        "binanceNotice": "加密货币竞技场信息",
+        "notAffiliated": "加密货币竞技场信息",
+        "usage": "加密货币竞技场信息",
+        "reliability": "加密货币竞技场信息"
+      }
+    },
+    "scoringRules": {
+      "seo": {
+        "title": "CriptoVersus 计分规则 | 公开市场信号",
+        "description": "了解 CriptoVersus 如何通过百分比、交叉、成交量和 K线对战规则，把公开市场信号转化为计分事件。"
+      },
+      "hero": {
+        "eyebrow": "计分规则",
+        "title": "标题",
+        "lead": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。",
+        "backToAbout": "加密货币竞技场信息",
+        "backToArena": "返回竞技场",
+        "panelLabel": "加密货币竞技场信息",
+        "panel": {
+          "signalsLabel": "加密货币竞技场信息",
+          "signalsTitle": "加密货币竞技场信息",
+          "signalsBody": "加密货币竞技场信息",
+          "leftTeam": "加密货币竞技场信息",
+          "versus": "vs",
+          "simulated": "加密货币竞技场信息",
+          "rightTeam": "加密货币竞技场信息",
+          "scoringLabel": "加密货币竞技场信息",
+          "scoringTitle": "加密货币竞技场信息",
+          "scoringBody": "加密货币竞技场信息",
+          "resultLabel": "加密货币竞技场信息",
+          "resultTitle": "加密货币竞技场信息",
+          "resultBody": "加密货币竞技场信息"
+        }
+      },
+      "sections": {
+        "overviewLabel": "加密货币竞技场信息",
+        "overviewEyebrow": "加密货币竞技场信息",
+        "overviewTitle": "加密货币竞技场信息",
+        "overviewLead": "加密货币竞技场信息",
+        "realRulesLabel": "加密货币竞技场信息",
+        "realRulesEyebrow": "加密货币竞技场信息",
+        "realRulesTitle": "加密货币竞技场信息",
+        "realRulesLead": "加密货币竞技场信息",
+        "simulationsLabel": "加密货币竞技场信息",
+        "simulationsEyebrow": "加密货币竞技场信息",
+        "simulationsTitle": "加密货币竞技场信息",
+        "simulationsLead": "加密货币竞技场信息",
+        "simulationsTimelineLabel": "加密货币竞技场信息",
+        "visualIndicatorsLabel": "加密货币竞技场信息",
+        "visualIndicatorsEyebrow": "加密货币竞技场信息",
+        "visualIndicatorsTitle": "加密货币竞技场信息",
+        "visualIndicatorsLead": "加密货币竞技场信息",
+        "meaningLabel": "加密货币竞技场信息"
+      },
+      "cards": {
+        "signals": {
+          "label": "标签",
+          "title": "标题",
+          "body": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。"
+        },
+        "scoring": {
+          "label": "标签",
+          "title": "标题",
+          "body": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。"
+        },
+        "settlement": {
+          "label": "标签",
+          "title": "标题",
+          "body": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。"
+        }
+      },
+      "rules": {
+        "percentage": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+          "point1": "加密货币竞技场信息",
+          "point2": "加密货币竞技场信息",
+          "point3": "加密货币竞技场信息"
+        },
+        "crossover": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+          "point1": "加密货币竞技场信息",
+          "point2": "加密货币竞技场信息",
+          "point3": "加密货币竞技场信息"
+        },
+        "candleBattle": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+          "point1": "加密货币竞技场信息",
+          "point2": "加密货币竞技场信息",
+          "point3": "加密货币竞技场信息"
+        },
+        "dominance": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+          "point1": "加密货币竞技场信息",
+          "point2": "加密货币竞技场信息",
+          "point3": "加密货币竞技场信息"
+        }
+      },
+      "simulations": {
+        "step1": {
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "step2": {
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "step3": {
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        }
+      },
+      "indicators": {
+        "arenaPressure": {
+          "label": "竞技场压力",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "momentum": {
+          "label": "动量",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "marketFlow": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        }
+      },
+      "meaning": {
+        "notAdvice": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "notPrediction": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "notGuarantee": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        }
+      },
+      "dataSourcesNoticeLabel": "加密货币竞技场信息",
+      "dataSourcesNoticeTitle": "加密货币竞技场信息",
+      "dataSourcesNotice": "加密货币竞技场信息",
+      "noPrediction": {
+        "label": "标签",
+        "title": "标题",
+        "body": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。"
+      }
+    },
+    "riskDisclaimer": {
+      "seo": {
+        "title": "风险提示 | CriptoVersus",
+        "description": "在解读 CriptoVersus 对战比分或市场模拟前，请阅读风险、数据和使用提示。"
+      },
+      "hero": {
+        "eyebrow": "风险提示",
+        "title": "标题",
+        "lead": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。",
+        "backToAbout": "关于 CriptoVersus",
+        "backToScoringRules": "计分规则",
+        "panelLabel": "加密货币竞技场信息",
+        "panel": {
+          "adviceLabel": "加密货币竞技场信息",
+          "adviceTitle": "加密货币竞技场信息",
+          "adviceBody": "加密货币竞技场信息",
+          "dataLabel": "加密货币竞技场信息",
+          "dataTitle": "加密货币竞技场信息",
+          "dataBody": "加密货币竞技场信息",
+          "outcomeLabel": "加密货币竞技场信息",
+          "outcomeTitle": "加密货币竞技场信息",
+          "outcomeBody": "加密货币竞技场信息"
+        }
+      },
+      "sections": {
+        "overviewLabel": "加密货币竞技场信息"
+      },
+      "cards": {
+        "noAdvice": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "data": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        },
+        "outcome": {
+          "label": "标签",
+          "title": "标题",
+          "body": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+        }
+      },
+      "dataProviderNoticeLabel": "加密货币竞技场信息",
+      "dataProviderNotice": "加密货币竞技场信息",
+      "dataProviderNote": "加密货币竞技场信息",
+      "dataProviderNoGuarantee": "加密货币竞技场信息"
+    }
+  },
+  "matchDetail": {
+    "loadingMatch": "加密货币竞技场信息",
+    "error": "错误：",
+    "matchNotFound": "加密货币竞技场信息",
+    "matchLeader": "对战领先方",
+    "wonTheMatch": "加密货币竞技场信息",
+    "noLeaderDefined": "加密货币竞技场信息",
+    "live": "实时",
+    "marketDataDisclaimer": "加密货币竞技场信息",
+    "invest": "选择",
+    "bets": "选择",
+    "finalResult": "最终结果",
+    "finalScore": "最终比分",
+    "matchClock": "对战时钟",
+    "remaining": "剩余",
+    "scoringLog": "计分日志",
+    "mostRelevantMomentByMomentEventsFromTheMatch": "加密货币竞技场信息",
+    "eventS": "事件",
+    "noScoringEventsHaveBeenRecordedForThisMatchYet": "加密货币竞技场信息",
+    "investmentResponse": "选择响应",
+    "matchPanel": "对战面板",
+    "elapsed": "已用时间",
+    "score": "比分",
+    "match": "对战",
+    "activeRule": "当前规则",
+    "winner": "对战领先方",
+    "noWinner": "无最终领先方",
+    "settlementReason": "结算原因",
+    "validFinancialDispute": "有效财务争议？",
+    "yes": "是",
+    "no": "否",
+    "betsOnBothSides": "加密货币竞技场信息",
+    "walletsOnTeamA": "A 方钱包",
+    "walletsOnTeamB": "B 方钱包",
+    "betsOnTeamA": "A 方选择",
+    "betsOnTeamB": "B 方选择",
+    "totalOnTeamA": "A 方总额",
+    "totalOnTeamB": "B 方总额",
+    "winningPool": "获胜池",
+    "losingPool": "失败池",
+    "totalPool": "总池",
+    "houseFee": "平台费用",
+    "totalDistributed": "总分配",
+    "settlementSummary": "结算摘要",
+    "finished": "已结束",
+    "finishedAtUtc": "{0} 的公开竞技场信息",
+    "actions": "操作",
+    "copyLink": "复制链接",
+    "back": "返回",
+    "tipShareTheLinkToOpenTheMatchDirectlyInArenaMode": "加密货币竞技场信息",
+    "matchParticipants": "加密货币竞技场信息",
+    "participantS": "加密货币竞技场信息",
+    "bet": "加密货币竞技场信息",
+    "result": "加密货币竞技场信息",
+    "received": "加密货币竞技场信息",
+    "securePosition": "加密货币竞技场信息",
+    "investmentsOpen": "选择开放",
+    "investmentsClosed": "选择关闭",
+    "investmentsAreUnavailableForThisMatch": "加密货币竞技场信息",
+    "status": "状态：",
+    "elapsedTime": "已用时间：",
+    "investIn": "选择",
+    "chooseTheAmountInSol": "选择 SOL 金额",
+    "close": "关闭",
+    "investmentIn": "选择",
+    "quickValuesInSol": "SOL 快捷金额",
+    "quickAdjustment": "加密货币竞技场信息",
+    "orEnterAnyAmountInSol": "或输入任意 SOL 金额",
+    "walletBalanceGuardWalletBalance": "钱包余额",
+    "walletBalanceGuardMaximumAvailable": "最大可用",
+    "walletBalanceGuardUseMax": "使用最大值",
+    "walletBalanceGuardInsufficient": "余额不足",
+    "walletBalanceGuardInsufficientMessage": "钱包余额不足。你当前可用于此操作的余额为 {0}。",
+    "walletBalanceGuardFeeReserve": "你需要保留少量余额用于 Solana 网络手续费。",
+    "cancel": "取消",
+    "sending": "发送中...",
+    "gotIt": "知道了",
+    "completed": "已完成",
+    "closing": "关闭中",
+    "live2": "实时",
+    "pending": "待开始",
+    "noWinner2": "无最终领先方",
+    "scoringEvent": "加密货币竞技场信息",
+    "theMatchEndedWithoutAWinnerNoFeeWasChargedAndAllBetsMustBeFullyRefunded": "加密货币竞技场信息",
+    "thereWasATechnicalWinnerOnTheScoreboardButThereWasNoValidOpposingPoolNoFinancialGainOrHouseFeeWasApplied": "加密货币竞技场信息",
+    "thereWasNoValidFinancialCounterpartyNoFinancialLossOrHouseFeeWasApplied": "加密货币竞技场信息",
+    "matchCanceledNoHouseFeeAndFullRefundOfBets": "加密货币竞技场信息",
+    "matchFinishedWithoutAValidFinancialWinnerBetsMustBeRefunded": "加密货币竞技场信息",
+    "settlementCompletedAccordingToTheMatchRule": "加密货币竞技场信息",
+    "chooseACoinToInvestIn": "加密货币竞技场信息",
+    "enterAnAmountGreaterThanZero": "请输入大于零的金额。",
+    "theMatchHasNotBeenCreatedOnChainOnDevnetYetPleaseTryAgainShortly": "加密货币竞技场信息",
+    "itWasNotPossibleToPrepareThisCoinSOnChainPositionRightNowPleaseTryAgainShortly": "加密货币竞技场信息",
+    "itWasNotPossibleToCompleteTheInvestmentRightNowPleaseTryAgainShortly": "加密货币竞技场信息",
+    "percentageHistoryThresholdCrossover": "百分比历史（阈值 + 交叉）",
+    "percentageHistoryCrossover": "百分比历史（交叉）",
+    "percentageHistory": "百分比历史",
+    "crossoverS": "加密货币竞技场信息",
+    "scoringBasedOnPercentageCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "加密货币竞技场信息",
+    "percentageDisplayedForMatchTracking": "加密货币竞技场信息",
+    "volumeHistoryWindowCrossover": "成交量历史（窗口 + 交叉）",
+    "volumeHistoryCrossover": "成交量历史（交叉）",
+    "volumeHistory": "成交量历史",
+    "comparisonBasedOnVolumeCrossoverAPointOnlyAppearsWhenOneTeamSLineCrossesTheOtherSFromBottomToTop": "加密货币竞技场信息",
+    "candleBattleDominance": "加密货币竞技场信息",
+    "candleBattleLeadChange": "加密货币竞技场信息",
+    "volumeDisplayedForMatchTracking": "加密货币竞技场信息",
+    "crossoverPercent": "交叉百分比",
+    "volumeWindow": "成交量窗口",
+    "volumeCrossover": "成交量交叉",
+    "chartsWillBeDisplayedWhenTheMatchIsLoaded": "加密货币竞技场信息",
+    "thereAreNoPersistedSnapshotsForThisMatchYetAfterTheWorkerRunsAndRecordsTheCapturesTheChartsWillAppearHere": "加密货币竞技场信息",
+    "percentageThresholdCardDescription": "{0} {1} {2} {3} 的公开竞技场信息",
+    "volumeWindowCardDescription": "{0} {1} {2} {3} 的公开竞技场信息",
+    "notEnoughPointsToDrawLines": "{0} {1} {2} {3} 的公开竞技场信息",
+    "arenaPressureTitle": "竞技场压力",
+    "arenaPressureSubtitle": "加密货币竞技场信息",
+    "marketPulse": "市场脉冲",
+    "arenaPressureLabel": "竞技场压力",
+    "arenaExtremeFear": "极度恐惧",
+    "arenaFear": "恐惧",
+    "arenaNeutral": "中性",
+    "arenaGreed": "贪婪",
+    "arenaExtremeGreed": "极度贪婪",
+    "arenaInsufficientData": "数据不足"
+  },
+  "cryptoConverterStats": {
+    "seo": {
+      "title": "CriptoVersus 公开加密货币竞技场",
+      "description": "{0} {1} 的公开市场数据、竞技场背景和教育性分析会在 CriptoVersus 中展示。",
+      "unavailableDescription": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。"
+    },
+    "hero": {
+      "eyebrow": "竞技场",
+      "title": "{0} {1} 公开对战",
+      "subtitle": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+      "seoCopy": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+      "watchCta": "打开 {0}",
+      "exploreCta": "查看详情",
+      "backToStats": "返回数据",
+      "panelHint": "加密货币竞技场信息",
+      "resultLabel": "加密货币竞技场信息",
+      "unavailableTitle": "加密货币竞技场信息",
+      "unavailableBody": "加密货币竞技场信息",
+      "diagnostics": {
+        "title": "临时诊断",
+        "fromSymbol": "fromSymbol",
+        "toSymbol": "toSymbol",
+        "fromPriceFound": "fromPriceFound",
+        "toPriceFound": "toPriceFound",
+        "fromStatus": "fromEndpointStatus",
+        "toStatus": "toEndpointStatus",
+        "fromReason": "fromReason",
+        "toReason": "toReason",
+        "fromSource": "fromSource",
+        "toSource": "toSource",
+        "reason": "reason"
+      },
+      "disclaimerEyebrow": "加密货币竞技场信息",
+      "disclaimerTitle": "加密货币竞技场信息",
+      "disclaimerBody": "CriptoVersus 是一个游戏化的市场数据可视化平台。对战比分由公开市场信号生成，不应被视为金融建议、投资推荐或结果保证。"
+    },
+    "labels": {
+      "to": "加密货币竞技场信息",
+      "approx": "≈",
+      "vs": "vs",
+      "directRate": "加密货币竞技场信息",
+      "priceUpdated": "加密货币竞技场信息",
+      "momentum": "动量",
+      "notAvailableYet": "加密货币竞技场信息"
+    },
+    "table": {
+      "amount": "加密货币竞技场信息",
+      "estimate": "加密货币竞技场信息",
+      "direct": {
+        "eyebrow": "竞技场",
+        "title": "标题",
+        "description": "{0} {1} 的公开市场数据、竞技场背景和教育性分析会在 CriptoVersus 中展示。"
+      },
+      "inverse": {
+        "eyebrow": "竞技场",
+        "title": "标题",
+        "description": "{0} {1} 的公开市场数据、竞技场背景和教育性分析会在 CriptoVersus 中展示。"
+      }
+    },
+    "battle": {
+      "eyebrow": "竞技场",
+      "title": "标题",
+      "description": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。",
+      "unavailableTitle": "加密货币竞技场信息",
+      "unavailableBody": "加密货币竞技场信息",
+      "priceVariation": "加密货币竞技场信息",
+      "priceVariationHint": "加密货币竞技场信息",
+      "candleBattle": "加密货币竞技场信息",
+      "candleBattleHint": "加密货币竞技场信息",
+      "arenaPressure": "加密货币竞技场信息",
+      "momentum": "动量",
+      "momentumHint": "加密货币竞技场信息",
+      "recentWinner": "加密货币竞技场信息",
+      "recentWinnerHint": "加密货币竞技场信息",
+      "watchCta": "打开 {0}",
+      "exploreCta": "查看详情",
+      "snapshotCount": "已追踪 {0} 个快照",
+      "matchId": "对战 #{0}"
+    },
+    "breadcrumbs": {
+      "home": "首页",
+      "stats": "数据"
+    },
+    "faq": {
+      "questions": {
+        "conversion": "加密货币竞技场信息",
+        "prices": "加密货币竞技场信息",
+        "watch": "查看详情"
+      },
+      "answers": {
+        "conversion": "加密货币竞技场信息",
+        "prices": "加密货币竞技场信息",
+        "watch": "查看详情"
+      }
+    }
+  },
+  "tv": {
+    "seo": {
+      "title": "CriptoVersus TV",
+      "description": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。",
+      "broadcastTitle": "CriptoVersus TV",
+      "broadcastDescription": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。",
+      "matchTitle": "{0} vs {1} | CriptoVersus TV",
+      "matchDescription": "{0} {1} 的公开市场数据、竞技场背景和教育性分析会在 CriptoVersus 中展示。",
+      "matchDescriptionFallback": "基于公开市场数据的竞技场说明，用于信息展示、教育性分析和娱乐。"
+    },
+    "disclaimer": "加密货币竞技场信息",
+    "title": "CriptoVersus TV",
+    "subtitle": "自动实时加密货币竞技场直播",
+    "liveNow": "正在直播",
+    "startingSoon": "即将开始",
+    "ended": "已结束",
+    "watchMatch": "观看对战",
+    "watchLive": "观看实时",
+    "openMatch": "打开对战",
+    "matchNotFound": "在 CriptoVersus TV 上未找到对战。",
+    "loading": "正在加载 TV 直播...",
+    "offline": "直播离线",
+    "vs": "VS",
+    "score": "比分",
+    "momentum": "动量",
+    "goals": "得分",
+    "refreshing": "刷新中",
+    "liveArena": "实时竞技场",
+    "poweredBy": "由 CriptoVersus 提供支持",
+    "noMatches": "当前没有可用对战。",
+    "hero": {
+      "eyebrow": "自动直播",
+      "title": "CriptoVersus TV"
+    },
+    "states": {
+      "waitingForNextHotBattle": "等待下一个热门对战",
+      "proceduralSearchTitle": "加密货币竞技场信息",
+      "proceduralSearchSubtitle": "加密货币竞技场信息",
+      "noHotMatchRightNow": "当前没有热门对战",
+      "availableInOtherLanguage": "也可使用另一种语言：{0}",
+      "aiCalibrating": "加密货币竞技场信息",
+      "aiTracking": "加密货币竞技场信息",
+      "commentaryLoading": "加密货币竞技场信息",
+      "commentaryStandby": "加密货币竞技场信息",
+      "scanMarketPulse": "加密货币竞技场信息",
+      "scanArenaRanking": "加密货币竞技场信息",
+      "scanCandidates": "加密货币竞技场信息",
+      "awaitingKickoff": "加密货币竞技场信息"
+    },
+    "activity": {
+      "eyebrow": "实时活动",
+      "title": "对战活动",
+      "description": "实时发生的事件、压力、动量和战术变化。",
+      "ariaLabel": "随时间变化的对战活动图表"
+    },
+    "labels": {
+      "liveArena": "实时竞技场",
+      "automaticBroadcast": "自动直播",
+      "hotMatch": "热门对战",
+      "volume": "成交量",
+      "realMatch": "真实对战",
+      "matchIdValue": "对战 #{0}",
+      "momentum": "动量",
+      "reversalDetected": "检测到反转",
+      "nextBattle": "下一场对战",
+      "hotScore": "热度分",
+      "matchClock": "对战时钟",
+      "remaining": "剩余",
+      "live": "实时",
+      "firstHalf": "上半场",
+      "halfTime": "中场",
+      "secondHalf": "下半场",
+      "final": "终场",
+      "change": "变化",
+      "remainingTime": "剩余时间",
+      "reason": "原因",
+      "competitivePool": "对战池",
+      "arenaCycle": "竞技场周期",
+      "leader": "领先方",
+      "pressure": "压力",
+      "assetPerformance": "资产表现",
+      "candleBattle": "K线对战",
+      "candlesWon": "赢得K线",
+      "momentumCurrent": "当前动量",
+      "tacticalPanel": "战术面板",
+      "tacticalPanelA11y": "加密货币竞技场信息",
+      "leadership": "领先状态",
+      "candlesAnalyzed": "已分析K线",
+      "currentStreak": "当前连续纪录",
+      "lastCandle": "最近K线",
+      "lastVariation": "最近变化",
+      "waitingCandleHistory": "等待K线历史",
+      "chartForAsset": "{0} 的K线",
+      "candleBattleA11y": "{0} vs {1} K线对战竞技场",
+      "controlsCandlesBy": "{0} 控制K线",
+      "pressureAdvantageBy": "{0} 压力优势",
+      "momentumNeutral": "中性动量",
+      "leftAssetChange": "左侧资产变化",
+      "rightAssetChange": "右侧资产变化",
+      "assetVariationA": "资产 A 变化",
+      "assetVariationB": "资产 B 变化",
+      "won": "获胜",
+      "tie": "平局",
+      "winnerPerCandle": "每根K线领先方",
+      "competitiveness": "竞争度",
+      "poolStatus": "池状态",
+      "poolStatusActiveFlow": "活跃实时流",
+      "poolStatusIdle": "对战活动较低",
+      "poolStatusBalanced": "平衡对战池",
+      "poolStatusOpen": "开放对战池",
+      "eventZone": "事件区",
+      "marketDrivenArena": "市场驱动竞技场",
+      "liveRewardDynamics": "实时计分动态",
+      "sideCompetition": "阵营竞争",
+      "tiePressure": "竞技场压力均衡",
+      "onePointBattle": "一分差实时对战",
+      "completed": "已完成",
+      "pressureRising": "{0} 压力上升",
+      "signalStable": "信号稳定",
+      "matchArena": "对战竞技场",
+      "broadcastTicker": "直播滚动条",
+      "aiCommentary": "AI 解说",
+      "remainingWithClock": "剩余（{0}）",
+      "pressureSummary": "对战池 | {0} | {1}",
+      "marketBattleFlow": "市场对战流",
+      "assetVariationSplit": "资产变化分布",
+      "testCommentary": "测试解说",
+      "liveNarrator": "实时解说员",
+      "aiMetaTimestamp": "{0} | {1} UTC",
+      "commentaryMetaTimestamp": "{0} | {1} UTC",
+      "activity": {
+        "eyebrow": "实时活动",
+        "title": "对战活动",
+        "description": "实时发生的事件、压力、动量和战术变化。",
+        "ariaLabel": "随时间变化的对战活动图表"
+      }
+    },
+    "priceBattle": {
+      "eyebrow": "价格比较",
+      "title": "实时价格对战",
+      "subtitle": "双方对战的市场快照。",
+      "centerHint": "实时市场比较",
+      "currentPrice": "当前价格",
+      "change": "变化",
+      "competitiveness": "竞争度",
+      "chartAria": "实时价格比较图",
+      "noData": "等待价格数据",
+      "waitingHistory": "等待价格历史",
+      "logoAlt": "{0} 标志",
+      "ariaLabel": "{0} 对阵 {1}，竞争度 {2}。"
+    },
+    "broadcast": {
+      "switchingArena": "正在切换到下一个热门竞技场...",
+      "nextHotArena": "实时轮播正在切换到更强的竞技场窗口。",
+      "rotationGaugeLabel": "对战轮播",
+      "focusGaugeLabel": "镜头焦点",
+      "rotationGaugeTitle": "{0} 分钟后切换竞技场",
+      "goalLogEmpty": "本场对战暂无近期得分。",
+      "mainMatchEyebrow": "精选直播对战",
+      "mainMatchDescription": "加密货币竞技场信息",
+      "mainMatchCta": "进入直播",
+      "openBroadcastAria": "{0} 的公开竞技场信息",
+      "overlayTitle": "观看直播",
+      "overlaySubtitle": "正在直播",
+      "signalDegraded": "信号降级",
+      "dataStatusTitle": "加密货币竞技场信息",
+      "dataStatusFallback": "加密货币竞技场信息",
+      "dataStatusWorkerHeartbeat": "加密货币竞技场信息",
+      "dataStatusWorkerDegraded": "加密货币竞技场信息",
+      "dataStatusCurrencyMissing": "加密货币竞技场信息",
+      "dataStatusCurrencyStale": "加密货币竞技场信息",
+      "dataStatusStatsStale": "加密货币竞技场信息"
+    },
+    "pressureGauge": {
+      "title": "竞技场压力",
+      "subtitle": "控场权争夺中",
+      "pressureLabel": "压力",
+      "currentPressureLabel": "当前压力",
+      "momentumLabel": "动量",
+      "pressureTooltip": "{0} {1} - {2}% 压力",
+      "logoAlt": "{0} 标志",
+      "ariaLabel": "{0} 压力 {1}%，{2} 压力 {3}%。当前状态：{4}。",
+      "statusCritical": "{0} 临界压力",
+      "statusControlsArena": "{0} 控制竞技场",
+      "statusBalanced": "均衡对决",
+      "statusTransition": "控场转换中",
+      "footerInDispute": "争夺中",
+      "footerPressuring": "{0} 施压",
+      "footerNeutralPossession": "中性控场",
+      "footerLeftDominant": "左侧占优",
+      "footerRightDominant": "右侧占优",
+      "momentumStrong": "强动量",
+      "momentumRising": "压力上升",
+      "momentumNeutral": "中性节奏",
+      "momentumRecovering": "恢复中",
+      "description": "CriptoVersus 使用公开加密货币市场数据，将市场信号转化为游戏化的视觉竞技场体验，用于信息展示、教育性分析和娱乐，不构成投资建议。"
+    },
+    "modes": {
+      "kicker": "TV 导航",
+      "title": "选择观看方式",
+      "description": "留在轮播频道或打开固定实时对战。",
+      "rotativeEyebrow": "TV 轮播",
+      "rotativeTitle": "自动实时轮播",
+      "rotativeDescription": "频道会在符合条件的最强竞技场之间轮播。",
+      "rotativeCta": "观看实时",
+      "matchEyebrow": "可用对战",
+      "openMatchCta": "打开对战",
+      "watchLiveCta": "TV 轮播"
+    },
+    "promo": {
+      "chooseSide": "选择一方！",
+      "site": "CRIPTOVERSUS.COM"
+    },
+    "audio": {
+      "crowdEnabled": "观众音效开启",
+      "crowdMuted": "观众音效静音",
+      "startBroadcast": "开始直播音频"
+    },
+    "field": {
+      "scoreboard": "竞技场比分板",
+      "remainingTime": "剩余时间",
+      "possession": "控场",
+      "liveArena": "实时竞技场",
+      "automaticBroadcast": "自动直播",
+      "stableSignal": "稳定信号",
+      "volume": "成交量",
+      "momentum": "动量",
+      "reason": "原因",
+      "leader": "领先方",
+      "pressure": "压力",
+      "assetVariationA": "加密货币竞技场信息",
+      "assetVariationB": "加密货币竞技场信息",
+      "competitiveness": "竞争度",
+      "poolStatus": "池状态",
+      "recentEvents": "近期事件",
+      "goalFor": "{0} 得分！",
+      "reducedScore": "{0} 扳回一分",
+      "openedScore": "{0} 首开纪录",
+      "marketGuidedArena": "市场引导竞技场",
+      "eventZone": "事件区",
+      "arenaCommentary": "竞技场解说",
+      "recentEventsFallbackTight": "竞技场仍在中场僵持。",
+      "recentEventsFallbackLead": "领先方持续推进竞技场。"
+    },
+    "grid": {
+      "metrics": {
+        "goals": "得分"
+      }
+    },
+    "commentary": {
+      "title": "竞技场解说",
+      "fallback": "{0} {1} 的公开竞技场信息",
+      "source": {
+        "template": "加密货币竞技场信息",
+        "aiDisabled": "加密货币竞技场信息"
+      },
+      "momentumEven": "加密货币竞技场信息",
+      "momentumFor": "{0} 的公开竞技场信息",
+      "templates": {
+        "balanced": [
+          "{2} 和 {3} 仍然势均力敌，但动量开始向 {0} 倾斜。",
+          "比分依然接近，竞技场仍然开放，{0} 只保持微弱优势。",
+          "这场对战暂时僵持，但一次清晰的市场动作就可能把压力推向 {0}。",
+          "{2} 对阵 {3} 仍保持平衡，下一次市场推进可能改写局面。",
+          "双方都还没有完全打开局面，这让 {0} 仍处在持续压力之下。",
+          "比分接近、百分比接近，让这场竞技场每一次跳动都很关键。",
+          "现在双方几乎没有差距，所以下一次波动会非常重要。",
+          "{0} 目前略占优势，但这仍像一场一步就能翻转的对战。"
+        ],
+        "comeback": [
+          "领先方发生变化，{0} 突然掌握了竞技场动量。",
+          "{0} 完成反转，这场直播现在有了逆转故事的味道。",
+          "刚才看似稳定的局面已经变成反转，{0} 站到了前线。",
+          "{0} 刚把压力转化为控制，改变了对战节奏。",
+          "竞技场出现新的领先方，{0} 正迫使 {1} 做出回应。",
+          "{0} 重新夺回优势，让这场对战出现逆转形态。",
+          "领先变化刚刚发生，{0} 现在拥有更强的叙事。",
+          "{1} 曾经控制局面，但 {0} 反击并夺走领先。"
+        ],
+        "pressureRising": [
+          "{0} 开始向前施压，竞技场节奏也开始跟随。",
+          "市场脉冲更明显地偏向 {0}，即使比分仍有压力。",
+          "{0} 正在形成更好的序列，并迫使竞技场重视这次上行。",
+          "这场对战开始围绕 {0} 收紧，{0} 正在提升面板节奏。",
+          "{0} 一侧压力正在增长，下一次动作可能转化为比分影响。",
+          "{0} 当前叠加了更强反应，把对战拉进自己的节奏。",
+          "节奏正在转向 {0}，{1} 需要尽快回应。",
+          "{0} 在关键时刻加速，改变了竞技场的感觉。"
+        ],
+        "dominance": [
+          "{0} 处于领先位置，并清晰控制着这个竞技场。",
+          "比分差距正在扩大，{0} 正把压力转化为掌控。",
+          "{0} 已经在这场对战中拉开距离，并主导节奏。",
+          "当前是由 {0} 控制的竞技场，领先优势较为稳定。",
+          "{1} 仍有时间，但 {0} 正让面板看起来更偏向单侧。",
+          "{0} 不只是领先，它正在控制这场对战的结构。",
+          "优势正在变得明显，{0} 目前处于更从容的位置。",
+          "{0} 保持足够宽的优势，让竞技场越来越可控。"
+        ],
+        "quietPool": [
+          "{2} 和 {3} 仍在等待真正的池量，一次进入就可能重置节奏。",
+          "竞技场技术上已经实时开启，但池仍然安静，下一次信号更加重要。",
+          "低活动度让这场对战暂时保持克制，但面板随时可能醒来。",
+          "池内进攻性还不强，这让竞技场仍然可能突然变化。",
+          "这场对战仍然轻声呼吸，成交和节奏都较谨慎。",
+          "池很慢，面板很耐心，一次决定性动作就可能改变语气。",
+          "成交量还没有打开，因此竞技场仍在等待更强触发。",
+          "实时面板目前平静，但这往往意味着下一次推进会更有冲击。"
+        ],
+        "heatedPool": [
+          "这座竞技场正在快速升温，hotScore 达到 {8}，双方压力都在增加。",
+          "池强度正在上升，这场对战开始像一个热门直播窗口。",
+          "竞技场现在有了真实热度，压力、成交量和竞争度一起攀升。",
+          "hotScore 达到 {8}，这场对战正在获得重点直播关注。",
+          "这不再是安静面板；竞技场正在以明显热度运行。",
+          "成交量和紧张感一起上升，把它推向更热的实时轮播。",
+          "这场对战周围的声音正在变大，指标也支持这种感觉。",
+          "这个面板正在升温为重要直播点，竞技场完全醒来。"
+        ],
+        "finalThriller": [
+          "时钟只剩 {10}，差距很小，竞技场直到最后一次波动都还活着。",
+          "只剩 {10}，一次清晰动作仍可能改变整个面板。",
+          "收官阶段已经到来，狭窄差距让每一秒都危险。",
+          "竞技场进入压力时间，双方几乎没有明显分离。",
+          "最后阶段、短差距、实时张力：这场对战还没有定局。",
+          "结尾开始变得戏剧化，因为面板仍然足够接近，可以翻转。",
+          "竞技场已经没有喘息空间，只剩 {10} 和最后一次波动。",
+          "对战进入最尖锐阶段，下一次市场动作可能改写结局。"
+        ],
+        "finalControlled": [
+          "时钟只剩 {10}，但 {0} 仍有足够空间管理收官。",
+          "{0} 带着控制进入收官阶段，迫使 {1} 在最后追赶。",
+          "时间正在流逝，{0} 建立的领先正在改变最终剧本。",
+          "这个后段竞技场仍属于 {0}，它正在保护有意义的缓冲。",
+          "{1} 需要立即做出反应，因为 {0} 正带着结构进入最后阶段。",
+          "终局已经开启，{0} 仍掌握收官窗口。",
+          "{0} 带着稳定优势进入最后阶段，让逆转路径变窄。",
+          "只剩 {10}，{0} 拥有足以关闭实时面板的控制力。"
+        ],
+        "opening": [
+          "对战还很年轻，双方都在感受竞技场的第一段节奏。",
+          "周期早段，{2} 和 {3} 仍在写下这块面板的开局章节。",
+          "这个竞技场刚刚开始，还有足够时间出现多次叙事变化。",
+          "开局阶段仍然谨慎，双方资产都在测试实时节奏。",
+          "剩余时间还很多，所以早期面板仍然完全开放。",
+          "第一阶段已经开始，双方还没有完全施加自己的节奏。",
+          "这个开局窗口更多是站位，而不是拉开差距。",
+          "竞技场仍处于早期解读，压力图可能很快改变。"
+        ],
+        "bothDown": [
+          "两个资产都承压，但 {0} 下跌更少，把抵抗转化为优势。",
+          "现在是一场防守型对战，{0} 更好地吸收了市场冲击。",
+          "双方都不在绿色区间，但 {0} 在下行中保持了更多控制。",
+          "这座竞技场正在红色区域决出胜负，{0} 承压更稳。",
+          "两张图都在下滑，但 {0} 比 {1} 更能抵抗这次下滑。",
+          "市场对双方都偏负面，而 {0} 处理得更好。",
+          "即使共同承压，{0} 也在面板上保护了更多价值。",
+          "这是一场损害控制之战，目前 {0} 做得更好。"
+        ],
+        "bothUp": [
+          "两个资产都在上涨，但 {0} 加速更强，把增长转化为压力。",
+          "双方都处在绿色区间，这是一块进攻型面板，而 {0} 仍然获得更多抬升。",
+          "竞技场两侧都有上行动能，但 {0} 从中提取了更多优势。",
+          "两张图都为正，但 {0} 推出了更好的扩张线。",
+          "这场实时对战两端都有强度，而 {0} 当前转化更多。",
+          "整个面板偏绿，{0} 仍走出更强上行路径。",
+          "这是上升市场中的对决，{0} 目前赢得加速比赛。",
+          "双方都在上涨，但 {0} 推动了更锐利的爬升。"
+        ],
+        "relativeLead": [
+          "即使双方都承压，{0} 也更好地处理市场并保持领先。",
+          "{0} 不需要干净反弹；更好地抵抗就足以保持领先。",
+          "这座竞技场当前由相对表现决定，{0} 是更好的幸存者。",
+          "{0} 正把韧性表现得像控制力一样。",
+          "市场条件并不轻松，但 {0} 仍以更好的平衡守住领先。",
+          "相对强度正在支撑这场对战，而 {0} 当前拥有优势。",
+          "{0} 并没有大幅拉开，只是比 {1} 更能承受。",
+          "优势属于 {0}，它正把更稳定的抵抗转化为比分压力。"
+        ],
+        "goalRecent": [
+          "{0} 刚刚击中比分板，为竞技场注入新能量。",
+          "{0} 拿到新的一分，整个直播语气立刻改变。",
+          "{0} 把最新波动转化为比分影响，迫使 {1} 回应。",
+          "这一分改变了实时对战质感，{0} 现在掌握脉冲。",
+          "{0} 刚让竞技场因为一次干净得分而反应。",
+          "面板再次移动，{0} 是庆祝最新影响的一方。",
+          "{0} 把这一刻兑现成一分，提高了 {1} 的压力。",
+          "{0} 获得新的比分伤害，竞技场围绕这场对战更热闹。"
+        ],
+        "cycleEnding": [
+          "这座竞技场正在接近收盘周期，当前面板形态开始变得最终。",
+          "对战正在收尾，实时叙事开始围绕 {0} 稳定下来。",
+          "竞技场正在关闭最后窗口，每个剩余信号都更有分量。",
+          "这个周期接近结束，使当前优势更具意义。",
+          "面板正在转向终点，剩余时间已不多。",
+          "实时周期几乎结束，竞技场正在准备下一次转换。",
+          "这场对战来到最后呼吸阶段，比分板开始说明大部分内容。",
+          "周期终点已经可见，当前压力图几乎锁定。"
+        ]
+      }
+    },
+    "waiting": {
+      "topCoinsEyebrow": "加密货币竞技场信息",
+      "topCoins": "加密货币竞技场信息",
+      "statsEyebrow": "加密货币竞技场信息",
+      "latestBattles": "加密货币竞技场信息",
+      "gainersEyebrow": "加密货币竞技场信息",
+      "marketPulse": "加密货币竞技场信息",
+      "loadingRanking": "加密货币竞技场信息",
+      "loadingFeed": "加密货币竞技场信息",
+      "loadingMarketPulse": "加密货币竞技场信息",
+      "errorRanking": "加密货币竞技场信息",
+      "errorFeed": "加密货币竞技场信息",
+      "errorMarketPulse": "加密货币竞技场信息",
+      "emptyRanking": "加密货币竞技场信息",
+      "emptyFeed": "加密货币竞技场信息",
+      "emptyMarketPulse": "加密货币竞技场信息"
+    },
+    "fallback": {
+      "closeMatchReason": "加密货币竞技场信息",
+      "liveArenaReason": "加密货币竞技场信息"
+    },
+    "ticker": {
+      "hotMatchDetected": "检测到热门对战",
+      "momentumShift": "动量变化",
+      "fearSurge": "恐惧上升",
+      "arenaPressureRising": "竞技场压力上升",
+      "liveCryptoBattle": "实时加密货币对战",
+      "marketVolatilityIncreasing": "市场波动增加",
+      "visitSite": "访问 CRIPTOVERSUS.COM",
+      "liveBattles": "Live Crypto Battles At Criptoversus.Com",
+      "rankings": "Rankings And Live Arenas At Criptoversus.Com",
+      "matchMarkets": "Watch Live Arenas, Rankings And Match Markets At Criptoversus.Com",
+      "dominating": "{0} Dominating",
+      "recovering": "{0} Recovering",
+      "finalMinutes": "最后阶段",
+      "crowdEnergySpike": "观众热度上升",
+      "nextBattleAround": "Next Battle Around {0}",
+      "marketPulseAround": "Market Pulse Around {0}"
+    },
+    "events": {
+      "goalKicker": "加密货币竞技场信息",
+      "goalTitle": "得分 {0}",
+      "leaderChangeKicker": "加密货币竞技场信息",
+      "leaderChangeTitle": "{0} Takes The Lead",
+      "leaderChangeBody": "加密货币竞技场信息",
+      "hotMatchKicker": "加密货币竞技场信息",
+      "hotMatchTitle": "检测到热门对战",
+      "hotMatchBody": "加密货币竞技场信息",
+      "momentumReversalKicker": "加密货币竞技场信息",
+      "momentumReversalTitle": "Momentum Reversal",
+      "momentumReversalBody": "加密货币竞技场信息",
+      "fearSurgeKicker": "加密货币竞技场信息",
+      "fearSurgeTitle": "Fear Surge Detected",
+      "fearSurgeBody": "加密货币竞技场信息",
+      "hotScoreSpikeKicker": "加密货币竞技场信息",
+      "hotScoreSpikeTitle": "Hot Score Spike",
+      "hotScoreSpikeBody": "加密货币竞技场信息",
+      "finalMomentsKicker": "加密货币竞技场信息",
+      "finalMomentsTitle": "最后阶段",
+      "finalMomentsBody": "加密货币竞技场信息"
+    },
+    "narration": {
+      "goalText": "{0} Breaks The Defense",
+      "goalSubtitle": "{0} {1} 的公开竞技场信息",
+      "leaderText": "{0} Dominating",
+      "leaderSubtitle": "加密货币竞技场信息",
+      "devGrowText": "Pressure Rising",
+      "devGrowSubtitle": "加密货币竞技场信息",
+      "devZoomBurstText": "Goal Kite",
+      "devZoomBurstSubtitle": "加密货币竞技场信息",
+      "devGlitchText": "动量变化",
+      "devGlitchSubtitle": "加密货币竞技场信息",
+      "devNeonFlashText": "Liquidity Surge",
+      "devNeonFlashSubtitle": "加密货币竞技场信息",
+      "devShockwaveText": "最后阶段",
+      "devShockwaveSubtitle": "加密货币竞技场信息",
+      "devScreenImpactText": "Massive Breakout",
+      "devScreenImpactSubtitle": "加密货币竞技场信息",
+      "devMassiveBreakoutSubtitle": "加密货币竞技场信息",
+      "devDiagonalSwipeText": "Btc Breaks The Defense",
+      "devDiagonalSwipeSubtitle": "加密货币竞技场信息",
+      "devSplitRevealText": "Comeback Started",
+      "devSplitRevealSubtitle": "加密货币竞技场信息",
+      "devHologramRevealText": "检测到热门对战",
+      "devHologramRevealSubtitle": "加密货币竞技场信息",
+      "devPulseText": "Arena Unstable",
+      "devPulseSubtitle": "加密货币竞技场信息",
+      "hotMatchDetectedText": "检测到热门对战",
+      "hotMatchDetectedSubtitle": "{0} vs {1} 对战 | CriptoVersus",
+      "momentumShiftText": "动量变化",
+      "momentumShiftSubtitle": "{0} 的公开竞技场信息",
+      "fearSpikeText": "Arena Unstable",
+      "fearSpikeSubtitle": "加密货币竞技场信息",
+      "hotScoreSpikeText": "Liquidity Surge",
+      "hotScoreSpikeSubtitle": "{0} 的公开竞技场信息",
+      "finalMinutePushText": "Final Minute Push",
+      "finalMinutePushSubtitle": "{0} 的公开竞技场信息"
+    }
+  },
+  "walletPage": {
+    "heading": {
+      "eyebrow": "我的钱包",
+      "title": "你的选择",
+      "body": "无需离开竞技场，即可追踪系统余额、阵营选择和资产表现。"
+    },
+    "states": {
+      "loading": "正在加载你的钱包...",
+      "loadingShort": "加载中...",
+      "walletRequired": "使用 Solana 钱包登录以查看你的选择。"
+    },
+    "fallbackUser": "用户 #{0}",
+    "walletNetworkBalance": "链上余额",
+    "onChainBalanceTitle": "{0} 实时余额",
+    "openPosition": {
+      "cta": "选择阵营",
+      "modalTitle": "选择一方",
+      "amountTitle": "选择金额",
+      "back": "返回",
+      "close": "关闭",
+      "searchLabel": "选择资产",
+      "searchPlaceholder": "按符号或名称搜索",
+      "loadingAssets": "正在加载可用资产...",
+      "emptyAssets": "未找到匹配资产。",
+      "loadAssetsError": "无法加载资产。",
+      "priceUnavailable": "价格不可用",
+      "openingOn": "你正在 {0} 上选择一方",
+      "investmentIn": "选择 {0}",
+      "valueInSol": "SOL 金额",
+      "chooseAmount": "选择金额",
+      "quickValues": "SOL 快捷金额",
+      "sliderLabel": "快捷调整",
+      "amountInputLabel": "手动金额",
+      "walletBalanceLabel": "钱包余额",
+      "maximumAvailableLabel": "最大可用",
+      "useMax": "使用最大值",
+      "insufficientBalance": "余额不足",
+      "insufficientBalanceMessage": "钱包余额不足。你当前可用于此操作的余额为 {0}。",
+      "networkFeeReserve": "你需要保留少量余额用于 Solana 网络手续费。",
+      "custodyWalletLabel": "托管钱包",
+      "directFundingTitle": "通过 Phantom 进行链上支付。",
+      "directFundingLine1": "你的选择将直接从钱包发送到竞技场。",
+      "directFundingLine2": "资金将发送到 CriptoVersus 托管钱包。",
+      "cancel": "取消",
+      "investing": "正在提交选择...",
+      "investCta": "选择 {0}",
+      "invalidAmount": "请输入大于零的金额。",
+      "assetBlocked": "该资产当前不开放新的参与。",
+      "availableNow": "入口开放",
+      "blockedNow": "入口已阻止",
+      "walletFundingRequired": "连接并批准钱包，以在此选择中使用链上余额。",
+      "walletMismatch": "已连接钱包与认证账户不匹配。",
+      "phantomRejected": "Phantom 签名或交易已取消。",
+      "duplicateSignature": "该交易已被使用。如果选择未出现，请刷新钱包后重试。",
+      "statusAwaitingSignature": "等待 Phantom 签名。",
+      "statusConfirmingBlockchain": "正在确认链上转账。",
+      "statusOpeningPosition": "正在后端打开选择。",
+      "statusPositionOpened": "选择已打开，付款已确认。",
+      "transactionHash": "交易哈希：{0}",
+      "successInline": "已在 {0} 上以 {1} 打开选择。",
+      "successToast": "已在 {0} 上以 {1} 打开选择。"
+    },
+    "openPositions": {
+      "title": "开放选择",
+      "count": "{0} 个活跃",
+      "empty": "你还没有开放选择。打开一个阵营选择后，你的资金将开始在竞技场中追踪该资产。",
+      "invested": "已投入",
+      "entry": "入口",
+      "pnl": "简单盈亏",
+      "time": "选择时间",
+      "action": "操作",
+      "exitRequested": "已请求退出",
+      "closeNow": "关闭选择",
+      "requestExit": "请求退出"
+    }
+  },
+  "token": {
+    "seo": {
+      "title": "CriptoVersus 代币竞技场 | 官方社区代币",
+      "description": "探索实时加密货币对战竞技场社区代币的 CriptoVersus 官方代币页面、合约详情、市场快照和 Pump.fun 入口。"
+    },
+    "hero": {
+      "badge": "CriptoVersus 官方代币",
+      "title": "CriptoVersus 代币竞技场",
+      "subtitle": "驱动竞技场的代币。",
+      "description": "加入首个实时加密货币对战竞技场。观看市场对战，选择你的阵营，成为 CriptoVersus 生态的一部分。"
+    },
+    "visual": {
+      "bulls": "多头",
+      "bears": "空头"
+    },
+    "action": {
+      "buy": "在 Pump.fun 购买",
+      "watch": "观看实时竞技场",
+      "copyContract": "复制合约",
+      "copied": "已复制！",
+      "viewPump": "在 Pump.fun 查看"
+    },
+    "contract": {
+      "kicker": "代币合约",
+      "title": "合约地址",
+      "network": "网络",
+      "buyTax": "买入税",
+      "sellTax": "卖出税",
+      "qrKicker": "Pump.fun 入口",
+      "qrAlt": "用于在 Pump.fun 打开 CriptoVersus 代币的二维码",
+      "qrDescription": "用手机扫描此二维码，在 Pump.fun 打开 CriptoVersus 官方代币页面。",
+      "qrAction": "打开 Pump.fun"
+    },
+    "stats": {
+      "price": "当前价格",
+      "marketCap": "市值",
+      "holders": "持有人",
+      "volume24h": "24小时成交量",
+      "liquidity": "流动性"
+    },
+    "market": {
+      "loadingTitle": "正在加载代币快照",
+      "loadingBody": "正在为竞技场视图准备最新代币市场面板。",
+      "liveTitle": "实时市场面板",
+      "liveBody": "市场快照已更新：{0}",
+      "fallbackTitle": "备用市场面板",
+      "fallbackBody": "市场数据提供方尚未完全索引该代币。竞技场会保持页面稳定，直到新市场数据可用。",
+      "errorTitle": "市场面板已通过备用数据恢复",
+      "errorBody": "实时市场请求失败，因此竞技场使用备用值保持页面在线，避免体验中断。",
+      "unavailableTitle": "市场索引进行中",
+      "unavailableBody": "该代币仍在被公开市场数据提供方索引。索引可用后，实时数据会自动显示。",
+      "notIndexedYet": "市场数据尚未索引",
+      "unavailableValue": "不可用",
+      "supporting": {
+        "updated": "已更新：{0}",
+        "contract": "官方竞技场代币",
+        "community": "社区阵营数量",
+        "window24h": "滚动24小时窗口",
+        "depth": "可见池深度"
+      }
+    },
+    "utility": {
+      "kicker": "竞技场用途",
+      "title": "代币用途是什么？",
+      "items": {
+        "participate": {
+          "title": "参与竞技场",
+          "description": "更贴近实时对战，关注对战身份，并支持生态的娱乐层。"
+        },
+        "community": {
+          "title": "社区入口",
+          "description": "持续关注 CriptoVersus 周边社区、社交频道和未来社区活动。"
+        },
+        "utility": {
+          "title": "未来生态用途",
+          "description": "为与竞技场体验演进相关的未来用途准备页面结构。"
+        },
+        "identity": {
+          "title": "实时加密货币对战身份",
+          "description": "承载一个围绕阵营、波动和实时市场奇观构建的 Web3 娱乐竞技场标识。"
+        }
+      }
+    },
+    "about": {
+      "kicker": "关于代币",
+      "title": "关于代币",
+      "description": "该代币是为支持 CriptoVersus 生态而创建的实验性社区代币。它不是收益承诺，不构成金融建议，也不是投资推荐。"
+    },
+    "notice": {
+      "title": "标题",
+      "description": "这是一个实验性娱乐/社区代币。加密资产存在风险。请始终自行研究，并且不要投入超过你可承受损失的金额。"
+    },
+    "schema": {
+      "name": "加密货币竞技场信息",
+      "category": "社区代币",
+      "properties": {
+        "network": "网络",
+        "contractAddress": "合约地址",
+        "buyTax": "买入税",
+        "sellTax": "卖出税"
+      }
+    },
+    "footer": {
+      "kicker": "最后召唤",
+      "cta": "选择你的阵营，进入竞技场。",
+      "button": "立即购买代币"
+    }
+  }
+}
