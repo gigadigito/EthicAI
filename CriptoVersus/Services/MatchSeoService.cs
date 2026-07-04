@@ -1,4 +1,4 @@
-﻿using DTOs;
+using DTOs;
 using System.Globalization;
 using System.Net;
 using System.Text;
@@ -282,7 +282,7 @@ public sealed class MatchSeoService
             {
                 ["@type"] = "Organization",
                 ["name"] = "CriptoVersus",
-                ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildHomePath(AppCultureService.DefaultRouteCulture))
+                ["url"] = SeoDefaults.BuildPublicBaseUrl(_configuration, null)
             },
             ["competitor"] = competitors,
             ["performer"] = competitors,
@@ -305,8 +305,10 @@ public sealed class MatchSeoService
         var coinB = FormatCoinLabel(match.TeamB);
 
         return string.Equals(culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase)
-            ? $"CriptoVersus e uma arena competitiva de criptomoedas onde usuarios podem abrir posicoes em {coinA} ou {coinB}, participar de pools ciclicos, acompanhar mecanicas de staking competitivo e receber recompensas redistribuidas com base no desempenho real de mercado."
-            : $"CriptoVersus is a live crypto battle arena where users can open positions on {coinA} or {coinB}, join cyclical pools, follow competitive staking mechanics and receive redistributed rewards based on real market performance.";
+            ? $"Simula\u00E7\u00E3o cripto de mercado ao vivo entre {coinA} e {coinB} no CriptoVersus, onde usu\u00E1rios podem escolher um lado, revisar pools da partida e acompanhar sinais p\u00FAblicos de mercado para an\u00E1lise educacional."
+            : string.Equals(culture, AppCultureService.TertiaryRouteCulture, StringComparison.OrdinalIgnoreCase)
+                ? $"{coinA} \u4E0E {coinB} \u5728 CriptoVersus \u4E0A\u8FDB\u884C\u5B9E\u65F6\u52A0\u5BC6\u8D27\u5E01\u5E02\u573A\u6A21\u62DF\u5BF9\u6218\uFF0C\u7528\u6237\u53EF\u4EE5\u9009\u62E9\u9635\u8425\u3001\u67E5\u770B\u5BF9\u6218\u6C60\uFF0C\u5E76\u8DDF\u8E2A\u516C\u5F00\u5E02\u573A\u4FE1\u53F7\u7528\u4E8E\u6559\u80B2\u6027\u5206\u6790\u3002"
+                : $"CriptoVersus is a live crypto battle arena where users can open positions on {coinA} or {coinB}, join cyclical pools, follow competitive staking mechanics and receive redistributed rewards based on real market performance.";
     }
 
     private string[] BuildKeywordList(string culture)
@@ -314,25 +316,37 @@ public sealed class MatchSeoService
             ?
             [
                 "arena competitiva de criptomoedas",
-                "abertura de posicoes",
-                "pools ciclicos",
+                "abertura de posi\u00E7\u00F5es",
+                "pools c\u00EDclicos",
                 "staking competitivo",
-                "mecanicas de lados",
-                "redistribuicao de recompensas",
+                "mec\u00E2nicas de lados",
+                "redistribui\u00E7\u00E3o de recompensas",
                 "batalhas de performance de mercado",
-                "competicao cripto gamificada"
+                "competi\u00E7\u00E3o cripto gamificada"
             ]
-            :
-            [
-                "live crypto battle arena",
-                "open positions",
-                "cyclical reward pools",
-                "competitive staking",
-                "side-based arena mechanics",
-                "reward redistribution",
-                "crypto performance battles",
-                "gamified crypto competition"
-            ];
+            : string.Equals(culture, AppCultureService.TertiaryRouteCulture, StringComparison.OrdinalIgnoreCase)
+                ?
+                [
+                    "\u6E38\u620F\u5316\u5E02\u573A\u6570\u636E\u53EF\u89C6\u5316",
+                    "\u52A0\u5BC6\u8D27\u5E01\u5E02\u573A\u6A21\u62DF",
+                    "\u9635\u8425\u9009\u62E9",
+                    "\u5BF9\u6218\u6C60",
+                    "\u8DB3\u7403\u98CE\u683C\u52A0\u5BC6\u8D27\u5E01\u5206\u6790",
+                    "\u6559\u80B2\u6027\u5E02\u573A\u5206\u6790",
+                    "\u516C\u5F00\u5E02\u573A\u4FE1\u53F7",
+                    "\u6E38\u620F\u5316\u6BD4\u5206\u677F"
+                ]
+                :
+                [
+                    "live crypto battle arena",
+                    "open positions",
+                    "cyclical reward pools",
+                    "competitive staking",
+                    "side-based arena mechanics",
+                    "reward redistribution",
+                    "crypto performance battles",
+                    "gamified crypto competition"
+                ];
 
     private static string? FormatSchemaDate(DateTime? value)
     {

@@ -1,4 +1,4 @@
-﻿namespace CriptoVersus.Web.Services;
+namespace CriptoVersus.Web.Services;
 
 public sealed class RoadmapContentService
 {
@@ -19,7 +19,7 @@ public sealed class RoadmapContentService
         return normalizedCulture switch
         {
             "pt" => BuildPortuguesePage(canonicalUrl, normalizedCulture),
-            "zh" => BuildEnglishPage(canonicalUrl, normalizedCulture),
+            "zh" => BuildChinesePage(canonicalUrl, normalizedCulture),
             _ => BuildEnglishPage(canonicalUrl, normalizedCulture)
         };
     }
@@ -179,6 +179,151 @@ public sealed class RoadmapContentService
         };
     }
 
+    private RoadmapPageContent BuildChinesePage(string canonicalUrl, string culture)
+    {
+        return new RoadmapPageContent
+        {
+            Culture = culture,
+            PageTitle = "CriptoVersus 路线图 | 平台演进",
+            MetaDescription = "关注 CriptoVersus 的公开路线图：加密货币对战、公开历史记录、计分规则、透明度、本地化以及未来区块链集成。",
+            CanonicalUrl = canonicalUrl,
+            AlternateLinks =
+            [
+                new AlternateLink("en", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/en/roadmap")),
+                new AlternateLink("pt-BR", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/pt/roadmap")),
+                new AlternateLink("zh-CN", SeoDefaults.BuildPublicAbsoluteUrl(_configuration, "/zh/roadmap"))
+            ],
+            OpenGraph = new RoadmapOpenGraphMetadata
+            {
+                Title = "CriptoVersus 路线图",
+                Description = "查看 CriptoVersus 的规划演进，包括加密货币对战、公开历史、进阶规则、本地化和区块链集成。",
+                Type = "website",
+                Url = canonicalUrl
+            },
+            Hero = new RoadmapHeroContent
+            {
+                Eyebrow = "公开产品概览",
+                Title = "CriptoVersus 路线图",
+                Subtitle = "跟踪平台演进、新的对战规则、透明度改进以及未来集成。",
+                PrimaryCtaLabel = "查看实时对战",
+                PrimaryCtaHref = _routeLocalization.BuildHomePath("zh"),
+                SecondaryCtaLabel = "阅读规则说明",
+                SecondaryCtaHref = _routeLocalization.BuildHowItWorksPath("zh")
+            },
+            StatusCards =
+            [
+                new RoadmapInfoCard("持续开发中", "平台持续迭代，新的公开交付和运营优化不断推出。", "活跃"),
+                new RoadmapInfoCard("自动化加密对战", "资产之间的市场驱动周期，配合比分跟踪和持续更新。", "自动化"),
+                new RoadmapInfoCard("公开历史", "结果和对战背景越来越透明，便于审计和复查。", "透明度"),
+                new RoadmapInfoCard("规则持续演进", "计分模型和经济动态仍在测试和打磨中。", "迭代"),
+                new RoadmapInfoCard("国际化已完成", "本地化路由、国际 SEO、hreflang 和公开语言支持已经上线。", "i18n-complete")
+            ],
+            Phases =
+            [
+                new RoadmapPhase(
+                    "阶段 1",
+                    "平台基础",
+                    RoadmapPhaseStatus.InProgress,
+                    "面向公开对战、早期周期和市场驱动玩法的运行基础。",
+                    [
+                        "创建币种之间的对战",
+                        "市场数据集成",
+                        "实时对战视图",
+                        "已完成对战历史",
+                        "结果与比分记录"
+                    ],
+                    1),
+                new RoadmapPhase(
+                    "阶段 2",
+                    "透明度与可审计性",
+                    RoadmapPhaseStatus.InProgress,
+                    "帮助用户理解每场对战如何演进，以及结果如何被查看的公开层。",
+                    [
+                        "公开历史页面",
+                        "公开对战详情页",
+                        "清晰展示比分、表现和结果",
+                        "SEO 改进",
+                        "每场对战的公开元数据",
+                        "用于未来审计的对战事件记录"
+                    ],
+                    2),
+                new RoadmapPhase(
+                    "阶段 3",
+                    "进阶计分规则",
+                    RoadmapPhaseStatus.Planned,
+                    "更丰富的对战逻辑，保持可解释和数据驱动。",
+                    [
+                        "按百分比差值计分",
+                        "按图表交叉计分",
+                        "按时间窗口成交量计分",
+                        "对战事件日志",
+                        "未来 AI 解说基础"
+                    ],
+                    3),
+                new RoadmapPhase(
+                    "阶段 4",
+                    "循环经济",
+                    RoadmapPhaseStatus.Planned,
+                    "向更具实验性的竞争池模型演进。",
+                    [
+                        "未来周期自动参与",
+                        "更好的余额控制",
+                        "减少突发性损失",
+                        "更接近竞争池而非传统投注的模型",
+                        "大规模上线前的模拟与调优"
+                    ],
+                    4),
+                new RoadmapPhase(
+                    "阶段 5",
+                    "国际化",
+                    RoadmapPhaseStatus.Completed,
+                    "多语言路由、双语内容和国际 SEO 信号已经在公开体验中上线。",
+                    [
+                        "i18n 路由",
+                        "葡萄牙语和英语内容",
+                        "hreflang",
+                        "国际 SEO",
+                        "按地区使用本地时区"
+                    ],
+                    5),
+                new RoadmapPhase(
+                    "阶段 6",
+                    "区块链集成",
+                    RoadmapPhaseStatus.Experimental,
+                    "把链上层作为审计性和基础设施的实验性扩展。",
+                    [
+                        "Solana Devnet/Mainnet 集成",
+                        "在合适场景下记录链上仓位和余额",
+                        "拆分链下逻辑与链上结算",
+                        "更强的公开可审计性"
+                    ],
+                    6),
+                new RoadmapPhase(
+                    "阶段 7",
+                    "AI 解说与体验",
+                    RoadmapPhaseStatus.Future,
+                    "基于可验证对战数据和公开历史的体验增强。",
+                    [
+                        "自动对战解说",
+                        "赛后摘要",
+                        "对战高光",
+                        "关键事件说明",
+                        "社交分享"
+                    ],
+                    7)
+            ],
+            Principles =
+            [
+                new RoadmapInfoCard("先透明，再扩展", "先解释系统如何工作，再考虑加速分发。", "原则"),
+                new RoadmapInfoCard("先明确规则，再做变现", "产品演进应先保证可读性，再扩大规模。", "原则"),
+                new RoadmapInfoCard("先安全，再自动化", "只有在流程足够验证后才自动化。", "原则"),
+                new RoadmapInfoCard("先公开历史，再做排名", "先让结果可观察，再增加更强的竞争层。", "原则"),
+                new RoadmapInfoCard("先可验证数据，再做叙事", "未来的叙事层应建立在日志、事件和结果之上。", "原则")
+            ],
+            NoticeTitle = "重要提示",
+            NoticeText = "CriptoVersus 是一个基于市场数据的实验性加密对战平台。规则、经济模型和集成可能会随着时间演进。本页面不代表任何财务收益承诺。"
+        };
+    }
     private RoadmapPageContent BuildEnglishPage(string canonicalUrl, string culture)
     {
         return new RoadmapPageContent

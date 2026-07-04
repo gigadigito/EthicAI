@@ -1104,42 +1104,10 @@
 
     private string ArenaText(string key, params object?[] args)
     {
-        var template = key switch
-        {
-            "live" => CurrentCulture == "en" ? "LIVE" : "AO VIVO",
-            "liveNow" => CurrentCulture == "en" ? "LIVE NOW" : "AO VIVO",
-            "featuredBattle" => CurrentCulture == "en" ? "Featured Battle" : "Batalha em destaque",
-            "openArena" => CurrentCulture == "en" ? "Open Arena" : "Abrir Arena",
-            "openBattle" => CurrentCulture == "en" ? "Open battle" : "Abrir batalha",
-            "openMatch" => CurrentCulture == "en" ? "Open Match" : "Abrir Match",
-            "openMatchAria" => CurrentCulture == "en" ? "Open match {0} versus {1}, match {2}" : "Abrir a partida {0} contra {1}, partida {2}",
-            "hotMatch" => CurrentCulture == "en" ? "HOT MATCH" : "BATALHA QUENTE",
-            "trending" => CurrentCulture == "en" ? "TRENDING" : "TRENDING",
-            "momentum" => CurrentCulture == "en" ? "MOMENTUM" : "MOMENTUM",
-            "fear" => CurrentCulture == "en" ? "FEAR" : "FEAR",
-            "hotScore" => CurrentCulture == "en" ? "Hot score" : "Hot score",
-            "arenaPressure" => CurrentCulture == "en" ? "Arena pressure" : "Pressao da arena",
-            "highVolatility" => CurrentCulture == "en" ? "HIGH VOLATILITY" : "ALTA VOLATILIDADE",
-            "volatility" => CurrentCulture == "en" ? "Volatility" : "Volatilidade",
-            "scoreLine" => CurrentCulture == "en" ? "Scoreline" : "Placar",
-            "arenaMatchId" => CurrentCulture == "en" ? "Arena match #{0}" : "Partida da arena #{0}",
-            "openArenaAria" => CurrentCulture == "en" ? "Open arena match {0} versus {1}, match {2}" : "Abrir Arena da partida {0} contra {1}, partida {2}",
-            "momentumBar" => CurrentCulture == "en" ? "Momentum balance" : "Equilibrio de momentum",
-            "finalResultShort" => CurrentCulture == "en" ? "Final result" : "Resultado final",
-            "elapsedMinutes" => CurrentCulture == "en" ? "{0}' elapsed" : "{0}' jogados",
-            "startingSoon" => CurrentCulture == "en" ? "Starting soon" : "Comeca em breve",
-            "marketLive" => CurrentCulture == "en" ? "Market pulse live" : "Mercado ao vivo",
-            "momentumEdgeA" => CurrentCulture == "en" ? "{0}% left-side pressure" : "{0}% de pressao do lado esquerdo",
-            "momentumEdgeB" => CurrentCulture == "en" ? "{0}% right-side pressure" : "{0}% de pressao do lado direito",
-            "momentumEdgeNeutral" => ArenaText("tiePressure"),
-            "volatilityHigh" => CurrentCulture == "en" ? "High" : "Alta",
-            "volatilityMedium" => CurrentCulture == "en" ? "Medium" : "Media",
-            _ => key
-        };
+        var template = L.T($"publicHome.arena.{key}", CurrentCulture);
 
         return args.Length == 0 ? template : string.Format(template, args);
     }
-
     private string GetMatchStateLabel(MatchDto match)
         => match.IsFinished ? ArenaText("finalResultShort") : ArenaText("liveNow");
 
@@ -1405,7 +1373,7 @@
         {
             ["@type"] = "Organization",
             ["name"] = "CriptoVersus",
-            ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en")),
+            ["url"] = siteUrl,
             ["logo"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, "/favicon-round-preview.png")
         });
 
@@ -1413,8 +1381,8 @@
         {
             ["@type"] = "WebSite",
             ["name"] = "CriptoVersus",
-            ["url"] = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath("en")),
-            ["inLanguage"] = new[] { "en-US", "pt-BR" }
+            ["url"] = siteUrl,
+            ["inLanguage"] = new[] { "en-US", "pt-BR", "zh-CN" }
         });
 
         graph.Add(new Dictionary<string, object?>
@@ -1438,7 +1406,7 @@
                 {
                     ["@type"] = "ListItem",
                     ["position"] = 1,
-                    ["name"] = CurrentCulture == "en" ? "Home" : "Inicio",
+                    ["name"] = GetBreadcrumbHomeName(),
                     ["item"] = CanonicalUrl
                 }
             }
@@ -1547,59 +1515,96 @@
     }
 
     private string GetStructuredEventDescription(MatchDto match)
-        => CurrentCulture == "en"
-            ? $"Live crypto market simulation between {match.TeamA} and {match.TeamB} on CriptoVersus, where users can choose a side, review match pools and follow public market signals for educational analysis."
-            : $"Simulacao cripto de mercado ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, onde usuarios podem escolher um lado, revisar match pools e acompanhar sinais publicos de mercado para analise educacional.";
+        => CurrentCulture switch
+        {
+            "pt" => $"Simula\u00E7\u00E3o cripto de mercado ao vivo entre {match.TeamA} e {match.TeamB} no CriptoVersus, onde usu\u00E1rios podem escolher um lado, revisar pools da partida e acompanhar sinais p\u00FAblicos de mercado para an\u00E1lise educacional.",
+            "zh" => $"{match.TeamA} \u4E0E {match.TeamB} \u5728 CriptoVersus \u4E0A\u8FDB\u884C\u5B9E\u65F6\u52A0\u5BC6\u8D27\u5E01\u5E02\u573A\u6A21\u62DF\u5BF9\u6218\uFF0C\u7528\u6237\u53EF\u4EE5\u9009\u62E9\u9635\u8425\u3001\u67E5\u770B\u5BF9\u6218\u6C60\uFF0C\u5E76\u8DDF\u8E2A\u516C\u5F00\u5E02\u573A\u4FE1\u53F7\u7528\u4E8E\u6559\u80B2\u6027\u5206\u6790\u3002",
+            _ => $"Live crypto market simulation between {match.TeamA} and {match.TeamB} on CriptoVersus, where users can choose a side, review match pools and follow public market signals for educational analysis."
+        };
 
     private string[] GetStructuredAbout()
-        => CurrentCulture == "en"
-            ?
+        => CurrentCulture switch
+        {
+            "pt" =>
             [
-                "gamified market-data visualization",
+                "visualiza\u00E7\u00E3o gamificada de dados de mercado",
+                "simula\u00E7\u00E3o de mercado cripto",
+                "sele\u00E7\u00E3o de lado",
+                "pools de partida",
+                "an\u00E1lise cripto em estilo futebol",
+                "an\u00E1lise educacional de mercado",
+                "sinais p\u00FAblicos de mercado",
+                "placar gamificado"
+            ],
+            "zh" =>
+            [
+                "\u6E38\u620F\u5316\u5E02\u573A\u6570\u636E\u53EF\u89C6\u5316",
+                "\u52A0\u5BC6\u8D27\u5E01\u5E02\u573A\u6A21\u62DF",
+                "\u9635\u8425\u9009\u62E9",
+                "\u5BF9\u6218\u6C60",
+                "\u8DB3\u7403\u98CE\u683C\u52A0\u5BC6\u8D27\u5E01\u5206\u6790",
+                "\u6559\u80B2\u6027\u5E02\u573A\u5206\u6790",
+                "\u516C\u5F00\u5E02\u573A\u4FE1\u53F7",
+                "\u6E38\u620F\u5316\u6BD4\u5206\u677F"
+            ],
+            _ =>
+            [
+                "gamified market data visualization",
                 "crypto market simulation",
                 "side selection",
                 "match pools",
-                "football-style crypto analytics",
+                "football-style crypto analysis",
                 "educational market analysis",
                 "public market signals",
-                "gamified scoring"
+                "gamified scoreboard"
             ]
-            :
-            [
-                "visualizacao gamificada de dados de mercado",
-                "simulacao de mercado cripto",
-                "selecao de lado",
-                "match pools",
-                "analise cripto em estilo futebol",
-                "analise educacional de mercado",
-                "sinais publicos de mercado",
-                "placar gamificado"
-            ];
+        };
 
     private string[] GetStructuredKeywords()
-        => CurrentCulture == "en"
-            ?
+        => CurrentCulture switch
+        {
+            "pt" =>
             [
-                "gamified market-data visualization",
+                "visualiza\u00E7\u00E3o gamificada de dados de mercado",
+                "simula\u00E7\u00E3o de mercado cripto",
+                "sele\u00E7\u00E3o de lado",
+                "pools de partida",
+                "an\u00E1lise cripto em estilo futebol",
+                "an\u00E1lise educacional de mercado",
+                "sinais p\u00FAblicos de mercado",
+                "placar gamificado"
+            ],
+            "zh" =>
+            [
+                "\u6E38\u620F\u5316\u5E02\u573A\u6570\u636E\u53EF\u89C6\u5316",
+                "\u52A0\u5BC6\u8D27\u5E01\u5E02\u573A\u6A21\u62DF",
+                "\u9635\u8425\u9009\u62E9",
+                "\u5BF9\u6218\u6C60",
+                "\u8DB3\u7403\u98CE\u683C\u52A0\u5BC6\u8D27\u5E01\u5206\u6790",
+                "\u6559\u80B2\u6027\u5E02\u573A\u5206\u6790",
+                "\u516C\u5F00\u5E02\u573A\u4FE1\u53F7",
+                "\u6E38\u620F\u5316\u6BD4\u5206\u677F"
+            ],
+            _ =>
+            [
+                "gamified market data visualization",
                 "crypto market simulation",
                 "side selection",
                 "match pools",
-                "football-style crypto analytics",
+                "football-style crypto analysis",
                 "educational market analysis",
                 "public market signals",
-                "gamified scoring"
+                "gamified scoreboard"
             ]
-            :
-            [
-                "visualizacao gamificada de dados de mercado",
-                "simulacao de mercado cripto",
-                "selecao de lado",
-                "match pools",
-                "analise cripto em estilo futebol",
-                "analise educacional de mercado",
-                "sinais publicos de mercado",
-                "placar gamificado"
-            ];
+        };
+
+    private string GetBreadcrumbHomeName()
+        => CurrentCulture switch
+        {
+            "pt" => "In\u00EDcio",
+            "zh" => "\u9996\u9875",
+            _ => "Home"
+        };
 
     private static void RemoveNullValues(Dictionary<string, object?> data)
     {

@@ -52,7 +52,7 @@
 
     @if (_loading)
     {
-        <p>@(IsEnglish ? "Loading protocol rules..." : "Carregando regras do protocolo...")</p>
+        <p>@LocalizedText("Loading protocol rules...", "Carregando regras do protocolo...", "正在加载协议规则...")</p>
     }
     else if (!string.IsNullOrWhiteSpace(_error))
     {
@@ -62,22 +62,22 @@
     {
         <div class="metrics-band">
             <article>
-                <span>@(IsEnglish ? "Active capital" : "Capital ativo")</span>
+                <span>@LocalizedText("Active capital", "Capital ativo", "活跃资金")</span>
                 <strong>@FmtSol(_data.ActiveCapital)</strong>
                 <small>@(IsEnglish ? $"{_data.ActivePositions} active positions" : $"{_data.ActivePositions} posicoes ativas")</small>
             </article>
             <article>
-                <span>@(IsEnglish ? "Total allocated" : "Total alocado")</span>
+                <span>@LocalizedText("Total allocated", "Total alocado", "分配总额")</span>
                 <strong>@FmtSol(_data.PrincipalAllocated)</strong>
                 <small>@(IsEnglish ? $"{_data.Users} indexed users" : $"{_data.Users} usuarios indexados")</small>
             </article>
             <article>
-                <span>@(IsEnglish ? "Cycles in progress" : "Ciclos em andamento")</span>
+                <span>@LocalizedText("Cycles in progress", "Ciclos em andamento", "进行中的周期")</span>
                 <strong>@_data.OngoingMatches</strong>
                 <small>@(IsEnglish ? $"{_data.PendingMatches} pending" : $"{_data.PendingMatches} pendentes")</small>
             </article>
             <article>
-                <span>@(IsEnglish ? "In open matches" : "Em partidas abertas")</span>
+                <span>@LocalizedText("In open matches", "Em partidas abertas", "在公开对战中")</span>
                 <strong>@FmtSol(_data.OpenEntryAmount)</strong>
                 <small>@(IsEnglish ? $"{_data.OpenEntries} open entries" : $"{_data.OpenEntries} entradas abertas")</small>
             </article>
@@ -85,25 +85,25 @@
 
         <section class="semantic-band">
             <article>
-                <span>@(IsEnglish ? "Open positions" : "Posicoes abertas")</span>
+                <span>@LocalizedText("Open positions", "Posições abertas", "公开仓位")</span>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "CriptoVersus is not only a scoreboard. Users open positions on one side of a live crypto arena and keep competitive staking-style exposure across cyclical battle pools."
                         : "O CriptoVersus nao e apenas um placar. Usuarios abrem posicoes em um lado da arena cripto ao vivo e mantem exposicao em estilo staking competitivo ao longo de pools ciclicos de batalha.")
                 </p>
             </article>
             <article>
-                <span>@(IsEnglish ? "Cyclical pools" : "Pools ciclicos")</span>
+                <span>@LocalizedText("Cyclical pools", "Pools cíclicos", "循环资金池")</span>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "Each arena cycle groups side selection, market performance, pool competition and recurring participation, so assets return to the battleground as new cycles open."
                         : "Cada ciclo da arena agrupa selecao de lado, performance de mercado, competicao entre pools e participacao recorrente, para que os ativos retornem ao campo quando novos ciclos se abrem.")
                 </p>
             </article>
             <article>
-                <span>@(IsEnglish ? "Reward redistribution" : "Redistribuicao de recompensas")</span>
+                <span>@LocalizedText("Reward redistribution", "Redistribuição de recompensas", "奖励再分配")</span>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "Rewards are redistributed according to real market performance, side-based pool mechanics and settlement rules, reinforcing a competitive crypto arena instead of a simple list of prices."
                         : "As recompensas sao redistribuidas de acordo com a performance real de mercado, com as mecanicas de pools por lado e com as regras de liquidacao, reforcando uma arena competitiva cripto em vez de uma simples lista de precos.")
                 </p>
@@ -112,98 +112,98 @@
 
         <section class="topic-callout">
             <div>
-                <span>@(IsEnglish ? "Special topic" : "Topico especial")</span>
-                <h3>@(IsEnglish ? "Match rules and score formation" : "Regras das partidas e formacao do placar")</h3>
+                <span>@LocalizedText("Special topic", "Tópico especial", "专题")</span>
+                <h3>@LocalizedText("Match rules and score formation", "Regras das partidas e formação do placar", "比赛规则与比分生成")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "See in detail how crossovers, thresholds, volume windows, crossover volume and the auditable event log rebuild every point in the match."
                         : "Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log auditavel que reconstrui cada ponto da partida.")
                 </p>
             </div>
-            <a class="topic-link" href="@($"{RouteLocalization.BuildHowItWorksPath(CurrentCulture)}#pontuacao")">@(IsEnglish ? "Open full topic" : "Abrir topico completo")</a>
+            <a class="topic-link" href="@($"{RouteLocalization.BuildHowItWorksPath(CurrentCulture)}#pontuacao")">@LocalizedText("Open full topic", "Abrir tópico completo", "打开完整专题")</a>
         </section>
 
         <div class="rule-grid">
             <section class="rule-panel lead-panel" id="como-funciona">
                 <span>01</span>
-                <h3>@(IsEnglish ? "How it works" : "Como funciona")</h3>
+                <h3>@LocalizedText("How it works", "Como funciona", "运作方式")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "Choose an asset, select a side through that asset, deposit SOL and keep your position active to automatically participate in new cycles whenever that asset returns. This way, you do not need to repeat the manual entry every round and your capital stays ready for the next competitive arena cycle."
                         : "Escolha um ativo, selecione um lado por meio desse ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e seu capital continua pronto para o proximo ciclo competitivo da arena.")
                 </p>
                 <div class="flow-line">
-                    <strong>@(IsEnglish ? "Deposit SOL" : "Depositar SOL")</strong>
-                    <strong>@(IsEnglish ? "Enter position" : "Entrar na posicao")</strong>
-                    <strong>@(IsEnglish ? "Settle when you want" : "Liquidar quando desejar")</strong>
-                    <strong>@(IsEnglish ? "Continue automatically" : "Continuar automaticamente")</strong>
+                    <strong>@LocalizedText("Deposit SOL", "Depositar SOL", "存入 SOL")</strong>
+                    <strong>@LocalizedText("Enter position", "Entrar na posição", "进入仓位")</strong>
+                    <strong>@LocalizedText("Settle when you want", "Liquidar quando desejar", "想结算时再结算")</strong>
+                    <strong>@LocalizedText("Continue automatically", "Continuar automaticamente", "自动继续")</strong>
                 </div>
             </section>
 
             <section class="rule-panel" id="posicoes">
                 <span>02</span>
-                <h3>@(IsEnglish ? "Positions" : "Posicoes")</h3>
+                <h3>@LocalizedText("Positions", "Posições", "仓位")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "Each position belongs to a wallet and a specific asset. Current capital can grow after winning cycles, suffer controlled erosion in losing cycles or move into an exit process when the user requests to close the position, while still behaving like part of a larger cyclical arena pool."
                         : "Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario solicitar encerramento da posicao, enquanto continua se comportando como parte de um pool ciclico maior da arena.")
                 </p>
                 <dl>
-                    <div><dt>@(IsEnglish ? "Active" : "Ativas")</dt><dd>@_data.ActivePositions</dd></div>
-                    <div><dt>@(IsEnglish ? "Exit requested" : "Saida solicitada")</dt><dd>@_data.ClosingPositions</dd></div>
-                    <div><dt>@(IsEnglish ? "Closed" : "Fechadas")</dt><dd>@_data.ClosedPositions</dd></div>
+                    <div><dt>@LocalizedText("Active", "Ativas", "活跃")</dt><dd>@_data.ActivePositions</dd></div>
+                    <div><dt>@LocalizedText("Exit requested", "Saída solicitada", "已请求退出")</dt><dd>@_data.ClosingPositions</dd></div>
+                    <div><dt>@LocalizedText("Closed", "Fechadas", "已关闭")</dt><dd>@_data.ClosedPositions</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="pontuacao">
                 <span>03</span>
-                <h3>@(IsEnglish ? "Scoring system" : "Sistema de Pontuacao")</h3>
+                <h3>@LocalizedText("Scoring system", "Sistema de Pontuação", "计分系统")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? $"Scoring compares the relative performance of assets inside the cycle. Every {_data.PercentPerGoal:0.##}% of advantage can be converted into goals, while respecting the maximum scoring cap per side defined in the operational configuration."
                         : $"A pontuacao compara a performance relativa dos ativos dentro do ciclo. A cada {_data.PercentPerGoal:0.##}% de vantagem, o ativo pode converter essa diferenca em gols, sempre respeitando o teto maximo de pontuacao por lado definido na configuracao operacional.")
                 </p>
                 <dl>
-                    <div><dt>@(IsEnglish ? "% per goal" : "% por gol")</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
-                    <div><dt>@(IsEnglish ? "Cap per team" : "Limite por time")</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
+                    <div><dt>@LocalizedText("% per goal", "% por gol", "每球百分比")</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
+                    <div><dt>@LocalizedText("Cap per team", "Limite por time", "每队上限")</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="ciclos">
                 <span>04</span>
-                <h3>@(IsEnglish ? "Cycles" : "Ciclos")</h3>
+                <h3>@LocalizedText("Cycles", "Ciclos", "周期")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "Each match represents a market cycle with an entry window, a tracking period and settlement. If automatic re-entry is enabled, recurring positions return to the game when the asset appears again, as long as the position remains active and above the minimum operational capital, creating cyclical participation instead of a one-off entry."
                         : "Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao. Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece, desde que a posicao siga ativa e acima do capital minimo operacional, criando participacao ciclica em vez de uma entrada unica.")
                 </p>
                 <dl>
-                    <div><dt>@(IsEnglish ? "Target duration" : "Duracao alvo")</dt><dd>@_data.MatchDurationMinutes min</dd></div>
-                    <div><dt>@(IsEnglish ? "Auto re-entry" : "Reentrada automatica")</dt><dd>@(_data.AutoReenterEnabled ? (IsEnglish ? "Enabled" : "Ativa") : (IsEnglish ? "Paused" : "Pausada"))</dd></div>
+                    <div><dt>@LocalizedText("Target duration", "Duração alvo", "目标时长")</dt><dd>@_data.MatchDurationMinutes min</dd></div>
+                    <div><dt>@LocalizedText("Auto re-entry", "Reentrada automática", "自动重新进入")</dt><dd>@(_data.AutoReenterEnabled ? LocalizedText("Enabled", "Ativa", "启用") : LocalizedText("Paused", "Pausada", "暂停"))</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel settlement-panel" id="liquidacao">
                 <span>05</span>
-                <h3>@(IsEnglish ? "Settlement" : "Liquidacao")</h3>
+                <h3>@LocalizedText("Settlement", "Liquidação", "结算")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "The winning side receives a proportional gain from the distributable share generated by the losing side. The losing side preserves most of its capital, reducing fast elimination and reinforcing a dynamic closer to a rotating pool with reward redistribution than a classic single-round bet."
                         : "O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais parecida com pool rotativa com redistribuicao de recompensas do que com aposta classica de rodada unica.")
                 </p>
-                <div class="settlement-chart" aria-label="@(IsEnglish ? "Settlement distribution" : "Distribuicao da liquidacao")">
+                <div class="settlement-chart" aria-label="@LocalizedText("Settlement distribution", "Distribuição da liquidação", "结算分配")">
                     <div class="settlement-chart__pie" @ref="_settlementPieRef"></div>
                     <div class="settlement-chart__summary">
                         <article class="settlement-chart__target settlement-chart__target--refund">
-                            <small>@(IsEnglish ? "Loser refund" : "Retorno ao perdedor")</small>
+                            <small>@LocalizedText("Loser refund", "Retorno ao perdedor", "败者返还")</small>
                             <strong>@FmtPct(_data.LoserRefundRate)</strong>
                         </article>
                         <article class="settlement-chart__target settlement-chart__target--winners">
-                            <small>@(IsEnglish ? "Winners pool" : "Pool dos vencedores")</small>
+                            <small>@LocalizedText("Winners pool", "Pool dos vencedores", "胜者资金池")</small>
                             <strong>@FmtPct(_data.WinnerPoolRate)</strong>
                         </article>
                         <article class="settlement-chart__target settlement-chart__target--house">
-                            <small>@(IsEnglish ? "House fee" : "Taxa da casa")</small>
+                            <small>@LocalizedText("House fee", "Taxa da casa", "平台费用")</small>
                             <strong>@FmtPct(_data.HouseFeeRate)</strong>
                         </article>
                     </div>
@@ -214,31 +214,31 @@
                     <em style="width:@PctCss(_data.HouseFeeRate)"></em>
                 </div>
                 <div class="legend">
-                    <span>@(IsEnglish ? $"Loser recovers {FmtPct(_data.LoserRefundRate)}" : $"Perdedor recupera {FmtPct(_data.LoserRefundRate)}")</span>
-                    <span>@(IsEnglish ? $"Winners receive {FmtPct(_data.WinnerPoolRate)}" : $"Vencedores recebem {FmtPct(_data.WinnerPoolRate)}")</span>
-                    <span>@(IsEnglish ? $"House {FmtPct(_data.HouseFeeRate)}" : $"Casa {FmtPct(_data.HouseFeeRate)}")</span>
+                    <span>@LocalizedFormat("Loser recovers {0}", "Perdedor recupera {0}", "败者返还 {0}", FmtPct(_data.LoserRefundRate))</span>
+                    <span>@LocalizedFormat("Winners receive {0}", "Vencedores recebem {0}", "胜者获得 {0}", FmtPct(_data.WinnerPoolRate))</span>
+                    <span>@LocalizedFormat("House {0}", "Casa {0}", "平台 {0}", FmtPct(_data.HouseFeeRate))</span>
                 </div>
             </section>
 
             <section class="rule-panel" id="taxas">
                 <span>06</span>
-                <h3>@(IsEnglish ? "Fees" : "Taxas")</h3>
+                <h3>@LocalizedText("Fees", "Taxas", "费用")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "The house fee is kept at a reduced level to support operations, indexing and operational infrastructure without consuming an aggressive share of participant capital in each cycle."
                         : "A taxa da casa e mantida em nivel reduzido para sustentar a operacao, a indexacao e a infraestrutura operacional, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.")
                 </p>
                 <dl>
-                    <div><dt>@(IsEnglish ? "House fee" : "Taxa da casa")</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
-                    <div><dt>@(IsEnglish ? "Minimum capital" : "Capital minimo")</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
+                    <div><dt>@LocalizedText("House fee", "Taxa da casa", "平台费用")</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
+                    <div><dt>@LocalizedText("Minimum capital", "Capital mínimo", "最低资金")</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
                 </dl>
             </section>
 
             <section class="rule-panel" id="retirada">
                 <span>07</span>
-                <h3>@(IsEnglish ? "Withdrawal" : "Retirada")</h3>
+                <h3>@LocalizedText("Withdrawal", "Retirada", "提现")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "The user can request to exit the position at any time. If there is an active cycle, the position waits for that cycle settlement; after that, the remaining capital can proceed to closing and withdrawal according to the operational flow enabled in the system."
                         : "O usuario pode solicitar saida da posicao a qualquer momento. Se houver ciclo ativo, a posicao aguarda a liquidacao daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada conforme o fluxo operacional habilitado no sistema.")
                 </p>
@@ -246,9 +246,9 @@
 
             <section class="rule-panel" id="riscos">
                 <span>08</span>
-                <h3>@(IsEnglish ? "Risks" : "Riscos")</h3>
+                <h3>@LocalizedText("Risks", "Riscos", "风险")</h3>
                 <p>
-                    @(IsEnglish
+                    @(CurrentCulture == "en"
                         ? "The protocol operates with volatile assets, automated rules and contracts on the Solana network. Small losses per cycle can accumulate over time, parameters may be adjusted by operations and a devnet environment must not be interpreted as a guarantee of returns, liquidity or future performance."
                         : "O protocolo opera com ativos volateis, regras automatizadas e contratos em rede Solana. Pequenas perdas por ciclo podem se acumular ao longo do tempo, parametros podem ser ajustados pela operacao e ambiente de devnet nao deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.")
                 </p>
@@ -258,30 +258,30 @@
                 <span>09</span>
                 @if (IsOffChainCustodyMode)
                 {
-                    <h3>@(IsEnglish ? "Custody wallet" : "Carteira de custodia")</h3>
+                    <h3>@LocalizedText("Custody wallet", "Carteira de custódia", "托管钱包")</h3>
                     <p>
-                        @(IsEnglish
+                        @(CurrentCulture == "en"
                             ? $"In Off-chain Custody mode, operational funds are reconciled outside the contract. The Solana wallet remains the user identity, while transfers to the custody wallet on the {_data.Cluster} network must be recognized by the system before becoming internal betting balance."
                             : $"No modo Off-chain Custody, os fundos operacionais sao conciliados fora do contrato. A wallet Solana continua sendo a identidade do usuario, enquanto as transferencias para a carteira de custodia na rede {_data.Cluster} precisam ser reconhecidas pelo sistema para virar saldo interno de apostas.")
                     </p>
                     <dl>
-                        <div><dt>@(IsEnglish ? "Wallet" : "Carteira")</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
+                        <div><dt>@LocalizedText("Wallet", "Carteira", "钱包")</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
                         <div><dt>Label</dt><dd>@DisplayCustodyWalletLabel</dd></div>
-                        <div><dt>@(IsEnglish ? "Network" : "Rede")</dt><dd>@_data.Cluster</dd></div>
+                        <div><dt>@LocalizedText("Network", "Rede", "网络")</dt><dd>@_data.Cluster</dd></div>
                     </dl>
                 }
                 else
                 {
-                    <h3>@(IsEnglish ? "On-chain contract" : "Contrato on-chain")</h3>
+                    <h3>@LocalizedText("On-chain contract", "Contrato on-chain", "链上合约")</h3>
                     <p>
-                        @(IsEnglish
+                        @(CurrentCulture == "en"
                             ? $"Deposits and positions use the configured program on the {_data.Cluster} network. The backend acts as an indexer and orchestration layer, while the on-chain position preserves traceability for capital, linked addresses and the operational logic published in the contract."
                             : $"Depositos e posicoes usam o programa configurado na rede {_data.Cluster}. O backend atua como indexador e camada de orquestracao, enquanto a posicao on-chain preserva a rastreabilidade do capital, dos enderecos vinculados e da logica operacional publicada no contrato.")
                     </p>
                     <dl>
                         <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
                         <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
-                        <div><dt>@(IsEnglish ? "Network" : "Rede")</dt><dd>@_data.Cluster</dd></div>
+                        <div><dt>@LocalizedText("Network", "Rede", "网络")</dt><dd>@_data.Cluster</dd></div>
                     </dl>
                 }
             </section>
@@ -291,9 +291,9 @@
         {
             <section class="positions-band">
                 <div class="positions-band__header">
-                    <span>@(IsEnglish ? "Assets with more capital" : "Ativos com mais capital")</span>
-                    <h3>@(IsEnglish ? "Current position distribution" : "Distribuicao atual das posicoes")</h3>
-                    <p>@(IsEnglish ? "Quick read of the positions with the highest active capital right now." : "Leitura rapida das posicoes com maior capital ativo neste momento.")</p>
+                    <span>@LocalizedText("Assets with more capital", "Ativos com mais capital", "资金最多的资产")</span>
+                    <h3>@LocalizedText("Current position distribution", "Distribuição atual das posições", "当前仓位分布")</h3>
+                    <p>@LocalizedText("Quick read of the positions with the highest active capital right now.", "Leitura rápida das posições com maior capital ativo neste momento.", "快速查看当前活跃资金最高的仓位。")</p>
                 </div>
                 <div class="position-list">
                     @{
@@ -315,7 +315,7 @@
                                     </span>
                                 </strong>
                                 <span>@FmtSol(position.CurrentCapital)</span>
-                                <small>@(IsEnglish ? "Capital in play" : "Capital em jogo")</small>
+                                <small>@LocalizedText("Capital in play", "Capital em jogo", "投入中的资金")</small>
                             </div>
                         </article>
                         rank++;
@@ -337,14 +337,25 @@
         => string.Equals(_data?.BlockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase);
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
-    private bool IsEnglish => CurrentCulture != "pt";
+    private string LocalizedText(string english, string portuguese, string chinese)
+        => CurrentCulture switch
+        {
+            "pt" => portuguese,
+            "zh" => chinese,
+            _ => english
+        };
+
+    private string LocalizedFormat(string english, string portuguese, string chinese, params object?[] args)
+        => string.Format(LocalizedText(english, portuguese, chinese), args);
+
+    private bool IsEnglish => CurrentCulture == "en";
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus how it works, #CriptoVersus rules, crypto scoring rules";
     private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, IsEnglish ? "/img/tokenomics-hero-banner-en.png" : "/img/tokenomics-hero-banner.png");
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
 
     private string DisplayCustodyWalletLabel
         => string.IsNullOrWhiteSpace(_data?.CustodyWalletLabel)
-            ? (IsEnglish ? "Custody wallet" : "Carteira de custodia")
+            ? LocalizedText("Custody wallet", "Carteira de custódia", "托管钱包")
             : _data!.CustodyWalletLabel;
 
     protected override async Task OnInitializedAsync()
@@ -355,7 +366,7 @@
         }
         catch (Exception ex)
         {
-            _error = IsEnglish
+            _error = CurrentCulture == "en"
                 ? $"Unable to load dynamic rules: {ex.Message}"
                 : $"Nao foi possivel carregar as regras dinamicas: {ex.Message}";
         }
@@ -445,8 +456,27 @@
     {
         var pageUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath(CurrentCulture));
         var description = L.T("howItWorks.seo.description", CurrentCulture);
-        var about = IsEnglish
-            ? new[]
+        var about = CurrentCulture switch
+        {
+            "pt" => new[]
+            {
+                "abertura de posicoes",
+                "pools ciclicos",
+                "redistribuicao de recompensas",
+                "selecao de lado",
+                "staking competitivo",
+                "performance de mercado"
+            },
+            "zh" => new[]
+            {
+                "??",
+                "?????",
+                "?????",
+                "????",
+                "?????",
+                "????"
+            },
+            _ => new[]
             {
                 "open positions",
                 "cyclical pools",
@@ -455,15 +485,7 @@
                 "competitive staking",
                 "market performance"
             }
-            : new[]
-            {
-                "abertura de posicoes",
-                "pools ciclicos",
-                "redistribuicao de recompensas",
-                "selecao de lado",
-                "staking competitivo",
-                "performance de mercado"
-            };
+        };
 
         return JsonSerializer.Serialize(new Dictionary<string, object?>
         {
@@ -476,9 +498,12 @@
                     ["name"] = L.T("howItWorks.seo.title", CurrentCulture),
                     ["url"] = pageUrl,
                     ["description"] = description,
-                    ["abstract"] = IsEnglish
-                        ? "How CriptoVersus handles positions, cyclical pools, side selection, reward redistribution and competitive staking across live crypto arena cycles."
-                        : "Como o CriptoVersus trata posicoes, pools ciclicos, selecao de lado, redistribuicao de recompensas e staking competitivo ao longo de ciclos da arena cripto ao vivo.",
+                    ["abstract"] = CurrentCulture switch
+                {
+                    "pt" => "Como o CriptoVersus trata posicoes, pools ciclicos, selecao de lado, redistribuicao de recompensas e staking competitivo ao longo de ciclos da arena cripto ao vivo.",
+                    "zh" => "CriptoVersus \u5982\u4F55\u5728\u5B9E\u65F6\u52A0\u5BC6\u7ADE\u6280\u573A\u5468\u671F\u4E2D\u5904\u7406\u4ED3\u4F4D\u3001\u5FAA\u73AF\u8D44\u91D1\u6C60\u3001\u9635\u8425\u9009\u62E9\u3001\u5956\u52B1\u518D\u5206\u914D\u548C\u7ADE\u4E89\u5F0F\u8D28\u62BC\u3002",
+                    _ => "How CriptoVersus handles positions, cyclical pools, side selection, reward redistribution and competitive staking across live crypto arena cycles."
+                },
                     ["about"] = about,
                     ["keywords"] = about,
                     ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture)
@@ -499,7 +524,7 @@
                         {
                             ["@type"] = "ListItem",
                             ["position"] = 2,
-                            ["name"] = IsEnglish ? "How It Works" : "Como funciona",
+                            ["name"] = LocalizedText("How It Works", "Como funciona", "运作方式"),
                             ["item"] = pageUrl
                         }
                     }
