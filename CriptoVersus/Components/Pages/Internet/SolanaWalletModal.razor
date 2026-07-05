@@ -1,9 +1,12 @@
+@using System.Globalization
 @using CriptoVersus.Web.Services
 @inject IJSRuntime JS
 @inject IHttpClientFactory HttpFactory
 @inject Blazored.SessionStorage.ISessionStorageService SessionStorage
 @inject WalletSessionState WalletState
 @inject IConfiguration Config
+@inject AppCultureService AppCulture
+@inject LocalizationService L
 @using Microsoft.AspNetCore.Components
 
 @if (isOpen)
@@ -15,23 +18,23 @@
             <div class="cv-wallet-modal-header">
                 <div>
                     <div class="cv-wallet-modal-kicker">Solana</div>
-                    <h5 id="cv-wallet-modal-title" class="cv-wallet-modal-title">Connect a wallet on Solana to continue</h5>
+                    <h5 id="cv-wallet-modal-title" class="cv-wallet-modal-title">@T("solana.connectTitle")</h5>
                 </div>
-                <button type="button" class="btn-close cv-wallet-modal-close" aria-label="Close" @onclick="Close"></button>
+                <button type="button" class="btn-close cv-wallet-modal-close" aria-label='@T("solana.close")' @onclick="Close"></button>
             </div>
 
             <div class="cv-wallet-modal-body">
                 @if (!string.IsNullOrWhiteSpace(publicKey))
                 {
                     <div class="cv-wallet-alert cv-wallet-alert-success">
-                        <strong>@(string.IsNullOrWhiteSpace(activeWalletName) ? "Wallet connected" : $"{activeWalletName} connected")</strong>
+                        <strong>@(string.IsNullOrWhiteSpace(activeWalletName) ? T("solana.connectedWalletGeneric") : T("solana.connectedWalletNamed", activeWalletName))</strong>
                         <div class="cv-wallet-key">@publicKey</div>
                     </div>
                 }
                 else
                 {
                     <p class="cv-wallet-modal-helper">
-                        Choose a supported wallet to connect and sign in without changing the current API flow.
+                        @T("solana.connectDescription")
                     </p>
                 }
 
@@ -132,11 +135,11 @@
                             <span class="cv-wallet-option__content">
                                 <span class="cv-wallet-option__name">@wallet.Name</span>
                                 <span class="cv-wallet-option__subtitle">
-                                    @(wallet.Detected ? "Available in this browser" : "Open official install page")
+                                    @(wallet.Detected ? T("solana.availableInBrowser") : T("solana.openInstallPage"))
                                 </span>
                             </span>
                             <span class="cv-wallet-option__status @(wallet.Detected ? "cv-wallet-option__status--detected" : "cv-wallet-option__status--install")">
-                                @(wallet.Detected ? "Detected" : "Install")
+                                @(wallet.Detected ? T("solana.detected") : T("solana.install"))
                             </span>
                         </button>
                     }
@@ -148,7 +151,7 @@
                             class="cv-wallet-disconnect"
                             disabled="@isBusy"
                             @onclick="DisconnectAsync">
-                        Disconnect
+                        @T("solana.disconnect")
                     </button>
                 }
             </div>
@@ -221,6 +224,7 @@
     private string statusTitle = string.Empty;
     private string statusKind = "info";
     private List<WalletViewModel> wallets = new();
+    private string CurrentCulture => CultureInfo.CurrentUICulture.Name;
 
     private string BlockchainMode
         => Config["CriptoVersusBlockchain:Mode"] ?? "HybridContractCustody";
@@ -264,12 +268,12 @@
         if (!wallet.Detected)
         {
             await JS.InvokeVoidAsync("criptoVersusWallet.openInstall", wallet.Name);
-            SetStatus("Install required", $"Open the official {wallet.Name} page and install the wallet to continue.", "info");
+            SetStatus(T("solana.installRequiredTitle"), T("solana.installRequiredMessage", wallet.Name), "info");
             return;
         }
 
         isBusy = true;
-        SetStatus("Connecting wallet", $"Waiting for {wallet.Name} approval in your browser.", "info");
+        SetStatus(T("solana.connectingTitle"), T("solana.connectingMessage", wallet.Name), "info");
         await InvokeAsync(StateHasChanged);
 
         try
@@ -277,25 +281,25 @@
             var result = await JS.InvokeAsync<WalletConnectResult>("criptoVersusWallet.connect", wallet.Name);
             if (!result.Success)
             {
-                SetStatus("Connection failed", NormalizeWalletError(result.Error), "warning");
+                SetStatus(T("solana.connectionFailedTitle"), NormalizeWalletError(result.Error), "warning");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(result.PublicKey))
             {
-                SetStatus("Missing public key", "The wallet connected, but no public key was returned.", "warning");
+                SetStatus(T("solana.missingPublicKeyTitle"), T("solana.missingPublicKeyMessage"), "warning");
                 return;
             }
 
             publicKey = result.PublicKey;
             activeWalletName = result.WalletName;
-            SetStatus("Wallet connected", "Wallet connected. Finishing authentication...", "success");
+            SetStatus(T("solana.walletConnectedTitle"), T("solana.walletConnectedMessage"), "success");
 
             await SignLoginAsync();
         }
         catch (Exception ex)
         {
-            SetStatus("Connection failed", NormalizeWalletError(ex.Message), "warning");
+            SetStatus(T("solana.connectionFailedTitle"), NormalizeWalletError(ex.Message), "warning");
         }
         finally
         {
@@ -319,12 +323,12 @@
 
             publicKey = null;
             activeWalletName = null;
-            SetStatus("Wallet disconnected", "You can connect any supported Solana wallet again at any time.", "info");
+            SetStatus(T("solana.walletDisconnectedTitle"), T("solana.walletDisconnectedMessage"), "info");
             await OnSessionChanged.InvokeAsync();
         }
         catch (Exception ex)
         {
-            SetStatus("Disconnect failed", NormalizeWalletError(ex.Message), "warning");
+            SetStatus(T("solana.disconnectFailedTitle"), NormalizeWalletError(ex.Message), "warning");
         }
         finally
         {
@@ -337,7 +341,7 @@
     {
         if (string.IsNullOrWhiteSpace(publicKey))
         {
-            SetStatus("Connect a wallet", "Choose a Solana wallet before continuing.", "warning");
+            SetStatus(T("solana.connectWalletTitle"), T("solana.connectWalletMessage"), "warning");
             return;
         }
 
@@ -350,11 +354,11 @@
 
             if (nonceResponse is null || string.IsNullOrWhiteSpace(nonceResponse.Message))
             {
-                SetStatus("Login unavailable", "Could not prepare the login signature right now. Please try again.", "warning");
+                SetStatus(T("solana.loginUnavailableTitle"), T("solana.loginUnavailableMessage"), "warning");
                 return;
             }
 
-            SetStatus("Awaiting signature", "Approve the signature request in your wallet to finish login.", "info");
+            SetStatus(T("solana.awaitingSignatureTitle"), T("solana.awaitingSignatureMessage"), "info");
 
             var signed = await JS.InvokeAsync<SignedResult>(
                 "criptoVersusWallet.signMessage",
@@ -371,7 +375,7 @@
 
             if (!response.IsSuccessStatusCode)
             {
-                SetStatus("Login rejected", "Could not validate your wallet signature. Please try again.", "warning");
+                SetStatus(T("solana.loginRejectedTitle"), T("solana.loginRejectedMessage"), "warning");
                 return;
             }
 
@@ -379,7 +383,7 @@
 
             if (loginResult is null || string.IsNullOrWhiteSpace(loginResult.Token))
             {
-                SetStatus("Incomplete login", "The API confirmed the login, but no session token was returned.", "warning");
+                SetStatus(T("solana.incompleteLoginTitle"), T("solana.incompleteLoginMessage"), "warning");
                 return;
             }
 
@@ -392,11 +396,11 @@
             if (ShouldEnsureOnChainAccount)
             {
                 await EnsureOnChainAccountAsync();
-                SetStatus("Login complete", "Your wallet was authenticated and the on-chain account was validated.", "success");
+                SetStatus(T("solana.loginCompleteTitle"), T("solana.loginCompleteOnChainMessage"), "success");
             }
             else
             {
-                SetStatus("Login complete", "Your wallet was authenticated successfully.", "success");
+                SetStatus(T("solana.loginCompleteTitle"), T("solana.loginCompleteMessage"), "success");
             }
 
             await OnLoginSucceeded.InvokeAsync();
@@ -404,7 +408,7 @@
         }
         catch (Exception ex)
         {
-            SetStatus("Could not complete login", NormalizeWalletError(ex.Message), "warning");
+            SetStatus(T("solana.loginFailedTitle"), NormalizeWalletError(ex.Message), "warning");
         }
     }
 
@@ -427,12 +431,12 @@
 
         if (string.IsNullOrWhiteSpace(OnChainProgramId))
         {
-            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o modo atual.");
+            throw new InvalidOperationException(T("solana.onChainProgramMissing"));
         }
 
         await LoadWalletActionsAsync();
 
-        SetStatus("Preparing on-chain account", "Validating the current wallet account in the active Solana program.", "info");
+        SetStatus(T("solana.preparingOnChainTitle"), T("solana.preparingOnChainMessage"), "info");
 
         var result = await walletActionsModule!.InvokeAsync<OnChainOnboardingResult>(
             "ensureUserOnchainAccount",
@@ -443,7 +447,7 @@
                 rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"]
             });
 
-        SetStatus("On-chain account ready", $"PDA: {result.UserAccountPda}", "success");
+        SetStatus(T("solana.onChainReadyTitle"), T("solana.onChainReadyMessage", result.UserAccountPda), "success");
     }
 
     private void ClearStatus()
@@ -468,10 +472,10 @@
             _ => "cv-wallet-alert-info"
         };
 
-    private static string NormalizeWalletError(string? error)
+    private string NormalizeWalletError(string? error)
     {
         var message = string.IsNullOrWhiteSpace(error)
-            ? "Something unexpected happened. Please try again."
+            ? T("solana.unexpectedError")
             : error.Trim();
 
         if (message.Contains("canceled", StringComparison.OrdinalIgnoreCase)
@@ -479,21 +483,24 @@
             || message.Contains("rejected", StringComparison.OrdinalIgnoreCase)
             || message.Contains("denied", StringComparison.OrdinalIgnoreCase))
         {
-            return "Connection was canceled in the wallet.";
+            return T("solana.errorCanceled");
         }
 
         if (message.Contains("provider not found", StringComparison.OrdinalIgnoreCase))
         {
-            return "Wallet provider not found in this browser.";
+            return T("solana.errorProviderNotFound");
         }
 
         if (message.Contains("public key", StringComparison.OrdinalIgnoreCase))
         {
-            return "The wallet did not return a valid public key.";
+            return T("solana.errorMissingPublicKey");
         }
 
         return message;
     }
+
+    private string T(string key, params object?[] args)
+        => L.T($"walletPage.{key}", CurrentCulture, args);
 
 }
 

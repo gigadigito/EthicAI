@@ -1,8 +1,11 @@
-﻿@using DTOs
+@using System.Globalization
+@using DTOs
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
 @inject BrowserTimeZoneService BrowserTimeZone
 @inject IConfiguration Config
+@inject AppCultureService AppCulture
+@inject LocalizationService L
 
 <article class="investment-group wallet-history-group">
     <div class="wallet-history-summary">
@@ -23,37 +26,37 @@
 
         <div class="wallet-history-grid">
             <div class="wallet-history-kpi">
-                <span>Capital alocado</span>
+                <span>@T("history.metrics.allocatedCapital")</span>
                 <strong>@FmtSol(Group.TotalInvested)</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Em aberto</span>
+                <span>@T("history.metrics.open")</span>
                 <strong>@FmtSol(Group.OpenAmount)</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Partidas reembolsadas</span>
+                <span>@T("history.metrics.refundedMatches")</span>
                 <strong>@Group.RefundedCount</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Resultado liquido realizado</span>
+                <span>@T("history.metrics.realizedNetResult")</span>
                 <strong class="@GetPayoutClass(Group.RealizedNetResult)">@FmtSignedSol(Group.RealizedNetResult)</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Partidas ganhas</span>
+                <span>@T("history.metrics.wonMatches")</span>
                 <strong>@Group.WonCount</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Partidas perdidas</span>
+                <span>@T("history.metrics.lostMatches")</span>
                 <strong>@Group.LostCount</strong>
             </div>
             <div class="wallet-history-kpi">
-                <span>Ultima entrada</span>
+                <span>@T("history.metrics.lastEntry")</span>
                 <strong>@FmtDate(Group.LastBetTime)</strong>
             </div>
         </div>
 
-        <button type="button" class="wallet-history-button @( _expanded ? "is-primary" : "" )" @onclick="ToggleAsync">
-            @(_expanded ? "Ocultar partidas" : "Ver partidas")
+        <button type="button" class="wallet-history-button @(_expanded ? "is-primary" : "")" @onclick="ToggleAsync">
+            @(_expanded ? T("history.hideMatches") : T("history.showMatches"))
         </button>
     </div>
 
@@ -67,19 +70,19 @@
                         <button type="button"
                                 class="wallet-history-filter @(_status == option.Value ? "is-active" : "")"
                                 @onclick="() => ChangeFilterAsync(option.Value)">
-                            @option.Label
+                            @T($"history.filters.{option.Value}")
                         </button>
                     }
                 </div>
                 @if (_page is not null)
                 {
-                    <span>Pagina @_page.Page de @_page.TotalPages | @_page.TotalItems partidas</span>
+                    <span>@T("history.pageInfo", _page.Page, _page.TotalPages, _page.TotalItems)</span>
                 }
             </div>
 
             @if (_loading)
             {
-                <div class="wallet-message">Carregando partidas...</div>
+                <div class="wallet-message">@T("history.loading")</div>
             }
             else if (!string.IsNullOrWhiteSpace(_error))
             {
@@ -87,7 +90,7 @@
             }
             else if (_page is null || _page.Items.Count == 0)
             {
-                <div class="wallet-empty">Nenhuma partida encontrada para este filtro.</div>
+                <div class="wallet-empty">@T("history.emptyResults")</div>
             }
             else
             {
@@ -99,53 +102,53 @@
                             <div>
                                 <div class="wallet-match-line">
                                     <strong>@item.UserTeamSymbol</strong>
-                                    <span>vs</span>
+                                    <span>@T("history.vs")</span>
                                     <strong>@item.OpponentSymbol</strong>
-                                    <span class="investment-count-badge">Match #@item.MatchId</span>
+                                    <span class="investment-count-badge">@T("history.matchNumber", item.MatchId)</span>
                                 </div>
                                 <div class="wallet-match-meta">
-                                    <span>Meu time: @item.UserTeamSymbol</span>
+                                    <span>@T("history.myTeam", item.UserTeamSymbol)</span>
                                     <span>@item.MatchResultSummary</span>
-                                    <span>Vencedor: @(item.WinnerTeamSymbol ?? "-")</span>
+                                    <span>@T("history.winner", item.WinnerTeamSymbol ?? "-")</span>
                                 </div>
                             </div>
                             <span class="wallet-result-badge @GetResultBadgeClass(item)">@GetFinancialStatusLabel(item)</span>
                         </div>
 
                         <div class="wallet-history-grid">
-                            <div class="wallet-history-kpi"><span>Apostado</span><strong>@FmtSol(item.BetAmount)</strong></div>
-                            <div class="wallet-history-kpi"><span>Recebido</span><strong>@FmtSol(item.ReceivedAmount)</strong></div>
-                            <div class="wallet-history-kpi"><span>Resultado liquido</span><strong class="@GetPayoutClass(item.IsOpen ? (decimal?)null : item.NetResult)">@(item.IsOpen ? "Em aberto" : FmtSignedSol(item.NetResult))</strong></div>
-                            <div class="wallet-history-kpi"><span>Reembolso</span><strong>@FmtOptionalSol(item.RefundAmount > 0m ? item.RefundAmount : null)</strong></div>
-                            <div class="wallet-history-kpi"><span>Taxa da casa</span><strong>@FmtOptionalSol(item.HouseFeeAmount > 0m ? item.HouseFeeAmount : null)</strong></div>
-                            <div class="wallet-history-kpi"><span>Status financeiro</span><strong class="@GetFinancialStatusClass(item)">@GetFinancialStatusLabel(item)</strong></div>
+                            <div class="wallet-history-kpi"><span>@T("history.betAmount")</span><strong>@FmtSol(item.BetAmount)</strong></div>
+                            <div class="wallet-history-kpi"><span>@T("history.receivedAmount")</span><strong>@FmtSol(item.ReceivedAmount)</strong></div>
+                            <div class="wallet-history-kpi"><span>@T("history.netResult")</span><strong class="@GetPayoutClass(item.IsOpen ? (decimal?)null : item.NetResult)">@(item.IsOpen ? T("history.open") : FmtSignedSol(item.NetResult))</strong></div>
+                            <div class="wallet-history-kpi"><span>@T("history.refund")</span><strong>@FmtOptionalSol(item.RefundAmount > 0m ? item.RefundAmount : null)</strong></div>
+                            <div class="wallet-history-kpi"><span>@T("history.houseFee")</span><strong>@FmtOptionalSol(item.HouseFeeAmount > 0m ? item.HouseFeeAmount : null)</strong></div>
+                            <div class="wallet-history-kpi"><span>@T("history.financialStatus")</span><strong class="@GetFinancialStatusClass(item)">@GetFinancialStatusLabel(item)</strong></div>
                         </div>
 
                         <p class="wallet-history-summary-text @GetSummaryTextClass(item)">@item.HumanSummary</p>
 
                         <button type="button" class="wallet-history-button" @onclick="() => ToggleMatchDetail(item.BetId)">
-                            @(detailsOpen ? "Ocultar detalhes da partida" : "Ver detalhes da partida")
+                            @(detailsOpen ? T("history.hideMatchDetails") : T("history.showMatchDetails"))
                         </button>
 
                         @if (detailsOpen)
                         {
                             <div class="wallet-match-detail">
                                 <div class="wallet-history-grid">
-                                    <div class="wallet-history-kpi"><span>Inicio</span><strong>@FmtDate(item.MatchStartTime)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Finalizacao</span><strong>@FmtDate(item.MatchEndTime)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Status da partida</span><strong>@FmtMatchStatus(item.MatchStatus)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Carteiras no Time A</span><strong>@item.WalletCountTeamA</strong></div>
-                                    <div class="wallet-history-kpi"><span>Carteiras no Time B</span><strong>@item.WalletCountTeamB</strong></div>
-                                    <div class="wallet-history-kpi"><span>Apostas no Time A</span><strong>@item.BetCountTeamA</strong></div>
-                                    <div class="wallet-history-kpi"><span>Apostas no Time B</span><strong>@item.BetCountTeamB</strong></div>
-                                    <div class="wallet-history-kpi"><span>Total no Time A</span><strong>@FmtSol(item.TotalBetOnTeamA)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Total no Time B</span><strong>@FmtSol(item.TotalBetOnTeamB)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Total da pool</span><strong>@FmtSol(item.TotalPool)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Pool vencedora</span><strong>@FmtSol(item.WinningPool)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Pool perdedora</span><strong>@FmtSol(item.LosingPool)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Total distribuido</span><strong>@FmtSol(item.TotalDistributed)</strong></div>
-                                    <div class="wallet-history-kpi"><span>Disputa financeira valida?</span><strong>@(item.HasValidFinancialDispute ? "Sim" : "Nao")</strong></div>
-                                    <div class="wallet-history-kpi"><span>Motivo da liquidacao</span><strong>@(item.SettlementReasonCode ?? "-")</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.start")</span><strong>@FmtDate(item.MatchStartTime)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.end")</span><strong>@FmtDate(item.MatchEndTime)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.matchStatus")</span><strong>@FmtMatchStatus(item.MatchStatus)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.teamAWallets")</span><strong>@item.WalletCountTeamA</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.teamBWallets")</span><strong>@item.WalletCountTeamB</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.teamABets")</span><strong>@item.BetCountTeamA</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.teamBBets")</span><strong>@item.BetCountTeamB</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.totalTeamA")</span><strong>@FmtSol(item.TotalBetOnTeamA)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.totalTeamB")</span><strong>@FmtSol(item.TotalBetOnTeamB)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.totalPool")</span><strong>@FmtSol(item.TotalPool)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.winningPool")</span><strong>@FmtSol(item.WinningPool)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.losingPool")</span><strong>@FmtSol(item.LosingPool)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.totalDistributed")</span><strong>@FmtSol(item.TotalDistributed)</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.validDispute")</span><strong>@(item.HasValidFinancialDispute ? T("history.yes") : T("history.no"))</strong></div>
+                                    <div class="wallet-history-kpi"><span>@T("history.settlementReason")</span><strong>@(item.SettlementReasonCode ?? "-")</strong></div>
                                 </div>
 
                                 @if (!string.IsNullOrWhiteSpace(item.SettlementReasonDetail))
@@ -166,7 +169,7 @@
                                         @foreach (var participant in item.Participants)
                                         {
                                             <div class="wallet-history-step">
-                                                <strong>@participant.WalletMasked</strong> • @participant.TeamSymbol • Apostado: @FmtSol(participant.BetAmount) • Resultado: @participant.ResultLabel • Recebido: @FmtSol(participant.ReceivedAmount)
+                                                <strong>@participant.WalletMasked</strong> ? @participant.TeamSymbol ? @T("history.betPrefix", FmtSol(participant.BetAmount)) ? @T("history.resultPrefix", participant.ResultLabel) ? @T("history.receivedPrefix", FmtSol(participant.ReceivedAmount))
                                             </div>
                                         }
                                     </div>
@@ -177,9 +180,9 @@
                 }
 
                 <div class="wallet-history-toolbar">
-                    <button type="button" class="wallet-history-button" disabled="@(_page.Page <= 1)" @onclick="() => LoadPageAsync(_page.Page - 1)">Anterior</button>
-                    <span>Pagina @_page.Page de @_page.TotalPages</span>
-                    <button type="button" class="wallet-history-button" disabled="@(_page.Page >= _page.TotalPages)" @onclick="() => LoadPageAsync(_page.Page + 1)">Proxima</button>
+                    <button type="button" class="wallet-history-button" disabled="@(_page.Page <= 1)" @onclick="() => LoadPageAsync(_page.Page - 1)">@T("history.previous")</button>
+                    <span>@T("history.pageSummary", _page.Page, _page.TotalPages)</span>
+                    <button type="button" class="wallet-history-button" disabled="@(_page.Page >= _page.TotalPages)" @onclick="() => LoadPageAsync(_page.Page + 1)">@T("history.next")</button>
                 </div>
             }
         </div>
@@ -199,14 +202,16 @@
 
     private static readonly (string Value, string Label)[] Filters =
     [
-        ("all", "Todas"),
-        ("won", "Ganhou"),
-        ("lost", "Perdeu"),
-        ("open", "Em aberto"),
-        ("finalized", "Finalizadas")
+        ("all", "all"),
+        ("won", "won"),
+        ("lost", "lost"),
+        ("open", "open"),
+        ("finalized", "finalized")
     ];
 
-    private string SummaryText => $"{Group.MatchCount} partidas registradas: {Group.WonCount} ganhas, {Group.LostCount} perdidas, {Group.OpenCount} em aberto.";
+    private string CurrentCulture => CultureInfo.CurrentUICulture.Name;
+
+    private string SummaryText => T("history.summaryText", Group.MatchCount, Group.WonCount, Group.LostCount, Group.OpenCount);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -220,7 +225,7 @@
         }
         catch (Exception ex) when (InteropSafety.IsDeferredInteropException(ex))
         {
-            // Timezone via JS não está disponível durante o prerender.
+            // Timezone via JS n?o est? dispon?vel durante o prerender.
         }
     }
 
@@ -247,7 +252,7 @@
         }
         catch (Exception ex)
         {
-            _error = $"Nao foi possivel carregar as partidas: {ex.Message}";
+            _error = T("history.loadError", ex.Message);
         }
         finally
         {
@@ -279,8 +284,8 @@
             _ => "payout-neutral"
         };
 
-    private static string GetFinancialStatusLabel(UserMatchHistoryItemDto item)
-        => string.IsNullOrWhiteSpace(item.UserResultLabel) ? "-" : item.UserResultLabel;
+    private string GetFinancialStatusLabel(UserMatchHistoryItemDto item)
+        => string.IsNullOrWhiteSpace(item.UserResultLabel) ? T("history.unknown") : item.UserResultLabel;
 
     private static string GetSummaryTextClass(UserMatchHistoryItemDto item)
         => item.UserResult switch
@@ -290,23 +295,26 @@
             _ => string.Empty
         };
 
-    private static string FmtMatchStatus(string status)
+    private string FmtMatchStatus(string status)
         => status switch
         {
-            "Pending" => "Pendente",
-            "Ongoing" => "Em andamento",
-            "Completed" => "Finalizada",
-            "Cancelled" => "Cancelada",
+            "Pending" => T("history.matchStatusPending"),
+            "Ongoing" => T("history.matchStatusOngoing"),
+            "Completed" => T("history.matchStatusCompleted"),
+            "Cancelled" => T("history.matchStatusCancelled"),
             _ => status
         };
 
     private static string FmtSol(decimal value) => $"{value:0.########} SOL";
     private static string FmtSignedSol(decimal value) => value > 0m ? $"+{value:0.########} SOL" : value < 0m ? $"-{Math.Abs(value):0.########} SOL" : "0 SOL";
     private static string FmtOptionalSol(decimal? value) => value.HasValue ? FmtSol(value.Value) : "-";
-    private string FmtDate(DateTime? value) => BrowserTimeZone.FormatDateTime(value, "pt-BR");
+    private string FmtDate(DateTime? value) => BrowserTimeZone.FormatDateTime(value, AppCulture.ToCultureCode(CurrentCulture));
     private static string GetPayoutClass(decimal value) => value > 0m ? "payout-positive" : value < 0m ? "payout-negative" : "payout-neutral";
     private static string GetPayoutClass(decimal? value) => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
     private static string GetBaseSymbol(string pair) => string.IsNullOrWhiteSpace(pair) ? "" : new[] { "USDT", "USDC", "BUSD", "BRL", "EUR", "BTC", "ETH" }.FirstOrDefault(q => pair.Trim().ToUpperInvariant().EndsWith(q, StringComparison.OrdinalIgnoreCase) && pair.Length > q.Length) is string q ? pair.Trim().ToUpperInvariant()[..^q.Length] : pair.Trim().ToUpperInvariant();
     private string GetCoinIconUrl(string symbol) => EnvironmentIsolationGuard.BuildApiUrl(Config, $"/api/icons/binance/{GetBaseSymbol(symbol)}");
     private static string GetInitials(string value) => string.IsNullOrWhiteSpace(GetBaseSymbol(value)) ? "?" : GetBaseSymbol(value) is var symbol && symbol.Length <= 3 ? symbol : GetBaseSymbol(value)[..3];
+
+    private string T(string key, params object?[] args)
+        => L.T($"walletPage.{key}", CurrentCulture, args);
 }

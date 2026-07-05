@@ -27,7 +27,7 @@
               OgLocale="@AppCulture.ToOgLocale(CurrentCulture)"
               OgAlternateLocale="@AppCulture.GetAlternateOgLocale(CurrentCulture)"
               ImageUrl="@SocialImageUrl"
-              ImageAlt="CriptoVersus wallet page"
+              ImageAlt="@T("seo.imageAlt")"
               Robots="noindex,nofollow,noarchive" />
 
 <section class="wallet-page">
@@ -55,11 +55,11 @@
     {
         <div class="wallet-profile">
             <div>
-                <span class="wallet-label">Carteira conectada</span>
+                <span class="wallet-label">@T("profile.connectedWallet")</span>
                 <strong title="@_wallet.Wallet">@ShortWallet(_wallet.Wallet)</strong>
             </div>
             <div>
-                <span class="wallet-label">Usuario</span>
+                <span class="wallet-label">@T("profile.user")</span>
                 <strong>@DisplayName</strong>
             </div>
             <div>
@@ -67,7 +67,7 @@
                 <strong class="wallet-balance" title="@OnChainBalanceTitle">@OnChainBalanceText</strong>
             </div>
             <div>
-                <span class="wallet-label">Ultimo acesso</span>
+                <span class="wallet-label">@T("profile.lastAccess")</span>
                 <strong>@FmtDate(_wallet.LastLogin)</strong>
             </div>
         </div>
@@ -77,31 +77,31 @@
             <div class="wallet-actions-card">
                 <div class="wallet-actions-summary">
                     <div>
-                        <span class="wallet-label">Modo operacional</span>
-                        <strong>Modo Off-chain Custody</strong>
+                        <span class="wallet-label">@T("mode.operationalMode")</span>
+                        <strong>@T("mode.offChainCustodyMode")</strong>
                     </div>
                     <div>
-                        <span class="wallet-label">Carteira de custodia</span>
+                        <span class="wallet-label">@T("custody.wallet")</span>
                         <strong>@GetCustodyLabel()</strong>
                     </div>
                 </div>
                 <div class="wallet-offchain-copy">
                     <div class="wallet-offchain-address">
-                        <span class="wallet-label">Endereço publico</span>
+                        <span class="wallet-label">@T("custody.publicAddress")</span>
                         <strong title="@GetCustodyWalletDisplayValue()">@GetCustodyWalletDisplayValue()</strong>
                     </div>
                     <button type="button"
                             class="wallet-history-button"
                             disabled="@string.IsNullOrWhiteSpace(_wallet.CustodyWalletPublicKey)"
                             @onclick="CopyCustodyWalletAsync">
-                        Copiar carteira
+                        @T("custody.copyWallet")
                     </button>
                 </div>
                 <div class="wallet-message">
-                    Neste modo, apostas usam apenas o saldo interno do banco. Transferencias SOL para a carteira de custodia precisam ser conciliadas para virar saldo interno antes de apostar.
+                    @T("custody.explanation")
                 </div>
                 <div class="wallet-message">
-                    Saques automaticos para a carteira conectada ficam desativados neste modo para evitar debito sem transferencia on-chain confirmada.
+                    @T("custody.withdrawalsDisabled")
                 </div>
                 @if (!string.IsNullOrWhiteSpace(_copyMessage))
                 {
@@ -112,31 +112,31 @@
 
         <div class="wallet-metrics">
             <div class="wallet-metric">
-                <span>Saldo no sistema</span>
+                <span>@T("metrics.systemBalance")</span>
                 <strong>@FmtSol(_wallet.SystemBalance)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Capital alocado</span>
+                <span>@T("metrics.allocatedCapital")</span>
                 <strong>@FmtSol(_wallet.TotalInvested)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Em aberto</span>
+                <span>@T("metrics.open")</span>
                 <strong>@FmtSol(_wallet.OpenAmount)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Posicoes em saida</span>
+                <span>@T("metrics.exitPositions")</span>
                 <strong>@CountPositionsByStatus("ClosingRequested")</strong>
             </div>
             <div class="wallet-metric">
-                <span>Lucro realizado</span>
+                <span>@T("metrics.realizedProfit")</span>
                 <strong class="payout-positive">@FmtSol(_wallet.RealizedProfit)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Perda realizada</span>
+                <span>@T("metrics.realizedLoss")</span>
                 <strong class="payout-negative">@FmtSol(_wallet.RealizedLoss)</strong>
             </div>
             <div class="wallet-metric">
-                <span>Resultado liquido realizado</span>
+                <span>@T("metrics.realizedNetResult")</span>
                 <strong class="@GetPayoutClass(_wallet.RealizedNetResult)">@FmtSignedSol(_wallet.RealizedNetResult)</strong>
             </div>
         </div>
@@ -144,16 +144,16 @@
         <div class="wallet-actions-card">
             <div class="wallet-actions-summary">
                 <div>
-                    <span class="wallet-label">Saldo no sistema</span>
+                    <span class="wallet-label">@T("metrics.systemBalance")</span>
                     <strong>@FmtSol(_wallet.SystemBalance)</strong>
                 </div>
                 <div>
-                    <span class="wallet-label">Posicoes em saida</span>
+                    <span class="wallet-label">@T("metrics.exitPositions")</span>
                     <strong>@CountPositionsByStatus("ClosingRequested")</strong>
                 </div>
             </div>
             <div class="wallet-message">
-                Para liberar saldo para saque, finalize uma posicao fora de jogo. Se ela ainda estiver vinculada a uma partida em andamento, a saida fica solicitada e o saldo volta automaticamente para o sistema quando essa partida for liquidada.
+                @T("withdraw.releaseExplanation")
             </div>
             <div class="wallet-actions-buttons">
                 <button type="button"
@@ -168,7 +168,7 @@
                             class="wallet-history-button is-primary"
                             disabled="@(_actionBusy || !CanWithdrawToWallet)"
                             @onclick="WithdrawSystemBalanceAsync">
-                        @(CanWithdrawToWallet ? "Resgatar para minha carteira" : T("openPosition.insufficientBalance"))
+                        @(CanWithdrawToWallet ? T("actions.withdrawToWallet") : T("openPosition.insufficientBalance"))
                     </button>
                 }
             </div>
@@ -179,14 +179,14 @@
         </div>
 
         <div class="wallet-section-title">
-            <h3>@T("openPositions.title")</h3>
-            <span>@T("openPositions.count", _wallet.ActivePositions.Count)</span>
+            <h3>@T("openSelections.title")</h3>
+            <span>@(_wallet.ActivePositions.Count == 1 ? T("openSelections.countOne", _wallet.ActivePositions.Count) : T("openSelections.countOther", _wallet.ActivePositions.Count))</span>
         </div>
 
         @if (_wallet.ActivePositions.Count == 0)
         {
             <div class="wallet-empty">
-                @T("openPositions.empty")
+                @T("openSelections.empty")
             </div>
         }
         else
@@ -251,14 +251,14 @@
         }
 
         <div class="wallet-section-title">
-            <h3>Historico por token/time</h3>
-            <span>@_wallet.OpenInvestments em aberto | @_wallet.SettledInvestments finalizadas</span>
+            <h3>@T("history.title")</h3>
+            <span>@T("history.groupCount", _wallet.InvestmentGroups.Count)</span>
         </div>
 
         @if (_wallet.InvestmentGroups.Count == 0)
         {
             <div class="wallet-empty">
-                Voce ainda nao tem investimentos registrados. Escolha uma partida para iniciar sua primeira posicao.
+                @T("history.emptyGroups")
             </div>
         }
         else
@@ -280,7 +280,7 @@
         <div class="wallet-modal-card" @onclick:stopPropagation="true">
             <div class="wallet-modal-header">
                 <div>
-                    <span class="wallet-modal-kicker">CRYPTO ARENA</span>
+                    <span class="wallet-modal-kicker">@T("modal.kicker")</span>
                     <h3 id="wallet-open-position-title">
                         @(_selectedAsset is null ? T("openPosition.modalTitle") : T("openPosition.amountTitle"))
                     </h3>
@@ -1465,10 +1465,8 @@
 
     private string CurrentCulture
         => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
-    private string SeoTitle => CurrentCulture == "en" ? "CriptoVersus My Wallet" : "CriptoVersus Minha Carteira";
-    private string SeoDescription => CurrentCulture == "en"
-        ? "Internal CriptoVersus wallet page for balances, positions, custody details and account history."
-        : "Pagina interna da carteira CriptoVersus com saldos, posicoes, custodia e historico da conta.";
+    private string SeoTitle => T("seo.title");
+    private string SeoDescription => T("seo.description");
     private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath(CurrentCulture));
     private string EnglishUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath("en"));
     private string PortugueseUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildWalletPath("pt"));
@@ -1638,16 +1636,16 @@
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             _wallet = null;
-            _error = "Sua sessao expirou. Faca login novamente com sua carteira Solana.";
+            _error = T("actions.sessionExpired");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
             _wallet = null;
-            _error = "A rota Minha Carteira ainda nao esta disponivel no API que esta rodando. Reinicie o projeto CriptoVersus.API local ou publique a API atualizada.";
+            _error = T("actions.walletLoadUnavailable");
         }
         catch (Exception ex)
         {
-            _error = $"Nao foi possivel carregar sua carteira: {ex.Message}";
+            _error = T("actions.walletLoadFailed", ex.Message);
         }
         finally
         {
@@ -1891,7 +1889,7 @@
 
         if (!string.Equals(blockchainMode, "OffChainCustody", StringComparison.OrdinalIgnoreCase)
             && string.IsNullOrWhiteSpace(programId))
-            throw new InvalidOperationException("CriptoVersusBlockchain program id nao configurado para o fluxo de posicao da wallet.");
+            throw new InvalidOperationException(T("actions.programIdMissing"));
 
         return await _investmentDiagnosticsModule.InvokeAsync<InvestmentPreparationResult>(
             "prepareInvestment",
@@ -1927,7 +1925,7 @@
                 "import",
                 "./js/solanaWalletActions.js?v=20260505-rpc-config");
 
-            _actionMessage = "Validando wallet conectada...";
+            _actionMessage = T("actions.validatingConnectedWallet");
             await InvokeAsync(StateHasChanged);
 
             var chainResult = await _walletActionsModule.InvokeAsync<ChainWithdrawResult>(
@@ -1944,38 +1942,38 @@
 
             if (!chainResult.supported)
             {
-                _actionMessage = $"O modo {BlockchainMode} ainda nao suporta resgate on-chain automatico. Seu saldo continua disponivel no sistema para retry futuro.";
+                _actionMessage = T("actions.modeUnsupported", BlockchainMode);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(chainResult.connectedWallet))
             {
-                _actionMessage = "Wallet nao conectada.";
+                _actionMessage = T("actions.walletNotConnected");
                 return;
             }
 
             if (!string.Equals(chainResult.connectedWallet, _wallet.Wallet, StringComparison.Ordinal))
             {
-                _actionMessage = "A carteira conectada e diferente da conta logada.";
+                _actionMessage = T("actions.walletMismatch");
                 return;
             }
 
             if (IsOffChainCustodyMode)
             {
-                _actionMessage = "Wallet autorizou o resgate. Enviando saque real da custodia para sua carteira...";
+                _actionMessage = T("actions.custodyWithdrawAuthorized");
                 await InvokeAsync(StateHasChanged);
             }
             else if (string.IsNullOrWhiteSpace(chainResult.signature))
             {
-                _actionMessage = "Erro ao confirmar o resgate na wallet.";
+                _actionMessage = T("actions.confirmWithdrawError");
                 return;
             }
             else
             {
-                _actionMessage = $"Transacao enviada: {chainResult.signature}";
+                _actionMessage = T("actions.transactionSent", chainResult.signature);
                 await InvokeAsync(StateHasChanged);
 
-                _actionMessage = $"Transacao confirmada: {chainResult.signature}";
+                _actionMessage = T("actions.transactionConfirmed", chainResult.signature);
                 await InvokeAsync(StateHasChanged);
             }
 
@@ -1988,7 +1986,7 @@
                 WalletProofSignature = chainResult.proofSignature
             });
 
-            _actionMessage = result?.Message ?? "Resgate concluido.";
+            _actionMessage = result?.Message ?? T("actions.withdrawCompleted");
             await LoadWalletAsync();
             await LoadOnChainBalanceAsync();
         }
@@ -2016,14 +2014,14 @@
         {
             await Api.RequestClosePositionAsync(position.PositionId);
             _actionMessage = position.CanCloseNow
-                ? $"A posicao {position.Symbol} foi encerrada e o saldo voltou para o sistema."
+                ? T("actions.positionClosed", position.Symbol)
                 : GetCloseRequestedMessage(position);
             await LoadWalletAsync();
             await LoadOnChainBalanceAsync();
         }
         catch (Exception ex)
         {
-            _actionMessage = $"Nao foi possivel finalizar a posicao {position.Symbol}: {ex.Message}";
+            _actionMessage = T("actions.positionCloseFailed", position.Symbol, ex.Message);
         }
         finally
         {
@@ -2052,7 +2050,7 @@
                 new
                 {
                     rpcUrl = Config["CriptoVersusBlockchain:RpcUrl"],
-                    locale = CurrentCulture == "en" ? "en-US" : "pt-BR",
+                    locale = AppCulture.ToCultureCode(CurrentCulture),
                     flowName = "MY_WALLET_BALANCE"
                 });
 
@@ -2065,7 +2063,7 @@
         {
             _onChainBalance = null;
             _maxSpendableSol = null;
-            _onChainBalanceError = $"Nao foi possivel consultar o saldo on-chain: {ex.Message}";
+            _onChainBalanceError = T("actions.balanceLookupFailed", ex.Message);
         }
         finally
         {
@@ -2074,13 +2072,13 @@
         }
     }
 
-    private static string GetCloseRequestedMessage(TeamPositionDto position)
+    private string GetCloseRequestedMessage(TeamPositionDto position)
     {
         return position.OpenBetMatchStatus switch
         {
-            "Ongoing" => $"A posicao {position.Symbol} ficou com saida solicitada. Como ela ainda participa de uma partida em andamento, o saldo sera liberado para o sistema assim que essa partida for liquidada.",
-            "Pending" => $"A posicao {position.Symbol} ficou com saida solicitada. Ela ja esta vinculada a uma partida aberta e o saldo sera liberado para o sistema quando essa partida for encerrada.",
-            _ => $"A posicao {position.Symbol} ficou com saida solicitada. O saldo sera liberado para o sistema quando a partida vinculada for encerrada."
+            "Ongoing" => T("actions.closeRequestedOngoing", position.Symbol),
+            "Pending" => T("actions.closeRequestedPending", position.Symbol),
+            _ => T("actions.closeRequestedDefault", position.Symbol)
         };
     }
 
@@ -2092,11 +2090,11 @@
         try
         {
             await JS.InvokeVoidAsync("navigator.clipboard.writeText", _wallet.CustodyWalletPublicKey);
-            _copyMessage = "Carteira de custodia copiada.";
+            _copyMessage = T("custody.copied");
         }
         catch (Exception ex)
         {
-            _copyMessage = $"Nao foi possivel copiar a carteira: {ex.Message}";
+            _copyMessage = T("custody.copyFailed", ex.Message);
         }
 
         await InvokeAsync(StateHasChanged);
@@ -2156,26 +2154,20 @@
         => value.HasValue ? GetPayoutClass(value.Value) : "payout-neutral";
 
     private string FmtDate(DateTime? value)
-        => BrowserTimeZone.FormatDateTime(value, CurrentCulture == "en" ? "en-US" : "pt-BR");
+        => BrowserTimeZone.FormatDateTime(value, AppCulture.ToCultureCode(CurrentCulture));
 
     private string FmtElapsed(DateTime value)
     {
         var elapsed = DateTime.UtcNow - value;
 
         if (elapsed.TotalDays >= 1)
-            return CurrentCulture == "en"
-                ? $"{(int)elapsed.TotalDays}d live"
-                : $"{(int)elapsed.TotalDays}d aberta";
+            return T("elapsed.days", (int)elapsed.TotalDays);
 
         if (elapsed.TotalHours >= 1)
-            return CurrentCulture == "en"
-                ? $"{(int)elapsed.TotalHours}h live"
-                : $"{(int)elapsed.TotalHours}h aberta";
+            return T("elapsed.hours", (int)elapsed.TotalHours);
 
         var minutes = Math.Max(1, (int)elapsed.TotalMinutes);
-        return CurrentCulture == "en"
-            ? $"{minutes}m live"
-            : $"{minutes}m aberta";
+        return T("elapsed.minutes", minutes);
     }
 
     private static string FmtPositionStatus(string status)
@@ -2355,27 +2347,27 @@
         public string? PositionVaultPda { get; set; }
     }
 
-    private static string ResolveWithdrawErrorMessage(Exception ex)
+    private string ResolveWithdrawErrorMessage(Exception ex)
     {
         var message = ex.Message ?? "Erro desconhecido.";
         var normalized = message.ToLowerInvariant();
 
         if (normalized.Contains("wallet nao conectada"))
-            return "Wallet nao conectada.";
+            return T("actions.walletNotConnected");
 
         if (normalized.Contains("carteira diferente da conta"))
-            return "A carteira conectada e diferente da conta logada.";
+            return T("actions.walletMismatch");
 
         if (normalized.Contains("insufficient wallet balance") || normalized.Contains("saldo insuficiente na carteira"))
             return message;
 
         if (normalized.Contains("saldo insuficiente"))
-            return "Saldo insuficiente.";
+            return T("actions.insufficientBalance");
 
         if (normalized.Contains("signature") || normalized.Contains("assinatura"))
-            return $"Erro ao confirmar o resgate: {message}";
+            return T("actions.confirmWithdrawError", message);
 
-        return $"Erro ao confirmar o resgate: {message}";
+        return T("actions.confirmWithdrawError", message);
     }
 
     private void HandleWalletStateChanged()
@@ -2385,7 +2377,7 @@
 
         _wallet = null;
         _loading = false;
-        _error = "A carteira conectada foi alterada ou desconectada. Faca login novamente com a wallet atual.";
+        _error = T("actions.walletChanged");
         _actionMessage = null;
         _actionBusy = false;
         _onChainBalance = null;
@@ -2410,3 +2402,4 @@
         });
     }
 }
+

@@ -575,13 +575,28 @@
     }
   },
   "statsMatches": {
-    "seo": { "title": "CriptoVersus Matches Stats", "description": "Browse public crypto matches, filter by status and review asset results across the arena." },
-    "hero": { "eyebrow": "Public match hub", "title": "Stats Matches", "subtitle": "Search public battles, inspect recent scoreboards and compare results by asset.", "backToStats": "Back to stats", "openTeams": "Open teams" },
+    "seo": {
+      "title": "CriptoVersus Matches Stats",
+      "description": "Browse public crypto matches, filter by status and review asset results across the arena."
+    },
+    "hero": {
+      "eyebrow": "Public match hub",
+      "title": "Stats Matches",
+      "subtitle": "Search public battles, inspect recent scoreboards and compare results by asset.",
+      "backToStats": "Back to stats",
+      "openTeams": "Open teams"
+    },
     "filters": {
       "searchLabel": "Search by coin or team",
       "searchPlaceholder": "BTC, ETH, STRAX, TON...",
       "statusLabel": "Status",
-      "status": { "all": "All", "ongoing": "Live", "completed": "Finished", "pending": "Pending", "cancelled": "Cancelled" }
+      "status": {
+        "all": "All",
+        "ongoing": "Live",
+        "completed": "Finished",
+        "pending": "Pending",
+        "cancelled": "Cancelled"
+      }
     },
     "states": {
       "loadingTitle": "Loading public matches",
@@ -591,26 +606,63 @@
       "emptyTitle": "No matches found",
       "emptyBody": "Try another asset, team or status filter."
     },
-    "summary": { "totalMatches": "Total matches", "completed": "Finished", "live": "Live", "assets": "Tracked assets" },
+    "summary": {
+      "totalMatches": "Total matches",
+      "completed": "Finished",
+      "live": "Live",
+      "assets": "Tracked assets"
+    },
     "matches": {
       "eyebrow": "Recent archive",
       "title": "Latest public matches",
       "description": "Open any match page and review the latest public scoreboards.",
       "openMatch": "Open match",
-      "columns": { "match": "Match", "score": "Score", "status": "Status", "date": "Date", "link": "Link" }
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "status": "Status",
+        "date": "Date",
+        "link": "Link"
+      }
     },
     "teams": {
       "eyebrow": "Asset performance",
       "title": "Wins, losses and draws by asset",
       "description": "Public asset summaries derived from the current filtered match set.",
-      "columns": { "asset": "Asset", "matches": "Matches", "wins": "Wins", "draws": "Draws", "losses": "Losses", "goals": "Goals", "winRate": "Win Rate" }
+      "columns": {
+        "asset": "Asset",
+        "matches": "Matches",
+        "wins": "Wins",
+        "draws": "Draws",
+        "losses": "Losses",
+        "goals": "Goals",
+        "winRate": "Win Rate"
+      }
     },
-    "status": { "completed": "Finished", "ongoing": "Live", "pending": "Pending", "cancelled": "Cancelled", "unknown": "Unknown" }
+    "status": {
+      "completed": "Finished",
+      "ongoing": "Live",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "unknown": "Unknown"
+    }
   },
   "statsRankings": {
-    "seo": { "title": "CriptoVersus Rankings", "description": "Compare public rankings by wins, efficiency, goals and unbeaten streaks." },
-    "hero": { "eyebrow": "Public rankings hub", "title": "Stats Rankings", "subtitle": "Multi-metric public ranking boards for the CriptoVersus arena.", "backToStats": "Back to stats", "openMatches": "Open matches" },
-    "filters": { "searchLabel": "Search by asset", "searchPlaceholder": "BTC, ETH, STRAX, TON..." },
+    "seo": {
+      "title": "CriptoVersus Rankings",
+      "description": "Compare public rankings by wins, efficiency, goals and unbeaten streaks."
+    },
+    "hero": {
+      "eyebrow": "Public rankings hub",
+      "title": "Stats Rankings",
+      "subtitle": "Multi-metric public ranking boards for the CriptoVersus arena.",
+      "backToStats": "Back to stats",
+      "openMatches": "Open matches"
+    },
+    "filters": {
+      "searchLabel": "Search by asset",
+      "searchPlaceholder": "BTC, ETH, STRAX, TON..."
+    },
     "states": {
       "loadingTitle": "Loading public rankings",
       "loadingBody": "Calculating ranking boards from the latest public match data.",
@@ -619,18 +671,57 @@
       "emptyTitle": "No rankings available yet",
       "emptyBody": "The arena still needs more completed public matches to rank assets here."
     },
-    "summary": { "assets": "Ranked assets", "topWins": "Most wins", "topEfficiency": "Best efficiency", "topStreak": "Best unbeaten streak" },
+    "summary": {
+      "assets": "Ranked assets",
+      "topWins": "Most wins",
+      "topEfficiency": "Best efficiency",
+      "topStreak": "Best unbeaten streak"
+    },
     "boards": {
-      "columns": { "rank": "Rank", "asset": "Asset", "matches": "Matches", "winRate": "Win Rate" },
-      "wins": { "eyebrow": "Victory board", "title": "Ranking by wins", "description": "Assets ordered by total wins in completed public matches.", "metric": "Wins" },
-      "efficiency": { "eyebrow": "Efficiency board", "title": "Ranking by efficiency", "description": "Three-point efficiency rate across completed public battles.", "metric": "Efficiency" },
-      "goals": { "eyebrow": "Attack board", "title": "Ranking by goals", "description": "Assets with the highest public scoring output.", "metric": "Goals" },
-      "streak": { "eyebrow": "Momentum board", "title": "Ranking by unbeaten streak", "description": "Current unbeaten runs based on the latest completed match history.", "metric": "Streak" }
+      "columns": {
+        "rank": "Rank",
+        "asset": "Asset",
+        "matches": "Matches",
+        "winRate": "Win Rate"
+      },
+      "wins": {
+        "eyebrow": "Victory board",
+        "title": "Ranking by wins",
+        "description": "Assets ordered by total wins in completed public matches.",
+        "metric": "Wins"
+      },
+      "efficiency": {
+        "eyebrow": "Efficiency board",
+        "title": "Ranking by efficiency",
+        "description": "Three-point efficiency rate across completed public battles.",
+        "metric": "Efficiency"
+      },
+      "goals": {
+        "eyebrow": "Attack board",
+        "title": "Ranking by goals",
+        "description": "Assets with the highest public scoring output.",
+        "metric": "Goals"
+      },
+      "streak": {
+        "eyebrow": "Momentum board",
+        "title": "Ranking by unbeaten streak",
+        "description": "Current unbeaten runs based on the latest completed match history.",
+        "metric": "Streak"
+      }
     }
   },
   "statsRecords": {
-    "seo": { "title": "CriptoVersus Records", "description": "Review the biggest public records, blowouts and standout historical matches in the arena." },
-    "hero": { "eyebrow": "Public records hub", "title": "Stats Records", "subtitle": "Public milestones and historic scoreboards from the CriptoVersus arena.", "backToStats": "Back to stats", "openRankings": "Open rankings" },
+    "seo": {
+      "title": "CriptoVersus Records",
+      "description": "Review the biggest public records, blowouts and standout historical matches in the arena."
+    },
+    "hero": {
+      "eyebrow": "Public records hub",
+      "title": "Stats Records",
+      "subtitle": "Public milestones and historic scoreboards from the CriptoVersus arena.",
+      "backToStats": "Back to stats",
+      "openRankings": "Open rankings"
+    },
     "states": {
       "loadingTitle": "Loading public records",
       "loadingBody": "Scanning completed public matches for standout records and milestones.",
@@ -639,7 +730,12 @@
       "emptyTitle": "No records available yet",
       "emptyBody": "The arena still needs more completed public matches before records can be highlighted."
     },
-    "summary": { "longestWinStreak": "Longest win streak", "biggestBlowout": "Biggest blowout", "mostGoals": "Most goals in one match", "bestCampaign": "Best campaign" },
+    "summary": {
+      "longestWinStreak": "Longest win streak",
+      "biggestBlowout": "Biggest blowout",
+      "mostGoals": "Most goals in one match",
+      "bestCampaign": "Best campaign"
+    },
     "records": {
       "eyebrow": "Milestones",
       "title": "Arena record board",
@@ -663,7 +759,12 @@
       "title": "Relevant historic matches",
       "description": "High-impact scoreboards worth revisiting from the public archive.",
       "openMatch": "Open match",
-      "columns": { "match": "Match", "score": "Score", "note": "Why it matters", "link": "Link" },
+      "columns": {
+        "match": "Match",
+        "score": "Score",
+        "note": "Why it matters",
+        "link": "Link"
+      },
       "notes": {
         "blowout": "Largest public blowout on record.",
         "mostGoals": "Highest-scoring public match so far.",
@@ -1075,28 +1176,28 @@
     "structuredDataAbstract": "CriptoVersus is a gamified market-data visualization arena with side selection, match scoring, public simulations and educational market analysis driven by real market performance.",
     "faq": {
       "onlyScoreboard": {
-      "question": "Is CriptoVersus only a crypto scoreboard?",
-      "answer": "No. CriptoVersus is a gamified market-data visualization arena for analytics, education and entertainment. Users choose a side in live simulations, follow match pools and review public market signals. It is not financial advice or a prediction of future token prices."
+        "question": "Is CriptoVersus only a crypto scoreboard?",
+        "answer": "No. CriptoVersus is a gamified market-data visualization arena for analytics, education and entertainment. Users choose a side in live simulations, follow match pools and review public market signals. It is not financial advice or a prediction of future token prices."
       },
       "openPositions": {
-      "question": "Can users choose sides in crypto battles?",
-      "answer": "Yes. Users can choose a side in a live arena simulation while the market-driven cycle is active. That choice is for participation and analysis, not for financial advice."
+        "question": "Can users choose sides in crypto battles?",
+        "answer": "Yes. Users can choose a side in a live arena simulation while the market-driven cycle is active. That choice is for participation and analysis, not for financial advice."
       },
       "arenaPools": {
-      "question": "How do CriptoVersus match pools work?",
-      "answer": "Each side concentrates participants into a match pool. Those pools evolve during the live arena, respond to real market performance and feed the scoring logic used at settlement. They are visual and educational, not investment products."
+        "question": "How do CriptoVersus match pools work?",
+        "answer": "Each side concentrates participants into a match pool. Those pools evolve during the live arena, respond to real market performance and feed the scoring logic used at settlement. They are visual and educational, not investment products."
       },
       "cyclicalPools": {
-      "question": "What are cyclical match pools?",
-      "answer": "Cyclical pools are recurring arena participation layers that reconnect side selection across multiple battle cycles instead of treating every match as an isolated scoreboard."
+        "question": "What are cyclical match pools?",
+        "answer": "Cyclical pools are recurring arena participation layers that reconnect side selection across multiple battle cycles instead of treating every match as an isolated scoreboard."
       },
       "rewardDistribution": {
-      "question": "How are scores and outcomes distributed?",
-      "answer": "Scores and outcomes are determined according to the active match rule, side performance, pool composition and the settlement logic that turns live market results into competitive arena outcomes. They do not guarantee any future token price move or profit."
+        "question": "How are scores and outcomes distributed?",
+        "answer": "Scores and outcomes are determined according to the active match rule, side performance, pool composition and the settlement logic that turns live market results into competitive arena outcomes. They do not guarantee any future token price move or profit."
       },
       "battleCycle": {
-      "question": "How does a crypto battle cycle work?",
-      "answer": "A battle cycle opens an entry window, allows side selection, tracks market performance in real time, updates the live arena and ends with pool settlement plus scoring updates for the next cycle."
+        "question": "How does a crypto battle cycle work?",
+        "answer": "A battle cycle opens an entry window, allows side selection, tracks market performance in real time, updates the live arena and ends with pool settlement plus scoring updates for the next cycle."
       }
     },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
@@ -1561,8 +1662,8 @@
       "arenaPressure": "Arena pressure",
       "momentum": "Momentum",
       "momentumHint": "Leading symbol by observed change.",
-    "recentWinner": "Recent leader",
-    "recentWinnerHint": "Most recent public match leader if one exists.",
+      "recentWinner": "Recent leader",
+      "recentWinnerHint": "Most recent public match leader if one exists.",
       "watchCta": "Watch {0} vs {1} Live Battle",
       "exploreCta": "Explore crypto battles",
       "snapshotCount": "{0} snapshots tracked",
@@ -2087,9 +2188,9 @@
   },
   "walletPage": {
     "heading": {
-      "eyebrow": "My Wallet",
-      "title": "Your selections",
-      "body": "Track system balance, side selections and asset performance without leaving the arena."
+      "eyebrow": "My wallet",
+      "title": "My wallet",
+      "body": "Track system balance, selections and asset performance without leaving the arena."
     },
     "states": {
       "loading": "Loading your wallet...",
@@ -2159,9 +2260,197 @@
       "exitRequested": "Exit requested",
       "closeNow": "Close selection",
       "requestExit": "Request exit"
+    },
+    "seo": {
+      "title": "CriptoVersus My Wallet",
+      "description": "Internal CriptoVersus wallet page for balances, positions, custody details and account history.",
+      "imageAlt": "CriptoVersus wallet page"
+    },
+    "profile": {
+      "connectedWallet": "Connected wallet",
+      "user": "User",
+      "lastAccess": "Last access"
+    },
+    "mode": {
+      "operationalMode": "Operational mode",
+      "offChainCustodyMode": "Off-chain Custody Mode"
+    },
+    "custody": {
+      "wallet": "Custody wallet",
+      "publicAddress": "Public address",
+      "copyWallet": "Copy wallet",
+      "explanation": "In this mode, bets use only the bank's internal balance. SOL transfers to the custody wallet must be reconciled to become internal balance before betting.",
+      "withdrawalsDisabled": "Automatic withdrawals to the connected wallet are disabled in this mode to avoid debits without confirmed on-chain transfer.",
+      "copied": "Custody wallet copied.",
+      "copyFailed": "Could not copy the wallet: {0}"
+    },
+    "metrics": {
+      "systemBalance": "System balance",
+      "allocatedCapital": "Allocated capital",
+      "open": "Open",
+      "exitPositions": "Exit positions",
+      "realizedProfit": "Realized profit",
+      "realizedLoss": "Realized loss",
+      "realizedNetResult": "Realized net result"
+    },
+    "withdraw": {
+      "releaseExplanation": "To release balance for withdrawal, finalize a position outside the game. If it is still linked to an ongoing match, the exit is requested and the balance automatically returns to the system when that match is settled."
+    },
+    "actions": {
+      "withdrawToWallet": "Withdraw to my wallet",
+      "walletChanged": "The connected wallet was changed or disconnected. Please sign in again with the current wallet.",
+      "sessionExpired": "Your session expired. Please sign in again with your Solana wallet.",
+      "walletLoadFailed": "Could not load your wallet: {0}",
+      "modeUnsupported": "The {0} mode does not yet support automatic on-chain withdrawals. Your balance remains available in the system for a future retry.",
+      "walletNotConnected": "Wallet not connected.",
+      "walletMismatch": "The connected wallet is different from the logged-in account.",
+      "custodyWithdrawAuthorized": "Wallet authorized the withdrawal. Sending the real custody withdrawal to your wallet...",
+      "confirmWithdrawError": "Could not confirm the withdrawal in the wallet.",
+      "withdrawCompleted": "Withdrawal completed.",
+      "transactionSent": "Transaction sent: {0}",
+      "transactionConfirmed": "Transaction confirmed: {0}",
+      "positionClosed": "Position {0} was closed and the balance returned to the system.",
+      "positionCloseFailed": "Could not close position {0}: {1}",
+      "balanceLookupFailed": "Could not query the on-chain balance: {0}",
+      "closeRequestedOngoing": "Position {0} was marked for exit. Because it is still part of an ongoing match, the balance will be released back to the system as soon as that match is settled.",
+      "closeRequestedPending": "Position {0} was marked for exit. It is already linked to an open match and the balance will be released back to the system when that match ends.",
+      "closeRequestedDefault": "Position {0} was marked for exit. The balance will be released back to the system when the linked match ends.",
+      "insufficientBalance": "Insufficient balance.",
+      "walletLoadUnavailable": "The My Wallet route is not available in the running API yet. Restart the local CriptoVersus.API project or publish the updated API.",
+      "validatingConnectedWallet": "Validating the connected wallet...",
+      "programIdMissing": "CriptoVersusBlockchain program id is not configured for the wallet position flow."
+    },
+    "openSelections": {
+      "title": "Open selections",
+      "countOne": "{0} active",
+      "countOther": "{0} active",
+      "empty": "You do not have open selections yet. Open an arena selection and your funds will start tracking that asset in the arena."
+    },
+    "elapsed": {
+      "days": "{0}d open",
+      "hours": "{0}h open",
+      "minutes": "{0}m open"
+    },
+    "history": {
+      "title": "History by token/team",
+      "summary": "{0} open | {1} settled",
+      "summaryText": "{0} recorded matches: {1} won, {2} lost, {3} open.",
+      "loadError": "Could not load the matches: {0}",
+      "loading": "Loading matches...",
+      "emptyResults": "No matches were found for this filter.",
+      "hideMatches": "Hide matches",
+      "showMatches": "Show matches",
+      "pageInfo": "Page {0} of {1} | {2} matches",
+      "pageSummary": "Page {0} of {1}",
+      "previous": "Previous",
+      "next": "Next",
+      "vs": "vs",
+      "matchNumber": "Match #{0}",
+      "myTeam": "My team: {0}",
+      "winner": "Winner: {0}",
+      "betAmount": "Betted",
+      "receivedAmount": "Received",
+      "netResult": "Net result",
+      "refund": "Refund",
+      "houseFee": "House fee",
+      "financialStatus": "Financial status",
+      "showMatchDetails": "Show match details",
+      "hideMatchDetails": "Hide match details",
+      "start": "Start",
+      "end": "End",
+      "matchStatus": "Match status",
+      "teamAWallets": "Wallets on Team A",
+      "teamBWallets": "Wallets on Team B",
+      "teamABets": "Bets on Team A",
+      "teamBBets": "Bets on Team B",
+      "totalTeamA": "Total on Team A",
+      "totalTeamB": "Total on Team B",
+      "totalPool": "Total pool",
+      "winningPool": "Winning pool",
+      "losingPool": "Losing pool",
+      "totalDistributed": "Total distributed",
+      "validDispute": "Valid financial dispute?",
+      "yes": "Yes",
+      "no": "No",
+      "settlementReason": "Settlement reason",
+      "unknown": "Unknown",
+      "matchStatusPending": "Pending",
+      "matchStatusOngoing": "Ongoing",
+      "matchStatusCompleted": "Completed",
+      "matchStatusCancelled": "Cancelled",
+      "betPrefix": "Betted: {0}",
+      "resultPrefix": "Result: {0}",
+      "receivedPrefix": "Received: {0}",
+      "metrics": {
+        "allocatedCapital": "Allocated capital",
+        "open": "Open",
+        "refundedMatches": "Refunded matches",
+        "realizedNetResult": "Realized net result",
+        "wonMatches": "Won matches",
+        "lostMatches": "Lost matches",
+        "lastEntry": "Last entry"
+      },
+      "filters": {
+        "all": "All",
+        "won": "Won",
+        "lost": "Lost",
+        "open": "Open",
+        "finalized": "Finalized"
+      },
+      "groupCount": "{0} groups",
+      "emptyGroups": "You do not have investment groups yet."
+    },
+    "modal": {
+      "kicker": "CRYPTO ARENA"
+    },
+    "solana": {
+      "close": "Close",
+      "connectTitle": "Connect a wallet on Solana to continue",
+      "connectDescription": "Choose a supported wallet to connect and sign in without changing the current API flow.",
+      "connectedWalletGeneric": "Wallet connected",
+      "connectedWalletNamed": "{0} connected",
+      "availableInBrowser": "Available in this browser",
+      "openInstallPage": "Open official install page",
+      "detected": "Detected",
+      "install": "Install",
+      "disconnect": "Disconnect",
+      "installRequiredTitle": "Install required",
+      "installRequiredMessage": "Open the official {0} page and install the wallet to continue.",
+      "connectingTitle": "Connecting wallet",
+      "connectingMessage": "Waiting for {0} approval in your browser.",
+      "connectionFailedTitle": "Connection failed",
+      "missingPublicKeyTitle": "Missing public key",
+      "missingPublicKeyMessage": "The wallet connected, but no public key was returned.",
+      "walletConnectedTitle": "Wallet connected",
+      "walletConnectedMessage": "Wallet connected. Finishing authentication...",
+      "walletDisconnectedTitle": "Wallet disconnected",
+      "walletDisconnectedMessage": "You can connect any supported Solana wallet again at any time.",
+      "disconnectFailedTitle": "Disconnect failed",
+      "connectWalletTitle": "Connect a wallet",
+      "connectWalletMessage": "Choose a Solana wallet before continuing.",
+      "loginUnavailableTitle": "Login unavailable",
+      "loginUnavailableMessage": "Could not prepare the login signature right now. Please try again.",
+      "awaitingSignatureTitle": "Awaiting signature",
+      "awaitingSignatureMessage": "Approve the signature request in your wallet to finish login.",
+      "loginRejectedTitle": "Login rejected",
+      "loginRejectedMessage": "Could not validate your wallet signature. Please try again.",
+      "incompleteLoginTitle": "Incomplete login",
+      "incompleteLoginMessage": "The API confirmed the login, but no session token was returned.",
+      "loginCompleteTitle": "Login complete",
+      "loginCompleteMessage": "Your wallet was authenticated successfully.",
+      "loginCompleteOnChainMessage": "Your wallet was authenticated and the on-chain account was validated.",
+      "loginFailedTitle": "Could not complete login",
+      "onChainProgramMissing": "CriptoVersusBlockchain program id is not configured for the current mode.",
+      "preparingOnChainTitle": "Preparing on-chain account",
+      "preparingOnChainMessage": "Validating the current wallet account in the active Solana program.",
+      "onChainReadyTitle": "On-chain account ready",
+      "onChainReadyMessage": "PDA: {0}",
+      "unexpectedError": "Something unexpected happened. Please try again.",
+      "errorCanceled": "Connection was canceled in the wallet.",
+      "errorProviderNotFound": "Wallet provider not found in this browser.",
+      "errorMissingPublicKey": "The wallet did not return a valid public key."
     }
-  }
-  ,
+  },
   "token": {
     "seo": {
       "title": "CriptoVersus Token Arena | Official Community Token",
@@ -2269,5 +2558,13 @@
       "cta": "Choose your side. Enter the Arena.",
       "button": "Buy Token Now"
     }
+  },
+  "title": "Match market",
+  "postLogin": {
+    "eyebrow": "Wallet connected",
+    "title": "Do you want to open your wallet now?",
+    "body": "Your wallet was connected successfully. You can open My Wallet now or stay on the current page.",
+    "stay": "Stay on this page",
+    "goToWallet": "Go to My Wallet"
   }
 }

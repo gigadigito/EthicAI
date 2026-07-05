@@ -1989,18 +1989,18 @@
   },
   "walletPage": {
     "heading": {
-      "eyebrow": "My Wallet",
-      "title": "Suas selecoes",
-      "body": "Acompanhe o saldo do sistema, as selecoes e a performance do ativo sem sair da arena."
+      "eyebrow": "Minha carteira",
+      "title": "Minha carteira",
+      "body": "Acompanhe o saldo do sistema, as escolhas e a performance do ativo sem sair da arena."
     },
     "states": {
-      "loading": "Loading your wallet...",
-      "loadingShort": "Loading...",
-      "walletRequired": "Entre com sua carteira Solana para ver suas selecoes."
+      "loading": "Carregando sua carteira...",
+      "loadingShort": "Carregando...",
+      "walletRequired": "Entre com sua carteira Solana para ver suas escolhas."
     },
-    "fallbackUser": "User #{0}",
-    "walletNetworkBalance": "On-chain balance",
-    "onChainBalanceTitle": "Live balance on {0}",
+    "fallbackUser": "Usu?rio #{0}",
+    "walletNetworkBalance": "Saldo on-chain",
+    "onChainBalanceTitle": "Saldo ao vivo em {0}",
     "openPosition": {
       "cta": "Escolher lado",
       "modalTitle": "Escolher um lado",
@@ -2061,6 +2061,195 @@
       "exitRequested": "Saida solicitada",
       "closeNow": "Fechar selecao",
       "requestExit": "Solicitar saida"
+    },
+    "seo": {
+      "title": "CriptoVersus Minha Carteira",
+      "description": "P?gina interna da carteira CriptoVersus com saldos, posi??es, cust?dia e hist?rico da conta.",
+      "imageAlt": "P?gina da carteira CriptoVersus"
+    },
+    "profile": {
+      "connectedWallet": "Carteira conectada",
+      "user": "Usu?rio",
+      "lastAccess": "?ltimo acesso"
+    },
+    "mode": {
+      "operationalMode": "Modo operacional",
+      "offChainCustodyMode": "Modo Cust?dia Off-chain"
+    },
+    "custody": {
+      "wallet": "Carteira de cust?dia",
+      "publicAddress": "Endere?o p?blico",
+      "copyWallet": "Copiar carteira",
+      "explanation": "Neste modo, as apostas usam apenas o saldo interno do banco. Transfer?ncias de SOL para a carteira de cust?dia precisam ser conciliadas para virar saldo interno antes de apostar.",
+      "withdrawalsDisabled": "Saques autom?ticos para a carteira conectada ficam desativados neste modo para evitar d?bito sem transfer?ncia on-chain confirmada.",
+      "copied": "Carteira de cust?dia copiada.",
+      "copyFailed": "N?o foi poss?vel copiar a carteira: {0}"
+    },
+    "metrics": {
+      "systemBalance": "Saldo no sistema",
+      "allocatedCapital": "Capital alocado",
+      "open": "Em aberto",
+      "exitPositions": "Posi??es em sa?da",
+      "realizedProfit": "Lucro realizado",
+      "realizedLoss": "Perda realizada",
+      "realizedNetResult": "Resultado l?quido realizado"
+    },
+    "withdraw": {
+      "releaseExplanation": "Para liberar saldo para saque, finalize uma posi??o fora de jogo. Se ela ainda estiver vinculada a uma partida em andamento, a sa?da fica solicitada e o saldo volta automaticamente para o sistema quando essa partida for liquidada."
+    },
+    "actions": {
+      "withdrawToWallet": "Resgatar para minha carteira",
+      "walletChanged": "A carteira conectada foi alterada ou desconectada. Fa?a login novamente com a carteira atual.",
+      "sessionExpired": "Sua sess?o expirou. Fa?a login novamente com sua carteira Solana.",
+      "walletLoadFailed": "N?o foi poss?vel carregar sua carteira: {0}",
+      "modeUnsupported": "O modo {0} ainda n?o suporta resgate on-chain autom?tico. Seu saldo continua dispon?vel no sistema para tentativa futura.",
+      "walletNotConnected": "Wallet n?o conectada.",
+      "walletMismatch": "A carteira conectada ? diferente da conta logada.",
+      "custodyWithdrawAuthorized": "Wallet autorizou o resgate. Enviando saque real da cust?dia para sua carteira...",
+      "confirmWithdrawError": "Erro ao confirmar o resgate na wallet.",
+      "withdrawCompleted": "Resgate conclu?do.",
+      "transactionSent": "Transa??o enviada: {0}",
+      "transactionConfirmed": "Transa??o confirmada: {0}",
+      "positionClosed": "A posi??o {0} foi encerrada e o saldo voltou para o sistema.",
+      "positionCloseFailed": "N?o foi poss?vel finalizar a posi??o {0}: {1}",
+      "balanceLookupFailed": "N?o foi poss?vel consultar o saldo on-chain: {0}",
+      "closeRequestedOngoing": "A posi??o {0} ficou com sa?da solicitada. Como ela ainda participa de uma partida em andamento, o saldo ser? liberado para o sistema assim que essa partida for liquidada.",
+      "closeRequestedPending": "A posi??o {0} ficou com sa?da solicitada. Ela j? est? vinculada a uma partida aberta e o saldo ser? liberado para o sistema quando essa partida for encerrada.",
+      "closeRequestedDefault": "A posi??o {0} ficou com sa?da solicitada. O saldo ser? liberado para o sistema quando a partida vinculada for encerrada.",
+      "insufficientBalance": "Saldo insuficiente.",
+      "walletLoadUnavailable": "A rota Minha Carteira ainda nao esta disponivel no API que esta rodando. Reinicie o projeto CriptoVersus.API local ou publique a API atualizada.",
+      "validatingConnectedWallet": "Validando a carteira conectada...",
+      "programIdMissing": "O program id do CriptoVersusBlockchain nao esta configurado para o fluxo de posicao da wallet."
+    },
+    "openSelections": {
+      "title": "Escolhas abertas",
+      "countOne": "{0} ativo",
+      "countOther": "{0} ativos",
+      "empty": "Voc? ainda n?o tem escolhas abertas. Abra uma escolha de arena e seus fundos come?ar?o a acompanhar esse ativo na arena."
+    },
+    "elapsed": {
+      "days": "{0}d aberta",
+      "hours": "{0}h aberta",
+      "minutes": "{0}m aberta"
+    },
+    "history": {
+      "title": "Hist?rico por token/time",
+      "summary": "{0} em aberto | {1} finalizadas",
+      "summaryText": "{0} partidas registradas: {1} ganhas, {2} perdidas, {3} em aberto.",
+      "loadError": "N?o foi poss?vel carregar as partidas: {0}",
+      "loading": "Carregando partidas...",
+      "emptyResults": "Nenhuma partida encontrada para este filtro.",
+      "hideMatches": "Ocultar partidas",
+      "showMatches": "Ver partidas",
+      "pageInfo": "P?gina {0} de {1} | {2} partidas",
+      "pageSummary": "P?gina {0} de {1}",
+      "previous": "Anterior",
+      "next": "Pr?xima",
+      "vs": "vs",
+      "matchNumber": "Partida #{0}",
+      "myTeam": "Meu time: {0}",
+      "winner": "Vencedor: {0}",
+      "betAmount": "Apostado",
+      "receivedAmount": "Recebido",
+      "netResult": "Resultado l?quido",
+      "refund": "Reembolso",
+      "houseFee": "Taxa da casa",
+      "financialStatus": "Status financeiro",
+      "showMatchDetails": "Ver detalhes da partida",
+      "hideMatchDetails": "Ocultar detalhes da partida",
+      "start": "In?cio",
+      "end": "Finaliza??o",
+      "matchStatus": "Status da partida",
+      "teamAWallets": "Carteiras no Time A",
+      "teamBWallets": "Carteiras no Time B",
+      "teamABets": "Apostas no Time A",
+      "teamBBets": "Apostas no Time B",
+      "totalTeamA": "Total no Time A",
+      "totalTeamB": "Total no Time B",
+      "totalPool": "Total da pool",
+      "winningPool": "Pool vencedora",
+      "losingPool": "Pool perdedora",
+      "totalDistributed": "Total distribu?do",
+      "validDispute": "Disputa financeira v?lida?",
+      "yes": "Sim",
+      "no": "N?o",
+      "settlementReason": "Motivo da liquida??o",
+      "unknown": "Desconhecido",
+      "matchStatusPending": "Pendente",
+      "matchStatusOngoing": "Em andamento",
+      "matchStatusCompleted": "Finalizada",
+      "matchStatusCancelled": "Cancelada",
+      "betPrefix": "Apostado: {0}",
+      "resultPrefix": "Resultado: {0}",
+      "receivedPrefix": "Recebido: {0}",
+      "metrics": {
+        "allocatedCapital": "Capital alocado",
+        "open": "Em aberto",
+        "refundedMatches": "Partidas reembolsadas",
+        "realizedNetResult": "Resultado l?quido realizado",
+        "wonMatches": "Partidas ganhas",
+        "lostMatches": "Partidas perdidas",
+        "lastEntry": "?ltima entrada"
+      },
+      "filters": {
+        "all": "Todas",
+        "won": "Ganhou",
+        "lost": "Perdeu",
+        "open": "Em aberto",
+        "finalized": "Finalizadas"
+      },
+      "groupCount": "{0} grupos",
+      "emptyGroups": "Voc? ainda n?o tem grupos de investimento."
+    },
+    "modal": {
+      "kicker": "CRYPTO ARENA"
+    },
+    "solana": {
+      "close": "Fechar",
+      "connectTitle": "Conecte uma carteira Solana para continuar",
+      "connectDescription": "Escolha uma carteira compat?vel para conectar e entrar sem alterar o fluxo atual da API.",
+      "connectedWalletGeneric": "Carteira conectada",
+      "connectedWalletNamed": "{0} conectada",
+      "availableInBrowser": "Dispon?vel neste navegador",
+      "openInstallPage": "Abrir p?gina oficial de instala??o",
+      "detected": "Detectada",
+      "install": "Instalar",
+      "disconnect": "Desconectar",
+      "installRequiredTitle": "Instala??o necess?ria",
+      "installRequiredMessage": "Abra a p?gina oficial da {0} e instale a carteira para continuar.",
+      "connectingTitle": "Conectando carteira",
+      "connectingMessage": "Aguardando a aprova??o da {0} no seu navegador.",
+      "connectionFailedTitle": "Falha na conex?o",
+      "missingPublicKeyTitle": "Chave p?blica ausente",
+      "missingPublicKeyMessage": "A carteira se conectou, mas nenhuma chave p?blica foi retornada.",
+      "walletConnectedTitle": "Carteira conectada",
+      "walletConnectedMessage": "Carteira conectada. Finalizando autentica??o...",
+      "walletDisconnectedTitle": "Carteira desconectada",
+      "walletDisconnectedMessage": "Voc? pode conectar qualquer carteira Solana compat?vel novamente a qualquer momento.",
+      "disconnectFailedTitle": "Falha ao desconectar",
+      "connectWalletTitle": "Conecte uma carteira",
+      "connectWalletMessage": "Escolha uma carteira Solana antes de continuar.",
+      "loginUnavailableTitle": "Login indispon?vel",
+      "loginUnavailableMessage": "N?o foi poss?vel preparar a assinatura de login agora. Tente novamente.",
+      "awaitingSignatureTitle": "Aguardando assinatura",
+      "awaitingSignatureMessage": "Aprove a solicita??o de assinatura na sua carteira para concluir o login.",
+      "loginRejectedTitle": "Login rejeitado",
+      "loginRejectedMessage": "N?o foi poss?vel validar a assinatura da sua carteira. Tente novamente.",
+      "incompleteLoginTitle": "Login incompleto",
+      "incompleteLoginMessage": "A API confirmou o login, mas nenhum token de sess?o foi retornado.",
+      "loginCompleteTitle": "Login conclu?do",
+      "loginCompleteMessage": "Sua carteira foi autenticada com sucesso.",
+      "loginCompleteOnChainMessage": "Sua carteira foi autenticada e a conta on-chain foi validada.",
+      "loginFailedTitle": "N?o foi poss?vel concluir o login",
+      "onChainProgramMissing": "ID do programa CriptoVersusBlockchain n?o configurado para o modo atual.",
+      "preparingOnChainTitle": "Preparando conta on-chain",
+      "preparingOnChainMessage": "Validando a conta da carteira atual no programa Solana ativo.",
+      "onChainReadyTitle": "Conta on-chain pronta",
+      "onChainReadyMessage": "PDA: {0}",
+      "unexpectedError": "Algo inesperado aconteceu. Tente novamente.",
+      "errorCanceled": "A conex?o foi cancelada na carteira.",
+      "errorProviderNotFound": "Provedor da carteira n?o encontrado neste navegador.",
+      "errorMissingPublicKey": "A carteira n?o retornou uma chave p?blica v?lida."
     }
   },
   "statsMatches": {
@@ -2369,5 +2558,13 @@
       "cta": "Escolha seu lado. Entre na Arena.",
       "button": "Comprar Token Agora"
     }
+  },
+  "title": "Mercado da partida",
+  "postLogin": {
+    "eyebrow": "Carteira conectada",
+    "title": "Deseja abrir sua carteira agora?",
+    "body": "Sua carteira foi conectada com sucesso. Voc? pode abrir Minha Carteira agora ou permanecer na p?gina atual.",
+    "stay": "Permanecer nesta p?gina",
+    "goToWallet": "Ir para Minha Carteira"
   }
 }

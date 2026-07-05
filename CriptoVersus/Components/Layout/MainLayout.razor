@@ -544,24 +544,7 @@ else
         => Task.CompletedTask;
 
     private string PostLoginText(string key)
-    {
-        var isEnglish = string.Equals(CurrentCulture, "en", StringComparison.OrdinalIgnoreCase);
-        var isChinese = string.Equals(CurrentCulture, "zh", StringComparison.OrdinalIgnoreCase);
-
-        return key switch
-        {
-            "eyebrow" => isEnglish ? "Wallet connected" : isChinese ? "链接已连接" : "Carteira conectada",
-            "title" => isEnglish ? "Do you want to open your wallet now?" : isChinese ? "要现在打开你的钱包吗？" : "Deseja ir para sua carteira agora?",
-            "body" => isEnglish
-                ? "Your wallet was connected successfully. You can open My Wallet now or stay on the current page."
-                : isChinese
-                    ? "你的钱包已成功连接。你现在可以打开《我的钱包》，或者留在当前页面。"
-                    : "Sua carteira foi conectada com sucesso. Voce pode abrir a pagina Minha Carteira agora ou continuar na pagina atual.",
-            "stay" => isEnglish ? "Stay on this page" : isChinese ? "留在此页" : "Ficar nesta pagina",
-            "goToWallet" => isEnglish ? "Go to My Wallet" : isChinese ? "前往我的钱包" : "Ir para Minha Carteira",
-            _ => key
-        };
-    }
+        => L.T($"postLogin.{key}", CurrentCulture);
 
     private static string GetWalletAvatarUrl(string wallet)
         => $"https://api.dicebear.com/9.x/identicon/svg?seed={Uri.EscapeDataString(wallet)}";
