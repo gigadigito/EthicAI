@@ -21,6 +21,7 @@
     <link rel="canonical" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath(CurrentCulture))" />
     <link rel="alternate" hreflang="en-US" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("en"))" />
     <link rel="alternate" hreflang="pt-BR" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("pt"))" />
+    <link rel="alternate" hreflang="zh-CN" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("zh"))" />
     <link rel="alternate" hreflang="x-default" href="@SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHowItWorksPath("en"))" />
     <meta property="og:title" content="@L.T("howItWorks.seo.title", CurrentCulture)" />
     <meta property="og:description" content="@L.T("howItWorks.seo.description", CurrentCulture)" />
@@ -40,14 +41,11 @@
 
 <section class="tokenomics-page">
     <div class="tokenomics-hero">
-        @if (IsEnglish)
-        {
-            <img class="tokenomics-hero__banner" src="/img/tokenomics-hero-banner-en.png" alt="@L.T("howItWorks.seo.title", CurrentCulture)" />
-        }
-        else
-        {
-            <img class="tokenomics-hero__banner" src="/img/tokenomics-hero-banner.png" alt="@L.T("howItWorks.seo.title", CurrentCulture)" />
-        }
+        <img class="tokenomics-hero__banner"
+             src="@HeroBannerUrl"
+             alt="@L.T("howItWorks.seo.title", CurrentCulture)"
+             loading="eager"
+             decoding="async" />
     </div>
 
     @if (_loading)
@@ -64,22 +62,22 @@
             <article>
                 <span>@LocalizedText("Active capital", "Capital ativo", "活跃资金")</span>
                 <strong>@FmtSol(_data.ActiveCapital)</strong>
-                <small>@(IsEnglish ? $"{_data.ActivePositions} active positions" : $"{_data.ActivePositions} posicoes ativas")</small>
+                <small>@LocalizedFormat("{0} active positions", "{0} posições ativas", "{0} 个活跃仓位", _data.ActivePositions)</small>
             </article>
             <article>
                 <span>@LocalizedText("Total allocated", "Total alocado", "分配总额")</span>
                 <strong>@FmtSol(_data.PrincipalAllocated)</strong>
-                <small>@(IsEnglish ? $"{_data.Users} indexed users" : $"{_data.Users} usuarios indexados")</small>
+                <small>@LocalizedFormat("{0} indexed users", "{0} usuários indexados", "{0} 个已索引用户", _data.Users)</small>
             </article>
             <article>
                 <span>@LocalizedText("Cycles in progress", "Ciclos em andamento", "进行中的周期")</span>
                 <strong>@_data.OngoingMatches</strong>
-                <small>@(IsEnglish ? $"{_data.PendingMatches} pending" : $"{_data.PendingMatches} pendentes")</small>
+                <small>@LocalizedFormat("{0} pending", "{0} pendentes", "{0} 个待处理", _data.PendingMatches)</small>
             </article>
             <article>
                 <span>@LocalizedText("In open matches", "Em partidas abertas", "在公开对战中")</span>
                 <strong>@FmtSol(_data.OpenEntryAmount)</strong>
-                <small>@(IsEnglish ? $"{_data.OpenEntries} open entries" : $"{_data.OpenEntries} entradas abertas")</small>
+                <small>@LocalizedFormat("{0} open entries", "{0} entradas abertas", "{0} 个开放入口", _data.OpenEntries)</small>
             </article>
         </div>
 
@@ -88,27 +86,27 @@
                 <span>@LocalizedText("Open positions", "Posições abertas", "公开仓位")</span>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "CriptoVersus is not only a scoreboard. Users open positions on one side of a live crypto arena and keep competitive staking-style exposure across cyclical battle pools."
-                        : "O CriptoVersus nao e apenas um placar. Usuarios abrem posicoes em um lado da arena cripto ao vivo e mantem exposicao em estilo staking competitivo ao longo de pools ciclicos de batalha.")
-                </p>
-            </article>
-            <article>
-                <span>@LocalizedText("Cyclical pools", "Pools cíclicos", "循环资金池")</span>
-                <p>
+                                    ? "CriptoVersus is not only a scoreboard. Users open positions on one side of a live crypto arena and keep competitive staking-style exposure across cyclical battle pools."
+                                    : "O CriptoVersus nao e apenas um placar. Usuarios abrem posicoes em um lado da arena cripto ao vivo e mantem exposicao em estilo staking competitivo ao longo de pools ciclicos de batalha.")
+                                                                                                                                                                                                                              </p>
+                                                                                                                                                                                                                          </article>
+                                                                                                                                                                                                                          <article>
+                                                                                                                                                                                                                              <span>@LocalizedText("Cyclical pools", "Pools cíclicos", "循环资金池")</span>
+                                                                                                                                                                                                                              <p>
                     @(CurrentCulture == "en"
-                        ? "Each arena cycle groups side selection, market performance, pool competition and recurring participation, so assets return to the battleground as new cycles open."
-                        : "Cada ciclo da arena agrupa selecao de lado, performance de mercado, competicao entre pools e participacao recorrente, para que os ativos retornem ao campo quando novos ciclos se abrem.")
-                </p>
-            </article>
-            <article>
-                <span>@LocalizedText("Reward redistribution", "Redistribuição de recompensas", "奖励再分配")</span>
-                <p>
+                                    ? "Each arena cycle groups side selection, market performance, pool competition and recurring participation, so assets return to the battleground as new cycles open."
+                                    : "Cada ciclo da arena agrupa selecao de lado, performance de mercado, competicao entre pools e participacao recorrente, para que os ativos retornem ao campo quando novos ciclos se abrem.")
+                                                                                                                                                                                                                             </p>
+                                                                                                                                                                                                                         </article>
+                                                                                                                                                                                                                         <article>
+                                                                                                                                                                                                                             <span>@LocalizedText("Reward redistribution", "Redistribuição de recompensas", "奖励再分配")</span>
+                                                                                                                                                                                                                             <p>
                     @(CurrentCulture == "en"
-                        ? "Rewards are redistributed according to real market performance, side-based pool mechanics and settlement rules, reinforcing a competitive crypto arena instead of a simple list of prices."
-                        : "As recompensas sao redistribuidas de acordo com a performance real de mercado, com as mecanicas de pools por lado e com as regras de liquidacao, reforcando uma arena competitiva cripto em vez de uma simples lista de precos.")
-                </p>
-            </article>
-        </section>
+                                    ? "Rewards are redistributed according to real market performance, side-based pool mechanics and settlement rules, reinforcing a competitive crypto arena instead of a simple list of prices."
+                                    : "As recompensas sao redistribuidas de acordo com a performance real de mercado, com as mecanicas de pools por lado e com as regras de liquidacao, reforcando uma arena competitiva cripto em vez de uma simples lista de precos.")
+                                                                                                                                                                                                                                                                    </p>
+                                                                                                                                                                                                                                                                </article>
+                                                                                                                                                                                                                                                            </section>
 
         <section class="topic-callout">
             <div>
@@ -116,12 +114,12 @@
                 <h3>@LocalizedText("Match rules and score formation", "Regras das partidas e formação do placar", "比赛规则与比分生成")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "See in detail how crossovers, thresholds, volume windows, crossover volume and the auditable event log rebuild every point in the match."
-                        : "Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log auditavel que reconstrui cada ponto da partida.")
-                </p>
-            </div>
-            <a class="topic-link" href="@($"{RouteLocalization.BuildHowItWorksPath(CurrentCulture)}#pontuacao")">@LocalizedText("Open full topic", "Abrir tópico completo", "打开完整专题")</a>
-        </section>
+                                    ? "See in detail how crossovers, thresholds, volume windows, crossover volume and the auditable event log rebuild every point in the match."
+                                    : "Veja em detalhe como funcionam cruzamentos, thresholds, volume por janela, volume por cruzamento e o log auditavel que reconstrui cada ponto da partida.")
+                                                                                                                                                                                             </p>
+                                                                                                                                                                                         </div>
+                                                                                                                                                                                         <a class="topic-link" href="@($"{RouteLocalization.BuildHowItWorksPath(CurrentCulture)}#pontuacao")">@LocalizedText("Open full topic", "Abrir tópico completo", "打开完整专题")</a>
+                                                                                                                                                                                     </section>
 
         <div class="rule-grid">
             <section class="rule-panel lead-panel" id="como-funciona">
@@ -129,161 +127,161 @@
                 <h3>@LocalizedText("How it works", "Como funciona", "运作方式")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "Choose an asset, select a side through that asset, deposit SOL and keep your position active to automatically participate in new cycles whenever that asset returns. This way, you do not need to repeat the manual entry every round and your capital stays ready for the next competitive arena cycle."
-                        : "Escolha um ativo, selecione um lado por meio desse ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e seu capital continua pronto para o proximo ciclo competitivo da arena.")
-                </p>
-                <div class="flow-line">
-                    <strong>@LocalizedText("Deposit SOL", "Depositar SOL", "存入 SOL")</strong>
-                    <strong>@LocalizedText("Enter position", "Entrar na posição", "进入仓位")</strong>
-                    <strong>@LocalizedText("Settle when you want", "Liquidar quando desejar", "想结算时再结算")</strong>
-                    <strong>@LocalizedText("Continue automatically", "Continuar automaticamente", "自动继续")</strong>
-                </div>
-            </section>
+                                    ? "Choose an asset, select a side through that asset, deposit SOL and keep your position active to automatically participate in new cycles whenever that asset returns. This way, you do not need to repeat the manual entry every round and your capital stays ready for the next competitive arena cycle."
+                                    : "Escolha um ativo, selecione um lado por meio desse ativo, deposite SOL e mantenha sua posicao ativa para participar automaticamente de novos ciclos sempre que esse ativo retornar. Assim, voce nao precisa repetir a entrada manual a cada rodada e seu capital continua pronto para o proximo ciclo competitivo da arena.")
+                                                                                                                                                                                                                                                                                                                                                                </p>
+                                                                                                                                                                                                                                                                                                                                                                <div class="flow-line">
+                                                                                                                                                                                                                                                                                                                                                                    <strong>@LocalizedText("Deposit SOL", "Depositar SOL", "存入 SOL")</strong>
+                                                                                                                                                                                                                                                                                                                                                                    <strong>@LocalizedText("Enter position", "Entrar na posição", "进入仓位")</strong>
+                                                                                                                                                                                                                                                                                                                                                                    <strong>@LocalizedText("Settle when you want", "Liquidar quando desejar", "想结算时再结算")</strong>
+                                                                                                                                                                                                                                                                                                                                                                    <strong>@LocalizedText("Continue automatically", "Continuar automaticamente", "自动继续")</strong>
+                                                                                                                                                                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                                                                                                                                                            </section>
 
             <section class="rule-panel" id="posicoes">
                 <span>02</span>
                 <h3>@LocalizedText("Positions", "Posições", "仓位")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "Each position belongs to a wallet and a specific asset. Current capital can grow after winning cycles, suffer controlled erosion in losing cycles or move into an exit process when the user requests to close the position, while still behaving like part of a larger cyclical arena pool."
-                        : "Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario solicitar encerramento da posicao, enquanto continua se comportando como parte de um pool ciclico maior da arena.")
-                </p>
-                <dl>
-                    <div><dt>@LocalizedText("Active", "Ativas", "活跃")</dt><dd>@_data.ActivePositions</dd></div>
-                    <div><dt>@LocalizedText("Exit requested", "Saída solicitada", "已请求退出")</dt><dd>@_data.ClosingPositions</dd></div>
-                    <div><dt>@LocalizedText("Closed", "Fechadas", "已关闭")</dt><dd>@_data.ClosedPositions</dd></div>
-                </dl>
-            </section>
+                                    ? "Each position belongs to a wallet and a specific asset. Current capital can grow after winning cycles, suffer controlled erosion in losing cycles or move into an exit process when the user requests to close the position, while still behaving like part of a larger cyclical arena pool."
+                                    : "Cada posicao pertence a uma carteira e a um ativo especifico. O capital atual pode crescer com ciclos vencedores, sofrer erosao controlada em ciclos perdedores ou entrar em processo de saida quando o usuario solicitar encerramento da posicao, enquanto continua se comportando como parte de um pool ciclico maior da arena.")
+                                                                                                                                                                                                                                                                                                                                                                      </p>
+                                                                                                                                                                                                                                                                                                                                                                      <dl>
+                                                                                                                                                                                                                                                                                                                                                                          <div><dt>@LocalizedText("Active", "Ativas", "活跃")</dt><dd>@_data.ActivePositions</dd></div>
+                                                                                                                                                                                                                                                                                                                                                                          <div><dt>@LocalizedText("Exit requested", "Saída solicitada", "已请求退出")</dt><dd>@_data.ClosingPositions</dd></div>
+                                                                                                                                                                                                                                                                                                                                                                          <div><dt>@LocalizedText("Closed", "Fechadas", "已关闭")</dt><dd>@_data.ClosedPositions</dd></div>
+                                                                                                                                                                                                                                                                                                                                                                      </dl>
+                                                                                                                                                                                                                                                                                                                                                                  </section>
 
             <section class="rule-panel" id="pontuacao">
                 <span>03</span>
                 <h3>@LocalizedText("Scoring system", "Sistema de Pontuação", "计分系统")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? $"Scoring compares the relative performance of assets inside the cycle. Every {_data.PercentPerGoal:0.##}% of advantage can be converted into goals, while respecting the maximum scoring cap per side defined in the operational configuration."
-                        : $"A pontuacao compara a performance relativa dos ativos dentro do ciclo. A cada {_data.PercentPerGoal:0.##}% de vantagem, o ativo pode converter essa diferenca em gols, sempre respeitando o teto maximo de pontuacao por lado definido na configuracao operacional.")
-                </p>
-                <dl>
-                    <div><dt>@LocalizedText("% per goal", "% por gol", "每球百分比")</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
-                    <div><dt>@LocalizedText("Cap per team", "Limite por time", "每队上限")</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
-                </dl>
-            </section>
+                                    ? $"Scoring compares the relative performance of assets inside the cycle. Every {_data.PercentPerGoal:0.##}% of advantage can be converted into goals, while respecting the maximum scoring cap per side defined in the operational configuration."
+                                    : $"A pontuacao compara a performance relativa dos ativos dentro do ciclo. A cada {_data.PercentPerGoal:0.##}% de vantagem, o ativo pode converter essa diferenca em gols, sempre respeitando o teto maximo de pontuacao por lado definido na configuracao operacional.")
+                                                                                                                                                                                                                                                                                                         </p>
+                                                                                                                                                                                                                                                                                                         <dl>
+                                                                                                                                                                                                                                                                                                             <div><dt>@LocalizedText("% per goal", "% por gol", "每球百分比")</dt><dd>@_data.PercentPerGoal.ToString("0.##")%</dd></div>
+                                                                                                                                                                                                                                                                                                             <div><dt>@LocalizedText("Cap per team", "Limite por time", "每队上限")</dt><dd>@_data.MaxGoalsPerTeam</dd></div>
+                                                                                                                                                                                                                                                                                                         </dl>
+                                                                                                                                                                                                                                                                                                     </section>
 
             <section class="rule-panel" id="ciclos">
                 <span>04</span>
                 <h3>@LocalizedText("Cycles", "Ciclos", "周期")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "Each match represents a market cycle with an entry window, a tracking period and settlement. If automatic re-entry is enabled, recurring positions return to the game when the asset appears again, as long as the position remains active and above the minimum operational capital, creating cyclical participation instead of a one-off entry."
-                        : "Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao. Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece, desde que a posicao siga ativa e acima do capital minimo operacional, criando participacao ciclica em vez de uma entrada unica.")
-                </p>
-                <dl>
-                    <div><dt>@LocalizedText("Target duration", "Duração alvo", "目标时长")</dt><dd>@_data.MatchDurationMinutes min</dd></div>
-                    <div><dt>@LocalizedText("Auto re-entry", "Reentrada automática", "自动重新进入")</dt><dd>@(_data.AutoReenterEnabled ? LocalizedText("Enabled", "Ativa", "启用") : LocalizedText("Paused", "Pausada", "暂停"))</dd></div>
-                </dl>
-            </section>
+                                    ? "Each match represents a market cycle with an entry window, a tracking period and settlement. If automatic re-entry is enabled, recurring positions return to the game when the asset appears again, as long as the position remains active and above the minimum operational capital, creating cyclical participation instead of a one-off entry."
+                                    : "Cada partida representa um ciclo de mercado com janela de entrada, periodo de acompanhamento e liquidacao. Se a reentrada automatica estiver habilitada, posicoes recorrentes voltam ao jogo quando o ativo reaparece, desde que a posicao siga ativa e acima do capital minimo operacional, criando participacao ciclica em vez de uma entrada unica.")
+                                                                                                                                                                                                                                                                                                                                                                                           </p>
+                                                                                                                                                                                                                                                                                                                                                                                           <dl>
+                                                                                                                                                                                                                                                                                                                                                                                               <div><dt>@LocalizedText("Target duration", "Duração alvo", "目标时长")</dt><dd>@_data.MatchDurationMinutes min</dd></div>
+                                                                                                                                                                                                                                                                                                                                                                                               <div><dt>@LocalizedText("Auto re-entry", "Reentrada automática", "自动重新进入")</dt><dd>@(_data.AutoReenterEnabled? LocalizedText("Enabled", "Ativa", "启用") : LocalizedText("Paused", "Pausada", "暂停"))</dd></div>
+                                                                                                                                                                                                                                                                                                                                                                                           </dl>
+                                                                                                                                                                                                                                                                                                                                                                                       </section>
 
             <section class="rule-panel settlement-panel" id="liquidacao">
                 <span>05</span>
                 <h3>@LocalizedText("Settlement", "Liquidação", "结算")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "The winning side receives a proportional gain from the distributable share generated by the losing side. The losing side preserves most of its capital, reducing fast elimination and reinforcing a dynamic closer to a rotating pool with reward redistribution than a classic single-round bet."
-                        : "O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais parecida com pool rotativa com redistribuicao de recompensas do que com aposta classica de rodada unica.")
-                </p>
-                <div class="settlement-chart" aria-label="@LocalizedText("Settlement distribution", "Distribuição da liquidação", "结算分配")">
-                    <div class="settlement-chart__pie" @ref="_settlementPieRef"></div>
-                    <div class="settlement-chart__summary">
-                        <article class="settlement-chart__target settlement-chart__target--refund">
-                            <small>@LocalizedText("Loser refund", "Retorno ao perdedor", "败者返还")</small>
-                            <strong>@FmtPct(_data.LoserRefundRate)</strong>
-                        </article>
-                        <article class="settlement-chart__target settlement-chart__target--winners">
-                            <small>@LocalizedText("Winners pool", "Pool dos vencedores", "胜者资金池")</small>
-                            <strong>@FmtPct(_data.WinnerPoolRate)</strong>
-                        </article>
-                        <article class="settlement-chart__target settlement-chart__target--house">
-                            <small>@LocalizedText("House fee", "Taxa da casa", "平台费用")</small>
-                            <strong>@FmtPct(_data.HouseFeeRate)</strong>
-                        </article>
-                    </div>
-                </div>
-                <div class="allocation-bar">
-                    <i style="width:@PctCss(_data.LoserRefundRate)"></i>
-                    <b style="width:@PctCss(_data.WinnerPoolRate)"></b>
-                    <em style="width:@PctCss(_data.HouseFeeRate)"></em>
-                </div>
-                <div class="legend">
-                    <span>@LocalizedFormat("Loser recovers {0}", "Perdedor recupera {0}", "败者返还 {0}", FmtPct(_data.LoserRefundRate))</span>
-                    <span>@LocalizedFormat("Winners receive {0}", "Vencedores recebem {0}", "胜者获得 {0}", FmtPct(_data.WinnerPoolRate))</span>
-                    <span>@LocalizedFormat("House {0}", "Casa {0}", "平台 {0}", FmtPct(_data.HouseFeeRate))</span>
-                </div>
-            </section>
+                                    ? "The winning side receives a proportional gain from the distributable share generated by the losing side. The losing side preserves most of its capital, reducing fast elimination and reinforcing a dynamic closer to a rotating pool with reward redistribution than a classic single-round bet."
+                                    : "O lado vencedor recebe ganho proporcional da parcela distribuivel originada no lado perdedor. O lado perdedor preserva a maior parte do capital, reduzindo a eliminacao rapida e reforcando uma dinamica mais parecida com pool rotativa com redistribuicao de recompensas do que com aposta classica de rodada unica.")
+                                                                                                                                                                                                                                                                                                                                                           </p>
+                                                                                                                                                                                                                                                                                                                                                           <div class="settlement-chart" aria-label="@LocalizedText("Settlement distribution", "Distribuição da liquidação", "结算分配")">
+                                                                                                                                                                                                                                                                                                                                                               <div class="settlement-chart__pie" @ref="_settlementPieRef"></div>
+                                                                                                                                                                                                                                                                                                                                                               <div class="settlement-chart__summary">
+                                                                                                                                                                                                                                                                                                                                                                   <article class="settlement-chart__target settlement-chart__target--refund">
+                                                                                                                                                                                                                                                                                                                                                                       <small>@LocalizedText("Loser refund", "Retorno ao perdedor", "败者返还")</small>
+                                                                                                                                                                                                                                                                                                                                                                       <strong>@FmtPct(_data.LoserRefundRate)</strong>
+                                                                                                                                                                                                                                                                                                                                                                   </article>
+                                                                                                                                                                                                                                                                                                                                                                   <article class="settlement-chart__target settlement-chart__target--winners">
+                                                                                                                                                                                                                                                                                                                                                                       <small>@LocalizedText("Winners pool", "Pool dos vencedores", "胜者资金池")</small>
+                                                                                                                                                                                                                                                                                                                                                                       <strong>@FmtPct(_data.WinnerPoolRate)</strong>
+                                                                                                                                                                                                                                                                                                                                                                   </article>
+                                                                                                                                                                                                                                                                                                                                                                   <article class="settlement-chart__target settlement-chart__target--house">
+                                                                                                                                                                                                                                                                                                                                                                       <small>@LocalizedText("House fee", "Taxa da casa", "平台费用")</small>
+                                                                                                                                                                                                                                                                                                                                                                       <strong>@FmtPct(_data.HouseFeeRate)</strong>
+                                                                                                                                                                                                                                                                                                                                                                   </article>
+                                                                                                                                                                                                                                                                                                                                                               </div>
+                                                                                                                                                                                                                                                                                                                                                           </div>
+                                                                                                                                                                                                                                                                                                                                                           <div class="allocation-bar">
+                                                                                                                                                                                                                                                                                                                                                               <i style="width:@PctCss(_data.LoserRefundRate)"></i>
+                                                                                                                                                                                                                                                                                                                                                               <b style="width:@PctCss(_data.WinnerPoolRate)"></b>
+                                                                                                                                                                                                                                                                                                                                                               <em style="width:@PctCss(_data.HouseFeeRate)"></em>
+                                                                                                                                                                                                                                                                                                                                                           </div>
+                                                                                                                                                                                                                                                                                                                                                           <div class="legend">
+                                                                                                                                                                                                                                                                                                                                                               <span>@LocalizedFormat("Loser recovers {0}", "Perdedor recupera {0}", "败者返还 {0}", FmtPct(_data.LoserRefundRate))</span>
+                                                                                                                                                                                                                                                                                                                                                               <span>@LocalizedFormat("Winners receive {0}", "Vencedores recebem {0}", "胜者获得 {0}", FmtPct(_data.WinnerPoolRate))</span>
+                                                                                                                                                                                                                                                                                                                                                               <span>@LocalizedFormat("House {0}", "Casa {0}", "平台 {0}", FmtPct(_data.HouseFeeRate))</span>
+                                                                                                                                                                                                                                                                                                                                                           </div>
+                                                                                                                                                                                                                                                                                                                                                       </section>
 
             <section class="rule-panel" id="taxas">
                 <span>06</span>
                 <h3>@LocalizedText("Fees", "Taxas", "费用")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "The house fee is kept at a reduced level to support operations, indexing and operational infrastructure without consuming an aggressive share of participant capital in each cycle."
-                        : "A taxa da casa e mantida em nivel reduzido para sustentar a operacao, a indexacao e a infraestrutura operacional, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.")
-                </p>
-                <dl>
-                    <div><dt>@LocalizedText("House fee", "Taxa da casa", "平台费用")</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
-                    <div><dt>@LocalizedText("Minimum capital", "Capital mínimo", "最低资金")</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
-                </dl>
-            </section>
+                                    ? "The house fee is kept at a reduced level to support operations, indexing and operational infrastructure without consuming an aggressive share of participant capital in each cycle."
+                                    : "A taxa da casa e mantida em nivel reduzido para sustentar a operacao, a indexacao e a infraestrutura operacional, sem consumir uma parcela agressiva do capital dos participantes a cada ciclo.")
+                                                                                                                                                                                                                                    </p>
+                                                                                                                                                                                                                                    <dl>
+                                                                                                                                                                                                                                        <div><dt>@LocalizedText("House fee", "Taxa da casa", "平台费用")</dt><dd>@FmtPct(_data.HouseFeeRate)</dd></div>
+                                                                                                                                                                                                                                        <div><dt>@LocalizedText("Minimum capital", "Capital mínimo", "最低资金")</dt><dd>@FmtSol(_data.MinPositionCapital)</dd></div>
+                                                                                                                                                                                                                                    </dl>
+                                                                                                                                                                                                                                </section>
 
             <section class="rule-panel" id="retirada">
                 <span>07</span>
                 <h3>@LocalizedText("Withdrawal", "Retirada", "提现")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "The user can request to exit the position at any time. If there is an active cycle, the position waits for that cycle settlement; after that, the remaining capital can proceed to closing and withdrawal according to the operational flow enabled in the system."
-                        : "O usuario pode solicitar saida da posicao a qualquer momento. Se houver ciclo ativo, a posicao aguarda a liquidacao daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada conforme o fluxo operacional habilitado no sistema.")
-                </p>
-            </section>
+                                    ? "The user can request to exit the position at any time. If there is an active cycle, the position waits for that cycle settlement; after that, the remaining capital can proceed to closing and withdrawal according to the operational flow enabled in the system."
+                                    : "O usuario pode solicitar saida da posicao a qualquer momento. Se houver ciclo ativo, a posicao aguarda a liquidacao daquele ciclo; depois disso, o capital remanescente pode seguir para encerramento e retirada conforme o fluxo operacional habilitado no sistema.")
+                                                                                                                                                                                                                                                                                                         </p>
+                                                                                                                                                                                                                                                                                                     </section>
 
             <section class="rule-panel" id="riscos">
                 <span>08</span>
                 <h3>@LocalizedText("Risks", "Riscos", "风险")</h3>
                 <p>
                     @(CurrentCulture == "en"
-                        ? "The protocol operates with volatile assets, automated rules and contracts on the Solana network. Small losses per cycle can accumulate over time, parameters may be adjusted by operations and a devnet environment must not be interpreted as a guarantee of returns, liquidity or future performance."
-                        : "O protocolo opera com ativos volateis, regras automatizadas e contratos em rede Solana. Pequenas perdas por ciclo podem se acumular ao longo do tempo, parametros podem ser ajustados pela operacao e ambiente de devnet nao deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.")
-                </p>
-            </section>
+                                    ? "The protocol operates with volatile assets, automated rules and contracts on the Solana network. Small losses per cycle can accumulate over time, parameters may be adjusted by operations and a devnet environment must not be interpreted as a guarantee of returns, liquidity or future performance."
+                                    : "O protocolo opera com ativos volateis, regras automatizadas e contratos em rede Solana. Pequenas perdas por ciclo podem se acumular ao longo do tempo, parametros podem ser ajustados pela operacao e ambiente de devnet nao deve ser interpretado como garantia de retorno, liquidez ou desempenho futuro.")
+            </p>
+        </section>
 
             <section class="rule-panel contract-panel" id="contrato">
                 <span>09</span>
-                @if (IsOffChainCustodyMode)
+            @if (IsOffChainCustodyMode)
                 {
                     <h3>@LocalizedText("Custody wallet", "Carteira de custódia", "托管钱包")</h3>
                     <p>
                         @(CurrentCulture == "en"
-                            ? $"In Off-chain Custody mode, operational funds are reconciled outside the contract. The Solana wallet remains the user identity, while transfers to the custody wallet on the {_data.Cluster} network must be recognized by the system before becoming internal betting balance."
-                            : $"No modo Off-chain Custody, os fundos operacionais sao conciliados fora do contrato. A wallet Solana continua sendo a identidade do usuario, enquanto as transferencias para a carteira de custodia na rede {_data.Cluster} precisam ser reconhecidas pelo sistema para virar saldo interno de apostas.")
-                    </p>
-                    <dl>
-                        <div><dt>@LocalizedText("Wallet", "Carteira", "钱包")</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
-                        <div><dt>Label</dt><dd>@DisplayCustodyWalletLabel</dd></div>
-                        <div><dt>@LocalizedText("Network", "Rede", "网络")</dt><dd>@_data.Cluster</dd></div>
-                    </dl>
-                }
+                                        ? $"In Off-chain Custody mode, operational funds are reconciled outside the contract. The Solana wallet remains the user identity, while transfers to the custody wallet on the {_data.Cluster} network must be recognized by the system before becoming internal betting balance."
+                                        : $"No modo Off-chain Custody, os fundos operacionais sao conciliados fora do contrato. A wallet Solana continua sendo a identidade do usuario, enquanto as transferencias para a carteira de custodia na rede {_data.Cluster} precisam ser reconhecidas pelo sistema para virar saldo interno de apostas.")
+            </p>
+            <dl>
+                <div><dt>@LocalizedText("Wallet", "Carteira", "钱包")</dt><dd title="@_data.CustodyWalletPublicKey">@ShortAddress(_data.CustodyWalletPublicKey)</dd></div>
+                <div><dt>Label</dt><dd>@DisplayCustodyWalletLabel</dd></div>
+                <div><dt>@LocalizedText("Network", "Rede", "网络")</dt><dd>@_data.Cluster</dd></div>
+            </dl>
+                        }
                 else
                 {
                     <h3>@LocalizedText("On-chain contract", "Contrato on-chain", "链上合约")</h3>
                     <p>
                         @(CurrentCulture == "en"
-                            ? $"Deposits and positions use the configured program on the {_data.Cluster} network. The backend acts as an indexer and orchestration layer, while the on-chain position preserves traceability for capital, linked addresses and the operational logic published in the contract."
-                            : $"Depositos e posicoes usam o programa configurado na rede {_data.Cluster}. O backend atua como indexador e camada de orquestracao, enquanto a posicao on-chain preserva a rastreabilidade do capital, dos enderecos vinculados e da logica operacional publicada no contrato.")
-                    </p>
-                    <dl>
-                        <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
-                        <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
-                        <div><dt>@LocalizedText("Network", "Rede", "网络")</dt><dd>@_data.Cluster</dd></div>
-                    </dl>
-                }
+                                        ? $"Deposits and positions use the configured program on the {_data.Cluster} network. The backend acts as an indexer and orchestration layer, while the on-chain position preserves traceability for capital, linked addresses and the operational logic published in the contract."
+                                        : $"Depositos e posicoes usam o programa configurado na rede {_data.Cluster}. O backend atua como indexador e camada de orquestracao, enquanto a posicao on-chain preserva a rastreabilidade do capital, dos enderecos vinculados e da logica operacional publicada no contrato.")
+            </p>
+            <dl>
+                <div><dt>Program ID</dt><dd title="@_data.ProgramId">@ShortAddress(_data.ProgramId)</dd></div>
+                <div><dt>Authority</dt><dd title="@_data.AuthorityWallet">@ShortAddress(_data.AuthorityWallet)</dd></div>
+                <div><dt>@LocalizedText("Network", "Rede", "网络")</dt><dd>@_data.Cluster</dd></div>
+            </dl>
+                        }
             </section>
         </div>
 
@@ -349,8 +347,17 @@
         => string.Format(LocalizedText(english, portuguese, chinese), args);
 
     private bool IsEnglish => CurrentCulture == "en";
+    private bool IsChinese => CurrentCulture == "zh";
+
+    private string HeroBannerUrl => CurrentCulture switch
+    {
+        "en" => "/img/tokenomics-hero-banner-en.png",
+        "zh" => "/img/tokenomics-hero-banner-zh.png",
+        _ => "/img/tokenomics-hero-banner.png"
+    };
+
     private string MetaKeywords => $"{SeoDefaults.GlobalKeywords}, CriptoVersus how it works, #CriptoVersus rules, crypto scoring rules";
-    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, IsEnglish ? "/img/tokenomics-hero-banner-en.png" : "/img/tokenomics-hero-banner.png");
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, HeroBannerUrl);
     private MarkupString StructuredDataMarkup => new(BuildStructuredDataJson());
 
     private string DisplayCustodyWalletLabel
@@ -542,10 +549,12 @@
         --tk-border: rgba(118, 131, 164, 0.18);
         --tk-text: #eef4ff;
         --tk-muted: #aab7cb;
-        --tk-purple: #9f5cff;
-        --tk-green: #4cf38d;
-        --tk-cyan: #53c8ff;
-        --tk-gold: #f4c247;
+        --tk-left: #ff9100;
+        --tk-right: #18d8d2;
+        --tk-purple: var(--tk-left);
+        --tk-green: var(--tk-right);
+        --tk-cyan: var(--tk-right);
+        --tk-gold: var(--tk-left);
         display: grid;
         gap: 1.35rem;
         position: relative;
@@ -556,24 +565,20 @@
         color: var(--tk-text);
     }
 
-    .tokenomics-page::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            radial-gradient(circle at 8% 12%, rgba(159, 92, 255, 0.14), transparent 20%),
-            radial-gradient(circle at 92% 16%, rgba(76, 243, 141, 0.1), transparent 24%);
-    }
+        .tokenomics-page::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 8% 12%, rgba(255, 145, 0, 0.14), transparent 20%), radial-gradient(circle at 92% 16%, rgba(24, 216, 210, 0.10), transparent 24%);
+        }
 
     .tokenomics-hero {
         min-height: 0;
         border: 1px solid var(--tk-border);
         border-radius: 28px;
         overflow: hidden;
-        box-shadow:
-            0 30px 80px rgba(0, 0, 0, 0.42),
-            inset 0 1px 0 rgba(255,255,255,0.05);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
     .tokenomics-hero__banner {
@@ -592,11 +597,7 @@
         gap: 0;
         padding: 1.6rem 1.7rem;
         align-items: stretch;
-        background:
-            radial-gradient(circle at 14% 18%, rgba(159, 92, 255, 0.24), transparent 24%),
-            radial-gradient(circle at 84% 26%, rgba(76, 243, 141, 0.18), transparent 28%),
-            linear-gradient(90deg, rgba(18, 9, 26, 0.97), rgba(4, 17, 14, 0.97)),
-            #030507;
+        background: radial-gradient(circle at 14% 18%, rgba(255, 145, 0, 0.22), transparent 24%), radial-gradient(circle at 84% 26%, rgba(24, 216, 210, 0.18), transparent 28%), linear-gradient(90deg, rgba(18, 9, 26, 0.97), rgba(4, 17, 14, 0.97)), #030507;
     }
 
     .tokenomics-hero__pillar {
@@ -609,15 +610,15 @@
         min-width: 0;
     }
 
-    .tokenomics-hero__pillar + .tokenomics-hero__pillar::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 18%;
-        bottom: 18%;
-        width: 1px;
-        background: linear-gradient(180deg, transparent, rgba(255,255,255,0.16), transparent);
-    }
+        .tokenomics-hero__pillar + .tokenomics-hero__pillar::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 18%;
+            bottom: 18%;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(255,255,255,0.16), transparent);
+        }
 
     .tokenomics-hero__icon {
         width: 4rem;
@@ -656,12 +657,12 @@
 
     .tokenomics-hero__pillar--combat strong,
     .tokenomics-hero__pillar--combat .tokenomics-hero__icon {
-        color: #a855f7;
+        color: var(--tk-left);
     }
 
     .tokenomics-hero__pillar--strategy strong,
     .tokenomics-hero__pillar--strategy .tokenomics-hero__icon {
-        color: #4cf38d;
+        color: var(--tk-right);
     }
 
     .tokenomics-hero__pillar--tech strong,
@@ -671,18 +672,18 @@
 
     .tokenomics-hero__pillar--ranking strong,
     .tokenomics-hero__pillar--ranking .tokenomics-hero__icon {
-        color: #facc15;
+        color: var(--tk-left);
     }
 
     .tokenomics-hero__pillar--global strong,
     .tokenomics-hero__pillar--global .tokenomics-hero__icon {
-        color: #8b5cf6;
+        color: var(--tk-left);
     }
 
     .rule-panel span,
     .metrics-band span,
     .positions-band span {
-        color: #7ff6df;
+        color: var(--tk-right);
         font-weight: 900;
         letter-spacing: .12em;
         text-transform: uppercase;
@@ -695,27 +696,22 @@
         position: relative;
         border: 1px solid var(--tk-border);
         border-radius: 24px;
-        background:
-            linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
-        box-shadow:
-            0 24px 70px rgba(0,0,0,0.34),
-            inset 0 1px 0 rgba(255,255,255,0.03);
+        background: linear-gradient(180deg, rgba(10, 13, 21, 0.98), rgba(7, 9, 15, 0.99));
+        box-shadow: 0 24px 70px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.03);
         overflow: hidden;
     }
 
-    .metrics-band::before,
-    .rule-panel::before,
-    .positions-band::before,
-    .rule-alert::before,
-    .topic-callout::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            linear-gradient(135deg, rgba(126, 34, 206, 0.08), transparent 22%, transparent 72%, rgba(34, 197, 94, 0.07)),
-            linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
-    }
+        .metrics-band::before,
+        .rule-panel::before,
+        .positions-band::before,
+        .rule-alert::before,
+        .topic-callout::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(135deg, rgba(255, 145, 0, 0.08), transparent 22%, transparent 72%, rgba(24, 216, 210, 0.07)), linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
+        }
 
     .metrics-band {
         display: grid;
@@ -725,24 +721,23 @@
         background: rgba(86, 100, 126, 0.16);
     }
 
-    .metrics-band article {
-        position: relative;
-        padding: 1.15rem 1.2rem;
-        background:
-            linear-gradient(180deg, rgba(8, 11, 18, 0.98), rgba(8, 10, 16, 0.98));
-        display: grid;
-        gap: .42rem;
-    }
+        .metrics-band article {
+            position: relative;
+            padding: 1.15rem 1.2rem;
+            background: linear-gradient(180deg, rgba(8, 11, 18, 0.98), rgba(8, 10, 16, 0.98));
+            display: grid;
+            gap: .42rem;
+        }
 
-    .metrics-band strong {
-        color: #f8fbff;
-        font-size: clamp(1.7rem, 2vw, 2.2rem);
-        letter-spacing: -.04em;
-    }
+        .metrics-band strong {
+            color: #f8fbff;
+            font-size: clamp(1.7rem, 2vw, 2.2rem);
+            letter-spacing: -.04em;
+        }
 
-    .metrics-band small {
-        color: var(--tk-muted);
-    }
+        .metrics-band small {
+            color: var(--tk-muted);
+        }
 
     .semantic-band {
         display: grid;
@@ -750,35 +745,32 @@
         gap: 1rem;
     }
 
-    .semantic-band article {
-        padding: 1rem 1.05rem;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,.08);
-        background: rgba(12, 16, 26, 0.88);
-    }
+        .semantic-band article {
+            padding: 1rem 1.05rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.08);
+            background: rgba(12, 16, 26, 0.88);
+        }
 
-    .semantic-band span {
-        display: block;
-        margin-bottom: .55rem;
-        color: var(--tk-green);
-        font-size: .8rem;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-    }
+        .semantic-band span {
+            display: block;
+            margin-bottom: .55rem;
+            color: var(--tk-green);
+            font-size: .8rem;
+            font-weight: 900;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
 
-    .semantic-band p {
-        margin: 0;
-        color: var(--tk-muted);
-        line-height: 1.7;
-    }
+        .semantic-band p {
+            margin: 0;
+            color: var(--tk-muted);
+            line-height: 1.7;
+        }
 
     .topic-callout {
         align-items: center;
-        background:
-            radial-gradient(circle at top left, rgba(159, 92, 255, .16), transparent 34%),
-            radial-gradient(circle at bottom right, rgba(76, 243, 141, .12), transparent 32%),
-            linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
+        background: radial-gradient(circle at top left, rgba(255, 145, 0, .16), transparent 34%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .12), transparent 32%), linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
         border: 1px solid rgba(116, 131, 164, .2);
         border-radius: 24px;
         display: grid;
@@ -789,23 +781,23 @@
         overflow: hidden;
     }
 
-    .topic-callout h3 {
-        color: #f8fbff;
-        margin: .42rem 0 .5rem;
-        font-size: clamp(1.35rem, 2vw, 1.8rem);
-        letter-spacing: -.03em;
-    }
+        .topic-callout h3 {
+            color: #f8fbff;
+            margin: .42rem 0 .5rem;
+            font-size: clamp(1.35rem, 2vw, 1.8rem);
+            letter-spacing: -.03em;
+        }
 
-    .topic-callout p {
-        color: #ced8e6;
-        line-height: 1.65;
-        margin: 0;
-        max-width: 780px;
-    }
+        .topic-callout p {
+            color: #ced8e6;
+            line-height: 1.65;
+            margin: 0;
+            max-width: 780px;
+        }
 
     .topic-link {
         align-items: center;
-        background: linear-gradient(90deg, rgba(159, 92, 255, 0.94), rgba(76, 243, 141, 0.94));
+        background: linear-gradient(90deg, rgba(255, 145, 0, 0.94), rgba(24, 216, 210, 0.94));
         border-radius: 999px;
         color: #041018;
         display: inline-flex;
@@ -814,13 +806,13 @@
         padding: 0 1.15rem;
         text-decoration: none;
         white-space: nowrap;
-        box-shadow: 0 10px 24px rgba(24, 255, 112, 0.14);
+        box-shadow: 0 10px 24px rgba(24, 216, 210, 0.14);
     }
 
-    .topic-link:hover {
-        color: #041018;
-        filter: brightness(1.05);
-    }
+        .topic-link:hover {
+            color: #041018;
+            filter: brightness(1.05);
+        }
 
     .rule-grid {
         display: grid;
@@ -862,16 +854,16 @@
         gap: .65rem;
     }
 
-    .flow-line strong,
-    .legend span {
-        border: 1px solid rgba(118, 131, 164, 0.18);
-        border-radius: 14px;
-        color: #f8fbff;
-        padding: .8rem .7rem;
-        text-align: center;
-        background: rgba(9, 12, 19, 0.74);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    }
+        .flow-line strong,
+        .legend span {
+            border: 1px solid rgba(118, 131, 164, 0.18);
+            border-radius: 14px;
+            color: #f8fbff;
+            padding: .8rem .7rem;
+            text-align: center;
+            background: rgba(9, 12, 19, 0.74);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+        }
 
     .rule-panel dl {
         display: grid;
@@ -879,13 +871,13 @@
         margin: 0;
     }
 
-    .rule-panel dl div {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        border-top: 1px solid rgba(118, 131, 164, 0.14);
-        padding-top: .68rem;
-    }
+        .rule-panel dl div {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            border-top: 1px solid rgba(118, 131, 164, 0.14);
+            padding-top: .68rem;
+        }
 
     .rule-panel dt {
         color: #9fb0c7;
@@ -917,10 +909,7 @@
         padding: 1rem;
         border: 1px solid rgba(118, 131, 164, 0.18);
         border-radius: 18px;
-        background:
-            radial-gradient(circle at left center, rgba(159, 92, 255, 0.09), transparent 30%),
-            radial-gradient(circle at right center, rgba(76, 243, 141, 0.08), transparent 34%),
-            #101720;
+        background: radial-gradient(circle at left center, rgba(255, 145, 0, 0.09), transparent 30%), radial-gradient(circle at right center, rgba(24, 216, 210, 0.08), transparent 34%), #101720;
     }
 
     .settlement-chart__pie {
@@ -942,17 +931,17 @@
         background: rgba(11, 17, 24, 0.88);
     }
 
-    .settlement-chart__target small {
-        color: #94a3b8;
-        font-size: .76rem;
-        text-transform: uppercase;
-        letter-spacing: .04em;
-    }
+        .settlement-chart__target small {
+            color: #94a3b8;
+            font-size: .76rem;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
 
-    .settlement-chart__target strong {
-        color: #f8fafc;
-        font-size: 1.1rem;
-    }
+        .settlement-chart__target strong {
+            color: #f8fafc;
+            font-size: 1.1rem;
+        }
 
     .settlement-chart__target--refund {
         border-color: rgba(94, 234, 212, 0.32);
@@ -998,10 +987,7 @@
         padding: 1.35rem 1.35rem 1.45rem;
         display: grid;
         gap: 1.15rem;
-        background:
-            radial-gradient(circle at left top, rgba(159, 92, 255, 0.08), transparent 26%),
-            radial-gradient(circle at right center, rgba(76, 243, 141, 0.08), transparent 30%),
-            linear-gradient(180deg, rgba(9, 13, 20, 0.98), rgba(7, 10, 16, 0.99));
+        background: radial-gradient(circle at left top, rgba(255, 145, 0, 0.08), transparent 26%), radial-gradient(circle at right center, rgba(24, 216, 210, 0.08), transparent 30%), linear-gradient(180deg, rgba(9, 13, 20, 0.98), rgba(7, 10, 16, 0.99));
     }
 
     .positions-band__header {
@@ -1010,11 +996,11 @@
         max-width: 42rem;
     }
 
-    .positions-band__header p {
-        margin: 0;
-        color: #98a8bf;
-        line-height: 1.6;
-    }
+        .positions-band__header p {
+            margin: 0;
+            color: #98a8bf;
+            line-height: 1.6;
+        }
 
     .position-list {
         display: grid;
@@ -1022,28 +1008,27 @@
         gap: 1rem;
     }
 
-    .position-list article {
-        position: relative;
-        border: 1px solid rgba(118, 131, 164, 0.14);
-        border-radius: 20px;
-        padding: 1.15rem 1.15rem 1.2rem;
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: start;
-        gap: .95rem;
-        background:
-            linear-gradient(180deg, rgba(10, 14, 22, 0.98), rgba(7, 10, 16, 0.98));
-        overflow: hidden;
-        min-height: 128px;
-    }
+        .position-list article {
+            position: relative;
+            border: 1px solid rgba(118, 131, 164, 0.14);
+            border-radius: 20px;
+            padding: 1.15rem 1.15rem 1.2rem;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: start;
+            gap: .95rem;
+            background: linear-gradient(180deg, rgba(10, 14, 22, 0.98), rgba(7, 10, 16, 0.98));
+            overflow: hidden;
+            min-height: 128px;
+        }
 
-    .position-list article::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent 24%, transparent 76%, rgba(76, 243, 141, 0.05));
-    }
+            .position-list article::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                pointer-events: none;
+                background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent 24%, transparent 76%, rgba(76, 243, 141, 0.05));
+            }
 
     .position-list__rank {
         width: 2.5rem;
@@ -1051,7 +1036,7 @@
         border-radius: 14px;
         display: grid;
         place-items: center;
-        color: #7ff6df;
+        color: var(--tk-right);
         font-size: .82rem;
         font-weight: 900;
         letter-spacing: .12em;
@@ -1082,10 +1067,10 @@
         font-size: clamp(1.55rem, 1.2vw + 1rem, 2rem);
     }
 
-    .position-list__title > span:first-child {
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
+        .position-list__title > span:first-child {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
 
     .position-list__title--md {
         font-size: clamp(1.38rem, 1.02vw + .92rem, 1.72rem);
@@ -1112,12 +1097,12 @@
         flex: 0 0 auto;
     }
 
-    .position-list__quote img {
-        width: 72%;
-        height: 72%;
-        object-fit: contain;
-        display: block;
-    }
+        .position-list__quote img {
+            width: 72%;
+            height: 72%;
+            object-fit: contain;
+            display: block;
+        }
 
     .position-list__quote-fallback {
         color: #9fb0c7;
@@ -1176,15 +1161,15 @@
             padding: .85rem .3rem;
         }
 
-        .tokenomics-hero__pillar + .tokenomics-hero__pillar::before {
-            top: 0;
-            bottom: auto;
-            left: 0;
-            right: 0;
-            width: auto;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
-        }
+            .tokenomics-hero__pillar + .tokenomics-hero__pillar::before {
+                top: 0;
+                bottom: auto;
+                left: 0;
+                right: 0;
+                width: auto;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
+            }
 
         .tokenomics-hero__icon {
             width: 3rem;
@@ -1216,10 +1201,10 @@
             grid-template-columns: 1fr;
         }
 
-        .position-list article {
-            min-height: 116px;
-            padding: 1rem 1rem 1.05rem;
-        }
+            .position-list article {
+                min-height: 116px;
+                padding: 1rem 1rem 1.05rem;
+            }
 
         .position-list__title {
             font-size: 1.22rem;
@@ -1273,4 +1258,136 @@
             padding: .85rem .8rem .95rem;
         }
     }
+
+    /* CriptoVersus team color standard overrides */
+    .tokenomics-page {
+        --tk-left: #ff9100;
+        --tk-right: #18d8d2;
+        --tk-purple: var(--tk-left);
+        --tk-green: var(--tk-right);
+        --tk-cyan: var(--tk-right);
+        --tk-gold: var(--tk-left);
+    }
+
+        .tokenomics-page::before {
+            background: radial-gradient(circle at 8% 12%, rgba(255, 145, 0, 0.16), transparent 22%), radial-gradient(circle at 92% 16%, rgba(24, 216, 210, 0.13), transparent 26%);
+        }
+
+    .tokenomics-hero,
+    .metrics-band,
+    .rule-panel,
+    .positions-band,
+    .rule-alert,
+    .topic-callout {
+        border-color: rgba(24, 216, 210, 0.18);
+    }
+
+        .metrics-band::before,
+        .rule-panel::before,
+        .positions-band::before,
+        .rule-alert::before,
+        .topic-callout::before {
+            background: linear-gradient(135deg, rgba(255, 145, 0, 0.10), transparent 24%, transparent 72%, rgba(24, 216, 210, 0.09)), linear-gradient(90deg, rgba(255,255,255,0.02), transparent 18%, transparent 82%, rgba(255,255,255,0.02));
+        }
+
+        .metrics-band article:nth-child(odd),
+        .semantic-band article:nth-child(odd),
+        .rule-panel:nth-child(odd),
+        .position-list article:nth-child(odd) {
+            border-color: rgba(255, 145, 0, 0.22);
+            box-shadow: inset 3px 0 0 rgba(255, 145, 0, 0.86), 0 24px 70px rgba(0,0,0,0.30);
+        }
+
+        .metrics-band article:nth-child(even),
+        .semantic-band article:nth-child(even),
+        .rule-panel:nth-child(even),
+        .position-list article:nth-child(even) {
+            border-color: rgba(24, 216, 210, 0.22);
+            box-shadow: inset 3px 0 0 rgba(24, 216, 210, 0.86), 0 24px 70px rgba(0,0,0,0.30);
+        }
+
+        .metrics-band span,
+        .rule-panel span,
+        .positions-band span,
+        .semantic-band span,
+        .positions-band__header span {
+            color: var(--tk-right);
+        }
+
+        .metrics-band article:nth-child(odd) span,
+        .rule-panel:nth-child(odd) > span,
+        .semantic-band article:nth-child(odd) span,
+        .position-list article:nth-child(odd) .position-list__rank {
+            color: var(--tk-left);
+        }
+
+        .metrics-band strong,
+        .position-list__body > span {
+            color: var(--tk-right);
+            text-shadow: 0 0 22px rgba(24, 216, 210, 0.18);
+        }
+
+        .metrics-band article:nth-child(odd) strong {
+            color: var(--tk-left);
+            text-shadow: 0 0 22px rgba(255, 145, 0, 0.18);
+        }
+
+    .topic-callout {
+        background: radial-gradient(circle at top left, rgba(255, 145, 0, .16), transparent 34%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .12), transparent 32%), linear-gradient(135deg, rgba(11, 18, 26, .96), rgba(14, 21, 31, .94));
+    }
+
+    .topic-link {
+        background: linear-gradient(90deg, var(--tk-left), var(--tk-right));
+        color: #041018;
+        box-shadow: 0 10px 24px rgba(24, 216, 210, 0.14);
+    }
+
+    .tokenomics-hero__pillar--combat strong,
+    .tokenomics-hero__pillar--combat .tokenomics-hero__icon,
+    .tokenomics-hero__pillar--ranking strong,
+    .tokenomics-hero__pillar--ranking .tokenomics-hero__icon,
+    .tokenomics-hero__pillar--global strong,
+    .tokenomics-hero__pillar--global .tokenomics-hero__icon {
+        color: var(--tk-left);
+    }
+
+    .tokenomics-hero__pillar--strategy strong,
+    .tokenomics-hero__pillar--strategy .tokenomics-hero__icon,
+    .tokenomics-hero__pillar--tech strong,
+    .tokenomics-hero__pillar--tech .tokenomics-hero__icon {
+        color: var(--tk-right);
+    }
+
+    .allocation-bar i,
+    .settlement-chart__target--refund {
+        border-color: rgba(24, 216, 210, 0.32);
+    }
+
+    .allocation-bar i {
+        background: var(--tk-right);
+    }
+
+    .allocation-bar b {
+        background: var(--tk-left);
+    }
+
+    .allocation-bar em {
+        background: #f8fafc;
+    }
+
+    .settlement-chart__target--refund {
+        box-shadow: inset 3px 0 0 var(--tk-right);
+    }
+
+    .settlement-chart__target--winners {
+        border-color: rgba(255, 145, 0, 0.30);
+        box-shadow: inset 3px 0 0 var(--tk-left);
+    }
+
+    .position-list__rank {
+        background: linear-gradient(180deg, rgba(24, 216, 210, 0.14), rgba(24, 216, 210, 0.04));
+        border-color: rgba(24, 216, 210, 0.22);
+        color: var(--tk-right);
+    }
+
 </style>
