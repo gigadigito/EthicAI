@@ -264,31 +264,32 @@
         overflow: hidden;
         border-radius: 28px;
         border: 1px solid rgba(24, 216, 210, 0.18);
-        background: linear-gradient(90deg, rgba(255, 145, 0, 0.18), transparent 32%, rgba(24, 216, 210, 0.16)), linear-gradient(180deg, rgba(5, 8, 14, 0.9), rgba(5, 8, 14, 0.98));
+        background: linear-gradient(90deg, rgba(255, 145, 0, 0.14), transparent 34%, rgba(24, 216, 210, 0.14)), linear-gradient(180deg, rgba(5, 8, 14, 0.92), rgba(5, 8, 14, 0.99));
         box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
     .roadmap-banner {
         position: relative;
-        min-height: 660px;
+        min-height: 640px;
         overflow: hidden;
         border-radius: 28px;
-        background: linear-gradient(90deg, rgba(5, 8, 14, 0.88) 0%, rgba(5, 8, 14, 0.36) 34%, rgba(5, 8, 14, 0.34) 62%, rgba(5, 8, 14, 0.88) 100%), linear-gradient(180deg, rgba(5, 8, 14, 0.10) 0%, rgba(5, 8, 14, 0.22) 46%, rgba(5, 8, 14, 0.93) 100%), url("/img/roadmap-arena-evolution.webp") center center / cover no-repeat;
+        background: linear-gradient(90deg, rgba(5, 8, 14, 0.86) 0%, rgba(5, 8, 14, 0.36) 36%, rgba(5, 8, 14, 0.30) 64%, rgba(5, 8, 14, 0.86) 100%), linear-gradient(180deg, rgba(5, 8, 14, 0.08) 0%, rgba(5, 8, 14, 0.22) 46%, rgba(5, 8, 14, 0.92) 100%);
     }
 
         .roadmap-banner::before {
             content: "";
             position: absolute;
             inset: 0;
+            z-index: 1;
             pointer-events: none;
-            background: radial-gradient(circle at 18% 18%, rgba(255, 145, 0, 0.18), transparent 32%), radial-gradient(circle at 82% 16%, rgba(24, 216, 210, 0.16), transparent 32%), linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 44%);
-            mix-blend-mode: screen;
+            background: radial-gradient(circle at 18% 18%, rgba(255, 145, 0, 0.15), transparent 32%), radial-gradient(circle at 82% 16%, rgba(24, 216, 210, 0.15), transparent 32%), linear-gradient(90deg, rgba(5, 8, 14, 0.78) 0%, rgba(5, 8, 14, 0.36) 34%, rgba(5, 8, 14, 0.28) 64%, rgba(5, 8, 14, 0.78) 100%), linear-gradient(180deg, rgba(5, 8, 14, 0.10) 0%, rgba(5, 8, 14, 0.16) 45%, rgba(5, 8, 14, 0.90) 100%);
         }
 
         .roadmap-banner::after {
             content: "";
             position: absolute;
             inset: 22px;
+            z-index: 3;
             pointer-events: none;
             border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -296,27 +297,54 @@
         }
 
     /*
-           A nova imagem já é o banner completo.
-           A arte antiga ficava como miniatura dentro do lado esquerdo,
-           por isso os elementos abaixo ficam escondidos.
+           A imagem agora é usada como camada de fundo real do hero, via <img>.
+           Assim evitamos o problema de o banner não aparecer por causa de background-image
+           e também deixamos fácil ver o request no Network do navegador.
+        */
+    .roadmap-banner__art {
+        display: block !important;
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .roadmap-banner__visual {
+        display: block !important;
+        width: 100%;
+        height: 100%;
+        min-height: 640px;
+        object-fit: cover;
+        object-position: center center;
+        opacity: 1;
+        filter: saturate(1.05) contrast(1.04);
+    }
+
+    /*
+           Esconde apenas a arte antiga desenhada por CSS.
+           Mantém o <img> do banner visível como background.
         */
     .roadmap-banner__frame,
     .roadmap-banner__glow,
-    .roadmap-banner__art,
-    .roadmap-banner__visual,
     .roadmap-banner__core,
-    .roadmap-banner__candles {
+    .roadmap-banner__candles,
+    .roadmap-banner__slash,
+    .roadmap-banner__crown,
+    .roadmap-banner__monogram {
         display: none !important;
     }
 
     .roadmap-banner__copy {
         position: relative;
         z-index: 2;
-        min-height: 660px;
+        min-height: 640px;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
+        align-items: flex-start;
         gap: 18px;
+        max-width: 1120px;
         padding: clamp(28px, 4vw, 64px);
     }
 
@@ -332,8 +360,8 @@
         gap: 8px;
         padding: 6px 12px;
         border-radius: 999px;
-        background: linear-gradient(90deg, rgba(255, 145, 0, 0.12), rgba(24, 216, 210, 0.12));
-        border: 1px solid rgba(24, 216, 210, 0.22);
+        background: linear-gradient(90deg, rgba(255, 145, 0, 0.14), rgba(24, 216, 210, 0.14));
+        border: 1px solid rgba(24, 216, 210, 0.24);
         color: #dffcff;
         font-size: .76rem;
         font-weight: 900;
@@ -345,7 +373,7 @@
     .roadmap-hero__wordmark {
         margin: 0;
         color: #f8fbff;
-        font-size: clamp(2.7rem, 7vw, 7rem);
+        font-size: clamp(2.7rem, 6.4vw, 6.6rem);
         line-height: .9;
         font-weight: 950;
         letter-spacing: -.07em;
@@ -399,7 +427,7 @@
         grid-template-columns: minmax(80px, 1fr) auto minmax(80px, 1fr);
         gap: 18px;
         align-items: center;
-        max-width: 880px;
+        width: min(880px, 100%);
     }
 
     .roadmap-banner__divider-line {
@@ -426,7 +454,7 @@
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 14px;
-        max-width: 1180px;
+        width: min(1180px, 100%);
         margin-top: 10px;
     }
 
@@ -784,14 +812,14 @@
     }
 
     @@media (max-width: 920px) {
-        .roadmap-banner {
-            min-height: 620px;
-            background-position: center center;
-        }
-
+        .roadmap-banner,
+        .roadmap-banner__visual,
         .roadmap-banner__copy {
             min-height: 620px;
-            padding: 28px;
+        }
+
+        .roadmap-banner__visual {
+            object-position: center center;
         }
 
         .roadmap-banner__intel {
@@ -829,18 +857,26 @@
             border-radius: 20px;
         }
 
-        .roadmap-banner {
-            min-height: 740px;
-            background-position: center top;
+        .roadmap-banner,
+        .roadmap-banner__visual,
+        .roadmap-banner__copy {
+            min-height: 760px;
         }
 
-            .roadmap-banner::after {
-                inset: 10px;
-                border-radius: 18px;
-            }
+        .roadmap-banner__visual {
+            object-position: center top;
+        }
+
+        .roadmap-banner::after {
+            inset: 10px;
+            border-radius: 18px;
+        }
+
+        .roadmap-banner::before {
+            background: linear-gradient(180deg, rgba(5, 8, 14, 0.34) 0%, rgba(5, 8, 14, 0.66) 42%, rgba(5, 8, 14, 0.96) 100%), radial-gradient(circle at 50% 16%, rgba(24, 216, 210, 0.12), transparent 38%);
+        }
 
         .roadmap-banner__copy {
-            min-height: 740px;
             padding: 22px 16px;
             text-align: center;
             align-items: center;
@@ -896,12 +932,13 @@
             padding-inline: 4px;
         }
 
-        .roadmap-banner {
-            min-height: 780px;
+        .roadmap-banner,
+        .roadmap-banner__visual,
+        .roadmap-banner__copy {
+            min-height: 800px;
         }
 
         .roadmap-banner__copy {
-            min-height: 780px;
             padding: 18px 12px;
         }
 
