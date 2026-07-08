@@ -1,4 +1,4 @@
-﻿@using System.Text.Json
+@using System.Text.Json
 @using CriptoVersus.Web.Services
 
 <PageTitle>@Title</PageTitle>
@@ -81,7 +81,7 @@
         var payload = new Dictionary<string, object?>
         {
             ["@context"] = "https://schema.org",
-            ["@type"] = "WebApplication",
+            ["@type"] = "WebPage",
             ["name"] = Title,
             ["description"] = Description,
             ["url"] = CanonicalUrl,

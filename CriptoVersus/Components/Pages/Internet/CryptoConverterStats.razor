@@ -1182,12 +1182,24 @@
             {
                 new Dictionary<string, object?>
                 {
-                    ["@type"] = "WebApplication",
+                    ["@type"] = "WebPage",
                     ["name"] = PageTitleText,
                     ["description"] = MetaDescription,
                     ["url"] = CanonicalUrl,
                     ["inLanguage"] = _culture,
-                    ["isAccessibleForFree"] = true
+                    ["isAccessibleForFree"] = true,
+                    ["isPartOf"] = new Dictionary<string, object?>
+                    {
+                        ["@type"] = "WebSite",
+                        ["name"] = "CriptoVersus",
+                        ["url"] = BuildAbsolute(RouteLocalization.BuildHomePath(_culture))
+                    },
+                    ["publisher"] = new Dictionary<string, object?>
+                    {
+                        ["@type"] = "Organization",
+                        ["name"] = "CriptoVersus",
+                        ["url"] = BuildAbsolute(RouteLocalization.BuildHomePath(_culture))
+                    }
                 },
                 new Dictionary<string, object?>
                 {

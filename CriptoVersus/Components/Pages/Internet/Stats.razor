@@ -613,16 +613,30 @@
     {
         var title = T("hero.title");
         var description = T("hero.subtitle");
+        var siteUrl = SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHomePath(CurrentCulture));
 
         var graph = new object[]
         {
             new Dictionary<string, object?>
             {
                 ["@context"] = "https://schema.org",
-                ["@type"] = "WebApplication",
+                ["@type"] = "WebPage",
                 ["name"] = title,
                 ["description"] = description,
-                ["url"] = CanonicalUrl
+                ["url"] = CanonicalUrl,
+                ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture),
+                ["isPartOf"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "WebSite",
+                    ["name"] = "CriptoVersus",
+                    ["url"] = siteUrl
+                },
+                ["publisher"] = new Dictionary<string, object?>
+                {
+                    ["@type"] = "Organization",
+                    ["name"] = "CriptoVersus",
+                    ["url"] = siteUrl
+                }
             },
             new Dictionary<string, object?>
             {

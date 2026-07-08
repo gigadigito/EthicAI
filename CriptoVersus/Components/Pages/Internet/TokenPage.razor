@@ -1038,30 +1038,40 @@
 
     private string BuildStructuredDataMarkup()
     {
-        var snapshot = MarketSnapshot ?? TokenMarketService.CreateFallbackSnapshot();
+        var homeUrl = BuildAbsolute(RouteLocalization.BuildHomePath(CurrentCulture));
 
         var data = new Dictionary<string, object?>
         {
             ["@context"] = "https://schema.org",
-            ["@type"] = "WebPage",
-            ["name"] = SeoTitle,
-            ["description"] = SeoDescription,
-            ["url"] = CanonicalUrl,
-            ["image"] = HeroImageAbsoluteUrl,
-            ["mainEntity"] = new Dictionary<string, object?>
+            ["@graph"] = new object[]
             {
-                ["@type"] = "Product",
-                ["name"] = L.T("token.schema.name", CurrentCulture),
-                ["description"] = L.T("token.about.description", CurrentCulture),
-                ["category"] = L.T("token.schema.category", CurrentCulture),
-                ["sku"] = snapshot.ContractAddress,
-                ["sameAs"] = new[] { PumpFunUrl },
-                ["additionalProperty"] = new object[]
+                new Dictionary<string, object?>
                 {
-                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.network", CurrentCulture), ["value"] = snapshot.Network },
-                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.contractAddress", CurrentCulture), ["value"] = snapshot.ContractAddress },
-                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.buyTax", CurrentCulture), ["value"] = snapshot.BuyTaxPercent },
-                    new Dictionary<string, object?> { ["@type"] = "PropertyValue", ["name"] = L.T("token.schema.properties.sellTax", CurrentCulture), ["value"] = snapshot.SellTaxPercent }
+                    ["@type"] = "WebPage",
+                    ["name"] = SeoTitle,
+                    ["description"] = SeoDescription,
+                    ["url"] = CanonicalUrl,
+                    ["image"] = HeroImageAbsoluteUrl,
+                    ["keywords"] = MetaKeywords,
+                    ["inLanguage"] = AppCulture.ToHrefLang(CurrentCulture),
+                    ["isPartOf"] = new Dictionary<string, object?>
+                    {
+                        ["@type"] = "WebSite",
+                        ["name"] = "CriptoVersus",
+                        ["url"] = homeUrl
+                    },
+                    ["publisher"] = new Dictionary<string, object?>
+                    {
+                        ["@type"] = "Organization",
+                        ["name"] = "CriptoVersus",
+                        ["url"] = homeUrl
+                    }
+                },
+                new Dictionary<string, object?>
+                {
+                    ["@type"] = "Organization",
+                    ["name"] = "CriptoVersus",
+                    ["url"] = homeUrl
                 }
             }
         };

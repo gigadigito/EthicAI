@@ -244,6 +244,7 @@ public sealed class MatchSeoService
             new Dictionary<string, object?> { ["@type"] = "SportsTeam", ["name"] = FormatCoinLabel(match.TeamB) }
         };
 
+        var siteUrl = SeoDefaults.BuildPublicAbsoluteUrl(_configuration, _routeLocalization.BuildHomePath(culture));
         var webPage = new Dictionary<string, object?>
         {
             ["@type"] = "WebPage",
@@ -253,7 +254,19 @@ public sealed class MatchSeoService
             ["about"] = keywords,
             ["keywords"] = keywords,
             ["url"] = canonicalUrl,
-            ["inLanguage"] = _appCultureService.ToHrefLang(culture)
+            ["inLanguage"] = _appCultureService.ToHrefLang(culture),
+            ["isPartOf"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "WebSite",
+                ["name"] = "CriptoVersus",
+                ["url"] = siteUrl
+            },
+            ["publisher"] = new Dictionary<string, object?>
+            {
+                ["@type"] = "Organization",
+                ["name"] = "CriptoVersus",
+                ["url"] = siteUrl
+            }
         };
 
         var sportsEvent = new Dictionary<string, object?>
