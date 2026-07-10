@@ -166,7 +166,7 @@
             max-width: 100%;
             overflow: hidden;
             color: var(--text-main);
-            font-size: clamp(34px, 4.3vw, 58px);
+            font-size: clamp(32px, 4vw, 54px);
             font-weight: 500;
             line-height: .98;
             letter-spacing: -.055em;
@@ -211,7 +211,7 @@
         list-style: none;
         display: grid;
         grid-template-rows: repeat(5, minmax(0, 1fr));
-        gap: 9px;
+        gap: 10px;
     }
 
     .hot-matches-social__item {
@@ -225,10 +225,10 @@
         height: 100%;
         min-width: 0;
         display: grid;
-        grid-template-columns: 50px minmax(0, 1fr) 148px minmax(0, 1fr) 220px;
+        grid-template-columns: 50px minmax(0, 1fr) 148px minmax(0, 1fr) 250px;
         align-items: center;
         gap: 14px;
-        padding: 8px 14px;
+        padding: 10px 14px;
         overflow: hidden;
         border: 1px solid var(--line);
         border-radius: 18px;
@@ -401,30 +401,41 @@
     .hot-matches-social__insights {
         min-width: 0;
         display: grid;
-        gap: 6px;
+        gap: 5px;
         justify-items: end;
         align-content: center;
     }
 
-    .hot-matches-social__insights-main,
-    .hot-matches-social__insights-meta {
+    .hot-matches-social__insights-main {
         display: flex;
-        flex-wrap: wrap;
+        align-items: center;
         justify-content: flex-end;
         gap: 6px;
+        min-width: 0;
+    }
+
+    .hot-matches-social__insights-meta {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        min-width: 0;
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+        white-space: nowrap;
     }
 
     .hot-matches-social__temperature,
-    .hot-matches-social__balance,
-    .hot-matches-social__status,
-    .hot-matches-social__hot-score,
-    .hot-matches-social__last-goal {
+    .hot-matches-social__balance {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         width: fit-content;
-        min-height: 24px;
-        padding: 4px 9px;
+        min-height: 26px;
+        padding: 5px 10px;
         border: 1px solid rgba(255,255,255,.08);
         border-radius: 999px;
         font-size: 10px;
@@ -433,6 +444,19 @@
         line-height: 1;
         text-transform: uppercase;
         white-space: nowrap;
+    }
+
+    .hot-matches-social__status,
+    .hot-matches-social__status {
+        color: var(--team-b-color);
+    }
+
+
+    .hot-matches-social__hot-score::before,
+    .hot-matches-social__last-goal::before {
+        content: "•";
+        margin-right: 8px;
+        color: rgba(255,255,255,.25);
     }
 
     .hot-matches-social__temperature--cold {
@@ -488,38 +512,30 @@
         border-color: rgba(255,99,132,.18);
     }
 
+
+
+
+
+
+
     .hot-matches-social__status--live {
         color: var(--team-b-color);
-        background: rgba(7,32,31,.9);
-        border-color: rgba(var(--team-b-rgb), .24);
     }
 
     .hot-matches-social__status--closing {
-        color: #ffe0b2;
-        background: rgba(38,22,8,.9);
-        border-color: rgba(var(--team-a-rgb), .22);
+        color: #ffc96f;
     }
 
     .hot-matches-social__status--final {
         color: #dce7f5;
-        background: rgba(18,24,36,.86);
     }
 
     .hot-matches-social__status--scheduled {
-        color: #d4def0;
-        background: rgba(16,20,30,.78);
+        color: #b7c5d8;
     }
 
     .hot-matches-social__status--cancelled {
-        color: #ffc2ca;
-        background: rgba(40,12,20,.88);
-        border-color: rgba(255,95,125,.2);
-    }
-
-    .hot-matches-social__hot-score,
-    .hot-matches-social__last-goal {
-        color: var(--text-muted);
-        background: rgba(255,255,255,.025);
+        color: #ff9baa;
     }
 
     .hot-matches-social__item--placeholder {
@@ -649,6 +665,7 @@
         .hot-matches-social__insights-main,
         .hot-matches-social__insights-meta {
             justify-content: flex-start;
+            flex-wrap: wrap;
         }
     }
 
