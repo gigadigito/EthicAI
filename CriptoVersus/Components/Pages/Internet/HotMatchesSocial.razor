@@ -1,0 +1,381 @@
+﻿@layout BlankLayout
+@page "/social/hot-matches"
+@page "/en/social/hot-matches"
+@page "/pt/social/hot-matches"
+@page "/zh/social/hot-matches"
+@page "/{Culture}/social/hot-matches"
+@using System.Globalization
+@using System.Text.Json
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject HotMatchService HotMatches
+@inject CriptoVersusApiClient Api
+@inject RouteLocalizationService RouteLocalization
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IConfiguration Config
+@inject MatchSlugHelper MatchSlugHelper
+@inject ILogger<HotMatchesSocial> Logger
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="description" content="@SeoDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ChineseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@SeoDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="@SocialImageUrl" />
+    <meta property="og:image:alt" content="@PageTitleText" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(ResolvedCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(ResolvedCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@SeoDescription" />
+    <meta name="twitter:image" content="@SocialImageUrl" />
+    <meta name="twitter:image:alt" content="@PageTitleText" />
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
+</HeadContent>
+
+<main id="hot-matches-social-card" class="hot-matches-social" aria-labelledby="hot-matches-social-title">
+    <div class="hot-matches-social__backdrop" aria-hidden="true"></div>
+
+    <section class="hot-matches-social__card" aria-label="@PageTitleText">
+        <header class="hot-matches-social__header">
+            <div class="hot-matches-social__brand">
+                <span class="hot-matches-social__brand-mark">CriptoVersus</span>
+                <span class="hot-matches-social__period">@T("social.hotMatches.last24Hours")</span>
+            </div>
+
+            <div class="hot-matches-social__title-block">
+                <h1 id="hot-matches-social-title">@PageTitleText</h1>
+                <p class="hot-matches-social__subtitle">@SeoDescription</p>
+            </div>
+
+            <div class="hot-matches-social__meta">
+                <span class="hot-matches-social__updated">@T("social.hotMatches.updatedAt", _updatedAtUtc.ToString("HH:mm", CultureInfo.InvariantCulture))</span>
+                <span class="hot-matches-social__updated-time">UTC</span>
+            </div>
+        </header>
+
+        <section class="hot-matches-social__board" aria-label="@T("social.hotMatches.listAriaLabel")">
+            <ol class="hot-matches-social__list">
+                @for (var index = 0; index < DisplayLimit; index++)
+                {
+                    var match = index < _rankedMatches.Count ? _rankedMatches[index] : null;
+                    if (match is not null)
+                    {
+                        <li class="hot-matches-social__item hot-matches-social__item--rank-@(index + 1) hot-matches-social__item--@HotMatchesSocialCardRules.GetTemperatureKey(match.HotScore)">
+                            <a class="hot-matches-social__link"
+                               href="@GetPublicMatchUrl(match)"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               aria-label="@T("social.hotMatches.openMatchAria", GetDisplaySymbol(match.HomeSymbol), GetDisplaySymbol(match.AwaySymbol), match.MatchId)">
+                                <span class="hot-matches-social__rank" aria-hidden="true">
+                                    @if (index < 3)
+                                    {
+                                        <span class="hot-matches-social__medal">@GetMedal(index)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="hot-matches-social__position">@(index + 1)</span>
+                                    }
+                                </span>
+
+                                <span class="hot-matches-social__team hot-matches-social__team--a">
+                                    <span class="hot-matches-social__coin hot-matches-social__coin--a" aria-hidden="true">
+                                        <img class="hot-matches-social__coin-image"
+                                             src="@GetCoinIconUrl(match, true)"
+                                             alt="@GetDisplaySymbol(match.HomeSymbol)"
+                                             width="40"
+                                             height="40"
+                                             loading="eager"
+                                             decoding="async"
+                                             onerror="this.remove(); this.nextElementSibling?.classList.add('is-visible');" />
+                                        <span class="hot-matches-social__coin-fallback">@GetInitials(match.HomeSymbol)</span>
+                                    </span>
+                                    <strong>@GetDisplaySymbol(match.HomeSymbol)</strong>
+                                </span>
+
+                                <span class="hot-matches-social__score" aria-label="@T("social.hotMatches.scoreAria", match.HomeScore, match.AwayScore)">
+                                    <span class="hot-matches-social__score-value hot-matches-social__score-value--a">@match.HomeScore</span>
+                                    <span class="hot-matches-social__score-separator">x</span>
+                                    <span class="hot-matches-social__score-value hot-matches-social__score-value--b">@match.AwayScore</span>
+                                </span>
+
+                                <span class="hot-matches-social__team hot-matches-social__team--b">
+                                    <strong>@GetDisplaySymbol(match.AwaySymbol)</strong>
+                                    <span class="hot-matches-social__coin hot-matches-social__coin--b" aria-hidden="true">
+                                        <img class="hot-matches-social__coin-image"
+                                             src="@GetCoinIconUrl(match, false)"
+                                             alt="@GetDisplaySymbol(match.AwaySymbol)"
+                                             width="40"
+                                             height="40"
+                                             loading="eager"
+                                             decoding="async"
+                                             onerror="this.remove(); this.nextElementSibling?.classList.add('is-visible');" />
+                                        <span class="hot-matches-social__coin-fallback">@GetInitials(match.AwaySymbol)</span>
+                                    </span>
+                                </span>
+
+                                <span class="hot-matches-social__signals">
+                                    <span class="hot-matches-social__temperature hot-matches-social__temperature--@HotMatchesSocialCardRules.GetTemperatureKey(match.HotScore)">
+                                        @GetTemperatureText(match.HotScore)
+                                    </span>
+                                    <span class="hot-matches-social__balance hot-matches-social__balance--@HotMatchesSocialCardRules.GetBalanceKey(match.ScoreDifference)">
+                                        @GetBalanceText(match.ScoreDifference)
+                                    </span>
+                                </span>
+                            </a>
+
+                            <div class="hot-matches-social__meta-row">
+                                <span class="hot-matches-social__status hot-matches-social__status--@HotMatchesSocialCardRules.GetStatusKey(match.Status)">
+                                    @GetStatusText(match)
+                                </span>
+                                <span class="hot-matches-social__hot-score">@T("social.hotMatches.hotScore", match.HotScore)</span>
+                                <span class="hot-matches-social__last-goal">@GetLastGoalText(match)</span>
+                            </div>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="hot-matches-social__item hot-matches-social__item--placeholder" aria-hidden="true">
+                            <div class="hot-matches-social__placeholder-row">
+                                <span class="hot-matches-social__rank">
+                                    <span class="hot-matches-social__position">@(index + 1)</span>
+                                </span>
+
+                                <span class="hot-matches-social__placeholder-team hot-matches-social__placeholder-team--a">
+                                    <span class="hot-matches-social__placeholder-coin"></span>
+                                    <span class="hot-matches-social__placeholder-line hot-matches-social__placeholder-line--short"></span>
+                                </span>
+
+                                <span class="hot-matches-social__placeholder-score">-- x --</span>
+
+                                <span class="hot-matches-social__placeholder-team hot-matches-social__placeholder-team--b">
+                                    <span class="hot-matches-social__placeholder-line hot-matches-social__placeholder-line--short"></span>
+                                    <span class="hot-matches-social__placeholder-coin"></span>
+                                </span>
+
+                                <span class="hot-matches-social__signals">
+                                    <span class="hot-matches-social__placeholder-pill"></span>
+                                    <span class="hot-matches-social__placeholder-pill"></span>
+                                </span>
+                            </div>
+
+                            <div class="hot-matches-social__meta-row hot-matches-social__meta-row--placeholder">
+                                <span>@T("social.hotMatches.waiting")</span>
+                            </div>
+                        </li>
+                    }
+                }
+            </ol>
+        </section>
+
+        <footer class="hot-matches-social__footer">
+            <div>
+                <span class="hot-matches-social__footer-domain">criptoversus.com</span>
+                <p>@T("social.hotMatches.disclaimer")</p>
+            </div>
+            <span class="hot-matches-social__footer-tag">#CriptoVersus</span>
+        </footer>
+    </section>
+</main>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+    [SupplyParameterFromQuery(Name = "hours")] public int? Hours { get; set; }
+    [SupplyParameterFromQuery(Name = "limit")] public int? Limit { get; set; }
+
+    private const int CardLimit = HotMatchesSocialCardRules.DefaultDisplayLimit;
+    private string _loadKey = string.Empty;
+    private string _resolvedCulture = AppCultureService.DefaultRouteCulture;
+    private bool _loading = true;
+    private string? _error;
+    private DateTime _updatedAtUtc = DateTime.UtcNow;
+    private IReadOnlyList<HotMatchDto> _rankedMatches = [];
+
+    private string ResolvedCulture => _resolvedCulture;
+    private int WindowHours => Math.Clamp(Hours ?? HotMatchesSocialCardRules.DefaultWindowHours, 1, 72);
+    private int DisplayLimit => Math.Clamp(Limit ?? CardLimit, 1, CardLimit);
+    private string PageTitleText => T("social.hotMatches.title");
+    private string SeoDescription => T("social.hotMatches.subtitle");
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHotMatchesSocialPath(ResolvedCulture));
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHotMatchesSocialPath(AppCultureService.DefaultRouteCulture));
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHotMatchesSocialPath(AppCultureService.SecondaryRouteCulture));
+    private string ChineseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHotMatchesSocialPath(AppCultureService.TertiaryRouteCulture));
+    private string SocialImageUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, SeoDefaults.DefaultSocialImagePath);
+    private string StructuredDataMarkup => JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebPage",
+        ["name"] = PageTitleText,
+        ["description"] = SeoDescription,
+        ["url"] = CanonicalUrl,
+        ["image"] = SocialImageUrl,
+        ["inLanguage"] = AppCulture.ToHrefLang(ResolvedCulture)
+    });
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _resolvedCulture = !string.IsNullOrWhiteSpace(Culture)
+            ? AppCulture.NormalizeRouteCulture(Culture)
+            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+
+        var expectedPath = RouteLocalization.BuildHotMatchesSocialPath(_resolvedCulture);
+        var currentRelativePath = Nav.ToBaseRelativePath(Nav.Uri);
+        var currentPath = "/" + currentRelativePath.Split('?', '#')[0].Trim('/');
+        var querySuffix = currentRelativePath.Contains('?')
+            ? currentRelativePath[currentRelativePath.IndexOf('?')..]
+            : string.Empty;
+
+        if (!PathsEquivalent(currentPath, expectedPath))
+        {
+            Nav.NavigateTo(expectedPath + querySuffix, replace: true);
+            return;
+        }
+
+        var nextLoadKey = $"{_resolvedCulture}|{WindowHours}|{DisplayLimit}";
+        if (string.Equals(nextLoadKey, _loadKey, StringComparison.Ordinal))
+            return;
+
+        _loadKey = nextLoadKey;
+        await LoadAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _rankedMatches = [];
+
+        try
+        {
+            var feed = await HotMatches.GetHotMatchesAsync() ?? [];
+            var ranked = HotMatchesSocialCardRules.RankCandidates(feed, WindowHours, DisplayLimit, DateTime.UtcNow);
+            _rankedMatches = ranked;
+            _updatedAtUtc = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Logger.LogWarning(ex, "Hot matches social card load failed.");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string GetPublicMatchUrl(HotMatchDto match)
+    {
+        if (!string.IsNullOrWhiteSpace(match.PublicUrl))
+            return match.PublicUrl;
+
+        var slug = !string.IsNullOrWhiteSpace(match.Slug)
+            ? match.Slug
+            : MatchSlugHelper.BuildSlug(match.HomeSymbol, match.AwaySymbol);
+
+        return RouteLocalization.BuildBestPath(ResolvedCulture, match.MatchId, slug);
+    }
+
+    private string GetCoinIconUrl(HotMatchDto match, bool isHome)
+    {
+        var candidate = isHome ? match.HomeLogoUrl : match.AwayLogoUrl;
+        if (!string.IsNullOrWhiteSpace(candidate))
+            return candidate;
+
+        return Api.BuildBinanceIconUrl(isHome ? match.HomeSymbol : match.AwaySymbol);
+    }
+
+    private string GetDisplaySymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = MatchSlugHelper.NormalizeTicker(symbol);
+        return string.IsNullOrWhiteSpace(normalized)
+            ? symbol.Trim().ToUpperInvariant()
+            : normalized.ToUpperInvariant();
+    }
+
+    private static string GetInitials(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "--";
+
+        var normalized = new string(symbol.Trim().Where(char.IsLetterOrDigit).ToArray());
+        if (normalized.Length == 0)
+            return "--";
+
+        return normalized.Length <= 3
+            ? normalized.ToUpperInvariant()
+            : normalized[..3].ToUpperInvariant();
+    }
+
+    private string GetStatusText(HotMatchDto match)
+        => T($"social.hotMatches.status.{HotMatchesSocialCardRules.GetStatusKey(match.Status)}");
+
+    private string GetTemperatureText(int hotScore)
+        => $"{HotMatchesSocialCardRules.GetTemperatureEmoji(hotScore)} {T($"social.hotMatches.temperature.{HotMatchesSocialCardRules.GetTemperatureKey(hotScore)}")}";
+
+    private string GetBalanceText(int scoreDifference)
+        => T($"social.hotMatches.balance.{HotMatchesSocialCardRules.GetBalanceKey(scoreDifference)}");
+
+    private string GetLastGoalText(HotMatchDto match)
+        => match.LastGoalAt.HasValue
+            ? T("social.hotMatches.lastGoal", HotMatchesSocialCardRules.FormatLastGoalLabel(match.LastGoalAt, _updatedAtUtc, T("social.hotMatches.waiting")))
+            : T("social.hotMatches.noLastGoal");
+
+    private string GetMedal(int index)
+        => index switch
+        {
+            0 => "🥇",
+            1 => "🥈",
+            2 => "🥉",
+            _ => string.Empty
+        };
+
+    private string T(string key, params object?[] args)
+        => L.T(key, ResolvedCulture, args);
+
+    private static bool PathsEquivalent(string left, string right)
+        => SafeUnescape(left).Equals(SafeUnescape(right), StringComparison.OrdinalIgnoreCase);
+
+    private static string SafeUnescape(string value)
+    {
+        try
+        {
+            return Uri.UnescapeDataString(value);
+        }
+        catch
+        {
+            return value;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Task.CompletedTask;
+    }
+}
+
+
+
+
+
+

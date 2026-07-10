@@ -1,4 +1,4 @@
-﻿namespace CriptoVersus.Web.Services;
+namespace CriptoVersus.Web.Services;
 
 public sealed class RouteLocalizationService
 {
@@ -61,6 +61,9 @@ public sealed class RouteLocalizationService
 
     public string BuildRiskDisclaimerPath(string? culture)
         => BuildGenericLocalizedPath(culture, "risk-disclaimer");
+
+    public string BuildHotMatchesSocialPath(string? culture)
+        => BuildGenericLocalizedPath(culture, "social/hot-matches");
 
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
@@ -179,6 +182,12 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/pt/risk-disclaimer", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/zh/risk-disclaimer", StringComparison.OrdinalIgnoreCase))
             return BuildRiskDisclaimerPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/social/hot-matches", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/social/hot-matches", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/social/hot-matches", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/social/hot-matches", StringComparison.OrdinalIgnoreCase))
+            return BuildHotMatchesSocialPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
@@ -313,3 +322,4 @@ public sealed class RouteLocalizationService
         }
     }
 }
+

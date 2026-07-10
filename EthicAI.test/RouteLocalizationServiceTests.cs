@@ -1,4 +1,4 @@
-using CriptoVersus.Web.Services;
+﻿using CriptoVersus.Web.Services;
 
 namespace EthicAI.test;
 
@@ -21,7 +21,7 @@ public sealed class RouteLocalizationServiceTests
     [Fact]
     public void BuildLocalizedPath_EncodesUnicodeSlugSegments()
     {
-        var slug = "币安人生-vs-ビットコイン";
+        var slug = "å¸å®‰äººç”Ÿ-vs-ãƒ“ãƒƒãƒˆã‚³ã‚¤ãƒ³";
         var expected = $"/en/match/39/{Uri.EscapeDataString(slug)}";
 
         Assert.Equal(expected, _service.BuildLocalizedPath("en", 39, slug));
@@ -50,7 +50,7 @@ public sealed class RouteLocalizationServiceTests
     [Fact]
     public void BuildTvMatchPath_EncodesUnicodeSlugSegments()
     {
-        var slug = "币安人生-vs-ビットコイン";
+        var slug = "å¸å®‰äººç”Ÿ-vs-ãƒ“ãƒƒãƒˆã‚³ã‚¤ãƒ³";
         var expected = $"/en/tv/match/39/{Uri.EscapeDataString(slug)}";
 
         Assert.Equal(expected, _service.BuildTvMatchPath("en", 39, slug));
@@ -61,5 +61,13 @@ public sealed class RouteLocalizationServiceTests
     {
         Assert.Equal("/pt/tv/broadcast", _service.BuildTvBroadcastPath("pt"));
         Assert.Equal("/en/tv/broadcast", _service.BuildTvBroadcastPath("en"));
+    }
+
+    [Fact]
+    public void BuildHotMatchesSocialPath_UsesLocalizedCulturePrefix()
+    {
+        Assert.Equal("/pt/social/hot-matches", _service.BuildHotMatchesSocialPath("pt"));
+        Assert.Equal("/en/social/hot-matches", _service.BuildHotMatchesSocialPath("en"));
+        Assert.Equal("/zh/social/hot-matches", _service.BuildHotMatchesSocialPath("zh"));
     }
 }

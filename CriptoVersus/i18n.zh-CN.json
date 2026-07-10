@@ -403,8 +403,43 @@
       "live": {
         "text": "{0} 和 {1} 正在 CriptoVersus 激烈对战。当前比分：{2}。实时关注：{3}"
       }
+    },
+    "hotMatches": {
+      "title": "🔥 今日热门对战",
+      "subtitle": "过去24小时最热门的5场对战",
+      "last24Hours": "过去24小时",
+      "updatedAt": "更新于 {0} UTC",
+      "listAriaLabel": "过去24小时最热门的5场对战",
+      "openMatchAria": "打开 {0} 对阵 {1} 的对战，场次 {2}",
+      "scoreAria": "{0} 比 {1}",
+      "hotScore": "热度分 {0}",
+      "waiting": "等待下一场热门对战",
+      "disclaimer": "娱乐与市场数据，不构成金融建议。",
+      "noLastGoal": "最近得分：暂无",
+      "lastGoal": "最近得分发生于 {0} 前",
+      "status": {
+        "live": "实时",
+        "closing": "即将结束",
+        "final": "终场",
+        "scheduled": "待开始",
+        "cancelled": "已取消"
+      },
+      "temperature": {
+        "cold": "冷门",
+        "warm": "升温",
+        "hot": "热门",
+        "explosive": "火爆",
+        "historic": "历史级"
+      },
+      "balance": {
+        "tied": "完全平局",
+        "veryClose": "非常接近",
+        "close": "比分接近",
+        "clearLead": "优势明显"
+      }
     }
   },
+  
   "stats": {
     "seo": {
       "title": "CriptoVersus 数据 - 公开加密货币对战排名",

@@ -1016,8 +1016,43 @@
         "lastChecked": "Última checagem UTC",
         "marketCapRank": "Ranking de market cap",
         "memeCoin": "Moeda meme"
+      },
+      "hotMatches": {
+        "title": "🔥 Hot Matches do Dia",
+        "subtitle": "As 5 batalhas mais quentes das últimas 24 horas",
+        "last24Hours": "Últimas 24h",
+        "updatedAt": "Atualizado às {0} UTC",
+        "listAriaLabel": "Top 5 batalhas mais quentes das últimas 24 horas",
+        "openMatchAria": "Abrir confronto entre {0} e {1}, partida {2}",
+        "scoreAria": "{0} a {1}",
+        "hotScore": "HotScore {0}",
+        "waiting": "Aguardando a próxima batalha quente",
+        "disclaimer": "Entretenimento + dados de mercado. Não é recomendação financeira.",
+        "noLastGoal": "Último gol: nenhum",
+        "lastGoal": "Último gol há {0}",
+        "status": {
+          "live": "AO VIVO",
+          "closing": "ENCERRANDO",
+          "final": "FINAL",
+          "scheduled": "AGENDADA",
+          "cancelled": "CANCELADA"
+        },
+        "temperature": {
+          "cold": "Fria",
+          "warm": "Morna",
+          "hot": "Quente",
+          "explosive": "Explosiva",
+          "historic": "Histórica"
+        },
+        "balance": {
+          "tied": "Empate total",
+          "veryClose": "Muito equilibrado",
+          "close": "Equilibrado",
+          "clearLead": "Vantagem clara"
+        }
       }
     },
+ 
     "investment": {
       "eyebrow": "Selecao ao vivo",
       "title": "Escolher {0}",
