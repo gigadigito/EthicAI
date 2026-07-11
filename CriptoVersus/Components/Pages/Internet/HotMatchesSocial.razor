@@ -15,8 +15,7 @@
 @inject IConfiguration Config
 @inject MatchSlugHelper MatchSlugHelper
 @inject ILogger<HotMatchesSocial> Logger
-@rendermode InteractiveServer
-@implements IAsyncDisposable
+@rendermode @(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>@PageTitleText</PageTitle>
 <HeadContent>
@@ -747,7 +746,11 @@
 </style>
 
 
-<main id="hot-matches-social-card" class="hot-matches-social" aria-labelledby="hot-matches-social-title">
+<main id="hot-matches-social-card"
+      class="hot-matches-social"
+      data-loading="@_loading.ToString().ToLowerInvariant()"
+      data-ready="@((!_loading).ToString().ToLowerInvariant())"
+      aria-labelledby="hot-matches-social-title">
     <div class="hot-matches-social__backdrop" aria-hidden="true"></div>
 
     <section class="hot-matches-social__card" aria-label="@PageTitleText">
@@ -927,22 +930,12 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // A rota já informa a cultura quando usa /pt, /en ou /zh.
+        // Não fazemos NavigateTo aqui: redirecionar durante OnParametersSetAsync
+        // pode criar um ciclo de navegação/hidratação no Interactive Server.
         _resolvedCulture = !string.IsNullOrWhiteSpace(Culture)
             ? AppCulture.NormalizeRouteCulture(Culture)
             : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
-
-        var expectedPath = RouteLocalization.BuildHotMatchesSocialPath(_resolvedCulture);
-        var currentRelativePath = Nav.ToBaseRelativePath(Nav.Uri);
-        var currentPath = "/" + currentRelativePath.Split('?', '#')[0].Trim('/');
-        var querySuffix = currentRelativePath.Contains('?')
-            ? currentRelativePath[currentRelativePath.IndexOf('?')..]
-            : string.Empty;
-
-        if (!PathsEquivalent(currentPath, expectedPath))
-        {
-            Nav.NavigateTo(expectedPath + querySuffix, replace: true);
-            return;
-        }
 
         var nextLoadKey = $"{_resolvedCulture}|{WindowHours}|{DisplayLimit}";
         if (string.Equals(nextLoadKey, _loadKey, StringComparison.Ordinal))
@@ -950,11 +943,6 @@
 
         _loadKey = nextLoadKey;
         await LoadAsync();
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        await Task.CompletedTask;
     }
 
     private async Task LoadAsync()
@@ -965,9 +953,24 @@
 
         try
         {
-            var feed = await HotMatches.GetHotMatchesAsync() ?? [];
-            var ranked = HotMatchesSocialCardRules.RankCandidates(feed, WindowHours, DisplayLimit, DateTime.UtcNow);
-            _rankedMatches = ranked;
+            // Impede que uma chamada externa travada mantenha a página carregando
+            // indefinidamente. Como o prerender está desativado, o HTML inicial
+            // aparece imediatamente e o feed é preenchido após a conexão Blazor.
+            var feedTask = HotMatches.GetHotMatchesAsync();
+            var completedTask = await Task.WhenAny(
+                feedTask,
+                Task.Delay(TimeSpan.FromSeconds(20)));
+
+            if (completedTask != feedTask)
+                throw new TimeoutException("Timeout ao carregar os Hot Matches.");
+
+            var feed = await feedTask ?? [];
+            _rankedMatches = HotMatchesSocialCardRules.RankCandidates(
+                feed,
+                WindowHours,
+                DisplayLimit,
+                DateTime.UtcNow);
+
             _updatedAtUtc = DateTime.UtcNow;
         }
         catch (Exception ex)
@@ -1053,23 +1056,5 @@
     private string T(string key, params object?[] args)
         => L.T(key, ResolvedCulture, args);
 
-    private static bool PathsEquivalent(string left, string right)
-        => SafeUnescape(left).Equals(SafeUnescape(right), StringComparison.OrdinalIgnoreCase);
 
-    private static string SafeUnescape(string value)
-    {
-        try
-        {
-            return Uri.UnescapeDataString(value);
-        }
-        catch
-        {
-            return value;
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await Task.CompletedTask;
-    }
 }
