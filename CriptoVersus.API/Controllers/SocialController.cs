@@ -47,7 +47,244 @@ public sealed class SocialController : ControllerBase
         var items = await _socialAutomationService.GetHotMatchesAsync(ct);
         return Ok(items);
     }
+    // ==========================================================
+    // GET /api/social/hot-matches/daily?hours=24&take=100
+    //
+    // Candidatos exclusivos para o ranking "Hot Matches do Dia".
+    // Inclui partidas ativas e encerradas na janela informada.
+    // Não altera o endpoint /api/social/hot-matches existente.
+    // ==========================================================
+    [AllowAnonymous]
+    [HttpGet("hot-matches/daily")]
+    public async Task<ActionResult<IReadOnlyList<MatchDto>>> GetDailyHotMatchCandidates(
+        [FromQuery] int hours = 24,
+        [FromQuery] int take = 100,
+        CancellationToken ct = default)
+    {
+        var startedAtUtc = DateTime.UtcNow;
 
+        hours = Math.Clamp(hours, 1, 72);
+        take = Math.Clamp(take, 1, 500);
+
+        var nowUtc = DateTime.UtcNow;
+        var cutoffUtc = nowUtc.AddHours(-hours);
+
+        var matches = await _db.Set<Match>()
+            .AsNoTracking()
+            .Include(m => m.TeamA)
+                .ThenInclude(t => t.Currency)
+            .Include(m => m.TeamB)
+                .ThenInclude(t => t.Currency)
+            .Include(m => m.WinnerTeam)
+                .ThenInclude(t => t!.Currency)
+            .Where(m =>
+                m.Status != MatchStatus.Cancelled &&
+                m.ScoreA + m.ScoreB > 0 &&
+                (
+                    // Partida encerrada dentro da janela.
+                    (
+                        m.EndTime.HasValue &&
+                        m.EndTime.Value >= cutoffUtc &&
+                        m.EndTime.Value <= nowUtc
+                    )
+
+                    ||
+
+                    // Partida ainda sem EndTime, iniciada dentro da janela.
+                    (
+                        !m.EndTime.HasValue &&
+                        m.StartTime.HasValue &&
+                        m.StartTime.Value >= cutoffUtc &&
+                        m.StartTime.Value <= nowUtc
+                    )
+                ))
+            .OrderByDescending(m => m.EndTime ?? m.StartTime ?? DateTime.MinValue)
+            .ThenByDescending(m => m.ScoreA + m.ScoreB)
+            .Take(take)
+            .ToListAsync(ct);
+
+        matches = matches
+            .Where(m => !MatchPairRules.IsForbiddenPair(
+                m.TeamA?.Currency?.Symbol,
+                m.TeamB?.Currency?.Symbol,
+                _configuration))
+            .ToList();
+
+        if (matches.Count == 0)
+        {
+            _logger.LogInformation(
+                "[SOCIAL_DAILY_HOT_MATCHES] No candidates. Hours={Hours} CutoffUtc={CutoffUtc:o}",
+                hours,
+                cutoffUtc);
+
+            return Ok(Array.Empty<MatchDto>());
+        }
+
+        var matchIds = matches
+            .Select(m => m.MatchId)
+            .ToList();
+
+        var aggregates = await _db.Set<Bet>()
+            .AsNoTracking()
+            .Where(b => matchIds.Contains(b.MatchId))
+            .GroupBy(b => new
+            {
+                b.MatchId,
+                b.TeamId
+            })
+            .Select(g => new DailyHotMatchSideAggregate
+            {
+                MatchId = g.Key.MatchId,
+                TeamId = g.Key.TeamId,
+                TotalAmount = g.Sum(x => x.Amount),
+                BetCount = g.Count(),
+                WalletCount = g
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .Count()
+            })
+            .ToListAsync(ct);
+
+        var items = matches
+            .Select(match =>
+            {
+                var teamA = match.TeamA?.Currency;
+                var teamB = match.TeamB?.Currency;
+                var winner = match.WinnerTeam?.Currency;
+
+                var teamAStats = aggregates.FirstOrDefault(x =>
+                    x.MatchId == match.MatchId &&
+                    x.TeamId == match.TeamAId);
+
+                var teamBStats = aggregates.FirstOrDefault(x =>
+                    x.MatchId == match.MatchId &&
+                    x.TeamId == match.TeamBId);
+
+                var totalAmountTeamA = teamAStats?.TotalAmount ?? 0m;
+                var totalAmountTeamB = teamBStats?.TotalAmount ?? 0m;
+
+                var walletCountTeamA = teamAStats?.WalletCount ?? 0;
+                var walletCountTeamB = teamBStats?.WalletCount ?? 0;
+
+                var betCountTeamA = teamAStats?.BetCount ?? 0;
+                var betCountTeamB = teamBStats?.BetCount ?? 0;
+
+                var totalPool = totalAmountTeamA + totalAmountTeamB;
+                var totalWalletCount = walletCountTeamA + walletCountTeamB;
+
+                var finished =
+                    match.Status is MatchStatus.Completed or MatchStatus.Cancelled ||
+                    match.EndTime.HasValue;
+
+                var elapsedMinutes = 0;
+
+                if (match.StartTime.HasValue)
+                {
+                    var referenceTime = match.EndTime ?? nowUtc;
+
+                    elapsedMinutes = (int)Math.Max(
+                        0,
+                        (referenceTime - match.StartTime.Value).TotalMinutes);
+                }
+
+                var effectiveWinnerTeamId = match.WinnerTeamId;
+
+                if (!effectiveWinnerTeamId.HasValue &&
+                    match.Status == MatchStatus.Completed)
+                {
+                    effectiveWinnerTeamId = match.ScoreA > match.ScoreB
+                        ? match.TeamAId
+                        : match.ScoreB > match.ScoreA
+                            ? match.TeamBId
+                            : null;
+                }
+
+                return new MatchDto
+                {
+                    MatchId = match.MatchId,
+
+                    TeamA = teamA?.Symbol ?? $"Team#{match.TeamAId}",
+                    TeamB = teamB?.Symbol ?? $"Team#{match.TeamBId}",
+
+                    TeamAId = match.TeamAId,
+                    TeamBId = match.TeamBId,
+
+                    ScoreA = match.ScoreA,
+                    ScoreB = match.ScoreB,
+
+                    Status = match.Status.ToString(),
+                    StartTime = match.StartTime,
+                    EndTime = match.EndTime,
+
+                    ElapsedMinutes = elapsedMinutes,
+                    RemainingMinutes = finished ? 0 : Math.Max(0, 90 - elapsedMinutes),
+                    IsFinished = finished,
+
+                    PctA = (decimal?)teamA?.PercentageChange,
+                    PctB = (decimal?)teamB?.PercentageChange,
+
+                    QuoteVolumeA = teamA?.QuoteVolume,
+                    QuoteVolumeB = teamB?.QuoteVolume,
+
+                    ScoringRuleType = match.ScoringRuleType.ToString(),
+
+                    WinnerTeamId = effectiveWinnerTeamId,
+                    WinnerTeamSymbol =
+                        winner?.Symbol ??
+                        (
+                            effectiveWinnerTeamId == match.TeamAId
+                                ? teamA?.Symbol
+                                : effectiveWinnerTeamId == match.TeamBId
+                                    ? teamB?.Symbol
+                                    : null
+                        ),
+
+                    TotalAmountTeamA = totalAmountTeamA,
+                    TotalAmountTeamB = totalAmountTeamB,
+
+                    WalletCountTeamA = walletCountTeamA,
+                    WalletCountTeamB = walletCountTeamB,
+
+                    BetCountTeamA = betCountTeamA,
+                    BetCountTeamB = betCountTeamB,
+
+                    TotalPool = totalPool,
+                    TotalPoolAmount = totalPool,
+                    TotalWalletCount = totalWalletCount,
+
+                    HasBetsOnBothSides =
+                        totalAmountTeamA > 0m &&
+                        totalAmountTeamB > 0m &&
+                        walletCountTeamA > 0 &&
+                        walletCountTeamB > 0,
+
+                    PoolStrengthTeamA = CalculateDailyPoolStrength(
+                        walletCountTeamA,
+                        totalWalletCount,
+                        totalAmountTeamA,
+                        totalPool),
+
+                    PoolStrengthTeamB = CalculateDailyPoolStrength(
+                        walletCountTeamB,
+                        totalWalletCount,
+                        totalAmountTeamB,
+                        totalPool),
+
+                    Participants = []
+                };
+            })
+            .ToList();
+
+        _logger.LogInformation(
+            "[SOCIAL_DAILY_HOT_MATCHES] Hours={Hours} CutoffUtc={CutoffUtc:o} SourceCount={SourceCount} ResultCount={ResultCount} ElapsedMs={ElapsedMs}",
+            hours,
+            cutoffUtc,
+            matches.Count,
+            items.Count,
+            (DateTime.UtcNow - startedAtUtc).TotalMilliseconds);
+
+        return Ok(items);
+    }
     [AllowAnonymous]
     [HttpGet("matches/{matchId:int}/goal-logs")]
     public async Task<ActionResult<IReadOnlyList<SocialGoalLogDto>>> GetGoalLogs(int matchId, CancellationToken ct)
@@ -365,7 +602,44 @@ public sealed class SocialController : ControllerBase
         error = Ok();
         return true;
     }
+    private static int CalculateDailyPoolStrength(
+    int walletCountTeam,
+    int totalWalletCount,
+    decimal totalAmountTeam,
+    decimal totalPoolAmount)
+    {
+        const decimal walletWeight = 0.5m;
+        const decimal amountWeight = 0.5m;
 
+        var walletShare = totalWalletCount > 0
+            ? (decimal)walletCountTeam / totalWalletCount
+            : 0m;
+
+        var amountShare = totalPoolAmount > 0m
+            ? totalAmountTeam / totalPoolAmount
+            : 0m;
+
+        var strength =
+            (walletShare * walletWeight + amountShare * amountWeight) * 100m;
+
+        return (int)Math.Clamp(
+            Math.Round(strength, MidpointRounding.AwayFromZero),
+            0m,
+            100m);
+    }
+
+    private sealed class DailyHotMatchSideAggregate
+    {
+        public int MatchId { get; init; }
+
+        public int TeamId { get; init; }
+
+        public decimal TotalAmount { get; init; }
+
+        public int BetCount { get; init; }
+
+        public int WalletCount { get; init; }
+    }
     private static CoinSocialProfileDto ToDto(CoinSocialProfile entity) => new()
     {
         Id = entity.Id,

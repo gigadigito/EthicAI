@@ -166,7 +166,21 @@ public sealed class CriptoVersusApiClient
 
     public async Task<List<SocialHotMatchDto>?> GetSocialHotMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<SocialHotMatchDto>>("api/social/hot-matches", ct);
+    public async Task<List<MatchDto>?> GetDailyHotMatchCandidatesAsync(
+    int hours = 24,
+    int take = 100,
+    CancellationToken ct = default)
+    {
+        var safeHours = Math.Clamp(hours, 1, 72);
+        var safeTake = Math.Clamp(take, 1, 500);
 
+        var path =
+            $"api/social/hot-matches/daily" +
+            $"?hours={safeHours}" +
+            $"&take={safeTake}";
+
+        return await GetFromJsonWithBearerAsync<List<MatchDto>>(path, ct);
+    }
     public async Task<TvHotMatchDto?> GetTvHotMatchAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<TvHotMatchDto>("api/tv/hot-match", ct);
 
