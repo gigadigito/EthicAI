@@ -5,7 +5,7 @@
 @using System.Text.Json
 @using DTOs
 @using CriptoVersus.Web.Services
-@inject HotMatchService HotMatches
+@inject DailyHotMatchesService DailyHotMatches
 @inject CriptoVersusApiClient Api
 @inject RouteLocalizationService RouteLocalization
 @inject AppCultureService AppCulture
@@ -953,30 +953,29 @@
 
         try
         {
-            // Impede que uma chamada externa travada mantenha a página carregando
-            // indefinidamente. Como o prerender está desativado, o HTML inicial
-            // aparece imediatamente e o feed é preenchido após a conexão Blazor.
-            var feedTask = HotMatches.GetHotMatchesAsync();
+            var loadTask = DailyHotMatches.GetTopMatchesAsync(
+                WindowHours,
+                DisplayLimit);
+
             var completedTask = await Task.WhenAny(
-                feedTask,
+                loadTask,
                 Task.Delay(TimeSpan.FromSeconds(20)));
 
-            if (completedTask != feedTask)
-                throw new TimeoutException("Timeout ao carregar os Hot Matches.");
+            if (completedTask != loadTask)
+                throw new TimeoutException("Timeout ao carregar os Hot Matches do dia.");
 
-            var feed = await feedTask ?? [];
-            _rankedMatches = HotMatchesSocialCardRules.RankCandidates(
-                feed,
-                WindowHours,
-                DisplayLimit,
-                DateTime.UtcNow);
-
+            _rankedMatches = await loadTask;
             _updatedAtUtc = DateTime.UtcNow;
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Logger.LogWarning(ex, "Hot matches social card load failed.");
+
+            Logger.LogWarning(
+                ex,
+                "Daily hot matches social card load failed. WindowHours={WindowHours} DisplayLimit={DisplayLimit}",
+                WindowHours,
+                DisplayLimit);
         }
         finally
         {
