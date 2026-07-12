@@ -1,4 +1,4 @@
-﻿@page "/stats"
+@page "/stats"
 @page "/en/stats"
 @page "/pt/estatisticas"
 @page "/zh/stats"
@@ -222,94 +222,116 @@
             </article>
         </section>
 
-        <section class="stats-table-section">
+                <section class="stats-table-section" aria-labelledby="stats-ranking-heading">
             <div class="stats-section-head">
                 <div>
                     <span>@T("ranking.eyebrow")</span>
-                    <h2>@T("ranking.title")</h2>
+                    <h2 id="stats-ranking-heading">@T("ranking.title")</h2>
                 </div>
                 <p>@T("ranking.description")</p>
             </div>
-            <div class="stats-table-wrap">
+
+            @if (_rankingLoading)
+            {
+                <section class="stats-feedback stats-feedback--inline stats-table-feedback" aria-live="polite">
+                    <div class="stats-spinner" aria-hidden="true"></div>
+                    <div>
+                        <strong>@T("states.loadingTitle")</strong>
+                        <p>@T("states.loadingBody")</p>
+                    </div>
+                </section>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_rankingError))
+            {
+                <section class="stats-feedback stats-feedback--error stats-feedback--inline stats-table-feedback" role="alert">
+                    <div>
+                        <strong>@T("states.errorTitle")</strong>
+                        <p>@_rankingError</p>
+                    </div>
+                </section>
+            }
+
+            <div class="stats-table-wrap" aria-busy="@_rankingLoading">
                 <table class="stats-table">
                     <thead>
                         <tr>
-                            <th aria-sort="@GetAriaSort("rank")">
+                            <th aria-sort="@GetRankingAriaSort("rank")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("rank")"
-                                        @onclick='() => SortRanking("rank")'>
+                                        class="@GetRankingSortButtonClass("rank")"
+                                        @onclick='args => SortRankingAsync("rank", args)'>
                                     <span>@T("ranking.columns.rank")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("rank")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("rank")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("asset")">
+                            <th aria-sort="@GetRankingAriaSort("asset")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("asset")"
-                                        @onclick='() => SortRanking("asset")'>
+                                        class="@GetRankingSortButtonClass("asset")"
+                                        @onclick='args => SortRankingAsync("asset", args)'>
                                     <span>@T("ranking.columns.asset")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("asset")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("asset")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("matches")">
+                            <th aria-sort="@GetRankingAriaSort("matches")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("matches")"
-                                        @onclick='() => SortRanking("matches")'>
+                                        class="@GetRankingSortButtonClass("matches")"
+                                        @onclick='args => SortRankingAsync("matches", args)'>
                                     <span>@T("ranking.columns.matches")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("matches")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("matches")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("wins")">
+                            <th aria-sort="@GetRankingAriaSort("wins")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("wins")"
-                                        @onclick='() => SortRanking("wins")'>
+                                        class="@GetRankingSortButtonClass("wins")"
+                                        @onclick='args => SortRankingAsync("wins", args)'>
                                     <span>@T("ranking.columns.wins")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("wins")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("wins")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("losses")">
+                            <th aria-sort="@GetRankingAriaSort("losses")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("losses")"
-                                        @onclick='() => SortRanking("losses")'>
+                                        class="@GetRankingSortButtonClass("losses")"
+                                        @onclick='args => SortRankingAsync("losses", args)'>
                                     <span>@T("ranking.columns.losses")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("losses")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("losses")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("winRate")">
+                            <th aria-sort="@GetRankingAriaSort("winRate")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("winRate")"
-                                        @onclick='() => SortRanking("winRate")'>
+                                        class="@GetRankingSortButtonClass("winRate")"
+                                        @onclick='args => SortRankingAsync("winRate", args)'>
                                     <span>@T("ranking.columns.winRate")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("winRate")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("winRate")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("averageScore")">
+                            <th aria-sort="@GetRankingAriaSort("averageScore")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("averageScore")"
-                                        @onclick='() => SortRanking("averageScore")'>
+                                        class="@GetRankingSortButtonClass("averageScore")"
+                                        @onclick='args => SortRankingAsync("averageScore", args)'>
                                     <span>@T("ranking.columns.averageScore")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("averageScore")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("averageScore")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("totalScore")">
+                            <th aria-sort="@GetRankingAriaSort("totalScore")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("totalScore")"
-                                        @onclick='() => SortRanking("totalScore")'>
+                                        class="@GetRankingSortButtonClass("totalScore")"
+                                        @onclick='args => SortRankingAsync("totalScore", args)'>
                                     <span>@T("ranking.columns.totalScore")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("totalScore")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("totalScore")</span>
                                 </button>
                             </th>
-                            <th aria-sort="@GetAriaSort("lastMatch")">
+                            <th aria-sort="@GetRankingAriaSort("lastMatch")">
                                 <button type="button"
-                                        class="@GetSortButtonClass("lastMatch")"
-                                        @onclick='() => SortRanking("lastMatch")'>
+                                        class="@GetRankingSortButtonClass("lastMatch")"
+                                        @onclick='args => SortRankingAsync("lastMatch", args)'>
                                     <span>@T("ranking.columns.lastMatch")</span>
-                                    <span class="stats-sort-indicator" aria-hidden="true">@GetSortIndicator("lastMatch")</span>
+                                    <span class="stats-sort-indicator" aria-hidden="true">@GetRankingSortIndicatorMarkup("lastMatch")</span>
                                 </button>
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (_stats.TopTeams.Count == 0)
+                        @if (_rankingItems.Count == 0)
                         {
                             <tr>
                                 <td colspan="9" class="stats-table__empty">@T("ranking.empty")</td>
@@ -317,7 +339,7 @@
                         }
                         else
                         {
-                            @foreach (var team in SortedTopTeams)
+                            @foreach (var team in _rankingItems)
                             {
                                 var assetView = BuildAssetView(team.Symbol, team.DisplayName, team.Matches);
                                 <tr>
@@ -357,9 +379,39 @@
                     </tbody>
                 </table>
             </div>
-        </section>
 
-        <section class="stats-table-section">
+            <div class="stats-ranking-pagination">
+                <button type="button"
+                        class="stats-ranking-pagination__button"
+                        @onclick="PreviousRankingPageAsync"
+                        disabled="@(!_rankingCanGoPrevious)">
+                    Anterior
+                </button>
+                <span class="stats-ranking-pagination__page">
+                    @RankingPageLabel
+                </span>
+                <button type="button"
+                        class="stats-ranking-pagination__button"
+                        @onclick="NextRankingPageAsync"
+                        disabled="@(!_rankingCanGoNext)">
+                    Próxima
+                </button>
+                <label class="stats-ranking-pagination__size" for="stats-ranking-page-size">
+                    Page size
+                </label>
+                <select id="stats-ranking-page-size"
+                        class="stats-ranking-pagination__select"
+                        value="@_rankingPageSize"
+                        @onchange="OnRankingPageSizeChanged"
+                        disabled="@_rankingLoading">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </section>
+<section class="stats-table-section">
             <div class="stats-section-head">
                 <div>
                     <span>@T("latest.eyebrow")</span>
@@ -506,13 +558,19 @@
     private const string ActivityChartId = "stats-activity-chart";
 
     private readonly StatsOverviewDto _stats = new();
+    private readonly List<StatsArenaTeamDto> _rankingItems = [];
+    private readonly List<RankingSortRule> _rankingSortRules = [];
     private bool _loading = true;
     private bool _chartsPendingRender;
+    private bool _rankingLoading = true;
     private string? _error;
+    private string? _rankingError;
     private string _searchInput = string.Empty;
     private string _appliedSearch = string.Empty;
-    private string _rankingSortColumn = "rank";
-    private bool _rankingSortDescending;
+    private int _rankingPage = 1;
+    private int _rankingPageSize = 25;
+    private int _rankingTotalItems;
+    private int _rankingTotalPages;
     private CancellationTokenSource? _searchDebounceCts;
 
     private string CurrentCulture => !string.IsNullOrWhiteSpace(Culture)
@@ -561,117 +619,11 @@
             .Select(team => BuildAssetView(team.Symbol, team.DisplayName, team.Matches))
             .ToList();
 
-    private IReadOnlyList<StatsAssetPerformanceDto> SortedTopTeams
-    {
-        get
-        {
-            IEnumerable<StatsAssetPerformanceDto> query = _stats.TopTeams;
-
-            query = _rankingSortColumn switch
-            {
-                "asset" => _rankingSortDescending
-                    ? query.OrderByDescending(team => CleanAssetSymbol(team.Symbol), StringComparer.OrdinalIgnoreCase)
-                        .ThenByDescending(team => team.Rank)
-                    : query.OrderBy(team => CleanAssetSymbol(team.Symbol), StringComparer.OrdinalIgnoreCase)
-                        .ThenBy(team => team.Rank),
-
-                "matches" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.Matches)
-                        .ThenByDescending(team => team.Wins)
-                        .ThenBy(team => team.Symbol, StringComparer.OrdinalIgnoreCase)
-                    : query.OrderBy(team => team.Matches)
-                        .ThenBy(team => team.Wins)
-                        .ThenBy(team => team.Symbol, StringComparer.OrdinalIgnoreCase),
-
-                "wins" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.Wins)
-                        .ThenByDescending(team => team.WinRate)
-                        .ThenByDescending(team => team.TotalScore)
-                    : query.OrderBy(team => team.Wins)
-                        .ThenBy(team => team.WinRate)
-                        .ThenBy(team => team.TotalScore),
-
-                "losses" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.Losses)
-                        .ThenByDescending(team => team.Matches)
-                    : query.OrderBy(team => team.Losses)
-                        .ThenBy(team => team.Matches),
-
-                "winRate" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.WinRate)
-                        .ThenByDescending(team => team.Wins)
-                        .ThenByDescending(team => team.Matches)
-                    : query.OrderBy(team => team.WinRate)
-                        .ThenBy(team => team.Wins)
-                        .ThenBy(team => team.Matches),
-
-                "averageScore" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.AverageScore)
-                        .ThenByDescending(team => team.TotalScore)
-                    : query.OrderBy(team => team.AverageScore)
-                        .ThenBy(team => team.TotalScore),
-
-                "totalScore" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.TotalScore)
-                        .ThenByDescending(team => team.AverageScore)
-                    : query.OrderBy(team => team.TotalScore)
-                        .ThenBy(team => team.AverageScore),
-
-                "lastMatch" => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.LastMatchUtc ?? DateTime.MinValue)
-                        .ThenByDescending(team => team.Rank)
-                    : query.OrderBy(team => team.LastMatchUtc ?? DateTime.MinValue)
-                        .ThenBy(team => team.Rank),
-
-                _ => _rankingSortDescending
-                    ? query.OrderByDescending(team => team.Rank)
-                    : query.OrderBy(team => team.Rank)
-            };
-
-            return query.ToList();
-        }
-    }
-
-    private void SortRanking(string column)
-    {
-        if (string.Equals(_rankingSortColumn, column, StringComparison.Ordinal))
-        {
-            _rankingSortDescending = !_rankingSortDescending;
-            return;
-        }
-
-        _rankingSortColumn = column;
-
-        _rankingSortDescending = column switch
-        {
-            "rank" => false,
-            "asset" => false,
-            _ => true
-        };
-    }
-
-    private string GetSortIndicator(string column)
-    {
-        if (!string.Equals(_rankingSortColumn, column, StringComparison.Ordinal))
-            return "↕";
-
-        return _rankingSortDescending ? "▼" : "▲";
-    }
-
-    private string GetSortButtonClass(string column)
-        => string.Equals(_rankingSortColumn, column, StringComparison.Ordinal)
-            ? "stats-sort-button is-active"
-            : "stats-sort-button";
-
-    private string GetAriaSort(string column)
-    {
-        if (!string.Equals(_rankingSortColumn, column, StringComparison.Ordinal))
-            return "none";
-
-        return _rankingSortDescending
-            ? "descending"
-            : "ascending";
-    }
+    private int RankingDisplayPage => _rankingTotalItems == 0 ? 0 : _rankingPage;
+    private int RankingDisplayTotalPages => _rankingTotalItems == 0 ? 0 : Math.Max(1, _rankingTotalPages);
+    private string RankingPageLabel => $"Page {RankingDisplayPage} of {RankingDisplayTotalPages}";
+    private bool _rankingCanGoPrevious => !_rankingLoading && _rankingTotalItems > 0 && _rankingPage > 1;
+    private bool _rankingCanGoNext => !_rankingLoading && _rankingTotalItems > 0 && _rankingPage < _rankingTotalPages;
 
     protected override async Task OnInitializedAsync()
     {
@@ -692,6 +644,12 @@
     }
 
     private async Task LoadAsync()
+    {
+        await LoadOverviewAsync();
+        await LoadRankingAsync(resetPage: true);
+    }
+
+    private async Task LoadOverviewAsync()
     {
         _loading = true;
         _error = null;
@@ -721,13 +679,57 @@
         catch (Exception ex)
         {
             _error = T("states.errorBody");
-
             Console.WriteLine($"Stats page load error: {ex.Message}");
         }
         finally
         {
             _loading = false;
             _chartsPendingRender = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadRankingAsync(bool resetPage = false)
+    {
+        if (resetPage)
+            _rankingPage = 1;
+
+        _rankingLoading = true;
+        _rankingError = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var response = await Api.GetStatsTeamsAsync(
+                _appliedSearch,
+                _rankingPage,
+                _rankingPageSize,
+                BuildRankingSortQuery());
+
+            if (response is null)
+            {
+                _rankingItems.Clear();
+                _rankingTotalItems = 0;
+                _rankingTotalPages = 0;
+                _rankingError = T("states.errorBody");
+                return;
+            }
+
+            _rankingItems.Clear();
+            _rankingItems.AddRange(response.Items ?? []);
+            _rankingPage = response.Page;
+            _rankingPageSize = response.PageSize;
+            _rankingTotalItems = response.TotalItems;
+            _rankingTotalPages = response.TotalPages;
+        }
+        catch (Exception ex)
+        {
+            _rankingError = T("states.errorBody");
+            Console.WriteLine($"Stats ranking load error: {ex.Message}");
+        }
+        finally
+        {
+            _rankingLoading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -769,9 +771,152 @@
         _appliedSearch = normalized;
         var nextUri = Nav.GetUriWithQueryParameter("search", string.IsNullOrWhiteSpace(normalized) ? null : normalized);
         Nav.NavigateTo(nextUri, replace: true);
-        await LoadAsync();
+        await LoadOverviewAsync();
+        await LoadRankingAsync(resetPage: true);
     }
 
+    private async Task SortRankingAsync(string column, MouseEventArgs args)
+    {
+        if (!TryNormalizeRankingColumn(column, out var normalizedColumn))
+            return;
+
+        UpdateRankingSortRules(normalizedColumn, args.ShiftKey);
+        await LoadRankingAsync(resetPage: true);
+    }
+
+    private async Task PreviousRankingPageAsync()
+    {
+        if (!_rankingCanGoPrevious)
+            return;
+
+        _rankingPage--;
+        await LoadRankingAsync();
+    }
+
+    private async Task NextRankingPageAsync()
+    {
+        if (!_rankingCanGoNext)
+            return;
+
+        _rankingPage++;
+        await LoadRankingAsync();
+    }
+
+    private async Task OnRankingPageSizeChanged(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), out var pageSize))
+            return;
+
+        pageSize = Math.Clamp(pageSize, 10, 100);
+        if (pageSize == _rankingPageSize)
+            return;
+
+        _rankingPageSize = pageSize;
+        await LoadRankingAsync(resetPage: true);
+    }
+
+    private string BuildRankingSortQuery()
+        => _rankingSortRules.Count == 0
+            ? string.Empty
+            : string.Join(",", _rankingSortRules.Select(rule => $"{rule.Column}:{(rule.Descending ? "desc" : "asc")}"));
+
+    private static bool TryNormalizeRankingColumn(string column, out string normalizedColumn)
+    {
+        normalizedColumn = column.Trim().ToLowerInvariant();
+        return normalizedColumn switch
+        {
+            "rank" => true,
+            "asset" => true,
+            "matches" => true,
+            "wins" => true,
+            "losses" => true,
+            "winrate" => true,
+            "averagescore" => true,
+            "totalscore" => true,
+            "lastmatch" => true,
+            _ => false
+        };
+    }
+
+    private void UpdateRankingSortRules(string column, bool additive)
+    {
+        if (!additive)
+        {
+            var existingSortRule = _rankingSortRules.FirstOrDefault(rule => string.Equals(rule.Column, column, StringComparison.OrdinalIgnoreCase));
+            if (existingSortRule is not null)
+            {
+                var nextDescending = !existingSortRule.Descending;
+                _rankingSortRules.Clear();
+                _rankingSortRules.Add(new RankingSortRule
+                {
+                    Column = column,
+                    Descending = nextDescending
+                });
+                return;
+            }
+
+            _rankingSortRules.Clear();
+            _rankingSortRules.Add(new RankingSortRule
+            {
+                Column = column,
+                Descending = GetDefaultRankingSortDescending(column)
+            });
+            return;
+        }
+
+        var existing = _rankingSortRules.FirstOrDefault(rule => string.Equals(rule.Column, column, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.Descending = !existing.Descending;
+            return;
+        }
+
+        _rankingSortRules.Add(new RankingSortRule
+        {
+            Column = column,
+            Descending = GetDefaultRankingSortDescending(column)
+        });
+    }
+
+    private static bool GetDefaultRankingSortDescending(string column)
+        => column switch
+        {
+            "rank" => false,
+            "asset" => false,
+            _ => true
+        };
+
+    private MarkupString GetRankingSortIndicatorMarkup(string column)
+    {
+        var index = _rankingSortRules.FindIndex(rule => string.Equals(rule.Column, column, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+            return new MarkupString("&#8645;");
+
+        var arrow = _rankingSortRules[index].Descending ? "&#9660;" : "&#9650;";
+        if (_rankingSortRules.Count > 1)
+            return new MarkupString($"{arrow} <span class=\"stats-sort-priority\">{index + 1}</span>");
+
+        return new MarkupString(arrow);
+    }
+
+    private string GetRankingSortButtonClass(string column)
+        => _rankingSortRules.Any(rule => string.Equals(rule.Column, column, StringComparison.OrdinalIgnoreCase))
+            ? "stats-sort-button is-active"
+            : "stats-sort-button";
+
+    private string GetRankingAriaSort(string column)
+    {
+        var index = _rankingSortRules.FindIndex(rule => string.Equals(rule.Column, column, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+            return "none";
+
+        if (index > 0)
+            return "other";
+
+        return _rankingSortRules[index].Descending
+            ? "descending"
+            : "ascending";
+    }
     private string GetSearchFromUri()
     {
         var uri = new Uri(Nav.Uri);
@@ -1053,6 +1198,12 @@
         public int Matches { get; }
         public string TeamUrl { get; }
         public bool IsLinkEnabled { get; }
+    }
+
+    private sealed class RankingSortRule
+    {
+        public string Column { get; set; } = string.Empty;
+        public bool Descending { get; set; }
     }
 }
 
@@ -1448,6 +1599,21 @@
         text-align: center;
     }
 
+    .stats-sort-priority {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.1rem;
+        margin-left: .12rem;
+        padding: 0 .28rem;
+        border-radius: 999px;
+        background: rgba(var(--team-right-rgb), 0.14);
+        color: var(--team-right);
+        font-size: .66rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
     .stats-sort-button.is-active .stats-sort-indicator {
         color: var(--team-right);
     }
@@ -1480,6 +1646,64 @@
     .stats-table__empty {
         color: var(--stats-muted);
         text-align: center;
+    }
+
+    .stats-table-feedback {
+        margin-bottom: 1rem;
+    }
+
+    .stats-ranking-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: .75rem;
+        margin-top: 1rem;
+    }
+
+    .stats-ranking-pagination__button,
+    .stats-ranking-pagination__select {
+        border: 1px solid rgba(var(--team-right-rgb), 0.22);
+        border-radius: 14px;
+        background: rgba(14, 22, 36, 0.92);
+        color: #e8f2ff;
+        min-height: 2.6rem;
+        padding: .6rem .95rem;
+        outline: none;
+    }
+
+    .stats-ranking-pagination__button {
+        cursor: pointer;
+        font-weight: 700;
+        transition: border-color .18s ease, background-color .18s ease, transform .18s ease, opacity .18s ease;
+    }
+
+        .stats-ranking-pagination__button:hover:not(:disabled),
+        .stats-ranking-pagination__button:focus-visible:not(:disabled) {
+            border-color: rgba(var(--team-right-rgb), 0.42);
+            background: rgba(var(--team-right-rgb), 0.12);
+            transform: translateY(-1px);
+        }
+
+        .stats-ranking-pagination__button:disabled,
+        .stats-ranking-pagination__select:disabled {
+            cursor: not-allowed;
+            opacity: .56;
+        }
+
+    .stats-ranking-pagination__page {
+        color: var(--stats-muted);
+        font-weight: 700;
+    }
+
+    .stats-ranking-pagination__size {
+        color: #dce7f6;
+        font-size: .92rem;
+        font-weight: 700;
+    }
+
+    .stats-ranking-pagination__select {
+        min-width: 6.5rem;
     }
 
     .stats-asset-link,

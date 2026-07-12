@@ -280,7 +280,8 @@ public sealed class SitemapService
         try
         {
             var client = _httpClientFactory.CreateClient("CriptoVersusApi");
-            var teams = await client.GetFromJsonAsync<List<StatsArenaTeamDto>>("api/stats/teams", ct) ?? [];
+            var response = await client.GetFromJsonAsync<PagedResultDto<StatsArenaTeamDto>>("api/stats/teams?page=1&pageSize=100", ct);
+            var teams = response?.Items ?? [];
 
             return teams
                 .Where(team => !string.IsNullOrWhiteSpace(BuildStatsTeamSlug(team)))

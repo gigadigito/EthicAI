@@ -1,4 +1,4 @@
-﻿using DTOs;
+using DTOs;
 using Blazored.SessionStorage;
 using BLL.Positions;
 using System.Collections.Concurrent;
@@ -360,11 +360,36 @@ public sealed class CriptoVersusApiClient
         => await GetStatsTeamsAsync(search: null, ct);
 
     public async Task<List<StatsArenaTeamDto>?> GetStatsTeamsAsync(string? search, CancellationToken ct = default)
-        => await GetFromJsonWithBearerAsync<List<StatsArenaTeamDto>>(
-            string.IsNullOrWhiteSpace(search)
-                ? "api/stats/teams"
-                : $"api/stats/teams?search={Uri.EscapeDataString(search)}",
+    {
+        var response = await GetStatsTeamsAsync(search, page: 1, pageSize: 100, sort: null, ct);
+        return response?.Items;
+    }
+
+    public async Task<PagedResultDto<StatsArenaTeamDto>?> GetStatsTeamsAsync(
+        string? search,
+        int page,
+        int pageSize,
+        string? sort,
+        CancellationToken ct = default)
+    {
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 10, 100);
+        var query = new List<string>
+        {
+            $"page={safePage}",
+            $"pageSize={safePageSize}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query.Add($"search={Uri.EscapeDataString(search)}");
+
+        if (!string.IsNullOrWhiteSpace(sort))
+            query.Add($"sort={Uri.EscapeDataString(sort)}");
+
+        return await GetFromJsonWithBearerAsync<PagedResultDto<StatsArenaTeamDto>>(
+            $"api/stats/teams?{string.Join("&", query)}",
             ct);
+    }
 
     public async Task<StatsArenaTeamDetailDto?> GetStatsTeamDetailAsync(string slug, CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<StatsArenaTeamDetailDto>($"api/stats/teams/{Uri.EscapeDataString(slug)}", ct);
