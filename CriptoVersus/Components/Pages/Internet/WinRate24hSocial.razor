@@ -166,12 +166,12 @@
     .win-rate-24h-social__card {
         position: relative;
         z-index: 1;
-        width: min(100%, 1200px);
+        width: min(100%, 1220px);
         aspect-ratio: 1200 / 675;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr) auto;
-        gap: clamp(14px, 1.4vw, 18px);
-        padding: clamp(18px, 2vw, 28px);
+        gap: 12px;
+        padding: clamp(18px, 1.8vw, 24px);
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.09);
         border-radius: 30px;
@@ -192,8 +192,8 @@
         position: relative;
         z-index: 1;
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        gap: 20px;
+        grid-template-columns: 160px minmax(0, 1fr) 270px;
+        gap: 18px;
         align-items: center;
         min-width: 0;
     }
@@ -242,10 +242,10 @@
             max-width: 100%;
             overflow: hidden;
             color: var(--text-main);
-            font-size: clamp(32px, 4vw, 54px);
+            font-size: clamp(30px, 3.25vw, 44px);
             font-weight: 500;
-            line-height: 0.98;
-            letter-spacing: -0.055em;
+            line-height: 1.04;
+            letter-spacing: -0.045em;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
@@ -253,7 +253,7 @@
         .win-rate-24h-social__title-block p {
             margin: 0;
             color: var(--text-muted);
-            font-size: 15px;
+            font-size: 14px;
             line-height: 1.4;
         }
 
@@ -314,7 +314,7 @@
     .win-rate-24h-social__chart-card {
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
-        gap: 14px;
+        gap: 8px;
         min-height: 0;
     }
 
@@ -341,8 +341,8 @@
     .win-rate-24h-social__rows {
         min-height: 0;
         display: grid;
-        grid-template-rows: repeat(10, minmax(0, 1fr));
-        gap: 10px;
+        grid-template-rows: repeat(10, minmax(44px, 1fr));
+        gap: 6px;
     }
 
     .win-rate-24h-social__row {
@@ -353,10 +353,10 @@
         gap: 14px;
         min-width: 0;
         min-height: 0;
-        padding: 10px 14px;
+        padding: 6px 12px;
         overflow: hidden;
         border: 1px solid var(--line-soft);
-        border-radius: 18px;
+        border-radius: 16px;
         background: linear-gradient(90deg, rgba(var(--brand-crypto-rgb), 0.055), transparent 38%, transparent 62%, rgba(var(--brand-versus-rgb), 0.055)), rgba(8, 12, 18, 0.88);
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
     }
@@ -374,8 +374,8 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
         margin-inline: auto;
         border: 1px solid rgba(255, 255, 255, 0.09);
         border-radius: 50%;
@@ -435,20 +435,33 @@
 
     .win-rate-24h-social__bar-track {
         position: relative;
-        height: 14px;
+        height: 26px;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.075);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.05);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025));
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.42), 0 1px 0 rgba(255, 255, 255, 0.025);
     }
 
     .win-rate-24h-social__bar-fill {
+        position: relative;
         width: var(--win-rate, 0%);
+        min-width: 12px;
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, var(--brand-crypto) 0%, #ffbf73 18%, var(--brand-versus) 100%);
-        box-shadow: 0 0 18px rgba(var(--brand-versus-rgb), 0.16);
+        background: linear-gradient( 90deg, var(--brand-crypto) 0%, #ffc04d 18%, #d7db8f 48%, #74dec0 76%, var(--brand-versus) 100% );
+        box-shadow: 0 0 20px rgba(var(--brand-versus-rgb), 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.50), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
     }
+
+        .win-rate-24h-social__bar-fill::after {
+            content: "";
+            position: absolute;
+            inset: 2px 5px auto;
+            height: 36%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06));
+            pointer-events: none;
+        }
 
     .win-rate-24h-social__footer {
         position: relative;
@@ -468,102 +481,93 @@
         }
 
     @@media (max-width: 980px) {
-        .win-rate-24h-social__card
-
-    {
-        aspect-ratio: auto;
-        min-height: min(calc(100vh - 24px), 675px);
-    }
-
-    .win-rate-24h-social__header {
-        grid-template-columns: 150px minmax(0, 1fr);
-    }
-
-    .win-rate-24h-social__meta {
-        grid-column: 1 / -1;
-        justify-items: start;
-        text-align: left;
-    }
-
-    .win-rate-24h-social__scale,
-    .win-rate-24h-social__row {
-        grid-template-columns: 48px minmax(140px, 190px) minmax(0, 1fr) 108px;
-    }
-
-    }
-
-    @@media (max-width: 680px) {
-        .win-rate-24h-social
-
-    {
-        padding: 8px;
-    }
-
-    .win-rate-24h-social__card {
-        padding: 16px;
-        border-radius: 22px;
-    }
-
-    .win-rate-24h-social__header {
-        grid-template-columns: 1fr;
-        text-align: left;
-    }
-
-    .win-rate-24h-social__title-block {
-        justify-items: start;
-        text-align: left;
-    }
-
-        .win-rate-24h-social__title-block h1 {
-            white-space: normal;
+        .win-rate-24h-social__card {
+            aspect-ratio: auto;
+            min-height: min(calc(100vh - 24px), 675px);
         }
 
-    .win-rate-24h-social__meta {
-        justify-items: start;
-    }
+        .win-rate-24h-social__header {
+            grid-template-columns: 150px minmax(0, 1fr);
+        }
 
-    .win-rate-24h-social__scale,
-    .win-rate-24h-social__row {
-        grid-template-columns: 34px minmax(0, 1fr) 94px;
-        gap: 10px;
-    }
-
-    .win-rate-24h-social__scale {
-        display: none;
-    }
-
-    .win-rate-24h-social__symbol {
-        grid-column: 2 / 3;
-    }
-
-    .win-rate-24h-social__metric {
-        grid-column: 3 / 4;
-    }
-
-    .win-rate-24h-social__bar-track {
-        grid-column: 1 / -1;
-        order: 4;
-    }
-
-    .win-rate-24h-social__footer {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-        .win-rate-24h-social__footer span:last-child {
-            white-space: normal;
+        .win-rate-24h-social__meta {
+            grid-column: 1 / -1;
+            justify-items: start;
             text-align: left;
         }
 
+        .win-rate-24h-social__scale,
+        .win-rate-24h-social__row {
+            grid-template-columns: 48px minmax(140px, 190px) minmax(0, 1fr) 108px;
+        }
+    }
+
+    @@media (max-width: 680px) {
+        .win-rate-24h-social {
+            padding: 8px;
+        }
+
+        .win-rate-24h-social__card {
+            padding: 16px;
+            border-radius: 22px;
+        }
+
+        .win-rate-24h-social__header {
+            grid-template-columns: 1fr;
+            text-align: left;
+        }
+
+        .win-rate-24h-social__title-block {
+            justify-items: start;
+            text-align: left;
+        }
+
+            .win-rate-24h-social__title-block h1 {
+                white-space: normal;
+            }
+
+        .win-rate-24h-social__meta {
+            justify-items: start;
+        }
+
+        .win-rate-24h-social__scale,
+        .win-rate-24h-social__row {
+            grid-template-columns: 34px minmax(0, 1fr) 94px;
+            gap: 10px;
+        }
+
+        .win-rate-24h-social__scale {
+            display: none;
+        }
+
+        .win-rate-24h-social__symbol {
+            grid-column: 2 / 3;
+        }
+
+        .win-rate-24h-social__metric {
+            grid-column: 3 / 4;
+        }
+
+        .win-rate-24h-social__bar-track {
+            grid-column: 1 / -1;
+            order: 4;
+        }
+
+        .win-rate-24h-social__footer {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+            .win-rate-24h-social__footer span:last-child {
+                white-space: normal;
+                text-align: left;
+            }
     }
 
     @@media (prefers-reduced-motion: reduce) {
-        .win-rate-24h-social__bar-fill
-
-    {
-        transition: none !important;
-    }
-
+        .win-rate-24h-social__bar-fill {
+            transition: none !important;
+        }
     }
 </style>
 @code {
