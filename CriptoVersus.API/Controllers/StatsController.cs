@@ -306,7 +306,10 @@ public sealed class StatsController : ControllerBase
             })
             .ToList();
 
-    private List<StatsArenaTeamDto> BuildArenaTeams(List<StatsMatchProjection> matches, int? limit = null, string? search = null)
+    private List<StatsArenaTeamDto> BuildArenaTeams(
+     List<StatsMatchProjection> matches,
+     int? limit = null,
+     string? search = null)
     {
         var completedMatches = matches
             .Where(m => m.Status == MatchStatus.Completed)
@@ -320,55 +323,145 @@ public sealed class StatsController : ControllerBase
         var teamRows = completedMatches
             .SelectMany(match => new[]
             {
-                CreateTeamResult(match, isTeamA: true),
-                CreateTeamResult(match, isTeamA: false)
+            CreateTeamResult(match, isTeamA: true),
+            CreateTeamResult(match, isTeamA: false)
             });
 
-        return teamRows
-            .GroupBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
-            .Where(group => string.IsNullOrWhiteSpace(search)
-                || AssetMatchesSearch(group.First().Symbol, group.First().DisplayName, search.Trim()))
+        var rankedTeams = teamRows
+            .GroupBy(
+                x => x.Symbol,
+                StringComparer.OrdinalIgnoreCase)
+            .Where(group =>
+                string.IsNullOrWhiteSpace(search) ||
+                AssetMatchesSearch(
+                    group.First().Symbol,
+                    group.First().DisplayName,
+                    search.Trim()))
             .Select(group =>
             {
                 var ordered = group
-                    .OrderByDescending(x => x.MatchUtc ?? DateTime.MinValue)
+                    .OrderByDescending(
+                        x => x.MatchUtc ?? DateTime.MinValue)
                     .ToList();
+
+                var first = ordered.First();
 
                 var wins = ordered.Count(x => x.IsWin);
                 var losses = ordered.Count(x => x.IsLoss);
                 var totalMatches = ordered.Count;
                 var totalScore = ordered.Sum(x => x.Score);
-                var winRate = totalMatches == 0 ? 0m : Math.Round((decimal)wins * 100m / totalMatches, 2);
-                var averageScore = totalMatches == 0 ? 0m : Math.Round((decimal)totalScore / totalMatches, 2);
-                var recentMatches = ordered.Count(x => x.MatchUtc.HasValue && x.MatchUtc.Value.Date >= recentCutoffUtc);
-                var displaySymbol = CleanAssetSymbol(group.First().Symbol);
 
-                return new StatsArenaTeamDto
+                var winRate = totalMatches == 0
+                    ? 0m
+                    : Math.Round(
+                        wins * 100m / totalMatches,
+                        2);
+
+                var averageScore = totalMatches == 0
+                    ? 0m
+                    : Math.Round(
+                        (decimal)totalScore / totalMatches,
+                        2);
+
+                var recentMatches = ordered.Count(x =>
+                    x.MatchUtc.HasValue &&
+                    x.MatchUtc.Value.Date >= recentCutoffUtc);
+
+                var displaySymbol =
+                    CleanAssetSymbol(first.Symbol);
+
+                /*
+                 * Reduz o impacto de 100% de aproveitamento com poucas partidas.
+                 *
+                 * Com 15 partidas ou mais, o ativo recebe o peso completo
+                 * da taxa de vitória.
+                 *
+                 * Exemplos:
+                 *  3 partidas  -> peso 0,20
+                 *  4 partidas  -> peso 0,27
+                 * 10 partidas  -> peso 0,67
+                 * 15 partidas  -> peso 1,00
+                 */
+                var sampleWeight = Math.Min(
+                    1m,
+                    totalMatches / 15m);
+
+                var adjustedWinRate =
+                    winRate * sampleWeight;
+
+                /*
+                 * Pontuação usada apenas para ordenar o ranking.
+                 *
+                 * - taxa ajustada: qualidade com confiança na amostra;
+                 * - vitórias: recompensa desempenho sustentado;
+                 * - pontuação total: recompensa produção na arena;
+                 * - média de pontos: pequeno desempate por eficiência.
+                 */
+                var rankingScore =
+                    adjustedWinRate +
+                    wins * 4m +
+                    totalScore * 0.15m +
+                    averageScore * 0.50m;
+
+                var team = new StatsArenaTeamDto
                 {
-                    TeamId = group.First().TeamId,
-                    Symbol = group.First().Symbol,
+                    TeamId = first.TeamId,
+                    Symbol = first.Symbol,
                     DisplaySymbol = displaySymbol,
-                    DisplayName = ordered.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.DisplayName))?.DisplayName ?? group.First().Symbol,
+                    DisplayName = ordered
+                        .FirstOrDefault(x =>
+                            !string.IsNullOrWhiteSpace(x.DisplayName))
+                        ?.DisplayName
+                        ?? first.Symbol,
+
                     Matches = totalMatches,
                     Wins = wins,
                     Losses = losses,
                     WinRate = winRate,
                     AverageScore = averageScore,
                     TotalScore = totalScore,
-                    Momentum = ResolveMomentum(winRate, totalMatches, averageScore, totalScore, recentMatches),
-                    IconUrl = $"/api/icons/binance/{displaySymbol}",
-                    LastMatchUtc = ordered.FirstOrDefault()?.MatchUtc
+
+                    Momentum = ResolveMomentum(
+                        winRate,
+                        totalMatches,
+                        averageScore,
+                        totalScore,
+                        recentMatches),
+
+                    IconUrl =
+                        $"/api/icons/binance/{displaySymbol}",
+
+                    LastMatchUtc =
+                        ordered.FirstOrDefault()?.MatchUtc
+                };
+
+                return new
+                {
+                    Team = team,
+                    RankingScore = rankingScore,
+                    AdjustedWinRate = adjustedWinRate
                 };
             })
-            .OrderByDescending(x => x.WinRate)
-            .ThenByDescending(x => x.Wins)
-            .ThenByDescending(x => x.TotalScore)
-            .ThenBy(x => x.Symbol, StringComparer.OrdinalIgnoreCase)
-            .Take(limit.HasValue ? Math.Max(1, limit.Value) : int.MaxValue)
+            .OrderByDescending(x => x.RankingScore)
+            .ThenByDescending(x => x.Team.Wins)
+            .ThenByDescending(x => x.AdjustedWinRate)
+            .ThenByDescending(x => x.Team.WinRate)
+            .ThenByDescending(x => x.Team.TotalScore)
+            .ThenByDescending(x => x.Team.Matches)
+            .ThenBy(
+                x => x.Team.Symbol,
+                StringComparer.OrdinalIgnoreCase)
+            .Take(
+                limit.HasValue
+                    ? Math.Max(1, limit.Value)
+                    : int.MaxValue)
+            .ToList();
+
+        return rankedTeams
             .Select((item, index) =>
             {
-                item.Rank = index + 1;
-                return item;
+                item.Team.Rank = index + 1;
+                return item.Team;
             })
             .ToList();
     }
