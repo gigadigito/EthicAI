@@ -63,3 +63,32 @@ public sealed class RegisterSocialPostRequest
     public int HotScore { get; set; }
     public string Reason { get; set; } = string.Empty;
 }
+
+public sealed class SocialWinRate24hDto
+{
+    public DateTime GeneratedAtUtc { get; set; }
+    public DateTime FromUtc { get; set; }
+    public DateTime ToUtc { get; set; }
+    public int WindowHours { get; set; }
+    public int MinimumDecisions { get; set; }
+    public int TotalAssets { get; set; }
+    public int TotalClosedMatches { get; set; }
+    public bool CanPost { get; set; }
+    public string? SkipReason { get; set; }
+    public string? SuggestedText { get; set; }
+    public string? PublicUrl { get; set; }
+    public IReadOnlyList<SocialWinRate24hAssetDto> Assets { get; set; } = [];
+}
+
+public sealed class SocialWinRate24hAssetDto
+{
+    public int Rank { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string DisplaySymbol { get; set; } = string.Empty;
+    public int Wins { get; set; }
+    public int Losses { get; set; }
+    public int Draws { get; set; }
+    public int Decisions { get; set; }
+    public int TotalMatches { get; set; }
+    public decimal WinRate { get; set; }
+}

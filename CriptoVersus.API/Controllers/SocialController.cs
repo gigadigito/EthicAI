@@ -1,4 +1,4 @@
-using CriptoVersus.API.Contracts;
+﻿using CriptoVersus.API.Contracts;
 using CriptoVersus.API.Services;
 using DAL.NftFutebol;
 using DTOs;
@@ -17,6 +17,7 @@ public sealed class SocialController : ControllerBase
     private readonly ISocialAutomationService _socialAutomationService;
     private readonly ISocialVsRenderService _socialVsRenderService;
     private readonly ISocialComposeFinalService _socialComposeFinalService;
+    private readonly ISocialWinRate24hService _socialWinRate24hService;
     private readonly EthicAIDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
@@ -29,7 +30,8 @@ public sealed class SocialController : ControllerBase
         ILogger<SocialController> logger,
         ISocialAutomationService socialAutomationService,
         ISocialVsRenderService socialVsRenderService,
-        ISocialComposeFinalService socialComposeFinalService)
+        ISocialComposeFinalService socialComposeFinalService,
+        ISocialWinRate24hService socialWinRate24hService)
     {
         _db = db;
         _configuration = configuration;
@@ -38,6 +40,7 @@ public sealed class SocialController : ControllerBase
         _socialAutomationService = socialAutomationService;
         _socialVsRenderService = socialVsRenderService;
         _socialComposeFinalService = socialComposeFinalService;
+        _socialWinRate24hService = socialWinRate24hService;
     }
 
     [AllowAnonymous]
@@ -47,12 +50,21 @@ public sealed class SocialController : ControllerBase
         var items = await _socialAutomationService.GetHotMatchesAsync(ct);
         return Ok(items);
     }
+
+    [AllowAnonymous]
+    [HttpGet("win-rate-24h")]
+    public async Task<ActionResult<SocialWinRate24hDto>> GetWinRate24h(CancellationToken ct)
+    {
+        var item = await _socialWinRate24hService.GetAsync(ct);
+        return Ok(item);
+    }
+
     // ==========================================================
     // GET /api/social/hot-matches/daily?hours=24&take=100
     //
     // Candidatos exclusivos para o ranking "Hot Matches do Dia".
     // Inclui partidas ativas e encerradas na janela informada.
-    // N�o altera o endpoint /api/social/hot-matches existente.
+    // Não altera o endpoint /api/social/hot-matches existente.
     // ==========================================================
     [AllowAnonymous]
     [HttpGet("hot-matches/daily")]
@@ -694,3 +706,10 @@ public sealed class SocialController : ControllerBase
         return true;
     }
 }
+
+
+
+
+
+
+

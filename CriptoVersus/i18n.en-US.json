@@ -437,9 +437,37 @@
         "close": "Close",
         "clearLead": "Clear lead"
       }
+    },
+    "winRate24h": {
+      "seo": {
+        "title": "Win Rate - Last 24h | CriptoVersus",
+        "description": "Top 10 assets by win rate from matches closed in the last 24 hours on CriptoVersus."
+      },
+      "hero": {
+        "period": "24h window",
+        "utcNote": "Closed matches only",
+        "generatedAt": "Generated at {0} UTC",
+        "generatedAtPending": "Generating ranking in UTC"
+      },
+      "states": {
+        "loadingTitle": "Loading win-rate ranking",
+        "loadingBody": "Fetching the latest closed-match results from the last 24 hours.",
+        "errorTitle": "Ranking temporarily unavailable",
+        "errorBody": "We could not load the win-rate board right now. Showing a stable empty state.",
+        "emptyTitle": "Not enough eligible matches yet",
+        "emptyBody": "The last 24 hours do not have enough completed matches to build a reliable ranking."
+      },
+      "chart": {
+        "ariaLabel": "Top assets by win rate in the last 24 hours",
+        "decisions": "{0} decisions",
+        "matches": "{0} matches"
+      },
+      "footer": {
+        "disclaimer": "Closed matches only. Not financial advice.",
+        "generatedAt": "UTC generation time: {0}"
+      }
     }
   },
-
   "stats": {
     "seo": {
       "title": "CriptoVersus Statistics - Public Crypto Battle Rankings",
@@ -2603,4 +2631,9 @@
     "goToWallet": "Go to My Wallet"
   }
 }
+
+
+
+
+
 

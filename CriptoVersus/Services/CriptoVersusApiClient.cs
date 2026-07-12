@@ -1,4 +1,4 @@
-using DTOs;
+﻿using DTOs;
 using Blazored.SessionStorage;
 using BLL.Positions;
 using System.Collections.Concurrent;
@@ -166,6 +166,8 @@ public sealed class CriptoVersusApiClient
 
     public async Task<List<SocialHotMatchDto>?> GetSocialHotMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<SocialHotMatchDto>>("api/social/hot-matches", ct);
+    public async Task<SocialWinRate24hDto?> GetSocialWinRate24hAsync(CancellationToken ct = default)
+        => await GetFromJsonWithBearerAsync<SocialWinRate24hDto>("api/social/win-rate-24h", ct);
     public async Task<List<MatchDto>?> GetDailyHotMatchCandidatesAsync(
     int hours = 24,
     int take = 100,
@@ -730,3 +732,6 @@ public sealed class CriptoVersusApiClient
 
     private sealed record CachedCoinSocialProfileResult(DateTimeOffset CachedAtUtc, CoinSocialProfileDto? Profile);
 }
+
+
+

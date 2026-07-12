@@ -437,6 +437,35 @@
         "close": "比分接近",
         "clearLead": "优势明显"
       }
+    },
+    "winRate24h": {
+      "seo": {
+        "title": "胜率 — 过去24小时 | CriptoVersus",
+        "description": "CriptoVersus 过去24小时内已结束比赛中胜率最高的10种资产。"
+      },
+      "hero": {
+        "period": "24小时时间窗口",
+        "utcNote": "仅统计已结束比赛",
+        "generatedAt": "生成时间：{0} UTC",
+        "generatedAtPending": "正在按 UTC 时间生成排名"
+      },
+      "states": {
+        "loadingTitle": "正在加载胜率排名",
+        "loadingBody": "正在获取过去24小时内最新的已结束比赛结果。",
+        "errorTitle": "排名暂时不可用",
+        "errorBody": "目前无法加载胜率排行榜。正在显示稳定的空状态。",
+        "emptyTitle": "符合条件的比赛数量仍不足",
+        "emptyBody": "过去24小时内已结束的比赛数量不足，暂时无法生成可靠的排名。"
+      },
+      "chart": {
+        "ariaLabel": "过去24小时内按胜率排名的主要资产",
+        "decisions": "{0} 场有效结果",
+        "matches": "{0} 场比赛"
+      },
+      "footer": {
+        "disclaimer": "仅统计已结束比赛。不构成任何投资建议。",
+        "generatedAt": "UTC 生成时间：{0}"
+      }
     }
   },
   

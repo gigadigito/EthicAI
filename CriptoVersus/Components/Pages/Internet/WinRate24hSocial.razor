@@ -1,0 +1,241 @@
+﻿@layout BlankLayout
+@page "/social/win-rate-24h"
+@page "/{Culture}/social/win-rate-24h"
+@using System.Globalization
+@using System.Text.Json
+@using DTOs
+@using CriptoVersus.Web.Services
+@inject CriptoVersusApiClient Api
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IConfiguration Config
+@inject ILogger<WinRate24hSocial> Logger
+@rendermode @(new Microsoft.AspNetCore.Components.Web.InteractiveServerRenderMode(prerender: false))
+@implements IAsyncDisposable
+
+<PageTitle>@PageTitleText</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="description" content="@SeoDescription" />
+    <link rel="canonical" href="@CanonicalUrl" />
+    <link rel="alternate" hreflang="en-US" href="@EnglishUrl" />
+    <link rel="alternate" hreflang="pt-BR" href="@PortugueseUrl" />
+    <link rel="alternate" hreflang="zh-CN" href="@ChineseUrl" />
+    <link rel="alternate" hreflang="x-default" href="@EnglishUrl" />
+    <meta property="og:title" content="@PageTitleText" />
+    <meta property="og:description" content="@SeoDescription" />
+    <meta property="og:url" content="@CanonicalUrl" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(ResolvedCulture)" />
+    <meta property="og:locale:alternate" content="@AppCulture.GetAlternateOgLocale(ResolvedCulture)" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@PageTitleText" />
+    <meta name="twitter:description" content="@SeoDescription" />
+    <script type="application/ld+json">@((MarkupString)StructuredDataMarkup)</script>
+</HeadContent>
+
+<main id="win-rate-24h-social-card"
+      class="win-rate-24h-social"
+      data-generated-at-utc="@GeneratedAtUtcAttr"
+      data-can-post="@CanPostAttr"
+      data-asset-count="@AssetCountAttr"
+      data-social-ready="@SocialReadyAttr">
+    <div class="win-rate-24h-social__backdrop" aria-hidden="true"></div>
+
+    <section class="win-rate-24h-social__card" aria-label="@PageTitleText">
+        <header class="win-rate-24h-social__header">
+            <div class="win-rate-24h-social__brand">
+                <span class="win-rate-24h-social__brand-mark">CriptoVersus</span>
+                <span class="win-rate-24h-social__period">@T("hero.period")</span>
+            </div>
+
+            <div class="win-rate-24h-social__title-block">
+                <h1>@PageTitleText</h1>
+                <p>@SeoDescription</p>
+            </div>
+
+            <div class="win-rate-24h-social__meta">
+                <span>@GeneratedAtLabel</span>
+                <span>@T("hero.utcNote")</span>
+            </div>
+        </header>
+
+        @if (_loading)
+        {
+            <section class="win-rate-24h-social__state" aria-live="polite">
+                <strong>@T("states.loadingTitle")</strong>
+                <p>@T("states.loadingBody")</p>
+            </section>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <section class="win-rate-24h-social__state win-rate-24h-social__state--error" role="alert">
+                <strong>@T("states.errorTitle")</strong>
+                <p>@_error</p>
+            </section>
+        }
+        else if (_response is null || _response.Assets.Count == 0)
+        {
+            <section class="win-rate-24h-social__state win-rate-24h-social__state--empty">
+                <strong>@T("states.emptyTitle")</strong>
+                <p>@(string.IsNullOrWhiteSpace(_response?.SkipReason) ? T("states.emptyBody") : _response!.SkipReason)</p>
+            </section>
+        }
+        else
+        {
+            <section class="win-rate-24h-social__chart-card" aria-label="@T("chart.ariaLabel")">
+                <div class="win-rate-24h-social__scale" aria-hidden="true">
+                    <div></div>
+                    <div></div>
+                    <div class="win-rate-24h-social__scale-track">
+                        <span>0%</span>
+                        <span>20%</span>
+                        <span>40%</span>
+                        <span>60%</span>
+                        <span>80%</span>
+                        <span>100%</span>
+                    </div>
+                    <div></div>
+                </div>
+
+                <div class="win-rate-24h-social__rows">
+                    @foreach (var item in _response.Assets)
+                    {
+                        <article class="win-rate-24h-social__row">
+                            <div class="win-rate-24h-social__rank">@item.Rank</div>
+                            <div class="win-rate-24h-social__symbol">
+                                <strong>@item.DisplaySymbol</strong>
+                                <span>@T("chart.decisions", item.Decisions)</span>
+                            </div>
+                            <div class="win-rate-24h-social__bar-track" aria-hidden="true">
+                                <div class="win-rate-24h-social__bar-fill"
+                                     style="@GetBarStyle(item.WinRate)"></div>
+                            </div>
+                            <div class="win-rate-24h-social__metric">
+                                <strong>@FormatPercent(item.WinRate)</strong>
+                                <span>@T("chart.matches", item.TotalMatches)</span>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+
+            <footer class="win-rate-24h-social__footer">
+                <span>@T("footer.disclaimer")</span>
+                <span>@T("footer.generatedAt", GeneratedAtFooterValue)</span>
+            </footer>
+        }
+    </section>
+</main>
+
+@code {
+    [Parameter] public string? Culture { get; set; }
+
+    private CancellationTokenSource? _loadCts;
+    private bool _loading = true;
+    private string? _error;
+    private string _loadKey = string.Empty;
+    private string _resolvedCulture = AppCultureService.DefaultRouteCulture;
+    private SocialWinRate24hDto? _response;
+
+    private string ResolvedCulture => _resolvedCulture;
+    private string PageTitleText => T("seo.title");
+    private string SeoDescription => T("seo.description");
+    private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildWinRate24hSocialPath(ResolvedCulture));
+    private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildWinRate24hSocialPath(AppCultureService.DefaultRouteCulture));
+    private string PortugueseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildWinRate24hSocialPath(AppCultureService.SecondaryRouteCulture));
+    private string ChineseUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildWinRate24hSocialPath(AppCultureService.TertiaryRouteCulture));
+    private string StructuredDataMarkup => JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebPage",
+        ["name"] = PageTitleText,
+        ["description"] = SeoDescription,
+        ["url"] = CanonicalUrl,
+        ["inLanguage"] = AppCulture.ToHrefLang(ResolvedCulture)
+    });
+    private string GeneratedAtLabel => _response is null
+        ? T("hero.generatedAtPending")
+        : T("hero.generatedAt", _response.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture));
+    private string GeneratedAtFooterValue => _response is null
+        ? string.Empty
+        : _response.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+    private string? GeneratedAtUtcAttr => _response is null ? null : _response.GeneratedAtUtc.ToString("o", CultureInfo.InvariantCulture);
+    private string? SocialReadyAttr => IsSocialReady ? "true" : null;
+    private string? CanPostAttr => _response is null ? null : _response.CanPost.ToString().ToLowerInvariant();
+    private string? AssetCountAttr => _response is null ? null : _response.Assets.Count.ToString(CultureInfo.InvariantCulture);
+    private bool IsSocialReady => !_loading && _error is null && _response is not null && _response.CanPost && _response.Assets.Count > 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _resolvedCulture = !string.IsNullOrWhiteSpace(Culture)
+            ? AppCulture.NormalizeRouteCulture(Culture)
+            : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+
+        var nextLoadKey = _resolvedCulture;
+        if (string.Equals(nextLoadKey, _loadKey, StringComparison.Ordinal))
+            return;
+
+        _loadKey = nextLoadKey;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+        _response = null;
+
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = new CancellationTokenSource();
+
+        try
+        {
+            _loadCts.CancelAfter(TimeSpan.FromSeconds(20));
+            _response = await Api.GetSocialWinRate24hAsync(_loadCts.Token);
+
+            if (_response is null)
+                throw new InvalidOperationException(T("states.errorBody"));
+        }
+        catch (OperationCanceledException) when (_loadCts.IsCancellationRequested)
+        {
+            _error = T("states.errorBody");
+        }
+        catch (Exception ex)
+        {
+            _error = T("states.errorBody");
+            Logger.LogWarning(ex, "Win-rate 24h social page failed to load. Culture={Culture}", _resolvedCulture);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string FormatPercent(decimal value)
+        => $"{value.ToString("0.0", CultureInfo.CurrentCulture)}%";
+
+    private string GetBarStyle(decimal winRate)
+    {
+        var clamped = Math.Clamp(winRate, 0m, 100m).ToString("0.0", CultureInfo.InvariantCulture);
+        return $"--win-rate:{clamped}%";
+    }
+
+    private string T(string key, params object?[] args)
+        => L.T($"social.winRate24h.{key}", ResolvedCulture, args);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_loadCts is not null)
+        {
+            await _loadCts.CancelAsync();
+            _loadCts.Dispose();
+            _loadCts = null;
+        }
+    }
+}
+
+

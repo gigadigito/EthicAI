@@ -66,6 +66,7 @@ builder.Services.AddSingleton<IAudioWorkerAuthenticationService, AudioWorkerAuth
 builder.Services.AddScoped<IProceduralAudioSeedService, ProceduralAudioSeedService>();
 builder.Services.AddHttpClient<ITvAiNarrationService, TvAiNarrationService>();
 builder.Services.AddScoped<ISocialAutomationService, SocialAutomationService>();
+builder.Services.AddScoped<ISocialWinRate24hService, SocialWinRate24hService>();
 builder.Services.AddSingleton<ISocialVsRenderService, SocialVsRenderService>();
 builder.Services.AddSingleton<ISocialComposeFinalService, SocialComposeFinalService>();
 builder.Services.AddSingleton<BLL.NFTFutebol.IMatchScoringEngine, BLL.NFTFutebol.MatchScoringEngine>();
@@ -303,3 +304,4 @@ static void MapPublicAudioFiles(WebApplication app, FileExtensionContentTypeProv
         });
     });
 }
+

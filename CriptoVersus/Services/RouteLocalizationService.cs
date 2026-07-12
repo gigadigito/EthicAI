@@ -1,4 +1,4 @@
-namespace CriptoVersus.Web.Services;
+﻿namespace CriptoVersus.Web.Services;
 
 public sealed class RouteLocalizationService
 {
@@ -64,6 +64,9 @@ public sealed class RouteLocalizationService
 
     public string BuildHotMatchesSocialPath(string? culture)
         => BuildGenericLocalizedPath(culture, "social/hot-matches");
+
+    public string BuildWinRate24hSocialPath(string? culture)
+        => BuildGenericLocalizedPath(culture, "social/win-rate-24h");
 
     public string BuildHowItWorksPath(string? culture)
         => NormalizeCulture(culture) == AppCultureService.SecondaryRouteCulture
@@ -188,6 +191,12 @@ public sealed class RouteLocalizationService
             || cleanPath.Equals("/pt/social/hot-matches", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/zh/social/hot-matches", StringComparison.OrdinalIgnoreCase))
             return BuildHotMatchesSocialPath(normalizedTarget) + querySuffix;
+
+        if (cleanPath.Equals("/social/win-rate-24h", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/en/social/win-rate-24h", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/pt/social/win-rate-24h", StringComparison.OrdinalIgnoreCase)
+            || cleanPath.Equals("/zh/social/win-rate-24h", StringComparison.OrdinalIgnoreCase))
+            return BuildWinRate24hSocialPath(normalizedTarget) + querySuffix;
 
         if (cleanPath.Equals("/tokenomics", StringComparison.OrdinalIgnoreCase)
             || cleanPath.Equals("/en/how-it-works", StringComparison.OrdinalIgnoreCase)
@@ -322,4 +331,6 @@ public sealed class RouteLocalizationService
         }
     }
 }
+
+
 

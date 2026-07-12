@@ -1050,6 +1050,35 @@
           "close": "Equilibrado",
           "clearLead": "Vantagem clara"
         }
+      },
+      "winRate24h": {
+        "seo": {
+          "title": "Taxa de Vitória — Últimas 24h | CriptoVersus",
+          "description": "Os 10 ativos com maior taxa de vitória nas partidas encerradas nas últimas 24 horas no CriptoVersus."
+        },
+        "hero": {
+          "period": "Janela de 24h",
+          "utcNote": "Apenas partidas encerradas",
+          "generatedAt": "Gerado em {0} UTC",
+          "generatedAtPending": "Gerando ranking em UTC"
+        },
+        "states": {
+          "loadingTitle": "Carregando ranking de taxa de vitória",
+          "loadingBody": "Buscando os resultados mais recentes das partidas encerradas nas últimas 24 horas.",
+          "errorTitle": "Ranking temporariamente indisponível",
+          "errorBody": "Não foi possível carregar o ranking de taxa de vitória agora. Exibindo um estado vazio estável.",
+          "emptyTitle": "Ainda não há partidas elegíveis suficientes",
+          "emptyBody": "As últimas 24 horas não possuem partidas encerradas suficientes para montar um ranking confiável."
+        },
+        "chart": {
+          "ariaLabel": "Principais ativos por taxa de vitória nas últimas 24 horas",
+          "decisions": "{0} decisões",
+          "matches": "{0} partidas"
+        },
+        "footer": {
+          "disclaimer": "Apenas partidas encerradas. Isto não é aconselhamento financeiro.",
+          "generatedAt": "Horário de geração em UTC: {0}"
+        }
       }
     },
  
