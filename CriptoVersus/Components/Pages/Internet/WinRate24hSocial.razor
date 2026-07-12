@@ -103,10 +103,10 @@
                 <div class="win-rate-24h-social__rows">
                     @foreach (var item in _response.Assets)
                     {
-                        <article class="win-rate-24h-social__row">
+                        <article class="@GetRowClass(item.Rank)">
                             <div class="win-rate-24h-social__rank">@item.Rank</div>
 
-                            <div class="win-rate-24h-social__symbol"
+                            <div class="@GetSymbolClass(item.Rank)"
                                  title="@item.DisplaySymbol">
                                 @item.DisplaySymbol
                             </div>
@@ -360,7 +360,11 @@
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
     }
 
-        .win-rate-24h-social__row::before {
+    .win-rate-24h-social__row--highlight {
+        border-color: rgba(255, 255, 255, 0.085);
+    }
+
+        .win-rate-24h-social__row--highlight::before {
             content: "";
             position: absolute;
             inset: 0 auto 0 0;
@@ -387,7 +391,6 @@
     .win-rate-24h-social__symbol {
         min-width: 0;
         overflow: hidden;
-        color: var(--brand-crypto);
         font-size: 23px;
         font-weight: 900;
         line-height: 1;
@@ -395,6 +398,14 @@
         text-overflow: ellipsis;
         text-transform: uppercase;
         white-space: nowrap;
+    }
+
+    .win-rate-24h-social__symbol--crypto {
+        color: var(--brand-crypto);
+    }
+
+    .win-rate-24h-social__symbol--versus {
+        color: var(--brand-versus);
     }
 
     .win-rate-24h-social__bar-track {
@@ -654,6 +665,16 @@
 
     private static string FormatPercent(decimal value)
         => $"{value.ToString("0.0", CultureInfo.CurrentCulture)}%";
+
+    private static string GetRowClass(int rank)
+        => rank <= 2
+            ? "win-rate-24h-social__row win-rate-24h-social__row--highlight"
+            : "win-rate-24h-social__row";
+
+    private static string GetSymbolClass(int rank)
+        => rank % 2 == 1
+            ? "win-rate-24h-social__symbol win-rate-24h-social__symbol--crypto"
+            : "win-rate-24h-social__symbol win-rate-24h-social__symbol--versus";
 
     private string GetBarStyle(decimal winRate)
     {
