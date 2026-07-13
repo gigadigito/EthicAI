@@ -202,8 +202,7 @@
 
     .hot-matches-social__title-block {
         min-width: 0;
-        display: grid;
-        grid-template-columns: auto minmax(0, auto);
+        display: flex;
         align-items: center;
         justify-content: center;
         gap: 18px;
@@ -211,17 +210,21 @@
     }
 
     .hot-matches-social__flame {
-        display: inline-grid;
-        place-items: center;
-        font-size: 72px;
-        line-height: 1;
-        filter: drop-shadow(0 0 10px rgba(255,90,0,.88)) drop-shadow(0 0 28px rgba(255,145,0,.42));
-        transform: translateY(-2px);
+        flex: 0 0 76px;
+        width: 76px;
+        height: 92px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+        overflow: visible;
+        transform: translateY(1px);
     }
 
     .hot-matches-social__title-copy {
         min-width: 0;
         display: grid;
+        align-content: center;
         gap: 7px;
     }
 
@@ -870,9 +873,13 @@
 
     .hot-matches-social__flame-image {
         display: block;
-        width: 82px;
-        height: 98px;
+        width: 68px;
+        height: 84px;
+        max-width: 100%;
+        max-height: 100%;
         object-fit: contain;
+        object-position: center;
+        vertical-align: middle;
         filter: drop-shadow(0 0 10px rgba(255, 68, 24, .92)) drop-shadow(0 0 24px rgba(var(--team-a-rgb), .42));
     }
 
@@ -1018,15 +1025,15 @@
             <div class="hot-matches-social__title-block">
                 <span class="hot-matches-social__flame" aria-hidden="true">
                     <img class="hot-matches-social__flame-image"
-                         src="/images/social/hot-matches/flame-premium.svg"
+                         src="/images/social/hot-matches/flame-premium.svg?v=4"
                          alt=""
-                         width="82"
-                         height="98"
+                         width="68"
+                         height="84"
                          loading="eager"
                          decoding="sync" />
                 </span>
                 <div class="hot-matches-social__title-copy">
-                    <h1 id="hot-matches-social-title">@PageTitleText</h1>
+                    <h1 id="hot-matches-social-title">@VisualTitleText</h1>
                     <p class="hot-matches-social__subtitle">@SeoDescription</p>
                 </div>
             </div>
@@ -1183,6 +1190,7 @@
     private int WindowHours => Math.Clamp(Hours ?? HotMatchesSocialCardRules.DefaultWindowHours, 1, 72);
     private int DisplayLimit => Math.Clamp(Limit ?? CardLimit, 1, CardLimit);
     private string PageTitleText => T("social.hotMatches.title");
+    private string VisualTitleText => RemoveLeadingFireEmoji(PageTitleText);
     private string SeoDescription => T("social.hotMatches.subtitle");
     private string CanonicalUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHotMatchesSocialPath(ResolvedCulture));
     private string EnglishUrl => SeoDefaults.BuildPublicAbsoluteUrl(Config, RouteLocalization.BuildHotMatchesSocialPath(AppCultureService.DefaultRouteCulture));
@@ -1253,6 +1261,20 @@
         {
             _loading = false;
         }
+    }
+
+
+    private static string RemoveLeadingFireEmoji(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value.Trim();
+
+        while (normalized.StartsWith("🔥", StringComparison.Ordinal))
+            normalized = normalized["🔥".Length..].TrimStart();
+
+        return normalized;
     }
 
     private string GetPublicMatchUrl(HotMatchDto match)
