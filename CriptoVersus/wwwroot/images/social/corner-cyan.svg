@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+<defs><filter id="g"><feGaussianBlur stdDeviation="2"/></filter></defs>
+<path d="M8 170V42L42 8H310" fill="none" stroke="#18d8d2" stroke-width="3"/>
+<path d="M18 170V50L50 18H250" fill="none" stroke="#18d8d2" stroke-opacity=".35"/>
+<path d="M8 170V42L42 8H310" fill="none" stroke="#18d8d2" stroke-opacity=".35" stroke-width="9" filter="url(#g)"/>
+</svg>

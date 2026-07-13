@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<defs>
+  <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#ff9100" stop-opacity=".75"/>
+    <stop offset=".48" stop-color="#ffffff" stop-opacity=".08"/>
+    <stop offset=".52" stop-color="#ffffff" stop-opacity=".08"/>
+    <stop offset="1" stop-color="#18d8d2" stop-opacity=".75"/>
+  </linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<g fill="none" stroke="url(#fade)" stroke-width="1.2" opacity=".38">
+  <path d="M40 120H220l35 35h120"/>
+  <path d="M0 780h260l40-40h220"/>
+  <path d="M1560 110h-220l-35 35h-120"/>
+  <path d="M1600 760h-260l-40-40h-220"/>
+  <path d="M80 310h180l25-25h150"/>
+  <path d="M1520 330h-180l-25-25h-150"/>
+  <path d="M100 560h200l30 30h160"/>
+  <path d="M1500 570h-200l-30 30h-160"/>
+</g>
+<g fill="url(#fade)" opacity=".55">
+  <circle cx="220" cy="120" r="3"/><circle cx="375" cy="155" r="3"/>
+  <circle cx="260" cy="780" r="3"/><circle cx="520" cy="740" r="3"/>
+  <circle cx="1380" cy="110" r="3"/><circle cx="1225" cy="145" r="3"/>
+  <circle cx="1340" cy="760" r="3"/><circle cx="1080" cy="720" r="3"/>
+</g>
+<g opacity=".16" stroke="url(#fade)" stroke-width=".8">
+  <path d="M0 420H1600"/><path d="M0 450H1600"/><path d="M0 480H1600"/>
+</g>
+</svg>
