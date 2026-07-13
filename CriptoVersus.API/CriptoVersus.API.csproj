@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\maps\" />
+    <Folder Include="wwwroot\social\hot-matches\" />
   </ItemGroup>
 
 </Project>
