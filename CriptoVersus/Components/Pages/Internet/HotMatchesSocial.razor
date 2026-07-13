@@ -799,6 +799,120 @@
         text-shadow: 0 0 14px rgba(var(--team-b-rgb), .25);
     }
 
+
+
+    /* Texturas externas: copie o pacote para wwwroot/images/social/hot-matches/ */
+    .hot-matches-social__texture {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .hot-matches-social__noise {
+        z-index: 0;
+        background: url('/images/social/hot-matches/arena-noise.webp') repeat;
+        opacity: .052;
+        mix-blend-mode: screen;
+    }
+
+    .hot-matches-social__circuit {
+        z-index: 0;
+        background: url('/images/social/hot-matches/arena-circuit.svg') center / cover no-repeat;
+        opacity: .30;
+        mix-blend-mode: screen;
+    }
+
+    .hot-matches-social__particles {
+        z-index: 0;
+        background-repeat: no-repeat;
+        background-size: contain;
+        opacity: .66;
+        mix-blend-mode: screen;
+    }
+
+    .hot-matches-social__particles--orange {
+        background-image: url('/images/social/hot-matches/arena-particles-orange.webp');
+        background-position: left center;
+    }
+
+    .hot-matches-social__particles--cyan {
+        background-image: url('/images/social/hot-matches/arena-particles-cyan.webp');
+        background-position: right center;
+    }
+
+    .hot-matches-social__corner {
+        position: absolute;
+        z-index: 3;
+        width: 250px;
+        height: 142px;
+        pointer-events: none;
+        opacity: .82;
+        background-repeat: no-repeat;
+        background-size: contain;
+        filter: drop-shadow(0 0 12px currentColor);
+    }
+
+    .hot-matches-social__corner--top-left {
+        top: 12px;
+        left: 16px;
+        color: rgba(var(--team-a-rgb), .38);
+        background-image: url('/images/social/hot-matches/corner-orange.svg');
+    }
+
+    .hot-matches-social__corner--bottom-right {
+        right: 16px;
+        bottom: 12px;
+        color: rgba(var(--team-b-rgb), .38);
+        background-image: url('/images/social/hot-matches/corner-cyan.svg');
+        transform: rotate(180deg);
+    }
+
+    .hot-matches-social__flame-image {
+        display: block;
+        width: 82px;
+        height: 98px;
+        object-fit: contain;
+        filter: drop-shadow(0 0 10px rgba(255, 68, 24, .92)) drop-shadow(0 0 24px rgba(var(--team-a-rgb), .42));
+    }
+
+    .hot-matches-social__score-sparks {
+        position: absolute;
+        top: 50%;
+        z-index: 0;
+        width: 118px;
+        height: 58px;
+        transform: translateY(-50%);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        opacity: .72;
+        pointer-events: none;
+        mix-blend-mode: screen;
+    }
+
+    .hot-matches-social__score-sparks--a {
+        left: -62px;
+        background-image: url('/images/social/hot-matches/sparks-orange.svg');
+    }
+
+    .hot-matches-social__score-sparks--b {
+        right: -62px;
+        background-image: url('/images/social/hot-matches/sparks-cyan.svg');
+    }
+
+    .hot-matches-social__card > :not(.hot-matches-social__texture):not(.hot-matches-social__corner) {
+        position: relative;
+        z-index: 2;
+    }
+
+    .hot-matches-social[data-capture="true"] *,
+    .hot-matches-social[data-capture="true"] *::before,
+    .hot-matches-social[data-capture="true"] *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+
     @@media (max-width: 1320px) {
         .hot-matches-social__card {
             grid-template-rows: 108px minmax(0, 1fr) 68px;
@@ -882,10 +996,19 @@
       class="hot-matches-social"
       data-loading="@_loading.ToString().ToLowerInvariant()"
       data-ready="@((!_loading).ToString().ToLowerInvariant())"
+      data-capture="@CaptureMode.ToString().ToLowerInvariant()"
       aria-labelledby="hot-matches-social-title">
     <div class="hot-matches-social__backdrop" aria-hidden="true"></div>
+    <div class="hot-matches-social__texture hot-matches-social__noise" aria-hidden="true"></div>
+    <div class="hot-matches-social__texture hot-matches-social__circuit" aria-hidden="true"></div>
+    <div class="hot-matches-social__texture hot-matches-social__particles hot-matches-social__particles--orange" aria-hidden="true"></div>
+    <div class="hot-matches-social__texture hot-matches-social__particles hot-matches-social__particles--cyan" aria-hidden="true"></div>
 
     <section class="hot-matches-social__card" aria-label="@PageTitleText">
+        <div class="hot-matches-social__texture hot-matches-social__noise" aria-hidden="true"></div>
+        <div class="hot-matches-social__texture hot-matches-social__circuit" aria-hidden="true"></div>
+        <div class="hot-matches-social__corner hot-matches-social__corner--top-left" aria-hidden="true"></div>
+        <div class="hot-matches-social__corner hot-matches-social__corner--bottom-right" aria-hidden="true"></div>
         <header class="hot-matches-social__header">
             <div class="hot-matches-social__brand">
                 <span class="hot-matches-social__brand-mark">CriptoVersus</span>
@@ -893,7 +1016,15 @@
             </div>
 
             <div class="hot-matches-social__title-block">
-                <span class="hot-matches-social__flame" aria-hidden="true">🔥</span>
+                <span class="hot-matches-social__flame" aria-hidden="true">
+                    <img class="hot-matches-social__flame-image"
+                         src="/images/social/hot-matches/flame-premium.svg"
+                         alt=""
+                         width="82"
+                         height="98"
+                         loading="eager"
+                         decoding="sync" />
+                </span>
                 <div class="hot-matches-social__title-copy">
                     <h1 id="hot-matches-social-title">@PageTitleText</h1>
                     <p class="hot-matches-social__subtitle">@SeoDescription</p>
@@ -950,6 +1081,8 @@
 
                                 <span class="hot-matches-social__score"
                                       aria-label="@T("social.hotMatches.scoreAria", match.HomeScore, match.AwayScore)">
+                                    <span class="hot-matches-social__score-sparks hot-matches-social__score-sparks--a" aria-hidden="true"></span>
+                                    <span class="hot-matches-social__score-sparks hot-matches-social__score-sparks--b" aria-hidden="true"></span>
                                     <span class="hot-matches-social__score-value hot-matches-social__score-value--a">@match.HomeScore</span>
                                     <span class="hot-matches-social__score-separator">×</span>
                                     <span class="hot-matches-social__score-value hot-matches-social__score-value--b">@match.AwayScore</span>
@@ -1035,6 +1168,7 @@
     [Parameter] public string? Culture { get; set; }
     [SupplyParameterFromQuery(Name = "hours")] public int? Hours { get; set; }
     [SupplyParameterFromQuery(Name = "limit")] public int? Limit { get; set; }
+    [SupplyParameterFromQuery(Name = "capture")] public int? Capture { get; set; }
 
     private const int CardLimit = HotMatchesSocialCardRules.DefaultDisplayLimit;
     private string _loadKey = string.Empty;
@@ -1045,6 +1179,7 @@
     private IReadOnlyList<HotMatchDto> _rankedMatches = [];
 
     private string ResolvedCulture => _resolvedCulture;
+    private bool CaptureMode => Capture == 1;
     private int WindowHours => Math.Clamp(Hours ?? HotMatchesSocialCardRules.DefaultWindowHours, 1, 72);
     private int DisplayLimit => Math.Clamp(Limit ?? CardLimit, 1, CardLimit);
     private string PageTitleText => T("social.hotMatches.title");
@@ -1074,7 +1209,7 @@
             ? AppCulture.NormalizeRouteCulture(Culture)
             : AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
 
-        var nextLoadKey = $"{_resolvedCulture}|{WindowHours}|{DisplayLimit}";
+        var nextLoadKey = $"{_resolvedCulture}|{WindowHours}|{DisplayLimit}|{CaptureMode}";
         if (string.Equals(nextLoadKey, _loadKey, StringComparison.Ordinal))
             return;
 
