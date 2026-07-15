@@ -2783,8 +2783,9 @@
             pointer-events: none;
             background-image: url('/img/match-arena/corner-orange.svg'), url('/img/match-arena/corner-cyan.svg');
             background-repeat: no-repeat;
-            background-position: left top, right top;
-            background-size: min(18vw, 260px) auto, min(18vw, 260px) auto;
+            background-position: left 8px top 8px, right 8px top 8px;
+            background-size: 150px 150px, 150px 150px;
+            opacity: .72;
         }
 
     .social-share-card__background,
@@ -2833,7 +2834,8 @@
     .social-share-card--epic .social-share-card__header {
         position: relative;
         z-index: 10;
-        padding-inline: .25rem;
+        padding-inline: 1.1rem;
+        margin-bottom: .35rem;
     }
 
     .social-share-card--epic .social-share-card__eyebrow {
@@ -2921,7 +2923,7 @@
     }
 
     .social-share-card--epic .social-share-hero-team--a {
-        background: linear-gradient(90deg, rgba(255,124,0,.22), rgba(40,18,2,.12) 72%, transparent);
+        background: linear-gradient(90deg, rgba(255,115,0,.25), rgba(35,14,2,.10) 72%, transparent);
         border-top: 1px solid rgba(255,155,40,.58);
         border-bottom: 1px solid rgba(255,130,0,.36);
         box-shadow: inset 0 0 45px rgba(255,115,0,.08);
@@ -2929,7 +2931,7 @@
     }
 
     .social-share-card--epic .social-share-hero-team--b {
-        background: linear-gradient(270deg, rgba(0,151,255,.22), rgba(3,28,46,.12) 72%, transparent);
+        background: linear-gradient(270deg, rgba(0,155,255,.24), rgba(2,24,40,.10) 72%, transparent);
         border-top: 1px solid rgba(50,199,255,.58);
         border-bottom: 1px solid rgba(0,174,255,.36);
         box-shadow: inset 0 0 45px rgba(0,183,255,.08);
@@ -2944,7 +2946,7 @@
         pointer-events: none;
         background-repeat: no-repeat;
         background-size: cover;
-        opacity: .25;
+        opacity: .12;
     }
 
     .social-share-card--epic .social-share-hero-team--a::before {
@@ -2961,19 +2963,17 @@
     }
 
     @@media (min-width: 1200px) {
-        .social-share-card--epic .social-share-card__hero .team-badge, .social-share-card--epic .social-share-card__hero .coin-wrap
+        .social-share-card--epic .social-share-card__hero .team-badge,
+        .social-share-card--epic .social-share-card__hero .coin-wrap {
+            width: 126px;
+            height: 126px;
+            border-radius: 30px;
+        }
 
-    {
-        width: 126px;
-        height: 126px;
-        border-radius: 30px;
-    }
-
-    .social-share-card--epic .social-share-card__hero .coin-img {
-        width: 104px;
-        height: 104px;
-    }
-
+        .social-share-card--epic .social-share-card__hero .coin-img {
+            width: 104px;
+            height: 104px;
+        }
     }
 
     .social-share-card--epic .social-share-card__hero .team-badge--a {
@@ -3013,22 +3013,25 @@
 
     .arena-score__energy {
         position: absolute;
-        inset: -105px -185px;
+        inset: -55px -90px;
         z-index: -2;
         pointer-events: none;
         background-image: url('/img/match-arena/center-explosion.webp');
         background-repeat: no-repeat;
         background-size: contain;
         background-position: center;
-        opacity: .96;
-        filter: drop-shadow(-12px 0 20px rgba(255,106,0,.35)) drop-shadow(12px 0 20px rgba(0,174,255,.35));
+        opacity: .72;
+        transform: scale(.82);
+        -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0,0,0,.95) 42%, transparent 76%);
+        mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0,0,0,.95) 42%, transparent 76%);
+        filter: drop-shadow(-10px 0 18px rgba(255,106,0,.28)) drop-shadow(10px 0 18px rgba(0,174,255,.28));
         animation: arenaEnergyPulse 3.8s ease-in-out infinite;
     }
 
     .social-share-card--epic .arena-score__line {
         position: relative;
         display: grid;
-        grid-template-columns: 112px 168px 112px;
+        grid-template-columns: 105px 130px 105px;
         align-items: center;
         justify-items: center;
         gap: 0;
@@ -3059,8 +3062,8 @@
 
     .arena-score__shield {
         position: relative;
-        width: 158px;
-        height: 158px;
+        width: 130px;
+        height: 130px;
         display: grid;
         place-items: center;
         overflow: hidden;
@@ -3091,8 +3094,8 @@
     .social-share-card--epic .arena-score__shield .tv-versus-image {
         position: relative;
         z-index: 2;
-        width: 126px;
-        max-height: 120px;
+        width: 104px;
+        max-height: 100px;
         margin: 0;
         filter: drop-shadow(-5px 0 8px rgba(255,123,0,.52)) drop-shadow(5px 0 8px rgba(0,198,255,.52));
     }
@@ -3120,10 +3123,12 @@
 
     .social-share-card--epic .social-share-team-card--a,
     .social-share-card--epic .social-share-team-card--b {
+        position: relative;
         border-radius: 0;
         clip-path: polygon(4% 0,96% 0,100% 12%,100% 88%,96% 100%,4% 100%,0 88%,0 12%);
         background-size: auto, 520px 520px;
         background-repeat: no-repeat, repeat;
+        background-blend-mode: normal, screen;
     }
 
     .social-share-card--epic .social-share-team-card--a {
@@ -3195,6 +3200,11 @@
             pointer-events: none;
         }
 
+    .social-share-card--epic .clock-title {
+        color: rgba(255,255,255,.68);
+        text-shadow: 0 2px 10px rgba(0,0,0,.8);
+    }
+
     .social-share-card--epic .clock-time {
         position: relative;
         z-index: 2;
@@ -3205,171 +3215,162 @@
     }
 
     @@keyframes arenaEnergyPulse {
-        0%,100%
+        0%, 100% {
+            transform: scale(.98);
+            opacity: .8;
+        }
 
-    {
-        transform: scale(.98);
-        opacity: .8;
-    }
-
-    50% {
-        transform: scale(1.035);
-        opacity: 1;
-    }
-
+        50% {
+            transform: scale(1.035);
+            opacity: 1;
+        }
     }
 
     @@keyframes arenaSparkDrift {
-        0%,100%
+        0%, 100% {
+            transform: translate3d(0,0,0);
+            opacity: .46;
+        }
 
-    {
-        transform: translate3d(0,0,0);
-        opacity: .46;
-    }
-
-    50% {
-        transform: translate3d(8px,-4px,0);
-        opacity: .74;
-    }
-
+        50% {
+            transform: translate3d(8px,-4px,0);
+            opacity: .74;
+        }
     }
 
     @@keyframes arenaScan {
-        0%,18%
+        0%, 18% {
+            transform: translateX(-170%) skewX(-18deg);
+            opacity: 0;
+        }
 
-    {
-        transform: translateX(-170%) skewX(-18deg);
-        opacity: 0;
-    }
+        28% {
+            opacity: 1;
+        }
 
-    28% {
-        opacity: 1;
-    }
-
-    58%, 100% {
-        transform: translateX(360%) skewX(-18deg);
-        opacity: 0;
-    }
-
+        58%, 100% {
+            transform: translateX(360%) skewX(-18deg);
+            opacity: 0;
+        }
     }
 
     @@media (max-width: 1280px) {
-        .social-share-card--epic .arena-scoreboard
+        .social-share-card--epic .arena-scoreboard {
+            grid-template-columns: minmax(0,1fr) minmax(300px,.65fr) minmax(0,1fr);
+        }
 
-    {
-        grid-template-columns: minmax(0,1fr) minmax(300px,.65fr) minmax(0,1fr);
-    }
+        .social-share-card--epic .arena-score {
+            min-width: 320px;
+        }
 
-    .social-share-card--epic .arena-score {
-        min-width: 320px;
-    }
+        .social-share-card--epic .arena-score__line {
+            grid-template-columns: 88px 126px 88px;
+        }
 
-    .social-share-card--epic .arena-score__line {
-        grid-template-columns: 88px 126px 88px;
-    }
+        .arena-score__shield {
+            width: 122px;
+            height: 122px;
+        }
 
-    .arena-score__shield {
-        width: 122px;
-        height: 122px;
-    }
+        .social-share-card--epic .arena-score__shield .tv-versus-image {
+            width: 98px;
+        }
 
-    .social-share-card--epic .arena-score__shield .tv-versus-image {
-        width: 98px;
-    }
-
-    .social-share-card--epic .arena-score .score {
-        font-size: 4.8rem;
-    }
-
+        .social-share-card--epic .arena-score .score {
+            font-size: 4.8rem;
+        }
     }
 
     @@media (max-width: 1180px) {
-        .social-share-card--epic .social-share-card__stats
+        .social-share-card--epic .social-share-card__stats {
+            grid-template-columns: minmax(0,1fr);
+        }
 
-    {
-        grid-template-columns: minmax(0,1fr);
-    }
-
-    .social-share-clock-stage {
-        min-height: 245px;
-    }
-
+        .social-share-clock-stage {
+            min-height: 245px;
+        }
     }
 
     @@media (max-width: 1023.98px) {
-        .social-share-card--epic .arena-scoreboard
+        .social-share-card--epic .arena-scoreboard {
+            grid-template-columns: 1fr;
+            gap: .65rem;
+        }
 
-    {
-        grid-template-columns: 1fr;
-        gap: .65rem;
-    }
+        .social-share-card--epic .social-share-hero-team {
+            min-height: 150px;
+        }
 
-    .social-share-card--epic .social-share-hero-team {
-        min-height: 150px;
-    }
+        .social-share-card--epic .arena-score {
+            min-height: 175px;
+            min-width: 0;
+        }
 
-    .social-share-card--epic .arena-score {
-        min-height: 175px;
-        min-width: 0;
-    }
+        .arena-score__energy {
+            inset: -65px -110px;
+        }
 
-    .arena-score__energy {
-        inset: -65px -110px;
-    }
-
-    .social-share-card--epic .social-share-hero-team--a,
-    .social-share-card--epic .social-share-hero-team--b {
-        clip-path: polygon(3% 0,97% 0,100% 14%,100% 86%,97% 100%,3% 100%,0 86%,0 14%);
-    }
-
+        .social-share-card--epic .social-share-hero-team--a,
+        .social-share-card--epic .social-share-hero-team--b {
+            clip-path: polygon(3% 0,97% 0,100% 14%,100% 86%,97% 100%,3% 100%,0 86%,0 14%);
+        }
     }
 
     @@media (max-width: 600px) {
-        .social-share-card--epic
+        .social-share-card--epic {
+            border-radius: 18px;
+        }
 
-    {
-        border-radius: 18px;
+            .social-share-card--epic .social-share-card__shell {
+                padding: .8rem;
+            }
+
+            .social-share-card--epic .arena-score__line {
+                grid-template-columns: 66px 92px 66px;
+            }
+
+            .social-share-card--epic .arena-score .score {
+                font-size: 3.45rem;
+            }
+
+        .arena-score__shield {
+            width: 88px;
+            height: 88px;
+        }
+
+        .social-share-card--epic .arena-score__shield .tv-versus-image {
+            width: 70px;
+        }
+
+        .social-share-card--epic .social-share-team-card__metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .social-share-card--epic .social-share-team-card__metric-row:last-child {
+            grid-column: auto;
+        }
     }
 
-    .social-share-card--epic .social-share-card__shell {
-        padding: .8rem;
-    }
 
-    .social-share-card--epic .arena-score__line {
-        grid-template-columns: 66px 92px 66px;
-    }
+    @@media (max-width: 767.98px) {
+        .social-share-card--epic::after {
+            background-size: 96px 96px, 96px 96px;
+            opacity: .58;
+        }
 
-    .social-share-card--epic .arena-score .score {
-        font-size: 3.45rem;
-    }
-
-    .arena-score__shield {
-        width: 88px;
-        height: 88px;
-    }
-
-    .social-share-card--epic .arena-score__shield .tv-versus-image {
-        width: 70px;
-    }
-
-    .social-share-card--epic .social-share-team-card__metrics {
-        grid-template-columns: 1fr;
-    }
-
-    .social-share-card--epic .social-share-team-card__metric-row:last-child {
-        grid-column: auto;
-    }
-
+        .social-share-card--epic .social-share-card__header {
+            padding-inline: .4rem;
+        }
     }
 
     @@media (prefers-reduced-motion: reduce) {
-        .arena-score__energy, .arena-scoreboard__fx, .arena-score__shield::after
-
-    {
-        animation: none !important;
+        .arena-score__energy,
+        .arena-scoreboard__fx,
+        .arena-score__shield::after {
+            animation: none !important;
+        }
     }
-
-    }</style>
+</style>
 
 @code {
     [Parameter] public string? SlugA { get; set; }
