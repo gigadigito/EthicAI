@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="32" viewBox="0 0 1920 32">
+<defs><filter id="g"><feGaussianBlur stdDeviation="3"/></filter></defs>
+<path d="M0 16h280l28-10h260l24 10h736l24-10h260l28 10h280" fill="none" stroke="#00c8ff" stroke-width="3"/>
+<path d="M0 16h280l28-10h260l24 10h736l24-10h260l28 10h280" fill="none" stroke="#00c8ff" stroke-opacity=".45" stroke-width="8" filter="url(#g)"/>
+</svg>
