@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+<defs><filter id="g"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<path d="M12 150V56L56 12H150" fill="none" stroke="#ff8a00" stroke-width="8" filter="url(#g)"/>
+<path d="M30 138V72L72 30H138" fill="none" stroke="#ff8a00" stroke-opacity=".5" stroke-width="3"/>
+</svg>

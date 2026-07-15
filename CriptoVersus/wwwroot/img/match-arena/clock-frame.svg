@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500">
+<defs><linearGradient id="m" x1="0" x2="1"><stop offset="0" stop-color="#8aa7b8"/><stop offset=".5" stop-color="#d7e8f1"/><stop offset="1" stop-color="#4d768d"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<path d="M70 18H1130L1180 70V430L1130 482H70L20 430V70Z" fill="none" stroke="url(#m)" stroke-width="6" filter="url(#g)"/>
+<path d="M92 40H1108L1156 88V412L1108 460H92L44 412V88Z" fill="none" stroke="#cde7f4" stroke-opacity=".22" stroke-width="2"/>
+</svg>

@@ -170,39 +170,29 @@
                         </div>
                     </div>
 
-                    <div class="social-share-hero-score arena-score">
-                        <div class="arena-score__energy" aria-hidden="true"></div>
-                        @if (ShouldShowLiveBadge(_match))
-                        {
-                            <div class="match-live">
-                                <span class="badge rounded-pill bg-danger match-live__pill">
-                                    <span class="match-live__dot"></span>
-                                    @T("live")
-                                </span>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="match-live">
-                                <span class="badge rounded-pill text-bg-dark border border-secondary-subtle match-live__pill">
-                                    @GetPresentationStatusText(_match)
-                                </span>
-                            </div>
-                        }
+                    <div class="social-share-hero-score arena-versus-core">
+                        <div class="arena-versus-core__glow" aria-hidden="true"></div>
+                        <div class="arena-versus-core__energy arena-versus-core__energy--orange" aria-hidden="true"></div>
+                        <div class="arena-versus-core__energy arena-versus-core__energy--cyan" aria-hidden="true"></div>
+                        <div class="arena-versus-core__frame" aria-hidden="true"></div>
 
-                        <div class="scoreline arena-score__line">
-                            <span class="score score--left">@_match.ScoreA</span>
-                            <span class="score-sep arena-score__versus">
-                                <span class="arena-score__shield">
-                                    <img class="tv-versus-image" src="img/vs.png" alt="VS" />
-                                </span>
+                        <div class="arena-versus-core__score arena-versus-core__score--left">
+                            @_match.ScoreA
+                        </div>
+
+                        <div class="arena-versus-core__shield" aria-label="Versus">
+                            <span class="arena-versus-core__shield-inner">
+                                <img class="tv-versus-image" src="img/vs.png" alt="VS" />
                             </span>
-                            <span class="score score--right">@_match.ScoreB</span>
+                        </div>
+
+                        <div class="arena-versus-core__score arena-versus-core__score--right">
+                            @_match.ScoreB
                         </div>
 
                         @if (_match.IsFinished)
                         {
-                            <div class="mt-2">
+                            <div class="arena-versus-core__finished">
                                 <span class="badge rounded-pill text-bg-info border border-info-subtle match-live__pill">
                                     @GetFinishedAtUtcLabel(_match)
                                 </span>
@@ -3367,6 +3357,618 @@
         .arena-score__energy,
         .arena-scoreboard__fx,
         .arena-score__shield::after {
+            animation: none !important;
+        }
+    }
+
+
+    /* ==========================================================
+           EPIC ARENA V3 — SEGUNDA RODADA
+           Novas texturas esperadas em /wwwroot/img/match-arena/
+           ========================================================== */
+
+    .social-share-card--epic {
+        --arena-orange: #ff8a00;
+        --arena-orange-hot: #ffb028;
+        --arena-cyan: #00bfff;
+        --arena-cyan-hot: #62e8ff;
+        --arena-metal: #8aa6b7;
+        min-height: 700px;
+        background: #02060b;
+        border-color: rgba(100, 204, 255, .20);
+        box-shadow: 0 38px 110px rgba(0, 0, 0, .72), inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 0 130px rgba(0, 120, 220, .04);
+    }
+
+    .social-share-card__background {
+        background-image: linear-gradient(180deg, rgba(2, 6, 11, .48) 0%, rgba(2, 6, 11, .68) 48%, rgba(1, 3, 7, .94) 100%), url('/img/match-arena/arena-smoke.webp'), url('/img/match-arena/arena-lights-top.webp'), url('/img/match-arena/arena-depth.webp'), url('/img/match-arena/arena-background.webp');
+        background-size: cover, cover, cover, cover, cover;
+        background-position: center, center, center top, center, center;
+        background-repeat: no-repeat;
+    }
+
+    .social-share-card__stadium {
+        background-image: url('/img/match-arena/arena-floor.webp'), url('/img/match-arena/arena-stadium.webp');
+        background-size: 100% 46%, cover;
+        background-position: center bottom, center top;
+        background-repeat: no-repeat;
+        opacity: .78;
+    }
+
+    .social-share-card__atmosphere {
+        background: radial-gradient(circle at 22% 28%, rgba(255, 112, 0, .19), transparent 28%), radial-gradient(circle at 78% 28%, rgba(0, 175, 255, .19), transparent 28%), radial-gradient(ellipse at center 96%, rgba(0, 220, 118, .07), transparent 34%);
+    }
+
+    .social-share-card__shell {
+        gap: .8rem;
+        padding: 1rem 1.15rem 1.15rem;
+        grid-template-rows: auto auto 1fr auto;
+    }
+
+    .social-share-card__header {
+        min-height: 82px;
+        padding: .15rem 1rem .35rem;
+        margin: 0;
+        position: relative;
+        z-index: 8;
+    }
+
+    .social-share-card__eyebrow {
+        font-size: .68rem;
+        letter-spacing: .38em;
+        color: rgba(225, 235, 242, .64);
+    }
+
+    .social-share-card__title {
+        margin-top: .18rem;
+        font-size: clamp(1.22rem, 1.55vw, 1.58rem);
+        line-height: 1;
+    }
+
+    .social-share-card__header-meta {
+        gap: .58rem;
+    }
+
+    .social-share-card__status,
+    .social-share-card__match-id {
+        padding: .46rem .78rem;
+        font-size: .74rem;
+    }
+
+    /* Quatro cantos independentes. Enquanto os novos SVGs não existirem,
+           os gradientes e a borda externa continuam visíveis. */
+    .social-share-card--epic::after {
+        inset: 8px;
+        background-image: url('/img/match-arena/corner-top-left-orange.svg'), url('/img/match-arena/corner-bottom-left-orange.svg'), url('/img/match-arena/corner-top-right-cyan.svg'), url('/img/match-arena/corner-bottom-right-cyan.svg');
+        background-repeat: no-repeat;
+        background-position: left top, left bottom, right top, right bottom;
+        background-size: 120px 120px, 90px 90px, 120px 120px, 90px 90px;
+        opacity: .74;
+    }
+
+    /* Faixa superior única */
+    .arena-scoreboard {
+        min-height: 224px;
+        grid-template-columns: minmax(0, 1fr) minmax(420px, 500px) minmax(0, 1fr);
+        align-items: stretch;
+        gap: 0;
+        position: relative;
+        isolation: isolate;
+        overflow: visible;
+        filter: drop-shadow(0 24px 35px rgba(0, 0, 0, .42));
+    }
+
+        .arena-scoreboard::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -6;
+            background: linear-gradient(90deg, rgba(255, 135, 0, .22), rgba(10, 14, 20, .93) 39%, rgba(10, 14, 20, .93) 61%, rgba(0, 184, 255, .22)), url('/img/match-arena/panel-metal.webp') center/cover no-repeat;
+            clip-path: polygon(1.5% 0, 98.5% 0, 100% 17%, 100% 83%, 98.5% 100%, 1.5% 100%, 0 83%, 0 17%);
+            border-top: 1px solid rgba(170, 210, 230, .28);
+            border-bottom: 1px solid rgba(55, 85, 105, .42);
+        }
+
+        .arena-scoreboard::after {
+            content: "";
+            position: absolute;
+            inset: 5px 10px;
+            z-index: 7;
+            pointer-events: none;
+            background-image: linear-gradient(90deg, rgba(255, 138, 0, .84), rgba(255, 138, 0, .08) 41%, transparent 49%, transparent 51%, rgba(0, 191, 255, .08) 59%, rgba(0, 191, 255, .84));
+            background-size: 100% 1px;
+            background-repeat: no-repeat;
+            background-position: center top;
+            opacity: .9;
+        }
+
+    .social-share-hero-team {
+        min-height: 224px;
+        padding: 1.2rem 1.5rem;
+        z-index: 2;
+        overflow: hidden;
+    }
+
+    .social-share-hero-team--a {
+        background-image: linear-gradient(90deg, rgba(46, 18, 1, .93), rgba(15, 11, 10, .82) 76%, rgba(15, 11, 10, .18)), url('/img/match-arena/hero-panel-orange.webp'), url('/img/match-arena/panel-carbon.webp');
+        background-size: cover, cover, cover;
+        border: 0;
+        clip-path: polygon(2.5% 0, 95% 0, 100% 18%, 96% 82%, 92% 100%, 2.5% 100%, 0 82%, 0 18%);
+        box-shadow: inset 0 0 60px rgba(255, 102, 0, .10);
+    }
+
+    .social-share-hero-team--b {
+        background-image: linear-gradient(270deg, rgba(2, 34, 55, .94), rgba(7, 16, 24, .84) 76%, rgba(7, 16, 24, .18)), url('/img/match-arena/hero-panel-cyan.webp'), url('/img/match-arena/panel-carbon.webp');
+        background-size: cover, cover, cover;
+        border: 0;
+        clip-path: polygon(5% 0, 97.5% 0, 100% 18%, 100% 82%, 97.5% 100%, 8% 100%, 4% 82%, 0 18%);
+        box-shadow: inset 0 0 60px rgba(0, 180, 255, .10);
+    }
+
+        .social-share-hero-team--a::before,
+        .social-share-hero-team--b::before {
+            inset: 0;
+            opacity: .10;
+            mix-blend-mode: screen;
+        }
+
+        .social-share-hero-team--a::after,
+        .social-share-hero-team--b::after {
+            inset: 0;
+            z-index: 5;
+            opacity: .92;
+            animation: none;
+            background-size: 100% 100%;
+        }
+
+    .social-share-hero-team--a::after {
+        background-image: url('/img/match-arena/hero-frame-orange.svg');
+        background-position: center;
+    }
+
+    .social-share-hero-team--b::after {
+        background-image: url('/img/match-arena/hero-frame-cyan.svg');
+        background-position: center;
+    }
+
+    .social-share-hero-team > * {
+        position: relative;
+        z-index: 6;
+    }
+
+    .social-share-card__hero .team-badge {
+        width: 128px;
+        height: 128px;
+        border-radius: 50%;
+        border-width: 2px;
+        flex: 0 0 auto;
+    }
+
+    .social-share-card__hero .coin-wrap {
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .12), rgba(0, 0, 0, .82) 72%);
+        box-shadow: inset 0 0 24px rgba(255, 255, 255, .05);
+    }
+
+    .social-share-card__hero .coin-img {
+        width: 94px;
+        height: 94px;
+        border-radius: 50%;
+    }
+
+    .social-share-card__hero .team-badge--a {
+        background: radial-gradient(circle at 38% 28%, rgba(255, 194, 86, .25), transparent 36%), #090704;
+        border-color: rgba(255, 148, 18, .92);
+        box-shadow: 0 0 0 7px rgba(255, 138, 0, .10), inset 0 0 30px rgba(255, 120, 0, .20), 0 0 34px rgba(255, 112, 0, .34), 0 20px 34px rgba(0, 0, 0, .58);
+    }
+
+    .social-share-card__hero .team-badge--b {
+        background: radial-gradient(circle at 38% 28%, rgba(98, 232, 255, .22), transparent 36%), #030a0f;
+        border-color: rgba(0, 198, 255, .92);
+        box-shadow: 0 0 0 7px rgba(0, 191, 255, .10), inset 0 0 30px rgba(0, 184, 255, .20), 0 0 34px rgba(0, 174, 255, .34), 0 20px 34px rgba(0, 0, 0, .58);
+    }
+
+    .social-share-hero-team .team-name {
+        font-size: clamp(1.28rem, 1.55vw, 1.72rem);
+        line-height: 1.05;
+    }
+
+    .social-share-hero-team .team-price {
+        font-size: clamp(.96rem, 1.12vw, 1.16rem);
+        margin-top: .34rem;
+    }
+
+    .social-share-hero-team .team-sub {
+        margin-top: .28rem;
+        font-size: 1rem;
+    }
+
+    /* Núcleo VS da segunda rodada */
+    .arena-versus-core {
+        position: relative;
+        z-index: 6;
+        min-width: 0;
+        min-height: 224px;
+        display: grid;
+        grid-template-columns: 118px 170px 118px;
+        grid-template-rows: 1fr auto;
+        align-items: center;
+        justify-content: center;
+        justify-items: center;
+        column-gap: 0;
+        isolation: isolate;
+        overflow: visible;
+    }
+
+    .arena-versus-core__glow,
+    .arena-versus-core__energy,
+    .arena-versus-core__frame {
+        position: absolute;
+        pointer-events: none;
+    }
+
+    .arena-versus-core__glow {
+        inset: -80px -150px;
+        z-index: -5;
+        background: radial-gradient(circle at 44% 50%, rgba(255, 113, 0, .32), transparent 34%), radial-gradient(circle at 56% 50%, rgba(0, 180, 255, .32), transparent 34%), url('/img/match-arena/center-glow.webp') center/contain no-repeat;
+        filter: blur(.2px);
+    }
+
+    .arena-versus-core__energy {
+        top: 50%;
+        width: 520px;
+        height: 340px;
+        z-index: -3;
+        transform: translateY(-50%);
+        background-repeat: no-repeat;
+        background-size: contain;
+        opacity: .94;
+        -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, #000 48%, transparent 82%);
+        mask-image: radial-gradient(ellipse at center, #000 0%, #000 48%, transparent 82%);
+    }
+
+    .arena-versus-core__energy--orange {
+        right: 49%;
+        background-image: url('/img/match-arena/center-energy-orange.webp'), url('/img/match-arena/sparks-orange.webp');
+        background-position: right center, right center;
+        filter: drop-shadow(0 0 16px rgba(255, 112, 0, .42));
+    }
+
+    .arena-versus-core__energy--cyan {
+        left: 49%;
+        background-image: url('/img/match-arena/center-energy-cyan.webp'), url('/img/match-arena/sparks-cyan.webp');
+        background-position: left center, left center;
+        filter: drop-shadow(0 0 16px rgba(0, 183, 255, .42));
+    }
+
+    .arena-versus-core__frame {
+        inset: -16px -24px;
+        z-index: -1;
+        background: url('/img/match-arena/center-metal-frame.svg') center/100% 100% no-repeat;
+        opacity: .96;
+    }
+
+    .arena-versus-core__score {
+        position: relative;
+        z-index: 4;
+        align-self: center;
+        font-size: clamp(5rem, 6.4vw, 7.25rem);
+        font-weight: 950;
+        line-height: .82;
+        letter-spacing: -.08em;
+        font-variant-numeric: tabular-nums;
+        -webkit-text-stroke: 1px rgba(255, 255, 255, .12);
+        user-select: none;
+    }
+
+        .arena-versus-core__score::after {
+            content: attr(data-score);
+            position: absolute;
+            inset: 0;
+            opacity: .16;
+            transform: translateY(7px);
+            filter: blur(4px);
+        }
+
+    .arena-versus-core__score--left {
+        background: linear-gradient(180deg, #fff5cb 0%, #ffd04a 23%, #ff8a00 59%, #8b2f00 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 9px rgba(255, 170, 25, .55), 0 18px 24px rgba(0, 0, 0, .52);
+        filter: drop-shadow(0 0 10px rgba(255, 135, 0, .40));
+    }
+
+    .arena-versus-core__score--right {
+        background: linear-gradient(180deg, #efffff 0%, #69eaff 23%, #00afea 59%, #004d87 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 9px rgba(55, 218, 255, .55), 0 18px 24px rgba(0, 0, 0, .52);
+        filter: drop-shadow(0 0 10px rgba(0, 184, 255, .40));
+    }
+
+    .arena-versus-core__shield {
+        position: relative;
+        z-index: 8;
+        width: 170px;
+        height: 170px;
+        display: grid;
+        place-items: center;
+        clip-path: polygon(50% 0, 86% 14%, 100% 50%, 86% 86%, 50% 100%, 14% 86%, 0 50%, 14% 14%);
+        background: linear-gradient(135deg, rgba(255, 138, 0, .95), rgba(145, 160, 170, .78) 44%, rgba(0, 191, 255, .95));
+        box-shadow: -16px 0 34px rgba(255, 110, 0, .34), 16px 0 34px rgba(0, 177, 255, .34), 0 20px 38px rgba(0, 0, 0, .55);
+    }
+
+        .arena-versus-core__shield::before {
+            content: "";
+            position: absolute;
+            inset: 5px;
+            clip-path: inherit;
+            background: radial-gradient(circle at 38% 28%, rgba(255, 255, 255, .16), transparent 30%), linear-gradient(145deg, #18232d, #05080d 62%);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), inset 0 -20px 36px rgba(0, 0, 0, .54);
+        }
+
+        .arena-versus-core__shield::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url('/img/match-arena/center-core.webp') center/cover no-repeat;
+            opacity: .28;
+            mix-blend-mode: screen;
+        }
+
+    .arena-versus-core__shield-inner {
+        position: relative;
+        z-index: 3;
+        display: grid;
+        place-items: center;
+        width: 132px;
+        height: 132px;
+    }
+
+    .arena-versus-core__shield .tv-versus-image {
+        width: 124px;
+        max-height: 112px;
+        margin: 0;
+        filter: drop-shadow(-5px 0 9px rgba(255, 126, 0, .56)) drop-shadow(5px 0 9px rgba(0, 194, 255, .56)) drop-shadow(0 10px 16px rgba(0, 0, 0, .58));
+    }
+
+    .arena-versus-core__finished {
+        grid-column: 1 / -1;
+        align-self: end;
+        margin-bottom: .35rem;
+        z-index: 9;
+    }
+
+    /* Cards inferiores mais mecânicos */
+    .social-share-card__stats {
+        grid-template-columns: minmax(0, .92fr) minmax(520px, 620px) minmax(0, .92fr);
+        gap: .8rem;
+        position: relative;
+        z-index: 5;
+    }
+
+    .social-share-match-card {
+        min-height: 250px;
+        padding: 1.05rem !important;
+        border-radius: 0;
+    }
+
+    .social-share-team-card--a,
+    .social-share-team-card--b {
+        clip-path: polygon(4% 0, 96% 0, 100% 12%, 100% 88%, 96% 100%, 4% 100%, 0 88%, 0 12%);
+        background-blend-mode: normal, screen;
+    }
+
+        .social-share-team-card--a::before,
+        .social-share-team-card--b::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background: url('/img/match-arena/metal-scratches.webp') center/cover, url('/img/match-arena/panel-carbon.webp') center/cover;
+            opacity: .13;
+            pointer-events: none;
+        }
+
+        .social-share-team-card--a::after,
+        .social-share-team-card--b::after {
+            content: "";
+            position: absolute;
+            left: 1rem;
+            right: 1rem;
+            top: 6.55rem;
+            height: 1px;
+            pointer-events: none;
+        }
+
+        .social-share-team-card--a::after {
+            background: linear-gradient(90deg, transparent, rgba(255, 145, 0, .58), transparent);
+        }
+
+        .social-share-team-card--b::after {
+            background: linear-gradient(90deg, transparent, rgba(0, 195, 255, .58), transparent);
+        }
+
+        .social-share-team-card--a > *,
+        .social-share-team-card--b > * {
+            position: relative;
+            z-index: 2;
+        }
+
+    .social-share-team-card__metric-row {
+        min-height: 108px;
+        padding: .9rem .85rem;
+        border-radius: 14px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), inset 0 -18px 30px rgba(0, 0, 0, .18);
+    }
+
+        .social-share-team-card__metric-row strong {
+            font-size: 1.18rem;
+        }
+
+    /* Cabine central / relógio */
+    .social-share-clock-card,
+    .clock-card {
+        min-height: 250px;
+        height: 250px;
+        border-radius: 0;
+        clip-path: polygon(5% 0, 95% 0, 100% 12%, 100% 88%, 95% 100%, 5% 100%, 0 88%, 0 12%);
+        background-image: radial-gradient(ellipse at center 115%, rgba(0, 230, 118, .12), transparent 42%), linear-gradient(180deg, rgba(5, 12, 20, .88), rgba(1, 4, 8, .99)), url('/img/match-arena/clock-background.webp');
+        background-size: cover;
+        border: 1px solid rgba(155, 190, 210, .42);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), inset 0 -34px 70px rgba(0, 0, 0, .58), 0 25px 48px rgba(0, 0, 0, .50);
+    }
+
+        .social-share-clock-card::before,
+        .clock-card::before {
+            background-image: url('/img/match-arena/clock-frame.svg'), linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+            background-size: 100% 100%, 24px 24px, 24px 24px;
+            opacity: .64;
+        }
+
+        .social-share-clock-card::after,
+        .clock-card::after {
+            width: 88%;
+            height: 116px;
+            bottom: -10px;
+            opacity: .88;
+        }
+
+    .clock-title {
+        color: rgba(235, 242, 247, .68);
+        text-shadow: 0 2px 12px rgba(0, 0, 0, .82);
+    }
+
+    .clock-time {
+        text-shadow: 0 0 4px rgba(0, 255, 132, .82), 0 0 13px rgba(0, 255, 132, .42), 0 0 27px rgba(0, 255, 132, .18);
+    }
+
+    /* Menos repetição: o centro VS não possui badge AO VIVO. */
+    .arena-versus-core .match-live {
+        display: none;
+    }
+
+    @@keyframes arenaCoreBreathe {
+        0%, 100% {
+            transform: scale(.985);
+            opacity: .78;
+        }
+
+        50% {
+            transform: scale(1.025);
+            opacity: 1;
+        }
+    }
+
+    .arena-versus-core__glow {
+        animation: arenaCoreBreathe 4.2s ease-in-out infinite;
+    }
+
+    @@media (max-width: 1500px) {
+        .arena-scoreboard {
+            grid-template-columns: minmax(0, 1fr) minmax(360px, 430px) minmax(0, 1fr);
+        }
+
+        .arena-versus-core {
+            grid-template-columns: 96px 142px 96px;
+        }
+
+        .arena-versus-core__shield {
+            width: 142px;
+            height: 142px;
+        }
+
+        .arena-versus-core__shield-inner {
+            width: 108px;
+            height: 108px;
+        }
+
+        .arena-versus-core__shield .tv-versus-image {
+            width: 100px;
+        }
+
+        .arena-versus-core__score {
+            font-size: clamp(4.4rem, 5.8vw, 6rem);
+        }
+    }
+
+    @@media (max-width: 1180px) {
+        .arena-scoreboard {
+            grid-template-columns: 1fr;
+            gap: .7rem;
+        }
+
+        .social-share-hero-team--a,
+        .social-share-hero-team--b {
+            min-height: 176px;
+            justify-content: center;
+            text-align: center;
+            clip-path: polygon(2% 0, 98% 0, 100% 16%, 100% 84%, 98% 100%, 2% 100%, 0 84%, 0 16%);
+        }
+
+        .arena-versus-core {
+            min-height: 190px;
+        }
+
+        .social-share-card__stats {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 720px) {
+        .social-share-card__header {
+            min-height: 0;
+            padding-inline: .35rem;
+        }
+
+        .social-share-card--epic::after {
+            background-size: 74px 74px, 54px 54px, 74px 74px, 54px 54px;
+            opacity: .52;
+        }
+
+        .arena-versus-core {
+            grid-template-columns: 72px 104px 72px;
+            min-height: 160px;
+        }
+
+        .arena-versus-core__shield {
+            width: 104px;
+            height: 104px;
+        }
+
+        .arena-versus-core__shield-inner {
+            width: 80px;
+            height: 80px;
+        }
+
+        .arena-versus-core__shield .tv-versus-image {
+            width: 72px;
+        }
+
+        .arena-versus-core__score {
+            font-size: 3.45rem;
+        }
+
+        .arena-versus-core__energy {
+            width: 360px;
+            height: 230px;
+            opacity: .72;
+        }
+
+        .social-share-team-card__metrics {
+            grid-template-columns: 1fr;
+        }
+
+        .social-share-team-card__metric-row:last-child {
+            grid-column: auto;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .arena-versus-core__glow {
             animation: none !important;
         }
     }
