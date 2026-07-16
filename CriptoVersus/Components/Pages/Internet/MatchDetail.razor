@@ -111,7 +111,7 @@
             <p>@GetSemanticSummaryRewards()</p>
         </section>
 
-        <p class="small text-muted mb-4">@T("marketDataDisclaimer")</p>
+        <p class="small text-muted disclammer mb-4">@T("marketDataDisclaimer")</p>
 
         <section id="social-share-card" class="social-share-card social-share-card--epic mb-4" aria-label="Social share card">
             <div class="social-share-card__background" aria-hidden="true"></div>
@@ -173,12 +173,13 @@
                     </div>
 
                     <div class="social-share-hero-score arena-versus-core">
-                        <div class="arena-versus-core__glow" aria-hidden="true"></div>
-                        <div class="arena-versus-core__burst-core" aria-hidden="true"></div>
-                        <div class="arena-versus-core__burst arena-versus-core__burst--orange" aria-hidden="true"></div>
-                        <div class="arena-versus-core__burst arena-versus-core__burst--cyan" aria-hidden="true"></div>
-                        <div class="arena-versus-core__electric" aria-hidden="true"></div>
-                        <div class="arena-versus-core__debris" aria-hidden="true"></div>
+                        <div class="arena-versus-core__effects-window" aria-hidden="true">
+                            <div class="arena-versus-core__glow"></div>
+                            <div class="arena-versus-core__burst-core"></div>
+                            <div class="arena-versus-core__burst arena-versus-core__burst--orange"></div>
+                            <div class="arena-versus-core__burst arena-versus-core__burst--cyan"></div>
+                            <div class="arena-versus-core__debris"></div>
+                        </div>
                         <div class="arena-versus-core__frame" aria-hidden="true"></div>
 
                         <div class="arena-versus-core__score arena-versus-core__score--left">
@@ -857,7 +858,9 @@
 </div>
 
 <style>
-
+    .disclammer{
+        margin-left:60px;
+    }
     .score--left {
         color: #ff9100 !important;
     }
@@ -1178,7 +1181,7 @@
             -webkit-mask: radial-gradient(circle, transparent 0 11px, #000 13px 44px, transparent 46px);
             mask: radial-gradient(circle, transparent 0 11px, #000 13px 44px, transparent 46px);
             filter: drop-shadow(0 0 8px currentColor);
-            opacity: .92;
+            opacity: .82;
         }
 
         .winner-firework::after {
@@ -2750,10 +2753,10 @@
     }
 
     /* ================================================================
-           EPIC ARENA SKIN
-           Texturas esperadas em: /wwwroot/img/match-arena/
-           A tela continua funcional mesmo antes dos arquivos existirem.
-           ================================================================ */
+                   EPIC ARENA SKIN
+                   Texturas esperadas em: /wwwroot/img/match-arena/
+                   A tela continua funcional mesmo antes dos arquivos existirem.
+                   ================================================================ */
 
     .social-share-card--epic {
         --arena-orange: #ff8a00;
@@ -2913,13 +2916,13 @@
     }
 
     .arena-scoreboard__fx--left {
-        left: -5%;
+        left: 3%;
         background-image: url('/img/match-arena/sparks-orange.webp');
         background-position: left center;
     }
 
     .arena-scoreboard__fx--right {
-        right: -5%;
+        right: 3%;
         background-image: url('/img/match-arena/sparks-cyan.webp');
         background-position: right center;
         animation-delay: -2.5s;
@@ -3383,9 +3386,9 @@
 
 
     /* ==========================================================
-           EPIC ARENA V3 — SEGUNDA RODADA
-           Novas texturas esperadas em /wwwroot/img/match-arena/
-           ========================================================== */
+                   EPIC ARENA V3 — SEGUNDA RODADA
+                   Novas texturas esperadas em /wwwroot/img/match-arena/
+                   ========================================================== */
 
     .social-share-card--epic {
         --arena-orange: #ff8a00;
@@ -3425,23 +3428,23 @@
     }
 
     .social-share-card__header {
-        min-height: 82px;
-        padding: .15rem 1rem .35rem;
+        min-height: 74px;
+        padding: .10rem .95rem .28rem;
         margin: 0;
         position: relative;
         z-index: 8;
     }
 
     .social-share-card__eyebrow {
-        font-size: .68rem;
-        letter-spacing: .38em;
+        font-size: .64rem;
+        letter-spacing: .34em;
         color: rgba(225, 235, 242, .64);
     }
 
     .social-share-card__title {
-        margin-top: .18rem;
-        font-size: clamp(1.22rem, 1.55vw, 1.58rem);
-        line-height: 1;
+        margin-top: .12rem;
+        font-size: clamp(1.08rem, 1.35vw, 1.36rem);
+        line-height: .96;
     }
 
     .social-share-card__header-meta {
@@ -3455,7 +3458,7 @@
     }
 
     /* Quatro cantos independentes. Enquanto os novos SVGs não existirem,
-           os gradientes e a borda externa continuam visíveis. */
+                   os gradientes e a borda externa continuam visíveis. */
     .social-share-card--epic::after {
         inset: 8px;
         background-image: url('/img/match-arena/corner-top-left-orange.svg'), url('/img/match-arena/corner-bottom-left-orange.svg'), url('/img/match-arena/corner-top-right-cyan.svg'), url('/img/match-arena/corner-bottom-right-cyan.svg');
@@ -3537,7 +3540,7 @@
             z-index: 5;
             opacity: .92;
             animation: none;
-            background-size: 100% 100%;
+            background-size: contain;
         }
 
     .social-share-hero-team--a::after {
@@ -3556,24 +3559,24 @@
     }
 
     .social-share-card__hero .team-badge {
-        width: 128px;
-        height: 128px;
+        width: 112px;
+        height: 112px;
         border-radius: 50%;
         border-width: 2px;
         flex: 0 0 auto;
     }
 
     .social-share-card__hero .coin-wrap {
-        width: 112px;
-        height: 112px;
+        width: 96px;
+        height: 96px;
         border-radius: 50%;
         background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .12), rgba(0, 0, 0, .82) 72%);
         box-shadow: inset 0 0 24px rgba(255, 255, 255, .05);
     }
 
     .social-share-card__hero .coin-img {
-        width: 94px;
-        height: 94px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
     }
 
@@ -3995,9 +3998,9 @@
 
 
     /* =========================================================
-           CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
-           Assets esperados em /wwwroot/img/match-arena/
-           ========================================================= */
+                   CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
+                   Assets esperados em /wwwroot/img/match-arena/
+                   ========================================================= */
 
     .social-share-card--epic {
         background: #02070c;
@@ -4040,8 +4043,8 @@
     }
 
     .arena-scoreboard {
-        min-height: 235px;
-        grid-template-columns: minmax(0, 1fr) minmax(470px, 530px) minmax(0, 1fr);
+        min-height: 205px;
+        grid-template-columns: minmax(0, 1fr) minmax(430px, 490px) minmax(0, 1fr);
         gap: 0;
         overflow: visible;
         isolation: isolate;
@@ -4056,7 +4059,7 @@
         }
 
     .social-share-hero-team {
-        min-height: 220px;
+        min-height: 192px;
         overflow: visible;
         isolation: isolate;
         z-index: 2;
@@ -4154,11 +4157,11 @@
     }
 
     .arena-versus-core {
-        min-width: 500px;
-        width: 500px;
-        min-height: 235px;
+        min-width: 430px;
+        width: 430px;
+        min-height: 195px;
         display: grid;
-        grid-template-columns: 132px 184px 132px;
+        grid-template-columns: 108px 164px 108px;
         align-items: center;
         justify-content: center;
         gap: 0;
@@ -4506,7 +4509,7 @@
 
         17%, 35%, 53% {
             opacity: 1;
-            filter: brightness(1.45);
+            filter: brightness(1.28);
         }
     }
 
@@ -4603,11 +4606,54 @@
     }
 
     @@media (prefers-reduced-motion: reduce) {
-        .arena-versus-core__burst--orange,
-        .arena-versus-core__burst--cyan,
-        .arena-versus-core__electric,
-        .arena-versus-core__debris {
-            animation: none !important;
+    }
+
+
+    /* ============================================================
+                   TESTE VISUAL — HERO FRAMES MAIS PRESENTES
+                   Mantém a versão clean, mas reativa as molduras hero-frame.
+                   ============================================================ */
+    .social-share-card--epic .hero-panel__frame {
+        display: block !important;
+        inset: 0 !important;
+        opacity: .92 !important;
+        background-size: 100% 100% !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        mix-blend-mode: screen;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,.05));
+        z-index: 5 !important;
+    }
+
+    .social-share-card--epic .hero-panel__frame--orange {
+        background-image: url('/img/match-arena/hero-frame-orange-v2.svg') !important;
+        filter: drop-shadow(0 0 5px rgba(255,138,0,.42)) drop-shadow(0 0 16px rgba(255,105,0,.18));
+    }
+
+    .social-share-card--epic .hero-panel__frame--cyan {
+        background-image: url('/img/match-arena/hero-frame-cyan-v2.svg') !important;
+        filter: drop-shadow(0 0 5px rgba(0,200,255,.42)) drop-shadow(0 0 16px rgba(0,174,255,.18));
+    }
+
+    /* Evita que o frame dispute com o texto e com os logos. */
+    .social-share-card--epic .social-share-hero-team > *:not(.hero-panel__frame):not(.hero-panel__detail) {
+        position: relative;
+        z-index: 7 !important;
+    }
+
+    /* Pequeno reforço metálico por baixo do SVG. */
+    .social-share-card--epic .social-share-hero-team--a {
+        box-shadow: inset 0 1px 0 rgba(255,198,104,.14), inset 0 -1px 0 rgba(255,112,0,.20), 0 0 18px rgba(255,105,0,.10) !important;
+    }
+
+    .social-share-card--epic .social-share-hero-team--b {
+        box-shadow: inset 0 1px 0 rgba(137,232,255,.14), inset 0 -1px 0 rgba(0,184,255,.20), 0 0 18px rgba(0,174,255,.10) !important;
+    }
+
+    @@media (max-width: 1023.98px) {
+        .social-share-card--epic .hero-panel__frame {
+            opacity: .72 !important;
+            filter: none !important;
         }
     }
 </style>
@@ -6541,10 +6587,10 @@
 
 <style>
     /* ==========================================================
-           ROUND 4 / V5 CLEAN
-           Limpeza das sobreposições da terceira rodada.
-           Mantém os melhores assets e remove o efeito wireframe.
-           ========================================================== */
+                   ROUND 4 / V5 CLEAN
+                   Limpeza das sobreposições da terceira rodada.
+                   Mantém os melhores assets e remove o efeito wireframe.
+                   ========================================================== */
 
     /* Arena: menos ruído visual, mais profundidade. */
     .social-share-card--epic .social-share-card__background {
@@ -6566,47 +6612,19 @@
         opacity: .62;
     }
 
-    /* Remove os elementos que deixaram o centro com aparência de gráfico. */
-    .arena-versus-core__electric,
-    .arena-versus-core__debris,
-    .arena-versus-core__glow {
+    /* Centro limpo: remove sparks/faíscas do fundo e mantém apenas o raio frontal. */
+    .arena-versus-core__effects-window,
+    .arena-versus-core__glow,
+    .arena-versus-core__burst-core,
+    .arena-versus-core__burst,
+    .arena-versus-core__debris {
         display: none !important;
     }
 
-    /* Energia cinematográfica: concentrada somente no núcleo. */
-    .arena-versus-core__burst-core {
-        inset: -64px -95px;
-        opacity: .56;
-        background-image: url('/img/match-arena/center-burst-core.webp');
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        filter: saturate(1.05) contrast(1.05);
-        -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0,0,0,.95) 48%, transparent 80%);
-        mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0,0,0,.95) 48%, transparent 80%);
-    }
 
-    .arena-versus-core__burst {
-        inset: -72px -145px;
-        opacity: .48;
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        mix-blend-mode: screen;
-        filter: saturate(1.08) contrast(1.04);
-        -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0,0,0,.94) 47%, transparent 79%);
-        mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0,0,0,.94) 47%, transparent 79%);
-    }
 
-    .arena-versus-core__burst--orange {
-        background-image: url('/img/match-arena/center-burst-orange.webp');
-        transform: translateX(-16px) scale(.86);
-    }
 
-    .arena-versus-core__burst--cyan {
-        background-image: url('/img/match-arena/center-burst-cyan.webp');
-        transform: translateX(16px) scale(.86);
-    }
+
 
     /* VS: apenas um escudo forte, sem o bloco quadrado concêntrico. */
     .arena-versus-core__frame,
@@ -6616,31 +6634,28 @@
     }
 
     .arena-versus-core__shield {
-        width: 154px !important;
-        height: 154px !important;
-        min-width: 154px !important;
-        flex: 0 0 154px;
+        width: 132px !important;
+        height: 132px !important;
+        min-width: 132px !important;
+        flex: 0 0 132px;
         position: relative;
         display: grid;
         place-items: center;
         background: transparent !important;
-        filter: drop-shadow(-8px 0 16px rgba(255, 110, 0, .28)) drop-shadow(8px 0 16px rgba(0, 185, 255, .30)) drop-shadow(0 18px 24px rgba(0, 0, 0, .52));
+        filter: drop-shadow(-6px 0 12px rgba(255, 110, 0, .18)) drop-shadow(6px 0 12px rgba(0, 185, 255, .20));
     }
 
         .arena-versus-core__shield::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: url('/img/match-arena/vs-frame-outer.svg') center/contain no-repeat, url('/img/match-arena/vs-inner-shield.webp') center/contain no-repeat;
-            pointer-events: none;
+            display: none !important;
+            content: none !important;
         }
 
     .arena-versus-core__shield-inner {
         position: relative;
         z-index: 2;
         inset: auto !important;
-        width: 112px;
-        height: 112px;
+        width: 118px;
+        height: 118px;
         display: grid;
         place-items: center;
         background: transparent !important;
@@ -6650,22 +6665,30 @@
     }
 
     .arena-versus-core__shield .tv-versus-image {
-        width: 100px !important;
-        max-height: 96px !important;
+        width: 104px !important;
+        max-height: 100px !important;
         object-fit: contain;
-        filter: drop-shadow(-4px 0 7px rgba(255, 120, 0, .42)) drop-shadow(4px 0 7px rgba(0, 190, 255, .42));
+        filter: drop-shadow(-3px 0 6px rgba(255, 120, 0, .34)) drop-shadow(3px 0 6px rgba(0, 190, 255, .34));
     }
 
     .arena-versus-core {
-        grid-template-columns: minmax(88px, 112px) 154px minmax(88px, 112px) !important;
-        column-gap: 10px !important;
-        min-width: 410px !important;
+        grid-template-columns: 90px 132px 90px !important;
+        column-gap: 2px !important;
+        min-width: 350px !important;
+        width: 350px !important;
+        min-height: 164px !important;
+        justify-items: center !important;
+        align-items: center !important;
     }
 
     .arena-versus-core__score {
-        font-size: clamp(4.8rem, 6.2vw, 7.1rem) !important;
+        font-size: clamp(4rem, 5.2vw, 5.8rem) !important;
         line-height: .9 !important;
         letter-spacing: -.07em !important;
+        width: 90px !important;
+        min-width: 90px !important;
+        text-align: center !important;
+        justify-self: center !important;
     }
 
     /* Painéis superiores: quase pretos, cor somente nas bordas e reflexos. */
@@ -6675,6 +6698,42 @@
 
     .social-share-hero-team--b {
         background: linear-gradient(270deg, rgba(2, 31, 51, .88), rgba(7, 9, 13, .96) 74%, rgba(3, 6, 10, .98)), url('/img/match-arena/hero-panel-cyan-v2.webp') center/cover;
+    }
+
+    /* Primeira linha mais compacta. */
+    .social-share-card__hero {
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+
+    .social-share-hero-team {
+        padding-top: 14px !important;
+        padding-bottom: 14px !important;
+    }
+
+    .social-share-hero-score {
+        min-width: 210px !important;
+    }
+
+    .social-share-card__header {
+        min-height: 66px !important;
+        padding: .08rem .92rem .22rem !important;
+    }
+
+    .social-share-card__title {
+        margin-top: .08rem !important;
+        line-height: .92 !important;
+    }
+
+    .social-share-card__title-team {
+        font-size: clamp(2.15rem, 2.8vw, 1.25rem) !important;
+        letter-spacing: -.04em !important;
+    }
+
+    .social-share-card__title-vs {
+        font-size: clamp(1.7rem, 2.8vw, 2.5rem) !important;
+        margin-inline: .22rem !important;
+        line-height: .92 !important;
     }
 
     .hero-panel__detail {
@@ -6799,30 +6858,33 @@
     /* Responsividade. */
     @@media (max-width: 1280px) {
         .arena-versus-core {
-            min-width: 340px !important;
-            grid-template-columns: 82px 126px 82px !important;
-            column-gap: 6px !important;
+            min-width: 332px !important;
+            width: 332px !important;
+            grid-template-columns: 86px 124px 86px !important;
+            column-gap: 2px !important;
         }
 
         .arena-versus-core__shield {
-            width: 126px !important;
-            height: 126px !important;
-            min-width: 126px !important;
-            flex-basis: 126px !important;
+            width: 124px !important;
+            height: 124px !important;
+            min-width: 124px !important;
+            flex-basis: 124px !important;
         }
 
         .arena-versus-core__shield-inner {
-            width: 92px;
-            height: 92px;
+            width: 110px;
+            height: 110px;
         }
 
         .arena-versus-core__shield .tv-versus-image {
-            width: 82px !important;
-            max-height: 80px !important;
+            width: 96px !important;
+            max-height: 94px !important;
         }
 
         .arena-versus-core__score {
-            font-size: 4.6rem !important;
+            font-size: 4.3rem !important;
+            width: 86px !important;
+            min-width: 86px !important;
         }
     }
 
@@ -6830,7 +6892,8 @@
         .arena-versus-core {
             min-width: 0 !important;
             width: 100%;
-            grid-template-columns: minmax(62px, 92px) 118px minmax(62px, 92px) !important;
+            grid-template-columns: minmax(64px, 82px) 118px minmax(64px, 82px) !important;
+            column-gap: 2px !important;
         }
 
         .arena-versus-core__burst,
@@ -6841,33 +6904,84 @@
 
     @@media (max-width: 600px) {
         .arena-versus-core {
-            grid-template-columns: 62px 92px 62px !important;
-            column-gap: 3px !important;
+            grid-template-columns: 58px 98px 58px !important;
+            column-gap: 2px !important;
         }
 
         .arena-versus-core__shield {
-            width: 92px !important;
-            height: 92px !important;
-            min-width: 92px !important;
-            flex-basis: 92px !important;
+            width: 98px !important;
+            height: 98px !important;
+            min-width: 98px !important;
+            flex-basis: 98px !important;
         }
 
         .arena-versus-core__shield-inner {
-            width: 70px;
-            height: 70px;
+            width: 82px;
+            height: 82px;
         }
 
         .arena-versus-core__shield .tv-versus-image {
-            width: 62px !important;
-            max-height: 60px !important;
+            width: 70px !important;
+            max-height: 68px !important;
         }
 
         .arena-versus-core__score {
-            font-size: 3.35rem !important;
+            font-size: 3.2rem !important;
+            width: 58px !important;
+            min-width: 58px !important;
         }
 
         .epic-clock-shell__platform {
             opacity: .44 !important;
         }
     }
+
+    /* ============================================================
+                   TESTE VISUAL — HERO FRAMES MAIS PRESENTES
+                   Mantém a versão clean, mas reativa as molduras hero-frame.
+                   ============================================================ */
+    .social-share-card--epic .hero-panel__frame {
+        display: block !important;
+        inset: 0 !important;
+        opacity: .92 !important;
+        background-size: 100% 100% !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        mix-blend-mode: screen;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,.05));
+        z-index: 5 !important;
+    }
+
+    .social-share-card--epic .hero-panel__frame--orange {
+        background-image: url('/img/match-arena/hero-frame-orange-v2.svg') !important;
+        filter: drop-shadow(0 0 5px rgba(255,138,0,.42)) drop-shadow(0 0 16px rgba(255,105,0,.18));
+    }
+
+    .social-share-card--epic .hero-panel__frame--cyan {
+        background-image: url('/img/match-arena/hero-frame-cyan-v2.svg') !important;
+        filter: drop-shadow(0 0 5px rgba(0,200,255,.42)) drop-shadow(0 0 16px rgba(0,174,255,.18));
+    }
+
+    /* Evita que o frame dispute com o texto e com os logos. */
+    .social-share-card--epic .social-share-hero-team > *:not(.hero-panel__frame):not(.hero-panel__detail) {
+        position: relative;
+        z-index: 7 !important;
+    }
+
+    /* Pequeno reforço metálico por baixo do SVG. */
+    .social-share-card--epic .social-share-hero-team--a {
+        box-shadow: inset 0 1px 0 rgba(255,198,104,.14), inset 0 -1px 0 rgba(255,112,0,.20), 0 0 18px rgba(255,105,0,.10) !important;
+    }
+
+    .social-share-card--epic .social-share-hero-team--b {
+        box-shadow: inset 0 1px 0 rgba(137,232,255,.14), inset 0 -1px 0 rgba(0,184,255,.20), 0 0 18px rgba(0,174,255,.10) !important;
+    }
+
+    @@media (max-width: 1023.98px) {
+        .social-share-card--epic .hero-panel__frame {
+            opacity: .72 !important;
+            filter: none !important;
+        }
+    }
 </style>
+
