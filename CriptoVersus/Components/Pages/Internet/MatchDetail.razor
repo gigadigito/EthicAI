@@ -145,6 +145,8 @@
                     <div class="arena-scoreboard__fx arena-scoreboard__fx--left" aria-hidden="true"></div>
                     <div class="arena-scoreboard__fx arena-scoreboard__fx--right" aria-hidden="true"></div>
                     <div class="social-share-hero-team social-share-hero-team--a">
+                        <span class="hero-panel__frame hero-panel__frame--orange" aria-hidden="true"></span>
+                        <span class="hero-panel__detail hero-panel__detail--orange" aria-hidden="true"></span>
                         <div class="team-badge team-badge--a @(GetWinnerFxClass(_match.TeamAId))">
                             @if (HasWinnerTeam(_match.TeamAId))
                             {
@@ -172,8 +174,11 @@
 
                     <div class="social-share-hero-score arena-versus-core">
                         <div class="arena-versus-core__glow" aria-hidden="true"></div>
-                        <div class="arena-versus-core__energy arena-versus-core__energy--orange" aria-hidden="true"></div>
-                        <div class="arena-versus-core__energy arena-versus-core__energy--cyan" aria-hidden="true"></div>
+                        <div class="arena-versus-core__burst-core" aria-hidden="true"></div>
+                        <div class="arena-versus-core__burst arena-versus-core__burst--orange" aria-hidden="true"></div>
+                        <div class="arena-versus-core__burst arena-versus-core__burst--cyan" aria-hidden="true"></div>
+                        <div class="arena-versus-core__electric" aria-hidden="true"></div>
+                        <div class="arena-versus-core__debris" aria-hidden="true"></div>
                         <div class="arena-versus-core__frame" aria-hidden="true"></div>
 
                         <div class="arena-versus-core__score arena-versus-core__score--left">
@@ -181,7 +186,9 @@
                         </div>
 
                         <div class="arena-versus-core__shield" aria-label="Versus">
+                            <span class="arena-versus-core__shield-metal" aria-hidden="true"></span>
                             <span class="arena-versus-core__shield-inner">
+                                <span class="arena-versus-core__shield-glass" aria-hidden="true"></span>
                                 <img class="tv-versus-image" src="img/vs.png" alt="VS" />
                             </span>
                         </div>
@@ -201,6 +208,8 @@
                     </div>
 
                     <div class="social-share-hero-team social-share-hero-team--b">
+                        <span class="hero-panel__frame hero-panel__frame--cyan" aria-hidden="true"></span>
+                        <span class="hero-panel__detail hero-panel__detail--cyan" aria-hidden="true"></span>
                         <div>
                             <div class="team-name"><MarketPairText Symbol="@_match.TeamB" /></div>
                             <div class="team-price score--b">@FormatMarketPrice(RightMarketDisplayPrice)</div>
@@ -229,6 +238,8 @@
 
                 <div class="social-share-card__stats">
                     <div class="card match-card social-share-match-card social-share-team-card--a p-3">
+                        <span class="epic-team-card__surface" aria-hidden="true"></span>
+                        <span class="epic-team-card__frame epic-team-card__frame--orange" aria-hidden="true"></span>
                         <div class="social-share-team-card__top">
                             <div class="coin-wrap coin-wrap--sm social-share-team-card__coin" title="@_match.TeamA">
                                 <div class="coin-skeleton"></div>
@@ -270,29 +281,38 @@
                     </div>
 
                     <div class="social-share-clock-stage">
-                        <MatchClockCard ShowWinnerCelebration="@HasWinnerCelebration(_match)"
-                                        ShowResultStage="@ShouldShowResultStage(_match)"
-                                        ShowLiveBadge="@ShouldShowLiveBadge(_match)"
-                                        HasWinner="@HasWinnerCelebration(_match)"
-                                        ScoreA="@_match.ScoreA"
-                                        ScoreB="@_match.ScoreB"
-                                        ClockText="@_clockLive"
-                                        RemainingValue="@_remainingLive"
-                                        WinnerName="@GetFinalCardHeadline(_match)"
-                                        WinnerLogoUrl="@GetWinnerLogoUrl(_match)"
-                                        StatusText="@GetPresentationStatusText(_match)"
-                                        FinalResultText="@T("finalResult")"
-                                        WinnerLabelText="@T("winner")"
-                                        NoLeaderLabelText="@T("matchLeader")"
-                                        FinalScoreText="@T("finalScore")"
-                                        MatchClockText="@T("matchClock")"
-                                        RemainingText="@T("remaining")"
-                                        LiveText="@T("live")"
-                                        WinnerSummaryText="@T("wonTheMatch")"
-                                        DrawSummaryText="@T("noLeaderDefined")" />
+                        <div class="epic-clock-shell">
+                            <span class="epic-clock-shell__background" aria-hidden="true"></span>
+                            <span class="epic-clock-shell__grid" aria-hidden="true"></span>
+                            <span class="epic-clock-shell__lights" aria-hidden="true"></span>
+                            <span class="epic-clock-shell__frame" aria-hidden="true"></span>
+                            <span class="epic-clock-shell__platform" aria-hidden="true"></span>
+                            <MatchClockCard ShowWinnerCelebration="@HasWinnerCelebration(_match)"
+                                            ShowResultStage="@ShouldShowResultStage(_match)"
+                                            ShowLiveBadge="@ShouldShowLiveBadge(_match)"
+                                            HasWinner="@HasWinnerCelebration(_match)"
+                                            ScoreA="@_match.ScoreA"
+                                            ScoreB="@_match.ScoreB"
+                                            ClockText="@_clockLive"
+                                            RemainingValue="@_remainingLive"
+                                            WinnerName="@GetFinalCardHeadline(_match)"
+                                            WinnerLogoUrl="@GetWinnerLogoUrl(_match)"
+                                            StatusText="@GetPresentationStatusText(_match)"
+                                            FinalResultText="@T("finalResult")"
+                                            WinnerLabelText="@T("winner")"
+                                            NoLeaderLabelText="@T("matchLeader")"
+                                            FinalScoreText="@T("finalScore")"
+                                            MatchClockText="@T("matchClock")"
+                                            RemainingText="@T("remaining")"
+                                            LiveText="@T("live")"
+                                            WinnerSummaryText="@T("wonTheMatch")"
+                                            DrawSummaryText="@T("noLeaderDefined")" />
+                        </div>
                     </div>
 
                     <div class="card match-card social-share-match-card social-share-team-card--b p-3">
+                        <span class="epic-team-card__surface" aria-hidden="true"></span>
+                        <span class="epic-team-card__frame epic-team-card__frame--cyan" aria-hidden="true"></span>
                         <div class="social-share-team-card__top">
                             <div class="coin-wrap coin-wrap--sm social-share-team-card__coin" title="@_match.TeamB">
                                 <div class="coin-skeleton"></div>
@@ -3969,6 +3989,624 @@
 
     @@media (prefers-reduced-motion: reduce) {
         .arena-versus-core__glow {
+            animation: none !important;
+        }
+    }
+
+
+    /* =========================================================
+           CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
+           Assets esperados em /wwwroot/img/match-arena/
+           ========================================================= */
+
+    .social-share-card--epic {
+        background: #02070c;
+        box-shadow: 0 38px 110px rgba(0, 0, 0, .74), inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 120px rgba(0, 126, 255, .045);
+    }
+
+    .social-share-card__background {
+        background-image: linear-gradient(180deg, rgba(1,5,9,.54), rgba(1,5,9,.78) 54%, rgba(0,2,5,.96)), url('/img/match-arena/arena-smoke-v2.webp'), url('/img/match-arena/arena-depth-v2.webp'), url('/img/match-arena/arena-depth.webp');
+        background-size: cover, cover, cover, cover;
+        background-position: center, center, center top, center top;
+        opacity: 1;
+    }
+
+    .social-share-card__stadium {
+        background-image: url('/img/match-arena/arena-light-beams.webp'), url('/img/match-arena/arena-lights-top.webp');
+        background-size: cover, cover;
+        background-position: center top, center top;
+        opacity: .9;
+        mix-blend-mode: screen;
+    }
+
+    .social-share-card__atmosphere::before,
+    .social-share-card__atmosphere::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .social-share-card__atmosphere::before {
+        background: url('/img/match-arena/arena-particles-foreground.webp') center/cover no-repeat;
+        opacity: .42;
+        mix-blend-mode: screen;
+    }
+
+    .social-share-card__atmosphere::after {
+        background: url('/img/match-arena/arena-edge-flares.webp') center/cover no-repeat;
+        opacity: .54;
+        mix-blend-mode: screen;
+    }
+
+    .arena-scoreboard {
+        min-height: 235px;
+        grid-template-columns: minmax(0, 1fr) minmax(470px, 530px) minmax(0, 1fr);
+        gap: 0;
+        overflow: visible;
+        isolation: isolate;
+    }
+
+        .arena-scoreboard::before {
+            inset: 4px 0;
+            background-image: linear-gradient(180deg, rgba(255,255,255,.06), transparent 22%, transparent 78%, rgba(255,255,255,.025)), url('/img/match-arena/panel-metal.webp');
+            background-blend-mode: screen, normal;
+            opacity: .98;
+            filter: drop-shadow(0 26px 34px rgba(0,0,0,.45));
+        }
+
+    .social-share-hero-team {
+        min-height: 220px;
+        overflow: visible;
+        isolation: isolate;
+        z-index: 2;
+    }
+
+    .social-share-hero-team--a {
+        background-image: linear-gradient(90deg, rgba(31,12,0,.24), rgba(2,5,8,.04)), url('/img/match-arena/hero-panel-orange-v2.webp'), url('/img/match-arena/hero-panel-orange.webp');
+        background-size: cover;
+        background-position: center;
+        border: 0;
+        box-shadow: none;
+        clip-path: polygon(2% 3%, 94% 3%, 100% 22%, 96% 78%, 91% 97%, 2% 97%, 0 82%, 0 18%);
+    }
+
+    .social-share-hero-team--b {
+        background-image: linear-gradient(270deg, rgba(0,24,44,.24), rgba(2,5,8,.04)), url('/img/match-arena/hero-panel-cyan-v2.webp'), url('/img/match-arena/hero-panel-cyan.webp');
+        background-size: cover;
+        background-position: center;
+        border: 0;
+        box-shadow: none;
+        clip-path: polygon(6% 3%, 98% 3%, 100% 18%, 100% 82%, 98% 97%, 9% 97%, 4% 78%, 0 22%);
+    }
+
+    .hero-panel__frame,
+    .hero-panel__detail {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        background-position: center;
+        z-index: 4;
+    }
+
+    .hero-panel__frame--orange {
+        background-image: url('/img/match-arena/hero-frame-orange-v2.svg');
+    }
+
+    .hero-panel__frame--cyan {
+        background-image: url('/img/match-arena/hero-frame-cyan-v2.svg');
+    }
+
+    .hero-panel__detail--orange {
+        background-image: url('/img/match-arena/hero-panel-detail-orange.svg');
+        opacity: .72;
+    }
+
+    .hero-panel__detail--cyan {
+        background-image: url('/img/match-arena/hero-panel-detail-cyan.svg');
+        opacity: .72;
+    }
+
+    .social-share-hero-team > *:not(.hero-panel__frame):not(.hero-panel__detail) {
+        position: relative;
+        z-index: 6;
+    }
+
+    .social-share-card__hero .team-badge {
+        border-radius: 50%;
+        overflow: visible;
+        background: rgba(1,5,9,.94);
+        border: 0;
+    }
+
+        .social-share-card__hero .team-badge::before,
+        .social-share-card__hero .team-badge::after {
+            content: "";
+            position: absolute;
+            inset: -14px;
+            border-radius: 50%;
+            pointer-events: none;
+            background: center/contain no-repeat;
+        }
+
+    .social-share-card__hero .team-badge--a::before {
+        background-image: url('/img/match-arena/logo-ring-orange.svg');
+    }
+
+    .social-share-card__hero .team-badge--b::before {
+        background-image: url('/img/match-arena/logo-ring-cyan.svg');
+    }
+
+    .social-share-card__hero .team-badge--a::after {
+        inset: -35px;
+        background-image: url('/img/match-arena/logo-glow-orange.webp');
+        opacity: .74;
+        z-index: -1;
+    }
+
+    .social-share-card__hero .team-badge--b::after {
+        inset: -35px;
+        background-image: url('/img/match-arena/logo-glow-cyan.webp');
+        opacity: .74;
+        z-index: -1;
+    }
+
+    .arena-versus-core {
+        min-width: 500px;
+        width: 500px;
+        min-height: 235px;
+        display: grid;
+        grid-template-columns: 132px 184px 132px;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        overflow: visible;
+        isolation: isolate;
+        z-index: 10;
+    }
+
+    .arena-versus-core__glow,
+    .arena-versus-core__burst-core,
+    .arena-versus-core__burst,
+    .arena-versus-core__electric,
+    .arena-versus-core__debris,
+    .arena-versus-core__frame {
+        position: absolute;
+        pointer-events: none;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+    }
+
+    .arena-versus-core__glow {
+        inset: -100px -220px;
+        background-image: url('/img/match-arena/center-glow.webp');
+        opacity: .7;
+        z-index: -7;
+    }
+
+    .arena-versus-core__burst-core {
+        inset: -118px -240px;
+        background-image: url('/img/match-arena/center-burst-core.webp');
+        opacity: .92;
+        z-index: -6;
+        mix-blend-mode: screen;
+    }
+
+    .arena-versus-core__burst {
+        inset: -145px -300px;
+        z-index: -5;
+        mix-blend-mode: screen;
+        filter: saturate(1.18) contrast(1.08);
+    }
+
+    .arena-versus-core__burst--orange {
+        background-image: url('/img/match-arena/center-burst-orange.webp');
+        transform-origin: 50% 50%;
+        animation: arenaBurstOrange 4.4s ease-in-out infinite;
+    }
+
+    .arena-versus-core__burst--cyan {
+        background-image: url('/img/match-arena/center-burst-cyan.webp');
+        transform-origin: 50% 50%;
+        animation: arenaBurstCyan 4.8s ease-in-out infinite;
+    }
+
+    .arena-versus-core__electric {
+        inset: -160px -320px;
+        background-image: url('/img/match-arena/center-electric-arcs.webp');
+        opacity: .92;
+        z-index: -3;
+        mix-blend-mode: screen;
+        animation: arenaElectricFlicker 2.8s steps(2,end) infinite;
+    }
+
+    .arena-versus-core__debris {
+        inset: -155px -310px;
+        background-image: url('/img/match-arena/center-debris.webp');
+        opacity: .8;
+        z-index: -2;
+        animation: arenaDebrisFloat 6.5s ease-in-out infinite;
+    }
+
+    .arena-versus-core__frame {
+        width: 222px;
+        height: 222px;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%,-50%);
+        background-image: url('/img/match-arena/vs-frame-outer.svg');
+        z-index: 7;
+        filter: drop-shadow(-10px 0 22px rgba(255,115,0,.42)) drop-shadow(10px 0 22px rgba(0,185,255,.42));
+    }
+
+    .arena-versus-core__shield {
+        width: 178px;
+        height: 178px;
+        position: relative;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        overflow: visible;
+        background: none;
+        clip-path: none;
+        box-shadow: none;
+    }
+
+    .arena-versus-core__shield-metal {
+        position: absolute;
+        inset: -12px;
+        background: url('/img/match-arena/vs-core-metal.webp') center/contain no-repeat;
+        z-index: 0;
+        filter: drop-shadow(0 22px 28px rgba(0,0,0,.56));
+    }
+
+    .arena-versus-core__shield-inner {
+        width: 144px;
+        height: 144px;
+        position: relative;
+        display: grid;
+        place-items: center;
+        z-index: 2;
+        background: url('/img/match-arena/vs-inner-shield.webp') center/contain no-repeat, radial-gradient(circle at 50% 34%, #1d2a36, #04080d 68%);
+        clip-path: polygon(50% 0, 87% 15%, 100% 50%, 86% 86%, 50% 100%, 14% 86%, 0 50%, 14% 15%);
+        overflow: hidden;
+    }
+
+    .arena-versus-core__shield-glass {
+        position: absolute;
+        inset: 0;
+        background: url('/img/match-arena/vs-glass-highlight.webp') center/contain no-repeat;
+        opacity: .72;
+        z-index: 3;
+        pointer-events: none;
+    }
+
+    .arena-versus-core__shield .tv-versus-image {
+        width: 122px;
+        max-height: 116px;
+        z-index: 4;
+        filter: drop-shadow(-5px 0 9px rgba(255,119,0,.72)) drop-shadow(5px 0 9px rgba(0,198,255,.72)) drop-shadow(0 12px 12px rgba(0,0,0,.48));
+    }
+
+    .arena-versus-core__score {
+        position: relative;
+        z-index: 8;
+        font-size: clamp(5.7rem, 7vw, 8rem);
+        line-height: .86;
+        font-weight: 950;
+        letter-spacing: -.075em;
+        font-variant-numeric: tabular-nums;
+        -webkit-text-stroke: 1px rgba(255,255,255,.14);
+    }
+
+    .arena-versus-core__score--left {
+        transform: translateX(13px);
+        background: linear-gradient(180deg,#fff5c7 0%,#ffd64f 20%,#ff9700 53%,#8f3000 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        filter: drop-shadow(0 0 10px rgba(255,163,0,.72)) drop-shadow(0 18px 18px rgba(0,0,0,.58));
+    }
+
+    .arena-versus-core__score--right {
+        transform: translateX(-13px);
+        background: linear-gradient(180deg,#ecffff 0%,#72eaff 20%,#00b9f5 53%,#00578d 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        filter: drop-shadow(0 0 10px rgba(32,215,255,.72)) drop-shadow(0 18px 18px rgba(0,0,0,.58));
+    }
+
+    .social-share-team-card--a,
+    .social-share-team-card--b {
+        position: relative;
+        isolation: isolate;
+        overflow: visible;
+        clip-path: none;
+        border: 0 !important;
+        background: linear-gradient(180deg, rgba(4,8,12,.88), rgba(1,3,6,.98)), url('/img/match-arena/card-surface-dark.webp') center/cover;
+        box-shadow: 0 26px 48px rgba(0,0,0,.46);
+    }
+
+    .epic-team-card__surface,
+    .epic-team-card__frame {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+    }
+
+    .epic-team-card__surface {
+        background-image: url('/img/match-arena/metal-scratches.webp');
+        opacity: .16;
+        mix-blend-mode: screen;
+        z-index: 0;
+    }
+
+    .epic-team-card__frame {
+        z-index: 8;
+        filter: drop-shadow(0 14px 22px rgba(0,0,0,.35));
+    }
+
+    .epic-team-card__frame--orange {
+        background-image: url('/img/match-arena/card-frame-orange.svg');
+    }
+
+    .epic-team-card__frame--cyan {
+        background-image: url('/img/match-arena/card-frame-cyan.svg');
+    }
+
+    .social-share-team-card--a > *:not(.epic-team-card__surface):not(.epic-team-card__frame),
+    .social-share-team-card--b > *:not(.epic-team-card__surface):not(.epic-team-card__frame) {
+        position: relative;
+        z-index: 3;
+    }
+
+    .social-share-team-card__metrics {
+        border-top: 1px solid rgba(255,255,255,.08);
+        padding-top: .85rem;
+    }
+
+    .social-share-team-card__metric-row {
+        position: relative;
+        border: 0;
+        background: linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.16));
+        overflow: hidden;
+    }
+
+    .social-share-team-card--a .social-share-team-card__metric-row::before,
+    .social-share-team-card--b .social-share-team-card__metric-row::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: center/100% 100% no-repeat;
+        pointer-events: none;
+        opacity: .95;
+    }
+
+    .social-share-team-card--a .social-share-team-card__metric-row::before {
+        background-image: url('/img/match-arena/card-metric-box-orange.svg');
+    }
+
+    .social-share-team-card--b .social-share-team-card__metric-row::before {
+        background-image: url('/img/match-arena/card-metric-box-cyan.svg');
+    }
+
+    .epic-clock-shell {
+        position: relative;
+        min-width: 0;
+        min-height: 250px;
+        height: 100%;
+        isolation: isolate;
+        overflow: visible;
+        display: flex;
+    }
+
+        .epic-clock-shell > .social-share-clock-card,
+        .epic-clock-shell > .clock-card,
+        .epic-clock-shell > *:last-child {
+            position: relative;
+            z-index: 4;
+            width: 100%;
+            height: 100%;
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            clip-path: none !important;
+        }
+
+    .epic-clock-shell__background,
+    .epic-clock-shell__grid,
+    .epic-clock-shell__lights,
+    .epic-clock-shell__frame,
+    .epic-clock-shell__platform {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    .epic-clock-shell__background {
+        background-image: linear-gradient(180deg,rgba(2,8,14,.08),rgba(0,2,5,.6)), url('/img/match-arena/clock-bg-arena.webp');
+        background-size: cover;
+        z-index: 0;
+    }
+
+    .epic-clock-shell__grid {
+        background-image: url('/img/match-arena/clock-inner-grid.svg');
+        background-size: cover;
+        opacity: .62;
+        z-index: 1;
+    }
+
+    .epic-clock-shell__lights {
+        background-image: url('/img/match-arena/clock-side-lights.webp');
+        background-size: 100% 100%;
+        opacity: .8;
+        mix-blend-mode: screen;
+        z-index: 2;
+    }
+
+    .epic-clock-shell__frame {
+        background-image: url('/img/match-arena/clock-frame-v2.svg');
+        background-size: 100% 100%;
+        z-index: 8;
+        filter: drop-shadow(0 24px 32px rgba(0,0,0,.48));
+    }
+
+    .epic-clock-shell__platform {
+        inset: auto 7% -12px 7%;
+        height: 42%;
+        background-image: url('/img/match-arena/clock-floor-platform.webp');
+        background-size: contain;
+        background-position: center bottom;
+        z-index: 3;
+        opacity: .9;
+    }
+
+    .epic-clock-shell .clock-time {
+        text-shadow: 0 0 5px rgba(0,255,132,.9), 0 0 15px rgba(0,255,132,.48), 0 0 28px rgba(0,255,132,.22);
+    }
+
+    @@keyframes arenaBurstOrange {
+        0%, 100% {
+            transform: translateX(-4px) scale(.98);
+            opacity: .76;
+        }
+
+        50% {
+            transform: translateX(3px) scale(1.035);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes arenaBurstCyan {
+        0%, 100% {
+            transform: translateX(4px) scale(.985);
+            opacity: .76;
+        }
+
+        50% {
+            transform: translateX(-3px) scale(1.03);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes arenaElectricFlicker {
+        0%, 16%, 34%, 52%, 100% {
+            opacity: .85;
+            filter: brightness(1);
+        }
+
+        17%, 35%, 53% {
+            opacity: 1;
+            filter: brightness(1.45);
+        }
+    }
+
+    @@keyframes arenaDebrisFloat {
+        0%, 100% {
+            transform: translate3d(0,0,0) rotate(0deg);
+        }
+
+        50% {
+            transform: translate3d(0,-5px,0) rotate(.8deg);
+        }
+    }
+
+    @@media (max-width: 1380px) {
+        .arena-scoreboard {
+            grid-template-columns: minmax(0,1fr) minmax(390px,440px) minmax(0,1fr);
+        }
+
+        .arena-versus-core {
+            width: 420px;
+            min-width: 420px;
+            grid-template-columns: 110px 156px 110px;
+        }
+
+        .arena-versus-core__shield {
+            width: 154px;
+            height: 154px;
+        }
+
+        .arena-versus-core__shield-inner {
+            width: 126px;
+            height: 126px;
+        }
+
+        .arena-versus-core__frame {
+            width: 188px;
+            height: 188px;
+        }
+
+        .arena-versus-core__score {
+            font-size: clamp(4.8rem,6vw,6.5rem);
+        }
+    }
+
+    @@media (max-width: 1023.98px) {
+        .arena-scoreboard {
+            grid-template-columns: 1fr;
+            gap: .75rem;
+        }
+
+        .arena-versus-core {
+            width: min(100%,500px);
+            min-width: 0;
+            margin-inline: auto;
+        }
+
+        .hero-panel__detail {
+            opacity: .42;
+        }
+    }
+
+    @@media (max-width: 600px) {
+        .arena-versus-core {
+            grid-template-columns: 76px 106px 76px;
+            min-height: 170px;
+        }
+
+        .arena-versus-core__shield {
+            width: 106px;
+            height: 106px;
+        }
+
+        .arena-versus-core__shield-inner {
+            width: 86px;
+            height: 86px;
+        }
+
+        .arena-versus-core__frame {
+            width: 132px;
+            height: 132px;
+        }
+
+        .arena-versus-core__shield .tv-versus-image {
+            width: 72px;
+        }
+
+        .arena-versus-core__score {
+            font-size: 3.6rem;
+        }
+
+        .epic-clock-shell {
+            min-height: 230px;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .arena-versus-core__burst--orange,
+        .arena-versus-core__burst--cyan,
+        .arena-versus-core__electric,
+        .arena-versus-core__debris {
             animation: none !important;
         }
     }
