@@ -1,0 +1,521 @@
+﻿@using DTOs
+@inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IConfiguration Config
+@inject CriptoVersus.Web.Services.LocalizationService L
+@implements IDisposable
+
+@{
+    var enabled = IsEnabled;
+}
+
+@if (enabled)
+{
+    <section class="community-match-cta" aria-labelledby="community-match-cta-title">
+        <div class="community-match-cta__glow" aria-hidden="true"></div>
+        <div class="community-match-cta__content">
+            <div>
+                <span class="community-match-cta__eyebrow">@T("eyebrow")</span>
+                <h2 id="community-match-cta-title">@T("title")</h2>
+                <p>@T("body")</p>
+            </div>
+
+            <button id="@_openButtonId"
+                    type="button"
+                    class="btn community-match-cta__button"
+                    @onclick="OpenAsync">
+                @T("button")
+            </button>
+        </div>
+    </section>
+
+    @if (_open)
+    {
+        <div class="modal-backdrop fade show community-match-modal__backdrop" @onclick="() => HandleBackdropClickAsync()"></div>
+        <div class="modal fade show d-block community-match-modal" id="@_modalId" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="@_modalTitleId">
+            <div class="modal-dialog modal-dialog-centered modal-lg community-match-modal__dialog">
+                <div class="modal-content community-match-modal__panel">
+                    <div class="modal-header community-match-modal__header">
+                        <div>
+                            <p class="community-match-modal__eyebrow">@T("modal.eyebrow")</p>
+                            <h3 class="modal-title" id="@_modalTitleId">@T("modal.title")</h3>
+                        </div>
+                        <button type="button"
+                                class="btn-close btn-close-white"
+                                aria-label="@T("modal.close")"
+                                @onclick="() => CloseAsync()"
+                                disabled="@_submitting"></button>
+                    </div>
+
+                    <div class="modal-body community-match-modal__body">
+                        <div class="community-match-modal__grid">
+                            <div class="community-match-picker community-match-picker--orange">
+                                <div class="community-match-picker__label">@T("modal.orange")</div>
+                                <input class="form-control community-match-picker__search"
+                                       placeholder="@T("modal.searchPlaceholder")"
+                                       @bind="_homeSearch"
+                                       @bind:event="oninput"
+                                       @onfocus="EnsureTeamsLoadedAsync" />
+                                <div class="community-match-picker__list" role="listbox" aria-label="@T("modal.orange")">
+                                    @if (_loadingTeams)
+                                    {
+                                        <div class="community-match-picker__state">@T("modal.loading")</div>
+                                    }
+                                    else if (!GetFilteredTeams(_homeSearch, _awayTeam?.TeamId).Any())
+                                    {
+                                        <div class="community-match-picker__state">@T("modal.empty")</div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var team in GetFilteredTeams(_homeSearch, _awayTeam?.TeamId))
+                                        {
+                                            <button type="button"
+                                                    class="community-match-picker__option @(IsSelected(team, _homeTeam) ? "is-active" : string.Empty)"
+                                                    role="option"
+                                                    aria-selected="@(IsSelected(team, _homeTeam))"
+                                                    @onclick="() => SelectHomeAsync(team)">
+                                                <img src="@ResolveIcon(team)" alt="" loading="lazy" />
+                                                <span>
+                                                    <strong>@ResolveDisplaySymbol(team)</strong>
+                                                    <small>@ResolveDisplayName(team)</small>
+                                                </span>
+                                            </button>
+                                        }
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="community-match-modal__vs-panel">
+                                <div class="community-match-modal__side community-match-modal__side--orange">
+                                    @if (_homeTeam is null)
+                                    {
+                                        <span class="community-match-modal__placeholder">@T("modal.selectLeft")</span>
+                                    }
+                                    else
+                                    {
+                                        <img src="@ResolveIcon(_homeTeam)" alt="" loading="lazy" />
+                                        <strong>@ResolveDisplaySymbol(_homeTeam)</strong>
+                                        <small>@ResolveDisplayName(_homeTeam)</small>
+                                    }
+                                </div>
+
+                                <div class="community-match-modal__vs">VS</div>
+
+                                <div class="community-match-modal__side community-match-modal__side--cyan">
+                                    @if (_awayTeam is null)
+                                    {
+                                        <span class="community-match-modal__placeholder">@T("modal.selectRight")</span>
+                                    }
+                                    else
+                                    {
+                                        <img src="@ResolveIcon(_awayTeam)" alt="" loading="lazy" />
+                                        <strong>@ResolveDisplaySymbol(_awayTeam)</strong>
+                                        <small>@ResolveDisplayName(_awayTeam)</small>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="community-match-picker community-match-picker--cyan">
+                                <div class="community-match-picker__label">@T("modal.cyan")</div>
+                                <input class="form-control community-match-picker__search"
+                                       placeholder="@T("modal.searchPlaceholder")"
+                                       @bind="_awaySearch"
+                                       @bind:event="oninput"
+                                       @onfocus="EnsureTeamsLoadedAsync" />
+                                <div class="community-match-picker__list" role="listbox" aria-label="@T("modal.cyan")">
+                                    @if (_loadingTeams)
+                                    {
+                                        <div class="community-match-picker__state">@T("modal.loading")</div>
+                                    }
+                                    else if (!GetFilteredTeams(_awaySearch, _homeTeam?.TeamId).Any())
+                                    {
+                                        <div class="community-match-picker__state">@T("modal.empty")</div>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var team in GetFilteredTeams(_awaySearch, _homeTeam?.TeamId))
+                                        {
+                                            <button type="button"
+                                                    class="community-match-picker__option @(IsSelected(team, _awayTeam) ? "is-active" : string.Empty)"
+                                                    role="option"
+                                                    aria-selected="@(IsSelected(team, _awayTeam))"
+                                                    @onclick="() => SelectAwayAsync(team)">
+                                                <img src="@ResolveIcon(team)" alt="" loading="lazy" />
+                                                <span>
+                                                    <strong>@ResolveDisplaySymbol(team)</strong>
+                                                    <small>@ResolveDisplayName(team)</small>
+                                                </span>
+                                            </button>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="community-match-modal__preview">
+                            <div class="community-match-modal__preview-team community-match-modal__preview-team--orange">
+                                @if (_homeTeam is null)
+                                {
+                                    <span>@T("modal.previewLeft")</span>
+                                }
+                                else
+                                {
+                                    <img src="@ResolveIcon(_homeTeam)" alt="" loading="lazy" />
+                                    <div>
+                                        <strong>@ResolveDisplaySymbol(_homeTeam)</strong>
+                                        <small>@ResolveDisplayName(_homeTeam)</small>
+                                    </div>
+                                }
+                            </div>
+                            <div class="community-match-modal__preview-vs">VS</div>
+                            <div class="community-match-modal__preview-team community-match-modal__preview-team--cyan">
+                                @if (_awayTeam is null)
+                                {
+                                    <span>@T("modal.previewRight")</span>
+                                }
+                                else
+                                {
+                                    <img src="@ResolveIcon(_awayTeam)" alt="" loading="lazy" />
+                                    <div>
+                                        <strong>@ResolveDisplaySymbol(_awayTeam)</strong>
+                                        <small>@ResolveDisplayName(_awayTeam)</small>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="community-match-modal__captcha-wrap">
+                            <div class="community-match-modal__captcha" id="@_captchaId"></div>
+                            @if (_captchaError is not null)
+                            {
+                                <div class="community-match-modal__message community-match-modal__message--error">@_captchaError</div>
+                            }
+                        </div>
+
+                        @if (_message is not null)
+                        {
+                            <div class="community-match-modal__message @(string.IsNullOrWhiteSpace(_messageKind) ? string.Empty : $"community-match-modal__message--{_messageKind}")">
+                                @_message
+                            </div>
+                        }
+                    </div>
+
+                    <div class="modal-footer community-match-modal__footer">
+                        <button type="button" class="btn btn-outline-light" @onclick="() => CloseAsync()" disabled="@_submitting">@T("modal.close")</button>
+                        <button type="button" class="btn community-match-modal__submit" @onclick="SubmitAsync" disabled="@(!CanSubmit)">
+                            @if (_submitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                <span>@T("modal.submitting")</span>
+                            }
+                            else
+                            {
+                                <span>@T("modal.submit")</span>
+                            }
+                        </button>
+                    </div>
+                    <div class="community-match-modal__footnote">@T("modal.footnote")</div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private const int SelectionLimit = 8;
+    private readonly string _openButtonId = $"community-match-open-{Guid.NewGuid():N}";
+    private readonly string _modalId = $"community-match-modal-{Guid.NewGuid():N}";
+    private readonly string _captchaId = $"community-match-captcha-{Guid.NewGuid():N}";
+    private readonly string _modalTitleId = $"community-match-title-{Guid.NewGuid():N}";
+    private DotNetObjectReference<CommunityMatchCreationCard>? _dotNetRef;
+    private List<StatsArenaTeamDto> _teams = [];
+    private bool _open;
+    private bool _loadingTeams;
+    private bool _submitting;
+    private string _homeSearch = string.Empty;
+    private string _awaySearch = string.Empty;
+    private StatsArenaTeamDto? _homeTeam;
+    private StatsArenaTeamDto? _awayTeam;
+    private string _captchaToken = string.Empty;
+    private string? _message;
+    private string? _messageKind;
+    private string? _error;
+    private string? _captchaError;
+    private bool _loadedTeams;
+    private bool _captchaReady;
+    private bool _modalMounted;
+
+    private bool IsEnabled => Config.GetValue<bool?>("CommunityMatch:Enabled") ?? true;
+    private string? SiteKey => Config["Captcha:SiteKey"];
+    private bool HasCaptcha => !string.IsNullOrWhiteSpace(SiteKey);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_open || !HasCaptcha || _modalMounted)
+            return;
+
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("CriptoVersusCommunityMatch.mount", _modalId, _captchaId, _dotNetRef, SiteKey, _openButtonId);
+        _modalMounted = true;
+        if (!_captchaReady)
+            _captchaReady = true;
+    }
+
+    private async Task OpenAsync()
+    {
+        _open = true;
+        _error = null;
+        _captchaError = null;
+        _message = null;
+        _messageKind = null;
+        await EnsureTeamsLoadedAsync();
+    }
+
+    private async Task EnsureTeamsLoadedAsync()
+    {
+        if (_loadedTeams || _loadingTeams)
+            return;
+
+        _loadingTeams = true;
+        StateHasChanged();
+
+        try
+        {
+            _teams = (await Api.GetStatsTeamsAsync())?.ToList() ?? [];
+            _loadedTeams = true;
+        }
+        finally
+        {
+            _loadingTeams = false;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<StatsArenaTeamDto> GetFilteredTeams(string search, int? excludedTeamId)
+    {
+        if (_teams.Count == 0)
+            return [];
+
+        var query = (search ?? string.Empty).Trim();
+        var items = _teams.Where(team => excludedTeamId is null || team.TeamId != excludedTeamId.Value);
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            items = items.Where(team =>
+                Contains(team.Symbol, query) ||
+                Contains(team.DisplaySymbol, query) ||
+                Contains(team.DisplayName, query));
+        }
+
+        return items
+            .OrderByDescending(team => MatchesExact(team, query))
+            .ThenByDescending(team => team.Rank > 0 ? -team.Rank : 0)
+            .ThenBy(team => team.DisplaySymbol)
+            .Take(SelectionLimit)
+            .ToList();
+    }
+
+    private async Task SelectHomeAsync(StatsArenaTeamDto team)
+    {
+        _homeTeam = team;
+        _homeSearch = team.DisplaySymbol;
+        _message = null;
+        _messageKind = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SelectAwayAsync(StatsArenaTeamDto team)
+    {
+        _awayTeam = team;
+        _awaySearch = team.DisplaySymbol;
+        _message = null;
+        _messageKind = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool CanSubmit =>
+        !_submitting &&
+        _homeTeam is not null &&
+        _awayTeam is not null &&
+        _homeTeam.TeamId != _awayTeam.TeamId &&
+        HasCaptcha &&
+        !string.IsNullOrWhiteSpace(_captchaToken);
+
+    private async Task SubmitAsync()
+    {
+        if (!CanSubmit || _homeTeam is null || _awayTeam is null)
+            return;
+
+        _submitting = true;
+        _message = null;
+        _messageKind = null;
+        _error = null;
+        _captchaError = null;
+        StateHasChanged();
+
+        try
+        {
+            var request = new CommunityMatchCreateRequestDto
+            {
+                HomeSymbol = _homeTeam.Symbol,
+                AwaySymbol = _awayTeam.Symbol,
+                CaptchaToken = await GetCaptchaTokenAsync()
+            };
+
+            if (string.IsNullOrWhiteSpace(request.CaptchaToken))
+            {
+                _captchaError = T("modal.captchaRequired");
+                await ResetCaptchaAsync();
+                return;
+            }
+
+            var result = await Api.CreateCommunityMatchAsync(request);
+            if (!result.Success || result.Response is null)
+            {
+                _messageKind = "error";
+                _message = ResolveResultMessage(result);
+                if (!string.Equals(result.MessageCode, "battleAlreadyExists", StringComparison.OrdinalIgnoreCase))
+                    await ResetCaptchaAsync();
+                return;
+            }
+
+            _messageKind = "success";
+            _message = result.Response.Created ? T("modal.created") : T("modal.existing");
+            await CloseAsync(force: true);
+            Nav.NavigateTo(result.Response.PublicUrl, forceLoad: true);
+        }
+        catch (Exception)
+        {
+            _messageKind = "error";
+            _message = T("modal.fallbackError");
+            await ResetCaptchaAsync();
+        }
+        finally
+        {
+            _submitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<string> GetCaptchaTokenAsync()
+    {
+        if (!HasCaptcha)
+            return string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(_captchaToken))
+            return _captchaToken;
+
+        return await JS.InvokeAsync<string>("CriptoVersusCommunityMatch.getCaptchaToken", _captchaId) ?? string.Empty;
+    }
+
+    private async Task ResetCaptchaAsync()
+    {
+        _captchaToken = string.Empty;
+        if (HasCaptcha)
+            await JS.InvokeVoidAsync("CriptoVersusCommunityMatch.resetCaptcha", _captchaId);
+    }
+
+    private async Task CloseAsync(bool force = false)
+    {
+        if (_submitting && !force)
+            return;
+
+        _open = false;
+        _error = null;
+        _message = null;
+        _messageKind = null;
+        _captchaError = null;
+        _captchaToken = string.Empty;
+        _homeTeam = null;
+        _awayTeam = null;
+        _homeSearch = string.Empty;
+        _awaySearch = string.Empty;
+        if (_modalMounted && HasCaptcha)
+            await JS.InvokeVoidAsync("CriptoVersusCommunityMatch.unmount", _modalId, _openButtonId);
+        _modalMounted = false;
+        await ResetCaptchaAsync();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public Task OnCaptchaSuccess(string token)
+    {
+        _captchaToken = token ?? string.Empty;
+        _captchaError = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task OnCaptchaExpired()
+    {
+        _captchaToken = string.Empty;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task OnCaptchaError(string _)
+    {
+        _captchaToken = string.Empty;
+        _captchaError = T("modal.captchaError");
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    [JSInvokable]
+    public Task RequestCloseFromJs() => CloseAsync();
+
+
+    private Task HandleBackdropClickAsync()
+        => CloseAsync();
+    private static bool Contains(string? value, string query)
+        => !string.IsNullOrWhiteSpace(value) && value.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+    private static bool MatchesExact(StatsArenaTeamDto team, string query)
+        => !string.IsNullOrWhiteSpace(query) && (
+            string.Equals(team.Symbol, query, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(team.DisplaySymbol, query, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(team.DisplayName, query, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsSelected(StatsArenaTeamDto candidate, StatsArenaTeamDto? selected)
+        => selected is not null && candidate.TeamId == selected.TeamId;
+
+    private string ResolveIcon(StatsArenaTeamDto team)
+        => string.IsNullOrWhiteSpace(team.IconUrl) ? Api.BuildBinanceIconUrl(team.Symbol) : team.IconUrl;
+
+    private static string ResolveDisplaySymbol(StatsArenaTeamDto team)
+        => string.IsNullOrWhiteSpace(team.DisplaySymbol) ? team.Symbol : team.DisplaySymbol;
+
+    private static string ResolveDisplayName(StatsArenaTeamDto team)
+        => string.IsNullOrWhiteSpace(team.DisplayName) ? ResolveDisplaySymbol(team) : team.DisplayName;
+
+    private string ResolveResultMessage(CriptoVersus.Web.Services.CriptoVersusApiClient.CommunityMatchCreationResult result)
+    {
+        if (!string.IsNullOrWhiteSpace(result.Message))
+            return result.Message;
+
+        return result.MessageCode switch
+        {
+            "communityMatchesUnavailable" => T("modal.unavailable"),
+            "sameAssetNotAllowed" => T("modal.sameAsset"),
+            "assetNotAvailable" => T("modal.assetUnavailable"),
+            "invalidAsset" => T("modal.invalidAsset"),
+            "tooManyRequests" => T("modal.tooManyRequests", result.RetryAfterSeconds ?? 0),
+            "battleAlreadyExists" => T("modal.existing"),
+            _ => T("modal.fallbackError")
+        };
+    }
+
+    private string T(string key, params object?[] args)
+        => L.T($"communityMatch.{key}", null, args);
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+        _dotNetRef = null;
+    }
+}
+
+
+

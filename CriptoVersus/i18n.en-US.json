@@ -1,4 +1,4 @@
-﻿{
+{
   "layout": {
     "topbar": {
       "eyebrow": "CriptoVersus Arena",
@@ -107,7 +107,7 @@
       "marketEyebrow": "Market",
       "noData": "No data.",
       "awaitingStart": "Awaiting start",
-      "liveClock": "{0}' played Â· -{1}'",
+      "liveClock": "{0}' played · -{1}'",
       "elapsedOnly": "{0}' played",
       "statusOpen": "OPEN",
       "statusClosed": "CLOSED"
@@ -205,31 +205,31 @@
     },
     "brandPillars": [
       {
-        "icon": "âœ¦",
+        "icon": "✦",
         "accent": "purple",
         "title": "Competition",
         "subtitle": "Between digital assets"
       },
       {
-        "icon": "â†—",
+        "icon": "↗",
         "accent": "green",
         "title": "Strategy",
         "subtitle": "Performance and timing"
       },
       {
-        "icon": "â¬¢",
+        "icon": "⬢",
         "accent": "cyan",
         "title": "Technology",
         "subtitle": "Blockchain infrastructure"
       },
       {
-        "icon": "Ã°Å¸Ââ€ ",
+        "icon": "ðŸ†",
         "accent": "gold",
         "title": "Ranking",
         "subtitle": "Scoring and progression"
       },
       {
-        "icon": "â—Ž",
+        "icon": "◎",
         "accent": "purple",
         "title": "Global",
         "subtitle": "Decentralized arena"
@@ -405,7 +405,7 @@
       }
     },
     "hotMatches": {
-      "title": "🔥 Hot Matches of the Day",
+      "title": "?? Hot Matches of the Day",
       "subtitle": "The 5 hottest battles from the last 24 hours",
       "last24Hours": "Last 24h",
       "updatedAt": "Updated at {0} UTC",
@@ -989,8 +989,8 @@
       "marketCapHint": "latest social profile market cap ranking",
       "historicalRecord": "Historical record",
       "historicalRecordHint": "wins, losses and draws in the arena",
-      "historicalRecordValue": "{0}W â€¢ {1}L â€¢ {2}D",
-      "historicalRecordLegend": "Wins â€¢ Losses â€¢ Draws",
+      "historicalRecordValue": "{0}W • {1}L • {2}D",
+      "historicalRecordLegend": "Wins • Losses • Draws",
       "streakWinValue": "{0} wins",
       "streakLossValue": "{0} losses",
       "streakDrawValue": "{0} draws"
@@ -1078,7 +1078,7 @@
       "description": "Public rivals that faced this team most often in completed arena battles.",
       "empty": "No rival data yet.",
       "openAria": "Open the team profile for {0}",
-      "record": "{0} wins Â· {1} losses Â· {2} matches"
+      "record": "{0} wins · {1} losses · {2} matches"
     },
     "latest": {
       "eyebrow": "Latest scoreboards",
@@ -1264,7 +1264,7 @@
       }
     },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
-    "featuredMatchScoreSummary": "Match #{0} â€¢ score {1} x {2}",
+    "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
     "structuredDataDescription": "Public crypto market-data simulation between {0} and {1} on CriptoVersus."
   },
   "public": {
@@ -1691,7 +1691,7 @@
     },
     "labels": {
       "to": "to",
-      "approx": "â‰ˆ",
+      "approx": "≈",
       "vs": "vs",
       "directRate": "Direct rate",
       "priceUpdated": "Price updated",
@@ -2630,10 +2630,39 @@
     "stay": "Stay on this page",
     "goToWallet": "Go to My Wallet"
   }
+,
+  "communityMatch": {
+    "eyebrow": "Public creation",
+    "title": "Have a better matchup in mind?",
+    "body": "Create your own battle and challenge the community.",
+    "button": "Create my own battle",
+    "modal": {
+      "eyebrow": "Public battle",
+      "title": "Create a battle",
+      "close": "Close",
+      "orange": "Orange side",
+      "cyan": "Blue side",
+      "searchPlaceholder": "Search by symbol or name",
+      "loading": "Loading assets...",
+      "empty": "No assets available",
+      "selectLeft": "Select the orange side",
+      "selectRight": "Select the blue side",
+      "previewLeft": "Orange side preview",
+      "previewRight": "Blue side preview",
+      "submit": "CREATE BATTLE",
+      "submitting": "Creating battle...",
+      "footnote": "Battle created by the community",
+      "captchaRequired": "Please confirm the CAPTCHA to continue.",
+      "captchaError": "We could not validate the CAPTCHA. Please try again.",
+      "created": "Battle created successfully!",
+      "existing": "There is already an active battle for this matchup.",
+      "fallbackError": "We could not create the battle right now.",
+      "unavailable": "Public battle creation is temporarily unavailable.",
+      "sameAsset": "Choose two different assets.",
+      "assetUnavailable": "One of the selected assets is not available right now.",
+      "invalidAsset": "Choose two valid assets.",
+      "tooManyRequests": "Try again in {0} seconds."
+    }
+  }
 }
-
-
-
-
-
 

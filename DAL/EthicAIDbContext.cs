@@ -271,6 +271,17 @@ namespace EthicAI.EntityModel
                       .HasColumnName("tx_ruleset_version")
                       .HasMaxLength(20);
 
+                entity.HasIndex(e => e.Origin)
+                      .HasDatabaseName("ix_match_origin");
+                entity.HasIndex(e => e.CommunityCreatedAt)
+                      .HasDatabaseName("ix_match_community_created_at");
+                entity.HasIndex(e => e.CreatorIpHash)
+                      .HasDatabaseName("ix_match_creator_ip_hash");
+                entity.HasIndex(e => e.CommunityPairKey)
+                      .IsUnique()
+                      .HasFilter("\"tx_community_pair_key\" IS NOT NULL AND \"in_status\" IN ('Pending', 'Ongoing')")
+                      .HasDatabaseName("ux_match_community_pair_key_active");
+
                 entity.HasOne(e => e.TeamA)
                       .WithMany(t => t.MatchesAsTeamA)
                       .HasForeignKey(e => e.TeamAId)
@@ -1432,3 +1443,4 @@ namespace EthicAI.EntityModel
         }
     }
 }
+

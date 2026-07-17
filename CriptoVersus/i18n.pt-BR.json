@@ -2631,4 +2631,39 @@
     "stay": "Permanecer nesta p?gina",
     "goToWallet": "Ir para Minha Carteira"
   }
+,
+  "communityMatch": {
+    "eyebrow": "Cria��o da comunidade",
+    "title": "Tem um confronto melhor em mente?",
+    "body": "Crie sua pr�pria batalha e desafie a comunidade.",
+    "button": "Criar minha pr�pria batalha",
+    "modal": {
+      "eyebrow": "Batalha p�blica",
+      "title": "Crie uma batalha",
+      "close": "Fechar",
+      "orange": "Lado laranja",
+      "cyan": "Lado azul",
+      "searchPlaceholder": "Pesquisar por s�mbolo ou nome",
+      "loading": "Carregando ativos...",
+      "empty": "Nenhum ativo dispon�vel",
+      "selectLeft": "Selecione o lado laranja",
+      "selectRight": "Selecione o lado azul",
+      "previewLeft": "Pr�via do lado laranja",
+      "previewRight": "Pr�via do lado azul",
+      "submit": "CRIAR BATALHA",
+      "submitting": "Criando batalha...",
+      "footnote": "Batalha criada pela comunidade",
+      "captchaRequired": "Confirme o CAPTCHA para continuar.",
+      "captchaError": "N�o foi poss�vel validar o CAPTCHA. Tente novamente.",
+      "created": "Batalha criada com sucesso!",
+      "existing": "J� existe uma batalha ativa para esse confronto.",
+      "fallbackError": "N�o foi poss�vel criar a batalha agora.",
+      "unavailable": "A cria��o p�blica de batalhas est� temporariamente indispon�vel.",
+      "sameAsset": "Escolha dois ativos diferentes.",
+      "assetUnavailable": "Um dos ativos selecionados n�o est� dispon�vel no momento.",
+      "invalidAsset": "Escolha dois ativos v�lidos.",
+      "tooManyRequests": "Tente novamente em {0} segundos."
+    }
+  }
 }
+

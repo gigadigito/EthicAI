@@ -1,4 +1,4 @@
-﻿using DTOs;
+using DTOs;
 using Blazored.SessionStorage;
 using BLL.Positions;
 using System.Collections.Concurrent;
@@ -163,6 +163,53 @@ public sealed class CriptoVersusApiClient
         => await GetFromJsonWithBearerAsync<List<MatchDto>>(
             $"api/Matches?includeParticipants=false&take={Math.Clamp(take, 1, 200)}{(string.IsNullOrWhiteSpace(status) ? string.Empty : $"&status={Uri.EscapeDataString(status)}")}",
             ct);
+
+    public async Task<CommunityMatchCreationResult> CreateCommunityMatchAsync(
+        CommunityMatchCreateRequestDto request,
+        CancellationToken ct = default)
+    {
+        var requestUri = BuildApiUrl("api/matches/community");
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUri)
+        {
+            Content = JsonContent.Create(request)
+        };
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(RequestTimeout);
+
+        using var response = await _http.SendAsync(httpRequest, timeoutCts.Token);
+        var rawBody = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var payload = string.IsNullOrWhiteSpace(rawBody)
+                ? null
+                : JsonSerializer.Deserialize<CommunityMatchCreateResponseDto>(rawBody, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            return new CommunityMatchCreationResult(
+                true,
+                response.StatusCode,
+                payload,
+                payload?.MessageCode,
+                payload?.Message,
+                payload?.RetryAfterSeconds,
+                null);
+        }
+
+        var error = TryParseCommunityMatchError(rawBody);
+        var retryAfter = response.Headers.RetryAfter?.Delta is TimeSpan delta
+            ? Math.Max(1, (int)Math.Ceiling(delta.TotalSeconds))
+            : error.RetryAfterSeconds;
+
+        return new CommunityMatchCreationResult(
+            false,
+            response.StatusCode,
+            null,
+            error.MessageCode,
+            error.Message,
+            retryAfter,
+            error.Detail);
+    }
 
     public async Task<List<SocialHotMatchDto>?> GetSocialHotMatchesAsync(CancellationToken ct = default)
         => await GetFromJsonWithBearerAsync<List<SocialHotMatchDto>>("api/social/hot-matches", ct);
@@ -731,7 +778,46 @@ public sealed class CriptoVersusApiClient
     }
 
     private sealed record CachedCoinSocialProfileResult(DateTimeOffset CachedAtUtc, CoinSocialProfileDto? Profile);
+
+    private static CommunityMatchErrorResponse TryParseCommunityMatchError(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return new CommunityMatchErrorResponse(null, null, null, null);
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+            var messageCode = root.TryGetProperty("messageCode", out var messageCodeElement)
+                ? messageCodeElement.GetString()
+                : null;
+            var message = root.TryGetProperty("message", out var messageElement)
+                ? messageElement.GetString()
+                : null;
+            var detail = root.TryGetProperty("detail", out var detailElement)
+                ? detailElement.GetString()
+                : null;
+            var retryAfter = root.TryGetProperty("retryAfterSeconds", out var retryElement) && retryElement.TryGetInt32(out var retry)
+                ? (int?)retry
+                : null;
+
+            return new CommunityMatchErrorResponse(messageCode, message, detail, retryAfter);
+        }
+        catch
+        {
+            return new CommunityMatchErrorResponse(null, body, null, null);
+        }
+    }
+
+    private sealed record CommunityMatchErrorResponse(string? MessageCode, string? Message, string? Detail, int? RetryAfterSeconds);
+
+    public sealed record CommunityMatchCreationResult(
+        bool Success,
+        HttpStatusCode StatusCode,
+        CommunityMatchCreateResponseDto? Response,
+        string? MessageCode,
+        string? Message,
+        int? RetryAfterSeconds,
+        string? Detail);
 }
-
-
 

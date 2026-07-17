@@ -86,6 +86,13 @@ builder.Services.Configure<AudioGenerationOptions>(
     builder.Configuration.GetSection(AudioGenerationOptions.SectionName));
 builder.Services.Configure<ProceduralAudioFeatureOptions>(
     builder.Configuration.GetSection(ProceduralAudioFeatureOptions.SectionName));
+builder.Services.Configure<CommunityMatchOptions>(
+    builder.Configuration.GetSection(CommunityMatchOptions.SectionName));
+builder.Services.Configure<CommunityCaptchaOptions>(
+    builder.Configuration.GetSection(CommunityCaptchaOptions.SectionName));
+builder.Services.AddHttpClient(nameof(TurnstileCaptchaValidator));
+builder.Services.AddScoped<ICaptchaValidator, TurnstileCaptchaValidator>();
+builder.Services.AddScoped<ICommunityMatchService, CommunityMatchService>();
 builder.Services.AddScoped<IFundMigrationService, FundMigrationService>();
 builder.Services.AddScoped<OffChainCustodyFundsService>();
 builder.Services.AddScoped<HybridContractCustodyFundsService>();
@@ -304,4 +311,6 @@ static void MapPublicAudioFiles(WebApplication app, FileExtensionContentTypeProv
         });
     });
 }
+
+
 

@@ -5,6 +5,11 @@
         public int MatchId { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+        public MatchOrigin Origin { get; set; } = MatchOrigin.System;
+        public DateTimeOffset? CommunityCreatedAt { get; set; }
+        public int? CreatedByUserId { get; set; }
+        public string? CreatorIpHash { get; set; }
+        public string? CommunityPairKey { get; set; }
 
         public int TeamAId { get; set; }
         public int TeamBId { get; set; }
@@ -43,4 +48,12 @@ public enum MatchStatus
     Ongoing,     // Partida em andamento
     Completed,   // Partida concluída
     Cancelled    // ✅ Cancelada (antes de iniciar)
+}
+
+public enum MatchOrigin
+{
+    System = 1,
+    Community = 2,
+    Admin = 3,
+    Scheduled = 4
 }

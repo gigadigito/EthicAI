@@ -1,4 +1,4 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 @inject IHttpContextAccessor HttpContextAccessor
 @using CriptoVersus.Web.Services
 @inject AppCultureService AppCulture
@@ -56,9 +56,9 @@
                     <span></span>
                     <span></span>
                 </div>
-                <h2 class="cv-reconnect-card__title">Reconectando √† arena...</h2>
+                <h2 class="cv-reconnect-card__title">Reconectando ‡ arena...</h2>
                 <p class="cv-reconnect-card__body">
-                    A conex√£o com o servidor foi perdida. Estamos tentando restaurar o sinal da arena para voc√™ continuar acompanhando a partida.
+                    A conex„o com o servidor foi perdida. Estamos tentando restaurar o sinal da arena para vocÍ continuar acompanhando a partida.
                 </p>
                 <div class="cv-reconnect-card__attempts">
                     <span>Tentativa</span>
@@ -67,10 +67,10 @@
                     <strong class="components-reconnect-max-retries">?</strong>
                 </div>
                 <div class="cv-reconnect-card__status">
-                    <span class="cv-reconnect-status cv-reconnect-status--retrying">Reconex√£o autom√°tica em andamento</span>
-                    <span class="cv-reconnect-status cv-reconnect-status--failed">N√£o foi poss√≠vel reconectar automaticamente.</span>
-                    <span class="cv-reconnect-status cv-reconnect-status--rejected">A sess√£o foi rejeitada pelo servidor. Recarregue para entrar novamente.</span>
-                    <span class="cv-reconnect-status cv-reconnect-status--paused">A reconex√£o foi pausada temporariamente.</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--retrying">Reconex„o autom·tica em andamento</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--failed">N„o foi possÌvel reconectar automaticamente.</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--rejected">A sess„o foi rejeitada pelo servidor. Recarregue para entrar novamente.</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--paused">A reconex„o foi pausada temporariamente.</span>
                 </div>
                 <button type="button"
                         class="cv-reconnect-card__button"
@@ -90,6 +90,8 @@
     <script src="/js/tvReplayEngine.js?v=20260521-1"></script>
     <script src="/js/criptoversus-stats-charts.js"></script>
     <script src="/js/tokenomicsCharts.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    <script src="/js/communityMatchModal.js?v=20260717" defer></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="/js/blazor-reconnect.js"></script>
 
@@ -100,3 +102,5 @@
 </body>
 
 </html>
+
+
