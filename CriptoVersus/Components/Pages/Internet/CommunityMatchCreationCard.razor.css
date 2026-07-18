@@ -206,6 +206,44 @@
     border-radius: 50%;
 }
 
+.community-match-picker__icon,
+.community-match-modal__side-icon,
+.community-match-modal__preview-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.community-match-picker__fallback,
+.community-match-modal__fallback {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(83, 200, 255, 0.18);
+    color: #cfe9ff;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+
+.community-match-picker__fallback {
+    width: 36px;
+    height: 36px;
+}
+
+.community-match-modal__fallback {
+    width: 46px;
+    height: 46px;
+}
+
+.community-match-picker__fallback.is-visible,
+.community-match-modal__fallback.is-visible {
+    display: inline-flex;
+}
+
 .community-match-picker__option strong,
 .community-match-modal__preview strong {
     display: block;

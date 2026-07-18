@@ -1,4 +1,4 @@
-﻿namespace CriptoVersus.API.Services;
+namespace CriptoVersus.API.Services;
 
 public sealed class CommunityCaptchaOptions
 {
@@ -9,6 +9,8 @@ public sealed class CommunityCaptchaOptions
     public string SiteKey { get; set; } = string.Empty;
     public string SecretKey { get; set; } = string.Empty;
     public string VerificationUrl { get; set; } = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    public bool ValidateHostname { get; set; } = false;
+    public List<string> AllowedHostnames { get; set; } = [];
     public double? MinimumScore { get; set; }
     public int TimeoutSeconds { get; set; } = 8;
 }

@@ -1,4 +1,4 @@
-﻿using DAL;
+using DAL;
 using DAL.NftFutebol;
 using DAL.Seed;
 using Microsoft.EntityFrameworkCore;
@@ -226,6 +226,12 @@ namespace EthicAI.EntityModel
                 entity.Property(e => e.MatchId).HasColumnName("cd_match");
                 entity.Property(e => e.StartTime).HasColumnType("timestamp with time zone").HasColumnName("dt_start_time");
                 entity.Property(e => e.EndTime).HasColumnType("timestamp with time zone").HasColumnName("dt_end_time");
+
+                entity.Property(e => e.Origin).HasColumnName("in_origin");
+                entity.Property(e => e.CommunityCreatedAt).HasColumnType("timestamp with time zone").HasColumnName("dt_community_created_at");
+                entity.Property(e => e.CreatedByUserId).HasColumnName("cd_created_by_user");
+                entity.Property(e => e.CreatorIpHash).HasColumnName("tx_creator_ip_hash");
+                entity.Property(e => e.CommunityPairKey).HasColumnName("tx_community_pair_key");
 
                 entity.Property(e => e.BettingCloseTime)
                       .HasColumnType("timestamp with time zone")
@@ -1416,9 +1422,9 @@ namespace EthicAI.EntityModel
 
             var audioSeedTime = new DateTime(2026, 06, 04, 0, 0, 0, DateTimeKind.Utc);
             modelBuilder.Entity<AudioPhraseTemplate>().HasData(
-                new AudioPhraseTemplate { Id = 1, TemplateKey = "goal_pt_br_hype", EventType = "goal", Language = "pt-BR", Intensity = "hype", TemplateText = "É gol de {TEAM_NAME}! A arena CriptoVersus explode em emoção!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 1, TemplateKey = "goal_pt_br_hype", EventType = "goal", Language = "pt-BR", Intensity = "hype", TemplateText = "Ã‰ gol de {TEAM_NAME}! A arena CriptoVersus explode em emoÃ§Ã£o!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
                 new AudioPhraseTemplate { Id = 2, TemplateKey = "goal_en_us_hype", EventType = "goal", Language = "en-US", Intensity = "hype", TemplateText = "What a goal by {TEAM_NAME}! The CriptoVersus Arena erupts!", IsActive = true, Priority = 100, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
-                new AudioPhraseTemplate { Id = 3, TemplateKey = "match_start_pt_br_normal", EventType = "match_start", Language = "pt-BR", Intensity = "normal", TemplateText = "{TEAM_NAME} está pronto para começar mais uma batalha na CriptoVersus Arena!", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
+                new AudioPhraseTemplate { Id = 3, TemplateKey = "match_start_pt_br_normal", EventType = "match_start", Language = "pt-BR", Intensity = "normal", TemplateText = "{TEAM_NAME} estÃ¡ pronto para comeÃ§ar mais uma batalha na CriptoVersus Arena!", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
                 new AudioPhraseTemplate { Id = 4, TemplateKey = "match_start_en_us_normal", EventType = "match_start", Language = "en-US", Intensity = "normal", TemplateText = "{TEAM_NAME} is ready to kick off another battle in the CriptoVersus Arena!", IsActive = true, Priority = 90, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
                 new AudioPhraseTemplate { Id = 5, TemplateKey = "final_whistle_pt_br_normal", EventType = "final_whistle", Language = "pt-BR", Intensity = "normal", TemplateText = "Fim de jogo para {TEAM_NAME} na CriptoVersus Arena!", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },
                 new AudioPhraseTemplate { Id = 6, TemplateKey = "final_whistle_en_us_normal", EventType = "final_whistle", Language = "en-US", Intensity = "normal", TemplateText = "Final whistle for {TEAM_NAME} in the CriptoVersus Arena!", IsActive = true, Priority = 80, CreatedAtUtc = audioSeedTime, UpdatedAtUtc = audioSeedTime },

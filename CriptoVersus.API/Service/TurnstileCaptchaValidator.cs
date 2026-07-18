@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 
 namespace CriptoVersus.API.Services;
@@ -60,6 +60,15 @@ public sealed class TurnstileCaptchaValidator : ICaptchaValidator
             if (verification is null)
                 return CaptchaValidationResult.Invalid("invalidCaptcha");
 
+            if (options.ValidateHostname && !IsAllowedHostname(verification.Hostname, options.AllowedHostnames))
+            {
+                _logger.LogWarning(
+                    "Captcha hostname rejected. Hostname={Hostname} Allowed={AllowedHostnames}",
+                    verification.Hostname,
+                    string.Join(",", options.AllowedHostnames ?? []));
+                return CaptchaValidationResult.Invalid("invalidCaptcha");
+            }
+
             if (verification.Success)
                 return CaptchaValidationResult.Success();
 
@@ -88,5 +97,33 @@ public sealed class TurnstileCaptchaValidator : ICaptchaValidator
         public string[] ErrorCodes { get; set; } = [];
         public double? Score { get; set; }
         public string? Action { get; set; }
+        public string? Hostname { get; set; }
+        public DateTimeOffset? ChallengeTs { get; set; }
+    }
+
+    private static bool IsAllowedHostname(string? hostname, IReadOnlyCollection<string>? allowedHostnames)
+    {
+        var normalizedHostname = NormalizeHostname(hostname);
+        if (string.IsNullOrWhiteSpace(normalizedHostname))
+            return false;
+
+        var allowed = (allowedHostnames ?? [])
+            .Select(NormalizeHostname)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return allowed.Count == 0 || allowed.Contains(normalizedHostname);
+    }
+
+    private static string NormalizeHostname(string? hostname)
+    {
+        if (string.IsNullOrWhiteSpace(hostname))
+            return string.Empty;
+
+        var value = hostname.Trim().Trim('.').ToLowerInvariant();
+        if (Uri.TryCreate($"https://{value}", UriKind.Absolute, out var uri))
+            return uri.Host.Trim('.').ToLowerInvariant();
+
+        return value;
     }
 }

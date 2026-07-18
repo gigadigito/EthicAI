@@ -1,4 +1,4 @@
-﻿@using DTOs
+@using DTOs
 @inject CriptoVersus.Web.Services.CriptoVersusApiClient Api
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -75,7 +75,15 @@
                                                     role="option"
                                                     aria-selected="@(IsSelected(team, _homeTeam))"
                                                     @onclick="() => SelectHomeAsync(team)">
-                                                <img src="@ResolveIcon(team)" alt="" loading="lazy" />
+                                                                                                <span class="community-match-picker__icon">
+                                                    <img src="@GetIconUrl(team)"
+                                                         alt=""
+                                                         loading="lazy"
+                                                         width="36"
+                                                         height="36"
+                                                         onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                                    <span class="community-match-picker__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(team))</span>
+                                                </span>
                                                 <span>
                                                     <strong>@ResolveDisplaySymbol(team)</strong>
                                                     <small>@ResolveDisplayName(team)</small>
@@ -94,7 +102,15 @@
                                     }
                                     else
                                     {
-                                        <img src="@ResolveIcon(_homeTeam)" alt="" loading="lazy" />
+                                                                                <span class="community-match-modal__side-icon">
+                                            <img src="@GetIconUrl(_homeTeam)"
+                                                 alt=""
+                                                 loading="lazy"
+                                                 width="46"
+                                                 height="46"
+                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                            <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_homeTeam))</span>
+                                        </span>
                                         <strong>@ResolveDisplaySymbol(_homeTeam)</strong>
                                         <small>@ResolveDisplayName(_homeTeam)</small>
                                     }
@@ -109,7 +125,15 @@
                                     }
                                     else
                                     {
-                                        <img src="@ResolveIcon(_awayTeam)" alt="" loading="lazy" />
+                                                                                <span class="community-match-modal__side-icon">
+                                            <img src="@GetIconUrl(_awayTeam)"
+                                                 alt=""
+                                                 loading="lazy"
+                                                 width="46"
+                                                 height="46"
+                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                            <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_awayTeam))</span>
+                                        </span>
                                         <strong>@ResolveDisplaySymbol(_awayTeam)</strong>
                                         <small>@ResolveDisplayName(_awayTeam)</small>
                                     }
@@ -141,7 +165,15 @@
                                                     role="option"
                                                     aria-selected="@(IsSelected(team, _awayTeam))"
                                                     @onclick="() => SelectAwayAsync(team)">
-                                                <img src="@ResolveIcon(team)" alt="" loading="lazy" />
+                                                                                                <span class="community-match-picker__icon">
+                                                    <img src="@GetIconUrl(team)"
+                                                         alt=""
+                                                         loading="lazy"
+                                                         width="36"
+                                                         height="36"
+                                                         onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                                    <span class="community-match-picker__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(team))</span>
+                                                </span>
                                                 <span>
                                                     <strong>@ResolveDisplaySymbol(team)</strong>
                                                     <small>@ResolveDisplayName(team)</small>
@@ -161,7 +193,15 @@
                                 }
                                 else
                                 {
-                                    <img src="@ResolveIcon(_homeTeam)" alt="" loading="lazy" />
+                                                                            <span class="community-match-modal__side-icon">
+                                            <img src="@GetIconUrl(_homeTeam)"
+                                                 alt=""
+                                                 loading="lazy"
+                                                 width="46"
+                                                 height="46"
+                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                            <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_homeTeam))</span>
+                                        </span>
                                     <div>
                                         <strong>@ResolveDisplaySymbol(_homeTeam)</strong>
                                         <small>@ResolveDisplayName(_homeTeam)</small>
@@ -176,7 +216,15 @@
                                 }
                                 else
                                 {
-                                    <img src="@ResolveIcon(_awayTeam)" alt="" loading="lazy" />
+                                                                            <span class="community-match-modal__side-icon">
+                                            <img src="@GetIconUrl(_awayTeam)"
+                                                 alt=""
+                                                 loading="lazy"
+                                                 width="46"
+                                                 height="46"
+                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                            <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_awayTeam))</span>
+                                        </span>
                                     <div>
                                         <strong>@ResolveDisplaySymbol(_awayTeam)</strong>
                                         <small>@ResolveDisplayName(_awayTeam)</small>
@@ -481,14 +529,51 @@
     private static bool IsSelected(StatsArenaTeamDto candidate, StatsArenaTeamDto? selected)
         => selected is not null && candidate.TeamId == selected.TeamId;
 
-    private string ResolveIcon(StatsArenaTeamDto team)
-        => string.IsNullOrWhiteSpace(team.IconUrl) ? Api.BuildBinanceIconUrl(team.Symbol) : team.IconUrl;
+    private string GetIconUrl(StatsArenaTeamDto team)
+    {
+        if (!string.IsNullOrWhiteSpace(team.IconUrl))
+        {
+            var iconSymbol = CleanAssetSymbol(team.IconUrl[(team.IconUrl.LastIndexOf('/') + 1)..]);
+            if (!string.IsNullOrWhiteSpace(iconSymbol))
+                return Api.BuildBinanceIconUrl(iconSymbol);
+
+            return Api.BuildApiUrl(team.IconUrl);
+        }
+
+        return Api.BuildBinanceIconUrl(ResolveDisplaySymbol(team));
+    }
 
     private static string ResolveDisplaySymbol(StatsArenaTeamDto team)
         => string.IsNullOrWhiteSpace(team.DisplaySymbol) ? team.Symbol : team.DisplaySymbol;
 
     private static string ResolveDisplayName(StatsArenaTeamDto team)
         => string.IsNullOrWhiteSpace(team.DisplayName) ? ResolveDisplaySymbol(team) : team.DisplayName;
+
+    private static string GetAssetMonogram(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return "?";
+
+        var normalized = CleanAssetSymbol(symbol);
+        return normalized.Length >= 2 ? normalized[..2] : normalized;
+    }
+
+    private static string CleanAssetSymbol(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return string.Empty;
+
+        var normalized = new string(symbol.Trim().ToUpperInvariant().Where(char.IsLetterOrDigit).ToArray());
+        foreach (var suffix in VisualSuffixes)
+        {
+            if (normalized.Length > suffix.Length && normalized.EndsWith(suffix, StringComparison.Ordinal))
+                return normalized[..^suffix.Length];
+        }
+
+        return normalized;
+    }
+
+    private static readonly string[] VisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
 
     private string ResolveResultMessage(CriptoVersus.Web.Services.CriptoVersusApiClient.CommunityMatchCreationResult result)
     {

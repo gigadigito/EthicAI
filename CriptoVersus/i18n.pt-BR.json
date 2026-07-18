@@ -7,7 +7,7 @@
       "connectWallet": "Conectar carteira",
       "language": "Language",
       "english": "English",
-      "portuguese": "Português"
+      "portuguese": "PortuguÃªs"
     },
     "postLogin": {
       "eyebrow": "Wallet connected",
@@ -66,7 +66,7 @@
         "responsible": {
           "label": "Uso responsavel",
           "title": "Informacao, nao conselho",
-          "body": "A plataforma nao promete lucro, nao prevê precos futuros e nao substitui julgamento independente."
+          "body": "A plataforma nao promete lucro, nao prevÃª precos futuros e nao substitui julgamento independente."
         }
       },
       "dataSources": {
@@ -80,158 +80,158 @@
     },
     "scoringRules": {
       "seo": {
-        "title": "Regras de pontuação do CriptoVersus | Sinais públicos de mercado",
-        "description": "Veja como sinais públicos de mercado viram eventos de pontuação no CriptoVersus por meio de regras de percentual, cruzamento, volume e Candle Battle."
+        "title": "Regras de pontuaÃ§Ã£o do CriptoVersus | Sinais pÃºblicos de mercado",
+        "description": "Veja como sinais pÃºblicos de mercado viram eventos de pontuaÃ§Ã£o no CriptoVersus por meio de regras de percentual, cruzamento, volume e Candle Battle."
       },
       "hero": {
-        "eyebrow": "Regras de pontuação",
-        "title": "Sinais públicos de mercado viram placares de partidas simuladas.",
-        "lead": "O CriptoVersus usa indicadores derivados do mercado para criar partidas simuladas. O placar publicado segue o conjunto de regras ativo e deve ser lido como análise, não como recomendação financeira nem previsão de preço.",
+        "eyebrow": "Regras de pontuaÃ§Ã£o",
+        "title": "Sinais pÃºblicos de mercado viram placares de partidas simuladas.",
+        "lead": "O CriptoVersus usa indicadores derivados do mercado para criar partidas simuladas. O placar publicado segue o conjunto de regras ativo e deve ser lido como anÃ¡lise, nÃ£o como recomendaÃ§Ã£o financeira nem previsÃ£o de preÃ§o.",
         "backToAbout": "Ler sobre o CriptoVersus",
         "backToArena": "Voltar para a arena",
-        "panelLabel": "Visão geral da pontuação",
+        "panelLabel": "VisÃ£o geral da pontuaÃ§Ã£o",
         "panel": {
           "signalsLabel": "Sinais",
-          "signalsTitle": "Entradas públicas primeiro",
-          "signalsBody": "Movimento de preço, variação percentual, comportamento de candles, volume negociado e atividade de negociação alimentam a arena, incluindo pares negociados na Binance quando disponíveis.",
+          "signalsTitle": "Entradas pÃºblicas primeiro",
+          "signalsBody": "Movimento de preÃ§o, variaÃ§Ã£o percentual, comportamento de candles, volume negociado e atividade de negociaÃ§Ã£o alimentam a arena, incluindo pares negociados na Binance quando disponÃ­veis.",
           "leftTeam": "Lado A",
           "versus": "vs",
           "simulated": "Partida simulada",
           "rightTeam": "Lado B",
-          "scoringLabel": "Pontuação",
+          "scoringLabel": "PontuaÃ§Ã£o",
           "scoringTitle": "Eventos da partida",
-          "scoringBody": "Essas entradas públicas podem criar eventos de pontuação por meio de limiares percentuais, cruzamentos, janelas de volume, cruzamentos de volume e Candle Battle.",
+          "scoringBody": "Essas entradas pÃºblicas podem criar eventos de pontuaÃ§Ã£o por meio de limiares percentuais, cruzamentos, janelas de volume, cruzamentos de volume e Candle Battle.",
           "resultLabel": "Resultados",
-          "resultTitle": "Líder final ou nenhum",
-          "resultBody": "Um ciclo pode terminar com um líder final ou sem líder final, e o placar não prevê preços futuros de token."
+          "resultTitle": "LÃ­der final ou nenhum",
+          "resultBody": "Um ciclo pode terminar com um lÃ­der final ou sem lÃ­der final, e o placar nÃ£o prevÃª preÃ§os futuros de token."
         }
       },
       "sections": {
-        "overviewLabel": "Visão geral das regras de pontuação",
-        "overviewEyebrow": "Como a arena é lida",
-        "overviewTitle": "Sinais públicos, regras claras e um ciclo visível.",
-        "overviewLead": "Esta página explica como sinais públicos de mercado viram eventos de pontuação, como a partida simulada avança e como o placar público deve ser interpretado.",
+        "overviewLabel": "VisÃ£o geral das regras de pontuaÃ§Ã£o",
+        "overviewEyebrow": "Como a arena Ã© lida",
+        "overviewTitle": "Sinais pÃºblicos, regras claras e um ciclo visÃ­vel.",
+        "overviewLead": "Esta pÃ¡gina explica como sinais pÃºblicos de mercado viram eventos de pontuaÃ§Ã£o, como a partida simulada avanÃ§a e como o placar pÃºblico deve ser interpretado.",
         "realRulesLabel": "Regras reais",
         "realRulesEyebrow": "O que realmente marca pontos",
-        "realRulesTitle": "Somente as regras documentadas geram eventos de pontuação.",
-        "realRulesLead": "A arena pública usa regras específicas para pontuação por percentual, cruzamento, volume e Candle Battle. Indicadores visuais ajudam na leitura da partida, mas não substituem o mecanismo de regras.",
-        "simulationsLabel": "Simulações",
-        "simulationsEyebrow": "Como o ciclo é apresentado",
-        "simulationsTitle": "Cada ciclo é mostrado como uma partida simulada.",
-        "simulationsLead": "A página pública usa uma linha do tempo em estilo de partida para que as pessoas entendam o fluxo dos sinais sem confundir a arena com um produto de negociação.",
-        "simulationsTimelineLabel": "Linha do tempo da simulação",
+        "realRulesTitle": "Somente as regras documentadas geram eventos de pontuaÃ§Ã£o.",
+        "realRulesLead": "A arena pÃºblica usa regras especÃ­ficas para pontuaÃ§Ã£o por percentual, cruzamento, volume e Candle Battle. Indicadores visuais ajudam na leitura da partida, mas nÃ£o substituem o mecanismo de regras.",
+        "simulationsLabel": "SimulaÃ§Ãµes",
+        "simulationsEyebrow": "Como o ciclo Ã© apresentado",
+        "simulationsTitle": "Cada ciclo Ã© mostrado como uma partida simulada.",
+        "simulationsLead": "A pÃ¡gina pÃºblica usa uma linha do tempo em estilo de partida para que as pessoas entendam o fluxo dos sinais sem confundir a arena com um produto de negociaÃ§Ã£o.",
+        "simulationsTimelineLabel": "Linha do tempo da simulaÃ§Ã£o",
         "visualIndicatorsLabel": "Indicadores visuais",
-        "visualIndicatorsEyebrow": "Contexto útil",
-        "visualIndicatorsTitle": "Alguns painéis são apenas visuais.",
-        "visualIndicatorsLead": "Arena Pressure, Momentum e fluxo de mercado ajudam a explicar o estado da partida. São indicadores visuais, não gatilhos de pontuação por si só.",
+        "visualIndicatorsEyebrow": "Contexto Ãºtil",
+        "visualIndicatorsTitle": "Alguns painÃ©is sÃ£o apenas visuais.",
+        "visualIndicatorsLead": "Arena Pressure, Momentum e fluxo de mercado ajudam a explicar o estado da partida. SÃ£o indicadores visuais, nÃ£o gatilhos de pontuaÃ§Ã£o por si sÃ³.",
         "meaningLabel": "O que o placar significa"
       },
       "cards": {
         "signals": {
           "label": "Coleta de sinais",
-          "title": "Dados públicos de mercado são lidos",
-          "body": "A plataforma lê movimento de mercado, variação percentual, comportamento de candles, volume negociado e atividade de negociação a partir de fontes públicas, incluindo pares negociados na Binance quando disponíveis."
+          "title": "Dados pÃºblicos de mercado sÃ£o lidos",
+          "body": "A plataforma lÃª movimento de mercado, variaÃ§Ã£o percentual, comportamento de candles, volume negociado e atividade de negociaÃ§Ã£o a partir de fontes pÃºblicas, incluindo pares negociados na Binance quando disponÃ­veis."
         },
         "scoring": {
-          "label": "Eventos de pontuação",
-          "title": "Sinais viram eventos de pontuação",
-          "body": "As regras de limiar percentual somam pontos quando a diferença atinge níveis configurados. As regras de cruzamento somam pontos apenas quando um lado sai de baixo para cima em relação ao oponente. As regras de janela de volume e cruzamento de volume seguem a mesma lógica pública sobre volume negociado, enquanto o Candle Battle adiciona um caminho separado de pontuação."
+          "label": "Eventos de pontuaÃ§Ã£o",
+          "title": "Sinais viram eventos de pontuaÃ§Ã£o",
+          "body": "As regras de limiar percentual somam pontos quando a diferenÃ§a atinge nÃ­veis configurados. As regras de cruzamento somam pontos apenas quando um lado sai de baixo para cima em relaÃ§Ã£o ao oponente. As regras de janela de volume e cruzamento de volume seguem a mesma lÃ³gica pÃºblica sobre volume negociado, enquanto o Candle Battle adiciona um caminho separado de pontuaÃ§Ã£o."
         },
         "settlement": {
           "label": "Resultado do ciclo",
           "title": "O ciclo fecha de forma limpa",
-          "body": "O placar publicado é uma visualização educacional do comportamento de mercado. Não é recomendação financeira, sinal de negociação nem resultado garantido."
+          "body": "O placar publicado Ã© uma visualizaÃ§Ã£o educacional do comportamento de mercado. NÃ£o Ã© recomendaÃ§Ã£o financeira, sinal de negociaÃ§Ã£o nem resultado garantido."
         }
       },
       "rules": {
         "percentage": {
           "label": "Regra de percentual",
           "title": "Limiar percentual",
-          "body": "Pontos podem ser marcados quando a diferença percentual relativa alcança os limiares configurados.",
-          "point1": "A maior variação percentual lidera a regra.",
+          "body": "Pontos podem ser marcados quando a diferenÃ§a percentual relativa alcanÃ§a os limiares configurados.",
+          "point1": "A maior variaÃ§Ã£o percentual lidera a regra.",
           "point2": "Cada limiar configurado pode contar uma vez por lado.",
-          "point3": "O placar reflete movimento público de mercado, não desempenho futuro."
+          "point3": "O placar reflete movimento pÃºblico de mercado, nÃ£o desempenho futuro."
         },
         "crossover": {
           "label": "Regra de cruzamento",
           "title": "Cruzamento percentual",
           "body": "Pontos podem ser marcados quando um lado cruza de baixo para cima o outro lado no movimento percentual.",
-          "point1": "O cruzamento precisa acontecer para cima em relação ao oponente.",
-          "point2": "Tocar a linha não basta se nenhum cruzamento ocorrer.",
-          "point3": "Esta é uma regra de sinal de mercado, não uma recomendação financeira."
+          "point1": "O cruzamento precisa acontecer para cima em relaÃ§Ã£o ao oponente.",
+          "point2": "Tocar a linha nÃ£o basta se nenhum cruzamento ocorrer.",
+          "point3": "Esta Ã© uma regra de sinal de mercado, nÃ£o uma recomendaÃ§Ã£o financeira."
         },
         "candleBattle": {
           "label": "Regra do Candle Battle",
           "title": "Domin?ncia no Candle Battle",
           "body": "Pontos podem ser marcados quando a domin?ncia no Candle Battle fica clara na sequ?ncia de candles.",
           "point1": "A regra compara o movimento relativo de candle para candle.",
-          "point2": "Uma sequência mais forte pode criar um evento de pontuação.",
-          "point3": "É uma partida simulada baseada em dados públicos de mercado."
+          "point2": "Uma sequÃªncia mais forte pode criar um evento de pontuaÃ§Ã£o.",
+          "point3": "Ã‰ uma partida simulada baseada em dados pÃºblicos de mercado."
         },
         "dominance": {
           "label": "Regra de domin?ncia",
           "title": "Domin?ncia cont?nua",
           "body": "A domin?ncia sustentada pode manter o l?der da partida est?vel e facilitar a leitura do resultado.",
           "point1": "A regra segue o estado ativo de domin?ncia.",
-          "point2": "Ela reflete controle da partida, não um resultado garantido.",
-          "point3": "O placar continua sendo uma visualização educacional."
+          "point2": "Ela reflete controle da partida, nÃ£o um resultado garantido.",
+          "point3": "O placar continua sendo uma visualizaÃ§Ã£o educacional."
         }
       },
       "simulations": {
         "step1": {
-          "title": "1. Os sinais são coletados",
-          "body": "Os dados públicos de mercado são coletados das fontes disponíveis e normalizados para a partida."
+          "title": "1. Os sinais sÃ£o coletados",
+          "body": "Os dados pÃºblicos de mercado sÃ£o coletados das fontes disponÃ­veis e normalizados para a partida."
         },
         "step2": {
-          "title": "2. As regras criam eventos de pontuação",
-          "body": "O conjunto de regras ativo transforma movimentos que se qualificam em eventos de pontuação."
+          "title": "2. As regras criam eventos de pontuaÃ§Ã£o",
+          "body": "O conjunto de regras ativo transforma movimentos que se qualificam em eventos de pontuaÃ§Ã£o."
         },
         "step3": {
-          "title": "3. O ciclo é encerrado",
-          "body": "A partida simulada termina com um líder final ou sem líder final."
+          "title": "3. O ciclo Ã© encerrado",
+          "body": "A partida simulada termina com um lÃ­der final ou sem lÃ­der final."
         }
       },
       "indicators": {
         "arenaPressure": {
           "label": "Arena Pressure",
-          "title": "Indicador visual de pressão",
-          "body": "Mostra o contexto de pressão da arena como um indicador de intensidade da partida. Não marca pontos por si só."
+          "title": "Indicador visual de pressÃ£o",
+          "body": "Mostra o contexto de pressÃ£o da arena como um indicador de intensidade da partida. NÃ£o marca pontos por si sÃ³."
         },
         "momentum": {
           "label": "Momentum",
           "title": "Balanceamento de momentum",
-          "body": "Mostra qual lado tem maior momentum de mercado no momento. É um indicador visual, não uma regra de pontuação isolada."
+          "body": "Mostra qual lado tem maior momentum de mercado no momento. Ã‰ um indicador visual, nÃ£o uma regra de pontuaÃ§Ã£o isolada."
         },
         "marketFlow": {
           "label": "Fluxo de mercado",
           "title": "Resumo do fluxo recente",
-          "body": "Resume a direção recente dos sinais públicos de mercado para facilitar a interpretação da partida."
+          "body": "Resume a direÃ§Ã£o recente dos sinais pÃºblicos de mercado para facilitar a interpretaÃ§Ã£o da partida."
         }
       },
       "meaning": {
         "notAdvice": {
-          "label": "Não é recomendação financeira",
-          "title": "Não é recomendação financeira",
-          "body": "O CriptoVersus serve para análise, educação e entretenimento. Ele não diz o que comprar, vender ou manter."
+          "label": "NÃ£o Ã© recomendaÃ§Ã£o financeira",
+          "title": "NÃ£o Ã© recomendaÃ§Ã£o financeira",
+          "body": "O CriptoVersus serve para anÃ¡lise, educaÃ§Ã£o e entretenimento. Ele nÃ£o diz o que comprar, vender ou manter."
         },
         "notPrediction": {
-          "label": "Não é previsão",
-          "title": "Não é previsão",
-          "body": "O placar não é uma projeção de preços futuros de token nem da direção do mercado."
+          "label": "NÃ£o Ã© previsÃ£o",
+          "title": "NÃ£o Ã© previsÃ£o",
+          "body": "O placar nÃ£o Ã© uma projeÃ§Ã£o de preÃ§os futuros de token nem da direÃ§Ã£o do mercado."
         },
         "notGuarantee": {
-          "label": "Não há garantia",
-          "title": "Não há garantia",
-          "body": "Os placares e resultados simulados não são promessa de desempenho futuro."
+          "label": "NÃ£o hÃ¡ garantia",
+          "title": "NÃ£o hÃ¡ garantia",
+          "body": "Os placares e resultados simulados nÃ£o sÃ£o promessa de desempenho futuro."
         }
       },
       "dataSourcesNoticeLabel": "Nota sobre fontes",
       "dataSourcesNoticeTitle": "Fontes dos dados",
-      "dataSourcesNotice": "O CriptoVersus usa dados públicos de mercado cripto e sinais de mercado, incluindo pares negociados na Binance quando disponíveis. A plataforma não é afiliada nem endossada pela Binance.",
+      "dataSourcesNotice": "O CriptoVersus usa dados pÃºblicos de mercado cripto e sinais de mercado, incluindo pares negociados na Binance quando disponÃ­veis. A plataforma nÃ£o Ã© afiliada nem endossada pela Binance.",
       "noPrediction": {
         "label": "Significado",
-        "title": "Não é previsão",
-        "body": "Um placar é uma visualização educacional do comportamento de mercado. Não é recomendação financeira, sinal de negociação nem resultado garantido."
+        "title": "NÃ£o Ã© previsÃ£o",
+        "body": "Um placar Ã© uma visualizaÃ§Ã£o educacional do comportamento de mercado. NÃ£o Ã© recomendaÃ§Ã£o financeira, sinal de negociaÃ§Ã£o nem resultado garantido."
       }
     },
     "riskDisclaimer": {
@@ -289,10 +289,10 @@
     "home": "Home",
     "howItWorks": "Como funciona",
     "token": "Token",
-    "stats": "Estatísticas",
+    "stats": "EstatÃ­sticas",
     "roadmap": "Roteiro",
     "faq": "FAQ",
-    "tvBroadcast": "Transmissão TV",
+    "tvBroadcast": "TransmissÃ£o TV",
     "wallet": "My Wallet",
     "admin": "Admin",
     "connected": "Ambiente conectado"
@@ -367,7 +367,7 @@
       "marketEyebrow": "Market",
       "noData": "No data.",
       "awaitingStart": "Awaiting start",
-      "liveClock": "{0}' played · -{1}'",
+      "liveClock": "{0}' played Â· -{1}'",
       "elapsedOnly": "{0}' played",
       "statusOpen": "OPEN",
       "statusClosed": "CLOSED"
@@ -416,26 +416,26 @@
     "labels": {
       "phasesMapped": "Fases mapeadas",
       "workstreamsActive": "Frentes ativas",
-      "workstreamsDescription": "Status cards, princípios e marcos visíveis do roadmap.",
-      "publicEvolution": "Evolução pública da fundação até a experiência com IA.",
+      "workstreamsDescription": "Status cards, princÃ­pios e marcos visÃ­veis do roadmap.",
+      "publicEvolution": "EvoluÃ§Ã£o pÃºblica da fundaÃ§Ã£o atÃ© a experiÃªncia com IA.",
       "currentFocus": "Foco atual",
-      "nextMilestone": "Próximo marco",
+      "nextMilestone": "PrÃ³ximo marco",
       "brandPillars": "Pilares da marca",
       "statusSummary": "Roadmap experimental da plataforma",
-      "currentFocusFallback": "Execução ativa do roadmap",
-      "nextMilestoneFallback": "Roadmap em expansão",
-      "nextMilestoneFallbackItem": "Detalhes das próximas entregas serão publicados em breve."
+      "currentFocusFallback": "ExecuÃ§Ã£o ativa do roadmap",
+      "nextMilestoneFallback": "Roadmap em expansÃ£o",
+      "nextMilestoneFallbackItem": "Detalhes das prÃ³ximas entregas serÃ£o publicados em breve."
     },
     "section": {
       "roadmap": "Roadmap",
       "projectStatus": "Status do projeto",
-      "currentPlatformDirection": "Direção atual da plataforma",
-      "plannedEvolutionByPhase": "Evolução planejada por fase",
-      "guidingPrinciples": "Princípios orientadores",
-      "howProductDecisionsAreFramed": "Como as decisões do produto são guiadas"
+      "currentPlatformDirection": "DireÃ§Ã£o atual da plataforma",
+      "plannedEvolutionByPhase": "EvoluÃ§Ã£o planejada por fase",
+      "guidingPrinciples": "PrincÃ­pios orientadores",
+      "howProductDecisionsAreFramed": "Como as decisÃµes do produto sÃ£o guiadas"
     },
     "status": {
-      "completed": "Concluído",
+      "completed": "ConcluÃ­do",
       "inProgress": "Em andamento",
       "planned": "Planejado",
       "future": "Futuro",
@@ -443,11 +443,11 @@
     },
     "pillars": {
       "competition": {
-        "title": "Competição",
+        "title": "CompetiÃ§Ã£o",
         "subtitle": "Entre ativos digitais"
       },
       "strategy": {
-        "title": "Estratégia",
+        "title": "EstratÃ©gia",
         "subtitle": "Performance e timing"
       },
       "technology": {
@@ -465,31 +465,31 @@
     },
     "brandPillars": [
       {
-        "icon": "✦",
+        "icon": "âœ¦",
         "accent": "purple",
-        "title": "Competição",
+        "title": "CompetiÃ§Ã£o",
         "subtitle": "Entre ativos digitais"
       },
       {
-        "icon": "↗",
+        "icon": "â†—",
         "accent": "green",
-        "title": "Estratégia",
+        "title": "EstratÃ©gia",
         "subtitle": "Performance e timing"
       },
       {
-        "icon": "⬢",
+        "icon": "â¬¢",
         "accent": "cyan",
         "title": "Tecnologia",
         "subtitle": "Infraestrutura blockchain"
       },
       {
-        "icon": "ðŸ†",
+        "icon": "Ã°Å¸Ââ€ ",
         "accent": "gold",
         "title": "Ranking",
         "subtitle": "Pontuacao e progressao"
       },
       {
-        "icon": "◎",
+        "icon": "â—Ž",
         "accent": "purple",
         "title": "Global",
         "subtitle": "Arena descentralizada"
@@ -667,50 +667,50 @@
   },
   "stats": {
     "seo": {
-      "title": "Estatísticas do CriptoVersus - Rankings públicos de batalhas cripto",
-      "description": "Explore estatísticas públicas do CriptoVersus, rankings de partidas cripto, taxas de vitória, placares, histórico de partidas e insights de desempenho da arena."
+      "title": "EstatÃ­sticas do CriptoVersus - Rankings pÃºblicos de batalhas cripto",
+      "description": "Explore estatÃ­sticas pÃºblicas do CriptoVersus, rankings de partidas cripto, taxas de vitÃ³ria, placares, histÃ³rico de partidas e insights de desempenho da arena."
     },
     "hero": {
-      "eyebrow": "Inteligência pública da arena",
-      "title": "Estatísticas do CriptoVersus",
-      "subtitle": "Dados públicos de batalhas cripto, rankings e insights de desempenho de mercado da arena CriptoVersus.",
-      "seoCopy": "Esta página pública de estatísticas agrega dados indexáveis sobre partidas cripto, rankings da arena, ativos monitorados, placares e desempenho histórico na arena CriptoVersus.",
+      "eyebrow": "InteligÃªncia pÃºblica da arena",
+      "title": "EstatÃ­sticas do CriptoVersus",
+      "subtitle": "Dados pÃºblicos de batalhas cripto, rankings e insights de desempenho de mercado da arena CriptoVersus.",
+      "seoCopy": "Esta pÃ¡gina pÃºblica de estatÃ­sticas agrega dados indexÃ¡veis sobre partidas cripto, rankings da arena, ativos monitorados, placares e desempenho histÃ³rico na arena CriptoVersus.",
       "liveNote": "Atualizada a cada 5 minutos",
       "backToArena": "Voltar para a arena",
-      "backToArenaAria": "Retornar para a página inicial da arena CriptoVersus",
-      "howScoringWorks": "Como a pontuação funciona",
-      "howScoringWorksAria": "Leia como a pontuação da arena CriptoVersus funciona",
+      "backToArenaAria": "Retornar para a pÃ¡gina inicial da arena CriptoVersus",
+      "howScoringWorks": "Como a pontuaÃ§Ã£o funciona",
+      "howScoringWorksAria": "Leia como a pontuaÃ§Ã£o da arena CriptoVersus funciona",
       "coverage": "Cobertura da arena",
-      "coverageHint": "partidas públicas indexadas",
+      "coverageHint": "partidas pÃºblicas indexadas",
       "finishedBattles": "Batalhas finalizadas",
       "finishedBattlesHint": "placares encerrados",
-      "lastUpdate": "Última atualização"
+      "lastUpdate": "Ãšltima atualizaÃ§Ã£o"
     },
     "states": {
-      "loadingTitle": "Carregando estatísticas públicas",
-      "loadingBody": "Buscando a visão geral mais recente da arena e os dados de ranking.",
-      "errorTitle": "Estatísticas temporariamente indisponíveis",
-      "errorBody": "Não foi possível carregar as estatísticas públicas agora. Exibindo um painel vazio estável no lugar.",
-      "emptyTitle": "Ainda sem dados públicos",
-      "emptyBody": "A arena ainda não publicou partidas concluídas ou monitoradas suficientes para preencher o painel de estatísticas. A página continua ativa e será preenchida automaticamente conforme os dados públicos crescerem.",
+      "loadingTitle": "Carregando estatÃ­sticas pÃºblicas",
+      "loadingBody": "Buscando a visÃ£o geral mais recente da arena e os dados de ranking.",
+      "errorTitle": "EstatÃ­sticas temporariamente indisponÃ­veis",
+      "errorBody": "NÃ£o foi possÃ­vel carregar as estatÃ­sticas pÃºblicas agora. Exibindo um painel vazio estÃ¡vel no lugar.",
+      "emptyTitle": "Ainda sem dados pÃºblicos",
+      "emptyBody": "A arena ainda nÃ£o publicou partidas concluÃ­das ou monitoradas suficientes para preencher o painel de estatÃ­sticas. A pÃ¡gina continua ativa e serÃ¡ preenchida automaticamente conforme os dados pÃºblicos crescerem.",
       "noData": "Ainda sem dados"
     },
     "search": {
       "eyebrow": "Busca de ativos",
       "title": "Encontre uma moeda rapidamente",
-      "description": "Pesquise o ranking público por símbolo ou nome do ativo sem sair da tela de Stats.",
+      "description": "Pesquise o ranking pÃºblico por sÃ­mbolo ou nome do ativo sem sair da tela de Stats.",
       "label": "Buscar moeda",
       "placeholder": "BTC, ETH, STRAX, TON...",
-      "ariaLabel": "Buscar moeda por símbolo ou nome",
+      "ariaLabel": "Buscar moeda por sÃ­mbolo ou nome",
       "clear": "Limpar",
       "noResultsTitle": "Nenhum ativo encontrado para esta busca.",
-      "noResultsBody": "Tente outro símbolo ou nome de ativo para voltar ao ranking público."
+      "noResultsBody": "Tente outro sÃ­mbolo ou nome de ativo para voltar ao ranking pÃºblico."
     },
     "summary": {
-      "ariaLabel": "Resumo das estatísticas públicas",
+      "ariaLabel": "Resumo das estatÃ­sticas pÃºblicas",
       "totalMatches": {
         "label": "Partidas totais",
-        "hint": "páginas públicas de partidas da arena"
+        "hint": "pÃ¡ginas pÃºblicas de partidas da arena"
       },
       "finishedMatches": {
         "label": "Partidas finalizadas",
@@ -718,105 +718,105 @@
       },
       "activeAssets": {
         "label": "Ativos ativos",
-        "hint": "símbolos vistos em partidas públicas"
+        "hint": "sÃ­mbolos vistos em partidas pÃºblicas"
       },
       "averageScore": {
-        "label": "Pontuação média",
-        "hint": "pontuação combinada da arena por partida"
+        "label": "PontuaÃ§Ã£o mÃ©dia",
+        "hint": "pontuaÃ§Ã£o combinada da arena por partida"
       },
       "highestScore": {
-        "label": "Maior pontuação",
-        "hint": "melhor pontuação de um lado registrada"
+        "label": "Maior pontuaÃ§Ã£o",
+        "hint": "melhor pontuaÃ§Ã£o de um lado registrada"
       },
       "lastUpdated": {
-        "label": "Última atualização",
-        "hint": "horário da última atualização pública da arena"
+        "label": "Ãšltima atualizaÃ§Ã£o",
+        "hint": "horÃ¡rio da Ãºltima atualizaÃ§Ã£o pÃºblica da arena"
       }
     },
     "charts": {
       "winRate": {
-        "eyebrow": "Painel de taxa de vitória",
-        "title": "Principais ativos cripto por taxa de vitória",
-        "description": "Melhores registros públicos de encerramento entre os ativos mais visíveis.",
-        "ariaLabel": "Gráfico dos principais ativos cripto por taxa de vitória"
+        "eyebrow": "Painel de taxa de vitÃ³ria",
+        "title": "Principais ativos cripto por taxa de vitÃ³ria",
+        "description": "Melhores registros pÃºblicos de encerramento entre os ativos mais visÃ­veis.",
+        "ariaLabel": "GrÃ¡fico dos principais ativos cripto por taxa de vitÃ³ria"
       },
       "activity": {
         "eyebrow": "Ritmo das partidas",
         "title": "Atividade das partidas ao longo do tempo",
-        "description": "Cadência recente de publicação de partidas públicas ao longo da linha do tempo da arena.",
-        "ariaLabel": "Gráfico de atividade das partidas ao longo do tempo"
+        "description": "CadÃªncia recente de publicaÃ§Ã£o de partidas pÃºblicas ao longo da linha do tempo da arena.",
+        "ariaLabel": "GrÃ¡fico de atividade das partidas ao longo do tempo"
       }
     },
     "trending": {
       "eyebrow": "Destaque da arena",
       "title": "Ativos em alta",
-      "description": "Ativos mais ativos com base no volume e na visibilidade recentes das partidas públicas da arena.",
-      "emptyTitle": "Ainda não há ativos em alta",
-      "emptyBody": "Os ativos em alta aparecerão aqui quando a arena registrar atividade pública suficiente.",
+      "description": "Ativos mais ativos com base no volume e na visibilidade recentes das partidas pÃºblicas da arena.",
+      "emptyTitle": "Ainda nÃ£o hÃ¡ ativos em alta",
+      "emptyBody": "Os ativos em alta aparecerÃ£o aqui quando a arena registrar atividade pÃºblica suficiente.",
       "matchesHint": "{0} partidas recentes",
-      "assetAria": "Abrir a futura página de estatísticas de {0}"
+      "assetAria": "Abrir a futura pÃ¡gina de estatÃ­sticas de {0}"
     },
     "ranking": {
       "eyebrow": "Tabela de ranking HTML",
       "title": "Principais ativos cripto por desempenho na arena",
-      "description": "Ativos cripto com melhor desempenho com base nas batalhas públicas do CriptoVersus e no histórico das partidas.",
-      "empty": "Ainda não há ativos ranqueados.",
-      "assetAria": "Abrir a futura página de estatísticas do ativo {0}",
+      "description": "Ativos cripto com melhor desempenho com base nas batalhas pÃºblicas do CriptoVersus e no histÃ³rico das partidas.",
+      "empty": "Ainda nÃ£o hÃ¡ ativos ranqueados.",
+      "assetAria": "Abrir a futura pÃ¡gina de estatÃ­sticas do ativo {0}",
       "columns": {
-        "rank": "Posição",
+        "rank": "PosiÃ§Ã£o",
         "asset": "Ativo",
         "matches": "Partidas",
-        "wins": "Vitórias",
+        "wins": "VitÃ³rias",
         "losses": "Derrotas",
-        "winRate": "Taxa de vitória",
-        "averageScore": "Pontuação média",
-        "totalScore": "Pontuação total",
-        "lastMatch": "Última partida"
+        "winRate": "Taxa de vitÃ³ria",
+        "averageScore": "PontuaÃ§Ã£o mÃ©dia",
+        "totalScore": "PontuaÃ§Ã£o total",
+        "lastMatch": "Ãšltima partida"
       }
     },
     "latest": {
-      "eyebrow": "Últimos placares",
-      "title": "Partidas públicas mais recentes",
-      "description": "As páginas públicas de partidas mais recentes disponíveis para descoberta e auditoria.",
-      "empty": "Ainda não há partidas públicas disponíveis.",
+      "eyebrow": "Ãšltimos placares",
+      "title": "Partidas pÃºblicas mais recentes",
+      "description": "As pÃ¡ginas pÃºblicas de partidas mais recentes disponÃ­veis para descoberta e auditoria.",
+      "empty": "Ainda nÃ£o hÃ¡ partidas pÃºblicas disponÃ­veis.",
       "vs": "vs",
       "openMatch": "Abrir partida",
-      "openMatchAria": "Abrir a página pública da partida de {0} contra {1}",
-      "homeAssetAria": "Abrir a futura página de estatísticas do ativo {0}",
-      "awayAssetAria": "Abrir a futura página de estatísticas do ativo {0}",
-      "unavailable": "Indisponível",
+      "openMatchAria": "Abrir a pÃ¡gina pÃºblica da partida de {0} contra {1}",
+      "homeAssetAria": "Abrir a futura pÃ¡gina de estatÃ­sticas do ativo {0}",
+      "awayAssetAria": "Abrir a futura pÃ¡gina de estatÃ­sticas do ativo {0}",
+      "unavailable": "IndisponÃ­vel",
       "columns": {
         "match": "Partida",
         "score": "Placar",
         "status": "Status",
-        "startedAt": "Início",
+        "startedAt": "InÃ­cio",
         "finishedAt": "Encerramento",
-        "publicPage": "Página pública"
+        "publicPage": "PÃ¡gina pÃºblica"
       }
     },
     "future": {
       "eyebrow": "Conectores do roadmap",
-      "title": "Próximos hubs públicos de estatísticas",
-      "description": "Explore hubs públicos dedicados construídos sobre os dados ao vivo da arena CriptoVersus.",
-      "availableNow": "Disponível agora",
+      "title": "PrÃ³ximos hubs pÃºblicos de estatÃ­sticas",
+      "description": "Explore hubs pÃºblicos dedicados construÃ­dos sobre os dados ao vivo da arena CriptoVersus.",
+      "availableNow": "DisponÃ­vel agora",
       "comingSoon": "Em breve",
       "openAria": "Abrir {0}",
       "links": {
         "teams": {
           "title": "Times",
-          "description": "Rankings públicos dedicados de time contra time."
+          "description": "Rankings pÃºblicos dedicados de time contra time."
         },
         "matches": {
           "title": "Partidas",
-          "description": "Arquivo de partidas ampliado com filtros históricos mais profundos."
+          "description": "Arquivo de partidas ampliado com filtros histÃ³ricos mais profundos."
         },
         "rankings": {
           "title": "Rankings",
-          "description": "Painéis de ranking multimétrico em várias categorias da arena pública."
+          "description": "PainÃ©is de ranking multimÃ©trico em vÃ¡rias categorias da arena pÃºblica."
         },
         "records": {
           "title": "Recordes",
-          "description": "Recordes públicos da arena, sequências e marcos estatísticos."
+          "description": "Recordes pÃºblicos da arena, sequÃªncias e marcos estatÃ­sticos."
         }
       }
     },
@@ -827,11 +827,11 @@
       "cancelled": "Cancelado"
     },
     "structuredData": {
-      "breadcrumbStats": "Estatísticas"
+      "breadcrumbStats": "EstatÃ­sticas"
     },
     "footnote": {
-      "title": "Contexto dos dados públicos da arena",
-      "body": "As estatísticas públicas do CriptoVersus acompanham o desempenho das partidas cripto, batalhas históricas da arena, taxas de vitória, placares e a competição pública de mercado entre ativos digitais."
+      "title": "Contexto dos dados pÃºblicos da arena",
+      "body": "As estatÃ­sticas pÃºblicas do CriptoVersus acompanham o desempenho das partidas cripto, batalhas histÃ³ricas da arena, taxas de vitÃ³ria, placares e a competiÃ§Ã£o pÃºblica de mercado entre ativos digitais."
     }
   },
   "statsTeams": {
@@ -976,20 +976,20 @@
       "lastMatch": "Last match",
       "lastMatchHint": "latest public battle date",
       "winRate": "Aproveitamento",
-      "winRateHint": "percentual final em batalhas concluídas",
+      "winRateHint": "percentual final em batalhas concluÃ­das",
       "matchesPlayed": "Partidas jogadas",
-      "matchesPlayedHint": "amostra pública indexada",
-      "streak": "Sequência",
-      "streakHint": "série atual de resultados concluídos",
+      "matchesPlayedHint": "amostra pÃºblica indexada",
+      "streak": "SequÃªncia",
+      "streakHint": "sÃ©rie atual de resultados concluÃ­dos",
       "quickStatsEyebrow": "Quick stats",
-      "quickStatsTitle": "Performance da arena em leitura rápida",
-      "quickStatsDescription": "Indicadores públicos principais de {0}, agora separados do Hero visual para leitura mais clara.",
+      "quickStatsTitle": "Performance da arena em leitura rÃ¡pida",
+      "quickStatsDescription": "Indicadores pÃºblicos principais de {0}, agora separados do Hero visual para leitura mais clara.",
       "marketCapHint": "ranking mais recente de market cap do perfil social",
-      "historicalRecord": "Retrospecto histórico",
-      "historicalRecordHint": "vitórias, derrotas e empates na arena",
-      "historicalRecordValue": "{0}V • {1}D • {2}E",
-      "historicalRecordLegend": "Vitórias • Derrotas • Empates",
-      "streakWinValue": "{0} vitórias",
+      "historicalRecord": "Retrospecto histÃ³rico",
+      "historicalRecordHint": "vitÃ³rias, derrotas e empates na arena",
+      "historicalRecordValue": "{0}V â€¢ {1}D â€¢ {2}E",
+      "historicalRecordLegend": "VitÃ³rias â€¢ Derrotas â€¢ Empates",
+      "streakWinValue": "{0} vitÃ³rias",
       "streakLossValue": "{0} derrotas",
       "streakDrawValue": "{0} empates"
     },
@@ -1010,26 +1010,26 @@
         "telegram": "Telegram"
       },
       "reference": {
-        "title": "Perfil de referência",
-        "subtitle": "Metadados oficiais e referências do perfil social",
+        "title": "Perfil de referÃªncia",
+        "subtitle": "Metadados oficiais e referÃªncias do perfil social",
         "source": "Fonte",
-        "lastChecked": "Última checagem UTC",
+        "lastChecked": "Ãšltima checagem UTC",
         "marketCapRank": "Ranking de market cap",
         "memeCoin": "Moeda meme"
       },
       "hotMatches": {
-        "title": "🔥 Hot Matches do Dia",
-        "subtitle": "As 5 batalhas mais quentes das últimas 24 horas",
-        "last24Hours": "Últimas 24h",
-        "updatedAt": "Atualizado às {0} UTC",
-        "listAriaLabel": "Top 5 batalhas mais quentes das últimas 24 horas",
+        "title": "ðŸ”¥ Hot Matches do Dia",
+        "subtitle": "As 5 batalhas mais quentes das Ãºltimas 24 horas",
+        "last24Hours": "Ãšltimas 24h",
+        "updatedAt": "Atualizado Ã s {0} UTC",
+        "listAriaLabel": "Top 5 batalhas mais quentes das Ãºltimas 24 horas",
         "openMatchAria": "Abrir confronto entre {0} e {1}, partida {2}",
         "scoreAria": "{0} a {1}",
         "hotScore": "HotScore {0}",
-        "waiting": "Aguardando a próxima batalha quente",
-        "disclaimer": "Entretenimento + dados de mercado. Não é recomendação financeira.",
-        "noLastGoal": "Último gol: nenhum",
-        "lastGoal": "Último gol há {0}",
+        "waiting": "Aguardando a prÃ³xima batalha quente",
+        "disclaimer": "Entretenimento + dados de mercado. NÃ£o Ã© recomendaÃ§Ã£o financeira.",
+        "noLastGoal": "Ãšltimo gol: nenhum",
+        "lastGoal": "Ãšltimo gol hÃ¡ {0}",
         "status": {
           "live": "AO VIVO",
           "closing": "ENCERRANDO",
@@ -1042,7 +1042,7 @@
           "warm": "Morna",
           "hot": "Quente",
           "explosive": "Explosiva",
-          "historic": "Histórica"
+          "historic": "HistÃ³rica"
         },
         "balance": {
           "tied": "Empate total",
@@ -1053,8 +1053,8 @@
       },
       "winRate24h": {
         "seo": {
-          "title": "Taxa de Vitória — Últimas 24h | CriptoVersus",
-          "description": "Os 10 ativos com maior taxa de vitória nas partidas encerradas nas últimas 24 horas no CriptoVersus."
+          "title": "Taxa de VitÃ³ria â€” Ãšltimas 24h | CriptoVersus",
+          "description": "Os 10 ativos com maior taxa de vitÃ³ria nas partidas encerradas nas Ãºltimas 24 horas no CriptoVersus."
         },
         "hero": {
           "period": "Janela de 24h",
@@ -1063,21 +1063,21 @@
           "generatedAtPending": "Gerando ranking em UTC"
         },
         "states": {
-          "loadingTitle": "Carregando ranking de taxa de vitória",
-          "loadingBody": "Buscando os resultados mais recentes das partidas encerradas nas últimas 24 horas.",
-          "errorTitle": "Ranking temporariamente indisponível",
-          "errorBody": "Não foi possível carregar o ranking de taxa de vitória agora. Exibindo um estado vazio estável.",
-          "emptyTitle": "Ainda não há partidas elegíveis suficientes",
-          "emptyBody": "As últimas 24 horas não possuem partidas encerradas suficientes para montar um ranking confiável."
+          "loadingTitle": "Carregando ranking de taxa de vitÃ³ria",
+          "loadingBody": "Buscando os resultados mais recentes das partidas encerradas nas Ãºltimas 24 horas.",
+          "errorTitle": "Ranking temporariamente indisponÃ­vel",
+          "errorBody": "NÃ£o foi possÃ­vel carregar o ranking de taxa de vitÃ³ria agora. Exibindo um estado vazio estÃ¡vel.",
+          "emptyTitle": "Ainda nÃ£o hÃ¡ partidas elegÃ­veis suficientes",
+          "emptyBody": "As Ãºltimas 24 horas nÃ£o possuem partidas encerradas suficientes para montar um ranking confiÃ¡vel."
         },
         "chart": {
-          "ariaLabel": "Principais ativos por taxa de vitória nas últimas 24 horas",
-          "decisions": "{0} decisões",
+          "ariaLabel": "Principais ativos por taxa de vitÃ³ria nas Ãºltimas 24 horas",
+          "decisions": "{0} decisÃµes",
           "matches": "{0} partidas"
         },
         "footer": {
-          "disclaimer": "Apenas partidas encerradas. Isto não é aconselhamento financeiro.",
-          "generatedAt": "Horário de geração em UTC: {0}"
+          "disclaimer": "Apenas partidas encerradas. Isto nÃ£o Ã© aconselhamento financeiro.",
+          "generatedAt": "HorÃ¡rio de geraÃ§Ã£o em UTC: {0}"
         }
       }
     },
@@ -1140,7 +1140,7 @@
       "description": "Public rivals that faced this team most often in completed arena battles.",
       "empty": "No rival data yet.",
       "openAria": "Open the team profile for {0}",
-      "record": "{0} wins · {1} losses · {2} matches"
+      "record": "{0} wins Â· {1} losses Â· {2} matches"
     },
     "latest": {
       "eyebrow": "Latest scoreboards",
@@ -1184,10 +1184,10 @@
     "howItWorks": "Como funciona",
     "platformHighlights": "Destaques da plataforma",
     "liveMatches": "Partidas ao vivo",
-    "completedIn24h": "Concluídas em 24h",
+    "completedIn24h": "ConcluÃ­das em 24h",
     "trackedCoins": "Moedas monitoradas",
-    "homeSections": "Seções da página inicial",
-    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Acompanhe as batalhas cripto em andamento com páginas públicas indexáveis que mostram placar, momentum e contexto da partida.",
+    "homeSections": "SeÃ§Ãµes da pÃ¡gina inicial",
+    "followOngoingCryptoBattlesWithCrawlablePublicPagesThatShowScoreMomentumAndMatchContext": "Acompanhe as batalhas cripto em andamento com pÃ¡ginas pÃºblicas indexÃ¡veis que mostram placar, momentum e contexto da partida.",
     "roadmap": "Roteiro",
     "liveBattle": "Batalha ao vivo",
     "arena": {
@@ -1202,48 +1202,48 @@
       "trending": "EM ALTA",
       "momentum": "MOMENTUM",
       "fear": "MEDO",
-      "hotScore": "Pontuação quente",
-      "arenaPressure": "Pressão da arena",
+      "hotScore": "PontuaÃ§Ã£o quente",
+      "arenaPressure": "PressÃ£o da arena",
       "highVolatility": "ALTA VOLATILIDADE",
       "volatility": "Volatilidade",
       "scoreLine": "Placar",
       "arenaMatchId": "Partida da arena #{0}",
       "openArenaAria": "Abrir a partida da arena {0} contra {1}, partida {2}",
-      "momentumBar": "Equilíbrio de momentum",
+      "momentumBar": "EquilÃ­brio de momentum",
       "finalResultShort": "Resultado final",
       "elapsedMinutes": "{0}' jogados",
-      "startingSoon": "Começa em breve",
+      "startingSoon": "ComeÃ§a em breve",
       "marketLive": "Mercado ao vivo",
-      "momentumEdgeA": "{0}% de pressão do lado esquerdo",
-      "momentumEdgeB": "{0}% de pressão do lado direito",
-      "tiePressure": "Pressão equilibrada na arena",
-      "momentumEdgeNeutral": "Pressão equilibrada na arena",
+      "momentumEdgeA": "{0}% de pressÃ£o do lado esquerdo",
+      "momentumEdgeB": "{0}% de pressÃ£o do lado direito",
+      "tiePressure": "PressÃ£o equilibrada na arena",
+      "momentumEdgeNeutral": "PressÃ£o equilibrada na arena",
       "volatilityHigh": "Alta",
-      "volatilityMedium": "Média"
+      "volatilityMedium": "MÃ©dia"
     },
     "vs": "vs",
     "openMatch": "Abrir partida",
     "topCryptoBattles": "Principais batalhas cripto",
-    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "As páginas públicas em destaque conectam performance de mercado, regras de pontuação e contexto histórico transparente.",
-    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus acompanha a variação de mercado entre ativos, converte regras configuradas em eventos de pontuação e publica páginas de partidas que podem ser indexadas, compartilhadas e auditadas.",
+    "featuredPublicMatchPagesConnectMarketPerformanceScoringRulesAndTransparentHistoricalContext": "As pÃ¡ginas pÃºblicas em destaque conectam performance de mercado, regras de pontuaÃ§Ã£o e contexto histÃ³rico transparente.",
+    "criptoversusTracksMarketVariationBetweenAssetsConvertsConfiguredRulesIntoScoreEventsAndPublishesMatchPagesThatCanBeIndexedSharedAndAudited": "CriptoVersus acompanha a variaÃ§Ã£o de mercado entre ativos, converte regras configuradas em eventos de pontuaÃ§Ã£o e publica pÃ¡ginas de partidas que podem ser indexadas, compartilhadas e auditadas.",
     "readTheFullRules": "Leia as regras completas",
-    "publicMatchLogic": "Lógica pública da partida",
-    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Cada partida tem placar, status, volume, variação de preço e eventos baseados em regras visíveis na página pública.",
-    "arenaStyleExperience": "Experiência em estilo arena",
+    "publicMatchLogic": "LÃ³gica pÃºblica da partida",
+    "eachMatchHasScoreStatusVolumePriceVariationAndRuleBasedEventsVisibleOnThePublicPage": "Cada partida tem placar, status, volume, variaÃ§Ã£o de preÃ§o e eventos baseados em regras visÃ­veis na pÃ¡gina pÃºblica.",
+    "arenaStyleExperience": "ExperiÃªncia em estilo arena",
     "theProductBlendsCryptoDataLiveConfrontationAndSocialReadyStorytelling": "O produto mistura dados cripto, confronto ao vivo e narrativa pronta para social.",
     "globalSeoReadyRouting": "Roteamento global pronto para SEO",
-    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Rotas públicas localizadas, URLs canônicas e suporte a hreflang mantêm a descoberta internacional limpa.",
-    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "Um pulso rápido dos ativos que mais atraem atenção dentro da arena.",
+    "localizedPublicRoutesCanonicalUrlsAndHreflangSupportKeepInternationalDiscoveryClean": "Rotas pÃºblicas localizadas, URLs canÃ´nicas e suporte a hreflang mantÃªm a descoberta internacional limpa.",
+    "aQuickPulseOfTheAssetsCurrentlyDrawingTheStrongestAttentionInsideTheArena": "Um pulso rÃ¡pido dos ativos que mais atraem atenÃ§Ã£o dentro da arena.",
     "trackedMarketAsset": "Ativo de mercado monitorado",
     "trendingCoins": "Moedas em alta",
     "cryptoArenaRankings": "Rankings da arena cripto",
     "rankings": "Rankings",
-    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Ativos em destaque, batalhas exibidas e páginas públicas de partidas formam a camada de ranking competitivo da arena.",
+    "trendingAssetsFeaturedBattlesAndPublicMatchPagesBuildTheCompetitiveRankingLayerOfTheArena": "Ativos em destaque, batalhas exibidas e pÃ¡ginas pÃºblicas de partidas formam a camada de ranking competitivo da arena.",
     "exploreTheProduct": "Explore o produto",
     "howItWorks2": "Como funciona",
     "featuredMatch": "Partida em destaque",
     "criptoversusLiveCryptoMatchArena": "CriptoVersus | Arena de partidas cripto ao vivo",
-    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore partidas cripto ao vivo, placares públicos, moedas em alta e batalhas de mercado no CriptoVersus com páginas públicas prontas para SEO.",
+    "exploreLiveCryptoMatchesPublicScoreboardsTrendingCoinsAndMarketBattlesOnCriptoversusWithSeoReadyPublicPages": "Explore partidas cripto ao vivo, placares pÃºblicos, moedas em alta e batalhas de mercado no CriptoVersus com pÃ¡ginas pÃºblicas prontas para SEO.",
     "seoDescription": "CriptoVersus e uma plataforma gamificada de visualizacao de dados de mercado onde sinais publicos de cripto viram simulacoes em estilo futebol para analise educacional.",
     "heroTitle": "Batalhas cripto ao vivo em uma arena visual gamificada.",
     "heroDescription": "CriptoVersus transforma a performance publica do mercado em simulacoes cripto em estilo futebol onde ativos competem como times. Cada ciclo cria novos confrontos, placares publicos, rankings e uma narrativa educacional guiada pelo movimento real do mercado.",
@@ -1317,7 +1317,7 @@
         "answer": "Match pools ciclicos sao camadas recorrentes de participacao na arena que reconectam a selecao de lado ao longo de varios ciclos de batalha, em vez de tratar cada partida como um placar isolado."
       },
       "rewardDistribution": {
-        "question": "Como os placares e resultados sao distribuídos?",
+        "question": "Como os placares e resultados sao distribuÃ­dos?",
         "answer": "Os placares e resultados sao definidos de acordo com a regra ativa da partida, a performance de cada lado, a composicao dos pools e a logica de liquidacao que transforma o mercado ao vivo em resultado competitivo de arena. Eles nao garantem movimento futuro de preco nem lucro."
       },
       "battleCycle": {
@@ -1326,7 +1326,7 @@
       }
     },
     "liveMatchRealtimeSummary": "Current score {0} x {1}. Price movement and public match signals update in real time.",
-    "featuredMatchScoreSummary": "Match #{0} • score {1} x {2}",
+    "featuredMatchScoreSummary": "Match #{0} â€¢ score {1} x {2}",
     "structuredDataDescription": "Simulacao publica de dados de mercado cripto entre {0} e {1} no CriptoVersus."
   },
   "matchDetail": {
@@ -1334,7 +1334,7 @@
     "error": "Erro:",
     "matchNotFound": "Partida nao encontrada.",
     "live": "AO VIVO",
-    "marketDataDisclaimer": "Os dados de mercado são exibidos apenas para fins informativos e de entretenimento. Isso não é recomendação financeira.",
+    "marketDataDisclaimer": "Os dados de mercado sÃ£o exibidos apenas para fins informativos e de entretenimento. Isso nÃ£o Ã© recomendaÃ§Ã£o financeira.",
     "invest": "Escolha",
     "bets": "Selecoes",
     "finalResult": "RESULTADO FINAL",
@@ -1444,10 +1444,10 @@
     "percentageThresholdCardDescription": "The badges above show only upward crossovers on the chart. Threshold points still count toward the score and log: {0} {1} | {2} {3}.",
     "volumeWindowCardDescription": "The badges above show only upward crossovers on the chart. Points from the 15-minute window still count toward the score and log: {0} {1} | {2} {3}.",
     "notEnoughPointsToDrawLines": "There are not enough points yet to draw the lines. At least 2 captures per team are required. {0}: {1}. {2}: {3}.",
-    "arenaPressureTitle": "Pressão da Arena",
-    "arenaPressureSubtitle": "Gauge proprietário de pressão e sentimento calculado apenas com dados de mercado da Binance.",
+    "arenaPressureTitle": "PressÃ£o da Arena",
+    "arenaPressureSubtitle": "Gauge proprietÃ¡rio de pressÃ£o e sentimento calculado apenas com dados de mercado da Binance.",
     "marketPulse": "Pulso de Mercado",
-    "arenaPressureLabel": "Pressão da Arena",
+    "arenaPressureLabel": "PressÃ£o da Arena",
     "arenaExtremeFear": "Medo Extremo",
     "arenaFear": "Medo",
     "arenaNeutral": "Neutro",
@@ -1493,7 +1493,7 @@
     },
     "labels": {
       "to": "para",
-      "approx": "≈",
+      "approx": "â‰ˆ",
       "vs": "vs",
       "directRate": "Taxa direta",
       "priceUpdated": "Preco atualizado",
@@ -1602,7 +1602,7 @@
     },
     "activity": {
       "eyebrow": "Atividade ao vivo",
-      "title": "Movimentação da partida",
+      "title": "MovimentaÃ§Ã£o da partida",
       "description": "Eventos, pressao, momentum e mudancas taticas acontecendo em tempo real.",
       "ariaLabel": "Grafico de atividade da partida ao longo do tempo"
     },
@@ -1635,18 +1635,18 @@
       "candleBattle": "Candle Battle",
       "candlesWon": "Candles vencidos",
       "momentumCurrent": "Momentum atual",
-      "tacticalPanel": "Painel tático",
-      "tacticalPanelA11y": "Painel tático do Candle Battle",
-      "leadership": "Liderança",
+      "tacticalPanel": "Painel tÃ¡tico",
+      "tacticalPanelA11y": "Painel tÃ¡tico do Candle Battle",
+      "leadership": "LideranÃ§a",
       "candlesAnalyzed": "Candles analisados",
-      "currentStreak": "Sequência atual",
-      "lastCandle": "Último candle",
-      "lastVariation": "Última variação",
-      "waitingCandleHistory": "Aguardando histórico de candles",
+      "currentStreak": "SequÃªncia atual",
+      "lastCandle": "Ãšltimo candle",
+      "lastVariation": "Ãšltima variaÃ§Ã£o",
+      "waitingCandleHistory": "Aguardando histÃ³rico de candles",
       "chartForAsset": "Candles de {0}",
       "candleBattleA11y": "Arena de Candle Battle: {0} vs {1}",
       "controlsCandlesBy": "{0} controla os candles",
-      "pressureAdvantageBy": "{0} em vantagem de pressão",
+      "pressureAdvantageBy": "{0} em vantagem de pressÃ£o",
       "momentumNeutral": "Momentum neutro",
       "leftAssetChange": "Variacao do ativo A",
       "rightAssetChange": "Variacao do ativo B",
@@ -1683,7 +1683,7 @@
       "commentaryMetaTimestamp": "{0} | {1} UTC",
       "activity": {
         "eyebrow": "Atividade ao vivo",
-        "title": "Movimentação da partida",
+        "title": "MovimentaÃ§Ã£o da partida",
         "description": "Eventos, pressao, momentum e mudancas taticas acontecendo em tempo real.",
         "ariaLabel": "Grafico de atividade da partida ao longo do tempo"
       }
@@ -1717,7 +1717,7 @@
       "overlaySubtitle": "Ao vivo agora",
       "signalDegraded": "Sinal degradado",
       "dataStatusTitle": "Feed operando com dados em recuperacao",
-      "dataStatusFallback": "O broadcast continua online com o ultimo snapshot valido enquanto a arena recompõe o fluxo ao vivo.",
+      "dataStatusFallback": "O broadcast continua online com o ultimo snapshot valido enquanto a arena recompÃµe o fluxo ao vivo.",
       "dataStatusWorkerHeartbeat": "O worker ficou sem heartbeat recente. A transmissao segue no ar usando dados estaveis ate o pipeline voltar.",
       "dataStatusWorkerDegraded": "O worker entrou em modo degradado. A arena manteve o sinal no ar com fallback em vez de apagar os paineis.",
       "dataStatusCurrencyMissing": "O snapshot publico de moedas nao foi encontrado agora. A tela esta segurando o ultimo quadro confiavel.",
@@ -1730,9 +1730,9 @@
       "pressureLabel": "PRESS?O",
       "currentPressureLabel": "PRESS?O ATUAL",
       "momentumLabel": "MOMENTUM",
-      "pressureTooltip": "{0} {1} - {2}% de pressão",
+      "pressureTooltip": "{0} {1} - {2}% de pressÃ£o",
       "logoAlt": "Logo de {0}",
-      "ariaLabel": "{0} com {1}% de pressão, {2} com {3}% de pressão. Estado atual: {4}.",
+      "ariaLabel": "{0} com {1}% de pressÃ£o, {2} com {3}% de pressÃ£o. Estado atual: {4}.",
       "statusCritical": "{0} EM PRESS?O CR?TICA",
       "statusControlsArena": "{0} DOMINA A ARENA",
       "statusBalanced": "DISPUTA EQUILIBRADA",
@@ -1746,7 +1746,7 @@
       "momentumRising": "PRESS?O CRESCENTE",
       "momentumNeutral": "RITMO NEUTRO",
       "momentumRecovering": "EM RECUPERA??O",
-      "description": "A pressão da arena representa o controle territorial e a intensidade das ações de cada lado. Acima de 60% indica domínio forte. Abaixo de 40% indica perda de controle."
+      "description": "A pressÃ£o da arena representa o controle territorial e a intensidade das aÃ§Ãµes de cada lado. Acima de 60% indica domÃ­nio forte. Abaixo de 40% indica perda de controle."
     },
     "modes": {
       "kicker": "Navegacao da TV",
@@ -1893,10 +1893,10 @@
         "opening": [
           "A partida ainda esta no comeco, e os dois lados testam o primeiro ritmo da arena.",
           "No inicio do ciclo, {2} e {3} ainda escrevem o primeiro capitulo desse painel.",
-          "Essa arena esta apenas começando, com tempo suficiente para varias viradas de narrativa.",
+          "Essa arena esta apenas comeÃ§ando, com tempo suficiente para varias viradas de narrativa.",
           "A fase inicial segue cautelosa, e os dois ativos ainda calibram o ritmo ao vivo.",
           "Ainda ha muito tempo no relogio, o que deixa esse painel inicial bem aberto.",
-          "O primeiro trecho esta em andamento, e nenhum lado se impôs por completo ainda.",
+          "O primeiro trecho esta em andamento, e nenhum lado se impÃ´s por completo ainda.",
           "Essa janela de abertura fala mais de posicionamento do que de separacao, pelo menos por enquanto.",
           "A arena ainda esta em leitura inicial, e o mapa de pressao pode mudar rapido."
         ],
@@ -2072,11 +2072,11 @@
       "back": "Voltar",
       "close": "Fechar",
       "searchLabel": "Escolha o ativo",
-      "searchPlaceholder": "Busque por símbolo ou nome",
-      "loadingAssets": "Carregando ativos elegíveis...",
+      "searchPlaceholder": "Busque por sÃ­mbolo ou nome",
+      "loadingAssets": "Carregando ativos elegÃ­veis...",
       "emptyAssets": "Nenhum ativo encontrado para esta busca.",
-      "loadAssetsError": "Não foi possível carregar os ativos.",
-      "priceUnavailable": "Preço indisponível",
+      "loadAssetsError": "NÃ£o foi possÃ­vel carregar os ativos.",
+      "priceUnavailable": "PreÃ§o indisponÃ­vel",
       "openingOn": "Voce esta escolhendo {0}",
       "investmentIn": "Escolha {0}",
       "valueInSol": "Valor em SOL",
@@ -2090,15 +2090,15 @@
       "insufficientBalance": "Saldo insuficiente",
       "insufficientBalanceMessage": "Saldo insuficiente na carteira. Voce possui {0} disponivel para esta operacao.",
       "networkFeeReserve": "Voce precisa manter uma pequena reserva para a taxa da rede Solana.",
-      "custodyWalletLabel": "Carteira de custódia",
+      "custodyWalletLabel": "Carteira de custÃ³dia",
       "directFundingTitle": "Pagamento on-chain via Phantom.",
       "directFundingLine1": "Sua selecao sera enviada diretamente da sua carteira para a arena.",
-      "directFundingLine2": "Os fundos serão enviados para a carteira de custódia do CriptoVersus.",
+      "directFundingLine2": "Os fundos serÃ£o enviados para a carteira de custÃ³dia do CriptoVersus.",
       "cancel": "Cancelar",
       "investing": "Enviando selecao...",
       "investCta": "Escolher {0}",
       "invalidAmount": "Digite um valor maior que zero.",
-      "assetBlocked": "Este ativo não está aberto para nova exposição agora.",
+      "assetBlocked": "Este ativo nÃ£o estÃ¡ aberto para nova exposiÃ§Ã£o agora.",
       "availableNow": "Selecao aberta",
       "blockedNow": "Selecao bloqueada",
       "walletFundingRequired": "Conecte e aprove a carteira para usar o saldo on-chain nesta selecao.",
@@ -2582,11 +2582,11 @@
       "items": {
         "participate": {
           "title": "Participar da Arena",
-          "description": "Fique mais perto das batalhas ao vivo, acompanhe a identidade das partidas e fortaleça a camada de entretenimento do ecossistema."
+          "description": "Fique mais perto das batalhas ao vivo, acompanhe a identidade das partidas e fortaleÃ§a a camada de entretenimento do ecossistema."
         },
         "community": {
           "title": "Acesso a comunidade",
-          "description": "Permaneça conectado com a torcida, os canais sociais e futuras ativações da comunidade CriptoVersus."
+          "description": "PermaneÃ§a conectado com a torcida, os canais sociais e futuras ativaÃ§Ãµes da comunidade CriptoVersus."
         },
         "utility": {
           "title": "Utilidade futura no ecossistema",
@@ -2633,35 +2633,35 @@
   }
 ,
   "communityMatch": {
-    "eyebrow": "Cria��o da comunidade",
+    "eyebrow": "Criação da comunidade",
     "title": "Tem um confronto melhor em mente?",
-    "body": "Crie sua pr�pria batalha e desafie a comunidade.",
-    "button": "Criar minha pr�pria batalha",
+    "body": "Crie sua própria batalha e desafie a comunidade.",
+    "button": "Criar minha própria batalha",
     "modal": {
-      "eyebrow": "Batalha p�blica",
+      "eyebrow": "Batalha pública",
       "title": "Crie uma batalha",
       "close": "Fechar",
       "orange": "Lado laranja",
       "cyan": "Lado azul",
-      "searchPlaceholder": "Pesquisar por s�mbolo ou nome",
+      "searchPlaceholder": "Pesquisar por símbolo ou nome",
       "loading": "Carregando ativos...",
-      "empty": "Nenhum ativo dispon�vel",
+      "empty": "Nenhum ativo disponível",
       "selectLeft": "Selecione o lado laranja",
       "selectRight": "Selecione o lado azul",
-      "previewLeft": "Pr�via do lado laranja",
-      "previewRight": "Pr�via do lado azul",
+      "previewLeft": "Prévia do lado laranja",
+      "previewRight": "Prévia do lado azul",
       "submit": "CRIAR BATALHA",
       "submitting": "Criando batalha...",
       "footnote": "Batalha criada pela comunidade",
       "captchaRequired": "Confirme o CAPTCHA para continuar.",
-      "captchaError": "N�o foi poss�vel validar o CAPTCHA. Tente novamente.",
+      "captchaError": "Não foi possível validar o CAPTCHA. Tente novamente.",
       "created": "Batalha criada com sucesso!",
-      "existing": "J� existe uma batalha ativa para esse confronto.",
-      "fallbackError": "N�o foi poss�vel criar a batalha agora.",
-      "unavailable": "A cria��o p�blica de batalhas est� temporariamente indispon�vel.",
+      "existing": "Já existe uma batalha ativa para esse confronto.",
+      "fallbackError": "Não foi possível criar a batalha agora.",
+      "unavailable": "A criação pública de batalhas está temporariamente indisponível.",
       "sameAsset": "Escolha dois ativos diferentes.",
-      "assetUnavailable": "Um dos ativos selecionados n�o est� dispon�vel no momento.",
-      "invalidAsset": "Escolha dois ativos v�lidos.",
+      "assetUnavailable": "Um dos ativos selecionados não está disponível no momento.",
+      "invalidAsset": "Escolha dois ativos válidos.",
       "tooManyRequests": "Tente novamente em {0} segundos."
     }
   }
