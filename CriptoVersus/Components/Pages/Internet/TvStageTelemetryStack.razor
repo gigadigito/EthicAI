@@ -612,6 +612,8 @@ else
                              LeftColor="@Model.LeftPriceBattleColor"
                              LeftPoints="@Model.LeftPriceBattlePoints"
                              LeftHasPriceHistory="@Model.LeftPriceBattleHasHistory"
+                             CanonicalLeftScore="@Model.LeftScore"
+                             CanonicalRightScore="@Model.RightScore"
                              RightSymbol="@Model.RightTickerLabel"
                              RightDisplayName="@Model.RightName"
                              RightLogoUrl="@Model.RightLogoUrl"
@@ -638,6 +640,8 @@ else
                     RightChangePercent="@Model.RightChangePercent"
                     LeftPoints="@Model.LeftPriceBattlePoints"
                     RightPoints="@Model.RightPriceBattlePoints"
+                    CanonicalLeftWins="@Model.LeftScore"
+                    CanonicalRightWins="@Model.RightScore"
                     ShowTacticalPanel="@ShowTacticalPanel"
                     AriaLabel="@($"{Model.LeftTickerLabel} vs {Model.RightTickerLabel} candle battle arena")" />;
 
@@ -716,3 +720,6 @@ else
         return string.Empty;
     }
 }
+
+
+

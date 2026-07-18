@@ -29,17 +29,17 @@
                 <small>@PricePointsLabel()</small>
             </div>
 
-            <b id="@($"{CombinedChartId}-score-left")">@LeftPricePointCount</b>
+            <b id="@($"{CombinedChartId}-score-left")">@DisplayedLeftScore</b>
         </article>
 
         <div class="tv-price-battle__score-center" aria-label="@BuildMatchHeadline()">
             <span>@PriceBattleTitle()</span>
-            <strong>@TotalPricePointCount @PointsShortLabel()</strong>
+            <strong>@DisplayedTotalScore @PointsShortLabel()</strong>
             <small>@LiveLabel()</small>
         </div>
 
         <article class="tv-price-battle__score-team tv-price-battle__score-team--right">
-            <b id="@($"{CombinedChartId}-score-right")">@RightPricePointCount</b>
+            <b id="@($"{CombinedChartId}-score-right")">@DisplayedRightScore</b>
 
             <div class="tv-price-battle__score-copy tv-price-battle__score-copy--right">
                 <span>@TeamBLabel()</span>
@@ -145,7 +145,9 @@
     private PriceBattleScoreSummary PriceScore => BuildPriceScore();
     private int LeftPricePointCount => PriceScore.LeftPoints;
     private int RightPricePointCount => PriceScore.RightPoints;
-    private int TotalPricePointCount => LeftPricePointCount + RightPricePointCount;
+    private int DisplayedLeftScore => CanonicalLeftScore ?? LeftPricePointCount;
+    private int DisplayedRightScore => CanonicalRightScore ?? RightPricePointCount;
+    private int DisplayedTotalScore => DisplayedLeftScore + DisplayedRightScore;
 
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
 
@@ -186,6 +188,9 @@
     [Parameter] public string LatestEventScore { get; set; } = string.Empty;
     [Parameter] public string PoolStatus { get; set; } = string.Empty;
     [Parameter] public string PoolValue { get; set; } = "0";
+    [Parameter] public int? CanonicalLeftScore { get; set; }
+    [Parameter] public int? CanonicalRightScore { get; set; }
+    [Parameter] public int ScoreVersion { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -355,6 +360,9 @@
             Culture,
             CombinedChartId,
             DisplaySymbol(LeftSymbol),
+            CanonicalLeftScore?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            CanonicalRightScore?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            ScoreVersion.ToString(CultureInfo.InvariantCulture),
             LeftCurrentPrice?.ToString("0.##################", CultureInfo.InvariantCulture) ?? string.Empty,
             LeftChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
             Tail(LeftPoints),
@@ -1397,3 +1405,4 @@
         }
     }
 </style>
+

@@ -1,4 +1,4 @@
-ï»¿@using System.Globalization
+@using System.Globalization
 @using DTOs
 @inject LocalizationService L
 
@@ -17,12 +17,12 @@
                         <strong>@LeftTickerLabel</strong>
                         <span>@T("labels.candlesWon")</span>
                     </div>
-                    <b id="@($"{_resolvedInstanceId}-score-left")">@Battle.LeftWins</b>
+                    <b id="@($"{_resolvedInstanceId}-score-left")">@DisplayedLeftWins</b>
                 </div>
 
                 <div class="tv-candle-battle__compact-center">
                     <span>@T("labels.candleBattle")</span>
-                    <strong id="@($"{_resolvedInstanceId}-score-leader")">@Battle.LeaderLabel</strong>
+                    <strong id="@($"{_resolvedInstanceId}-score-leader")">@DisplayedLeaderLabel</strong>
                     <div class="tv-candle-battle__compact-momentum" aria-hidden="true">
                         <i class="tv-candle-battle__compact-momentum-fill tv-candle-battle__compact-momentum-fill--left"
                            style="width:@Battle.LeftMomentumPercentString;"></i>
@@ -32,7 +32,7 @@
                 </div>
 
                 <div class="tv-candle-battle__compact-team tv-candle-battle__compact-team--right">
-                    <b id="@($"{_resolvedInstanceId}-score-right")">@Battle.RightWins</b>
+                    <b id="@($"{_resolvedInstanceId}-score-right")">@DisplayedRightWins</b>
                     <div>
                         <strong>@RightTickerLabel</strong>
                         <span>@T("labels.candlesWon")</span>
@@ -59,17 +59,17 @@
                     <small>@T("labels.candlesWon")</small>
                 </div>
 
-                <b id="@($"{_resolvedInstanceId}-score-left")">@Battle.LeftWins</b>
+                <b id="@($"{_resolvedInstanceId}-score-left")">@DisplayedLeftWins</b>
             </div>
 
             <div class="tv-candle-battle__score-center">
                 <span>@T("labels.candleBattle")</span>
-                <strong id="@($"{_resolvedInstanceId}-score-leader")">@Battle.ShortLeaderLabel</strong>
+                <strong id="@($"{_resolvedInstanceId}-score-leader")">@DisplayedShortLeaderLabel</strong>
                 <small>LIVE</small>
             </div>
 
             <div class="tv-candle-battle__score-side tv-candle-battle__score-side--right">
-                <b id="@($"{_resolvedInstanceId}-score-right")">@Battle.RightWins</b>
+                <b id="@($"{_resolvedInstanceId}-score-right")">@DisplayedRightWins</b>
 
                 <div class="tv-candle-battle__score-copy tv-candle-battle__score-copy--right">
                     <span class="tv-candle-battle__score-kicker">ASSET B</span>
@@ -119,12 +119,12 @@
                     <div class="tv-candle-battle__sidebar-top">
                         <div class="tv-candle-battle__sidebar-kicker">
                             <span>@PanelTitle</span>
-                            <strong class="@Battle.LeaderClass">@Battle.ShortLeaderLabel</strong>
+                            <strong class="@Battle.LeaderClass">@DisplayedShortLeaderLabel</strong>
                         </div>
 
                         <div class="tv-candle-battle__sidebar-leader">
                             <span>@LeaderTitle</span>
-                            <strong>@Battle.LeaderLabel</strong>
+                            <strong>@DisplayedLeaderLabel</strong>
                         </div>
 
                         <div class="tv-candle-battle__sidebar-momentum" aria-hidden="true">
@@ -138,17 +138,17 @@
                     <div class="tv-candle-battle__sidebar-section">
                         <div class="tv-candle-battle__sidebar-section-head">
                             <span>@CandlesAnalyzedTitle</span>
-                            <strong>@Battle.TotalComparableCandles</strong>
+                            <strong>@DisplayedTotalCandles</strong>
                         </div>
 
                         <div class="tv-candle-battle__sidebar-grid">
                             <div class="tv-candle-battle__sidebar-row">
                                 <span>@LeftHeroLabel</span>
-                                <strong class="is-left">@Battle.LeftWins</strong>
+                                <strong class="is-left">@DisplayedLeftWins</strong>
                             </div>
                             <div class="tv-candle-battle__sidebar-row">
                                 <span>@RightHeroLabel</span>
-                                <strong class="is-right">@Battle.RightWins</strong>
+                                <strong class="is-right">@DisplayedRightWins</strong>
                             </div>
                             <div class="tv-candle-battle__sidebar-row">
                                 <span>@T("labels.tie")</span>
@@ -1447,6 +1447,15 @@
     public bool IsBroadcastCompact { get; set; }
 
     [Parameter]
+    public int? CanonicalLeftWins { get; set; }
+
+    [Parameter]
+    public int? CanonicalRightWins { get; set; }
+
+    [Parameter]
+    public int ScoreVersion { get; set; }
+
+    [Parameter]
     public bool ShowTacticalPanel { get; set; } = true;
 
     private string RootClass => IsBroadcastCompact
@@ -1469,7 +1478,39 @@
     private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints, BattleSide.Right, IsBroadcastCompact);
     private IReadOnlyList<BattleCandle> BattleCandles => BuildBattleCandles();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
+    private int DisplayedLeftWins => CanonicalLeftWins ?? Battle.LeftWins;
+    private int DisplayedRightWins => CanonicalRightWins ?? Battle.RightWins;
+    private int DisplayedTotalCandles => CanonicalLeftWins.HasValue || CanonicalRightWins.HasValue
+        ? Math.Max(0, DisplayedLeftWins) + Math.Max(0, DisplayedRightWins)
+        : Battle.TotalComparableCandles;
+    private string DisplayedLeaderLabel => ResolveDisplayedLeaderLabel();
+    private string DisplayedShortLeaderLabel => ResolveDisplayedShortLeaderLabel();
 
+    private string ResolveDisplayedLeaderLabel()
+    {
+        if (CanonicalLeftWins.HasValue || CanonicalRightWins.HasValue)
+        {
+            if (DisplayedLeftWins == DisplayedRightWins)
+                return T("labels.tie");
+
+            return DisplayedLeftWins > DisplayedRightWins ? LeftHeroLabel : RightHeroLabel;
+        }
+
+        return Battle.LeaderLabel;
+    }
+
+    private string ResolveDisplayedShortLeaderLabel()
+    {
+        if (CanonicalLeftWins.HasValue || CanonicalRightWins.HasValue)
+        {
+            if (DisplayedLeftWins == DisplayedRightWins)
+                return T("labels.tie");
+
+            return DisplayedLeftWins > DisplayedRightWins ? LeftHeroLabel : RightHeroLabel;
+        }
+
+        return Battle.ShortLeaderLabel;
+    }
     private string WaitingHistoryText => T("labels.waitingCandleHistory");
     private string PanelTitle => T("labels.tacticalPanel");
     private string LeaderTitle => T("labels.leadership");
@@ -1718,9 +1759,9 @@ private IReadOnlyList<BattleCandle> BuildBattleCandles()
 
         var title = side switch
         {
-            BattleSide.Left => $"{LeftHeroLabel} {T("labels.won")} â€¢ {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}",
-            BattleSide.Right => $"{RightHeroLabel} {T("labels.won")} â€¢ {FormatDeltaPercent(rightDelta)} vs {FormatDeltaPercent(leftDelta)}",
-            _ => $"{T("labels.tie")} â€¢ {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}"
+            BattleSide.Left => $"{LeftHeroLabel} {T("labels.won")} • {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}",
+            BattleSide.Right => $"{RightHeroLabel} {T("labels.won")} • {FormatDeltaPercent(rightDelta)} vs {FormatDeltaPercent(leftDelta)}",
+            _ => $"{T("labels.tie")} • {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}"
         };
 
         result.Add(new BattleCandle
@@ -1932,3 +1973,7 @@ private sealed class BattleSummary
     public decimal LastRightDeltaPercent { get; init; }
 }
 }
+
+
+
+

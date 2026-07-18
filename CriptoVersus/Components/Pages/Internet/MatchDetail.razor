@@ -113,7 +113,7 @@
 
         <p class="small text-muted disclammer mb-4">@T("marketDataDisclaimer" )</p>
 
-        <CommunityMatchCreationCard />
+        
 
         <section id="social-share-card" class="social-share-card social-share-card--epic mb-4" aria-label="Social share card">
             <div class="social-share-card__background" aria-hidden="true"></div>
@@ -370,6 +370,9 @@
                                                      LeftColor="#ff9100"
                                                      LeftPoints="@LeftPriceBattlePoints"
                                                      LeftHasPriceHistory="@LeftPriceBattleHasHistory"
+                            CanonicalLeftScore="@(_match.ScoreA)"
+                            CanonicalRightScore="@(_match.ScoreB)"
+                            ScoreVersion="@_match.ScoreVersion"
                                                      RightSymbol="@_match.TeamB"
                                                      RightDisplayName="@_match.TeamB"
                                                      RightLogoUrl="@GetCoinIconUrl(_match.TeamB)"
@@ -421,6 +424,9 @@
                                             RightChangePercent="@_match.PctB"
                                             LeftPoints="@LeftPriceBattlePoints"
                                             RightPoints="@RightPriceBattlePoints"
+                                            CanonicalLeftWins="@_match.ScoreA"
+                                            CanonicalRightWins="@_match.ScoreB"
+                                            ScoreVersion="@_match.ScoreVersion"
                                             Culture="@CurrentCulture"
                                             AriaLabel="@($"{_match.TeamA} vs {_match.TeamB} candle battle arena")" />
                         </div>
@@ -838,23 +844,7 @@
 
         @if (_showSimplePopup)
         {
-            <div class="modal-backdrop fade show"></div>
-            <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content bg-dark text-light border border-secondary">
-                        <div class="modal-header border-secondary">
-                            <h5 class="modal-title">@_simplePopupTitle</h5>
-                            <button type="button" class="btn-close btn-close-white" aria-label="@T("close")" @onclick="CloseSimplePopup"></button>
-                        </div>
-                        <div class="modal-body text-light-emphasis">
-                            <p class="mb-0">@_simplePopupMessage</p>
-                        </div>
-                        <div class="modal-footer border-secondary">
-                            <button type="button" class="btn btn-primary" @onclick="CloseSimplePopup">@T("gotIt")</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <CommunityMatchCreationCard />
         }
     }
 </div>
@@ -4674,6 +4664,7 @@
     private string? _error;
     private string _title = "Match";
     private MatchDto? _match;
+    private int _lastAppliedScoreVersion = -1;
     private string SeoTitle => string.IsNullOrWhiteSpace(_title) ? "CriptoVersus Match Detail" : $"{_title} | CriptoVersus Legacy Match";
     private string SeoDescription => IsEnglish
         ? "Legacy CriptoVersus match detail route kept for compatibility while the main indexed match SEO lives on the canonical public match pages."
@@ -5862,7 +5853,11 @@
 
             if (updated is not null)
             {
+                if (!MatchScorePresentationVersionGuard.ShouldApply(updated.ScoreVersion, _lastAppliedScoreVersion))
+                    return;
+
                 _match = updated;
+                _lastAppliedScoreVersion = updated.ScoreVersion;
                 _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
                 await LoadMetricChartsAsync(ct);
 
@@ -6135,12 +6130,17 @@
             return;
         }
 
-        var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(_match.MatchId, 500, ct);
-        var scoreEventsTask = Api.GetMatchScoreEventsAsync(_match.MatchId, ct);
+        var matchId = _match.MatchId;
+        var matchVersion = _match.ScoreVersion;
+        var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(matchId, 500, ct);
+        var scoreEventsTask = Api.GetMatchScoreEventsAsync(matchId, ct);
         _arenaSentimentLoading = _arenaSentimentA is null && _arenaSentimentB is null;
-        var arenaSentimentTask = Api.GetMatchArenaSentimentAsync(_match.MatchId, ct);
+        var arenaSentimentTask = Api.GetMatchArenaSentimentAsync(matchId, ct);
 
         await Task.WhenAll(snapshotsTask, scoreEventsTask, arenaSentimentTask);
+
+        if (_match is null || _match.MatchId != matchId || _match.ScoreVersion != matchVersion)
+            return;
 
         var snapshots = snapshotsTask.Result ?? [];
         var scoreEvents = scoreEventsTask.Result ?? [];
@@ -6992,6 +6992,9 @@
         }
     }
 </style>
+
+
+
 
 
 

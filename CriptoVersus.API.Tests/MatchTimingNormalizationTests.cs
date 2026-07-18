@@ -62,6 +62,35 @@ public sealed class MatchTimingNormalizationTests
         Assert.InRange(dto.RemainingMinutes, 64, 66);
     }
 
+    [Fact]
+    public async Task GetById_WhenScoreStateExists_ReturnsScoreVersionAndUpdatedAtUtc()
+    {
+        using var db = CreateDbContext();
+        SeedMatch(
+            db,
+            status: MatchStatus.Ongoing,
+            startTimeUtc: DateTime.UtcNow.AddMinutes(-25),
+            endTimeUtc: null);
+
+        db.MatchScoreState.Add(new MatchScoreState
+        {
+            MatchId = 1,
+            CreatedAtUtc = new DateTime(2026, 06, 02, 15, 0, 0, DateTimeKind.Utc),
+            LastEventSequence = 17,
+            UpdatedAtUtc = new DateTime(2026, 06, 02, 15, 42, 0, DateTimeKind.Utc)
+        });
+        db.SaveChanges();
+
+        var controller = CreateController(db);
+
+        var result = await controller.GetById(1, includeParticipants: false, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<MatchDto>(ok.Value);
+
+        Assert.Equal(17, dto.ScoreVersion);
+        Assert.Equal(new DateTime(2026, 06, 02, 15, 42, 0, DateTimeKind.Utc), dto.ScoreUpdatedAtUtc);
+    }
     private static MatchesController CreateController(EthicAIDbContext db)
     {
         var configuration = new ConfigurationBuilder()
@@ -219,3 +248,4 @@ public sealed class MatchTimingNormalizationTests
             => Task.CompletedTask;
     }
 }
+
