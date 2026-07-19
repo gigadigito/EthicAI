@@ -80,7 +80,7 @@ public sealed class CriptoVersusApiClient
     {
         var url =
             $"api/Matches/by-symbols?symbolA={Uri.EscapeDataString(symbolA)}&symbolB={Uri.EscapeDataString(symbolB)}";
-  
+
         return await GetFromJsonWithBearerAsync<MatchDto>(url);
     }
 
@@ -168,47 +168,171 @@ public sealed class CriptoVersusApiClient
         CommunityMatchCreateRequestDto request,
         CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var requestUri = BuildApiUrl("api/matches/community");
+
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUri)
         {
             Content = JsonContent.Create(request)
         };
 
+        await AddBearerTokenAsync(httpRequest);
+
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(RequestTimeout);
 
-        using var response = await _http.SendAsync(httpRequest, timeoutCts.Token);
-        var rawBody = await response.Content.ReadAsStringAsync(timeoutCts.Token);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            var payload = string.IsNullOrWhiteSpace(rawBody)
-                ? null
-                : JsonSerializer.Deserialize<CommunityMatchCreateResponseDto>(rawBody, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            using var response = await _http.SendAsync(httpRequest, timeoutCts.Token);
+            var rawBody = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+            _logger.LogInformation(
+                "[COMMUNITY_MATCH_HTTP] Method=POST Url={Url} StatusCode={StatusCode} Success={Success} BodyLength={BodyLength}",
+                requestUri,
+                (int)response.StatusCode,
+                response.IsSuccessStatusCode,
+                rawBody?.Length ?? 0);
+
+            if (response.IsSuccessStatusCode)
+            {
+                CommunityMatchCreateResponseDto? payload;
+
+                try
+                {
+                    payload = string.IsNullOrWhiteSpace(rawBody)
+                        ? null
+                        : JsonSerializer.Deserialize<CommunityMatchCreateResponseDto>(
+                            rawBody,
+                            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(
+                        ex,
+                        "[COMMUNITY_MATCH_DESERIALIZE_ERROR] StatusCode={StatusCode} Body={Body}",
+                        (int)response.StatusCode,
+                        TruncateForLog(rawBody));
+
+                    return new CommunityMatchCreationResult(
+                        false,
+                        response.StatusCode,
+                        null,
+                        "invalidSuccessResponse",
+                        $"A API retornou HTTP {(int)response.StatusCode}, mas a resposta não pôde ser interpretada.",
+                        null,
+                        TruncateForDisplay(rawBody));
+                }
+
+                if (payload is null)
+                {
+                    return new CommunityMatchCreationResult(
+                        false,
+                        response.StatusCode,
+                        null,
+                        "emptySuccessResponse",
+                        $"A API retornou HTTP {(int)response.StatusCode}, mas o corpo veio vazio.",
+                        null,
+                        null);
+                }
+
+                return new CommunityMatchCreationResult(
+                    true,
+                    response.StatusCode,
+                    payload,
+                    payload.MessageCode,
+                    payload.Message,
+                    payload.RetryAfterSeconds,
+                    null);
+            }
+
+            var error = TryParseCommunityMatchError(rawBody);
+            var retryAfter = response.Headers.RetryAfter?.Delta is TimeSpan delta
+                ? Math.Max(1, (int)Math.Ceiling(delta.TotalSeconds))
+                : error.RetryAfterSeconds;
+
+            var messageCode = !string.IsNullOrWhiteSpace(error.MessageCode)
+                ? error.MessageCode
+                : $"http{(int)response.StatusCode}";
+
+            var message = !string.IsNullOrWhiteSpace(error.Message)
+                ? error.Message
+                : !string.IsNullOrWhiteSpace(error.Detail)
+                    ? error.Detail
+                    : string.IsNullOrWhiteSpace(rawBody)
+                        ? $"A API retornou HTTP {(int)response.StatusCode} sem conteúdo."
+                        : $"HTTP {(int)response.StatusCode}: {TruncateForDisplay(rawBody)}";
+
+            _logger.LogWarning(
+                "[COMMUNITY_MATCH_HTTP_ERROR] Url={Url} StatusCode={StatusCode} MessageCode={MessageCode} Message={Message} Detail={Detail} Body={Body}",
+                requestUri,
+                (int)response.StatusCode,
+                messageCode,
+                error.Message,
+                error.Detail,
+                TruncateForLog(rawBody));
 
             return new CommunityMatchCreationResult(
-                true,
+                false,
                 response.StatusCode,
-                payload,
-                payload?.MessageCode,
-                payload?.Message,
-                payload?.RetryAfterSeconds,
-                null);
+                null,
+                messageCode,
+                message,
+                retryAfter,
+                error.Detail);
         }
+        catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && timeoutCts.IsCancellationRequested)
+        {
+            _logger.LogError(
+                ex,
+                "[COMMUNITY_MATCH_TIMEOUT] Url={Url} TimeoutSeconds={TimeoutSeconds}",
+                requestUri,
+                RequestTimeout.TotalSeconds);
 
-        var error = TryParseCommunityMatchError(rawBody);
-        var retryAfter = response.Headers.RetryAfter?.Delta is TimeSpan delta
-            ? Math.Max(1, (int)Math.Ceiling(delta.TotalSeconds))
-            : error.RetryAfterSeconds;
+            return new CommunityMatchCreationResult(
+                false,
+                HttpStatusCode.RequestTimeout,
+                null,
+                "requestTimeout",
+                $"A API não respondeu em até {(int)RequestTimeout.TotalSeconds} segundos.",
+                null,
+                ex.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            var statusCode = ex.StatusCode ?? HttpStatusCode.ServiceUnavailable;
 
-        return new CommunityMatchCreationResult(
-            false,
-            response.StatusCode,
-            null,
-            error.MessageCode,
-            error.Message,
-            retryAfter,
-            error.Detail);
+            _logger.LogError(
+                ex,
+                "[COMMUNITY_MATCH_HTTP_EXCEPTION] Url={Url} StatusCode={StatusCode}",
+                requestUri,
+                ex.StatusCode.HasValue ? (int)ex.StatusCode.Value : null);
+
+            return new CommunityMatchCreationResult(
+                false,
+                statusCode,
+                null,
+                "httpRequestFailed",
+                ex.Message,
+                null,
+                ex.InnerException?.Message);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(
+                ex,
+                "[COMMUNITY_MATCH_CLIENT_ERROR] Url={Url}",
+                requestUri);
+
+            return new CommunityMatchCreationResult(
+                false,
+                HttpStatusCode.InternalServerError,
+                null,
+                "clientException",
+                ex.Message,
+                null,
+                ex.InnerException?.Message);
+        }
     }
 
     public async Task<List<SocialHotMatchDto>?> GetSocialHotMatchesAsync(CancellationToken ct = default)
@@ -779,6 +903,28 @@ public sealed class CriptoVersusApiClient
 
     private sealed record CachedCoinSocialProfileResult(DateTimeOffset CachedAtUtc, CoinSocialProfileDto? Profile);
 
+    private static string? TruncateForDisplay(string? value, int maxLength = 500)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var normalized = value.Trim();
+        return normalized.Length <= maxLength
+            ? normalized
+            : normalized[..maxLength] + "...";
+    }
+
+    private static string? TruncateForLog(string? value, int maxLength = 2000)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var normalized = value.Trim();
+        return normalized.Length <= maxLength
+            ? normalized
+            : normalized[..maxLength] + "...";
+    }
+
     private static CommunityMatchErrorResponse TryParseCommunityMatchError(string body)
     {
         if (string.IsNullOrWhiteSpace(body))
@@ -820,4 +966,3 @@ public sealed class CriptoVersusApiClient
         int? RetryAfterSeconds,
         string? Detail);
 }
-
