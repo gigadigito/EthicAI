@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -126,7 +126,7 @@ namespace CriptoVersus.Worker
                 lastError = ex.Message;
                 lastStack = ex.ToString();
                 status = IsDnsOrNetworkTransient(ex) ? "degraded" : "error";
-                _logger.LogError(ex, "❌ Erro no ciclo do worker.");
+                _logger.LogError(ex, "? Erro no ciclo do worker.");
             }
             finally
             {
@@ -188,7 +188,7 @@ namespace CriptoVersus.Worker
             if (!hasHealthySnapshot)
             {
                 _logger.LogWarning(
-                    "⚠️ Top gainers insuficiente (count={count}). O ciclo continuara para promover/liquidar partidas, mas sem limpeza agressiva nem reposicao de pending.",
+                    "?? Top gainers insuficiente (count={count}). O ciclo continuara para promover/liquidar partidas, mas sem limpeza agressiva nem reposicao de pending.",
                     topGainers.Count);
             }
             else
@@ -197,7 +197,20 @@ namespace CriptoVersus.Worker
             }
 
             var snapshotUtc = nowUtc;
-            var snapshot = BuildSnapshot(topGainers);
+            var topGainerSnapshot = BuildSnapshot(topGainers);
+            var activeMatchSymbols = await LoadActiveMatchSymbolsAsync(db, ct);
+            var conversionSymbols = new HashSet<string>(StringComparer.OrdinalIgnoreCase); // conversoes serao adicionadas quando houver uma fonte dedicada, sem inflar requiredSymbols
+            var requiredSymbols = PriceSymbolSetBuilder.BuildRequiredSymbols(
+                topGainerSnapshot.Select(x => x.Symbol),
+                activeMatchSymbols,
+                conversionSymbols);
+            _logger.LogInformation(
+                "[PRICE_SYMBOL_SET] topGainersCount={TopGainersCount} activeMatchSymbolsCount={ActiveMatchSymbolsCount} conversionSymbolsCount={ConversionSymbolsCount} distinctTotal={DistinctTotal}",
+                topGainerSnapshot.Count,
+                activeMatchSymbols.Count,
+                conversionSymbols.Count,
+                requiredSymbols.Count);
+            var requiredSnapshot = PriceSymbolSetBuilder.BuildSnapshot(marketSnapshot.AllUsdt, requiredSymbols);
 
             Dictionary<string, Currency> currencyBySymbol = new(StringComparer.OrdinalIgnoreCase);
             HashSet<string> allowedSymbols = new(StringComparer.OrdinalIgnoreCase);
@@ -209,16 +222,16 @@ namespace CriptoVersus.Worker
                 action: innerCt => UpsertCoinPricesAsync(db, marketSnapshot.AllUsdt, snapshotUtc, innerCt),
                 ct);
 
-            if (topGainers.Count > 0)
+            if (marketSnapshot.AllUsdt.Count > 0)
             {
                 var currencies = await ExecuteStageAsync(
                     "save-currencies",
                     cycleStartUtc,
                     heartbeatOnly: false,
-                    action: innerCt => matchService.SaveCurrenciesAsync(topGainers),
+                    action: innerCt => matchService.SaveCurrenciesAsync(marketSnapshot.AllUsdt),
                     ct);
                 currencyBySymbol = BuildCurrencyMap(currencies);
-                allowedSymbols = BuildAllowedSet(snapshot);
+                allowedSymbols = BuildAllowedSet(topGainerSnapshot);
             }
 
             await ExecuteStageAsync("normalize-pending-initial", cycleStartUtc, true, innerCt => NormalizePendingWindowsAsync(db, nowUtc, innerCt), ct);
@@ -227,12 +240,12 @@ namespace CriptoVersus.Worker
             if (hasHealthySnapshot)
                 await ExecuteStageAsync("cleanup-out-of-snapshot", cycleStartUtc, true, innerCt => CleanupOutOfSnapshotMatchesAsync(db, allowedSymbols, nowUtc, innerCt), ct);
 
-            await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, candleBattleScoringService, arenaSentimentService, snapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
+            await ExecuteStageAsync("process-ongoing", cycleStartUtc, true, innerCt => ProcessOngoingAsync(matchService, db, ruleEngine, scoringEngine, candleBattleScoringService, arenaSentimentService, requiredSnapshot, snapshotUtc, allowedSymbols, nowUtc, innerCt), ct);
             await ExecuteStageAsync("settlements", cycleStartUtc, true, innerCt => ProcessCompletedMatchSettlementsAsync(db, ledgerService, positionService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("sweep-closing-positions", cycleStartUtc, true, innerCt => SweepClosingRequestedPositionsAsync(db, ledgerService, nowUtc, innerCt), ct);
             await ExecuteStageAsync("ensure-ongoing-pool", cycleStartUtc, true, innerCt => EnsureOngoingPoolAsync(db, nowUtc, innerCt), ct);
             if (hasHealthySnapshot)
-                await ExecuteStageAsync("ensure-pending-pool", cycleStartUtc, true, innerCt => EnsurePendingPoolAsync(db, snapshot, currencyBySymbol, GetDesiredPendingCount(), nowUtc, innerCt), ct);
+                await ExecuteStageAsync("ensure-pending-pool", cycleStartUtc, true, innerCt => EnsurePendingPoolAsync(db, topGainerSnapshot, currencyBySymbol, GetDesiredPendingCount(), nowUtc, innerCt), ct);
             await ExecuteStageAsync("normalize-pending-final", cycleStartUtc, true, innerCt => NormalizePendingWindowsAsync(db, nowUtc, innerCt), ct);
             await ExecuteStageAsync("materialize-recurring-bets", cycleStartUtc, true, innerCt => MaterializeRecurringPositionBetsAsync(db, positionService, nowUtc, innerCt), ct);
 
@@ -249,7 +262,7 @@ namespace CriptoVersus.Worker
 
             if (all == null || all.Count == 0)
             {
-                _logger.LogWarning("⚠️ Binance retornou vazio.");
+                _logger.LogWarning("?? Binance retornou vazio.");
                 return new BinanceMarketSnapshot(new List<Crypto>(), new List<Crypto>());
             }
 
@@ -275,7 +288,7 @@ namespace CriptoVersus.Worker
         private void LogTopGainers(List<Crypto> topGainers)
         {
             _logger.LogInformation(
-                "✅ TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
+                "? TopGainers OK (USDT, trades>={minTrades}, qv>={minQv:n0}) count={count} :: {symbols}",
                 MinTradesCount,
                 MinQuoteVolumeUsdt,
                 topGainers.Count,
@@ -311,6 +324,23 @@ namespace CriptoVersus.Worker
                 .ToDictionary(c => c.Symbol!, StringComparer.OrdinalIgnoreCase);
         }
 
+        private async Task<HashSet<string>> LoadActiveMatchSymbolsAsync(EthicAIDbContext db, CancellationToken ct)
+        {
+            var activeStatuses = new[] { MatchStatus.Pending, MatchStatus.Ongoing };
+
+            var matches = await db.Match
+                .AsNoTracking()
+                .Where(m => activeStatuses.Contains(m.Status))
+                .Include(m => m.TeamA).ThenInclude(t => t.Currency)
+                .Include(m => m.TeamB).ThenInclude(t => t.Currency)
+                .ToListAsync(ct);
+
+            return matches
+                .SelectMany(m => new[] { m.TeamA?.Currency?.Symbol, m.TeamB?.Currency?.Symbol })
+                .Select(PriceSymbolSetBuilder.NormalizeSymbol)
+                .Where(symbol => !string.IsNullOrWhiteSpace(symbol))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
         private static HashSet<string> BuildAllowedSet(List<GainerEntry> snapshot)
         {
             return snapshot
@@ -368,7 +398,7 @@ namespace CriptoVersus.Worker
                 await db.SaveChangesAsync(ct);
 
                 _logger.LogInformation(
-                    "🛠️ NormalizePendingWindows: fixedStart={fixedStart} fixedClose={fixedClose} promoted={promoted}",
+                    "??? NormalizePendingWindows: fixedStart={fixedStart} fixedClose={fixedClose} promoted={promoted}",
                     fixedStart, fixedClose, promoted);
             }
         }
@@ -400,7 +430,7 @@ namespace CriptoVersus.Worker
                 ct);
 
             _logger.LogInformation(
-                "📦 Pool status: scheduledOpen={pendingBettable} scheduledClosed={pendingClosed} live={ongoing} finishedLast24h={completed} cancelledLast30m={cancelled} (targets scheduled={pTarget} live={oTarget})",
+                "?? Pool status: scheduledOpen={pendingBettable} scheduledClosed={pendingClosed} live={ongoing} finishedLast24h={completed} cancelledLast30m={cancelled} (targets scheduled={pTarget} live={oTarget})",
                 pendingBettable,
                 pendingClosed,
                 ongoingCount,
@@ -460,13 +490,13 @@ namespace CriptoVersus.Worker
             if (created < missing)
             {
                 _logger.LogWarning(
-                    "⚠️ Pending pool: consegui criar {created} de {missing}. remainingMissing={remaining}",
+                    "?? Pending pool: consegui criar {created} de {missing}. remainingMissing={remaining}",
                     created, missing, missing - created);
             }
             else
             {
                 _logger.LogInformation(
-                    "✅ Pending pool reposto: criados {created} (meta={desired}).",
+                    "? Pending pool reposto: criados {created} (meta={desired}).",
                     created, desiredPending);
             }
         }
@@ -583,7 +613,7 @@ namespace CriptoVersus.Worker
             await db.SaveChangesAsync(ct);
 
             _logger.LogInformation(
-                "🆕 Pending criada: MatchId={matchId} {a} vs {b} start={start} betClose={close} scoringRule={rule}",
+                "?? Pending criada: MatchId={matchId} {a} vs {b} start={start} betClose={close} scoringRule={rule}",
                 match.MatchId, curA.Symbol, curB.Symbol, startTime, bettingCloseTime, match.ScoringRuleType);
 
             return true;
@@ -612,7 +642,7 @@ namespace CriptoVersus.Worker
             await db.SaveChangesAsync(ct);
 
             _logger.LogInformation(
-                "🆕 Team criado automaticamente para {symbol}. TeamId={teamId}",
+                "?? Team criado automaticamente para {symbol}. TeamId={teamId}",
                 currency.Symbol,
                 created.TeamId);
 
@@ -646,7 +676,7 @@ namespace CriptoVersus.Worker
             await db.SaveChangesAsync(ct);
 
             _logger.LogInformation(
-                "🚀 Promovidas {count} partidas Pending -> Ongoing",
+                "?? Promovidas {count} partidas Pending -> Ongoing",
                 duePending.Count);
         }
 
@@ -684,7 +714,7 @@ namespace CriptoVersus.Worker
                 await db.SaveChangesAsync(ct);
 
                 _logger.LogInformation(
-                    "🚀 Ongoing pool ajustado: iniciadas {count} partidas",
+                    "?? Ongoing pool ajustado: iniciadas {count} partidas",
                     duePending.Count);
             }
         }
@@ -845,7 +875,7 @@ namespace CriptoVersus.Worker
             }
 
             _logger.LogInformation(
-                "🔁 Recurring positions materializadas: {count} entradas automáticas.",
+                "?? Recurring positions materializadas: {count} entradas automáticas.",
                 created);
         }
 
@@ -896,7 +926,7 @@ namespace CriptoVersus.Worker
                 {
                     skipped++;
                     _logger.LogWarning(
-                        "⚠️ Posicao {positionId} em ClosingRequested mantida por bets nao liquidadas em status inesperado: {statuses}",
+                        "?? Posicao {positionId} em ClosingRequested mantida por bets nao liquidadas em status inesperado: {statuses}",
                         position.PositionId,
                         string.Join(", ", otherUnsettled.Select(b => $"{b.BetId}:{b.Match.Status}")));
                     continue;
@@ -921,7 +951,7 @@ namespace CriptoVersus.Worker
                 return;
 
             _logger.LogInformation(
-                "🧹 ClosingRequested sweep: liberadas={released} preservadasOngoing={preserved} puladas={skipped}",
+                "?? ClosingRequested sweep: liberadas={released} preservadasOngoing={preserved} puladas={skipped}",
                 released,
                 preserved,
                 skipped);
@@ -1098,7 +1128,7 @@ namespace CriptoVersus.Worker
 
             if (ongoingNow.Count == 0)
             {
-                _logger.LogInformation("ℹ️ Nenhum jogo Ongoing para processar.");
+                _logger.LogInformation("?? Nenhum jogo Ongoing para processar.");
                 return;
             }
 
@@ -1118,7 +1148,7 @@ namespace CriptoVersus.Worker
                     await db.SaveChangesAsync(ct);
 
                     _logger.LogInformation(
-                        "⏱️ Match {id} atingiu {duration}min. Encerrado por tempo antes dos filtros de snapshot. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
+                        "?? Match {id} atingiu {duration}min. Encerrado por tempo antes dos filtros de snapshot. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
                         match.MatchId,
                         GetMatchDuration().TotalMinutes,
                         match.WinnerTeamId,
@@ -1175,7 +1205,7 @@ namespace CriptoVersus.Worker
                 if (match.TeamA is null || match.TeamB is null || match.TeamA.Currency is null || match.TeamB.Currency is null)
                 {
                     _logger.LogWarning(
-                        "⚠️ Match {id} sem times/moedas carregados para pontuacao.",
+                        "?? Match {id} sem times/moedas carregados para pontuacao.",
                         match.MatchId);
                     continue;
                 }
@@ -1196,7 +1226,7 @@ namespace CriptoVersus.Worker
                     TradeCount = currentTeamA.TradeCount
                 });
                 _logger.LogInformation(
-                    "[MATCH_SNAPSHOT_PRICE] MatchId={MatchId} TeamId={TeamId} Symbol={Symbol} LastPrice={LastPrice} CapturedAtUtc={CapturedAtUtc:o}",
+                    "[ACTIVE_MATCH_PRICE] matchId={MatchId} teamId={TeamId} symbol={Symbol} source=requiredSnapshot price={LastPrice} capturedAtUtc={CapturedAtUtc:o}",
                     match.MatchId,
                     match.TeamAId,
                     symA,
@@ -1214,7 +1244,7 @@ namespace CriptoVersus.Worker
                     TradeCount = currentTeamB.TradeCount
                 });
                 _logger.LogInformation(
-                    "[MATCH_SNAPSHOT_PRICE] MatchId={MatchId} TeamId={TeamId} Symbol={Symbol} LastPrice={LastPrice} CapturedAtUtc={CapturedAtUtc:o}",
+                    "[ACTIVE_MATCH_PRICE] matchId={MatchId} teamId={TeamId} symbol={Symbol} source=requiredSnapshot price={LastPrice} capturedAtUtc={CapturedAtUtc:o}",
                     match.MatchId,
                     match.TeamBId,
                     symB,
@@ -1231,7 +1261,7 @@ namespace CriptoVersus.Worker
                     match.ScoreB = candleBattleResult.ScoreB;
 
                     _logger.LogInformation(
-                        "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
+                        "?? Match {id} score atualizado pela regra {rule}: {a}:{b}",
                         match.MatchId, MatchScoringRuleType.CandleBattleDominance, match.ScoreA, match.ScoreB);
                 }
 
@@ -1273,7 +1303,7 @@ namespace CriptoVersus.Worker
                         match.ScoreB = scoringResult.ScoreB;
 
                         _logger.LogInformation(
-                            "📊 Match {id} score atualizado pela regra {rule}: {a}:{b}",
+                            "?? Match {id} score atualizado pela regra {rule}: {a}:{b}",
                             match.MatchId, match.ScoringRuleType, match.ScoreA, match.ScoreB);
                     }
 
@@ -1361,7 +1391,7 @@ namespace CriptoVersus.Worker
                 if (!match.StartTime.HasValue)
                 {
                     _logger.LogWarning(
-                        "⚠️ Match {id} sem StartTime. Pulando processamento.",
+                        "?? Match {id} sem StartTime. Pulando processamento.",
                         match.MatchId);
                     continue;
                 }
@@ -1371,7 +1401,7 @@ namespace CriptoVersus.Worker
                     await db.SaveChangesAsync(ct);
 
                     _logger.LogInformation(
-                        "⏱️ Match {id} atingiu {duration}min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
+                        "?? Match {id} atingiu {duration}min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
                         match.MatchId,
                         GetMatchDuration().TotalMinutes,
                         match.WinnerTeamId,
@@ -1450,7 +1480,7 @@ namespace CriptoVersus.Worker
                             ApplyNoContestReason(match, "DRAW_ZERO_ZERO", "Partida terminou em 0x0. Sem vencedor, sem taxa e com reembolso integral.");
 
                         _logger.LogInformation(
-                            "🤝 Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
+                            "?? Settlement DRAW/NO_WINNER match {matchId}: bets={betsCount}",
                             match.MatchId,
                             bets.Count);
 
@@ -1495,7 +1525,7 @@ namespace CriptoVersus.Worker
                         ApplyNoContestReason(match, reasonCode, BuildNoContestReasonDetail(reasonCode, match));
 
                         _logger.LogWarning(
-                            "⚠️ Settlement sem contraparte suficiente. match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets}",
+                            "?? Settlement sem contraparte suficiente. match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets}",
                             match.MatchId,
                             winnerTeamId,
                             winnerBets.Count,
@@ -1551,7 +1581,7 @@ namespace CriptoVersus.Worker
                     await tx.CommitAsync(ct);
 
                     _logger.LogInformation(
-                        "💰 Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} loserRefund={loserRefund} distributable={distributable}",
+                        "?? Settlement OK match={matchId} winnerTeamId={winnerTeamId} winnerBets={winnerBets} loserBets={loserBets} totalWinnerStake={totalWinnerStake} totalLoserStake={totalLoserStake} fee={fee} loserRefund={loserRefund} distributable={distributable}",
                         match.MatchId,
                         winnerTeamId,
                         winnerBets.Count,
@@ -1565,7 +1595,7 @@ namespace CriptoVersus.Worker
                 catch (Exception ex)
                 {
                     await tx.RollbackAsync(ct);
-                    _logger.LogError(ex, "❌ Erro ao liquidar match {matchId}", match.MatchId);
+                    _logger.LogError(ex, "? Erro ao liquidar match {matchId}", match.MatchId);
                     throw;
                 }
             });
@@ -1998,7 +2028,7 @@ namespace CriptoVersus.Worker
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("⚠️ Falha ao carregar kline {symbol} {start}->{end}: HTTP {statusCode}", symbol, windowStartUtc, windowEndUtc, (int)response.StatusCode);
+                _logger.LogWarning("?? Falha ao carregar kline {symbol} {start}->{end}: HTTP {statusCode}", symbol, windowStartUtc, windowEndUtc, (int)response.StatusCode);
                 return null;
             }
 
@@ -2084,7 +2114,7 @@ namespace CriptoVersus.Worker
             });
 
             _logger.LogInformation(
-                "⚽ Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
+                "? Match {matchId} evento #{seq}: team={teamId} rule={rule} type={type} desc={desc} audioFound={audioFound} audioFallback={audioFallback} audioQueued={audioQueued}",
                 match.MatchId,
                 scoreState.LastEventSequence,
                 scoreEvent.TeamId,
@@ -2366,7 +2396,7 @@ namespace CriptoVersus.Worker
             await db.Database.ExecuteSqlRawAsync(sql, ct);
 
             _logger.LogInformation(
-                "💱 coin_price_current garantida. FreshCurrencyWindow={FreshCurrencyWindowMinutes}min view=coin_price_current_fresh",
+                "?? coin_price_current garantida. FreshCurrencyWindow={FreshCurrencyWindowMinutes}min view=coin_price_current_fresh",
                 freshWindowMinutes);
         }
 
@@ -2378,7 +2408,7 @@ namespace CriptoVersus.Worker
         {
             if (allUsdt.Count == 0)
             {
-                _logger.LogWarning("💱 Coin prices: snapshot AllUsdt vazio. Mantendo preços anteriores.");
+                _logger.LogWarning("?? Coin prices: snapshot AllUsdt vazio. Mantendo preços anteriores.");
                 return;
             }
 
@@ -2409,7 +2439,7 @@ namespace CriptoVersus.Worker
 
             if (rows.Count == 0)
             {
-                _logger.LogWarning("💱 Coin prices: nenhum par USDT com preço válido. Mantendo preços anteriores.");
+                _logger.LogWarning("?? Coin prices: nenhum par USDT com preço válido. Mantendo preços anteriores.");
                 return;
             }
 
@@ -2467,7 +2497,7 @@ ON CONFLICT (tx_symbol) DO UPDATE SET
             sw.Stop();
 
             _logger.LogInformation(
-                "💱 Coin prices atualizados para conversão: count={Count} batches={Batches} durationMs={DurationMs} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
+                "?? Coin prices atualizados para conversão: count={Count} batches={Batches} durationMs={DurationMs} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
                 totalUpserted,
                 (int)Math.Ceiling(rows.Count / (double)batchSize),
                 sw.ElapsedMilliseconds,
@@ -2584,11 +2614,11 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             try
             {
                 await action(ct);
-                _logger.LogInformation("✅ Worker stage completed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                _logger.LogInformation("? Worker stage completed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Worker stage failed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                _logger.LogError(ex, "? Worker stage failed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
                 throw;
             }
         }
@@ -2605,12 +2635,12 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             try
             {
                 var result = await action(ct);
-                _logger.LogInformation("✅ Worker stage completed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                _logger.LogInformation("? Worker stage completed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Worker stage failed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
+                _logger.LogError(ex, "? Worker stage failed. stage={Stage} durationMs={DurationMs}", stageName, sw.ElapsedMilliseconds);
                 throw;
             }
         }
@@ -2632,7 +2662,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                 var resp = await http.PostAsync(notifyUrl, content, ct);
 
                 _logger.LogInformation(
-                    "📣 Notify dashboard_changed {NotifyUrl} -> HTTP {StatusCode}",
+                    "?? Notify dashboard_changed {NotifyUrl} -> HTTP {StatusCode}",
                     notifyUrl,
                     (int)resp.StatusCode);
             }
@@ -2641,7 +2671,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "⚠️ Falha ao notificar dashboard_changed em {NotifyUrl}.", notifyUrl);
+                _logger.LogWarning(ex, "?? Falha ao notificar dashboard_changed em {NotifyUrl}.", notifyUrl);
             }
         }
 
@@ -2710,7 +2740,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             var connectionString = _configuration.GetConnectionString("Default");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                _logger.LogWarning("⚠️ ConnectionStrings:Default não configurada. O worker vai continuar.");
+                _logger.LogWarning("?? ConnectionStrings:Default não configurada. O worker vai continuar.");
                 return;
             }
 
@@ -2720,7 +2750,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
             if (string.IsNullOrWhiteSpace(host) || port <= 0)
             {
-                _logger.LogWarning("⚠️ ConnectionStrings:Default sem Host/Port válidos. O worker vai continuar.");
+                _logger.LogWarning("?? ConnectionStrings:Default sem Host/Port válidos. O worker vai continuar.");
                 return;
             }
 
@@ -2741,21 +2771,21 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                         throw new TimeoutException("Timeout conectando no Postgres.");
 
                     _logger.LogInformation(
-                        "✅ Postgres acessível em {host}:{port} (tentativa {attempt})",
+                        "? Postgres acessível em {host}:{port} (tentativa {attempt})",
                         host, port, attempt);
                     return;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(
-                        "⏳ Postgres ainda não está pronto ({host}:{port}) tentativa {attempt}: {msg}",
+                        "? Postgres ainda não está pronto ({host}:{port}) tentativa {attempt}: {msg}",
                         host, port, attempt, ex.Message);
 
                     await Task.Delay(TimeSpan.FromSeconds(Math.Min(10, 2 + attempt)), ct);
                 }
             }
 
-            _logger.LogWarning("⚠️ Timeout aguardando Postgres. O worker vai continuar.");
+            _logger.LogWarning("?? Timeout aguardando Postgres. O worker vai continuar.");
         }
     }
 }

@@ -119,6 +119,125 @@ public sealed class CommunityMatchServiceTests
         Assert.Null(result.Response);
     }
 
+    [Theory]
+    [InlineData("XEC", "ZBT")]
+    [InlineData("XECUSDT", "ZBTUSDT")]
+    [InlineData("XEC", "ZBTUSDT")]
+    [InlineData("XECUSDT", "ZBT")]
+    public async Task CreateAsync_WhenSymbolsNormalizeWithOrWithoutUsdt_CreatesMatch(string homeSymbol, string awaySymbol)
+    {
+        using var db = CreateInMemoryDbContext();
+        SeedSpotAssets(db);
+        var service = CreateService(db, anonymousDailyLimit: 3);
+
+        var result = await service.CreateAsync(
+            new CommunityMatchCreateRequestDto
+            {
+                HomeSymbol = homeSymbol,
+                AwaySymbol = awaySymbol,
+                CaptchaToken = "captcha-token"
+            },
+            user: null,
+            remoteIpAddress: "203.0.113.13",
+            CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        Assert.True(result.Response?.Created);
+        Assert.Equal("battleCreatedSuccessfully", result.Response?.MessageCode);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenSpotAssetIsFreshAndFuturesAreUnavailable_StillCreatesMatch()
+    {
+        using var db = CreateInMemoryDbContext();
+        SeedSpotAssets(db);
+        var service = CreateService(db, anonymousDailyLimit: 3);
+
+        var result = await service.CreateAsync(
+            new CommunityMatchCreateRequestDto
+            {
+                HomeSymbol = "XEC",
+                AwaySymbol = "ZBT",
+                CaptchaToken = "captcha-token"
+            },
+            user: null,
+            remoteIpAddress: "203.0.113.14",
+            CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+        Assert.True(result.Response?.Created);
+        Assert.Equal("battleCreatedSuccessfully", result.Response?.MessageCode);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenSpotPairIsUnsupported_ReturnsAssetNotAvailable()
+    {
+        using var db = CreateInMemoryDbContext();
+        SeedUnsupportedSpotAsset(db);
+        var service = CreateService(db, anonymousDailyLimit: 3);
+
+        var result = await service.CreateAsync(
+            new CommunityMatchCreateRequestDto
+            {
+                HomeSymbol = "XECBTC",
+                AwaySymbol = "ZBT",
+                CaptchaToken = "captcha-token"
+            },
+            user: null,
+            remoteIpAddress: "203.0.113.15",
+            CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal("assetNotAvailable", result.MessageCode);
+        Assert.Contains("spotPairUnsupported", result.Detail ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenSpotAssetIsStale_ReturnsAssetNotAvailable()
+    {
+        using var db = CreateInMemoryDbContext();
+        SeedSpotAssets(db, staleXec: true);
+        var service = CreateService(db, freshnessMinutes: 10);
+
+        var result = await service.CreateAsync(
+            new CommunityMatchCreateRequestDto
+            {
+                HomeSymbol = "XEC",
+                AwaySymbol = "ZBT",
+                CaptchaToken = "captcha-token"
+            },
+            user: null,
+            remoteIpAddress: "203.0.113.16",
+            CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal("assetNotAvailable", result.MessageCode);
+        Assert.Contains("assetPriceStale", result.Detail ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenAssetDoesNotExist_ReturnsInvalidAsset()
+    {
+        using var db = CreateInMemoryDbContext();
+        SeedSpotAssets(db);
+        var service = CreateService(db);
+
+        var result = await service.CreateAsync(
+            new CommunityMatchCreateRequestDto
+            {
+                HomeSymbol = "BTC",
+                AwaySymbol = "DOGE",
+                CaptchaToken = "captcha-token"
+            },
+            user: null,
+            remoteIpAddress: "203.0.113.17",
+            CancellationToken.None);
+
+        Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+        Assert.Equal("invalidAsset", result.MessageCode);
+        Assert.Contains("assetNotFound", result.Detail ?? string.Empty);
+    }
+
     [Fact]
     public async Task CreateAsync_WhenCaptchaIsInvalid_ReturnsForbidden()
     {
@@ -415,6 +534,73 @@ public sealed class CommunityMatchServiceTests
         db.SaveChanges();
     }
 
+    private static void SeedSpotAssets(EthicAIDbContext db, bool includeXec = true, bool staleXec = false)
+    {
+        var now = DateTime.UtcNow;
+        if (includeXec)
+        {
+            db.Currency.Add(new Currency
+            {
+                CurrencyId = 3,
+                Name = "XEC",
+                Symbol = "XECUSDT",
+                PercentageChange = 8.1,
+                QuoteVolume = 1500m,
+                TradesCount = 120,
+                LastUpdated = staleXec ? now.AddMinutes(-60) : now
+            });
+        }
+
+        db.Currency.Add(new Currency
+        {
+            CurrencyId = 4,
+            Name = "ZBT",
+            Symbol = "ZBTUSDT",
+            PercentageChange = 6.4,
+            QuoteVolume = 1800m,
+            TradesCount = 130,
+            LastUpdated = now
+        });
+
+        db.Team.AddRange(
+            new Team { TeamId = 3, CurrencyId = includeXec ? 3 : 4 },
+            new Team { TeamId = 4, CurrencyId = 4 });
+
+        db.SaveChanges();
+    }
+
+    private static void SeedUnsupportedSpotAsset(EthicAIDbContext db)
+    {
+        var now = DateTime.UtcNow;
+        db.Currency.AddRange(
+            new Currency
+            {
+                CurrencyId = 5,
+                Name = "XECBTC",
+                Symbol = "XECBTC",
+                PercentageChange = 1.2,
+                QuoteVolume = 100m,
+                TradesCount = 10,
+                LastUpdated = now
+            },
+            new Currency
+            {
+                CurrencyId = 6,
+                Name = "ZBT",
+                Symbol = "ZBTUSDT",
+                PercentageChange = 6.4,
+                QuoteVolume = 1800m,
+                TradesCount = 130,
+                LastUpdated = now
+            });
+
+        db.Team.AddRange(
+            new Team { TeamId = 5, CurrencyId = 5 },
+            new Team { TeamId = 6, CurrencyId = 6 });
+
+        db.SaveChanges();
+    }
+
     private static void SeedCommunityMatch(
         EthicAIDbContext db,
         int matchId,
@@ -531,8 +717,4 @@ public sealed class CommunityMatchServiceTests
             => Task.CompletedTask;
     }
 }
-
-
-
-
 

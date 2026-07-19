@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Globalization;
+using System.Data;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -92,14 +93,17 @@ public sealed class CommunityMatchService : ICommunityMatchService
 
         var teamA = await ResolveTeamAsync(homeInput, ct);
         var teamB = await ResolveTeamAsync(awayInput, ct);
-        if (teamA is null || teamB is null)
-            return CommunityMatchServiceResult.Failure(HttpStatusCode.BadRequest, "invalidAsset", "asset not found");
 
-        if (teamA.TeamId == teamB.TeamId)
+        var teamAValidation = await ValidateAssetAsync(request.HomeSymbol, homeInput, teamA, nowUtc, options, ct);
+        if (!teamAValidation.IsAccepted)
+            return BuildAssetFailure(teamAValidation);
+
+        var teamBValidation = await ValidateAssetAsync(request.AwaySymbol, awayInput, teamB, nowUtc, options, ct);
+        if (!teamBValidation.IsAccepted)
+            return BuildAssetFailure(teamBValidation);
+
+        if (teamA!.TeamId == teamB!.TeamId)
             return CommunityMatchServiceResult.Failure(HttpStatusCode.BadRequest, "sameAssetNotAllowed", "same team id");
-
-        if (!IsSupportedAsset(teamA, nowUtc, options) || !IsSupportedAsset(teamB, nowUtc, options))
-            return CommunityMatchServiceResult.Failure(HttpStatusCode.BadRequest, "assetNotAvailable", "asset unsupported or stale");
 
         if (MatchPairRules.IsForbiddenPair(teamA.Currency?.Symbol, teamB.Currency?.Symbol, _configuration))
             return CommunityMatchServiceResult.Failure(HttpStatusCode.BadRequest, "assetNotAvailable", "forbidden pair");
@@ -298,20 +302,281 @@ public sealed class CommunityMatchService : ICommunityMatchService
         return byBase;
     }
 
-    private bool IsSupportedAsset(Team team, DateTime nowUtc, CommunityMatchOptions options)
+    private async Task<AssetAvailabilityValidation> ValidateAssetAsync(string receivedSymbol, string normalizedInput, Team? team, DateTime nowUtc, CommunityMatchOptions options, CancellationToken ct)
     {
-        var currency = team.Currency;
-        if (currency is null)
-            return false;
-
-        if (MatchPairRules.IsForbiddenStablecoin(currency.Symbol, _configuration))
-            return false;
-
         var freshnessWindow = TimeSpan.FromMinutes(Math.Max(1, options.MarketDataFreshnessMinutes));
-        if (currency.LastUpdated < nowUtc.Subtract(freshnessWindow))
-            return false;
+        var currency = team?.Currency;
+        if (currency is null)
+        {
+            return AssetAvailabilityValidation.Reject(
+                "assetNotFound",
+                receivedSymbol,
+                normalizedInput,
+                catalogFound: false,
+                hasPrice: false,
+                lastUpdatedAtUtc: null,
+                priceAge: null,
+                freshnessWindow,
+                hasSpot: false,
+                hasFutures: null,
+                detail: $"assetNotFound: asset not found. received={receivedSymbol} normalized={normalizedInput}");
+        }
 
-        return !string.IsNullOrWhiteSpace(currency.Symbol);
+        var normalizedCurrencySymbol = NormalizeIncomingSymbol(currency.Symbol);
+        if (!normalizedCurrencySymbol.EndsWith("USDT", StringComparison.OrdinalIgnoreCase))
+        {
+            return AssetAvailabilityValidation.Reject(
+                "spotPairUnsupported",
+                receivedSymbol,
+                normalizedCurrencySymbol,
+                catalogFound: true,
+                hasPrice: false,
+                lastUpdatedAtUtc: currency.LastUpdated == default ? null : currency.LastUpdated,
+                priceAge: null,
+                freshnessWindow,
+                hasSpot: false,
+                hasFutures: null,
+                detail: $"spotPairUnsupported: spot pair unsupported. received={receivedSymbol} normalized={normalizedCurrencySymbol} symbol={currency.Symbol}");
+        }
+
+        var marketPrice = await ResolveFreshSpotPriceAsync(normalizedCurrencySymbol, freshnessWindow, nowUtc, ct)
+            ?? await ResolveAnySpotPriceAsync(normalizedCurrencySymbol, ct);
+
+        if (marketPrice is null)
+        {
+            return AssetAvailabilityValidation.Reject(
+                "assetPriceUnavailable",
+                receivedSymbol,
+                normalizedCurrencySymbol,
+                catalogFound: true,
+                hasPrice: false,
+                lastUpdatedAtUtc: null,
+                priceAge: null,
+                freshnessWindow,
+                hasSpot: true,
+                hasFutures: null,
+                detail: $"assetPriceUnavailable: price unavailable. received={receivedSymbol} normalized={normalizedCurrencySymbol} symbol={currency.Symbol}");
+        }
+
+        var age = nowUtc - marketPrice.UpdatedAtUtc;
+        if (age < TimeSpan.Zero)
+            age = TimeSpan.Zero;
+
+        if (age > freshnessWindow)
+        {
+            return AssetAvailabilityValidation.Reject(
+                "assetPriceStale",
+                receivedSymbol,
+                normalizedCurrencySymbol,
+                catalogFound: true,
+                hasPrice: true,
+                lastUpdatedAtUtc: marketPrice.UpdatedAtUtc,
+                priceAge: age,
+                freshnessWindow,
+                hasSpot: true,
+                hasFutures: null,
+                detail: $"assetPriceStale: price stale. received={receivedSymbol} normalized={normalizedCurrencySymbol} symbol={currency.Symbol}");
+        }
+
+        return AssetAvailabilityValidation.Accept(
+            receivedSymbol,
+            normalizedCurrencySymbol,
+            catalogFound: true,
+            hasPrice: true,
+            lastUpdatedAtUtc: marketPrice.UpdatedAtUtc,
+            priceAge: age,
+            freshnessWindow,
+            hasSpot: true,
+            hasFutures: null,
+            detail: $"assetAccepted: asset accepted. received={receivedSymbol} normalized={normalizedCurrencySymbol} symbol={currency.Symbol}");
+    }
+
+    private async Task<MarketPriceSnapshot?> ResolveFreshSpotPriceAsync(string symbol, TimeSpan freshnessWindow, DateTime nowUtc, CancellationToken ct)
+    {
+        var normalizedSymbol = NormalizeIncomingSymbol(symbol);
+        if (string.IsNullOrWhiteSpace(normalizedSymbol))
+            return null;
+
+        if ((_db.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) == true))
+        {
+            var currency = await _db.Currency.AsNoTracking().FirstOrDefaultAsync(c => c.Symbol == normalizedSymbol, ct);
+            if (currency is null || currency.LastUpdated == default)
+                return null;
+
+            var age = nowUtc - currency.LastUpdated;
+            if (age < TimeSpan.Zero)
+                age = TimeSpan.Zero;
+
+            return age <= freshnessWindow
+                ? new MarketPriceSnapshot(normalizedSymbol, currency.LastUpdated, null)
+                : null;
+        }
+
+        const string sql = @"
+SELECT tx_symbol, nr_last_price, dt_binance_snapshot_utc, dt_updated_at
+FROM coin_price_current
+WHERE upper(tx_symbol) = @symbol
+  AND upper(tx_quote_asset) = 'USDT'
+  AND nr_last_price IS NOT NULL
+  AND nr_last_price > 0
+  AND dt_updated_at >= @fresh_cutoff_utc
+ORDER BY dt_updated_at DESC
+LIMIT 1;";
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(_db.Database.GetDbConnection().ConnectionString);
+            await conn.OpenAsync(ct);
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("symbol", normalizedSymbol);
+            cmd.Parameters.AddWithValue("fresh_cutoff_utc", nowUtc.Subtract(freshnessWindow));
+
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
+            if (!await reader.ReadAsync(ct))
+                return null;
+
+            var updatedAtUtc = reader.GetDateTime(3);
+            var lastPrice = reader.GetDecimal(1);
+            var capturedAtUtc = reader.IsDBNull(2) ? updatedAtUtc : reader.GetDateTime(2);
+            return new MarketPriceSnapshot(normalizedSymbol, updatedAtUtc, lastPrice, capturedAtUtc);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            _logger.LogWarning(ex, "coin_price_current ainda nao existe. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Falha ao ler coin_price_current. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
+            return null;
+        }
+    }
+
+    private async Task<MarketPriceSnapshot?> ResolveAnySpotPriceAsync(string symbol, CancellationToken ct)
+    {
+        var normalizedSymbol = NormalizeIncomingSymbol(symbol);
+        if (string.IsNullOrWhiteSpace(normalizedSymbol))
+            return null;
+
+        if ((_db.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) == true))
+        {
+            var currency = await _db.Currency.AsNoTracking().FirstOrDefaultAsync(c => c.Symbol == normalizedSymbol, ct);
+            if (currency is null || currency.LastUpdated == default)
+                return null;
+
+            return new MarketPriceSnapshot(normalizedSymbol, currency.LastUpdated, null);
+        }
+
+        const string sql = @"
+SELECT tx_symbol, nr_last_price, dt_binance_snapshot_utc, dt_updated_at
+FROM coin_price_current
+WHERE upper(tx_symbol) = @symbol
+  AND upper(tx_quote_asset) = 'USDT'
+  AND nr_last_price IS NOT NULL
+  AND nr_last_price > 0
+ORDER BY dt_updated_at DESC
+LIMIT 1;";
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(_db.Database.GetDbConnection().ConnectionString);
+            await conn.OpenAsync(ct);
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("symbol", normalizedSymbol);
+
+            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
+            if (!await reader.ReadAsync(ct))
+                return null;
+
+            var updatedAtUtc = reader.GetDateTime(3);
+            var lastPrice = reader.GetDecimal(1);
+            var capturedAtUtc = reader.IsDBNull(2) ? updatedAtUtc : reader.GetDateTime(2);
+            return new MarketPriceSnapshot(normalizedSymbol, updatedAtUtc, lastPrice, capturedAtUtc);
+        }
+        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+        {
+            _logger.LogWarning(ex, "coin_price_current ainda nao existe. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
+            return null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Falha ao ler coin_price_current. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
+            return null;
+        }
+    }
+
+    private CommunityMatchServiceResult BuildAssetFailure(AssetAvailabilityValidation validation)
+    {
+        LogAssetValidation(validation);
+
+        var messageCode = validation.ReasonCode == "assetNotFound"
+            ? "invalidAsset"
+            : "assetNotAvailable";
+
+        return CommunityMatchServiceResult.Failure(HttpStatusCode.BadRequest, messageCode, validation.Detail);
+    }
+
+    private void LogAssetValidation(AssetAvailabilityValidation validation)
+    {
+        _logger.LogWarning(
+            "[COMMUNITY_ASSET_REJECTED] receivedSymbol={ReceivedSymbol} normalizedSymbol={NormalizedSymbol} catalogFound={CatalogFound} hasPrice={HasPrice} lastUpdatedAtUtc={LastUpdatedAtUtc:o} priceAge={PriceAge} staleLimit={StaleLimit} hasSpot={HasSpot} hasFutures={HasFutures} reason={Reason} detail={Detail}",
+            validation.ReceivedSymbol,
+            validation.NormalizedSymbol,
+            validation.CatalogFound,
+            validation.HasPrice,
+            validation.LastUpdatedAtUtc,
+            validation.PriceAge?.ToString(),
+            validation.StaleLimit,
+            validation.HasSpot,
+            validation.HasFutures is null ? "unknown" : validation.HasFutures.Value.ToString().ToLowerInvariant(),
+            validation.ReasonCode,
+            validation.Detail);
+    }
+
+    private sealed record MarketPriceSnapshot(string Symbol, DateTime UpdatedAtUtc, decimal? LastPrice, DateTime? CapturedAtUtc = null);
+
+    private sealed record AssetAvailabilityValidation(
+        bool IsAccepted,
+        string ReasonCode,
+        string ReceivedSymbol,
+        string NormalizedSymbol,
+        bool CatalogFound,
+        bool HasPrice,
+        DateTime? LastUpdatedAtUtc,
+        TimeSpan? PriceAge,
+        TimeSpan StaleLimit,
+        bool HasSpot,
+        bool? HasFutures,
+        string Detail)
+    {
+        public static AssetAvailabilityValidation Accept(
+            string receivedSymbol,
+            string normalizedSymbol,
+            bool catalogFound,
+            bool hasPrice,
+            DateTime? lastUpdatedAtUtc,
+            TimeSpan? priceAge,
+            TimeSpan staleLimit,
+            bool hasSpot,
+            bool? hasFutures,
+            string detail)
+            => new(true, string.Empty, receivedSymbol, normalizedSymbol, catalogFound, hasPrice, lastUpdatedAtUtc, priceAge, staleLimit, hasSpot, hasFutures, detail);
+
+        public static AssetAvailabilityValidation Reject(
+            string reasonCode,
+            string receivedSymbol,
+            string normalizedSymbol,
+            bool catalogFound,
+            bool hasPrice,
+            DateTime? lastUpdatedAtUtc,
+            TimeSpan? priceAge,
+            TimeSpan staleLimit,
+            bool hasSpot,
+            bool? hasFutures,
+            string detail)
+            => new(false, reasonCode, receivedSymbol, normalizedSymbol, catalogFound, hasPrice, lastUpdatedAtUtc, priceAge, staleLimit, hasSpot, hasFutures, detail);
     }
 
     private async Task<Match?> FindExistingActiveMatchAsync(string pairKey, HashSet<MatchStatus> activeStatuses, CancellationToken ct)
