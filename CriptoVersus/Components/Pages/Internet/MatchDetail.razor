@@ -5135,6 +5135,8 @@
         _lastEventFeedSignature = string.Empty;
         _lastMetricHistoryLogKey = string.Empty;
         _lastAutoReloadUtc = DateTime.MinValue;
+        _lastAppliedScoreVersion = -1;
+        _clockGeneration = 0;
 
         _reloadCts?.Cancel();
         _reloadCts?.Dispose();
@@ -5823,6 +5825,7 @@
     private bool _hubWired;
     private CancellationTokenSource? _reloadCts;
     private int _reloadSeq;
+    private int _clockGeneration;
     private DateTime _lastAutoReloadUtc = DateTime.MinValue;
     private string _lastMetricHistoryLogKey = string.Empty;
     private string _currentRouteKey = string.Empty;
@@ -5871,29 +5874,128 @@
 
     private async Task ReloadMatchAsync(CancellationToken ct)
     {
-        if (_match is null) return;
+        if (_match is null)
+            return;
+
+        var previousMatch = _match;
+        var previousStatus = previousMatch.Status;
+        var previousStartTime = previousMatch.StartTime;
+        var previousEndTime = previousMatch.EndTime;
+        var previousBettingCloseTime = previousMatch.BettingCloseTime;
+        var nowUtc = DateTime.UtcNow;
+
+        Logger.LogInformation(
+            "MATCH_RELOAD_START MatchId={MatchId} PreviousStatus={PreviousStatus} StartTime={StartTime:o} EndTime={EndTime:o} BettingCloseTime={BettingCloseTime:o} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+            previousMatch.MatchId,
+            previousStatus,
+            previousStartTime,
+            previousEndTime,
+            previousBettingCloseTime,
+            nowUtc,
+            Environment.CurrentManagedThreadId);
 
         try
         {
             var updated = await LoadRequestedMatchAsync(ct);
 
-            if (updated is not null)
+            if (updated is null)
             {
-                if (!MatchScorePresentationVersionGuard.ShouldApply(updated.ScoreVersion, _lastAppliedScoreVersion))
-                    return;
+                Logger.LogInformation(
+                    "MATCH_RELOAD_RESPONSE MatchId={MatchId} PreviousStatus={PreviousStatus} ReturnedStatus={ReturnedStatus} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                    previousMatch.MatchId,
+                    previousStatus,
+                    "null",
+                    DateTime.UtcNow,
+                    Environment.CurrentManagedThreadId);
+                return;
+            }
 
-                _match = updated;
-                _lastAppliedScoreVersion = updated.ScoreVersion;
-                _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
-                await LoadMetricChartsAsync(ct);
+            Logger.LogInformation(
+                "MATCH_RELOAD_RESPONSE MatchId={MatchId} PreviousStatus={PreviousStatus} ReturnedStatus={ReturnedStatus} StartTime={StartTime:o} EndTime={EndTime:o} BettingCloseTime={BettingCloseTime:o} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                previousMatch.MatchId,
+                previousStatus,
+                updated.Status,
+                updated.StartTime,
+                updated.EndTime,
+                updated.BettingCloseTime,
+                DateTime.UtcNow,
+                Environment.CurrentManagedThreadId);
+
+            if (updated.MatchId != previousMatch.MatchId)
+            {
+                Logger.LogInformation(
+                    "MATCH_STATE_REPLACED MatchId={MatchId} PreviousStatus={PreviousStatus} CurrentStatus={CurrentStatus} StoredStatus={StoredStatus} UtcNow={UtcNow:o} ThreadId={ThreadId} Note={Note}",
+                    previousMatch.MatchId,
+                    previousStatus,
+                    previousStatus,
+                    updated.Status,
+                    DateTime.UtcNow,
+                    Environment.CurrentManagedThreadId,
+                    "route_mismatch");
+                return;
+            }
+
+            var statusChanged = !string.Equals(previousStatus, updated.Status, StringComparison.OrdinalIgnoreCase);
+            var timingChanged = previousStartTime != updated.StartTime
+                || previousEndTime != updated.EndTime
+                || previousBettingCloseTime != updated.BettingCloseTime;
+
+            _match = updated;
+            _lastAppliedScoreVersion = updated.ScoreVersion;
+            _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
+
+            Logger.LogInformation(
+                "MATCH_STATE_REPLACED MatchId={MatchId} PreviousStatus={PreviousStatus} CurrentStatus={CurrentStatus} StoredStatus={StoredStatus} StartTime={StartTime:o} EndTime={EndTime:o} BettingCloseTime={BettingCloseTime:o} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                updated.MatchId,
+                previousStatus,
+                updated.Status,
+                _match.Status,
+                _match.StartTime,
+                _match.EndTime,
+                _match.BettingCloseTime,
+                DateTime.UtcNow,
+                Environment.CurrentManagedThreadId);
+
+            if (statusChanged)
+            {
+                Logger.LogInformation(
+                    "MATCH_STATUS_TRANSITION MatchId={MatchId} PreviousStatus={PreviousStatus} CurrentStatus={CurrentStatus} StartTime={StartTime:o} EndTime={EndTime:o} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                    updated.MatchId,
+                    previousStatus,
+                    updated.Status,
+                    updated.StartTime,
+                    updated.EndTime,
+                    DateTime.UtcNow,
+                    Environment.CurrentManagedThreadId);
+            }
+
+            await LoadMetricChartsAsync(ct);
+
+            if (IsPending(updated.Status) || statusChanged || timingChanged)
+            {
+                Logger.LogInformation(
+                    "MATCH_CLOCK_RESTART MatchId={MatchId} PreviousStatus={PreviousStatus} CurrentStatus={CurrentStatus} TimingChanged={TimingChanged} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                    updated.MatchId,
+                    previousStatus,
+                    updated.Status,
+                    timingChanged,
+                    DateTime.UtcNow,
+                    Environment.CurrentManagedThreadId);
 
                 await StartOrRestartMatchClockAsync();
-
+            }
+            else
+            {
+                UpdateClockFromUtcNow();
                 await InvokeAsync(StateHasChanged);
             }
         }
-        catch
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "MATCH_RELOAD_ERROR MatchId={MatchId} PreviousStatus={PreviousStatus} UtcNow={UtcNow:o} ThreadId={ThreadId}", previousMatch.MatchId, previousStatus, DateTime.UtcNow, Environment.CurrentManagedThreadId);
         }
     }
 
@@ -5914,25 +6016,62 @@
     {
         StopClock();
 
+        var clockGeneration = ++_clockGeneration;
+        Logger.LogInformation(
+            "CLOCK_LOOP_CREATED MatchId={MatchId} ClockGeneration={ClockGeneration} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+            _match?.MatchId ?? 0,
+            clockGeneration,
+            DateTime.UtcNow,
+            Environment.CurrentManagedThreadId);
+
         _tickCts = new CancellationTokenSource();
-        _timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        _timer = new PeriodicTimer(TimeSpan.FromMilliseconds(250));
 
         _ = Task.Run(async () =>
         {
+            var iteration = 0;
+
             try
             {
                 while (_timer is not null && await _timer.WaitForNextTickAsync(_tickCts.Token))
                 {
-                    UpdateClockTexts();
+                    iteration++;
+                    Logger.LogInformation(
+                        "CLOCK_LOOP_ITERATION MatchId={MatchId} ClockGeneration={ClockGeneration} Iteration={Iteration} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                        _match?.MatchId ?? 0,
+                        clockGeneration,
+                        iteration,
+                        DateTime.UtcNow,
+                        Environment.CurrentManagedThreadId);
+
+                    UpdateLocalClockTexts(DateTime.UtcNow);
                     await InvokeAsync(StateHasChanged);
                 }
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException) when (_tickCts?.IsCancellationRequested == true)
+            {
+                Logger.LogInformation(
+                    "CLOCK_LOOP_CANCELLED MatchId={MatchId} ClockGeneration={ClockGeneration} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                    _match?.MatchId ?? 0,
+                    clockGeneration,
+                    DateTime.UtcNow,
+                    Environment.CurrentManagedThreadId);
+            }
         });
     }
 
     private void StopClock()
     {
+        if (_tickCts is not null || _timer is not null)
+        {
+            Logger.LogInformation(
+                "CLOCK_LOOP_CANCELLED MatchId={MatchId} ClockGeneration={ClockGeneration} UtcNow={UtcNow:o} ThreadId={ThreadId}",
+                _match?.MatchId ?? 0,
+                _clockGeneration,
+                DateTime.UtcNow,
+                Environment.CurrentManagedThreadId);
+        }
+
         try { _tickCts?.Cancel(); } catch { }
         _tickCts?.Dispose();
         _tickCts = null;
@@ -6025,6 +6164,11 @@
 
             _tvEventFeedModule = null;
         }
+    }
+
+    private void UpdateClockFromUtcNow()
+    {
+        UpdateLocalClockTexts(DateTime.UtcNow);
     }
 
     private PeriodicTimer? _uiTimer;
@@ -6122,6 +6266,17 @@
 
         _clockLive = FormatClock(elapsed);
         _remainingLive = $"({FormatClock(remaining)})";
+
+        Logger.LogInformation(
+            "CLOCK_STATE_CALCULATED MatchId={MatchId} ClockGeneration={ClockGeneration} CurrentStatus={CurrentStatus} StartTimeUtc={StartTimeUtc:o} NowUtc={NowUtc:o} Clock={Clock} Remaining={Remaining} UtcThreadId={ThreadId}",
+            _match?.MatchId ?? 0,
+            _clockGeneration,
+            _match?.Status ?? string.Empty,
+            _startUtc,
+            nowUtc,
+            _clockLive,
+            _remainingLive,
+            Environment.CurrentManagedThreadId);
     }
 
     private static string FormatClock(TimeSpan t)
