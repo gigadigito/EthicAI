@@ -170,27 +170,56 @@ public sealed class CommunityMatchService : ICommunityMatchService
             if (match.BettingCloseTime.HasValue && match.StartTime.HasValue && match.BettingCloseTime.Value.UtcDateTime >= match.StartTime.Value)
                 match.BettingCloseTime = match.StartTime.Value.AddMinutes(-Math.Max(1, options.BettingCloseOffsetMinutes)).ToUniversalTime();
 
-            _db.Match.Add(match);
-            _db.MatchScoreState.Add(new MatchScoreState
-            {
-                MatchId = match.MatchId,
-                CreatedAtUtc = nowUtc,
-                UpdatedAtUtc = nowUtc
-            });
+            await using var transaction = await _db.Database.BeginTransactionAsync(ct);
 
             try
             {
+                _db.Match.Add(match);
+
+                // Primeiro salva a partida para o banco gerar o MatchId.
                 await _db.SaveChangesAsync(ct);
+
+                _db.MatchScoreState.Add(new MatchScoreState
+                {
+                    MatchId = match.MatchId,
+                    CreatedAtUtc = nowUtc,
+                    UpdatedAtUtc = nowUtc
+                });
+
+                // Depois salva o estado usando o MatchId já gerado.
+                await _db.SaveChangesAsync(ct);
+
+                await transaction.CommitAsync(ct);
             }
             catch (DbUpdateException ex) when (IsUniqueCommunityPairViolation(ex))
             {
-                _logger.LogInformation(ex, "community match concurrency resolved by unique index. PairKey={PairKey}", pairKey);
-                var resolved = await FindExistingActiveMatchAsync(pairKey, activeStatuses, ct);
-                if (resolved is null)
-                    return CommunityMatchServiceResult.Failure(HttpStatusCode.Conflict, "battleAlreadyExists", "unique violation without match");
+                await transaction.RollbackAsync(ct);
+                _db.ChangeTracker.Clear();
 
-                var resolvedHome = resolved.TeamA?.Currency?.Symbol ?? normalizedTeamA;
-                var resolvedAway = resolved.TeamB?.Currency?.Symbol ?? normalizedTeamB;
+                _logger.LogInformation(
+                    ex,
+                    "community match concurrency resolved by unique index. PairKey={PairKey}",
+                    pairKey);
+
+                var resolved = await FindExistingActiveMatchAsync(
+                    pairKey,
+                    activeStatuses,
+                    ct);
+
+                if (resolved is null)
+                {
+                    return CommunityMatchServiceResult.Failure(
+                        HttpStatusCode.Conflict,
+                        "battleAlreadyExists",
+                        "unique violation without match");
+                }
+
+                var resolvedHome =
+                    resolved.TeamA?.Currency?.Symbol ?? normalizedTeamA;
+
+                var resolvedAway =
+                    resolved.TeamB?.Currency?.Symbol ?? normalizedTeamB;
+
                 return CommunityMatchServiceResult.Success(CreateResponse(
                     created: false,
                     alreadyExists: true,
@@ -199,8 +228,16 @@ public sealed class CommunityMatchService : ICommunityMatchService
                     resolvedAway,
                     resolved.Status.ToString(),
                     "battleAlreadyExists",
-                    BuildPublicUrl(resolved.MatchId, resolvedHome, resolvedAway),
+                    BuildPublicUrl(
+                        resolved.MatchId,
+                        resolvedHome,
+                        resolvedAway),
                     options.SuccessRedirectDelayMilliseconds / 1000));
+            }
+            catch
+            {
+                await transaction.RollbackAsync(ct);
+                throw;
             }
 
             await NotifyDashboardAsync(match.MatchId, ct);
