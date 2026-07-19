@@ -432,10 +432,14 @@
             await CloseAsync(force: true);
             Nav.NavigateTo(result.Response.PublicUrl, forceLoad: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.Error.WriteLine(
+                $"[COMMUNITY_MATCH_SUBMIT_ERROR] {ex}");
+
             _messageKind = "error";
-            _message = T("modal.fallbackError");
+            _message = $"{T("modal.fallbackError")} Detalhe: {ex.Message}";
+
             await ResetCaptchaAsync();
         }
         finally
