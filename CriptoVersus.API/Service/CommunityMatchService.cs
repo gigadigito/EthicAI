@@ -391,28 +391,61 @@ public sealed class CommunityMatchService : ICommunityMatchService
             detail: $"assetAccepted: asset accepted. received={receivedSymbol} normalized={normalizedCurrencySymbol} symbol={currency.Symbol}");
     }
 
-    private async Task<MarketPriceSnapshot?> ResolveFreshSpotPriceAsync(string symbol, TimeSpan freshnessWindow, DateTime nowUtc, CancellationToken ct)
+    private Task<MarketPriceSnapshot?> ResolveFreshSpotPriceAsync(
+        string symbol,
+        TimeSpan freshnessWindow,
+        DateTime nowUtc,
+        CancellationToken ct)
+        => ResolveSpotPriceAsync(
+            symbol,
+            nowUtc.Subtract(freshnessWindow),
+            ct);
+
+    private Task<MarketPriceSnapshot?> ResolveAnySpotPriceAsync(
+        string symbol,
+        CancellationToken ct)
+        => ResolveSpotPriceAsync(
+            symbol,
+            freshCutoffUtc: null,
+            ct);
+
+    private async Task<MarketPriceSnapshot?> ResolveSpotPriceAsync(
+        string symbol,
+        DateTime? freshCutoffUtc,
+        CancellationToken ct)
     {
         var normalizedSymbol = NormalizeIncomingSymbol(symbol);
         if (string.IsNullOrWhiteSpace(normalizedSymbol))
             return null;
 
-        if ((_db.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) == true))
+        if (_db.Database.ProviderName?.Contains(
+                "InMemory",
+                StringComparison.OrdinalIgnoreCase) == true)
         {
-            var currency = await _db.Currency.AsNoTracking().FirstOrDefaultAsync(c => c.Symbol == normalizedSymbol, ct);
+            var currency = await _db.Currency
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    c => c.Symbol == normalizedSymbol,
+                    ct);
+
             if (currency is null || currency.LastUpdated == default)
                 return null;
 
-            var age = nowUtc - currency.LastUpdated;
-            if (age < TimeSpan.Zero)
-                age = TimeSpan.Zero;
+            var updatedAtUtc = EnsureUtc(currency.LastUpdated);
 
-            return age <= freshnessWindow
-                ? new MarketPriceSnapshot(normalizedSymbol, currency.LastUpdated, null)
-                : null;
+            if (freshCutoffUtc.HasValue &&
+                updatedAtUtc < EnsureUtc(freshCutoffUtc.Value))
+            {
+                return null;
+            }
+
+            return new MarketPriceSnapshot(
+                normalizedSymbol,
+                updatedAtUtc,
+                null);
         }
 
-        const string sql = @"
+        const string sqlFresh = @"
 SELECT tx_symbol, nr_last_price, dt_binance_snapshot_utc, dt_updated_at
 FROM coin_price_current
 WHERE upper(tx_symbol) = @symbol
@@ -423,52 +456,7 @@ WHERE upper(tx_symbol) = @symbol
 ORDER BY dt_updated_at DESC
 LIMIT 1;";
 
-        try
-        {
-            await using var conn = new NpgsqlConnection(_db.Database.GetDbConnection().ConnectionString);
-            await conn.OpenAsync(ct);
-
-            await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("symbol", normalizedSymbol);
-            cmd.Parameters.AddWithValue("fresh_cutoff_utc", nowUtc.Subtract(freshnessWindow));
-
-            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
-            if (!await reader.ReadAsync(ct))
-                return null;
-
-            var updatedAtUtc = reader.GetDateTime(3);
-            var lastPrice = reader.GetDecimal(1);
-            var capturedAtUtc = reader.IsDBNull(2) ? updatedAtUtc : reader.GetDateTime(2);
-            return new MarketPriceSnapshot(normalizedSymbol, updatedAtUtc, lastPrice, capturedAtUtc);
-        }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
-        {
-            _logger.LogWarning(ex, "coin_price_current ainda nao existe. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
-            return null;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogWarning(ex, "Falha ao ler coin_price_current. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
-            return null;
-        }
-    }
-
-    private async Task<MarketPriceSnapshot?> ResolveAnySpotPriceAsync(string symbol, CancellationToken ct)
-    {
-        var normalizedSymbol = NormalizeIncomingSymbol(symbol);
-        if (string.IsNullOrWhiteSpace(normalizedSymbol))
-            return null;
-
-        if ((_db.Database.ProviderName?.Contains("InMemory", StringComparison.OrdinalIgnoreCase) == true))
-        {
-            var currency = await _db.Currency.AsNoTracking().FirstOrDefaultAsync(c => c.Symbol == normalizedSymbol, ct);
-            if (currency is null || currency.LastUpdated == default)
-                return null;
-
-            return new MarketPriceSnapshot(normalizedSymbol, currency.LastUpdated, null);
-        }
-
-        const string sql = @"
+        const string sqlAny = @"
 SELECT tx_symbol, nr_last_price, dt_binance_snapshot_utc, dt_updated_at
 FROM coin_price_current
 WHERE upper(tx_symbol) = @symbol
@@ -478,34 +466,110 @@ WHERE upper(tx_symbol) = @symbol
 ORDER BY dt_updated_at DESC
 LIMIT 1;";
 
+        var connection = _db.Database.GetDbConnection();
+        var openedHere = connection.State != ConnectionState.Open;
+
         try
         {
-            await using var conn = new NpgsqlConnection(_db.Database.GetDbConnection().ConnectionString);
-            await conn.OpenAsync(ct);
+            if (openedHere)
+                await _db.Database.OpenConnectionAsync(ct);
 
-            await using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("symbol", normalizedSymbol);
+            await using var command = connection.CreateCommand();
+            command.CommandText = freshCutoffUtc.HasValue
+                ? sqlFresh
+                : sqlAny;
 
-            await using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, ct);
+            var symbolParameter = command.CreateParameter();
+            symbolParameter.ParameterName = "symbol";
+            symbolParameter.Value = normalizedSymbol;
+            command.Parameters.Add(symbolParameter);
+
+            if (freshCutoffUtc.HasValue)
+            {
+                var cutoffParameter = command.CreateParameter();
+                cutoffParameter.ParameterName = "fresh_cutoff_utc";
+                cutoffParameter.Value = EnsureUtc(freshCutoffUtc.Value);
+                command.Parameters.Add(cutoffParameter);
+            }
+
+            _logger.LogInformation(
+                "[COMMUNITY_PRICE_LOOKUP] symbol={Symbol} database={Database} dataSource={DataSource} freshCutoffUtc={FreshCutoffUtc:o}",
+                normalizedSymbol,
+                connection.Database,
+                connection.DataSource,
+                freshCutoffUtc);
+
+            await using var reader = await command.ExecuteReaderAsync(
+                CommandBehavior.SingleRow,
+                ct);
+
             if (!await reader.ReadAsync(ct))
-                return null;
+            {
+                _logger.LogWarning(
+                    "[COMMUNITY_PRICE_LOOKUP] symbol={Symbol} rowFound=false freshCutoffUtc={FreshCutoffUtc:o}",
+                    normalizedSymbol,
+                    freshCutoffUtc);
 
-            var updatedAtUtc = reader.GetDateTime(3);
+                return null;
+            }
+
             var lastPrice = reader.GetDecimal(1);
-            var capturedAtUtc = reader.IsDBNull(2) ? updatedAtUtc : reader.GetDateTime(2);
-            return new MarketPriceSnapshot(normalizedSymbol, updatedAtUtc, lastPrice, capturedAtUtc);
+            var updatedAtUtc = EnsureUtc(reader.GetDateTime(3));
+            var capturedAtUtc = reader.IsDBNull(2)
+                ? updatedAtUtc
+                : EnsureUtc(reader.GetDateTime(2));
+
+            _logger.LogInformation(
+                "[COMMUNITY_PRICE_LOOKUP] symbol={Symbol} rowFound=true lastPrice={LastPrice} capturedAtUtc={CapturedAtUtc:o} updatedAtUtc={UpdatedAtUtc:o}",
+                normalizedSymbol,
+                lastPrice,
+                capturedAtUtc,
+                updatedAtUtc);
+
+            return new MarketPriceSnapshot(
+                normalizedSymbol,
+                updatedAtUtc,
+                lastPrice,
+                capturedAtUtc);
         }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+        catch (PostgresException ex)
         {
-            _logger.LogWarning(ex, "coin_price_current ainda nao existe. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
+            _logger.LogError(
+                ex,
+                "[COMMUNITY_PRICE_LOOKUP_ERROR] symbol={Symbol} sqlState={SqlState} message={Message} detail={Detail}",
+                normalizedSymbol,
+                ex.SqlState,
+                ex.MessageText,
+                ex.Detail);
+
             return null;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Falha ao ler coin_price_current. Falling back to in-memory currency metadata for symbol={Symbol}", normalizedSymbol);
+            _logger.LogError(
+                ex,
+                "[COMMUNITY_PRICE_LOOKUP_ERROR] symbol={Symbol} provider={Provider} database={Database} dataSource={DataSource}",
+                normalizedSymbol,
+                _db.Database.ProviderName,
+                connection.Database,
+                connection.DataSource);
+
             return null;
         }
+        finally
+        {
+            if (openedHere)
+                await _db.Database.CloseConnectionAsync();
+        }
     }
+
+    private static DateTime EnsureUtc(DateTime value)
+        => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
     private CommunityMatchServiceResult BuildAssetFailure(AssetAvailabilityValidation validation)
     {
@@ -769,4 +833,3 @@ public sealed record CommunityMatchServiceResult(
         int? retryAfterSeconds = null)
         => new(statusCode, null, messageCode, detail, isUnavailable, retryAfterSeconds);
 }
-
