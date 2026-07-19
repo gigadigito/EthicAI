@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -231,7 +231,7 @@ namespace CriptoVersus.Worker
                     action: innerCt => matchService.SaveCurrenciesAsync(marketSnapshot.AllUsdt),
                     ct);
                 currencyBySymbol = BuildCurrencyMap(currencies);
-                allowedSymbols = BuildAllowedSet(topGainerSnapshot);
+                allowedSymbols = BuildAllowedSet(requiredSnapshot);
             }
 
             await ExecuteStageAsync("normalize-pending-initial", cycleStartUtc, true, innerCt => NormalizePendingWindowsAsync(db, nowUtc, innerCt), ct);
@@ -256,6 +256,7 @@ namespace CriptoVersus.Worker
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeoutCts.CancelAfter(ExternalRequestTimeout);
+            var receivedAtUtc = DateTime.UtcNow;
             var all = await http.GetFromJsonAsync<List<Crypto>>(
                 "https://api.binance.com/api/v3/ticker/24hr",
                 timeoutCts.Token);
@@ -281,6 +282,13 @@ namespace CriptoVersus.Worker
                 .OrderByDescending(c => ParsePercent(c.PriceChangePercent))
                 .Take(GetTopGainersTake())
                 .ToList();
+
+            _logger.LogInformation(
+                "WORKER_PRICE_PROVIDER_RESULT MatchId=0 Provider=Binance24hr ReceivedAtUtc={ReceivedAtUtc:o} RawCount={RawCount} UsdtCount={UsdtCount} TopGainerCount={TopGainerCount}",
+                receivedAtUtc,
+                all.Count,
+                allUsdt.Count,
+                topGainers.Count);
 
             return new BinanceMarketSnapshot(allUsdt, topGainers);
         }
@@ -346,6 +354,17 @@ namespace CriptoVersus.Worker
             return snapshot
                 .Select(x => x.Symbol)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+
+        private void LogWorkerMatchSkipped(int matchId, string reason)
+        {
+            _logger.LogInformation("WORKER_MATCH_SKIPPED MatchId={MatchId} Reason={Reason}", matchId, reason);
+        }
+
+        private void LogWorkerMatchError(int matchId, Exception ex)
+        {
+            _logger.LogError(ex, "WORKER_MATCH_ERROR MatchId={MatchId} ExceptionType={ExceptionType} ExceptionMessage={ExceptionMessage} StackTrace={StackTrace}", matchId, ex.GetType().FullName, ex.Message, ex.StackTrace);
         }
 
         private async Task NormalizePendingWindowsAsync(
@@ -875,7 +894,7 @@ namespace CriptoVersus.Worker
             }
 
             _logger.LogInformation(
-                "?? Recurring positions materializadas: {count} entradas automáticas.",
+                "?? Recurring positions materializadas: {count} entradas automÃ¡ticas.",
                 created);
         }
 
@@ -1104,7 +1123,7 @@ namespace CriptoVersus.Worker
                 m.WinnerTeamId = null;
                 m.EndReasonCode = "PENDING_ORPHAN";
                 m.EndReasonDetail =
-                    $"Pending não foi promovida após {CancelVeryOldPendingAfter.TotalMinutes} minutos do StartTime.";
+                    $"Pending nÃ£o foi promovida apÃ³s {CancelVeryOldPendingAfter.TotalMinutes} minutos do StartTime.";
             }
 
             await db.SaveChangesAsync(ct);
@@ -1126,13 +1145,21 @@ namespace CriptoVersus.Worker
         {
             var ongoingNow = await matchService.GetOngoingMatchesAsync();
 
+
+            _logger.LogInformation(
+                "WORKER_PROCESS_ONGOING_START MatchId=0 CycleSnapshotUtc={CycleSnapshotUtc:o} OngoingCount={OngoingCount} OngoingMatchIds={OngoingMatchIds}",
+                snapshotUtc,
+                ongoingNow.Count,
+                string.Join(",", ongoingNow.Select(x => x.MatchId)));
             if (ongoingNow.Count == 0)
             {
-                _logger.LogInformation("?? Nenhum jogo Ongoing para processar.");
+                LogWorkerMatchSkipped(0, "NO_ONGOING_MATCHES");
                 return;
             }
 
             foreach (var m in ongoingNow)
+            {
+                try
             {
                 var match = await db.Match
                     .Include(x => x.TeamA).ThenInclude(t => t.Currency)
@@ -1141,11 +1168,30 @@ namespace CriptoVersus.Worker
                     .FirstOrDefaultAsync(x => x.MatchId == m.MatchId, ct);
 
                 if (match == null || match.Status != MatchStatus.Ongoing)
+                {
+                    LogWorkerMatchSkipped(m.MatchId, "MATCH_NOT_FOUND_OR_NOT_ONGOING");
                     continue;
+                }
+
+                _logger.LogInformation(
+                    "WORKER_MATCH_FOUND MatchId={MatchId} Status={Status} Origin={Origin} StartTime={StartTime:o} EndTime={EndTime:o} TeamAId={TeamAId} TeamBId={TeamBId}",
+                    match.MatchId,
+                    match.Status,
+                    match.Origin,
+                    match.StartTime,
+                    match.EndTime,
+                    match.TeamAId,
+                    match.TeamBId);
+
+                _logger.LogInformation(
+                    "WORKER_PROCESS_ONGOING_START MatchId={MatchId} CycleSnapshotUtc={CycleSnapshotUtc:o}",
+                    match.MatchId,
+                    snapshotUtc);
 
                 if (TryFinalizeByTimeLimit(match, nowUtc))
                 {
                     await db.SaveChangesAsync(ct);
+                        LogWorkerMatchSkipped(match.MatchId, "TIME_LIMIT_BEFORE_SNAPSHOT_SAVE");
 
                     _logger.LogInformation(
                         "?? Match {id} atingiu {duration}min. Encerrado por tempo antes dos filtros de snapshot. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
@@ -1161,8 +1207,20 @@ namespace CriptoVersus.Worker
                 var symA = match.TeamA?.Currency?.Symbol ?? "";
                 var symB = match.TeamB?.Currency?.Symbol ?? "";
 
+                var normalizedSymA = PriceSymbolSetBuilder.NormalizeSymbol(symA);
+                var normalizedSymB = PriceSymbolSetBuilder.NormalizeSymbol(symB);
+
+                _logger.LogInformation(
+                    "WORKER_SYMBOLS_RESOLVED MatchId={MatchId} HomeSymbol={HomeSymbol} AwaySymbol={AwaySymbol} NormalizedHomeSymbol={NormalizedHomeSymbol} NormalizedAwaySymbol={NormalizedAwaySymbol}",
+                    match.MatchId,
+                    symA,
+                    symB,
+                    normalizedSymA,
+                    normalizedSymB);
                 if (!allowed.Contains(symA) || !allowed.Contains(symB))
                 {
+                    LogWorkerMatchSkipped(match.MatchId, $"PAIR_NOT_IN_ALLOWED_SNAPSHOT A={symA} B={symB}");
+
                     if (!GetAutoEndOngoingMatches())
                     {
                         LogSkippedOngoingAutoEnd(
@@ -1204,6 +1262,8 @@ namespace CriptoVersus.Worker
 
                 if (match.TeamA is null || match.TeamB is null || match.TeamA.Currency is null || match.TeamB.Currency is null)
                 {
+                    LogWorkerMatchSkipped(match.MatchId, "MISSING_TEAMS_OR_CURRENCIES");
+
                     _logger.LogWarning(
                         "?? Match {id} sem times/moedas carregados para pontuacao.",
                         match.MatchId);
@@ -1211,9 +1271,18 @@ namespace CriptoVersus.Worker
                 }
 
                 var currentTeamA = BuildTeamMetricPoint(match.TeamA);
+
                 var currentTeamB = BuildTeamMetricPoint(match.TeamB);
                 var currentTeamAPrice = ResolveSnapshotLastPrice(snapshot, symA);
                 var currentTeamBPrice = ResolveSnapshotLastPrice(snapshot, symB);
+
+                _logger.LogInformation(
+                    "WORKER_PRICE_RESULT MatchId={MatchId} HomePrice={HomePrice} AwayPrice={AwayPrice} HomePriceFound={HomePriceFound} AwayPriceFound={AwayPriceFound}",
+                    match.MatchId,
+                    currentTeamAPrice,
+                    currentTeamBPrice,
+                    currentTeamAPrice.HasValue,
+                    currentTeamBPrice.HasValue);
 
                 db.MatchMetricSnapshot.Add(new MatchMetricSnapshot
                 {
@@ -1250,6 +1319,15 @@ namespace CriptoVersus.Worker
                     symB,
                     currentTeamBPrice,
                     snapshotUtc);
+
+                _logger.LogInformation(
+                    "WORKER_SNAPSHOT_PREPARED MatchId={MatchId} CapturedAtUtc={CapturedAtUtc:o} TeamAId={TeamAId} TeamBId={TeamBId} HomeValue={HomeValue} AwayValue={AwayValue}",
+                    match.MatchId,
+                    snapshotUtc,
+                    match.TeamAId,
+                    match.TeamBId,
+                    currentTeamA.PercentageChange,
+                    currentTeamB.PercentageChange);
 
                 scoreState.LastSnapshotAtUtc = snapshotUtc;
 
@@ -1390,6 +1468,8 @@ namespace CriptoVersus.Worker
 
                 if (!match.StartTime.HasValue)
                 {
+                    LogWorkerMatchSkipped(match.MatchId, "MISSING_START_TIME");
+
                     _logger.LogWarning(
                         "?? Match {id} sem StartTime. Pulando processamento.",
                         match.MatchId);
@@ -1399,6 +1479,7 @@ namespace CriptoVersus.Worker
                 if (TryFinalizeByTimeLimit(match, nowUtc))
                 {
                     await db.SaveChangesAsync(ct);
+                    LogWorkerMatchSkipped(match.MatchId, "TIME_LIMIT_BEFORE_SNAPSHOT_SAVE");
 
                     _logger.LogInformation(
                         "?? Match {id} atingiu {duration}min. Encerrado por tempo. WinnerTeamId={winnerTeamId} Score={scoreA}x{scoreB}",
@@ -1410,11 +1491,19 @@ namespace CriptoVersus.Worker
                 }
                 else
                 {
-                    await db.SaveChangesAsync(ct);
+                    var affectedRows = await db.SaveChangesAsync(ct);
+                    _logger.LogInformation(
+                        "WORKER_SNAPSHOT_SAVED MatchId={MatchId} AffectedRows={AffectedRows}",
+                        match.MatchId,
+                        affectedRows);
                 }
             }
+            catch (Exception ex)
+            {
+                LogWorkerMatchError(m.MatchId, ex);
+            }
         }
-
+        }
         private async Task ProcessCompletedMatchSettlementsAsync(
             EthicAIDbContext db,
             ILedgerService ledgerService,
@@ -2408,7 +2497,7 @@ namespace CriptoVersus.Worker
         {
             if (allUsdt.Count == 0)
             {
-                _logger.LogWarning("?? Coin prices: snapshot AllUsdt vazio. Mantendo preços anteriores.");
+                _logger.LogWarning("?? Coin prices: snapshot AllUsdt vazio. Mantendo preÃ§os anteriores.");
                 return;
             }
 
@@ -2439,7 +2528,7 @@ namespace CriptoVersus.Worker
 
             if (rows.Count == 0)
             {
-                _logger.LogWarning("?? Coin prices: nenhum par USDT com preço válido. Mantendo preços anteriores.");
+                _logger.LogWarning("?? Coin prices: nenhum par USDT com preÃ§o vÃ¡lido. Mantendo preÃ§os anteriores.");
                 return;
             }
 
@@ -2497,7 +2586,7 @@ ON CONFLICT (tx_symbol) DO UPDATE SET
             sw.Stop();
 
             _logger.LogInformation(
-                "?? Coin prices atualizados para conversão: count={Count} batches={Batches} durationMs={DurationMs} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
+                "?? Coin prices atualizados para conversÃ£o: count={Count} batches={Batches} durationMs={DurationMs} snapshotUtc={SnapshotUtc:o} freshWindowMin={FreshWindowMin} freshCutoffUtc={FreshCutoffUtc:o}",
                 totalUpserted,
                 (int)Math.Ceiling(rows.Count / (double)batchSize),
                 sw.ElapsedMilliseconds,
@@ -2740,7 +2829,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
             var connectionString = _configuration.GetConnectionString("Default");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                _logger.LogWarning("?? ConnectionStrings:Default não configurada. O worker vai continuar.");
+                _logger.LogWarning("?? ConnectionStrings:Default nÃ£o configurada. O worker vai continuar.");
                 return;
             }
 
@@ -2750,7 +2839,7 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
 
             if (string.IsNullOrWhiteSpace(host) || port <= 0)
             {
-                _logger.LogWarning("?? ConnectionStrings:Default sem Host/Port válidos. O worker vai continuar.");
+                _logger.LogWarning("?? ConnectionStrings:Default sem Host/Port vÃ¡lidos. O worker vai continuar.");
                 return;
             }
 
@@ -2771,14 +2860,14 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
                         throw new TimeoutException("Timeout conectando no Postgres.");
 
                     _logger.LogInformation(
-                        "? Postgres acessível em {host}:{port} (tentativa {attempt})",
+                        "? Postgres acessÃ­vel em {host}:{port} (tentativa {attempt})",
                         host, port, attempt);
                     return;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(
-                        "? Postgres ainda não está pronto ({host}:{port}) tentativa {attempt}: {msg}",
+                        "? Postgres ainda nÃ£o estÃ¡ pronto ({host}:{port}) tentativa {attempt}: {msg}",
                         host, port, attempt, ex.Message);
 
                     await Task.Delay(TimeSpan.FromSeconds(Math.Min(10, 2 + attempt)), ct);
@@ -2789,3 +2878,6 @@ ON CONFLICT (tx_worker_name) DO UPDATE SET
         }
     }
 }
+
+
+

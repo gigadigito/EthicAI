@@ -446,7 +446,7 @@
             _messageKind = "success";
             _message = result.Response.Created ? T("modal.created") : T("modal.existing");
             await CloseAsync(force: true);
-            Nav.NavigateTo(result.Response.PublicUrl, forceLoad: true);
+            Nav.NavigateTo(result.Response.PublicUrl);
         }
         catch (Exception ex)
         {
@@ -627,6 +627,7 @@
         _dotNetRef = null;
     }
 }
+
 
 
 

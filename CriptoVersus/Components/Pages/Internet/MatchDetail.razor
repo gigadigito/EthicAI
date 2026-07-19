@@ -18,6 +18,7 @@
 @inject CriptoVersus.Web.Services.BrowserTimeZoneService BrowserTimeZone
 @inject AppCultureService AppCulture
 @inject LocalizationService L
+@inject Microsoft.Extensions.Logging.ILogger<MatchDetail> Logger
 @rendermode InteractiveServer
 @implements IDisposable
 @implements IAsyncDisposable
@@ -4976,7 +4977,9 @@
             scoreEvents = _scoreEvents,
             leftTeamId = _match?.TeamAId ?? 0,
             rightTeamId = _match?.TeamBId ?? 0,
-            matchStartTimeUtc = _match?.StartTime
+            matchStartTimeUtc = _match?.StartTime is DateTime matchStartTime
+                ? EnsureUtc(matchStartTime)
+                : (DateTime?)null
         };
     }
 
@@ -5081,8 +5084,7 @@
 
             await LoadMetricChartsAsync(ct);
 
-            SyncAndStartLocalClock();
-            UpdateClockTexts();
+            await StartOrRestartMatchClockAsync();
 
             _loadedRouteKey = routeKey;
             _initialLoadCompleted = true;
@@ -5131,6 +5133,14 @@
         _volumeChart = ChartSeriesState.Empty;
         _lastTelemetrySignature = string.Empty;
         _lastEventFeedSignature = string.Empty;
+        _lastMetricHistoryLogKey = string.Empty;
+        _lastAutoReloadUtc = DateTime.MinValue;
+
+        _reloadCts?.Cancel();
+        _reloadCts?.Dispose();
+        _reloadCts = null;
+        _reloadSeq++;
+
         StopClock();
         StopLocalClock();
     }
@@ -5274,6 +5284,10 @@
     private static bool IsCompleted(string? status)
         => !string.IsNullOrWhiteSpace(status)
            && status.Trim().Equals("Completed", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPending(string? status)
+        => !string.IsNullOrWhiteSpace(status)
+           && status.Trim().Equals("Pending", StringComparison.OrdinalIgnoreCase);
 
     private bool HasReachedLocalTimeLimit()
         => _startUtc.HasValue && DateTime.UtcNow - _startUtc.Value >= MatchDuration;
@@ -5810,6 +5824,7 @@
     private CancellationTokenSource? _reloadCts;
     private int _reloadSeq;
     private DateTime _lastAutoReloadUtc = DateTime.MinValue;
+    private string _lastMetricHistoryLogKey = string.Empty;
     private string _currentRouteKey = string.Empty;
     private string _loadedRouteKey = string.Empty;
     private string _loadingRouteKey = string.Empty;
@@ -5829,6 +5844,9 @@
     }
 
     private void DebouncedReload()
+        => DebouncedReload(TimeSpan.FromMilliseconds(300));
+
+    private void DebouncedReload(TimeSpan delay)
     {
         _reloadCts?.Cancel();
         _reloadCts?.Dispose();
@@ -5841,7 +5859,7 @@
         {
             try
             {
-                await Task.Delay(300, ct);
+                await Task.Delay(delay, ct);
 
                 if (localSeq != _reloadSeq) return;
 
@@ -5869,8 +5887,7 @@
                 _title = $"{GetMatchTitleSymbol(_match.TeamA)} vs {GetMatchTitleSymbol(_match.TeamB)}";
                 await LoadMetricChartsAsync(ct);
 
-                SyncAndStartLocalClock();
-                UpdateClockTexts();
+                await StartOrRestartMatchClockAsync();
 
                 await InvokeAsync(StateHasChanged);
             }
@@ -5933,7 +5950,7 @@
             return;
         }
 
-        var startUtc = DateTime.SpecifyKind(_match.StartTime.Value, DateTimeKind.Utc);
+        var startUtc = EnsureUtc(_match.StartTime.Value);
         var elapsed = DateTime.UtcNow - startUtc;
 
         if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
@@ -6018,31 +6035,40 @@
     private string _clockLive = "00:00.000";
     private string _remainingLive = "(90:00.000)";
 
-    private void SyncAndStartLocalClock()
+    private async Task StartOrRestartMatchClockAsync()
     {
+        StopClock();
+        StopLocalClock();
+
         if (_match?.StartTime is null)
         {
             _startUtc = null;
             _clockLive = "00:00.000";
             _remainingLive = "(90:00.000)";
-            StopLocalClock();
+            await InvokeAsync(StateHasChanged);
             return;
         }
 
         var match = _match;
-        _startUtc = DateTime.SpecifyKind(_match.StartTime.Value, DateTimeKind.Utc);
+        _startUtc = EnsureUtc(_match.StartTime.Value);
 
+        if (IsOngoing(match.Status))
+            _lastAutoReloadUtc = DateTime.UtcNow;
+
+        UpdateClockTexts();
         UpdateLocalClockTexts(DateTime.UtcNow);
 
         if (IsOngoing(match.Status))
+        {
             StartClock();
-        else
-            StopClock();
-
-        if (IsOngoing(match.Status))
             StartLocalClock();
-        else
-            StopLocalClock();
+        }
+        else if (IsPending(match.Status))
+        {
+            DebouncedReload(TimeSpan.FromSeconds(5));
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private void StartLocalClock()
@@ -6185,6 +6211,57 @@
             x => x.QuoteVolume,
             ensureZeroLine: false,
             minimumPadding: 1d);
+
+        var waitingReason = _leftPriceBattlePoints.Count < 2 && _rightPriceBattlePoints.Count < 2
+            ? "waiting for both assets history"
+            : _leftPriceBattlePoints.Count < 2
+                ? "waiting for asset A history"
+                : _rightPriceBattlePoints.Count < 2
+                    ? "waiting for asset B history"
+                    : "ready";
+
+        var historyLogKey = string.Join(
+            "|",
+            matchId,
+            _match.Status,
+            orderedSnapshots.Count,
+            _leftPriceBattlePoints.Count,
+            _rightPriceBattlePoints.Count,
+            orderedScoreEvents.Count,
+            waitingReason);
+
+        if (!string.Equals(historyLogKey, _lastMetricHistoryLogKey, StringComparison.Ordinal))
+        {
+            _lastMetricHistoryLogKey = historyLogKey;
+
+            if (waitingReason == "ready")
+            {
+                Logger.LogInformation(
+                    "[MATCH_HISTORY_READY] MatchId={MatchId} Status={Status} TeamA={TeamA} TeamB={TeamB} TotalSnapshots={TotalSnapshots} LeftPoints={LeftPoints} RightPoints={RightPoints} ScoreEvents={ScoreEvents}",
+                    matchId,
+                    _match.Status,
+                    _match.TeamA,
+                    _match.TeamB,
+                    orderedSnapshots.Count,
+                    _leftPriceBattlePoints.Count,
+                    _rightPriceBattlePoints.Count,
+                    orderedScoreEvents.Count);
+            }
+            else
+            {
+                Logger.LogInformation(
+                    "[MATCH_HISTORY_WAIT] MatchId={MatchId} Status={Status} TeamA={TeamA} TeamB={TeamB} TotalSnapshots={TotalSnapshots} LeftPoints={LeftPoints} RightPoints={RightPoints} ScoreEvents={ScoreEvents} Reason={Reason}",
+                    matchId,
+                    _match.Status,
+                    _match.TeamA,
+                    _match.TeamB,
+                    orderedSnapshots.Count,
+                    _leftPriceBattlePoints.Count,
+                    _rightPriceBattlePoints.Count,
+                    orderedScoreEvents.Count,
+                    waitingReason);
+            }
+        }
     }
 
     private string GetArenaSentimentLabel(ArenaSentimentDto? sentiment)
@@ -7000,6 +7077,16 @@
         }
     }
 </style>
+
+
+
+
+
+
+
+
+
+
 
 
 
