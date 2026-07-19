@@ -146,8 +146,8 @@ public sealed class CommunityMatchService : ICommunityMatchService
                     options.SuccessRedirectDelayMilliseconds / 1000));
             }
 
-            var startTime = nowUtc.AddMinutes(Math.Max(1, options.StartDelayMinutes));
-            var bettingCloseTime = startTime.AddMinutes(-Math.Max(1, options.BettingCloseOffsetMinutes));
+            var startTime = nowUtc;
+            var bettingCloseTime = nowUtc;
 
             var match = new Match
             {
@@ -167,8 +167,7 @@ public sealed class CommunityMatchService : ICommunityMatchService
                 RulesetVersion = RuleConstants.DefaultRulesetVersion
             };
 
-            if (match.BettingCloseTime.HasValue && match.StartTime.HasValue && match.BettingCloseTime.Value.UtcDateTime >= match.StartTime.Value)
-                match.BettingCloseTime = match.StartTime.Value.AddMinutes(-Math.Max(1, options.BettingCloseOffsetMinutes)).ToUniversalTime();
+          
 
             await using var transaction = await _db.Database.BeginTransactionAsync(ct);
 
