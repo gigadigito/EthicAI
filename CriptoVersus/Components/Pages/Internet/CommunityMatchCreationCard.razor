@@ -4,6 +4,7 @@
 @inject IJSRuntime JS
 @inject IConfiguration Config
 @inject CriptoVersus.Web.Services.LocalizationService L
+@inject ILogger<CommunityMatchCreationCard> Logger
 @implements IDisposable
 
 @{
@@ -75,13 +76,13 @@
                                                     role="option"
                                                     aria-selected="@(IsSelected(team, _homeTeam))"
                                                     @onclick="() => SelectHomeAsync(team)">
-                                                                                                <span class="community-match-picker__icon">
+                                                <span class="community-match-picker__icon">
                                                     <img src="@GetIconUrl(team)"
                                                          alt=""
                                                          loading="lazy"
                                                          width="36"
                                                          height="36"
-                                                         onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                                         onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
                                                     <span class="community-match-picker__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(team))</span>
                                                 </span>
                                                 <span>
@@ -102,13 +103,13 @@
                                     }
                                     else
                                     {
-                                                                                <span class="community-match-modal__side-icon">
+                                        <span class="community-match-modal__side-icon">
                                             <img src="@GetIconUrl(_homeTeam)"
                                                  alt=""
                                                  loading="lazy"
                                                  width="46"
                                                  height="46"
-                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                                 onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
                                             <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_homeTeam))</span>
                                         </span>
                                         <strong>@ResolveDisplaySymbol(_homeTeam)</strong>
@@ -125,13 +126,13 @@
                                     }
                                     else
                                     {
-                                                                                <span class="community-match-modal__side-icon">
+                                        <span class="community-match-modal__side-icon">
                                             <img src="@GetIconUrl(_awayTeam)"
                                                  alt=""
                                                  loading="lazy"
                                                  width="46"
                                                  height="46"
-                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                                 onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
                                             <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_awayTeam))</span>
                                         </span>
                                         <strong>@ResolveDisplaySymbol(_awayTeam)</strong>
@@ -165,13 +166,13 @@
                                                     role="option"
                                                     aria-selected="@(IsSelected(team, _awayTeam))"
                                                     @onclick="() => SelectAwayAsync(team)">
-                                                                                                <span class="community-match-picker__icon">
+                                                <span class="community-match-picker__icon">
                                                     <img src="@GetIconUrl(team)"
                                                          alt=""
                                                          loading="lazy"
                                                          width="36"
                                                          height="36"
-                                                         onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
+                                                         onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
                                                     <span class="community-match-picker__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(team))</span>
                                                 </span>
                                                 <span>
@@ -193,15 +194,15 @@
                                 }
                                 else
                                 {
-                                                                            <span class="community-match-modal__side-icon">
-                                            <img src="@GetIconUrl(_homeTeam)"
-                                                 alt=""
-                                                 loading="lazy"
-                                                 width="46"
-                                                 height="46"
-                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
-                                            <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_homeTeam))</span>
-                                        </span>
+                                    <span class="community-match-modal__side-icon">
+                                        <img src="@GetIconUrl(_homeTeam)"
+                                             alt=""
+                                             loading="lazy"
+                                             width="46"
+                                             height="46"
+                                             onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                        <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_homeTeam))</span>
+                                    </span>
                                     <div>
                                         <strong>@ResolveDisplaySymbol(_homeTeam)</strong>
                                         <small>@ResolveDisplayName(_homeTeam)</small>
@@ -216,15 +217,15 @@
                                 }
                                 else
                                 {
-                                                                            <span class="community-match-modal__side-icon">
-                                            <img src="@GetIconUrl(_awayTeam)"
-                                                 alt=""
-                                                 loading="lazy"
-                                                 width="46"
-                                                 height="46"
-                                                 onerror="this.style.display=''none''; this.nextElementSibling?.classList.add(''is-visible'');" />
-                                            <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_awayTeam))</span>
-                                        </span>
+                                    <span class="community-match-modal__side-icon">
+                                        <img src="@GetIconUrl(_awayTeam)"
+                                             alt=""
+                                             loading="lazy"
+                                             width="46"
+                                             height="46"
+                                             onerror="this.style.display='none'; this.nextElementSibling?.classList.add('is-visible');" />
+                                        <span class="community-match-modal__fallback" aria-hidden="true">@GetAssetMonogram(ResolveDisplaySymbol(_awayTeam))</span>
+                                    </span>
                                     <div>
                                         <strong>@ResolveDisplaySymbol(_awayTeam)</strong>
                                         <small>@ResolveDisplayName(_awayTeam)</small>
@@ -418,12 +419,27 @@
             }
 
             var result = await Api.CreateCommunityMatchAsync(request);
+
+            Logger.LogWarning(
+                "[COMMUNITY_MATCH_RESULT] Success={Success} MessageCode={MessageCode} Message={Message} HasResponse={HasResponse}",
+                result.Success,
+                result.MessageCode,
+                result.Message,
+                result.Response is not null);
+
             if (!result.Success || result.Response is null)
             {
                 _messageKind = "error";
                 _message = ResolveResultMessage(result);
-                if (!string.Equals(result.MessageCode, "battleAlreadyExists", StringComparison.OrdinalIgnoreCase))
+
+                if (!string.Equals(
+                        result.MessageCode,
+                        "battleAlreadyExists",
+                        StringComparison.OrdinalIgnoreCase))
+                {
                     await ResetCaptchaAsync();
+                }
+
                 return;
             }
 
@@ -434,8 +450,11 @@
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(
-                $"[COMMUNITY_MATCH_SUBMIT_ERROR] {ex}");
+            Logger.LogError(
+                ex,
+                "[COMMUNITY_MATCH_SUBMIT_ERROR] Home={Home} Away={Away}",
+                _homeTeam?.Symbol,
+                _awayTeam?.Symbol);
 
             _messageKind = "error";
             _message = $"{T("modal.fallbackError")} Detalhe: {ex.Message}";
@@ -579,7 +598,8 @@
 
     private static readonly string[] VisualSuffixes = ["USDT", "USDC", "BUSD", "FDUSD", "BTC", "ETH"];
 
-    private string ResolveResultMessage(CriptoVersus.Web.Services.CriptoVersusApiClient.CommunityMatchCreationResult result)
+    private string ResolveResultMessage(
+        CriptoVersus.Web.Services.CriptoVersusApiClient.CommunityMatchCreationResult result)
     {
         if (!string.IsNullOrWhiteSpace(result.Message))
             return result.Message;
@@ -590,9 +610,11 @@
             "sameAssetNotAllowed" => T("modal.sameAsset"),
             "assetNotAvailable" => T("modal.assetUnavailable"),
             "invalidAsset" => T("modal.invalidAsset"),
-            "tooManyRequests" => T("modal.tooManyRequests", result.RetryAfterSeconds ?? 0),
+            "tooManyRequests" => T(
+                "modal.tooManyRequests",
+                result.RetryAfterSeconds ?? 0),
             "battleAlreadyExists" => T("modal.existing"),
-            _ => T("modal.fallbackError")
+            _ => $"{T("modal.fallbackError")} Código: {result.MessageCode ?? "(vazio)"}"
         };
     }
 
