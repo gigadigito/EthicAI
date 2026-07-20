@@ -1081,7 +1081,7 @@
         }
       }
     },
- 
+
     "investment": {
       "eyebrow": "Selecao ao vivo",
       "title": "Escolher {0}",
@@ -2630,5 +2630,38 @@
     "body": "Sua carteira foi conectada com sucesso. Voc? pode abrir Minha Carteira agora ou permanecer na p?gina atual.",
     "stay": "Permanecer nesta p?gina",
     "goToWallet": "Ir para Minha Carteira"
+  },
+  "communityMatch": {
+    "eyebrow": "Criação pública",
+    "title": "Tem uma batalha melhor em mente?",
+    "body": "Crie sua própria batalha e desafie a comunidade.",
+    "button": "Criar minha própria batalha",
+    "modal": {
+      "eyebrow": "Batalha pública",
+      "title": "Criar uma batalha",
+      "close": "Fechar",
+      "orange": "Lado laranja",
+      "cyan": "Lado azul",
+      "searchPlaceholder": "Buscar por símbolo ou nome",
+      "loading": "Carregando ativos...",
+      "empty": "Nenhum ativo disponível",
+      "selectLeft": "Selecione o lado laranja",
+      "selectRight": "Selecione o lado azul",
+      "previewLeft": "Prévia do lado laranja",
+      "previewRight": "Prévia do lado azul",
+      "submit": "CRIAR BATALHA",
+      "submitting": "Criando batalha...",
+      "footnote": "Batalha criada pela comunidade",
+      "captchaRequired": "Confirme o CAPTCHA para continuar.",
+      "captchaError": "Não foi possível validar o CAPTCHA. Tente novamente.",
+      "created": "Batalha criada com sucesso!",
+      "existing": "Já existe uma batalha ativa para esse confronto.",
+      "fallbackError": "Não foi possível criar a batalha agora.",
+      "unavailable": "A criação pública de batalhas está temporariamente indisponível.",
+      "sameAsset": "Escolha dois ativos diferentes.",
+      "assetUnavailable": "Um dos ativos selecionados não está disponível no momento.",
+      "invalidAsset": "Escolha dois ativos válidos.",
+      "tooManyRequests": "Tente novamente em {0} segundos."
+    }
   }
 }
