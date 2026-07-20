@@ -112,9 +112,24 @@
             <p>@GetSemanticSummaryRewards()</p>
         </section>
 
-        
 
-        <CommunityMatchCreationCard />
+
+        @if (_showCommunityMatchFloatingCard)
+        {
+            <aside class="community-match-floating"
+                   role="complementary"
+                   aria-label="@T("communityMatch.title")">
+                <button type="button"
+                        class="community-match-floating__close"
+                        title="@T("communityMatch.modal.close")"
+                        aria-label="@T("communityMatch.modal.close")"
+                        @onclick="CloseCommunityMatchFloatingCard">
+                    ×
+                </button>
+
+                <CommunityMatchCreationCard />
+            </aside>
+        }
 
         <section id="social-share-card" class="social-share-card social-share-card--epic mb-4" aria-label="Social share card">
             <div class="social-share-card__background" aria-hidden="true"></div>
@@ -844,7 +859,7 @@
         }
 
         <p class="small text-muted disclammer mb-4">@T("marketDataDisclaimer")</p>
-        
+
 
     }
 </div>
@@ -2746,10 +2761,10 @@
     }
 
     /* ================================================================
-                               EPIC ARENA SKIN
-                               Texturas esperadas em: /wwwroot/img/match-arena/
-                               A tela continua funcional mesmo antes dos arquivos existirem.
-                               ================================================================ */
+                                   EPIC ARENA SKIN
+                                   Texturas esperadas em: /wwwroot/img/match-arena/
+                                   A tela continua funcional mesmo antes dos arquivos existirem.
+                                   ================================================================ */
 
     .social-share-card--epic {
         --arena-orange: #ff8a00;
@@ -3379,9 +3394,9 @@
 
 
     /* ==========================================================
-                               EPIC ARENA V3 — SEGUNDA RODADA
-                               Novas texturas esperadas em /wwwroot/img/match-arena/
-                               ========================================================== */
+                                   EPIC ARENA V3 — SEGUNDA RODADA
+                                   Novas texturas esperadas em /wwwroot/img/match-arena/
+                                   ========================================================== */
 
     .social-share-card--epic {
         --arena-orange: #ff8a00;
@@ -3451,7 +3466,7 @@
     }
 
     /* Quatro cantos independentes. Enquanto os novos SVGs não existirem,
-                               os gradientes e a borda externa continuam visíveis. */
+                                   os gradientes e a borda externa continuam visíveis. */
     .social-share-card--epic::after {
         inset: 8px;
         background-image: url('/img/match-arena/corner-top-left-orange.svg'), url('/img/match-arena/corner-bottom-left-orange.svg'), url('/img/match-arena/corner-top-right-cyan.svg'), url('/img/match-arena/corner-bottom-right-cyan.svg');
@@ -3991,9 +4006,9 @@
 
 
     /* =========================================================
-                               CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
-                               Assets esperados em /wwwroot/img/match-arena/
-                               ========================================================= */
+                                   CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
+                                   Assets esperados em /wwwroot/img/match-arena/
+                                   ========================================================= */
 
     .social-share-card--epic {
         background: #02070c;
@@ -4605,9 +4620,9 @@
 
 
     /* ============================================================
-                               TESTE VISUAL — HERO FRAMES MAIS PRESENTES
-                               Mantém a versão clean, mas reativa as molduras hero-frame.
-                               ============================================================ */
+                                   TESTE VISUAL — HERO FRAMES MAIS PRESENTES
+                                   Mantém a versão clean, mas reativa as molduras hero-frame.
+                                   ============================================================ */
     .social-share-card--epic .hero-panel__frame {
         display: block !important;
         inset: 0 !important;
@@ -4651,9 +4666,189 @@
             filter: none !important;
         }
     }
+
+
+    /* ==========================================================
+           COMMUNITY MATCH — CONVITE FLUTUANTE, DISCRETO E FECHÁVEL
+           Não ocupa espaço no fluxo normal da página.
+           ========================================================== */
+    .community-match-floating {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 1040;
+        width: min(315px, calc(100vw - 28px));
+        max-height: calc(100vh - 36px);
+        overflow: visible;
+        border: 1px solid rgba(83, 200, 255, .14);
+        border-radius: 18px;
+        background: radial-gradient(circle at top left, rgba(255, 145, 0, .07), transparent 44%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .07), transparent 44%), rgba(7, 12, 18, .88);
+        box-shadow: 0 14px 38px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .035);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        pointer-events: auto;
+        animation: communityMatchFloatingEnter .18s ease-out;
+    }
+
+    .community-match-floating__close {
+        position: absolute;
+        top: -9px;
+        right: -9px;
+        z-index: 20;
+        display: grid;
+        place-items: center;
+        width: 27px;
+        height: 27px;
+        padding: 0;
+        color: rgba(255, 255, 255, .72);
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 999px;
+        background: rgba(5, 10, 16, .96);
+        box-shadow: 0 5px 14px rgba(0, 0, 0, .38);
+        cursor: pointer;
+    }
+
+        .community-match-floating__close:hover,
+        .community-match-floating__close:focus-visible {
+            color: #fff;
+            border-color: rgba(255, 255, 255, .26);
+            background: rgba(18, 27, 38, .98);
+            outline: none;
+        }
+
+    /* Sobrescreve o card original somente dentro do convite flutuante. */
+    .community-match-floating .community-match-card,
+    .community-match-floating .community-match-creation-card {
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 14px 16px !important;
+        border: 0 !important;
+        border-radius: 18px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .community-match-floating .community-match-card__layout,
+    .community-match-floating .community-match-creation-card__layout {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+
+    .community-match-floating .community-match-card__content,
+    .community-match-floating .community-match-creation-card__content {
+        min-width: 0 !important;
+    }
+
+    .community-match-floating .community-match-card__eyebrow,
+    .community-match-floating .community-match-creation-card__eyebrow {
+        display: inline-flex !important;
+        margin: 0 0 4px !important;
+        padding: 3px 7px !important;
+        font-size: .62rem !important;
+        line-height: 1.1 !important;
+        letter-spacing: .07em !important;
+    }
+
+    .community-match-floating .community-match-card__title,
+    .community-match-floating .community-match-creation-card__title {
+        margin: 0 !important;
+        max-width: 150px !important;
+        font-size: .98rem !important;
+        line-height: 1.12 !important;
+    }
+
+    .community-match-floating .community-match-card__body,
+    .community-match-floating .community-match-creation-card__body {
+        display: none !important;
+    }
+
+    .community-match-floating .community-match-card__actions,
+    .community-match-floating .community-match-creation-card__actions {
+        margin: 0 !important;
+        align-self: center !important;
+    }
+
+    .community-match-floating .community-match-card__button,
+    .community-match-floating .community-match-creation-card__button,
+    .community-match-floating .btn {
+        width: auto !important;
+        min-width: 116px !important;
+        min-height: 36px !important;
+        margin: 0 !important;
+        padding: 7px 12px !important;
+        border-radius: 999px !important;
+        font-size: .72rem !important;
+        font-weight: 800 !important;
+        line-height: 1.15 !important;
+        white-space: normal !important;
+    }
+
+    @@keyframes communityMatchFloatingEnter {
+        from {
+            opacity: 0;
+            transform: translateY(8px) scale(.985);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .community-match-floating {
+            right: 10px;
+            bottom: 10px;
+            width: min(285px, calc(100vw - 20px));
+            border-radius: 16px;
+        }
+
+            .community-match-floating .community-match-card,
+            .community-match-floating .community-match-creation-card {
+                padding: 12px 13px !important;
+            }
+
+            .community-match-floating .community-match-card__layout,
+            .community-match-floating .community-match-creation-card__layout {
+                gap: 9px !important;
+            }
+
+            .community-match-floating .community-match-card__title,
+            .community-match-floating .community-match-creation-card__title {
+                max-width: 126px !important;
+                font-size: .9rem !important;
+            }
+
+            .community-match-floating .community-match-card__button,
+            .community-match-floating .community-match-creation-card__button,
+            .community-match-floating .btn {
+                min-width: 108px !important;
+                padding-inline: 10px !important;
+                font-size: .68rem !important;
+            }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .community-match-floating {
+            animation: none;
+        }
+    }
+
 </style>
 
 @code {
+    private bool _showCommunityMatchFloatingCard = true;
+
+    private void CloseCommunityMatchFloatingCard()
+    {
+        _showCommunityMatchFloatingCard = false;
+    }
+
     [Parameter] public string? SlugA { get; set; }
     [Parameter] public string? SlugB { get; set; }
     [Parameter] public int? MatchId { get; set; }
@@ -6836,10 +7031,10 @@
 
 <style>
     /* ==========================================================
-                               ROUND 4 / V5 CLEAN
-                               Limpeza das sobreposições da terceira rodada.
-                               Mantém os melhores assets e remove o efeito wireframe.
-                               ========================================================== */
+                                   ROUND 4 / V5 CLEAN
+                                   Limpeza das sobreposições da terceira rodada.
+                                   Mantém os melhores assets e remove o efeito wireframe.
+                                   ========================================================== */
 
     /* Arena: menos ruído visual, mais profundidade. */
     .social-share-card--epic .social-share-card__background {
@@ -7189,9 +7384,9 @@
     }
 
     /* ============================================================
-                               TESTE VISUAL — HERO FRAMES MAIS PRESENTES
-                               Mantém a versão clean, mas reativa as molduras hero-frame.
-                               ============================================================ */
+                                   TESTE VISUAL — HERO FRAMES MAIS PRESENTES
+                                   Mantém a versão clean, mas reativa as molduras hero-frame.
+                                   ============================================================ */
     .social-share-card--epic .hero-panel__frame {
         display: block !important;
         inset: 0 !important;
