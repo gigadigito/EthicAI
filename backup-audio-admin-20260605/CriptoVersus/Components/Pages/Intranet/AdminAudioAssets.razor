@@ -1,0 +1,443 @@
+@rendermode InteractiveServer
+@page "/admin/audio-assets"
+@page "/pt/admin/audio-assets"
+@page "/en/admin/audio-assets"
+@using CriptoVersus.Web.Services
+@using DTOs
+@using Microsoft.JSInterop
+@inject CriptoVersusApiClient Api
+@inject WalletSessionState WalletState
+@inject IConfiguration Config
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject IHttpContextAccessor HttpContextAccessor
+@inject AppCultureService AppCulture
+@inject RouteLocalizationService RouteLocalization
+@implements IDisposable
+@implements IAsyncDisposable
+
+<BasicSeoHead Title="CriptoVersus Admin Audio Assets"
+              Description="Ferramenta interna para manutencao, auditoria e testes de audio procedural."
+              CanonicalUrl="@CanonicalUrl"
+              EnglishUrl="@EnglishUrl"
+              PortugueseUrl="@PortugueseUrl"
+              XDefaultUrl="@EnglishUrl"
+              OgLocale="@AppCulture.ToOgLocale(CurrentCulture)"
+              OgAlternateLocale="@AppCulture.GetAlternateOgLocale(CurrentCulture)"
+              ImageUrl="@SeoDefaults.BuildAbsoluteUrl(Config, Nav, SeoDefaults.DefaultSocialImagePath)"
+              ImageAlt="CriptoVersus admin audio assets"
+              Robots="noindex,nofollow,noarchive" />
+
+<section class="container py-4 audio-admin-page">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-1">Admin Audio Assets</h2>
+            <p class="text-muted mb-0">Tela operacional para diagnostico de banco, filesystem, volume Docker e URLs publicas.</p>
+        </div>
+        <a class="btn btn-outline-secondary btn-sm" href="@RouteLocalization.BuildAdminPath(CurrentCulture)">Voltar ao painel admin</a>
+    </div>
+
+    @if (!IsAdminWallet)
+    {
+        <div class="alert alert-danger">Esta area esta disponivel apenas para a carteira admin.</div>
+    }
+    else
+    {
+        <AdminAudioAssetsOperationalPanel />
+
+        @if (_showLegacyAudioAssetsLayout)
+        {
+        @if (_loading)
+        {
+            <div class="alert alert-info">Carregando diagnostico de audio...</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(_feedback))
+        {
+            <div class="alert alert-success">@_feedback</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <strong>Filtros e Acoes</strong>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-primary" @onclick="LoadAllAsync" disabled="@_loading">Atualizar</button>
+                    <button class="btn btn-outline-secondary" @onclick="RunSuspectDryRunAsync">Dry-run suspeitos</button>
+                    <button class="btn btn-outline-warning" @onclick="DisableSuspectsAsync">Disable suspeitos</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-2"><input class="form-control form-control-sm" placeholder="Event" @bind="_filters.EventType" /></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" placeholder="Language" @bind="_filters.Language" /></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" placeholder="TeamSymbol" @bind="_filters.TeamSymbol" /></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" placeholder="NormalizedSymbol" @bind="_filters.NormalizedSymbol" /></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" placeholder="TeamName" @bind="_filters.TeamName" /></div>
+                    <div class="col-md-2">
+                        <select class="form-select form-select-sm" @bind="_filters.Status">
+                            <option value="">Todos</option>
+                            <option value="ready">ready</option>
+                            <option value="disabled">disabled</option>
+                            <option value="deprecated">deprecated</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><input class="form-control form-control-sm" placeholder="Texto contem" @bind="_filters.ContainsText" @bind:event="oninput" /></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" type="date" value="@_createdAfterText" @onchange="e => _createdAfterText = e.Value?.ToString() ?? string.Empty" /></div>
+                    <div class="col-md-2"><input class="form-control form-control-sm" type="date" value="@_createdBeforeText" @onchange="e => _createdBeforeText = e.Value?.ToString() ?? string.Empty" /></div>
+                    <div class="col-md-2 d-flex align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="_filters.SuspectsOnly" id="suspectsOnly" />
+                            <label class="form-check-label" for="suspectsOnly">Somente suspeitos</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <span class="me-3">Assets filtrados: <strong>@_assets.TotalCount</strong></span>
+                        <span>Selecionados: <strong>@_selectedAssetIds.Count</strong></span>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" @onclick="SelectVisibleAssets">Selecionar pagina</button>
+                        <button class="btn btn-outline-secondary" @onclick="ClearSelection">Limpar selecao</button>
+                        <button class="btn btn-outline-warning" @onclick="BulkDisableAsync" disabled="@(_selectedAssetIds.Count == 0)">Bulk disable</button>
+                        <button class="btn btn-outline-danger" @onclick="BulkDeleteAsync" disabled="@(_selectedAssetIds.Count == 0)">Bulk delete file + record</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header"><strong>Resumo</strong></div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-md-3 row-cols-xl-6 g-3">
+                    <div class="col"><div class="border rounded p-2 h-100"><div class="small text-muted">Assets banco</div><div class="fw-bold">@_assets.Summary.TotalAssetsInDatabase</div></div></div>
+                    <div class="col"><div class="border rounded p-2 h-100"><div class="small text-muted">Arquivos fisicos</div><div class="fw-bold">@_assets.Summary.TotalPhysicalFiles</div></div></div>
+                    <div class="col"><div class="border rounded p-2 h-100"><div class="small text-muted">Orfaos</div><div class="fw-bold text-danger">@_assets.Summary.TotalOrphans</div></div></div>
+                    <div class="col"><div class="border rounded p-2 h-100"><div class="small text-muted">Disabled</div><div class="fw-bold">@_assets.Summary.TotalDisabled</div></div></div>
+                    <div class="col"><div class="border rounded p-2 h-100"><div class="small text-muted">Ready</div><div class="fw-bold">@_assets.Summary.TotalReady</div></div></div>
+                    <div class="col"><div class="border rounded p-2 h-100"><div class="small text-muted">Diretorio audio</div><div class="fw-bold">@FormatBytes(_assets.Summary.TotalDirectoryBytes)</div></div></div>
+                </div>
+                <div class="mt-3 small"><strong>Audio root:</strong> @_filesystem.AudioRootPath</div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>Filesystem Audio Directory</strong>
+                <span class="small text-muted">@_filesystem.TotalFiles arquivos</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>FileName</th>
+                                <th>RelativePath</th>
+                                <th>FullPath</th>
+                                <th>Exists</th>
+                                <th>Size</th>
+                                <th>LastModifiedUtc</th>
+                                <th>PublicUrl</th>
+                                <th>Open</th>
+                                <th>Play</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_filesystem.Items.Count == 0)
+                            {
+                                <tr><td colspan="9" class="text-center text-muted">Nenhum arquivo encontrado no filesystem publicado.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var file in _filesystem.Items)
+                                {
+                                    <tr>
+                                        <td>@file.FileName</td>
+                                        <td><code>@file.RelativePath</code></td>
+                                        <td><code>@file.FullPath</code></td>
+                                        <td>@(file.Exists ? "yes" : "no")</td>
+                                        <td>@FormatBytes(file.SizeBytes)</td>
+                                        <td>@FormatDate(file.LastModifiedUtc)</td>
+                                        <td class="text-break"><code>@file.PublicUrl</code></td>
+                                        <td><button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenUrlAsync(file.PublicUrl)" disabled="@(!file.Exists)">Open</button></td>
+                                        <td style="min-width:220px">
+                                            @if (file.Exists)
+                                            {
+                                                <audio controls preload="metadata" src="@file.PublicUrl"></audio>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-danger">missing file</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="toolbar"><h3>Audio assets</h3><span>@(_loading ? "Carregando..." : $"{_assets.Items.Count} itens na pagina")</span></div>
+            @if (_assets.Items.Count == 0)
+            {
+                <p>Nenhum asset encontrado.</p>
+            }
+            else
+            {
+                @foreach (var asset in _assets.Items)
+                {
+                    <article class="asset @(asset.IsSuspect ? "suspect" : string.Empty)">
+                        <div class="toolbar compact">
+                            <label class="check"><input type="checkbox" checked="@_selectedAssetIds.Contains(asset.Id)" @onchange="args => ToggleSelection(asset.Id, args.Value)" /> <strong>#@asset.Id</strong></label>
+                            <div>@asset.EventType · @asset.Language · @asset.TeamName / @asset.TeamSymbol</div>
+                            <div class="actions">
+                                <span class="pill">@asset.Status</span>
+                                @if (asset.IsSuspect){<span class="pill warn">suspeito</span>}
+                                @if (asset.IsOrphan){<span class="pill danger">orphan</span>}
+                                @if (!asset.HasPhysicalFile){<span class="pill danger">missing file</span>}
+                                @if (!asset.PublicUrlValid){<span class="pill dark">invalid url</span>}
+                            </div>
+                        </div>
+                        <div class="meta">
+                            <span><strong>Raw:</strong> @asset.RawSymbol</span>
+                            <span><strong>Normalized:</strong> @asset.NormalizedSymbol</span>
+                            <span><strong>Context:</strong> @asset.ContextKey</span>
+                            <span><strong>Intensity:</strong> @asset.Intensity</span>
+                            <span><strong>Voice:</strong> @asset.VoiceKey</span>
+                            <span><strong>Usage:</strong> @asset.UsageCount</span>
+                            <span><strong>Criado:</strong> @asset.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</span>
+                            <span><strong>Duracao:</strong> @FormatDuration(asset.DurationMs)</span>
+                        </div>
+                        <div class="meta">
+                            <span><strong>Arquivo:</strong> @asset.FileName</span>
+                            <span><strong>Path:</strong> @asset.RelativePath</span>
+                            <span><strong>Fisico:</strong> @asset.PhysicalPath</span>
+                            <span><strong>URL:</strong> @asset.ResolvedAudioUrl</span>
+                            @if (asset.IsSuspect){<span><strong>Regras:</strong> @string.Join(", ", asset.SuspectRules)</span>}
+                            @if (asset.IsOrphan && !string.IsNullOrWhiteSpace(asset.OrphanReason)){<span><strong>Orfao:</strong> @asset.OrphanReason</span>}
+                        </div>
+                        @if (asset.PublicUrlValid)
+                        {
+                            <audio controls preload="metadata" src="@asset.ResolvedAudioUrl"></audio>
+                        }
+                        else
+                        {
+                            <div class="text-danger">Audio indisponivel: arquivo fisico ou URL publica invalida.</div>
+                        }
+                        <details><summary>Text prompt</summary><pre>@asset.TextPrompt</pre></details>
+                        <div class="actions">
+                            <button class="secondary" @onclick="() => OpenUrlAsync(asset.ResolvedAudioUrl)" disabled="@(!asset.PublicUrlValid)">Abrir URL</button>
+                            <button class="secondary" @onclick="() => CopyUrlAsync(asset.ResolvedAudioUrl)" disabled="@string.IsNullOrWhiteSpace(asset.ResolvedAudioUrl)">Copy URL</button>
+                            <button class="warning" @onclick="() => DisableAssetAsync(asset.Id)">Marcar disabled</button>
+                            <button class="danger secondary" @onclick="() => DeleteRecordAsync(asset.Id)">Excluir registro</button>
+                            <button class="danger" @onclick="() => DeleteFileAndRecordAsync(asset.Id)">Excluir arquivo + registro</button>
+                            <button class="secondary" @onclick="() => QueueRegenerationAsync(asset)">Regenerate</button>
+                        </div>
+                    </article>
+                }
+            }
+        </div>
+
+        <div class="card">
+            <div class="toolbar"><h3>Audio Test Lab</h3><span>Assets de teste saem como <code>manual_test</code></span></div>
+            <div class="grid">
+                <label><span>Event type</span><input @bind="_testLab.EventType" list="event-types" /></label>
+                <label><span>Language</span><select @bind="_testLab.Language"><option value="pt-BR">pt-BR</option><option value="en-US">en-US</option></select></label>
+                <label><span>Team symbol</span><input @bind="_testLab.TeamSymbol" list="team-symbols" /></label>
+                <label><span>Team name</span><input @bind="_testLab.TeamName" /></label>
+                <label><span>Context key</span><input @bind="_testLab.ContextKey" /></label>
+                <label><span>Intensity</span><input @bind="_testLab.Intensity" /></label>
+                <label><span>Voice key</span><input @bind="_testLab.VoiceKey" list="voice-keys" /></label>
+                <label><span>Volume</span><input type="range" min="0" max="100" step="1" value="@_testVolumePercent" @oninput="OnVolumeChanged" /></label>
+            </div>
+            <div class="actions">
+                <button class="secondary" @onclick="PreviewNarrativeAsync">Resolver narrativa</button>
+                <button @onclick="GenerateTestAudioAsync" disabled="@_generatingTestAudio">Generate Test Audio</button>
+                <button class="secondary" @onclick="PlayTestAudioAsync" disabled="@string.IsNullOrWhiteSpace(_currentTestAudioUrl)">Play Test Audio</button>
+                <button class="secondary" @onclick="StopTestAudioAsync">Stop</button>
+                <button class="secondary" @onclick="RegenerateTestAudioAsync" disabled="@(_lastGenerateRequest is null)">Regenerar</button>
+            </div>
+            <label><span>Text prompt final</span><textarea rows="5" @bind="_testLab.OverrideTextPrompt"></textarea></label>
+            @if (_testPreview is not null)
+            {
+                <div class="meta">
+                    <span><strong>Team:</strong> @_testPreview.Request?.TeamName</span>
+                    <span><strong>Resolved language:</strong> @_testPreview.ResolvedLanguage</span>
+                    <span><strong>Score:</strong> @_testPreview.SpecificityScore</span>
+                    <span><strong>Candidates:</strong> @_testPreview.CandidateCount</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_currentTestAudioUrl))
+            {
+                <audio controls src="@_currentTestAudioUrl" @ref="_testAudioElement"></audio>
+                <div class="meta">
+                    <span><strong>Job:</strong> @_currentTestJobId</span>
+                    <span><strong>Status:</strong> @_currentTestStatus</span>
+                    <span><strong>Team:</strong> @_currentTestTeamName</span>
+                </div>
+            }
+            @if (_testRuns.Count > 0)
+            {
+                <h4>Comparar versoes</h4>
+                @foreach (var run in _testRuns)
+                {
+                    <article class="asset">
+                        <div class="meta">
+                            <span><strong>Job:</strong> @run.JobId</span>
+                            <span><strong>Voice:</strong> @run.VoiceKey</span>
+                            <span><strong>Intensity:</strong> @run.Intensity</span>
+                            <span><strong>Team:</strong> @run.TeamName</span>
+                        </div>
+                        <audio controls preload="none" src="@run.AudioUrl"></audio>
+                        <details><summary>Prompt</summary><pre>@run.TextPrompt</pre></details>
+                    </article>
+                }
+            }
+        </div>
+        }
+    }
+</section>
+
+@code {
+    private string CurrentCulture => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+    private string CanonicalUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildAdminAudioAssetsPath(CurrentCulture));
+    private string EnglishUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildAdminAudioAssetsPath("en"));
+    private string PortugueseUrl => SeoDefaults.BuildAbsoluteUrl(Config, Nav, RouteLocalization.BuildAdminAudioAssetsPath("pt"));
+    private readonly AudioAssetAdminQueryDto _filters = new() { PageSize = 100 };
+    private readonly List<TestRunViewModel> _testRuns = [];
+    private readonly HashSet<long> _selectedAssetIds = [];
+    private AudioAssetAdminListResponseDto _assets = new();
+    private AudioAssetFilesystemResponseDto _filesystem = new();
+    private AudioAssetTestGenerateRequestDto _testLab = new() { EventType = "goal", Language = "pt-BR", TeamSymbol = "BTCUSDT", ContextKey = "pump", Intensity = "hype", VoiceKey = "narrator_pt_br" };
+    private AudioAssetTestGenerateRequestDto? _lastGenerateRequest;
+    private AudioResolveDiagnosticPreviewDto? _testPreview;
+    private string _createdAfterText = string.Empty;
+    private string _createdBeforeText = string.Empty;
+    private string? _feedback;
+    private string? _error;
+    private bool _loading = true;
+    private bool _showLegacyAudioAssetsLayout;
+    private bool _generatingTestAudio;
+    private long? _currentTestJobId;
+    private string? _currentTestAudioUrl;
+    private string? _currentTestStatus;
+    private string? _currentTestTeamName;
+    private int _testVolumePercent = 100;
+    private ElementReference _testAudioElement;
+    private IJSObjectReference? _audioModule;
+    private bool IsAdminWallet => IsConfiguredWallet(WalletState.WalletPublicKey, Config["CriptoVersus:AdminWallet"]) || IsConfiguredWallet(WalletState.WalletPublicKey, Config["OnChainBetting:AuthorityWallet"]);
+
+    protected override void OnInitialized()
+    {
+        if (_showLegacyAudioAssetsLayout)
+        {
+            WalletState.Changed += OnWalletStateChanged;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_showLegacyAudioAssetsLayout || !firstRender)
+        {
+            return;
+        }
+
+        _audioModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/adminAudioAssets.js?v=20260605-audio-admin-debug");
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync(){ _loading = true; _error = null; ApplyDateFilters(); try { _assets = await Api.GetAudioAssetsAsync(BuildQueryString()) ?? new AudioAssetAdminListResponseDto(); _filesystem = await Api.GetAudioAssetFilesystemAsync() ?? new AudioAssetFilesystemResponseDto(); } catch (Exception ex) { _error = $"Nao foi possivel carregar o diagnostico de audio: {ex.Message}"; } finally { _loading = false; await InvokeAsync(StateHasChanged); } }
+    private async Task DisableAssetAsync(long id){ try { _feedback = (await Api.DisableAudioAssetAsync(id))?.Message; await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha ao desabilitar asset {id}: {ex.Message}"; } }
+    private async Task DeleteRecordAsync(long id){ if (!await ConfirmAsync("Excluir apenas o registro?")) return; try { _feedback = (await Api.DeleteAudioAssetRecordAsync(id))?.Message; _selectedAssetIds.Remove(id); await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha ao excluir registro {id}: {ex.Message}"; } }
+    private async Task DeleteFileAndRecordAsync(long id){ if (!await ConfirmAsync("Excluir arquivo fisico e registro?")) return; try { _feedback = (await Api.DeleteAudioAssetFileAndRecordAsync(id))?.Message; _selectedAssetIds.Remove(id); await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha ao excluir arquivo e registro {id}: {ex.Message}"; } }
+    private async Task BulkDisableAsync(){ try { _feedback = (await Api.BulkDisableAudioAssetsAsync(_selectedAssetIds.ToArray()))?.Message; ClearSelection(); await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha no bulk disable: {ex.Message}"; } }
+    private async Task BulkDeleteAsync(){ if (!await ConfirmAsync("Excluir arquivo fisico e registro dos selecionados?")) return; try { _feedback = (await Api.BulkDeleteAudioAssetsFileAndRecordAsync(_selectedAssetIds.ToArray()))?.Message; ClearSelection(); await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha no bulk delete: {ex.Message}"; } }
+    private async Task RunSuspectDryRunAsync(){ try { var r = await Api.DisableSuspectAudioAssetsAsync(BuildSuspectRequest(true)); _feedback = r is null ? "Dry-run sem retorno." : $"Dry-run: {r.AffectedCount} assets seriam afetados."; } catch (Exception ex) { _error = $"Falha no dry-run de suspeitos: {ex.Message}"; } }
+    private async Task DisableSuspectsAsync(){ if (!await ConfirmAsync("Desabilitar assets suspeitos por regra?")) return; try { var r = await Api.DisableSuspectAudioAssetsAsync(BuildSuspectRequest(false)); _feedback = r is null ? "Sem retorno." : $"{r.AffectedCount} assets suspeitos foram desabilitados."; await LoadAllAsync(); } catch (Exception ex) { _error = $"Falha ao desabilitar suspeitos: {ex.Message}"; } }
+    private async Task PreviewNarrativeAsync(){ _testPreview = await Api.PostAudioResolveTestAsync(BuildResolvePreviewRequest()); if (!string.IsNullOrWhiteSpace(_testPreview?.Request?.TextPrompt) && string.IsNullOrWhiteSpace(_testLab.OverrideTextPrompt)) _testLab.OverrideTextPrompt = _testPreview.Request.TextPrompt; }
+    private async Task GenerateTestAudioAsync(){ _generatingTestAudio = true; try { if (string.IsNullOrWhiteSpace(_testLab.OverrideTextPrompt)) await PreviewNarrativeAsync(); var request = CloneTestRequest(_testLab); var response = await Api.GenerateTestAudioAsync(request); _lastGenerateRequest = CloneTestRequest(request); _currentTestJobId = response?.JobId; _currentTestStatus = "pending"; if (_currentTestJobId.HasValue) await PollTestStatusAsync(_currentTestJobId.Value); } catch (Exception ex) { _error = $"Falha ao gerar audio de teste: {ex.Message}"; } finally { _generatingTestAudio = false; } }
+    private async Task RegenerateTestAudioAsync(){ if (_lastGenerateRequest is null) return; _testLab = CloneTestRequest(_lastGenerateRequest); await GenerateTestAudioAsync(); }
+    private async Task PollTestStatusAsync(long jobId){ for (var i = 0; i < 20; i++){ await Task.Delay(2000); var status = await Api.GetTestAudioStatusAsync(jobId); if (status is null) continue; _currentTestStatus = status.Status; _currentTestTeamName = status.TeamName; if (string.Equals(status.Status, "completed", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(status.AudioUrl)){ _currentTestAudioUrl = status.AudioUrl; _testLab.OverrideTextPrompt = status.TextPrompt; _testRuns.Insert(0, new TestRunViewModel{ JobId = status.JobId, AudioUrl = status.AudioUrl, TextPrompt = status.TextPrompt, TeamName = status.TeamName, VoiceKey = _testLab.VoiceKey, Intensity = _testLab.Intensity }); await ApplyVolumeAsync(); return; } if (string.Equals(status.Status, "failed", StringComparison.OrdinalIgnoreCase)){ _error = $"Job de teste falhou: {status.ErrorMessage}"; return; } } _feedback = "Polling encerrado antes da conclusao do teste."; }
+    private async Task QueueRegenerationAsync(AudioAssetAdminListItemDto asset){ try { var result = await Api.GenerateTestAudioAsync(new AudioAssetTestGenerateRequestDto{ EventType = asset.EventType, Language = asset.Language, TeamSymbol = asset.TeamSymbol, TeamName = asset.TeamName, ContextKey = asset.ContextKey, Intensity = asset.Intensity, VoiceKey = asset.VoiceKey, OverrideTextPrompt = asset.TextPrompt }); _feedback = result is null ? $"Regeneracao do asset {asset.Id} enviada sem retorno." : $"Regeneracao enviada. JobId={result.JobId}."; } catch (Exception ex) { _error = $"Falha ao regenerar asset {asset.Id}: {ex.Message}"; } }
+    private async Task OpenUrlAsync(string? url){ if (string.IsNullOrWhiteSpace(url) || _audioModule is null) return; await _audioModule.InvokeVoidAsync("openUrl", url); }
+    private async Task CopyUrlAsync(string? url){ if (string.IsNullOrWhiteSpace(url) || _audioModule is null) return; await _audioModule.InvokeVoidAsync("copyText", url); _feedback = "URL copiada."; }
+    private async Task PlayTestAudioAsync(){ if (_audioModule is not null) await _audioModule.InvokeVoidAsync("playAudio", _testAudioElement); }
+    private async Task StopTestAudioAsync(){ if (_audioModule is not null) await _audioModule.InvokeVoidAsync("stopAudio", _testAudioElement); }
+    private async Task OnVolumeChanged(ChangeEventArgs args){ if (int.TryParse(args.Value?.ToString(), out var parsed)){ _testVolumePercent = Math.Clamp(parsed, 0, 100); await ApplyVolumeAsync(); } }
+    private async Task ApplyVolumeAsync(){ if (_audioModule is not null) await _audioModule.InvokeVoidAsync("setVolume", _testAudioElement, _testVolumePercent / 100d); }
+    private void SelectVisibleAssets(){ foreach (var item in _assets.Items) _selectedAssetIds.Add(item.Id); }
+    private void ClearSelection() => _selectedAssetIds.Clear();
+    private void ToggleSelection(long id, object? value){ var isChecked = value is bool b ? b : string.Equals(value?.ToString(), "true", StringComparison.OrdinalIgnoreCase); if (isChecked) _selectedAssetIds.Add(id); else _selectedAssetIds.Remove(id); }
+    private void ApplyDateFilters(){ _filters.CreatedAfterUtc = ParseDate(_createdAfterText, false); _filters.CreatedBeforeUtc = ParseDate(_createdBeforeText, true); }
+    private string BuildQueryString(){ var q = new List<string>(); AddQuery(q, "eventType", _filters.EventType); AddQuery(q, "language", _filters.Language); AddQuery(q, "teamSymbol", _filters.TeamSymbol); AddQuery(q, "normalizedSymbol", _filters.NormalizedSymbol); AddQuery(q, "teamName", _filters.TeamName); AddQuery(q, "status", _filters.Status); AddQuery(q, "containsText", _filters.ContainsText); if (_filters.CreatedAfterUtc.HasValue) AddQuery(q, "createdAfterUtc", _filters.CreatedAfterUtc.Value.ToString("O")); if (_filters.CreatedBeforeUtc.HasValue) AddQuery(q, "createdBeforeUtc", _filters.CreatedBeforeUtc.Value.ToString("O")); if (_filters.SuspectsOnly == true) AddQuery(q, "suspectsOnly", "true"); AddQuery(q, "page", _filters.Page.ToString()); AddQuery(q, "pageSize", _filters.PageSize.ToString()); return q.Count == 0 ? string.Empty : $"?{string.Join("&", q)}"; }
+    private AudioResolveRequest BuildResolvePreviewRequest() => new(){ EventType = _testLab.EventType, Language = _testLab.Language, RawSymbol = _testLab.TeamSymbol, NormalizedSymbol = _testLab.TeamSymbol, TeamSymbol = _testLab.TeamSymbol, TeamName = _testLab.TeamName, TextPrompt = _testLab.OverrideTextPrompt, ContextKey = _testLab.ContextKey, Intensity = _testLab.Intensity, VoiceKey = _testLab.VoiceKey, QueueIfMissing = false, ForceQueue = false };
+    private static AudioAssetTestGenerateRequestDto CloneTestRequest(AudioAssetTestGenerateRequestDto source) => new(){ EventType = source.EventType, Language = source.Language, TeamSymbol = source.TeamSymbol, TeamName = source.TeamName, ContextKey = source.ContextKey, Intensity = source.Intensity, VoiceKey = source.VoiceKey, OverrideTextPrompt = source.OverrideTextPrompt };
+    private static AudioAssetMaintenanceDisableSuspectRequestDto BuildSuspectRequest(bool dryRun) => new(){ DryRun = dryRun, Rules = ["contains_usdt","contains_language_code","non_latin_name","raw_symbol_leak"] };
+    private async Task<bool> ConfirmAsync(string message) => await JS.InvokeAsync<bool>("confirm", message);
+    private static string FormatBytes(long? bytes){ var value = bytes ?? 0; string[] units = ["B","KB","MB","GB"]; double size = value; var unitIndex = 0; while (size >= 1024 && unitIndex < units.Length - 1){ size /= 1024; unitIndex++; } return $"{size:0.##} {units[unitIndex]}"; }
+    private static string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "unknown";
+    private static string FormatDuration(int? durationMs){ if (!durationMs.HasValue || durationMs.Value <= 0) return "unknown"; var ts = TimeSpan.FromMilliseconds(durationMs.Value); return ts.TotalHours >= 1 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss"); }
+    private static string Truncate(string? value, int maxLength){ if (string.IsNullOrWhiteSpace(value) || value.Length <= maxLength) return value ?? string.Empty; return value[..maxLength] + "..."; }
+    private string GetRowClass(AudioAssetAdminListItemDto asset) => asset.IsOrphan ? "table-danger" : asset.Status == "disabled" ? "table-secondary" : asset.IsSuspect ? "table-warning" : string.Empty;
+    private void OnWalletStateChanged()
+    {
+        if (!_showLegacyAudioAssetsLayout)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(async () =>
+        {
+            await LoadAllAsync();
+            StateHasChanged();
+        });
+    }
+    private static void AddQuery(List<string> query, string key, string? value){ if (!string.IsNullOrWhiteSpace(value)) query.Add($"{Uri.EscapeDataString(key)}={Uri.EscapeDataString(value)}"); }
+    private static DateTime? ParseDate(string? raw, bool endOfDay){ if (!DateTime.TryParse(raw, out var parsed)) return null; return endOfDay ? parsed.Date.AddDays(1).AddTicks(-1) : parsed.Date; }
+    private static bool IsConfiguredWallet(string? wallet, string? configuredWallet) => !string.IsNullOrWhiteSpace(wallet) && !string.IsNullOrWhiteSpace(configuredWallet) && string.Equals(wallet, configuredWallet, StringComparison.Ordinal);
+    public void Dispose()
+    {
+        if (_showLegacyAudioAssetsLayout)
+        {
+            WalletState.Changed -= OnWalletStateChanged;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_audioModule is not null)
+        {
+            await _audioModule.DisposeAsync();
+        }
+    }
+    private sealed class TestRunViewModel { public long JobId { get; set; } public string? AudioUrl { get; set; } public string? TextPrompt { get; set; } public string? TeamName { get; set; } public string? VoiceKey { get; set; } public string? Intensity { get; set; } }
+}
+
+<style>
+    .audio-admin { padding: 2rem 0 4rem; display: grid; gap: 1rem; }
+    .audio-admin .card { border: 1px solid rgba(120,137,166,.22); border-radius: 1.2rem; background: linear-gradient(180deg, rgba(11,18,35,.96), rgba(18,28,50,.94)); color: #eef4ff; padding: 1.2rem; }
+    .audio-admin .hero, .audio-admin .toolbar, .audio-admin .actions, .audio-admin .meta { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; justify-content: space-between; }
+    .audio-admin .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: .8rem; margin-top: 1rem; }
+    .audio-admin label { display: grid; gap: .35rem; }
+    .audio-admin label.wide { grid-column: 1 / -1; }
+    .audio-admin .check { display: flex; align-items: center; gap: .5rem; }
+    .audio-admin input, .audio-admin select, .audio-admin textarea, .audio-admin button, .audio-admin a { border-radius: .9rem; }
+    .audio-admin input, .audio-admin select, .audio-admin textarea { border: 1px solid rgba(131,149,177,.24); background: rgba(8,14,26,.75); color: #f3f6fd; padding: .75rem .85rem; }
+    .audio-admin button, .audio-admin a { border: 1px solid rgba(126,157,201,.28); padding: .65rem .95rem; background: rgba(17,30,54,.8); color: #f3f7ff; text-decoration: none; }
+    .audio-admin .secondary { background: rgba(31,46,79,.85); }
+    .audio-admin .warning { background: rgba(112,77,10,.86); }
+    .audio-admin .danger { background: rgba(122,28,34,.9); }
+    .audio-admin .ok { border-color: rgba(53,192,139,.32); }
+    .audio-admin .error { border-color: rgba(232,88,94,.32); }
+    .audio-admin .asset { border: 1px solid rgba(116,136,170,.22); border-radius: 1rem; padding: 1rem; background: rgba(7,12,23,.72); display: grid; gap: .75rem; margin-top: 1rem; }
+    .audio-admin .asset.suspect { border-color: rgba(255,146,74,.62); }
+    .audio-admin .pill { padding: .2rem .6rem; border-radius: 999px; background: rgba(62,89,135,.55); }
+    .audio-admin .pill.warn { background: rgba(171,68,35,.76); }
+    .audio-admin audio { width: 100%; }
+    .audio-admin pre { white-space: pre-wrap; margin: 0; border-radius: .85rem; background: rgba(5,10,18,.82); padding: .8rem; }
+</style>
