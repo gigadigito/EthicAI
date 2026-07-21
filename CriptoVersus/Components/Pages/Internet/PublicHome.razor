@@ -3164,51 +3164,59 @@
     }
 
     /* Convite discreto para criação pública de batalhas */
+
     .community-match-floating {
         position: fixed;
         right: 18px;
         bottom: 18px;
         z-index: 1050;
-        width: min(315px, calc(100vw - 28px));
-        max-height: calc(100vh - 36px);
+        width: auto;
+        max-width: calc(100vw - 24px);
         overflow: visible;
-        border: 1px solid rgba(83, 200, 255, .16);
-        border-radius: 18px;
-        background: radial-gradient(circle at top left, rgba(255, 145, 0, .08), transparent 42%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .08), transparent 42%), rgba(7, 12, 18, .90);
-        box-shadow: 0 14px 38px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .035);
-        /* Não use transform, filter ou backdrop-filter aqui:
-               essas propriedades prendem o modal dentro do card flutuante. */
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        box-shadow: none;
     }
 
     .community-match-floating__close {
         position: absolute;
-        top: -9px;
-        right: -9px;
+        top: -12px;
+        right: -12px;
         z-index: 10;
         display: grid;
         place-items: center;
-        width: 27px;
-        height: 27px;
+        width: 32px;
+        height: 32px;
         padding: 0;
-        color: rgba(255, 255, 255, .72);
-        font-size: 1rem;
+        color: #ffffff;
+        font-size: 1.15rem;
+        font-weight: 900;
         line-height: 1;
-        border: 1px solid rgba(255, 255, 255, .12);
+        border: 2px solid rgba(255,255,255,.24);
         border-radius: 999px;
-        background: rgba(5, 10, 16, .96);
-        box-shadow: 0 5px 14px rgba(0, 0, 0, .38);
+        background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.14), transparent 34%), linear-gradient(180deg, rgba(31,41,55,.98), rgba(5,10,16,.98));
+        box-shadow: 0 0 0 3px rgba(0,0,0,.28), 0 8px 20px rgba(0,0,0,.5), 0 0 14px rgba(83,200,255,.18);
         cursor: pointer;
+        transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
     }
 
         .community-match-floating__close:hover,
         .community-match-floating__close:focus-visible {
             color: #fff;
-            border-color: rgba(255, 255, 255, .26);
-            background: rgba(18, 27, 38, .98);
+            border-color: rgba(83,200,255,.72);
+            background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), transparent 34%), linear-gradient(180deg, rgba(39,52,70,.99), rgba(10,18,28,.99));
+            box-shadow: 0 0 0 3px rgba(0,0,0,.32), 0 10px 24px rgba(0,0,0,.54), 0 0 20px rgba(83,200,255,.34);
+            transform: scale(1.08);
+            outline: none;
+        }
+
+        .community-match-floating__close:active {
+            transform: scale(.96);
         }
 
     /* O componente também renderiza o modal. Ele precisa usar a viewport inteira,
-           sem herdar largura, altura ou posicionamento do convite flutuante. */
+               sem herdar largura, altura ou posicionamento do convite flutuante. */
     .community-match-floating > .modal-backdrop,
     .community-match-floating ::deep .modal-backdrop {
         position: fixed !important;
@@ -3233,85 +3241,159 @@
         transform: none !important;
     }
 
+    .community-match-floating > .modal,
+    .community-match-floating ::deep .modal {
+        padding: 12px !important;
+        overscroll-behavior: contain;
+    }
+
         .community-match-floating > .modal .modal-dialog,
         .community-match-floating ::deep .modal .modal-dialog {
-            width: auto !important;
-            max-width: min(960px, calc(100vw - 32px)) !important;
-            margin: 1.75rem auto !important;
+            width: min(960px, 100%) !important;
+            max-width: min(960px, 100%) !important;
+            min-height: 0 !important;
+            margin: 0 auto !important;
+            display: flex !important;
+            align-items: center !important;
         }
 
         .community-match-floating > .modal .modal-content,
         .community-match-floating ::deep .modal .modal-content {
             width: 100% !important;
-            max-height: none !important;
-            overflow: visible !important;
+            max-height: calc(100dvh - 24px) !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
         }
+
+        .community-match-floating > .modal .modal-header,
+        .community-match-floating > .modal .modal-footer,
+        .community-match-floating ::deep .modal .modal-header,
+        .community-match-floating ::deep .modal .modal-footer {
+            flex: 0 0 auto !important;
+        }
+
+        .community-match-floating > .modal .modal-body,
+        .community-match-floating ::deep .modal .modal-body {
+            min-height: 0 !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+        }
+
+    @@supports not (height: 100dvh) {
+        .community-match-floating > .modal .modal-content, .community-match-floating ::deep .modal .modal-content {
+            max-height: calc(100vh - 24px) !important;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .community-match-floating > .modal,
+        .community-match-floating ::deep .modal {
+            padding: 8px !important;
+        }
+
+            .community-match-floating > .modal .modal-dialog,
+            .community-match-floating ::deep .modal .modal-dialog {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .community-match-floating > .modal .modal-content,
+            .community-match-floating ::deep .modal .modal-content {
+                max-height: calc(100dvh - 16px) !important;
+                border-radius: 16px !important;
+            }
+
+            .community-match-floating > .modal .modal-body,
+            .community-match-floating ::deep .modal .modal-body {
+                padding-inline: 12px !important;
+            }
+    }
+
+    @@media (max-height: 700px) {
+        .community-match-floating > .modal .modal-dialog,
+        .community-match-floating ::deep .modal .modal-dialog {
+            align-items: flex-start !important;
+        }
+
+        .community-match-floating > .modal,
+        .community-match-floating ::deep .modal {
+            padding-block: 6px !important;
+        }
+
+            .community-match-floating > .modal .modal-content,
+            .community-match-floating ::deep .modal .modal-content {
+                max-height: calc(100dvh - 12px) !important;
+            }
+    }
 
     .community-match-floating .community-match-card,
     .community-match-floating ::deep .community-match-card {
         margin: 0 !important;
         min-height: 0 !important;
-        padding: 14px 16px !important;
+        padding: 0 !important;
         border: 0 !important;
-        border-radius: 18px !important;
+        border-radius: 999px !important;
         background: transparent !important;
         box-shadow: none !important;
+        overflow: visible !important;
     }
 
     .community-match-floating .community-match-card__layout,
     .community-match-floating .community-match-card__content,
     .community-match-floating ::deep .community-match-card__layout,
     .community-match-floating ::deep .community-match-card__content {
-        gap: 10px !important;
+        display: block !important;
+        gap: 0 !important;
     }
 
     .community-match-floating .community-match-card__eyebrow,
-    .community-match-floating ::deep .community-match-card__eyebrow {
-        margin-bottom: 4px !important;
-        font-size: .66rem !important;
-        letter-spacing: .08em !important;
-    }
-
     .community-match-floating .community-match-card__title,
-    .community-match-floating ::deep .community-match-card__title {
-        margin: 0 !important;
-        font-size: 1.05rem !important;
-        line-height: 1.12 !important;
-    }
-
     .community-match-floating .community-match-card__body,
+    .community-match-floating ::deep .community-match-card__eyebrow,
+    .community-match-floating ::deep .community-match-card__title,
     .community-match-floating ::deep .community-match-card__body {
         display: none !important;
     }
+
+
 
     .community-match-floating .community-match-card__button,
     .community-match-floating .community-match-card .btn,
     .community-match-floating ::deep .community-match-card__button,
     .community-match-floating ::deep .community-match-card .btn {
-        min-height: 38px !important;
-        padding: 8px 14px !important;
+        width: auto !important;
+        min-width: 0 !important;
+        min-height: 42px !important;
+        padding: 10px 18px !important;
         border-radius: 999px !important;
-        font-size: .78rem !important;
-        font-weight: 800 !important;
-        line-height: 1.15 !important;
+        font-size: .82rem !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        box-shadow: 0 10px 28px rgba(0,0,0,.36) !important;
     }
 
     @@media (max-width: 767.98px) {
         .community-match-floating {
-            right: 10px;
-            bottom: 10px;
-            width: min(290px, calc(100vw - 20px));
-            border-radius: 16px;
+            right: 12px;
+            bottom: 12px;
+            width: auto;
+            max-width: calc(100vw - 24px);
         }
 
-            .community-match-floating .community-match-card,
-            .community-match-floating ::deep .community-match-card {
-                padding: 12px 14px !important;
-            }
-
-            .community-match-floating .community-match-card__title,
-            .community-match-floating ::deep .community-match-card__title {
-                font-size: .98rem !important;
+            .community-match-floating .community-match-card__button,
+            .community-match-floating .community-match-card .btn,
+            .community-match-floating ::deep .community-match-card__button,
+            .community-match-floating ::deep .community-match-card .btn {
+                min-height: 40px !important;
+                padding: 9px 15px !important;
+                font-size: .76rem !important;
+                max-width: calc(100vw - 36px) !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
             }
     }
 
