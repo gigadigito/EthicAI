@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @page "/en"
 @page "/pt"
 @page "/zh"
@@ -48,6 +48,22 @@
 </HeadContent>
 
 <section class="home-landing public-home-arena">
+    @if (_showCommunityMatchFloatingCard)
+    {
+        <aside class="community-match-floating"
+               role="complementary"
+               aria-label="Community battle">
+            <button type="button"
+                    class="community-match-floating__close"
+                    title="@CommunityMatchCloseLabel"
+                    aria-label="@CommunityMatchCloseLabel"
+                    @onclick="CloseCommunityMatchFloatingCard">
+                ×
+            </button>
+
+            <CommunityMatchCreationCard />
+        </aside>
+    }
     <header class="home-hero">
         <div class="home-hero__copy">
             <span class="home-hero__eyebrow">
@@ -735,6 +751,17 @@
     private string _lastRefreshSignature = string.Empty;
     private bool _interactiveFeaturesStarted;
     private bool _hubSubscribed;
+    private bool _showCommunityMatchFloatingCard = true;
+
+    private string CommunityMatchCloseLabel => CurrentCulture switch
+    {
+        "pt" => "Fechar",
+        "zh" => "关闭",
+        _ => "Close"
+    };
+
+    private void CloseCommunityMatchFloatingCard()
+        => _showCommunityMatchFloatingCard = false;
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
@@ -3135,4 +3162,157 @@
             background-position: -200% 0;
         }
     }
+
+    /* Convite discreto para criação pública de batalhas */
+    .community-match-floating {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 1050;
+        width: min(315px, calc(100vw - 28px));
+        max-height: calc(100vh - 36px);
+        overflow: visible;
+        border: 1px solid rgba(83, 200, 255, .16);
+        border-radius: 18px;
+        background: radial-gradient(circle at top left, rgba(255, 145, 0, .08), transparent 42%), radial-gradient(circle at bottom right, rgba(24, 216, 210, .08), transparent 42%), rgba(7, 12, 18, .90);
+        box-shadow: 0 14px 38px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .035);
+        /* Não use transform, filter ou backdrop-filter aqui:
+               essas propriedades prendem o modal dentro do card flutuante. */
+    }
+
+    .community-match-floating__close {
+        position: absolute;
+        top: -9px;
+        right: -9px;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        width: 27px;
+        height: 27px;
+        padding: 0;
+        color: rgba(255, 255, 255, .72);
+        font-size: 1rem;
+        line-height: 1;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 999px;
+        background: rgba(5, 10, 16, .96);
+        box-shadow: 0 5px 14px rgba(0, 0, 0, .38);
+        cursor: pointer;
+    }
+
+        .community-match-floating__close:hover,
+        .community-match-floating__close:focus-visible {
+            color: #fff;
+            border-color: rgba(255, 255, 255, .26);
+            background: rgba(18, 27, 38, .98);
+        }
+
+    /* O componente também renderiza o modal. Ele precisa usar a viewport inteira,
+           sem herdar largura, altura ou posicionamento do convite flutuante. */
+    .community-match-floating > .modal-backdrop,
+    .community-match-floating ::deep .modal-backdrop {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 1990 !important;
+    }
+
+    .community-match-floating > .modal,
+    .community-match-floating ::deep .modal {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: none !important;
+        max-height: none !important;
+        margin: 0 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        z-index: 2000 !important;
+        transform: none !important;
+    }
+
+        .community-match-floating > .modal .modal-dialog,
+        .community-match-floating ::deep .modal .modal-dialog {
+            width: auto !important;
+            max-width: min(960px, calc(100vw - 32px)) !important;
+            margin: 1.75rem auto !important;
+        }
+
+        .community-match-floating > .modal .modal-content,
+        .community-match-floating ::deep .modal .modal-content {
+            width: 100% !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+    .community-match-floating .community-match-card,
+    .community-match-floating ::deep .community-match-card {
+        margin: 0 !important;
+        min-height: 0 !important;
+        padding: 14px 16px !important;
+        border: 0 !important;
+        border-radius: 18px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .community-match-floating .community-match-card__layout,
+    .community-match-floating .community-match-card__content,
+    .community-match-floating ::deep .community-match-card__layout,
+    .community-match-floating ::deep .community-match-card__content {
+        gap: 10px !important;
+    }
+
+    .community-match-floating .community-match-card__eyebrow,
+    .community-match-floating ::deep .community-match-card__eyebrow {
+        margin-bottom: 4px !important;
+        font-size: .66rem !important;
+        letter-spacing: .08em !important;
+    }
+
+    .community-match-floating .community-match-card__title,
+    .community-match-floating ::deep .community-match-card__title {
+        margin: 0 !important;
+        font-size: 1.05rem !important;
+        line-height: 1.12 !important;
+    }
+
+    .community-match-floating .community-match-card__body,
+    .community-match-floating ::deep .community-match-card__body {
+        display: none !important;
+    }
+
+    .community-match-floating .community-match-card__button,
+    .community-match-floating .community-match-card .btn,
+    .community-match-floating ::deep .community-match-card__button,
+    .community-match-floating ::deep .community-match-card .btn {
+        min-height: 38px !important;
+        padding: 8px 14px !important;
+        border-radius: 999px !important;
+        font-size: .78rem !important;
+        font-weight: 800 !important;
+        line-height: 1.15 !important;
+    }
+
+    @@media (max-width: 767.98px) {
+        .community-match-floating {
+            right: 10px;
+            bottom: 10px;
+            width: min(290px, calc(100vw - 20px));
+            border-radius: 16px;
+        }
+
+            .community-match-floating .community-match-card,
+            .community-match-floating ::deep .community-match-card {
+                padding: 12px 14px !important;
+            }
+
+            .community-match-floating .community-match-card__title,
+            .community-match-floating ::deep .community-match-card__title {
+                font-size: .98rem !important;
+            }
+    }
+
 </style>
