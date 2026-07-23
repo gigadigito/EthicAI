@@ -2632,11 +2632,34 @@
     "goToWallet": "前往我的钱包"
   },
   
+  "reconnect": {
+    "eyebrow": "CRIPTO VERSUS ARENA",
+    "title": "正在重新连接竞技场...",
+    "connectionLost": "与服务器的连接已断开。我们正在恢复竞技场信号，以便您继续查看比赛。",
+    "attempt": "尝试",
+    "of": "/",
+    "retrying": "正在自动重新连接",
+    "failed": "无法自动重新连接。",
+    "rejected": "服务器拒绝了此会话。请重新加载页面后再次进入。",
+    "paused": "重新连接已暂时暂停。",
+    "reload": "立即重新加载"
+  },
   "communityMatch": {
     "eyebrow": "公开创建",
     "title": "你有更精彩的对战组合吗？",
     "body": "创建你自己的对战，向社区发起挑战。",
     "button": "创建我的对战",
+    "errors": {
+      "unavailable": "公开对战创建功能暂时不可用。",
+      "invalidAsset": "请选择两个有效的资产。",
+      "sameAsset": "请选择两个不同的资产。",
+      "duplicate": "该对战组合已有正在进行的比赛。",
+      "captchaInvalid": "无法验证 CAPTCHA，请重试。",
+      "captchaExpired": "CAPTCHA 已过期，请重新确认后继续。",
+      "rateLimited": "请在 {0} 秒后重试。",
+      "network": "无法连接到服务器，请重试。",
+      "generic": "暂时无法创建对战。"
+    },
     "modal": {
       "eyebrow": "公开对战",
       "title": "创建对战",

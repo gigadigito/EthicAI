@@ -457,7 +457,7 @@
                 _awayTeam?.Symbol);
 
             _messageKind = "error";
-            _message = $"{T("modal.fallbackError")} Detalhe: {ex.Message}";
+            _message = $"{T("errors.network")}";
 
             await ResetCaptchaAsync();
         }
@@ -601,20 +601,19 @@
     private string ResolveResultMessage(
         CriptoVersus.Web.Services.CriptoVersusApiClient.CommunityMatchCreationResult result)
     {
-        if (!string.IsNullOrWhiteSpace(result.Message))
-            return result.Message;
-
-        return result.MessageCode switch
+        var code = result.MessageCode?.Trim();
+        return code?.ToLowerInvariant() switch
         {
-            "communityMatchesUnavailable" => T("modal.unavailable"),
-            "sameAssetNotAllowed" => T("modal.sameAsset"),
-            "assetNotAvailable" => T("modal.assetUnavailable"),
-            "invalidAsset" => T("modal.invalidAsset"),
-            "tooManyRequests" => T(
-                "modal.tooManyRequests",
-                result.RetryAfterSeconds ?? 0),
-            "battleAlreadyExists" => T("modal.existing"),
-            _ => $"{T("modal.fallbackError")} Código: {result.MessageCode ?? "(vazio)"}"
+            "communitymatchesunavailable" => T("errors.unavailable"),
+            "invalidasset" => T("errors.invalidAsset"),
+            "sameassetnotallowed" => T("errors.sameAsset"),
+            "assetnotavailable" => T("errors.invalidAsset"),
+            "battlealreadyexists" => T("errors.duplicate"),
+            "captchainvalid" or "captcha-error" => T("errors.captchaInvalid"),
+            "captchaexpired" or "timeout-or-duplicate" => T("errors.captchaExpired"),
+            "toomanyrequests" => T("errors.rateLimited", result.RetryAfterSeconds ?? 0),
+            "networkerror" or "httprequesterror" or "http408" or "http502" or "http503" or "http504" => T("errors.network"),
+            _ => T("errors.generic")
         };
     }
 

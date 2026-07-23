@@ -2631,11 +2631,34 @@
     "stay": "Permanecer nesta p?gina",
     "goToWallet": "Ir para Minha Carteira"
   },
+  "reconnect": {
+    "eyebrow": "CRIPTO VERSUS ARENA",
+    "title": "Reconectando à arena...",
+    "connectionLost": "A conexão com o servidor foi perdida. Estamos tentando restaurar o sinal da arena para você continuar acompanhando a partida.",
+    "attempt": "Tentativa",
+    "of": "de",
+    "retrying": "Reconexão automática em andamento",
+    "failed": "Não foi possível reconectar automaticamente.",
+    "rejected": "A sessão foi rejeitada pelo servidor. Recarregue para entrar novamente.",
+    "paused": "A reconexão foi pausada temporariamente.",
+    "reload": "Recarregar agora"
+  },
   "communityMatch": {
     "eyebrow": "Criação pública",
     "title": "Tem uma batalha melhor em mente?",
     "body": "Crie sua própria batalha e desafie a comunidade.",
     "button": "Criar minha própria batalha",
+    "errors": {
+      "unavailable": "A criação pública de batalhas está temporariamente indisponível.",
+      "invalidAsset": "Escolha dois ativos válidos.",
+      "sameAsset": "Escolha dois ativos diferentes.",
+      "duplicate": "Já existe uma batalha ativa para esse confronto.",
+      "captchaInvalid": "Não foi possível validar o CAPTCHA. Tente novamente.",
+      "captchaExpired": "O CAPTCHA expirou. Confirme novamente para continuar.",
+      "rateLimited": "Tente novamente em {0} segundos.",
+      "network": "Não foi possível conectar ao servidor. Tente novamente.",
+      "generic": "Não foi possível criar a batalha agora."
+    },
     "modal": {
       "eyebrow": "Batalha pública",
       "title": "Criar uma batalha",

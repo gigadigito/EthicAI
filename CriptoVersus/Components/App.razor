@@ -2,6 +2,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @using CriptoVersus.Web.Services
 @inject AppCultureService AppCulture
+@inject LocalizationService L
 <html lang="@AppCulture.ToHtmlLang(AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext))">
 
 <head>
@@ -44,38 +45,36 @@
 
 <body>
     <Routes @rendermode="InteractiveServer" />
-    <div id="components-reconnect-modal" class="components-reconnect-hide" data-nosnippet>
+    <div id="components-reconnect-modal" class="components-reconnect-hide" data-nosnippet data-reconnect-culture="@ReconnectCulture">
         <div class="cv-reconnect-overlay" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="cv-reconnect-backdrop"></div>
             <div class="cv-reconnect-card">
                 <div class="cv-reconnect-card__glow cv-reconnect-card__glow--green"></div>
                 <div class="cv-reconnect-card__glow cv-reconnect-card__glow--violet"></div>
-                <div class="cv-reconnect-card__eyebrow">CRIPTO VERSUS ARENA</div>
+                <div class="cv-reconnect-card__eyebrow" data-reconnect-key="eyebrow">@L.T("reconnect.eyebrow", ReconnectCulture)</div>
                 <div class="cv-reconnect-card__spinner" aria-hidden="true">
                     <span></span>
                     <span></span>
                     <span></span>
                 </div>
-                <h2 class="cv-reconnect-card__title">Reconectando à arena...</h2>
-                <p class="cv-reconnect-card__body">
-                    A conexão com o servidor foi perdida. Estamos tentando restaurar o sinal da arena para você continuar acompanhando a partida.
-                </p>
+                <h2 class="cv-reconnect-card__title" data-reconnect-key="title">@L.T("reconnect.title", ReconnectCulture)</h2>
+                <p class="cv-reconnect-card__body" data-reconnect-key="connectionLost">@L.T("reconnect.connectionLost", ReconnectCulture)</p>
                 <div class="cv-reconnect-card__attempts">
-                    <span>Tentativa</span>
+                    <span data-reconnect-key="attempt">@L.T("reconnect.attempt", ReconnectCulture)</span>
                     <strong class="components-reconnect-current-attempt">1</strong>
-                    <span>de</span>
+                    <span data-reconnect-key="of">@L.T("reconnect.of", ReconnectCulture)</span>
                     <strong class="components-reconnect-max-retries">?</strong>
                 </div>
                 <div class="cv-reconnect-card__status">
-                    <span class="cv-reconnect-status cv-reconnect-status--retrying">Reconexão automática em andamento</span>
-                    <span class="cv-reconnect-status cv-reconnect-status--failed">Não foi possível reconectar automaticamente.</span>
-                    <span class="cv-reconnect-status cv-reconnect-status--rejected">A sessão foi rejeitada pelo servidor. Recarregue para entrar novamente.</span>
-                    <span class="cv-reconnect-status cv-reconnect-status--paused">A reconexão foi pausada temporariamente.</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--retrying" data-reconnect-key="retrying">@L.T("reconnect.retrying", ReconnectCulture)</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--failed" data-reconnect-key="failed">@L.T("reconnect.failed", ReconnectCulture)</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--rejected" data-reconnect-key="rejected">@L.T("reconnect.rejected", ReconnectCulture)</span>
+                    <span class="cv-reconnect-status cv-reconnect-status--paused" data-reconnect-key="paused">@L.T("reconnect.paused", ReconnectCulture)</span>
                 </div>
                 <button type="button"
                         class="cv-reconnect-card__button"
                         onclick="window.location.reload()">
-                    Recarregar agora
+                    @L.T("reconnect.reload", ReconnectCulture)
                 </button>
             </div>
         </div>
@@ -100,6 +99,10 @@
 
 
 </body>
+
+@code {
+    private string ReconnectCulture => AppCulture.DetectPreferredRouteCulture(HttpContextAccessor.HttpContext);
+}
 
 </html>
 

@@ -2631,11 +2631,34 @@
     "goToWallet": "Go to My Wallet"
   }
 ,
+  "reconnect": {
+    "eyebrow": "CRIPTO VERSUS ARENA",
+    "title": "Reconnecting to the arena...",
+    "connectionLost": "The connection to the server was lost. We are restoring the arena signal so you can keep following the match.",
+    "attempt": "Attempt",
+    "of": "of",
+    "retrying": "Automatic reconnection in progress",
+    "failed": "Unable to reconnect automatically.",
+    "rejected": "The session was rejected by the server. Reload to enter again.",
+    "paused": "Reconnection has been temporarily paused.",
+    "reload": "Reload now"
+  },
   "communityMatch": {
     "eyebrow": "Public creation",
     "title": "Have a better matchup in mind?",
     "body": "Create your own battle and challenge the community.",
     "button": "Create my own battle",
+    "errors": {
+      "unavailable": "Public battle creation is temporarily unavailable.",
+      "invalidAsset": "Choose two valid assets.",
+      "sameAsset": "Choose two different assets.",
+      "duplicate": "There is already an active battle for this matchup.",
+      "captchaInvalid": "We could not validate the CAPTCHA. Please try again.",
+      "captchaExpired": "The CAPTCHA expired. Please confirm it again to continue.",
+      "rateLimited": "Try again in {0} seconds.",
+      "network": "We could not connect to the server. Please try again.",
+      "generic": "We could not create the battle right now."
+    },
     "modal": {
       "eyebrow": "Public battle",
       "title": "Create a battle",
