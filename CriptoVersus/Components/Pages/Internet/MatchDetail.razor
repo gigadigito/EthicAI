@@ -4894,7 +4894,6 @@
                 text-overflow: ellipsis !important;
             }
     }
-
 </style>
 
 @code {
@@ -7516,7 +7515,7 @@
            ========================= */
 
     .social-share-card--epic .arena-scoreboard {
-        min-height: 138px;
+        min-height: 112px;
     }
 
         .social-share-card--epic .arena-scoreboard::before {
@@ -7526,63 +7525,63 @@
     .social-share-card--epic .social-share-hero-team,
     .social-share-card--epic .social-share-hero-team--a,
     .social-share-card--epic .social-share-hero-team--b {
-        min-height: 132px;
-        padding-block: .75rem;
+        min-height: 106px;
+        padding-block: .48rem;
     }
 
     .social-share-card--epic .social-share-hero-team {
-        padding-inline: 1.45rem;
+        padding-inline: 1.05rem;
     }
 
     @@media (min-width: 1200px) {
         .social-share-card--epic .social-share-card__hero .team-badge,
         .social-share-card--epic .social-share-card__hero .coin-wrap {
-            width: 82px;
-            height: 82px;
-            border-radius: 21px;
+            width: 62px;
+            height: 62px;
+            border-radius: 17px;
         }
 
         .social-share-card--epic .social-share-card__hero .coin-img {
-            width: 66px;
-            height: 66px;
+            width: 50px;
+            height: 50px;
         }
     }
 
     .social-share-card--epic .team-name {
-        font-size: clamp(1.05rem, 1.3vw, 1.48rem);
-        line-height: 1;
+        font-size: clamp(.92rem, 1.08vw, 1.22rem);
+        line-height: .95;
     }
 
     .social-share-card--epic .team-price {
-        margin-top: .1rem;
-        font-size: clamp(.84rem, .95vw, 1rem);
+        margin-top: .04rem;
+        font-size: clamp(.72rem, .82vw, .9rem);
     }
 
     .social-share-card--epic .team-sub {
-        margin-top: .08rem;
-        font-size: .88rem;
+        margin-top: .04rem;
+        font-size: .76rem;
     }
 
     .social-share-card--epic .arena-versus-core {
-        min-height: 132px;
+        min-height: 106px;
     }
 
     .social-share-card--epic .arena-versus-core__score {
-        font-size: clamp(3.45rem, 4.8vw, 5.25rem);
+        font-size: clamp(2.8rem, 4vw, 4.2rem);
     }
 
     .social-share-card--epic .arena-versus-core__shield {
-        width: 90px;
-        height: 90px;
+        width: 72px;
+        height: 72px;
     }
 
         .social-share-card--epic .arena-versus-core__shield .tv-versus-image {
-            width: 72px;
-            max-height: 68px;
+            width: 58px;
+            max-height: 54px;
         }
 
     .arena-scoreboard__fx {
-        inset-block: -20px;
+        inset-block: -14px;
     }
 
     /* =========================
@@ -7718,12 +7717,12 @@
 
     @@media (max-width: 1199.98px) {
         .social-share-card--epic .arena-scoreboard {
-            min-height: 145px;
+            min-height: 120px;
         }
 
         .social-share-card--epic .social-share-hero-team {
-            min-height: 138px;
-            padding: .7rem 1rem;
+            min-height: 114px;
+            padding: .56rem .82rem;
         }
 
         .social-share-card--epic .social-share-card__stats {
@@ -7742,16 +7741,296 @@
         }
 
         .social-share-card--epic .social-share-hero-team {
-            min-height: 120px;
-            padding: .7rem;
+            min-height: 100px;
+            padding: .52rem;
         }
 
         .social-share-card--epic .arena-versus-core {
-            min-height: 120px;
+            min-height: 100px;
         }
 
         .social-share-clock-stage .clock-card {
             min-height: 124px;
+        }
+    }
+
+
+    /* ================================================================
+           CORREÇÃO FINAL — REDUÇÃO REAL DO PAINEL 1
+           Os elementos internos possuíam alturas fixas maiores e impediam
+           que apenas o min-height do painel reduzisse sua altura visual.
+           ================================================================ */
+
+    @@media (min-width: 768px) {
+        .social-share-card--epic .arena-scoreboard
+
+    {
+        position: relative !important;
+        z-index: 40 !important;
+        height: 118px !important;
+        min-height: 118px !important;
+        max-height: 128px !important;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 350px) minmax(0, 1fr) !important;
+        overflow: visible !important;
+    }
+
+    .social-share-card--epic .arena-scoreboard::before {
+        inset: 0 !important;
+    }
+
+    .social-share-card--epic .social-share-hero-team,
+    .social-share-card--epic .social-share-hero-team--a,
+    .social-share-card--epic .social-share-hero-team--b {
+        height: 114px !important;
+        min-height: 114px !important;
+        max-height: 114px !important;
+        padding: .42rem 1rem !important;
+        overflow: hidden !important;
+    }
+
+    /* O centro ficou absoluto para alinhar com o card de resultado.
+               Por isso, fixamos explicitamente cada equipe em sua coluna. */
+    .social-share-card--epic .social-share-hero-team--a {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+    }
+
+    .social-share-card--epic .social-share-hero-team--b {
+        grid-column: 3 !important;
+        grid-row: 1 !important;
+    }
+
+    .social-share-card--epic .social-share-card__hero .team-badge,
+    .social-share-card--epic .social-share-card__hero .coin-wrap {
+        width: 78px !important;
+        height: 78px !important;
+        min-width: 78px !important;
+        min-height: 78px !important;
+        max-width: 78px !important;
+        max-height: 78px !important;
+        border-radius: 20px !important;
+        flex: 0 0 78px !important;
+    }
+
+    .social-share-card--epic .social-share-card__hero .coin-img {
+        width: 66px !important;
+        height: 66px !important;
+        max-width: 66px !important;
+        max-height: 66px !important;
+    }
+
+
+
+    /* Logos maiores sem alterar a altura fixa do painel 1. */
+    .social-share-card--epic .social-share-hero-team {
+        align-items: center !important;
+        overflow: visible !important;
+    }
+
+    .social-share-card--epic .social-share-hero-team--a .team-badge,
+    .social-share-card--epic .social-share-hero-team--b .team-badge {
+        align-self: center !important;
+        transform: translateY(0) !important;
+    }
+
+    .social-share-card__hero .team-badge::before {
+        inset: -8px !important;
+    }
+
+    .social-share-card__hero .team-badge::after {
+        inset: -18px !important;
+    }
+
+    .social-share-card--epic .team-name {
+        font-size: clamp(.88rem, 1vw, 1.08rem) !important;
+        line-height: .92 !important;
+    }
+
+    .social-share-card--epic .team-price {
+        margin-top: .03rem !important;
+        font-size: clamp(.7rem, .76vw, .82rem) !important;
+        line-height: .95 !important;
+    }
+
+    .social-share-card--epic .team-sub {
+        margin-top: .03rem !important;
+        font-size: .72rem !important;
+        line-height: .95 !important;
+    }
+
+    .social-share-card--epic .arena-versus-core {
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        z-index: 60 !important;
+        width: 500px !important;
+        min-width: 500px !important;
+        height: 124px !important;
+        min-height: 124px !important;
+        max-height: 124px !important;
+        grid-template-columns: 112px 176px 112px !important;
+        overflow: visible !important;
+        transform: translate(-50%, -61%) !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__score {
+        font-size: clamp(3rem, 4vw, 4.1rem) !important;
+        line-height: .78 !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__score--left,
+    .social-share-card--epic .arena-versus-core__score--right {
+        transform: none !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__frame {
+        width: 176px !important;
+        height: 176px !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__shield {
+        width: 132px !important;
+        height: 132px !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__shield-metal {
+        inset: -9px !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__shield-inner {
+        width: 112px !important;
+        height: 112px !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__shield .tv-versus-image {
+        width: 124px !important;
+        max-height: 118px !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__finished {
+        position: absolute !important;
+        left: 50% !important;
+        bottom: -8px !important;
+        transform: translateX(-50%) !important;
+        width: max-content !important;
+        margin: 0 !important;
+        z-index: 999 !important;
+        pointer-events: none !important;
+    }
+
+
+    /* Mantém o resultado final acima do painel 2 e do VS. */
+    .social-share-card--epic .social-share-card__stats {
+        position: relative !important;
+        z-index: 10 !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__shield,
+    .social-share-card--epic .arena-versus-core__frame,
+    .social-share-card--epic .arena-versus-core__effects-window {
+        z-index: 20 !important;
+    }
+
+    .social-share-card--epic .arena-versus-core__finished {
+        isolation: isolate !important;
+    }
+
+        .social-share-card--epic .arena-versus-core__finished .match-live__pill {
+            padding: .28rem .58rem !important;
+            font-size: .72rem !important;
+            line-height: 1 !important;
+        }
+
+    .social-share-card--epic .arena-versus-core__effects-window,
+    .social-share-card--epic .arena-versus-core__glow,
+    .social-share-card--epic .arena-versus-core__burst-core,
+    .social-share-card--epic .arena-versus-core__burst,
+    .social-share-card--epic .arena-versus-core__debris {
+        max-height: 128px !important;
+    }
+
+    .arena-scoreboard__fx {
+        inset-block: -8px !important;
+    }
+
+    }
+
+
+
+    /* ================================================================
+           PAINEL 2 — SUBCARDS COM METADE DA ALTURA
+           Reduz os três indicadores e permite que os cards laterais
+           assumam a própria altura, sem esticar até o relógio central.
+           ================================================================ */
+
+    .social-share-card--epic .social-share-card__stats {
+        align-items: start !important;
+    }
+
+    .social-share-card--epic .social-share-team-card--a,
+    .social-share-card--epic .social-share-team-card--b {
+        min-height: 186px !important;
+        height: 186px !important;
+        max-height: 186px !important;
+        align-self: start !important;
+        padding: .72rem .68rem 1rem !important;
+        gap: .4rem !important;
+        overflow: visible !important;
+    }
+
+    .social-share-card--epic .social-share-team-card__top {
+        min-height: 46px !important;
+        gap: .5rem !important;
+    }
+
+    .social-share-card--epic .social-share-team-card__metrics {
+        gap: .38rem !important;
+        margin-top: .42rem !important;
+        margin-bottom: .18rem !important;
+    }
+
+    .social-share-card--epic .social-share-team-card__metric-row {
+        min-height: 68px !important;
+        height: 68px !important;
+        padding: .26rem .46rem !important;
+        gap: .05rem !important;
+        border-radius: 10px !important;
+        align-content: center !important;
+    }
+
+        .social-share-card--epic .social-share-team-card__metric-row span {
+            font-size: .56rem !important;
+            line-height: 1 !important;
+            letter-spacing: .09em !important;
+        }
+
+        .social-share-card--epic .social-share-team-card__metric-row strong {
+            font-size: .78rem !important;
+            line-height: 1 !important;
+        }
+
+    .social-share-card--epic .social-share-team-card__cta {
+        min-height: 34px !important;
+        height: 34px !important;
+        padding: .34rem .76rem !important;
+    }
+
+    /* Mantém os três subcards em uma única linha no desktop. */
+    @@media (min-width: 1024px) {
+        .social-share-card--epic .social-share-team-card__metrics {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
+
+        .social-share-card--epic .social-share-team-card__metric-row:last-child {
+            grid-column: auto !important;
+        }
+    }
+
+    /* No mobile, preserva legibilidade sem voltar à altura antiga. */
+    @@media (max-width: 767.98px) {
+        .social-share-card--epic .social-share-team-card__metric-row {
+            min-height: 76px !important;
+            height: 76px !important;
         }
     }
 </style>
