@@ -1,5 +1,6 @@
 @using System.Globalization
 @using DTOs
+@using CriptoVersus.Web.Services
 @inject LocalizationService L
 
 <section id="@_resolvedInstanceId"
@@ -1444,15 +1445,7 @@
     public string? AriaLabel { get; set; }
 
     [Parameter]
-    public bool IsBroadcastCompact { get; set; }
-
-    [Parameter]
-    public int? CanonicalLeftWins { get; set; }
-
-    [Parameter]
-    public int? CanonicalRightWins { get; set; }
-
-    [Parameter]
+    public bool IsBroadcastCompact { get; set; }[Parameter]
     public int ScoreVersion { get; set; }
 
     [Parameter]
@@ -1478,38 +1471,18 @@
     private IReadOnlyList<ChartCandleVisual> RightChartCandles => BuildChartCandles(OrderedRightPoints, BattleSide.Right, IsBroadcastCompact);
     private IReadOnlyList<BattleCandle> BattleCandles => BuildBattleCandles();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
-    private int DisplayedLeftWins => CanonicalLeftWins ?? Battle.LeftWins;
-    private int DisplayedRightWins => CanonicalRightWins ?? Battle.RightWins;
-    private int DisplayedTotalCandles => CanonicalLeftWins.HasValue || CanonicalRightWins.HasValue
-        ? Math.Max(0, DisplayedLeftWins) + Math.Max(0, DisplayedRightWins)
-        : Battle.TotalComparableCandles;
+    private int DisplayedLeftWins => Battle.LeftWins;
+    private int DisplayedRightWins => Battle.RightWins;
+    private int DisplayedTotalCandles => Battle.TotalComparableCandles;
     private string DisplayedLeaderLabel => ResolveDisplayedLeaderLabel();
     private string DisplayedShortLeaderLabel => ResolveDisplayedShortLeaderLabel();
 
     private string ResolveDisplayedLeaderLabel()
-    {
-        if (CanonicalLeftWins.HasValue || CanonicalRightWins.HasValue)
-        {
-            if (DisplayedLeftWins == DisplayedRightWins)
-                return T("labels.tie");
-
-            return DisplayedLeftWins > DisplayedRightWins ? LeftHeroLabel : RightHeroLabel;
-        }
-
-        return Battle.LeaderLabel;
+    {return Battle.LeaderLabel;
     }
 
     private string ResolveDisplayedShortLeaderLabel()
-    {
-        if (CanonicalLeftWins.HasValue || CanonicalRightWins.HasValue)
-        {
-            if (DisplayedLeftWins == DisplayedRightWins)
-                return T("labels.tie");
-
-            return DisplayedLeftWins > DisplayedRightWins ? LeftHeroLabel : RightHeroLabel;
-        }
-
-        return Battle.ShortLeaderLabel;
+    {return Battle.ShortLeaderLabel;
     }
     private string WaitingHistoryText => T("labels.waitingCandleHistory");
     private string PanelTitle => T("labels.tacticalPanel");
@@ -1759,9 +1732,9 @@ private IReadOnlyList<BattleCandle> BuildBattleCandles()
 
         var title = side switch
         {
-            BattleSide.Left => $"{LeftHeroLabel} {T("labels.won")} • {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}",
-            BattleSide.Right => $"{RightHeroLabel} {T("labels.won")} • {FormatDeltaPercent(rightDelta)} vs {FormatDeltaPercent(leftDelta)}",
-            _ => $"{T("labels.tie")} • {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}"
+            BattleSide.Left => $"{LeftHeroLabel} {T("labels.won")} ï¿½ {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}",
+            BattleSide.Right => $"{RightHeroLabel} {T("labels.won")} ï¿½ {FormatDeltaPercent(rightDelta)} vs {FormatDeltaPercent(leftDelta)}",
+            _ => $"{T("labels.tie")} ï¿½ {FormatDeltaPercent(leftDelta)} vs {FormatDeltaPercent(rightDelta)}"
         };
 
         result.Add(new BattleCandle

@@ -386,8 +386,6 @@
                                                      LeftColor="#ff9100"
                                                      LeftPoints="@LeftPriceBattlePoints"
                                                      LeftHasPriceHistory="@LeftPriceBattleHasHistory"
-                                                     CanonicalLeftScore="@(_match.ScoreA)"
-                                                     CanonicalRightScore="@(_match.ScoreB)"
                                                      ScoreVersion="@_match.ScoreVersion"
                                                      RightSymbol="@_match.TeamB"
                                                      RightDisplayName="@_match.TeamB"
@@ -440,8 +438,6 @@
                                             RightChangePercent="@_match.PctB"
                                             LeftPoints="@LeftPriceBattlePoints"
                                             RightPoints="@RightPriceBattlePoints"
-                                            CanonicalLeftWins="@_match.ScoreA"
-                                            CanonicalRightWins="@_match.ScoreB"
                                             ScoreVersion="@_match.ScoreVersion"
                                             Culture="@CurrentCulture"
                                             AriaLabel="@($"{_match.TeamA} vs {_match.TeamB} candle battle arena")" />

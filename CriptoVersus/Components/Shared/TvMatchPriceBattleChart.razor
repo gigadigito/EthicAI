@@ -1,6 +1,7 @@
 @using System.Globalization
 @using System.Diagnostics
 @using DTOs
+@using CriptoVersus.Web.Services
 @implements IAsyncDisposable
 @inject LocalizationService L
 @inject IJSRuntime JS
@@ -145,8 +146,8 @@
     private PriceBattleScoreSummary PriceScore => BuildPriceScore();
     private int LeftPricePointCount => PriceScore.LeftPoints;
     private int RightPricePointCount => PriceScore.RightPoints;
-    private int DisplayedLeftScore => CanonicalLeftScore ?? LeftPricePointCount;
-    private int DisplayedRightScore => CanonicalRightScore ?? RightPricePointCount;
+    private int DisplayedLeftScore => LeftPricePointCount;
+    private int DisplayedRightScore => RightPricePointCount;
     private int DisplayedTotalScore => DisplayedLeftScore + DisplayedRightScore;
 
     [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
@@ -187,10 +188,7 @@
     [Parameter] public string LatestEventDescription { get; set; } = string.Empty;
     [Parameter] public string LatestEventScore { get; set; } = string.Empty;
     [Parameter] public string PoolStatus { get; set; } = string.Empty;
-    [Parameter] public string PoolValue { get; set; } = "0";
-    [Parameter] public int? CanonicalLeftScore { get; set; }
-    [Parameter] public int? CanonicalRightScore { get; set; }
-    [Parameter] public int ScoreVersion { get; set; }
+    [Parameter] public string PoolValue { get; set; } = "0";[Parameter] public int ScoreVersion { get; set; }
 
     protected override void OnParametersSet()
     {
@@ -360,8 +358,6 @@
             Culture,
             CombinedChartId,
             DisplaySymbol(LeftSymbol),
-            CanonicalLeftScore?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            CanonicalRightScore?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             ScoreVersion.ToString(CultureInfo.InvariantCulture),
             LeftCurrentPrice?.ToString("0.##################", CultureInfo.InvariantCulture) ?? string.Empty,
             LeftChangePercent?.ToString("0.##########", CultureInfo.InvariantCulture) ?? string.Empty,
@@ -492,28 +488,8 @@
 
     private PriceBattleScoreSummary BuildPriceScore()
     {
-        var left = NormalizePoints(LeftPoints);
-        var right = NormalizePoints(RightPoints);
-        var count = Math.Min(left.Count, right.Count);
-
-        if (count < 2)
-            return new PriceBattleScoreSummary(0, 0);
-
-        var leftPoints = 0;
-        var rightPoints = 0;
-
-        for (var index = 1; index < count; index++)
-        {
-            var previousDelta = left[index - 1].Value - right[index - 1].Value;
-            var currentDelta = left[index].Value - right[index].Value;
-
-            if (previousDelta <= 0d && currentDelta > 0d)
-                leftPoints++;
-            else if (previousDelta >= 0d && currentDelta < 0d)
-                rightPoints++;
-        }
-
-        return new PriceBattleScoreSummary(leftPoints, rightPoints);
+        var score = TvBattleScoreEvaluator.EvaluatePriceBattle(LeftPoints, RightPoints);
+        return new PriceBattleScoreSummary(score.LeftWins, score.RightWins);
     }
 
     private IReadOnlyList<CrossEventViewModel> BuildCrossEvents()
