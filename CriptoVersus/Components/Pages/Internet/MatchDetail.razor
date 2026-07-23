@@ -1070,7 +1070,7 @@
 
     .team-sub {
         margin-top: .14rem;
-        font-size: .95rem;
+        font-size: .88rem;
     }
 
     .pct {
@@ -1119,7 +1119,7 @@
     }
 
     .timebar {
-        font-size: .95rem;
+        font-size: .88rem;
     }
 
     .team-badge {
@@ -2499,7 +2499,7 @@
 
     .match-invest-option__pct {
         margin-top: .24rem;
-        font-size: .95rem;
+        font-size: .88rem;
         font-weight: 900;
     }
 
@@ -2761,10 +2761,10 @@
     }
 
     /* ================================================================
-                                           EPIC ARENA SKIN
-                                           Texturas esperadas em: /wwwroot/img/match-arena/
-                                           A tela continua funcional mesmo antes dos arquivos existirem.
-                                           ================================================================ */
+                                               EPIC ARENA SKIN
+                                               Texturas esperadas em: /wwwroot/img/match-arena/
+                                               A tela continua funcional mesmo antes dos arquivos existirem.
+                                               ================================================================ */
 
     .social-share-card--epic {
         --arena-orange: #ff8a00;
@@ -3319,7 +3319,7 @@
         }
 
         .social-share-card--epic .social-share-hero-team {
-            min-height: 150px;
+            min-height: 132px;
         }
 
         .social-share-card--epic .arena-score {
@@ -3394,9 +3394,9 @@
 
 
     /* ==========================================================
-                                           EPIC ARENA V3 — SEGUNDA RODADA
-                                           Novas texturas esperadas em /wwwroot/img/match-arena/
-                                           ========================================================== */
+                                               EPIC ARENA V3 — SEGUNDA RODADA
+                                               Novas texturas esperadas em /wwwroot/img/match-arena/
+                                               ========================================================== */
 
     .social-share-card--epic {
         --arena-orange: #ff8a00;
@@ -3430,7 +3430,7 @@
     }
 
     .social-share-card__shell {
-        gap: .8rem;
+        gap: .6rem;
         padding: 1rem 1.15rem 1.15rem;
         grid-template-rows: auto auto 1fr auto;
     }
@@ -3466,7 +3466,7 @@
     }
 
     /* Quatro cantos independentes. Enquanto os novos SVGs não existirem,
-                                           os gradientes e a borda externa continuam visíveis. */
+                                               os gradientes e a borda externa continuam visíveis. */
     .social-share-card--epic::after {
         inset: 8px;
         background-image: url('/img/match-arena/corner-top-left-orange.svg'), url('/img/match-arena/corner-bottom-left-orange.svg'), url('/img/match-arena/corner-top-right-cyan.svg'), url('/img/match-arena/corner-bottom-right-cyan.svg');
@@ -3776,7 +3776,7 @@
     /* Cards inferiores mais mecânicos */
     .social-share-card__stats {
         grid-template-columns: minmax(0, .92fr) minmax(520px, 620px) minmax(0, .92fr);
-        gap: .8rem;
+        gap: .6rem;
         position: relative;
         z-index: 5;
     }
@@ -4006,9 +4006,9 @@
 
 
     /* =========================================================
-                                           CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
-                                           Assets esperados em /wwwroot/img/match-arena/
-                                           ========================================================= */
+                                               CRIPTOVERSUS EPIC ARENA — TERCEIRA RODADA
+                                               Assets esperados em /wwwroot/img/match-arena/
+                                               ========================================================= */
 
     .social-share-card--epic {
         background: #02070c;
@@ -4620,9 +4620,9 @@
 
 
     /* ============================================================
-                                           TESTE VISUAL — HERO FRAMES MAIS PRESENTES
-                                           Mantém a versão clean, mas reativa as molduras hero-frame.
-                                           ============================================================ */
+                                               TESTE VISUAL — HERO FRAMES MAIS PRESENTES
+                                               Mantém a versão clean, mas reativa as molduras hero-frame.
+                                               ============================================================ */
     .social-share-card--epic .hero-panel__frame {
         display: block !important;
         inset: 0 !important;
@@ -4714,7 +4714,7 @@
         }
 
     /* O componente também renderiza o modal. Ele precisa usar a viewport inteira,
-           sem herdar largura, altura ou posicionamento do convite flutuante. */
+               sem herdar largura, altura ou posicionamento do convite flutuante. */
     .community-match-floating > .modal-backdrop,
     .community-match-floating ::deep .modal-backdrop {
         position: fixed !important;
@@ -4781,12 +4781,9 @@
         }
 
     @@supports not (height: 100dvh) {
-        .community-match-floating > .modal .modal-content, .community-match-floating ::deep .modal .modal-content
-
-    {
-        max-height: calc(100vh - 24px) !important;
-    }
-
+        .community-match-floating > .modal .modal-content, .community-match-floating ::deep .modal .modal-content {
+            max-height: calc(100vh - 24px) !important;
+        }
     }
 
     @@media (max-width: 767.98px) {
@@ -7090,10 +7087,10 @@
 
 <style>
     /* ==========================================================
-                                           ROUND 4 / V5 CLEAN
-                                           Limpeza das sobreposições da terceira rodada.
-                                           Mantém os melhores assets e remove o efeito wireframe.
-                                           ========================================================== */
+                                               ROUND 4 / V5 CLEAN
+                                               Limpeza das sobreposições da terceira rodada.
+                                               Mantém os melhores assets e remove o efeito wireframe.
+                                               ========================================================== */
 
     /* Arena: menos ruído visual, mais profundidade. */
     .social-share-card--epic .social-share-card__background {
@@ -7443,9 +7440,9 @@
     }
 
     /* ============================================================
-                                           TESTE VISUAL — HERO FRAMES MAIS PRESENTES
-                                           Mantém a versão clean, mas reativa as molduras hero-frame.
-                                           ============================================================ */
+                                               TESTE VISUAL — HERO FRAMES MAIS PRESENTES
+                                               Mantém a versão clean, mas reativa as molduras hero-frame.
+                                               ============================================================ */
     .social-share-card--epic .hero-panel__frame {
         display: block !important;
         inset: 0 !important;
@@ -7487,6 +7484,274 @@
         .social-share-card--epic .hero-panel__frame {
             opacity: .72 !important;
             filter: none !important;
+        }
+    }
+
+
+    /* ================================================================
+           REDUÇÃO DO ESPAÇO ACIMA DA ARENA
+           Sobrescreve o py-3 do container sem afetar as laterais.
+           ================================================================ */
+
+    .match-detail-wide-container {
+        padding-top: .2rem !important;
+        margin-top: -.35rem;
+    }
+
+    @@media (max-width: 767.98px) {
+        .match-detail-wide-container {
+            padding-top: .15rem !important;
+            margin-top: -.2rem;
+        }
+    }
+
+    /* ================================================================
+           COMPACTAÇÃO DOS PAINÉIS SUPERIORES
+           Painel 1 = placar principal
+           Painel 2 = equipes + relógio
+           ================================================================ */
+
+    /* =========================
+           PAINEL 1 — PLACAR PRINCIPAL
+           ========================= */
+
+    .social-share-card--epic .arena-scoreboard {
+        min-height: 138px;
+    }
+
+        .social-share-card--epic .arena-scoreboard::before {
+            inset: 2px 0;
+        }
+
+    .social-share-card--epic .social-share-hero-team,
+    .social-share-card--epic .social-share-hero-team--a,
+    .social-share-card--epic .social-share-hero-team--b {
+        min-height: 132px;
+        padding-block: .75rem;
+    }
+
+    .social-share-card--epic .social-share-hero-team {
+        padding-inline: 1.45rem;
+    }
+
+    @@media (min-width: 1200px) {
+        .social-share-card--epic .social-share-card__hero .team-badge,
+        .social-share-card--epic .social-share-card__hero .coin-wrap {
+            width: 82px;
+            height: 82px;
+            border-radius: 21px;
+        }
+
+        .social-share-card--epic .social-share-card__hero .coin-img {
+            width: 66px;
+            height: 66px;
+        }
+    }
+
+    .social-share-card--epic .team-name {
+        font-size: clamp(1.05rem, 1.3vw, 1.48rem);
+        line-height: 1;
+    }
+
+    .social-share-card--epic .team-price {
+        margin-top: .1rem;
+        font-size: clamp(.84rem, .95vw, 1rem);
+    }
+
+    .social-share-card--epic .team-sub {
+        margin-top: .08rem;
+        font-size: .88rem;
+    }
+
+    .social-share-card--epic .arena-versus-core {
+        min-height: 132px;
+    }
+
+    .social-share-card--epic .arena-versus-core__score {
+        font-size: clamp(3.45rem, 4.8vw, 5.25rem);
+    }
+
+    .social-share-card--epic .arena-versus-core__shield {
+        width: 90px;
+        height: 90px;
+    }
+
+        .social-share-card--epic .arena-versus-core__shield .tv-versus-image {
+            width: 72px;
+            max-height: 68px;
+        }
+
+    .arena-scoreboard__fx {
+        inset-block: -20px;
+    }
+
+    /* =========================
+           PAINEL 2 — CARDS E RELÓGIO
+           ========================= */
+
+    .social-share-card--epic .social-share-card__stats {
+        grid-template-columns: minmax(0, .95fr) minmax(420px, 540px) minmax(0, .95fr);
+        gap: .65rem;
+    }
+
+    .social-share-card--epic .social-share-match-card {
+        min-height: 0;
+        height: auto;
+        gap: .45rem;
+        padding: .72rem !important;
+    }
+
+    .social-share-team-card__top {
+        gap: .55rem;
+    }
+
+    .social-share-card--epic .social-share-team-card__coin {
+        width: 42px;
+        height: 42px;
+    }
+
+        .social-share-card--epic .social-share-team-card__coin .coin-img {
+            width: 32px;
+            height: 32px;
+        }
+
+    .social-share-team-card__symbol {
+        font-size: 1.14rem;
+    }
+
+    .social-share-team-card__price {
+        margin-top: .08rem;
+        font-size: .82rem;
+    }
+
+    .social-share-team-card__pct {
+        margin-top: .08rem;
+        font-size: .88rem;
+    }
+
+    .social-share-team-card__cta {
+        min-height: 36px;
+        padding: .42rem .82rem;
+    }
+
+    .social-share-team-card__metrics {
+        gap: .42rem;
+        margin-top: .36rem;
+    }
+
+    .social-share-team-card__metric-row {
+        gap: .2rem;
+        min-height: 60px;
+        padding: .48rem .55rem;
+        border-radius: 12px;
+    }
+
+        .social-share-team-card__metric-row span {
+            font-size: .66rem;
+            letter-spacing: .12em;
+        }
+
+        .social-share-team-card__metric-row strong {
+            font-size: .88rem;
+        }
+
+    .social-share-clock-stage,
+    .social-share-clock-stage .epic-clock-shell {
+        min-height: 0;
+        height: 100%;
+    }
+
+        .social-share-clock-stage .clock-card {
+            min-height: 154px;
+            height: 154px;
+        }
+
+        .social-share-clock-stage .clock-time {
+            font-size: clamp(1.84rem, 3.2vw, 2.5rem);
+        }
+
+        .social-share-clock-stage .clock-title {
+            margin-bottom: .25rem;
+        }
+
+        .social-share-clock-stage .clock-remaining {
+            margin-top: .1rem;
+        }
+
+    .social-share-card--epic .social-share-card__shell {
+        gap: .52rem;
+        padding: 1.45rem 1.55rem 1.55rem;
+    }
+
+    .social-share-card--epic .social-share-card__header {
+        margin-bottom: 0;
+    }
+
+    /* =========================
+           PAINEL 0 — CABEÇALHO
+           ========================= */
+
+    .social-share-card--epic .social-share-card__header {
+        min-height: 0;
+        padding-inline: .65rem;
+        padding-block: 0;
+        margin-bottom: -.18rem;
+    }
+
+    .social-share-card--epic .social-share-card__eyebrow {
+        font-size: .58rem;
+        line-height: 1;
+        letter-spacing: .24em;
+    }
+
+    .social-share-card--epic .social-share-card__title {
+        margin-top: .12rem;
+        font-size: clamp(1.28rem, 1.95vw, 2.05rem);
+        line-height: .92;
+    }
+
+    .social-share-card__status,
+    .social-share-card__match-id {
+        padding: .32rem .62rem;
+        font-size: .66rem;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .social-share-card--epic .arena-scoreboard {
+            min-height: 145px;
+        }
+
+        .social-share-card--epic .social-share-hero-team {
+            min-height: 138px;
+            padding: .7rem 1rem;
+        }
+
+        .social-share-card--epic .social-share-card__stats {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .social-share-clock-stage .clock-card {
+            min-height: 150px;
+            height: auto;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .social-share-card--epic .arena-scoreboard {
+            min-height: 0;
+        }
+
+        .social-share-card--epic .social-share-hero-team {
+            min-height: 120px;
+            padding: .7rem;
+        }
+
+        .social-share-card--epic .arena-versus-core {
+            min-height: 120px;
+        }
+
+        .social-share-clock-stage .clock-card {
+            min-height: 124px;
         }
     }
 </style>
