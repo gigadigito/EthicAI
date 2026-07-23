@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -1258,6 +1258,7 @@ namespace CriptoVersus.Worker
                 }
 
                 var scoreState = await EnsureScoreStateAsync(db, match, nowUtc, ct);
+                await ReconcileMatchScoreFromEventsAsync(db, match, ct);
                 var previousSnapshots = await LoadPreviousSnapshotsAsync(db, match.MatchId, match.TeamAId, match.TeamBId, ct);
 
                 if (match.TeamA is null || match.TeamB is null || match.TeamA.Currency is null || match.TeamB.Currency is null)
@@ -1392,6 +1393,7 @@ namespace CriptoVersus.Worker
                 }
 
                 await arenaSentimentService.CalculateArenaPressureGoalAsync(match.MatchId, ct);
+                await ReconcileMatchScoreFromEventsAsync(db, match, ct);
 
                 var decisionOngoing = ruleEngine.EvaluateOngoing(
                     teamAId: match.TeamAId,
@@ -2135,6 +2137,39 @@ namespace CriptoVersus.Worker
             return new DateTime(utc.Year, utc.Month, utc.Day, 0, 0, 0, DateTimeKind.Utc).AddMinutes(bucketMinutes);
         }
 
+        private async Task ReconcileMatchScoreFromEventsAsync(
+            EthicAIDbContext db,
+            Match match,
+            CancellationToken ct)
+        {
+            var persistedEvents = await db.MatchScoreEvent
+                .AsNoTracking()
+                .Where(x => x.MatchId == match.MatchId)
+                .ToListAsync(ct);
+
+            var pendingEvents = db.MatchScoreEvent.Local
+                .Where(x => x.MatchId == match.MatchId && db.Entry(x).State == EntityState.Added)
+                .ToList();
+
+            var totals = MatchScoreEventTotals.FromEvents(
+                persistedEvents.Concat(pendingEvents),
+                match.TeamAId);
+
+            if (match.ScoreA != totals.TeamAPoints || match.ScoreB != totals.TeamBPoints)
+            {
+                _logger.LogWarning(
+                    "[WORKER_SCORE_HISTORY_INCONSISTENCY] MatchId={MatchId} PreviousScoreA={PreviousScoreA} PreviousScoreB={PreviousScoreB} EventPointsA={EventPointsA} EventPointsB={EventPointsB} EventCount={EventCount}",
+                    match.MatchId,
+                    match.ScoreA,
+                    match.ScoreB,
+                    totals.TeamAPoints,
+                    totals.TeamBPoints,
+                    totals.ScoringEventCount);
+            }
+
+            match.ScoreA = totals.TeamAPoints;
+            match.ScoreB = totals.TeamBPoints;
+        }
         private static DateTime AlignToNextWindow(DateTime utc, int windowMinutes)
         {
             var aligned = AlignToWindow(utc, windowMinutes);

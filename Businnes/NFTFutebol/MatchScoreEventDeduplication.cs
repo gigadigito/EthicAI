@@ -36,6 +36,11 @@ public static class MatchScoreEventDeduplication
                 x.EventType == candidate.EventType &&
                 (x.ReasonCode ?? string.Empty) == reasonCode &&
                 x.Points == candidate.Points &&
+                x.TeamPercentageChange == candidate.TeamPercentageChange &&
+                x.OpponentPercentageChange == candidate.OpponentPercentageChange &&
+                x.TeamQuoteVolume == candidate.TeamQuoteVolume &&
+                x.OpponentQuoteVolume == candidate.OpponentQuoteVolume &&
+                x.MetricDelta == candidate.MetricDelta &&
                 x.EventTimeUtc == eventTimeUtc &&
                 x.WindowStartUtc == candidate.WindowStartUtc &&
                 x.WindowEndUtc == candidate.WindowEndUtc)

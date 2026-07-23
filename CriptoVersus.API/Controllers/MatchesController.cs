@@ -13,6 +13,7 @@ using EthicAI.EntityModel;
 using DAL.NftFutebol;
 using CriptoVersus.API.Services;
 using BLL.ArenaSentiment;
+using BLL.NFTFutebol;
 
 namespace CriptoVersus.API.Controllers
 {
@@ -196,15 +197,16 @@ namespace CriptoVersus.API.Controllers
                 .Select(x => new { x.TeamAId, x.ScoreA, x.ScoreB })
                 .SingleAsync(ct);
 
-            var eventPointsA = items.Where(x => x.TeamId == persistedScore.TeamAId).Sum(x => Math.Max(0, x.Points));
-            var eventPointsB = items.Where(x => x.TeamId != persistedScore.TeamAId).Sum(x => Math.Max(0, x.Points));
-            var totalEventPoints = eventPointsA + eventPointsB;
+            var eventTotals = MatchScoreEventTotals.FromEvents(items, persistedScore.TeamAId);
+            var eventPointsA = eventTotals.TeamAPoints;
+            var eventPointsB = eventTotals.TeamBPoints;
+            var totalEventPoints = eventTotals.TotalPoints;
             if (eventPointsA != persistedScore.ScoreA || eventPointsB != persistedScore.ScoreB)
             {
                 _logger.LogWarning(
                     "[SCORE_HISTORY_INCONSISTENCY] MatchId={MatchId} ScoreA={ScoreA} ScoreB={ScoreB} EventPointsA={EventPointsA} EventPointsB={EventPointsB} TotalScore={TotalScore} TotalEventPoints={TotalEventPoints} EventCount={EventCount}",
                     id, persistedScore.ScoreA, persistedScore.ScoreB, eventPointsA, eventPointsB,
-                    persistedScore.ScoreA + persistedScore.ScoreB, totalEventPoints, items.Count);
+                    persistedScore.ScoreA + persistedScore.ScoreB, totalEventPoints, eventTotals.ScoringEventCount);
             }
 
             var requestedLanguage = string.IsNullOrWhiteSpace(language)
