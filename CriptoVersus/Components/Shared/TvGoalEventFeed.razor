@@ -892,20 +892,20 @@
 
     private string HeaderRightLogoUrl => ResolveHeaderLogo(RightLogoUrl, HeaderRightSymbol);
 
-    private int LeftEventCount => CountEventsFor(HeaderLeftSymbol);
+    private int LeftEventCount => CountPointsFor(HeaderLeftSymbol);
 
-    private int RightEventCount => CountEventsFor(HeaderRightSymbol);
+    private int RightEventCount => CountPointsFor(HeaderRightSymbol);
 
     private string HeaderTitleLabel => IsPortuguese ? "GOAL LOG" : "GOAL LOG";
 
     private string HeaderStatusLabel
         => EventCards.Count == 0
             ? (IsPortuguese ? "AGUARDANDO EVENTOS" : "WAITING EVENTS")
-            : string.Format(CultureInfo.CurrentCulture, IsPortuguese ? "{0} EVENTOS" : "{0} EVENTS", EventCards.Count);
+            : string.Format(CultureInfo.CurrentCulture, IsPortuguese ? "{0} PONTOS" : "{0} POINTS", TotalEventPoints);
 
     private string LiveLabel => "LIVE";
 
-    private string EventCountLabel => IsPortuguese ? "EVENTOS" : "EVENTS";
+    private string EventCountLabel => IsPortuguese ? "PONTOS" : "POINTS";
 
     private string AssetALabel => IsPortuguese ? "ATIVO A" : "ASSET A";
 
@@ -955,14 +955,17 @@
         return ResolveBestTeamLogoUrl(symbol);
     }
 
-    private int CountEventsFor(string symbol)
+    private int CountPointsFor(string symbol)
     {
         var normalized = DisplaySymbol(symbol);
         if (normalized == "--")
             return 0;
 
-        return Items.Count(item => SameAsset(item.TeamSymbol, normalized));
+        return Items.Where(item => SameAsset(item.TeamSymbol, normalized))
+            .Sum(item => Math.Max(0, item.Points));
     }
+
+    private int TotalEventPoints => Items.Sum(item => Math.Max(0, item.Points));
 
     private static string DisplaySymbol(string? value)
         => string.IsNullOrWhiteSpace(value) ? "--" : value.Trim().ToUpperInvariant();

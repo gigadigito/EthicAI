@@ -93,7 +93,7 @@ namespace CriptoVersus.API.Controllers
         }
         // =========================
         // GET /api/matches/by-symbols?symbolA=PENDLE&symbolB=DASH
-        // Retorna o match Ongoing do par, senão o mais recente
+        // Retorna o match Ongoing do par, senï¿½o o mais recente
         // =========================
         [AllowAnonymous]
         [HttpGet("by-symbols")]
@@ -104,7 +104,7 @@ namespace CriptoVersus.API.Controllers
             CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(symbolA) || string.IsNullOrWhiteSpace(symbolB))
-                return BadRequest("symbolA e symbolB são obrigatórios.");
+                return BadRequest("symbolA e symbolB sï¿½o obrigatï¿½rios.");
 
             var now = DateTime.UtcNow;
 
@@ -190,6 +190,22 @@ namespace CriptoVersus.API.Controllers
                 .Where(x => x.MatchId == id)
                 .OrderBy(x => x.EventSequence)
                 .ToListAsync(ct);
+            var persistedScore = await _db.Set<Match>()
+                .AsNoTracking()
+                .Where(x => x.MatchId == id)
+                .Select(x => new { x.TeamAId, x.ScoreA, x.ScoreB })
+                .SingleAsync(ct);
+
+            var eventPointsA = items.Where(x => x.TeamId == persistedScore.TeamAId).Sum(x => Math.Max(0, x.Points));
+            var eventPointsB = items.Where(x => x.TeamId != persistedScore.TeamAId).Sum(x => Math.Max(0, x.Points));
+            var totalEventPoints = eventPointsA + eventPointsB;
+            if (eventPointsA != persistedScore.ScoreA || eventPointsB != persistedScore.ScoreB)
+            {
+                _logger.LogWarning(
+                    "[SCORE_HISTORY_INCONSISTENCY] MatchId={MatchId} ScoreA={ScoreA} ScoreB={ScoreB} EventPointsA={EventPointsA} EventPointsB={EventPointsB} TotalScore={TotalScore} TotalEventPoints={TotalEventPoints} EventCount={EventCount}",
+                    id, persistedScore.ScoreA, persistedScore.ScoreB, eventPointsA, eventPointsB,
+                    persistedScore.ScoreA + persistedScore.ScoreB, totalEventPoints, items.Count);
+            }
 
             var requestedLanguage = string.IsNullOrWhiteSpace(language)
                 ? null
@@ -399,7 +415,7 @@ namespace CriptoVersus.API.Controllers
             var teamB = teams.FirstOrDefault(t => t.TeamId == req.TeamBId);
 
             if (teamA is null || teamB is null)
-                return BadRequest("Time inválido.");
+                return BadRequest("Time invï¿½lido.");
 
             if (MatchPairRules.IsForbiddenPair(teamA.Currency?.Symbol, teamB.Currency?.Symbol, _configuration))
                 return BadRequest(MatchPairRules.GetForbiddenPairReason(teamA.Currency?.Symbol, teamB.Currency?.Symbol, _configuration));
@@ -443,7 +459,7 @@ namespace CriptoVersus.API.Controllers
                 return NotFound();
 
             if (match.Status != MatchStatus.Pending)
-                return BadRequest("A partida não está pendente.");
+                return BadRequest("A partida nï¿½o estï¿½ pendente.");
 
             match.Status = MatchStatus.Ongoing;
             match.StartTime ??= DateTime.UtcNow;
@@ -464,7 +480,7 @@ namespace CriptoVersus.API.Controllers
                 return NotFound();
 
             if (match.Status != MatchStatus.Ongoing)
-                return BadRequest("A partida não está em andamento.");
+                return BadRequest("A partida nï¿½o estï¿½ em andamento.");
 
             match.Status = MatchStatus.Completed;
             match.EndTime = DateTime.UtcNow;
@@ -923,7 +939,7 @@ namespace CriptoVersus.API.Controllers
     }
 
     // =========================
-    // DTO de criação
+    // DTO de criaï¿½ï¿½o
     // =========================
     public sealed class CreateMatchRequest
     {

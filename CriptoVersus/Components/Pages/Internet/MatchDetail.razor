@@ -446,7 +446,7 @@
                         <div class="social-share-card__tv-slot social-share-card__tv-slot--events">
                             <TvGoalEventFeed FeedId="@GoalEventFeedId"
                                              Culture="@CurrentCulture"
-                                             Items="@_scoreEvents.OrderByDescending(x => x.EventSequence).Take(8).ToList()"
+                                             Items="@_scoreEvents.OrderByDescending(x => x.EventSequence).ToList()"
                                              FormatTime="FormatEventTime"
                                              DescribeFallback="GetLocalizedScoreEventDescription"
                                              ResolveTeamLogoUrl="GetCoinIconUrl"
