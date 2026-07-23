@@ -258,13 +258,23 @@
         border-radius: 20px;
     }
 
-        .tv-candle-battle__scoreboard::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: linear-gradient(90deg, rgba(42, 201, 255, 0.06), transparent 34%, transparent 66%, rgba(255, 128, 0, 0.08));
-        }
+    /*
+         * Alinha o topo do placar Candle Battle com o topo do Price Battle.
+         * O contêiner pai reserva espaço vertical acima deste componente;
+         * compensamos somente o placar normal, sem afetar o modo broadcast compacto.
+         */
+    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
+        align-self: start;
+        margin-top: -18px;
+    }
+
+    .tv-candle-battle__scoreboard::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(42, 201, 255, 0.06), transparent 34%, transparent 66%, rgba(255, 128, 0, 0.08));
+    }
 
     .tv-candle-battle__score-side,
     .tv-candle-battle__score-center,
@@ -278,7 +288,7 @@
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: clamp(8px, 1cqi, 12px);
-        align-items: center;
+        align-items: start;
         height: 100%;
         min-height: 0;
         padding: clamp(7px, .9cqi, 10px);
@@ -303,6 +313,7 @@
     .tv-candle-battle__score-logo-shell {
         width: clamp(34px, 4.2cqi, 48px);
         height: clamp(34px, 4.2cqi, 48px);
+        align-self: start;
         display: grid;
         place-items: center;
         border: 1px solid rgba(255,255,255,.16);
@@ -332,7 +343,8 @@
         min-width: 0;
         display: grid;
         gap: 1px;
-        align-content: center;
+        align-content: start;
+        padding-top: 1px;
     }
 
     .tv-candle-battle__score-copy--right {
@@ -380,10 +392,12 @@
     }
 
     .tv-candle-battle__score-side b {
+        align-self: start;
         justify-self: end;
+        margin-top: -1px;
         font-size: clamp(2.45rem, 5.7cqi, 5.25rem);
         font-weight: 950;
-        line-height: .9;
+        line-height: .82;
         letter-spacing: -.08em;
     }
 
@@ -1290,6 +1304,10 @@
     }
 
     @@container candle-battle (max-width: 520px) {
+        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
+            margin-top: 0;
+        }
+
         .tv-candle-battle__scoreboard {
             grid-template-columns: minmax(0, 1fr);
             grid-template-areas:
@@ -1376,6 +1394,10 @@
         }
 
         @@media (max-width: 520px) {
+            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
+                margin-top: 0;
+            }
+
             .tv-candle-battle__scoreboard {
                 grid-template-columns: 1fr;
                 grid-template-areas:
@@ -1445,7 +1467,9 @@
     public string? AriaLabel { get; set; }
 
     [Parameter]
-    public bool IsBroadcastCompact { get; set; }[Parameter]
+    public bool IsBroadcastCompact { get; set; }
+
+    [Parameter]
     public int ScoreVersion { get; set; }
 
     [Parameter]
@@ -1478,11 +1502,13 @@
     private string DisplayedShortLeaderLabel => ResolveDisplayedShortLeaderLabel();
 
     private string ResolveDisplayedLeaderLabel()
-    {return Battle.LeaderLabel;
+    {
+        return Battle.LeaderLabel;
     }
 
     private string ResolveDisplayedShortLeaderLabel()
-    {return Battle.ShortLeaderLabel;
+    {
+        return Battle.ShortLeaderLabel;
     }
     private string WaitingHistoryText => T("labels.waitingCandleHistory");
     private string PanelTitle => T("labels.tacticalPanel");
