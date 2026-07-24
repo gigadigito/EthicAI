@@ -25,7 +25,7 @@ docker compose logs -f --tail 300 criptoversus-worker
 
 WEB 
 
-cd /home/admin/stacks/criptoversus-web/src
+gcd /home/admin/stacks/criptoversus-web/src
 git status
 git pull origin main
 git log -1 --oneline
