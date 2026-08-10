@@ -1,0 +1,34 @@
+FUTUREBOL — REPARO DEFINITIVO DOS COMPONENTES RAZOR
+
+CAUSA
+A mensagem "BuildRenderTree já definido" significa que o mesmo componente .razor
+está sendo compilado mais de uma vez. Isso acontece quando uma cópia do pacote,
+um backup ou uma pasta aninhada continua dentro da raiz do projeto.
+
+Este pacote restaura os três componentes Razor originais e altera somente o padrão
+de qualidade no code-behind:
+
+    private string _quality = "High";
+
+Não foram adicionados @namespace, @using, @inject ou @layout novos.
+
+APLICAÇÃO
+1. Abra PowerShell na raiz do projeto:
+   C:\EthicAI\EthicAI\CriptoVersus
+
+2. Extraia este ZIP nessa raiz e substitua os quatro arquivos canônicos.
+
+3. Execute:
+   powershell -ExecutionPolicy Bypass -File .\limpar-duplicados-futurebol.ps1
+
+4. Limpe os gerados:
+   dotnet clean
+   Remove-Item -Recurse -Force .\bin -ErrorAction SilentlyContinue
+   Remove-Item -Recurse -Force .\obj -ErrorAction SilentlyContinue
+
+5. Compile:
+   dotnet build
+
+IMPORTANTE
+O script move cópias duplicadas para uma pasta fora do projeto. Ele não apaga os
+arquivos e não move os arquivos canônicos de Components\Pages\Futurebol.

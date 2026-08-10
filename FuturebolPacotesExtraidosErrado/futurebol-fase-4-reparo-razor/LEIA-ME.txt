@@ -1,0 +1,18 @@
+REPARO FASE 4 - COMPONENTES RAZOR
+
+Causa: os arquivos .razor estavam sendo compilados em um namespace diferente do code-behind FuturebolLab.razor.cs. Por isso o Razor não enxergava Options, HomeSymbol, callbacks e DisposeAsync.
+
+Extraia este ZIP na raiz do projeto CriptoVersus, preservando as pastas.
+
+Arquivos substituídos:
+- Components/Pages/Futurebol/FuturebolLab.razor
+- Components/Pages/Futurebol/FuturebolLab.razor.cs
+- Components/Pages/Futurebol/FuturebolDebugPanel.razor
+- Components/Pages/Futurebol/FuturebolLoading.razor
+
+Depois execute:
+  dotnet clean
+  Remove-Item -Recurse -Force .\bin, .\obj -ErrorAction SilentlyContinue
+  dotnet build
+
+Os TypeScript da Fase 4 não precisam ser revertidos.

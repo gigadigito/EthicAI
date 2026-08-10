@@ -1,0 +1,58 @@
+FUTUREBOL 3D — FASE 3
+======================
+
+Substitua os arquivos mantendo a estrutura de pastas deste pacote.
+
+Arquivos alterados:
+
+1. wwwroot/js/futurebol/futurebol-match-state.ts
+   - espaçamento tático maior;
+   - quatro iterações de separação de alvos e posições;
+   - goleiros presos à área;
+   - defensor fecha a linha entre bola e gol;
+   - atacante sem posse oferece contra-ataque;
+   - movimento com aceleração, desaceleração e zona de parada;
+   - reduz aglomeração, sobreposição e pequenas correções visuais.
+
+2. wwwroot/js/futurebol/futurebol-camera.ts
+   - câmera de transmissão por fase;
+   - antecipação do passe e do chute;
+   - zoom controlado;
+   - zona morta para reduzir tremores;
+   - respeita prefers-reduced-motion e câmera fixa.
+
+3. wwwroot/js/futurebol/futurebol-renderer.ts
+   - sombra dinâmica da bola;
+   - rastro em passes e chutes;
+   - anel do jogador com posse;
+   - flash no gol;
+   - efeitos desligados ou reduzidos no preset Low.
+
+4. wwwroot/js/futurebol/futurebol-engine.ts
+   - loading visível criado pelo próprio TypeScript;
+   - progresso: campo, modelo, skeleton, jogadores e mercado;
+   - canvas revelado apenas quando o módulo está pronto;
+   - mensagem de erro no loading quando a inicialização falha.
+
+5. wwwroot/js/futurebol/player/futurebol-animation-map.ts
+   - Standing passa a ser o primeiro candidato de Idle;
+   - reduz a aparência de dança antes da jogada.
+
+6. wwwroot/js/futurebol/tests/match-state-v3.test.mjs
+   - mantém os testes da V2;
+   - exige distância visual mínima de 2 metros;
+   - valida limites de movimentação dos goleiros.
+
+Comandos:
+
+npm run ts:build
+npm run test:futurebol
+
+Depois faça Ctrl + Shift + R no navegador.
+
+Validação feita fora do projeto completo:
+- TypeScript 5.8.3: os arquivos alterados passaram por verificação de tipos em scaffold;
+- match-state-v3.test.mjs: passou;
+- separação mínima observada em 30 segundos simulados: aproximadamente 2,08 unidades.
+
+O build real do projeto ainda deve ser executado porque o pacote não contém o restante do repositório nem os typings Babylon instalados nele.

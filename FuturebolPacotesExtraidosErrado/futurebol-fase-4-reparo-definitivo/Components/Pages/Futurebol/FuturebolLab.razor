@@ -1,0 +1,121 @@
+@page "/lab/futurebol"
+@layout BlankLayout
+@using Microsoft.Extensions.Options
+@inject IOptions<FuturebolOptions> FuturebolOptionsAccessor
+@inject IWebHostEnvironment Environment
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Futurebol 3D Lab | CriptoVersus</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+</HeadContent>
+
+@if (!Options.Enabled)
+{
+    <main class="futurebol-unavailable" aria-labelledby="futurebol-unavailable-title">
+        <span class="futurebol-unavailable__tag">LAB</span>
+        <h1 id="futurebol-unavailable-title">Experimento indisponível</h1>
+        <p>O Futurebol 3D não está habilitado neste ambiente.</p>
+    </main>
+}
+else
+{
+    <main class="futurebol-page" aria-labelledby="futurebol-title">
+        <header class="futurebol-header">
+            <div>
+                <span class="futurebol-header__tag">EXPERIMENTAL · @ActiveDataMode.ToUpperInvariant()</span>
+                <h1 id="futurebol-title">Futurebol 3D</h1>
+                <p>
+                    Visualização 3D de @HomeSymbol × @AwaySymbol. O placar abaixo permanece uma
+                    simulação visual derivada da pressão e não representa o placar oficial da partida.
+                </p>
+            </div>
+            <div class="futurebol-scoreboard" aria-label="Placar experimental do Futurebol" aria-live="polite">
+                <div class="futurebol-scoreboard__team futurebol-scoreboard__team--home">
+                    <span class="futurebol-scoreboard__coin">@HomeSymbol</span>
+                    <strong>@HomeSymbol</strong>
+                </div>
+                <div class="futurebol-scoreboard__score">
+                    <span id="futurebol-home-score">0</span><small>×</small><span id="futurebol-away-score">0</span>
+                    <em id="futurebol-clock">00:00</em>
+                </div>
+                <div class="futurebol-scoreboard__team futurebol-scoreboard__team--away">
+                    <span class="futurebol-scoreboard__coin">@AwaySymbol</span>
+                    <strong>@AwaySymbol</strong>
+                </div>
+            </div>
+        </header>
+
+        <section class="futurebol-stage" aria-label="Visualização do laboratório Futurebol">
+            <div class="futurebol-stage__hud" aria-live="polite">
+                <div class="futurebol-momentum futurebol-momentum--home">
+                    <span>@HomeSymbol momentum</span>
+                    <strong id="futurebol-home-momentum">50</strong>
+                    <div class="futurebol-momentum__track" aria-hidden="true">
+                        <span id="futurebol-home-momentum-bar"></span>
+                    </div>
+                </div>
+                <div class="futurebol-stage__telemetry">
+                    <span>MODE <strong>@ActiveDataMode.ToUpperInvariant()</strong></span>
+                    <span>FPS <strong id="futurebol-fps">—</strong></span>
+                </div>
+                <div class="futurebol-momentum futurebol-momentum--away">
+                    <span>@AwaySymbol momentum</span>
+                    <strong id="futurebol-away-momentum">50</strong>
+                    <div class="futurebol-momentum__track" aria-hidden="true">
+                        <span id="futurebol-away-momentum-bar"></span>
+                    </div>
+                </div>
+            </div>
+
+            @if (_initializing)
+            {
+                <FuturebolLoading />
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <div class="futurebol-webgl-error" role="alert">
+                    <strong>Não foi possível iniciar o campo 3D.</strong>
+                    <p>@_error</p>
+                    <button type="button" class="futurebol-button" @onclick="RetryAsync">Tentar novamente</button>
+                </div>
+            }
+
+            <canvas id="@CanvasId"
+                    class="futurebol-canvas"
+                    aria-label="Campo 3D experimental com três jogadores @HomeSymbol e três jogadores @AwaySymbol"
+                    hidden="@(_initializing || !string.IsNullOrWhiteSpace(_error))"></canvas>
+        </section>
+
+        <p id="futurebol-a11y-status" class="futurebol-sr-only" aria-live="polite">
+            Simulação em execução. Momentums @HomeSymbol e @AwaySymbol em equilíbrio.
+        </p>
+
+        @if (Environment.IsDevelopment())
+        {
+            <FuturebolDebugPanel IsPaused="_isPaused"
+                                  IsFixedCamera="_isFixedCamera"
+                                  Quality="@_quality"
+                                  PlayerVisual="@_playerVisual"
+                                  HomeSymbol="@HomeSymbol"
+                                  AwaySymbol="@AwaySymbol"
+                                  TogglePause="TogglePauseAsync"
+                                  Reset="ResetAsync"
+                                  ForceHome="ForceHomeAsync"
+                                  ForceAway="ForceAwayAsync"
+                                  Balance="BalanceAsync"
+                                  ForceHomePass="ForceHomePassAsync"
+                                  ForceAwayPass="ForceAwayPassAsync"
+                                  ForceHomeShot="ForceHomeShotAsync"
+                                  ForceAwayShot="ForceAwayShotAsync"
+                                  ForceSave="ForceSaveAsync"
+                                  ForceGoal="ForceGoalAsync"
+                                  ResetPlay="ResetPlayAsync"
+                                  ToggleCamera="ToggleCameraAsync"
+                                  QualityChanged="SetQualityAsync"
+                                  PlayerVisualChanged="SetPlayerVisualAsync" />
+        }
+    </main>
+}

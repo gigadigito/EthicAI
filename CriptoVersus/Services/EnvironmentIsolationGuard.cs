@@ -4,6 +4,15 @@ internal static class EnvironmentIsolationGuard
 {
     private const string PublicIconApiBaseUrl = "https://api.criptoversus.com/api/icons/binance/";
     private const string InternalApiBaseUrlKey = "Api:InternalBaseUrl";
+    private static readonly string[] MarketQuoteSuffixes =
+    [
+        "USDT",
+        "USDC",
+        "BUSD",
+        "FDUSD",
+        "BRL",
+        "EUR"
+    ];
 
     private static readonly string[] ProductionUrlMarkers =
     [
@@ -33,11 +42,30 @@ internal static class EnvironmentIsolationGuard
 
     public static string BuildBinanceIconUrl(string? symbol)
     {
-        var normalized = symbol?.Trim().ToUpperInvariant() ?? string.Empty;
+        var normalized = NormalizeBinanceIconSymbol(symbol);
         if (string.IsNullOrWhiteSpace(normalized))
             return string.Empty;
 
         return $"{PublicIconApiBaseUrl}{Uri.EscapeDataString(normalized)}";
+    }
+
+    internal static string NormalizeBinanceIconSymbol(string? symbol)
+    {
+        var normalized = new string(
+            (symbol?.Trim().ToUpperInvariant() ?? string.Empty)
+                .Where(char.IsLetterOrDigit)
+                .ToArray());
+
+        foreach (var suffix in MarketQuoteSuffixes)
+        {
+            if (normalized.Length > suffix.Length + 1
+                && normalized.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                return normalized[..^suffix.Length];
+            }
+        }
+
+        return normalized;
     }
 
     public static Uri GetRequiredApiBaseUri(IConfiguration configuration)

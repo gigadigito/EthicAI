@@ -1,0 +1,32 @@
+.futurebol-loading {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: .8rem;
+    padding: 2rem;
+    color: #cbd4e8;
+    text-align: center;
+    background: #090d16;
+}
+
+.futurebol-loading__pulse {
+    width: 2.5rem;
+    aspect-ratio: 1;
+    border: 3px solid rgba(80, 217, 232, .18);
+    border-top-color: #50d9e8;
+    border-radius: 50%;
+    animation: futurebol-loading-spin .9s linear infinite;
+}
+
+@keyframes futurebol-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .futurebol-loading__pulse {
+        animation-duration: 2.4s;
+    }
+}

@@ -1,0 +1,32 @@
+FUTUREBOL FASE 3 — PACOTE CORRIGIDO
+
+CAUSA DOS 17 ERROS
+Os arquivos foram colocados em:
+  wwwroot/js/dashboard/futurebol
+
+Mas os imports relativos e os demais arquivos do módulo estão em:
+  wwwroot/js/futurebol
+
+Por isso o TypeScript não encontrou futurebol-types, market, player e team-configuration.
+
+COMO APLICAR
+1. Apague somente a cópia criada no lugar errado:
+   wwwroot/js/dashboard/futurebol
+
+2. Extraia este ZIP na raiz do projeto CriptoVersus.
+   Os arquivos devem terminar em:
+   wwwroot/js/futurebol/futurebol-camera.ts
+   wwwroot/js/futurebol/futurebol-engine.ts
+   wwwroot/js/futurebol/futurebol-match-state.ts
+   wwwroot/js/futurebol/futurebol-renderer.ts
+   wwwroot/js/futurebol/player/futurebol-animation-map.ts
+
+3. Não mova a pasta futurebol para dentro de dashboard.
+
+4. Compile:
+   npm run ts:build
+   npm run test:futurebol
+
+CORREÇÕES ADICIONAIS
+- futurebol-camera.ts agora possui retorno default em resolveBroadcastShot.
+- futurebol-engine.ts tipa explicitamente o callback snapshot.

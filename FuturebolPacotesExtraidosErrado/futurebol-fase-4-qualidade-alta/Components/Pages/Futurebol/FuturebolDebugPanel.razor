@@ -1,0 +1,153 @@
+<aside class="futurebol-debug" aria-label="Controles do laboratório Futurebol">
+    <div class="futurebol-debug__heading">
+        <div>
+            <span class="futurebol-debug__eyebrow">LAB CONTROLS</span>
+            <strong>Simulação</strong>
+        </div>
+        <span class="futurebol-debug__state" aria-live="polite">@PauseStatus</span>
+    </div>
+
+    <div class="futurebol-debug__actions">
+        <button type="button" class="futurebol-button" @onclick="OnTogglePauseAsync">
+            @(IsPaused ? "Retomar" : "Pausar")
+        </button>
+        <button type="button" class="futurebol-button" @onclick="OnResetAsync">Reiniciar</button>
+        <button type="button" class="futurebol-button futurebol-button--home" @onclick="OnForceHomeAsync">
+            Pressão @HomeSymbol
+        </button>
+        <button type="button" class="futurebol-button futurebol-button--away" @onclick="OnForceAwayAsync">
+            Pressão @AwaySymbol
+        </button>
+        <button type="button" class="futurebol-button" @onclick="OnBalanceAsync">Equilíbrio</button>
+        <button type="button" class="futurebol-button" @onclick="OnToggleCameraAsync">
+            Câmera @(IsFixedCamera ? "dinâmica" : "fixa")
+        </button>
+    </div>
+
+    <div class="futurebol-debug__section">
+        <span class="futurebol-debug__section-title">JOGADA DETERMINÍSTICA</span>
+        <div class="futurebol-debug__actions futurebol-debug__actions--plays">
+            <button type="button" class="futurebol-button futurebol-button--home" @onclick="OnForceHomePassAsync">Forçar passe @HomeSymbol</button>
+            <button type="button" class="futurebol-button futurebol-button--away" @onclick="OnForceAwayPassAsync">Forçar passe @AwaySymbol</button>
+            <button type="button" class="futurebol-button futurebol-button--home" @onclick="OnForceHomeShotAsync">Forçar chute @HomeSymbol</button>
+            <button type="button" class="futurebol-button futurebol-button--away" @onclick="OnForceAwayShotAsync">Forçar chute @AwaySymbol</button>
+            <button type="button" class="futurebol-button" @onclick="OnForceSaveAsync">Forçar defesa</button>
+            <button type="button" class="futurebol-button" @onclick="OnForceGoalAsync">Forçar gol</button>
+            <button type="button" class="futurebol-button" @onclick="OnResetPlayAsync">Resetar jogada</button>
+        </div>
+    </div>
+
+    <dl class="futurebol-debug__readout" aria-label="Estado atual da jogada">
+        <div><dt>Fase</dt><dd id="futurebol-debug-phase">Neutral</dd></div>
+        <div><dt>Dono da bola</dt><dd id="futurebol-debug-owner">—</dd></div>
+        <div><dt>Receptor</dt><dd id="futurebol-debug-receiver">—</dd></div>
+        <div><dt>Estado da bola</dt><dd id="futurebol-debug-ball">Free</dd></div>
+        <div><dt>Próxima jogada</dt><dd id="futurebol-debug-cooldown">0s</dd></div>
+    </dl>
+
+    <div class="futurebol-debug__section">
+        <span class="futurebol-debug__section-title">DIAGNÓSTICO VISUAL</span>
+        <dl class="futurebol-debug__readout futurebol-debug__readout--visual">
+            <div><dt>Visual ativo</dt><dd id="futurebol-debug-visual">—</dd></div>
+            <div><dt>Asset carregado</dt><dd id="futurebol-debug-asset">não</dd></div>
+            <div><dt>Skeletons/jogador</dt><dd id="futurebol-debug-skeletons">0</dd></div>
+            <div><dt>Animação atual</dt><dd id="futurebol-debug-animation-current">—</dd></div>
+            <div><dt>Solicitada</dt><dd id="futurebol-debug-animation-requested">—</dd></div>
+            <div><dt>Fallback</dt><dd id="futurebol-debug-fallback">não</dd></div>
+            <div><dt>Tempo GLB</dt><dd id="futurebol-debug-load-time">—</dd></div>
+            <div><dt>Qualidade ativa</dt><dd id="futurebol-debug-quality-active">@Quality</dd></div>
+            <div><dt>Resolução interna</dt><dd id="futurebol-debug-render-size">—</dd></div>
+            <div><dt>Densidade da tela</dt><dd id="futurebol-debug-pixel-ratio">—</dd></div>
+            <div><dt>Escala Babylon</dt><dd id="futurebol-debug-hardware-scaling">—</dd></div>
+        </dl>
+        <p id="futurebol-player-visual-warning" class="futurebol-debug__warning" role="status" hidden></p>
+    </div>
+
+    <div class="futurebol-debug__section">
+        <span class="futurebol-debug__section-title">INTEGRAÇÃO DE DADOS E LOGOS</span>
+        <dl class="futurebol-debug__readout futurebol-debug__readout--visual">
+            <div><dt>Símbolo home</dt><dd id="futurebol-debug-home-symbol">@HomeSymbol</dd></div>
+            <div><dt>Símbolo away</dt><dd id="futurebol-debug-away-symbol">@AwaySymbol</dd></div>
+            <div><dt>Logo home</dt><dd id="futurebol-debug-home-logo-url">—</dd></div>
+            <div><dt>Logo away</dt><dd id="futurebol-debug-away-logo-url">—</dd></div>
+            <div><dt>Textura home</dt><dd id="futurebol-debug-home-logo-loaded">não</dd></div>
+            <div><dt>Fallback textual home</dt><dd id="futurebol-debug-home-logo-fallback">não</dd></div>
+            <div><dt>Textura away</dt><dd id="futurebol-debug-away-logo-loaded">não</dd></div>
+            <div><dt>Fallback textual away</dt><dd id="futurebol-debug-away-logo-fallback">não</dd></div>
+            <div><dt>Fallback do logo</dt><dd id="futurebol-debug-logo-fallback">não</dd></div>
+            <div><dt>Fonte ativa</dt><dd id="futurebol-debug-data-source">—</dd></div>
+            <div><dt>Última atualização</dt><dd id="futurebol-debug-last-update">—</dd></div>
+            <div><dt>Erro resumido</dt><dd id="futurebol-debug-integration-error">—</dd></div>
+        </dl>
+    </div>
+
+    <label class="futurebol-debug__quality" for="futurebol-quality">
+        <span>Qualidade gráfica</span>
+        <select id="futurebol-quality"
+                class="futurebol-select"
+                value="@Quality"
+                @onchange="OnQualityChanged">
+            <option value="Low" selected="@(Quality == "Low")">Baixa</option>
+            <option value="Medium" selected="@(Quality == "Medium")">Média</option>
+            <option value="High" selected="@(Quality == "High")">Alta (recomendada)</option>
+        </select>
+    </label>
+
+    <label class="futurebol-debug__quality" for="futurebol-player-visual">
+        <span>Visual dos jogadores</span>
+        <select id="futurebol-player-visual"
+                class="futurebol-select"
+                value="@PlayerVisual"
+                @onchange="OnPlayerVisualChanged">
+            <option value="Auto" selected="@(PlayerVisual == "Auto")">Auto</option>
+            <option value="Primitives" selected="@(PlayerVisual == "Primitives")">Primitivas</option>
+            <option value="Skeletal" selected="@(PlayerVisual == "Skeletal")">Esquelético</option>
+        </select>
+    </label>
+</aside>
+
+@code {
+    [Parameter] public bool IsPaused { get; set; }
+    [Parameter] public bool IsFixedCamera { get; set; }
+    [Parameter] public string Quality { get; set; } = "High";
+    [Parameter] public string PlayerVisual { get; set; } = "Auto";
+    [Parameter] public string HomeSymbol { get; set; } = string.Empty;
+    [Parameter] public string AwaySymbol { get; set; } = string.Empty;
+    [Parameter] public EventCallback TogglePause { get; set; }
+    [Parameter] public EventCallback Reset { get; set; }
+    [Parameter] public EventCallback ForceHome { get; set; }
+    [Parameter] public EventCallback ForceAway { get; set; }
+    [Parameter] public EventCallback Balance { get; set; }
+    [Parameter] public EventCallback ForceHomePass { get; set; }
+    [Parameter] public EventCallback ForceAwayPass { get; set; }
+    [Parameter] public EventCallback ForceHomeShot { get; set; }
+    [Parameter] public EventCallback ForceAwayShot { get; set; }
+    [Parameter] public EventCallback ForceSave { get; set; }
+    [Parameter] public EventCallback ForceGoal { get; set; }
+    [Parameter] public EventCallback ResetPlay { get; set; }
+    [Parameter] public EventCallback ToggleCamera { get; set; }
+    [Parameter] public EventCallback<string> QualityChanged { get; set; }
+    [Parameter] public EventCallback<string> PlayerVisualChanged { get; set; }
+
+    private string PauseStatus => IsPaused ? "PAUSADO" : "EM EXECUÇÃO";
+
+    private Task OnTogglePauseAsync() => TogglePause.InvokeAsync();
+    private Task OnResetAsync() => Reset.InvokeAsync();
+    private Task OnForceHomeAsync() => ForceHome.InvokeAsync();
+    private Task OnForceAwayAsync() => ForceAway.InvokeAsync();
+    private Task OnBalanceAsync() => Balance.InvokeAsync();
+    private Task OnForceHomePassAsync() => ForceHomePass.InvokeAsync();
+    private Task OnForceAwayPassAsync() => ForceAwayPass.InvokeAsync();
+    private Task OnForceHomeShotAsync() => ForceHomeShot.InvokeAsync();
+    private Task OnForceAwayShotAsync() => ForceAwayShot.InvokeAsync();
+    private Task OnForceSaveAsync() => ForceSave.InvokeAsync();
+    private Task OnForceGoalAsync() => ForceGoal.InvokeAsync();
+    private Task OnResetPlayAsync() => ResetPlay.InvokeAsync();
+    private Task OnToggleCameraAsync() => ToggleCamera.InvokeAsync();
+
+    private Task OnQualityChanged(ChangeEventArgs args)
+        => QualityChanged.InvokeAsync(args.Value?.ToString() ?? "High");
+
+    private Task OnPlayerVisualChanged(ChangeEventArgs args)
+        => PlayerVisualChanged.InvokeAsync(args.Value?.ToString() ?? "Auto");
+}

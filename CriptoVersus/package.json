@@ -2,9 +2,11 @@
   "scripts": {
     "ts:watch": "tsc -w",
     "ts:build": "tsc",
+    "test:futurebol": "npm run ts:build && node ./wwwroot/js/futurebol/tests/mock-market-source.test.mjs && node ./wwwroot/js/futurebol/tests/futurebol-integration.test.mjs && node ./wwwroot/js/futurebol/tests/match-state.test.mjs && node ./wwwroot/js/futurebol/tests/official-match-state.test.mjs && node ./wwwroot/js/futurebol/tests/player-animation.test.mjs && node ./wwwroot/js/futurebol/tests/player-asset.test.mjs",
     "test:tv-charts": "node ./wwwroot/js/tvScoreEventMarkers.test.mjs && node ./wwwroot/js/tvTelemetryCube.test.mjs && node ./wwwroot/js/tvAudioFacade.test.mjs && node ./wwwroot/js/tvAudioConfig.test.mjs && node ./wwwroot/js/tvAudioRuntime.test.mjs && node ./wwwroot/js/tvProceduralAudio.test.mjs && node ./wwwroot/js/tvLineCrossovers.test.mjs"
   },
   "devDependencies": {
+    "babylonjs": "^8.19.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
@@ -12,6 +14,7 @@
     "@solana/wallet-adapter-phantom": "^0.9.29",
     "@solana/wallet-adapter-solflare": "^0.6.33",
     "@solana/web3.js": "^1.98.4",
+    "babylonjs-loaders": "^8.19.0",
     "lightweight-charts": "^5.2.0",
     "three": "^0.167.1"
   }

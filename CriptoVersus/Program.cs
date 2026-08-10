@@ -69,6 +69,8 @@ builder.Services.Configure<SitemapOptions>(
     builder.Configuration.GetSection(SitemapOptions.SectionName));
 builder.Services.Configure<TvBroadcastOptions>(
     builder.Configuration.GetSection(TvBroadcastOptions.SectionName));
+builder.Services.Configure<FuturebolOptions>(
+    builder.Configuration.GetSection(FuturebolOptions.SectionName));
 builder.Services.AddSingleton<MatchRouteRedirectResolver>();
 builder.Services.AddScoped<IMatchRouteLookupService, ApiMatchRouteLookupService>();
 builder.Services.Configure<CriptoVersusBlockchainOptions>(
@@ -248,6 +250,7 @@ static FileExtensionContentTypeProvider CreateMediaContentTypeProvider()
     var provider = new FileExtensionContentTypeProvider();
     provider.Mappings[".mp3"] = "audio/mpeg";
     provider.Mappings[".wav"] = "audio/wav";
+    provider.Mappings[".glb"] = "model/gltf-binary";
     return provider;
 }
 

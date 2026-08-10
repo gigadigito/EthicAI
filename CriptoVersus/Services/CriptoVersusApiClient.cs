@@ -67,7 +67,17 @@ public sealed class CriptoVersusApiClient
     }
     public string BuildBinanceIconUrl(string? symbol)
     {
-        return EnvironmentIsolationGuard.BuildBinanceIconUrl(symbol);
+        var normalized = EnvironmentIsolationGuard.NormalizeBinanceIconSymbol(symbol);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
+        var browserApiBaseAddress = _publicApiBaseAddress ?? _http.BaseAddress;
+        if (browserApiBaseAddress is null)
+            return EnvironmentIsolationGuard.BuildBinanceIconUrl(normalized);
+
+        return new Uri(
+            browserApiBaseAddress,
+            $"api/icons/binance/{Uri.EscapeDataString(normalized)}").ToString();
     }
 
     public async Task<DashboardSnapshotDto?> GetDashboardSnapshotAsync(

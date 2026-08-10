@@ -59,6 +59,9 @@ namespace CriptoVersus.API.Controllers
 
             // cache no browser por 7 dias
             Response.Headers.CacheControl = "public,max-age=604800";
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+            Response.Headers["Access-Control-Expose-Headers"] = "Content-Type, Content-Length, Cache-Control";
+            Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
 
             return File(bytes, contentType);
         }

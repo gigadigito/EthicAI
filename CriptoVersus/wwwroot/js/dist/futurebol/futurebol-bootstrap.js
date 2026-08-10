@@ -1,0 +1,85 @@
+import { acquireBabylon, releaseBabylon } from "./futurebol-babylon-loader.js";
+import { FuturebolEngine } from "./futurebol-engine.js";
+const instances = new Map();
+export async function initialize(canvasId, options, dotNetReference) {
+    await dispose(canvasId);
+    let acquired = false;
+    try {
+        if (options.simulateWebGlFailure || !supportsWebGl())
+            throw new Error("WebGL não está disponível ou a inicialização foi bloqueada.");
+        const canvas = document.getElementById(canvasId);
+        if (!(canvas instanceof HTMLCanvasElement))
+            throw new Error("Canvas do Futurebol não foi encontrado.");
+        const B = await acquireBabylon();
+        acquired = true;
+        const engine = new FuturebolEngine(B, canvas, options, dotNetReference);
+        await engine.initialize();
+        instances.set(canvasId, engine);
+    }
+    catch (error) {
+        if (acquired)
+            releaseBabylon();
+        const message = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o Futurebol.";
+        console.error("[Futurebol] falha de WebGL/inicialização", error);
+        await dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
+    }
+}
+export function pause(canvasId) {
+    instances.get(canvasId)?.pause();
+}
+export function resume(canvasId) {
+    instances.get(canvasId)?.resume();
+}
+export function reset(canvasId) {
+    instances.get(canvasId)?.reset();
+}
+export function setPressure(canvasId, pressure) {
+    instances.get(canvasId)?.setPressure(pressure);
+}
+export function setFixedCamera(canvasId, fixed) {
+    instances.get(canvasId)?.setFixedCamera(fixed);
+}
+export async function setQuality(canvasId, quality) {
+    await instances.get(canvasId)?.setQuality(quality);
+}
+export async function setPlayerVisual(canvasId, preference) {
+    await instances.get(canvasId)?.setPlayerVisual(preference);
+}
+export function forcePass(canvasId, team) {
+    instances.get(canvasId)?.forcePass(team);
+}
+export function forceShot(canvasId, team) {
+    instances.get(canvasId)?.forceShot(team);
+}
+export function forceOutcome(canvasId, outcome) {
+    instances.get(canvasId)?.forceOutcome(outcome);
+}
+export function resetPlay(canvasId) {
+    instances.get(canvasId)?.resetPlay();
+}
+export function updateMarket(canvasId, snapshot) {
+    instances.get(canvasId)?.pushMarketSnapshot(snapshot);
+}
+export function updateOfficialState(canvasId, state) {
+    instances.get(canvasId)?.pushOfficialMatchState(state);
+}
+export function reportMarketError(canvasId, message) {
+    instances.get(canvasId)?.reportMarketError(message);
+}
+export async function dispose(canvasId) {
+    const instance = instances.get(canvasId);
+    if (!instance)
+        return;
+    instances.delete(canvasId);
+    await instance.dispose();
+    releaseBabylon();
+}
+function supportsWebGl() {
+    try {
+        const probe = document.createElement("canvas");
+        return Boolean(probe.getContext("webgl2") || probe.getContext("webgl"));
+    }
+    catch {
+        return false;
+    }
+}

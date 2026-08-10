@@ -1,6 +1,6 @@
 // dashboard/index.ts
-import { parseHealthJson, renderHealthList, } from "./workerHealth.js";
-import { computeWorkerStatus, renderStatusBadge, } from "./workerStatus.js";
+import { parseHealthJson, renderHealthList, } from "./workerHealth";
+import { computeWorkerStatus, renderStatusBadge, } from "./workerStatus";
 /**
  * Atualiza a UI do dashboard do worker
  */

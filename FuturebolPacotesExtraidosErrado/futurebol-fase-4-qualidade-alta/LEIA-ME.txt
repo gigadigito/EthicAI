@@ -1,0 +1,26 @@
+FUTUREBOL — FASE 4: QUALIDADE ALTA POR PADRÃO
+
+Conteúdo:
+- Components/Pages/Futurebol/FuturebolLab.razor
+- Components/Pages/Futurebol/FuturebolLab.razor.cs
+- Components/Pages/Futurebol/FuturebolLab.razor.css
+- Components/Pages/Futurebol/FuturebolDebugPanel.razor
+- wwwroot/js/futurebol/futurebol-bootstrap.ts
+- wwwroot/js/futurebol/futurebol-engine.ts
+- wwwroot/js/futurebol/futurebol-renderer.ts
+
+Aplicação:
+1. Extraia este ZIP na raiz do projeto CriptoVersus.
+2. Preserve as pastas Components e wwwroot.
+3. Rode:
+   npm run ts:build
+   npm run test:futurebol
+4. Reinicie o projeto Web e use Ctrl+Shift+R.
+
+Comportamento:
+- Primeira visita: qualidade High.
+- Escolha manual: salva em localStorage com a chave futurebol.graphics.quality.
+- Visitas seguintes: restaura a escolha do usuário.
+- High: resolução interna de 1.25x a 1.6x, sombras 2048 e anisotropia 8x.
+- Medium: resolução nativa.
+- Low: resolução reduzida para preservar FPS.
