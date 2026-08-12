@@ -127,6 +127,39 @@ assert.equal(reloadState.currentPlayPhase, "Neutral", "reconexão não deve repe
 reloadState.applyOfficialMatchState(officialState({ sequence: 2, homeScore: 0, awayScore: 0 }), true);
 assert.equal(reloadState.homeScore, 2, "estado oficial obsoleto não deve sobrescrever o estado recuperado");
 assert.equal(reloadState.awayScore, 1);
+reloadState.applyOfficialMatchState(officialState({ sequence: 3, homeScore: 1, awayScore: 0 }), true);
+assert.equal(reloadState.homeScore, 2, "a mesma versão não pode retroceder o placar oficial");
+assert.equal(reloadState.awayScore, 1);
+
+const multiPointState = new FuturebolMatchState("official-multipoint", true);
+multiPointState.applyOfficialMatchState(officialState(), false);
+multiPointState.applyOfficialMatchState(officialState({
+    sequence: 8,
+    homeScore: 3,
+    scoreEvents: [{
+        id: 3001,
+        sequence: 8,
+        team: "home",
+        points: 3,
+        eventType: "MULTI_POINT",
+        occurredAtUtc: "2026-08-06T12:08:00.000Z"
+    }]
+}), true);
+assert.equal(multiPointState.homeScore, 3, "evento multiponto deve aplicar o placar oficial integral");
+multiPointState.applyOfficialMatchState(officialState({
+    sequence: 8,
+    homeScore: 3,
+    scoreEvents: [{ id: 3001, sequence: 8, team: "home", points: 3, eventType: "MULTI_POINT", occurredAtUtc: "2026-08-06T12:08:00.000Z" }]
+}), true);
+assert.equal(multiPointState.homeScore, 3, "evento duplicado não pode somar pontos localmente");
+
+const frozenPositions = reloadState.players.map(player => ({ ...player.position }));
+for (let index = 0; index < 120; index++) reloadState.update(1 / 60);
+assert.deepEqual(
+    reloadState.players.map(player => player.position),
+    frozenPositions,
+    "partida finalizada deve congelar a simulação oficial"
+);
 
 const mockState = new FuturebolMatchState("mock-regression");
 mockState.applyMarket(marketSnapshot, "home");

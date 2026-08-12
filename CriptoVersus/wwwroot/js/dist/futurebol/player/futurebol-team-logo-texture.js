@@ -19,6 +19,12 @@ export class FuturebolTeamLogoTextureProvider {
             away: this.toDiagnostic(this.resources.away)
         };
     }
+    reconfigure(teams) {
+        if (this.disposed)
+            return;
+        this.reconfigureResource(this.resources.home, teams.home);
+        this.reconfigureResource(this.resources.away, teams.away);
+    }
     dispose() {
         if (this.disposed)
             return;
@@ -42,17 +48,40 @@ export class FuturebolTeamLogoTextureProvider {
             configuration,
             material,
             texture: null,
+            generation: 0,
             loaded: false,
             fallbackActive: false,
             error: null
         };
+        this.loadResource(resource);
+        return resource;
+    }
+    reconfigureResource(resource, configuration) {
+        if (resource.configuration.symbol === configuration.symbol
+            && resource.configuration.logoUrl === configuration.logoUrl)
+            return;
+        resource.generation += 1;
+        resource.configuration = { ...configuration };
+        resource.material.diffuseTexture = null;
+        resource.material.opacityTexture = null;
+        resource.material.emissiveTexture = null;
+        resource.texture?.dispose();
+        resource.texture = null;
+        resource.loaded = false;
+        resource.fallbackActive = false;
+        resource.error = null;
+        this.loadResource(resource);
+    }
+    loadResource(resource) {
+        const configuration = resource.configuration;
+        const generation = resource.generation;
         if (!configuration.logoUrl) {
-            this.activateFallback(resource, null);
-            return resource;
+            this.activateFallback(resource, null, generation);
+            return;
         }
         try {
             const texture = new this.B.Texture(configuration.logoUrl, this.scene, false, true, this.B.Texture.TRILINEAR_SAMPLINGMODE, () => {
-                if (this.disposed || resource.fallbackActive)
+                if (this.disposed || resource.generation !== generation || resource.fallbackActive)
                     return;
                 resource.loaded = true;
                 resource.error = null;
@@ -61,11 +90,11 @@ export class FuturebolTeamLogoTextureProvider {
                 const detail = message?.trim()
                     || (exception instanceof Error ? exception.message : null)
                     || 'Falha ao carregar a textura.';
-                this.activateFallback(resource, detail);
+                this.activateFallback(resource, detail, generation);
             });
-            if (resource.fallbackActive) {
+            if (resource.generation !== generation || resource.fallbackActive) {
                 texture.dispose();
-                return resource;
+                return;
             }
             texture.hasAlpha = true;
             texture.wrapU = this.B.Texture.CLAMP_ADDRESSMODE;
@@ -77,12 +106,11 @@ export class FuturebolTeamLogoTextureProvider {
             const detail = error instanceof Error
                 ? error.message
                 : 'Falha ao criar a textura.';
-            this.activateFallback(resource, detail);
+            this.activateFallback(resource, detail, generation);
         }
-        return resource;
     }
-    activateFallback(resource, error) {
-        if (this.disposed || resource.fallbackActive)
+    activateFallback(resource, error, generation = resource.generation) {
+        if (this.disposed || resource.generation !== generation || resource.fallbackActive)
             return;
         const failedTexture = resource.texture;
         const fallback = new this.B.DynamicTexture(`futurebol-${resource.configuration.symbol}-logo-fallback`, { width: 512, height: 512 }, this.scene, false);

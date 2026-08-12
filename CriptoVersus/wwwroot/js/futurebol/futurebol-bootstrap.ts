@@ -3,12 +3,14 @@ import { FuturebolEngine } from "./futurebol-engine.js";
 import type {
     FuturebolDotNetReference,
     FuturebolInitializeOptions,
+    FuturebolMatchPresentationState,
     FuturebolMarketSnapshot,
     FuturebolOfficialMatchState,
     FuturebolPlayOutcome,
     FuturebolPlayerVisualPreference,
     FuturebolPressureOverride,
     FuturebolQuality,
+    FuturebolRuntimeOptions,
     FuturebolTeam
 } from "./futurebol-types.js";
 
@@ -18,10 +20,11 @@ export async function initialize(
     canvasId: string,
     options: FuturebolInitializeOptions,
     dotNetReference: FuturebolDotNetReference
-): Promise<void> {
+): Promise<boolean> {
     await dispose(canvasId);
 
     let acquired = false;
+    let engine: FuturebolEngine | null = null;
     try {
         if (options.simulateWebGlFailure || !supportsWebGl())
             throw new Error("WebGL não está disponível ou a inicialização foi bloqueada.");
@@ -32,16 +35,31 @@ export async function initialize(
 
         const B = await acquireBabylon();
         acquired = true;
-        const engine = new FuturebolEngine(B, canvas, options, dotNetReference);
+        const runtimeOptions: FuturebolRuntimeOptions = {
+            ...options,
+            quality: resolveInitialQuality(canvas, options.quality)
+        };
+        engine = new FuturebolEngine(B, canvas, runtimeOptions, dotNetReference);
         await engine.initialize();
         instances.set(canvasId, engine);
+        return true;
     } catch (error) {
+        await engine?.dispose();
         if (acquired)
             releaseBabylon();
         const message = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o Futurebol.";
-        console.error("[Futurebol] falha de WebGL/inicialização", error);
+        if (options.development)
+            console.error("[Futurebol] falha de WebGL/inicialização", error);
         await dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
+        return false;
     }
+}
+
+export async function updatePresentation(
+    canvasId: string,
+    state: FuturebolMatchPresentationState
+): Promise<void> {
+    await instances.get(canvasId)?.applyPresentationState(state);
 }
 
 export function pause(canvasId: string): void {
@@ -123,4 +141,26 @@ function supportsWebGl(): boolean {
     } catch {
         return false;
     }
+}
+
+function resolveInitialQuality(
+    canvas: HTMLCanvasElement,
+    preference: FuturebolInitializeOptions["quality"]
+): FuturebolQuality {
+    if (preference !== "Auto")
+        return preference;
+
+    const logicalWidth = Math.max(canvas.clientWidth, window.innerWidth);
+    const logicalHeight = Math.max(canvas.clientHeight, window.innerHeight);
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
+    const pixelLoad = logicalWidth * logicalHeight * pixelRatio * pixelRatio;
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
+    const webGl2 = Boolean(document.createElement("canvas").getContext("webgl2"));
+
+    if (logicalWidth <= 760 || cores <= 4 || memory <= 4 || pixelLoad > 6_000_000)
+        return "Low";
+    if (webGl2 && logicalWidth >= 1200 && cores >= 8 && memory >= 8 && pixelRatio <= 2)
+        return "High";
+    return "Medium";
 }

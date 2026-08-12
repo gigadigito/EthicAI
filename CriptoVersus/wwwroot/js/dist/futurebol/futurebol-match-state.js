@@ -1,4 +1,7 @@
 import { FUTUREBOL_ACTION_TIMING, hasReachedContact } from "./futurebol-action-timing.js";
+import { FuturebolBallController } from "./futurebol-ball-controller.js";
+import { FuturebolMatchRules } from "./futurebol-match-rules.js";
+import { FuturebolPlayerAI } from "./futurebol-player-ai.js";
 const FIELD_HALF_LENGTH = 23;
 const FIELD_HALF_WIDTH = 13;
 const BALL_LIMIT_X = 27;
@@ -75,6 +78,9 @@ const FORMATION = [
  * a partida está em Neutral ou Cooldown.
  */
 export class FuturebolMatchState {
+    get ballVelocity() {
+        return this.ballController.velocity;
+    }
     get homeScore() {
         return this.officialMode
             ? this.officialMatchState?.homeScore ?? 0
@@ -114,6 +120,8 @@ export class FuturebolMatchState {
         this.currentPlayPhase = "Neutral";
         this.activeTeam = null;
         this.cooldownRemainingSeconds = 0;
+        this.lastBallAction = null;
+        this.lastRestartType = null;
         this.localHomeScore = 0;
         this.localAwayScore = 0;
         this.officialMatchState = null;
@@ -123,6 +131,9 @@ export class FuturebolMatchState {
         this.officialGoalCinematicActive = false;
         this.officialGoalCinematicTeam = null;
         this.playerVelocities = new Map();
+        this.playerAI = new FuturebolPlayerAI();
+        this.matchRules = new FuturebolMatchRules();
+        this.ballController = new FuturebolBallController(this.ballPosition);
         this.passStart = point(0, BALL_GROUND_Y, 0);
         this.passEnd = point(0, BALL_GROUND_Y, 0);
         this.shotStart = point(0, BALL_GROUND_Y, 0);
@@ -153,7 +164,10 @@ export class FuturebolMatchState {
             facingAngle: entry.team === "home" ? 0 : Math.PI,
             animation: defaultAnimation(entry.role),
             animationTime: 0,
-            actionProgress: 0
+            actionProgress: 0,
+            basePosition: { ...entry.neutral },
+            zone: createPlayerZone(entry),
+            tacticalIntent: "HoldingPosition"
         }));
         for (const player of this.players)
             this.playerVelocities.set(player.id, point(0, 0, 0));
@@ -179,8 +193,8 @@ export class FuturebolMatchState {
             this.seenOfficialScoreEventIds.add(event.id);
         this.officialMatchState = {
             ...state,
-            homeScore: Math.max(0, state.homeScore),
-            awayScore: Math.max(0, state.awayScore),
+            homeScore: Math.max(this.officialMatchState?.homeScore ?? 0, state.homeScore),
+            awayScore: Math.max(this.officialMatchState?.awayScore ?? 0, state.awayScore),
             elapsedSeconds: Math.max(0, state.elapsedSeconds),
             scoreEvents: orderedEvents
         };
@@ -193,10 +207,21 @@ export class FuturebolMatchState {
     }
     update(deltaSeconds) {
         const safeDelta = clamp(deltaSeconds, 0, 0.1);
+        if (this.officialMode
+            && this.officialMatchState?.isFinished
+            && !this.officialGoalCinematicActive
+            && this.pendingOfficialGoalTeams.length === 0) {
+            for (const player of this.players) {
+                copyPoint(player.targetPosition, player.position);
+                player.currentSpeed = 0;
+                player.animation = defaultAnimation(player.role);
+            }
+            return;
+        }
         this.elapsedSeconds += safeDelta;
         this.phaseElapsed += safeDelta;
         this.updateAutomaticPlayTrigger(safeDelta);
-        this.updatePlayPhase();
+        this.updatePlayPhase(safeDelta);
         this.constrainTargetsByRole();
         for (let iteration = 0; iteration < TARGET_SEPARATION_ITERATIONS; iteration++) {
             this.preventTargetOverlaps();
@@ -250,6 +275,8 @@ export class FuturebolMatchState {
         this.officialGoalCinematicActive = false;
         this.officialGoalCinematicTeam = null;
         this.playIndex = 0;
+        this.lastBallAction = null;
+        this.lastRestartType = null;
         this.pendingOutcome = null;
         this.currentOutcome = "Saved";
         this.outcomeHoldSeconds = 1.2;
@@ -272,10 +299,12 @@ export class FuturebolMatchState {
             player.animation = defaultAnimation(player.role);
             player.animationTime = 0;
             player.actionProgress = 0;
+            player.tacticalIntent = "HoldingPosition";
             const velocity = this.playerVelocities.get(player.id);
             if (velocity)
                 setPoint(velocity, 0, 0, 0);
         });
+        this.ballController.reset(point(0, BALL_GROUND_Y, 0));
     }
     updateAutomaticPlayTrigger(deltaSeconds) {
         if (this.officialMode &&
@@ -331,7 +360,7 @@ export class FuturebolMatchState {
             this.startPlay(favoredTeam, null);
         }
     }
-    updatePlayPhase() {
+    updatePlayPhase(deltaSeconds) {
         this.releaseTransientAnimations();
         switch (this.currentPlayPhase) {
             case "Neutral":
@@ -342,7 +371,7 @@ export class FuturebolMatchState {
                 this.updateBuildUp();
                 break;
             case "Passing":
-                this.updatePass();
+                this.updatePass(deltaSeconds);
                 break;
             case "Attacking":
                 this.updateAttack();
@@ -351,7 +380,7 @@ export class FuturebolMatchState {
                 this.updateShotPreparation();
                 break;
             case "Shooting":
-                this.updateShot();
+                this.updateShot(deltaSeconds);
                 break;
             case "Outcome":
                 this.updateOutcome();
@@ -397,6 +426,7 @@ export class FuturebolMatchState {
         this.intendedReceiverId = this.playerId(team, "attacker");
         this.setOwner(this.playerId(team, "defender"));
         this.ballState = "Controlled";
+        this.lastRestartType = null;
     }
     createPlayPlan(team) {
         const advantage = this.attackingAdvantage(team);
@@ -433,26 +463,35 @@ export class FuturebolMatchState {
             defender.actionProgress = contactProgress;
         }
         if (hasReachedContact(contactProgress, FUTUREBOL_ACTION_TIMING.passContactRatio)) {
-            this.beginPass(defender, attacker);
+            const decision = this.playerAI.decide(this.decisionContext(defender, team));
+            const selectedReceiver = decision.pass?.receiver ?? attacker;
+            const receptionTarget = decision.pass?.target ?? {
+                x: attacker.targetPosition.x +
+                    attackDirection(attacker.team) * this.playPlan.passLead,
+                y: BALL_GROUND_Y,
+                z: attacker.targetPosition.z
+            };
+            this.lastBallAction = "Pass";
+            this.beginPass(defender, selectedReceiver, receptionTarget);
         }
     }
-    beginPass(defender, attacker) {
+    beginPass(defender, receiver, receptionTarget) {
         copyPoint(this.passStart, this.ballPosition);
-        this.passEnd.x = clamp(attacker.targetPosition.x +
-            attackDirection(attacker.team) * this.playPlan.passLead, -18.5, 18.5);
+        this.passEnd.x = clamp(receptionTarget.x, -18.5, 18.5);
         this.passEnd.y = BALL_GROUND_Y;
-        this.passEnd.z = attacker.targetPosition.z;
+        this.passEnd.z = clamp(receptionTarget.z, -11.5, 11.5);
         copyPoint(this.ballTarget, this.passEnd);
         this.lastBallOwnerId = defender.id;
         this.currentBallOwnerId = null;
-        this.intendedReceiverId = attacker.id;
+        this.intendedReceiverId = receiver.id;
         this.ballState = "Passing";
         this.currentPlayPhase = "Passing";
         this.phaseElapsed = 0;
+        this.ballController.launchPass(this.passEnd);
         defender.animation = "kick";
         defender.actionProgress = FUTUREBOL_ACTION_TIMING.passContactRatio;
     }
-    updatePass() {
+    updatePass(deltaSeconds) {
         const team = this.requireActiveTeam();
         const passer = this.getPlayer(this.playerId(team, "defender"));
         const receiver = this.getPlayer(this.intendedReceiverId ?? this.playerId(team, "attacker"));
@@ -465,11 +504,30 @@ export class FuturebolMatchState {
         passer.animation = "kick";
         passer.actionProgress = clamp(FUTUREBOL_ACTION_TIMING.passContactRatio +
             progress * (1 - FUTUREBOL_ACTION_TIMING.passContactRatio), 0, 1);
-        this.setBallArc(this.passStart, this.passEnd, progress, 1.35);
-        if (progress >= 1) {
+        const previousBall = { ...this.ballPosition };
+        const ignored = this.phaseElapsed < 0.28
+            ? new Set([passer.id])
+            : new Set();
+        const step = this.ballController.updateFlight(deltaSeconds, this.players, ignored);
+        const boundary = this.matchRules.evaluateBoundary(previousBall, this.ballPosition, team);
+        if (boundary.kind === "Out") {
+            this.lastRestartType = boundary.restartType;
+            this.beginResetting();
+            return;
+        }
+        const receiverDistance = planarDistance(this.ballPosition, receiver.position);
+        const receiverTouched = step.playerCollisions.includes(receiver.id);
+        if ((receiverDistance <= 1.42 && this.ballPosition.y <= 1.5) ||
+            receiverTouched ||
+            this.phaseElapsed >= 1.75) {
             this.setOwner(receiver.id);
             this.intendedReceiverId = null;
             this.ballState = "Controlled";
+            this.ballController.stopAt({
+                x: receiver.position.x,
+                y: BALL_GROUND_Y,
+                z: receiver.position.z
+            });
             this.transitionToAttacking();
         }
     }
@@ -480,6 +538,7 @@ export class FuturebolMatchState {
         this.setOwner(this.playerId(team, "attacker"));
         this.intendedReceiverId = null;
         this.ballState = "Controlled";
+        this.lastBallAction = "Dribble";
     }
     updateAttack() {
         const team = this.requireActiveTeam();
@@ -495,7 +554,11 @@ export class FuturebolMatchState {
         defender.targetPosition.z = this.playPlan.supportLane;
         this.setOwner(attacker.id);
         this.ballState = "Controlled";
-        if (this.phaseElapsed >= duration) {
+        this.lastBallAction = "Dribble";
+        const decision = this.playerAI.decide(this.decisionContext(attacker, team));
+        const shouldShoot = this.phaseElapsed >= 0.45 &&
+            decision.action === "Shoot";
+        if (shouldShoot || this.phaseElapsed >= duration) {
             this.currentPlayPhase = "PreparingShot";
             this.phaseElapsed = 0;
             attacker.targetPosition.x = clamp(attacker.position.x + direction * 0.8, -19.5, 19.5);
@@ -526,6 +589,8 @@ export class FuturebolMatchState {
         this.ballState = "Shooting";
         this.currentPlayPhase = "Shooting";
         this.phaseElapsed = 0;
+        this.lastBallAction = "Shoot";
+        this.ballController.launchShot(this.shotEnd);
     }
     configureShotEnd() {
         const team = this.requireActiveTeam();
@@ -537,7 +602,7 @@ export class FuturebolMatchState {
         this.shotEnd.z = this.playPlan.shotPlacement;
         copyPoint(this.ballTarget, this.shotEnd);
     }
-    updateShot() {
+    updateShot(deltaSeconds) {
         const team = this.requireActiveTeam();
         const goalkeeper = this.getPlayer(this.playerId(opponent(team), "goalkeeper"));
         const attacker = this.getPlayer(this.playerId(team, "attacker"));
@@ -555,8 +620,30 @@ export class FuturebolMatchState {
         }
         attacker.animation = "kick";
         attacker.actionProgress = clamp(0.62 + progress * 0.38, 0, 1);
-        this.setBallArc(this.shotStart, this.shotEnd, progress, this.currentOutcome === "Goal" ? 2.35 : 1.8);
-        if (progress >= 1)
+        const previousBall = { ...this.ballPosition };
+        const ignoredIds = new Set(this.players.map(player => player.id));
+        if (this.currentOutcome === "Saved")
+            ignoredIds.delete(goalkeeper.id);
+        const step = this.ballController.updateFlight(deltaSeconds, this.players, ignoredIds);
+        const boundary = this.matchRules.evaluateBoundary(previousBall, this.ballPosition, team);
+        if (boundary.kind === "Goal") {
+            this.currentOutcome = "Goal";
+            this.lastRestartType = "Kickoff";
+            this.finishShot(goalkeeper);
+            return;
+        }
+        if (boundary.kind === "Out") {
+            this.currentOutcome = "Saved";
+            this.lastRestartType = boundary.restartType;
+            this.beginResetting();
+            return;
+        }
+        const goalkeeperContact = step.playerCollisions.includes(goalkeeper.id);
+        const saveReached = this.currentOutcome === "Saved" &&
+            (goalkeeperContact ||
+                planarDistance(this.ballPosition, goalkeeper.position) <= 1.38 ||
+                progress >= 1);
+        if (saveReached)
             this.finishShot(goalkeeper);
     }
     finishShot(goalkeeper) {
@@ -579,6 +666,11 @@ export class FuturebolMatchState {
         }
         this.ballState = "Saved";
         this.setOwner(goalkeeper.id);
+        this.ballController.stopAt({
+            x: goalkeeper.position.x - attackDirection(this.requireActiveTeam()) * 0.38,
+            y: 0.68,
+            z: goalkeeper.position.z
+        });
         this.outcomeHoldSeconds = 1.15;
     }
     updateOutcome() {
@@ -610,6 +702,8 @@ export class FuturebolMatchState {
         this.phaseElapsed = 0;
         setPoint(this.ballTarget, 0, BALL_GROUND_Y, 0);
         this.applyNeutralFormation();
+        for (const player of this.players)
+            player.tacticalIntent = "Recovering";
     }
     startNextOfficialGoalCinematic() {
         if (!this.officialMode ||
@@ -630,6 +724,7 @@ export class FuturebolMatchState {
         setPoint(this.ballTarget, 0, BALL_GROUND_Y, 0);
         if (this.phaseElapsed >= RESET_DURATION_SECONDS) {
             setPoint(this.ballPosition, 0, BALL_GROUND_Y, 0);
+            this.ballController.reset(this.ballPosition);
             this.currentPlayPhase = "Cooldown";
             this.ballState = "Free";
             this.activeTeam = null;
@@ -660,8 +755,10 @@ export class FuturebolMatchState {
          * lateralmente, mas nunca são arrastados para o bloco de jogadores.
          */
         copyPoint(attackingGoalkeeper.targetPosition, this.neutralFor(attackingGoalkeeper));
+        attackingGoalkeeper.tacticalIntent = "Covering";
         attackingGoalkeeper.targetPosition.z = clamp(activeZ * 0.06, -1.25, 1.25);
         copyPoint(defendingGoalkeeper.targetPosition, this.neutralFor(defendingGoalkeeper));
+        defendingGoalkeeper.tacticalIntent = "Covering";
         defendingGoalkeeper.targetPosition.z = clamp(activeZ * 0.22, -2.65, 2.65);
         /*
          * Apoio ofensivo: o defensor fica atrás da bola e ocupa o corredor
@@ -670,12 +767,20 @@ export class FuturebolMatchState {
          */
         attackingDefender.targetPosition.x = clamp(activeX - direction * 7.4, -16.6, 16.6);
         attackingDefender.targetPosition.z = clamp(this.playPlan.supportLane, -8.9, 8.9);
+        attackingDefender.tacticalIntent =
+            attackingDefender.id === this.currentBallOwnerId
+                ? "Possessing"
+                : "Supporting";
         /*
          * O atacante acompanha a progressão da bola, mas o chamador da fase
          * pode sobrescrever este alvo quando ele é o portador.
          */
         attackingAttacker.targetPosition.x = clamp(activeX + direction * 1.35, -19.4, 19.4);
         attackingAttacker.targetPosition.z = clamp(activeZ, -8.4, 8.4);
+        attackingAttacker.tacticalIntent =
+            attackingAttacker.id === this.currentBallOwnerId
+                ? "Possessing"
+                : "AttackingSpace";
         /*
          * Marcação: o defensor se posiciona entre a bola e o gol, mantendo
          * distância de abordagem. Ele não tenta ocupar a posição da bola.
@@ -685,18 +790,21 @@ export class FuturebolMatchState {
         const blockDistance = clamp(distanceToGoal * 0.28, 3.6, 5.8);
         defendingDefender.targetPosition.x = clamp(activeX + direction * blockDistance, -18.1, 18.1);
         defendingDefender.targetPosition.z = clamp(activeZ * 0.62 - Math.sign(activeZ || this.playPlan.lane || 1) * 0.75, -8.1, 8.1);
+        defendingDefender.tacticalIntent = "Pressing";
         /*
          * O atacante sem posse oferece saída de contra-ataque em vez de
          * participar da aglomeração ao redor da bola.
          */
         defendingAttacker.targetPosition.x = clamp(activeX - direction * 8.6, -12.8, 12.8);
         defendingAttacker.targetPosition.z = clamp(-activeZ * 0.5 + this.playPlan.supportLane * 0.28, -7.5, 7.5);
+        defendingAttacker.tacticalIntent = "Recovering";
     }
     applyNeutralFormation() {
         for (let index = 0; index < this.players.length; index++) {
             const player = this.players[index];
             const formation = FORMATION[index];
             copyPoint(player.targetPosition, formation.neutral);
+            player.tacticalIntent = "HoldingPosition";
             if (this.currentPlayPhase !== "Neutral" &&
                 this.currentPlayPhase !== "Cooldown") {
                 continue;
@@ -875,15 +983,8 @@ export class FuturebolMatchState {
     }
     constrainTargetsByRole() {
         for (const player of this.players) {
-            if (player.role === "goalkeeper") {
-                const neutral = this.neutralFor(player);
-                player.targetPosition.x = clamp(player.targetPosition.x, neutral.x - 0.42, neutral.x + 0.42);
-                player.targetPosition.z = clamp(player.targetPosition.z, -3.15, 3.15);
-                player.targetPosition.y = 0;
-                continue;
-            }
-            player.targetPosition.x = clamp(player.targetPosition.x, -20.1, 20.1);
-            player.targetPosition.z = clamp(player.targetPosition.z, -10.5, 10.5);
+            player.targetPosition.x = clamp(player.targetPosition.x, player.zone.minimumX, player.zone.maximumX);
+            player.targetPosition.z = clamp(player.targetPosition.z, player.zone.minimumZ, player.zone.maximumZ);
             player.targetPosition.y = 0;
         }
     }
@@ -895,8 +996,8 @@ export class FuturebolMatchState {
             player.position.y = 0;
             return;
         }
-        player.position.x = clamp(player.position.x, -FIELD_HALF_LENGTH, FIELD_HALF_LENGTH);
-        player.position.z = clamp(player.position.z, -FIELD_HALF_WIDTH, FIELD_HALF_WIDTH);
+        player.position.x = clamp(player.position.x, player.zone.minimumX - 0.55, player.zone.maximumX + 0.55);
+        player.position.z = clamp(player.position.z, player.zone.minimumZ - 0.55, player.zone.maximumZ + 0.55);
         player.position.y = 0;
     }
     minimumSeparationFor(first, second, target) {
@@ -933,7 +1034,7 @@ export class FuturebolMatchState {
             this.ballState === "Shooting") {
             return;
         }
-        if (this.ballState === "Controlled" &&
+        if ((this.ballState === "Controlled" || this.ballState === "Saved") &&
             this.currentBallOwnerId) {
             const owner = this.getPlayer(this.currentBallOwnerId);
             const directionX = Math.cos(owner.facingAngle);
@@ -950,13 +1051,16 @@ export class FuturebolMatchState {
             this.ballTarget.z = owner.position.z +
                 directionZ * (0.76 + dribble) + sideZ * 0.19;
         }
-        const responsiveness = this.ballState === "Controlled"
-            ? 12
-            : this.ballState === "Resetting" ? 2.1 : 3.1;
-        const blend = 1 - Math.exp(-responsiveness * deltaSeconds);
-        this.ballPosition.x = clamp(lerp(this.ballPosition.x, this.ballTarget.x, blend), -BALL_LIMIT_X, BALL_LIMIT_X);
-        this.ballPosition.y = lerp(this.ballPosition.y, this.ballTarget.y, blend);
-        this.ballPosition.z = clamp(lerp(this.ballPosition.z, this.ballTarget.z, blend), -FIELD_HALF_WIDTH, FIELD_HALF_WIDTH);
+        if (this.ballState === "Controlled" ||
+            this.ballState === "Saved" ||
+            this.ballState === "Resetting") {
+            this.ballController.controlToward(this.ballTarget, deltaSeconds);
+            this.ballPosition.x = clamp(this.ballPosition.x, -BALL_LIMIT_X, BALL_LIMIT_X);
+            this.ballPosition.z = clamp(this.ballPosition.z, -FIELD_HALF_WIDTH, FIELD_HALF_WIDTH);
+            return;
+        }
+        if (this.ballController.horizontalSpeed() > 0.02 || this.ballPosition.y > BALL_GROUND_Y)
+            this.ballController.updateFlight(deltaSeconds, this.players);
     }
     updateFacingAndAnimation(deltaSeconds) {
         for (const player of this.players) {
@@ -995,14 +1099,6 @@ export class FuturebolMatchState {
                 Math.max(0.35, Math.min(1.2, player.currentSpeed / 3.8));
         }
     }
-    setBallArc(start, end, progress, arcHeight) {
-        this.ballPosition.x = lerp(start.x, end.x, progress);
-        this.ballPosition.y =
-            lerp(start.y, end.y, progress) +
-                4 * arcHeight * progress * (1 - progress);
-        this.ballPosition.z = lerp(start.z, end.z, progress);
-        copyPoint(this.ballTarget, end);
-    }
     resolveOutcome(team) {
         const advantage = this.attackingAdvantage(team);
         const attackingAsset = this.assetFor(team);
@@ -1033,6 +1129,22 @@ export class FuturebolMatchState {
         this.lastBallOwnerId =
             this.currentBallOwnerId ?? this.lastBallOwnerId;
         this.currentBallOwnerId = playerId;
+        for (const player of this.players) {
+            if (player.id === playerId)
+                player.tacticalIntent = "Possessing";
+            else if (player.team === this.getPlayer(playerId).team)
+                player.tacticalIntent = player.role === "attacker"
+                    ? "AttackingSpace"
+                    : "Supporting";
+        }
+    }
+    decisionContext(owner, team) {
+        return {
+            owner,
+            attackingTeam: team,
+            teammates: this.players.filter(player => player.team === team),
+            opponents: this.players.filter(player => player.team !== team)
+        };
     }
     resetPlayState(phase) {
         this.currentPlayPhase = phase;
@@ -1045,6 +1157,7 @@ export class FuturebolMatchState {
         this.cooldownRemainingSeconds = 0;
         setPoint(this.ballPosition, 0, BALL_GROUND_Y, 0);
         setPoint(this.ballTarget, 0, BALL_GROUND_Y, 0);
+        this.ballController.reset(this.ballPosition);
     }
     playerId(team, role) {
         return `${team}-${role}`;
@@ -1106,6 +1219,24 @@ function isOngoingStatus(status) {
 }
 function pointForGoal(team) {
     return team === "home" ? HOME_GOAL : AWAY_GOAL;
+}
+function createPlayerZone(entry) {
+    if (entry.role === "goalkeeper") {
+        return {
+            minimumX: entry.neutral.x - 0.55,
+            maximumX: entry.neutral.x + 0.55,
+            minimumZ: -3.35,
+            maximumZ: 3.35
+        };
+    }
+    if (entry.role === "defender") {
+        return entry.team === "home"
+            ? { minimumX: -18, maximumX: 12.5, minimumZ: -10.5, maximumZ: 10.5 }
+            : { minimumX: -12.5, maximumX: 18, minimumZ: -10.5, maximumZ: 10.5 };
+    }
+    return entry.team === "home"
+        ? { minimumX: -9.5, maximumX: 20.1, minimumZ: -10.5, maximumZ: 10.5 }
+        : { minimumX: -20.1, maximumX: 9.5, minimumZ: -10.5, maximumZ: 10.5 };
 }
 const HOME_GOAL = point(GOAL_LINE_X, 1, 0);
 const AWAY_GOAL = point(-GOAL_LINE_X, 1, 0);

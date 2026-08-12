@@ -3,13 +3,14 @@ import { FuturebolRenderer } from "./futurebol-renderer.js";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import type {
     FuturebolDotNetReference,
-    FuturebolInitializeOptions,
+    FuturebolMatchPresentationState,
     FuturebolMarketSnapshot,
     FuturebolOfficialMatchState,
     FuturebolPlayOutcome,
     FuturebolPlayerVisualPreference,
     FuturebolPressureOverride,
     FuturebolQuality,
+    FuturebolRuntimeOptions,
     FuturebolTeam,
     FuturebolTeamVisualConfigurationMap
 } from "./futurebol-types.js";
@@ -21,13 +22,16 @@ import type { FuturebolMarketSource } from "./market/futurebol-market-source.js"
 type BabylonApi = typeof import("babylonjs");
 
 export class FuturebolEngine {
-    private readonly state: FuturebolMatchState;
+    private state: FuturebolMatchState;
     private readonly renderer: FuturebolRenderer;
     private readonly marketSource: FuturebolMarketSource;
     private readonly teams: FuturebolTeamVisualConfigurationMap;
     private readonly renderFrame: () => void;
     private readonly resizeHandler: () => void;
     private readonly reducedMotion: boolean;
+    private readonly hudRoot: HTMLElement | null;
+    private resizeObserver: ResizeObserver | null = null;
+    private presentationState: FuturebolMatchPresentationState | null;
     private unsubscribeMarket: (() => void) | null = null;
     private pressureOverride: FuturebolPressureOverride = null;
     private lastFrameMs = 0;
@@ -43,15 +47,20 @@ export class FuturebolEngine {
     public constructor(
         B: BabylonApi,
         private readonly canvas: HTMLCanvasElement,
-        private readonly options: FuturebolInitializeOptions,
+        private readonly options: FuturebolRuntimeOptions,
         private readonly dotNetReference: FuturebolDotNetReference
     ) {
         this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        this.hudRoot = options.presentationMode === "lab" && options.hudRootId
+            ? document.getElementById(options.hudRootId)
+            : null;
+        this.presentationState = options.initialPresentationState;
         this.teams = createFuturebolTeamVisualConfiguration(options);
         const officialMode = options.dataMode.trim().toLowerCase() === "api";
         this.state = new FuturebolMatchState(options.seed, officialMode);
-        if (officialMode && options.initialOfficialState)
-            this.state.applyOfficialMatchState(options.initialOfficialState, false);
+        const initialOfficialState = options.initialPresentationState?.official ?? options.initialOfficialState;
+        if (officialMode && initialOfficialState)
+            this.state.applyOfficialMatchState(initialOfficialState, false);
         this.renderer = new FuturebolRenderer(
             B,
             canvas,
@@ -76,7 +85,7 @@ export class FuturebolEngine {
                 this.options.playerVisual,
                 this.options.simulatePlayerAssetFailure,
                 stage => {
-                    setText("futurebol-player-loading-status", stage);
+                    this.setText("futurebol-player-loading-status", stage);
                     this.loadingOverlay?.update(
                         stage,
                         loadingProgress(stage)
@@ -94,6 +103,10 @@ export class FuturebolEngine {
                 this.resizeHandler,
                 { passive: true }
             );
+            if (typeof ResizeObserver !== "undefined" && this.canvas.parentElement) {
+                this.resizeObserver = new ResizeObserver(() => this.renderer.resize());
+                this.resizeObserver.observe(this.canvas.parentElement);
+            }
 
             this.lastFrameMs = performance.now();
             this.lastTelemetryMs = this.lastFrameMs;
@@ -105,12 +118,18 @@ export class FuturebolEngine {
             this.loadingOverlay.complete();
             this.loadingOverlay = null;
 
+            const playerDiagnostics = this.renderer.diagnostics(null);
             this.log("inicialização concluída", {
+                matchId: this.options.matchId,
                 dataMode: this.options.dataMode,
                 seed: this.options.seed,
                 players: this.state.players.length,
                 quality: this.options.quality,
-                reducedMotion: this.reducedMotion
+                reducedMotion: this.reducedMotion,
+                engineInitialized: true,
+                sceneInitialized: true,
+                playerAssetLoaded: playerDiagnostics.assetLoaded,
+                playerFallbackActive: playerDiagnostics.fallbackActive
             });
         } catch (error) {
             const message = error instanceof Error
@@ -200,6 +219,52 @@ export class FuturebolEngine {
         this.updateMatchHud();
     }
 
+    public async applyPresentationState(state: FuturebolMatchPresentationState): Promise<void> {
+        if (state.matchId !== this.options.matchId) {
+            this.changeMatch(state);
+            return;
+        }
+
+        this.presentationState = state;
+        this.pushOfficialMatchState(state.official);
+        this.pushMarketSnapshot(state.market);
+    }
+
+    private changeMatch(presentation: FuturebolMatchPresentationState): void {
+        const previousMatchId = this.options.matchId;
+        this.presentationState = presentation;
+        this.options.matchId = presentation.matchId;
+        this.options.homeSymbol = presentation.homeTeam.symbol;
+        this.options.awaySymbol = presentation.awayTeam.symbol;
+        this.options.homeLogoUrl = presentation.homeTeam.logoUrl;
+        this.options.awayLogoUrl = presentation.awayTeam.logoUrl;
+        this.options.seed = `futurebol-match-${presentation.matchId}`;
+        this.options.initialMarketSnapshot = presentation.market;
+        this.options.initialOfficialState = presentation.official;
+        this.options.initialPresentationState = presentation;
+
+        const teams = createFuturebolTeamVisualConfiguration(this.options);
+        this.renderer.reconfigureTeams(teams);
+        this.state = new FuturebolMatchState(this.options.seed, true);
+        this.state.applyOfficialMatchState(presentation.official, false);
+        this.state.applyMarket(presentation.market, null);
+        this.pressureOverride = null;
+        this.paused = false;
+        this.renderer.resetPlayers();
+        if (this.marketSource instanceof ApiMarketSource)
+            this.marketSource.push(presentation.market);
+        this.lastFrameMs = performance.now();
+        this.updateClock();
+        this.updateMatchHud();
+        this.log("partida alterada sem recriar engine/scene", {
+            previousMatchId,
+            matchId: presentation.matchId,
+            home: presentation.homeTeam.symbol,
+            away: presentation.awayTeam.symbol,
+            quality: this.options.quality
+        });
+    }
+
     public reportMarketError(message: string): void {
         if (this.marketSource instanceof ApiMarketSource)
             this.marketSource.reportError(message);
@@ -212,13 +277,15 @@ export class FuturebolEngine {
 
         this.renderer.engine.stopRenderLoop(this.renderFrame);
         window.removeEventListener("resize", this.resizeHandler);
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
         this.unsubscribeMarket?.();
         this.unsubscribeMarket = null;
         await this.marketSource.disconnect();
         this.loadingOverlay?.dispose();
         this.loadingOverlay = null;
         this.renderer.dispose();
-        this.log("disposal concluído");
+        this.log("disposal concluído", { matchId: this.options.matchId });
     }
 
     private render(): void {
@@ -257,14 +324,14 @@ export class FuturebolEngine {
     }
 
     private updateHud(snapshot: FuturebolMarketSnapshot): void {
-        setText("futurebol-home-momentum", Math.round(snapshot.home.momentum).toString());
-        setText("futurebol-away-momentum", Math.round(snapshot.away.momentum).toString());
-        setWidth("futurebol-home-momentum-bar", snapshot.home.momentum);
-        setWidth("futurebol-away-momentum-bar", snapshot.away.momentum);
+        this.setText("futurebol-home-momentum", Math.round(snapshot.home.momentum).toString());
+        this.setText("futurebol-away-momentum", Math.round(snapshot.away.momentum).toString());
+        this.setWidth("futurebol-home-momentum-bar", snapshot.home.momentum);
+        this.setWidth("futurebol-away-momentum-bar", snapshot.away.momentum);
 
         if (snapshot.sequence % 10 === 0) {
             const state = this.paused ? "pausada" : "em execução";
-            setText(
+            this.setText(
                 "futurebol-a11y-status",
                 `Simulação ${state}. Momentum ${snapshot.home.symbol} ${Math.round(snapshot.home.momentum)} e ${snapshot.away.symbol} ${Math.round(snapshot.away.momentum)}.`
             );
@@ -275,7 +342,7 @@ export class FuturebolEngine {
         const totalSeconds = Math.floor(this.state.displayElapsedSeconds);
         const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
         const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-        setText("futurebol-clock", `${minutes}:${seconds}`);
+        this.setText("futurebol-clock", `${minutes}:${seconds}`);
     }
 
     private collectTelemetry(now: number): void {
@@ -288,7 +355,7 @@ export class FuturebolEngine {
             return;
 
         const fps = Math.round(this.renderer.engine.getFps());
-        setText("futurebol-fps", fps.toString());
+        this.setText("futurebol-fps", fps.toString());
         this.updateClock();
         this.fpsTotal += fps;
         this.fpsSamples += 1;
@@ -299,13 +366,13 @@ export class FuturebolEngine {
     }
 
     private updateMatchHud(): void {
-        setText("futurebol-home-score", this.state.homeScore.toString());
-        setText("futurebol-away-score", this.state.awayScore.toString());
-        setText("futurebol-debug-phase", this.state.currentPlayPhase);
-        setText("futurebol-debug-owner", displayPlayer(this.state.currentBallOwnerId, this.teams.home.symbol, this.teams.away.symbol));
-        setText("futurebol-debug-receiver", displayPlayer(this.state.intendedReceiverId, this.teams.home.symbol, this.teams.away.symbol));
-        setText("futurebol-debug-ball", this.state.ballState);
-        setText("futurebol-debug-cooldown", `${Math.ceil(this.state.cooldownRemainingSeconds)}s`);
+        this.setText("futurebol-home-score", this.state.homeScore.toString());
+        this.setText("futurebol-away-score", this.state.awayScore.toString());
+        this.setText("futurebol-debug-phase", this.state.currentPlayPhase);
+        this.setText("futurebol-debug-owner", displayPlayer(this.state.currentBallOwnerId, this.teams.home.symbol, this.teams.away.symbol));
+        this.setText("futurebol-debug-receiver", displayPlayer(this.state.intendedReceiverId, this.teams.home.symbol, this.teams.away.symbol));
+        this.setText("futurebol-debug-ball", this.state.ballState);
+        this.setText("futurebol-debug-cooldown", `${Math.ceil(this.state.cooldownRemainingSeconds)}s`);
         let diagnosticPlayerId = this.state.currentBallOwnerId;
         if (!diagnosticPlayerId && this.state.activeTeam) {
             const goalkeeperActive = this.state.currentPlayPhase === "Shooting" || this.state.currentPlayPhase === "Outcome";
@@ -316,27 +383,27 @@ export class FuturebolEngine {
             diagnosticPlayerId = `${team}-${role}`;
         }
         const visual = this.renderer.diagnostics(diagnosticPlayerId);
-        setText("futurebol-debug-visual", visual.kind);
-        setText("futurebol-debug-asset", visual.assetLoaded ? "sim" : "não");
-        setText("futurebol-debug-skeletons", visual.skeletonCount.toString());
-        setText("futurebol-debug-animation-current", visual.currentAnimation ?? "—");
-        setText("futurebol-debug-animation-requested", visual.requestedAnimation ?? "—");
-        setText("futurebol-debug-fallback", visual.fallbackActive ? "ativo" : "não");
-        setText("futurebol-debug-load-time", visual.loadTimeMs ? `${Math.round(visual.loadTimeMs)} ms` : "—");
-        setText('futurebol-debug-home-symbol', this.teams.home.symbol);
-        setText('futurebol-debug-away-symbol', this.teams.away.symbol);
-        setText('futurebol-debug-home-logo-url', this.teams.home.logoUrl ?? '—');
-        setText('futurebol-debug-away-logo-url', this.teams.away.logoUrl ?? '—');
-        setText('futurebol-debug-home-logo-loaded', visual.logos.home.loaded ? 'sim' : 'não');
-        setText('futurebol-debug-away-logo-loaded', visual.logos.away.loaded ? 'sim' : 'não');
-        setText('futurebol-debug-home-logo-fallback', visual.logos.home.fallbackActive ? 'sim' : 'não');
-        setText('futurebol-debug-away-logo-fallback', visual.logos.away.fallbackActive ? 'sim' : 'não');
+        this.setText("futurebol-debug-visual", visual.kind);
+        this.setText("futurebol-debug-asset", visual.assetLoaded ? "sim" : "não");
+        this.setText("futurebol-debug-skeletons", visual.skeletonCount.toString());
+        this.setText("futurebol-debug-animation-current", visual.currentAnimation ?? "—");
+        this.setText("futurebol-debug-animation-requested", visual.requestedAnimation ?? "—");
+        this.setText("futurebol-debug-fallback", visual.fallbackActive ? "ativo" : "não");
+        this.setText("futurebol-debug-load-time", visual.loadTimeMs ? `${Math.round(visual.loadTimeMs)} ms` : "—");
+        this.setText('futurebol-debug-home-symbol', this.teams.home.symbol);
+        this.setText('futurebol-debug-away-symbol', this.teams.away.symbol);
+        this.setText('futurebol-debug-home-logo-url', this.teams.home.logoUrl ?? '—');
+        this.setText('futurebol-debug-away-logo-url', this.teams.away.logoUrl ?? '—');
+        this.setText('futurebol-debug-home-logo-loaded', visual.logos.home.loaded ? 'sim' : 'não');
+        this.setText('futurebol-debug-away-logo-loaded', visual.logos.away.loaded ? 'sim' : 'não');
+        this.setText('futurebol-debug-home-logo-fallback', visual.logos.home.fallbackActive ? 'sim' : 'não');
+        this.setText('futurebol-debug-away-logo-fallback', visual.logos.away.fallbackActive ? 'sim' : 'não');
         const logoFallback = visual.logos.home.fallbackActive || visual.logos.away.fallbackActive;
-        setText('futurebol-debug-logo-fallback', logoFallback ? 'ativo' : 'não');
+        this.setText('futurebol-debug-logo-fallback', logoFallback ? 'ativo' : 'não');
         const market = this.marketSource.getDiagnostics();
-        setText('futurebol-debug-data-source', market.mode);
-        setText('futurebol-debug-last-update', market.lastUpdatedAt ?? '—');
-        setText(
+        this.setText('futurebol-debug-data-source', market.mode);
+        this.setText('futurebol-debug-last-update', market.lastUpdatedAt ?? '—');
+        this.setText(
             'futurebol-debug-integration-error',
             visual.logos.home.error
                 ?? visual.logos.away.error
@@ -344,7 +411,7 @@ export class FuturebolEngine {
                 ?? this.options.dataError
                 ?? '—'
         );
-        const warning = document.getElementById("futurebol-player-visual-warning");
+        const warning = this.hudElement("futurebol-player-visual-warning");
         if (warning instanceof HTMLElement) {
             warning.hidden = !visual.warning;
             warning.textContent = visual.warning ?? "";
@@ -352,7 +419,7 @@ export class FuturebolEngine {
     }
 
     private updatePauseStatus(paused: boolean): void {
-        setText("futurebol-a11y-status", paused ? "Simulação pausada." : "Simulação retomada.");
+        this.setText("futurebol-a11y-status", paused ? "Simulação pausada." : "Simulação retomada.");
     }
 
     private reportFatal(error: unknown): void {
@@ -361,7 +428,8 @@ export class FuturebolEngine {
         this.fatalReported = true;
         this.paused = true;
         const message = error instanceof Error ? error.message : "Erro não tratado no módulo 3D.";
-        console.error("[Futurebol] erro não tratado do módulo", error);
+        if (this.options.development)
+            console.error("[Futurebol] erro não tratado do módulo", error);
         void this.dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
     }
 
@@ -372,6 +440,22 @@ export class FuturebolEngine {
             console.info(`[Futurebol] ${message}`);
         else
             console.info(`[Futurebol] ${message}`, details);
+    }
+
+    private hudElement(id: string): HTMLElement | null {
+        return this.hudRoot?.querySelector<HTMLElement>(`#${id}`) ?? null;
+    }
+
+    private setText(id: string, value: string): void {
+        const element = this.hudElement(id);
+        if (element)
+            element.textContent = value;
+    }
+
+    private setWidth(id: string, value: number): void {
+        const element = this.hudElement(id);
+        if (element)
+            element.style.width = `${Math.min(100, Math.max(0, value))}%`;
     }
 }
 
@@ -538,18 +622,6 @@ class FuturebolLoadingOverlay {
         if (this.previousHostPosition)
             this.host.style.position = this.previousHostPosition;
     }
-}
-
-function setText(id: string, value: string): void {
-    const element = document.getElementById(id);
-    if (element)
-        element.textContent = value;
-}
-
-function setWidth(id: string, value: number): void {
-    const element = document.getElementById(id);
-    if (element instanceof HTMLElement)
-        element.style.width = `${Math.min(100, Math.max(0, value))}%`;
 }
 
 function displayPlayer(

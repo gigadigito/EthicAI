@@ -392,17 +392,24 @@ The shared schema is a strong runtime contract. API and Worker must be deployed 
 
 ## Futurebol Flow
 
-Futurebol is an experimental 3D frontend at `/lab/futurebol`.
+Futurebol is the official 3D field renderer for fixed Match TV and rotating Broadcast. The `/lab/futurebol` route remains its diagnostic laboratory.
 
 ```mermaid
 flowchart TD
-    Page[FuturebolLab.razor]
+    Lab[FuturebolLab.razor]
+    TvPages[TvMatchPage + TvPage/Broadcast]
+    Stage[TvStage]
+    TvField[TvFuturebolField]
+    Adapter[FuturebolMatchAdapter]
     Options[FuturebolOptions]
     APIClient[CriptoVersusApiClient]
     MatchApi[Match + score-events endpoints]
     Bootstrap[futurebol-bootstrap.ts/js]
     Engine[futurebol-engine.ts]
     State[futurebol-match-state.ts<br/>official score authority + local cinematics]
+    AI[futurebol-player-ai.ts<br/>contextual deterministic decisions]
+    Ball[futurebol-ball-controller.ts<br/>kinematic ball simulation]
+    Rules[futurebol-match-rules.ts<br/>goals, boundaries, restarts]
     Official[Futurebol official match state]
     MarketFactory[market source factory]
     Mock[Mock market source]
@@ -412,19 +419,27 @@ flowchart TD
     Renderer[renderer + camera + players]
     GLB[futurebol-humanoid.glb]
 
-    Page --> Options
-    Page --> APIClient
+    Lab --> Options
+    Lab --> APIClient
+    TvPages --> Stage
+    Stage --> TvField
+    Lab --> Adapter
+    TvField --> Adapter
     APIClient --> MatchApi
     MatchApi -->|score, status, time, score events| Official
-    Official --> Page
-    Page -->|JS module import| Bootstrap
+    Official --> Adapter
+    Lab -->|JS module import| Bootstrap
+    TvField -->|JS module import| Bootstrap
     Bootstrap --> Engine
     Engine --> State
+    State --> AI
+    State --> Ball
+    State --> Rules
     Engine --> MarketFactory
     MarketFactory --> Mock
     MarketFactory --> ApiSource
-    Page -->|market snapshots| ApiSource
-    Page -->|initial + polled official state| Engine
+    Adapter -->|market snapshots| ApiSource
+    Adapter -->|initial + polled official state| Engine
     Engine --> BabylonLoader
     BabylonLoader --> Babylon
     Engine --> Renderer
@@ -434,6 +449,8 @@ flowchart TD
 Source locations:
 
 - Blazor host: `CriptoVersus/Components/Pages/Futurebol`.
+- Official TV host: `CriptoVersus/Components/Pages/Internet/TvFuturebolField.razor` through `TvStage`.
+- Shared DTO-to-presentation boundary: `CriptoVersus/Services/FuturebolMatchAdapter.cs`.
 - TypeScript source: `CriptoVersus/wwwroot/js/futurebol`.
 - Compiled output: `CriptoVersus/wwwroot/js/dist/futurebol`.
 - Babylon vendor files: `CriptoVersus/wwwroot/js/futurebol/vendor`.
@@ -441,7 +458,11 @@ Source locations:
 
 The TypeScript source is authoritative. Files under `wwwroot/js/dist` are generated output. Futurebol supports deterministic mock data and API-fed match snapshots.
 
-In API mode, `MatchDto` score/status/time and `MatchScoreEventDto` events are mapped by `FuturebolLab` into a dedicated browser contract. Official score and clock are authoritative. Local plays remain cinematic, cannot increment the official score, and are forced to visual saves unless a new deduplicated official score event requests a goal cinematic. Initial/reloaded events establish a baseline and are not replayed. The current transport remains 15-second HTTP polling; Futurebol does not yet subscribe to SignalR.
+`FuturebolMatchState` remains the gameplay coordinator and official/local score boundary. Player movement uses base positions, role zones, tactical intents, arrival steering, and separation inside that state. Contextual possession decisions and pass-target scoring are isolated in `FuturebolPlayerAI`; ball acceleration, rolling drag, bounce, and player/goal-frame collisions are isolated in `FuturebolBallController`; field-boundary, goal, and restart classification are isolated in `FuturebolMatchRules`. These modules are deterministic and do not own or modify player visuals. The Babylon renderer continues to consume positions and animation state without becoming authoritative for match rules.
+
+In API mode, `MatchDto`, `TvHotMatchDto`, snapshots, and `MatchScoreEventDto` events are mapped by `FuturebolMatchAdapter` into a dedicated browser presentation contract. Both the Lab and TV host use that adapter. Official score and clock are authoritative. Local plays remain cinematic, cannot increment the official score, and are forced to visual saves unless a new deduplicated official score event requests a goal cinematic. Initial/reloaded events establish a baseline and are not replayed.
+
+The TV host updates an existing `FuturebolEngine` for the same match and calls its match reconfiguration path during Broadcast rotation. A canvas retains one Babylon engine, scene, render loop, and loaded humanoid asset for its lifetime; match changes reset official/simulation state and replace team symbols/logo textures without rebuilding the scene. Container resize uses `ResizeObserver`. The existing TV polling remains the transport; Futurebol does not add a scoring or persistence path and does not subscribe to a dedicated SignalR event.
 
 ## Candle Battle Flow
 

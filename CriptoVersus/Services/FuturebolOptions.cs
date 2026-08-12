@@ -11,4 +11,6 @@ public sealed class FuturebolOptions
     public string DefaultHomeSymbol { get; set; } = "BTC";
 
     public string DefaultAwaySymbol { get; set; } = "ETH";
+
+    public string TvQuality { get; set; } = "Auto";
 }

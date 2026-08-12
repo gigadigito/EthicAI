@@ -17,6 +17,7 @@ public partial class FuturebolLab
     private Task? _marketUpdateTask;
     private CancellationTokenSource? _routeLoadCts;
     private MatchDto? _match;
+    private FuturebolMatchPresentationModel? _initialPresentation;
     private FuturebolMarketSnapshotModel? _initialMarketSnapshot;
     private FuturebolOfficialMatchStateModel? _initialOfficialState;
     private bool _initializing;
@@ -34,6 +35,7 @@ public partial class FuturebolLab
     private string? _marketWarning;
 
     [Inject] private CriptoVersusApiClient Api { get; set; } = default!;
+    [Inject] private FuturebolMatchAdapter MatchAdapter { get; set; } = default!;
     [Inject] private ILogger<FuturebolLab> Logger { get; set; } = default!;
 
     [SupplyParameterFromQuery(Name = "matchId")]
@@ -127,13 +129,16 @@ public partial class FuturebolLab
                     matchId = _match?.MatchId,
                     initialMarketSnapshot = _initialMarketSnapshot,
                     initialOfficialState = _initialOfficialState,
+                    initialPresentationState = _initialPresentation,
                     dataError = _marketWarning,
                     seed = _match is null ? DefaultSeed : $"futurebol-match-{_match.MatchId}",
                     quality = _quality,
                     development = Environment.IsDevelopment(),
                     simulateWebGlFailure = _simulateWebGlFailure,
                     simulatePlayerAssetFailure = _simulatePlayerAssetFailure,
-                    playerVisual = _playerVisual
+                    playerVisual = _playerVisual,
+                    presentationMode = "lab",
+                    hudRootId = "futurebol-lab-root"
                 },
                 _dotNetReference);
         }
@@ -151,6 +156,7 @@ public partial class FuturebolLab
     private async Task LoadRouteMarketDataAsync(CancellationToken ct)
     {
         _match = null;
+        _initialPresentation = null;
         _initialMarketSnapshot = null;
         _initialOfficialState = null;
         _marketWarning = null;
@@ -182,9 +188,11 @@ public partial class FuturebolLab
                 take: 100,
                 ct) ?? [];
             var scoreEvents = await Api.GetMatchScoreEventsAsync(match.MatchId, ct) ?? [];
+            var presentation = MatchAdapter.Build(match, null, snapshots, scoreEvents);
             _match = match;
-            _initialMarketSnapshot = BuildMarketSnapshot(match, snapshots);
-            _initialOfficialState = BuildOfficialMatchState(match, scoreEvents);
+            _initialPresentation = presentation;
+            _initialMarketSnapshot = presentation.Market;
+            _initialOfficialState = presentation.Official;
             _activeDataMode = "api";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -248,21 +256,16 @@ public partial class FuturebolLab
                 take: 100,
                 ct) ?? [];
             var scoreEvents = await Api.GetMatchScoreEventsAsync(match.MatchId, ct) ?? [];
-            var marketSnapshot = BuildMarketSnapshot(match, snapshots);
-            var officialState = BuildOfficialMatchState(match, scoreEvents);
+            var presentation = MatchAdapter.Build(match, null, snapshots, scoreEvents);
             _match = match;
-            _initialMarketSnapshot = marketSnapshot;
-            _initialOfficialState = officialState;
+            _initialPresentation = presentation;
+            _initialMarketSnapshot = presentation.Market;
+            _initialOfficialState = presentation.Official;
             await _module.InvokeVoidAsync(
-                "updateOfficialState",
+                "updatePresentation",
                 ct,
                 CanvasId,
-                officialState);
-            await _module.InvokeVoidAsync(
-                "updateMarket",
-                ct,
-                CanvasId,
-                marketSnapshot);
+                presentation);
         }
         catch (OperationCanceledException)
         {
@@ -424,81 +427,6 @@ public partial class FuturebolLab
         }
     }
 
-    private static FuturebolMarketSnapshotModel BuildMarketSnapshot(
-        MatchDto match,
-        IReadOnlyCollection<MatchMetricSnapshotDto> snapshots)
-    {
-        var homeLatest = ResolveLatestSnapshot(
-            snapshots,
-            match.TeamAId,
-            match.TeamA);
-        var awayLatest = ResolveLatestSnapshot(
-            snapshots,
-            match.TeamBId,
-            match.TeamB);
-
-        var homeChange = homeLatest?.PercentageChange ?? match.PctA ?? 0m;
-        var awayChange = awayLatest?.PercentageChange ?? match.PctB ?? 0m;
-        var momentumDifference = Math.Clamp(
-            (homeChange - awayChange) * 8m,
-            -100m,
-            100m);
-        var homeMomentum = 50m + momentumDifference / 2m;
-        var awayMomentum = 50m - momentumDifference / 2m;
-        var homeVolume = homeLatest?.QuoteVolume ?? match.QuoteVolumeA ?? 0m;
-        var awayVolume = awayLatest?.QuoteVolume ?? match.QuoteVolumeB ?? 0m;
-        var totalVolume = homeVolume + awayVolume;
-        var homeVolumeStrength = totalVolume > 0m
-            ? Math.Clamp(homeVolume / totalVolume * 100m, 0m, 100m)
-            : 50m;
-        var awayVolumeStrength = totalVolume > 0m
-            ? Math.Clamp(awayVolume / totalVolume * 100m, 0m, 100m)
-            : 50m;
-        var newestSnapshot = snapshots
-            .OrderByDescending(snapshot => snapshot.CapturedAtUtc)
-            .FirstOrDefault();
-        var sequence = snapshots.Count > 0
-            ? snapshots.Max(snapshot => snapshot.MatchMetricSnapshotId)
-            : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var timestamp = newestSnapshot?.CapturedAtUtc
-            ?? match.ScoreUpdatedAtUtc
-            ?? DateTime.UtcNow;
-
-        return new FuturebolMarketSnapshotModel(
-            sequence,
-            timestamp.ToUniversalTime().ToString("O"),
-            new FuturebolAssetStateModel(
-                NormalizeSymbol(match.TeamA, "HOME"),
-                decimal.ToDouble(homeLatest?.LastPrice ?? 0m),
-                decimal.ToDouble(homeChange),
-                decimal.ToDouble(homeMomentum),
-                decimal.ToDouble(homeVolumeStrength)),
-            new FuturebolAssetStateModel(
-                NormalizeSymbol(match.TeamB, "AWAY"),
-                decimal.ToDouble(awayLatest?.LastPrice ?? 0m),
-                decimal.ToDouble(awayChange),
-                decimal.ToDouble(awayMomentum),
-                decimal.ToDouble(awayVolumeStrength)));
-    }
-
-    private static MatchMetricSnapshotDto? ResolveLatestSnapshot(
-        IEnumerable<MatchMetricSnapshotDto> snapshots,
-        int teamId,
-        string symbol)
-    {
-        var normalizedSymbol = symbol.Trim().ToUpperInvariant();
-        return snapshots
-            .Where(snapshot =>
-                (teamId > 0 && snapshot.TeamId == teamId)
-                || string.Equals(
-                    snapshot.TeamSymbol.Trim(),
-                    normalizedSymbol,
-                    StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(snapshot => snapshot.CapturedAtUtc)
-            .ThenByDescending(snapshot => snapshot.MatchMetricSnapshotId)
-            .FirstOrDefault();
-    }
-
     private string? ResolveLogoUrl(string symbol)
     {
         var resolved = Api.BuildBinanceIconUrl(symbol);
@@ -510,136 +438,9 @@ public partial class FuturebolLab
         var normalized = EnvironmentIsolationGuard.NormalizeBinanceIconSymbol(symbol);
         if (!string.IsNullOrWhiteSpace(normalized))
             return normalized;
-
         normalized = EnvironmentIsolationGuard.NormalizeBinanceIconSymbol(fallback);
         return string.IsNullOrWhiteSpace(normalized) ? "?" : normalized;
     }
-
-    private sealed record FuturebolMarketSnapshotModel(
-        long Sequence,
-        string Timestamp,
-        FuturebolAssetStateModel Home,
-        FuturebolAssetStateModel Away);
-
-    private static FuturebolOfficialMatchStateModel BuildOfficialMatchState(
-        MatchDto match,
-        IEnumerable<MatchScoreEventDto> scoreEvents)
-    {
-        var observedAtUtc = DateTime.UtcNow;
-        var events = scoreEvents
-            .Where(scoreEvent => scoreEvent.Points > 0)
-            .Select(scoreEvent => new
-            {
-                Event = scoreEvent,
-                Team = ResolveOfficialEventTeam(match, scoreEvent)
-            })
-            .Where(item => item.Team is not null)
-            .OrderBy(item => item.Event.EventSequence)
-            .ThenBy(item => item.Event.MatchScoreEventId)
-            .Select(item => new FuturebolOfficialScoreEventModel(
-                item.Event.MatchScoreEventId,
-                item.Event.EventSequence,
-                item.Team!,
-                item.Event.Points,
-                item.Event.EventType,
-                item.Event.EventTimeUtc.ToUniversalTime().ToString("O")))
-            .ToArray();
-        var eventSequence = events.Length == 0
-            ? 0
-            : events.Max(scoreEvent => scoreEvent.Sequence);
-
-        return new FuturebolOfficialMatchStateModel(
-            match.MatchId,
-            Math.Max(match.ScoreVersion, eventSequence),
-            match.Status,
-            Math.Max(0, match.ScoreA),
-            Math.Max(0, match.ScoreB),
-            ResolveOfficialElapsedSeconds(match, observedAtUtc),
-            match.IsFinished,
-            observedAtUtc.ToString("O"),
-            events);
-    }
-
-    private static string? ResolveOfficialEventTeam(
-        MatchDto match,
-        MatchScoreEventDto scoreEvent)
-    {
-        if (scoreEvent.TeamId == match.TeamAId)
-            return "home";
-
-        if (scoreEvent.TeamId == match.TeamBId)
-            return "away";
-
-        var eventSymbol = scoreEvent.TeamSymbol.Trim();
-        if (string.Equals(eventSymbol, match.TeamA.Trim(), StringComparison.OrdinalIgnoreCase))
-            return "home";
-
-        return string.Equals(eventSymbol, match.TeamB.Trim(), StringComparison.OrdinalIgnoreCase)
-            ? "away"
-            : null;
-    }
-
-    private static int ResolveOfficialElapsedSeconds(MatchDto match, DateTime observedAtUtc)
-    {
-        var fallbackSeconds = Math.Max(0, match.ElapsedMinutes) * 60;
-        if (!match.StartTime.HasValue)
-            return fallbackSeconds;
-
-        var startUtc = AsUtc(match.StartTime.Value);
-        DateTime referenceUtc;
-        if (match.IsFinished)
-        {
-            if (!match.EndTime.HasValue)
-                return fallbackSeconds;
-            referenceUtc = AsUtc(match.EndTime.Value);
-        }
-        else if (string.Equals(match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase))
-        {
-            referenceUtc = observedAtUtc;
-        }
-        else
-        {
-            return fallbackSeconds;
-        }
-        var calculatedSeconds = (int)Math.Floor(Math.Max(
-            0,
-            (referenceUtc - startUtc).TotalSeconds));
-        return Math.Max(fallbackSeconds, calculatedSeconds);
-    }
-
-    private static DateTime AsUtc(DateTime value)
-        => value.Kind switch
-        {
-            DateTimeKind.Utc => value,
-            DateTimeKind.Local => value.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
-        };
-
-    private sealed record FuturebolOfficialMatchStateModel(
-        int MatchId,
-        int Sequence,
-        string Status,
-        int HomeScore,
-        int AwayScore,
-        int ElapsedSeconds,
-        bool IsFinished,
-        string ObservedAtUtc,
-        IReadOnlyList<FuturebolOfficialScoreEventModel> ScoreEvents);
-
-    private sealed record FuturebolOfficialScoreEventModel(
-        long Id,
-        int Sequence,
-        string Team,
-        int Points,
-        string EventType,
-        string OccurredAtUtc);
-
-    private sealed record FuturebolAssetStateModel(
-        string Symbol,
-        double Price,
-        double ChangePercent,
-        double Momentum,
-        double VolumeStrength);
 
     private static string FriendlyError(Exception exception)
     {

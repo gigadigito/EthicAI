@@ -7,6 +7,7 @@ export class FuturebolPlayerVisualFactory {
         this.B = B;
         this.scene = scene;
         this.teams = teams;
+        this.development = development;
         this.simulateAssetFailure = simulateAssetFailure;
         this.onProgress = onProgress;
         this.loader = null;
@@ -46,7 +47,8 @@ export class FuturebolPlayerVisualFactory {
             for (const visual of visuals.values())
                 visual.dispose();
             const message = error instanceof Error ? error.message : "Falha desconhecida no GLB.";
-            console.error("[Futurebol] GLB esquelético indisponível; usando primitivas.", error);
+            if (this.development)
+                console.error("[Futurebol] GLB esquelético indisponível; usando primitivas.", error);
             this.loader?.dispose();
             this.loader = null;
             return this.createPrimitives(players, true, `Visual esquelético indisponível: ${message}`);
@@ -62,6 +64,9 @@ export class FuturebolPlayerVisualFactory {
     }
     logoDiagnostics() {
         return this.logoTextures.diagnostics();
+    }
+    reconfigureTeams(teams) {
+        this.logoTextures.reconfigure(teams);
     }
     createPrimitives(players, fallback, warning) {
         const visuals = new Map();

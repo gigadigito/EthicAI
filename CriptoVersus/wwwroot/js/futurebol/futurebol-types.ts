@@ -1,6 +1,8 @@
 export type FuturebolTeam = "home" | "away";
 export type FuturebolRole = "goalkeeper" | "defender" | "attacker";
 export type FuturebolQuality = "Low" | "Medium" | "High";
+export type FuturebolQualityPreference = FuturebolQuality | "Auto";
+export type FuturebolPresentationMode = "lab" | "tv";
 export type FuturebolPlayerVisualPreference = "Auto" | "Primitives" | "Skeletal";
 export type FuturebolPlayerVisualKind = "Primitives" | "Skeletal";
 export type FuturebolVisualAnimationState =
@@ -17,6 +19,16 @@ export type FuturebolVisualAnimationState =
     | "Disappointed";
 export type FuturebolPressureOverride = FuturebolTeam | "balanced" | null;
 export type FuturebolBallState = "Free" | "Controlled" | "Passing" | "Shooting" | "Saved" | "Resetting";
+export type FuturebolBallAction = "Dribble" | "Pass" | "Shoot";
+export type FuturebolTacticalIntent =
+    | "HoldingPosition"
+    | "Possessing"
+    | "Supporting"
+    | "Pressing"
+    | "Covering"
+    | "AttackingSpace"
+    | "Recovering";
+export type FuturebolRestartType = "Kickoff" | "ThrowIn" | "GoalKick" | "Corner";
 export type FuturebolPlayPhase =
     | "Neutral"
     | "BuildUp"
@@ -42,6 +54,13 @@ export interface FuturebolVector3State {
     z: number;
 }
 
+export interface FuturebolPlayerZone {
+    minimumX: number;
+    maximumX: number;
+    minimumZ: number;
+    maximumZ: number;
+}
+
 export interface FuturebolPlayerState {
     id: string;
     team: FuturebolTeam;
@@ -54,6 +73,9 @@ export interface FuturebolPlayerState {
     animation: FuturebolPlayerAnimation;
     animationTime: number;
     actionProgress: number;
+    basePosition: FuturebolVector3State;
+    zone: FuturebolPlayerZone;
+    tacticalIntent: FuturebolTacticalIntent;
 }
 
 export interface FuturebolAssetState {
@@ -92,6 +114,38 @@ export interface FuturebolOfficialMatchState {
     scoreEvents: FuturebolOfficialScoreEvent[];
 }
 
+export interface FuturebolTeamPresentationState {
+    teamId: number;
+    symbol: string;
+    name: string;
+    logoUrl: string | null;
+}
+
+export interface FuturebolMatchClockState {
+    startTimeUtc: string | null;
+    endTimeUtc: string | null;
+    elapsedSeconds: number;
+    remainingSeconds: number;
+    isFinished: boolean;
+}
+
+export interface FuturebolMatchResultState {
+    winnerTeamId: number | null;
+    winnerTeamSymbol: string | null;
+    endReasonCode: string | null;
+    endReasonDetail: string | null;
+}
+
+export interface FuturebolMatchPresentationState {
+    matchId: number;
+    homeTeam: FuturebolTeamPresentationState;
+    awayTeam: FuturebolTeamPresentationState;
+    market: FuturebolMarketSnapshot;
+    official: FuturebolOfficialMatchState;
+    clock: FuturebolMatchClockState;
+    result: FuturebolMatchResultState;
+}
+
 export interface FuturebolTeamVisualConfiguration {
     symbol: string;
     logoUrl: string | null;
@@ -111,14 +165,21 @@ export interface FuturebolInitializeOptions {
     matchId: number | null;
     initialMarketSnapshot: FuturebolMarketSnapshot | null;
     initialOfficialState: FuturebolOfficialMatchState | null;
+    initialPresentationState: FuturebolMatchPresentationState | null;
     dataError: string | null;
     seed: string;
-    quality: FuturebolQuality;
+    quality: FuturebolQualityPreference;
     development: boolean;
     simulateWebGlFailure: boolean;
     simulatePlayerAssetFailure: boolean;
     playerVisual: FuturebolPlayerVisualPreference;
+    presentationMode: FuturebolPresentationMode;
+    hudRootId: string | null;
 }
+
+export type FuturebolRuntimeOptions = Omit<FuturebolInitializeOptions, "quality"> & {
+    quality: FuturebolQuality;
+};
 
 export interface FuturebolVisualUpdateContext {
     phase: FuturebolPlayPhase;

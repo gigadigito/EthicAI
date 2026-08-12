@@ -15,9 +15,10 @@ type BabylonApi = typeof import('babylonjs');
 const loggedLogoResults = new Set<string>();
 
 interface FuturebolLogoTextureResource {
-    readonly configuration: FuturebolTeamVisualConfiguration;
+    configuration: FuturebolTeamVisualConfiguration;
     readonly material: StandardMaterial;
     texture: BaseTexture | null;
+    generation: number;
     loaded: boolean;
     fallbackActive: boolean;
     error: string | null;
@@ -48,6 +49,13 @@ export class FuturebolTeamLogoTextureProvider {
             home: this.toDiagnostic(this.resources.home),
             away: this.toDiagnostic(this.resources.away)
         };
+    }
+
+    public reconfigure(teams: FuturebolTeamVisualConfigurationMap): void {
+        if (this.disposed)
+            return;
+        this.reconfigureResource(this.resources.home, teams.home);
+        this.reconfigureResource(this.resources.away, teams.away);
     }
 
     public dispose(): void {
@@ -82,14 +90,43 @@ export class FuturebolTeamLogoTextureProvider {
             configuration,
             material,
             texture: null,
+            generation: 0,
             loaded: false,
             fallbackActive: false,
             error: null
         };
 
+        this.loadResource(resource);
+        return resource;
+    }
+
+    private reconfigureResource(
+        resource: FuturebolLogoTextureResource,
+        configuration: FuturebolTeamVisualConfiguration
+    ): void {
+        if (resource.configuration.symbol === configuration.symbol
+            && resource.configuration.logoUrl === configuration.logoUrl)
+            return;
+
+        resource.generation += 1;
+        resource.configuration = { ...configuration };
+        resource.material.diffuseTexture = null;
+        resource.material.opacityTexture = null;
+        resource.material.emissiveTexture = null;
+        resource.texture?.dispose();
+        resource.texture = null;
+        resource.loaded = false;
+        resource.fallbackActive = false;
+        resource.error = null;
+        this.loadResource(resource);
+    }
+
+    private loadResource(resource: FuturebolLogoTextureResource): void {
+        const configuration = resource.configuration;
+        const generation = resource.generation;
         if (!configuration.logoUrl) {
-            this.activateFallback(resource, null);
-            return resource;
+            this.activateFallback(resource, null, generation);
+            return;
         }
 
         try {
@@ -100,7 +137,7 @@ export class FuturebolTeamLogoTextureProvider {
                 true,
                 this.B.Texture.TRILINEAR_SAMPLINGMODE,
                 () => {
-                    if (this.disposed || resource.fallbackActive)
+                    if (this.disposed || resource.generation !== generation || resource.fallbackActive)
                         return;
                     resource.loaded = true;
                     resource.error = null;
@@ -114,12 +151,12 @@ export class FuturebolTeamLogoTextureProvider {
                     const detail = message?.trim()
                         || (exception instanceof Error ? exception.message : null)
                         || 'Falha ao carregar a textura.';
-                    this.activateFallback(resource, detail);
+                    this.activateFallback(resource, detail, generation);
                 }
             );
-            if (resource.fallbackActive) {
+            if (resource.generation !== generation || resource.fallbackActive) {
                 texture.dispose();
-                return resource;
+                return;
             }
             texture.hasAlpha = true;
             texture.wrapU = this.B.Texture.CLAMP_ADDRESSMODE;
@@ -130,16 +167,16 @@ export class FuturebolTeamLogoTextureProvider {
             const detail = error instanceof Error
                 ? error.message
                 : 'Falha ao criar a textura.';
-            this.activateFallback(resource, detail);
+            this.activateFallback(resource, detail, generation);
         }
-        return resource;
     }
 
     private activateFallback(
         resource: FuturebolLogoTextureResource,
-        error: string | null
+        error: string | null,
+        generation = resource.generation
     ): void {
-        if (this.disposed || resource.fallbackActive)
+        if (this.disposed || resource.generation !== generation || resource.fallbackActive)
             return;
 
         const failedTexture = resource.texture;

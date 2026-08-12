@@ -109,6 +109,17 @@ assert.equal(logoDiagnostic.home.loaded, false);
 assert.equal(logoDiagnostic.home.fallbackActive, true);
 assert.equal(logoDiagnostic.home.symbol, 'SOL');
 assert.equal(FakeDynamicTexture.instances[0].draws[0][0], 'SOL', 'fallback must use the real symbol');
+const sharedHomeMaterial = logos.material('home');
+for (const [homeSymbol, awaySymbol] of [['BMT', 'TUT'], ['BTC', 'ETH'], ['SOL', 'XRP'], ['BMT', 'TUT']]) {
+    logos.reconfigure({
+        home: { symbol: homeSymbol, logoUrl: `https://resolved.test/${homeSymbol.toLowerCase()}` },
+        away: { symbol: awaySymbol, logoUrl: `https://resolved.test/${awaySymbol.toLowerCase()}` }
+    });
+    assert.equal(logos.material('home'), sharedHomeMaterial, 'match changes must preserve materials and player instances');
+    assert.equal(logos.diagnostics().home.symbol, homeSymbol);
+    assert.equal(logos.diagnostics().away.symbol, awaySymbol);
+}
+assert.equal(FakeTexture.instances.length, 10, 'each match change reloads only team logos, never the humanoid GLB');
 logos.dispose();
 logos.dispose();
 assert.equal(FakeDynamicTexture.instances[0].disposals, 1, 'fallback texture disposal must be idempotent');

@@ -167,6 +167,12 @@ export class FuturebolRenderer {
             trail.setEnabled(false);
     }
 
+    public reconfigureTeams(teams: FuturebolTeamVisualConfigurationMap): void {
+        Object.assign(this.teams.home, teams.home);
+        Object.assign(this.teams.away, teams.away);
+        this.visualFactory?.reconfigureTeams(this.teams);
+    }
+
     public applyQuality(quality: FuturebolQuality): void {
         this.quality = quality;
         for (const visual of this.playerVisuals.values()) visual.setQuality(quality);

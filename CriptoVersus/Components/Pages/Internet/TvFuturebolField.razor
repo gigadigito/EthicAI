@@ -1,0 +1,222 @@
+@using Microsoft.Extensions.Options
+@using CriptoVersus.Web.Services
+@using DTOs
+@inject IJSRuntime JS
+@inject FuturebolMatchAdapter MatchAdapter
+@inject IOptions<FuturebolOptions> FuturebolOptionsAccessor
+@inject IWebHostEnvironment Environment
+@inject ILogger<TvFuturebolField> Logger
+@implements IAsyncDisposable
+
+<div class="tv-futurebol-field" data-futurebol-match-id="@(_presentation?.MatchId)">
+    <canvas id="@_canvasId" class="tv-futurebol-field__canvas" aria-label="Campo Futurebol 3D"></canvas>
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="tv-futurebol-field__fallback" role="status">
+            <strong>Campo 3D indisponível</strong>
+            <span>A transmissão continua ativa enquanto o renderer se recupera.</span>
+        </div>
+    }
+</div>
+
+@code {
+    private static int _nextCanvasId;
+    private readonly string _canvasId = $"tv-futurebol-canvas-{Interlocked.Increment(ref _nextCanvasId)}";
+    private readonly SemaphoreSlim _interopGate = new(1, 1);
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<TvFuturebolField>? _dotNetReference;
+    private FuturebolMatchPresentationModel? _presentation;
+    private string _pendingSignature = string.Empty;
+    private string _appliedSignature = string.Empty;
+    private bool _initialized;
+    private bool _disposed;
+    private string? _error;
+
+    [Parameter, EditorRequired] public MatchDto? Match { get; set; }
+    [Parameter] public TvHotMatchDto? HotMatch { get; set; }
+    [Parameter] public IReadOnlyCollection<MatchMetricSnapshotDto> Snapshots { get; set; } = [];
+    [Parameter] public IReadOnlyCollection<MatchScoreEventDto> ScoreEvents { get; set; } = [];
+
+    protected override void OnParametersSet()
+    {
+        var match = Match ?? BuildMatchFromHotMatch(HotMatch);
+        if (match is null)
+            return;
+
+        _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents);
+        _pendingSignature = BuildSignature(_presentation);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || _presentation is null || _pendingSignature == _appliedSignature)
+            return;
+
+        await _interopGate.WaitAsync();
+        try
+        {
+            if (_disposed || _presentation is null || _pendingSignature == _appliedSignature)
+                return;
+
+            _module ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/js/dist/futurebol/futurebol-bootstrap.js");
+            _dotNetReference ??= DotNetObjectReference.Create(this);
+            var presentation = _presentation;
+            var signature = _pendingSignature;
+
+            if (!_initialized)
+            {
+                _initialized = await _module.InvokeAsync<bool>(
+                    "initialize",
+                    _canvasId,
+                    new
+                    {
+                        dataMode = "api",
+                        homeSymbol = presentation.HomeTeam.Symbol,
+                        awaySymbol = presentation.AwayTeam.Symbol,
+                        homeLogoUrl = presentation.HomeTeam.LogoUrl,
+                        awayLogoUrl = presentation.AwayTeam.LogoUrl,
+                        matchId = presentation.MatchId,
+                        initialMarketSnapshot = presentation.Market,
+                        initialOfficialState = presentation.Official,
+                        initialPresentationState = presentation,
+                        dataError = (string?)null,
+                        seed = $"futurebol-match-{presentation.MatchId}",
+                        quality = ResolveTvQuality(),
+                        development = Environment.IsDevelopment(),
+                        simulateWebGlFailure = false,
+                        simulatePlayerAssetFailure = false,
+                        playerVisual = "Auto",
+                        presentationMode = "tv",
+                        hudRootId = (string?)null
+                    },
+                    _dotNetReference);
+                if (!_initialized)
+                {
+                    _appliedSignature = signature;
+                    return;
+                }
+                Logger.LogInformation(
+                    "Futurebol TV initialized. MatchId={MatchId} Quality={Quality}",
+                    presentation.MatchId,
+                    ResolveTvQuality());
+            }
+            else
+            {
+                await _module.InvokeVoidAsync("updatePresentation", _canvasId, presentation);
+            }
+
+            _error = null;
+            _appliedSignature = signature;
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _error = "O renderer Futurebol não pôde ser iniciado.";
+            Logger.LogWarning(ex, "Futurebol TV lifecycle failure. MatchId={MatchId}", _presentation?.MatchId);
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            _interopGate.Release();
+        }
+    }
+
+    [JSInvokable]
+    public Task ReportFuturebolError(string message)
+    {
+        _error = string.IsNullOrWhiteSpace(message) ? "O renderer Futurebol não está disponível." : message;
+        _initialized = false;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        await _interopGate.WaitAsync();
+        try
+        {
+            if (_module is not null)
+            {
+                try
+                {
+                    await _module.InvokeVoidAsync("dispose", _canvasId);
+                    Logger.LogDebug("Futurebol TV disposed. CanvasId={CanvasId}", _canvasId);
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+                try
+                {
+                    await _module.DisposeAsync();
+                }
+                catch (JSDisconnectedException)
+                {
+                }
+            }
+            _dotNetReference?.Dispose();
+        }
+        finally
+        {
+            _interopGate.Release();
+            _interopGate.Dispose();
+        }
+    }
+
+    private string ResolveTvQuality()
+        => FuturebolOptionsAccessor.Value.TvQuality is "Low" or "Medium" or "High"
+            ? FuturebolOptionsAccessor.Value.TvQuality
+            : "Auto";
+
+    private static string BuildSignature(FuturebolMatchPresentationModel state)
+        => string.Join('|',
+            state.MatchId,
+            state.HomeTeam.TeamId,
+            state.HomeTeam.Symbol,
+            state.HomeTeam.Name,
+            state.HomeTeam.LogoUrl,
+            state.AwayTeam.TeamId,
+            state.AwayTeam.Symbol,
+            state.AwayTeam.Name,
+            state.AwayTeam.LogoUrl,
+            state.Official.Sequence,
+            state.Official.HomeScore,
+            state.Official.AwayScore,
+            state.Official.Status,
+            state.Official.IsFinished,
+            state.Market.Sequence,
+            state.Result.WinnerTeamId,
+            state.Result.WinnerTeamSymbol,
+            state.Result.EndReasonCode,
+            state.Result.EndReasonDetail,
+            state.Clock.StartTimeUtc,
+            state.Clock.EndTimeUtc,
+            state.Clock.ElapsedSeconds,
+            state.Clock.RemainingSeconds,
+            state.Official.ScoreEvents.Count);
+
+    private static MatchDto? BuildMatchFromHotMatch(TvHotMatchDto? hotMatch)
+    {
+        if (hotMatch is not { HasMatch: true, MatchId: > 0 })
+            return null;
+
+        return new MatchDto
+        {
+            MatchId = hotMatch.MatchId,
+            TeamA = hotMatch.LeftSymbol,
+            TeamB = hotMatch.RightSymbol,
+            ScoreA = hotMatch.LeftScore,
+            ScoreB = hotMatch.RightScore,
+            Status = hotMatch.RemainingSeconds > 0 ? "Ongoing" : "Scheduled",
+            StartTime = hotMatch.MatchStartTimeUtc,
+            RemainingMinutes = Math.Max(0, (hotMatch.RemainingSeconds ?? 0) / 60),
+            PctA = hotMatch.LeftChangePercent,
+            PctB = hotMatch.RightChangePercent
+        };
+    }
+}
