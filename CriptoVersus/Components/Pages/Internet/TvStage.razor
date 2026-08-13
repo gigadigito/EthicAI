@@ -25,6 +25,13 @@
 @inject IOptions<TvBroadcastOptions> TvBroadcastOptionsAccessor
 @implements IAsyncDisposable
 
+<HeadContent>
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260812-tv-runtime-2" />
+    <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
+    <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
+    <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
+</HeadContent>
+
 @if (ShouldRenderInitialLoading)
 {
     <section class="tv-stage tv-stage--waiting @TvStageBroadcastClass" aria-busy="true">
@@ -592,7 +599,9 @@ else
     ];
 
     private IJSObjectReference? _tvModule;
+    private IJSObjectReference? _futurebolPreloadModule;
     private IJSObjectReference? _tvEventFeedModule;
+    private Task? _futurebolPreloadTask;
     private BroadcastSnapshot? _previousSnapshot;
     private CancellationTokenSource? _eventCts;
     private CancellationTokenSource? _pulseCts;
@@ -785,7 +794,7 @@ else
     private string InitialLoadingStepOne => IsPortugueseCulture ? "Sincronizando partida" : "Synchronizing match";
     private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando gráficos e placar" : "Preparing charts and scoreboard";
     private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissão" : "Activating broadcast";
-    private bool UseFootballFieldLayout => Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout") != false;
+    private const bool UseFootballFieldLayout = true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private TvStageViewportMode ViewportMode
         => _viewportMode ?? TvStageViewportMode.Desktop;
@@ -1145,6 +1154,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     if (firstRender)
     {
         var firstRenderSw = Stopwatch.StartNew();
+        _futurebolPreloadTask ??= PreloadFuturebolRuntimeAsync();
         _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260621-tvstage-refactor-v3");
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage JS import tvMode matchId={MatchId} elapsedMs={ElapsedMs}", CurrentStageMatchId, firstRenderSw.ElapsedMilliseconds);
         await _tvModule.InvokeVoidAsync("setTvMediaCulture", Culture);
@@ -1202,6 +1212,24 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         _pendingScoreEventProbe = false;
         await DetectRecentScoreEventsAsync();
+    }
+}
+
+private async Task PreloadFuturebolRuntimeAsync()
+{
+    try
+    {
+        _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
+            "import",
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260812-tv-runtime-2");
+        await _futurebolPreloadModule.InvokeVoidAsync("preload");
+    }
+    catch (JSDisconnectedException)
+    {
+    }
+    catch (JSException ex)
+    {
+        Logger.LogDebug(ex, "Futurebol preload did not complete; the field will initialize on demand.");
     }
 }
 
@@ -8096,6 +8124,29 @@ public async ValueTask DisposeAsync()
 
         await _tvEventFeedModule.DisposeAsync();
         _tvEventFeedModule = null;
+    }
+
+    if (_futurebolPreloadTask is not null)
+    {
+        try
+        {
+            await _futurebolPreloadTask;
+        }
+        catch
+        {
+        }
+    }
+
+    if (_futurebolPreloadModule is not null)
+    {
+        try
+        {
+            await _futurebolPreloadModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        _futurebolPreloadModule = null;
     }
 }
 

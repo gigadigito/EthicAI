@@ -21,6 +21,14 @@ import type { FuturebolMarketSource } from "./market/futurebol-market-source.js"
 
 type BabylonApi = typeof import("babylonjs");
 
+export interface FuturebolSizeDiagnostics {
+    host: { width: number; height: number };
+    canvas: { width: number; height: number };
+    buffer: { width: number; height: number };
+    render: { width: number; height: number };
+    devicePixelRatio: number;
+}
+
 export class FuturebolEngine {
     private state: FuturebolMatchState;
     private readonly renderer: FuturebolRenderer;
@@ -43,6 +51,8 @@ export class FuturebolEngine {
     private disposed = false;
     private fatalReported = false;
     private loadingOverlay: FuturebolLoadingOverlay | null = null;
+    private firstFrameResolve: (() => void) | null = null;
+    private firstFrameReject: ((error: unknown) => void) | null = null;
 
     public constructor(
         B: BabylonApi,
@@ -75,10 +85,15 @@ export class FuturebolEngine {
     }
 
     public async initialize(): Promise<void> {
-        this.loadingOverlay = new FuturebolLoadingOverlay(this.canvas);
+        const initializeStarted = performance.now();
+        this.loadingOverlay = this.options.presentationMode === "lab"
+            ? new FuturebolLoadingOverlay(this.canvas)
+            : null;
 
         try {
-            this.loadingOverlay.update("Preparando campo", 8);
+            this.loadingOverlay?.update("Preparando campo", 8);
+            this.attachResizeHandling();
+            await this.settleInitialSize();
 
             await this.renderer.initializePlayers(
                 this.state.players,
@@ -93,30 +108,30 @@ export class FuturebolEngine {
                 }
             );
 
-            this.loadingOverlay.update("Conectando mercado", 88);
+            this.loadingOverlay?.update("Conectando mercado", 88);
             this.unsubscribeMarket =
                 this.marketSource.subscribe((snapshot: FuturebolMarketSnapshot) => this.onSnapshot(snapshot));
             await this.marketSource.connect();
 
-            window.addEventListener(
-                "resize",
-                this.resizeHandler,
-                { passive: true }
-            );
-            if (typeof ResizeObserver !== "undefined" && this.canvas.parentElement) {
-                this.resizeObserver = new ResizeObserver(() => this.renderer.resize());
-                this.resizeObserver.observe(this.canvas.parentElement);
-            }
-
             this.lastFrameMs = performance.now();
             this.lastTelemetryMs = this.lastFrameMs;
             this.lastDebugMs = 0;
+            const firstFrame = new Promise<void>((resolve, reject) => {
+                this.firstFrameResolve = resolve;
+                this.firstFrameReject = reject;
+            });
             this.renderer.engine.runRenderLoop(this.renderFrame);
             this.updateMatchHud();
+            await firstFrame;
 
-            this.loadingOverlay.update("Pronto", 100);
-            this.loadingOverlay.complete();
+            this.loadingOverlay?.update("Pronto", 100);
+            this.loadingOverlay?.complete();
             this.loadingOverlay = null;
+
+            console.info("[FUTUREBOL-TV][SIZE]", this.getSizeDiagnostics());
+            console.info("[FUTUREBOL-TV][READY] first frame", {
+                durationMs: Math.round(performance.now() - initializeStarted)
+            });
 
             const playerDiagnostics = this.renderer.diagnostics(null);
             this.log("inicialização concluída", {
@@ -288,6 +303,30 @@ export class FuturebolEngine {
         this.log("disposal concluído", { matchId: this.options.matchId });
     }
 
+    public getSizeDiagnostics(): FuturebolSizeDiagnostics {
+        const hostRect = this.canvas.parentElement?.getBoundingClientRect();
+        const canvasRect = this.canvas.getBoundingClientRect();
+        return {
+            host: {
+                width: Math.round(hostRect?.width ?? 0),
+                height: Math.round(hostRect?.height ?? 0)
+            },
+            canvas: {
+                width: Math.round(canvasRect.width),
+                height: Math.round(canvasRect.height)
+            },
+            buffer: {
+                width: this.canvas.width,
+                height: this.canvas.height
+            },
+            render: {
+                width: this.renderer.engine.getRenderWidth(),
+                height: this.renderer.engine.getRenderHeight()
+            },
+            devicePixelRatio: window.devicePixelRatio || 1
+        };
+    }
+
     private render(): void {
         if (this.disposed)
             return;
@@ -311,10 +350,36 @@ export class FuturebolEngine {
                 this.paused ? 0 : deltaSeconds
             );
             this.renderer.scene.render();
+            if (this.firstFrameResolve) {
+                const resolve = this.firstFrameResolve;
+                this.firstFrameResolve = null;
+                this.firstFrameReject = null;
+                resolve();
+            }
             this.collectTelemetry(now);
         } catch (error) {
+            const reject = this.firstFrameReject;
+            this.firstFrameResolve = null;
+            this.firstFrameReject = null;
+            reject?.(error);
             this.reportFatal(error);
         }
+    }
+
+    private attachResizeHandling(): void {
+        window.addEventListener("resize", this.resizeHandler, { passive: true });
+        const host = this.canvas.parentElement;
+        if (typeof ResizeObserver === "undefined" || !(host instanceof HTMLElement))
+            return;
+
+        this.resizeObserver = new ResizeObserver(() => this.renderer.resize());
+        this.resizeObserver.observe(host);
+    }
+
+    private async settleInitialSize(): Promise<void> {
+        this.renderer.resize();
+        await nextAnimationFrame();
+        this.renderer.resize();
     }
 
     private onSnapshot(snapshot: FuturebolMarketSnapshot): void {
@@ -457,6 +522,10 @@ export class FuturebolEngine {
         if (element)
             element.style.width = `${Math.min(100, Math.max(0, value))}%`;
     }
+}
+
+function nextAnimationFrame(): Promise<void> {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
 function loadingProgress(stage: string): number {

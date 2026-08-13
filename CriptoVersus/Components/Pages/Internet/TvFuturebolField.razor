@@ -1,4 +1,5 @@
 @using Microsoft.Extensions.Options
+@using System.Diagnostics
 @using CriptoVersus.Web.Services
 @using DTOs
 @inject IJSRuntime JS
@@ -8,8 +9,27 @@
 @inject ILogger<TvFuturebolField> Logger
 @implements IAsyncDisposable
 
-<div class="tv-futurebol-field" data-futurebol-match-id="@(_presentation?.MatchId)">
-    <canvas id="@_canvasId" class="tv-futurebol-field__canvas" aria-label="Campo Futurebol 3D"></canvas>
+<div class="tv-futurebol-field"
+     data-futurebol-match-id="@(_presentation?.MatchId)"
+     aria-busy="@(!_isReady)"
+     style="position:relative;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background:#030714;">
+    <canvas id="@_canvasId"
+            class="tv-futurebol-field__canvas"
+            aria-label="Campo Futurebol 3D"
+            style="position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;"></canvas>
+    @if (!_isReady && string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="tv-futurebol-field__loading"
+             role="status"
+             aria-live="polite"
+             style="position:absolute;inset:0;z-index:35;display:grid;place-content:center;justify-items:center;gap:.55rem;color:#eef6ff;background:radial-gradient(circle at center,rgba(14,27,62,.94),rgba(3,7,20,.99));">
+            <span class="tv-futurebol-field__loading-spinner"
+                  aria-hidden="true"
+                  style="width:38px;height:38px;border-radius:50%;border:3px solid rgba(78,220,255,.2);border-top-color:#4edcff;border-right-color:#ff9f1a;"></span>
+            <strong style="color:#4edcff;font-size:.82rem;letter-spacing:.12em;">FUTUREBOL 3D</strong>
+            <small style="color:rgba(238,246,255,.82);">Preparando arena 3D...</small>
+        </div>
+    }
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="tv-futurebol-field__fallback" role="status">
@@ -29,7 +49,9 @@
     private string _pendingSignature = string.Empty;
     private string _appliedSignature = string.Empty;
     private bool _initialized;
+    private bool _isReady;
     private bool _disposed;
+    private int _loggedMatchId;
     private string? _error;
 
     [Parameter, EditorRequired] public MatchDto? Match { get; set; }
@@ -37,11 +59,22 @@
     [Parameter] public IReadOnlyCollection<MatchMetricSnapshotDto> Snapshots { get; set; } = [];
     [Parameter] public IReadOnlyCollection<MatchScoreEventDto> ScoreEvents { get; set; } = [];
 
+    protected override void OnInitialized()
+    {
+        Logger.LogInformation("[TvFuturebolField] component initialized");
+    }
+
     protected override void OnParametersSet()
     {
         var match = Match ?? BuildMatchFromHotMatch(HotMatch);
         if (match is null)
             return;
+
+        if (_loggedMatchId != match.MatchId)
+        {
+            _loggedMatchId = match.MatchId;
+            Logger.LogInformation("[TvFuturebolField] matchId={MatchId}", match.MatchId);
+        }
 
         _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents);
         _pendingSignature = BuildSignature(_presentation);
@@ -49,6 +82,15 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            Logger.LogInformation(
+                "[TvFuturebolField] OnAfterRender firstRender={FirstRender} matchId={MatchId} canvasId={CanvasId}",
+                firstRender,
+                _presentation?.MatchId ?? 0,
+                _canvasId);
+        }
+
         if (_disposed || _presentation is null || _pendingSignature == _appliedSignature)
             return;
 
@@ -58,9 +100,14 @@
             if (_disposed || _presentation is null || _pendingSignature == _appliedSignature)
                 return;
 
-            _module ??= await JS.InvokeAsync<IJSObjectReference>(
-                "import",
-                "/js/dist/futurebol/futurebol-bootstrap.js");
+            if (_module is null)
+            {
+                var importTimer = Stopwatch.StartNew();
+                _module = await JS.InvokeAsync<IJSObjectReference>(
+                    "import",
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260812-tv-runtime-2");
+                await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
+            }
             _dotNetReference ??= DotNetObjectReference.Create(this);
             var presentation = _presentation;
             var signature = _pendingSignature;
@@ -101,6 +148,8 @@
                     "Futurebol TV initialized. MatchId={MatchId} Quality={Quality}",
                     presentation.MatchId,
                     ResolveTvQuality());
+                _isReady = true;
+                await InvokeAsync(StateHasChanged);
             }
             else
             {
@@ -146,7 +195,7 @@
                 try
                 {
                     await _module.InvokeVoidAsync("dispose", _canvasId);
-                    Logger.LogDebug("Futurebol TV disposed. CanvasId={CanvasId}", _canvasId);
+                    Logger.LogInformation("[FUTUREBOL-TV] dispose canvasId={CanvasId}", _canvasId);
                 }
                 catch (JSDisconnectedException)
                 {

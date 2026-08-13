@@ -21,6 +21,8 @@ export class FuturebolEngine {
         this.disposed = false;
         this.fatalReported = false;
         this.loadingOverlay = null;
+        this.firstFrameResolve = null;
+        this.firstFrameReject = null;
         this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         this.hudRoot = options.presentationMode === "lab" && options.hudRootId
             ? document.getElementById(options.hudRootId)
@@ -38,30 +40,39 @@ export class FuturebolEngine {
         this.resizeHandler = () => this.renderer.resize();
     }
     async initialize() {
-        this.loadingOverlay = new FuturebolLoadingOverlay(this.canvas);
+        const initializeStarted = performance.now();
+        this.loadingOverlay = this.options.presentationMode === "lab"
+            ? new FuturebolLoadingOverlay(this.canvas)
+            : null;
         try {
-            this.loadingOverlay.update("Preparando campo", 8);
+            this.loadingOverlay?.update("Preparando campo", 8);
+            this.attachResizeHandling();
+            await this.settleInitialSize();
             await this.renderer.initializePlayers(this.state.players, this.options.playerVisual, this.options.simulatePlayerAssetFailure, stage => {
                 this.setText("futurebol-player-loading-status", stage);
                 this.loadingOverlay?.update(stage, loadingProgress(stage));
             });
-            this.loadingOverlay.update("Conectando mercado", 88);
+            this.loadingOverlay?.update("Conectando mercado", 88);
             this.unsubscribeMarket =
                 this.marketSource.subscribe((snapshot) => this.onSnapshot(snapshot));
             await this.marketSource.connect();
-            window.addEventListener("resize", this.resizeHandler, { passive: true });
-            if (typeof ResizeObserver !== "undefined" && this.canvas.parentElement) {
-                this.resizeObserver = new ResizeObserver(() => this.renderer.resize());
-                this.resizeObserver.observe(this.canvas.parentElement);
-            }
             this.lastFrameMs = performance.now();
             this.lastTelemetryMs = this.lastFrameMs;
             this.lastDebugMs = 0;
+            const firstFrame = new Promise((resolve, reject) => {
+                this.firstFrameResolve = resolve;
+                this.firstFrameReject = reject;
+            });
             this.renderer.engine.runRenderLoop(this.renderFrame);
             this.updateMatchHud();
-            this.loadingOverlay.update("Pronto", 100);
-            this.loadingOverlay.complete();
+            await firstFrame;
+            this.loadingOverlay?.update("Pronto", 100);
+            this.loadingOverlay?.complete();
             this.loadingOverlay = null;
+            console.info("[FUTUREBOL-TV][SIZE]", this.getSizeDiagnostics());
+            console.info("[FUTUREBOL-TV][READY] first frame", {
+                durationMs: Math.round(performance.now() - initializeStarted)
+            });
             const playerDiagnostics = this.renderer.diagnostics(null);
             this.log("inicialização concluída", {
                 matchId: this.options.matchId,
@@ -212,6 +223,29 @@ export class FuturebolEngine {
         this.renderer.dispose();
         this.log("disposal concluído", { matchId: this.options.matchId });
     }
+    getSizeDiagnostics() {
+        const hostRect = this.canvas.parentElement?.getBoundingClientRect();
+        const canvasRect = this.canvas.getBoundingClientRect();
+        return {
+            host: {
+                width: Math.round(hostRect?.width ?? 0),
+                height: Math.round(hostRect?.height ?? 0)
+            },
+            canvas: {
+                width: Math.round(canvasRect.width),
+                height: Math.round(canvasRect.height)
+            },
+            buffer: {
+                width: this.canvas.width,
+                height: this.canvas.height
+            },
+            render: {
+                width: this.renderer.engine.getRenderWidth(),
+                height: this.renderer.engine.getRenderHeight()
+            },
+            devicePixelRatio: window.devicePixelRatio || 1
+        };
+    }
     render() {
         if (this.disposed)
             return;
@@ -223,11 +257,34 @@ export class FuturebolEngine {
                 this.state.update(deltaSeconds);
             this.renderer.update(this.state.players, this.state.ballPosition, this.state.pressure, this.state.currentPlayPhase, this.state.activeTeam, this.state.currentBallOwnerId, this.state.lastPlayOutcome, this.paused ? 0 : deltaSeconds);
             this.renderer.scene.render();
+            if (this.firstFrameResolve) {
+                const resolve = this.firstFrameResolve;
+                this.firstFrameResolve = null;
+                this.firstFrameReject = null;
+                resolve();
+            }
             this.collectTelemetry(now);
         }
         catch (error) {
+            const reject = this.firstFrameReject;
+            this.firstFrameResolve = null;
+            this.firstFrameReject = null;
+            reject?.(error);
             this.reportFatal(error);
         }
+    }
+    attachResizeHandling() {
+        window.addEventListener("resize", this.resizeHandler, { passive: true });
+        const host = this.canvas.parentElement;
+        if (typeof ResizeObserver === "undefined" || !(host instanceof HTMLElement))
+            return;
+        this.resizeObserver = new ResizeObserver(() => this.renderer.resize());
+        this.resizeObserver.observe(host);
+    }
+    async settleInitialSize() {
+        this.renderer.resize();
+        await nextAnimationFrame();
+        this.renderer.resize();
     }
     onSnapshot(snapshot) {
         if (!this.paused)
@@ -349,6 +406,9 @@ export class FuturebolEngine {
         if (element)
             element.style.width = `${Math.min(100, Math.max(0, value))}%`;
     }
+}
+function nextAnimationFrame() {
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 function loadingProgress(stage) {
     switch (stage) {

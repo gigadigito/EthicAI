@@ -47,6 +47,7 @@ export class FuturebolPlayerVisualFactory {
         try {
             this.loader ??= new FuturebolPlayerAssetLoader(this.B, this.scene, this.simulateAssetFailure, this.onProgress);
             await this.loader.load();
+            const playerCreationStarted = performance.now();
             for (const player of players) {
                 const entries = this.loader.instantiate(player.id);
                 try {
@@ -68,6 +69,10 @@ export class FuturebolPlayerVisualFactory {
                     throw error;
                 }
             }
+            console.info("[FUTUREBOL-TV][LOAD] player creation", {
+                durationMs: Math.round(performance.now() - playerCreationStarted),
+                players: players.length
+            });
             this.loader.markReady();
             return { visuals, activeKind: "Skeletal", fallbackActive: false, warning: null, assetLoaded: true, loadTimeMs: this.loader.loadTimeMs };
         } catch (error) {

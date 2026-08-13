@@ -8,6 +8,7 @@
  */
 export class FuturebolCamera {
     constructor(B, scene, reducedMotion) {
+        this.B = B;
         this.reducedMotion = reducedMotion;
         this.previousBall = point(0, 0.55, 0);
         this.fixed = false;
@@ -23,6 +24,11 @@ export class FuturebolCamera {
     }
     setFixed(value) {
         this.fixed = value;
+    }
+    setViewportAspect(aspect) {
+        this.camera.fovMode = Number.isFinite(aspect) && aspect < 1
+            ? this.B.Camera.FOVMODE_HORIZONTAL_FIXED
+            : this.B.Camera.FOVMODE_VERTICAL_FIXED;
     }
     update(ball, pressure, phase, activeTeam, deltaSeconds) {
         const safeDelta = clamp(deltaSeconds, 0, 0.1);

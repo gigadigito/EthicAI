@@ -31,9 +31,15 @@ export class FuturebolPlayerAssetLoader {
         const generation = this.generation;
         const started = performance.now();
         this.onProgress("Carregando modelo");
+        const loaderStarted = performance.now();
         await acquireBabylonGltfLoader();
+        const loaderDurationMs = performance.now() - loaderStarted;
+        console.info("[FUTUREBOL-TV][LOAD] GLTF loader", {
+            durationMs: Math.round(loaderDurationMs)
+        });
         this.loaderAcquired = true;
 
+        const glbStarted = performance.now();
         this.loadPromise ??= this.B.SceneLoader.LoadAssetContainerAsync(
             FUTUREBOL_PLAYER_ASSET.rootUrl,
             FUTUREBOL_PLAYER_ASSET.fileName,
@@ -58,6 +64,15 @@ export class FuturebolPlayerAssetLoader {
             this.container = container;
             this.isLoaded = true;
             this.loadTimeMs = performance.now() - started;
+            const glbLoadAndParseMs = performance.now() - glbStarted;
+            const resource = readAssetResourceTiming();
+            console.info("[FUTUREBOL-TV][LOAD] GLB", {
+                downloadMs: Math.round(resource?.duration ?? 0),
+                loadAndParseMs: Math.round(glbLoadAndParseMs),
+                parseAfterTransferMs: Math.round(Math.max(0, glbLoadAndParseMs - (resource?.duration ?? 0))),
+                transferSize: resource?.transferSize ?? 0,
+                decodedBodySize: resource?.decodedBodySize ?? 0
+            });
         } catch (error) {
             void pending.then(container => {
                 if (container !== this.container) container.dispose();
@@ -107,4 +122,13 @@ export class FuturebolPlayerAssetLoader {
                 throw new Error(`O GLB não contém fallback suficiente para a animação ${required}.`);
         }
     }
+}
+
+function readAssetResourceTiming(): PerformanceResourceTiming | null {
+    const assetUrl = new URL(
+        `${FUTUREBOL_PLAYER_ASSET.rootUrl}${FUTUREBOL_PLAYER_ASSET.fileName}`,
+        document.baseURI
+    ).href;
+    const entries = performance.getEntriesByName(assetUrl, "resource") as PerformanceResourceTiming[];
+    return entries.length > 0 ? entries[entries.length - 1] : null;
 }

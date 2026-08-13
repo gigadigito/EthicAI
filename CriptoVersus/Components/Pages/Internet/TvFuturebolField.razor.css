@@ -8,7 +8,45 @@
     background: #030714;
 }
 
+.tv-futurebol-field__loading {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: .55rem;
+    color: #eef6ff;
+    background: radial-gradient(circle at center, rgba(14, 27, 62, .94), rgba(3, 7, 20, .99));
+}
+
+.tv-futurebol-field__loading strong {
+    color: #4edcff;
+    font-size: .82rem;
+    letter-spacing: .12em;
+}
+
+.tv-futurebol-field__loading small {
+    color: rgba(238, 246, 255, .82);
+}
+
+.tv-futurebol-field__loading-spinner {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 3px solid rgba(78, 220, 255, .2);
+    border-top-color: #4edcff;
+    border-right-color: #ff9f1a;
+    animation: tvFuturebolSpin .85s linear infinite;
+}
+
+@keyframes tvFuturebolSpin {
+    to { transform: rotate(360deg); }
+}
+
 .tv-futurebol-field__canvas {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     display: block;

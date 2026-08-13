@@ -37,7 +37,7 @@ export class FuturebolCamera {
     private smoothedBallVelocityZ = 0;
 
     public constructor(
-        B: BabylonApi,
+        private readonly B: BabylonApi,
         scene: Scene,
         private readonly reducedMotion: boolean
     ) {
@@ -56,6 +56,12 @@ export class FuturebolCamera {
 
     public setFixed(value: boolean): void {
         this.fixed = value;
+    }
+
+    public setViewportAspect(aspect: number): void {
+        this.camera.fovMode = Number.isFinite(aspect) && aspect < 1
+            ? this.B.Camera.FOVMODE_HORIZONTAL_FIXED
+            : this.B.Camera.FOVMODE_VERTICAL_FIXED;
     }
 
     public update(

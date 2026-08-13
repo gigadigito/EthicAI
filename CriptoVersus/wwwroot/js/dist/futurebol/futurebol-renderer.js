@@ -136,6 +136,9 @@ export class FuturebolRenderer {
     }
     resize() {
         this.engine.resize();
+        const height = this.engine.getRenderHeight();
+        if (height > 0)
+            this.camera.setViewportAspect(this.engine.getRenderWidth() / height);
     }
     dispose() {
         if (this.disposed)

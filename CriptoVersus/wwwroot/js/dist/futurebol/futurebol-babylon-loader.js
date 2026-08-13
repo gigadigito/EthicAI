@@ -6,6 +6,7 @@ let loadPromise = null;
 let users = 0;
 let gltfLoadPromise = null;
 let gltfUsers = 0;
+let runtimePreloadPromise = null;
 export async function acquireBabylon() {
     users += 1;
     const host = window;
@@ -36,6 +37,10 @@ export async function acquireBabylon() {
 }
 export async function acquireBabylonGltfLoader() {
     gltfUsers += 1;
+    if (gltfLoadPromise) {
+        await gltfLoadPromise;
+        return;
+    }
     if (document.getElementById(GLTF_LOADER_SCRIPT_ID))
         return;
     gltfLoadPromise ?? (gltfLoadPromise = new Promise((resolve, reject) => {
@@ -55,6 +60,13 @@ export async function acquireBabylonGltfLoader() {
         releaseBabylonGltfLoader();
         throw error;
     }
+}
+export function preloadBabylonRuntime() {
+    runtimePreloadPromise ?? (runtimePreloadPromise = (async () => {
+        await acquireBabylon();
+        await acquireBabylonGltfLoader();
+    })());
+    return runtimePreloadPromise;
 }
 export function releaseBabylonGltfLoader() {
     gltfUsers = Math.max(0, gltfUsers - 1);

@@ -12,6 +12,7 @@ let loadPromise: Promise<BabylonApi> | null = null;
 let users = 0;
 let gltfLoadPromise: Promise<void> | null = null;
 let gltfUsers = 0;
+let runtimePreloadPromise: Promise<void> | null = null;
 
 export async function acquireBabylon(): Promise<BabylonApi> {
     users += 1;
@@ -45,6 +46,10 @@ export async function acquireBabylon(): Promise<BabylonApi> {
 
 export async function acquireBabylonGltfLoader(): Promise<void> {
     gltfUsers += 1;
+    if (gltfLoadPromise) {
+        await gltfLoadPromise;
+        return;
+    }
     if (document.getElementById(GLTF_LOADER_SCRIPT_ID))
         return;
 
@@ -65,6 +70,14 @@ export async function acquireBabylonGltfLoader(): Promise<void> {
         releaseBabylonGltfLoader();
         throw error;
     }
+}
+
+export function preloadBabylonRuntime(): Promise<void> {
+    runtimePreloadPromise ??= (async () => {
+        await acquireBabylon();
+        await acquireBabylonGltfLoader();
+    })();
+    return runtimePreloadPromise;
 }
 
 export function releaseBabylonGltfLoader(): void {

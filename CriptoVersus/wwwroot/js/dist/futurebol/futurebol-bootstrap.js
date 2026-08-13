@@ -1,25 +1,71 @@
-import { acquireBabylon, releaseBabylon } from "./futurebol-babylon-loader.js";
+import { acquireBabylon, preloadBabylonRuntime, releaseBabylon } from "./futurebol-babylon-loader.js";
 import { FuturebolEngine } from "./futurebol-engine.js";
+import { FUTUREBOL_PLAYER_ASSET } from "./player/futurebol-animation-map.js";
 const instances = new Map();
+const playerAssetUrl = `${FUTUREBOL_PLAYER_ASSET.rootUrl}${FUTUREBOL_PLAYER_ASSET.fileName}`;
+let preloadPromise = null;
+export function reportBootstrapImport(durationMs) {
+    console.info("[FUTUREBOL-TV][LOAD] bootstrap import", {
+        durationMs: Math.round(durationMs)
+    });
+}
+export function preload() {
+    preloadPromise ?? (preloadPromise = (async () => {
+        const started = performance.now();
+        await Promise.all([
+            preloadBabylonRuntime(),
+            preloadPlayerAsset()
+        ]);
+        console.info("[FUTUREBOL-TV][LOAD] preload ready", {
+            durationMs: Math.round(performance.now() - started)
+        });
+    })());
+    return preloadPromise;
+}
 export async function initialize(canvasId, options, dotNetReference) {
     await dispose(canvasId);
+    const initializeStarted = performance.now();
     let acquired = false;
     let engine = null;
     try {
+        console.info("[FUTUREBOL-TV] initialize start", {
+            canvasId,
+            matchId: options.matchId ?? null
+        });
         if (options.simulateWebGlFailure || !supportsWebGl())
             throw new Error("WebGL não está disponível ou a inicialização foi bloqueada.");
         const canvas = document.getElementById(canvasId);
         if (!(canvas instanceof HTMLCanvasElement))
             throw new Error("Canvas do Futurebol não foi encontrado.");
+        console.info("[FUTUREBOL-TV] canvas found", {
+            canvasId,
+            rect: readCanvasRect(canvas)
+        });
+        const babylonStarted = performance.now();
         const B = await acquireBabylon();
+        console.info("[FUTUREBOL-TV][LOAD] Babylon runtime", {
+            durationMs: Math.round(performance.now() - babylonStarted)
+        });
         acquired = true;
         const runtimeOptions = {
             ...options,
             quality: resolveInitialQuality(canvas, options.quality)
         };
+        const sceneStarted = performance.now();
         engine = new FuturebolEngine(B, canvas, runtimeOptions, dotNetReference);
+        console.info("[FUTUREBOL-TV][LOAD] scene creation", {
+            durationMs: Math.round(performance.now() - sceneStarted)
+        });
         await engine.initialize();
         instances.set(canvasId, engine);
+        console.info("[FUTUREBOL-TV][LOAD] initialize total", {
+            durationMs: Math.round(performance.now() - initializeStarted)
+        });
+        console.info("[FUTUREBOL-TV][READY] initialize success", {
+            canvasId,
+            matchId: options.matchId ?? null,
+            size: engine.getSizeDiagnostics()
+        });
         return true;
     }
     catch (error) {
@@ -32,6 +78,15 @@ export async function initialize(canvasId, options, dotNetReference) {
         await dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
         return false;
     }
+}
+async function preloadPlayerAsset() {
+    const response = await fetch(playerAssetUrl, {
+        cache: "force-cache",
+        credentials: "same-origin"
+    });
+    if (!response.ok)
+        throw new Error(`Futurebol GLB preload failed with HTTP ${response.status}.`);
+    await response.arrayBuffer();
 }
 export async function updatePresentation(canvasId, state) {
     await instances.get(canvasId)?.applyPresentationState(state);
@@ -82,9 +137,17 @@ export async function dispose(canvasId) {
     const instance = instances.get(canvasId);
     if (!instance)
         return;
+    console.info("[FUTUREBOL-TV] dispose", { canvasId });
     instances.delete(canvasId);
     await instance.dispose();
     releaseBabylon();
+}
+function readCanvasRect(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+    };
 }
 function supportsWebGl() {
     try {
