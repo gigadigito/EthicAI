@@ -11,7 +11,8 @@
 
 <div class="tv-futurebol-field"
      data-futurebol-match-id="@(_presentation?.MatchId)"
-     aria-busy="@(!_isReady)"
+     data-futurebol-state="@FuturebolState"
+     aria-busy="@IsLoading"
      style="position:relative;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background:#030714;">
     <canvas id="@_canvasId"
             class="tv-futurebol-field__canvas"
@@ -27,14 +28,19 @@
                   aria-hidden="true"
                   style="width:38px;height:38px;border-radius:50%;border:3px solid rgba(78,220,255,.2);border-top-color:#4edcff;border-right-color:#ff9f1a;"></span>
             <strong style="color:#4edcff;font-size:.82rem;letter-spacing:.12em;">FUTUREBOL 3D</strong>
-            <small style="color:rgba(238,246,255,.82);">Preparando arena 3D...</small>
+            <span class="tv-futurebol-field__loading-copy">
+                <small class="tv-futurebol-field__loading-message tv-futurebol-field__loading-message--initial"
+                       style="color:rgba(238,246,255,.82);">Carregando arena...</small>
+                <small class="tv-futurebol-field__loading-message tv-futurebol-field__loading-message--slow"
+                       style="color:rgba(238,246,255,.82);">A arena está demorando um pouco mais para carregar...</small>
+            </span>
         </div>
     }
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="tv-futurebol-field__fallback" role="status">
-            <strong>Campo 3D indisponível</strong>
-            <span>A transmissão continua ativa enquanto o renderer se recupera.</span>
+            <strong>Não foi possível carregar a arena 3D.</strong>
+            <span>Tente atualizar a página.</span>
         </div>
     }
 </div>
@@ -58,6 +64,13 @@
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
     [Parameter] public IReadOnlyCollection<MatchMetricSnapshotDto> Snapshots { get; set; } = [];
     [Parameter] public IReadOnlyCollection<MatchScoreEventDto> ScoreEvents { get; set; } = [];
+    [Parameter] public string? HomeLogoUrl { get; set; }
+    [Parameter] public string? AwayLogoUrl { get; set; }
+
+    private string FuturebolState => !string.IsNullOrWhiteSpace(_error)
+        ? "error"
+        : _isReady ? "ready" : "loading";
+    private bool IsLoading => FuturebolState == "loading";
 
     protected override void OnInitialized()
     {
@@ -77,6 +90,16 @@
         }
 
         _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents);
+        if (!string.IsNullOrWhiteSpace(HomeLogoUrl))
+            _presentation = _presentation with
+            {
+                HomeTeam = _presentation.HomeTeam with { LogoUrl = HomeLogoUrl.Trim() }
+            };
+        if (!string.IsNullOrWhiteSpace(AwayLogoUrl))
+            _presentation = _presentation with
+            {
+                AwayTeam = _presentation.AwayTeam with { LogoUrl = AwayLogoUrl.Trim() }
+            };
         _pendingSignature = BuildSignature(_presentation);
     }
 
@@ -105,7 +128,7 @@
                 var importTimer = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260812-tv-runtime-2");
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260813-logo-ready-2");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);
@@ -164,7 +187,8 @@
         }
         catch (Exception ex)
         {
-            _error = "O renderer Futurebol não pôde ser iniciado.";
+            _error = "Não foi possível carregar a arena 3D. Tente atualizar a página.";
+            _isReady = false;
             Logger.LogWarning(ex, "Futurebol TV lifecycle failure. MatchId={MatchId}", _presentation?.MatchId);
             await InvokeAsync(StateHasChanged);
         }
@@ -177,8 +201,10 @@
     [JSInvokable]
     public Task ReportFuturebolError(string message)
     {
-        _error = string.IsNullOrWhiteSpace(message) ? "O renderer Futurebol não está disponível." : message;
+        _error = "Não foi possível carregar a arena 3D. Tente atualizar a página.";
         _initialized = false;
+        _isReady = false;
+        Logger.LogWarning("Futurebol TV reported an initialization failure. Detail={Detail}", message);
         return InvokeAsync(StateHasChanged);
     }
 

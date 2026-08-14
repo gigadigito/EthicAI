@@ -42,11 +42,24 @@ export class FuturebolPlayerVisualFactory {
 
     public async create(players: FuturebolPlayerState[], kind: FuturebolPlayerVisualKind): Promise<FuturebolVisualFactoryResult> {
         if (this.disposed) throw new Error("Factory visual já descartada.");
-        if (kind === "Primitives") return this.createPrimitives(players, false, null);
+        const logoStarted = performance.now();
+        const logosReady = this.logoTextures.ready().then(() => {
+            console.info(
+                `[FUTUREBOL] token textures ready: ${Math.round(performance.now() - logoStarted)} ms`
+            );
+        });
+        if (kind === "Primitives") {
+            const result = this.createPrimitives(players, false, null);
+            await logosReady;
+            return result;
+        }
         const visuals = new Map<string, FuturebolPlayerVisual>();
         try {
             this.loader ??= new FuturebolPlayerAssetLoader(this.B, this.scene, this.simulateAssetFailure, this.onProgress);
             await this.loader.load();
+            console.info(
+                `[FUTUREBOL] player GLB ready: ${Math.round(this.loader.loadTimeMs)} ms`
+            );
             const playerCreationStarted = performance.now();
             for (const player of players) {
                 const entries = this.loader.instantiate(player.id);
@@ -74,6 +87,7 @@ export class FuturebolPlayerVisualFactory {
                 players: players.length
             });
             this.loader.markReady();
+            await logosReady;
             return { visuals, activeKind: "Skeletal", fallbackActive: false, warning: null, assetLoaded: true, loadTimeMs: this.loader.loadTimeMs };
         } catch (error) {
             for (const visual of visuals.values()) visual.dispose();
@@ -82,7 +96,9 @@ export class FuturebolPlayerVisualFactory {
                 console.error("[Futurebol] GLB esquelético indisponível; usando primitivas.", error);
             this.loader?.dispose();
             this.loader = null;
-            return this.createPrimitives(players, true, `Visual esquelético indisponível: ${message}`);
+            const result = this.createPrimitives(players, true, `Visual esquelético indisponível: ${message}`);
+            await logosReady;
+            return result;
         }
     }
 
@@ -98,8 +114,8 @@ export class FuturebolPlayerVisualFactory {
         return this.logoTextures.diagnostics();
     }
 
-    public reconfigureTeams(teams: FuturebolTeamVisualConfigurationMap): void {
-        this.logoTextures.reconfigure(teams);
+    public reconfigureTeams(teams: FuturebolTeamVisualConfigurationMap): Promise<void> {
+        return this.logoTextures.reconfigure(teams);
     }
 
     private createPrimitives(players: FuturebolPlayerState[], fallback: boolean, warning: string | null): FuturebolVisualFactoryResult {

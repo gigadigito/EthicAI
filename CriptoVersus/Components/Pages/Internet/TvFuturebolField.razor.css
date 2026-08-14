@@ -30,6 +30,28 @@
     color: rgba(238, 246, 255, .82);
 }
 
+.tv-futurebol-field__loading-copy {
+    position: relative;
+    width: min(360px, 82%);
+    min-height: 1.2rem;
+    text-align: center;
+}
+
+.tv-futurebol-field__loading-message {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+
+.tv-futurebol-field__loading-message--initial {
+    animation: tvFuturebolInitialMessage 1ms linear 6s forwards;
+}
+
+.tv-futurebol-field__loading-message--slow {
+    opacity: 0;
+    animation: tvFuturebolSlowMessage 1ms linear 6s forwards;
+}
+
 .tv-futurebol-field__loading-spinner {
     width: 38px;
     height: 38px;
@@ -44,6 +66,14 @@
     to { transform: rotate(360deg); }
 }
 
+@keyframes tvFuturebolInitialMessage {
+    to { opacity: 0; }
+}
+
+@keyframes tvFuturebolSlowMessage {
+    to { opacity: 1; }
+}
+
 .tv-futurebol-field__canvas {
     position: absolute;
     inset: 0;
@@ -52,6 +82,12 @@
     display: block;
     touch-action: none;
     outline: none;
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+
+.tv-futurebol-field[data-futurebol-state="ready"] .tv-futurebol-field__canvas {
+    opacity: 1;
 }
 
 .tv-futurebol-field__fallback {

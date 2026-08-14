@@ -96,10 +96,10 @@ export class FuturebolRenderer {
         for (const trail of this.ballTrail)
             trail.setEnabled(false);
     }
-    reconfigureTeams(teams) {
+    async reconfigureTeams(teams) {
         Object.assign(this.teams.home, teams.home);
         Object.assign(this.teams.away, teams.away);
-        this.visualFactory?.reconfigureTeams(this.teams);
+        await this.visualFactory?.reconfigureTeams(this.teams);
     }
     applyQuality(quality) {
         this.quality = quality;

@@ -112,6 +112,9 @@ export class FuturebolEngine {
             this.unsubscribeMarket =
                 this.marketSource.subscribe((snapshot: FuturebolMarketSnapshot) => this.onSnapshot(snapshot));
             await this.marketSource.connect();
+            console.info(
+                `[FUTUREBOL] market/match data ready: ${Math.round(performance.now() - initializeStarted)} ms`
+            );
 
             this.lastFrameMs = performance.now();
             this.lastTelemetryMs = this.lastFrameMs;
@@ -129,9 +132,9 @@ export class FuturebolEngine {
             this.loadingOverlay = null;
 
             console.info("[FUTUREBOL-TV][SIZE]", this.getSizeDiagnostics());
-            console.info("[FUTUREBOL-TV][READY] first frame", {
-                durationMs: Math.round(performance.now() - initializeStarted)
-            });
+            console.info(
+                `[FUTUREBOL] first frame: ${Math.round(performance.now() - initializeStarted)} ms`
+            );
 
             const playerDiagnostics = this.renderer.diagnostics(null);
             this.log("inicialização concluída", {
@@ -236,7 +239,7 @@ export class FuturebolEngine {
 
     public async applyPresentationState(state: FuturebolMatchPresentationState): Promise<void> {
         if (state.matchId !== this.options.matchId) {
-            this.changeMatch(state);
+            await this.changeMatch(state);
             return;
         }
 
@@ -245,7 +248,7 @@ export class FuturebolEngine {
         this.pushMarketSnapshot(state.market);
     }
 
-    private changeMatch(presentation: FuturebolMatchPresentationState): void {
+    private async changeMatch(presentation: FuturebolMatchPresentationState): Promise<void> {
         const previousMatchId = this.options.matchId;
         this.presentationState = presentation;
         this.options.matchId = presentation.matchId;
@@ -259,7 +262,7 @@ export class FuturebolEngine {
         this.options.initialPresentationState = presentation;
 
         const teams = createFuturebolTeamVisualConfiguration(this.options);
-        this.renderer.reconfigureTeams(teams);
+        await this.renderer.reconfigureTeams(teams);
         this.state = new FuturebolMatchState(this.options.seed, true);
         this.state.applyOfficialMatchState(presentation.official, false);
         this.state.applyMarket(presentation.market, null);

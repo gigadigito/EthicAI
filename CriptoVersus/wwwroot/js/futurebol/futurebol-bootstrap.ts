@@ -18,6 +18,7 @@ import type {
 const instances = new Map<string, FuturebolEngine>();
 const playerAssetUrl = `${FUTUREBOL_PLAYER_ASSET.rootUrl}${FUTUREBOL_PLAYER_ASSET.fileName}`;
 let preloadPromise: Promise<void> | null = null;
+console.info("[FUTUREBOL] bootstrap started");
 
 export function reportBootstrapImport(durationMs: number): void {
     console.info("[FUTUREBOL-TV][LOAD] bootstrap import", {
@@ -69,9 +70,10 @@ export async function initialize(
 
         const babylonStarted = performance.now();
         const B = await acquireBabylon();
-        console.info("[FUTUREBOL-TV][LOAD] Babylon runtime", {
-            durationMs: Math.round(performance.now() - babylonStarted)
-        });
+        console.info(
+            `[FUTUREBOL] Babylon ready: ${Math.round(performance.now() - initializeStarted)} ms `
+            + `(runtime ${Math.round(performance.now() - babylonStarted)} ms)`
+        );
         acquired = true;
         const runtimeOptions: FuturebolRuntimeOptions = {
             ...options,
@@ -79,9 +81,10 @@ export async function initialize(
         };
         const sceneStarted = performance.now();
         engine = new FuturebolEngine(B, canvas, runtimeOptions, dotNetReference);
-        console.info("[FUTUREBOL-TV][LOAD] scene creation", {
-            durationMs: Math.round(performance.now() - sceneStarted)
-        });
+        console.info(
+            `[FUTUREBOL] scene ready: ${Math.round(performance.now() - initializeStarted)} ms `
+            + `(creation ${Math.round(performance.now() - sceneStarted)} ms)`
+        );
         await engine.initialize();
         instances.set(canvasId, engine);
         console.info("[FUTUREBOL-TV][LOAD] initialize total", {
@@ -98,8 +101,7 @@ export async function initialize(
         if (acquired)
             releaseBabylon();
         const message = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o Futurebol.";
-        if (options.development)
-            console.error("[Futurebol] falha de WebGL/inicialização", error);
+        console.error("[FUTUREBOL] initialization failed", error);
         await dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
         return false;
     }

@@ -57,28 +57,21 @@ const mockSource = createFuturebolMarketSource({ ...options, dataMode: 'mock' })
 assert.ok(mockSource instanceof MockMarketSource);
 await mockSource.disconnect();
 
-class FakeTexture {
-    static TRILINEAR_SAMPLINGMODE = 3;
-    static CLAMP_ADDRESSMODE = 0;
-    static instances = [];
-    constructor(url, scene, noMipmap, invertY, sampling, onLoad, onError) {
-        this.url = url;
-        this.onLoad = onLoad;
-        this.onError = onError;
-        this.disposals = 0;
-        FakeTexture.instances.push(this);
-    }
-    fail(message) { this.onError(message, new Error(message)); }
-    dispose() { this.disposals += 1; }
-}
 class FakeDynamicTexture {
     static instances = [];
     constructor(name) {
         this.name = name;
         this.draws = [];
+        this.images = [];
         this.disposals = 0;
+        this.context = {
+            clearRect: () => undefined,
+            drawImage: (...args) => this.images.push(args)
+        };
         FakeDynamicTexture.instances.push(this);
     }
+    getContext() { return this.context; }
+    update() { this.updated = true; }
     drawText(...args) { this.draws.push(args); }
     dispose() { this.disposals += 1; }
 }
@@ -90,28 +83,43 @@ class FakeColor3 {
     constructor(r, g, b) { this.r = r; this.g = g; this.b = b; }
 }
 const fakeBabylon = {
-    Texture: FakeTexture,
     DynamicTexture: FakeDynamicTexture,
     StandardMaterial: FakeMaterial,
     Color3: FakeColor3
 };
+const failedLogoUrls = new Set(['https://resolved.test/sol']);
+const fetchedLogoUrls = [];
+globalThis.fetch = async url => {
+    fetchedLogoUrls.push(url);
+    if (failedLogoUrls.has(url))
+        return { ok: false, status: 404, blob: async () => ({ size: 0 }) };
+    return { ok: true, status: 200, blob: async () => ({ size: 128 }) };
+};
+globalThis.createImageBitmap = async () => ({
+    width: 192,
+    height: 128,
+    close() { this.closed = true; }
+});
 const logos = new FuturebolTeamLogoTextureProvider(fakeBabylon, {}, teams, true);
+await logos.ready();
 assert.equal(logos.material('home'), logos.material('home'), 'one team material is shared by every player');
-assert.equal(FakeTexture.instances.length, 2);
-assert.equal(logos.material('home').diffuseTexture, FakeTexture.instances[0]);
-assert.equal(logos.material('home').opacityTexture, FakeTexture.instances[0]);
-assert.equal(logos.material('home').emissiveTexture, FakeTexture.instances[0]);
-FakeTexture.instances[1].onLoad();
+assert.equal(fetchedLogoUrls.length, 2);
+assert.equal(logos.material('home').diffuseTexture, logos.material('home').opacityTexture);
+assert.equal(logos.material('home').diffuseTexture, logos.material('home').emissiveTexture);
 assert.equal(logos.diagnostics().away.loaded, true, 'successful image load must remain the primary visual');
-assert.doesNotThrow(() => FakeTexture.instances[0].fail('image failed'));
+const awayLogoTexture = FakeDynamicTexture.instances.find(texture => texture.images.length > 0);
+assert.equal(awayLogoTexture.images[0][3], 448, 'wide logos must be fitted without stretching');
+assert.ok(awayLogoTexture.images[0][4] < 448, 'the original logo aspect ratio must be preserved');
 const logoDiagnostic = logos.diagnostics();
 assert.equal(logoDiagnostic.home.loaded, false);
 assert.equal(logoDiagnostic.home.fallbackActive, true);
 assert.equal(logoDiagnostic.home.symbol, 'SOL');
-assert.equal(FakeDynamicTexture.instances[0].draws[0][0], 'SOL', 'fallback must use the real symbol');
+const homeFallback = FakeDynamicTexture.instances.find(texture => texture.draws.length > 0);
+assert.equal(homeFallback.draws[0][0], 'SOL', 'fallback must use the real symbol');
 const sharedHomeMaterial = logos.material('home');
 for (const [homeSymbol, awaySymbol] of [['BMT', 'TUT'], ['BTC', 'ETH'], ['SOL', 'XRP'], ['BMT', 'TUT']]) {
-    logos.reconfigure({
+    failedLogoUrls.clear();
+    await logos.reconfigure({
         home: { symbol: homeSymbol, logoUrl: `https://resolved.test/${homeSymbol.toLowerCase()}` },
         away: { symbol: awaySymbol, logoUrl: `https://resolved.test/${awaySymbol.toLowerCase()}` }
     });
@@ -119,10 +127,10 @@ for (const [homeSymbol, awaySymbol] of [['BMT', 'TUT'], ['BTC', 'ETH'], ['SOL', 
     assert.equal(logos.diagnostics().home.symbol, homeSymbol);
     assert.equal(logos.diagnostics().away.symbol, awaySymbol);
 }
-assert.equal(FakeTexture.instances.length, 10, 'each match change reloads only team logos, never the humanoid GLB');
+assert.equal(fetchedLogoUrls.length, 10, 'each match change reloads only team logos, never the humanoid GLB');
 logos.dispose();
 logos.dispose();
-assert.equal(FakeDynamicTexture.instances[0].disposals, 1, 'fallback texture disposal must be idempotent');
+assert.equal(homeFallback.disposals, 1, 'fallback texture disposal must be idempotent');
 
 const sourceRoot = fileURLToPath(new URL('..', import.meta.url));
 const primitiveSource = readFileSync(`${sourceRoot}/player/futurebol-primitive-player-visual.ts`, 'utf8');
@@ -147,6 +155,7 @@ assert.ok(skeletalSource.includes('logoMaterial'));
 assert.equal((primitiveSource.match(/\$\{player\.id\}-coin-head/g) ?? []).length, 1);
 assert.equal((skeletalSource.match(/\$\{this\.player\.id\}-coin-head/g) ?? []).length, 1);
 assert.equal((primitiveSource.match(/coin-logo-(?:front|back)/g) ?? []).length, 2);
+assert.equal((skeletalSource.match(/coin-logo-(?:front|back)/g) ?? []).length, 2);
 assert.equal(skeletalSource.includes('chest-logo-front'), false);
 assert.ok(skeletalSource.includes('CreateCylinder'), 'skeletal deve preservar a cabeça-moeda anterior');
 assert.equal(primitiveSource.includes('CreateDisc'), false);

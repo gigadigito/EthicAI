@@ -1,4 +1,6 @@
 const loggedLogoResults = new Set();
+const logoTextureSize = 512;
+const logoContentSize = 448;
 export class FuturebolTeamLogoTextureProvider {
     constructor(B, scene, teams, development) {
         this.B = B;
@@ -19,11 +21,19 @@ export class FuturebolTeamLogoTextureProvider {
             away: this.toDiagnostic(this.resources.away)
         };
     }
+    ready() {
+        return Promise.all([
+            this.resources.home.ready,
+            this.resources.away.ready
+        ]).then(() => undefined);
+    }
     reconfigure(teams) {
         if (this.disposed)
-            return;
-        this.reconfigureResource(this.resources.home, teams.home);
-        this.reconfigureResource(this.resources.away, teams.away);
+            return Promise.resolve();
+        return Promise.all([
+            this.reconfigureResource(this.resources.home, teams.home),
+            this.reconfigureResource(this.resources.away, teams.away)
+        ]).then(() => undefined);
     }
     dispose() {
         if (this.disposed)
@@ -48,18 +58,19 @@ export class FuturebolTeamLogoTextureProvider {
             configuration,
             material,
             texture: null,
+            ready: Promise.resolve(),
             generation: 0,
             loaded: false,
             fallbackActive: false,
             error: null
         };
-        this.loadResource(resource);
+        resource.ready = this.loadResource(resource);
         return resource;
     }
     reconfigureResource(resource, configuration) {
         if (resource.configuration.symbol === configuration.symbol
             && resource.configuration.logoUrl === configuration.logoUrl)
-            return;
+            return resource.ready;
         resource.generation += 1;
         resource.configuration = { ...configuration };
         resource.material.diffuseTexture = null;
@@ -70,43 +81,97 @@ export class FuturebolTeamLogoTextureProvider {
         resource.loaded = false;
         resource.fallbackActive = false;
         resource.error = null;
-        this.loadResource(resource);
+        resource.ready = this.loadResource(resource);
+        return resource.ready;
     }
-    loadResource(resource) {
+    async loadResource(resource) {
         const configuration = resource.configuration;
         const generation = resource.generation;
         if (!configuration.logoUrl) {
             this.activateFallback(resource, null, generation);
             return;
         }
+        let decoded = null;
         try {
-            const texture = new this.B.Texture(configuration.logoUrl, this.scene, false, true, this.B.Texture.TRILINEAR_SAMPLINGMODE, () => {
-                if (this.disposed || resource.generation !== generation || resource.fallbackActive)
-                    return;
-                resource.loaded = true;
-                resource.error = null;
-                this.logOnce(`loaded:${configuration.symbol}:${configuration.logoUrl}`, 'info', `[Futurebol] Logo ${configuration.symbol} carregado`);
-            }, (message, exception) => {
-                const detail = message?.trim()
-                    || (exception instanceof Error ? exception.message : null)
-                    || 'Falha ao carregar a textura.';
-                this.activateFallback(resource, detail, generation);
-            });
-            if (resource.generation !== generation || resource.fallbackActive) {
+            decoded = await this.fetchLogo(configuration.logoUrl);
+            if (this.disposed || resource.generation !== generation)
+                return;
+            const texture = new this.B.DynamicTexture(`futurebol-${configuration.symbol}-logo`, { width: logoTextureSize, height: logoTextureSize }, this.scene, false);
+            texture.hasAlpha = true;
+            const context = texture.getContext();
+            context.clearRect(0, 0, logoTextureSize, logoTextureSize);
+            const scale = Math.min(logoContentSize / Math.max(1, decoded.width), logoContentSize / Math.max(1, decoded.height));
+            const width = Math.max(1, decoded.width * scale);
+            const height = Math.max(1, decoded.height * scale);
+            context.drawImage(decoded.source, (logoTextureSize - width) / 2, (logoTextureSize - height) / 2, width, height);
+            texture.update(true);
+            if (this.disposed || resource.generation !== generation) {
                 texture.dispose();
                 return;
             }
-            texture.hasAlpha = true;
-            texture.wrapU = this.B.Texture.CLAMP_ADDRESSMODE;
-            texture.wrapV = this.B.Texture.CLAMP_ADDRESSMODE;
             resource.texture = texture;
+            resource.loaded = true;
+            resource.fallbackActive = false;
+            resource.error = null;
             this.applyTexture(resource, texture);
+            this.logOnce(`loaded:${configuration.symbol}:${configuration.logoUrl}`, 'info', `[Futurebol] Logo ${configuration.symbol} carregado`);
         }
         catch (error) {
             const detail = error instanceof Error
                 ? error.message
-                : 'Falha ao criar a textura.';
+                : 'Falha ao carregar a imagem do logo.';
             this.activateFallback(resource, detail, generation);
+        }
+        finally {
+            decoded?.dispose();
+        }
+    }
+    async fetchLogo(url) {
+        const response = await fetch(url, {
+            cache: 'force-cache',
+            credentials: 'same-origin',
+            mode: 'cors'
+        });
+        if (!response.ok)
+            throw new Error(`Logo HTTP ${response.status}.`);
+        const blob = await response.blob();
+        if (blob.size === 0)
+            throw new Error('A imagem do logo veio vazia.');
+        if (typeof createImageBitmap === 'function') {
+            const bitmap = await createImageBitmap(blob);
+            if (bitmap.width <= 0 || bitmap.height <= 0) {
+                bitmap.close();
+                throw new Error('A imagem do logo possui dimensões inválidas.');
+            }
+            return {
+                source: bitmap,
+                width: bitmap.width,
+                height: bitmap.height,
+                dispose: () => bitmap.close()
+            };
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        try {
+            const image = new Image();
+            image.decoding = 'async';
+            const loaded = new Promise((resolve, reject) => {
+                image.onload = () => resolve();
+                image.onerror = () => reject(new Error('O navegador não conseguiu decodificar o logo.'));
+            });
+            image.src = objectUrl;
+            await loaded;
+            if (image.naturalWidth <= 0 || image.naturalHeight <= 0)
+                throw new Error('A imagem do logo possui dimensões inválidas.');
+            return {
+                source: image,
+                width: image.naturalWidth,
+                height: image.naturalHeight,
+                dispose: () => URL.revokeObjectURL(objectUrl)
+            };
+        }
+        catch (error) {
+            URL.revokeObjectURL(objectUrl);
+            throw error;
         }
     }
     activateFallback(resource, error, generation = resource.generation) {

@@ -26,7 +26,7 @@
 @implements IAsyncDisposable
 
 <HeadContent>
-    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260812-tv-runtime-2" />
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260813-logo-ready-2" />
     <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
     <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
     <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
@@ -1016,7 +1016,9 @@ else
     private RenderFragment FootballFieldContent => @<TvFuturebolField Match="@Match"
                                                                HotMatch="@HotMatch"
                                                                Snapshots="@_metricSnapshots"
-                                                               ScoreEvents="@_allScoreEvents" />;
+                                                               ScoreEvents="@_allScoreEvents"
+                                                               HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                               AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />;
     private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
     private string PirateHeaderTitle => ResolveBroadcastCinematicHeaderTitle();
     private string PirateHeaderStatus => ResolveBroadcastCinematicHeaderStatus();
@@ -1221,7 +1223,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260812-tv-runtime-2");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260813-logo-ready-2");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)
