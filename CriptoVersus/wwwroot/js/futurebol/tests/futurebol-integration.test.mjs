@@ -100,7 +100,7 @@ globalThis.createImageBitmap = async () => ({
     height: 128,
     close() { this.closed = true; }
 });
-const logos = new FuturebolTeamLogoTextureProvider(fakeBabylon, {}, teams, true);
+const logos = new FuturebolTeamLogoTextureProvider(fakeBabylon, {}, teams);
 await logos.ready();
 assert.equal(logos.material('home'), logos.material('home'), 'one team material is shared by every player');
 assert.equal(fetchedLogoUrls.length, 2);
@@ -117,7 +117,7 @@ assert.equal(logoDiagnostic.home.symbol, 'SOL');
 const homeFallback = FakeDynamicTexture.instances.find(texture => texture.draws.length > 0);
 assert.equal(homeFallback.draws[0][0], 'SOL', 'fallback must use the real symbol');
 const sharedHomeMaterial = logos.material('home');
-for (const [homeSymbol, awaySymbol] of [['BMT', 'TUT'], ['BTC', 'ETH'], ['SOL', 'XRP'], ['BMT', 'TUT']]) {
+for (const [homeSymbol, awaySymbol] of [['BMT', 'TUT'], ['BTC', 'ETH'], ['SOL', 'XRP'], ['SNXXB', 'EDEN']]) {
     failedLogoUrls.clear();
     await logos.reconfigure({
         home: { symbol: homeSymbol, logoUrl: `https://resolved.test/${homeSymbol.toLowerCase()}` },
@@ -127,7 +127,16 @@ for (const [homeSymbol, awaySymbol] of [['BMT', 'TUT'], ['BTC', 'ETH'], ['SOL', 
     assert.equal(logos.diagnostics().home.symbol, homeSymbol);
     assert.equal(logos.diagnostics().away.symbol, awaySymbol);
 }
-assert.equal(fetchedLogoUrls.length, 10, 'each match change reloads only team logos, never the humanoid GLB');
+assert.equal(logos.diagnostics().home.loaded, true, 'SNXXB logo must be usable when the image is available');
+assert.equal(logos.diagnostics().away.loaded, true, 'EDEN logo must be usable when the image is available');
+failedLogoUrls.add('https://invalid.test/eden');
+await logos.reconfigure({
+    home: { symbol: 'SNXXB', logoUrl: 'https://resolved.test/snxxb' },
+    away: { symbol: 'EDEN', logoUrl: 'https://invalid.test/eden' }
+});
+assert.equal(logos.diagnostics().away.fallbackActive, true, 'invalid EDEN logo must keep the ticker fallback');
+assert.equal(logos.diagnostics().away.error, 'Logo HTTP 404.');
+assert.equal(fetchedLogoUrls.length, 11, 'each match change reloads only changed team logos, never the humanoid GLB');
 logos.dispose();
 logos.dispose();
 assert.equal(homeFallback.disposals, 1, 'fallback texture disposal must be idempotent');
@@ -136,6 +145,7 @@ const sourceRoot = fileURLToPath(new URL('..', import.meta.url));
 const primitiveSource = readFileSync(`${sourceRoot}/player/futurebol-primitive-player-visual.ts`, 'utf8');
 const skeletalSource = readFileSync(`${sourceRoot}/player/futurebol-skeletal-player-visual.ts`, 'utf8');
 const factorySource = readFileSync(`${sourceRoot}/player/futurebol-player-visual-factory.ts`, 'utf8');
+const logoSource = readFileSync(`${sourceRoot}/player/futurebol-team-logo-texture.ts`, 'utf8');
 const allTypeScript = [
     primitiveSource,
     skeletalSource,
@@ -160,5 +170,9 @@ assert.equal(skeletalSource.includes('chest-logo-front'), false);
 assert.ok(skeletalSource.includes('CreateCylinder'), 'skeletal deve preservar a cabeça-moeda anterior');
 assert.equal(primitiveSource.includes('CreateDisc'), false);
 assert.equal(skeletalSource.includes('CreateDisc'), false);
+assert.equal(factorySource.includes('await logosReady'), false, 'optional logos must never block player creation');
+assert.ok(logoSource.includes('this.activateFallback(resource, null)'), 'ticker fallback must exist before the network request');
+assert.ok(logoSource.includes('AbortController'), 'optional logo requests must have a bounded lifetime');
+assert.ok(logoSource.includes('Promise.allSettled'), 'logo diagnostics must not reject the arena bootstrap');
 
 console.log('Futurebol vertical integration tests passed.');

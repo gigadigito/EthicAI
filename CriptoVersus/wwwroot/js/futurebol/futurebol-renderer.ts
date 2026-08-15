@@ -167,10 +167,10 @@ export class FuturebolRenderer {
             trail.setEnabled(false);
     }
 
-    public async reconfigureTeams(teams: FuturebolTeamVisualConfigurationMap): Promise<void> {
+    public reconfigureTeams(teams: FuturebolTeamVisualConfigurationMap): void {
         Object.assign(this.teams.home, teams.home);
         Object.assign(this.teams.away, teams.away);
-        await this.visualFactory?.reconfigureTeams(this.teams);
+        this.visualFactory?.reconfigureTeams(this.teams);
     }
 
     public applyQuality(quality: FuturebolQuality): void {

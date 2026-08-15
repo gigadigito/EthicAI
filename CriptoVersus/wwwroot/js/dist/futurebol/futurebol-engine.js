@@ -39,19 +39,23 @@ export class FuturebolEngine {
         this.renderFrame = () => this.render();
         this.resizeHandler = () => this.renderer.resize();
     }
-    async initialize() {
+    async initialize(reportStage = () => undefined) {
         const initializeStarted = performance.now();
         this.loadingOverlay = this.options.presentationMode === "lab"
             ? new FuturebolLoadingOverlay(this.canvas)
             : null;
         try {
+            reportStage("create-scene");
             this.loadingOverlay?.update("Preparando campo", 8);
             this.attachResizeHandling();
             await this.settleInitialSize();
+            reportStage("create-players");
             await this.renderer.initializePlayers(this.state.players, this.options.playerVisual, this.options.simulatePlayerAssetFailure, stage => {
                 this.setText("futurebol-player-loading-status", stage);
                 this.loadingOverlay?.update(stage, loadingProgress(stage));
             });
+            console.info(`[FUTUREBOL] players ready: ${Math.round(performance.now() - initializeStarted)} ms`);
+            reportStage("load-match");
             this.loadingOverlay?.update("Conectando mercado", 88);
             this.unsubscribeMarket =
                 this.marketSource.subscribe((snapshot) => this.onSnapshot(snapshot));
@@ -64,6 +68,7 @@ export class FuturebolEngine {
                 this.firstFrameResolve = resolve;
                 this.firstFrameReject = reject;
             });
+            reportStage("first-frame");
             this.renderer.engine.runRenderLoop(this.renderFrame);
             this.updateMatchHud();
             await firstFrame;
@@ -72,6 +77,7 @@ export class FuturebolEngine {
             this.loadingOverlay = null;
             console.info("[FUTUREBOL-TV][SIZE]", this.getSizeDiagnostics());
             console.info(`[FUTUREBOL] first frame: ${Math.round(performance.now() - initializeStarted)} ms`);
+            reportStage("ready");
             const playerDiagnostics = this.renderer.diagnostics(null);
             this.log("inicialização concluída", {
                 matchId: this.options.matchId,
@@ -162,14 +168,14 @@ export class FuturebolEngine {
     }
     async applyPresentationState(state) {
         if (state.matchId !== this.options.matchId) {
-            await this.changeMatch(state);
+            this.changeMatch(state);
             return;
         }
         this.presentationState = state;
         this.pushOfficialMatchState(state.official);
         this.pushMarketSnapshot(state.market);
     }
-    async changeMatch(presentation) {
+    changeMatch(presentation) {
         const previousMatchId = this.options.matchId;
         this.presentationState = presentation;
         this.options.matchId = presentation.matchId;
@@ -182,7 +188,7 @@ export class FuturebolEngine {
         this.options.initialOfficialState = presentation.official;
         this.options.initialPresentationState = presentation;
         const teams = createFuturebolTeamVisualConfiguration(this.options);
-        await this.renderer.reconfigureTeams(teams);
+        this.renderer.reconfigureTeams(teams);
         this.state = new FuturebolMatchState(this.options.seed, true);
         this.state.applyOfficialMatchState(presentation.official, false);
         this.state.applyMarket(presentation.market, null);
@@ -380,9 +386,14 @@ export class FuturebolEngine {
         this.fatalReported = true;
         this.paused = true;
         const message = error instanceof Error ? error.message : "Erro não tratado no módulo 3D.";
-        if (this.options.development)
-            console.error("[Futurebol] erro não tratado do módulo", error);
-        void this.dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
+        console.error("[FUTUREBOL][FATAL]", {
+            stage: "render-loop",
+            error,
+            message,
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        void this.dotNetReference.invokeMethodAsync("ReportFuturebolError", message)
+            .catch(reportError => console.warn("[FUTUREBOL][WARN] runtime fatal error report failed", reportError));
     }
     log(message, details) {
         if (!this.options.development)

@@ -1,12 +1,16 @@
 const loggedLogoResults = new Set();
 const logoTextureSize = 512;
 const logoContentSize = 448;
+const logoLoadTimeoutMs = 5000;
 export class FuturebolTeamLogoTextureProvider {
-    constructor(B, scene, teams, development) {
+    constructor(B, scene, teams) {
         this.B = B;
         this.scene = scene;
-        this.development = development;
         this.disposed = false;
+        console.info("[FUTUREBOL] token textures starting", {
+            home: teams.home.symbol,
+            away: teams.away.symbol
+        });
         this.resources = {
             home: this.createResource('home', teams.home),
             away: this.createResource('away', teams.away)
@@ -22,7 +26,7 @@ export class FuturebolTeamLogoTextureProvider {
         };
     }
     ready() {
-        return Promise.all([
+        return Promise.allSettled([
             this.resources.home.ready,
             this.resources.away.ready
         ]).then(() => undefined);
@@ -30,7 +34,7 @@ export class FuturebolTeamLogoTextureProvider {
     reconfigure(teams) {
         if (this.disposed)
             return Promise.resolve();
-        return Promise.all([
+        return Promise.allSettled([
             this.reconfigureResource(this.resources.home, teams.home),
             this.reconfigureResource(this.resources.away, teams.away)
         ]).then(() => undefined);
@@ -55,6 +59,7 @@ export class FuturebolTeamLogoTextureProvider {
         material.useAlphaFromDiffuseTexture = true;
         material.zOffset = -2;
         const resource = {
+            team,
             configuration,
             material,
             texture: null,
@@ -64,6 +69,7 @@ export class FuturebolTeamLogoTextureProvider {
             fallbackActive: false,
             error: null
         };
+        this.activateFallback(resource, null);
         resource.ready = this.loadResource(resource);
         return resource;
     }
@@ -81,14 +87,16 @@ export class FuturebolTeamLogoTextureProvider {
         resource.loaded = false;
         resource.fallbackActive = false;
         resource.error = null;
+        this.activateFallback(resource, null);
         resource.ready = this.loadResource(resource);
         return resource.ready;
     }
     async loadResource(resource) {
         const configuration = resource.configuration;
         const generation = resource.generation;
+        const started = performance.now();
         if (!configuration.logoUrl) {
-            this.activateFallback(resource, null, generation);
+            this.activateFallback(resource, "Logo URL ausente.", generation, performance.now() - started);
             return;
         }
         let decoded = null;
@@ -109,29 +117,46 @@ export class FuturebolTeamLogoTextureProvider {
                 texture.dispose();
                 return;
             }
+            const previousTexture = resource.texture;
             resource.texture = texture;
             resource.loaded = true;
             resource.fallbackActive = false;
             resource.error = null;
             this.applyTexture(resource, texture);
-            this.logOnce(`loaded:${configuration.symbol}:${configuration.logoUrl}`, 'info', `[Futurebol] Logo ${configuration.symbol} carregado`);
+            previousTexture?.dispose();
+            this.logOnce(`loaded:${configuration.symbol}:${configuration.logoUrl}`, 'info', `[FUTUREBOL] team ${configuration.symbol} (${resource.team}) logo ready: `
+                + `${Math.round(performance.now() - started)} ms`);
         }
         catch (error) {
             const detail = error instanceof Error
                 ? error.message
                 : 'Falha ao carregar a imagem do logo.';
-            this.activateFallback(resource, detail, generation);
+            this.activateFallback(resource, detail, generation, performance.now() - started);
         }
         finally {
             decoded?.dispose();
         }
     }
     async fetchLogo(url) {
-        const response = await fetch(url, {
-            cache: 'force-cache',
-            credentials: 'same-origin',
-            mode: 'cors'
-        });
+        const controller = new AbortController();
+        const timeoutId = globalThis.setTimeout(() => controller.abort(), logoLoadTimeoutMs);
+        let response;
+        try {
+            response = await fetch(url, {
+                cache: 'force-cache',
+                credentials: 'same-origin',
+                mode: 'cors',
+                signal: controller.signal
+            });
+        }
+        catch (error) {
+            if (controller.signal.aborted)
+                throw new Error(`Logo excedeu ${logoLoadTimeoutMs} ms.`);
+            throw error;
+        }
+        finally {
+            globalThis.clearTimeout(timeoutId);
+        }
         if (!response.ok)
             throw new Error(`Logo HTTP ${response.status}.`);
         const blob = await response.blob();
@@ -174,23 +199,36 @@ export class FuturebolTeamLogoTextureProvider {
             throw error;
         }
     }
-    activateFallback(resource, error, generation = resource.generation) {
-        if (this.disposed || resource.generation !== generation || resource.fallbackActive)
+    activateFallback(resource, error, generation = resource.generation, durationMs = 0) {
+        if (this.disposed || resource.generation !== generation)
             return;
-        const failedTexture = resource.texture;
-        const fallback = new this.B.DynamicTexture(`futurebol-${resource.configuration.symbol}-logo-fallback`, { width: 512, height: 512 }, this.scene, false);
-        fallback.hasAlpha = true;
-        const symbol = resource.configuration.symbol;
-        const fontSize = Math.max(96, Math.floor(350 / Math.max(1, symbol.length * .72)));
-        fallback.drawText(symbol, null, 340, `bold ${fontSize}px Arial, sans-serif`, '#ffffff', 'transparent', true, true);
-        resource.texture = fallback;
         resource.loaded = false;
         resource.fallbackActive = true;
         resource.error = error;
-        this.applyTexture(resource, fallback);
-        failedTexture?.dispose();
+        if (!resource.texture) {
+            try {
+                const fallback = new this.B.DynamicTexture(`futurebol-${resource.configuration.symbol}-logo-fallback`, { width: 512, height: 512 }, this.scene, false);
+                fallback.hasAlpha = true;
+                const symbol = resource.configuration.symbol;
+                const fontSize = Math.max(96, Math.floor(350 / Math.max(1, symbol.length * .72)));
+                fallback.drawText(symbol, null, 340, `bold ${fontSize}px Arial, sans-serif`, '#ffffff', 'transparent', true, true);
+                resource.texture = fallback;
+                this.applyTexture(resource, fallback);
+            }
+            catch (fallbackError) {
+                const fallbackDetail = fallbackError instanceof Error
+                    ? fallbackError.message
+                    : 'Falha ao criar ticker de fallback.';
+                resource.error = error
+                    ? `${error} Fallback: ${fallbackDetail}`
+                    : fallbackDetail;
+            }
+        }
         if (error) {
-            this.logOnce(`error:${resource.configuration.symbol}:${resource.configuration.logoUrl}`, 'warn', `[Futurebol] Logo ${resource.configuration.symbol} falhou: ${error}`);
+            this.logOnce(`error:${resource.configuration.symbol}:${resource.configuration.logoUrl}`, 'warn', `[FUTUREBOL][WARN] team=${resource.configuration.symbol} `
+                + `logoUrl=${resource.configuration.logoUrl ?? '(missing)'} `
+                + `reason=${resource.error ?? error} fallback=ticker `
+                + `durationMs=${Math.round(durationMs)}`);
         }
     }
     applyTexture(resource, texture) {
@@ -199,7 +237,7 @@ export class FuturebolTeamLogoTextureProvider {
         resource.material.emissiveTexture = texture;
     }
     logOnce(key, level, message) {
-        if (!this.development || loggedLogoResults.has(key))
+        if (loggedLogoResults.has(key))
             return;
         loggedLogoResults.add(key);
         if (level === 'info')

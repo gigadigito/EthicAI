@@ -15,6 +15,7 @@ type BabylonApi = typeof import('babylonjs');
 const loggedLogoResults = new Set<string>();
 
 interface FuturebolLogoTextureResource {
+    readonly team: FuturebolTeam;
     configuration: FuturebolTeamVisualConfiguration;
     readonly material: StandardMaterial;
     texture: BaseTexture | null;
@@ -34,6 +35,7 @@ interface FuturebolDecodedLogo {
 
 const logoTextureSize = 512;
 const logoContentSize = 448;
+const logoLoadTimeoutMs = 5_000;
 
 export class FuturebolTeamLogoTextureProvider {
     private readonly resources: Record<FuturebolTeam, FuturebolLogoTextureResource>;
@@ -42,9 +44,12 @@ export class FuturebolTeamLogoTextureProvider {
     public constructor(
         private readonly B: BabylonApi,
         private readonly scene: Scene,
-        teams: FuturebolTeamVisualConfigurationMap,
-        private readonly development: boolean
+        teams: FuturebolTeamVisualConfigurationMap
     ) {
+        console.info("[FUTUREBOL] token textures starting", {
+            home: teams.home.symbol,
+            away: teams.away.symbol
+        });
         this.resources = {
             home: this.createResource('home', teams.home),
             away: this.createResource('away', teams.away)
@@ -63,7 +68,7 @@ export class FuturebolTeamLogoTextureProvider {
     }
 
     public ready(): Promise<void> {
-        return Promise.all([
+        return Promise.allSettled([
             this.resources.home.ready,
             this.resources.away.ready
         ]).then(() => undefined);
@@ -73,7 +78,7 @@ export class FuturebolTeamLogoTextureProvider {
         if (this.disposed)
             return Promise.resolve();
 
-        return Promise.all([
+        return Promise.allSettled([
             this.reconfigureResource(this.resources.home, teams.home),
             this.reconfigureResource(this.resources.away, teams.away)
         ]).then(() => undefined);
@@ -108,6 +113,7 @@ export class FuturebolTeamLogoTextureProvider {
         material.zOffset = -2;
 
         const resource: FuturebolLogoTextureResource = {
+            team,
             configuration,
             material,
             texture: null,
@@ -118,6 +124,7 @@ export class FuturebolTeamLogoTextureProvider {
             error: null
         };
 
+        this.activateFallback(resource, null);
         resource.ready = this.loadResource(resource);
         return resource;
     }
@@ -140,6 +147,7 @@ export class FuturebolTeamLogoTextureProvider {
         resource.loaded = false;
         resource.fallbackActive = false;
         resource.error = null;
+        this.activateFallback(resource, null);
         resource.ready = this.loadResource(resource);
         return resource.ready;
     }
@@ -147,8 +155,9 @@ export class FuturebolTeamLogoTextureProvider {
     private async loadResource(resource: FuturebolLogoTextureResource): Promise<void> {
         const configuration = resource.configuration;
         const generation = resource.generation;
+        const started = performance.now();
         if (!configuration.logoUrl) {
-            this.activateFallback(resource, null, generation);
+            this.activateFallback(resource, "Logo URL ausente.", generation, performance.now() - started);
             return;
         }
 
@@ -187,32 +196,50 @@ export class FuturebolTeamLogoTextureProvider {
                 return;
             }
 
+            const previousTexture = resource.texture;
             resource.texture = texture;
             resource.loaded = true;
             resource.fallbackActive = false;
             resource.error = null;
             this.applyTexture(resource, texture);
+            previousTexture?.dispose();
             this.logOnce(
                 `loaded:${configuration.symbol}:${configuration.logoUrl}`,
                 'info',
-                `[Futurebol] Logo ${configuration.symbol} carregado`
+                `[FUTUREBOL] team ${configuration.symbol} (${resource.team}) logo ready: `
+                + `${Math.round(performance.now() - started)} ms`
             );
         } catch (error) {
             const detail = error instanceof Error
                 ? error.message
                 : 'Falha ao carregar a imagem do logo.';
-            this.activateFallback(resource, detail, generation);
+            this.activateFallback(resource, detail, generation, performance.now() - started);
         } finally {
             decoded?.dispose();
         }
     }
 
     private async fetchLogo(url: string): Promise<FuturebolDecodedLogo> {
-        const response = await fetch(url, {
-            cache: 'force-cache',
-            credentials: 'same-origin',
-            mode: 'cors'
-        });
+        const controller = new AbortController();
+        const timeoutId = globalThis.setTimeout(
+            () => controller.abort(),
+            logoLoadTimeoutMs
+        );
+        let response: Response;
+        try {
+            response = await fetch(url, {
+                cache: 'force-cache',
+                credentials: 'same-origin',
+                mode: 'cors',
+                signal: controller.signal
+            });
+        } catch (error) {
+            if (controller.signal.aborted)
+                throw new Error(`Logo excedeu ${logoLoadTimeoutMs} ms.`);
+            throw error;
+        } finally {
+            globalThis.clearTimeout(timeoutId);
+        }
         if (!response.ok)
             throw new Error(`Logo HTTP ${response.status}.`);
 
@@ -261,44 +288,56 @@ export class FuturebolTeamLogoTextureProvider {
     private activateFallback(
         resource: FuturebolLogoTextureResource,
         error: string | null,
-        generation = resource.generation
+        generation = resource.generation,
+        durationMs = 0
     ): void {
-        if (this.disposed || resource.generation !== generation || resource.fallbackActive)
+        if (this.disposed || resource.generation !== generation)
             return;
 
-        const failedTexture = resource.texture;
-        const fallback = new this.B.DynamicTexture(
-            `futurebol-${resource.configuration.symbol}-logo-fallback`,
-            { width: 512, height: 512 },
-            this.scene,
-            false
-        );
-        fallback.hasAlpha = true;
-        const symbol = resource.configuration.symbol;
-        const fontSize = Math.max(96, Math.floor(350 / Math.max(1, symbol.length * .72)));
-        fallback.drawText(
-            symbol,
-            null,
-            340,
-            `bold ${fontSize}px Arial, sans-serif`,
-            '#ffffff',
-            'transparent',
-            true,
-            true
-        );
-
-        resource.texture = fallback;
         resource.loaded = false;
         resource.fallbackActive = true;
         resource.error = error;
-        this.applyTexture(resource, fallback);
-        failedTexture?.dispose();
+        if (!resource.texture) {
+            try {
+                const fallback = new this.B.DynamicTexture(
+                    `futurebol-${resource.configuration.symbol}-logo-fallback`,
+                    { width: 512, height: 512 },
+                    this.scene,
+                    false
+                );
+                fallback.hasAlpha = true;
+                const symbol = resource.configuration.symbol;
+                const fontSize = Math.max(96, Math.floor(350 / Math.max(1, symbol.length * .72)));
+                fallback.drawText(
+                    symbol,
+                    null,
+                    340,
+                    `bold ${fontSize}px Arial, sans-serif`,
+                    '#ffffff',
+                    'transparent',
+                    true,
+                    true
+                );
+                resource.texture = fallback;
+                this.applyTexture(resource, fallback);
+            } catch (fallbackError) {
+                const fallbackDetail = fallbackError instanceof Error
+                    ? fallbackError.message
+                    : 'Falha ao criar ticker de fallback.';
+                resource.error = error
+                    ? `${error} Fallback: ${fallbackDetail}`
+                    : fallbackDetail;
+            }
+        }
 
         if (error) {
             this.logOnce(
                 `error:${resource.configuration.symbol}:${resource.configuration.logoUrl}`,
                 'warn',
-                `[Futurebol] Logo ${resource.configuration.symbol} falhou: ${error}`
+                `[FUTUREBOL][WARN] team=${resource.configuration.symbol} `
+                + `logoUrl=${resource.configuration.logoUrl ?? '(missing)'} `
+                + `reason=${resource.error ?? error} fallback=ticker `
+                + `durationMs=${Math.round(durationMs)}`
             );
         }
     }
@@ -313,7 +352,7 @@ export class FuturebolTeamLogoTextureProvider {
     }
 
     private logOnce(key: string, level: 'info' | 'warn', message: string): void {
-        if (!this.development || loggedLogoResults.has(key))
+        if (loggedLogoResults.has(key))
             return;
 
         loggedLogoResults.add(key);

@@ -18,6 +18,7 @@ const babylonLoader = readFileSync(`${futurebolRoot}/futurebol-babylon-loader.ts
 const engine = readFileSync(`${futurebolRoot}/futurebol-engine.ts`, "utf8");
 const renderer = readFileSync(`${futurebolRoot}/futurebol-renderer.ts`, "utf8");
 const visualFactory = readFileSync(`${futurebolRoot}/player/futurebol-player-visual-factory.ts`, "utf8");
+const logoTextures = readFileSync(`${futurebolRoot}/player/futurebol-team-logo-texture.ts`, "utf8");
 const camera = readFileSync(`${futurebolRoot}/futurebol-camera.ts`, "utf8");
 
 assert.ok(matchPage.includes('@page "/tv/match/{MatchId:int}/{Slug}"'));
@@ -62,6 +63,9 @@ assert.ok(bootstrap.includes("preloadBabylonRuntime()"), "TV must warm the Babyl
 assert.ok(bootstrap.includes("preloadPlayerAsset()"), "TV must warm the canonical GLB URL in the HTTP cache");
 assert.ok(babylonLoader.includes("let runtimePreloadPromise: Promise<void> | null = null"), "Babylon preload must run once per page");
 assert.ok(bootstrap.includes("await engine?.dispose()"), "failed initialization must dispose partial resources");
+assert.ok(bootstrap.includes('let stage = "dispose-previous"'), "fatal diagnostics must track the active bootstrap stage");
+assert.ok(bootstrap.includes('console.error("[FUTUREBOL][FATAL]"'), "fatal failures must retain structured console diagnostics");
+assert.ok(bootstrap.includes("stack: error instanceof Error ? error.stack : undefined"));
 for (const milestone of [
     "[FUTUREBOL] bootstrap started",
     "[FUTUREBOL] Babylon ready",
@@ -72,11 +76,14 @@ for (const milestone of [
     "[FUTUREBOL] first frame"
 ]) assert.ok(engine.includes(milestone), `missing performance milestone: ${milestone}`);
 for (const milestone of [
-    "[FUTUREBOL] player GLB ready",
-    "[FUTUREBOL] token textures ready"
+    "[FUTUREBOL] player GLB ready"
 ]) assert.ok(visualFactory.includes(milestone), `missing performance milestone: ${milestone}`);
-assert.ok(engine.includes("private async changeMatch("), "broadcast rotation must reconfigure an existing engine");
-assert.ok(engine.includes("await this.renderer.reconfigureTeams(teams)"));
+for (const milestone of [
+    "[FUTUREBOL] token textures starting",
+    "logo ready:"
+]) assert.ok(logoTextures.includes(milestone), `missing logo performance milestone: ${milestone}`);
+assert.ok(engine.includes("private changeMatch("), "broadcast rotation must reconfigure an existing engine");
+assert.ok(engine.includes("this.renderer.reconfigureTeams(teams)"));
 assert.ok(engine.includes("this.state = new FuturebolMatchState"), "match state must be isolated per rotation");
 assert.ok(engine.includes("new ResizeObserver"));
 assert.ok(engine.includes("this.resizeObserver.observe(host)"), "resize observation must target the canvas' real layout host");
@@ -86,7 +93,7 @@ assert.ok(engine.includes("this.resizeObserver?.disconnect()"), "the component m
 assert.ok(renderer.includes("this.camera.setViewportAspect"), "resize must update the camera framing for the measured aspect");
 assert.ok(camera.includes("aspect < 1"), "portrait TV layouts must preserve horizontal field coverage");
 
-const changeMatchBody = engine.slice(engine.indexOf("private async changeMatch("), engine.indexOf("public reportMarketError"));
+const changeMatchBody = engine.slice(engine.indexOf("private changeMatch("), engine.indexOf("public reportMarketError"));
 assert.equal(changeMatchBody.includes("new FuturebolRenderer"), false, "match rotation must preserve engine and scene");
 assert.equal(changeMatchBody.includes("initializePlayers"), false, "match rotation must not reload or parse the GLB");
 assert.equal(changeMatchBody.includes("runRenderLoop"), false, "match rotation must not create a second RAF loop");

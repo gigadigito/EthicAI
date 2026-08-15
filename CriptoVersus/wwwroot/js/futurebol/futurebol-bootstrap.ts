@@ -45,20 +45,22 @@ export async function initialize(
     options: FuturebolInitializeOptions,
     dotNetReference: FuturebolDotNetReference
 ): Promise<boolean> {
-    await dispose(canvasId);
-
     const initializeStarted = performance.now();
     let acquired = false;
     let engine: FuturebolEngine | null = null;
+    let stage = "dispose-previous";
     try {
-        console.info("[FUTUREBOL-TV] initialize start", {
+        await dispose(canvasId);
+        console.info("[FUTUREBOL] bootstrap initialize started", {
             canvasId,
             matchId: options.matchId ?? null
         });
 
+        stage = "validate-webgl";
         if (options.simulateWebGlFailure || !supportsWebGl())
             throw new Error("WebGL não está disponível ou a inicialização foi bloqueada.");
 
+        stage = "find-canvas";
         const canvas = document.getElementById(canvasId);
         if (!(canvas instanceof HTMLCanvasElement))
             throw new Error("Canvas do Futurebol não foi encontrado.");
@@ -68,6 +70,7 @@ export async function initialize(
             rect: readCanvasRect(canvas)
         });
 
+        stage = "load-babylon";
         const babylonStarted = performance.now();
         const B = await acquireBabylon();
         console.info(
@@ -79,14 +82,19 @@ export async function initialize(
             ...options,
             quality: resolveInitialQuality(canvas, options.quality)
         };
+        stage = "create-engine";
         const sceneStarted = performance.now();
         engine = new FuturebolEngine(B, canvas, runtimeOptions, dotNetReference);
         console.info(
             `[FUTUREBOL] scene ready: ${Math.round(performance.now() - initializeStarted)} ms `
             + `(creation ${Math.round(performance.now() - sceneStarted)} ms)`
         );
-        await engine.initialize();
+        await engine.initialize(currentStage => {
+            stage = currentStage;
+            console.info(`[FUTUREBOL] stage=${stage}`);
+        });
         instances.set(canvasId, engine);
+        const totalMs = Math.round(performance.now() - initializeStarted);
         console.info("[FUTUREBOL-TV][LOAD] initialize total", {
             durationMs: Math.round(performance.now() - initializeStarted)
         });
@@ -95,14 +103,28 @@ export async function initialize(
             matchId: options.matchId ?? null,
             size: engine.getSizeDiagnostics()
         });
+        console.info(`[FUTUREBOL] READY total: ${totalMs} ms`);
         return true;
     } catch (error) {
-        await engine?.dispose();
+        const message = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o Futurebol.";
+        console.error("[FUTUREBOL][FATAL]", {
+            stage,
+            error,
+            message,
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        try {
+            await engine?.dispose();
+        } catch (cleanupError) {
+            console.warn("[FUTUREBOL][WARN] cleanup failed", cleanupError);
+        }
         if (acquired)
             releaseBabylon();
-        const message = error instanceof Error ? error.message : "Falha desconhecida ao iniciar o Futurebol.";
-        console.error("[FUTUREBOL] initialization failed", error);
-        await dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
+        try {
+            await dotNetReference.invokeMethodAsync("ReportFuturebolError", message);
+        } catch (reportError) {
+            console.warn("[FUTUREBOL][WARN] fatal error report failed", reportError);
+        }
         return false;
     }
 }
