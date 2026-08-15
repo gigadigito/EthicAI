@@ -1223,7 +1223,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260814-logo-nonblocking-1");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-team-logo-proxy-1");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)

@@ -430,7 +430,7 @@ public partial class FuturebolLab
     private string? ResolveLogoUrl(string symbol)
     {
         var resolved = Api.BuildBinanceIconUrl(symbol);
-        return string.IsNullOrWhiteSpace(resolved) ? null : resolved;
+        return FuturebolTeamLogoUrl.Resolve(resolved, symbol);
     }
 
     private static string NormalizeSymbol(string? symbol, string fallback)

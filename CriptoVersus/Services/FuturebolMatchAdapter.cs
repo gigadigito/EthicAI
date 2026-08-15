@@ -199,7 +199,7 @@ public sealed class FuturebolMatchAdapter
         => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 
     private static string? ResolveLogoUrl(string? value, string symbol)
-        => string.IsNullOrWhiteSpace(value) ? EnvironmentIsolationGuard.BuildBinanceIconUrl(symbol) : value.Trim();
+        => FuturebolTeamLogoUrl.Resolve(value, symbol);
 
     private static string? ToUtcString(DateTime? value)
         => value.HasValue ? AsUtc(value.Value).ToString("O") : null;

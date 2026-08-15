@@ -252,6 +252,13 @@ export class FuturebolEngine {
         }
 
         this.presentationState = state;
+        this.options.homeSymbol = state.homeTeam.symbol;
+        this.options.awaySymbol = state.awayTeam.symbol;
+        this.options.homeLogoUrl = state.homeTeam.logoUrl;
+        this.options.awayLogoUrl = state.awayTeam.logoUrl;
+        this.renderer.reconfigureTeams(
+            createFuturebolTeamVisualConfiguration(this.options)
+        );
         this.pushOfficialMatchState(state.official);
         this.pushMarketSnapshot(state.market);
     }

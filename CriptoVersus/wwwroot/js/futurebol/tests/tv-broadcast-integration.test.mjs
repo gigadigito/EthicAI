@@ -20,6 +20,8 @@ const renderer = readFileSync(`${futurebolRoot}/futurebol-renderer.ts`, "utf8");
 const visualFactory = readFileSync(`${futurebolRoot}/player/futurebol-player-visual-factory.ts`, "utf8");
 const logoTextures = readFileSync(`${futurebolRoot}/player/futurebol-team-logo-texture.ts`, "utf8");
 const camera = readFileSync(`${futurebolRoot}/futurebol-camera.ts`, "utf8");
+const logoUrlResolver = readFileSync(`${projectRoot}/Services/FuturebolTeamLogoUrl.cs`, "utf8");
+const webProgram = readFileSync(`${projectRoot}/Program.cs`, "utf8");
 
 assert.ok(matchPage.includes('@page "/tv/match/{MatchId:int}/{Slug}"'));
 assert.ok(matchPage.includes("<TvStage"), "Match TV must enter the shared TvStage");
@@ -54,6 +56,9 @@ assert.ok(stage.includes('HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"'), "Fu
 assert.ok(stage.includes('AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"'), "Futurebol must receive the exact right card logo URL");
 assert.ok(host.includes("[TvFuturebolField] component initialized"));
 assert.ok(host.includes("[TvFuturebolField] OnAfterRender"));
+assert.ok(host.includes("FuturebolTeamLogoUrl.Resolve"), "the integrated host must translate official URLs to the same-origin logo transport");
+assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"'));
+assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
 assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngine>()"));
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
@@ -79,11 +84,16 @@ for (const milestone of [
     "[FUTUREBOL] player GLB ready"
 ]) assert.ok(visualFactory.includes(milestone), `missing performance milestone: ${milestone}`);
 for (const milestone of [
-    "[FUTUREBOL] token textures starting",
-    "logo ready:"
-]) assert.ok(logoTextures.includes(milestone), `missing logo performance milestone: ${milestone}`);
+    "[Futurebol][TeamLogo]",
+    "[Futurebol][LogoTexture]"
+]) assert.ok(logoTextures.includes(milestone), `missing logo diagnostic: ${milestone}`);
 assert.ok(engine.includes("private changeMatch("), "broadcast rotation must reconfigure an existing engine");
 assert.ok(engine.includes("this.renderer.reconfigureTeams(teams)"));
+assert.ok(
+    engine.includes("this.options.homeLogoUrl = state.homeTeam.logoUrl")
+        && engine.includes("createFuturebolTeamVisualConfiguration(this.options)"),
+    "same-match updates must reconfigure shared logo materials when a URL arrives later"
+);
 assert.ok(engine.includes("this.state = new FuturebolMatchState"), "match state must be isolated per rotation");
 assert.ok(engine.includes("new ResizeObserver"));
 assert.ok(engine.includes("this.resizeObserver.observe(host)"), "resize observation must target the canvas' real layout host");

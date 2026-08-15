@@ -93,12 +93,18 @@
         if (!string.IsNullOrWhiteSpace(HomeLogoUrl))
             _presentation = _presentation with
             {
-                HomeTeam = _presentation.HomeTeam with { LogoUrl = HomeLogoUrl.Trim() }
+                HomeTeam = _presentation.HomeTeam with
+                {
+                    LogoUrl = FuturebolTeamLogoUrl.Resolve(HomeLogoUrl, _presentation.HomeTeam.Symbol)
+                }
             };
         if (!string.IsNullOrWhiteSpace(AwayLogoUrl))
             _presentation = _presentation with
             {
-                AwayTeam = _presentation.AwayTeam with { LogoUrl = AwayLogoUrl.Trim() }
+                AwayTeam = _presentation.AwayTeam with
+                {
+                    LogoUrl = FuturebolTeamLogoUrl.Resolve(AwayLogoUrl, _presentation.AwayTeam.Symbol)
+                }
             };
         _pendingSignature = BuildSignature(_presentation);
     }
@@ -128,7 +134,7 @@
                 var importTimer = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260814-logo-nonblocking-1");
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-team-logo-proxy-1");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);

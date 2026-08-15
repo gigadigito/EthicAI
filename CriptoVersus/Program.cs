@@ -153,6 +153,57 @@ app.UseAntiforgery();
 app.MapGet("/healthz", () => Results.Text("OK", "text/plain"))
     .WithMetadata(new AllowAnonymousAttribute());
 
+app.MapGet("/futurebol/team-logo/{symbol}", async (
+    HttpContext httpContext,
+    string symbol,
+    IHttpClientFactory httpClientFactory,
+    ILoggerFactory loggerFactory,
+    CancellationToken ct) =>
+{
+    const long maximumLogoBytes = 2 * 1024 * 1024;
+    var normalized = EnvironmentIsolationGuard.NormalizeBinanceIconSymbol(symbol);
+    if (string.IsNullOrWhiteSpace(normalized))
+        return Results.BadRequest();
+
+    try
+    {
+        var client = httpClientFactory.CreateClient("CriptoVersusApi");
+        using var response = await client.GetAsync(
+            $"api/icons/binance/{Uri.EscapeDataString(normalized)}",
+            HttpCompletionOption.ResponseHeadersRead,
+            ct);
+        if (!response.IsSuccessStatusCode)
+            return Results.StatusCode((int)response.StatusCode);
+
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (string.IsNullOrWhiteSpace(contentType)
+            || !contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.StatusCode(StatusCodes.Status502BadGateway);
+        }
+
+        if (response.Content.Headers.ContentLength is > maximumLogoBytes)
+            return Results.StatusCode(StatusCodes.Status502BadGateway);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        if (bytes.Length == 0 || bytes.LongLength > maximumLogoBytes)
+            return Results.StatusCode(StatusCodes.Status502BadGateway);
+
+        httpContext.Response.Headers.CacheControl = "public,max-age=604800";
+        return Results.File(bytes, contentType);
+    }
+    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+    {
+        return Results.StatusCode(StatusCodes.Status504GatewayTimeout);
+    }
+    catch (HttpRequestException ex)
+    {
+        loggerFactory.CreateLogger("CriptoVersus.Web.FuturebolTeamLogo")
+            .LogWarning(ex, "Futurebol team logo proxy failed. Team={Team}", normalized);
+        return Results.StatusCode(StatusCodes.Status502BadGateway);
+    }
+}).WithMetadata(new AllowAnonymousAttribute());
+
 app.MapMethods("/sitemap.xml", ["GET", "HEAD"], async (HttpContext httpContext, SitemapService sitemapService, CancellationToken ct) =>
 {
     var xml = await sitemapService.GetSitemapIndexXmlAsync(ct);

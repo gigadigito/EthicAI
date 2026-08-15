@@ -76,6 +76,41 @@ public sealed class FuturebolMatchAdapterTests
         Assert.Equal("Official close", state.Result.EndReasonDetail);
     }
 
+    [Fact]
+    public void Build_MapsOfficialIconUrlsToSameOriginFuturebolProxy()
+    {
+        var match = CreateMatch();
+        var hot = new TvHotMatchDto
+        {
+            HasMatch = true,
+            MatchId = match.MatchId,
+            LeftLogoUrl = "https://api.criptoversus.com/api/icons/binance/BMT",
+            RightLogoUrl = "/api/icons/binance/TUT?version=2"
+        };
+
+        var state = new FuturebolMatchAdapter().Build(
+            match,
+            hot,
+            Array.Empty<MatchMetricSnapshotDto>(),
+            Array.Empty<MatchScoreEventDto>());
+
+        Assert.Equal("/futurebol/team-logo/BMT", state.HomeTeam.LogoUrl);
+        Assert.Equal("/futurebol/team-logo/TUT", state.AwayTeam.LogoUrl);
+    }
+
+    [Fact]
+    public void Build_UsesDynamicProxyUrlWhenHotMatchHasNoLogo()
+    {
+        var state = new FuturebolMatchAdapter().Build(
+            CreateMatch(),
+            null,
+            Array.Empty<MatchMetricSnapshotDto>(),
+            Array.Empty<MatchScoreEventDto>());
+
+        Assert.Equal("/futurebol/team-logo/BMT", state.HomeTeam.LogoUrl);
+        Assert.Equal("/futurebol/team-logo/TUT", state.AwayTeam.LogoUrl);
+    }
+
     private static MatchDto CreateMatch()
         => new()
         {
@@ -96,4 +131,3 @@ public sealed class FuturebolMatchAdapterTests
             EndReasonCode = "TIME"
         };
 }
-

@@ -462,6 +462,8 @@ The TypeScript source is authoritative. Files under `wwwroot/js/dist` are genera
 
 In API mode, `MatchDto`, `TvHotMatchDto`, snapshots, and `MatchScoreEventDto` events are mapped by `FuturebolMatchAdapter` into a dedicated browser presentation contract. Both the Lab and TV host use that adapter. Official score and clock are authoritative. Local plays remain cinematic, cannot increment the official score, and are forced to visual saves unless a new deduplicated official score event requests a goal cinematic. Initial/reloaded events establish a baseline and are not replayed.
 
+Team logo identity still comes from the match/API icon URL. `FuturebolTeamLogoUrl` maps the official icon route to the Web same-origin `/futurebol/team-logo/{symbol}` transport, which proxies the API image bytes so Babylon can safely upload them to a WebGL texture even when the API and Web origins differ. This transport does not maintain a symbol-to-logo table or become a second logo authority.
+
 The TV host updates an existing `FuturebolEngine` for the same match and calls its match reconfiguration path during Broadcast rotation. A canvas retains one Babylon engine, scene, render loop, and loaded humanoid asset for its lifetime; match changes reset official/simulation state and replace team symbols/logo textures without rebuilding the scene. Container resize uses `ResizeObserver`. The existing TV polling remains the transport; Futurebol does not add a scoring or persistence path and does not subscribe to a dedicated SignalR event.
 
 ## Candle Battle Flow

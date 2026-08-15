@@ -7,10 +7,8 @@ export class FuturebolTeamLogoTextureProvider {
         this.B = B;
         this.scene = scene;
         this.disposed = false;
-        console.info("[FUTUREBOL] token textures starting", {
-            home: teams.home.symbol,
-            away: teams.away.symbol
-        });
+        this.logTeamSource('home', teams.home);
+        this.logTeamSource('away', teams.away);
         this.resources = {
             home: this.createResource('home', teams.home),
             away: this.createResource('away', teams.away)
@@ -79,6 +77,7 @@ export class FuturebolTeamLogoTextureProvider {
             return resource.ready;
         resource.generation += 1;
         resource.configuration = { ...configuration };
+        this.logTeamSource(resource.team, configuration);
         resource.material.diffuseTexture = null;
         resource.material.opacityTexture = null;
         resource.material.emissiveTexture = null;
@@ -124,8 +123,8 @@ export class FuturebolTeamLogoTextureProvider {
             resource.error = null;
             this.applyTexture(resource, texture);
             previousTexture?.dispose();
-            this.logOnce(`loaded:${configuration.symbol}:${configuration.logoUrl}`, 'info', `[FUTUREBOL] team ${configuration.symbol} (${resource.team}) logo ready: `
-                + `${Math.round(performance.now() - started)} ms`);
+            this.logOnce(`loaded:${configuration.symbol}:${configuration.logoUrl}`, 'info', `[Futurebol][LogoTexture] team=${configuration.symbol} status=loaded `
+                + `url=${configuration.logoUrl} durationMs=${Math.round(performance.now() - started)}`);
         }
         catch (error) {
             const detail = error instanceof Error
@@ -225,11 +224,16 @@ export class FuturebolTeamLogoTextureProvider {
             }
         }
         if (error) {
-            this.logOnce(`error:${resource.configuration.symbol}:${resource.configuration.logoUrl}`, 'warn', `[FUTUREBOL][WARN] team=${resource.configuration.symbol} `
-                + `logoUrl=${resource.configuration.logoUrl ?? '(missing)'} `
-                + `reason=${resource.error ?? error} fallback=ticker `
+            this.logOnce(`error:${resource.configuration.symbol}:${resource.configuration.logoUrl}`, 'warn', `[Futurebol][LogoTexture] team=${resource.configuration.symbol} status=failed `
+                + `url=${resource.configuration.logoUrl ?? '(missing)'} `
+                + `error=${resource.error ?? error} fallback=ticker `
                 + `durationMs=${Math.round(durationMs)}`);
         }
+    }
+    logTeamSource(team, configuration) {
+        console.info(`[Futurebol][TeamLogo] team=${configuration.symbol} `
+            + `logoUrl=${configuration.logoUrl ?? '(missing)'} `
+            + `source=match-presentation side=${team}`);
     }
     applyTexture(resource, texture) {
         resource.material.diffuseTexture = texture;
