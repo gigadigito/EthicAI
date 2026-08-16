@@ -1,5 +1,6 @@
 import type { AbstractMesh, DirectionalLight, Engine, Mesh, Scene, ShadowGenerator, StandardMaterial } from "babylonjs";
 import { FuturebolCamera } from "./futurebol-camera.js";
+import { FuturebolArena } from "./futurebol-arena.js";
 import type {
     FuturebolLogoTextureDiagnosticMap,
     FuturebolPlayerState,
@@ -38,6 +39,7 @@ export class FuturebolRenderer {
     private trailSampleElapsed = 0;
     private goalFlashElapsed = 0;
     private readonly directionalLight: DirectionalLight;
+    private readonly arena: FuturebolArena;
     private shadowGenerator: ShadowGenerator | null = null;
     private visualFactory: FuturebolPlayerVisualFactory | null = null;
     private visualGeneration = 0;
@@ -68,13 +70,13 @@ export class FuturebolRenderer {
             doNotHandleContextLost: false
         });
         this.scene = new B.Scene(this.engine);
-        this.scene.clearColor = new B.Color4(0.018, 0.027, 0.06, 1);
-        this.scene.ambientColor = new B.Color3(0.16, 0.18, 0.25);
+        this.scene.clearColor = new B.Color4(0.024, 0.041, 0.082, 1);
+        this.scene.ambientColor = new B.Color3(0.18, 0.22, 0.3);
 
         this.camera = new FuturebolCamera(B, this.scene, reducedMotion);
         this.field = this.createField();
         this.directionalLight = this.createLights();
-        this.createArena();
+        this.arena = new FuturebolArena(B, this.scene, quality);
         this.createGoals();
         this.createMarkings();
 
@@ -175,6 +177,7 @@ export class FuturebolRenderer {
 
     public applyQuality(quality: FuturebolQuality): void {
         this.quality = quality;
+        this.arena?.setQuality(quality);
         for (const visual of this.playerVisuals.values()) visual.setQuality(quality);
         const scaling = quality === "Low" ? 1.5 : quality === "High" ? 0.82 : 1;
         this.engine.setHardwareScalingLevel(scaling);
@@ -637,52 +640,15 @@ export class FuturebolRenderer {
 
     private createLights(): DirectionalLight {
         const hemispheric = new this.B.HemisphericLight("futurebol-ambient-light", new this.B.Vector3(0, 1, 0), this.scene);
-        hemispheric.intensity = 0.82;
-        hemispheric.diffuse = new this.B.Color3(0.72, 0.82, 1);
+        hemispheric.intensity = 0.76;
+        hemispheric.diffuse = new this.B.Color3(0.7, 0.82, 1);
+        hemispheric.groundColor = new this.B.Color3(0.055, 0.09, 0.12);
 
         const directional = new this.B.DirectionalLight("futurebol-key-light", new this.B.Vector3(-0.35, -1, 0.25), this.scene);
         directional.position = new this.B.Vector3(8, 24, -10);
-        directional.intensity = 1.18;
+        directional.diffuse = new this.B.Color3(0.92, 0.96, 1);
+        directional.intensity = 1.24;
         return directional;
-    }
-
-    private createArena(): void {
-        const standMaterial = this.createMaterial("futurebol-stand-material", new this.B.Color3(0.04, 0.055, 0.115));
-        standMaterial.emissiveColor = new this.B.Color3(0.012, 0.022, 0.052);
-        const upperStandMaterial = this.createMaterial("futurebol-upper-stand-material", new this.B.Color3(0.065, 0.08, 0.15));
-
-        for (const z of [-18, 18]) {
-            const stand = this.B.MeshBuilder.CreateBox(`futurebol-stand-${z}`, { width: 58, height: 4.5, depth: 4.8 }, this.scene);
-            stand.position.set(0, 2, z);
-            stand.material = standMaterial;
-            const upper = this.B.MeshBuilder.CreateBox(`futurebol-upper-stand-${z}`, { width: 53, height: 2.2, depth: 3 }, this.scene);
-            upper.position.set(0, 5.1, z + Math.sign(z) * 1.15);
-            upper.material = upperStandMaterial;
-        }
-
-        for (const x of [-30, 30]) {
-            const endStand = this.B.MeshBuilder.CreateBox(`futurebol-end-stand-${x}`, { width: 4.5, height: 3.8, depth: 32 }, this.scene);
-            endStand.position.set(x, 1.65, 0);
-            endStand.material = standMaterial;
-        }
-
-        const ribbonMaterial = this.createMaterial("futurebol-ribbon-material", new this.B.Color3(0.05, 0.38, 0.42));
-        ribbonMaterial.emissiveColor = new this.B.Color3(0.1, 0.55, 0.62);
-        for (const z of [-15.35, 15.35]) {
-            const ribbon = this.B.MeshBuilder.CreateBox(`futurebol-ribbon-${z}`, { width: 49, height: 0.2, depth: 0.12 }, this.scene);
-            ribbon.position.set(0, 1.05, z);
-            ribbon.material = ribbonMaterial;
-        }
-
-        const lightMaterial = this.createMaterial("futurebol-arena-light-material", new this.B.Color3(0.8, 0.9, 1));
-        lightMaterial.emissiveColor = new this.B.Color3(0.65, 0.78, 1);
-        for (const x of [-23, 23]) {
-            for (const z of [-20.3, 20.3]) {
-                const lamp = this.B.MeshBuilder.CreateBox(`futurebol-arena-light-${x}-${z}`, { width: 8, height: 0.28, depth: 0.3 }, this.scene);
-                lamp.position.set(x, 7.5, z);
-                lamp.material = lightMaterial;
-            }
-        }
     }
 
     private createGoals(): void {

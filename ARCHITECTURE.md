@@ -417,6 +417,7 @@ flowchart TD
     BabylonLoader[futurebol-babylon-loader.ts]
     Babylon[Babylon.js local runtime]
     Renderer[renderer + camera + players]
+    Arena[futurebol-arena.ts<br/>static stadium visuals]
     GLB[futurebol-humanoid.glb]
 
     Lab --> Options
@@ -443,6 +444,7 @@ flowchart TD
     Engine --> BabylonLoader
     BabylonLoader --> Babylon
     Engine --> Renderer
+    Renderer --> Arena
     Renderer --> GLB
 ```
 
@@ -457,6 +459,8 @@ Source locations:
 - Player model: `CriptoVersus/wwwroot/assets/futurebol/players/futurebol-humanoid.glb`.
 
 The TypeScript source is authoritative. Files under `wwwroot/js/dist` are generated output. Futurebol supports deterministic mock data and API-fed match snapshots.
+
+`FuturebolArena` owns only the static stadium presentation used by Lab, Match, and Broadcast: stepped stands, seat-bank sectors, concourses, tunnels, shell, decorative scoreboards, LED ribbons, and emissive floodlight fixtures. Repeated boxes are merged by shared material, static transforms and materials are frozen, and secondary detail groups are disabled in Low quality. The arena adds no dynamic lights, physics bodies, gameplay state, textures, or camera behavior.
 
 `FuturebolMatchState` remains the gameplay coordinator and official/local score boundary. Player movement uses base positions, role zones, tactical intents, arrival steering, and separation inside that state. Contextual possession decisions and pass-target scoring are isolated in `FuturebolPlayerAI`; ball acceleration, rolling drag, bounce, and player/goal-frame collisions are isolated in `FuturebolBallController`; field-boundary, goal, and restart classification are isolated in `FuturebolMatchRules`. These modules are deterministic and do not own or modify player visuals. The Babylon renderer continues to consume positions and animation state without becoming authoritative for match rules.
 

@@ -17,6 +17,7 @@ const bootstrap = readFileSync(`${futurebolRoot}/futurebol-bootstrap.ts`, "utf8"
 const babylonLoader = readFileSync(`${futurebolRoot}/futurebol-babylon-loader.ts`, "utf8");
 const engine = readFileSync(`${futurebolRoot}/futurebol-engine.ts`, "utf8");
 const renderer = readFileSync(`${futurebolRoot}/futurebol-renderer.ts`, "utf8");
+const arena = readFileSync(`${futurebolRoot}/futurebol-arena.ts`, "utf8");
 const visualFactory = readFileSync(`${futurebolRoot}/player/futurebol-player-visual-factory.ts`, "utf8");
 const logoTextures = readFileSync(`${futurebolRoot}/player/futurebol-team-logo-texture.ts`, "utf8");
 const camera = readFileSync(`${futurebolRoot}/futurebol-camera.ts`, "utf8");
@@ -102,6 +103,12 @@ assert.ok(engine.includes("await firstFrame"), "initialize must not resolve befo
 assert.ok(engine.includes("this.resizeObserver?.disconnect()"), "the component must release its layout observer");
 assert.ok(renderer.includes("this.camera.setViewportAspect"), "resize must update the camera framing for the measured aspect");
 assert.ok(camera.includes("aspect < 1"), "portrait TV layouts must preserve horizontal field coverage");
+assert.ok(renderer.includes("new FuturebolArena"), "Match and Broadcast must use the shared stadium renderer");
+assert.ok(renderer.includes("this.arena?.setQuality(quality)"), "stadium detail must follow the active quality preset");
+assert.ok(arena.includes("Mesh.MergeMeshes"), "repeated stadium modules must be merged before rendering");
+assert.equal(arena.includes("PointLight"), false, "the stadium cannot add costly per-fixture point lights");
+assert.equal(arena.includes("SpotLight"), false, "the stadium cannot add costly per-fixture spot lights");
+assert.equal(arena.includes("GlowLayer"), false, "the stadium glow must remain lightweight emissive geometry");
 
 const changeMatchBody = engine.slice(engine.indexOf("private changeMatch("), engine.indexOf("public reportMarketError"));
 assert.equal(changeMatchBody.includes("new FuturebolRenderer"), false, "match rotation must preserve engine and scene");
