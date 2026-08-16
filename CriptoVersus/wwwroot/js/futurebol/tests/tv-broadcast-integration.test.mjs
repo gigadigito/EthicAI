@@ -105,6 +105,8 @@ assert.ok(renderer.includes("this.camera.setViewportAspect"), "resize must updat
 assert.ok(camera.includes("aspect < 1"), "portrait TV layouts must preserve horizontal field coverage");
 assert.ok(renderer.includes("new FuturebolArena"), "Match and Broadcast must use the shared stadium renderer");
 assert.ok(renderer.includes("this.arena?.setQuality(quality)"), "stadium detail must follow the active quality preset");
+assert.ok(arena.includes("[Futurebol][Arena] STADIUM_V2 loaded"), "the real shared arena builder must emit an unmistakable runtime marker");
+assert.ok(arena.includes('thinInstanceSetBuffer("matrix"'), "seats and crowd must use thin instances");
 assert.ok(arena.includes("Mesh.MergeMeshes"), "repeated stadium modules must be merged before rendering");
 assert.equal(arena.includes("PointLight"), false, "the stadium cannot add costly per-fixture point lights");
 assert.equal(arena.includes("SpotLight"), false, "the stadium cannot add costly per-fixture spot lights");

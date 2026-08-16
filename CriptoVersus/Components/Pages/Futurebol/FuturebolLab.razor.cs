@@ -113,7 +113,7 @@ public partial class FuturebolLab
         {
             _module ??= await JS.InvokeAsync<IJSObjectReference>(
                 "import",
-                "./js/dist/futurebol/futurebol-bootstrap.js?v=20260815-stadium-arena-1");
+                "./js/dist/futurebol/futurebol-bootstrap.js?v=20260815-stadium-v2-1");
             _dotNetReference ??= DotNetObjectReference.Create(this);
 
             await _module.InvokeVoidAsync(
