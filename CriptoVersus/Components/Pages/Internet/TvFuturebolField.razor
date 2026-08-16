@@ -1,3 +1,4 @@
+@using CriptoVersus.Components.Pages.Internet
 @using Microsoft.Extensions.Options
 @using System.Diagnostics
 @using CriptoVersus.Web.Services
@@ -64,6 +65,7 @@
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
     [Parameter] public IReadOnlyCollection<MatchMetricSnapshotDto> Snapshots { get; set; } = [];
     [Parameter] public IReadOnlyCollection<MatchScoreEventDto> ScoreEvents { get; set; } = [];
+    [Parameter] public bool InitialHistoryReady { get; set; }
     [Parameter] public string? HomeLogoUrl { get; set; }
     [Parameter] public string? AwayLogoUrl { get; set; }
     [Parameter] public EventCallback<FuturebolReplayHudState> ReplayStateChanged { get; set; }
@@ -90,7 +92,7 @@
             Logger.LogInformation("[TvFuturebolField] matchId={MatchId}", match.MatchId);
         }
 
-        _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents);
+        _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents, initialHistoryReady: InitialHistoryReady);
         if (!string.IsNullOrWhiteSpace(HomeLogoUrl))
             _presentation = _presentation with
             {
@@ -292,6 +294,7 @@
             state.Official.AwayScore,
             state.Official.Status,
             state.Official.IsFinished,
+            state.Official.IsInitialHistoryReady,
             state.Market.Sequence,
             state.Result.WinnerTeamId,
             state.Result.WinnerTeamSymbol,

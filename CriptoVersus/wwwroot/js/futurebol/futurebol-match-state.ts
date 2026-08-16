@@ -224,6 +224,7 @@ export class FuturebolMatchState {
     private synchronizationReplayAwayScore = 0;
     private synchronizationReplayTargetHome = 0;
     private synchronizationReplayTargetAway = 0;
+    private bootstrapPending = true;
     private readonly playerVelocities = new Map<string, FuturebolVector3State>();
     private readonly playerAI = new FuturebolPlayerAI();
     private readonly matchRules = new FuturebolMatchRules();
@@ -300,16 +301,10 @@ export class FuturebolMatchState {
             return;
         }
 
-        const previousOfficialState = this.officialMatchState;
+        const initialHistoryReady = state.initialHistoryReady ?? false;
         const orderedEvents = [...state.scoreEvents]
             .filter(event => event.points > 0)
             .sort((left, right) => left.sequence - right.sequence || left.id - right.id);
-        const newEvents = orderedEvents.filter(
-            event => !this.seenOfficialScoreEventIds.has(event.id)
-        );
-
-        for (const event of orderedEvents)
-            this.seenOfficialScoreEventIds.add(event.id);
 
         this.officialMatchState = {
             ...state,
@@ -324,59 +319,72 @@ export class FuturebolMatchState {
             return;
 
         if (!animateNewEvents) {
-            if (orderedEvents.length > 0 || (state.homeScore === 0 && state.awayScore === 0))
-                this.synchronizationReplayCompleted = true;
+            this.bootstrapPending = true;
             return;
         }
 
-        const protectedHomeScore = this.officialMatchState.homeScore;
-        const protectedAwayScore = this.officialMatchState.awayScore;
-        const scoreWasAlreadyAuthoritative = previousOfficialState !== null
-            && previousOfficialState.homeScore === protectedHomeScore
-            && previousOfficialState.awayScore === protectedAwayScore;
-        const startsInitialCatchUp =
-            !this.synchronizationReplayCompleted
-            && !this.synchronizationReplayActive
-            && newEvents.length > 0
-            && scoreWasAlreadyAuthoritative;
+        if (this.bootstrapPending && initialHistoryReady) {
+            this.bootstrapPending = false;
+            const newEvents = orderedEvents.filter(
+                event => !this.seenOfficialScoreEventIds.has(event.id)
+            );
 
-        if (startsInitialCatchUp) {
-            const newHomePoints = newEvents
-                .filter(event => event.team === "home")
-                .reduce((total, event) => total + event.points, 0);
-            const newAwayPoints = newEvents
-                .filter(event => event.team === "away")
-                .reduce((total, event) => total + event.points, 0);
+            for (const event of orderedEvents)
+                this.seenOfficialScoreEventIds.add(event.id);
 
-            this.synchronizationReplayActive = true;
-            this.synchronizationReplayHomeScore = Math.max(0, protectedHomeScore - newHomePoints);
-            this.synchronizationReplayAwayScore = Math.max(0, protectedAwayScore - newAwayPoints);
-            this.synchronizationReplayTargetHome = protectedHomeScore;
-            this.synchronizationReplayTargetAway = protectedAwayScore;
-            console.info("[Futurebol][Replay] started", {
-                target: `${protectedHomeScore}x${protectedAwayScore}`,
-                displayScore: `${this.synchronizationReplayHomeScore}x${this.synchronizationReplayAwayScore}`,
-                pendingGoals: newEvents.length
-            });
-        } else if (!this.synchronizationReplayActive && newEvents.length > 0) {
-            this.synchronizationReplayCompleted = true;
+            if (newEvents.length > 0) {
+                const protectedHomeScore = this.officialMatchState.homeScore;
+                const protectedAwayScore = this.officialMatchState.awayScore;
+
+                this.synchronizationReplayActive = true;
+                this.synchronizationReplayHomeScore = 0;
+                this.synchronizationReplayAwayScore = 0;
+                this.synchronizationReplayTargetHome = protectedHomeScore;
+                this.synchronizationReplayTargetAway = protectedAwayScore;
+                console.info("[Futurebol][Replay] started", {
+                    target: `${protectedHomeScore}x${protectedAwayScore}`,
+                    displayScore: "0x0",
+                    pendingGoals: newEvents.length
+                });
+
+                for (const event of newEvents) {
+                    this.pendingOfficialGoals.push({
+                        team: event.team,
+                        points: event.points,
+                        synchronizationReplay: true,
+                        scoreApplied: false
+                    });
+                }
+
+                this.startNextOfficialGoalCinematic();
+            }
+            return;
         }
 
-        if (this.synchronizationReplayActive) {
-            this.synchronizationReplayTargetHome = protectedHomeScore;
-            this.synchronizationReplayTargetAway = protectedAwayScore;
-        }
+        if (!this.bootstrapPending) {
+            const newEvents = orderedEvents.filter(
+                event => !this.seenOfficialScoreEventIds.has(event.id)
+            );
 
-        for (const event of newEvents) {
-            this.pendingOfficialGoals.push({
-                team: event.team,
-                points: event.points,
-                synchronizationReplay: this.synchronizationReplayActive,
-                scoreApplied: false
-            });
-        }
+            for (const event of orderedEvents)
+                this.seenOfficialScoreEventIds.add(event.id);
 
-        this.startNextOfficialGoalCinematic();
+            if (this.synchronizationReplayActive) {
+                this.synchronizationReplayTargetHome = this.officialMatchState.homeScore;
+                this.synchronizationReplayTargetAway = this.officialMatchState.awayScore;
+            }
+
+            for (const event of newEvents) {
+                this.pendingOfficialGoals.push({
+                    team: event.team,
+                    points: event.points,
+                    synchronizationReplay: false,
+                    scoreApplied: false
+                });
+            }
+
+            this.startNextOfficialGoalCinematic();
+        }
     }
 
     public update(deltaSeconds: number): void {

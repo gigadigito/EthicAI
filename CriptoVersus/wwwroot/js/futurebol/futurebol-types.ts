@@ -112,6 +112,7 @@ export interface FuturebolOfficialMatchState {
     isFinished: boolean;
     observedAtUtc: string;
     scoreEvents: FuturebolOfficialScoreEvent[];
+    initialHistoryReady?: boolean;
 }
 
 export interface FuturebolTeamPresentationState {

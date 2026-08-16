@@ -679,6 +679,7 @@ else
     private bool _audioAutoplayBlocked;
     private bool _pendingScoreEventProbe;
     private bool _isScoreEventProbeRunning;
+    private bool _initialHistoryReady;
     private bool _audioDebugEnabled;
     private bool? _lastAppliedAudioDebugEnabled;
     private string _lastAppliedAudioDebugCulture = string.Empty;
@@ -1022,6 +1023,7 @@ else
                                                                 HotMatch="@HotMatch"
                                                                 Snapshots="@_metricSnapshots"
                                                                 ScoreEvents="@_allScoreEvents"
+                                                                InitialHistoryReady="@_initialHistoryReady"
                                                                 HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
                                                                 AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
                                                                 ReplayStateChanged="@HandleFuturebolReplayStateChanged" />;
@@ -1599,6 +1601,7 @@ private void ProcessBroadcastState()
         _didNarrativeOpening = false;
         _recentScoreEvents = [];
         _allScoreEvents = [];
+        _initialHistoryReady = false;
         ResetBroadcastPromoState();
         return;
     }
@@ -1632,6 +1635,7 @@ private void ProcessBroadcastState()
         _didNarrativeOpening = false;
         _recentScoreEvents = [];
         _allScoreEvents = [];
+        _initialHistoryReady = false;
         _lastScoreEventMatchId = current.MatchId;
         _lastSeenScoreEventId = null;
         _lastTriggeredGoalEventId = null;
@@ -3057,6 +3061,10 @@ private async Task DetectRecentScoreEventsAsync()
         var scoreEventsSw = Stopwatch.StartNew();
         var events = await Api.GetMatchScoreEventsAsync(matchId, Culture) ?? [];
         Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchScoreEventsAsync matchId={MatchId} culture={Culture} count={Count} elapsedMs={ElapsedMs}", matchId, Culture, events.Count, scoreEventsSw.ElapsedMilliseconds);
+
+        if (matchId != CurrentStageMatchId)
+            return;
+
         _allScoreEvents = events
             .OrderBy(x => x.EventTimeUtc)
             .ThenBy(x => x.MatchScoreEventId)
@@ -3065,6 +3073,7 @@ private async Task DetectRecentScoreEventsAsync()
             .OrderByDescending(x => x.MatchScoreEventId)
             .Take(5)
             .ToList();
+        _initialHistoryReady = true;
         var latestEventId = events.Count == 0 ? 0 : events.Max(x => x.MatchScoreEventId);
         var current = CaptureSnapshot();
         var latestKnownEvent = _recentScoreEvents.FirstOrDefault();

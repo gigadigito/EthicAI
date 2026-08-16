@@ -66,6 +66,7 @@ eventState.applyOfficialMatchState(officialState(), false);
 eventState.applyOfficialMatchState(officialState({
     sequence: 1,
     homeScore: 1,
+    initialHistoryReady: true,
     scoreEvents: [{
         id: 1001,
         sequence: 1,
@@ -103,6 +104,7 @@ resetDuringGoalState.applyOfficialMatchState(officialState(), false);
 resetDuringGoalState.applyOfficialMatchState(officialState({
     sequence: 2,
     awayScore: 1,
+    initialHistoryReady: true,
     scoreEvents: [{
         id: 1002,
         sequence: 2,
@@ -129,26 +131,29 @@ const recovered = officialState({
     elapsedSeconds: 900,
     status: "Completed",
     isFinished: true,
-    scoreEvents: [{
-        id: 2001,
-        sequence: 3,
-        team: "away",
-        points: 1,
-        eventType: "CANDLE_BATTLE_DOMINANCE",
-        occurredAtUtc: "2026-08-06T12:05:00.000Z"
-    }]
+    initialHistoryReady: true,
+    scoreEvents: [
+        scoreEvent(2001, 1, "home"),
+        scoreEvent(2002, 2, "home"),
+        scoreEvent(2003, 3, "away")
+    ]
 });
 reloadState.applyOfficialMatchState(recovered, false);
 assert.equal(reloadState.homeScore, 2);
 assert.equal(reloadState.awayScore, 1);
 assert.equal(reloadState.displayElapsedSeconds, 900);
-assert.equal(reloadState.currentPlayPhase, "Neutral", "reload não deve repetir eventos históricos");
+assert.equal(reloadState.currentPlayPhase, "Neutral", "reload bootstrap não deve iniciar cinematics");
 reloadState.applyOfficialMatchState(recovered, true);
-assert.equal(reloadState.currentPlayPhase, "Neutral", "reconexão não deve repetir evento já conhecido");
+assert.equal(reloadState.isSynchronizationReplay, true, "reload com histórico deve iniciar REPLAY");
+advanceUntil(reloadState, () => !reloadState.isSynchronizationReplay);
+assert.equal(reloadState.displayHomeScore, 2, "reload REPLAY atinge placar autoritativo");
+assert.equal(reloadState.displayAwayScore, 1);
+assert.equal(reloadState.homeScore, 2, "reload REPLAY preserva placar autoritativo");
+assert.equal(reloadState.awayScore, 1);
 reloadState.applyOfficialMatchState(officialState({ sequence: 2, homeScore: 0, awayScore: 0 }), true);
 assert.equal(reloadState.homeScore, 2, "estado oficial obsoleto não deve sobrescrever o estado recuperado");
 assert.equal(reloadState.awayScore, 1);
-reloadState.applyOfficialMatchState(officialState({ sequence: 3, homeScore: 1, awayScore: 0 }), true);
+reloadState.applyOfficialMatchState(officialState({ sequence: 3, homeScore: 1, awayScore: 0, isFinished: true }), true);
 assert.equal(reloadState.homeScore, 2, "a mesma versão não pode retroceder o placar oficial");
 assert.equal(reloadState.awayScore, 1);
 
@@ -157,6 +162,7 @@ multiPointState.applyOfficialMatchState(officialState(), false);
 multiPointState.applyOfficialMatchState(officialState({
     sequence: 8,
     homeScore: 3,
+    initialHistoryReady: true,
     scoreEvents: [{
         id: 3001,
         sequence: 8,
@@ -170,6 +176,7 @@ assert.equal(multiPointState.homeScore, 3, "evento multiponto deve aplicar o pla
 multiPointState.applyOfficialMatchState(officialState({
     sequence: 8,
     homeScore: 3,
+    initialHistoryReady: true,
     scoreEvents: [{ id: 3001, sequence: 8, team: "home", points: 3, eventType: "MULTI_POINT", occurredAtUtc: "2026-08-06T12:08:00.000Z" }]
 }), true);
 assert.equal(multiPointState.homeScore, 3, "evento duplicado não pode somar pontos localmente");
@@ -189,6 +196,7 @@ targetFiveSevenState.applyOfficialMatchState(officialState({
     sequence: 12,
     homeScore: 5,
     awayScore: 7,
+    initialHistoryReady: true,
     scoreEvents: targetFiveSevenEvents
 }), true);
 assert.equal(targetFiveSevenState.isSynchronizationReplay, true, "o histórico recebido após o placar deve iniciar REPLAY");
@@ -210,6 +218,7 @@ replayState.applyOfficialMatchState(officialState({
     sequence: 4,
     homeScore: 2,
     awayScore: 2,
+    initialHistoryReady: true,
     scoreEvents: replayEvents
 }), true);
 
@@ -250,12 +259,15 @@ alreadySynchronizedState.applyOfficialMatchState(officialState({
     sequence: 2,
     homeScore: 1,
     awayScore: 1,
+    initialHistoryReady: true,
     scoreEvents: [scoreEvent(6001, 1, "home"), scoreEvent(6002, 2, "away")]
 }), false);
 assert.equal(alreadySynchronizedState.isSynchronizationReplay, false, "estado já carregado não deve mostrar REPLAY");
 assert.equal(alreadySynchronizedState.displayHomeScore, 1);
 assert.equal(alreadySynchronizedState.displayAwayScore, 1);
 
+advanceUntil(reloadState, () => !reloadState.isSynchronizationReplay);
+for (let i = 0; i < 300; i++) reloadState.update(1 / 60);
 const frozenPositions = reloadState.players.map(player => ({ ...player.position }));
 for (let index = 0; index < 120; index++) reloadState.update(1 / 60);
 assert.deepEqual(
@@ -272,5 +284,142 @@ for (let index = 0; index < 360; index++)
 assert.equal(mockState.homeScore, 1, "o modo mock deve continuar contabilizando gols locais");
 mockState.reset();
 assert.equal(mockState.homeScore, 0, "o reset mock deve continuar limpando o placar local");
+
+const sevenSixEvents = [
+    "home", "home", "away", "home", "away", "home", "away",
+    "away", "home", "away", "home", "away", "home"
+].map((team, index) => scoreEvent(7000 + index, index + 1, team));
+const sevenSixState = new FuturebolMatchState("official-replay-7x6", true);
+sevenSixState.applyOfficialMatchState(officialState({
+    sequence: 13,
+    homeScore: 7,
+    awayScore: 6,
+    scoreEvents: []
+}), false);
+sevenSixState.applyOfficialMatchState(officialState({
+    sequence: 13,
+    homeScore: 7,
+    awayScore: 6,
+    initialHistoryReady: true,
+    scoreEvents: sevenSixEvents
+}), true);
+assert.equal(sevenSixState.isSynchronizationReplay, true, "7x6 deve iniciar REPLAY");
+assert.equal(sevenSixState.displayHomeScore, 0, "REPLAY 7x6 deve começar em 0x0");
+assert.equal(sevenSixState.displayAwayScore, 0);
+assert.equal(sevenSixState.homeScore, 7, "placar autoritativo 7x6 preservado");
+assert.equal(sevenSixState.awayScore, 6);
+
+advanceUntil(sevenSixState, () => !sevenSixState.isSynchronizationReplay);
+assert.equal(sevenSixState.displayHomeScore, 7, "REPLAY 7x6 deve terminar em 7x6");
+assert.equal(sevenSixState.displayAwayScore, 6);
+assert.equal(sevenSixState.homeScore, 7);
+assert.equal(sevenSixState.awayScore, 6);
+
+sevenSixState.applyOfficialMatchState(officialState({
+    sequence: 14,
+    homeScore: 8,
+    awayScore: 6,
+    scoreEvents: [...sevenSixEvents, scoreEvent(7013, 14, "home")]
+}), true);
+assert.equal(sevenSixState.isSynchronizationReplay, false, "gol live pós-replay não reativa REPLAY");
+assert.equal(sevenSixState.displayHomeScore, 8);
+assert.equal(sevenSixState.homeScore, 8);
+
+const oneZeroEvents = [scoreEvent(8000, 1, "home")];
+const oneZeroState = new FuturebolMatchState("official-replay-1x0", true);
+oneZeroState.applyOfficialMatchState(officialState({
+    sequence: 1,
+    homeScore: 1,
+    awayScore: 0,
+    scoreEvents: []
+}), false);
+oneZeroState.applyOfficialMatchState(officialState({
+    sequence: 1,
+    homeScore: 1,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: oneZeroEvents
+}), true);
+assert.equal(oneZeroState.isSynchronizationReplay, true, "1x0 com histórico deve iniciar REPLAY");
+assert.equal(oneZeroState.displayHomeScore, 0, "REPLAY 1x0 deve começar em 0x0");
+assert.equal(oneZeroState.displayAwayScore, 0);
+
+advanceUntil(oneZeroState, () => !oneZeroState.isSynchronizationReplay);
+assert.equal(oneZeroState.displayHomeScore, 1, "REPLAY 1x0 deve terminar em 1x0");
+assert.equal(oneZeroState.displayAwayScore, 0);
+
+const zeroZeroEmpty = new FuturebolMatchState("official-zero-zero-empty", true);
+zeroZeroEmpty.applyOfficialMatchState(officialState({
+    sequence: 0,
+    homeScore: 0,
+    awayScore: 0,
+    scoreEvents: []
+}), false);
+assert.equal(zeroZeroEmpty.isSynchronizationReplay, false, "0x0 sem histórico não deve ativar REPLAY");
+assert.equal(zeroZeroEmpty.displayHomeScore, 0);
+zeroZeroEmpty.applyOfficialMatchState(officialState({
+    sequence: 1,
+    homeScore: 0,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: []
+}), true);
+assert.equal(zeroZeroEmpty.isSynchronizationReplay, false, "0x0 com histórico vazio vai direto para LIVE");
+assert.equal(zeroZeroEmpty.displayHomeScore, 0);
+zeroZeroEmpty.applyOfficialMatchState(officialState({
+    sequence: 2,
+    homeScore: 1,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: [scoreEvent(9000, 1, "home")]
+}), true);
+assert.equal(zeroZeroEmpty.isSynchronizationReplay, false, "primeiro gol real deve ser LIVE");
+assert.equal(zeroZeroEmpty.displayHomeScore, 1);
+assert.equal(zeroZeroEmpty.homeScore, 1);
+
+const groupedLiveGoals = new FuturebolMatchState("official-grouped-live", true);
+groupedLiveGoals.applyOfficialMatchState(officialState({
+    sequence: 0,
+    homeScore: 0,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: []
+}), true);
+assert.equal(groupedLiveGoals.isSynchronizationReplay, false);
+assert.equal(groupedLiveGoals.displayHomeScore, 0);
+groupedLiveGoals.applyOfficialMatchState(officialState({
+    sequence: 3,
+    homeScore: 2,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: [
+        scoreEvent(9100, 1, "home"),
+        scoreEvent(9101, 2, "home")
+    ]
+}), true);
+assert.equal(groupedLiveGoals.isSynchronizationReplay, false, "gols agrupados em LIVE continuam LIVE");
+assert.equal(groupedLiveGoals.displayHomeScore, 2);
+assert.equal(groupedLiveGoals.homeScore, 2);
+
+const reloadReplayState = new FuturebolMatchState("official-reload-replay", true);
+reloadReplayState.applyOfficialMatchState(officialState({
+    sequence: 13,
+    homeScore: 7,
+    awayScore: 6,
+    scoreEvents: []
+}), false);
+reloadReplayState.applyOfficialMatchState(officialState({
+    sequence: 13,
+    homeScore: 7,
+    awayScore: 6,
+    initialHistoryReady: true,
+    scoreEvents: sevenSixEvents
+}), true);
+assert.equal(reloadReplayState.isSynchronizationReplay, true, "reload 7x6 deve iniciar novo REPLAY completo");
+assert.equal(reloadReplayState.displayHomeScore, 0, "reload REPLAY começa em 0x0");
+
+advanceUntil(reloadReplayState, () => !reloadReplayState.isSynchronizationReplay);
+assert.equal(reloadReplayState.displayHomeScore, 7, "reload REPLAY termina em 7x6");
+assert.equal(reloadReplayState.displayAwayScore, 6);
 
 console.log("Futurebol official match state tests passed");

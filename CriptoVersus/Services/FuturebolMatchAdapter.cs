@@ -9,7 +9,8 @@ public sealed class FuturebolMatchAdapter
         TvHotMatchDto? hotMatch,
         IReadOnlyCollection<MatchMetricSnapshotDto> snapshots,
         IEnumerable<MatchScoreEventDto> scoreEvents,
-        DateTime? observedAtUtc = null)
+        DateTime? observedAtUtc = null,
+        bool initialHistoryReady = false)
     {
         ArgumentNullException.ThrowIfNull(match);
         ArgumentNullException.ThrowIfNull(snapshots);
@@ -30,7 +31,7 @@ public sealed class FuturebolMatchAdapter
             ResolveText(matchingHotMatch?.RightName, awaySymbol),
             ResolveLogoUrl(matchingHotMatch?.RightLogoUrl, awaySymbol));
         var market = BuildMarketSnapshot(match, snapshots, homeSymbol, awaySymbol, observedUtc);
-        var official = BuildOfficialMatchState(match, scoreEvents, observedUtc);
+        var official = BuildOfficialMatchState(match, scoreEvents, observedUtc, initialHistoryReady);
 
         return new FuturebolMatchPresentationModel(
             match.MatchId,
@@ -65,7 +66,8 @@ public sealed class FuturebolMatchAdapter
     public FuturebolOfficialMatchStateModel BuildOfficialMatchState(
         MatchDto match,
         IEnumerable<MatchScoreEventDto> scoreEvents,
-        DateTime? observedAtUtc = null)
+        DateTime? observedAtUtc = null,
+        bool initialHistoryReady = false)
     {
         var observedUtc = AsUtc(observedAtUtc ?? DateTime.UtcNow);
         var events = scoreEvents
@@ -94,7 +96,8 @@ public sealed class FuturebolMatchAdapter
             ResolveOfficialElapsedSeconds(match, observedUtc),
             match.IsFinished,
             observedUtc.ToString("O"),
-            events);
+            events,
+            initialHistoryReady);
     }
 
     private static FuturebolMarketSnapshotModel BuildMarketSnapshot(
@@ -217,7 +220,7 @@ public sealed record FuturebolMatchPresentationModel(int MatchId, FuturebolTeamP
 public sealed record FuturebolTeamPresentationModel(int TeamId, string Symbol, string Name, string? LogoUrl);
 public sealed record FuturebolMarketSnapshotModel(long Sequence, string Timestamp, FuturebolAssetStateModel Home, FuturebolAssetStateModel Away);
 public sealed record FuturebolAssetStateModel(string Symbol, double Price, double ChangePercent, double Momentum, double VolumeStrength);
-public sealed record FuturebolOfficialMatchStateModel(int MatchId, int Sequence, string Status, int HomeScore, int AwayScore, int ElapsedSeconds, bool IsFinished, string ObservedAtUtc, IReadOnlyList<FuturebolOfficialScoreEventModel> ScoreEvents);
+public sealed record FuturebolOfficialMatchStateModel(int MatchId, int Sequence, string Status, int HomeScore, int AwayScore, int ElapsedSeconds, bool IsFinished, string ObservedAtUtc, IReadOnlyList<FuturebolOfficialScoreEventModel> ScoreEvents, bool IsInitialHistoryReady);
 public sealed record FuturebolOfficialScoreEventModel(long Id, int Sequence, string Team, int Points, string EventType, string OccurredAtUtc);
 public sealed record FuturebolMatchClockModel(string? StartTimeUtc, string? EndTimeUtc, int ElapsedSeconds, int RemainingSeconds, bool IsFinished);
 public sealed record FuturebolMatchResultModel(int? WinnerTeamId, string? WinnerTeamSymbol, string? EndReasonCode, string? EndReasonDetail);
