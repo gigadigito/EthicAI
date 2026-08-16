@@ -26,7 +26,7 @@
 @implements IAsyncDisposable
 
 <HeadContent>
-    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-stadium-v2-1" />
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-real-stadium-1" />
     <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
     <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
     <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
@@ -1223,7 +1223,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-stadium-v2-1");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-real-stadium-1");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)

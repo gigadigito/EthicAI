@@ -61,7 +61,10 @@ assert.ok(host.includes("FuturebolTeamLogoUrl.Resolve"), "the integrated host mu
 assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"'));
 assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
-assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngine>()"));
+assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngineContract>()"));
+assert.ok(bootstrap.includes('futurebol-engine.js?v=20260815-real-stadium-1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(engine.includes('futurebol-renderer.js?v=20260815-real-stadium-1'), "the engine must force the current renderer through stale module caches");
+assert.ok(renderer.includes('futurebol-arena.js?v=20260815-real-stadium-1'), "the renderer must force the real arena builder through stale module caches");
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
 assert.ok(bootstrap.includes("[FUTUREBOL-TV][READY] initialize success"));
 assert.ok(bootstrap.includes("let preloadPromise: Promise<void> | null = null"), "page preload must be idempotent");
@@ -103,9 +106,9 @@ assert.ok(engine.includes("await firstFrame"), "initialize must not resolve befo
 assert.ok(engine.includes("this.resizeObserver?.disconnect()"), "the component must release its layout observer");
 assert.ok(renderer.includes("this.camera.setViewportAspect"), "resize must update the camera framing for the measured aspect");
 assert.ok(camera.includes("aspect < 1"), "portrait TV layouts must preserve horizontal field coverage");
-assert.ok(renderer.includes("new FuturebolArena"), "Match and Broadcast must use the shared stadium renderer");
+assert.ok(renderer.includes("new FuturebolArenaRuntime"), "Match and Broadcast must use the shared stadium renderer");
 assert.ok(renderer.includes("this.arena?.setQuality(quality)"), "stadium detail must follow the active quality preset");
-assert.ok(arena.includes("[Futurebol][Arena] STADIUM_V2 loaded"), "the real shared arena builder must emit an unmistakable runtime marker");
+assert.ok(arena.includes("[Futurebol][Arena] REAL_STADIUM_BUILDER_ACTIVE"), "the real shared arena builder must emit an unmistakable runtime marker");
 assert.ok(arena.includes('thinInstanceSetBuffer("matrix"'), "seats and crowd must use thin instances");
 assert.ok(arena.includes("Mesh.MergeMeshes"), "repeated stadium modules must be merged before rendering");
 assert.equal(arena.includes("PointLight"), false, "the stadium cannot add costly per-fixture point lights");

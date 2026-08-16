@@ -1,5 +1,7 @@
 import { FuturebolMatchState } from "./futurebol-match-state.js";
-import { FuturebolRenderer } from "./futurebol-renderer.js";
+import type { FuturebolRenderer as FuturebolRendererContract } from "./futurebol-renderer.js";
+// @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260815-real-stadium-1";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import type {
     FuturebolDotNetReference,
@@ -31,7 +33,7 @@ export interface FuturebolSizeDiagnostics {
 
 export class FuturebolEngine {
     private state: FuturebolMatchState;
-    private readonly renderer: FuturebolRenderer;
+    private readonly renderer: FuturebolRendererContract;
     private readonly marketSource: FuturebolMarketSource;
     private readonly teams: FuturebolTeamVisualConfigurationMap;
     private readonly renderFrame: () => void;
@@ -71,7 +73,7 @@ export class FuturebolEngine {
         const initialOfficialState = options.initialPresentationState?.official ?? options.initialOfficialState;
         if (officialMode && initialOfficialState)
             this.state.applyOfficialMatchState(initialOfficialState, false);
-        this.renderer = new FuturebolRenderer(
+        this.renderer = new FuturebolRendererRuntime(
             B,
             canvas,
             this.teams,

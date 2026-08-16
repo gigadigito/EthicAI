@@ -1,6 +1,8 @@
 import type { AbstractMesh, DirectionalLight, Engine, Mesh, Scene, ShadowGenerator, StandardMaterial } from "babylonjs";
 import { FuturebolCamera } from "./futurebol-camera.js";
-import { FuturebolArena } from "./futurebol-arena.js";
+import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena.js";
+// @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
+import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260815-real-stadium-1";
 import type {
     FuturebolLogoTextureDiagnosticMap,
     FuturebolPlayerState,
@@ -39,7 +41,7 @@ export class FuturebolRenderer {
     private trailSampleElapsed = 0;
     private goalFlashElapsed = 0;
     private readonly directionalLight: DirectionalLight;
-    private readonly arena: FuturebolArena;
+    private readonly arena: FuturebolArenaContract;
     private shadowGenerator: ShadowGenerator | null = null;
     private visualFactory: FuturebolPlayerVisualFactory | null = null;
     private visualGeneration = 0;
@@ -76,7 +78,7 @@ export class FuturebolRenderer {
         this.camera = new FuturebolCamera(B, this.scene, reducedMotion);
         this.field = this.createField();
         this.directionalLight = this.createLights();
-        this.arena = new FuturebolArena(B, this.scene, quality);
+        this.arena = new FuturebolArenaRuntime(B, this.scene, quality) as FuturebolArenaContract;
         this.createGoals();
         this.createMarkings();
 

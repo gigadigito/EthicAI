@@ -1,5 +1,6 @@
 import { acquireBabylon, preloadBabylonRuntime, releaseBabylon } from "./futurebol-babylon-loader.js";
-import { FuturebolEngine } from "./futurebol-engine.js";
+// @ts-ignore Browser module queries are intentional: the Web host does not fingerprint nested ESM imports.
+import { FuturebolEngine as FuturebolEngineRuntime } from "./futurebol-engine.js?v=20260815-real-stadium-1";
 import { FUTUREBOL_PLAYER_ASSET } from "./player/futurebol-animation-map.js";
 const instances = new Map();
 const playerAssetUrl = `${FUTUREBOL_PLAYER_ASSET.rootUrl}${FUTUREBOL_PLAYER_ASSET.fileName}`;
@@ -57,7 +58,7 @@ export async function initialize(canvasId, options, dotNetReference) {
         };
         stage = "create-engine";
         const sceneStarted = performance.now();
-        engine = new FuturebolEngine(B, canvas, runtimeOptions, dotNetReference);
+        engine = new FuturebolEngineRuntime(B, canvas, runtimeOptions, dotNetReference);
         console.info(`[FUTUREBOL] scene ready: ${Math.round(performance.now() - initializeStarted)} ms `
             + `(creation ${Math.round(performance.now() - sceneStarted)} ms)`);
         await engine.initialize(currentStage => {

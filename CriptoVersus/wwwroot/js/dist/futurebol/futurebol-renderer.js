@@ -1,5 +1,6 @@
 import { FuturebolCamera } from "./futurebol-camera.js";
-import { FuturebolArena } from "./futurebol-arena.js";
+// @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
+import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260815-real-stadium-1";
 import { resolvePlayerVisualKind } from "./player/futurebol-animation-map.js";
 import { FuturebolPlayerVisualFactory } from "./player/futurebol-player-visual-factory.js";
 export class FuturebolRenderer {
@@ -38,7 +39,7 @@ export class FuturebolRenderer {
         this.camera = new FuturebolCamera(B, this.scene, reducedMotion);
         this.field = this.createField();
         this.directionalLight = this.createLights();
-        this.arena = new FuturebolArena(B, this.scene, quality);
+        this.arena = new FuturebolArenaRuntime(B, this.scene, quality);
         this.createGoals();
         this.createMarkings();
         this.ball = this.createBall();

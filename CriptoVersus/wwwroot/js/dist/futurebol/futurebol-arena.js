@@ -1,5 +1,5 @@
-const SIDE_TIER_COUNT = 6;
-const END_TIER_COUNT = 5;
+const SIDE_TIER_COUNT = 8;
+const END_TIER_COUNT = 6;
 const SIDE_AISLES = [-16.5, -5.5, 5.5, 16.5];
 const END_AISLES = [-5.1, 5.1];
 /** Static, browser-friendly stadium presentation shared by Lab, Match and Broadcast. */
@@ -21,7 +21,8 @@ export class FuturebolArena {
         for (const material of Object.values(materials))
             material.freeze();
         this.setQuality(quality);
-        console.info("[Futurebol][Arena] STADIUM_V2 loaded", {
+        console.info("[Futurebol][Arena] REAL_STADIUM_BUILDER_ACTIVE", {
+            version: "STADIUM_V3",
             quality,
             meshes: this.scene.meshes.filter(mesh => mesh.name.startsWith("futurebol-arena-")).length,
             seatInstances: this.seatInstanceCount,
@@ -41,25 +42,25 @@ export class FuturebolArena {
         const aisles = [];
         for (const side of [-1, 1]) {
             for (let row = 0; row < SIDE_TIER_COUNT; row++) {
-                const deckY = 0.42 + row * 0.62;
-                const z = side * (16.2 + row * 0.92);
-                const target = row < 3 ? lowerDecks : upperDecks;
-                const material = row < 3 ? materials.tier : materials.upperTier;
-                target.push(this.box(`futurebol-side-step-deck-${side}-${row}`, 59, 0.18, 1.02, 0, deckY, z, material));
-                risers.push(this.box(`futurebol-side-step-riser-${side}-${row}`, 59, 0.62, 0.14, 0, deckY - 0.31, z - side * 0.48, materials.tier));
+                const deckY = 0.5 + row * 0.72;
+                const z = side * (15.75 + row);
+                const target = row < 4 ? lowerDecks : upperDecks;
+                const material = row < 4 ? materials.tier : materials.upperTier;
+                target.push(this.box(`futurebol-side-step-deck-${side}-${row}`, 59, 0.2, 1.12, 0, deckY, z, material));
+                risers.push(this.box(`futurebol-side-step-riser-${side}-${row}`, 59, 0.72, 0.16, 0, deckY - 0.36, z - side * 0.52, materials.tier));
                 for (const aisleX of SIDE_AISLES) {
-                    aisles.push(this.box(`futurebol-side-stair-${side}-${row}-${aisleX}`, 0.62, 0.08, 0.92, aisleX, deckY + 0.12, z, materials.aisle));
+                    aisles.push(this.box(`futurebol-side-stair-${side}-${row}-${aisleX}`, 0.68, 0.09, 1, aisleX, deckY + 0.14, z, materials.aisle));
                 }
             }
         }
         for (const side of [-1, 1]) {
             for (let row = 0; row < END_TIER_COUNT; row++) {
-                const deckY = 0.42 + row * 0.62;
-                const x = side * (26.25 + row * 0.92);
+                const deckY = 0.5 + row * 0.72;
+                const x = side * (26.15 + row);
                 const target = row < 3 ? lowerDecks : upperDecks;
                 const material = row < 3 ? materials.tier : materials.upperTier;
-                target.push(this.box(`futurebol-end-step-deck-${side}-${row}`, 1.02, 0.18, 31.2, x, deckY, 0, material));
-                risers.push(this.box(`futurebol-end-step-riser-${side}-${row}`, 0.14, 0.62, 31.2, x - side * 0.48, deckY - 0.31, 0, materials.tier));
+                target.push(this.box(`futurebol-end-step-deck-${side}-${row}`, 1.12, 0.2, 31.2, x, deckY, 0, material));
+                risers.push(this.box(`futurebol-end-step-riser-${side}-${row}`, 0.16, 0.72, 31.2, x - side * 0.52, deckY - 0.36, 0, materials.tier));
                 for (const aisleZ of END_AISLES) {
                     aisles.push(this.box(`futurebol-end-stair-${side}-${row}-${aisleZ}`, 0.92, 0.08, 0.62, x, deckY + 0.12, aisleZ, materials.aisle));
                 }
@@ -80,8 +81,8 @@ export class FuturebolArena {
         const lightCrowd = [];
         for (const side of [-1, 1]) {
             for (let row = 0; row < SIDE_TIER_COUNT; row++) {
-                const deckY = 0.42 + row * 0.62;
-                const z = side * (16.2 + row * 0.92);
+                const deckY = 0.5 + row * 0.72;
+                const z = side * (15.75 + row);
                 let column = 0;
                 for (let x = -27.05; x <= 27.05; x += 0.94) {
                     if (SIDE_AISLES.some(aisle => Math.abs(x - aisle) < 0.52))
@@ -90,7 +91,7 @@ export class FuturebolArena {
                         continue;
                     const seat = {
                         x,
-                        y: deckY + 0.39,
+                        y: deckY + 0.42,
                         z: z + side * 0.2,
                         yaw: side < 0 ? Math.PI : 0
                     };
@@ -98,7 +99,7 @@ export class FuturebolArena {
                     if (row > 0 && this.hasSpectator(row, column, side)) {
                         const spectator = {
                             x,
-                            y: deckY + 0.91,
+                            y: deckY + 1.02,
                             z: z + side * 0.12,
                             scaleX: 0.88 + ((column + row) % 3) * 0.06,
                             scaleY: 0.9 + ((column * 3 + row) % 4) * 0.05,
@@ -112,15 +113,15 @@ export class FuturebolArena {
         }
         for (const side of [-1, 1]) {
             for (let row = 0; row < END_TIER_COUNT; row++) {
-                const deckY = 0.42 + row * 0.62;
-                const x = side * (26.25 + row * 0.92);
+                const deckY = 0.5 + row * 0.72;
+                const x = side * (26.15 + row);
                 let column = 0;
                 for (let z = -13.75; z <= 13.75; z += 0.98) {
                     if (END_AISLES.some(aisle => Math.abs(z - aisle) < 0.54))
                         continue;
                     const seat = {
                         x: x + side * 0.2,
-                        y: deckY + 0.39,
+                        y: deckY + 0.42,
                         z,
                         yaw: side < 0 ? -Math.PI / 2 : Math.PI / 2
                     };
@@ -128,7 +129,7 @@ export class FuturebolArena {
                     if (row > 0 && this.hasSpectator(row, column, side)) {
                         const spectator = {
                             x: x + side * 0.12,
-                            y: deckY + 0.91,
+                            y: deckY + 1.02,
                             z,
                             scaleX: 0.9,
                             scaleY: 0.92 + ((column + row) % 4) * 0.05,
@@ -154,15 +155,15 @@ export class FuturebolArena {
         const supports = [];
         const wallRibs = [];
         for (const side of [-1, 1]) {
-            shell.push(this.box(`futurebol-side-back-wall-${side}`, 62, 7.6, 0.38, 0, 3.8, side * 22.1, materials.shell));
-            shell.push(this.box(`futurebol-side-canopy-${side}`, 62, 0.28, 4.8, 0, 8.35, side * 20.25, materials.shell, side * 0.12));
-            roofFascias.push(this.box(`futurebol-side-roof-fascia-${side}`, 60, 0.58, 0.32, 0, 7.65, side * 18.05, materials.concourse));
+            shell.push(this.box(`futurebol-side-back-wall-${side}`, 62, 3.1, 0.38, 0, 7.15, side * 24.25, materials.shell));
+            shell.push(this.box(`futurebol-side-canopy-${side}`, 62, 0.28, 4.8, 0, 9.45, side * 21.7, materials.shell, side * 0.12));
+            roofFascias.push(this.box(`futurebol-side-roof-fascia-${side}`, 60, 0.58, 0.32, 0, 8.55, side * 18.35, materials.concourse));
             for (const x of [-27, -13.5, 0, 13.5, 27]) {
-                supports.push(this.box(`futurebol-side-roof-column-${side}-${x}`, 0.28, 4.6, 0.3, x, 5.75, side * 21.45, materials.concourse));
-                supports.push(this.box(`futurebol-side-roof-brace-${side}-${x}`, 0.24, 4.5, 0.24, x, 6.25, side * 20.2, materials.aisle, side * 0.55));
+                supports.push(this.box(`futurebol-side-roof-column-${side}-${x}`, 0.28, 5.2, 0.3, x, 6.7, side * 23.65, materials.concourse));
+                supports.push(this.box(`futurebol-side-roof-brace-${side}-${x}`, 0.24, 5.1, 0.24, x, 7.15, side * 22.25, materials.aisle, side * 0.55));
             }
             for (let x = -28; x <= 28; x += 4) {
-                wallRibs.push(this.box(`futurebol-side-wall-rib-${side}-${x}`, 0.18, 3.3, 0.18, x, 4.5, side * 21.82, materials.concourse));
+                wallRibs.push(this.box(`futurebol-side-wall-rib-${side}-${x}`, 0.18, 4.1, 0.18, x, 6.35, side * 23.98, materials.concourse));
             }
         }
         for (const side of [-1, 1]) {
@@ -306,13 +307,16 @@ export class FuturebolArena {
         shell.emissiveColor = new this.B.Color3(0.006, 0.012, 0.032);
         const tier = this.material("futurebol-arena-tier-material", 0.055, 0.075, 0.13);
         const upperTier = this.material("futurebol-arena-upper-tier-material", 0.075, 0.1, 0.17);
-        const seatDark = this.material("futurebol-arena-seat-dark-material", 0.09, 0.14, 0.24);
+        const seatDark = this.material("futurebol-arena-seat-dark-material", 0.12, 0.2, 0.34);
         const seatCool = this.material("futurebol-arena-seat-cool-material", 0.025, 0.48, 0.58);
         const seatWarm = this.material("futurebol-arena-seat-warm-material", 0.92, 0.29, 0.035);
         const crowdDark = this.material("futurebol-arena-crowd-dark-material", 0.12, 0.16, 0.24);
         const crowdCool = this.material("futurebol-arena-crowd-cool-material", 0.05, 0.62, 0.7);
         const crowdWarm = this.material("futurebol-arena-crowd-warm-material", 0.95, 0.38, 0.08);
         const crowdLight = this.material("futurebol-arena-crowd-light-material", 0.62, 0.76, 0.82);
+        seatDark.emissiveColor = new this.B.Color3(0.018, 0.035, 0.075);
+        seatCool.emissiveColor = new this.B.Color3(0.008, 0.12, 0.15);
+        seatWarm.emissiveColor = new this.B.Color3(0.2, 0.055, 0.006);
         const aisle = this.material("futurebol-arena-aisle-material", 0.28, 0.34, 0.42);
         const concourse = this.material("futurebol-arena-concourse-material", 0.09, 0.12, 0.2);
         const portal = this.material("futurebol-arena-portal-material", 0.004, 0.008, 0.02);

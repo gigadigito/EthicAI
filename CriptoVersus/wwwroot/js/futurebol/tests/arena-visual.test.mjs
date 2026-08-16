@@ -31,7 +31,7 @@ for (const expected of [
 
 assert.ok(scene.meshes.length <= 32, "repeated stadium modules must stay within a small draw-call budget");
 assert.ok(
-    scene.meshes.reduce((total, mesh) => total + mesh.getTotalVertices(), 0) < 7500,
+    scene.meshes.reduce((total, mesh) => total + mesh.getTotalVertices(), 0) < 8200,
     "the stylized stadium must stay within a modest static vertex budget"
 );
 const seatInstances = scene.meshes
@@ -40,8 +40,8 @@ const seatInstances = scene.meshes
 const crowdInstances = scene.meshes
     .filter(mesh => mesh.name.startsWith("futurebol-arena-crowd-"))
     .reduce((total, mesh) => total + mesh.thinInstanceCount, 0);
-assert.ok(seatInstances > 700, "individual seat backs must be perceptible without independent meshes");
-assert.ok(crowdInstances > 300, "the stands must include a visible stylized crowd");
+assert.ok(seatInstances > 1000, "the enlarged bowl must show individual seat backs across the real camera framing");
+assert.ok(crowdInstances > 500, "the enlarged stands must include a visibly dense stylized crowd");
 assert.equal(scene.getMeshByName("futurebol-arena-floodlight-bulbs")?.thinInstanceCount, 144);
 assert.equal(scene.lights.length, 0, "decorative floodlights must remain emissive geometry, not dynamic lights");
 assert.ok(scene.meshes.every(mesh => mesh.isWorldMatrixFrozen), "static arena transforms must be frozen");

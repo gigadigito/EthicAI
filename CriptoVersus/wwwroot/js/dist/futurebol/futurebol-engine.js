@@ -1,5 +1,6 @@
 import { FuturebolMatchState } from "./futurebol-match-state.js";
-import { FuturebolRenderer } from "./futurebol-renderer.js";
+// @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260815-real-stadium-1";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import { ApiMarketSource } from './market/api-market-source.js';
 import { createFuturebolMarketSource } from './market/futurebol-market-source-factory.js';
@@ -34,7 +35,7 @@ export class FuturebolEngine {
         const initialOfficialState = options.initialPresentationState?.official ?? options.initialOfficialState;
         if (officialMode && initialOfficialState)
             this.state.applyOfficialMatchState(initialOfficialState, false);
-        this.renderer = new FuturebolRenderer(B, canvas, this.teams, options.development, options.quality, this.reducedMotion);
+        this.renderer = new FuturebolRendererRuntime(B, canvas, this.teams, options.development, options.quality, this.reducedMotion);
         this.marketSource = createFuturebolMarketSource(options);
         this.renderFrame = () => this.render();
         this.resizeHandler = () => this.renderer.resize();
