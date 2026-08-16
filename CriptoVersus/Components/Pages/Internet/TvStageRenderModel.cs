@@ -31,6 +31,7 @@ public sealed class TvStageRenderModel
 
     public int LeftScore { get; init; }
     public int RightScore { get; init; }
+    public bool IsSynchronizationReplay { get; init; }
     public bool PulseScoreboard { get; init; }
     public bool PulseLeftScore { get; init; }
     public bool PulseRightScore { get; init; }

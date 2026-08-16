@@ -216,4 +216,12 @@ export interface FuturebolMarketSourceDiagnostics {
 
 export interface FuturebolDotNetReference {
     invokeMethodAsync(methodName: "ReportFuturebolError", message: string): Promise<void>;
+    invokeMethodAsync(
+        methodName: "ReportFuturebolReplayState",
+        active: boolean,
+        homeScore: number,
+        awayScore: number,
+        targetHomeScore: number,
+        targetAwayScore: number
+    ): Promise<void>;
 }

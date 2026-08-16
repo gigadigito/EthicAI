@@ -52,8 +52,12 @@
                         </div>
                     }
 
-                    <div class="tv-football-scoreboard @(Model.PulseScoreboard ? "is-pulsing" : string.Empty)">
+                    <div class="tv-football-scoreboard @(Model.PulseScoreboard ? "is-pulsing" : string.Empty) @(Model.IsSynchronizationReplay ? "is-replay" : string.Empty)">
                         <span>@ScoreboardLabel</span>
+                        @if (Model.IsSynchronizationReplay)
+                        {
+                            <strong class="tv-scoreboard__replay" role="status" aria-live="polite">REPLAY</strong>
+                        }
                         <div class="tv-football-scoreboard__score">
                             <strong class="@(Model.PulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.LeftScore</strong>
                             <img class="tv-versus-image"
@@ -138,8 +142,12 @@
                         <small>@Model.ClockPhaseLabel</small>
                     </div>
 
-                    <div class="tv-scoreboard @(Model.PulseScoreboard ? "is-pulsing" : string.Empty)">
+                    <div class="tv-scoreboard @(Model.PulseScoreboard ? "is-pulsing" : string.Empty) @(Model.IsSynchronizationReplay ? "is-replay" : string.Empty)">
                         <span class="tv-scoreboard__status">@MatchArenaLabel</span>
+                        @if (Model.IsSynchronizationReplay)
+                        {
+                            <strong class="tv-scoreboard__replay" role="status" aria-live="polite">REPLAY</strong>
+                        }
                         <div class="tv-scoreboard__score">
                             <strong class="@(Model.PulseLeftScore ? "tv-score-value tv-score-value--pulse" : "tv-score-value")">@Model.LeftScore</strong>
                             <span class="tv-scoreboard__versus">@VersusLabel</span>
@@ -350,6 +358,30 @@
         gap: clamp(8px, 1.2vw, 18px);
     }
 
+    .tv-scoreboard__replay {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 5.4rem;
+        padding: .28rem .78rem;
+        border: 1px solid rgba(255, 176, 32, .72);
+        border-radius: 999px;
+        color: #fff6df;
+        background: linear-gradient(135deg, rgba(255, 145, 0, .92), rgba(255, 72, 32, .86));
+        box-shadow: 0 0 18px rgba(255, 145, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .3);
+        font-size: clamp(.72rem, 1vw, .9rem);
+        font-weight: 1000;
+        letter-spacing: .18em;
+        line-height: 1;
+        text-indent: .18em;
+        text-transform: uppercase;
+    }
+
+    .tv-football-scoreboard.is-replay,
+    .tv-scoreboard.is-replay {
+        filter: saturate(1.08);
+    }
+
     .tv-versus-image {
         width: clamp(54px, 5.5vw, 112px);
         height: auto;
@@ -406,4 +438,3 @@
     private string ResolveCommentaryClickTitle(TvStageCommentaryEntryModel commentary)
         => GetArenaCommentaryClickTitle?.Invoke(commentary) ?? string.Empty;
 }
-

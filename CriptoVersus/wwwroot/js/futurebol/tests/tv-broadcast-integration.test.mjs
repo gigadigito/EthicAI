@@ -62,7 +62,8 @@ assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"')
 assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
 assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngineContract>()"));
-assert.ok(bootstrap.includes('futurebol-engine.js?v=20260815-real-stadium-1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(bootstrap.includes('futurebol-engine.js?v=20260815-initial-replay-1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(engine.includes('futurebol-match-state.js?v=20260815-initial-replay-1'), "the replay state machine must cross the same cache boundary as the engine");
 assert.ok(engine.includes('futurebol-renderer.js?v=20260815-real-stadium-1'), "the engine must force the current renderer through stale module caches");
 assert.ok(renderer.includes('futurebol-arena.js?v=20260815-real-stadium-1'), "the renderer must force the real arena builder through stale module caches");
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
@@ -110,6 +111,9 @@ assert.ok(renderer.includes("new FuturebolArenaRuntime"), "Match and Broadcast m
 assert.ok(renderer.includes("this.arena?.setQuality(quality)"), "stadium detail must follow the active quality preset");
 assert.ok(arena.includes("[Futurebol][Arena] REAL_STADIUM_BUILDER_ACTIVE"), "the real shared arena builder must emit an unmistakable runtime marker");
 assert.ok(arena.includes('thinInstanceSetBuffer("matrix"'), "seats and crowd must use thin instances");
+assert.ok(host.includes("ReplayStateChanged"), "the Futurebol host must forward replay HUD changes to TvStage");
+assert.ok(stage.includes("IsFuturebolSynchronizationReplay"), "the TV scoreboard must select replay scores only during initial catch-up");
+assert.ok(fieldPanel.includes("tv-scoreboard__replay"), "the shared Match/Broadcast scoreboard must render the REPLAY badge");
 assert.ok(arena.includes("Mesh.MergeMeshes"), "repeated stadium modules must be merged before rendering");
 assert.equal(arena.includes("PointLight"), false, "the stadium cannot add costly per-fixture point lights");
 assert.equal(arena.includes("SpotLight"), false, "the stadium cannot add costly per-fixture spot lights");

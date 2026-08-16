@@ -1,7 +1,7 @@
 import { acquireBabylon, preloadBabylonRuntime, releaseBabylon } from "./futurebol-babylon-loader.js";
 import type { FuturebolEngine as FuturebolEngineContract } from "./futurebol-engine.js";
 // @ts-ignore Browser module queries are intentional: the Web host does not fingerprint nested ESM imports.
-import { FuturebolEngine as FuturebolEngineRuntime } from "./futurebol-engine.js?v=20260815-real-stadium-1";
+import { FuturebolEngine as FuturebolEngineRuntime } from "./futurebol-engine.js?v=20260815-initial-replay-1";
 import { FUTUREBOL_PLAYER_ASSET } from "./player/futurebol-animation-map.js";
 import type {
     FuturebolDotNetReference,

@@ -26,7 +26,7 @@
 @implements IAsyncDisposable
 
 <HeadContent>
-    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-real-stadium-1" />
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-initial-replay-1" />
     <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
     <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
     <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
@@ -616,6 +616,10 @@ else
     private bool _pulseRightScore;
     private bool _pulseScoreboard;
     private bool _pulseHotScore;
+    private int _futurebolReplayMatchId;
+    private bool _futurebolReplayActive;
+    private int _futurebolReplayHomeScore;
+    private int _futurebolReplayAwayScore;
     private bool _narrationDebugDemoStarted;
     private bool _replayEngineInitialized;
     private bool _isAiNarrationLoading;
@@ -955,8 +959,9 @@ else
         RightName = DisplayRightName(),
         LeftLogoUrl = GetLogoUrl(DisplayLeftLogoUrl()),
         RightLogoUrl = GetLogoUrl(DisplayRightLogoUrl()),
-        LeftScore = DisplayLeftScore(),
-        RightScore = DisplayRightScore(),
+        LeftScore = IsFuturebolSynchronizationReplay ? _futurebolReplayHomeScore : DisplayLeftScore(),
+        RightScore = IsFuturebolSynchronizationReplay ? _futurebolReplayAwayScore : DisplayRightScore(),
+        IsSynchronizationReplay = IsFuturebolSynchronizationReplay,
         PulseScoreboard = _pulseScoreboard,
         PulseLeftScore = _pulseLeftScore,
         PulseRightScore = _pulseRightScore,
@@ -1014,11 +1019,35 @@ else
     };
 
     private RenderFragment FootballFieldContent => @<TvFuturebolField Match="@Match"
-                                                               HotMatch="@HotMatch"
-                                                               Snapshots="@_metricSnapshots"
-                                                               ScoreEvents="@_allScoreEvents"
-                                                               HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
-                                                               AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())" />;
+                                                                HotMatch="@HotMatch"
+                                                                Snapshots="@_metricSnapshots"
+                                                                ScoreEvents="@_allScoreEvents"
+                                                                HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
+                                                                AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
+                                                                ReplayStateChanged="@HandleFuturebolReplayStateChanged" />;
+    private bool IsFuturebolSynchronizationReplay
+        => _futurebolReplayActive && _futurebolReplayMatchId == CurrentStageMatchId;
+
+    private Task HandleFuturebolReplayStateChanged(FuturebolReplayHudState state)
+    {
+        if (_isDisposed || state.MatchId != CurrentStageMatchId)
+            return Task.CompletedTask;
+
+        if (
+            _futurebolReplayMatchId == state.MatchId &&
+            _futurebolReplayActive == state.Active &&
+            _futurebolReplayHomeScore == state.HomeScore &&
+            _futurebolReplayAwayScore == state.AwayScore)
+        {
+            return Task.CompletedTask;
+        }
+
+        _futurebolReplayMatchId = state.MatchId;
+        _futurebolReplayActive = state.Active;
+        _futurebolReplayHomeScore = state.HomeScore;
+        _futurebolReplayAwayScore = state.AwayScore;
+        return InvokeAsync(StateHasChanged);
+    }
     private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
     private string PirateHeaderTitle => ResolveBroadcastCinematicHeaderTitle();
     private string PirateHeaderStatus => ResolveBroadcastCinematicHeaderStatus();
@@ -1223,7 +1252,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-real-stadium-1");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-initial-replay-1");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)

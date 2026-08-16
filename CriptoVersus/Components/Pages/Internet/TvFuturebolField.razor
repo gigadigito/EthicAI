@@ -66,6 +66,7 @@
     [Parameter] public IReadOnlyCollection<MatchScoreEventDto> ScoreEvents { get; set; } = [];
     [Parameter] public string? HomeLogoUrl { get; set; }
     [Parameter] public string? AwayLogoUrl { get; set; }
+    [Parameter] public EventCallback<FuturebolReplayHudState> ReplayStateChanged { get; set; }
 
     private string FuturebolState => !string.IsNullOrWhiteSpace(_error)
         ? "error"
@@ -134,7 +135,7 @@
                 var importTimer = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-real-stadium-1");
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-initial-replay-1");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);
@@ -212,6 +213,27 @@
         _isReady = false;
         Logger.LogWarning("Futurebol TV reported an initialization failure. Detail={Detail}", message);
         return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task ReportFuturebolReplayState(
+        bool active,
+        int homeScore,
+        int awayScore,
+        int targetHomeScore,
+        int targetAwayScore)
+    {
+        if (_presentation is null || !ReplayStateChanged.HasDelegate)
+            return Task.CompletedTask;
+
+        var state = new FuturebolReplayHudState(
+            _presentation.MatchId,
+            active,
+            Math.Max(0, homeScore),
+            Math.Max(0, awayScore),
+            Math.Max(0, targetHomeScore),
+            Math.Max(0, targetAwayScore));
+        return InvokeAsync(() => ReplayStateChanged.InvokeAsync(state));
     }
 
     public async ValueTask DisposeAsync()
