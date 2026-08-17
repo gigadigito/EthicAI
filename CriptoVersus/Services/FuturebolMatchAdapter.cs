@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using DTOs;
 
 namespace CriptoVersus.Web.Services;
@@ -220,7 +221,7 @@ public sealed record FuturebolMatchPresentationModel(int MatchId, FuturebolTeamP
 public sealed record FuturebolTeamPresentationModel(int TeamId, string Symbol, string Name, string? LogoUrl);
 public sealed record FuturebolMarketSnapshotModel(long Sequence, string Timestamp, FuturebolAssetStateModel Home, FuturebolAssetStateModel Away);
 public sealed record FuturebolAssetStateModel(string Symbol, double Price, double ChangePercent, double Momentum, double VolumeStrength);
-public sealed record FuturebolOfficialMatchStateModel(int MatchId, int Sequence, string Status, int HomeScore, int AwayScore, int ElapsedSeconds, bool IsFinished, string ObservedAtUtc, IReadOnlyList<FuturebolOfficialScoreEventModel> ScoreEvents, bool IsInitialHistoryReady);
+public sealed record FuturebolOfficialMatchStateModel(int MatchId, int Sequence, string Status, int HomeScore, int AwayScore, int ElapsedSeconds, bool IsFinished, string ObservedAtUtc, IReadOnlyList<FuturebolOfficialScoreEventModel> ScoreEvents, [property: JsonPropertyName("initialHistoryReady")] bool IsInitialHistoryReady);
 public sealed record FuturebolOfficialScoreEventModel(long Id, int Sequence, string Team, int Points, string EventType, string OccurredAtUtc);
 public sealed record FuturebolMatchClockModel(string? StartTimeUtc, string? EndTimeUtc, int ElapsedSeconds, int RemainingSeconds, bool IsFinished);
 public sealed record FuturebolMatchResultModel(int? WinnerTeamId, string? WinnerTeamSymbol, string? EndReasonCode, string? EndReasonDetail);

@@ -93,6 +93,8 @@
         }
 
         _presentation = MatchAdapter.Build(match, HotMatch, Snapshots, ScoreEvents, initialHistoryReady: InitialHistoryReady);
+        Logger.LogInformation("[Futurebol][Bootstrap][Blazor] matchId={MatchId} historyReady={HistoryReady} score={ScoreA}x{ScoreB} scoreEvents={ScoreEvents}",
+            match.MatchId, InitialHistoryReady, match.ScoreA, match.ScoreB, ScoreEvents.Count);
         if (!string.IsNullOrWhiteSpace(HomeLogoUrl))
             _presentation = _presentation with
             {
@@ -144,9 +146,12 @@
             var presentation = _presentation;
             var signature = _pendingSignature;
 
-            if (!_initialized)
-            {
-                _initialized = await _module.InvokeAsync<bool>(
+        if (!_initialized)
+        {
+            Logger.LogInformation(
+                "[Futurebol][Bootstrap][Blazor] initialize matchId={MatchId} historyReady={HistoryReady} scoreEvents={ScoreEvents}",
+                presentation.MatchId, presentation.Official.IsInitialHistoryReady, presentation.Official.ScoreEvents.Count);
+            _initialized = await _module.InvokeAsync<bool>(
                     "initialize",
                     _canvasId,
                     new
@@ -185,6 +190,9 @@
             }
             else
             {
+                Logger.LogInformation(
+                    "[Futurebol][Bootstrap][Blazor] update matchId={MatchId} historyReady={HistoryReady} scoreEvents={ScoreEvents}",
+                    presentation.MatchId, presentation.Official.IsInitialHistoryReady, presentation.Official.ScoreEvents.Count);
                 await _module.InvokeVoidAsync("updatePresentation", _canvasId, presentation);
             }
 

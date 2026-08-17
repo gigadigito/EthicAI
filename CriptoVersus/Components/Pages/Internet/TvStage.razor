@@ -1245,6 +1245,7 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         _pendingScoreEventProbe = false;
         await DetectRecentScoreEventsAsync();
+        await InvokeAsync(StateHasChanged);
     }
 }
 

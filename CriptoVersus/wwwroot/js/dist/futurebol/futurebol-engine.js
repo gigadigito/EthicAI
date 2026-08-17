@@ -35,8 +35,15 @@ export class FuturebolEngine {
         const officialMode = options.dataMode.trim().toLowerCase() === "api";
         this.state = new FuturebolMatchStateRuntime(options.seed, officialMode);
         const initialOfficialState = options.initialPresentationState?.official ?? options.initialOfficialState;
-        if (officialMode && initialOfficialState)
+        if (officialMode && initialOfficialState) {
+            const events = initialOfficialState.scoreEvents?.length ?? 0;
+            console.info("[Futurebol][Bootstrap][Initialize]", {
+                historyReady: initialOfficialState.initialHistoryReady ?? false,
+                score: `${initialOfficialState.homeScore}x${initialOfficialState.awayScore}`,
+                scoreEvents: events
+            });
             this.state.applyOfficialMatchState(initialOfficialState, false);
+        }
         this.renderer = new FuturebolRendererRuntime(B, canvas, this.teams, options.development, options.quality, this.reducedMotion);
         this.marketSource = createFuturebolMarketSource(options);
         this.renderFrame = () => this.render();
@@ -165,6 +172,12 @@ export class FuturebolEngine {
             this.marketSource.push(snapshot);
     }
     pushOfficialMatchState(state) {
+        const events = state.scoreEvents?.length ?? 0;
+        console.info("[Futurebol][Bootstrap][Update]", {
+            historyReady: state.initialHistoryReady ?? false,
+            score: `${state.homeScore}x${state.awayScore}`,
+            scoreEvents: events
+        });
         this.state.applyOfficialMatchState(state, true);
         this.updateClock();
         this.updateMatchHud();

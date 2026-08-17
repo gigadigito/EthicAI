@@ -142,9 +142,8 @@ reloadState.applyOfficialMatchState(recovered, false);
 assert.equal(reloadState.homeScore, 2);
 assert.equal(reloadState.awayScore, 1);
 assert.equal(reloadState.displayElapsedSeconds, 900);
-assert.equal(reloadState.currentPlayPhase, "Neutral", "reload bootstrap não deve iniciar cinematics");
-reloadState.applyOfficialMatchState(recovered, true);
-assert.equal(reloadState.isSynchronizationReplay, true, "reload com histórico deve iniciar REPLAY");
+assert.equal(reloadState.isSynchronizationReplay, true, "reload com histórico pronto deve iniciar REPLAY imediatamente (Path B)");
+assert.equal(reloadState.displayHomeScore, 0, "reload REPLAY começa em 0x0");
 advanceUntil(reloadState, () => !reloadState.isSynchronizationReplay);
 assert.equal(reloadState.displayHomeScore, 2, "reload REPLAY atinge placar autoritativo");
 assert.equal(reloadState.displayAwayScore, 1);
@@ -262,7 +261,10 @@ alreadySynchronizedState.applyOfficialMatchState(officialState({
     initialHistoryReady: true,
     scoreEvents: [scoreEvent(6001, 1, "home"), scoreEvent(6002, 2, "away")]
 }), false);
-assert.equal(alreadySynchronizedState.isSynchronizationReplay, false, "estado já carregado não deve mostrar REPLAY");
+assert.equal(alreadySynchronizedState.isSynchronizationReplay, true, "Path B: histórico pronto no initialize deve iniciar REPLAY");
+assert.equal(alreadySynchronizedState.displayHomeScore, 0);
+assert.equal(alreadySynchronizedState.displayAwayScore, 0);
+advanceUntil(alreadySynchronizedState, () => !alreadySynchronizedState.isSynchronizationReplay);
 assert.equal(alreadySynchronizedState.displayHomeScore, 1);
 assert.equal(alreadySynchronizedState.displayAwayScore, 1);
 
@@ -421,5 +423,77 @@ assert.equal(reloadReplayState.displayHomeScore, 0, "reload REPLAY começa em 0x
 advanceUntil(reloadReplayState, () => !reloadReplayState.isSynchronizationReplay);
 assert.equal(reloadReplayState.displayHomeScore, 7, "reload REPLAY termina em 7x6");
 assert.equal(reloadReplayState.displayAwayScore, 6);
+
+const pathBState = new FuturebolMatchState("official-path-b-init", true);
+pathBState.applyOfficialMatchState(officialState({
+    sequence: 13,
+    homeScore: 7,
+    awayScore: 6,
+    initialHistoryReady: true,
+    scoreEvents: sevenSixEvents
+}), false);
+assert.equal(pathBState.isSynchronizationReplay, true, "Path B: histórico já pronto no initialize deve iniciar REPLAY imediatamente");
+assert.equal(pathBState.displayHomeScore, 0, "Path B: REPLAY começa em 0x0");
+assert.equal(pathBState.displayAwayScore, 0);
+assert.equal(pathBState.homeScore, 7, "Path B: placar autoritativo 7x6 preservado");
+assert.equal(pathBState.awayScore, 6);
+
+advanceUntil(pathBState, () => !pathBState.isSynchronizationReplay);
+assert.equal(pathBState.displayHomeScore, 7, "Path B: REPLAY termina em 7x6");
+assert.equal(pathBState.displayAwayScore, 6);
+
+const pathBOneZero = new FuturebolMatchState("official-path-b-1x0", true);
+pathBOneZero.applyOfficialMatchState(officialState({
+    sequence: 1,
+    homeScore: 1,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: oneZeroEvents
+}), false);
+assert.equal(pathBOneZero.isSynchronizationReplay, true, "Path B 1x0 deve iniciar REPLAY");
+assert.equal(pathBOneZero.displayHomeScore, 0, "Path B 1x0 começa em 0x0");
+advanceUntil(pathBOneZero, () => !pathBOneZero.isSynchronizationReplay);
+assert.equal(pathBOneZero.displayHomeScore, 1, "Path B 1x0 termina em 1x0");
+assert.equal(pathBOneZero.displayAwayScore, 0);
+
+const pathBEmpty = new FuturebolMatchState("official-path-b-empty", true);
+pathBEmpty.applyOfficialMatchState(officialState({
+    sequence: 0,
+    homeScore: 0,
+    awayScore: 0,
+    initialHistoryReady: true,
+    scoreEvents: []
+}), false);
+assert.equal(pathBEmpty.isSynchronizationReplay, false, "Path B 0x0 com histórico vazio vai direto para LIVE");
+
+const pathBAfterLive = new FuturebolMatchState("official-path-b-after-live", true);
+pathBAfterLive.applyOfficialMatchState(officialState({
+    sequence: 3,
+    homeScore: 2,
+    awayScore: 1,
+    initialHistoryReady: true,
+    scoreEvents: [
+        scoreEvent(9500, 1, "home"),
+        scoreEvent(9501, 2, "home"),
+        scoreEvent(9502, 3, "away")
+    ]
+}), false);
+assert.equal(pathBAfterLive.isSynchronizationReplay, true, "Path B 2x1 inicia REPLAY");
+advanceUntil(pathBAfterLive, () => !pathBAfterLive.isSynchronizationReplay);
+assert.equal(pathBAfterLive.isSynchronizationReplay, false, "REPLAY terminou");
+pathBAfterLive.applyOfficialMatchState(officialState({
+    sequence: 4,
+    homeScore: 3,
+    awayScore: 1,
+    initialHistoryReady: true,
+    scoreEvents: [
+        scoreEvent(9500, 1, "home"),
+        scoreEvent(9501, 2, "home"),
+        scoreEvent(9502, 3, "away"),
+        scoreEvent(9503, 4, "home")
+    ]
+}), true);
+assert.equal(pathBAfterLive.isSynchronizationReplay, false, "gol live pós-replay nunca reativa REPLAY");
+assert.equal(pathBAfterLive.displayHomeScore, 3, "HUD acompança placar live");
 
 console.log("Futurebol official match state tests passed");

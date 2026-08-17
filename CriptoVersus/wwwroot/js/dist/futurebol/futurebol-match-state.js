@@ -231,38 +231,11 @@ export class FuturebolMatchState {
             return;
         if (!animateNewEvents) {
             this.bootstrapPending = true;
-            return;
         }
-        if (this.bootstrapPending && initialHistoryReady) {
-            this.bootstrapPending = false;
-            const newEvents = orderedEvents.filter(event => !this.seenOfficialScoreEventIds.has(event.id));
-            for (const event of orderedEvents)
-                this.seenOfficialScoreEventIds.add(event.id);
-            if (newEvents.length > 0) {
-                const protectedHomeScore = this.officialMatchState.homeScore;
-                const protectedAwayScore = this.officialMatchState.awayScore;
-                this.synchronizationReplayActive = true;
-                this.synchronizationReplayHomeScore = 0;
-                this.synchronizationReplayAwayScore = 0;
-                this.synchronizationReplayTargetHome = protectedHomeScore;
-                this.synchronizationReplayTargetAway = protectedAwayScore;
-                console.info("[Futurebol][Replay] started", {
-                    target: `${protectedHomeScore}x${protectedAwayScore}`,
-                    displayScore: "0x0",
-                    pendingGoals: newEvents.length
-                });
-                for (const event of newEvents) {
-                    this.pendingOfficialGoals.push({
-                        team: event.team,
-                        points: event.points,
-                        synchronizationReplay: true,
-                        scoreApplied: false
-                    });
-                }
-                this.startNextOfficialGoalCinematic();
-            }
+        if (this.tryStartInitialReplay(initialHistoryReady, orderedEvents))
             return;
-        }
+        if (!animateNewEvents)
+            return;
         if (!this.bootstrapPending) {
             const newEvents = orderedEvents.filter(event => !this.seenOfficialScoreEventIds.has(event.id));
             for (const event of orderedEvents)
@@ -281,6 +254,39 @@ export class FuturebolMatchState {
             }
             this.startNextOfficialGoalCinematic();
         }
+    }
+    tryStartInitialReplay(initialHistoryReady, orderedEvents) {
+        if (!this.bootstrapPending || !initialHistoryReady)
+            return false;
+        const newEvents = orderedEvents.filter(event => !this.seenOfficialScoreEventIds.has(event.id));
+        this.bootstrapPending = false;
+        if (newEvents.length === 0)
+            return false;
+        for (const event of orderedEvents)
+            this.seenOfficialScoreEventIds.add(event.id);
+        const protectedHomeScore = this.officialMatchState.homeScore;
+        const protectedAwayScore = this.officialMatchState.awayScore;
+        this.synchronizationReplayActive = true;
+        this.synchronizationReplayHomeScore = 0;
+        this.synchronizationReplayAwayScore = 0;
+        this.synchronizationReplayTargetHome = protectedHomeScore;
+        this.synchronizationReplayTargetAway = protectedAwayScore;
+        console.info("[Futurebol][Bootstrap][Decision] phase=BOOTSTRAP_PENDING historyReady=true events=" + newEvents.length + " action=START_REPLAY");
+        console.info("[Futurebol][Replay] started", {
+            target: `${protectedHomeScore}x${protectedAwayScore}`,
+            displayScore: "0x0",
+            pendingGoals: newEvents.length
+        });
+        for (const event of newEvents) {
+            this.pendingOfficialGoals.push({
+                team: event.team,
+                points: event.points,
+                synchronizationReplay: true,
+                scoreApplied: false
+            });
+        }
+        this.startNextOfficialGoalCinematic();
+        return true;
     }
     update(deltaSeconds) {
         const safeDelta = clamp(deltaSeconds, 0, 0.1);
