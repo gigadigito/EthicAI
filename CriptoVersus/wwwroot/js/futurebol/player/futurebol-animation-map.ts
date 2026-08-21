@@ -1,6 +1,5 @@
 import type {
     FuturebolPlayerState,
-    FuturebolQuality,
     FuturebolVisualAnimationState,
     FuturebolVisualUpdateContext
 } from "../futurebol-types.js";
@@ -310,13 +309,8 @@ export function resolvePlayerVisualKind(
     preference:
         | "Auto"
         | "Primitives"
-        | "Skeletal",
-    quality: FuturebolQuality
+        | "Skeletal"
 ): "Primitives" | "Skeletal" {
-    if (quality === "Low") {
-        return "Primitives";
-    }
-
     if (preference === "Primitives") {
         return "Primitives";
     }

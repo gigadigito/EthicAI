@@ -60,14 +60,14 @@ export class FuturebolRenderer {
         this.progressCallback = onProgress;
         await this.switchPlayerVisuals(players, true);
     }
-    async setVisualConfiguration(players, quality, preference) {
-        const expectedKind = resolvePlayerVisualKind(preference, quality);
-        this.visualPreference = preference;
+    setQuality(quality) {
         this.applyQuality(quality);
+    }
+    async setPlayerVisualPreference(players, preference) {
+        const expectedKind = resolvePlayerVisualKind(preference);
+        this.visualPreference = preference;
         if (expectedKind !== this.activeVisualKind || this.fallbackActive)
             await this.switchPlayerVisuals(players, false);
-        else
-            this.rebuildShadows();
     }
     update(players, ballPosition, pressure, phase, activeTeam, ballOwnerId, outcome, deltaSeconds) {
         for (const player of players) {
@@ -171,7 +171,7 @@ export class FuturebolRenderer {
         };
     }
     async switchPlayerVisuals(players, force) {
-        const kind = resolvePlayerVisualKind(this.visualPreference, this.quality);
+        const kind = resolvePlayerVisualKind(this.visualPreference);
         if (!force && kind === this.activeVisualKind && !this.fallbackActive)
             return;
         const generation = ++this.visualGeneration;

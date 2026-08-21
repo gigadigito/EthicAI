@@ -111,18 +111,18 @@ export class FuturebolRenderer {
         await this.switchPlayerVisuals(players, true);
     }
 
-    public async setVisualConfiguration(
+    public setQuality(quality: FuturebolQuality): void {
+        this.applyQuality(quality);
+    }
+
+    public async setPlayerVisualPreference(
         players: FuturebolPlayerState[],
-        quality: FuturebolQuality,
         preference: FuturebolPlayerVisualPreference
     ): Promise<void> {
-        const expectedKind = resolvePlayerVisualKind(preference, quality);
+        const expectedKind = resolvePlayerVisualKind(preference);
         this.visualPreference = preference;
-        this.applyQuality(quality);
         if (expectedKind !== this.activeVisualKind || this.fallbackActive)
             await this.switchPlayerVisuals(players, false);
-        else
-            this.rebuildShadows();
     }
 
     public update(
@@ -257,7 +257,7 @@ export class FuturebolRenderer {
     }
 
     private async switchPlayerVisuals(players: FuturebolPlayerState[], force: boolean): Promise<void> {
-        const kind = resolvePlayerVisualKind(this.visualPreference, this.quality);
+        const kind = resolvePlayerVisualKind(this.visualPreference);
         if (!force && kind === this.activeVisualKind && !this.fallbackActive) return;
         const generation = ++this.visualGeneration;
         for (const visual of this.playerVisuals.values()) visual.dispose();

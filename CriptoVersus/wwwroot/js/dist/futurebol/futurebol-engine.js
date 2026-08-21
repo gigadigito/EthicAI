@@ -142,12 +142,12 @@ export class FuturebolEngine {
     }
     async setQuality(quality) {
         this.options.quality = quality;
-        await this.renderer.setVisualConfiguration(this.state.players, quality, this.options.playerVisual);
+        this.renderer.setQuality(quality);
         this.log("preset gráfico alterado", { quality });
     }
     async setPlayerVisual(preference) {
         this.options.playerVisual = preference;
-        await this.renderer.setVisualConfiguration(this.state.players, this.options.quality, preference);
+        await this.renderer.setPlayerVisualPreference(this.state.players, preference);
         this.updateMatchHud();
         this.log("visual dos jogadores alterado", { preference });
     }

@@ -31,10 +31,15 @@ assert.equal(selectFuturebolAnimation(basePlayer, { ...context, phase: "Outcome"
 
 assert.equal(resolveAnimationName(["Idle", "Walking"], FUTUREBOL_ANIMATION_MAP.Idle.candidates), "Idle");
 assert.equal(resolveCandidateName(["home:mixamorig:Head"], ["Head", "mixamorig:Head"]), "home:mixamorig:Head");
-assert.equal(resolvePlayerVisualKind("Auto", "Low"), "Primitives");
-assert.equal(resolvePlayerVisualKind("Skeletal", "Low"), "Primitives");
+assert.equal(resolvePlayerVisualKind("Skeletal", "High"), "Skeletal");
+assert.equal(resolvePlayerVisualKind("Skeletal", "Medium"), "Skeletal");
+assert.equal(resolvePlayerVisualKind("Skeletal", "Low"), "Skeletal");
+assert.equal(resolvePlayerVisualKind("Auto", "High"), "Skeletal");
 assert.equal(resolvePlayerVisualKind("Auto", "Medium"), "Skeletal");
+assert.equal(resolvePlayerVisualKind("Auto", "Low"), "Skeletal");
 assert.equal(resolvePlayerVisualKind("Primitives", "High"), "Primitives");
+assert.equal(resolvePlayerVisualKind("Primitives", "Medium"), "Primitives");
+assert.equal(resolvePlayerVisualKind("Primitives", "Low"), "Primitives");
 assert.equal(hasReachedContact(FUTUREBOL_ACTION_TIMING.passContactRatio - .01, FUTUREBOL_ACTION_TIMING.passContactRatio), false);
 assert.equal(hasReachedContact(FUTUREBOL_ACTION_TIMING.shootContactRatio, FUTUREBOL_ACTION_TIMING.shootContactRatio), true);
 

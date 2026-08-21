@@ -53,11 +53,13 @@ export class FuturebolPlayerVisualFactory {
             for (const visual of visuals.values())
                 visual.dispose();
             const message = error instanceof Error ? error.message : "Falha desconhecida no GLB.";
+            const reason = "asset-load-failed";
+            console.warn(`[Futurebol][PlayerVisual] kind=Primitives reason=${reason}`, { message });
             if (this.development)
                 console.error("[Futurebol] GLB esquelético indisponível; usando primitivas.", error);
             this.loader?.dispose();
             this.loader = null;
-            return this.createPrimitives(players, true, `Visual esquelético indisponível: ${message}`);
+            return this.createPrimitives(players, true, `Fallback emergencial: reason=${reason}. ${message}`);
         }
     }
     dispose() {

@@ -215,13 +215,13 @@ export class FuturebolEngine {
 
     public async setQuality(quality: FuturebolQuality): Promise<void> {
         this.options.quality = quality;
-        await this.renderer.setVisualConfiguration(this.state.players, quality, this.options.playerVisual);
+        this.renderer.setQuality(quality);
         this.log("preset gráfico alterado", { quality });
     }
 
     public async setPlayerVisual(preference: FuturebolPlayerVisualPreference): Promise<void> {
         this.options.playerVisual = preference;
-        await this.renderer.setVisualConfiguration(this.state.players, this.options.quality, preference);
+        await this.renderer.setPlayerVisualPreference(this.state.players, preference);
         this.updateMatchHud();
         this.log("visual dos jogadores alterado", { preference });
     }

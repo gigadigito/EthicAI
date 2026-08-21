@@ -231,10 +231,7 @@ export function selectFuturebolAnimation(player, context) {
     }
     return "Idle";
 }
-export function resolvePlayerVisualKind(preference, quality) {
-    if (quality === "Low") {
-        return "Primitives";
-    }
+export function resolvePlayerVisualKind(preference) {
     if (preference === "Primitives") {
         return "Primitives";
     }
