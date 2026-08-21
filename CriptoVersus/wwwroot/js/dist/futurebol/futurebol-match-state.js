@@ -104,6 +104,11 @@ export class FuturebolMatchState {
     get isSynchronizationReplay() {
         return this.synchronizationReplayActive;
     }
+    get synchronizationPhase() {
+        if (this.bootstrapPending)
+            return "BOOTSTRAP_PENDING";
+        return this.synchronizationReplayActive ? "REPLAY" : "LIVE";
+    }
     get synchronizationReplayTargetHomeScore() {
         return this.synchronizationReplayActive
             ? this.synchronizationReplayTargetHome
@@ -240,7 +245,8 @@ export class FuturebolMatchState {
             const newEvents = orderedEvents.filter(event => !this.seenOfficialScoreEventIds.has(event.id));
             for (const event of orderedEvents)
                 this.seenOfficialScoreEventIds.add(event.id);
-            if (this.synchronizationReplayActive) {
+            const joinsSynchronizationReplay = this.synchronizationReplayActive;
+            if (joinsSynchronizationReplay) {
                 this.synchronizationReplayTargetHome = this.officialMatchState.homeScore;
                 this.synchronizationReplayTargetAway = this.officialMatchState.awayScore;
             }
@@ -248,7 +254,7 @@ export class FuturebolMatchState {
                 this.pendingOfficialGoals.push({
                     team: event.team,
                     points: event.points,
-                    synchronizationReplay: false,
+                    synchronizationReplay: joinsSynchronizationReplay,
                     scoreApplied: false
                 });
             }
@@ -256,7 +262,9 @@ export class FuturebolMatchState {
         }
     }
     tryStartInitialReplay(initialHistoryReady, orderedEvents) {
-        if (!this.bootstrapPending || !initialHistoryReady)
+        if (this.synchronizationReplayCompleted ||
+            !this.bootstrapPending ||
+            !initialHistoryReady)
             return false;
         const newEvents = orderedEvents.filter(event => !this.seenOfficialScoreEventIds.has(event.id));
         this.bootstrapPending = false;
@@ -272,10 +280,9 @@ export class FuturebolMatchState {
         this.synchronizationReplayTargetHome = protectedHomeScore;
         this.synchronizationReplayTargetAway = protectedAwayScore;
         console.info("[Futurebol][Bootstrap][Decision] phase=BOOTSTRAP_PENDING historyReady=true events=" + newEvents.length + " action=START_REPLAY");
-        console.info("[Futurebol][Replay] started", {
-            target: `${protectedHomeScore}x${protectedAwayScore}`,
-            displayScore: "0x0",
-            pendingGoals: newEvents.length
+        console.info("[Futurebol][Replay][Start]", {
+            official: `${protectedHomeScore}x${protectedAwayScore}`,
+            events: newEvents.length
         });
         for (const event of newEvents) {
             this.pendingOfficialGoals.push({
@@ -753,11 +760,6 @@ export class FuturebolMatchState {
                 else
                     this.synchronizationReplayAwayScore += goal.points;
                 goal.scoreApplied = true;
-                console.info("[Futurebol][ReplayGoal]", {
-                    team: goal.team,
-                    displayScore: `${this.synchronizationReplayHomeScore}x${this.synchronizationReplayAwayScore}`,
-                    targetScore: `${this.synchronizationReplayTargetHome}x${this.synchronizationReplayTargetAway}`
-                });
             }
             this.ballState = "Free";
             this.currentBallOwnerId = null;
@@ -834,9 +836,12 @@ export class FuturebolMatchState {
         }
         this.synchronizationReplayActive = false;
         this.synchronizationReplayCompleted = true;
-        console.info("[Futurebol][Replay] completed", {
-            displayScore: `${this.synchronizationReplayHomeScore}x${this.synchronizationReplayAwayScore}`,
-            switchingToLive: true
+        console.info("[Futurebol][Replay][Complete]", {
+            display: `${this.synchronizationReplayHomeScore}x${this.synchronizationReplayAwayScore}`,
+            official: `${this.officialMatchState?.homeScore ?? 0}x${this.officialMatchState?.awayScore ?? 0}`,
+            pendingGoals: this.pendingOfficialGoals.filter(goal => goal.synchronizationReplay).length,
+            phase: this.synchronizationPhase,
+            active: this.synchronizationReplayActive
         });
     }
     updateResetting() {

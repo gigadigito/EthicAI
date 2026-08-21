@@ -26,7 +26,7 @@
 @implements IAsyncDisposable
 
 <HeadContent>
-    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-initial-replay-1" />
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260820-replay-live-goal-opening-1" />
     <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
     <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
     <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
@@ -1048,6 +1048,11 @@ else
         _futurebolReplayActive = state.Active;
         _futurebolReplayHomeScore = state.HomeScore;
         _futurebolReplayAwayScore = state.AwayScore;
+        Logger.LogDebug(
+            "[Futurebol][Replay][Blazor] active={Active} display={HomeScore}x{AwayScore}",
+            state.Active,
+            state.HomeScore,
+            state.AwayScore);
         return InvokeAsync(StateHasChanged);
     }
     private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
@@ -1255,7 +1260,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-initial-replay-1");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260820-replay-live-goal-opening-1");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)

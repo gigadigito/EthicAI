@@ -298,6 +298,7 @@ sevenSixState.applyOfficialMatchState(officialState({
     awayScore: 6,
     scoreEvents: []
 }), false);
+assert.equal(sevenSixState.synchronizationPhase, "BOOTSTRAP_PENDING", "7x6 aguarda histórico antes do REPLAY");
 sevenSixState.applyOfficialMatchState(officialState({
     sequence: 13,
     homeScore: 7,
@@ -306,6 +307,7 @@ sevenSixState.applyOfficialMatchState(officialState({
     scoreEvents: sevenSixEvents
 }), true);
 assert.equal(sevenSixState.isSynchronizationReplay, true, "7x6 deve iniciar REPLAY");
+assert.equal(sevenSixState.synchronizationPhase, "REPLAY");
 assert.equal(sevenSixState.displayHomeScore, 0, "REPLAY 7x6 deve começar em 0x0");
 assert.equal(sevenSixState.displayAwayScore, 0);
 assert.equal(sevenSixState.homeScore, 7, "placar autoritativo 7x6 preservado");
@@ -316,6 +318,7 @@ assert.equal(sevenSixState.displayHomeScore, 7, "REPLAY 7x6 deve terminar em 7x6
 assert.equal(sevenSixState.displayAwayScore, 6);
 assert.equal(sevenSixState.homeScore, 7);
 assert.equal(sevenSixState.awayScore, 6);
+assert.equal(sevenSixState.synchronizationPhase, "LIVE", "último cinematic 7x6 deve concluir em LIVE");
 
 sevenSixState.applyOfficialMatchState(officialState({
     sequence: 14,
@@ -326,6 +329,27 @@ sevenSixState.applyOfficialMatchState(officialState({
 assert.equal(sevenSixState.isSynchronizationReplay, false, "gol live pós-replay não reativa REPLAY");
 assert.equal(sevenSixState.displayHomeScore, 8);
 assert.equal(sevenSixState.homeScore, 8);
+assert.equal(sevenSixState.synchronizationPhase, "LIVE", "gol posterior não pode reabrir REPLAY");
+
+const advancingCatchUpState = new FuturebolMatchState("official-replay-advancing-target", true);
+const firstCatchUpEvent = scoreEvent(7500, 1, "home");
+advancingCatchUpState.applyOfficialMatchState(officialState({
+    sequence: 1,
+    homeScore: 1,
+    initialHistoryReady: true,
+    scoreEvents: [firstCatchUpEvent]
+}), false);
+assert.equal(advancingCatchUpState.synchronizationPhase, "REPLAY");
+advancingCatchUpState.applyOfficialMatchState(officialState({
+    sequence: 2,
+    homeScore: 2,
+    initialHistoryReady: true,
+    scoreEvents: [firstCatchUpEvent, scoreEvent(7501, 2, "home")]
+}), true);
+advanceUntil(advancingCatchUpState, () => !advancingCatchUpState.isSynchronizationReplay);
+assert.equal(advancingCatchUpState.displayHomeScore, 2, "gol recebido durante catch-up deve tornar o novo alvo alcançável");
+assert.equal(advancingCatchUpState.displayAwayScore, 0);
+assert.equal(advancingCatchUpState.synchronizationPhase, "LIVE", "catch-up com alvo atualizado também deve terminar");
 
 const oneZeroEvents = [scoreEvent(8000, 1, "home")];
 const oneZeroState = new FuturebolMatchState("official-replay-1x0", true);
@@ -343,12 +367,14 @@ oneZeroState.applyOfficialMatchState(officialState({
     scoreEvents: oneZeroEvents
 }), true);
 assert.equal(oneZeroState.isSynchronizationReplay, true, "1x0 com histórico deve iniciar REPLAY");
+assert.equal(oneZeroState.synchronizationPhase, "REPLAY");
 assert.equal(oneZeroState.displayHomeScore, 0, "REPLAY 1x0 deve começar em 0x0");
 assert.equal(oneZeroState.displayAwayScore, 0);
 
 advanceUntil(oneZeroState, () => !oneZeroState.isSynchronizationReplay);
 assert.equal(oneZeroState.displayHomeScore, 1, "REPLAY 1x0 deve terminar em 1x0");
 assert.equal(oneZeroState.displayAwayScore, 0);
+assert.equal(oneZeroState.synchronizationPhase, "LIVE");
 
 const zeroZeroEmpty = new FuturebolMatchState("official-zero-zero-empty", true);
 zeroZeroEmpty.applyOfficialMatchState(officialState({
@@ -368,6 +394,7 @@ zeroZeroEmpty.applyOfficialMatchState(officialState({
 }), true);
 assert.equal(zeroZeroEmpty.isSynchronizationReplay, false, "0x0 com histórico vazio vai direto para LIVE");
 assert.equal(zeroZeroEmpty.displayHomeScore, 0);
+assert.equal(zeroZeroEmpty.synchronizationPhase, "LIVE", "histórico vazio deve sair de BOOTSTRAP_PENDING sem exibir REPLAY");
 zeroZeroEmpty.applyOfficialMatchState(officialState({
     sequence: 2,
     homeScore: 1,

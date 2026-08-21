@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import BabylonModule from "babylonjs";
-import { FuturebolArena } from "../../dist/futurebol/futurebol-arena.js";
+import {
+    FUTUREBOL_END_STAND_GOAL_OPENING_HALF_WIDTH,
+    FuturebolArena
+} from "../../dist/futurebol/futurebol-arena.js";
 
 const B = BabylonModule;
 const engine = new B.NullEngine();
@@ -46,6 +49,38 @@ assert.equal(scene.getMeshByName("futurebol-arena-floodlight-bulbs")?.thinInstan
 assert.equal(scene.lights.length, 0, "decorative floodlights must remain emissive geometry, not dynamic lights");
 assert.ok(scene.meshes.every(mesh => mesh.isWorldMatrixFrozen), "static arena transforms must be frozen");
 assert.ok(scene.materials.every(material => material.isFrozen), "shared arena materials must be frozen");
+
+const openingHalfWidth = FUTUREBOL_END_STAND_GOAL_OPENING_HALF_WIDTH;
+for (const mesh of scene.meshes.filter(mesh =>
+    mesh.name.startsWith("futurebol-arena-seats-") ||
+    mesh.name.startsWith("futurebol-arena-crowd-"))) {
+    for (const matrix of mesh.thinInstanceGetWorldMatrices()) {
+        assert.equal(
+            Math.abs(matrix.m[12]) > 25 && Math.abs(matrix.m[14]) < openingHalfWidth,
+            false,
+            `${mesh.name} cannot place seats or crowd directly behind either goal`
+        );
+    }
+}
+
+for (const name of [
+    "futurebol-arena-lower-step-decks",
+    "futurebol-arena-upper-step-decks",
+    "futurebol-arena-step-risers",
+    "futurebol-arena-ad-board-backs"
+]) {
+    const mesh = scene.getMeshByName(name);
+    const positions = mesh?.getVerticesData(B.VertexBuffer.PositionKind) ?? [];
+    for (let index = 0; index < positions.length; index += 3) {
+        const x = positions[index];
+        const z = positions[index + 2];
+        assert.equal(
+            Math.abs(x) > 25.3 && Math.abs(z) < openingHalfWidth,
+            false,
+            `${name} must preserve the symmetric opening behind both goals`
+        );
+    }
+}
 
 const mediumEnabled = scene.meshes.filter(mesh => mesh.isEnabled()).length;
 arena.setQuality("Low");

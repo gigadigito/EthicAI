@@ -139,7 +139,7 @@
                 var importTimer = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260815-initial-replay-1");
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260820-replay-live-goal-opening-1");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);

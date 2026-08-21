@@ -1,7 +1,7 @@
 // @ts-ignore Browser module queries are intentional: replay state must not come from a stale module.
-import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260815-initial-replay-1";
+import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260820-replay-live-goal-opening-1";
 // @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
-import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260815-real-stadium-1";
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260820-replay-live-goal-opening-1";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import { ApiMarketSource } from './market/api-market-source.js';
 import { createFuturebolMarketSource } from './market/futurebol-market-source-factory.js';
@@ -279,8 +279,16 @@ export class FuturebolEngine {
             const now = performance.now();
             const deltaSeconds = Math.min((now - this.lastFrameMs) / 1000, 0.1);
             this.lastFrameMs = now;
+            const replayWasActive = this.state.isSynchronizationReplay;
+            const replayHomeScore = this.state.displayHomeScore;
+            const replayAwayScore = this.state.displayAwayScore;
             if (!this.paused)
                 this.state.update(deltaSeconds);
+            if (replayWasActive !== this.state.isSynchronizationReplay ||
+                replayHomeScore !== this.state.displayHomeScore ||
+                replayAwayScore !== this.state.displayAwayScore) {
+                this.updateReplayHud();
+            }
             this.renderer.update(this.state.players, this.state.ballPosition, this.state.pressure, this.state.currentPlayPhase, this.state.activeTeam, this.state.currentBallOwnerId, this.state.lastPlayOutcome, this.paused ? 0 : deltaSeconds);
             this.renderer.scene.render();
             if (this.firstFrameResolve) {
@@ -350,9 +358,7 @@ export class FuturebolEngine {
             console.info(`[Futurebol] FPS médio: ${Math.round(this.fpsTotal / this.fpsSamples)}`);
     }
     updateMatchHud() {
-        this.setText("futurebol-home-score", this.state.displayHomeScore.toString());
-        this.setText("futurebol-away-score", this.state.displayAwayScore.toString());
-        this.notifyReplayHudState();
+        this.updateReplayHud();
         this.setText("futurebol-debug-phase", this.state.currentPlayPhase);
         this.setText("futurebol-debug-owner", displayPlayer(this.state.currentBallOwnerId, this.teams.home.symbol, this.teams.away.symbol));
         this.setText("futurebol-debug-receiver", displayPlayer(this.state.intendedReceiverId, this.teams.home.symbol, this.teams.away.symbol));
@@ -399,6 +405,11 @@ export class FuturebolEngine {
             warning.textContent = visual.warning ?? "";
         }
     }
+    updateReplayHud() {
+        this.setText("futurebol-home-score", this.state.displayHomeScore.toString());
+        this.setText("futurebol-away-score", this.state.displayAwayScore.toString());
+        this.notifyReplayHudState();
+    }
     notifyReplayHudState() {
         const active = this.state.isSynchronizationReplay;
         const homeScore = this.state.displayHomeScore;
@@ -415,6 +426,12 @@ export class FuturebolEngine {
         if (signature === this.replayHudSignature)
             return;
         this.replayHudSignature = signature;
+        if (this.options.development) {
+            console.debug("[Futurebol][Replay][Interop]", {
+                active,
+                display: `${homeScore}x${awayScore}`
+            });
+        }
         void this.dotNetReference.invokeMethodAsync("ReportFuturebolReplayState", active, homeScore, awayScore, targetHomeScore, targetAwayScore).catch(error => console.warn("[Futurebol][Replay] HUD state report failed", error));
     }
     updatePauseStatus(paused) {

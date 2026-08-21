@@ -2,7 +2,7 @@ import type { AbstractMesh, DirectionalLight, Engine, Mesh, Scene, ShadowGenerat
 import { FuturebolCamera } from "./futurebol-camera.js";
 import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
-import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260815-real-stadium-1";
+import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260820-replay-live-goal-opening-1";
 import type {
     FuturebolLogoTextureDiagnosticMap,
     FuturebolPlayerState,

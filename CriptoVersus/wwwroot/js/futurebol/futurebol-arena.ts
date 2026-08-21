@@ -6,7 +6,11 @@ type BabylonApi = typeof import("babylonjs");
 const SIDE_TIER_COUNT = 8;
 const END_TIER_COUNT = 6;
 const SIDE_AISLES = [-16.5, -5.5, 5.5, 16.5];
-const END_AISLES = [-5.1, 5.1];
+const END_STAND_HALF_DEPTH = 15.6;
+export const FUTUREBOL_END_STAND_GOAL_OPENING_HALF_WIDTH = 5.4;
+const END_STAND_SECTION_DEPTH = END_STAND_HALF_DEPTH - FUTUREBOL_END_STAND_GOAL_OPENING_HALF_WIDTH;
+const END_STAND_SECTION_CENTER = FUTUREBOL_END_STAND_GOAL_OPENING_HALF_WIDTH + END_STAND_SECTION_DEPTH / 2;
+const END_AISLES = [-10.4, 10.4];
 
 interface ThinTransform {
     x: number;
@@ -114,11 +118,17 @@ export class FuturebolArena {
                 const x = side * (26.15 + row);
                 const target = row < 3 ? lowerDecks : upperDecks;
                 const material = row < 3 ? materials.tier : materials.upperTier;
-                target.push(this.box(`futurebol-end-step-deck-${side}-${row}`, 1.12, 0.2, 31.2, x, deckY, 0, material));
-                risers.push(this.box(
-                    `futurebol-end-step-riser-${side}-${row}`,
-                    0.16, 0.72, 31.2, x - side * 0.52, deckY - 0.36, 0, materials.tier
-                ));
+                for (const section of [-1, 1]) {
+                    const sectionZ = section * END_STAND_SECTION_CENTER;
+                    target.push(this.box(
+                        `futurebol-end-step-deck-${side}-${row}-${section}`,
+                        1.12, 0.2, END_STAND_SECTION_DEPTH, x, deckY, sectionZ, material
+                    ));
+                    risers.push(this.box(
+                        `futurebol-end-step-riser-${side}-${row}-${section}`,
+                        0.16, 0.72, END_STAND_SECTION_DEPTH, x - side * 0.52, deckY - 0.36, sectionZ, materials.tier
+                    ));
+                }
 
                 for (const aisleZ of END_AISLES) {
                     aisles.push(this.box(
@@ -185,6 +195,8 @@ export class FuturebolArena {
                 const x = side * (26.15 + row);
                 let column = 0;
                 for (let z = -13.75; z <= 13.75; z += 0.98) {
+                    if (Math.abs(z) < FUTUREBOL_END_STAND_GOAL_OPENING_HALF_WIDTH)
+                        continue;
                     if (END_AISLES.some(aisle => Math.abs(z - aisle) < 0.54))
                         continue;
 
@@ -410,7 +422,7 @@ export class FuturebolArena {
         }
 
         for (const side of [-1, 1]) {
-            for (const z of [-11, -3.7, 3.7, 11]) {
+            for (const z of [-11, 11]) {
                 boardBacks.push(this.box(
                     `futurebol-end-ad-board-${side}-${z}`,
                     0.18,

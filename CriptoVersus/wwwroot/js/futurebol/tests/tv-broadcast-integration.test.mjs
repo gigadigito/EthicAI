@@ -34,6 +34,9 @@ assert.equal(stage.includes('Config.GetValue<bool?>("CriptoVersusTV:UseFootballF
 assert.ok(desktop.includes('FieldContent="@FieldContent"'), "Desktop must forward Futurebol FieldContent");
 assert.ok(tablet.includes('FieldContent="@FieldContent"'), "Tablet must forward Futurebol FieldContent");
 assert.ok(mobile.includes('FieldContent="@FieldContent"'), "Mobile must forward Futurebol FieldContent");
+for (const [name, layout] of [["Desktop", desktop], ["Tablet", tablet], ["Mobile", mobile]]) {
+    assert.ok(layout.includes('<TvStageFieldPanel Model="@Model"'), `${name} must pass the current replay model to the shared field panel`);
+}
 assert.ok(fieldPanel.includes("@FieldContent"), "the field panel must render the Futurebol fragment");
 assert.equal(stage.includes("initFieldSway"), false, "legacy DOM movement must not run beside Babylon");
 assert.equal(stage.includes("tvCinematicCamera"), false, "legacy DOM camera must not run beside FuturebolCamera");
@@ -62,10 +65,10 @@ assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"')
 assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
 assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngineContract>()"));
-assert.ok(bootstrap.includes('futurebol-engine.js?v=20260815-initial-replay-1'), "the cache-busted entry must also version its engine dependency");
-assert.ok(engine.includes('futurebol-match-state.js?v=20260815-initial-replay-1'), "the replay state machine must cross the same cache boundary as the engine");
-assert.ok(engine.includes('futurebol-renderer.js?v=20260815-real-stadium-1'), "the engine must force the current renderer through stale module caches");
-assert.ok(renderer.includes('futurebol-arena.js?v=20260815-real-stadium-1'), "the renderer must force the real arena builder through stale module caches");
+assert.ok(bootstrap.includes('futurebol-engine.js?v=20260820-replay-live-goal-opening-1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(engine.includes('futurebol-match-state.js?v=20260820-replay-live-goal-opening-1'), "the replay state machine must cross the same cache boundary as the engine");
+assert.ok(engine.includes('futurebol-renderer.js?v=20260820-replay-live-goal-opening-1'), "the engine must force the current renderer through stale module caches");
+assert.ok(renderer.includes('futurebol-arena.js?v=20260820-replay-live-goal-opening-1'), "the renderer must force the real arena builder through stale module caches");
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
 assert.ok(bootstrap.includes("[FUTUREBOL-TV][READY] initialize success"));
 assert.ok(bootstrap.includes("let preloadPromise: Promise<void> | null = null"), "page preload must be idempotent");
@@ -114,6 +117,11 @@ assert.ok(arena.includes('thinInstanceSetBuffer("matrix"'), "seats and crowd mus
 assert.ok(host.includes("ReplayStateChanged"), "the Futurebol host must forward replay HUD changes to TvStage");
 assert.ok(stage.includes("IsFuturebolSynchronizationReplay"), "the TV scoreboard must select replay scores only during initial catch-up");
 assert.ok(fieldPanel.includes("tv-scoreboard__replay"), "the shared Match/Broadcast scoreboard must render the REPLAY badge");
+assert.ok(fieldPanel.includes('@(Model.IsSynchronizationReplay ? "is-replay" : string.Empty)'), "the replay class must be removed from the DOM model in LIVE");
+assert.ok(engine.includes("replayWasActive !== this.state.isSynchronizationReplay"), "REPLAY -> LIVE must notify Blazor in the transition frame");
+assert.ok(engine.includes('"ReportFuturebolReplayState"'), "the engine must report the final active=false state through interop");
+assert.ok(stage.includes("return InvokeAsync(StateHasChanged)"), "TvStage must render replay state changes on the Blazor UI context");
+assert.ok(fieldPanel.includes("opacity: .7"), "the REPLAY badge pulse must visibly change luminosity without an aggressive flash");
 assert.ok(arena.includes("Mesh.MergeMeshes"), "repeated stadium modules must be merged before rendering");
 assert.equal(arena.includes("PointLight"), false, "the stadium cannot add costly per-fixture point lights");
 assert.equal(arena.includes("SpotLight"), false, "the stadium cannot add costly per-fixture spot lights");
