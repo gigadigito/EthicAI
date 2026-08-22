@@ -86,6 +86,9 @@
     private DateTime _lastBroadcastRotationUtc = DateTime.MinValue;
     private DateTime _nextRefreshAtUtc = DateTime.MinValue;
     private int _refreshInProgress;
+    private bool _isDisposed;
+    private TvCyclePhase _cyclePhase = TvCyclePhase.Starting;
+    private int _cycleMatchId;
     private bool _initialTvLoadCompleted;
     private bool _initialTvLoadFailed;
     private PanelLoadState _topCoinsState = PanelLoadState.Loading();
@@ -207,24 +210,56 @@
         if (!firstRender)
             return;
 
-        _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
-        await LogAsync("loaded");
-        if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
+        try
         {
-            Logger.LogInformation("[TV_MATCH_LOAD] TvPage interactive refresh started because initial selected match was empty.");
-            await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
-            _initialTvLoadCompleted = true;
-            _initialTvLoadFailed = false;
-            Logger.LogInformation(
-                "[TV_MATCH_LOAD] TvPage interactive refresh completed. SelectedMatchId={SelectedMatchId}",
-                _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0);
-            await InvokeAsync(StateHasChanged);
+            _tvModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/tvMode.js?v=20260610-tvmode-2");
+            await LogAsync("loaded");
         }
-        _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
+        catch (Exception ex) when (ex is JSException or InvalidOperationException)
+        {
+            Logger.LogWarning(ex, "TvPage JS bootstrap failed. The server-side TV refresh loop will continue.");
+        }
 
+        try
+        {
+            if (_selectedHotMatch is null
+                || !_selectedHotMatch.HasMatch
+                || _topCoinsState.IsLoading
+                || _latestBattlesState.IsLoading
+                || _marketPulseState.IsLoading
+                || _topCoinsState.ErrorMessage is not null
+                || _latestBattlesState.ErrorMessage is not null
+                || _marketPulseState.ErrorMessage is not null)
+            {
+                Logger.LogInformation("[TV_MATCH_LOAD] TvPage interactive refresh started because initial selected match was empty.");
+                await RefreshAsync(forceInitialSelection: true, CancellationToken.None);
+                _initialTvLoadCompleted = true;
+                _initialTvLoadFailed = false;
+                Logger.LogInformation(
+                    "[TV_MATCH_LOAD] TvPage interactive refresh completed. SelectedMatchId={SelectedMatchId}",
+                    _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        finally
+        {
+            _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
+            EnsureRefreshLoopStarted();
+        }
+    }
+
+    private void EnsureRefreshLoopStarted()
+    {
+        if (_isDisposed || (_refreshLoopTask is not null && !_refreshLoopTask.IsCompleted))
+            return;
+
+        _refreshCts?.Dispose();
         _refreshCts = new CancellationTokenSource();
         _refreshLoopTask = RunRefreshLoopAsync(_refreshCts.Token);
-        Logger.LogInformation("TvPage refresh loop started. BroadcastMode={BroadcastMode} IntervalSeconds={IntervalSeconds}", _isBroadcastMode, RefreshIntervalSeconds);
+        Logger.LogInformation(
+            "[TV] Next-match polling resumed. BroadcastMode={BroadcastMode} IntervalSeconds={IntervalSeconds}",
+            _isBroadcastMode,
+            RefreshIntervalSeconds);
     }
 
     private async Task RunRefreshLoopAsync(CancellationToken ct)
@@ -243,17 +278,37 @@
 
                 if (rotationDue || now >= _nextRefreshAtUtc)
                 {
-                    await RefreshAsync(forceInitialSelection: false, ct);
+                    try
+                    {
+                        await RefreshAsync(forceInitialSelection: false, ct);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        Logger.LogWarning(ex, "TvPage refresh tick failed; next-match polling remains active.");
+                    }
                     _nextRefreshAtUtc = DateTime.UtcNow.AddSeconds(RefreshIntervalSeconds);
                     continue;
                 }
 
                 if (_isBroadcastMode)
-                    await InvokeAsync(StateHasChanged);
+                {
+                    try
+                    {
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    catch (Exception ex) when (!_isDisposed && ex is not OperationCanceledException)
+                    {
+                        Logger.LogDebug(ex, "TvPage rotation gauge render was skipped; polling remains active.");
+                    }
+                }
             }
         }
         catch (OperationCanceledException)
         {
+        }
+        finally
+        {
+            Logger.LogInformation("[TV] Next-match polling stopped. Disposed={Disposed}", _isDisposed);
         }
     }
 
@@ -273,25 +328,16 @@
                 token => HotMatches.GetHotMatchesAsync(token),
                 ct,
                 PrimarySelectionFeedTimeout);
-            var statsTask = TryLoadWithTimeoutAsync(
-                token => Api.GetStatsOverviewAsync(token),
-                ct,
-                AuxiliaryFeedTimeout);
-            var snapshotTask = TryLoadWithTimeoutAsync(
-                token => Api.GetDashboardSnapshotAsync(token),
-                ct,
-                AuxiliaryFeedTimeout);
+            var statsTask = RefreshStatsPanelsAsync(ct);
+            var snapshotTask = RefreshMarketPulseAsync(ct);
 
-            await Task.WhenAll(hotMatchesTask, statsTask, snapshotTask);
-
-            ApplyStatsOverviewResult(statsTask.Result);
-            ApplyDashboardSnapshotResult(snapshotTask.Result);
-            ApplyHotMatchFeedResult(hotMatchesTask.Result);
+            var hotMatchesResult = await hotMatchesTask;
+            ApplyHotMatchFeedResult(hotMatchesResult);
             await InvokeAsync(StateHasChanged);
 
             try
             {
-                await RefreshMatchSelectionAsync(hotMatchesTask.Result, forceInitialSelection, ct);
+                await RefreshMatchSelectionAsync(hotMatchesResult, forceInitialSelection, ct);
             }
             catch (OperationCanceledException)
             {
@@ -302,6 +348,7 @@
                 await LogAsync("[TV_ROTATION] selection error", ex.Message);
             }
 
+            await Task.WhenAll(statsTask, snapshotTask);
             await InvokeAsync(StateHasChanged);
             if (HasSelectedTvMatch)
             {
@@ -374,29 +421,26 @@
     {
         if (hotMatchesResult.IsSuccess)
         {
-            var hotMatch = _hotMatches.FirstOrDefault();
             if (_isBroadcastMode)
             {
                 await ResolveBroadcastSelectionAsync(_hotMatches, forceInitialSelection, ct);
             }
-            else if (hotMatch is not null)
-            {
-                await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore, hotMatch.Reason });
-                await ResolveHotMatchSelectionAsync(hotMatch, forceInitialSelection, ct);
-            }
             else
             {
-                await LogAsync("[HOT_MATCH] no ranked match available");
-
-                if (_selectedHotMatch?.HasMatch == true)
+                if (HasSelectedTvMatch && await IsSelectedMatchFinishedAsync(ct))
                 {
-                    var currentFinished = await IsSelectedMatchFinishedAsync(ct);
-                    if (currentFinished)
-                    {
-                        _selectedHotMatch = null;
-                        _selectedMatch = null;
-                        _selectedHotRanking = null;
-                    }
+                    EnterWaitingState();
+                }
+
+                var hotMatch = TvProceduralCyclePolicy.FindNextMatch(_hotMatches);
+                if (hotMatch is not null)
+                {
+                    await LogAsync("[HOT_MATCH] refreshed", new { hotMatch.MatchId, hotMatch.HotScore, hotMatch.PriorityScore, hotMatch.Reason });
+                    await ResolveHotMatchSelectionAsync(hotMatch, forceInitialSelection, ct);
+                }
+                else
+                {
+                    await LogAsync("[HOT_MATCH] no ranked match available");
                 }
             }
         }
@@ -425,18 +469,65 @@
             Logger.LogWarning(ex, "TvPage selected match refresh failed. MatchId={MatchId}", _selectedMatch?.MatchId ?? _selectedHotMatch?.MatchId ?? 0);
             await LogAsync("[TV_ROTATION] selected match refresh error", ex.Message);
         }
+
+        UpdateCycleDiagnostics();
     }
 
     private async Task<bool> IsSelectedMatchFinishedAsync(CancellationToken ct)
     {
-        if (_selectedHotMatch is null || !_selectedHotMatch.HasMatch)
+        if (IsKnownSelectedMatchTerminal())
             return true;
 
-        var current = await Api.GetMatchByIdAsync(_selectedHotMatch.MatchId, includeParticipants: false, ct);
+        var selectedMatchId = _selectedHotRanking?.MatchId ?? _selectedHotMatch?.MatchId ?? _selectedMatch?.MatchId ?? 0;
+        if (selectedMatchId <= 0)
+            return true;
+
+        var current = await Api.GetMatchByIdAsync(selectedMatchId, includeParticipants: false, ct);
         return current is null
-            || current.IsFinished
-            || string.Equals(current.Status, "Completed", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(current.Status, "Cancelled", StringComparison.OrdinalIgnoreCase);
+            || TvProceduralCyclePolicy.IsTerminal(current.IsFinished, current.Status);
+    }
+
+    private bool IsKnownSelectedMatchTerminal()
+        => TvProceduralCyclePolicy.IsTerminal(_selectedHotRanking?.IsFinished == true, _selectedHotRanking?.Status)
+            || TvProceduralCyclePolicy.IsTerminal(_selectedMatch?.IsFinished == true, _selectedMatch?.Status);
+
+    private void EnterWaitingState()
+    {
+        var finishedMatchId = _selectedHotRanking?.MatchId ?? _selectedHotMatch?.MatchId ?? _selectedMatch?.MatchId ?? 0;
+        _selectedHotMatch = null;
+        _selectedMatch = null;
+        _selectedHotRanking = null;
+        Logger.LogInformation("[TV] Match finished. MatchId={MatchId}", finishedMatchId);
+        Logger.LogInformation("[TV] Leaving LIVE state. MatchId={MatchId}", finishedMatchId);
+        _cyclePhase = TvCyclePhase.Waiting;
+        _cycleMatchId = 0;
+        Logger.LogInformation("[TV] Entering WAITING state.");
+        Logger.LogInformation("[TV] Arena panels refresh active while waiting.");
+        Logger.LogInformation("[TV] Next-match polling resumed.");
+    }
+
+    private void UpdateCycleDiagnostics()
+    {
+        var matchId = _selectedHotRanking?.MatchId ?? _selectedHotMatch?.MatchId ?? _selectedMatch?.MatchId ?? 0;
+        var nextPhase = matchId > 0 && !IsKnownSelectedMatchTerminal()
+            ? TvCyclePhase.Live
+            : TvCyclePhase.Waiting;
+
+        if (_cyclePhase == nextPhase && _cycleMatchId == matchId)
+            return;
+
+        _cyclePhase = nextPhase;
+        _cycleMatchId = matchId;
+
+        if (nextPhase == TvCyclePhase.Waiting)
+        {
+            Logger.LogInformation("[TV] Entering WAITING state.");
+            Logger.LogInformation("[TV] Arena panels refresh active while waiting.");
+            Logger.LogInformation("[TV] Next-match polling resumed.");
+            return;
+        }
+
+        Logger.LogInformation("[TV] Match found. Entering LIVE state. MatchId={MatchId}", matchId);
     }
 
     private bool IsSwitchCooldownActive()
@@ -838,6 +929,53 @@
             result.ErrorMessage);
     }
 
+    private async Task RefreshStatsPanelsAsync(CancellationToken ct)
+    {
+        LoadAttemptResult<StatsOverviewDto?> result;
+        try
+        {
+            Logger.LogDebug("[TV] Arena ranking refresh started.");
+            Logger.LogDebug("[TV] Arena feed refresh started.");
+            result = await TryLoadWithTimeoutAsync(
+                token => Api.GetStatsOverviewAsync(token),
+                ct,
+                AuxiliaryFeedTimeout);
+        }
+        catch (OperationCanceledException)
+        {
+            if (!_isDisposed)
+                ApplyStatsOverviewResult(LoadAttemptResult<StatsOverviewDto?>.Failure("Canceled"));
+            throw;
+        }
+
+        ApplyStatsOverviewResult(result);
+        if (!_isDisposed)
+            await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RefreshMarketPulseAsync(CancellationToken ct)
+    {
+        LoadAttemptResult<DashboardSnapshotDto?> result;
+        try
+        {
+            Logger.LogDebug("[TV] Market pulse refresh started.");
+            result = await TryLoadWithTimeoutAsync(
+                token => Api.GetDashboardSnapshotAsync(token),
+                ct,
+                AuxiliaryFeedTimeout);
+        }
+        catch (OperationCanceledException)
+        {
+            if (!_isDisposed)
+                ApplyDashboardSnapshotResult(LoadAttemptResult<DashboardSnapshotDto?>.Failure("Canceled"));
+            throw;
+        }
+
+        ApplyDashboardSnapshotResult(result);
+        if (!_isDisposed)
+            await InvokeAsync(StateHasChanged);
+    }
+
     private static async Task<LoadAttemptResult<T>> TryLoadWithTimeoutAsync<T>(
         Func<CancellationToken, Task<T>> loader,
         CancellationToken ct,
@@ -870,11 +1008,20 @@
         if (_tvModule is null)
             return;
 
-        await _tvModule.InvokeVoidAsync("log", "TV_MODE", message, payload);
+        try
+        {
+            await _tvModule.InvokeVoidAsync("log", "TV_MODE", message, payload);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug(ex, "TvPage browser diagnostic log was unavailable.");
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
+        _isDisposed = true;
+
         if (_refreshCts is not null)
         {
             _refreshCts.Cancel();
@@ -910,5 +1057,12 @@
         public static LoadAttemptResult<T> Success(T? value) => new(true, false, null, value);
         public static LoadAttemptResult<T> Timeout() => new(false, true, "Timed out", default);
         public static LoadAttemptResult<T> Failure(string? errorMessage) => new(false, false, errorMessage, default);
+    }
+
+    private enum TvCyclePhase
+    {
+        Starting,
+        Waiting,
+        Live
     }
 }

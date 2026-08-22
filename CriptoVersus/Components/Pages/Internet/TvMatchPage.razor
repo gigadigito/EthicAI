@@ -198,6 +198,7 @@ else
 @code {
     private const int RefreshIntervalSeconds = 15;
     private static readonly TimeSpan InitialLoadTimeout = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan SecondaryFeedTimeout = TimeSpan.FromSeconds(8);
 
     [Parameter] public string? Culture { get; set; }
     [Parameter] public int MatchId { get; set; }
@@ -215,6 +216,7 @@ else
     private int _refreshInProgress;
     private bool _interactiveLoadRetryAttempted;
     private bool _secondaryDataLoadStarted;
+    private int _secondaryRefreshInProgress;
     private bool _hasRenderedInteractiveOnce;
     private bool _isDisposed;
     private string _activeRouteKey = string.Empty;
@@ -397,6 +399,7 @@ else
         _secondaryDataLoadStarted = false;
 
         Interlocked.Exchange(ref _refreshInProgress, 0);
+        Interlocked.Exchange(ref _secondaryRefreshInProgress, 0);
 
         CancelRefreshLoop();
     }
@@ -457,6 +460,7 @@ else
             while (await timer.WaitForNextTickAsync(ct))
             {
                 await RefreshMatchOnlyAsync(ct);
+                await LoadSecondaryDataAsync(_activeRouteKey, ct);
             }
         }
         catch (OperationCanceledException)
@@ -715,12 +719,13 @@ else
         _secondaryDataLoadStarted = true;
 
         var token = _refreshCts?.Token ?? CancellationToken.None;
+        var routeKey = _activeRouteKey;
 
         _ = Task.Run(async () =>
         {
             try
             {
-                await LoadSecondaryDataAsync(token);
+                await LoadSecondaryDataAsync(routeKey, token);
             }
             catch (Exception ex)
             {
@@ -732,8 +737,14 @@ else
         }, token);
     }
 
-    private async Task LoadSecondaryDataAsync(CancellationToken ct)
+    private async Task LoadSecondaryDataAsync(string routeKey, CancellationToken ct)
     {
+        if (_isDisposed || !string.Equals(routeKey, _activeRouteKey, StringComparison.Ordinal))
+            return;
+
+        if (Interlocked.Exchange(ref _secondaryRefreshInProgress, 1) == 1)
+            return;
+
         var sw = Stopwatch.StartNew();
 
         try
@@ -742,45 +753,20 @@ else
                 "[TV_MATCH_LOAD] SecondaryData start matchId={MatchId}",
                 MatchId);
 
-            var hotTask = MeasureLoadCallAsync(
-                "HotMatchService.GetHotMatchesAsync",
-                () => HotMatches.GetHotMatchesAsync(ct));
-
-            var statsTask = MeasureLoadCallAsync(
-                "Api.GetStatsOverviewAsync",
-                () => Api.GetStatsOverviewAsync(ct));
-
-            var snapshotTask = MeasureLoadCallAsync(
-                "Api.GetDashboardSnapshotAsync",
-                () => Api.GetDashboardSnapshotAsync(ct));
+            var hotTask = RefreshFixedHotMatchAsync(routeKey, ct);
+            var statsTask = RefreshFixedStatsPanelsAsync(routeKey, ct);
+            var snapshotTask = RefreshFixedMarketPulseAsync(routeKey, ct);
 
             await Task.WhenAll(hotTask, statsTask, snapshotTask);
 
-            _stats = statsTask.Result;
-            _snapshot = snapshotTask.Result;
-
-            var hotMatch = hotTask.Result?.FirstOrDefault(x => x.MatchId == MatchId);
-
-            _hotMatch = hotMatch is not null
-                ? HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization)
-                : _hotMatch;
-
-            _topCoinsLoading = false;
-            _latestBattlesLoading = false;
-            _marketPulseLoading = false;
-            _topCoinsError = null;
-            _latestBattlesError = null;
-            _marketPulseError = null;
-
-            if (hotMatch is not null)
+            if (_hotMatch is not null)
             {
                 await LogAsync(
                     "[HOT_MATCH] refreshed",
                     new
                     {
-                        hotMatch.MatchId,
-                        hotMatch.HotScore,
-                        hotMatch.PriorityScore
+                        _hotMatch.MatchId,
+                        _hotMatch.HotScore
                     });
             }
 
@@ -797,20 +783,133 @@ else
         }
         catch (Exception ex)
         {
-            _topCoinsLoading = false;
-            _latestBattlesLoading = false;
-            _marketPulseLoading = false;
-            _topCoinsError ??= LocalizedTvMatchText("error");
-            _latestBattlesError ??= LocalizedTvMatchText("error");
-            _marketPulseError ??= LocalizedTvMatchText("error");
-
             Logger.LogWarning(
                 ex,
                 "[TV_MATCH_LOAD] SecondaryData failed. MatchId={MatchId}",
                 MatchId);
-
-            await InvokeAsync(StateHasChanged);
         }
+        finally
+        {
+            Interlocked.Exchange(ref _secondaryRefreshInProgress, 0);
+        }
+    }
+
+    private async Task RefreshFixedHotMatchAsync(string routeKey, CancellationToken ct)
+    {
+        try
+        {
+            var hotMatches = await LoadWithTimeoutAsync(
+                token => HotMatches.GetHotMatchesAsync(token),
+                ct,
+                SecondaryFeedTimeout);
+            if (!IsCurrentRoute(routeKey))
+                return;
+
+            var hotMatch = hotMatches?.FirstOrDefault(x => x.MatchId == MatchId);
+            _hotMatch = hotMatch is not null
+                ? HotMatches.ToTvHotMatch(hotMatch, _culture, RouteLocalization)
+                : _hotMatch;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] Fixed hot-match refresh failed. MatchId={MatchId}", MatchId);
+        }
+    }
+
+    private async Task RefreshFixedStatsPanelsAsync(string routeKey, CancellationToken ct)
+    {
+        try
+        {
+            Logger.LogDebug("[TV] Arena ranking and feed refresh started. MatchId={MatchId}", MatchId);
+            var stats = await LoadWithTimeoutAsync(
+                token => Api.GetStatsOverviewAsync(token),
+                ct,
+                SecondaryFeedTimeout);
+            if (!IsCurrentRoute(routeKey))
+                return;
+
+            _stats = stats;
+            _topCoinsError = null;
+            _latestBattlesError = null;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            if (IsCurrentRoute(routeKey))
+            {
+                _topCoinsError ??= LocalizedTvMatchText("error");
+                _latestBattlesError ??= LocalizedTvMatchText("error");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrentRoute(routeKey))
+            {
+                _topCoinsError ??= LocalizedTvMatchText("error");
+                _latestBattlesError ??= LocalizedTvMatchText("error");
+            }
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] Fixed ranking/feed refresh failed. MatchId={MatchId}", MatchId);
+        }
+        finally
+        {
+            if (IsCurrentRoute(routeKey))
+            {
+                _topCoinsLoading = false;
+                _latestBattlesLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private async Task RefreshFixedMarketPulseAsync(string routeKey, CancellationToken ct)
+    {
+        try
+        {
+            Logger.LogDebug("[TV] Market pulse refresh started. MatchId={MatchId}", MatchId);
+            var snapshot = await LoadWithTimeoutAsync(
+                token => Api.GetDashboardSnapshotAsync(token),
+                ct,
+                SecondaryFeedTimeout);
+            if (!IsCurrentRoute(routeKey))
+                return;
+
+            _snapshot = snapshot;
+            _marketPulseError = null;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            if (IsCurrentRoute(routeKey))
+                _marketPulseError ??= LocalizedTvMatchText("error");
+        }
+        catch (Exception ex)
+        {
+            if (IsCurrentRoute(routeKey))
+                _marketPulseError ??= LocalizedTvMatchText("error");
+            Logger.LogWarning(ex, "[TV_MATCH_LOAD] Fixed market-pulse refresh failed. MatchId={MatchId}", MatchId);
+        }
+        finally
+        {
+            if (IsCurrentRoute(routeKey))
+            {
+                _marketPulseLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private bool IsCurrentRoute(string routeKey)
+        => !_isDisposed && string.Equals(routeKey, _activeRouteKey, StringComparison.Ordinal);
+
+    private static async Task<T> LoadWithTimeoutAsync<T>(
+        Func<CancellationToken, Task<T>> loader,
+        CancellationToken ct,
+        TimeSpan timeout)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(timeout);
+        return await loader(timeoutCts.Token);
     }
 
     private async Task<T> MeasureLoadCallAsync<T>(string name, Func<Task<T>?> action)
