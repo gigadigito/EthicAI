@@ -1581,6 +1581,29 @@
     "liveArena": "Arena ao vivo",
     "poweredBy": "Desenvolvido por CriptoVersus",
     "noMatches": "Nenhuma partida disponivel agora.",
+    "matchPage": {
+      "eyebrow": "Partida na TV",
+      "loading": "Carregando partida...",
+      "loadingBody": "A arena esta preparando o confronto ao vivo.",
+      "notFound": "Partida nao encontrada.",
+      "notFoundBody": "Nao foi possivel localizar a partida solicitada. Escolha outra arena ou volte ao canal da TV.",
+      "unavailable": "Esta partida terminou",
+      "unavailableBody": "Continue assistindo pela proxima partida disponivel, consulte a lista de partidas ou volte ao canal automatico da TV.",
+      "error": "Nao foi possivel carregar a arena no momento.",
+      "errorBody": "Tente novamente em instantes. Se o problema continuar, a transmissao pode estar se atualizando.",
+      "watchNext": "Assistir proxima partida",
+      "viewMatches": "Ver outras partidas",
+      "returnToTv": "Voltar para a TV",
+      "returnHome": "Voltar ao inicio",
+      "retry": "Tentar novamente"
+    },
+    "futurebol": {
+      "canvasAriaLabel": "Campo Futurebol 3D",
+      "loading": "Carregando arena...",
+      "loadingSlow": "A arena esta demorando um pouco mais para carregar...",
+      "error": "Nao foi possivel carregar a arena 3D.",
+      "errorBody": "Tente atualizar a pagina."
+    },
     "hero": {
       "eyebrow": "Transmissao automatica",
       "title": "CriptoVersus TV"
@@ -1598,7 +1621,12 @@
       "scanMarketPulse": "Sincronizando pulso do mercado...",
       "scanArenaRanking": "Lendo ranking da arena...",
       "scanCandidates": "Procurando moedas candidatas...",
-      "awaitingKickoff": "Aguardando evento de kickoff..."
+      "awaitingKickoff": "Aguardando evento de kickoff...",
+      "initialLoadingTitle": "Carregando arena...",
+      "initialLoadingSubtitle": "Aguarde enquanto a transmissao confirma os dados da partida.",
+      "initialLoadingStepOne": "Sincronizando partida",
+      "initialLoadingStepTwo": "Preparando graficos e placar",
+      "initialLoadingStepThree": "Ativando transmissao"
     },
     "activity": {
       "eyebrow": "Atividade ao vivo",

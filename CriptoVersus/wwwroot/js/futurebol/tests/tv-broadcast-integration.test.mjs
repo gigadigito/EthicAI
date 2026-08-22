@@ -8,6 +8,7 @@ const stage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStage.raz
 const host = readFileSync(`${projectRoot}/Components/Pages/Internet/TvFuturebolField.razor`, "utf8");
 const hostCss = readFileSync(`${projectRoot}/Components/Pages/Internet/TvFuturebolField.razor.css`, "utf8");
 const matchPage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvMatchPage.razor`, "utf8");
+const matchPageCss = readFileSync(`${projectRoot}/Components/Pages/Internet/TvMatchPage.razor.css`, "utf8");
 const broadcastPage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvPage.razor`, "utf8");
 const desktop = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageDesktop.razor`, "utf8");
 const tablet = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageTablet.razor`, "utf8");
@@ -23,9 +24,21 @@ const logoTextures = readFileSync(`${futurebolRoot}/player/futurebol-team-logo-t
 const camera = readFileSync(`${futurebolRoot}/futurebol-camera.ts`, "utf8");
 const logoUrlResolver = readFileSync(`${projectRoot}/Services/FuturebolTeamLogoUrl.cs`, "utf8");
 const webProgram = readFileSync(`${projectRoot}/Program.cs`, "utf8");
+const englishI18n = JSON.parse(readFileSync(`${projectRoot}/i18n.en-US.json`, "utf8"));
+const portugueseI18n = JSON.parse(readFileSync(`${projectRoot}/i18n.pt-BR.json`, "utf8"));
+const chineseI18n = JSON.parse(readFileSync(`${projectRoot}/i18n.zh-CN.json`, "utf8"));
 
 assert.ok(matchPage.includes('@page "/tv/match/{MatchId:int}/{Slug}"'));
 assert.ok(matchPage.includes("<TvStage"), "Match TV must enter the shared TvStage");
+assert.ok(matchPage.includes("TvProceduralCyclePolicy.FindNextMatch(hotMatches, MatchId)"), "ended fixed matches must discover a different eligible match");
+assert.ok(matchPage.includes("RouteLocalization.BuildTvMatchPath"), "next-match action must reuse the localized TV match route");
+assert.ok(matchPage.includes("RouteLocalization.BuildStatsMatchesPath"), "ended modal must expose the existing match listing route");
+assert.ok(matchPage.includes("RouteLocalization.BuildTvPath"), "ended modal must expose the automatic TV route");
+assert.ok(matchPage.includes("RouteLocalization.BuildHomePath"), "ended modal must expose the localized home route");
+assert.ok(matchPage.includes("_loadState == TvMatchPageLoadState.Error"), "retry must remain limited to meaningful load failures");
+assert.ok(matchPageCss.includes("backdrop-filter: blur(5px)"), "blocking match overlay must preserve blurred TV context");
+assert.ok(matchPageCss.includes("rgba(2, 6, 15, .54)"), "blocking match overlay must remain translucent");
+assert.ok(matchPageCss.includes("grid-template-columns: 1fr"), "mobile modal actions must stack in one column");
 assert.ok(broadcastPage.includes('@page "/tv/broadcast"'));
 assert.ok(broadcastPage.includes("<TvStage"), "Broadcast must enter the shared TvStage");
 assert.ok(stage.includes("<TvFuturebolField"), "TvStage must render Futurebol in its FieldContent slot");
@@ -52,9 +65,14 @@ assert.equal(/<canvas[^>]+\s(?:width|height)=/s.test(host), false, "the canvas c
 assert.ok(host.includes("@if (!_isReady"), "TV must keep its loading state until the engine reports a useful frame");
 assert.ok(host.indexOf('_isReady = true') > host.indexOf('"initialize"'), "ready can only be published after initialize completes");
 assert.ok(host.includes('data-futurebol-state="@FuturebolState"'), "the host must expose loading, ready and error states");
-assert.ok(host.includes("Carregando arena..."), "loading copy must exist in the first server-rendered host markup");
-assert.ok(host.includes("A arena está demorando um pouco mais para carregar..."), "slow loading must have an intermediate message");
-assert.ok(host.includes("Não foi possível carregar a arena 3D."), "fatal failure must leave a friendly visible state");
+assert.ok(host.includes('@T("loading")'), "loading copy must use the localized first server-rendered host markup");
+assert.ok(host.includes('@T("loadingSlow")'), "slow loading must have a localized intermediate message");
+assert.ok(host.includes('@T("error")'), "fatal failure must leave a localized friendly visible state");
+for (const resource of [englishI18n, portugueseI18n, chineseI18n]) {
+    assert.ok(resource.tv.futurebol.loading, "Futurebol loading copy must exist in every supported culture");
+    assert.ok(resource.tv.futurebol.loadingSlow, "Futurebol slow-loading copy must exist in every supported culture");
+    assert.ok(resource.tv.futurebol.error, "Futurebol error copy must exist in every supported culture");
+}
 assert.ok(hostCss.includes('tvFuturebolSlowMessage'), "slow loading must switch without waiting for JS initialization");
 assert.ok(stage.includes('HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"'), "Futurebol must receive the exact left card logo URL");
 assert.ok(stage.includes('AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"'), "Futurebol must receive the exact right card logo URL");

@@ -792,13 +792,11 @@ else
 
     private int CurrentStageMatchId => Match?.MatchId ?? HotMatch?.MatchId ?? 0;
     private bool ShouldRenderInitialLoading => IsInitialLoading && !HasLiveMatch;
-    private string InitialLoadingTitle => IsPortugueseCulture ? "Carregando arena..." : "Loading arena...";
-    private string InitialLoadingSubtitle => IsPortugueseCulture
-        ? "Aguarde enquanto a transmissão confirma os dados da partida."
-        : "Please wait while the broadcast confirms the match data.";
-    private string InitialLoadingStepOne => IsPortugueseCulture ? "Sincronizando partida" : "Synchronizing match";
-    private string InitialLoadingStepTwo => IsPortugueseCulture ? "Preparando gráficos e placar" : "Preparing charts and scoreboard";
-    private string InitialLoadingStepThree => IsPortugueseCulture ? "Ativando transmissão" : "Activating broadcast";
+    private string InitialLoadingTitle => T("states.initialLoadingTitle");
+    private string InitialLoadingSubtitle => T("states.initialLoadingSubtitle");
+    private string InitialLoadingStepOne => T("states.initialLoadingStepOne");
+    private string InitialLoadingStepTwo => T("states.initialLoadingStepTwo");
+    private string InitialLoadingStepThree => T("states.initialLoadingStepThree");
     private const bool UseFootballFieldLayout = true;
     private bool EnableTelemetryCube => Config.GetValue<bool?>("CriptoVersusTV:EnableTelemetryCube") == true;
     private TvStageViewportMode ViewportMode
@@ -1019,7 +1017,8 @@ else
         UseCompactArenaGauge = ShouldUseCompactArenaGauge()
     };
 
-    private RenderFragment FootballFieldContent => @<TvFuturebolField Match="@Match"
+    private RenderFragment FootballFieldContent => @<TvFuturebolField Culture="@Culture"
+                                                                 Match="@Match"
                                                                 HotMatch="@HotMatch"
                                                                 Snapshots="@_metricSnapshots"
                                                                 ScoreEvents="@_allScoreEvents"
@@ -7350,10 +7349,7 @@ private TimeSpan? ResolvePreciseRemainingTime()
 
 private bool IsMatchFinishedForStage()
 {
-    if (Match?.IsFinished == true)
-        return true;
-
-    if (string.Equals(Match?.Status, "Completed", StringComparison.OrdinalIgnoreCase))
+    if (Match is not null && TvProceduralCyclePolicy.IsTerminal(Match.IsFinished, Match.Status))
         return true;
 
     if (Match?.EndTime is not null)

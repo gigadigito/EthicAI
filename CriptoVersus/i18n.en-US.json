@@ -1779,6 +1779,29 @@
     "liveArena": "Live arena",
     "poweredBy": "Powered by CriptoVersus",
     "noMatches": "No matches available right now.",
+    "matchPage": {
+      "eyebrow": "TV Match",
+      "loading": "Loading match...",
+      "loadingBody": "The arena is preparing the live matchup.",
+      "notFound": "Match not found.",
+      "notFoundBody": "We couldn't locate the requested match. Choose another arena or return to the TV channel.",
+      "unavailable": "This match has ended",
+      "unavailableBody": "Keep watching with the next available match, browse the match list, or return to the automatic TV channel.",
+      "error": "Unable to load the arena right now.",
+      "errorBody": "Please try again in a moment. If the problem persists, the broadcast may still be refreshing.",
+      "watchNext": "Watch next match",
+      "viewMatches": "See other matches",
+      "returnToTv": "Return to TV",
+      "returnHome": "Return home",
+      "retry": "Try again"
+    },
+    "futurebol": {
+      "canvasAriaLabel": "Futurebol 3D field",
+      "loading": "Loading arena...",
+      "loadingSlow": "The arena is taking a little longer to load...",
+      "error": "Unable to load the 3D arena.",
+      "errorBody": "Try refreshing the page."
+    },
     "hero": {
       "eyebrow": "Automatic broadcast",
       "title": "CriptoVersus TV"
@@ -1796,7 +1819,12 @@
       "scanMarketPulse": "Syncing market pulse...",
       "scanArenaRanking": "Reading arena ranking...",
       "scanCandidates": "Searching candidate coins...",
-      "awaitingKickoff": "Waiting for kickoff event..."
+      "awaitingKickoff": "Waiting for kickoff event...",
+      "initialLoadingTitle": "Loading arena...",
+      "initialLoadingSubtitle": "Please wait while the broadcast confirms the match data.",
+      "initialLoadingStepOne": "Synchronizing match",
+      "initialLoadingStepTwo": "Preparing charts and scoreboard",
+      "initialLoadingStepThree": "Activating broadcast"
     },
     "activity": {
       "eyebrow": "Live Activity",

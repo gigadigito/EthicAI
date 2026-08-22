@@ -1780,6 +1780,29 @@
     "liveArena": "实时竞技场",
     "poweredBy": "由 CriptoVersus 提供支持",
     "noMatches": "当前没有可用对战。",
+    "matchPage": {
+      "eyebrow": "TV 对战",
+      "loading": "正在加载对战...",
+      "loadingBody": "竞技场正在准备实时对战。",
+      "notFound": "未找到对战。",
+      "notFoundBody": "无法找到请求的对战。请选择其他竞技场或返回 TV 频道。",
+      "unavailable": "本场对战已结束",
+      "unavailableBody": "你可以继续观看下一场可用对战、浏览对战列表，或返回自动 TV 频道。",
+      "error": "目前无法加载竞技场。",
+      "errorBody": "请稍后重试。如果问题仍然存在，直播可能仍在更新。",
+      "watchNext": "观看下一场对战",
+      "viewMatches": "查看其他对战",
+      "returnToTv": "返回 TV",
+      "returnHome": "返回首页",
+      "retry": "重试"
+    },
+    "futurebol": {
+      "canvasAriaLabel": "Futurebol 3D 球场",
+      "loading": "正在加载竞技场...",
+      "loadingSlow": "竞技场加载时间比预期稍长...",
+      "error": "无法加载 3D 竞技场。",
+      "errorBody": "请尝试刷新页面。"
+    },
     "hero": {
       "eyebrow": "自动直播",
       "title": "CriptoVersus TV"
@@ -1797,7 +1820,12 @@
       "scanMarketPulse": "加密货币竞技场信息",
       "scanArenaRanking": "加密货币竞技场信息",
       "scanCandidates": "加密货币竞技场信息",
-      "awaitingKickoff": "加密货币竞技场信息"
+      "awaitingKickoff": "等待开球事件...",
+      "initialLoadingTitle": "正在加载竞技场...",
+      "initialLoadingSubtitle": "直播正在确认对战数据，请稍候。",
+      "initialLoadingStepOne": "正在同步对战",
+      "initialLoadingStepTwo": "正在准备图表和计分板",
+      "initialLoadingStepThree": "正在启动直播"
     },
     "activity": {
       "eyebrow": "实时活动",

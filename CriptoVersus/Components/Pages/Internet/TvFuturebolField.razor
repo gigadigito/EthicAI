@@ -7,6 +7,7 @@
 @inject FuturebolMatchAdapter MatchAdapter
 @inject IOptions<FuturebolOptions> FuturebolOptionsAccessor
 @inject IWebHostEnvironment Environment
+@inject LocalizationService L
 @inject ILogger<TvFuturebolField> Logger
 @implements IAsyncDisposable
 
@@ -14,34 +15,29 @@
      data-futurebol-match-id="@(_presentation?.MatchId)"
      data-futurebol-state="@FuturebolState"
      aria-busy="@IsLoading"
-     style="position:relative;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background:#030714;">
+     style="position:relative;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;">
     <canvas id="@_canvasId"
             class="tv-futurebol-field__canvas"
-            aria-label="Campo Futurebol 3D"
+            aria-label="@T("canvasAriaLabel")"
             style="position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;"></canvas>
     @if (!_isReady && string.IsNullOrWhiteSpace(_error))
     {
         <div class="tv-futurebol-field__loading"
              role="status"
-             aria-live="polite"
-             style="position:absolute;inset:0;z-index:35;display:grid;place-content:center;justify-items:center;gap:.55rem;color:#eef6ff;background:radial-gradient(circle at center,rgba(14,27,62,.94),rgba(3,7,20,.99));">
-            <span class="tv-futurebol-field__loading-spinner"
-                  aria-hidden="true"
-                  style="width:38px;height:38px;border-radius:50%;border:3px solid rgba(78,220,255,.2);border-top-color:#4edcff;border-right-color:#ff9f1a;"></span>
-            <strong style="color:#4edcff;font-size:.82rem;letter-spacing:.12em;">FUTUREBOL 3D</strong>
+             aria-live="polite">
+            <span class="tv-futurebol-field__loading-spinner" aria-hidden="true"></span>
+            <strong>FUTUREBOL 3D</strong>
             <span class="tv-futurebol-field__loading-copy">
-                <small class="tv-futurebol-field__loading-message tv-futurebol-field__loading-message--initial"
-                       style="color:rgba(238,246,255,.82);">Carregando arena...</small>
-                <small class="tv-futurebol-field__loading-message tv-futurebol-field__loading-message--slow"
-                       style="color:rgba(238,246,255,.82);">A arena está demorando um pouco mais para carregar...</small>
+                <small class="tv-futurebol-field__loading-message tv-futurebol-field__loading-message--initial">@T("loading")</small>
+                <small class="tv-futurebol-field__loading-message tv-futurebol-field__loading-message--slow">@T("loadingSlow")</small>
             </span>
         </div>
     }
     @if (!string.IsNullOrWhiteSpace(_error))
     {
         <div class="tv-futurebol-field__fallback" role="status">
-            <strong>Não foi possível carregar a arena 3D.</strong>
-            <span>Tente atualizar a página.</span>
+            <strong>@T("error")</strong>
+            <span>@T("errorBody")</span>
         </div>
     }
 </div>
@@ -62,6 +58,7 @@
     private string? _error;
 
     [Parameter, EditorRequired] public MatchDto? Match { get; set; }
+    [Parameter] public string? Culture { get; set; }
     [Parameter] public TvHotMatchDto? HotMatch { get; set; }
     [Parameter] public IReadOnlyCollection<MatchMetricSnapshotDto> Snapshots { get; set; } = [];
     [Parameter] public IReadOnlyCollection<MatchScoreEventDto> ScoreEvents { get; set; } = [];
@@ -204,7 +201,7 @@
         }
         catch (Exception ex)
         {
-            _error = "Não foi possível carregar a arena 3D. Tente atualizar a página.";
+            _error = T("errorBody");
             _isReady = false;
             Logger.LogWarning(ex, "Futurebol TV lifecycle failure. MatchId={MatchId}", _presentation?.MatchId);
             await InvokeAsync(StateHasChanged);
@@ -218,7 +215,7 @@
     [JSInvokable]
     public Task ReportFuturebolError(string message)
     {
-        _error = "Não foi possível carregar a arena 3D. Tente atualizar a página.";
+        _error = T("errorBody");
         _initialized = false;
         _isReady = false;
         Logger.LogWarning("Futurebol TV reported an initialization failure. Detail={Detail}", message);
@@ -285,6 +282,9 @@
         => FuturebolOptionsAccessor.Value.TvQuality is "Low" or "Medium" or "High"
             ? FuturebolOptionsAccessor.Value.TvQuality
             : "Auto";
+
+    private string T(string key)
+        => L.T($"tv.futurebol.{key}", Culture);
 
     private static string BuildSignature(FuturebolMatchPresentationModel state)
         => string.Join('|',
