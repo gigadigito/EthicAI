@@ -5124,6 +5124,8 @@
         if (_match is null)
             return;
 
+        await ScrollToInvestmentFragmentAsync();
+
         if (!_tvScriptsInitialized)
         {
             try
@@ -5156,6 +5158,30 @@
 
         await SyncTvTelemetryAsync();
         await SyncTvEventFeedAsync();
+    }
+
+    private async Task ScrollToInvestmentFragmentAsync()
+    {
+        if (string.Equals(_investmentFragmentHandledRouteKey, _currentRouteKey, StringComparison.Ordinal)
+            || !string.Equals(new Uri(Nav.Uri).Fragment, "#match-investment", StringComparison.Ordinal))
+            return;
+
+        try
+        {
+            _matchDetailNavigationModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import",
+                "/js/matchDetailNavigation.mjs?v=20260822-choose-1");
+
+            var scrolled = await _matchDetailNavigationModule.InvokeAsync<bool>(
+                "scrollToCurrentFragment",
+                "match-investment");
+
+            if (scrolled)
+                _investmentFragmentHandledRouteKey = _currentRouteKey;
+        }
+        catch (Exception ex) when (CriptoVersus.Web.Services.InteropSafety.IsDeferredInteropException(ex))
+        {
+        }
     }
 
     private async Task SyncTvTelemetryAsync()
@@ -6414,6 +6440,19 @@
 
             _tvEventFeedModule = null;
         }
+
+        if (_matchDetailNavigationModule is not null)
+        {
+            try
+            {
+                await _matchDetailNavigationModule.DisposeAsync();
+            }
+            catch
+            {
+            }
+
+            _matchDetailNavigationModule = null;
+        }
     }
 
     private void UpdateClockFromUtcNow()
@@ -6548,7 +6587,9 @@
     private ChartSeriesState _volumeChart = ChartSeriesState.Empty;
     private IJSObjectReference? _tvModeModule;
     private IJSObjectReference? _tvEventFeedModule;
+    private IJSObjectReference? _matchDetailNavigationModule;
     private bool _tvScriptsInitialized;
+    private string _investmentFragmentHandledRouteKey = string.Empty;
     private string _lastTelemetrySignature = string.Empty;
     private string _lastEventFeedSignature = string.Empty;
     private string GoalEventFeedId => $"match-goal-event-feed-{_match?.MatchId ?? MatchId}";
@@ -8030,7 +8071,6 @@
         }
     }
 </style>
-
 
 
 

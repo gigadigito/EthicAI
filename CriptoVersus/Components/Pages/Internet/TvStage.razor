@@ -930,9 +930,9 @@ else
     private string CurrentMatchUrl => BuildMatchUrl(CurrentStageMatchId, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(CurrentStageMatchId, MatchSlugOrHotSlug());
     private string BuildArenaInvestmentUrl()
-        => string.IsNullOrWhiteSpace(CurrentMatchUrl)
+        => string.IsNullOrWhiteSpace(CurrentRealMatchUrl)
             ? "#"
-            : $"{CurrentMatchUrl}#match-investment";
+            : $"{CurrentRealMatchUrl}#match-investment";
     private TvStageRenderModel StageModel => new()
     {
         CurrentStageMatchId = CurrentStageMatchId,
@@ -13568,10 +13568,7 @@ private sealed record TvArenaCommentaryEntry(
 
     @@media (max-width: 1080px) {
         .tv-fixed-audio-test {
-            right: 12px;
-            left: 12px;
-            bottom: 12px;
-            justify-content: center;
+            display: none;
         }
     }
 

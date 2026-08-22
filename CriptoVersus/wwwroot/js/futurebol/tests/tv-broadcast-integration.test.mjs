@@ -14,6 +14,7 @@ const desktop = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageDe
 const tablet = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageTablet.razor`, "utf8");
 const mobile = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageMobile.razor`, "utf8");
 const fieldPanel = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageFieldPanel.razor`, "utf8");
+const matchDetail = readFileSync(`${projectRoot}/Components/Pages/Internet/MatchDetail.razor`, "utf8");
 const bootstrap = readFileSync(`${futurebolRoot}/futurebol-bootstrap.ts`, "utf8");
 const babylonLoader = readFileSync(`${futurebolRoot}/futurebol-babylon-loader.ts`, "utf8");
 const engine = readFileSync(`${futurebolRoot}/futurebol-engine.ts`, "utf8");
@@ -42,6 +43,30 @@ assert.ok(matchPageCss.includes("grid-template-columns: 1fr"), "mobile modal act
 assert.ok(broadcastPage.includes('@page "/tv/broadcast"'));
 assert.ok(broadcastPage.includes("<TvStage"), "Broadcast must enter the shared TvStage");
 assert.ok(stage.includes("<TvFuturebolField"), "TvStage must render Futurebol in its FieldContent slot");
+assert.ok(
+    stage.includes('string.IsNullOrWhiteSpace(CurrentRealMatchUrl)')
+        && stage.includes('$"{CurrentRealMatchUrl}#match-investment"'),
+    "enabled Choose links must leave the TV route and open the real match investment panel"
+);
+assert.ok(fieldPanel.includes("@if (Model.CanInvestInArena)"), "Choose availability must continue following the investment business rule");
+assert.ok(fieldPanel.includes("disabled>@Model.InvestLabel</button>"), "closed investment windows must continue rendering a genuinely disabled button");
+assert.ok(stage.includes("@@media (max-width: 1080px)") && stage.includes(".tv-fixed-audio-test {\n            display: none;"), "the redundant fixed audio test must not cover Choose on tablet or mobile");
+assert.ok(mobile.includes('PlayKnownArenaAudioAsync="@PlayKnownArenaAudioAsync"'), "mobile must retain the audio test in its regular topbar");
+assert.ok(matchDetail.includes('"scrollToCurrentFragment"'), "the asynchronously rendered investment panel must resolve its URL fragment");
+assert.ok(matchDetail.includes('"match-investment"'), "Choose must target the existing investment panel id");
+
+const { scrollToCurrentFragment } = await import("../../matchDetailNavigation.mjs");
+let scrollOptions = null;
+globalThis.window = { location: { hash: "#match-investment" } };
+globalThis.document = {
+    getElementById: id => id === "match-investment"
+        ? { scrollIntoView: options => { scrollOptions = options; } }
+        : null
+};
+assert.equal(scrollToCurrentFragment("match-investment"), true, "the destination must scroll after its async render");
+assert.deepEqual(scrollOptions, { behavior: "auto", block: "start" });
+globalThis.window.location.hash = "#other-panel";
+assert.equal(scrollToCurrentFragment("match-investment"), false, "unrelated fragments must not move the page");
 assert.equal(stage.includes("<TvCryptoFootballField"), false, "legacy field cannot remain the Stage renderer");
 assert.equal(stage.includes('Config.GetValue<bool?>("CriptoVersusTV:UseFootballFieldLayout")'), false, "Futurebol cannot be gated by the legacy field feature flag");
 assert.ok(desktop.includes('FieldContent="@FieldContent"'), "Desktop must forward Futurebol FieldContent");
