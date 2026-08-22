@@ -66,6 +66,7 @@
     [Parameter] public string? HomeLogoUrl { get; set; }
     [Parameter] public string? AwayLogoUrl { get; set; }
     [Parameter] public EventCallback<FuturebolReplayHudState> ReplayStateChanged { get; set; }
+    [Parameter] public EventCallback<FuturebolGoalConfirmation> GoalConfirmed { get; set; }
 
     private string FuturebolState => !string.IsNullOrWhiteSpace(_error)
         ? "error"
@@ -136,7 +137,7 @@
                 var importTimer = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260820-replay-live-goal-opening-1");
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260822-official-goal-field-1");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);
@@ -241,6 +242,28 @@
             Math.Max(0, targetHomeScore),
             Math.Max(0, targetAwayScore));
         return InvokeAsync(() => ReplayStateChanged.InvokeAsync(state));
+    }
+
+    [JSInvokable]
+    public Task ReportFuturebolGoalConfirmed(
+        long eventId,
+        string team,
+        string scorerPlayerId,
+        bool synchronizationReplay)
+    {
+        if (_presentation is null || eventId <= 0 || !GoalConfirmed.HasDelegate)
+            return Task.CompletedTask;
+
+        var normalizedTeam = string.Equals(team, "away", StringComparison.OrdinalIgnoreCase)
+            ? "away"
+            : "home";
+        var confirmation = new FuturebolGoalConfirmation(
+            _presentation.MatchId,
+            eventId,
+            normalizedTeam,
+            scorerPlayerId,
+            synchronizationReplay);
+        return InvokeAsync(() => GoalConfirmed.InvokeAsync(confirmation));
     }
 
     public async ValueTask DisposeAsync()

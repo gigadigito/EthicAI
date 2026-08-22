@@ -26,7 +26,7 @@
 @implements IAsyncDisposable
 
 <HeadContent>
-    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260820-replay-live-goal-opening-1" />
+    <link rel="modulepreload" href="/js/dist/futurebol/futurebol-bootstrap.js?v=20260822-official-goal-field-1" />
     <link rel="preload" href="/js/futurebol/vendor/babylon.js?v=8.19.0" as="script" />
     <link rel="preload" href="/js/futurebol/vendor/babylonjs.loaders.min.js?v=8.19.0" as="script" />
     <link rel="preload" href="/assets/futurebol/players/futurebol-humanoid.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous" />
@@ -685,10 +685,9 @@ else
     private string _lastAppliedAudioDebugCulture = string.Empty;
     private int? _lastScoreEventMatchId;
     private long? _lastSeenScoreEventId;
-    private long? _lastTriggeredGoalEventId;
     private long? _lastProceduralPlaybackEventId;
     private long? _lastAudioDebugSnapshotEventId;
-    private string _lastGoalTriggerSignature = string.Empty;
+    private readonly HashSet<long> _confirmedFuturebolGoalEventIds = [];
     private string _lastGoalAudioSignature = string.Empty;
     private DateTime _lastGoalAudioAtUtc = DateTime.MinValue;
     private string _lastGoalAudioPlaybackKind = string.Empty;
@@ -958,8 +957,8 @@ else
         RightName = DisplayRightName(),
         LeftLogoUrl = GetLogoUrl(DisplayLeftLogoUrl()),
         RightLogoUrl = GetLogoUrl(DisplayRightLogoUrl()),
-        LeftScore = IsFuturebolSynchronizationReplay ? _futurebolReplayHomeScore : DisplayLeftScore(),
-        RightScore = IsFuturebolSynchronizationReplay ? _futurebolReplayAwayScore : DisplayRightScore(),
+        LeftScore = HasFuturebolVisualScore ? _futurebolReplayHomeScore : DisplayLeftScore(),
+        RightScore = HasFuturebolVisualScore ? _futurebolReplayAwayScore : DisplayRightScore(),
         IsSynchronizationReplay = IsFuturebolSynchronizationReplay,
         PulseScoreboard = _pulseScoreboard,
         PulseLeftScore = _pulseLeftScore,
@@ -1025,9 +1024,12 @@ else
                                                                 InitialHistoryReady="@_initialHistoryReady"
                                                                 HomeLogoUrl="@GetLogoUrl(DisplayLeftLogoUrl())"
                                                                 AwayLogoUrl="@GetLogoUrl(DisplayRightLogoUrl())"
-                                                                ReplayStateChanged="@HandleFuturebolReplayStateChanged" />;
+                                                                ReplayStateChanged="@HandleFuturebolReplayStateChanged"
+                                                                GoalConfirmed="@HandleFuturebolGoalConfirmed" />;
     private bool IsFuturebolSynchronizationReplay
         => _futurebolReplayActive && _futurebolReplayMatchId == CurrentStageMatchId;
+    private bool HasFuturebolVisualScore
+        => _futurebolReplayMatchId == CurrentStageMatchId;
 
     private Task HandleFuturebolReplayStateChanged(FuturebolReplayHudState state)
     {
@@ -1053,6 +1055,43 @@ else
             state.HomeScore,
             state.AwayScore);
         return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleFuturebolGoalConfirmed(FuturebolGoalConfirmation confirmation)
+    {
+        if (_isDisposed
+            || confirmation.MatchId != CurrentStageMatchId
+            || !_confirmedFuturebolGoalEventIds.Add(confirmation.EventId))
+        {
+            return;
+        }
+
+        var current = CaptureSnapshot();
+        if (current is null)
+            return;
+
+        var homeScored = string.Equals(confirmation.Team, "home", StringComparison.Ordinal);
+        var scoreEvent = _allScoreEvents.FirstOrDefault(item =>
+            item.MatchScoreEventId == confirmation.EventId)
+            ?? new MatchScoreEventDto
+            {
+                MatchScoreEventId = confirmation.EventId,
+                MatchId = confirmation.MatchId,
+                TeamSymbol = homeScored ? current.LeftSymbol : current.RightSymbol,
+                NormalizedTeamSymbol = homeScored ? current.LeftSymbol : current.RightSymbol,
+                EventType = "goal",
+                MappedEventType = "goal",
+                Points = 1
+            };
+        await PulseScoreAsync(homeScored, !homeScored, false);
+        await TryPlayGoalAudioAsync(current, scoreEvent, confirmation.EventId);
+        Logger.LogInformation(
+            "[Futurebol][Goal] confirmed matchId={MatchId} eventId={EventId} team={Team} scorer={Scorer} replay={Replay}",
+            confirmation.MatchId,
+            confirmation.EventId,
+            confirmation.Team,
+            confirmation.ScorerPlayerId,
+            confirmation.SynchronizationReplay);
     }
     private bool IsPortugueseCulture => string.Equals(Culture, AppCultureService.SecondaryRouteCulture, StringComparison.OrdinalIgnoreCase);
     private string PirateHeaderTitle => ResolveBroadcastCinematicHeaderTitle();
@@ -1259,7 +1298,7 @@ private async Task PreloadFuturebolRuntimeAsync()
     {
         _futurebolPreloadModule = await JS.InvokeAsync<IJSObjectReference>(
             "import",
-            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260820-replay-live-goal-opening-1");
+            "/js/dist/futurebol/futurebol-bootstrap.js?v=20260822-official-goal-field-1");
         await _futurebolPreloadModule.InvokeVoidAsync("preload");
     }
     catch (JSDisconnectedException)
@@ -1643,11 +1682,10 @@ private void ProcessBroadcastState()
         _initialHistoryReady = false;
         _lastScoreEventMatchId = current.MatchId;
         _lastSeenScoreEventId = null;
-        _lastTriggeredGoalEventId = null;
-        _lastGoalTriggerSignature = string.Empty;
         _lastGoalAudioSignature = string.Empty;
         _lastGoalAudioAtUtc = DateTime.MinValue;
         _lastGoalAudioPlaybackKind = string.Empty;
+        _confirmedFuturebolGoalEventIds.Clear();
         _proceduralGoalAudioSrc = null;
         _autoReplayRemainingPlays = 0;
         _autoReplaySignature = string.Empty;
@@ -1693,13 +1731,7 @@ private void ProcessBroadcastState()
 
     if (hasScoreChange)
     {
-        _ = PulseScoreAsync(current.LeftScore > _previousSnapshot.LeftScore, current.RightScore > _previousSnapshot.RightScore, hotScoreSpike);
-        _ = TriggerEventAsync(CreateGoalEvent(current));
-        _ = QueueNarrationAsync(CreateGoalNarration(current));
         _ = MaybeRefreshAiNarrationAsync("goal");
-        MarkGoalTrigger(current);
-        ArmAutoReplay(current, _previousSnapshot);
-        _ = TryPlayGoalAudioAsync(current);
     }
     else if (scoreLeaderChanged)
     {
@@ -3112,31 +3144,6 @@ private async Task DetectRecentScoreEventsAsync()
             .OrderByDescending(x => x.MatchScoreEventId)
             .FirstOrDefault();
 
-        if (latestGoalEvent is not null
-            && (!_lastTriggeredGoalEventId.HasValue || latestGoalEvent.MatchScoreEventId > _lastTriggeredGoalEventId.Value))
-        {
-            var currentGoalSignature = BuildGoalTriggerSignature(current);
-            var latestProceduralAudioUrl = NormalizeProceduralGoalAudioUrl(latestGoalEvent.AudioUrl);
-            var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(latestProceduralAudioUrl)
-                && string.Equals(currentGoalSignature, _lastGoalAudioSignature, StringComparison.Ordinal)
-                && !string.Equals(_lastGoalAudioPlaybackKind, "procedural", StringComparison.Ordinal);
-
-            if (!string.Equals(currentGoalSignature, _lastGoalTriggerSignature, StringComparison.Ordinal) || canUpgradeToProcedural)
-            {
-                _lastTriggeredGoalEventId = latestGoalEvent.MatchScoreEventId;
-                await PulseScoreAsync(
-                    string.Equals(latestGoalEvent.TeamSymbol, current.LeftSymbol, StringComparison.OrdinalIgnoreCase),
-                    string.Equals(latestGoalEvent.TeamSymbol, current.RightSymbol, StringComparison.OrdinalIgnoreCase),
-                    false);
-                await TriggerEventAsync(CreateGoalEvent(current, latestGoalEvent.TeamSymbol));
-                await QueueNarrationAsync(CreateGoalNarration(current, latestGoalEvent.TeamSymbol));
-                _ = PlayReplayAsync(CreateScoreReplayEvent(current, latestGoalEvent));
-                MarkGoalTrigger(current);
-                ArmAutoReplayForEvents(current, newEvents);
-                await TryPlayGoalAudioAsync(current, latestGoalEvent);
-            }
-        }
-
         await TryPlayProceduralArenaEventAsync(current, newEvents);
         if (latestGoalEvent is not null)
             _ = MaybeRefreshAiNarrationAsync("goal");
@@ -3830,37 +3837,6 @@ private sealed record TvAvailableMatchCard(
     string PublicUrl,
     string WatchUrl,
     bool IsCurrent);
-
-private TvOverlayEvent CreateGoalEvent(BroadcastSnapshot current, string? scorerOverride = null)
-{
-    var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
-        ? scorerOverride
-        : current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
-    var displayScorer = GetBaseSymbol(scorer);
-    return new TvOverlayEvent("goal", T("events.goalKicker"), T("events.goalTitle", displayScorer), DisplayScoreContext(), GetAccentColor(displayScorer));
-}
-
-private TvNarrationEvent CreateGoalNarration(BroadcastSnapshot current, string? scorerOverride = null)
-{
-    var scorer = !string.IsNullOrWhiteSpace(scorerOverride)
-        ? scorerOverride
-        : current.LeftScore > _previousSnapshot!.LeftScore ? current.LeftSymbol : current.RightSymbol;
-    var displayScorer = GetBaseSymbol(scorer);
-    var opposing = scorer == current.LeftSymbol ? current.RightSymbol : current.LeftSymbol;
-    var displayOpposing = GetBaseSymbol(opposing);
-    return new TvNarrationEvent
-    {
-        Type = "goal",
-        Severity = "high",
-        Text = T("narration.goalText", displayScorer),
-        Subtitle = T("narration.goalSubtitle", DisplayScoreContext(), displayOpposing),
-        Asset = displayScorer,
-        Side = scorer == current.LeftSymbol ? "left" : "right",
-        Animation = "zoom-burst",
-        DurationMs = 3400,
-        CooldownMs = 300
-    };
-}
 
 private TvOverlayEvent CreateLeaderEvent(BroadcastSnapshot current)
     => new("leaderChange", T("events.leaderChangeKicker"), T("events.leaderChangeTitle", current.LeaderSymbol), T("events.leaderChangeBody"), GetAccentColor(current.LeaderSymbol));
@@ -6883,12 +6859,17 @@ private static string? ResolveLegacyArenaCueKey(string mappedEventType)
         _ => null
     };
 
-private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current, MatchScoreEventDto? scoreEvent = null)
+private async Task TryPlayGoalAudioAsync(
+    BroadcastSnapshot current,
+    MatchScoreEventDto? scoreEvent = null,
+    long? confirmedEventId = null)
 {
     if (!ShouldRenderGoalAudio)
         return;
 
-    var signature = BuildGoalTriggerSignature(current);
+    var signature = confirmedEventId is > 0
+        ? $"{current.MatchId}|event|{confirmedEventId.Value}"
+        : BuildGoalTriggerSignature(current);
     var mappedEventType = ResolveMappedEventType(scoreEvent ?? new MatchScoreEventDto { EventType = "goal" });
     var proceduralAudioUrl = NormalizeProceduralGoalAudioUrl(scoreEvent?.AudioUrl);
     var canUpgradeToProcedural = !string.IsNullOrWhiteSpace(proceduralAudioUrl)
@@ -6902,7 +6883,8 @@ private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current, MatchScoreEv
         return;
 
     // Anti-loop guard: if some upstream signal oscillates, never spam the sting.
-    if (!canUpgradeToProcedural
+    if (!confirmedEventId.HasValue
+        && !canUpgradeToProcedural
         && _lastGoalAudioAtUtc != DateTime.MinValue
         && DateTime.UtcNow - _lastGoalAudioAtUtc < TimeSpan.FromSeconds(6))
     {
@@ -6999,7 +6981,7 @@ private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current, MatchScoreEv
             await _tvModule.InvokeVoidAsync("playTvAudioCue", "goal", new
             {
                 priority = 100,
-                cooldownMs = 6500,
+                cooldownMs = confirmedEventId.HasValue ? 0 : 6500,
                 volume = (double)ResolveCrowdAudioVolume(),
                 muted = _isCrowdAudioMuted,
                 eventType = mappedEventType,
@@ -7065,7 +7047,7 @@ private async Task TryPlayGoalAudioAsync(BroadcastSnapshot current, MatchScoreEv
         await JS.InvokeVoidAsync("playTvAudioCue", "goal", new
         {
             priority = 100,
-            cooldownMs = 6500,
+            cooldownMs = confirmedEventId.HasValue ? 0 : 6500,
             volume = (double)ResolveCrowdAudioVolume(),
             muted = _isCrowdAudioMuted,
             eventType = mappedEventType,
@@ -7221,11 +7203,6 @@ private async Task<bool> TryPlayProceduralGoalAudioAsync(
 
 private static string? NormalizeProceduralGoalAudioUrl(string? audioUrl)
     => string.IsNullOrWhiteSpace(audioUrl) ? null : audioUrl.Trim();
-
-private void MarkGoalTrigger(BroadcastSnapshot current)
-{
-    _lastGoalTriggerSignature = BuildGoalTriggerSignature(current);
-}
 
 private static string BuildGoalTriggerSignature(BroadcastSnapshot current)
     => $"{current.MatchId}|{current.LeftScore}|{current.RightScore}|{current.LeaderSymbol}";

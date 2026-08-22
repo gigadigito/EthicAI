@@ -102,6 +102,13 @@ export interface FuturebolOfficialScoreEvent {
     occurredAtUtc: string;
 }
 
+export interface FuturebolOfficialGoalConfirmation {
+    eventId: number;
+    team: FuturebolTeam;
+    scorerPlayerId: string;
+    synchronizationReplay: boolean;
+}
+
 export interface FuturebolOfficialMatchState {
     matchId: number;
     sequence: number;
@@ -224,5 +231,12 @@ export interface FuturebolDotNetReference {
         awayScore: number,
         targetHomeScore: number,
         targetAwayScore: number
+    ): Promise<void>;
+    invokeMethodAsync(
+        methodName: "ReportFuturebolGoalConfirmed",
+        eventId: number,
+        team: FuturebolTeam,
+        scorerPlayerId: string,
+        synchronizationReplay: boolean
     ): Promise<void>;
 }

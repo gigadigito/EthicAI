@@ -222,8 +222,19 @@ replayState.applyOfficialMatchState(officialState({
 }), true);
 
 const observedReplayScores = ["0x0"];
+const replayGoalConfirmations = [];
 let lastReplayScore = "0x0";
 advanceUntil(replayState, () => {
+    for (const confirmation of replayState.takeOfficialGoalConfirmations()) {
+        replayGoalConfirmations.push(confirmation);
+        assert.equal(
+            confirmation.team === "home"
+                ? replayState.ballPosition.x > 25
+                : replayState.ballPosition.x < -25,
+            true,
+            "a confirmação só pode ser publicada depois que a bola cruza a linha correta"
+        );
+    }
     const score = `${replayState.displayHomeScore}x${replayState.displayAwayScore}`;
     if (score !== lastReplayScore) {
         observedReplayScores.push(score);
@@ -238,6 +249,16 @@ assert.deepEqual(
     ["0x0", "1x0", "1x1", "1x2", "2x2"],
     "o placar visual deve seguir a ordem real dos gols encenados"
 );
+assert.deepEqual(
+    replayGoalConfirmations,
+    replayEvents.map(event => ({
+        eventId: event.id,
+        team: event.team,
+        scorerPlayerId: `${event.team}-attacker`,
+        synchronizationReplay: true
+    })),
+    "BTC 1x0, ETH 1x1, ETH 1x2 e BTC 2x2 devem usar atacante, lado e eventId corretos"
+);
 assert.equal(replayState.isSynchronizationReplay, false, "REPLAY deve desaparecer após o último histórico");
 assert.equal(replayState.displayHomeScore, 2);
 assert.equal(replayState.displayAwayScore, 2);
@@ -250,8 +271,29 @@ replayState.applyOfficialMatchState(officialState({
     scoreEvents: [...replayEvents, liveEvent]
 }), true);
 assert.equal(replayState.isSynchronizationReplay, false, "um gol novo depois do catch-up não pode reativar REPLAY");
-assert.equal(replayState.displayHomeScore, 3, "depois do replay o HUD deve voltar ao placar live");
+assert.equal(replayState.displayHomeScore, 2, "o HUD live aguarda a bola cruzar a linha antes de mostrar o gol");
 assert.equal(replayState.homeScore, 3, "o placar live continua sendo autoritativo");
+let liveGoalConfirmation = null;
+advanceUntil(replayState, () => {
+    liveGoalConfirmation ??= replayState.takeOfficialGoalConfirmations()[0] ?? null;
+    return liveGoalConfirmation !== null;
+});
+assert.deepEqual(liveGoalConfirmation, {
+    eventId: liveEvent.id,
+    team: "home",
+    scorerPlayerId: "home-attacker",
+    synchronizationReplay: false
+});
+assert.ok(replayState.ballPosition.x > 25, "o novo GOAL live também cruza a linha adversária");
+assert.equal(replayState.displayHomeScore, 3, "o placar live muda na confirmação visual");
+replayState.applyOfficialMatchState(officialState({
+    sequence: 5,
+    homeScore: 3,
+    awayScore: 2,
+    scoreEvents: [...replayEvents, liveEvent]
+}), true);
+for (let frame = 0; frame < 240; frame++) replayState.update(1 / 60);
+assert.deepEqual(replayState.takeOfficialGoalConfirmations(), [], "eventId duplicado não gera outro gol nem outro áudio");
 
 const alreadySynchronizedState = new FuturebolMatchState("official-no-catch-up", true);
 alreadySynchronizedState.applyOfficialMatchState(officialState({
@@ -327,9 +369,10 @@ sevenSixState.applyOfficialMatchState(officialState({
     scoreEvents: [...sevenSixEvents, scoreEvent(7013, 14, "home")]
 }), true);
 assert.equal(sevenSixState.isSynchronizationReplay, false, "gol live pós-replay não reativa REPLAY");
-assert.equal(sevenSixState.displayHomeScore, 8);
+assert.equal(sevenSixState.displayHomeScore, 7, "gol live pós-replay aguarda cruzar a linha");
 assert.equal(sevenSixState.homeScore, 8);
 assert.equal(sevenSixState.synchronizationPhase, "LIVE", "gol posterior não pode reabrir REPLAY");
+advanceUntil(sevenSixState, () => sevenSixState.displayHomeScore === 8);
 
 const advancingCatchUpState = new FuturebolMatchState("official-replay-advancing-target", true);
 const firstCatchUpEvent = scoreEvent(7500, 1, "home");
@@ -403,8 +446,10 @@ zeroZeroEmpty.applyOfficialMatchState(officialState({
     scoreEvents: [scoreEvent(9000, 1, "home")]
 }), true);
 assert.equal(zeroZeroEmpty.isSynchronizationReplay, false, "primeiro gol real deve ser LIVE");
-assert.equal(zeroZeroEmpty.displayHomeScore, 1);
+assert.equal(zeroZeroEmpty.displayHomeScore, 0, "placar live espera a confirmação visual");
 assert.equal(zeroZeroEmpty.homeScore, 1);
+advanceUntil(zeroZeroEmpty, () => zeroZeroEmpty.takeOfficialGoalConfirmations().length > 0);
+assert.equal(zeroZeroEmpty.displayHomeScore, 1);
 
 const groupedLiveGoals = new FuturebolMatchState("official-grouped-live", true);
 groupedLiveGoals.applyOfficialMatchState(officialState({
@@ -427,8 +472,9 @@ groupedLiveGoals.applyOfficialMatchState(officialState({
     ]
 }), true);
 assert.equal(groupedLiveGoals.isSynchronizationReplay, false, "gols agrupados em LIVE continuam LIVE");
-assert.equal(groupedLiveGoals.displayHomeScore, 2);
+assert.equal(groupedLiveGoals.displayHomeScore, 0, "fila live não salta diretamente para o placar final");
 assert.equal(groupedLiveGoals.homeScore, 2);
+advanceUntil(groupedLiveGoals, () => groupedLiveGoals.displayHomeScore === 2);
 
 const reloadReplayState = new FuturebolMatchState("official-reload-replay", true);
 reloadReplayState.applyOfficialMatchState(officialState({
@@ -521,6 +567,8 @@ pathBAfterLive.applyOfficialMatchState(officialState({
     ]
 }), true);
 assert.equal(pathBAfterLive.isSynchronizationReplay, false, "gol live pós-replay nunca reativa REPLAY");
-assert.equal(pathBAfterLive.displayHomeScore, 3, "HUD acompança placar live");
+assert.equal(pathBAfterLive.displayHomeScore, 2, "HUD live espera a confirmação no campo");
+advanceUntil(pathBAfterLive, () => pathBAfterLive.displayHomeScore === 3);
+assert.equal(pathBAfterLive.displayHomeScore, 3, "HUD acompanha o gol live confirmado");
 
 console.log("Futurebol official match state tests passed");

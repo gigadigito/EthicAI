@@ -1,9 +1,9 @@
 import type { FuturebolMatchState as FuturebolMatchStateContract } from "./futurebol-match-state.js";
 // @ts-ignore Browser module queries are intentional: replay state must not come from a stale module.
-import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260820-replay-live-goal-opening-1";
+import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260822-official-goal-field-1";
 import type { FuturebolRenderer as FuturebolRendererContract } from "./futurebol-renderer.js";
 // @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
-import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260820-replay-live-goal-opening-1";
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260822-official-goal-field-1";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import type {
     FuturebolDotNetReference,
@@ -379,6 +379,8 @@ export class FuturebolEngine {
             if (!this.paused)
                 this.state.update(deltaSeconds);
 
+            this.notifyOfficialGoalConfirmations();
+
             if (
                 replayWasActive !== this.state.isSynchronizationReplay ||
                 replayHomeScore !== this.state.displayHomeScore ||
@@ -570,6 +572,21 @@ export class FuturebolEngine {
             "[Futurebol][Replay] HUD state report failed",
             error
         ));
+    }
+
+    private notifyOfficialGoalConfirmations(): void {
+        for (const confirmation of this.state.takeOfficialGoalConfirmations()) {
+            void this.dotNetReference.invokeMethodAsync(
+                "ReportFuturebolGoalConfirmed",
+                confirmation.eventId,
+                confirmation.team,
+                confirmation.scorerPlayerId,
+                confirmation.synchronizationReplay
+            ).catch(error => console.warn(
+                "[Futurebol][Goal] confirmation report failed",
+                error
+            ));
+        }
     }
 
     private updatePauseStatus(paused: boolean): void {

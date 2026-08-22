@@ -83,10 +83,10 @@ assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"')
 assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
 assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngineContract>()"));
-assert.ok(bootstrap.includes('futurebol-engine.js?v=20260820-replay-live-goal-opening-1'), "the cache-busted entry must also version its engine dependency");
-assert.ok(engine.includes('futurebol-match-state.js?v=20260820-replay-live-goal-opening-1'), "the replay state machine must cross the same cache boundary as the engine");
-assert.ok(engine.includes('futurebol-renderer.js?v=20260820-replay-live-goal-opening-1'), "the engine must force the current renderer through stale module caches");
-assert.ok(renderer.includes('futurebol-arena.js?v=20260820-replay-live-goal-opening-1'), "the renderer must force the real arena builder through stale module caches");
+assert.ok(bootstrap.includes('futurebol-engine.js?v=20260822-official-goal-field-1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(engine.includes('futurebol-match-state.js?v=20260822-official-goal-field-1'), "the replay state machine must cross the same cache boundary as the engine");
+assert.ok(engine.includes('futurebol-renderer.js?v=20260822-official-goal-field-1'), "the engine must force the current renderer through stale module caches");
+assert.ok(renderer.includes('futurebol-arena.js?v=20260822-official-goal-field-1'), "the renderer must force the real arena builder through stale module caches");
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
 assert.ok(bootstrap.includes("[FUTUREBOL-TV][READY] initialize success"));
 assert.ok(bootstrap.includes("let preloadPromise: Promise<void> | null = null"), "page preload must be idempotent");
@@ -133,11 +133,19 @@ assert.ok(renderer.includes("this.arena?.setQuality(quality)"), "stadium detail 
 assert.ok(arena.includes("[Futurebol][Arena] REAL_STADIUM_BUILDER_ACTIVE"), "the real shared arena builder must emit an unmistakable runtime marker");
 assert.ok(arena.includes('thinInstanceSetBuffer("matrix"'), "seats and crowd must use thin instances");
 assert.ok(host.includes("ReplayStateChanged"), "the Futurebol host must forward replay HUD changes to TvStage");
-assert.ok(stage.includes("IsFuturebolSynchronizationReplay"), "the TV scoreboard must select replay scores only during initial catch-up");
+assert.ok(stage.includes("HasFuturebolVisualScore"), "the TV scoreboard must follow the score confirmed inside Futurebol");
 assert.ok(fieldPanel.includes("tv-scoreboard__replay"), "the shared Match/Broadcast scoreboard must render the REPLAY badge");
 assert.ok(fieldPanel.includes('@(Model.IsSynchronizationReplay ? "is-replay" : string.Empty)'), "the replay class must be removed from the DOM model in LIVE");
 assert.ok(engine.includes("replayWasActive !== this.state.isSynchronizationReplay"), "REPLAY -> LIVE must notify Blazor in the transition frame");
 assert.ok(engine.includes('"ReportFuturebolReplayState"'), "the engine must report the final active=false state through interop");
+assert.ok(engine.includes('"ReportFuturebolGoalConfirmed"'), "the line-crossing frame must report the official GOAL to Blazor");
+assert.ok(host.includes("GoalConfirmed"), "the Futurebol host must forward confirmed goals to TvStage");
+assert.ok(stage.includes("HandleFuturebolGoalConfirmed"), "TvStage must trigger score feedback and audio from the 3D confirmation");
+assert.equal(stage.includes("TriggerEventAsync(CreateGoalEvent"), false, "the full-field legacy GOAL card cannot compete with Futurebol");
+assert.equal(stage.includes("QueueNarrationAsync(CreateGoalNarration"), false, "the giant GOAL narration cannot cover the 3D play");
+assert.equal(stage.includes("PlayReplayAsync(CreateScoreReplayEvent(current, latestGoalEvent"), false, "the legacy 2D goal replay cannot run beside the Futurebol sequence");
+assert.equal(stage.includes("TryPlayGoalAudioAsync(current, latestGoalEvent"), false, "score polling cannot play goal audio before the ball enters");
+assert.equal(stage.includes("_ = TryPlayGoalAudioAsync(current);"), false, "snapshot score changes cannot play goal audio before visual confirmation");
 assert.ok(stage.includes("return InvokeAsync(StateHasChanged)"), "TvStage must render replay state changes on the Blazor UI context");
 assert.ok(fieldPanel.includes("opacity: .7"), "the REPLAY badge pulse must visibly change luminosity without an aggressive flash");
 assert.ok(arena.includes("Mesh.MergeMeshes"), "repeated stadium modules must be merged before rendering");
