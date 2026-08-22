@@ -15,11 +15,12 @@
                     <div class="tv-football-side__cta-wrap">
                         @if (Model.CanInvestInArena)
                         {
-                            <a class="tv-football-side__cta tv-football-side__cta--left"
-                               style="@Model.LeftBetButtonStyle"
-                               href="@Model.ArenaInvestmentUrl">
+                            <button type="button"
+                                    class="tv-football-side__cta tv-football-side__cta--left"
+                                    style="@Model.LeftBetButtonStyle"
+                                    @onclick="() => OnInvestmentRequested.InvokeAsync(TvStageInvestmentSide.Left)">
                                 @Model.InvestLabel
-                            </a>
+                            </button>
                         }
                         else
                         {
@@ -83,11 +84,12 @@
                     <div class="tv-football-side__cta-wrap">
                         @if (Model.CanInvestInArena)
                         {
-                            <a class="tv-football-side__cta tv-football-side__cta--right"
-                               style="@Model.RightBetButtonStyle"
-                               href="@Model.ArenaInvestmentUrl">
+                            <button type="button"
+                                    class="tv-football-side__cta tv-football-side__cta--right"
+                                    style="@Model.RightBetButtonStyle"
+                                    @onclick="() => OnInvestmentRequested.InvokeAsync(TvStageInvestmentSide.Right)">
                                 @Model.InvestLabel
-                            </a>
+                            </button>
                         }
                         else
                         {
@@ -114,7 +116,7 @@
                     <div class="tv-team__cta-wrap">
                         @if (Model.CanInvestInArena)
                         {
-                            <a class="tv-team__cta tv-team__cta--left" style="@Model.LeftBetButtonStyle" href="@Model.ArenaInvestmentUrl">@Model.InvestLabel</a>
+                            <button type="button" class="tv-team__cta tv-team__cta--left" style="@Model.LeftBetButtonStyle" @onclick="() => OnInvestmentRequested.InvokeAsync(TvStageInvestmentSide.Left)">@Model.InvestLabel</button>
                         }
                         else
                         {
@@ -162,7 +164,7 @@
                     <div class="tv-team__cta-wrap">
                         @if (Model.CanInvestInArena)
                         {
-                            <a class="tv-team__cta tv-team__cta--right" style="@Model.RightBetButtonStyle" href="@Model.ArenaInvestmentUrl">@Model.InvestLabel</a>
+                            <button type="button" class="tv-team__cta tv-team__cta--right" style="@Model.RightBetButtonStyle" @onclick="() => OnInvestmentRequested.InvokeAsync(TvStageInvestmentSide.Right)">@Model.InvestLabel</button>
                         }
                         else
                         {
@@ -454,6 +456,7 @@
     [Parameter] public Func<string, string>? BuildArenaCommentaryAccentStyle { get; set; }
     [Parameter] public Func<TvStageCommentaryEntryModel, string>? GetArenaCommentaryClickTitle { get; set; }
     [Parameter] public EventCallback<TvStageCommentaryEntryModel> OnCommentaryClick { get; set; }
+    [Parameter] public EventCallback<TvStageInvestmentSide> OnInvestmentRequested { get; set; }
 
     private string ResolveCommentaryClickTitle(TvStageCommentaryEntryModel commentary)
         => GetArenaCommentaryClickTitle?.Invoke(commentary) ?? string.Empty;

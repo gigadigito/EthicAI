@@ -11,7 +11,6 @@ public sealed class TvStageRenderModel
     public bool IsTvFullscreenLayout { get; init; }
     public bool UseFootballFieldLayout { get; init; }
     public bool CanInvestInArena { get; init; }
-    public string ArenaInvestmentUrl { get; init; } = "#";
     public string InvestLabel { get; init; } = string.Empty;
     public string HomeUrl { get; init; } = "/";
     public string EyebrowLabel { get; init; } = string.Empty;
@@ -94,6 +93,12 @@ public sealed class TvStageRenderModel
     public string ArenaPressureStatusLabel { get; init; } = string.Empty;
     public string ArenaPressureDescription { get; init; } = string.Empty;
     public bool UseCompactArenaGauge { get; init; }
+}
+
+public enum TvStageInvestmentSide
+{
+    Left,
+    Right
 }
 
 public sealed record TvStageCommentaryEntryModel(

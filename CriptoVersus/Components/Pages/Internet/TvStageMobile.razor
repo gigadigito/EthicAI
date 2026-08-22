@@ -43,7 +43,8 @@
                        BuildArenaCommentaryAccentStyle="@BuildArenaCommentaryAccentStyle"
                        GetArenaCommentaryClickTitle="@GetArenaCommentaryClickTitle"
                        OnCommentaryClick="@OnCommentaryClick"
-                           FieldContent="@FieldContent" />
+                       OnInvestmentRequested="@OnInvestmentRequested"
+                       FieldContent="@FieldContent" />
 
     <TvStageTelemetryStack Model="@Model"
                            Variant="mobile"
@@ -104,6 +105,7 @@
     [Parameter] public Func<string, string>? BuildArenaCommentaryAccentStyle { get; set; }
     [Parameter] public Func<TvStageCommentaryEntryModel, string>? GetArenaCommentaryClickTitle { get; set; }
     [Parameter] public Func<TvStageCommentaryEntryModel, Task>? OnCommentaryClick { get; set; }
+    [Parameter] public EventCallback<TvStageInvestmentSide> OnInvestmentRequested { get; set; }
     [Parameter] public RenderFragment? FieldContent { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? FormatGoalLogTime { get; set; }
     [Parameter] public Func<MatchScoreEventDto, string>? DescribeGoalLog { get; set; }

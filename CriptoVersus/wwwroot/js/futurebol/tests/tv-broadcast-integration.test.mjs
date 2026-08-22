@@ -15,6 +15,7 @@ const tablet = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageTab
 const mobile = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageMobile.razor`, "utf8");
 const fieldPanel = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStageFieldPanel.razor`, "utf8");
 const matchDetail = readFileSync(`${projectRoot}/Components/Pages/Internet/MatchDetail.razor`, "utf8");
+const investmentModal = readFileSync(`${projectRoot}/Components/Pages/Internet/MatchInvestmentModal.razor`, "utf8");
 const bootstrap = readFileSync(`${futurebolRoot}/futurebol-bootstrap.ts`, "utf8");
 const babylonLoader = readFileSync(`${futurebolRoot}/futurebol-babylon-loader.ts`, "utf8");
 const engine = readFileSync(`${futurebolRoot}/futurebol-engine.ts`, "utf8");
@@ -43,17 +44,21 @@ assert.ok(matchPageCss.includes("grid-template-columns: 1fr"), "mobile modal act
 assert.ok(broadcastPage.includes('@page "/tv/broadcast"'));
 assert.ok(broadcastPage.includes("<TvStage"), "Broadcast must enter the shared TvStage");
 assert.ok(stage.includes("<TvFuturebolField"), "TvStage must render Futurebol in its FieldContent slot");
-assert.ok(
-    stage.includes('string.IsNullOrWhiteSpace(CurrentRealMatchUrl)')
-        && stage.includes('$"{CurrentRealMatchUrl}#match-investment"'),
-    "enabled Choose links must leave the TV route and open the real match investment panel"
-);
+assert.equal(stage.includes('#match-investment'), false, "Choose inside TV must not use the match-page deep link");
+assert.ok(stage.includes('InvestmentRequested="@OpenInvestmentModalAsync"') || stage.includes('OnInvestmentRequested="@InvestmentRequested"'), "TvStage must forward Choose as an in-place callback");
+assert.ok(fieldPanel.includes('OnInvestmentRequested.InvokeAsync(TvStageInvestmentSide.Left)'), "left Choose must request the shared modal without navigation");
+assert.ok(fieldPanel.includes('OnInvestmentRequested.InvokeAsync(TvStageInvestmentSide.Right)'), "right Choose must request the shared modal without navigation");
+assert.equal(fieldPanel.includes('href="@Model.ArenaInvestmentUrl"'), false, "enabled Choose controls cannot remain navigation links");
+assert.ok(matchPage.includes('<MatchInvestmentModal @ref="_investmentModal"'), "fixed Match TV must host the shared investment modal beside TvStage");
+assert.ok(broadcastPage.includes('<MatchInvestmentModal @ref="_investmentModal"'), "automatic TV must host the shared investment modal beside TvStage");
+assert.ok(matchDetail.includes('<MatchInvestmentModal @ref="_investmentModal"'), "the regular match page must reuse the same investment modal");
+assert.ok(investmentModal.includes('prepareInvestment') && investmentModal.includes('/api/match/{matchId}/bet'), "the shared modal must own the existing validated investment flow");
 assert.ok(fieldPanel.includes("@if (Model.CanInvestInArena)"), "Choose availability must continue following the investment business rule");
 assert.ok(fieldPanel.includes("disabled>@Model.InvestLabel</button>"), "closed investment windows must continue rendering a genuinely disabled button");
 assert.ok(stage.includes("@@media (max-width: 1080px)") && stage.includes(".tv-fixed-audio-test {\n            display: none;"), "the redundant fixed audio test must not cover Choose on tablet or mobile");
 assert.ok(mobile.includes('PlayKnownArenaAudioAsync="@PlayKnownArenaAudioAsync"'), "mobile must retain the audio test in its regular topbar");
 assert.ok(matchDetail.includes('"scrollToCurrentFragment"'), "the asynchronously rendered investment panel must resolve its URL fragment");
-assert.ok(matchDetail.includes('"match-investment"'), "Choose must target the existing investment panel id");
+assert.ok(matchDetail.includes('"match-investment"'), "the external deep link destination must remain available on the match page");
 
 const { scrollToCurrentFragment } = await import("../../matchDetailNavigation.mjs");
 let scrollOptions = null;

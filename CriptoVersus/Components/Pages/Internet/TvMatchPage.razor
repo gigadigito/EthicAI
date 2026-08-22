@@ -3,6 +3,7 @@
 @using System.Diagnostics
 @using System.Text.Json
 @using DTOs
+@using CriptoVersus.Components.Pages.Internet
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
 @inject HotMatchService HotMatches
@@ -57,7 +58,8 @@
                      LatestBattlesLoading="@_latestBattlesLoading"
                      LatestBattlesError="@_latestBattlesError"
                      MarketPulseLoading="@_marketPulseLoading"
-                     MarketPulseError="@_marketPulseError" />
+                     MarketPulseError="@_marketPulseError"
+                     InvestmentRequested="@OpenInvestmentModalAsync" />
         }
         else
         {
@@ -120,6 +122,10 @@
     }
 </main>
 
+<MatchInvestmentModal @ref="_investmentModal"
+                      Culture="@_culture"
+                      InvestmentCompleted="@HandleInvestmentCompletedAsync" />
+
 @code {
     private const int RefreshIntervalSeconds = 15;
     private static readonly TimeSpan InitialLoadTimeout = TimeSpan.FromSeconds(8);
@@ -131,6 +137,7 @@
 
     private string _culture = AppCultureService.DefaultRouteCulture;
     private MatchDto? _match;
+    private MatchInvestmentModal? _investmentModal;
     private TvHotMatchDto? _hotMatch;
     private HotMatchDto? _nextAvailableMatch;
     private StatsOverviewDto? _stats;
@@ -153,6 +160,14 @@
     private string? _topCoinsError;
     private string? _latestBattlesError;
     private string? _marketPulseError;
+
+    private Task OpenInvestmentModalAsync(TvStageInvestmentSide side)
+        => _match is not null && _investmentModal is not null
+            ? _investmentModal.OpenAsync(_match, side)
+            : Task.CompletedTask;
+
+    private Task HandleInvestmentCompletedAsync(int _)
+        => RefreshMatchOnlyAsync(CancellationToken.None);
 
     private string LoadStateTitle => _loadState switch
     {

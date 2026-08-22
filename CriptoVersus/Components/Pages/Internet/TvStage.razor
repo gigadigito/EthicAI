@@ -232,6 +232,7 @@ else if (HasLiveMatch)
                                BuildArenaCommentaryAccentStyle="@GetArenaCommentaryAccentStyle"
                                GetArenaCommentaryClickTitle="@GetArenaCommentaryClickTitle"
                                OnCommentaryClick="@HandleArenaCommentaryClickAsync"
+                               OnInvestmentRequested="@InvestmentRequested"
                                FormatGoalLogTime="@FormatGoalLogTime"
                                DescribeGoalLog="@DescribeGoalLog"
                                ResolveGoalLogTeamLogoUrl="@ResolveGoalLogTeamLogoUrlForItem"
@@ -275,6 +276,7 @@ else if (HasLiveMatch)
                                BuildArenaCommentaryAccentStyle="@GetArenaCommentaryAccentStyle"
                                GetArenaCommentaryClickTitle="@GetArenaCommentaryClickTitle"
                                OnCommentaryClick="@HandleArenaCommentaryClickAsync"
+                               OnInvestmentRequested="@InvestmentRequested"
                                FormatGoalLogTime="@FormatGoalLogTime"
                                DescribeGoalLog="@DescribeGoalLog"
                                ResolveGoalLogTeamLogoUrl="@ResolveGoalLogTeamLogoUrlForItem"
@@ -318,6 +320,7 @@ else if (HasLiveMatch)
                                 BuildArenaCommentaryAccentStyle="@GetArenaCommentaryAccentStyle"
                                 GetArenaCommentaryClickTitle="@GetArenaCommentaryClickTitle"
                                 OnCommentaryClick="@HandleArenaCommentaryClickAsync"
+                                OnInvestmentRequested="@InvestmentRequested"
                                 FormatGoalLogTime="@FormatGoalLogTime"
                                 DescribeGoalLog="@DescribeGoalLog"
                                 ResolveGoalLogTeamLogoUrl="@ResolveGoalLogTeamLogoUrlForItem"
@@ -564,6 +567,7 @@ else
     [Parameter] public int BroadcastRotationMinutes { get; set; }
     [Parameter] public int BroadcastRotationRemainingSeconds { get; set; }
     [Parameter] public double BroadcastRotationProgress { get; set; }
+    [Parameter] public EventCallback<TvStageInvestmentSide> InvestmentRequested { get; set; }
 
     // Temporary debug demo to validate the cinematic narration overlay visually.
     private const bool EnableNarrationDebugDemo = false;
@@ -929,10 +933,6 @@ else
         : null;
     private string CurrentMatchUrl => BuildMatchUrl(CurrentStageMatchId, MatchSlugOrHotSlug());
     private string CurrentRealMatchUrl => BuildRealMatchUrl(CurrentStageMatchId, MatchSlugOrHotSlug());
-    private string BuildArenaInvestmentUrl()
-        => string.IsNullOrWhiteSpace(CurrentRealMatchUrl)
-            ? "#"
-            : $"{CurrentRealMatchUrl}#match-investment";
     private TvStageRenderModel StageModel => new()
     {
         CurrentStageMatchId = CurrentStageMatchId,
@@ -941,7 +941,6 @@ else
         IsTvFullscreenLayout = IsTvFullscreenLayout,
         UseFootballFieldLayout = UseFootballFieldLayout,
         CanInvestInArena = CanInvestInArena(),
-        ArenaInvestmentUrl = BuildArenaInvestmentUrl(),
         InvestLabel = MatchGaugeT("invest"),
         HomeUrl = RouteLocalization.BuildHomePath(Culture),
         EyebrowLabel = T("hero.eyebrow"),

@@ -4,6 +4,7 @@
 @page "/{Culture}/tv/broadcast"
 @using System.Text.Json
 @using DTOs
+@using CriptoVersus.Components.Pages.Internet
 @using CriptoVersus.Web.Services
 @inject CriptoVersusApiClient Api
 @inject HotMatchService HotMatches
@@ -58,7 +59,12 @@
          MarketPulseError="@_marketPulseState.ErrorMessage"
          BroadcastRotationMinutes="@BroadcastRotationMinutes"
          BroadcastRotationRemainingSeconds="@BroadcastRotationRemainingSeconds"
-         BroadcastRotationProgress="@BroadcastRotationProgress" />
+         BroadcastRotationProgress="@BroadcastRotationProgress"
+         InvestmentRequested="@OpenInvestmentModalAsync" />
+
+<MatchInvestmentModal @ref="_investmentModal"
+                      Culture="@_culture"
+                      InvestmentCompleted="@HandleInvestmentCompletedAsync" />
 
 @code {
     private const int RefreshIntervalSeconds = 15;
@@ -76,6 +82,7 @@
     private HotMatchDto? _selectedHotRanking;
     private TvHotMatchDto? _selectedHotMatch;
     private MatchDto? _selectedMatch;
+    private MatchInvestmentModal? _investmentModal;
     private StatsOverviewDto? _stats;
     private DashboardSnapshotDto? _snapshot;
     private IReadOnlyList<HotMatchDto> _hotMatches = [];
@@ -94,6 +101,28 @@
     private PanelLoadState _topCoinsState = PanelLoadState.Loading();
     private PanelLoadState _latestBattlesState = PanelLoadState.Loading();
     private PanelLoadState _marketPulseState = PanelLoadState.Loading();
+
+    private async Task OpenInvestmentModalAsync(TvStageInvestmentSide side)
+    {
+        if (_investmentModal is null)
+            return;
+
+        var match = _selectedMatch;
+        if (match is null && _selectedHotMatch?.MatchId > 0)
+        {
+            match = await Api.GetMatchByIdAsync(
+                _selectedHotMatch.MatchId,
+                includeParticipants: false,
+                CancellationToken.None);
+            _selectedMatch = match;
+        }
+
+        if (match is not null)
+            await _investmentModal.OpenAsync(match, side);
+    }
+
+    private Task HandleInvestmentCompletedAsync(int _)
+        => RefreshSelectedMatchAsync(CancellationToken.None);
 
     private string PageTitleText => L.T(_isBroadcastMode ? "tv.seo.broadcastTitle" : "tv.seo.title", _culture);
     private string MetaDescription => L.T(_isBroadcastMode ? "tv.seo.broadcastDescription" : "tv.seo.description", _culture);

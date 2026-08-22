@@ -398,6 +398,8 @@ Futurebol is the official 3D field renderer for fixed Match TV and rotating Broa
 flowchart TD
     Lab[FuturebolLab.razor]
     TvPages[TvMatchPage + TvPage/Broadcast]
+    MatchDetail[MatchDetail]
+    InvestmentModal[MatchInvestmentModal<br/>shared investment UI + flow]
     Stage[TvStage]
     TvField[TvFuturebolField]
     Adapter[FuturebolMatchAdapter]
@@ -423,6 +425,9 @@ flowchart TD
     Lab --> Options
     Lab --> APIClient
     TvPages --> Stage
+    Stage -->|left/right investment callback| TvPages
+    TvPages --> InvestmentModal
+    MatchDetail --> InvestmentModal
     Stage --> TvField
     Lab --> Adapter
     TvField --> Adapter
@@ -452,6 +457,7 @@ Source locations:
 
 - Blazor host: `CriptoVersus/Components/Pages/Futurebol`.
 - Official TV host: `CriptoVersus/Components/Pages/Internet/TvFuturebolField.razor` through `TvStage`.
+- Shared Partida/TV investment overlay: `CriptoVersus/Components/Pages/Internet/MatchInvestmentModal.razor`.
 - Shared DTO-to-presentation boundary: `CriptoVersus/Services/FuturebolMatchAdapter.cs`.
 - TypeScript source: `CriptoVersus/wwwroot/js/futurebol`.
 - Compiled output: `CriptoVersus/wwwroot/js/dist/futurebol`.
@@ -469,6 +475,8 @@ In API mode, `MatchDto`, `TvHotMatchDto`, snapshots, and `MatchScoreEventDto` ev
 Team logo identity still comes from the match/API icon URL. `FuturebolTeamLogoUrl` maps the official icon route to the Web same-origin `/futurebol/team-logo/{symbol}` transport, which proxies the API image bytes so Babylon can safely upload them to a WebGL texture even when the API and Web origins differ. This transport does not maintain a symbol-to-logo table or become a second logo authority.
 
 The TV host updates an existing `FuturebolEngine` for the same match and calls its match reconfiguration path during Broadcast rotation. A canvas retains one Babylon engine, scene, render loop, and loaded humanoid asset for its lifetime; match changes reset official/simulation state and replace team symbols/logo textures without rebuilding the scene. Container resize uses `ResizeObserver`. The existing TV polling remains the transport; Futurebol does not add a scoring or persistence path and does not subscribe to a dedicated SignalR event.
+
+Investment from TV is an overlay interaction, not a route transition. `TvStage` emits a left/right callback to `TvMatchPage` or `TvPage`; those page hosts open the same `MatchInvestmentModal` used by `MatchDetail`. The modal owns the existing wallet-balance guard, on-chain preparation, authenticated bet request, and amount validation. It is rendered as a sibling of `TvStage`, so opening or closing it does not dispose the Futurebol canvas, Babylon engine, replay state, or audio. The `/partida/...#match-investment` fragment remains a separate external deep-link path handled by `MatchDetail`.
 
 ## Candle Battle Flow
 
