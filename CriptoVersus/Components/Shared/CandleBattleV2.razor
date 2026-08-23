@@ -1,0 +1,572 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.SignalR.Client
+@using CriptoVersus.Web.Services
+@using DTOs
+@inject CriptoVersusApiClient Api
+@inject DashboardHubClient HubClient
+@inject LocalizationService L
+@inject IJSRuntime JS
+@inject ILogger<CandleBattleV2> Logger
+@implements IAsyncDisposable
+
+<section class="candle-v2 @RootStateClass @PhaseClass @WinnerRootClass"
+         style="@ThemeStyle"
+         aria-label="@T("ariaLabel", LeftSymbol, RightSymbol)"
+         aria-busy="@(_screenState == ScreenState.Loading)">
+    <div class="candle-v2__ambient" aria-hidden="true"></div>
+
+    @if (_screenState == ScreenState.Loading)
+    {
+        <div class="candle-v2__state" role="status" aria-live="polite">
+            <div class="candle-v2__loader" aria-hidden="true"><i></i><i></i><i></i></div>
+            <strong>@T("loading")</strong>
+        </div>
+    }
+    else if (_screenState == ScreenState.Error)
+    {
+        <div class="candle-v2__state candle-v2__state--error" role="alert">
+            <strong>@T("error")</strong>
+            <span>@_errorMessage</span>
+            <button type="button" @onclick="RetryAsync">@T("retry")</button>
+        </div>
+    }
+    else if (_match is not null)
+    {
+        <header class="candle-v2__header">
+            <span class="candle-v2__title">@T("title")</span>
+            <div class="candle-v2__teams">
+                @RenderTeamHeader(true)
+                <span class="candle-v2__versus">VS</span>
+                @RenderTeamHeader(false)
+            </div>
+            <div class="candle-v2__status" role="status" aria-live="polite">
+                <i></i>
+                <span>@StatusText</span>
+            </div>
+        </header>
+
+        <div class="candle-v2__layout">
+            @RenderNextPanel(true)
+
+            <main class="candle-v2__arena">
+                <div class="candle-v2__grid" aria-hidden="true"></div>
+                <div class="candle-v2__centerline" aria-hidden="true"><i></i></div>
+
+                <div class="candle-v2__scoreboard" aria-label="@T("score")">
+                    <div class="candle-v2__score candle-v2__score--left @LeaderClass(true)">
+                        <span>@LeftSymbol</span>
+                        <strong>@_state.OfficialScoreLeft</strong>
+                        @if (IsPointFor(CandleBattleV2Side.Left)) { <em>+1</em> }
+                    </div>
+                    <div class="candle-v2__score-divider">:</div>
+                    <div class="candle-v2__score candle-v2__score--right @LeaderClass(false)">
+                        <span>@RightSymbol</span>
+                        <strong>@_state.OfficialScoreRight</strong>
+                        @if (IsPointFor(CandleBattleV2Side.Right)) { <em>+1</em> }
+                    </div>
+                </div>
+
+                <div class="candle-v2__battle-zone" aria-live="polite">
+                    <div class="candle-v2__fighter candle-v2__fighter--left" style="@BattleCandleStyle(true)">
+                        <i class="candle-v2__wick"></i><i class="candle-v2__body"></i>
+                    </div>
+                    <div class="candle-v2__impact" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+                    <div class="candle-v2__fighter candle-v2__fighter--right" style="@BattleCandleStyle(false)">
+                        <i class="candle-v2__wick"></i><i class="candle-v2__body"></i>
+                    </div>
+                    @if (_phase is CandleBattleV2AnimationPhase.Result or CandleBattleV2AnimationPhase.DropBlock)
+                    {
+                        <span class="candle-v2__result">@ResultText</span>
+                    }
+                    @if (_phase == CandleBattleV2AnimationPhase.DropBlock && _state.ActiveAnimation is not null)
+                    {
+                        <i class="candle-v2__falling-block @WinnerSideClass" aria-hidden="true"></i>
+                    }
+                </div>
+
+                <div class="candle-v2__floor">
+                    @RenderBlockPile(true)
+                    <div class="candle-v2__floor-divider" aria-hidden="true"></div>
+                    @RenderBlockPile(false)
+                </div>
+            </main>
+
+            @RenderNextPanel(false)
+        </div>
+
+        <footer class="candle-v2__footer">
+            <span>@T("officialScore")</span>
+            <span>@T("blockLegend")</span>
+        </footer>
+    }
+</section>
+
+@code {
+    private const int RefreshSeconds = 12;
+    private readonly CandleBattleV2StateAdapter _state = new();
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
+    private CancellationTokenSource? _lifetimeCts;
+    private Task? _pollTask;
+    private Task? _animationTask;
+    private IJSObjectReference? _visibilityModule;
+    private DotNetObjectReference<CandleBattleV2>? _dotNetRef;
+    private int _visibilityHandle;
+    private bool _hubSubscribed;
+    private bool _disposed;
+    private bool _routeDirty = true;
+    private bool _reducedMotion;
+    private string _activeRouteKey = string.Empty;
+    private string _culture = AppCultureService.DefaultRouteCulture;
+    private MatchDto? _match;
+    private CoinSocialProfileDto? _leftProfile;
+    private CoinSocialProfileDto? _rightProfile;
+    private IReadOnlyList<MatchMetricSnapshotDto> _snapshots = [];
+    private CandlePreview? _formingLeft;
+    private CandlePreview? _formingRight;
+    private ScreenState _screenState = ScreenState.Loading;
+    private CandleBattleV2AnimationPhase _phase = CandleBattleV2AnimationPhase.Ready;
+    private string? _errorMessage;
+    private bool _isReconnecting;
+
+    [Parameter, EditorRequired] public int MatchId { get; set; }
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+
+    private string LeftSymbol => _match?.TeamA ?? "-";
+    private string RightSymbol => _match?.TeamB ?? "-";
+    private string LeftName => string.IsNullOrWhiteSpace(_leftProfile?.Name) ? LeftSymbol : _leftProfile!.Name!;
+    private string RightName => string.IsNullOrWhiteSpace(_rightProfile?.Name) ? RightSymbol : _rightProfile!.Name!;
+    private string LeftLogoUrl => ResolveLogo(_leftProfile, LeftSymbol);
+    private string RightLogoUrl => ResolveLogo(_rightProfile, RightSymbol);
+    private string LeftColor => ResolveColor(_leftProfile?.PrimaryColor, LeftSymbol, 0);
+    private string RightColor => ResolveColor(_rightProfile?.PrimaryColor, RightSymbol, 1);
+    private string LeftSecondary => ResolveColor(_leftProfile?.SecondaryColor, LeftSymbol, 2);
+    private string RightSecondary => ResolveColor(_rightProfile?.SecondaryColor, RightSymbol, 3);
+    private string ThemeStyle => $"--cb-left:{LeftColor};--cb-left-2:{LeftSecondary};--cb-right:{RightColor};--cb-right-2:{RightSecondary};";
+    private string RootStateClass => $"is-{_screenState.ToString().ToLowerInvariant()}";
+    private string PhaseClass => $"phase-{_phase.ToString().ToLowerInvariant()}";
+    private string WinnerSideClass => _state.ActiveAnimation?.Winner == CandleBattleV2Side.Right ? "is-right" : "is-left";
+    private string WinnerRootClass => _state.ActiveAnimation?.Winner switch
+    {
+        CandleBattleV2Side.Left => "winner-left",
+        CandleBattleV2Side.Right => "winner-right",
+        _ => string.Empty
+    };
+    private string StatusText => _screenState switch
+    {
+        ScreenState.Finished => T("finished"),
+        ScreenState.Reconnecting => T("reconnecting"),
+        ScreenState.Waiting => _snapshots.Count == 0 ? T("waitingMarket") : T("waitingNext"),
+        _ => T("live")
+    };
+    private string ResultText => _state.ActiveAnimation?.Winner switch
+    {
+        CandleBattleV2Side.Left => T("pointFor", LeftSymbol),
+        CandleBattleV2Side.Right => T("pointFor", RightSymbol),
+        _ => T("draw")
+    };
+
+    protected override void OnParametersSet()
+    {
+        _culture = string.IsNullOrWhiteSpace(Culture) ? AppCultureService.DefaultRouteCulture : Culture.Trim().ToLowerInvariant();
+        var routeKey = $"{_culture}:{MatchId}";
+        if (!string.Equals(routeKey, _activeRouteKey, StringComparison.Ordinal))
+        {
+            _activeRouteKey = routeKey;
+            _routeDirty = true;
+            _screenState = ScreenState.Loading;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await InitializeBrowserInteropAsync();
+
+        if (_routeDirty && !_disposed)
+        {
+            _routeDirty = false;
+            await InitializeRouteAsync();
+        }
+    }
+
+    private RenderFragment RenderTeamHeader(bool left) => @<div class="candle-v2__team @(left ? "is-left" : "is-right")">
+        <div class="candle-v2__logo"><img src="@(left ? LeftLogoUrl : RightLogoUrl)" alt="@(left ? LeftSymbol : RightSymbol)" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" /><span>@Initials(left ? LeftSymbol : RightSymbol)</span></div>
+        <div class="candle-v2__team-copy">
+            <strong>@(left ? LeftSymbol : RightSymbol)</strong>
+            <small>@(left ? LeftName : RightName)</small>
+            <div><b>@FormatPrice(left ? _formingLeft?.Price : _formingRight?.Price)</b><em class="@ChangeClass(left ? CurrentPercentLeft : CurrentPercentRight)">@FormatPercent(left ? CurrentPercentLeft : CurrentPercentRight)</em></div>
+        </div>
+    </div>;
+
+    private RenderFragment RenderNextPanel(bool left) => @<aside class="candle-v2__next @(left ? "is-left" : "is-right")">
+        <span>@T("nextCandle")</span>
+        <strong>@T("forming")</strong>
+        @if ((left ? _formingLeft : _formingRight) is { } preview)
+        {
+            <div class="candle-v2__preview" style="@PreviewStyle(preview)"><i></i><b></b></div>
+            <em>@FormatPercent(preview.DeltaPercent)</em>
+        }
+        else
+        {
+            <div class="candle-v2__preview is-empty"><i></i><b></b></div>
+            <em>--</em>
+        }
+    </aside>;
+
+    private RenderFragment RenderBlockPile(bool left) => @<div class="candle-v2__pile-wrap @(left ? "is-left" : "is-right")">
+        <div class="candle-v2__pile-label"><span>@(left ? LeftSymbol : RightSymbol)</span><strong>@(left ? _state.DisplayScoreLeft : _state.DisplayScoreRight) @T("points")</strong></div>
+        <div class="candle-v2__pile" style="--cb-columns:@ResolveColumns();" aria-label="@T("blocksFor", left ? LeftSymbol : RightSymbol, left ? _state.DisplayScoreLeft : _state.DisplayScoreRight)">
+            @for (var i = 0; i < (left ? _state.DisplayScoreLeft : _state.DisplayScoreRight); i++)
+            {
+                <i @key="BlockKey(left, i)" aria-hidden="true"></i>
+            }
+        </div>
+    </div>;
+
+    private decimal? CurrentPercentLeft => _formingLeft?.DeltaPercent ?? _match?.PctA;
+    private decimal? CurrentPercentRight => _formingRight?.DeltaPercent ?? _match?.PctB;
+
+    private async Task InitializeRouteAsync()
+    {
+        _lifetimeCts?.Cancel();
+        _lifetimeCts?.Dispose();
+        _lifetimeCts = new CancellationTokenSource();
+        _screenState = ScreenState.Loading;
+        _errorMessage = null;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await RefreshCoreAsync(bootstrap: true, reconcile: true, _lifetimeCts.Token);
+            SubscribeHub();
+            _pollTask = RunPollLoopAsync(_lifetimeCts.Token);
+            await StartHubAsync(_lifetimeCts.Token);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            LogWarningSafely(ex, "CandleBattleV2 initial load failed.");
+            _screenState = ScreenState.Error;
+            _errorMessage = T("errorBody");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task InitializeBrowserInteropAsync()
+    {
+        try
+        {
+            _visibilityModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/candleBattleV2.mjs?v=20260823");
+            _dotNetRef = DotNetObjectReference.Create(this);
+            _visibilityHandle = await _visibilityModule.InvokeAsync<int>("initialize", _dotNetRef);
+            _reducedMotion = await _visibilityModule.InvokeAsync<bool>("isReducedMotion");
+        }
+        catch (InvalidOperationException) { }
+        catch (JSException ex)
+        {
+            LogDebugSafely(ex, "CandleBattleV2 visibility interop unavailable.");
+        }
+    }
+
+    private async Task StartHubAsync(CancellationToken ct)
+    {
+        try
+        {
+            await HubClient.EnsureStartedAsync(ct);
+            _isReconnecting = HubClient.State != HubConnectionState.Connected;
+            if (_match is not null)
+            {
+                UpdateScreenState();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _isReconnecting = true;
+            LogDebugSafely(ex, "CandleBattleV2 SignalR unavailable; polling remains active.");
+            if (_match is not null)
+            {
+                UpdateScreenState();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void SubscribeHub()
+    {
+        if (_hubSubscribed)
+            return;
+        HubClient.DashboardChanged += HandleDashboardChanged;
+        _hubSubscribed = true;
+    }
+
+    private void HandleDashboardChanged(string? payload)
+    {
+        if (_disposed)
+            return;
+        _ = InvokeAsync(() => RefreshAsync(reconcile: false));
+    }
+
+    private async Task RunPollLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(RefreshSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                _isReconnecting = HubClient.State != HubConnectionState.Connected;
+                await RefreshAsync(reconcile: false, ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private Task RefreshAsync(bool reconcile, CancellationToken ct = default)
+        => RefreshCoreAsync(bootstrap: false, reconcile, ct);
+
+    private async Task RefreshCoreAsync(bool bootstrap, bool reconcile, CancellationToken ct)
+    {
+        if (MatchId <= 0 || _disposed)
+            return;
+
+        if (!await _refreshLock.WaitAsync(0, ct))
+            return;
+
+        try
+        {
+            var match = await Api.GetMatchByIdAsync(MatchId, includeParticipants: false, ct)
+                ?? throw new InvalidOperationException(T("notFound"));
+
+            var eventsTask = Api.GetMatchScoreEventsAsync(MatchId, _culture, ct);
+            var snapshotsTask = Api.GetMatchMetricSnapshotsAsync(MatchId, 500, ct);
+            var leftProfileTask = Api.GetCoinSocialProfileAsync(match.TeamA, ct: ct);
+            var rightProfileTask = Api.GetCoinSocialProfileAsync(match.TeamB, ct: ct);
+            await Task.WhenAll(eventsTask, snapshotsTask, leftProfileTask, rightProfileTask);
+
+            var events = eventsTask.Result ?? [];
+            _match = match;
+            _snapshots = snapshotsTask.Result ?? [];
+            _leftProfile = leftProfileTask.Result;
+            _rightProfile = rightProfileTask.Result;
+            BuildFormingCandles();
+
+            if (bootstrap)
+                _state.Bootstrap(ToOfficialState(match), events);
+            else if (reconcile)
+                _state.Reconcile(ToOfficialState(match), events);
+            else
+                _state.MergeLive(ToOfficialState(match), events);
+
+            _isReconnecting = HubClient.State != HubConnectionState.Connected;
+            UpdateScreenState();
+            await InvokeAsync(StateHasChanged);
+
+            if (!bootstrap && !reconcile && _state.PendingAnimationCount > 0)
+                EnsureAnimationLoop();
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            if (_match is null)
+            {
+                _screenState = ScreenState.Error;
+                _errorMessage = ex is InvalidOperationException ? ex.Message : T("errorBody");
+            }
+            else
+            {
+                _isReconnecting = true;
+                UpdateScreenState();
+            }
+            LogWarningSafely(ex, "CandleBattleV2 refresh failed.");
+            await InvokeAsync(StateHasChanged);
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
+    }
+
+    private void EnsureAnimationLoop()
+    {
+        if (_animationTask is not null && !_animationTask.IsCompleted)
+            return;
+        _animationTask = RunAnimationQueueAsync(_lifetimeCts?.Token ?? CancellationToken.None);
+    }
+
+    private async Task RunAnimationQueueAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!_disposed && _state.TryStartNext(out _))
+            {
+                await SetPhaseAsync(CandleBattleV2AnimationPhase.Entering, Delay(430, 90), ct);
+                await SetPhaseAsync(CandleBattleV2AnimationPhase.Collision, Delay(260, 80), ct);
+                await SetPhaseAsync(CandleBattleV2AnimationPhase.Result, Delay(360, 90), ct);
+                await SetPhaseAsync(CandleBattleV2AnimationPhase.DropBlock, Delay(620, 110), ct);
+                _state.CompleteActive();
+                await SetPhaseAsync(CandleBattleV2AnimationPhase.Complete, Delay(170, 50), ct);
+                await SetPhaseAsync(CandleBattleV2AnimationPhase.Ready, Delay(90, 30), ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            _phase = CandleBattleV2AnimationPhase.Ready;
+            if (!_disposed)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SetPhaseAsync(CandleBattleV2AnimationPhase phase, int milliseconds, CancellationToken ct)
+    {
+        if (_state.IsFinished)
+            throw new OperationCanceledException(ct);
+        _phase = phase;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(milliseconds, ct);
+    }
+
+    private int Delay(int normal, int reduced) => _reducedMotion ? reduced : normal;
+
+    private void LogWarningSafely(Exception exception, string message)
+    {
+        try { Logger.LogWarning(exception, "{Message} MatchId={MatchId}", message, MatchId); }
+        catch { }
+    }
+
+    private void LogDebugSafely(Exception exception, string message)
+    {
+        try { Logger.LogDebug(exception, "{Message} MatchId={MatchId}", message, MatchId); }
+        catch { }
+    }
+
+    private void BuildFormingCandles()
+    {
+        _formingLeft = BuildPreview(_match!.TeamAId, _match.PctA);
+        _formingRight = BuildPreview(_match.TeamBId, _match.PctB);
+    }
+
+    private CandlePreview? BuildPreview(int teamId, decimal? fallbackPercent)
+    {
+        var points = _snapshots.Where(x => x.TeamId == teamId).OrderBy(x => x.CapturedAtUtc).ThenBy(x => x.MatchMetricSnapshotId).ToArray();
+        if (points.Length == 0)
+            return fallbackPercent.HasValue ? new CandlePreview(null, fallbackPercent.Value) : null;
+
+        var latest = points[^1];
+        var delta = points.Length > 1 && points[^2].LastPrice is { } previous && latest.LastPrice is { } current && previous != 0m
+            ? ((current - previous) / Math.Abs(previous)) * 100m
+            : latest.PercentageChange;
+        return new CandlePreview(latest.LastPrice, delta);
+    }
+
+    private void UpdateScreenState()
+    {
+        if (_match is null) { _screenState = ScreenState.Loading; return; }
+        if (_state.IsFinished) { _screenState = ScreenState.Finished; return; }
+        if (_isReconnecting) { _screenState = ScreenState.Reconnecting; return; }
+        if (_snapshots.Count < 2 || _match.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { _screenState = ScreenState.Waiting; return; }
+        _screenState = ScreenState.Live;
+    }
+
+    [JSInvokable]
+    public async Task OnBrowserVisibilityChanged(bool isVisible, bool reducedMotion)
+    {
+        _reducedMotion = reducedMotion;
+        if (!isVisible || _disposed)
+            return;
+
+        _lifetimeCts?.Cancel();
+        _lifetimeCts?.Dispose();
+        _lifetimeCts = new CancellationTokenSource();
+        await RefreshAsync(reconcile: true, _lifetimeCts.Token);
+        _pollTask = RunPollLoopAsync(_lifetimeCts.Token);
+    }
+
+    private async Task RetryAsync()
+    {
+        _routeDirty = false;
+        await InitializeRouteAsync();
+    }
+
+    private bool IsPointFor(CandleBattleV2Side side)
+        => _phase is CandleBattleV2AnimationPhase.Result or CandleBattleV2AnimationPhase.DropBlock
+           && _state.ActiveAnimation?.Winner == side;
+
+    private string LeaderClass(bool left)
+    {
+        if (_state.OfficialScoreLeft == _state.OfficialScoreRight)
+            return string.Empty;
+        return (left && _state.OfficialScoreLeft > _state.OfficialScoreRight)
+               || (!left && _state.OfficialScoreRight > _state.OfficialScoreLeft)
+            ? "is-champion"
+            : string.Empty;
+    }
+
+    private string BattleCandleStyle(bool left)
+    {
+        var value = left ? _state.ActiveAnimation?.LeftDeltaPercent : _state.ActiveAnimation?.RightDeltaPercent;
+        var height = Math.Clamp(32d + (double)Math.Abs(value ?? 0m) * 12d, 32d, 88d);
+        return $"--candle-height:{height.ToString("0.##", CultureInfo.InvariantCulture)}px;";
+    }
+
+    private static string PreviewStyle(CandlePreview preview)
+    {
+        var height = Math.Clamp(28d + (double)Math.Abs(preview.DeltaPercent) * 12d, 28d, 76d);
+        return $"--preview-height:{height.ToString("0.##", CultureInfo.InvariantCulture)}px;";
+    }
+
+    private int ResolveColumns()
+    {
+        var max = Math.Max(_state.DisplayScoreLeft, _state.DisplayScoreRight);
+        return max switch { <= 40 => 10, <= 100 => 15, <= 225 => 20, _ => Math.Clamp((int)Math.Ceiling(Math.Sqrt(max * 1.7)), 20, 36) };
+    }
+
+    private string ResolveLogo(CoinSocialProfileDto? profile, string symbol)
+        => profile?.ThumbUrl ?? profile?.LargeImageUrl ?? Api.BuildBinanceIconUrl(symbol);
+
+    private static string ResolveColor(string? configured, string symbol, int salt)
+    {
+        if (!string.IsNullOrWhiteSpace(configured) && configured.StartsWith('#') && configured.Length is 4 or 7 or 9)
+            return configured;
+        var hash = symbol.Aggregate(17 + salt * 31, (current, ch) => unchecked(current * 31 + ch));
+        var hue = Math.Abs(hash % 360);
+        return $"hsl({hue} 82% {48 + salt % 2 * 8}%)";
+    }
+
+    private string T(string key, params object?[] args) => L.T($"candleBattleV2.{key}", _culture, args);
+    private static CandleBattleV2OfficialState ToOfficialState(MatchDto match) => new(
+        match.TeamAId,
+        match.TeamBId,
+        match.ScoreA,
+        match.ScoreB,
+        match.Status,
+        match.IsFinished,
+        match.EndTime);
+    private static string BlockKey(bool left, int index) => $"{(left ? "l" : "r")}-{index}";
+    private static string Initials(string value) => string.Concat(value.Where(char.IsLetterOrDigit).Take(3)).ToUpperInvariant();
+    private static string ChangeClass(decimal? value) => value switch { > 0m => "is-positive", < 0m => "is-negative", _ => "is-neutral" };
+    private static string FormatPercent(decimal? value) => value.HasValue ? $"{(value > 0m ? "+" : string.Empty)}{value:0.00}%" : "--";
+    private static string FormatPrice(decimal? value) => value.HasValue ? $"${value.Value.ToString(value.Value >= 1m ? "0.00####" : "0.########", CultureInfo.InvariantCulture)}" : "--";
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_hubSubscribed)
+            HubClient.DashboardChanged -= HandleDashboardChanged;
+        _lifetimeCts?.Cancel();
+        if (_pollTask is not null) { try { await _pollTask; } catch { } }
+        if (_animationTask is not null) { try { await _animationTask; } catch { } }
+        if (_visibilityModule is not null)
+        {
+            try { await _visibilityModule.InvokeVoidAsync("dispose", _visibilityHandle); } catch { }
+            try { await _visibilityModule.DisposeAsync(); } catch { }
+        }
+        _dotNetRef?.Dispose();
+        _lifetimeCts?.Dispose();
+        _refreshLock.Dispose();
+    }
+
+    private sealed record CandlePreview(decimal? Price, decimal DeltaPercent);
+    private enum ScreenState { Loading, Waiting, Live, Reconnecting, Finished, Error }
+}

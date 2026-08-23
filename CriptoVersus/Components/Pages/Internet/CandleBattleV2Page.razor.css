@@ -1,0 +1,11 @@
+.candle-v2-page {
+    width: min(1600px, calc(100% - 28px));
+    margin: 18px auto 28px;
+}
+
+@media (max-width: 820px) {
+    .candle-v2-page {
+        width: calc(100% - 12px);
+        margin: 6px auto 14px;
+    }
+}

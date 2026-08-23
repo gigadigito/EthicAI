@@ -2715,6 +2715,34 @@
       "invalidAsset": "请选择两个有效的资产。",
       "tooManyRequests": "请在 {0} 秒后重试。"
     }
+  },
+  "candleBattleV2": {
+    "title": "K线对战",
+    "ariaLabel": "{0} 与 {1} 的K线对战",
+    "loading": "正在加载K线对战...",
+    "error": "对战暂不可用",
+    "errorBody": "无法加载比赛的官方状态，请重试。",
+    "notFound": "未找到比赛。",
+    "retry": "重试",
+    "live": "直播中",
+    "reconnecting": "正在重新连接",
+    "finished": "比赛已结束",
+    "waitingMarket": "等待市场数据",
+    "waitingNext": "等待下一根K线",
+    "nextCandles": "后续K线",
+    "nextCandle": "下一根K线",
+    "forming": "形成中",
+    "score": "比分",
+    "points": "分",
+    "point": "得分",
+    "pointFor": "{0} 得分",
+    "draw": "平局",
+    "champion": "领先者",
+    "officialScore": "服务器官方比分",
+    "blockLegend": "1个方块 = 1分",
+    "blocksFor": "{0} 的 {1} 个得分方块",
+    "seoTitle": "K线对战 V2 | CriptoVersus",
+    "seoDescription": "在实时竞技K线赛场中观看官方加密资产比赛积分变成方块。"
   }
  }
 

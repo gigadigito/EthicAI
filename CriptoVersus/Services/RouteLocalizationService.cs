@@ -131,6 +131,9 @@ public sealed class RouteLocalizationService
     public string BuildTvMatchPath(string? culture, int id, string slug)
         => $"{BuildTvPath(culture)}/match/{id}/{NormalizeRouteSegment(slug)}";
 
+    public string BuildCandleBattleV2Path(string? culture, int id, string slug)
+        => $"/{NormalizeCulture(culture)}/candle/{id}/{NormalizeRouteSegment(slug)}";
+
     public string BuildLegacyTvPath()
         => "/tv";
 
@@ -279,6 +282,13 @@ public sealed class RouteLocalizationService
             && int.TryParse(segments[3], out var localizedTvMatchId))
         {
             return BuildTvMatchPath(normalizedTarget, localizedTvMatchId, segments[4]) + querySuffix;
+        }
+
+        if (segments.Length >= 4
+            && segments[1].Equals("candle", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(segments[2], out var candleBattleMatchId))
+        {
+            return BuildCandleBattleV2Path(normalizedTarget, candleBattleMatchId, segments[3]) + querySuffix;
         }
 
         if (segments.Length >= 3)

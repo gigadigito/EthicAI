@@ -492,6 +492,8 @@ flowchart LR
     Events[(MatchScoreEvent)]
     API[CriptoVersus.API]
     Web[TvCandleBattle.razor]
+    V2[CandleBattleV2.razor]
+    Adapter[CandleBattleV2StateAdapter]
     JS[Legacy/auxiliary tvCandleBattle*.mjs]
 
     Market --> Worker
@@ -502,6 +504,8 @@ flowchart LR
     State --> API
     Events --> API
     API -->|DTO JSON| Web
+    API -->|match + snapshots + score events| Adapter
+    Adapter -->|official/display score + animation queue| V2
     JS -. not verified as active integration .-> Web
 ```
 
@@ -517,6 +521,10 @@ Presentation path:
 1. Web receives price points and match data.
 2. `Components/Shared/TvCandleBattle.razor` builds synthetic candles for display.
 3. The component renders SVG, score, momentum, streak, and tactical UI.
+
+The isolated V2 route `/{culture}/candle/{matchId}/{slug}` hosts `CandleBattleV2`. It bootstraps block piles directly from the official `MatchDto` score, records the existing `MatchScoreEventId` values without replaying them, and then orders new persisted `CANDLE_BATTLE_DOMINANCE` events by `EventSequence` in `CandleBattleV2StateAdapter`. Other rule events are never presented as candle battles; any authoritative score difference is reconciled without inventing an animation. SignalR `dashboard_changed` is only an invalidation signal; V2 refetches match, event, and snapshot DTOs, while periodic polling covers missed notifications. Returning from a background tab performs an immediate non-animated reconciliation. DOM/CSS phases render the candle collision and square-block drop, but cannot create or persist score.
+
+V2 obtains prices and forming-candle input from `MatchMetricSnapshotDto`, logos from `CoinSocialProfile` (with the existing Binance icon transport as fallback), and registered colors from the same profile. A deterministic symbol-derived color is used only when no profile color exists. The original `TvCandleBattle` remains unchanged and active in TV presentation.
 
 The Web visualization must not be treated as the authoritative scoring engine. The `tvCandleBattleEngine.mjs`, `tvCandleBattleHud.mjs`, and `tvCandleBattleMarkers.mjs` modules exist, but no active import path was verified for the current Razor implementation.
 

@@ -2714,6 +2714,34 @@
       "invalidAsset": "Choose two valid assets.",
       "tooManyRequests": "Try again in {0} seconds."
     }
+  },
+  "candleBattleV2": {
+    "title": "Candle Battle",
+    "ariaLabel": "Candle Battle between {0} and {1}",
+    "loading": "Loading Candle Battle...",
+    "error": "Battle unavailable",
+    "errorBody": "We could not load the official match state. Please try again.",
+    "notFound": "Match not found.",
+    "retry": "Try again",
+    "live": "Live",
+    "reconnecting": "Reconnecting",
+    "finished": "Match finished",
+    "waitingMarket": "Waiting for market",
+    "waitingNext": "Waiting for next candle",
+    "nextCandles": "Next candles",
+    "nextCandle": "Next candle",
+    "forming": "Forming",
+    "score": "Score",
+    "points": "points",
+    "point": "Point",
+    "pointFor": "Point for {0}",
+    "draw": "Draw",
+    "champion": "Champion",
+    "officialScore": "Official server score",
+    "blockLegend": "1 square block = 1 point",
+    "blocksFor": "{1} point blocks for {0}",
+    "seoTitle": "Candle Battle V2 | CriptoVersus",
+    "seoDescription": "Watch official crypto match points become blocks in a live competitive candle arena."
   }
 }
 

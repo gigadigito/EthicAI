@@ -1,0 +1,34 @@
+@page "/{Culture}/candle/{MatchId:int}/{Slug}"
+@rendermode InteractiveServer
+@using CriptoVersus.Web.Services
+@inject AppCultureService AppCulture
+@inject LocalizationService L
+@inject RouteLocalizationService RouteLocalization
+@inject IConfiguration Config
+
+<PageTitle>@L.T("candleBattleV2.seoTitle", NormalizedCulture)</PageTitle>
+<HeadContent>
+    <meta name="description" content="@L.T("candleBattleV2.seoDescription", NormalizedCulture)" />
+    <link rel="canonical" href="@Absolute(RouteLocalization.BuildCandleBattleV2Path(NormalizedCulture, MatchId, Slug))" />
+    <link rel="alternate" hreflang="en-US" href="@Absolute(RouteLocalization.BuildCandleBattleV2Path("en", MatchId, Slug))" />
+    <link rel="alternate" hreflang="pt-BR" href="@Absolute(RouteLocalization.BuildCandleBattleV2Path("pt", MatchId, Slug))" />
+    <link rel="alternate" hreflang="zh-CN" href="@Absolute(RouteLocalization.BuildCandleBattleV2Path("zh", MatchId, Slug))" />
+    <link rel="alternate" hreflang="x-default" href="@Absolute(RouteLocalization.BuildCandleBattleV2Path("en", MatchId, Slug))" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="@L.T("candleBattleV2.seoTitle", NormalizedCulture)" />
+    <meta property="og:description" content="@L.T("candleBattleV2.seoDescription", NormalizedCulture)" />
+    <meta property="og:locale" content="@AppCulture.ToOgLocale(NormalizedCulture)" />
+</HeadContent>
+
+<main class="candle-v2-page">
+    <CandleBattleV2 MatchId="@MatchId" Culture="@NormalizedCulture" />
+</main>
+
+@code {
+    [Parameter] public string Culture { get; set; } = AppCultureService.DefaultRouteCulture;
+    [Parameter] public int MatchId { get; set; }
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private string NormalizedCulture => AppCulture.NormalizeRouteCulture(Culture);
+    private string Absolute(string path) => SeoDefaults.BuildPublicAbsoluteUrl(Config, path);
+}

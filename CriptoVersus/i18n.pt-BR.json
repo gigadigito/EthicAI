@@ -2714,5 +2714,33 @@
       "invalidAsset": "Escolha dois ativos válidos.",
       "tooManyRequests": "Tente novamente em {0} segundos."
     }
+  },
+  "candleBattleV2": {
+    "title": "Candle Battle",
+    "ariaLabel": "Candle Battle entre {0} e {1}",
+    "loading": "Carregando Candle Battle...",
+    "error": "Batalha indisponível",
+    "errorBody": "Não foi possível carregar o estado oficial da partida. Tente novamente.",
+    "notFound": "Partida não encontrada.",
+    "retry": "Tentar novamente",
+    "live": "Ao vivo",
+    "reconnecting": "Reconectando",
+    "finished": "Partida encerrada",
+    "waitingMarket": "Aguardando mercado",
+    "waitingNext": "Aguardando próximo candle",
+    "nextCandles": "Próximos candles",
+    "nextCandle": "Próximo candle",
+    "forming": "Em formação",
+    "score": "Pontuação",
+    "points": "pontos",
+    "point": "Ponto",
+    "pointFor": "Ponto para {0}",
+    "draw": "Empate",
+    "champion": "Campeão",
+    "officialScore": "Placar oficial do servidor",
+    "blockLegend": "1 bloco quadrado = 1 ponto",
+    "blocksFor": "{1} blocos de ponto para {0}",
+    "seoTitle": "Candle Battle V2 | CriptoVersus",
+    "seoDescription": "Acompanhe pontos oficiais de partidas cripto virarem blocos em uma arena competitiva de candles ao vivo."
   }
 }
