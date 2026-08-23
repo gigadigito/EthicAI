@@ -112,6 +112,7 @@
     private DotNetObjectReference<CandleBattleV2>? _dotNetRef;
     private int _visibilityHandle;
     private bool _hubSubscribed;
+    private bool _hubEverConnected;
     private bool _disposed;
     private bool _routeDirty = true;
     private bool _reducedMotion;
@@ -215,10 +216,17 @@
 
     private RenderFragment RenderBlockPile(bool left) => @<div class="candle-v2__pile-wrap @(left ? "is-left" : "is-right")">
         <div class="candle-v2__pile-label"><span>@(left ? LeftSymbol : RightSymbol)</span><strong>@(left ? _state.DisplayScoreLeft : _state.DisplayScoreRight) @T("points")</strong></div>
-        <div class="candle-v2__pile" style="--cb-columns:@ResolveColumns();" aria-label="@T("blocksFor", left ? LeftSymbol : RightSymbol, left ? _state.DisplayScoreLeft : _state.DisplayScoreRight)">
-            @for (var i = 0; i < (left ? _state.DisplayScoreLeft : _state.DisplayScoreRight); i++)
+        @{
+            var count = left ? _state.DisplayScoreLeft : _state.DisplayScoreRight;
+            var cols = ResolveColumns();
+            var totalRows = cols > 0 ? (int)Math.Ceiling((double)count / cols) : 0;
+        }
+        <div class="candle-v2__pile" style="--cb-columns:@cols;--cb-rows:@totalRows;" aria-label="@T("blocksFor", left ? LeftSymbol : RightSymbol, count)">
+            @for (var i = 0; i < count; i++)
             {
-                <i @key="BlockKey(left, i)" aria-hidden="true"></i>
+                var col = i % cols + 1;
+                var row = totalRows - (i / cols);
+                <i @key="BlockKey(left, i)" style="grid-row:@row;grid-column:@col;" aria-hidden="true"></i>
             }
         </div>
     </div>;
@@ -273,6 +281,7 @@
         try
         {
             await HubClient.EnsureStartedAsync(ct);
+            _hubEverConnected = true;
             _isReconnecting = HubClient.State != HubConnectionState.Connected;
             if (_match is not null)
             {
@@ -464,7 +473,7 @@
     {
         if (_match is null) { _screenState = ScreenState.Loading; return; }
         if (_state.IsFinished) { _screenState = ScreenState.Finished; return; }
-        if (_isReconnecting) { _screenState = ScreenState.Reconnecting; return; }
+        if (_hubEverConnected && _isReconnecting) { _screenState = ScreenState.Reconnecting; return; }
         if (_snapshots.Count < 2 || _match.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase)) { _screenState = ScreenState.Waiting; return; }
         _screenState = ScreenState.Live;
     }
@@ -506,7 +515,7 @@
     private string BattleCandleStyle(bool left)
     {
         var value = left ? _state.ActiveAnimation?.LeftDeltaPercent : _state.ActiveAnimation?.RightDeltaPercent;
-        var height = Math.Clamp(32d + (double)Math.Abs(value ?? 0m) * 12d, 32d, 88d);
+        var height = Math.Clamp(38d + (double)Math.Abs(value ?? 0m) * 14d, 38d, 100d);
         return $"--candle-height:{height.ToString("0.##", CultureInfo.InvariantCulture)}px;";
     }
 
