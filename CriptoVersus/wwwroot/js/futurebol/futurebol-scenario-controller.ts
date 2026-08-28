@@ -1,0 +1,315 @@
+import type {
+    FootballScenario,
+    FuturebolAction,
+    FuturebolScenarioType,
+    FuturebolBallAction,
+    FuturebolPlayerAction,
+    FuturebolTeamAction
+} from "./futurebol-action-types.js";
+import type { FuturebolPlayOutcome, FuturebolTeam } from "./futurebol-types.js";
+
+function attackDirection(team: FuturebolTeam): number {
+    return team === "home" ? 1 : -1;
+}
+
+function opponent(team: FuturebolTeam): FuturebolTeam {
+    return team === "home" ? "away" : "home";
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
+function deterministicUnit(seed: number, salt: number): number {
+    let value = (seed ^ Math.imul(salt, 0x9e3779b1)) >>> 0;
+    value ^= value >>> 16;
+    value = Math.imul(value, 0x7feb352d);
+    value ^= value >>> 15;
+    value = Math.imul(value, 0x846ca68b);
+    value ^= value >>> 16;
+    return (value >>> 0) / 4294967295;
+}
+
+function deterministicSigned(seed: number, salt: number): number {
+    return deterministicUnit(seed, salt) * 2 - 1;
+}
+
+function laneZ(seed: number, playIndex: number, team: FuturebolTeam): number {
+    return clamp(
+        deterministicSigned(seed, playIndex * 7 + (team === "home" ? 1 : 2)) * 3.5,
+        -4.5, 4.5
+    );
+}
+
+function supportZ(seed: number, playIndex: number, team: FuturebolTeam, mainLane: number): number {
+    return clamp(
+        mainLane * -0.5 + deterministicSigned(seed, playIndex * 11 + (team === "home" ? 5 : 8)) * 1.5,
+        -5, 5
+    );
+}
+
+function shotPlacement(seed: number, playIndex: number, team: FuturebolTeam, mainLane: number): number {
+    return clamp(
+        mainLane * 0.2 + deterministicSigned(seed, playIndex * 13 + (team === "home" ? 3 : 9)) * 2.5,
+        -2.8, 2.8
+    );
+}
+
+function goalkeeperTargetZ(ballZ: number): number {
+    return clamp(ballZ * 0.85, -2.8, 2.8);
+}
+
+function playerAction(
+    type: FuturebolPlayerAction["type"],
+    playerId: string,
+    team: FuturebolTeam,
+    duration: number,
+    target?: { x: number; z: number }
+): FuturebolPlayerAction {
+    return {
+        kind: "PlayerAction",
+        type,
+        playerId,
+        team,
+        duration,
+        target: target ? { x: target.x, y: 0, z: target.z } : undefined
+    };
+}
+
+function ballAction(
+    type: FuturebolBallAction["type"],
+    team: FuturebolTeam,
+    duration: number,
+    targetPlayerId?: string,
+    target?: { x: number; z: number }
+): FuturebolBallAction {
+    return {
+        kind: "BallAction",
+        type,
+        team,
+        duration,
+        targetPlayerId,
+        target: target ? { x: target.x, y: 0.55, z: target.z } : undefined
+    };
+}
+
+function teamAction(
+    type: FuturebolTeamAction["type"],
+    team: FuturebolTeam,
+    duration: number
+): FuturebolTeamAction {
+    return { kind: "TeamAction", type, team, duration };
+}
+
+function createDirectAttack(
+    attackingTeam: FuturebolTeam,
+    outcome: FuturebolPlayOutcome,
+    seed: number,
+    playIndex: number
+): FootballScenario {
+    const dir = attackDirection(attackingTeam);
+    const defTeam = opponent(attackingTeam);
+    const lane = laneZ(seed, playIndex, attackingTeam);
+    const shotZ = shotPlacement(seed, playIndex, attackingTeam, lane);
+
+    const defenderId = `${attackingTeam}-defender`;
+    const attackerId = `${attackingTeam}-attacker`;
+    const defGoalkeeperId = `${defTeam}-goalkeeper`;
+
+    const actions: FuturebolAction[] = [
+        teamAction("PressForward", attackingTeam, 1.2),
+        playerAction("MoveTo", defenderId, attackingTeam, 1.2, {
+            x: clamp(dir * 12, -17, 17),
+            z: lane * 0.6
+        }),
+        playerAction("MoveTo", attackerId, attackingTeam, 1.2, {
+            x: clamp(dir * 10, -19, 19),
+            z: lane
+        }),
+        ballAction("PassToPlayer", attackingTeam, 0.92, attackerId, {
+            x: clamp(dir * 14, -18, 18),
+            z: lane
+        }),
+        playerAction("Dribble", attackerId, attackingTeam, 1.5, {
+            x: clamp(dir * 20, -19.5, 19.5),
+            z: lane * 0.4
+        }),
+        playerAction("MoveTo", defGoalkeeperId, defTeam, 1.0, {
+            x: clamp(-dir * 21.2, -22, 22),
+            z: goalkeeperTargetZ(shotZ)
+        }),
+        ballAction("ShootToGoal", attackingTeam, 0.76),
+        playerAction("Celebrate", attackerId, attackingTeam, 1.0),
+        playerAction("Disappointed", defGoalkeeperId, defTeam, 0.8),
+        teamAction("HoldShape", attackingTeam, 0.5)
+    ];
+
+    return {
+        id: `direct-${attackingTeam}-${playIndex}`,
+        type: "DirectAttack",
+        attackingTeam,
+        expectedOutcome: outcome,
+        actions
+    };
+}
+
+function createGiveAndGo(
+    attackingTeam: FuturebolTeam,
+    outcome: FuturebolPlayOutcome,
+    seed: number,
+    playIndex: number
+): FootballScenario {
+    const dir = attackDirection(attackingTeam);
+    const defTeam = opponent(attackingTeam);
+    const lane = laneZ(seed, playIndex, attackingTeam);
+    const supLane = supportZ(seed, playIndex, attackingTeam, lane);
+    const shotZ = shotPlacement(seed, playIndex, attackingTeam, lane);
+
+    const defenderId = `${attackingTeam}-defender`;
+    const attackerId = `${attackingTeam}-attacker`;
+    const defGoalkeeperId = `${defTeam}-goalkeeper`;
+
+    const actions: FuturebolAction[] = [
+        teamAction("PressForward", attackingTeam, 1.5),
+        playerAction("MoveTo", attackerId, attackingTeam, 1.0, {
+            x: clamp(dir * 5, -19, 19),
+            z: lane
+        }),
+        playerAction("MoveTo", defenderId, attackingTeam, 1.0, {
+            x: clamp(dir * 8, -17, 17),
+            z: supLane
+        }),
+        ballAction("PassToPlayer", attackingTeam, 0.92, defenderId, {
+            x: clamp(dir * 10, -17, 17),
+            z: supLane
+        }),
+        playerAction("RunTo", attackerId, attackingTeam, 1.2, {
+            x: clamp(dir * 18, -19.5, 19.5),
+            z: lane * 0.4
+        }),
+        playerAction("MoveTo", defGoalkeeperId, defTeam, 1.0, {
+            x: clamp(-dir * 21.2, -22, 22),
+            z: goalkeeperTargetZ(lane)
+        }),
+        ballAction("PassToPlayer", attackingTeam, 0.92, attackerId, {
+            x: clamp(dir * 19, -19, 19),
+            z: lane * 0.3
+        }),
+        ballAction("ShootToGoal", attackingTeam, 0.76),
+        playerAction("Celebrate", attackerId, attackingTeam, 1.0),
+        playerAction("Disappointed", defGoalkeeperId, defTeam, 0.8),
+        teamAction("HoldShape", attackingTeam, 0.5)
+    ];
+
+    return {
+        id: `giveandgo-${attackingTeam}-${playIndex}`,
+        type: "GiveAndGo",
+        attackingTeam,
+        expectedOutcome: outcome,
+        actions
+    };
+}
+
+function createCounterAttack(
+    attackingTeam: FuturebolTeam,
+    outcome: FuturebolPlayOutcome,
+    seed: number,
+    playIndex: number
+): FootballScenario {
+    const dir = attackDirection(attackingTeam);
+    const defTeam = opponent(attackingTeam);
+    const lane = laneZ(seed, playIndex, attackingTeam);
+    const shotZ = shotPlacement(seed, playIndex, attackingTeam, lane);
+
+    const attackerId = `${attackingTeam}-attacker`;
+    const defenderId = `${attackingTeam}-defender`;
+    const defGoalkeeperId = `${defTeam}-goalkeeper`;
+
+    const actions: FuturebolAction[] = [
+        teamAction("PressForward", attackingTeam, 1.2),
+        playerAction("RunTo", attackerId, attackingTeam, 1.5, {
+            x: clamp(dir * 18, -19.5, 19.5),
+            z: lane
+        }),
+        playerAction("SupportRun", defenderId, attackingTeam, 1.2, {
+            x: clamp(dir * 10, -17, 17),
+            z: lane * -0.5
+        }),
+        playerAction("MoveTo", defGoalkeeperId, defTeam, 0.8, {
+            x: clamp(-dir * 21.2, -22, 22),
+            z: goalkeeperTargetZ(lane)
+        }),
+        ballAction("PassToPlayer", attackingTeam, 0.85, attackerId, {
+            x: clamp(dir * 19, -19, 19),
+            z: lane * 0.3
+        }),
+        ballAction("ShootToGoal", attackingTeam, 0.76),
+        playerAction("Celebrate", attackerId, attackingTeam, 1.0),
+        playerAction("Disappointed", defGoalkeeperId, defTeam, 0.8),
+        teamAction("HoldShape", attackingTeam, 0.5)
+    ];
+
+    return {
+        id: `counter-${attackingTeam}-${playIndex}`,
+        type: "CounterAttack",
+        attackingTeam,
+        expectedOutcome: outcome,
+        actions
+    };
+}
+
+export class FuturebolScenarioController {
+    private lastScenarioType: FuturebolScenarioType | null = null;
+    private consecutiveSameCount = 0;
+
+    public selectScenario(
+        attackingTeam: FuturebolTeam,
+        outcome: FuturebolPlayOutcome,
+        seed: number,
+        playIndex: number,
+        context?: {
+            isCounterAttack?: boolean;
+            isReplay?: boolean;
+        }
+    ): FootballScenario {
+        const roll = deterministicUnit(seed, playIndex * 41 + 13);
+        let selected: FuturebolScenarioType;
+
+        if (context?.isCounterAttack) {
+            selected = roll < 0.65 ? "CounterAttack" : roll < 0.85 ? "DirectAttack" : "GiveAndGo";
+        } else if (roll < 0.45) {
+            selected = "DirectAttack";
+        } else if (roll < 0.75) {
+            selected = "GiveAndGo";
+        } else {
+            selected = "CounterAttack";
+        }
+
+        if (selected === this.lastScenarioType) {
+            this.consecutiveSameCount += 1;
+            if (this.consecutiveSameCount >= 2) {
+                selected = selected === "DirectAttack"
+                    ? (roll < 0.5 ? "GiveAndGo" : "CounterAttack")
+                    : "DirectAttack";
+                this.consecutiveSameCount = 0;
+            }
+        } else {
+            this.consecutiveSameCount = 0;
+        }
+        this.lastScenarioType = selected;
+
+        switch (selected) {
+            case "GiveAndGo":
+                return createGiveAndGo(attackingTeam, outcome, seed, playIndex);
+            case "CounterAttack":
+                return createCounterAttack(attackingTeam, outcome, seed, playIndex);
+            default:
+                return createDirectAttack(attackingTeam, outcome, seed, playIndex);
+        }
+    }
+
+    public reset(): void {
+        this.lastScenarioType = null;
+        this.consecutiveSameCount = 0;
+    }
+}

@@ -32,13 +32,15 @@ for (const player of tacticalState.players) {
 
 const ai = new FuturebolPlayerAI();
 const owner = tacticalState.players.find(player => player.id === "home-defender");
+const attacker = tacticalState.players.find(player => player.id === "home-attacker");
 const passOption = ai.selectPassReceiver({
     owner,
     attackingTeam: "home",
     teammates: tacticalState.players.filter(player => player.team === "home"),
     opponents: tacticalState.players.filter(player => player.team === "away")
 });
-assert.equal(passOption?.receiver.id, "home-attacker", "o passe deve priorizar o companheiro avançado e disponível");
+assert.ok(passOption !== null, "o passe deve ter ao menos um receptor válido");
+assert.equal(passOption.receiver.id, "home-attacker", "o passe deve priorizar o companheiro avançado e disponível");
 
 const passState = new FuturebolMatchState("gameplay-pass-release");
 passState.applyMarket(snapshot, "home");
