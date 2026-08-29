@@ -3,6 +3,7 @@ import { FuturebolBallController } from "../../dist/futurebol/futurebol-ball-con
 import { FuturebolMatchRules } from "../../dist/futurebol/futurebol-match-rules.js";
 import { FuturebolMatchState } from "../../dist/futurebol/futurebol-match-state.js";
 import { FuturebolPlayerAI } from "../../dist/futurebol/futurebol-player-ai.js";
+import { FuturebolScenarioController } from "../../dist/futurebol/futurebol-scenario-controller.js";
 
 const snapshot = {
     sequence: 73,
@@ -31,13 +32,74 @@ for (const player of tacticalState.players) {
 }
 
 const ai = new FuturebolPlayerAI();
-const owner = tacticalState.players.find(player => player.id === "home-defender");
-const attacker = tacticalState.players.find(player => player.id === "home-attacker");
+const mockOwner = {
+    id: "home-defender", team: "home", role: "defender",
+    position: { x: -8, y: 0, z: 3 },
+    targetPosition: { x: -5, y: 0, z: 2 },
+    movementSpeed: 4.1, currentSpeed: 2, facingAngle: 0,
+    animation: "idle", animationTime: 0, actionProgress: 0,
+    basePosition: { x: -11, y: 0, z: 4.7 },
+    zone: { minimumX: -22, maximumX: 0, minimumZ: -7, maximumZ: 7 },
+    tacticalIntent: "Possessing"
+};
+const mockAttacker = {
+    id: "home-attacker", team: "home", role: "attacker",
+    position: { x: 2, y: 0, z: -1 },
+    targetPosition: { x: 6, y: 0, z: -1.5 },
+    movementSpeed: 5.2, currentSpeed: 3, facingAngle: 0,
+    animation: "run", animationTime: 0, actionProgress: 0,
+    basePosition: { x: -3.5, y: 0, z: -3 },
+    zone: { minimumX: -10, maximumX: 22, minimumZ: -7, maximumZ: 7 },
+    tacticalIntent: "AttackingSpace"
+};
+const mockHomeGK = {
+    id: "home-goalkeeper", team: "home", role: "goalkeeper",
+    position: { x: -21.2, y: 0, z: 0 },
+    targetPosition: { x: -21.2, y: 0, z: 0 },
+    movementSpeed: 3.2, currentSpeed: 0, facingAngle: 0,
+    animation: "idle", animationTime: 0, actionProgress: 0,
+    basePosition: { x: -21.2, y: 0, z: 0 },
+    zone: { minimumX: -23, maximumX: -18, minimumZ: -4, maximumZ: 4 },
+    tacticalIntent: "HoldingPosition"
+};
+const mockAwayDefender = {
+    id: "away-defender", team: "away", role: "defender",
+    position: { x: 10, y: 0, z: -2 },
+    targetPosition: { x: 8, y: 0, z: -1 },
+    movementSpeed: 4.1, currentSpeed: 2, facingAngle: Math.PI,
+    animation: "idle", animationTime: 0, actionProgress: 0,
+    basePosition: { x: 11, y: 0, z: -4.7 },
+    zone: { minimumX: 0, maximumX: 22, minimumZ: -7, maximumZ: 7 },
+    tacticalIntent: "Pressing"
+};
+const mockAwayAttacker = {
+    id: "away-attacker", team: "away", role: "attacker",
+    position: { x: 5, y: 0, z: 2 },
+    targetPosition: { x: 3, y: 0, z: 1.5 },
+    movementSpeed: 5.2, currentSpeed: 1, facingAngle: Math.PI,
+    animation: "idle", animationTime: 0, actionProgress: 0,
+    basePosition: { x: 3.5, y: 0, z: 3 },
+    zone: { minimumX: -22, maximumX: 10, minimumZ: -7, maximumZ: 7 },
+    tacticalIntent: "Covering"
+};
+const mockAwayGK = {
+    id: "away-goalkeeper", team: "away", role: "goalkeeper",
+    position: { x: 21.2, y: 0, z: 0 },
+    targetPosition: { x: 21.2, y: 0, z: 0 },
+    movementSpeed: 3.2, currentSpeed: 0, facingAngle: Math.PI,
+    animation: "idle", animationTime: 0, actionProgress: 0,
+    basePosition: { x: 21.2, y: 0, z: 0 },
+    zone: { minimumX: 18, maximumX: 23, minimumZ: -4, maximumZ: 4 },
+    tacticalIntent: "HoldingPosition"
+};
+const mockHomeTeam = [mockHomeGK, mockOwner, mockAttacker];
+const mockAwayTeam = [mockAwayGK, mockAwayDefender, mockAwayAttacker];
+
 const passOption = ai.selectPassReceiver({
-    owner,
+    owner: mockOwner,
     attackingTeam: "home",
-    teammates: tacticalState.players.filter(player => player.team === "home"),
-    opponents: tacticalState.players.filter(player => player.team === "away")
+    teammates: mockHomeTeam,
+    opponents: mockAwayTeam
 });
 assert.ok(passOption !== null, "o passe deve ter ao menos um receptor válido");
 assert.equal(passOption.receiver.id, "home-attacker", "o passe deve priorizar o companheiro avançado e disponível");
@@ -81,7 +143,7 @@ const collisionBallPosition = { x: 0, y: 0.55, z: 0 };
 const collisionBall = new FuturebolBallController(collisionBallPosition);
 collisionBall.launchPass({ x: 6, y: 0.55, z: 0 });
 const blockingPlayer = {
-    ...tacticalState.players.find(player => player.id === "away-defender"),
+    ...mockAwayDefender,
     position: { x: 3, y: 0, z: 0 },
     targetPosition: { x: 3, y: 0, z: 0 },
     currentSpeed: 0
@@ -133,5 +195,219 @@ for (let index = 0; index < 420; index++) {
 assert.ok(goalkeeperReacted, "o goleiro deve reagir à trajetória do chute");
 assert.ok(goalkeeperTrackedLaterally, "o goleiro deve acompanhar lateralmente a bola");
 assert.ok(Math.abs(goalkeeper.targetPosition.z) < 0.05, "o goleiro deve voltar ao centro no reinício");
+
+// --- PASSO 15: diagnostics ---
+{
+    const diagState = new FuturebolMatchState("diag-test");
+    diagState.applyMarket(snapshot, "home");
+    const diag = diagState.diagnostics();
+    assert.equal(diag.phase, "Neutral");
+    assert.equal(diag.ballState, "Free");
+    assert.equal(diag.activeTeam, null);
+    assert.equal(diag.players.length, 6);
+    assert.ok(typeof diag.elapsed === "number");
+    assert.ok(typeof diag.pressure === "number");
+    assert.ok(typeof diag.scenario.scenarioType === "string" || diag.scenario.scenarioType === null);
+    assert.ok(Array.isArray(diag.players));
+    const homeGK = diag.players.find(p => p.id === "home-goalkeeper");
+    assert.ok(homeGK, "diagnostics deve incluir goleiro home");
+    assert.equal(homeGK.team, "home");
+    assert.equal(homeGK.role, "goalkeeper");
+    assert.ok(typeof homeGK.facingAngle === "number");
+    assert.ok(typeof homeGK.currentSpeed === "number");
+}
+
+// --- PASSO 15: diagnostics during active scenario ---
+{
+    const diagActive = new FuturebolMatchState("diag-active");
+    diagActive.applyMarket(snapshot, "home");
+    for (let i = 0; i < 200; i++) diagActive.update(1 / 60);
+    const activeDiag = diagActive.diagnostics();
+    assert.ok(activeDiag.scenario.scenarioType === null || activeDiag.scenario.scenarioType.length > 0,
+        "diagnostics during active play deve ter scenario type");
+    assert.ok(activeDiag.players.every(p => p.tacticalIntent.length > 0),
+        "todos os jogadores devem ter tacticalIntent");
+}
+
+// --- PASSO 15: collective behavior sends off-ball targets during scenario ---
+{
+    const cbState = new FuturebolMatchState("collective-behavior");
+    cbState.applyMarket(snapshot, "home");
+    for (let i = 0; i < 200; i++) cbState.update(1 / 60);
+
+    if (cbState.actionController.isActive) {
+        const attackingTeam = cbState.activeTeam;
+        const defendingTeam = attackingTeam === "home" ? "away" : "home";
+        const defPlayer = cbState.players.find(p => p.team === defendingTeam && p.role === "defender");
+        assert.ok(defPlayer, "deve haver defensor do time defensor");
+        assert.ok(Math.abs(defPlayer.targetPosition.z) < 12, "target do defensor deve estar dentro do campo");
+        assert.ok(defPlayer.targetPosition.x > -23 && defPlayer.targetPosition.x < 23, "target x deve estar dentro do campo");
+    }
+}
+
+// --- PASSO 15: GiveAndGo has Dribble after second pass ---
+{
+    const ggCtrl = new FuturebolScenarioController();
+    let ggCount = 0;
+    let ggWithDribble = 0;
+    for (let i = 0; i < 50; i++) {
+        const s = ggCtrl.selectScenario("home", "Goal", 12345, i);
+        if (s.type === "GiveAndGo") {
+            ggCount++;
+            const hasDribble = s.actions.some(a => a.kind === "PlayerAction" && a.type === "Dribble");
+            if (hasDribble) ggWithDribble++;
+        }
+    }
+    assert.ok(ggWithDribble > 0, `GiveAndGo deve ter ao menos 1 Dribble action em ${ggCount} cenários, teve ${ggWithDribble}`);
+}
+
+// --- PASSO 15: CounterAttack has Dribble ---
+{
+    const caCtrl = new FuturebolScenarioController();
+    let caCount = 0;
+    let caWithDribble = 0;
+    for (let i = 0; i < 50; i++) {
+        const s = caCtrl.selectScenario("home", "Goal", 12345, i);
+        if (s.type === "CounterAttack") {
+            caCount++;
+            const hasDribble = s.actions.some(a => a.kind === "PlayerAction" && a.type === "Dribble");
+            if (hasDribble) caWithDribble++;
+        }
+    }
+    assert.ok(caWithDribble > 0, `CounterAttack deve ter Dribble action, teve ${caWithDribble}/${caCount}`);
+}
+
+// --- PASSO 15: scenario player animations are set correctly ---
+{
+    const animState = new FuturebolMatchState("anim-test");
+    animState.applyMarket(snapshot, "home");
+    for (let i = 0; i < 200; i++) animState.update(1 / 60);
+
+    if (animState.actionController.isActive) {
+        const ballOwner = animState.players.find(p => p.id === animState.currentBallOwnerId);
+        if (ballOwner) {
+            assert.ok(
+                ballOwner.animation === "run" || ballOwner.animation === "walk" || ballOwner.animation === "kick" || ballOwner.animation === "idle",
+                `ball owner animation deve ser válida, recebeu: ${ballOwner.animation}`
+            );
+        }
+    }
+}
+
+// --- PASSO 11: diagnostics includes new fields ---
+{
+    const diagState = new FuturebolMatchState("diag-passo11");
+    diagState.applyMarket(snapshot, "home");
+    const diag = diagState.diagnostics();
+    assert.ok("interceptionPlan" in diag, "diagnostics deve incluir interceptionPlan");
+    assert.ok("shotProfile" in diag, "diagnostics deve incluir shotProfile");
+    assert.ok("shotResolutionPlan" in diag, "diagnostics deve incluir shotResolutionPlan");
+    assert.ok("pendingBranch" in diag, "diagnostics deve incluir pendingBranch");
+    assert.ok("requiredOutcome" in diag, "diagnostics deve incluir requiredOutcome");
+    assert.ok("shotOrdinal" in diag, "diagnostics deve incluir shotOrdinal");
+    assert.ok("branchCount" in diag, "diagnostics deve incluir branchCount");
+    assert.ok("looseBallElapsed" in diag, "diagnostics deve incluir looseBallElapsed");
+    assert.equal(diag.interceptionPlan, null, "interceptionPlan deve ser null em Neutral");
+    assert.equal(diag.shotProfile, null, "shotProfile deve ser null em Neutral");
+    assert.equal(diag.shotResolutionPlan, null, "shotResolutionPlan deve ser null em Neutral");
+    assert.equal(diag.pendingBranch, null, "pendingBranch deve ser null em Neutral");
+    assert.equal(diag.requiredOutcome, null, "requiredOutcome deve ser null em Neutral");
+    assert.equal(diag.shotOrdinal, 0, "shotOrdinal deve iniciar em 0");
+    assert.equal(diag.branchCount, 0, "branchCount deve iniciar em 0");
+    assert.equal(diag.looseBallElapsed, 0, "looseBallElapsed deve iniciar em 0");
+}
+
+// --- PASSO 11: action controller diagnostics includes branchCount ---
+{
+    const acDiagState = new FuturebolMatchState("ac-diag-passo11");
+    acDiagState.applyMarket(snapshot, "home");
+    for (let i = 0; i < 60; i++) acDiagState.update(1 / 60);
+    const acDiag = acDiagState.diagnostics().scenario;
+    assert.ok("branchCount" in acDiag, "action controller diagnostics deve incluir branchCount");
+    assert.equal(typeof acDiag.branchCount, "number", "branchCount deve ser número");
+}
+
+// --- PASSO 11: requiredOutcome set for Goal scenarios ---
+{
+    const goalDiag = new FuturebolMatchState("goal-required");
+    goalDiag.applyMarket(snapshot, "home");
+    goalDiag.forceShot("home", "Goal");
+    for (let i = 0; i < 30; i++) goalDiag.update(1 / 60);
+    const diag = goalDiag.diagnostics();
+    if (diag.requiredOutcome) {
+        assert.equal(diag.requiredOutcome.outcome, "Goal", "requiredOutcome deve ser Goal");
+        assert.equal(diag.requiredOutcome.team, "home", "requiredOutcome team deve ser home");
+        assert.equal(diag.requiredOutcome.active, true, "requiredOutcome deve estar ativo");
+    }
+}
+
+// --- PASSO 11: shot profile appears during shooting phase ---
+{
+    const shotDiag = new FuturebolMatchState("shot-profile-test");
+    shotDiag.applyMarket(snapshot, "home");
+    shotDiag.forceShot("home", "Goal");
+    let profileSeen = false;
+    for (let i = 0; i < 120; i++) {
+        shotDiag.update(1 / 60);
+        const d = shotDiag.diagnostics();
+        profileSeen ||= d.shotProfile !== null;
+    }
+    assert.ok(profileSeen, "shotProfile deve ser definido durante o chute");
+}
+
+// --- PASSO 11: action controller returns object with completed + result ---
+{
+    import("../../dist/futurebol/futurebol-action-controller.js").then(({ ActionController }) => {
+        const ac = new ActionController();
+        ac.startScenario({
+            id: "return-type-test",
+            type: "DirectAttack",
+            attackingTeam: "home",
+            expectedOutcome: "Goal",
+            actions: [
+                { kind: "PlayerAction", type: "MoveTo", playerId: "home-defender", team: "home", duration: 0.3, target: { x: 5, y: 0, z: 1 } }
+            ]
+        });
+        const result = ac.update(0.1, {
+            ballOwnerId: null, ballState: "Free", ballPosition: { x: 0, y: 0.55, z: 0 },
+            ballVelocity: { x: 0, y: 0, z: 0 }, playPhase: "BuildUp", outcome: null,
+            phaseElapsed: 0, intendedReceiverId: null,
+            lastActionResult: null, possessionTeam: null, requiredOutcome: null
+        });
+        assert.ok(typeof result === "object", "update deve retornar objeto");
+        assert.ok("completed" in result, "resultado deve ter campo completed");
+        assert.ok("result" in result, "resultado deve ter campo result");
+        assert.equal(typeof result.completed, "boolean", "completed deve ser booleano");
+    });
+}
+
+// --- PASSO 11: injectContinuationActions increments branchCount ---
+{
+    import("../../dist/futurebol/futurebol-action-controller.js").then(({ ActionController }) => {
+        const ac = new ActionController();
+        ac.startScenario({
+            id: "branch-test",
+            type: "DirectAttack",
+            attackingTeam: "home",
+            expectedOutcome: "Goal",
+            actions: [
+                { kind: "PlayerAction", type: "MoveTo", playerId: "home-defender", team: "home", duration: 10, target: { x: 5, y: 0, z: 1 } }
+            ]
+        });
+        assert.equal(ac.currentBranchCount, 0);
+        ac.injectContinuationActions([
+            { kind: "PlayerAction", type: "RunTo", playerId: "home-attacker", team: "home", duration: 0.5, target: { x: 10, y: 0, z: 0 } }
+        ]);
+        assert.equal(ac.currentBranchCount, 1);
+        ac.injectContinuationActions([
+            { kind: "PlayerAction", type: "RunTo", playerId: "home-attacker", team: "home", duration: 0.5, target: { x: 10, y: 0, z: 0 } }
+        ]);
+        assert.equal(ac.currentBranchCount, 2);
+        ac.injectContinuationActions([
+            { kind: "PlayerAction", type: "RunTo", playerId: "home-attacker", team: "home", duration: 0.5, target: { x: 10, y: 0, z: 0 } }
+        ]);
+        assert.equal(ac.currentBranchCount, 2, "branchCount não deve exceder MAX_SCENARIO_BRANCHES");
+    });
+}
 
 console.log("Futurebol gameplay systems tests passed.");

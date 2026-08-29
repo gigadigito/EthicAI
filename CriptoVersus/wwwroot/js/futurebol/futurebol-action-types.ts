@@ -1,4 +1,5 @@
 import type { FuturebolPlayOutcome, FuturebolPlayPhase, FuturebolTeam, FuturebolVector3State } from "./futurebol-types.js";
+import type { FuturebolActionResult, FuturebolRequiredOutcome } from "./futurebol-possession-types.js";
 
 export type FuturebolActionKind = "PlayerAction" | "BallAction" | "TeamAction";
 
@@ -22,7 +23,9 @@ export interface FuturebolPlayerAction extends FuturebolActionBase {
         | "Celebrate"
         | "Disappointed"
         | "ReturnToFormation"
-        | "Dribble";
+        | "Dribble"
+        | "ChallengeBall"
+        | "RecoverLoose";
     readonly target?: FuturebolVector3State;
     readonly targetPlayerId?: string;
 }
@@ -68,6 +71,9 @@ export interface FuturebolActionCompletionContext {
     readonly outcome: FuturebolPlayOutcome | null;
     readonly phaseElapsed: number;
     readonly intendedReceiverId: string | null;
+    readonly lastActionResult: FuturebolActionResult | null;
+    readonly possessionTeam: FuturebolTeam | null;
+    readonly requiredOutcome: FuturebolRequiredOutcome | null;
 }
 
 export function isPlayerAction(action: FuturebolAction): action is FuturebolPlayerAction {

@@ -67,11 +67,22 @@ export class FuturebolBallController {
         return speed;
     }
 
-    public launchShot(target: FuturebolVector3State): number {
+    public launchShot(target: FuturebolVector3State, power = 0.5): number {
         const distance = planarDistance(this.position, target);
-        const speed = clamp(20.5 + distance * 0.16, 21, 24);
+        const baseSpeed = clamp(20.5 + distance * 0.16, 21, 24);
+        const speed = baseSpeed * (0.85 + power * 0.3);
         this.launch(target, speed, 3.8);
         return speed;
+    }
+
+    public deflect(
+        impulseX: number,
+        impulseZ: number,
+        liftImpulse: number
+    ): void {
+        this.velocity.x += impulseX;
+        this.velocity.z += impulseZ;
+        this.velocity.y = Math.max(this.velocity.y + liftImpulse, 1.5);
     }
 
     public updateFlight(

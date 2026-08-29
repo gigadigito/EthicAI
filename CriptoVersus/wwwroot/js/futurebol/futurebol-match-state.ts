@@ -11,6 +11,7 @@ import type {
     FuturebolPressureOverride,
     FuturebolRestartType,
     FuturebolRole,
+    FuturebolTacticalIntent,
     FuturebolTeam,
     FuturebolVector3State
 } from "./futurebol-types.js";
@@ -28,7 +29,82 @@ import type {
     FuturebolAction,
     FuturebolActionCompletionContext
 } from "./futurebol-action-types.js";
+import type { ActionControllerDiagnostics } from "./futurebol-action-controller.js";
 import { isPlayerAction, isBallAction, isTeamAction } from "./futurebol-action-types.js";
+import type {
+    FuturebolActionResult,
+    FuturebolInterceptionPlan,
+    FuturebolShotResolutionPlan,
+    FuturebolPendingBranch,
+    FuturebolRequiredOutcome
+} from "./futurebol-possession-types.js";
+import { buildInterceptionPlan } from "./futurebol-interception.js";
+import { evaluateParry } from "./futurebol-interception.js";
+import { selectShotProfile, computeShotTarget, computeGoalkeeperDiveTarget } from "./futurebol-shot-variation.js";
+
+export interface MatchStatePlayerDiagnostics {
+    readonly id: string;
+    readonly team: FuturebolTeam;
+    readonly role: FuturebolRole;
+    readonly position: FuturebolVector3State;
+    readonly targetPosition: FuturebolVector3State;
+    readonly animation: FuturebolPlayerAnimation;
+    readonly facingAngle: number;
+    readonly currentSpeed: number;
+    readonly tacticalIntent: FuturebolTacticalIntent;
+}
+
+export interface MatchStateDiagnostics {
+    readonly phase: FuturebolPlayPhase;
+    readonly elapsed: number;
+    readonly pressure: number;
+    readonly ballState: FuturebolBallState;
+    readonly ballOwnerId: string | null;
+    readonly ballPosition: FuturebolVector3State;
+    readonly activeTeam: FuturebolTeam | null;
+    readonly homeScore: number;
+    readonly awayScore: number;
+    readonly displayHomeScore: number;
+    readonly displayAwayScore: number;
+    readonly scenario: ActionControllerDiagnostics;
+    readonly players: readonly MatchStatePlayerDiagnostics[];
+    readonly interceptionPlan: {
+        readonly willIntercept: boolean;
+        readonly interceptorId: string | null;
+        readonly interceptionAlong: number;
+        readonly interceptionPoint: {
+            readonly x: number;
+            readonly y: number;
+            readonly z: number;
+        };
+        readonly distanceToLine: number;
+    } | null;
+    readonly shotProfile: {
+        readonly lateral: string;
+        readonly height: string;
+        readonly power: number;
+    } | null;
+    readonly shotResolutionPlan: {
+        readonly willParry: boolean;
+        readonly profile: {
+            readonly lateral: string;
+            readonly height: string;
+            readonly power: number;
+        };
+    } | null;
+    readonly pendingBranch: {
+        readonly reason: "Interception" | "Parry";
+        readonly requiredTeam: FuturebolTeam | null;
+    } | null;
+    readonly requiredOutcome: {
+        readonly outcome: "Goal" | "Saved";
+        readonly team: FuturebolTeam;
+        readonly active: boolean;
+    } | null;
+    readonly shotOrdinal: number;
+    readonly branchCount: number;
+    readonly looseBallElapsed: number;
+}
 
 const FIELD_HALF_LENGTH = 23;
 const FIELD_HALF_WIDTH = 13;
@@ -269,6 +345,14 @@ export class FuturebolMatchState {
     private pendingOutcome: FuturebolPlayOutcome | null = null;
     private currentOutcome: FuturebolPlayOutcome = "Saved";
     private outcomeHoldSeconds = 1.2;
+    private interceptionPlan: FuturebolInterceptionPlan | null = null;
+    private activeShotProfile: import("./futurebol-possession-types.js").FuturebolShotProfile | null = null;
+    private shotResolutionPlan: FuturebolShotResolutionPlan | null = null;
+    private pendingBranch: FuturebolPendingBranch | null = null;
+    private requiredOutcome: FuturebolRequiredOutcome | null = null;
+    private shotOrdinal = 0;
+    private looseBallElapsed = 0;
+    private lastActionResult: FuturebolActionResult | null = null;
     private playPlan: PlayPlan = {
         lane: 0,
         supportLane: 0,
@@ -567,6 +651,14 @@ export class FuturebolMatchState {
         this.outcomeHoldSeconds = 1.2;
         this.homeOffensiveSeconds = 0;
         this.awayOffensiveSeconds = 0;
+        this.interceptionPlan = null;
+        this.activeShotProfile = null;
+        this.shotResolutionPlan = null;
+        this.pendingBranch = null;
+        this.requiredOutcome = null;
+        this.shotOrdinal = 0;
+        this.looseBallElapsed = 0;
+        this.lastActionResult = null;
         this.playPlan = {
             lane: 0,
             supportLane: 0,
@@ -719,6 +811,19 @@ export class FuturebolMatchState {
         this.intendedReceiverId = null;
         setPoint(this.ballTarget, 0, BALL_GROUND_Y, 0);
         this.applyNeutralFormation();
+
+        if (this.latestSnapshot !== null && this.playIndex > 0) {
+            this.applyAmbientSubtleShift();
+        }
+    }
+
+    private applyAmbientSubtleShift(): void {
+        const ambientPhase = this.elapsedSeconds * 0.4;
+        for (const player of this.players) {
+            if (player.role === "goalkeeper") continue;
+            const shift = Math.sin(ambientPhase + player.position.x * 0.5) * 0.15;
+            player.targetPosition.z = player.basePosition.z + shift;
+        }
     }
 
     private updateAmbientGameplay(): void {
@@ -761,21 +866,45 @@ export class FuturebolMatchState {
     private updateScenarioExecution(deltaSeconds: number): void {
         this.releaseTransientAnimations();
 
-        const action = this.actionController.currentAction;
-        if (action) {
-            this.applyScenarioAction(action);
+        const isLoose = this.ballState === "Loose";
+
+        if (!isLoose) {
+            const action = this.actionController.currentAction;
+            if (action) {
+                this.applyScenarioAction(action);
+            }
+            this.applyCollectiveBehavior();
+        }
+
+        if (isLoose) {
+            this.looseBallElapsed += deltaSeconds;
+            this.tryRecoverLooseBall();
+            if (this.ballState === "Loose") {
+                this.ballController.updateFlight(deltaSeconds, this.players);
+            }
         }
 
         const completionContext = this.buildActionCompletionContext();
-        const scenarioCompleted = this.actionController.update(
+        const updateResult = this.actionController.update(
             deltaSeconds,
             completionContext
         );
 
-        if (scenarioCompleted) {
+        this.lastActionResult = updateResult.result;
+
+        if (updateResult.result === "Intercepted" && this.actionController.isActive) {
+            return;
+        }
+
+        if (updateResult.result === "Parried" && this.actionController.isActive) {
+            return;
+        }
+
+        if (updateResult.completed) {
             const outcome = this.activeScenario?.expectedOutcome ?? null;
             this.activeScenario = null;
             this.actionController.cancel();
+            this.requiredOutcome = null;
             this.beginResetting();
         }
     }
@@ -789,7 +918,10 @@ export class FuturebolMatchState {
             playPhase: this.currentPlayPhase,
             outcome: this.currentOutcome,
             ballPosition: this.ballPosition,
-            ballVelocity: this.ballVelocity
+            ballVelocity: this.ballVelocity,
+            lastActionResult: this.lastActionResult,
+            possessionTeam: this.activeTeam,
+            requiredOutcome: this.requiredOutcome
         };
     }
 
@@ -812,14 +944,25 @@ export class FuturebolMatchState {
 
         switch (action.type) {
             case "MoveTo":
+                if (action.target) {
+                    player.targetPosition.x = action.target.x;
+                    player.targetPosition.z = action.target.z;
+                }
+                player.currentSpeed = player.movementSpeed * 0.85;
+                if (player.animation !== "kick" && player.animation !== "goalkeeper-dive") {
+                    player.animation = "walk";
+                }
+                break;
+
             case "RunTo":
                 if (action.target) {
                     player.targetPosition.x = action.target.x;
                     player.targetPosition.z = action.target.z;
                 }
-                player.currentSpeed = action.type === "RunTo"
-                    ? player.movementSpeed * 1.1
-                    : player.movementSpeed * 0.9;
+                player.currentSpeed = player.movementSpeed * 1.1;
+                if (player.animation !== "kick" && player.animation !== "goalkeeper-dive") {
+                    player.animation = "run";
+                }
                 break;
 
             case "Dribble":
@@ -828,6 +971,9 @@ export class FuturebolMatchState {
                     player.targetPosition.z = action.target.z;
                 }
                 player.currentSpeed = player.movementSpeed * 0.75;
+                if (player.animation !== "kick") {
+                    player.animation = "run";
+                }
                 break;
 
             case "SupportRun":
@@ -835,7 +981,10 @@ export class FuturebolMatchState {
                     player.targetPosition.x = action.target.x;
                     player.targetPosition.z = action.target.z;
                 }
-                player.currentSpeed = player.movementSpeed * 0.85;
+                player.currentSpeed = player.movementSpeed * 0.9;
+                if (player.animation !== "kick" && player.animation !== "goalkeeper-dive") {
+                    player.animation = "run";
+                }
                 break;
 
             case "RecoverRun":
@@ -844,6 +993,9 @@ export class FuturebolMatchState {
                     player.targetPosition.z = action.target.z;
                 }
                 player.currentSpeed = player.movementSpeed;
+                if (player.animation !== "goalkeeper-dive") {
+                    player.animation = "run";
+                }
                 break;
 
             case "Celebrate":
@@ -858,6 +1010,31 @@ export class FuturebolMatchState {
 
             case "ReturnToFormation":
                 this.setFormationTarget(player);
+                player.currentSpeed = player.movementSpeed * 0.7;
+                break;
+
+            case "ChallengeBall":
+                if (action.target) {
+                    player.targetPosition.x = action.target.x;
+                    player.targetPosition.z = action.target.z;
+                }
+                player.currentSpeed = player.movementSpeed * 1.1;
+                player.tacticalIntent = "Intercepting";
+                if (player.animation !== "kick" && player.animation !== "goalkeeper-dive") {
+                    player.animation = "run";
+                }
+                break;
+
+            case "RecoverLoose":
+                if (action.target) {
+                    player.targetPosition.x = action.target.x;
+                    player.targetPosition.z = action.target.z;
+                }
+                player.currentSpeed = player.movementSpeed * 1.2;
+                player.tacticalIntent = "Pressing";
+                if (player.animation !== "kick" && player.animation !== "goalkeeper-dive") {
+                    player.animation = "run";
+                }
                 break;
 
             case "LookAt":
@@ -899,10 +1076,60 @@ export class FuturebolMatchState {
                     shooter.animation = "kick";
                     shooter.actionProgress = clamp(this.actionController.actionProgress, 0, 1);
                 }
+
+                if (this.requiredOutcome?.active) {
+                    this.currentOutcome = this.requiredOutcome.outcome;
+                } else {
+                    this.currentOutcome = this.activeScenario?.expectedOutcome ?? "Saved";
+                }
+                this.pendingOutcome = this.currentOutcome;
+
+                const team = this.activeTeam ?? "home";
+                const direction = attackDirection(team);
+                const goalkeeper = this.getPlayer(
+                    this.playerId(opponent(team), "goalkeeper")
+                );
+
+                if (!this.activeShotProfile) {
+                    const advantage = this.attackingAdvantage(team);
+                    this.activeShotProfile = selectShotProfile(
+                        shooter?.position.z ?? 0,
+                        direction,
+                        advantage,
+                        this.seedHash,
+                        this.playIndex * 43 + this.shotOrdinal * 17
+                    );
+                }
+
+                const shotTarget = computeShotTarget(
+                    this.activeShotProfile,
+                    direction,
+                    this.playPlan.shotPlacement
+                );
+                this.shotEnd.x = shotTarget.x;
+                this.shotEnd.y = shotTarget.y;
+                this.shotEnd.z = shotTarget.z;
+
+                const willParry = evaluateParry(
+                    this.activeShotProfile,
+                    this.shotEnd.z,
+                    goalkeeper.position.z,
+                    this.seedHash,
+                    this.playIndex * 53 + this.shotOrdinal * 23
+                );
+
+                this.shotResolutionPlan = {
+                    profile: this.activeShotProfile,
+                    willParry
+                };
+
+                this.lastBallOwnerId = shooter?.id ?? null;
+                this.currentBallOwnerId = null;
                 this.ballState = "Shooting";
                 this.currentPlayPhase = "Outcome";
-                this.currentOutcome = this.activeScenario?.expectedOutcome ?? "Saved";
-                this.pendingOutcome = this.currentOutcome;
+                this.lastBallAction = "Shoot";
+
+                copyPoint(this.ballTarget, this.shotEnd);
                 break;
             }
         }
@@ -947,6 +1174,115 @@ export class FuturebolMatchState {
         }
     }
 
+    private applyCollectiveBehavior(): void {
+        if (!this.activeTeam || !this.activeScenario) return;
+
+        const attackingTeam = this.activeTeam;
+        const defendingTeam = attackingTeam === "home" ? "away" : "home";
+        const dir = attackDirection(attackingTeam);
+        const ballX = this.ballPosition.x;
+        const ballZ = this.ballPosition.z;
+        const ballOwner = this.currentBallOwnerId
+            ? this.getPlayer(this.currentBallOwnerId)
+            : null;
+
+        for (const player of this.players) {
+            if (player.role === "goalkeeper") {
+                this.applyGoalkeeperTracking(player, ballZ, ballX);
+                continue;
+            }
+
+            const isAttacking = player.team === attackingTeam;
+            const isOwner = player.id === this.currentBallOwnerId;
+
+            if (isAttacking && !isOwner) {
+                this.applyAttackingOffBall(player, dir, ballX, ballZ, ballOwner);
+            } else if (!isAttacking) {
+                this.applyDefensiveReaction(player, dir, ballX, ballZ, ballOwner);
+            }
+        }
+    }
+
+    private applyGoalkeeperTracking(
+        player: FuturebolPlayerState,
+        ballZ: number,
+        ballX: number
+    ): void {
+        const baseX = player.basePosition.x;
+        const lateralTrack = clamp(ballZ * 0.85, -2.8, 2.8);
+        const dirToBall = ballX > baseX ? 1 : -1;
+        const distToBall = Math.abs(ballX - baseX);
+        const depthAdjust = clamp(distToBall * 0.04, 0, 1.5);
+        player.targetPosition.x = baseX + dirToBall * depthAdjust;
+        player.targetPosition.z = lateralTrack;
+        player.currentSpeed = player.movementSpeed * 0.6;
+    }
+
+    private applyAttackingOffBall(
+        player: FuturebolPlayerState,
+        dir: number,
+        ballX: number,
+        ballZ: number,
+        ballOwner: FuturebolPlayerState | null
+    ): void {
+        const distToBall = Math.hypot(ballX - player.position.x, ballZ - player.position.z);
+        const distToGoal = Math.abs(dir * 25 - player.position.x);
+
+        if (player.role === "attacker") {
+            if (distToGoal < 12) {
+                player.targetPosition.x = player.position.x + dir * 0.3;
+                player.targetPosition.z = clamp(
+                    ballZ * 0.5 + (player.position.z - ballZ) * 0.7,
+                    -5, 5
+                );
+            } else {
+                player.targetPosition.x = player.position.x + dir * 1.2;
+                player.targetPosition.z = clamp(
+                    ballZ * 0.4 + player.basePosition.z * 0.6,
+                    -5, 5
+                );
+            }
+            player.currentSpeed = player.movementSpeed * 0.7;
+        } else if (player.role === "defender") {
+            const supportX = ballX - dir * 5;
+            const supportZ = clamp(
+                ballZ * 0.3 + player.basePosition.z * 0.7,
+                -5, 5
+            );
+            player.targetPosition.x = clamp(supportX, -17, 17);
+            player.targetPosition.z = supportZ;
+            player.currentSpeed = player.movementSpeed * 0.5;
+        }
+    }
+
+    private applyDefensiveReaction(
+        player: FuturebolPlayerState,
+        dir: number,
+        ballX: number,
+        ballZ: number,
+        ballOwner: FuturebolPlayerState | null
+    ): void {
+        if (player.role === "attacker") {
+            const pressX = ballX + dir * 2.5;
+            const pressZ = clamp(
+                ballZ * 0.6 + player.basePosition.z * 0.4,
+                -5, 5
+            );
+            player.targetPosition.x = clamp(pressX, -19, 19);
+            player.targetPosition.z = pressZ;
+            player.currentSpeed = player.movementSpeed * 0.65;
+        } else if (player.role === "defender") {
+            const blockX = ballX + dir * 4;
+            const blockZ = clamp(
+                ballZ * 0.4 + player.basePosition.z * 0.6,
+                -5, 5
+            );
+            player.targetPosition.x = clamp(blockX, -17, 17);
+            player.targetPosition.z = blockZ;
+            player.currentSpeed = player.movementSpeed * 0.55;
+        }
+    }
+
     private startPlay(
         team: FuturebolTeam,
         outcome: FuturebolPlayOutcome | null,
@@ -965,6 +1301,23 @@ export class FuturebolMatchState {
         this.currentPlayPhase = "BuildUp";
         this.phaseElapsed = 0;
         this.cooldownRemainingSeconds = 0;
+        this.shotOrdinal = 0;
+        this.interceptionPlan = null;
+        this.activeShotProfile = null;
+        this.shotResolutionPlan = null;
+        this.pendingBranch = null;
+        this.looseBallElapsed = 0;
+        this.lastActionResult = null;
+
+        if (this.currentOutcome === "Goal") {
+            this.requiredOutcome = {
+                outcome: "Goal",
+                team,
+                active: true
+            };
+        } else {
+            this.requiredOutcome = null;
+        }
 
         if (!this.officialGoalCinematicActive) {
             const resolved = this.currentOutcome ?? this.pendingOutcome;
@@ -1115,6 +1468,17 @@ export class FuturebolMatchState {
         this.phaseElapsed = 0;
         this.ballController.launchPass(this.passEnd);
 
+        const team = this.requireActiveTeam();
+        this.interceptionPlan = buildInterceptionPlan(
+            this.players,
+            this.passStart,
+            this.passEnd,
+            receiver.id,
+            team,
+            this.seedHash,
+            this.playIndex * 37 + 13
+        );
+
         defender.animation = "kick";
         defender.actionProgress = FUTUREBOL_ACTION_TIMING.passContactRatio;
     }
@@ -1131,6 +1495,16 @@ export class FuturebolMatchState {
             0,
             1
         );
+
+        if (
+            this.interceptionPlan &&
+            this.interceptionPlan.willIntercept &&
+            this.interceptionPlan.interceptorId &&
+            progress >= this.interceptionPlan.interceptionAlong
+        ) {
+            this.handleInterception(this.interceptionPlan.interceptorId, team);
+            return;
+        }
 
         const currentBallX = lerp(this.passStart.x, this.passEnd.x, progress);
 
@@ -1182,14 +1556,7 @@ export class FuturebolMatchState {
             receiverTouched ||
             this.phaseElapsed >= 1.75
         ) {
-            this.setOwner(receiver.id);
-            this.intendedReceiverId = null;
-            this.ballState = "Controlled";
-            this.ballController.stopAt({
-                x: receiver.position.x,
-                y: BALL_GROUND_Y,
-                z: receiver.position.z
-            });
+            this.gainPossession(receiver.id, "Pass");
             this.transitionToAttacking();
         }
     }
@@ -1203,6 +1570,216 @@ export class FuturebolMatchState {
         this.intendedReceiverId = null;
         this.ballState = "Controlled";
         this.lastBallAction = "Dribble";
+    }
+
+    private handleInterception(interceptorId: string, attackingTeam: FuturebolTeam): void {
+        this.lastActionResult = "Intercepted";
+        this.currentBallOwnerId = null;
+        this.intendedReceiverId = null;
+
+        const deflectSalt = this.playIndex * 67 + this.shotOrdinal * 31;
+        const impulseX = deterministicSigned(this.seedHash, deflectSalt) * 2;
+        const impulseZ = deterministicSigned(this.seedHash, deflectSalt + 1) * 2;
+        this.ballController.deflect(impulseX, impulseZ, 0.4);
+        this.makeBallLoose("Interception");
+
+        for (const player of this.players) {
+            if (player.id === interceptorId) {
+                player.tacticalIntent = "Challenging";
+            } else if (player.team !== attackingTeam) {
+                player.tacticalIntent = "Pressing";
+            }
+        }
+
+        this.pendingBranch = {
+            reason: "Interception",
+            requiredTeam: opponent(attackingTeam)
+        };
+    }
+
+    private handleParry(
+        goalkeeper: FuturebolPlayerState,
+        attackingTeam: FuturebolTeam
+    ): void {
+        this.lastActionResult = "Parried";
+        this.currentBallOwnerId = null;
+        this.intendedReceiverId = null;
+
+        const deflectSalt = this.playIndex * 71 + this.shotOrdinal * 37;
+        const impulseX = deterministicSigned(this.seedHash, deflectSalt) * 3;
+        const impulseZ = deterministicSigned(this.seedHash, deflectSalt + 1) * 3;
+        this.ballController.deflect(impulseX, impulseZ, 0.5);
+        this.makeBallLoose("Parry");
+
+        goalkeeper.animation = "goalkeeper-dive";
+        goalkeeper.actionProgress = 1;
+
+        this.pendingBranch = {
+            reason: "Parry",
+            requiredTeam: null
+        };
+        void attackingTeam;
+    }
+
+    private tryRecoverLooseBall(): void {
+        if (this.ballState !== "Loose") return;
+
+        const RECOVERY_RADIUS = 1.1;
+        let closestPlayer: FuturebolPlayerState | null = null;
+        let closestDistance = RECOVERY_RADIUS;
+
+        for (const player of this.players) {
+            const distance = planarDistance(this.ballPosition, player.position);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestPlayer = player;
+            }
+        }
+
+        if (!closestPlayer) return;
+
+        const nearestHome = this.findNearestToBall("home");
+        const nearestAway = this.findNearestToBall("away");
+
+        if (!nearestHome || !nearestAway) return;
+
+        const homeDist = planarDistance(this.ballPosition, nearestHome.position);
+        const awayDist = planarDistance(this.ballPosition, nearestAway.position);
+
+        const recoveredPlayer = homeDist <= awayDist ? nearestHome : nearestAway;
+        const recoveredDist = homeDist <= awayDist ? homeDist : awayDist;
+
+        if (recoveredDist > RECOVERY_RADIUS) return;
+
+        this.gainPossession(recoveredPlayer.id, "Recovery");
+        this.lastActionResult = null;
+
+        if (this.pendingBranch) {
+            const branch = this.pendingBranch;
+            this.pendingBranch = null;
+
+            if (branch.requiredTeam && recoveredPlayer.team !== branch.requiredTeam) {
+                return;
+            }
+
+            this.resolveBranch(branch, recoveredPlayer);
+        }
+    }
+
+    private findNearestToBall(team: FuturebolTeam): FuturebolPlayerState | null {
+        let nearest: FuturebolPlayerState | null = null;
+        let minDist = Infinity;
+        for (const player of this.players) {
+            if (player.team !== team) continue;
+            const dist = planarDistance(this.ballPosition, player.position);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = player;
+            }
+        }
+        return nearest;
+    }
+
+    private resolveBranch(
+        branch: FuturebolPendingBranch,
+        recoveredPlayer: FuturebolPlayerState
+    ): void {
+        if (this.actionController.currentBranchCount >= 2) return;
+
+        const team = recoveredPlayer.team as FuturebolTeam;
+        const isGoalRequired = this.requiredOutcome?.active === true &&
+            this.requiredOutcome.outcome === "Goal" &&
+            this.requiredOutcome.team === team;
+
+        if (branch.reason === "Interception") {
+            this.injectInterceptionContinuation(team, isGoalRequired);
+        } else if (branch.reason === "Parry") {
+            this.injectParryContinuation(team, isGoalRequired);
+        }
+    }
+
+    private injectInterceptionContinuation(
+        team: FuturebolTeam,
+        isGoalRequired: boolean
+    ): void {
+        const attacker = this.getPlayer(this.playerId(team, "attacker"));
+        const direction = attackDirection(team);
+
+        const continuation: FuturebolAction[] = [
+            {
+                kind: "PlayerAction",
+                type: "RunTo",
+                duration: 0.8,
+                playerId: attacker.id,
+                target: {
+                    x: clamp(attacker.position.x + direction * 3, -19, 19),
+                    y: 0,
+                    z: attacker.position.z
+                }
+            },
+            {
+                kind: "BallAction",
+                type: "ShootToGoal",
+                duration: 0.8,
+                targetPlayerId: attacker.id,
+                target: {
+                    x: direction * GOAL_LINE_X,
+                    y: 1,
+                    z: 0
+                }
+            },
+            {
+                kind: "PlayerAction",
+                type: "Celebrate",
+                duration: 1.5,
+                playerId: attacker.id
+            }
+        ];
+
+        this.actionController.injectContinuationActions(continuation);
+        void isGoalRequired;
+    }
+
+    private injectParryContinuation(
+        team: FuturebolTeam,
+        isGoalRequired: boolean
+    ): void {
+        const attacker = this.getPlayer(this.playerId(team, "attacker"));
+        const direction = attackDirection(team);
+
+        const continuation: FuturebolAction[] = [
+            {
+                kind: "PlayerAction",
+                type: "RunTo",
+                duration: 0.6,
+                playerId: attacker.id,
+                target: {
+                    x: clamp(this.ballPosition.x + direction * 1.5, -19, 19),
+                    y: 0,
+                    z: this.ballPosition.z
+                }
+            },
+            {
+                kind: "BallAction",
+                type: "ShootToGoal",
+                duration: 0.8,
+                targetPlayerId: attacker.id,
+                target: {
+                    x: direction * GOAL_LINE_X,
+                    y: 1,
+                    z: 0
+                }
+            },
+            {
+                kind: "PlayerAction",
+                type: "Celebrate",
+                duration: 1.5,
+                playerId: attacker.id
+            }
+        ];
+
+        this.actionController.injectContinuationActions(continuation);
+        void isGoalRequired;
     }
 
     private updateAttack(): void {
@@ -1302,27 +1879,79 @@ export class FuturebolMatchState {
     private launchShot(attacker: FuturebolPlayerState): void {
         copyPoint(this.shotStart, this.ballPosition);
         this.currentOutcome = this.pendingOutcome ?? this.currentOutcome;
-        this.configureShotEnd();
+
+        const team = this.requireActiveTeam();
+        const direction = attackDirection(team);
+        const advantage = this.attackingAdvantage(team);
+        const goalkeeper = this.getPlayer(
+            this.playerId(opponent(team), "goalkeeper")
+        );
+
+        this.shotOrdinal += 1;
+
+        this.activeShotProfile = selectShotProfile(
+            attacker.position.z,
+            direction,
+            advantage,
+            this.seedHash,
+            this.playIndex * 43 + this.shotOrdinal * 17
+        );
+
+        const shotTarget = computeShotTarget(
+            this.activeShotProfile,
+            direction,
+            this.playPlan.shotPlacement
+        );
+        this.shotEnd.x = shotTarget.x;
+        this.shotEnd.y = shotTarget.y;
+        this.shotEnd.z = shotTarget.z;
+
+        const willParry = evaluateParry(
+            this.activeShotProfile,
+            this.shotEnd.z,
+            goalkeeper.position.z,
+            this.seedHash,
+            this.playIndex * 53 + this.shotOrdinal * 23
+        );
+
+        this.shotResolutionPlan = {
+            profile: this.activeShotProfile,
+            willParry
+        };
+
         this.lastBallOwnerId = attacker.id;
         this.currentBallOwnerId = null;
         this.ballState = "Shooting";
         this.currentPlayPhase = "Shooting";
         this.phaseElapsed = 0;
         this.lastBallAction = "Shoot";
-        this.ballController.launchShot(this.shotEnd);
+        this.ballController.launchShot(this.shotEnd, this.activeShotProfile.power);
+
+        copyPoint(this.ballTarget, this.shotEnd);
     }
 
     private configureShotEnd(): void {
         const team = this.requireActiveTeam();
         const direction = attackDirection(team);
 
-        this.shotEnd.x = direction * (
-            this.currentOutcome === "Goal"
-                ? GOAL_LINE_X + 1.35
-                : GOAL_LINE_X - 2.45
-        );
-        this.shotEnd.y = this.currentOutcome === "Goal" ? 1.05 : 0.86;
-        this.shotEnd.z = this.playPlan.shotPlacement;
+        if (this.activeShotProfile) {
+            const shotTarget = computeShotTarget(
+                this.activeShotProfile,
+                direction,
+                this.playPlan.shotPlacement
+            );
+            this.shotEnd.x = shotTarget.x;
+            this.shotEnd.y = shotTarget.y;
+            this.shotEnd.z = shotTarget.z;
+        } else {
+            this.shotEnd.x = direction * (
+                this.currentOutcome === "Goal"
+                    ? GOAL_LINE_X + 1.35
+                    : GOAL_LINE_X - 2.45
+            );
+            this.shotEnd.y = this.currentOutcome === "Goal" ? 1.05 : 0.86;
+            this.shotEnd.z = this.playPlan.shotPlacement;
+        }
 
         copyPoint(this.ballTarget, this.shotEnd);
     }
@@ -1346,16 +1975,17 @@ export class FuturebolMatchState {
             this.shotEnd.z
         );
 
+        const diveTarget = computeGoalkeeperDiveTarget(
+            this.shotEnd.z,
+            goalkeeper.position.z,
+            attackDirection(team)
+        );
         goalkeeper.targetPosition.z = clamp(
-            this.shotEnd.z * 0.92,
+            diveTarget.targetZ,
             -3.1,
             3.1
         );
 
-        /*
-         * Pequeno atraso de reação deixa o chute legível e evita que o
-         * goleiro comece deitado antes de a bola sair do pé.
-         */
         if (progress >= 0.08) {
             goalkeeper.animation = "goalkeeper-dive";
             goalkeeper.actionProgress = smoothStep(
@@ -1403,6 +2033,22 @@ export class FuturebolMatchState {
 
         const goalkeeperContact =
             step.playerCollisions.includes(goalkeeper.id);
+
+        const parryTriggered =
+            this.actionController.isActive &&
+            this.shotResolutionPlan?.willParry === true &&
+            this.currentOutcome === "Saved" &&
+            (
+                goalkeeperContact ||
+                planarDistance(this.ballPosition, goalkeeper.position) <= 1.38 ||
+                progress >= 1
+            );
+
+        if (parryTriggered) {
+            this.handleParry(goalkeeper, team);
+            return;
+        }
+
         const saveReached =
             this.currentOutcome === "Saved" &&
             (
@@ -2052,6 +2698,18 @@ export class FuturebolMatchState {
             return;
         }
 
+        if (this.ballState === "Loose") {
+            if (this.actionController.isActive) {
+                return;
+            }
+            this.looseBallElapsed += deltaSeconds;
+            this.tryRecoverLooseBall();
+            if (this.ballState === "Loose") {
+                this.ballController.updateFlight(deltaSeconds, this.players);
+            }
+            return;
+        }
+
         if (
             (this.ballState === "Controlled" || this.ballState === "Saved") &&
             this.currentBallOwnerId
@@ -2097,6 +2755,7 @@ export class FuturebolMatchState {
                 this.ballPosition.x - player.position.x,
                 this.ballPosition.z - player.position.z
             );
+            const isScenarioActive = this.actionController.isActive;
 
             if (player.animation === "kick") {
                 const target =
@@ -2114,6 +2773,27 @@ export class FuturebolMatchState {
                     this.ballPosition.z - player.position.z,
                     this.ballPosition.x - player.position.x
                 );
+            } else if (isScenarioActive && player.id !== this.currentBallOwnerId) {
+                const playDir = this.activeTeam
+                    ? attackDirection(this.activeTeam)
+                    : 0;
+                const goalPoint = pointForGoal(
+                    player.team === this.activeTeam
+                        ? this.activeTeam
+                        : opponent(this.activeTeam!)
+                );
+                const toGoalX = goalPoint.x - player.position.x;
+                const toGoalZ = goalPoint.z - player.position.z;
+                const distToGoal = Math.hypot(toGoalX, toGoalZ);
+                const moveDist = Math.hypot(moveX, moveZ);
+
+                if (moveDist > 0.25) {
+                    desiredAngle = Math.atan2(moveZ, moveX);
+                } else if (distToGoal > 0.1) {
+                    desiredAngle = Math.atan2(toGoalZ, toGoalX);
+                } else {
+                    desiredAngle = Math.atan2(0, playDir);
+                }
             } else if (distanceToBall < 4.2) {
                 desiredAngle = Math.atan2(
                     this.ballPosition.z - player.position.z,
@@ -2215,6 +2895,48 @@ export class FuturebolMatchState {
         }
     }
 
+    private gainPossession(playerId: string, reason: string): void {
+        const player = this.getPlayer(playerId);
+        this.lastBallOwnerId = this.currentBallOwnerId ?? this.lastBallOwnerId;
+        this.currentBallOwnerId = playerId;
+        this.intendedReceiverId = null;
+        this.ballState = "Controlled";
+        this.ballController.stopAt({
+            x: player.position.x,
+            y: BALL_GROUND_Y,
+            z: player.position.z
+        });
+        for (const p of this.players) {
+            if (p.id === playerId)
+                p.tacticalIntent = "Possessing";
+            else if (p.team === player.team)
+                p.tacticalIntent = p.role === "attacker"
+                    ? "AttackingSpace"
+                    : "Supporting";
+        }
+        void reason;
+    }
+
+    private releasePossession(_reason: string): void {
+        this.lastBallOwnerId = this.currentBallOwnerId ?? this.lastBallOwnerId;
+        this.currentBallOwnerId = null;
+        this.intendedReceiverId = null;
+        this.ballState = "Free";
+    }
+
+    private changePossession(newOwnerId: string, reason: string): void {
+        this.gainPossession(newOwnerId, reason);
+    }
+
+    private makeBallLoose(reason: string): void {
+        this.lastBallOwnerId = this.currentBallOwnerId ?? this.lastBallOwnerId;
+        this.currentBallOwnerId = null;
+        this.intendedReceiverId = null;
+        this.ballState = "Loose";
+        this.looseBallElapsed = 0;
+        void reason;
+    }
+
     private decisionContext(
         owner: FuturebolPlayerState,
         team: FuturebolTeam
@@ -2270,6 +2992,71 @@ export class FuturebolMatchState {
             throw new Error("Jogada Futurebol sem time ativo.");
 
         return this.activeTeam;
+    }
+
+    public diagnostics(): MatchStateDiagnostics {
+        const ac = this.actionController.diagnostics();
+        return {
+            phase: this.currentPlayPhase,
+            elapsed: Math.round(this.elapsedSeconds * 100) / 100,
+            pressure: Math.round(this.pressure * 1000) / 1000,
+            ballState: this.ballState,
+            ballOwnerId: this.currentBallOwnerId,
+            ballPosition: { ...this.ballPosition },
+            activeTeam: this.activeTeam,
+            homeScore: this.homeScore,
+            awayScore: this.awayScore,
+            displayHomeScore: this.displayHomeScore,
+            displayAwayScore: this.displayAwayScore,
+            scenario: ac,
+            players: this.players.map(p => ({
+                id: p.id,
+                team: p.team,
+                role: p.role,
+                position: { ...p.position },
+                targetPosition: { ...p.targetPosition },
+                animation: p.animation,
+                facingAngle: Math.round(p.facingAngle * 100) / 100,
+                currentSpeed: Math.round(p.currentSpeed * 100) / 100,
+                tacticalIntent: p.tacticalIntent
+            })),
+            interceptionPlan: this.interceptionPlan ? {
+                willIntercept: this.interceptionPlan.willIntercept,
+                interceptorId: this.interceptionPlan.interceptorId,
+                interceptionAlong: Math.round(this.interceptionPlan.interceptionAlong * 100) / 100,
+                interceptionPoint: {
+                    x: Math.round(this.interceptionPlan.interceptionPoint.x * 100) / 100,
+                    y: 0,
+                    z: Math.round(this.interceptionPlan.interceptionPoint.z * 100) / 100
+                },
+                distanceToLine: Math.round(this.interceptionPlan.distanceToLine * 100) / 100
+            } : null,
+            shotProfile: this.activeShotProfile ? {
+                lateral: this.activeShotProfile.lateral,
+                height: this.activeShotProfile.height,
+                power: Math.round(this.activeShotProfile.power * 100) / 100
+            } : null,
+            shotResolutionPlan: this.shotResolutionPlan ? {
+                willParry: this.shotResolutionPlan.willParry,
+                profile: {
+                    lateral: this.shotResolutionPlan.profile.lateral,
+                    height: this.shotResolutionPlan.profile.height,
+                    power: Math.round(this.shotResolutionPlan.profile.power * 100) / 100
+                }
+            } : null,
+            pendingBranch: this.pendingBranch ? {
+                reason: this.pendingBranch.reason,
+                requiredTeam: this.pendingBranch.requiredTeam
+            } : null,
+            requiredOutcome: this.requiredOutcome ? {
+                outcome: this.requiredOutcome.outcome,
+                team: this.requiredOutcome.team,
+                active: this.requiredOutcome.active
+            } : null,
+            shotOrdinal: this.shotOrdinal,
+            branchCount: this.actionController.currentBranchCount,
+            looseBallElapsed: Math.round(this.looseBallElapsed * 100) / 100
+        };
     }
 }
 

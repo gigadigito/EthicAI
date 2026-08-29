@@ -18,7 +18,7 @@ export type FuturebolVisualAnimationState =
     | "Celebrate"
     | "Disappointed";
 export type FuturebolPressureOverride = FuturebolTeam | "balanced" | null;
-export type FuturebolBallState = "Free" | "Controlled" | "Passing" | "Shooting" | "Saved" | "Resetting";
+export type FuturebolBallState = "Free" | "Controlled" | "Passing" | "Shooting" | "Saved" | "Resetting" | "Loose";
 export type FuturebolBallAction = "Dribble" | "Pass" | "Shoot";
 export type FuturebolTacticalIntent =
     | "HoldingPosition"
@@ -27,7 +27,9 @@ export type FuturebolTacticalIntent =
     | "Pressing"
     | "Covering"
     | "AttackingSpace"
-    | "Recovering";
+    | "Recovering"
+    | "Intercepting"
+    | "Challenging";
 export type FuturebolRestartType = "Kickoff" | "ThrowIn" | "GoalKick" | "Corner";
 export type FuturebolPlayPhase =
     | "Neutral"

@@ -37,11 +37,17 @@ export class FuturebolBallController {
         this.launch(target, speed, 3.25 + distance * 0.035);
         return speed;
     }
-    launchShot(target) {
+    launchShot(target, power = 0.5) {
         const distance = planarDistance(this.position, target);
-        const speed = clamp(20.5 + distance * 0.16, 21, 24);
+        const baseSpeed = clamp(20.5 + distance * 0.16, 21, 24);
+        const speed = baseSpeed * (0.85 + power * 0.3);
         this.launch(target, speed, 3.8);
         return speed;
+    }
+    deflect(impulseX, impulseZ, liftImpulse) {
+        this.velocity.x += impulseX;
+        this.velocity.z += impulseZ;
+        this.velocity.y = Math.max(this.velocity.y + liftImpulse, 1.5);
     }
     updateFlight(deltaSeconds, players, ignoredPlayerIds = new Set()) {
         const collisions = new Set();

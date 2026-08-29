@@ -117,26 +117,26 @@ function createDirectAttack(
     const defGoalkeeperId = `${defTeam}-goalkeeper`;
 
     const actions: FuturebolAction[] = [
-        teamAction("PressForward", attackingTeam, 1.2),
-        playerAction("MoveTo", defenderId, attackingTeam, 1.2, {
-            x: clamp(dir * 12, -17, 17),
+        teamAction("PressForward", attackingTeam, 1.4),
+        playerAction("MoveTo", defenderId, attackingTeam, 1.4, {
+            x: clamp(dir * 13, -17, 17),
             z: lane * 0.6
         }),
-        playerAction("MoveTo", attackerId, attackingTeam, 1.2, {
-            x: clamp(dir * 10, -19, 19),
+        playerAction("MoveTo", attackerId, attackingTeam, 1.4, {
+            x: clamp(dir * 11, -19, 19),
             z: lane
         }),
         ballAction("PassToPlayer", attackingTeam, 0.92, attackerId, {
-            x: clamp(dir * 14, -18, 18),
+            x: clamp(dir * 15, -18, 18),
             z: lane
-        }),
-        playerAction("Dribble", attackerId, attackingTeam, 1.5, {
-            x: clamp(dir * 20, -19.5, 19.5),
-            z: lane * 0.4
         }),
         playerAction("MoveTo", defGoalkeeperId, defTeam, 1.0, {
             x: clamp(-dir * 21.2, -22, 22),
             z: goalkeeperTargetZ(shotZ)
+        }),
+        playerAction("Dribble", attackerId, attackingTeam, 1.6, {
+            x: clamp(dir * 20, -19.5, 19.5),
+            z: lane * 0.35
         }),
         ballAction("ShootToGoal", attackingTeam, 0.76),
         playerAction("Celebrate", attackerId, attackingTeam, 1.0),
@@ -172,28 +172,32 @@ function createGiveAndGo(
     const actions: FuturebolAction[] = [
         teamAction("PressForward", attackingTeam, 1.5),
         playerAction("MoveTo", attackerId, attackingTeam, 1.0, {
-            x: clamp(dir * 5, -19, 19),
+            x: clamp(dir * 6, -19, 19),
             z: lane
         }),
         playerAction("MoveTo", defenderId, attackingTeam, 1.0, {
-            x: clamp(dir * 8, -17, 17),
+            x: clamp(dir * 9, -17, 17),
             z: supLane
         }),
         ballAction("PassToPlayer", attackingTeam, 0.92, defenderId, {
-            x: clamp(dir * 10, -17, 17),
+            x: clamp(dir * 11, -17, 17),
             z: supLane
         }),
-        playerAction("RunTo", attackerId, attackingTeam, 1.2, {
-            x: clamp(dir * 18, -19.5, 19.5),
-            z: lane * 0.4
+        playerAction("RunTo", attackerId, attackingTeam, 1.4, {
+            x: clamp(dir * 19, -19.5, 19.5),
+            z: lane * 0.35
         }),
         playerAction("MoveTo", defGoalkeeperId, defTeam, 1.0, {
             x: clamp(-dir * 21.2, -22, 22),
-            z: goalkeeperTargetZ(lane)
+            z: goalkeeperTargetZ(shotZ)
         }),
         ballAction("PassToPlayer", attackingTeam, 0.92, attackerId, {
-            x: clamp(dir * 19, -19, 19),
-            z: lane * 0.3
+            x: clamp(dir * 20, -19, 19),
+            z: lane * 0.25
+        }),
+        playerAction("Dribble", attackerId, attackingTeam, 0.8, {
+            x: clamp(dir * 21, -19.5, 19.5),
+            z: lane * 0.2
         }),
         ballAction("ShootToGoal", attackingTeam, 0.76),
         playerAction("Celebrate", attackerId, attackingTeam, 1.0),
@@ -226,22 +230,26 @@ function createCounterAttack(
     const defGoalkeeperId = `${defTeam}-goalkeeper`;
 
     const actions: FuturebolAction[] = [
-        teamAction("PressForward", attackingTeam, 1.2),
-        playerAction("RunTo", attackerId, attackingTeam, 1.5, {
-            x: clamp(dir * 18, -19.5, 19.5),
-            z: lane
+        teamAction("PressForward", attackingTeam, 1.0),
+        playerAction("RunTo", attackerId, attackingTeam, 1.3, {
+            x: clamp(dir * 19, -19.5, 19.5),
+            z: lane * 0.3
         }),
-        playerAction("SupportRun", defenderId, attackingTeam, 1.2, {
-            x: clamp(dir * 10, -17, 17),
-            z: lane * -0.5
+        playerAction("SupportRun", defenderId, attackingTeam, 1.1, {
+            x: clamp(dir * 11, -17, 17),
+            z: lane * -0.4
         }),
         playerAction("MoveTo", defGoalkeeperId, defTeam, 0.8, {
             x: clamp(-dir * 21.2, -22, 22),
-            z: goalkeeperTargetZ(lane)
+            z: goalkeeperTargetZ(shotZ)
         }),
-        ballAction("PassToPlayer", attackingTeam, 0.85, attackerId, {
-            x: clamp(dir * 19, -19, 19),
-            z: lane * 0.3
+        ballAction("PassToPlayer", attackingTeam, 0.82, attackerId, {
+            x: clamp(dir * 20, -19, 19),
+            z: lane * 0.25
+        }),
+        playerAction("Dribble", attackerId, attackingTeam, 0.9, {
+            x: clamp(dir * 21.5, -19.5, 19.5),
+            z: lane * 0.15
         }),
         ballAction("ShootToGoal", attackingTeam, 0.76),
         playerAction("Celebrate", attackerId, attackingTeam, 1.0),
