@@ -7,6 +7,7 @@
 
 <section id="@_resolvedInstanceId"
          data-tv-candle-battle-instance="@_resolvedInstanceId"
+         data-candle-render-version="2026-08-30-v3"
          class="@RootClass"
          aria-label="@ResolveAriaLabel()">
 
@@ -2003,16 +2004,23 @@
             }
             else
             {
-                <svg class="tv-candle-battle__svg" style="@ChartSvgStyle" viewBox="@($"0 0 {N(_chartViewWidth)} {N(LogicalHeight)}")" preserveAspectRatio="none" role="img" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)">
+                <svg class="tv-candle-battle__svg" style="@ChartSvgStyle" viewBox="@($"0 0 {N(_chartViewWidth)} {N(LogicalHeight)}")" preserveAspectRatio="none" role="img" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)" data-candle-render-version="2026-08-30-v3" data-chart-view-width="@N(_chartViewWidth)" data-logical-height="@N(LogicalHeight)">
                     @{ var gridHeight = DynamicChartBottom - DynamicChartTop; }
                     <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.23)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.23)" />
                     <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.463)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.463)" />
                     <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.696)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.696)" />
                     <line class="tv-candle-battle__winner-baseline" x1="0" y1="@N(DynamicChartBottom)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartBottom)" />
 
-                    @foreach (var pair in _chartVisuals)
+                    @for (var _vi = 0; _vi < _chartVisuals.Count; _vi++)
                     {
-                        <g>
+                        var pair = _chartVisuals[_vi];
+                        var _bucket = _vi < _chartModel.Buckets.Count ? _chartModel.Buckets[_vi] : null;
+                        var _ts = _bucket?.Time.ToString(CultureInfo.InvariantCulture) ?? _vi.ToString(CultureInfo.InvariantCulture);
+                        var _leftOpenY = pair.Left.IsDoji ? N((pair.Left.HighY + pair.Left.LowY)/2) : (pair.Left.IsUp ? N(pair.Left.BodyY + pair.Left.BodyHeight) : N(pair.Left.BodyY));
+                        var _leftCloseY = pair.Left.IsDoji ? N((pair.Left.HighY + pair.Left.LowY)/2) : (pair.Left.IsUp ? N(pair.Left.BodyY) : N(pair.Left.BodyY + pair.Left.BodyHeight));
+                        var _rightOpenY = pair.Right.IsDoji ? N((pair.Right.HighY + pair.Right.LowY)/2) : (pair.Right.IsUp ? N(pair.Right.BodyY + pair.Right.BodyHeight) : N(pair.Right.BodyY));
+                        var _rightCloseY = pair.Right.IsDoji ? N((pair.Right.HighY + pair.Right.LowY)/2) : (pair.Right.IsUp ? N(pair.Right.BodyY) : N(pair.Right.BodyY + pair.Right.BodyHeight));
+                        <g data-candle-render-version="2026-08-30-v3" data-index="@_vi" data-ts="@_ts" data-left-normalized-open="@(_bucket?.Left.Open.ToString(CultureInfo.InvariantCulture) ?? "")" data-left-normalized-close="@(_bucket?.Left.Close.ToString(CultureInfo.InvariantCulture) ?? "")" data-right-normalized-open="@(_bucket?.Right.Open.ToString(CultureInfo.InvariantCulture) ?? "")" data-right-normalized-close="@(_bucket?.Right.Close.ToString(CultureInfo.InvariantCulture) ?? "")" data-left-open-y="@_leftOpenY" data-left-close-y="@_leftCloseY" data-right-open-y="@_rightOpenY" data-right-close-y="@_rightCloseY">
                             <title>@pair.Title</title>
                             @if (pair.Left.IsDoji)
                             {
