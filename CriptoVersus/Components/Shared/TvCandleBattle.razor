@@ -1163,7 +1163,7 @@
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card--compact {
         min-height: 0;
         height: 100%;
-        grid-template-rows: auto auto minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 7px;
         padding: 10px;
         border-radius: 18px;
@@ -1733,13 +1733,13 @@
     }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
-        min-height: 176px;
-        height: 22cqi;
-        max-height: 250px;
+        min-height: 0;
+        height: auto;
+        max-height: none;
     }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-        min-height: 176px;
+        min-height: 0;
     }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle__chart-caption {
