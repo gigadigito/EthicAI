@@ -13,5 +13,6 @@ namespace DTOs
         public decimal PercentageChange { get; set; }
         public DateTime LastUpdatedUtc { get; set; }
         public int Rank { get; set; }
+        public decimal? LastPrice { get; set; }
     }
 }

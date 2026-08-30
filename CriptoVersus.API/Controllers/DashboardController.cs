@@ -163,7 +163,54 @@ namespace CriptoVersus.API.Controllers
             for (int i = 0; i < list.Count; i++)
                 list[i].Rank = i + 1;
 
+            if (list.Count > 0)
+                await EnrichWithCurrentPricesAsync(db, list, ct);
+
             return list;
+        }
+
+        private static async Task EnrichWithCurrentPricesAsync(
+            EthicAIDbContext db,
+            List<CurrencyDto> gainers,
+            CancellationToken ct)
+        {
+            var symbols = gainers.Select(g => g.Symbol).ToArray();
+            if (symbols.Length == 0) return;
+
+            const string sql = @"
+                SELECT upper(tx_symbol) AS sym, nr_last_price
+                FROM coin_price_current
+                WHERE upper(tx_symbol) = ANY(@symbols)
+                  AND nr_last_price IS NOT NULL
+                  AND nr_last_price > 0;";
+
+            try
+            {
+                await using var conn = new NpgsqlConnection(db.Database.GetDbConnection().ConnectionString);
+                await conn.OpenAsync(ct);
+
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("symbols", symbols);
+
+                await using var reader = await cmd.ExecuteReaderAsync(ct);
+                var priceMap = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                while (await reader.ReadAsync(ct))
+                {
+                    var sym = reader.GetString(0);
+                    var price = reader.GetDecimal(1);
+                    priceMap[sym] = price;
+                }
+
+                foreach (var gainer in gainers)
+                {
+                    if (priceMap.TryGetValue(gainer.Symbol, out var price))
+                        gainer.LastPrice = price;
+                }
+            }
+            catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
+            {
+                // coin_price_current not yet created; prices remain null
+            }
         }
 
         private static async Task<List<CurrencyDto>> QueryTopGainersAsync(

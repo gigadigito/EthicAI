@@ -3539,111 +3539,29 @@ private void BuildTickerItems()
 {
     var items = new List<string>();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (HasLiveMatch)
-
+    foreach (var gainer in TopGainers)
     {
+        if (string.IsNullOrWhiteSpace(gainer.Symbol))
+            continue;
 
-        items.Add(SeoDefaults.BuildPublicAbsoluteUrl(Config, "/"));
+        var symbol = gainer.Symbol
+            .Replace("USDT", "", StringComparison.OrdinalIgnoreCase)
+            .ToUpperInvariant();
 
-        items.Add(T("ticker.visitSite"));
+        var priceText = FormatGainerPrice(gainer.LastPrice);
+        var changeText = FormatGainerChange(gainer.PercentageChange);
 
-        items.Add(T("ticker.liveBattles"));
+        var entry = string.IsNullOrEmpty(changeText)
+            ? $"{symbol}  {priceText}"
+            : $"{symbol}  {priceText}  {changeText}";
 
-        items.Add(T("ticker.matchMarkets"));
-
-        items.Add(T("ticker.rankings"));
-
-        items.Add(T("ticker.hotMatchDetected"));
-
-        items.Add(T("ticker.liveCryptoBattle"));
-
-        items.Add(T("ticker.arenaPressureRising"));
-
-        items.Add(T("ticker.marketVolatilityIncreasing"));
-
-
-
-        if (HotMatch?.HasRecentReversal == true)
-
-            items.Add(T("ticker.momentumShift"));
-
-
-
-        if (HasFearSignal())
-
-            items.Add(T("ticker.fearSurge"));
-
-
-
-        var leader = ResolveLeaderSymbol();
-
-        var trailer = leader == DisplayLeftSymbol()
-
-            ? DisplayRightSymbol()
-
-            : DisplayLeftSymbol();
-
-
-
-        items.Add(T("ticker.dominating", leader));
-
-        items.Add(T("ticker.recovering", trailer));
-
-
-
-        if (ParseRemainingSeconds(DisplayRemainingTime()) <= 600)
-
-            items.Add(T("ticker.finalMinutes"));
-
-
-
-        if ((HotMatch?.HotScore ?? 0) >= 90)
-
-            items.Add(T("ticker.crowdEnergySpike"));
-
-
-
-        foreach (var commentary in _commentaryHistory.TakeLast(4))
-
-            items.Add(commentary);
-
+        items.Add(entry);
     }
 
-
-
-
-
-
-
-    else
+    if (items.Count == 0)
     {
-        items.Add(T("states.waitingForNextHotBattle"));
-        items.Add(T("labels.automaticBroadcast"));
         items.Add(SeoDefaults.BuildPublicAbsoluteUrl(Config, "/"));
         items.Add(T("ticker.visitSite"));
-        items.Add(T("ticker.liveBattles"));
-
-        var topCoin = TopTeams.FirstOrDefault()?.Symbol;
-        if (!string.IsNullOrWhiteSpace(topCoin))
-            items.Add(T("ticker.nextBattleAround", topCoin));
-
-        var topMover = TopGainers.FirstOrDefault()?.Symbol;
-        if (!string.IsNullOrWhiteSpace(topMover))
-            items.Add(T("ticker.marketPulseAround", topMover));
     }
 
     _tickerItems = items.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
@@ -3653,6 +3571,29 @@ private void BuildTickerItems()
         _tickerSignature = signature;
         _ = LogAsync("TV_TICKER", "updated", _tickerItems);
     }
+}
+
+private static string FormatGainerPrice(decimal? price)
+{
+    if (!price.HasValue || price.Value <= 0)
+        return "--";
+
+    var p = price.Value;
+    if (p >= 1000m)
+        return $"${p:N2}";
+    if (p >= 1m)
+        return $"${p:N4}";
+    if (p >= 0.01m)
+        return $"${p:N4}";
+    return $"${p:N6}";
+}
+
+private static string FormatGainerChange(decimal change)
+{
+    if (change == 0m)
+        return string.Empty;
+    var sign = change > 0 ? "+" : "";
+    return $"{sign}{change:N2}%";
 }
 
 private string MatchSlugOrHotSlug()
