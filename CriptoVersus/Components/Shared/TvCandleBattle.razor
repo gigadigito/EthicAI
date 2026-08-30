@@ -2,6 +2,8 @@
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <section id="@_resolvedInstanceId"
          data-tv-candle-battle-instance="@_resolvedInstanceId"
@@ -1926,9 +1928,59 @@
         (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel, IsBroadcastCompact);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _disposed) return;
+
+        try
+        {
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvCandleBattleResize.mjs");
+            _resizeObserverId = await module.InvokeAsync<int>("observe", $"{_resolvedInstanceId}-chart", DotNetObjectReference.Create(this), 1);
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public void OnPlotResized(double width, double height)
+    {
+        if (_disposed) return;
+        if (Math.Abs(width - _measuredWidth) < 1 && Math.Abs(height - _measuredHeight) < 1) return;
+
+        _measuredWidth = width;
+        _measuredHeight = height;
+        RebuildChartVisuals();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void RebuildChartVisuals()
+    {
+        (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel, IsBroadcastCompact);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        if (_resizeObserverId > 0)
+        {
+            try
+            {
+                var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvCandleBattleResize.mjs");
+                await module.InvokeVoidAsync("dispose", _resizeObserverId);
+                await module.DisposeAsync();
+            }
+            catch { }
+        }
+    }
+
     private CandleBattleChartModel _chartModel = CandleBattleChartModel.Empty;
     private IReadOnlyList<ChartCandlePairVisual> _chartVisuals = Array.Empty<ChartCandlePairVisual>();
     private double _chartViewWidth = 1000d;
+    private double _measuredWidth;
+    private double _measuredHeight;
+    private int _resizeObserverId;
+    private bool _disposed;
     private IReadOnlyList<BattleCandle> BattleCandles => _chartModel.Buckets
         .Select((bucket, index) => ToBattleCandle(bucket, index + 1))
         .ToArray();
@@ -1987,11 +2039,12 @@
             }
             else
             {
-                <svg class="tv-candle-battle__svg" style="@ChartSvgStyle" viewBox="@($"0 0 {N(_chartViewWidth)} 338")" preserveAspectRatio="none" role="img" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)">
-                    <line class="tv-candle-battle__grid-line" x1="0" y1="82" x2="@N(_chartViewWidth)" y2="82" />
-                    <line class="tv-candle-battle__grid-line" x1="0" y1="151" x2="@N(_chartViewWidth)" y2="151" />
-                    <line class="tv-candle-battle__grid-line" x1="0" y1="220" x2="@N(_chartViewWidth)" y2="220" />
-                    <line class="tv-candle-battle__winner-baseline" x1="0" y1="310" x2="@N(_chartViewWidth)" y2="310" />
+                <svg class="tv-candle-battle__svg" style="@ChartSvgStyle" viewBox="@($"0 0 {N(_chartViewWidth)} {N(LogicalHeight)}")" preserveAspectRatio="none" role="img" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)">
+                    @{ var gridHeight = DynamicChartBottom - DynamicChartTop; }
+                    <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.23)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.23)" />
+                    <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.463)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.463)" />
+                    <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.696)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.696)" />
+                    <line class="tv-candle-battle__winner-baseline" x1="0" y1="@N(DynamicChartBottom)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartBottom)" />
 
                     @foreach (var pair in _chartVisuals)
                     {
@@ -2021,7 +2074,7 @@
                                 <line class="@WickClass(BattleSide.Right, pair.Right.IsUp)" x1="@N(pair.Right.X)" y1="@N(pair.Right.HighY)" x2="@N(pair.Right.X)" y2="@N(pair.Right.LowY)" />
                                 <rect class="@BodyClass(BattleSide.Right, pair.Right.IsUp)" x="@N(pair.Right.BodyX)" y="@N(pair.Right.BodyY)" width="@N(pair.Right.BodyWidth)" height="@N(pair.Right.BodyHeight)" rx="1.4" />
                             }
-                            <rect class="tv-candle-battle__winner-marker @pair.MarkerClass" x="@N(pair.MarkerX)" y="316" width="@N(pair.MarkerWidth)" height="7" rx="2" />
+                            <rect class="tv-candle-battle__winner-marker @pair.MarkerClass" x="@N(pair.MarkerX)" y="@N(DynamicChartBottom + 6)" width="@N(pair.MarkerWidth)" height="7" rx="2" />
                         </g>
                     }
                 </svg>
@@ -2035,6 +2088,26 @@
     </section>;
 
     private string ChartSvgStyle => $"width:max(100%, {N(_chartViewWidth)}px); min-width:{N(_chartViewWidth)}px;";
+
+    private const double LogicalWidth = 1000d;
+    private const double DefaultLogicalHeight = 338d;
+    private const double ChartTopPadding = 14d;
+    private const double BottomReserved = 28d;
+
+    private double LogicalHeight
+    {
+        get
+        {
+            if (_measuredWidth < 1 || _measuredHeight < 1)
+                return DefaultLogicalHeight;
+
+            var h = LogicalWidth * _measuredHeight / _measuredWidth;
+            return Math.Max(DefaultLogicalHeight, Math.Round(h, 1));
+        }
+    }
+
+    private double DynamicChartTop => ChartTopPadding;
+    private double DynamicChartBottom => LogicalHeight - BottomReserved;
 
 private string ResolveAriaLabel()
     => !string.IsNullOrWhiteSpace(AriaLabel)
@@ -2058,8 +2131,8 @@ private (double ViewWidth, IReadOnlyList<ChartCandlePairVisual> Visuals) BuildCh
     {
         var bucket = model.Buckets[index];
         var center = 12d + ((index + .5d) * slotWidth);
-        var left = CandleBattleChartModelBuilder.CreateGeometry(bucket.Left, model.Domain, center - pairOffset, bodyWidth, 14d, 292d);
-        var right = CandleBattleChartModelBuilder.CreateGeometry(bucket.Right, model.Domain, center + pairOffset, bodyWidth, 14d, 292d);
+        var left = CandleBattleChartModelBuilder.CreateGeometry(bucket.Left, model.Domain, center - pairOffset, bodyWidth, DynamicChartTop, DynamicChartBottom);
+        var right = CandleBattleChartModelBuilder.CreateGeometry(bucket.Right, model.Domain, center + pairOffset, bodyWidth, DynamicChartTop, DynamicChartBottom);
 
         visuals.Add(new ChartCandlePairVisual(
             left,
