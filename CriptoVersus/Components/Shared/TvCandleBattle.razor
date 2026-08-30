@@ -1646,8 +1646,8 @@
     .tv-candle-battle-card__plot-shell {
         position: relative;
         min-width: 0;
-        height: auto;
-        min-height: 0;
+        min-height: 250px;
+        height: clamp(250px, 29cqi, 410px);
         overflow-x: auto;
         overflow-y: hidden;
         border-top: 1px solid rgba(255,255,255,.05);
@@ -1668,7 +1668,7 @@
 
     .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
         height: 100%;
-        min-height: 0;
+        min-height: 250px;
         direction: ltr;
     }
 
@@ -1765,12 +1765,13 @@
         }
 
         .tv-candle-battle-card__plot-shell {
-            height: auto;
-            min-height: 0;
+            min-height: 220px;
+            height: 72cqi;
+            max-height: 330px;
         }
 
         .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-            min-height: 0;
+            min-height: 220px;
         }
 
         .tv-candle-battle__chart-caption {
