@@ -519,8 +519,12 @@ Authoritative score path:
 Presentation path:
 
 1. Web receives price points and match data.
-2. `Components/Shared/TvCandleBattle.razor` builds synthetic candles for display.
-3. The component renders SVG, score, momentum, streak, and tactical UI.
+2. `Services/CandleBattleChartModelBuilder` pairs both assets by the exact snapshot timestamp, derives observed OHLC intervals from consecutive persisted prices, and normalizes every OHLC value against the first paired price for its asset.
+3. The builder calculates one shared Y domain from the minimum normalized low and maximum normalized high across both assets.
+4. `Components/Shared/TvCandleBattle.razor` renders both candle series in one responsive SVG, using a small horizontal offset inside each shared time slot and an integrated per-candle winner band.
+5. The component continues to own presentation-only score, momentum, streak, and tactical UI. Authoritative score remains in BLL/Worker.
+
+`MatchMetricSnapshot` currently persists only `LastPrice`, not exchange OHLC. The presentation therefore uses the actual consecutive observed prices as open/close and their observed extrema as high/low; it does not fabricate wick values. Adding exchange-interval OHLC later requires an explicit DTO/schema/Worker contract expansion and does not belong to the authoritative scoring rule by default.
 
 The isolated V2 route `/{culture}/candle/{matchId}/{slug}` hosts `CandleBattleV2`. It bootstraps block piles directly from the official `MatchDto` score, records the existing `MatchScoreEventId` values without replaying them, and then orders new persisted `CANDLE_BATTLE_DOMINANCE` events by `EventSequence` in `CandleBattleV2StateAdapter`. Other rule events are never presented as candle battles; any authoritative score difference is reconciled without inventing an animation. SignalR `dashboard_changed` is only an invalidation signal; V2 refetches match, event, and snapshot DTOs, while periodic polling covers missed notifications. Returning from a background tab performs an immediate non-animated reconciliation. DOM/CSS phases render the candle collision and square-block drop, but cannot create or persist score.
 
