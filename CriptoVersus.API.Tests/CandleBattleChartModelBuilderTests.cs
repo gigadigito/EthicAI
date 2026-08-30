@@ -62,14 +62,89 @@ public sealed class CandleBattleChartModelBuilderTests
     {
         var candle = N(1.00m, 1.05m, 0.98m, 1.03m);
         var domain = new CandleBattleChartDomain(0.95m, 1.08m, 0.98m, 1.05m);
-        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 10d, 310d, 0d);
-        var openGeometry = CandleBattleChartModelBuilder.CreateGeometry(N(1m, 1m, 1m, 1m), domain, 50d, 8d, 10d, 310d, 0d);
-        var closeGeometry = CandleBattleChartModelBuilder.CreateGeometry(N(1.03m, 1.03m, 1.03m, 1.03m), domain, 50d, 8d, 10d, 310d, 0d);
+        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 10d, 310d);
+        var openGeometry = CandleBattleChartModelBuilder.CreateGeometry(N(1m, 1m, 1m, 1m), domain, 50d, 8d, 10d, 310d);
+        var closeGeometry = CandleBattleChartModelBuilder.CreateGeometry(N(1.03m, 1.03m, 1.03m, 1.03m), domain, 50d, 8d, 10d, 310d);
 
         Assert.True(geometry.HighY < geometry.BodyY);
         Assert.True(geometry.LowY > geometry.BodyY + geometry.BodyHeight);
         Assert.Equal(closeGeometry.BodyY, geometry.BodyY, 6);
         Assert.Equal(openGeometry.BodyY, geometry.BodyY + geometry.BodyHeight, 6);
+    }
+
+    [Fact]
+    public void Geometry_BodyNeverAnchoredToPlotBottom()
+    {
+        var candle = N(1.00m, 1.00m, 1.00m, 1.02m);
+        var domain = new CandleBattleChartDomain(0.98m, 1.04m, 0.99m, 1.03m);
+        var plotBottom = 420d;
+        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 20d, plotBottom);
+
+        Assert.NotEqual(plotBottom, geometry.BodyY);
+        Assert.NotEqual(plotBottom, geometry.BodyY + geometry.BodyHeight);
+        Assert.InRange(geometry.BodyY, 20d, plotBottom);
+        Assert.InRange(geometry.BodyY + geometry.BodyHeight, 20d, plotBottom);
+    }
+
+    [Fact]
+    public void Geometry_NormalCandle_BodyBetweenOpenAndClose()
+    {
+        var domain = new CandleBattleChartDomain(0.90m, 1.10m, 0.90m, 1.10m);
+        var candle = N(1.02m, 1.05m, 0.98m, 1.04m);
+        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 20d, 420d);
+
+        var openY = MapYManual(1.02m, 0.90m, 1.10m, 20d, 420d);
+        var closeY = MapYManual(1.04m, 0.90m, 1.10m, 20d, 420d);
+        var expectedBodyTop = Math.Min(openY, closeY);
+        var expectedBodyHeight = Math.Abs(closeY - openY);
+
+        Assert.Equal(expectedBodyTop, geometry.BodyY, 1);
+        Assert.Equal(expectedBodyHeight, geometry.BodyHeight, 1);
+        Assert.False(geometry.IsDoji);
+        Assert.InRange(geometry.BodyY, 20d, 420d);
+        Assert.InRange(geometry.BodyY + geometry.BodyHeight, 20d, 420d);
+    }
+
+    private static double MapYManual(decimal value, decimal minimum, decimal maximum, double top, double bottom)
+    {
+        var range = maximum - minimum;
+        if (range <= 0m) return (top + bottom) / 2d;
+        var ratio = (double)((value - minimum) / range);
+        ratio = Math.Clamp(ratio, 0d, 1d);
+        return bottom - (ratio * (bottom - top));
+    }
+
+    [Fact]
+    public void Geometry_Doji_OpenEqualsClose_IsDojiWithZeroHeight()
+    {
+        var domain = new CandleBattleChartDomain(0.95m, 1.05m, 0.95m, 1.05m);
+        var candle = N(1.00m, 1.00m, 1.00m, 1.00m);
+        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 20d, 420d);
+
+        Assert.True(geometry.IsDoji);
+        Assert.Equal(0d, geometry.BodyHeight, 6);
+    }
+
+    [Fact]
+    public void Geometry_NearDoji_SmallDifference_IsDoji()
+    {
+        var domain = new CandleBattleChartDomain(0.90m, 1.10m, 0.90m, 1.10m);
+        var candle = N(1.00m, 1.00m, 1.00m, 1.0005m);
+        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 20d, 420d);
+
+        Assert.True(geometry.IsDoji);
+        Assert.True(geometry.BodyHeight < 2.0);
+    }
+
+    [Fact]
+    public void Geometry_LargerDifference_IsNotDoji()
+    {
+        var domain = new CandleBattleChartDomain(0.90m, 1.10m, 0.90m, 1.10m);
+        var candle = N(1.00m, 1.02m, 0.98m, 1.03m);
+        var geometry = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, 20d, 420d);
+
+        Assert.False(geometry.IsDoji);
+        Assert.True(geometry.BodyHeight >= 2.0);
     }
 
     [Fact]

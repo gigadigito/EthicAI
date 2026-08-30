@@ -5,6 +5,7 @@ namespace CriptoVersus.Web.Services;
 public static class CandleBattleChartModelBuilder
 {
     private const decimal WinnerEpsilon = 0.000001m;
+    private const double DojiThresholdSvgUnits = 2.0;
 
     public static CandleBattleChartModel Build(
         IReadOnlyList<TvPriceChartPoint>? leftPoints,
@@ -97,20 +98,20 @@ public static class CandleBattleChartModelBuilder
         double centerX,
         double bodyWidth,
         double chartTop,
-        double chartBottom,
-        double minimumBodyHeight = 2d)
+        double chartBottom)
     {
         var highY = MapY(candle.High, domain.Minimum, domain.Maximum, chartTop, chartBottom);
         var lowY = MapY(candle.Low, domain.Minimum, domain.Maximum, chartTop, chartBottom);
         var openY = MapY(candle.Open, domain.Minimum, domain.Maximum, chartTop, chartBottom);
         var closeY = MapY(candle.Close, domain.Minimum, domain.Maximum, chartTop, chartBottom);
+        var bodyHeight = Math.Abs(closeY - openY);
         var bodyTop = Math.Min(openY, closeY);
-        var bodyHeight = Math.Max(minimumBodyHeight, Math.Abs(closeY - openY));
+        var isDoji = bodyHeight < DojiThresholdSvgUnits;
 
-        if (bodyHeight > Math.Abs(closeY - openY))
-            bodyTop = ((openY + closeY) / 2d) - (bodyHeight / 2d);
-
-        bodyTop = Math.Clamp(bodyTop, chartTop, chartBottom - bodyHeight);
+        if (bodyHeight > 0d)
+            bodyTop = Math.Clamp(bodyTop, chartTop, chartBottom - bodyHeight);
+        else
+            bodyTop = (openY + closeY) / 2d;
 
         return new CandleBattleCandleGeometry(
             centerX,
@@ -120,7 +121,8 @@ public static class CandleBattleChartModelBuilder
             bodyTop,
             bodyWidth,
             bodyHeight,
-            candle.Close >= candle.Open);
+            candle.Close >= candle.Open,
+            isDoji);
     }
 
     private static CandleBattleOhlc FromObservedPrices(long openTime, long closeTime, decimal open, decimal close)
@@ -193,4 +195,5 @@ public sealed record CandleBattleCandleGeometry(
     double BodyY,
     double BodyWidth,
     double BodyHeight,
-    bool IsUp);
+    bool IsUp,
+    bool IsDoji);

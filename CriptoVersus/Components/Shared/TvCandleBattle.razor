@@ -730,8 +730,16 @@
         vector-effect: non-scaling-stroke;
     }
 
+    .tv-candle-battle__doji {
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        vector-effect: non-scaling-stroke;
+        opacity: .9;
+    }
+
     .tv-candle-battle__wick--left,
-    .tv-candle-battle__body--left {
+    .tv-candle-battle__body--left,
+    .tv-candle-battle__doji--left {
         stroke: var(--team-left-color);
         fill: var(--team-left-color-soft);
         filter: drop-shadow(0 0 7px var(--team-left-color-glow));
@@ -746,8 +754,13 @@
             opacity: .58;
         }
 
+        .tv-candle-battle__doji--left.is-down {
+            opacity: .58;
+        }
+
     .tv-candle-battle__wick--right,
-    .tv-candle-battle__body--right {
+    .tv-candle-battle__body--right,
+    .tv-candle-battle__doji--right {
         stroke: var(--team-right-color);
         fill: var(--team-right-color-soft);
         filter: drop-shadow(0 0 7px var(--team-right-color-glow));
@@ -759,6 +772,10 @@
         }
 
         .tv-candle-battle__wick--right.is-down {
+            opacity: .58;
+        }
+
+        .tv-candle-battle__doji--right.is-down {
             opacity: .58;
         }
 
@@ -1980,10 +1997,30 @@
                     {
                         <g>
                             <title>@pair.Title</title>
-                            <line class="@WickClass(BattleSide.Left, pair.Left.IsUp)" x1="@N(pair.Left.X)" y1="@N(pair.Left.HighY)" x2="@N(pair.Left.X)" y2="@N(pair.Left.LowY)" />
-                            <rect class="@BodyClass(BattleSide.Left, pair.Left.IsUp)" x="@N(pair.Left.BodyX)" y="@N(pair.Left.BodyY)" width="@N(pair.Left.BodyWidth)" height="@N(pair.Left.BodyHeight)" rx="1.4" />
-                            <line class="@WickClass(BattleSide.Right, pair.Right.IsUp)" x1="@N(pair.Right.X)" y1="@N(pair.Right.HighY)" x2="@N(pair.Right.X)" y2="@N(pair.Right.LowY)" />
-                            <rect class="@BodyClass(BattleSide.Right, pair.Right.IsUp)" x="@N(pair.Right.BodyX)" y="@N(pair.Right.BodyY)" width="@N(pair.Right.BodyWidth)" height="@N(pair.Right.BodyHeight)" rx="1.4" />
+                            @if (pair.Left.IsDoji)
+                            {
+                                var dojiCenterY = (pair.Left.HighY + pair.Left.LowY) / 2d;
+                                <line class="tv-candle-battle__doji @DojiClass(BattleSide.Left, pair.Left.IsUp)"
+                                      x1="@N(pair.Left.BodyX)" y1="@N(dojiCenterY)"
+                                      x2="@N(pair.Left.BodyX + pair.Left.BodyWidth)" y2="@N(dojiCenterY)" />
+                            }
+                            else
+                            {
+                                <line class="@WickClass(BattleSide.Left, pair.Left.IsUp)" x1="@N(pair.Left.X)" y1="@N(pair.Left.HighY)" x2="@N(pair.Left.X)" y2="@N(pair.Left.LowY)" />
+                                <rect class="@BodyClass(BattleSide.Left, pair.Left.IsUp)" x="@N(pair.Left.BodyX)" y="@N(pair.Left.BodyY)" width="@N(pair.Left.BodyWidth)" height="@N(pair.Left.BodyHeight)" rx="1.4" />
+                            }
+                            @if (pair.Right.IsDoji)
+                            {
+                                var dojiCenterY = (pair.Right.HighY + pair.Right.LowY) / 2d;
+                                <line class="tv-candle-battle__doji @DojiClass(BattleSide.Right, pair.Right.IsUp)"
+                                      x1="@N(pair.Right.BodyX)" y1="@N(dojiCenterY)"
+                                      x2="@N(pair.Right.BodyX + pair.Right.BodyWidth)" y2="@N(dojiCenterY)" />
+                            }
+                            else
+                            {
+                                <line class="@WickClass(BattleSide.Right, pair.Right.IsUp)" x1="@N(pair.Right.X)" y1="@N(pair.Right.HighY)" x2="@N(pair.Right.X)" y2="@N(pair.Right.LowY)" />
+                                <rect class="@BodyClass(BattleSide.Right, pair.Right.IsUp)" x="@N(pair.Right.BodyX)" y="@N(pair.Right.BodyY)" width="@N(pair.Right.BodyWidth)" height="@N(pair.Right.BodyHeight)" rx="1.4" />
+                            }
                             <rect class="tv-candle-battle__winner-marker @pair.MarkerClass" x="@N(pair.MarkerX)" y="316" width="@N(pair.MarkerWidth)" height="7" rx="2" />
                         </g>
                     }
@@ -2021,8 +2058,8 @@ private (double ViewWidth, IReadOnlyList<ChartCandlePairVisual> Visuals) BuildCh
     {
         var bucket = model.Buckets[index];
         var center = 12d + ((index + .5d) * slotWidth);
-        var left = CandleBattleChartModelBuilder.CreateGeometry(bucket.Left, model.Domain, center - pairOffset, bodyWidth, 14d, 292d, compact ? 3d : 4d);
-        var right = CandleBattleChartModelBuilder.CreateGeometry(bucket.Right, model.Domain, center + pairOffset, bodyWidth, 14d, 292d, compact ? 3d : 4d);
+        var left = CandleBattleChartModelBuilder.CreateGeometry(bucket.Left, model.Domain, center - pairOffset, bodyWidth, 14d, 292d);
+        var right = CandleBattleChartModelBuilder.CreateGeometry(bucket.Right, model.Domain, center + pairOffset, bodyWidth, 14d, 292d);
 
         visuals.Add(new ChartCandlePairVisual(
             left,
@@ -2080,6 +2117,9 @@ private static string WickClass(BattleSide side, bool isUp)
 
 private static string BodyClass(BattleSide side, bool isUp)
     => $"tv-candle-battle__body tv-candle-battle__body--{(side == BattleSide.Left ? "left" : "right")} {(isUp ? "is-up" : "is-down")}";
+
+private static string DojiClass(BattleSide side, bool isUp)
+    => $"tv-candle-battle__doji--{(side == BattleSide.Left ? "left" : "right")} {(isUp ? "is-up" : "is-down")}";
 
 private BattleSummary BuildBattleSummary(IReadOnlyList<BattleCandle> candles)
 {
