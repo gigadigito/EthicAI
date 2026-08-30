@@ -1066,7 +1066,7 @@
             min-height: 0;
             height: 100%;
             display: grid;
-            grid-template-rows: minmax(0, 15fr) minmax(0, 42.5fr) minmax(0, 42.5fr);
+            grid-template-rows: minmax(0, 15fr) minmax(0, 85fr);
             gap: 10px;
             overflow: hidden;
         }
@@ -1165,8 +1165,6 @@
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card--compact {
         min-height: 0;
         height: 100%;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        gap: 7px;
         padding: 10px;
         border-radius: 18px;
         overflow: hidden;
@@ -1194,23 +1192,6 @@
         gap: 6px 10px;
         font-size: .58rem;
         letter-spacing: .07em;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__chart-area {
-        height: 100%;
-        grid-template-rows: minmax(0, 1fr) auto;
-        gap: 6px;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-telemetry-chart-shell--battle {
-        min-height: 0;
-        height: 100%;
-        border-radius: 14px;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__svg {
-        min-height: 0;
-        height: 100%;
     }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle__wick {
@@ -1553,10 +1534,6 @@
         grid-template-rows: minmax(0, 1fr);
     }
 
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__compact {
-        grid-template-rows: minmax(0, 15fr) minmax(0, 85fr);
-    }
-
     .tv-candle-battle-card--unified {
         min-height: 0;
         overflow: hidden;
@@ -1734,18 +1711,6 @@
         padding: 8px 10px 6px;
     }
 
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
-        min-height: 0;
-        max-height: none;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-        min-height: 0;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__chart-caption {
-        padding: 5px 10px 7px;
-    }
 
     @@container (max-width: 620px) {
         .tv-candle-battle-card__battle-head {
