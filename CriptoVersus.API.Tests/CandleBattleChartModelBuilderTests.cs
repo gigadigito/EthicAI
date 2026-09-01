@@ -268,6 +268,74 @@ public sealed class CandleBattleChartModelBuilderTests
         Assert.True(large.BodyHeight > small.BodyHeight);
     }
 
+    [Fact]
+    public void Build_DomainDoesNotIncludeBaseline_WhenDataIsAboveBaseline()
+    {
+        var result = CandleBattleChartModelBuilder.Build(
+            [P(100, 1.000m), P(200, 1.080m), P(300, 1.090m), P(400, 1.100m)],
+            [P(100, 1.000m), P(200, 1.070m), P(300, 1.085m), P(400, 1.090m)]);
+
+        Assert.True(result.Buckets.Count >= 2);
+
+        // Domain must NOT be anchored near baseline 1.0
+        Assert.True(result.Domain.Minimum > 1.02m,
+            $"domain.Min={result.Domain.Minimum} should be well above 1.0, not anchored to baseline");
+
+        // Domain should tightly fit the data range
+        var domainRange = result.Domain.Maximum - result.Domain.Minimum;
+        var allHighs = result.Buckets.Skip(1).SelectMany(b => new[] { b.Left.High, b.Right.High }).ToArray();
+        var allLows = result.Buckets.Skip(1).SelectMany(b => new[] { b.Left.Low, b.Right.Low }).ToArray();
+        var dataMax = allHighs.Max();
+        var dataMin = allLows.Min();
+        var dataRange = dataMax - dataMin;
+
+        Assert.True(dataRange > 0m, "data range must be positive");
+        Assert.True(domainRange < dataRange * 1.3m,
+            $"domainRange={domainRange} should be close to dataRange={dataRange}, not 10x larger");
+    }
+
+    [Fact]
+    public void Build_DomainIncludesBaselineNaturally_WhenDataCrossesBaseline()
+    {
+        var result = CandleBattleChartModelBuilder.Build(
+            [P(100, 1.000m), P(200, 0.980m), P(300, 1.020m)],
+            [P(100, 1.000m), P(200, 0.990m), P(300, 1.010m)]);
+
+        Assert.True(result.Buckets.Count >= 2);
+
+        var allLows = result.Buckets.SelectMany(b => new[] { b.Left.Low, b.Right.Low }).ToArray();
+        var dataMin = allLows.Min();
+
+        Assert.True(dataMin < 1.0m, $"dataMin={dataMin} should be below 1.0 when data crosses baseline");
+        Assert.True(result.Domain.Minimum < 1.0m,
+            $"domain.Min={result.Domain.Minimum} should include 1.0 since data crosses it");
+        Assert.True(result.Domain.Maximum > 1.0m,
+            $"domain.Max={result.Domain.Maximum} should include 1.0 since data crosses it");
+    }
+
+    [Fact]
+    public void Build_SharedDomain_IncludesBothAssetRanges()
+    {
+        var result = CandleBattleChartModelBuilder.Build(
+            [P(100, 1.000m), P(200, 1.200m), P(300, 1.250m)],
+            [P(100, 1.000m), P(200, 0.850m), P(300, 0.900m)]);
+
+        Assert.True(result.Buckets.Count >= 2);
+
+        var allLows = result.Buckets.SelectMany(b => new[] { b.Left.Low, b.Right.Low }).ToArray();
+        var allHighs = result.Buckets.SelectMany(b => new[] { b.Left.High, b.Right.High }).ToArray();
+        var dataMin = allLows.Min();
+        var dataMax = allHighs.Max();
+
+        Assert.True(dataMin < 0.92m, $"dataMin={dataMin} should include low range from asset B");
+        Assert.True(dataMax > 1.22m, $"dataMax={dataMax} should include high range from asset A");
+
+        Assert.True(result.Domain.Minimum <= dataMin,
+            $"domain.Min={result.Domain.Minimum} should be <= dataMin={dataMin}");
+        Assert.True(result.Domain.Maximum >= dataMax,
+            $"domain.Max={result.Domain.Maximum} should be >= dataMax={dataMax}");
+    }
+
     private static TvPriceChartPoint P(long time, decimal value) => new(time, value);
 
     private static CandleBattleNormalizedOhlc N(decimal open, decimal high, decimal low, decimal close)

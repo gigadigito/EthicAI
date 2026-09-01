@@ -52,7 +52,7 @@ public static class CandleBattleChartModelBuilder
         }
 
         var domain = CalculateSharedDomain(
-            buckets.Select(item => item.Left).Concat(buckets.Select(item => item.Right)));
+            buckets.Skip(1).Select(item => item.Left).Concat(buckets.Skip(1).Select(item => item.Right)));
 
         return new CandleBattleChartModel(buckets, baselineLeft, baselineRight, domain);
     }
