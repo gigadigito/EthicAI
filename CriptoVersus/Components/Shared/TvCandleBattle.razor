@@ -1067,7 +1067,7 @@
             min-height: 0;
             height: 100%;
             display: grid;
-            grid-template-rows: minmax(0, 15fr) minmax(0, 85fr);
+            grid-template-rows: auto minmax(0, 1fr);
             gap: 10px;
             overflow: hidden;
         }
@@ -1166,9 +1166,23 @@
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card--compact {
         min-height: 0;
         height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        gap: 7px;
         padding: 10px;
         border-radius: 18px;
         overflow: hidden;
+    }
+
+    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+    }
+
+    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
+        min-height: 0;
+        height: 100%;
     }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__head-copy {
