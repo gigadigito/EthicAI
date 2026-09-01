@@ -1669,6 +1669,24 @@
         direction: ltr;
     }
 
+    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+    }
+
+    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
+        min-height: 0;
+        height: 100%;
+    }
+
+    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__chart-area {
+        min-height: 0;
+        height: 100%;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+    }
+
     .tv-candle-battle__winner-marker {
         opacity: .92;
         filter: drop-shadow(0 0 5px currentColor);
