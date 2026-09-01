@@ -5,9 +5,14 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
+@{ EnsureVisualsUpToDate(); }
 <section id="@_resolvedInstanceId"
          data-tv-candle-battle-instance="@_resolvedInstanceId"
          data-candle-render-version="2026-08-30-v3"
+         data-measured-width="@_measuredWidth.ToString("0.##", CultureInfo.InvariantCulture)"
+         data-measured-height="@_measuredHeight.ToString("0.##", CultureInfo.InvariantCulture)"
+         data-logical-height="@N(LogicalHeight)"
+         data-dynamic-chart-bottom="@N(DynamicChartBottom)"
          class="@RootClass"
          aria-label="@ResolveAriaLabel()">
 
@@ -1905,6 +1910,8 @@
 
         _chartModel = CandleBattleChartModelBuilder.Build(LeftPoints, RightPoints);
         (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel, IsBroadcastCompact);
+        _lastBuiltLogicalHeight = LogicalHeight;
+        _lastBuiltModel = _chartModel;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -1934,6 +1941,16 @@
     private void RebuildChartVisuals()
     {
         (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel, IsBroadcastCompact);
+        _lastBuiltLogicalHeight = LogicalHeight;
+        _lastBuiltModel = _chartModel;
+    }
+
+    private void EnsureVisualsUpToDate()
+    {
+        if (_lastBuiltModel != _chartModel || Math.Abs(_lastBuiltLogicalHeight - LogicalHeight) > 0.5)
+        {
+            RebuildChartVisuals();
+        }
     }
 
     public async ValueTask DisposeAsync()
@@ -1958,6 +1975,8 @@
     private double _chartViewWidth = 1000d;
     private double _measuredWidth;
     private double _measuredHeight;
+    private double _lastBuiltLogicalHeight = -1;
+    private CandleBattleChartModel _lastBuiltModel = CandleBattleChartModel.Empty;
     private int _resizeObserverId;
     private bool _disposed;
     private IReadOnlyList<BattleCandle> BattleCandles => _chartModel.Buckets

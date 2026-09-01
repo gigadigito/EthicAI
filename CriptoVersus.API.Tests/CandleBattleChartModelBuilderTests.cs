@@ -240,6 +240,34 @@ public sealed class CandleBattleChartModelBuilderTests
         Assert.NotEqual(officialScoreB, rightWinsFromChart);
     }
 
+    [Fact]
+    public void Geometry_ScaledPlotHeight_MaintainsNormalizedPosition()
+    {
+        // Regression: candles must fill vertical area proportionally regardless of LogicalHeight.
+        // Before fix, chartBottom was fixed at 292 and viewBox grew, leaving empty space.
+        var candle = N(1.02m, 1.05m, 0.98m, 1.04m);
+        var domain = new CandleBattleChartDomain(0.95m, 1.08m, 0.98m, 1.05m);
+        const double plotTop = 14d;
+        const double smallBottom = 292d;
+        const double largeBottom = 600d;
+
+        var small = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, plotTop, smallBottom);
+        var large = CandleBattleChartModelBuilder.CreateGeometry(candle, domain, 50d, 8d, plotTop, largeBottom);
+
+        // Normalized position inside plot must be identical: (y - top)/(bottom - top)
+        var smallPlotH = smallBottom - plotTop;
+        var largePlotH = largeBottom - plotTop;
+
+        Assert.Equal((small.BodyY - plotTop) / smallPlotH, (large.BodyY - plotTop) / largePlotH, 5);
+        Assert.Equal(small.BodyHeight / smallPlotH, large.BodyHeight / largePlotH, 5);
+        Assert.Equal((small.HighY - plotTop) / smallPlotH, (large.HighY - plotTop) / largePlotH, 5);
+        Assert.Equal((small.LowY - plotTop) / smallPlotH, (large.LowY - plotTop) / largePlotH, 5);
+
+        // Also verify absolute Y scales with plot height (larger plot => larger absolute positions)
+        Assert.True(large.BodyY > small.BodyY);
+        Assert.True(large.BodyHeight > small.BodyHeight);
+    }
+
     private static TvPriceChartPoint P(long time, decimal value) => new(time, value);
 
     private static CandleBattleNormalizedOhlc N(decimal open, decimal high, decimal low, decimal close)
