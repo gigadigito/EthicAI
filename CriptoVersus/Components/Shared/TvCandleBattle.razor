@@ -5,7 +5,9 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-@{ EnsureVisualsUpToDate(); }
+@{
+    EnsureVisualsUpToDate();
+}
 <section id="@_resolvedInstanceId"
          data-tv-candle-battle-instance="@_resolvedInstanceId"
          data-candle-render-version="2026-08-30-v3"
@@ -265,20 +267,20 @@
     }
 
     /*
-                     * Alinha o topo do placar Candle Battle com o topo do Price Battle.
-                     * O contêiner pai reserva espaço vertical acima deste componente;
-                     * compensamos somente o placar normal, sem afetar o modo broadcast compacto.
-                     */
+                         * Alinha o topo do placar Candle Battle com o topo do Price Battle.
+                         * O contÃªiner pai reserva espaÃ§o vertical acima deste componente;
+                         * compensamos somente o placar normal, sem afetar o modo broadcast compacto.
+                         */
     .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
         align-self: start;
         transform: translateY(-12px);
     }
 
     /*
-         * O transform do placar mantém o topo alinhado ao Price Battle, mas não altera
-         * o fluxo do Grid. Deslocamos somente o workspace pela mesma distância e
-         * compensamos sua altura para eliminar o vazio sem mexer no placar.
-         */
+             * O transform do placar mantÃ©m o topo alinhado ao Price Battle, mas nÃ£o altera
+             * o fluxo do Grid. Deslocamos somente o workspace pela mesma distÃ¢ncia e
+             * compensamos sua altura para eliminar o vazio sem mexer no placar.
+             */
     .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__workspace {
         transform: translateY(-12px);
         height: calc(100% + 12px);
@@ -1175,10 +1177,10 @@
         max-height: none;
     }
 
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-        min-height: 0;
-        height: 100%;
-    }
+        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
+            min-height: 0;
+            height: 100%;
+        }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__head-copy {
         gap: 3px;
@@ -1438,10 +1440,10 @@
     }
 
     /*
-             * Superfície contínua:
-             * remove os vazios entre placar, gráficos e painel tático para que
-             * todo o Candle Battle seja percebido como um único painel.
-             */
+                 * SuperfÃ­cie contÃ­nua:
+                 * remove os vazios entre placar, grÃ¡ficos e painel tÃ¡tico para que
+                 * todo o Candle Battle seja percebido como um Ãºnico painel.
+                 */
     .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) {
         gap: 0;
     }
@@ -1496,9 +1498,9 @@
         }
 
     /*
-         * Remove somente o respiro superior do primeiro card.
-         * O placar permanece na posição atual e alinhado ao Price Battle.
-         */
+             * Remove somente o respiro superior do primeiro card.
+             * O placar permanece na posiÃ§Ã£o atual e alinhado ao Price Battle.
+             */
     .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
     .tv-candle-battle__cards > .tv-candle-battle-card:first-child {
         padding-top: 0;
@@ -1526,7 +1528,7 @@
         }
     }
     /* Unified normalized OHLC battlefield. These rules intentionally come last
-       because the component previously rendered one card per asset. */
+           because the component previously rendered one card per asset. */
     .tv-candle-battle__cards {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr);
@@ -1538,6 +1540,9 @@
 
     .tv-candle-battle-card--unified {
         min-height: 0;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
         overflow: hidden;
     }
 
@@ -1585,23 +1590,23 @@
         gap: 2px;
     }
 
-    .tv-candle-battle-card__asset-copy span {
-        overflow: hidden;
-        color: rgba(229,239,251,.95);
-        font-size: .9rem;
-        font-weight: 900;
-        letter-spacing: .04em;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+        .tv-candle-battle-card__asset-copy span {
+            overflow: hidden;
+            color: rgba(229,239,251,.95);
+            font-size: .9rem;
+            font-weight: 900;
+            letter-spacing: .04em;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
 
-    .tv-candle-battle-card__asset-copy small {
-        color: rgba(164,181,202,.78);
-        font-size: .58rem;
-        font-weight: 800;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
+        .tv-candle-battle-card__asset-copy small {
+            color: rgba(164,181,202,.78);
+            font-size: .58rem;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
 
     .tv-candle-battle-card__change-pair {
         display: flex;
@@ -1610,17 +1615,17 @@
         gap: 8px;
     }
 
-    .tv-candle-battle-card__change-pair .tv-change {
-        min-width: 72px;
-        padding: 7px 10px;
-        border: 1px solid rgba(255,255,255,.10);
-        border-radius: 999px;
-        background: rgba(3,10,21,.74);
-        font-size: .82rem;
-        font-style: normal;
-        font-weight: 900;
-        text-align: center;
-    }
+        .tv-candle-battle-card__change-pair .tv-change {
+            min-width: 72px;
+            padding: 7px 10px;
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 999px;
+            background: rgba(3,10,21,.74);
+            font-size: .82rem;
+            font-style: normal;
+            font-weight: 900;
+            text-align: center;
+        }
 
     .tv-candle-battle-card__plot-shell {
         position: relative;
@@ -1635,14 +1640,15 @@
         scrollbar-color: rgba(255,255,255,.22) rgba(255,255,255,.04);
         direction: rtl;
     }
-    .tv-candle-battle-card__plot-shell::-webkit-scrollbar {
-        height: 7px;
-    }
 
-    .tv-candle-battle-card__plot-shell::-webkit-scrollbar-thumb {
-        border-radius: 999px;
-        background: rgba(255,255,255,.22);
-    }
+        .tv-candle-battle-card__plot-shell::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .tv-candle-battle-card__plot-shell::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: rgba(255,255,255,.22);
+        }
 
         .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
             display: block;
@@ -1658,30 +1664,30 @@
         max-height: none;
     }
 
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-        min-height: 0;
-        height: 100%;
-    }
+        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
+            min-height: 0;
+            height: 100%;
+        }
 
     .tv-candle-battle__winner-marker {
         opacity: .92;
         filter: drop-shadow(0 0 5px currentColor);
     }
 
-    .tv-candle-battle__winner-marker.is-left {
-        color: var(--team-left-color);
-        fill: var(--team-left-color);
-    }
+        .tv-candle-battle__winner-marker.is-left {
+            color: var(--team-left-color);
+            fill: var(--team-left-color);
+        }
 
-    .tv-candle-battle__winner-marker.is-right {
-        color: var(--team-right-color);
-        fill: var(--team-right-color);
-    }
+        .tv-candle-battle__winner-marker.is-right {
+            color: var(--team-right-color);
+            fill: var(--team-right-color);
+        }
 
-    .tv-candle-battle__winner-marker.is-tie {
-        color: rgba(154,167,184,.72);
-        fill: rgba(154,167,184,.72);
-    }
+        .tv-candle-battle__winner-marker.is-tie {
+            color: rgba(154,167,184,.72);
+            fill: rgba(154,167,184,.72);
+        }
 
     .tv-candle-battle__winner-baseline {
         stroke: rgba(255,255,255,.08);
@@ -1693,10 +1699,10 @@
         stroke-width: 1.2;
     }
 
-    .tv-candle-battle__body.is-down {
-        fill: rgba(3,10,21,.86);
-        opacity: 1;
-    }
+        .tv-candle-battle__body.is-down {
+            fill: rgba(3,10,21,.86);
+            opacity: 1;
+        }
 
     .tv-candle-battle__chart-caption {
         display: flex;
@@ -1711,15 +1717,45 @@
         text-transform: uppercase;
     }
 
-    .tv-candle-battle__chart-caption strong {
-        color: rgba(127,246,223,.86);
-        font-size: inherit;
-    }
+        .tv-candle-battle__chart-caption strong {
+            color: rgba(127,246,223,.86);
+            font-size: inherit;
+        }
 
     .tv-candle-battle-card--unified {
         min-height: 0;
         overflow: hidden;
     }
+
+    /*
+         * MATCH: o card unificado possui exatamente três áreas:
+         * cabeçalho / gráfico / legenda.
+         *
+         * O gráfico precisa ser a área elástica (1fr). O plot usa height:auto
+         * para ser esticado pelo Grid sem criar o ciclo de crescimento causado
+         * por height:100% em uma cadeia de pais com altura indefinida.
+         *
+         * O modo TV/Broadcast continua usando as regras próprias
+         * .tv-candle-battle--broadcast-compact.
+         */
+    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
+    .tv-candle-battle-card--unified {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
+        .tv-candle-battle-card--unified > .tv-candle-battle-card__plot-shell {
+            min-height: 0;
+            height: auto;
+            max-height: none;
+            align-self: stretch;
+        }
+
+            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
+            .tv-candle-battle-card--unified > .tv-candle-battle-card__plot-shell > .tv-candle-battle__svg {
+                min-height: 0;
+                height: 100%;
+            }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__battle-head {
         padding: 8px 10px 6px;
@@ -1737,19 +1773,20 @@
             grid-row: 2;
         }
 
-        .tv-candle-battle-card__change-pair .tv-change {
-            flex: 1 1 0;
-            min-width: 0;
-        }
+            .tv-candle-battle-card__change-pair .tv-change {
+                flex: 1 1 0;
+                min-width: 0;
+            }
 
         .tv-candle-battle-card__plot-shell {
             min-height: 220px;
             height: 100%;
             max-height: none;
         }
-        .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-            min-height: 220px;
-        }
+
+            .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
+                min-height: 220px;
+            }
 
         .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
             min-height: 0;
@@ -1757,10 +1794,10 @@
             max-height: none;
         }
 
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-            min-height: 0;
-            height: 100%;
-        }
+            .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
+                min-height: 0;
+                height: 100%;
+            }
 
         .tv-candle-battle__chart-caption {
             align-items: flex-start;
@@ -1789,28 +1826,28 @@
             padding: 6px;
         }
 
-        .tv-candle-battle__score-logo-shell,
-        .tv-candle-battle__score-side--right .tv-candle-battle__score-logo-shell {
-            grid-area: logo;
-            width: 28px;
-            height: 28px;
-        }
+            .tv-candle-battle__score-logo-shell,
+            .tv-candle-battle__score-side--right .tv-candle-battle__score-logo-shell {
+                grid-area: logo;
+                width: 28px;
+                height: 28px;
+            }
 
-        .tv-candle-battle__score-copy,
-        .tv-candle-battle__score-side--right .tv-candle-battle__score-copy {
-            grid-area: copy;
-            order: initial;
-            padding: 0;
-            text-align: left;
-        }
+            .tv-candle-battle__score-copy,
+            .tv-candle-battle__score-side--right .tv-candle-battle__score-copy {
+                grid-area: copy;
+                order: initial;
+                padding: 0;
+                text-align: left;
+            }
 
-        .tv-candle-battle__score-side b,
-        .tv-candle-battle__score-side--right b {
-            grid-area: score;
-            order: initial;
-            align-self: center;
-            font-size: 1.8rem;
-        }
+            .tv-candle-battle__score-side b,
+            .tv-candle-battle__score-side--right b {
+                grid-area: score;
+                order: initial;
+                align-self: center;
+                font-size: 1.8rem;
+            }
 
         .tv-candle-battle__score-copy strong {
             font-size: .68rem;
@@ -1825,20 +1862,20 @@
             padding: 5px 3px;
         }
 
-        .tv-candle-battle__score-center span,
-        .tv-candle-battle__score-center strong,
-        .tv-candle-battle__score-center small {
-            font-size: .48rem;
-        }
+            .tv-candle-battle__score-center span,
+            .tv-candle-battle__score-center strong,
+            .tv-candle-battle__score-center small {
+                font-size: .48rem;
+            }
 
         .tv-candle-battle__score-momentum-card {
             padding: 5px 7px;
         }
 
-        .tv-candle-battle__score-momentum-card span,
-        .tv-candle-battle__score-momentum-card small {
-            font-size: .52rem;
-        }
+            .tv-candle-battle__score-momentum-card span,
+            .tv-candle-battle__score-momentum-card small {
+                font-size: .52rem;
+            }
     }
 </style>
 
@@ -2011,112 +2048,114 @@
     private string PerformanceTitle => T("labels.lastVariation");
 
     private RenderFragment RenderBattleChart(bool compact) => @<section class="tv-candle-battle-card tv-candle-battle-card--unified @(compact ? "tv-candle-battle-card--compact" : string.Empty)">
-        <div class="tv-candle-battle-card__battle-head">
-            <div class="tv-candle-battle-card__asset tv-candle-battle-card__asset--left">
-                <i class="tv-candle-battle-card__asset-dot" aria-hidden="true"></i>
-                <div class="tv-candle-battle-card__asset-copy">
-                    <span>@LeftTickerLabel</span>
-                    <small>@T("labels.assetA")</small>
-                </div>
-            </div>
-
-            <div class="tv-candle-battle-card__change-pair">
-                <em id="@($"{_resolvedInstanceId}-left-live")" class="@GetChangeClass(LeftChangePercent)">@FormatChangePercent(LeftChangePercent)</em>
-                <em id="@($"{_resolvedInstanceId}-right-live")" class="@GetChangeClass(RightChangePercent)">@FormatChangePercent(RightChangePercent)</em>
-            </div>
-
-            <div class="tv-candle-battle-card__asset tv-candle-battle-card__asset--right">
-                <div class="tv-candle-battle-card__asset-copy">
-                    <span>@RightTickerLabel</span>
-                    <small>@T("labels.assetB")</small>
-                </div>
-                <i class="tv-candle-battle-card__asset-dot" aria-hidden="true"></i>
+    <div class="tv-candle-battle-card__battle-head">
+        <div class="tv-candle-battle-card__asset tv-candle-battle-card__asset--left">
+            <i class="tv-candle-battle-card__asset-dot" aria-hidden="true"></i>
+            <div class="tv-candle-battle-card__asset-copy">
+                <span>@LeftTickerLabel</span>
+                <small>@T("labels.assetA")</small>
             </div>
         </div>
 
-        <div id="@($"{_resolvedInstanceId}-chart")" class="tv-candle-battle-card__plot-shell" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)">
-            @if (_chartVisuals.Count == 0)
-            {
-                <div class="tv-candle-battle__empty">@WaitingHistoryText</div>
-            }
-            else
-            {
-                <svg class="tv-candle-battle__svg" style="@ChartSvgStyle" viewBox="@($"0 0 {N(_chartViewWidth)} {N(LogicalHeight)}")" preserveAspectRatio="none" role="img" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)" data-candle-render-version="2026-08-30-v3" data-chart-view-width="@N(_chartViewWidth)" data-logical-height="@N(LogicalHeight)">
-                    @{ var gridHeight = DynamicChartBottom - DynamicChartTop; }
-                    <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.23)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.23)" />
-                    <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.463)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.463)" />
-                    <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.696)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.696)" />
-                    <line class="tv-candle-battle__winner-baseline" x1="0" y1="@N(DynamicChartBottom)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartBottom)" />
+        <div class="tv-candle-battle-card__change-pair">
+            <em id="@($"{_resolvedInstanceId}-left-live")" class="@GetChangeClass(LeftChangePercent)">@FormatChangePercent(LeftChangePercent)</em>
+            <em id="@($"{_resolvedInstanceId}-right-live")" class="@GetChangeClass(RightChangePercent)">@FormatChangePercent(RightChangePercent)</em>
+        </div>
 
-                    @for (var _vi = 0; _vi < _chartVisuals.Count; _vi++)
+        <div class="tv-candle-battle-card__asset tv-candle-battle-card__asset--right">
+            <div class="tv-candle-battle-card__asset-copy">
+                <span>@RightTickerLabel</span>
+                <small>@T("labels.assetB")</small>
+            </div>
+            <i class="tv-candle-battle-card__asset-dot" aria-hidden="true"></i>
+        </div>
+    </div>
+
+    <div id="@($"{_resolvedInstanceId}-chart")" class="tv-candle-battle-card__plot-shell" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)">
+        @if (_chartVisuals.Count == 0)
+                {
+        <div class="tv-candle-battle__empty">@WaitingHistoryText</div>
+                }
+                else
+                {
+        <svg class="tv-candle-battle__svg" style="@ChartSvgStyle" viewBox="@($"0 0 {N(_chartViewWidth)} {N(LogicalHeight)}")" preserveAspectRatio="none" role="img" aria-label="@T("labels.comparisonChart", LeftTickerLabel, RightTickerLabel)" data-candle-render-version="2026-08-30-v3" data-chart-view-width="@N(_chartViewWidth)" data-logical-height="@N(LogicalHeight)">
+            @{
+                        var gridHeight = DynamicChartBottom - DynamicChartTop;
+            }
+            <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.23)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.23)" />
+            <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.463)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.463)" />
+            <line class="tv-candle-battle__grid-line" x1="0" y1="@N(DynamicChartTop + gridHeight * 0.696)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartTop + gridHeight * 0.696)" />
+            <line class="tv-candle-battle__winner-baseline" x1="0" y1="@N(DynamicChartBottom)" x2="@N(_chartViewWidth)" y2="@N(DynamicChartBottom)" />
+
+            @for (var _vi = 0; _vi < _chartVisuals.Count; _vi++)
+            {
+                var pair = _chartVisuals[_vi];
+                var _bucket = _vi < _chartModel.Buckets.Count ? _chartModel.Buckets[_vi] : null;
+                var _ts = _bucket?.Time.ToString(CultureInfo.InvariantCulture) ?? _vi.ToString(CultureInfo.InvariantCulture);
+                var _leftOpenY = pair.Left.IsDoji ? N((pair.Left.HighY + pair.Left.LowY) / 2) : (pair.Left.IsUp ? N(pair.Left.BodyY + pair.Left.BodyHeight) : N(pair.Left.BodyY));
+                var _leftCloseY = pair.Left.IsDoji ? N((pair.Left.HighY + pair.Left.LowY) / 2) : (pair.Left.IsUp ? N(pair.Left.BodyY) : N(pair.Left.BodyY + pair.Left.BodyHeight));
+                var _rightOpenY = pair.Right.IsDoji ? N((pair.Right.HighY + pair.Right.LowY) / 2) : (pair.Right.IsUp ? N(pair.Right.BodyY + pair.Right.BodyHeight) : N(pair.Right.BodyY));
+                var _rightCloseY = pair.Right.IsDoji ? N((pair.Right.HighY + pair.Right.LowY) / 2) : (pair.Right.IsUp ? N(pair.Right.BodyY) : N(pair.Right.BodyY + pair.Right.BodyHeight));
+                <g data-candle-render-version="2026-08-30-v3" data-index="@_vi" data-ts="@_ts" data-left-normalized-open="@(_bucket?.Left.Open.ToString(CultureInfo.InvariantCulture) ?? "")" data-left-normalized-close="@(_bucket?.Left.Close.ToString(CultureInfo.InvariantCulture) ?? "")" data-right-normalized-open="@(_bucket?.Right.Open.ToString(CultureInfo.InvariantCulture) ?? "")" data-right-normalized-close="@(_bucket?.Right.Close.ToString(CultureInfo.InvariantCulture) ?? "")" data-left-open-y="@_leftOpenY" data-left-close-y="@_leftCloseY" data-right-open-y="@_rightOpenY" data-right-close-y="@_rightCloseY">
+                    <title>@pair.Title</title>
+                    @if (pair.Left.IsDoji)
                     {
-                        var pair = _chartVisuals[_vi];
-                        var _bucket = _vi < _chartModel.Buckets.Count ? _chartModel.Buckets[_vi] : null;
-                        var _ts = _bucket?.Time.ToString(CultureInfo.InvariantCulture) ?? _vi.ToString(CultureInfo.InvariantCulture);
-                        var _leftOpenY = pair.Left.IsDoji ? N((pair.Left.HighY + pair.Left.LowY)/2) : (pair.Left.IsUp ? N(pair.Left.BodyY + pair.Left.BodyHeight) : N(pair.Left.BodyY));
-                        var _leftCloseY = pair.Left.IsDoji ? N((pair.Left.HighY + pair.Left.LowY)/2) : (pair.Left.IsUp ? N(pair.Left.BodyY) : N(pair.Left.BodyY + pair.Left.BodyHeight));
-                        var _rightOpenY = pair.Right.IsDoji ? N((pair.Right.HighY + pair.Right.LowY)/2) : (pair.Right.IsUp ? N(pair.Right.BodyY + pair.Right.BodyHeight) : N(pair.Right.BodyY));
-                        var _rightCloseY = pair.Right.IsDoji ? N((pair.Right.HighY + pair.Right.LowY)/2) : (pair.Right.IsUp ? N(pair.Right.BodyY) : N(pair.Right.BodyY + pair.Right.BodyHeight));
-                        <g data-candle-render-version="2026-08-30-v3" data-index="@_vi" data-ts="@_ts" data-left-normalized-open="@(_bucket?.Left.Open.ToString(CultureInfo.InvariantCulture) ?? "")" data-left-normalized-close="@(_bucket?.Left.Close.ToString(CultureInfo.InvariantCulture) ?? "")" data-right-normalized-open="@(_bucket?.Right.Open.ToString(CultureInfo.InvariantCulture) ?? "")" data-right-normalized-close="@(_bucket?.Right.Close.ToString(CultureInfo.InvariantCulture) ?? "")" data-left-open-y="@_leftOpenY" data-left-close-y="@_leftCloseY" data-right-open-y="@_rightOpenY" data-right-close-y="@_rightCloseY">
-                            <title>@pair.Title</title>
-                            @if (pair.Left.IsDoji)
-                            {
-                                var dojiCenterY = (pair.Left.HighY + pair.Left.LowY) / 2d;
-                                <line class="tv-candle-battle__doji @DojiClass(BattleSide.Left, pair.Left.IsUp)"
-                                      x1="@N(pair.Left.BodyX)" y1="@N(dojiCenterY)"
-                                      x2="@N(pair.Left.BodyX + pair.Left.BodyWidth)" y2="@N(dojiCenterY)" />
-                            }
-                            else
-                            {
-                                <line class="@WickClass(BattleSide.Left, pair.Left.IsUp)" x1="@N(pair.Left.X)" y1="@N(pair.Left.HighY)" x2="@N(pair.Left.X)" y2="@N(pair.Left.LowY)" />
-                                <rect class="@BodyClass(BattleSide.Left, pair.Left.IsUp)" x="@N(pair.Left.BodyX)" y="@N(pair.Left.BodyY)" width="@N(pair.Left.BodyWidth)" height="@N(pair.Left.BodyHeight)" rx="1.4" />
-                            }
-                            @if (pair.Right.IsDoji)
-                            {
-                                var dojiCenterY = (pair.Right.HighY + pair.Right.LowY) / 2d;
-                                <line class="tv-candle-battle__doji @DojiClass(BattleSide.Right, pair.Right.IsUp)"
-                                      x1="@N(pair.Right.BodyX)" y1="@N(dojiCenterY)"
-                                      x2="@N(pair.Right.BodyX + pair.Right.BodyWidth)" y2="@N(dojiCenterY)" />
-                            }
-                            else
-                            {
-                                <line class="@WickClass(BattleSide.Right, pair.Right.IsUp)" x1="@N(pair.Right.X)" y1="@N(pair.Right.HighY)" x2="@N(pair.Right.X)" y2="@N(pair.Right.LowY)" />
-                                <rect class="@BodyClass(BattleSide.Right, pair.Right.IsUp)" x="@N(pair.Right.BodyX)" y="@N(pair.Right.BodyY)" width="@N(pair.Right.BodyWidth)" height="@N(pair.Right.BodyHeight)" rx="1.4" />
-                            }
-                            <rect class="tv-candle-battle__winner-marker @pair.MarkerClass" x="@N(pair.MarkerX)" y="@N(DynamicChartBottom + 6)" width="@N(pair.MarkerWidth)" height="7" rx="2" />
-                        </g>
+                        var dojiCenterY = (pair.Left.HighY + pair.Left.LowY) / 2d;
+                        <line class="tv-candle-battle__doji @DojiClass(BattleSide.Left, pair.Left.IsUp)"
+                              x1="@N(pair.Left.BodyX)" y1="@N(dojiCenterY)"
+                              x2="@N(pair.Left.BodyX + pair.Left.BodyWidth)" y2="@N(dojiCenterY)" />
                     }
-                </svg>
+                    else
+                    {
+                        <line class="@WickClass(BattleSide.Left, pair.Left.IsUp)" x1="@N(pair.Left.X)" y1="@N(pair.Left.HighY)" x2="@N(pair.Left.X)" y2="@N(pair.Left.LowY)" />
+                        <rect class="@BodyClass(BattleSide.Left, pair.Left.IsUp)" x="@N(pair.Left.BodyX)" y="@N(pair.Left.BodyY)" width="@N(pair.Left.BodyWidth)" height="@N(pair.Left.BodyHeight)" rx="1.4" />
+                    }
+                    @if (pair.Right.IsDoji)
+                    {
+                        var dojiCenterY = (pair.Right.HighY + pair.Right.LowY) / 2d;
+                        <line class="tv-candle-battle__doji @DojiClass(BattleSide.Right, pair.Right.IsUp)"
+                              x1="@N(pair.Right.BodyX)" y1="@N(dojiCenterY)"
+                              x2="@N(pair.Right.BodyX + pair.Right.BodyWidth)" y2="@N(dojiCenterY)" />
+                    }
+                    else
+                    {
+                        <line class="@WickClass(BattleSide.Right, pair.Right.IsUp)" x1="@N(pair.Right.X)" y1="@N(pair.Right.HighY)" x2="@N(pair.Right.X)" y2="@N(pair.Right.LowY)" />
+                        <rect class="@BodyClass(BattleSide.Right, pair.Right.IsUp)" x="@N(pair.Right.BodyX)" y="@N(pair.Right.BodyY)" width="@N(pair.Right.BodyWidth)" height="@N(pair.Right.BodyHeight)" rx="1.4" />
+                    }
+                    <rect class="tv-candle-battle__winner-marker @pair.MarkerClass" x="@N(pair.MarkerX)" y="@N(DynamicChartBottom + 6)" width="@N(pair.MarkerWidth)" height="7" rx="2" />
+                </g>
             }
-        </div>
+        </svg>
+                }
+    </div>
 
-        <div class="tv-candle-battle__chart-caption">
-            <span>@T("labels.normalizedSharedScale")</span>
-            <strong>@T("labels.winnerPerCandle")</strong>
-        </div>
-    </section>;
+    <div class="tv-candle-battle__chart-caption">
+        <span>@T("labels.normalizedSharedScale")</span>
+        <strong>@T("labels.winnerPerCandle")</strong>
+    </div>
+</section>;
 
     private string ChartSvgStyle => $"width:max(100%, {N(_chartViewWidth)}px); min-width:{N(_chartViewWidth)}px;";
 
-    private const double LogicalWidth = 1000d;
-    private const double DefaultLogicalHeight = 338d;
-    private const double ChartTopPadding = 14d;
-    private const double BottomReserved = 28d;
+private const double LogicalWidth = 1000d;
+private const double DefaultLogicalHeight = 338d;
+private const double ChartTopPadding = 14d;
+private const double BottomReserved = 28d;
 
-    private double LogicalHeight
+private double LogicalHeight
+{
+    get
     {
-        get
-        {
-            if (_measuredWidth < 1 || _measuredHeight < 1)
-                return DefaultLogicalHeight;
+        if (_measuredWidth < 1 || _measuredHeight < 1)
+            return DefaultLogicalHeight;
 
-            var h = LogicalWidth * _measuredHeight / _measuredWidth;
-            return Math.Max(DefaultLogicalHeight, Math.Round(h, 1));
-        }
+        var h = LogicalWidth * _measuredHeight / _measuredWidth;
+        return Math.Max(DefaultLogicalHeight, Math.Round(h, 1));
     }
+}
 
-    private double DynamicChartTop => ChartTopPadding;
-    private double DynamicChartBottom => LogicalHeight - BottomReserved;
+private double DynamicChartTop => ChartTopPadding;
+private double DynamicChartBottom => LogicalHeight - BottomReserved;
 
 private string ResolveAriaLabel()
     => !string.IsNullOrWhiteSpace(AriaLabel)
@@ -2184,7 +2223,7 @@ private string FormatCandleTitle(CandleBattleChartBucket bucket)
         _ => T("labels.tie")
     };
     var time = DateTimeOffset.FromUnixTimeSeconds(bucket.Time).ToLocalTime().ToString("HH:mm:ss", CultureInfo.CurrentCulture);
-    return $"{time} · {winner} · {LeftHeroLabel} {FormatDeltaPercent(bucket.LeftDeltaPercent)} vs {RightHeroLabel} {FormatDeltaPercent(bucket.RightDeltaPercent)}";
+    return $"{time} Â· {winner} Â· {LeftHeroLabel} {FormatDeltaPercent(bucket.LeftDeltaPercent)} vs {RightHeroLabel} {FormatDeltaPercent(bucket.RightDeltaPercent)}";
 }
 
 private static string MarkerClass(CandleBattleChartWinner winner) => winner switch
