@@ -1626,8 +1626,7 @@
         position: relative;
         min-width: 0;
         min-height: 250px;
-        height: 100%;
-        max-height: none;
+        height: clamp(250px, 29cqi, 410px);
         overflow-x: auto;
         overflow-y: hidden;
         border-top: 1px solid rgba(255,255,255,.05);
@@ -1636,7 +1635,6 @@
         scrollbar-color: rgba(255,255,255,.22) rgba(255,255,255,.04);
         direction: rtl;
     }
-
     .tv-candle-battle-card__plot-shell::-webkit-scrollbar {
         height: 7px;
     }
@@ -1720,10 +1718,7 @@
 
     .tv-candle-battle-card--unified {
         min-height: 0;
-        height: 100%;
         overflow: hidden;
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
     }
 
     .tv-candle-battle--broadcast-compact .tv-candle-battle-card__battle-head {
