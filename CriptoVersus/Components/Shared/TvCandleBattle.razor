@@ -536,11 +536,6 @@
         opacity: .9;
     }
 
-    .tv-candle-battle__body {
-        stroke-width: 1.4;
-        vector-effect: non-scaling-stroke;
-    }
-
     .tv-candle-battle__doji {
         stroke-width: 1.7;
         stroke-linecap: round;
@@ -555,11 +550,6 @@
         fill: var(--team-left-color-soft);
         filter: drop-shadow(0 0 7px var(--team-left-color-glow));
     }
-
-        .tv-candle-battle__body--left.is-down {
-            fill: rgba(255, 145, 0, .26);
-            opacity: .72;
-        }
 
         .tv-candle-battle__wick--left.is-down {
             opacity: .58;
@@ -576,11 +566,6 @@
         fill: var(--team-right-color-soft);
         filter: drop-shadow(0 0 7px var(--team-right-color-glow));
     }
-
-        .tv-candle-battle__body--right.is-down {
-            fill: rgba(24, 216, 210, .24);
-            opacity: .72;
-        }
 
         .tv-candle-battle__wick--right.is-down {
             opacity: .58;
@@ -1437,7 +1422,7 @@
     private string LastCandleTitle => T("labels.lastCandle");
     private string PerformanceTitle => T("labels.lastVariation");
 
-    private RenderFragment RenderBattleChart() => @<section class="tv-candle-battle-card tv-candle-battle-card--unified">
+    private RenderFragment RenderBattleChart() => @<section class="tv-candle-battle-card">
     <div class="tv-candle-battle-card__battle-head">
         <div class="tv-candle-battle-card__asset tv-candle-battle-card__asset--left">
             <i class="tv-candle-battle-card__asset-dot" aria-hidden="true"></i>
