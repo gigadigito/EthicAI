@@ -40,7 +40,9 @@ export function runDiag(limit = 5) {
   const svgRect = svg.getBoundingClientRect();
   const svgCS = getComputedStyle(svg);
 
-  const compact = root.querySelector('.tv-candle-battle__compact');
+  const scoreboard = root.querySelector('.tv-candle-battle__scoreboard');
+  const workspace = root.querySelector('.tv-candle-battle__workspace');
+  const cards = root.querySelector('.tv-candle-battle__cards');
   const card = root.querySelector('.tv-candle-battle-card');
   const battleHead = root.querySelector('.tv-candle-battle-card__battle-head');
   const chartCaption = root.querySelector('.tv-candle-battle__chart-caption');
@@ -55,7 +57,9 @@ export function runDiag(limit = 5) {
     dynamicChartBottom: root.getAttribute('data-dynamic-chart-bottom'),
     chain: {
       root: measure(root, 'tv-candle-battle'),
-      compact: measure(compact, '__compact'),
+      scoreboard: measure(scoreboard, 'scoreboard'),
+      workspace: measure(workspace, 'workspace'),
+      cards: measure(cards, 'cards'),
       card: measure(card, 'card'),
       battleHead: measure(battleHead, 'battle-head'),
       plotShell: measure(plotShell, 'plot-shell'),
@@ -68,8 +72,8 @@ export function runDiag(limit = 5) {
     },
     ratios: (() => {
       const r = {};
-      const chain = ['root', 'compact', 'card', 'plotShell', 'svg'];
-      const els = [root, compact, card, plotShell, svg];
+      const chain = ['root', 'workspace', 'cards', 'card', 'plotShell', 'svg'];
+      const els = [root, workspace, cards, card, plotShell, svg];
       for (let i = 1; i < chain.length; i++) {
         const parent = els[i-1]?.getBoundingClientRect();
         const child = els[i]?.getBoundingClientRect();

@@ -2143,17 +2143,31 @@
         display: block;
     }
 
+    .social-share-card__tv-slot--candle {
+        height: calc(100dvh - 96px);
+        min-height: 560px;
+        max-height: 900px;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        overflow: hidden;
+    }
+
         .social-share-card__tv-slot > * {
             width: 100%;
             min-width: 0;
         }
 
         .social-share-card__tv-slot .tv-price-battle,
-        .social-share-card__tv-slot .tv-candle-battle,
         .social-share-card__tv-slot .tv-event-feed,
         .social-share-card__tv-slot .tv-arena-pressure-gauge {
             width: 100%;
             height: auto;
+        }
+
+        .social-share-card__tv-slot--candle > .tv-candle-battle {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
         }
 
     .social-share-card__sentiment,
@@ -7465,7 +7479,6 @@
         }
     }
 </style>
-
 
 
 

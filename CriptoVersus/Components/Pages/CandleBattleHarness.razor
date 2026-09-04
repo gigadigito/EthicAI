@@ -1,0 +1,42 @@
+@page "/_diag/candle-battle"
+@using DTOs
+
+<main class="candle-battle-harness">
+    <TvCandleBattle LeftTickerLabel="BTCUSDT"
+                    RightTickerLabel="ETHUSDT"
+                    LeftHeroLabel="BTC"
+                    RightHeroLabel="ETH"
+                    LeftLogoUrl="/favicon.png"
+                    RightLogoUrl="/favicon.png"
+                    LeftChangePercent="1.25m"
+                    RightChangePercent="0.82m"
+                    LeftPoints="@LeftPoints"
+                    RightPoints="@RightPoints"
+                    OfficialScoreA="4"
+                    OfficialScoreB="3"
+                    ShowTacticalPanel="false" />
+</main>
+
+<style>
+    .candle-battle-harness {
+        width: min(1400px, calc(100% - 32px));
+        height: calc(100dvh - 32px);
+        min-height: 560px;
+        margin: 16px auto;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr);
+        overflow: hidden;
+    }
+</style>
+
+@code {
+    private static readonly IReadOnlyList<TvPriceChartPoint> LeftPoints = BuildPoints(62_000m, 37m);
+    private static readonly IReadOnlyList<TvPriceChartPoint> RightPoints = BuildPoints(3_400m, 2.4m);
+
+    private static IReadOnlyList<TvPriceChartPoint> BuildPoints(decimal baseline, decimal step)
+        => Enumerable.Range(0, 80)
+            .Select(index => new TvPriceChartPoint(
+                DateTimeOffset.UtcNow.AddMinutes(index - 80).ToUnixTimeSeconds(),
+                baseline + (decimal)Math.Sin(index * .36d) * step + index * step / 12m))
+            .ToArray();
+}

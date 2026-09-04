@@ -18,46 +18,7 @@
          class="@RootClass"
          aria-label="@ResolveAriaLabel()">
 
-    @if (IsBroadcastCompact)
-    {
-        <div class="tv-candle-battle__compact">
-            <header class="tv-candle-battle__compact-scorebar">
-                <div class="tv-candle-battle__compact-team tv-candle-battle__compact-team--left">
-                    <img src="@LeftLogoUrl" alt="" />
-                    <div>
-                        <strong>@LeftTickerLabel</strong>
-                        <span>@T("labels.candlesWon")</span>
-                    </div>
-                    <b id="@($"{_resolvedInstanceId}-score-left")">@DisplayedLeftWins</b>
-                </div>
-
-                <div class="tv-candle-battle__compact-center">
-                    <span>@T("labels.candleBattle")</span>
-                    <strong id="@($"{_resolvedInstanceId}-score-leader")">@DisplayedLeaderLabel</strong>
-                    <div class="tv-candle-battle__compact-momentum" aria-hidden="true">
-                        <i class="tv-candle-battle__compact-momentum-fill tv-candle-battle__compact-momentum-fill--left"
-                           style="width:@Battle.LeftMomentumPercentString;"></i>
-                        <i class="tv-candle-battle__compact-momentum-fill tv-candle-battle__compact-momentum-fill--right"
-                           style="width:@Battle.RightMomentumPercentString;"></i>
-                    </div>
-                </div>
-
-                <div class="tv-candle-battle__compact-team tv-candle-battle__compact-team--right">
-                    <b id="@($"{_resolvedInstanceId}-score-right")">@DisplayedRightWins</b>
-                    <div>
-                        <strong>@RightTickerLabel</strong>
-                        <span>@T("labels.candlesWon")</span>
-                    </div>
-                    <img src="@RightLogoUrl" alt="" />
-                </div>
-            </header>
-
-            @RenderBattleChart(compact: true)
-        </div>
-    }
-    else
-    {
-        <section class="tv-candle-battle__scoreboard">
+    <section class="tv-candle-battle__scoreboard">
             <div class="tv-candle-battle__score-side tv-candle-battle__score-side--left">
                 <div class="tv-candle-battle__score-logo-shell tv-candle-battle__score-logo-shell--left">
                     <img src="@LeftLogoUrl" alt="" />
@@ -113,18 +74,18 @@
                     <strong id="@($"{_resolvedInstanceId}-score-momentum-right")">@Battle.RightMomentumPercentString</strong>
                 </div>
             </aside>
-        </section>
+    </section>
 
-        <div class="@WorkspaceClass">
-            <div class="tv-candle-battle__cards">
-                @RenderBattleChart(compact: false)
-            </div>
+    <div class="@WorkspaceClass">
+        <div class="tv-candle-battle__cards">
+            @RenderBattleChart()
+        </div>
 
-            @if (ShowTacticalPanel)
-            {
-                <aside id="@($"{_resolvedInstanceId}-stats-panel")"
-                       class="tv-candle-battle__sidebar"
-                       aria-label="@T("labels.tacticalPanelA11y")">
+        @if (ShowTacticalPanel)
+        {
+            <aside id="@($"{_resolvedInstanceId}-stats-panel")"
+                   class="tv-candle-battle__sidebar"
+                   aria-label="@T("labels.tacticalPanelA11y")">
                     <div class="tv-candle-battle__sidebar-top">
                         <div class="tv-candle-battle__sidebar-kicker">
                             <span>@PanelTitle</span>
@@ -203,10 +164,9 @@
                     {
                         <div class="tv-candle-battle__sidebar-muted">@WaitingHistoryText</div>
                     }
-                </aside>
-            }
-        </div>
-    }
+            </aside>
+        }
+    </div>
 </section>
 
 <style>
@@ -227,12 +187,9 @@
         min-height: 0;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
-        gap: 12px;
+        gap: 0;
+        overflow: hidden;
     }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) {
-            grid-template-rows: minmax(0, 15fr) minmax(0, 85fr);
-        }
 
         .tv-candle-battle,
         .tv-candle-battle * {
@@ -241,8 +198,7 @@
 
     .tv-candle-battle__scoreboard,
     .tv-candle-battle-card,
-    .tv-candle-battle__sidebar,
-    .tv-candle-battle__compact-scorebar {
+    .tv-candle-battle__sidebar {
         min-width: 0;
         border: 1px solid rgba(255,255,255,0.06);
         background: linear-gradient(180deg, rgba(11, 19, 34, 0.96), rgba(7, 12, 24, 0.94)), radial-gradient(circle at top left, rgba(42, 201, 255, 0.08), transparent 30%), radial-gradient(circle at top right, rgba(255, 128, 0, 0.10), transparent 28%);
@@ -260,30 +216,9 @@
         gap: clamp(6px, .9cqi, 10px);
         align-items: center;
         align-content: center;
-        height: 100%;
         min-height: 0;
         padding: clamp(6px, .8cqi, 10px);
         border-radius: 20px;
-    }
-
-    /*
-                         * Alinha o topo do placar Candle Battle com o topo do Price Battle.
-                         * O contÃªiner pai reserva espaÃ§o vertical acima deste componente;
-                         * compensamos somente o placar normal, sem afetar o modo broadcast compacto.
-                         */
-    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
-        align-self: start;
-        transform: translateY(-12px);
-    }
-
-    /*
-             * O transform do placar mantÃ©m o topo alinhado ao Price Battle, mas nÃ£o altera
-             * o fluxo do Grid. Deslocamos somente o workspace pela mesma distÃ¢ncia e
-             * compensamos sua altura para eliminar o vazio sem mexer no placar.
-             */
-    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__workspace {
-        transform: translateY(-12px);
-        height: calc(100% + 12px);
     }
 
     .tv-candle-battle__scoreboard::before {
@@ -369,8 +304,7 @@
         text-align: right;
     }
 
-    .tv-candle-battle__score-copy strong,
-    .tv-candle-battle-card__head strong {
+    .tv-candle-battle__score-copy strong {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -389,9 +323,7 @@
     .tv-candle-battle__score-center span,
     .tv-candle-battle__score-center small,
     .tv-candle-battle__score-momentum-card span,
-    .tv-candle-battle__score-momentum-card small,
-    .tv-candle-battle-card__legend span,
-    .tv-candle-battle-card__timeline span {
+    .tv-candle-battle__score-momentum-card small {
         text-transform: uppercase;
     }
 
@@ -419,14 +351,12 @@
         letter-spacing: -.08em;
     }
 
-    .tv-candle-battle__score-side--left b,
-    .tv-candle-battle__compact-team--left b {
+    .tv-candle-battle__score-side--left b {
         color: var(--team-left-color);
         text-shadow: 0 0 14px var(--team-left-color-glow);
     }
 
-    .tv-candle-battle__score-side--right b,
-    .tv-candle-battle__compact-team--right b {
+    .tv-candle-battle__score-side--right b {
         color: var(--team-right-color);
         text-shadow: 0 0 14px var(--team-right-color-glow);
     }
@@ -499,8 +429,7 @@
     }
 
     .tv-candle-battle__score-momentum-track,
-    .tv-candle-battle__sidebar-momentum,
-    .tv-candle-battle__compact-momentum {
+    .tv-candle-battle__sidebar-momentum {
         position: relative;
         width: 100%;
         height: 10px;
@@ -514,29 +443,21 @@
         height: clamp(5px, .72cqi, 8px);
     }
 
-    .tv-candle-battle__compact-momentum {
-        width: min(100%, 320px);
-        height: 8px;
-    }
-
     .tv-candle-battle__score-momentum-fill,
-    .tv-candle-battle__sidebar-momentum-fill,
-    .tv-candle-battle__compact-momentum-fill {
+    .tv-candle-battle__sidebar-momentum-fill {
         position: absolute;
         inset-block: 0;
         transition: width .3s ease;
     }
 
     .tv-candle-battle__score-momentum-fill--left,
-    .tv-candle-battle__sidebar-momentum-fill--left,
-    .tv-candle-battle__compact-momentum-fill--left {
+    .tv-candle-battle__sidebar-momentum-fill--left {
         left: 0;
         background: linear-gradient(90deg, var(--team-left-color), var(--team-left-color-soft));
     }
 
     .tv-candle-battle__score-momentum-fill--right,
-    .tv-candle-battle__sidebar-momentum-fill--right,
-    .tv-candle-battle__compact-momentum-fill--right {
+    .tv-candle-battle__sidebar-momentum-fill--right {
         right: 0;
         background: linear-gradient(90deg, var(--team-right-color), var(--team-right-color-soft));
     }
@@ -553,94 +474,33 @@
     .tv-candle-battle__workspace {
         min-width: 0;
         min-height: 0;
-        height: 100%;
         display: grid;
         grid-template-columns: minmax(0, 1fr) clamp(250px, 24cqi, 320px);
         gap: 12px;
         align-items: stretch;
+        overflow: hidden;
     }
 
     .tv-candle-battle__workspace--no-sidebar {
         grid-template-columns: minmax(0, 1fr);
     }
 
-        .tv-candle-battle__workspace--no-sidebar .tv-candle-battle__cards {
-            grid-template-rows: repeat(2, minmax(0, 1fr));
-        }
-
     .tv-candle-battle__cards {
         min-width: 0;
         min-height: 0;
-        height: 100%;
         display: grid;
-        grid-template-rows: repeat(2, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        overflow: hidden;
     }
 
     .tv-candle-battle-card {
         min-height: 0;
-        height: 100%;
         display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr);
-        /* gap intentionally omitted to preserve the compact card height. */
+        grid-template-rows: auto minmax(0, 1fr) auto;
         padding: 14px;
         border-radius: 22px;
         overflow: hidden;
-    }
-
-    .tv-candle-battle-card__head {
-        min-width: 0;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 12px;
-        align-items: center;
-    }
-
-    .tv-candle-battle-card__head-copy {
-        min-width: 0;
-        display: grid;
-        gap: 5px;
-    }
-
-    .tv-candle-battle-card__kicker {
-        font-size: .68rem;
-        font-weight: 900;
-        letter-spacing: .16em;
-        text-transform: uppercase;
-    }
-
-    .tv-candle-battle-card__kicker--left {
-        color: var(--team-left-color);
-    }
-
-    .tv-candle-battle-card__kicker--right {
-        color: var(--team-right-color);
-    }
-
-    .tv-candle-battle-card__head strong {
-        font-size: 1.12rem;
-        letter-spacing: .05em;
-    }
-
-    .tv-candle-battle-card__head em {
-        flex: 0 0 auto;
-        padding: 6px 12px;
-        border: 1px solid rgba(255,255,255,.10);
-        border-radius: 999px;
-        background: rgba(255,255,255,.04);
-        font-style: normal;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .tv-candle-battle-card--left .tv-candle-battle-card__head em {
-        border-color: var(--team-left-color-glow);
-        background: var(--team-left-color-faint);
-    }
-
-    .tv-candle-battle-card--right .tv-candle-battle-card__head em {
-        border-color: var(--team-right-color-glow);
-        background: var(--team-right-color-faint);
     }
 
     .tv-change--positive {
@@ -656,60 +516,11 @@
         color: rgba(219,231,245,.78);
     }
 
-    .tv-candle-battle-card__legend {
-        min-width: 0;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 14px;
-        color: rgba(219,231,245,.78);
-        font-size: .7rem;
-        font-weight: 800;
-        letter-spacing: .08em;
-    }
-
-        .tv-candle-battle-card__legend .is-left::before,
-        .tv-candle-battle-card__legend .is-right::before,
-        .tv-candle-battle-card__legend .is-tie::before {
-            content: "";
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            margin-right: 7px;
-            border-radius: 50%;
-            vertical-align: middle;
-        }
-
-        .tv-candle-battle-card__legend .is-left::before {
-            background: linear-gradient(90deg, var(--team-left-color), var(--team-left-color-soft));
-        }
-
-        .tv-candle-battle-card__legend .is-right::before {
-            background: linear-gradient(90deg, var(--team-right-color), var(--team-right-color-soft));
-        }
-
-        .tv-candle-battle-card__legend .is-tie::before {
-            background: rgba(154,167,184,.65);
-        }
-
-
-
-    .tv-telemetry-chart-shell--battle {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        min-width: 0;
-        min-height: 180px;
-        overflow: hidden;
-        border: 1px solid rgba(255,255,255,.05);
-        border-radius: 18px;
-        background: linear-gradient(180deg, rgba(7,14,27,.92), rgba(5,10,19,.98));
-    }
-
     .tv-candle-battle__svg {
         display: block;
         width: 100%;
         height: 100%;
-        min-height: 180px;
+        min-height: 0;
     }
 
     .tv-candle-battle__grid-line {
@@ -792,74 +603,6 @@
         text-align: center;
         text-transform: uppercase;
     }
-
-    .tv-candle-battle-card__timeline {
-        min-width: 0;
-        display: grid;
-        gap: 8px;
-        padding-top: 2px;
-    }
-
-        .tv-candle-battle-card__timeline span {
-            color: rgba(127,246,223,.86);
-            font-size: .68rem;
-            font-weight: 900;
-            letter-spacing: .14em;
-        }
-
-    .tv-candle-battle-card__timeline-track {
-        --battle-candle-gap: 8px;
-        display: grid;
-        align-items: center;
-        gap: var(--battle-candle-gap);
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding: 4px 2px 2px;
-        scrollbar-width: thin;
-    }
-
-        .tv-candle-battle-card__timeline-track::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .tv-candle-battle-card__timeline-track::-webkit-scrollbar-thumb {
-            border-radius: 999px;
-            background: rgba(255,255,255,.16);
-        }
-
-    .tv-candle-battle-card__timeline-marker {
-        width: 100%;
-        min-width: 10px;
-        height: 8px;
-        border: 0;
-        border-radius: 2px;
-        background: transparent;
-        opacity: .95;
-        box-shadow: none;
-    }
-
-        .tv-candle-battle-card__timeline-marker.is-left {
-            background: linear-gradient(90deg, var(--team-left-color), var(--team-left-color-soft));
-        }
-
-        .tv-candle-battle-card__timeline-marker.is-right {
-            background: linear-gradient(90deg, var(--team-right-color), var(--team-right-color-soft));
-        }
-
-        .tv-candle-battle-card__timeline-marker.is-tie {
-            height: 3px;
-            border-radius: 999px;
-            background: rgba(154,167,184,.48);
-            opacity: .75;
-        }
-
-        .tv-candle-battle-card__timeline-marker:hover {
-            opacity: 1;
-            filter: brightness(1.12);
-        }
 
     .tv-candle-battle__sidebar {
         min-height: 0;
@@ -1051,235 +794,39 @@
             color: rgba(201,221,243,.88);
         }
 
-    .tv-candle-battle--broadcast-compact {
-        height: 100%;
-        min-height: 0;
-        grid-template-rows: minmax(0, 1fr);
-        gap: 0;
-        overflow: hidden;
-    }
-
-        .tv-candle-battle--broadcast-compact .tv-candle-battle__compact {
-            min-width: 0;
-            min-height: 0;
-            height: 100%;
-            display: grid;
-            grid-template-rows: auto minmax(0, 1fr);
-            gap: 10px;
-            overflow: hidden;
-        }
-
-    .tv-candle-battle__compact-scorebar {
-        min-width: 0;
-        min-height: 0;
-        height: 100%;
-        display: grid;
-        grid-template-columns: minmax(0, .8fr) minmax(220px, 1fr) minmax(0, .8fr);
-        gap: 8px 10px;
-        align-items: center;
-        align-content: center;
-        padding: clamp(6px, .9cqi, 10px) clamp(8px, 1.05cqi, 12px);
-        border-radius: 18px;
-        overflow: hidden;
-    }
-
-    .tv-candle-battle__compact-team {
-        min-width: 0;
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        gap: 9px;
-        align-items: center;
-    }
-
-    .tv-candle-battle__compact-team--right {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        text-align: right;
-    }
-
-    .tv-candle-battle__compact-team img {
-        width: clamp(26px, 3.1cqi, 34px);
-        height: clamp(26px, 3.1cqi, 34px);
-        object-fit: contain;
-        filter: drop-shadow(0 0 10px rgba(255,255,255,.16));
-    }
-
-    .tv-candle-battle__compact-team strong,
-    .tv-candle-battle__compact-center span,
-    .tv-candle-battle__compact-center strong {
-        min-width: 0;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .tv-candle-battle__compact-team strong {
-        display: block;
-        color: #f5fbff;
-        font-size: .84rem;
-        font-weight: 900;
-        letter-spacing: .04em;
-    }
-
-    .tv-candle-battle__compact-team span {
-        display: block;
-        margin-top: 2px;
-        color: rgba(201,221,243,.66);
-        font-size: .58rem;
-        font-weight: 900;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
-
-    .tv-candle-battle__compact-team b {
-        font-size: clamp(1.1rem, 2.45cqi, 1.75rem);
-        line-height: 1;
-    }
-
-    .tv-candle-battle__compact-center {
-        min-width: 0;
-        display: grid;
-        gap: 6px;
-        justify-items: center;
-        text-align: center;
-    }
-
-        .tv-candle-battle__compact-center span {
-            color: #f5fbff;
-            font-size: .68rem;
-            font-weight: 900;
-            letter-spacing: .16em;
-            text-transform: uppercase;
-        }
-
-        .tv-candle-battle__compact-center strong {
-            color: rgba(226,238,251,.82);
-            font-size: .68rem;
-            font-weight: 900;
-            letter-spacing: .1em;
-            text-transform: uppercase;
-        }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card--compact {
-        min-height: 0;
-        height: 100%;
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        gap: 7px;
-        padding: 10px;
-        border-radius: 18px;
-        overflow: hidden;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
-        min-height: 0;
-        height: 100%;
-        max-height: none;
-    }
-
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-            min-height: 0;
-            height: 100%;
-        }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__head-copy {
-        gap: 3px;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__kicker {
-        font-size: .58rem;
-        letter-spacing: .14em;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__head strong {
-        font-size: .92rem;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__head em {
-        padding: 5px 10px;
-        font-size: .76rem;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__legend {
-        gap: 6px 10px;
-        font-size: .58rem;
-        letter-spacing: .07em;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__wick {
-        stroke-width: 1.9;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__body--left,
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__body--right {
-        opacity: .9;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__timeline {
-        gap: 4px;
-    }
-
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__timeline span {
-            font-size: .56rem;
-            letter-spacing: .12em;
-        }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__timeline-track {
-        --battle-candle-gap: 4px;
-        overflow: hidden;
-        padding: 2px 0 0;
-        scrollbar-width: none;
-    }
-
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__timeline-track::-webkit-scrollbar {
-            display: none;
-        }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__timeline-marker {
-        min-width: 0;
-        height: 6px;
-        border-radius: 2px;
-    }
-
     @@container candle-battle (max-width: 1100px) {
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) {
-            height: 100%;
-            grid-template-rows: minmax(0, 15fr) minmax(0, 85fr);
-        }
-
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__scoreboard {
+        .tv-candle-battle__scoreboard {
                 grid-template-columns: minmax(0, 1fr) minmax(128px, .34fr) minmax(0, 1fr);
                 grid-template-areas:
                     "left center right"
                     "momentum momentum momentum";
-            }
+        }
 
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__score-center {
-                grid-area: center;
-            }
+        .tv-candle-battle__score-center {
+            grid-area: center;
+        }
 
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__score-momentum-card {
-                grid-area: momentum;
-            }
+        .tv-candle-battle__score-momentum-card {
+            grid-area: momentum;
+        }
 
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__workspace {
-                grid-template-columns: minmax(0, 1fr);
-            }
+        .tv-candle-battle__workspace {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr) auto;
+        }
 
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__cards {
-                order: 1;
-                grid-template-rows: repeat(2, minmax(0, 1fr));
-                grid-auto-rows: unset;
-            }
+        .tv-candle-battle__cards {
+            order: 1;
+        }
 
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__sidebar {
-                order: 2;
-                overflow: visible;
-            }
+        .tv-candle-battle__sidebar {
+            order: 2;
+            max-height: 180px;
+        }
 
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle-card {
-                min-height: 0;
-            }
+        .tv-candle-battle-card {
+            min-height: 0;
+        }
     }
 
     @@container candle-battle (max-width: 720px) {
@@ -1303,7 +850,7 @@
                 font-size: clamp(1.8rem, 8cqi, 2.8rem);
             }
 
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle-card {
+        .tv-candle-battle-card {
             min-height: 0;
             padding: 12px;
             border-radius: 18px;
@@ -1314,20 +861,9 @@
             border-radius: 18px;
         }
 
-        .tv-candle-battle__compact-scorebar {
-            grid-template-columns: minmax(0, 1fr);
-        }
-
-        .tv-candle-battle__compact-team--right {
-            text-align: left;
-        }
     }
 
     @@container candle-battle (max-width: 520px) {
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
-            margin-top: 0;
-        }
-
         .tv-candle-battle__scoreboard {
             grid-template-columns: minmax(0, 1fr);
             grid-template-areas:
@@ -1359,22 +895,7 @@
                 text-align: left;
             }
 
-        .tv-candle-battle-card__head {
-            grid-template-columns: minmax(0, 1fr);
-            align-items: start;
-        }
-
-            .tv-candle-battle-card__head em {
-                justify-self: start;
-            }
-
-        .tv-candle-battle-card__legend {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 6px;
-        }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle-card {
+        .tv-candle-battle-card {
             min-height: 0;
         }
 
@@ -1388,12 +909,9 @@
 
     @@supports not (container-type: inline-size) {
         @@media (max-width: 1100px) {
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) {
-                grid-template-rows: minmax(0, 15fr) minmax(0, 85fr);
-            }
-
             .tv-candle-battle__workspace {
                 grid-template-columns: 1fr;
+                grid-template-rows: minmax(0, 1fr) auto;
             }
 
             .tv-candle-battle__scoreboard {
@@ -1410,10 +928,6 @@
         }
 
         @@media (max-width: 520px) {
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) > .tv-candle-battle__scoreboard {
-                margin-top: 0;
-            }
-
             .tv-candle-battle__scoreboard {
                 grid-template-columns: 1fr;
                 grid-template-areas:
@@ -1432,9 +946,7 @@
 
     @@media (prefers-reduced-motion: reduce) {
         .tv-candle-battle__score-momentum-fill,
-        .tv-candle-battle__sidebar-momentum-fill,
-        .tv-candle-battle__compact-momentum-fill,
-        .tv-candle-battle-card__timeline-marker {
+        .tv-candle-battle__sidebar-momentum-fill {
             transition: none;
         }
     }
@@ -1444,108 +956,63 @@
                  * remove os vazios entre placar, grÃ¡ficos e painel tÃ¡tico para que
                  * todo o Candle Battle seja percebido como um Ãºnico painel.
                  */
-    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) {
+    .tv-candle-battle__scoreboard {
+        border-radius: 20px 20px 0 0;
+    }
+
+    .tv-candle-battle__workspace,
+    .tv-candle-battle__cards {
         gap: 0;
     }
 
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__scoreboard {
-            border-radius: 20px 20px 0 0;
-        }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__workspace,
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__cards {
-            gap: 0;
-        }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle-card {
-            border-radius: 0;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
-        }
-
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle-card + .tv-candle-battle-card {
-                border-top: 0;
-            }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__sidebar {
-            border-left: 0;
-            border-radius: 0 0 20px 0;
-            box-shadow: inset 1px 0 0 rgba(255,255,255,.035);
-        }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__cards .tv-candle-battle-card:last-child {
-            border-radius: 0 0 0 20px;
-        }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__workspace--no-sidebar .tv-candle-battle-card:last-child {
-            border-radius: 0 0 20px 20px;
-        }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__compact {
-        gap: 0;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle__compact-scorebar {
-        border-radius: 18px 18px 0 0;
-    }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card--compact {
+    .tv-candle-battle-card {
         border-radius: 0;
-        border-top: 0;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
     }
 
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card--compact:last-child {
-            border-radius: 0 0 18px 18px;
-        }
+    .tv-candle-battle__sidebar {
+        border-left: 0;
+        border-radius: 0 0 20px 0;
+        box-shadow: inset 1px 0 0 rgba(255,255,255,.035);
+    }
+
+    .tv-candle-battle__cards .tv-candle-battle-card:last-child {
+        border-radius: 0 0 0 20px;
+    }
+
+    .tv-candle-battle__workspace--no-sidebar .tv-candle-battle-card:last-child {
+        border-radius: 0 0 20px 20px;
+    }
 
     /*
              * Remove somente o respiro superior do primeiro card.
              * O placar permanece na posiÃ§Ã£o atual e alinhado ao Price Battle.
              */
-    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
     .tv-candle-battle__cards > .tv-candle-battle-card:first-child {
         padding-top: 0;
     }
 
 
     @@container candle-battle (max-width: 1100px) {
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__workspace {
+        .tv-candle-battle__workspace {
             gap: 0;
         }
 
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__cards .tv-candle-battle-card:last-child {
+        .tv-candle-battle__cards .tv-candle-battle-card:last-child {
             border-radius: 0;
         }
 
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__sidebar {
+        .tv-candle-battle__sidebar {
             border-top: 0;
             border-left: 1px solid rgba(255,255,255,.06);
             border-radius: 0 0 20px 20px;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
         }
 
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact) .tv-candle-battle__workspace--no-sidebar .tv-candle-battle-card:last-child {
+        .tv-candle-battle__workspace--no-sidebar .tv-candle-battle-card:last-child {
             border-radius: 0 0 20px 20px;
         }
     }
-    /* Unified normalized OHLC battlefield. These rules intentionally come last
-           because the component previously rendered one card per asset. */
-    .tv-candle-battle__cards {
-        grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: minmax(0, 1fr);
-    }
-
-    .tv-candle-battle__workspace--no-sidebar .tv-candle-battle__cards {
-        grid-template-rows: minmax(0, 1fr);
-    }
-
-    .tv-candle-battle-card--unified {
-        min-height: 0;
-        height: 100%;
-        display: grid;
-        grid-template-rows: auto minmax(0, 1fr) auto;
-        overflow: hidden;
-    }
-
     .tv-candle-battle-card__battle-head {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -1630,8 +1097,8 @@
     .tv-candle-battle-card__plot-shell {
         position: relative;
         min-width: 0;
-        min-height: 250px;
-        height: clamp(250px, 29cqi, 410px);
+        min-height: 0;
+        align-self: stretch;
         overflow-x: auto;
         overflow-y: hidden;
         border-top: 1px solid rgba(255,255,255,.05);
@@ -1654,19 +1121,8 @@
             display: block;
             width: 100%;
             height: 100%;
-            min-height: 250px;
-            direction: ltr;
-        }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
-        min-height: 0;
-        height: 100%;
-        max-height: none;
-    }
-
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
             min-height: 0;
-            height: 100%;
+            direction: ltr;
         }
 
     .tv-candle-battle__winner-marker {
@@ -1722,46 +1178,6 @@
             font-size: inherit;
         }
 
-    .tv-candle-battle-card--unified {
-        min-height: 0;
-        overflow: hidden;
-    }
-
-    /*
-         * MATCH: o card unificado possui exatamente três áreas:
-         * cabeçalho / gráfico / legenda.
-         *
-         * O gráfico precisa ser a área elástica (1fr). O plot usa height:auto
-         * para ser esticado pelo Grid sem criar o ciclo de crescimento causado
-         * por height:100% em uma cadeia de pais com altura indefinida.
-         *
-         * O modo TV/Broadcast continua usando as regras próprias
-         * .tv-candle-battle--broadcast-compact.
-         */
-    .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
-    .tv-candle-battle-card--unified {
-        grid-template-rows: auto minmax(0, 1fr) auto;
-    }
-
-        .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
-        .tv-candle-battle-card--unified > .tv-candle-battle-card__plot-shell {
-            min-height: 0;
-            height: auto;
-            max-height: none;
-            align-self: stretch;
-        }
-
-            .tv-candle-battle:not(.tv-candle-battle--broadcast-compact)
-            .tv-candle-battle-card--unified > .tv-candle-battle-card__plot-shell > .tv-candle-battle__svg {
-                min-height: 0;
-                height: 100%;
-            }
-
-    .tv-candle-battle--broadcast-compact .tv-candle-battle-card__battle-head {
-        padding: 8px 10px 6px;
-    }
-
-
     @@container (max-width: 620px) {
         .tv-candle-battle-card__battle-head {
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1776,27 +1192,6 @@
             .tv-candle-battle-card__change-pair .tv-change {
                 flex: 1 1 0;
                 min-width: 0;
-            }
-
-        .tv-candle-battle-card__plot-shell {
-            min-height: 220px;
-            height: 100%;
-            max-height: none;
-        }
-
-            .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-                min-height: 220px;
-            }
-
-        .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell {
-            min-height: 0;
-            height: 100%;
-            max-height: none;
-        }
-
-            .tv-candle-battle--broadcast-compact .tv-candle-battle-card__plot-shell .tv-candle-battle__svg {
-                min-height: 0;
-                height: 100%;
             }
 
         .tv-candle-battle__chart-caption {
@@ -1922,9 +1317,6 @@
     public string? AriaLabel { get; set; }
 
     [Parameter]
-    public bool IsBroadcastCompact { get; set; }
-
-    [Parameter]
     public int ScoreVersion { get; set; }
 
     [Parameter]
@@ -1936,9 +1328,7 @@
     [Parameter]
     public bool ShowTacticalPanel { get; set; } = true;
 
-    private string RootClass => IsBroadcastCompact
-        ? "tv-candle-battle tv-candle-battle--broadcast-compact"
-        : "tv-candle-battle";
+    private const string RootClass = "tv-candle-battle";
 
     private string WorkspaceClass => ShowTacticalPanel
         ? "tv-candle-battle__workspace"
@@ -1950,7 +1340,7 @@
             _resolvedInstanceId = InstanceId.Trim();
 
         _chartModel = CandleBattleChartModelBuilder.Build(LeftPoints, RightPoints);
-        (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel, IsBroadcastCompact);
+        (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel);
         _lastBuiltLogicalHeight = LogicalHeight;
         _lastBuiltModel = _chartModel;
     }
@@ -1981,7 +1371,7 @@
 
     private void RebuildChartVisuals()
     {
-        (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel, IsBroadcastCompact);
+        (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel);
         _lastBuiltLogicalHeight = LogicalHeight;
         _lastBuiltModel = _chartModel;
     }
@@ -2047,7 +1437,7 @@
     private string LastCandleTitle => T("labels.lastCandle");
     private string PerformanceTitle => T("labels.lastVariation");
 
-    private RenderFragment RenderBattleChart(bool compact) => @<section class="tv-candle-battle-card tv-candle-battle-card--unified @(compact ? "tv-candle-battle-card--compact" : string.Empty)">
+    private RenderFragment RenderBattleChart() => @<section class="tv-candle-battle-card tv-candle-battle-card--unified">
     <div class="tv-candle-battle-card__battle-head">
         <div class="tv-candle-battle-card__asset tv-candle-battle-card__asset--left">
             <i class="tv-candle-battle-card__asset-dot" aria-hidden="true"></i>
@@ -2162,13 +1552,13 @@ private string ResolveAriaLabel()
         ? AriaLabel!
         : T("labels.candleBattleA11y", LeftTickerLabel, RightTickerLabel);
 
-private (double ViewWidth, IReadOnlyList<ChartCandlePairVisual> Visuals) BuildChartVisuals(CandleBattleChartModel model, bool compact)
+private (double ViewWidth, IReadOnlyList<ChartCandlePairVisual> Visuals) BuildChartVisuals(CandleBattleChartModel model)
 {
     if (model.Buckets.Count == 0)
-        return (compact ? 720d : 1000d, Array.Empty<ChartCandlePairVisual>());
+        return (LogicalWidth, Array.Empty<ChartCandlePairVisual>());
 
-    var minimumSlotWidth = compact ? 18d : 22d;
-    var viewWidth = Math.Max(compact ? 720d : 1000d, (model.Buckets.Count * minimumSlotWidth) + 24d);
+    const double minimumSlotWidth = 22d;
+    var viewWidth = Math.Max(LogicalWidth, (model.Buckets.Count * minimumSlotWidth) + 24d);
     var slotWidth = (viewWidth - 24d) / model.Buckets.Count;
     var bodyWidth = Math.Clamp(slotWidth * .3d, 5d, 10d);
     var pairOffset = (bodyWidth * .62d) + 1.2d;
