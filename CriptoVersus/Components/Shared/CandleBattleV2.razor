@@ -55,13 +55,13 @@
                 <div class="candle-v2__scoreboard" aria-label="@T("score")">
                     <div class="candle-v2__score candle-v2__score--left @LeaderClass(true)">
                         <span>@LeftSymbol</span>
-                        <strong>@_state.OfficialScoreLeft</strong>
+                        <strong>@_candleBattleScore.LeftWins</strong>
                         @if (IsPointFor(CandleBattleV2Side.Left)) { <em>+1</em> }
                     </div>
                     <div class="candle-v2__score-divider">:</div>
                     <div class="candle-v2__score candle-v2__score--right @LeaderClass(false)">
                         <span>@RightSymbol</span>
-                        <strong>@_state.OfficialScoreRight</strong>
+                        <strong>@_candleBattleScore.RightWins</strong>
                         @if (IsPointFor(CandleBattleV2Side.Right)) { <em>+1</em> }
                     </div>
                 </div>
@@ -122,6 +122,7 @@
     private CoinSocialProfileDto? _leftProfile;
     private CoinSocialProfileDto? _rightProfile;
     private IReadOnlyList<MatchMetricSnapshotDto> _snapshots = [];
+    private CandleBattleScore _candleBattleScore = CandleBattleScore.Empty;
     private CandlePreview? _formingLeft;
     private CandlePreview? _formingRight;
     private ScreenState _screenState = ScreenState.Loading;
@@ -215,9 +216,9 @@
     </aside>;
 
     private RenderFragment RenderBlockPile(bool left) => @<div class="candle-v2__pile-wrap @(left ? "is-left" : "is-right")">
-        <div class="candle-v2__pile-label"><span>@(left ? LeftSymbol : RightSymbol)</span><strong>@(left ? _state.DisplayScoreLeft : _state.DisplayScoreRight) @T("points")</strong></div>
+        <div class="candle-v2__pile-label"><span>@(left ? LeftSymbol : RightSymbol)</span><strong>@(left ? _candleBattleScore.LeftWins : _candleBattleScore.RightWins) @T("points")</strong></div>
         @{
-            var count = left ? _state.DisplayScoreLeft : _state.DisplayScoreRight;
+            var count = left ? _candleBattleScore.LeftWins : _candleBattleScore.RightWins;
             var cols = ResolveColumns();
             var totalRows = cols > 0 ? (int)Math.Ceiling((double)count / cols) : 0;
         }
@@ -358,6 +359,7 @@
             _snapshots = snapshotsTask.Result ?? [];
             _leftProfile = leftProfileTask.Result;
             _rightProfile = rightProfileTask.Result;
+            _candleBattleScore = ComputeCandleBattleScore();
             BuildFormingCandles();
 
             if (bootstrap)
@@ -456,6 +458,26 @@
         _formingRight = BuildPreview(_match.TeamBId, _match.PctB);
     }
 
+    private CandleBattleScore ComputeCandleBattleScore()
+    {
+        if (_match is null || _snapshots.Count < 2)
+            return CandleBattleScore.Empty;
+
+        var leftPoints = BuildCandleBattlePoints(_match.TeamAId);
+        var rightPoints = BuildCandleBattlePoints(_match.TeamBId);
+        return TvBattleScoreEvaluator.EvaluateCandleBattle(leftPoints, rightPoints);
+    }
+
+    private IReadOnlyList<TvPriceChartPoint> BuildCandleBattlePoints(int teamId)
+        => _snapshots
+            .Where(x => x.TeamId == teamId)
+            .OrderBy(x => x.CapturedAtUtc)
+            .ThenBy(x => x.MatchMetricSnapshotId)
+            .Select(x => new TvPriceChartPoint(
+                new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
+                x.LastPrice ?? x.PercentageChange))
+            .ToList();
+
     private CandlePreview? BuildPreview(int teamId, decimal? fallbackPercent)
     {
         var points = _snapshots.Where(x => x.TeamId == teamId).OrderBy(x => x.CapturedAtUtc).ThenBy(x => x.MatchMetricSnapshotId).ToArray();
@@ -504,10 +526,10 @@
 
     private string LeaderClass(bool left)
     {
-        if (_state.OfficialScoreLeft == _state.OfficialScoreRight)
+        if (_candleBattleScore.LeftWins == _candleBattleScore.RightWins)
             return string.Empty;
-        return (left && _state.OfficialScoreLeft > _state.OfficialScoreRight)
-               || (!left && _state.OfficialScoreRight > _state.OfficialScoreLeft)
+        return (left && _candleBattleScore.LeftWins > _candleBattleScore.RightWins)
+               || (!left && _candleBattleScore.RightWins > _candleBattleScore.LeftWins)
             ? "is-champion"
             : string.Empty;
     }
@@ -527,7 +549,7 @@
 
     private int ResolveColumns()
     {
-        var max = Math.Max(_state.DisplayScoreLeft, _state.DisplayScoreRight);
+        var max = Math.Max(_candleBattleScore.LeftWins, _candleBattleScore.RightWins);
         return max switch { <= 40 => 10, <= 100 => 15, <= 225 => 20, _ => Math.Clamp((int)Math.Ceiling(Math.Sqrt(max * 1.7)), 20, 36) };
     }
 

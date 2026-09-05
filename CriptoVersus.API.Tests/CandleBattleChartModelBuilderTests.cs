@@ -336,6 +336,46 @@ public sealed class CandleBattleChartModelBuilderTests
             $"domain.Max={result.Domain.Maximum} should be >= dataMax={dataMax}");
     }
 
+    [Fact]
+    public void Build_ProcessesAllInputPoints_NoTruncation()
+    {
+        var leftPoints = Enumerable.Range(0, 120)
+            .Select(i => P(100 + i, 100m + (i * 0.5m)))
+            .ToArray();
+        var rightPoints = Enumerable.Range(0, 120)
+            .Select(i => P(100 + i, 100m - (i * 0.3m)))
+            .ToArray();
+
+        var model = CandleBattleChartModelBuilder.Build(leftPoints, rightPoints);
+
+        Assert.Equal(119, model.Buckets.Count);
+    }
+
+    [Fact]
+    public void Build_WinnersConsistentWithEvaluator()
+    {
+        var leftPoints = new[]
+        {
+            P(100, 100m), P(200, 110m), P(300, 105m),
+            P(400, 115m), P(500, 108m), P(600, 120m)
+        };
+        var rightPoints = new[]
+        {
+            P(100, 100m), P(200, 95m), P(300, 102m),
+            P(400, 90m), P(500, 98m), P(600, 85m)
+        };
+
+        var chartModel = CandleBattleChartModelBuilder.Build(leftPoints, rightPoints);
+        var evaluatorScore = TvBattleScoreEvaluator.EvaluateCandleBattle(leftPoints, rightPoints);
+
+        var chartLeftWins = chartModel.Buckets.Count(b => b.Winner == CandleBattleChartWinner.Left);
+        var chartRightWins = chartModel.Buckets.Count(b => b.Winner == CandleBattleChartWinner.Right);
+
+        Assert.Equal(evaluatorScore.LeftWins, chartLeftWins);
+        Assert.Equal(evaluatorScore.RightWins, chartRightWins);
+        Assert.Equal(evaluatorScore.TotalEvaluatedCandles, chartModel.Buckets.Count);
+    }
+
     private static TvPriceChartPoint P(long time, decimal value) => new(time, value);
 
     private static CandleBattleNormalizedOhlc N(decimal open, decimal high, decimal low, decimal close)

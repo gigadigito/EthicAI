@@ -1327,8 +1327,8 @@
         .Select((bucket, index) => ToBattleCandle(bucket, index + 1))
         .ToArray();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
-    private int DisplayedLeftWins => OfficialScoreA;
-    private int DisplayedRightWins => OfficialScoreB;
+    private int DisplayedLeftWins => Battle.LeftWins;
+    private int DisplayedRightWins => Battle.RightWins;
     private int DisplayedTotalCandles => Battle.TotalComparableCandles;
     private string DisplayedLeaderLabel => ResolveDisplayedLeaderLabel();
     private string DisplayedShortLeaderLabel => ResolveDisplayedShortLeaderLabel();

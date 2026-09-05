@@ -7955,7 +7955,6 @@ private bool RefreshPriceBattleSide(bool isLeft, string symbol, IReadOnlyList<Ma
 private static IReadOnlyList<TvPriceChartPoint> BuildPricePoints(IEnumerable<MatchMetricSnapshotDto> snapshots)
     => snapshots
         .OrderBy(x => x.CapturedAtUtc)
-        .TakeLast(64)
         .Select(x => new TvPriceChartPoint(
             new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
             x.LastPrice ?? x.PercentageChange))
