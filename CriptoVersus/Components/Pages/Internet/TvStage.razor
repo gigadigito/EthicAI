@@ -13633,7 +13633,7 @@ private sealed record TvArenaCommentaryEntry(
 
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport {
             height: 100% !important;
-            min-height: 520px !important;
+            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
             max-height: none !important;
             display: grid !important;
             align-items: stretch !important;
@@ -13642,7 +13642,7 @@ private sealed record TvArenaCommentaryEntry(
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell {
             height: 100% !important;
-            min-height: 520px !important;
+            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
             max-height: none !important;
             display: grid !important;
             align-items: stretch !important;
