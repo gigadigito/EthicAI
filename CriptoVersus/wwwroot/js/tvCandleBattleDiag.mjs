@@ -51,8 +51,8 @@ export function runDiag(limit = 5) {
     url: location.href,
     version,
     uniqueVersions,
-    measuredWidth: root.getAttribute('data-measured-width'),
-    measuredHeight: root.getAttribute('data-measured-height'),
+    measuredWidth: plotShell.getBoundingClientRect().width,
+    measuredHeight: plotShell.getBoundingClientRect().height,
     logicalHeight: root.getAttribute('data-logical-height'),
     dynamicChartBottom: root.getAttribute('data-dynamic-chart-bottom'),
     chain: {

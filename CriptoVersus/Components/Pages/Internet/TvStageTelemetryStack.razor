@@ -290,7 +290,6 @@ else
             max-height: none;
         }
 
-    .tv-stage-telemetry-stack--desktop :is(.tv-candle-battle, .tv-candle-battle__surface, .tv-candle-battle__chart, .tv-candle-battle__body),
     .tv-stage-telemetry-stack--desktop :is(.tv-arena-pressure, .tv-arena-pressure-gauge, .tv-arena-pressure-gauge__panel, .tv-arena-pressure-gauge__body, .tv-arena-pressure-gauge__center, .tv-arena-pressure-gauge__gauge-shell) {
         height: 100%;
         min-height: 0;
@@ -650,6 +649,7 @@ else
                     RightPoints="@Model.RightPriceBattlePoints"
                     OfficialScoreA="@Model.LeftScore"
                     OfficialScoreB="@Model.RightScore"
+                    Culture="@Model.Culture"
                     ShowTacticalPanel="@ShowTacticalPanel"
                     AriaLabel="@($"{Model.LeftTickerLabel} vs {Model.RightTickerLabel} candle battle arena")" />;
 
@@ -728,5 +728,4 @@ else
         return string.Empty;
     }
 }
-
 

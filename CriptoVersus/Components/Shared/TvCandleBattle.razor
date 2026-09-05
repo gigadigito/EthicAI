@@ -2,17 +2,9 @@
 @using DTOs
 @using CriptoVersus.Web.Services
 @inject LocalizationService L
-@inject IJSRuntime JS
-@implements IAsyncDisposable
-
-@{
-    EnsureVisualsUpToDate();
-}
 <section id="@_resolvedInstanceId"
          data-tv-candle-battle-instance="@_resolvedInstanceId"
          data-candle-render-version="2026-08-30-v3"
-         data-measured-width="@_measuredWidth.ToString("0.##", CultureInfo.InvariantCulture)"
-         data-measured-height="@_measuredHeight.ToString("0.##", CultureInfo.InvariantCulture)"
          data-logical-height="@N(LogicalHeight)"
          data-dynamic-chart-bottom="@N(DynamicChartBottom)"
          class="@RootClass"
@@ -1326,75 +1318,11 @@
 
         _chartModel = CandleBattleChartModelBuilder.Build(LeftPoints, RightPoints);
         (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel);
-        _lastBuiltLogicalHeight = LogicalHeight;
-        _lastBuiltModel = _chartModel;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender || _disposed) return;
-
-        try
-        {
-            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvCandleBattleResize.mjs");
-            _resizeObserverId = await module.InvokeAsync<int>("observe", $"{_resolvedInstanceId}-chart", DotNetObjectReference.Create(this), 1);
-        }
-        catch { }
-    }
-
-    [JSInvokable]
-    public void OnPlotResized(double width, double height)
-    {
-        if (_disposed) return;
-        if (Math.Abs(width - _measuredWidth) < 1 && Math.Abs(height - _measuredHeight) < 1) return;
-
-        _measuredWidth = width;
-        _measuredHeight = height;
-        RebuildChartVisuals();
-        InvokeAsync(StateHasChanged);
-    }
-
-    private void RebuildChartVisuals()
-    {
-        (_chartViewWidth, _chartVisuals) = BuildChartVisuals(_chartModel);
-        _lastBuiltLogicalHeight = LogicalHeight;
-        _lastBuiltModel = _chartModel;
-    }
-
-    private void EnsureVisualsUpToDate()
-    {
-        if (_lastBuiltModel != _chartModel || Math.Abs(_lastBuiltLogicalHeight - LogicalHeight) > 0.5)
-        {
-            RebuildChartVisuals();
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed) return;
-        _disposed = true;
-
-        if (_resizeObserverId > 0)
-        {
-            try
-            {
-                var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tvCandleBattleResize.mjs");
-                await module.InvokeVoidAsync("dispose", _resizeObserverId);
-                await module.DisposeAsync();
-            }
-            catch { }
-        }
     }
 
     private CandleBattleChartModel _chartModel = CandleBattleChartModel.Empty;
     private IReadOnlyList<ChartCandlePairVisual> _chartVisuals = Array.Empty<ChartCandlePairVisual>();
     private double _chartViewWidth = 1000d;
-    private double _measuredWidth;
-    private double _measuredHeight;
-    private double _lastBuiltLogicalHeight = -1;
-    private CandleBattleChartModel _lastBuiltModel = CandleBattleChartModel.Empty;
-    private int _resizeObserverId;
-    private bool _disposed;
     private IReadOnlyList<BattleCandle> BattleCandles => _chartModel.Buckets
         .Select((bucket, index) => ToBattleCandle(bucket, index + 1))
         .ToArray();
@@ -1517,17 +1445,7 @@ private const double DefaultLogicalHeight = 338d;
 private const double ChartTopPadding = 14d;
 private const double BottomReserved = 28d;
 
-private double LogicalHeight
-{
-    get
-    {
-        if (_measuredWidth < 1 || _measuredHeight < 1)
-            return DefaultLogicalHeight;
-
-        var h = LogicalWidth * _measuredHeight / _measuredWidth;
-        return Math.Max(DefaultLogicalHeight, Math.Round(h, 1));
-    }
-}
+private double LogicalHeight => DefaultLogicalHeight;
 
 private double DynamicChartTop => ChartTopPadding;
 private double DynamicChartBottom => LogicalHeight - BottomReserved;

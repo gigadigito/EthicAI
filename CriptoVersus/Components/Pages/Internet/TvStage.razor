@@ -1515,8 +1515,8 @@ private async Task RunMetricSnapshotLoopAsync(CancellationToken ct)
             try
             {
                 var snapshotsSw = Stopwatch.StartNew();
-                snapshots = await Api.GetMatchMetricSnapshotsAsync(matchId, 160, ct) ?? [];
-                Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchMetricSnapshotsAsync matchId={MatchId} take=160 count={Count} elapsedMs={ElapsedMs}", matchId, snapshots.Count, snapshotsSw.ElapsedMilliseconds);
+                snapshots = await Api.GetMatchMetricSnapshotsAsync(matchId, 500, ct) ?? [];
+                Logger.LogInformation("[TV_MATCH_LOAD] TvStage.Api.GetMatchMetricSnapshotsAsync matchId={MatchId} take=500 count={Count} elapsedMs={ElapsedMs}", matchId, snapshots.Count, snapshotsSw.ElapsedMilliseconds);
             }
             catch (OperationCanceledException)
             {
@@ -1534,7 +1534,7 @@ private async Task RunMetricSnapshotLoopAsync(CancellationToken ct)
                 _metricSnapshotLastId = latestId;
                 _metricSnapshots = snapshots
                     .OrderByDescending(x => x.CapturedAtUtc)
-                    .Take(160)
+                    .Take(500)
                     .ToList();
                 shouldRender = true;
             }
