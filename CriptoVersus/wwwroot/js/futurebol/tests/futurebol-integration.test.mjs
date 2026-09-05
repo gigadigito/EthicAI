@@ -66,6 +66,11 @@ class FakeDynamicTexture {
         this.disposals = 0;
         this.context = {
             clearRect: () => undefined,
+            save: () => undefined,
+            restore: () => undefined,
+            beginPath: () => undefined,
+            arc: () => undefined,
+            clip: () => undefined,
             drawImage: (...args) => this.images.push(args)
         };
         FakeDynamicTexture.instances.push(this);
@@ -108,8 +113,8 @@ assert.equal(logos.material('home').diffuseTexture, logos.material('home').opaci
 assert.equal(logos.material('home').diffuseTexture, logos.material('home').emissiveTexture);
 assert.equal(logos.diagnostics().away.loaded, true, 'successful image load must remain the primary visual');
 const awayLogoTexture = FakeDynamicTexture.instances.find(texture => texture.images.length > 0);
-assert.equal(awayLogoTexture.images[0][3], 448, 'wide logos must be fitted without stretching');
-assert.ok(awayLogoTexture.images[0][4] < 448, 'the original logo aspect ratio must be preserved');
+assert.equal(awayLogoTexture.images[0][4], 448, 'landscape logos must fill the clip circle height');
+assert.ok(awayLogoTexture.images[0][3] > 448, 'landscape logos must extend beyond clip circle width for central crop');
 const logoDiagnostic = logos.diagnostics();
 assert.equal(logoDiagnostic.home.loaded, false);
 assert.equal(logoDiagnostic.home.fallbackActive, true);

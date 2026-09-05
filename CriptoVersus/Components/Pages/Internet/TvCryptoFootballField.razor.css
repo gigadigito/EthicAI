@@ -188,6 +188,7 @@
     position: absolute;
     width: clamp(32px, 2.2vw, 46px);
     height: clamp(32px, 2.2vw, 46px);
+    overflow: hidden;
     transform:
         translate(-50%, -50%)
         translate3d(var(--tv-free-x, 0px), var(--tv-free-y, 0px), 0)
@@ -249,7 +250,9 @@
     z-index: 1;
     width: 74%;
     height: 74%;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
     font-size: .64rem;
     font-weight: 900;
     color: #ffffff;

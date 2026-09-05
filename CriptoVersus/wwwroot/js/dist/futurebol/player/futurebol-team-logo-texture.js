@@ -107,10 +107,15 @@ export class FuturebolTeamLogoTextureProvider {
             texture.hasAlpha = true;
             const context = texture.getContext();
             context.clearRect(0, 0, logoTextureSize, logoTextureSize);
-            const scale = Math.min(logoContentSize / Math.max(1, decoded.width), logoContentSize / Math.max(1, decoded.height));
+            context.save();
+            context.beginPath();
+            context.arc(logoTextureSize / 2, logoTextureSize / 2, logoContentSize / 2, 0, Math.PI * 2);
+            context.clip();
+            const scale = Math.max(logoContentSize / Math.max(1, decoded.width), logoContentSize / Math.max(1, decoded.height));
             const width = Math.max(1, decoded.width * scale);
             const height = Math.max(1, decoded.height * scale);
             context.drawImage(decoded.source, (logoTextureSize - width) / 2, (logoTextureSize - height) / 2, width, height);
+            context.restore();
             texture.update(true);
             if (this.disposed || resource.generation !== generation) {
                 texture.dispose();
