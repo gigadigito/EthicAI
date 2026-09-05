@@ -620,6 +620,8 @@ namespace CriptoVersus.API.Controllers
                 ScoreB = match.ScoreB,
                 ScoreVersion = match.ScoreState?.LastEventSequence ?? 0,
                 ScoreUpdatedAtUtc = match.ScoreState?.UpdatedAtUtc,
+                CandleBattleLeftWins = match.ScoreState?.LastCandleBattleLeftWins ?? 0,
+                CandleBattleRightWins = match.ScoreState?.LastCandleBattleRightWins ?? 0,
                 Status = match.Status.ToString(),
                 StartTime = match.StartTime,
                 EndTime = match.EndTime,

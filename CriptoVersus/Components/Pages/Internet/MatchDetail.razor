@@ -437,6 +437,8 @@
                                             ScoreVersion="@_match.ScoreVersion"
                                             OfficialScoreA="@_match.ScoreA"
                                             OfficialScoreB="@_match.ScoreB"
+                                            CandleBattleLeftWins="@_match.CandleBattleLeftWins"
+                                            CandleBattleRightWins="@_match.CandleBattleRightWins"
                                             Culture="@CurrentCulture"
                                             AriaLabel="@($"{_match.TeamA} vs {_match.TeamB} candle battle arena")" />
                         </div>
@@ -4807,6 +4809,7 @@
     private static IReadOnlyList<TvPriceChartPoint> BuildPricePoints(IEnumerable<MatchMetricSnapshotDto> snapshots)
         => snapshots
             .OrderBy(x => x.CapturedAtUtc)
+            .TakeLast(500)
             .Select(x => new TvPriceChartPoint(
                 new DateTimeOffset(DateTime.SpecifyKind(x.CapturedAtUtc, DateTimeKind.Utc)).ToUnixTimeSeconds(),
                 x.LastPrice ?? x.PercentageChange))

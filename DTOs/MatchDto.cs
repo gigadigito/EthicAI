@@ -16,6 +16,8 @@ namespace DTOs
         public int ScoreB { get; set; }
         public int ScoreVersion { get; set; }
         public DateTime? ScoreUpdatedAtUtc { get; set; }
+        public int CandleBattleLeftWins { get; set; }
+        public int CandleBattleRightWins { get; set; }
 
         public string Status { get; set; } = string.Empty;
         public DateTime? StartTime { get; set; }

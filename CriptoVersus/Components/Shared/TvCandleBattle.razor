@@ -1303,6 +1303,12 @@
     public int OfficialScoreB { get; set; }
 
     [Parameter]
+    public int CandleBattleLeftWins { get; set; }
+
+    [Parameter]
+    public int CandleBattleRightWins { get; set; }
+
+    [Parameter]
     public bool ShowTacticalPanel { get; set; } = true;
 
     private const string RootClass = "tv-candle-battle";
@@ -1327,8 +1333,8 @@
         .Select((bucket, index) => ToBattleCandle(bucket, index + 1))
         .ToArray();
     private BattleSummary Battle => BuildBattleSummary(BattleCandles);
-    private int DisplayedLeftWins => Battle.LeftWins;
-    private int DisplayedRightWins => Battle.RightWins;
+    private int DisplayedLeftWins => CandleBattleLeftWins;
+    private int DisplayedRightWins => CandleBattleRightWins;
     private int DisplayedTotalCandles => Battle.TotalComparableCandles;
     private string DisplayedLeaderLabel => ResolveDisplayedLeaderLabel();
     private string DisplayedShortLeaderLabel => ResolveDisplayedShortLeaderLabel();

@@ -55,6 +55,12 @@ public sealed class CandleBattleV2StateAdapter
     public int PendingAnimationCount => _animationQueue.Count + (_activeAnimation is null ? 0 : 1);
     public CandleBattleV2PointAnimation? ActiveAnimation => _activeAnimation;
 
+    public void SetCandleWins(int left, int right)
+    {
+        OfficialScoreLeft = Math.Max(0, left);
+        OfficialScoreRight = Math.Max(0, right);
+    }
+
     public void Bootstrap(CandleBattleV2OfficialState match, IEnumerable<MatchScoreEventDto> existingEvents)
     {
         ArgumentNullException.ThrowIfNull(match);
@@ -62,8 +68,6 @@ public sealed class CandleBattleV2StateAdapter
 
         TeamAId = match.TeamAId;
         TeamBId = match.TeamBId;
-        OfficialScoreLeft = Math.Max(0, match.ScoreLeft);
-        OfficialScoreRight = Math.Max(0, match.ScoreRight);
         DisplayScoreLeft = OfficialScoreLeft;
         DisplayScoreRight = OfficialScoreRight;
         IsFinished = IsTerminal(match);
@@ -86,8 +90,6 @@ public sealed class CandleBattleV2StateAdapter
             return 0;
         }
 
-        OfficialScoreLeft = Math.Max(0, match.ScoreLeft);
-        OfficialScoreRight = Math.Max(0, match.ScoreRight);
         IsFinished = IsTerminal(match);
 
         var ordered = events
@@ -181,9 +183,9 @@ public sealed class CandleBattleV2StateAdapter
             return;
 
         if (_activeAnimation.Winner == CandleBattleV2Side.Left)
-            DisplayScoreLeft = Math.Min(OfficialScoreLeft, DisplayScoreLeft + 1);
+            DisplayScoreLeft++;
         else if (_activeAnimation.Winner == CandleBattleV2Side.Right)
-            DisplayScoreRight = Math.Min(OfficialScoreRight, DisplayScoreRight + 1);
+            DisplayScoreRight++;
 
         _activeAnimation = null;
 
@@ -198,8 +200,6 @@ public sealed class CandleBattleV2StateAdapter
 
         TeamAId = match.TeamAId;
         TeamBId = match.TeamBId;
-        OfficialScoreLeft = Math.Max(0, match.ScoreLeft);
-        OfficialScoreRight = Math.Max(0, match.ScoreRight);
         IsFinished = IsTerminal(match);
         IsBootstrapped = true;
         Remember(events);
