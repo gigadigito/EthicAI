@@ -52,7 +52,16 @@ export interface FuturebolTeamAction extends FuturebolActionBase {
 
 export type FuturebolAction = FuturebolPlayerAction | FuturebolBallAction | FuturebolTeamAction;
 
-export type FuturebolScenarioType = "DirectAttack" | "GiveAndGo" | "CounterAttack";
+export type FuturebolScenarioType =
+    | "DirectAttack"
+    | "GiveAndGo"
+    | "CounterAttack"
+    | "ThroughBall"
+    | "WingAttack"
+    | "LongShot"
+    | "PressureAttack";
+
+export type FuturebolAttackingStyle = "Controlled" | "Balanced" | "Aggressive" | "Counter";
 
 export interface FootballScenario {
     readonly id: string;

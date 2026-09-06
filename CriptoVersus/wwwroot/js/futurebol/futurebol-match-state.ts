@@ -67,6 +67,15 @@ export interface MatchStateDiagnostics {
     readonly displayHomeScore: number;
     readonly displayAwayScore: number;
     readonly scenario: ActionControllerDiagnostics;
+    readonly director: {
+        readonly lastDecision: {
+            readonly scenario: string;
+            readonly style: string;
+            readonly risk: number;
+            readonly reason: string;
+        } | null;
+        readonly recentScenarios: readonly string[];
+    };
     readonly players: readonly MatchStatePlayerDiagnostics[];
     readonly interceptionPlan: {
         readonly willIntercept: boolean;
@@ -1326,7 +1335,16 @@ export class FuturebolMatchState {
                 resolved ?? "Saved",
                 this.seedHash,
                 this.playIndex,
-                { isReplay: this.synchronizationReplayActive }
+                {
+                    isReplay: this.synchronizationReplayActive,
+                    pressure: this.pressure,
+                    homeScore: this.homeScore,
+                    awayScore: this.awayScore,
+                    elapsedSeconds: this.elapsedSeconds,
+                    matchDurationSeconds: 90,
+                    latestSnapshot: this.latestSnapshot,
+                    officialGoalPending: this.pendingOfficialGoals.length > 0
+                }
             );
             this.activeScenario = scenario;
             this.actionController.startScenario(scenario);
@@ -2996,6 +3014,7 @@ export class FuturebolMatchState {
 
     public diagnostics(): MatchStateDiagnostics {
         const ac = this.actionController.diagnostics();
+        const dirDiag = this.scenarioController.directorDiagnostics();
         return {
             phase: this.currentPlayPhase,
             elapsed: Math.round(this.elapsedSeconds * 100) / 100,
@@ -3009,6 +3028,10 @@ export class FuturebolMatchState {
             displayHomeScore: this.displayHomeScore,
             displayAwayScore: this.displayAwayScore,
             scenario: ac,
+            director: {
+                lastDecision: dirDiag.lastDecision,
+                recentScenarios: dirDiag.recentScenarios
+            },
             players: this.players.map(p => ({
                 id: p.id,
                 team: p.team,
