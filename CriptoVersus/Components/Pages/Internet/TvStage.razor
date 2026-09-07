@@ -13549,7 +13549,9 @@ private sealed record TvArenaCommentaryEntry(
     .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
     .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell,
     .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport {
-        min-height: clamp(320px, 34vw, 560px) !important;
+        height: clamp(280px, 40dvh, 520px) !important;
+        min-height: 0 !important;
+        max-height: none !important;
     }
 
     @@media (min-width: 1181px) {
@@ -13622,11 +13624,22 @@ private sealed record TvArenaCommentaryEntry(
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport {
-            min-height: 320px !important;
+            height: clamp(260px, 46dvh, 440px) !important;
+            min-height: 0 !important;
         }
     }
 
-    /* Runtime v22: final desktop override for vertical field fill. Keep this after v19 rules. */
+    @@media (max-width: 932px) and (orientation: landscape) {
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell,
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport {
+            height: clamp(180px, 70dvh, 300px) !important;
+            min-height: 0 !important;
+        }
+    }
+
+    /* Desktop field height: fill available space without fixed min-height clamp. */
     @@media (min-width: 1181px) {
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
             display: grid !important;
@@ -13635,38 +13648,36 @@ private sealed record TvArenaCommentaryEntry(
 
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport {
             height: 100% !important;
-            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
+            min-height: 0 !important;
             max-height: none !important;
-            display: grid !important;
-            align-items: stretch !important;
+            overflow: hidden !important;
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell {
             height: 100% !important;
-            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
+            min-height: 0 !important;
             max-height: none !important;
-            display: grid !important;
-            align-items: stretch !important;
+            overflow: hidden !important;
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell {
-            grid-template-rows: minmax(0, 1fr) auto !important;
+            aspect-ratio: auto !important;
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__surface,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__surface--asset {
             height: 100% !important;
-            min-height: clamp(455px, calc(100svh - 285px), 680px) !important;
+            min-height: 0 !important;
             max-height: none !important;
-            align-self: stretch !important;
+            overflow: hidden !important;
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__asset,
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel img.tv-field__asset {
             height: 100% !important;
-            min-height: clamp(455px, calc(100svh - 285px), 680px) !important;
+            min-height: 0 !important;
             object-fit: cover !important;
             object-position: center center !important;
         }
