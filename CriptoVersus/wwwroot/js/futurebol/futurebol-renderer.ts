@@ -285,6 +285,9 @@ export class FuturebolRenderer {
 
     public advertisingDiagnostics() { return this.advertising.diagnostics(); }
     public setAdvertisingMatchMessage(message: string): void { this.advertisingMatchMessage = message; }
+    public observeAdvertisingMarket(snapshot: import("./futurebol-types.js").FuturebolMarketSnapshot): void {
+        this.advertising.observeMarket(snapshot);
+    }
 
     public diagnostics(playerId: string | null): FuturebolPlayerVisualDiagnostics & {
         assetLoaded: boolean;

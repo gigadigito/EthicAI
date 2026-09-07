@@ -36,8 +36,15 @@ for(const quality of ['Low','Medium','High']) {
  const baseline=scene.meshes.length;
  const led=new FuturebolLedAdvertising(api,scene,teams,quality);
  assert.equal(led.diagnostics().boards,advertisingQuality(quality).count);
- assert.ok(scene.meshes.filter(m=>m.name.startsWith('futurebol-led-')&&!m.parent).every(m=>m.position.z < -15 && m.position.y === 9.85 && m.rotation.x>0));
+ assert.ok(scene.meshes.filter(m=>m.name.startsWith('futurebol-led-')&&!m.parent).every(m=>m.position.z < -15 && m.position.y === 10.05 && m.rotation.x>0));
  const saved=JSON.stringify(input);led.update(.4,input);assert.equal(JSON.stringify(input),saved);
+ const extra={symbol:'SOL',price:145.2,changePercent:4.88,momentum:50,volumeStrength:50};
+ led.observeMarket({home:extra,away:{...extra,symbol:'DOGE'}},1000);
+ assert.equal(led.extraMarkets(2000).length,2);
+ assert.equal(advertisingMessage({...input,extraMarkets:led.extraMarkets(2000)},teams,3).text,'SOL  $145.20');
+ assert.equal(advertisingMessage({...input,extraMarkets:led.extraMarkets(2000)},teams,0).team,'home');
+ assert.equal(advertisingMessage({...input,extraMarkets:led.extraMarkets(2000)},teams,2).team,'away');
+ assert.equal(led.extraMarkets(302000).length,0,'old observed prices expire');
  const updates=led.diagnostics().textureUpdates;
  for(let frame=0;frame<60;frame++) led.update(1/60,input);
  assert.equal(led.diagnostics().textureUpdates,updates,'no per-frame texture upload');

@@ -191,6 +191,9 @@ export class FuturebolRenderer {
     }
     advertisingDiagnostics() { return this.advertising.diagnostics(); }
     setAdvertisingMatchMessage(message) { this.advertisingMatchMessage = message; }
+    observeAdvertisingMarket(snapshot) {
+        this.advertising.observeMarket(snapshot);
+    }
     diagnostics(playerId) {
         const visual = (playerId ? this.playerVisuals.get(playerId) : null) ?? this.playerVisuals.values().next().value;
         const details = visual?.diagnostics() ?? { kind: this.activeVisualKind, skeletonCount: 0, currentAnimation: null, requestedAnimation: null };

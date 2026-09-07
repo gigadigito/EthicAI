@@ -5,7 +5,7 @@ const phrases = {
     zh: ["加密市场永不眠", "市场就是比赛", "价格驱动比赛"]
 };
 export function advertisingQuality(quality) {
-    return quality === "High" ? { count: 5, width: 1024, height: 128 }
+    return quality === "High" ? { count: 5, width: 1024, height: 192 }
         : quality === "Medium" ? { count: 3, width: 768, height: 96 }
             : { count: 3, width: 512, height: 64 };
 }
@@ -44,6 +44,13 @@ export function advertisingMessage(input, teams, rotation) {
         return { type: "system", text: "CRIPTO VERSUS" };
     }
     const localized = phrases[(input.locale ?? "en").split("-")[0]] ?? phrases.en;
+    const extras = (input.extraMarkets ?? []).filter(asset => asset.symbol !== teams.home.symbol && asset.symbol !== teams.away.symbol && Number.isFinite(asset.price) && asset.price >= 0);
+    if (cycle % 2 === 0 && extras.length) {
+        const asset = extras[Math.floor(cycle / 2) % extras.length];
+        const percentage = advertisingPercentage(asset.changePercent);
+        return { type: "market", text: `${asset.symbol}  ${advertisingPrice(asset.price)}`,
+            percentage: percentage.text, percentageColor: percentage.color };
+    }
     return { type: "system", text: localized[cycle % localized.length] };
 }
 export function fitAdvertisingText(text, maxWidth, measure) {
@@ -66,6 +73,7 @@ export class FuturebolLedAdvertising {
         this.elapsed = 0;
         this.textureUpdates = 0;
         this.disposed = false;
+        this.recentMarkets = new Map();
         this.backing = new B.StandardMaterial("futurebol-led-backing", scene);
         this.backing.diffuseColor = B.Color3.FromHexString("#030b14");
         this.createBoards();
@@ -79,6 +87,28 @@ export class FuturebolLedAdvertising {
     }
     reset() { this.elapsed = 0; for (const board of this.boards)
         board.slot = -1; }
+    observeMarket(snapshot, now = Date.now()) {
+        if (this.disposed)
+            return;
+        for (const asset of [snapshot.home, snapshot.away]) {
+            if (!asset?.symbol || !Number.isFinite(asset.price) || asset.price < 0)
+                continue;
+            const symbol = asset.symbol.trim().toUpperCase();
+            if (!symbol)
+                continue;
+            this.recentMarkets.delete(symbol);
+            this.recentMarkets.set(symbol, { asset: { ...asset, symbol }, receivedAt: now });
+        }
+        while (this.recentMarkets.size > 16)
+            this.recentMarkets.delete(this.recentMarkets.keys().next().value);
+    }
+    extraMarkets(now = Date.now()) {
+        for (const [symbol, entry] of this.recentMarkets) {
+            if (now - entry.receivedAt > 300000)
+                this.recentMarkets.delete(symbol);
+        }
+        return [...this.recentMarkets.values()].map(entry => entry.asset).filter(asset => asset.symbol !== this.teams.home.symbol && asset.symbol !== this.teams.away.symbol);
+    }
     update(deltaSeconds, input) {
         if (this.disposed)
             return;
@@ -88,7 +118,7 @@ export class FuturebolLedAdvertising {
             const slot = Math.floor(time / 5);
             if (slot !== board.slot) {
                 board.slot = slot;
-                this.draw(board, advertisingMessage(input, this.teams, slot));
+                this.draw(board, advertisingMessage({ ...input, extraMarkets: input.extraMarkets ?? this.extraMarkets() }, this.teams, slot));
             }
             const phase = time % 5;
             const brightness = this.reducedMotion ? 0.85 : 0.85 * Math.min(1, phase / 0.18, (5 - phase) / 0.18);
@@ -97,7 +127,8 @@ export class FuturebolLedAdvertising {
     }
     diagnostics() {
         return { boards: this.boards.length, rotation: Math.floor(this.elapsed / 5),
-            current: this.boards.map(board => board.text), textureUpdates: this.textureUpdates };
+            current: this.boards.map(board => board.text), textureUpdates: this.textureUpdates,
+            extraSymbols: this.extraMarkets().map(asset => asset.symbol) };
     }
     dispose() {
         if (this.disposed)
@@ -105,6 +136,7 @@ export class FuturebolLedAdvertising {
         this.disposed = true;
         this.clearBoards();
         this.backing.dispose();
+        this.recentMarkets.clear();
     }
     createBoards() {
         const B = this.B;
@@ -113,14 +145,14 @@ export class FuturebolLedAdvertising {
         const width = span / tier.count - 0.28;
         for (let index = 0; index < tier.count; index++) {
             const name = `futurebol-led-${index}`;
-            const mesh = B.MeshBuilder.CreateBox(name, { width, height: 0.82, depth: 0.16 }, this.scene);
+            const mesh = B.MeshBuilder.CreateBox(name, { width, height: 1.02, depth: 0.16 }, this.scene);
             // The foreground void is the near canopy, which occludes ground-level boards.
             // Mount on its top (arena canopy y=9.45, z=-21.7), below its pitch-facing edge in projection.
-            mesh.position.set(-span / 2 + (index + 0.5) * span / tier.count, 9.85, -FUTUREBOL_FIELD.halfWidth - 5.25);
+            mesh.position.set(-span / 2 + (index + 0.5) * span / tier.count, 10.05, -FUTUREBOL_FIELD.halfWidth - 5.8);
             mesh.rotation.x = 0.55;
             mesh.material = this.backing;
             mesh.isPickable = false;
-            const face = B.MeshBuilder.CreatePlane(`${name}-face`, { width: width - 0.1, height: 0.72 }, this.scene);
+            const face = B.MeshBuilder.CreatePlane(`${name}-face`, { width: width - 0.1, height: 0.92 }, this.scene);
             face.parent = mesh;
             face.position.z = -0.086;
             face.isPickable = false;
@@ -153,15 +185,16 @@ export class FuturebolLedAdvertising {
                 left += h * 0.88;
             }
         }
-        ctx.font = `bold ${Math.round(h * 0.43)}px Arial, sans-serif`;
+        const stacked = this.quality === "High" && !!message.percentage;
+        ctx.font = `bold ${Math.round(h * (stacked ? 0.32 : 0.43))}px Arial, sans-serif`;
         ctx.textBaseline = "middle";
-        const percentWidth = message.percentage ? ctx.measureText(message.percentage).width + 24 : 0;
+        const percentWidth = message.percentage && !stacked ? ctx.measureText(message.percentage).width + 24 : 0;
         ctx.fillStyle = "#eafcff";
         const text = fitAdvertisingText(message.text, w - left - percentWidth - 18, value => ctx.measureText(value).width);
-        ctx.fillText(text, left, h * 0.52);
+        ctx.fillText(text, left, h * (stacked ? 0.3 : 0.52));
         if (message.percentage) {
             ctx.fillStyle = message.percentageColor ?? "#b7c7d8";
-            ctx.fillText(message.percentage, w - percentWidth, h * 0.52);
+            ctx.fillText(message.percentage, stacked ? left : w - percentWidth, h * (stacked ? 0.73 : 0.52));
         }
         ctx.fillStyle = "rgba(3,11,20,0.12)";
         for (let y = 4; y < h; y += 4)

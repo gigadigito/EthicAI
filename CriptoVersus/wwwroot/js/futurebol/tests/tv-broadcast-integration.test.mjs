@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const futurebolRoot = fileURLToPath(new URL("..", import.meta.url));
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
-const stage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStage.razor`, "utf8").replace(/\r\n/g, "\n");
+const stage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStage.razor`, "utf8");
 const host = readFileSync(`${projectRoot}/Components/Pages/Internet/TvFuturebolField.razor`, "utf8");
 const hostCss = readFileSync(`${projectRoot}/Components/Pages/Internet/TvFuturebolField.razor.css`, "utf8");
 const matchPage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvMatchPage.razor`, "utf8");

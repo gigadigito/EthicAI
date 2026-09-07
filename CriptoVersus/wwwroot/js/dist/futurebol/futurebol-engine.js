@@ -327,6 +327,7 @@ export class FuturebolEngine {
         this.renderer.resize();
     }
     onSnapshot(snapshot) {
+        this.renderer.observeAdvertisingMarket(snapshot);
         if (!this.paused)
             this.state.applyMarket(snapshot, this.pressureOverride);
         this.updateHud(snapshot);

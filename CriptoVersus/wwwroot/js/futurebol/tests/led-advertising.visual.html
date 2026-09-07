@@ -17,6 +17,10 @@ const options = {dataMode:'mock',homeSymbol:'BTC',awaySymbol:'ETH',homeLogoUrl:'
  playerVisual:'Auto',presentationMode:'lab',hudRootId:null};
 const engine = new FuturebolEngine(B, document.querySelector('canvas'), options, {invokeMethodAsync:async()=>{}});
 await engine.initialize();
+// Simulate prices previously received while Broadcast was showing another match.
+engine.renderer.observeAdvertisingMarket({sequence:1,timestamp:new Date().toISOString(),
+ home:{symbol:'SOL',price:145.20,changePercent:4.88,momentum:50,volumeStrength:50},
+ away:{symbol:'DOGE',price:.124,changePercent:6.42,momentum:50,volumeStrength:50}});
 const cameraInput = engine.buildCameraDirectorInput.bind(engine);
 engine.buildCameraDirectorInput = () => {
  const input = cameraInput();
