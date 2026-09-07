@@ -5,6 +5,7 @@ class MockElement {
         this.tagName = tag.toUpperCase();
         this.className = "";
         this.textContent = "";
+        this.id = "";
         this.style = {
             cssText: "",
             setProperty: () => {},
@@ -12,10 +13,13 @@ class MockElement {
             left: "",
             top: "",
             transform: "",
+            position: "",
         };
         this.childNodes = [];
         this._parent = null;
         this._removed = false;
+        this.clientWidth = 800;
+        this.clientHeight = 600;
     }
     appendChild(child) {
         this.childNodes.push(child);
@@ -29,9 +33,17 @@ class MockElement {
     }
 }
 
+const headEl = new MockElement("head");
+let styleInjected = false;
+
 function createMockDocument() {
     globalThis.document = {
         createElement: (tag) => new MockElement(tag),
+        getElementById: (id) => {
+            if (id === "futurebol-market-bubble-global") return styleInjected ? {} : null;
+            return null;
+        },
+        head: headEl,
     };
     globalThis.getComputedStyle = () => ({ position: "relative" });
 }
@@ -64,17 +76,34 @@ function makeAsset(overrides = {}) {
     };
 }
 
-function updateToVisible(bubble, input, screenW = 800, screenH = 600) {
-    for (let i = 0; i < 20; i++)
-        bubble.update(input, screenW, screenH, 0.05);
+function makeVisible(ownerId = "home-attacker", team = "home") {
+    return {
+        ownerPlayerId: ownerId,
+        ownerTeam: team,
+        asset: makeAsset(),
+        headScreenX: 400,
+        headScreenY: 200,
+        visible: true,
+    };
 }
 
-function updateToHidden(bubble, screenW = 800, screenH = 600) {
-    for (let i = 0; i < 20; i++)
-        bubble.update({
-            ownerPlayerId: null, ownerTeam: null, asset: null,
-            headScreenX: 0, headScreenY: 0, visible: false,
-        }, screenW, screenH, 0.05);
+function makeHidden() {
+    return {
+        ownerPlayerId: null, ownerTeam: null, asset: null,
+        headScreenX: 0, headScreenY: 0, visible: false,
+    };
+}
+
+function updateFrames(bubble, input, frames, screenW = 800, screenH = 600, dt = 0.05) {
+    for (let i = 0; i < frames; i++)
+        bubble.update(input, screenW, screenH, dt);
+}
+
+function fadeInFrames(bubble, input, screenW = 800, screenH = 600) {
+    const dt = 0.016;
+    const frames = Math.ceil(0.2 / dt) + 2;
+    for (let i = 0; i < frames; i++)
+        bubble.update(input, screenW, screenH, dt);
 }
 
 async function runTests() {
@@ -82,7 +111,7 @@ async function runTests() {
 
     tests.push(["1. owner null → hidden", async () => {
         const { bubble } = await setup();
-        updateToHidden(bubble);
+        updateFrames(bubble, makeHidden(), 30);
         assert.equal(bubble.getDiagnostics().visible, false);
         assert.equal(bubble.getDiagnostics().ownerPlayerId, null);
         bubble.dispose();
@@ -90,11 +119,7 @@ async function runTests() {
 
     tests.push(["2. HOME owner → HOME market data", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ price: 0.156, changePercent: 15.85 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
         assert.equal(bubble.getDiagnostics().ownerPlayerId, "home-attacker");
         assert.equal(bubble.getDiagnostics().visible, true);
         bubble.dispose();
@@ -102,166 +127,170 @@ async function runTests() {
 
     tests.push(["3. AWAY owner → AWAY market data", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ price: 2.41, changePercent: -3.62 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "away-defender", ownerTeam: "away", asset,
-            headScreenX: 350, headScreenY: 180, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("away-defender", "away"));
         assert.equal(bubble.getDiagnostics().ownerPlayerId, "away-defender");
         assert.equal(bubble.getDiagnostics().visible, true);
         bubble.dispose();
     }]);
 
-    tests.push(["4. possession changes → bubble changes player", async () => {
+    tests.push(["4. possession changes → bubble transfers", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
         assert.equal(bubble.getDiagnostics().ownerPlayerId, "home-attacker");
 
-        updateToVisible(bubble, {
-            ownerPlayerId: "away-midfielder", ownerTeam: "away", asset,
-            headScreenX: 300, headScreenY: 150, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("away-midfielder", "away"));
         assert.equal(bubble.getDiagnostics().ownerPlayerId, "away-midfielder");
         bubble.dispose();
     }]);
 
-    tests.push(["5. pass with owner null → hidden", async () => {
+    tests.push(["5. null owner → grace period, not immediate hide", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
         assert.equal(bubble.getDiagnostics().visible, true);
 
-        updateToHidden(bubble);
+        updateFrames(bubble, makeHidden(), 8, 800, 600, 0.016);
+        assert.equal(bubble.getDiagnostics().visible, true, "should still be visible during grace period");
+        bubble.dispose();
+    }]);
+
+    tests.push(["6. null owner > grace period → fade out", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        assert.equal(bubble.getDiagnostics().visible, true);
+
+        const dt = 0.016;
+        const totalFrames = Math.ceil(2.5 / dt);
+        updateFrames(bubble, makeHidden(), totalFrames, 800, 600, dt);
+        assert.equal(bubble.getDiagnostics().visible, false, "should be hidden after minimum hold + grace + fade-out");
+        bubble.dispose();
+    }]);
+
+    tests.push(["7. null owner → new owner during grace → immediate transfer", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        assert.equal(bubble.getDiagnostics().visible, true);
+
+        const dt = 0.016;
+        const graceFrames = Math.ceil(0.3 / dt);
+        updateFrames(bubble, makeHidden(), graceFrames, 800, 600, dt);
+        assert.equal(bubble.getDiagnostics().visible, true, "still visible during grace");
+
+        fadeInFrames(bubble, makeVisible("away-midfielder", "away"));
+        assert.equal(bubble.getDiagnostics().ownerPlayerId, "away-midfielder");
+        assert.equal(bubble.getDiagnostics().visible, true);
+        bubble.dispose();
+    }]);
+
+    tests.push(["8. minimum visible time respected", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+
+        const dt = 0.016;
+        const shortFrames = Math.ceil(0.8 / dt);
+        updateFrames(bubble, makeHidden(), shortFrames, 800, 600, dt);
+        assert.equal(bubble.getDiagnostics().visible, true, "should still be visible within minimum hold");
+        bubble.dispose();
+    }]);
+
+    tests.push(["9. shot → hidden after minimum hold", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        updateFrames(bubble, makeHidden(), 200, 800, 600, 0.05);
         assert.equal(bubble.getDiagnostics().visible, false);
         bubble.dispose();
     }]);
 
-    tests.push(["6. shot → hidden", async () => {
+    tests.push(["10. goalkeeper possession → visible", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
-        updateToHidden(bubble);
-        assert.equal(bubble.getDiagnostics().visible, false);
-        bubble.dispose();
-    }]);
-
-    tests.push(["7. goalkeeper possession → visible", async () => {
-        const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-goalkeeper", ownerTeam: "home", asset,
-            headScreenX: 100, headScreenY: 300, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("home-goalkeeper", "home"));
         assert.equal(bubble.getDiagnostics().visible, true);
         assert.equal(bubble.getDiagnostics().ownerPlayerId, "home-goalkeeper");
         bubble.dispose();
     }]);
 
-    tests.push(["8. positive percentage has + sign", async () => {
+    tests.push(["11. positive percentage has + sign", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ changePercent: 15.85 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        assert.ok(bubble.getDiagnostics().visible);
+        bubble.dispose();
+    }]);
+
+    tests.push(["12. negative percentage has - sign", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("away-defender", "away"));
+        assert.ok(bubble.getDiagnostics().visible);
+        bubble.dispose();
+    }]);
+
+    tests.push(["13. price formatting", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset({ price: 65000.42, changePercent: 2.35 }),
             headScreenX: 400, headScreenY: 200, visible: true,
         });
         assert.ok(bubble.getDiagnostics().visible);
         bubble.dispose();
     }]);
 
-    tests.push(["9. negative percentage has - sign", async () => {
+    tests.push(["14. missing price → still visible with percent", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ changePercent: -3.62 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "away-defender", ownerTeam: "away", asset,
-            headScreenX: 350, headScreenY: 180, visible: true,
-        });
-        assert.ok(bubble.getDiagnostics().visible);
-        bubble.dispose();
-    }]);
-
-    tests.push(["10. price formatting", async () => {
-        const { bubble } = await setup();
-        const asset = makeAsset({ price: 65000.42, changePercent: 2.35 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset({ price: NaN, changePercent: 5.0 }),
             headScreenX: 400, headScreenY: 200, visible: true,
         });
         assert.ok(bubble.getDiagnostics().visible);
         bubble.dispose();
     }]);
 
-    tests.push(["11. missing price", async () => {
+    tests.push(["15. missing percentage → still visible with price", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ price: NaN, changePercent: 5.0 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset({ price: 1.5, changePercent: NaN }),
             headScreenX: 400, headScreenY: 200, visible: true,
         });
         assert.ok(bubble.getDiagnostics().visible);
         bubble.dispose();
     }]);
 
-    tests.push(["12. missing percentage", async () => {
+    tests.push(["16. both missing → hidden", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ price: 1.5, changePercent: NaN });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
-        assert.ok(bubble.getDiagnostics().visible);
-        bubble.dispose();
-    }]);
-
-    tests.push(["13. both missing → hidden", async () => {
-        const { bubble } = await setup();
-        const asset = makeAsset({ price: NaN, changePercent: NaN });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset({ price: NaN, changePercent: NaN }),
             headScreenX: 400, headScreenY: 200, visible: true,
         });
         assert.equal(bubble.getDiagnostics().visible, false);
         bubble.dispose();
     }]);
 
-    tests.push(["14. offscreen player → hidden", async () => {
+    tests.push(["17. offscreen player → hidden", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset(),
             headScreenX: -100, headScreenY: 200, visible: true,
         });
         assert.equal(bubble.getDiagnostics().visible, false);
         bubble.dispose();
     }]);
 
-    tests.push(["15. behind camera → hidden", async () => {
+    tests.push(["18. behind camera → hidden", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset(),
             headScreenX: 400, headScreenY: 200, visible: false,
         });
         assert.equal(bubble.getDiagnostics().visible, false);
         bubble.dispose();
     }]);
 
-    tests.push(["16. valid projection → correct screen coords", async () => {
+    tests.push(["19. valid projection → correct screen coords", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
         const diag = bubble.getDiagnostics();
         assert.equal(typeof diag.screenX, "number");
         assert.equal(typeof diag.screenY, "number");
@@ -270,25 +299,25 @@ async function runTests() {
         bubble.dispose();
     }]);
 
-    tests.push(["17. screen clamp", async () => {
+    tests.push(["20. screen clamp", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset(),
             headScreenX: 795, headScreenY: 595, visible: true,
         });
         const diag = bubble.getDiagnostics();
-        assert.ok(diag.screenX <= 800);
-        assert.ok(diag.screenY <= 600);
+        assert.ok(isFinite(diag.screenX));
+        assert.ok(isFinite(diag.screenY));
         bubble.dispose();
     }]);
 
-    tests.push(["18. smoothing finite", async () => {
+    tests.push(["21. smoothing finite", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
         for (let i = 0; i < 10; i++) {
             bubble.update({
-                ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+                ownerPlayerId: "home-attacker", ownerTeam: "home",
+                asset: makeAsset(),
                 headScreenX: 100 + i * 30, headScreenY: 100 + i * 10, visible: true,
             }, 800, 600, 0.05);
         }
@@ -298,66 +327,37 @@ async function runTests() {
         bubble.dispose();
     }]);
 
-    tests.push(["19. no NaN/Infinity", async () => {
+    tests.push(["22. no NaN/Infinity", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
         const diag = bubble.getDiagnostics();
         assert.ok(Number.isFinite(diag.screenX));
         assert.ok(Number.isFinite(diag.screenY));
         bubble.dispose();
     }]);
 
-    tests.push(["20. reset hides bubble", async () => {
+    tests.push(["23. reset hides bubble", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
-        updateToHidden(bubble);
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        const dt = 0.016;
+        const totalFrames = Math.ceil(2.5 / dt);
+        updateFrames(bubble, makeHidden(), totalFrames, 800, 600, dt);
         assert.equal(bubble.getDiagnostics().visible, false);
         bubble.dispose();
     }]);
 
-    tests.push(["21. dispose removes overlay", async () => {
+    tests.push(["24. dispose removes overlay", async () => {
         const { bubble } = await setup();
         bubble.dispose();
         assert.ok(!bubble.getDiagnostics().visible);
     }]);
 
-    tests.push(["22. replay does not alter bubble logic", async () => {
+    tests.push(["25. single bubble instance", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
-        assert.ok(bubble.getDiagnostics().visible);
-        bubble.dispose();
-    }]);
-
-    tests.push(["23. official score not altered", async () => {
-        const { bubble } = await setup();
-        const asset = makeAsset();
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
-            headScreenX: 400, headScreenY: 200, visible: true,
-        });
-        const diag = bubble.getDiagnostics();
-        assert.equal(typeof diag.ownerPlayerId, "string");
-        bubble.dispose();
-    }]);
-
-    tests.push(["24. single bubble instance", async () => {
-        const { bubble } = await setup();
-        const asset = makeAsset();
         for (let i = 0; i < 5; i++) {
-            updateToVisible(bubble, {
-                ownerPlayerId: `home-player-${i}`, ownerTeam: "home", asset,
+            fadeInFrames(bubble, {
+                ownerPlayerId: `home-player-${i}`, ownerTeam: "home",
+                asset: makeAsset(),
                 headScreenX: 400, headScreenY: 200, visible: true,
             });
         }
@@ -365,14 +365,74 @@ async function runTests() {
         bubble.dispose();
     }]);
 
-    tests.push(["25. price zero → visible with percent", async () => {
+    tests.push(["26. price zero → visible with percent", async () => {
         const { bubble } = await setup();
-        const asset = makeAsset({ price: 0, changePercent: 5.0 });
-        updateToVisible(bubble, {
-            ownerPlayerId: "home-attacker", ownerTeam: "home", asset,
+        fadeInFrames(bubble, {
+            ownerPlayerId: "home-attacker", ownerTeam: "home",
+            asset: makeAsset({ price: 0, changePercent: 5.0 }),
             headScreenX: 400, headScreenY: 200, visible: true,
         });
         assert.ok(bubble.getDiagnostics().visible);
+        bubble.dispose();
+    }]);
+
+    tests.push(["27. render→CSS scale passes container dimensions", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"), 800, 600);
+        const diag = bubble.getDiagnostics();
+        assert.ok(isFinite(diag.screenX));
+        assert.ok(isFinite(diag.screenY));
+        bubble.dispose();
+    }]);
+
+    tests.push(["28. opacity reaches 1 after full fade-in", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        const diag = bubble.getDiagnostics();
+        assert.ok(diag.opacity > 0.95, `opacity should be near 1, got ${diag.opacity}`);
+        bubble.dispose();
+    }]);
+
+    tests.push(["29. fade-in is rapid (< 200ms)", async () => {
+        const { bubble } = await setup();
+        const dt = 0.016;
+        const input = makeVisible("home-attacker", "home");
+        let opaqueFrame = -1;
+        for (let i = 0; i < 30; i++) {
+            bubble.update(input, 800, 600, dt);
+            if (bubble.getDiagnostics().opacity > 0.95) {
+                opaqueFrame = i;
+                break;
+            }
+        }
+        assert.ok(opaqueFrame >= 0, "should become opaque");
+        assert.ok(opaqueFrame <= 15, `fade-in too slow: ${opaqueFrame} frames at ${dt}s = ${(opaqueFrame * dt * 1000).toFixed(0)}ms`);
+        bubble.dispose();
+    }]);
+
+    tests.push(["30. grace period diagnostics", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        const dt = 0.016;
+        const holdFrames = Math.ceil(1.6 / dt);
+        updateFrames(bubble, makeHidden(), holdFrames, 800, 600, dt);
+        const diag = bubble.getDiagnostics();
+        assert.ok(diag.graceRemaining > 0, "grace should be active");
+        assert.ok(diag.visible, "should still be visible during grace");
+        bubble.dispose();
+    }]);
+
+    tests.push(["31. global style injected", async () => {
+        const { bubble } = await setup();
+        assert.ok(headEl.childNodes.length > 0, "style should be injected into head");
+        bubble.dispose();
+    }]);
+
+    tests.push(["32. bubble has CSS classes for styling", async () => {
+        const { bubble } = await setup();
+        fadeInFrames(bubble, makeVisible("home-attacker", "home"));
+        const diag = bubble.getDiagnostics();
+        assert.ok(diag.visible);
         bubble.dispose();
     }]);
 

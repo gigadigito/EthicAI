@@ -1,10 +1,103 @@
 import type { FuturebolAssetState, FuturebolTeam } from "./futurebol-types.js";
 
-const BUBBLE_OFFSET_Y = 0.22;
-const SMOOTHING_SPEED = 10;
+const SMOOTHING_SPEED = 14;
 const SCREEN_CLAMP_MARGIN = 8;
-const VISIBILITY_FADE_SPEED = 8;
 const OFFSCREEN_MARGIN = 40;
+const FADE_IN_DURATION = 0.15;
+const FADE_OUT_DURATION = 0.2;
+const MINIMUM_VISIBLE_SECONDS = 1.4;
+const NULL_OWNER_GRACE_SECONDS = 0.6;
+const HEAD_OFFSET_CSS_PX = 28;
+
+const GLOBAL_STYLE_ID = "futurebol-market-bubble-global";
+const GLOBAL_CSS = `
+.futurebol-player-market-bubble {
+    --bubble-accent: #ff8c14;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+    padding: 9px 15px 10px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(3, 22, 27, 0.97), rgba(2, 10, 16, 0.97));
+    border: 2px solid var(--bubble-accent);
+    box-shadow:
+        0 0 8px var(--bubble-accent),
+        0 0 18px color-mix(in srgb, var(--bubble-accent) 40%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    line-height: 1.2;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+    z-index: 20;
+    transform: translate(-50%, -100%);
+    will-change: transform, opacity;
+    transition: opacity 150ms ease;
+}
+.futurebol-player-market-bubble__percent {
+    font-size: clamp(18px, 1.3vw, 26px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+.futurebol-player-market-bubble__percent--positive {
+    color: #3fffb0;
+    text-shadow: 0 0 8px rgba(63, 255, 176, 0.35);
+}
+.futurebol-player-market-bubble__percent--negative {
+    color: #ff6673;
+    text-shadow: 0 0 8px rgba(255, 102, 115, 0.35);
+}
+.futurebol-player-market-bubble__price {
+    font-size: clamp(12px, 0.85vw, 16px);
+    font-weight: 650;
+    color: rgba(238, 246, 255, 0.85);
+    margin-top: 2px;
+}
+.futurebol-player-market-bubble__arrow {
+    position: absolute;
+    left: 50%;
+    bottom: -10px;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 10px solid var(--bubble-accent);
+    filter: drop-shadow(0 0 5px var(--bubble-accent));
+}
+@media (max-width: 720px) {
+    .futurebol-player-market-bubble {
+        min-width: 90px;
+        padding: 7px 11px 8px;
+        border-radius: 11px;
+        border-width: 1.5px;
+    }
+    .futurebol-player-market-bubble__percent {
+        font-size: clamp(16px, 4vw, 19px);
+    }
+    .futurebol-player-market-bubble__price {
+        font-size: clamp(11px, 3vw, 13px);
+    }
+    .futurebol-player-market-bubble__arrow {
+        border-left-width: 7px;
+        border-right-width: 7px;
+        border-top-width: 8px;
+        bottom: -8px;
+    }
+}
+`;
+
+function ensureGlobalStyle(): void {
+    if (typeof document === "undefined") return;
+    if (document.getElementById(GLOBAL_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = GLOBAL_STYLE_ID;
+    style.textContent = GLOBAL_CSS;
+    document.head.appendChild(style);
+}
 
 export interface FuturebolPlayerMarketBubbleInput {
     ownerPlayerId: string | null;
@@ -23,7 +116,17 @@ export interface FuturebolPlayerMarketBubbleDiagnostics {
     screenX: number;
     screenY: number;
     visible: boolean;
+    opacity: number;
+    timeSinceVisible: number;
+    graceRemaining: number;
 }
+
+type BubbleLifecycle =
+    | { state: "hidden" }
+    | { state: "fadeIn"; elapsed: number; ownerId: string | null; team: FuturebolTeam | null }
+    | { state: "visible"; elapsed: number; totalVisible: number; ownerId: string | null; team: FuturebolTeam | null }
+    | { state: "grace"; elapsed: number; ownerId: string | null; team: FuturebolTeam | null }
+    | { state: "fadeOut"; elapsed: number; fromOpacity: number; ownerId: string | null; team: FuturebolTeam | null };
 
 export class FuturebolPlayerMarketBubble {
     private readonly host: HTMLElement;
@@ -33,13 +136,13 @@ export class FuturebolPlayerMarketBubble {
     private readonly arrowEl: HTMLSpanElement;
     private smoothedX = 0;
     private smoothedY = 0;
-    private currentOpacity = 0;
-    private currentOwnerId: string | null = null;
-    private lastScreenWidth = 0;
-    private lastScreenHeight = 0;
+    private renderedOpacity = 0;
+    private lifecycle: BubbleLifecycle = { state: "hidden" };
     private disposed = false;
 
     public constructor(canvas: HTMLCanvasElement) {
+        ensureGlobalStyle();
+
         const parent = canvas.parentElement;
         if (!parent)
             throw new Error("Market bubble requires canvas.parentElement");
@@ -51,7 +154,7 @@ export class FuturebolPlayerMarketBubble {
 
         this.el = document.createElement("div");
         this.el.className = "futurebol-player-market-bubble";
-        this.el.style.cssText = "position:absolute;pointer-events:none;z-index:15;opacity:0;transform:translate(-50%,-100%) translateY(-12px);transition:opacity 150ms ease;will-change:transform,opacity;";
+        this.el.style.opacity = "0";
 
         this.percentEl = document.createElement("span");
         this.percentEl.className = "futurebol-player-market-bubble__percent";
@@ -70,14 +173,15 @@ export class FuturebolPlayerMarketBubble {
 
     public update(
         input: FuturebolPlayerMarketBubbleInput,
-        screenW: number,
-        screenH: number,
-        deltaSeconds: number
+        renderW: number,
+        renderH: number,
+        deltaSeconds: number,
+        cssContainerW?: number,
+        cssContainerH?: number
     ): void {
         if (this.disposed) return;
 
-        this.lastScreenWidth = screenW;
-        this.lastScreenHeight = screenH;
+        const dt = Math.min(deltaSeconds, 0.1);
 
         const hasOwner = input.visible
             && input.ownerPlayerId !== null
@@ -90,36 +194,150 @@ export class FuturebolPlayerMarketBubble {
 
         const isOffscreen = hasOwner && (
             input.headScreenX < -OFFSCREEN_MARGIN ||
-            input.headScreenX > screenW + OFFSCREEN_MARGIN ||
+            input.headScreenX > renderW + OFFSCREEN_MARGIN ||
             input.headScreenY < -OFFSCREEN_MARGIN ||
-            input.headScreenY > screenH + OFFSCREEN_MARGIN
+            input.headScreenY > renderH + OFFSCREEN_MARGIN
         );
 
         const shouldBeVisible = hasOwner && hasData && !isOffscreen;
-        const targetOpacity = shouldBeVisible ? 1 : 0;
-        const fadeStep = deltaSeconds > 0 ? VISIBILITY_FADE_SPEED * deltaSeconds : 0;
-        this.currentOpacity = approach(this.currentOpacity, targetOpacity, fadeStep);
 
-        if (this.currentOpacity < 0.01) {
+        this.lifecycle = this.tickLifecycle(this.lifecycle, shouldBeVisible, input, dt);
+
+        const targetOpacity = this.lifecycle.state === "hidden" ? 0
+            : this.lifecycle.state === "fadeOut" ? 0
+            : 1;
+
+        this.renderedOpacity = approachTo(this.renderedOpacity, targetOpacity, dt);
+
+        if (this.renderedOpacity < 0.01 && this.lifecycle.state === "hidden") {
             this.el.style.opacity = "0";
-            this.currentOwnerId = null;
             return;
         }
 
-        if (input.ownerPlayerId !== this.currentOwnerId) {
-            this.currentOwnerId = input.ownerPlayerId;
-            this.smoothedX = input.headScreenX;
-            this.smoothedY = input.headScreenY;
+        const sx = input.headScreenX;
+        const sy = input.headScreenY;
+
+        const blend = dt > 0
+            ? 1 - Math.exp(-SMOOTHING_SPEED * dt)
+            : 0;
+
+        if (this.lifecycle.state === "fadeIn" && this.lifecycle.elapsed < FADE_IN_DURATION * 0.5) {
+            this.smoothedX = sx;
+            this.smoothedY = sy;
+        } else {
+            this.smoothedX = lerp(this.smoothedX, sx, blend);
+            this.smoothedY = lerp(this.smoothedY, sy, blend);
         }
 
-        const blend = deltaSeconds > 0
-            ? 1 - Math.exp(-SMOOTHING_SPEED * Math.min(deltaSeconds, 0.1))
-            : 0;
-        this.smoothedX = lerp(this.smoothedX, input.headScreenX, blend);
-        this.smoothedY = lerp(this.smoothedY, input.headScreenY, blend);
+        const contW = cssContainerW ?? renderW;
+        const contH = cssContainerH ?? renderH;
+        const scaleX = renderW > 0 ? contW / renderW : 1;
+        const scaleY = renderH > 0 ? contH / renderH : 1;
 
-        let sx = clamp(this.smoothedX, SCREEN_CLAMP_MARGIN, screenW - SCREEN_CLAMP_MARGIN);
-        let sy = clamp(this.smoothedY - BUBBLE_OFFSET_Y * screenH * 0.08, SCREEN_CLAMP_MARGIN, screenH - SCREEN_CLAMP_MARGIN);
+        let cssX = this.smoothedX * scaleX;
+        let cssY = this.smoothedY * scaleY - HEAD_OFFSET_CSS_PX;
+
+        cssX = clamp(cssX, SCREEN_CLAMP_MARGIN, contW - SCREEN_CLAMP_MARGIN);
+        cssY = clamp(cssY, SCREEN_CLAMP_MARGIN, contH - SCREEN_CLAMP_MARGIN);
+
+        const activeTeam = this.getActiveTeam();
+        const accentColor = activeTeam === "home" ? "#ff8c14" : "#14b8e0";
+        this.el.style.setProperty("--bubble-accent", accentColor);
+
+        this.updateContent(asset);
+
+        this.el.style.left = `${cssX}px`;
+        this.el.style.top = `${cssY}px`;
+        this.el.style.opacity = String(clamp(this.renderedOpacity, 0, 1));
+    }
+
+    private tickLifecycle(
+        current: BubbleLifecycle,
+        shouldBeVisible: boolean,
+        input: FuturebolPlayerMarketBubbleInput,
+        dt: number
+    ): BubbleLifecycle {
+        const owner = input.ownerPlayerId;
+        const team = input.ownerTeam;
+
+        switch (current.state) {
+            case "hidden": {
+                if (!shouldBeVisible) return current;
+                return { state: "fadeIn", elapsed: 0, ownerId: owner, team };
+            }
+
+            case "fadeIn": {
+                if (!shouldBeVisible && owner === null) {
+                    return { state: "fadeOut", elapsed: 0, fromOpacity: 1, ownerId: owner, team };
+                }
+                const newElapsed = current.elapsed + dt;
+                if (newElapsed >= FADE_IN_DURATION) {
+                    return { state: "visible", elapsed: 0, totalVisible: 0, ownerId: owner ?? current.ownerId, team: team ?? current.team };
+                }
+                if (owner !== null && owner !== current.ownerId) {
+                    return { state: "fadeIn", elapsed: current.elapsed, ownerId: owner, team };
+                }
+                return { state: "fadeIn", elapsed: newElapsed, ownerId: current.ownerId, team: current.team };
+            }
+
+            case "visible": {
+                const newTotal = current.totalVisible + dt;
+
+                if (owner !== null && owner !== current.ownerId) {
+                    return { state: "visible", elapsed: 0, totalVisible: 0, ownerId: owner, team };
+                }
+
+                if (shouldBeVisible) {
+                    return { state: "visible", elapsed: 0, totalVisible: newTotal, ownerId: owner ?? current.ownerId, team: team ?? current.team };
+                }
+
+                if (newTotal < MINIMUM_VISIBLE_SECONDS) {
+                    return { state: "visible", elapsed: 0, totalVisible: newTotal, ownerId: current.ownerId, team: current.team };
+                }
+
+                if (owner === null) {
+                    return { state: "grace", elapsed: 0, ownerId: current.ownerId, team: current.team };
+                }
+
+                return { state: "fadeOut", elapsed: 0, fromOpacity: 1, ownerId: current.ownerId, team: current.team };
+            }
+
+            case "grace": {
+                if (shouldBeVisible && owner !== null) {
+                    if (owner !== current.ownerId) {
+                        return { state: "visible", elapsed: 0, totalVisible: 0, ownerId: owner, team };
+                    }
+                    return { state: "visible", elapsed: 0, totalVisible: MINIMUM_VISIBLE_SECONDS, ownerId: owner, team };
+                }
+
+                const newElapsed = current.elapsed + dt;
+                if (newElapsed >= NULL_OWNER_GRACE_SECONDS) {
+                    return { state: "fadeOut", elapsed: 0, fromOpacity: 1, ownerId: current.ownerId, team: current.team };
+                }
+                return { state: "grace", elapsed: newElapsed, ownerId: current.ownerId, team: current.team };
+            }
+
+            case "fadeOut": {
+                const newElapsed = current.elapsed + dt;
+                if (shouldBeVisible && owner !== null) {
+                    return { state: "visible", elapsed: 0, totalVisible: 0, ownerId: owner, team };
+                }
+                if (newElapsed >= FADE_OUT_DURATION) {
+                    return { state: "hidden" };
+                }
+                return { state: "fadeOut", elapsed: newElapsed, fromOpacity: current.fromOpacity, ownerId: current.ownerId, team: current.team };
+            }
+        }
+    }
+
+    private getActiveTeam(): FuturebolTeam | null {
+        if (this.lifecycle.state === "hidden") return null;
+        return this.lifecycle.team;
+    }
+
+    private updateContent(asset: FuturebolAssetState | null): void {
+        const hasPercent = asset !== null && isFinite(asset.changePercent);
+        const hasPrice = asset !== null && isFinite(asset.price) && asset.price > 0;
 
         if (hasPercent) {
             const sign = asset!.changePercent >= 0 ? "+" : "";
@@ -137,13 +355,6 @@ export class FuturebolPlayerMarketBubble {
         } else {
             this.priceEl.textContent = "";
         }
-
-        const accentColor = input.ownerTeam === "home" ? "#ff8c14" : "#14b8e0";
-        this.el.style.setProperty("--bubble-accent", accentColor);
-
-        this.el.style.left = `${sx}px`;
-        this.el.style.top = `${sy}px`;
-        this.el.style.opacity = String(clamp(this.currentOpacity, 0, 1));
     }
 
     public dispose(): void {
@@ -153,14 +364,39 @@ export class FuturebolPlayerMarketBubble {
     }
 
     public getDiagnostics(): FuturebolPlayerMarketBubbleDiagnostics {
+        const ls = this.lifecycle;
+        let ownerId: string | null = null;
+        let team: FuturebolTeam | null = null;
+        let totalVisible = 0;
+        let graceRemaining = 0;
+
+        if (ls.state === "fadeIn") {
+            ownerId = ls.ownerId;
+            team = ls.team;
+        } else if (ls.state === "visible") {
+            ownerId = ls.ownerId;
+            team = ls.team;
+            totalVisible = ls.totalVisible;
+        } else if (ls.state === "grace") {
+            ownerId = ls.ownerId;
+            team = ls.team;
+            graceRemaining = NULL_OWNER_GRACE_SECONDS - ls.elapsed;
+        } else if (ls.state === "fadeOut") {
+            ownerId = ls.ownerId;
+            team = ls.team;
+        }
+
         return {
-            ownerPlayerId: this.currentOwnerId,
-            ownerTeam: null,
+            ownerPlayerId: ownerId,
+            ownerTeam: team,
             price: null,
             changePercent: null,
             screenX: this.smoothedX,
             screenY: this.smoothedY,
-            visible: this.currentOpacity > 0.5
+            visible: this.renderedOpacity > 0.5,
+            opacity: this.renderedOpacity,
+            timeSinceVisible: totalVisible,
+            graceRemaining
         };
     }
 }
@@ -183,8 +419,10 @@ function lerp(from: number, to: number, t: number): number {
     return from + (to - from) * clamp(t, 0, 1);
 }
 
-function approach(current: number, target: number, maxStep: number): number {
-    if (maxStep <= 0) return current;
+function approachTo(current: number, target: number, dt: number): number {
+    if (dt <= 0) return current;
+    const speed = target > current ? (1 / FADE_IN_DURATION) : (1 / FADE_OUT_DURATION);
+    const maxStep = speed * dt;
     const diff = target - current;
     if (Math.abs(diff) <= maxStep) return target;
     return current + Math.sign(diff) * maxStep;

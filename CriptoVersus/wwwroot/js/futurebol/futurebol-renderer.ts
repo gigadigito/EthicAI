@@ -530,6 +530,12 @@ export class FuturebolRenderer {
     ): void {
         if (!this.marketBubble) return;
 
+        const renderW = this.engine.getRenderWidth();
+        const renderH = this.engine.getRenderHeight();
+        const canvas = this.engine.getRenderingCanvas();
+        const cssW = canvas ? canvas.clientWidth : renderW;
+        const cssH = canvas ? canvas.clientHeight : renderH;
+
         const owner = ballOwnerId
             ? players.find(p => p.id === ballOwnerId) ?? null
             : null;
@@ -537,9 +543,7 @@ export class FuturebolRenderer {
         if (!owner) {
             this.marketBubble.update(
                 { ownerPlayerId: null, ownerTeam: null, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
-                this.engine.getRenderWidth(),
-                this.engine.getRenderHeight(),
-                deltaSeconds
+                renderW, renderH, deltaSeconds, cssW, cssH
             );
             return;
         }
@@ -548,9 +552,7 @@ export class FuturebolRenderer {
         if (!coinMesh) {
             this.marketBubble.update(
                 { ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
-                this.engine.getRenderWidth(),
-                this.engine.getRenderHeight(),
-                deltaSeconds
+                renderW, renderH, deltaSeconds, cssW, cssH
             );
             return;
         }
@@ -568,9 +570,7 @@ export class FuturebolRenderer {
                 headScreenY: screenPos.y,
                 visible: screenPos.z >= 0 && screenPos.z <= 1
             },
-            this.engine.getRenderWidth(),
-            this.engine.getRenderHeight(),
-            deltaSeconds
+            renderW, renderH, deltaSeconds, cssW, cssH
         );
     }
 

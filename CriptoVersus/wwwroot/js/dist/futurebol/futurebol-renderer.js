@@ -350,16 +350,21 @@ export class FuturebolRenderer {
     updateMarketBubble(players, ballOwnerId, homeAsset, awayAsset, deltaSeconds) {
         if (!this.marketBubble)
             return;
+        const renderW = this.engine.getRenderWidth();
+        const renderH = this.engine.getRenderHeight();
+        const canvas = this.engine.getRenderingCanvas();
+        const cssW = canvas ? canvas.clientWidth : renderW;
+        const cssH = canvas ? canvas.clientHeight : renderH;
         const owner = ballOwnerId
             ? players.find(p => p.id === ballOwnerId) ?? null
             : null;
         if (!owner) {
-            this.marketBubble.update({ ownerPlayerId: null, ownerTeam: null, asset: null, headScreenX: 0, headScreenY: 0, visible: false }, this.engine.getRenderWidth(), this.engine.getRenderHeight(), deltaSeconds);
+            this.marketBubble.update({ ownerPlayerId: null, ownerTeam: null, asset: null, headScreenX: 0, headScreenY: 0, visible: false }, renderW, renderH, deltaSeconds, cssW, cssH);
             return;
         }
         const coinMesh = this.findCoinHeadMesh(owner.id);
         if (!coinMesh) {
-            this.marketBubble.update({ ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false }, this.engine.getRenderWidth(), this.engine.getRenderHeight(), deltaSeconds);
+            this.marketBubble.update({ ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false }, renderW, renderH, deltaSeconds, cssW, cssH);
             return;
         }
         const worldPos = coinMesh.getAbsolutePosition();
@@ -372,7 +377,7 @@ export class FuturebolRenderer {
             headScreenX: screenPos.x,
             headScreenY: screenPos.y,
             visible: screenPos.z >= 0 && screenPos.z <= 1
-        }, this.engine.getRenderWidth(), this.engine.getRenderHeight(), deltaSeconds);
+        }, renderW, renderH, deltaSeconds, cssW, cssH);
     }
     findCoinHeadMesh(playerId) {
         const visual = this.playerVisuals.get(playerId);
