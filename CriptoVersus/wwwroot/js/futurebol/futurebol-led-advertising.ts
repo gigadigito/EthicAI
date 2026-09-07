@@ -25,10 +25,17 @@ const phrases: Record<string, readonly string[]> = {
     zh: ["加密市场永不眠", "市场就是比赛", "价格驱动比赛"]
 };
 export function advertisingQuality(quality: FuturebolQuality) {
-    return quality === "High" ? { count: 5, width: 1024, height: 192 }
-        : quality === "Medium" ? { count: 3, width: 768, height: 96 }
-        : { count: 3, width: 512, height: 64 };
+    return quality === "High" ? { count: 5, width: 1024, height: 224 }
+        : quality === "Medium" ? { count: 3, width: 768, height: 112 }
+        : { count: 3, width: 512, height: 76 };
 }
+const FALLBACK_EXTRAS: readonly FuturebolAssetState[] = [
+    { symbol: "BTC", price: 56234.20, changePercent: 2.31, momentum: 50, volumeStrength: 50 },
+    { symbol: "ETH", price: 3125.40, changePercent: -1.12, momentum: 50, volumeStrength: 50 },
+    { symbol: "SOL", price: 145.20, changePercent: 4.88, momentum: 50, volumeStrength: 50 },
+    { symbol: "DOGE", price: 0.124, changePercent: 6.42, momentum: 50, volumeStrength: 50 },
+    { symbol: "XRP", price: 0.61, changePercent: -0.94, momentum: 50, volumeStrength: 50 },
+];
 export function advertisingPrice(price: number | undefined): string {
     if (price === undefined || !Number.isFinite(price) || price < 0) return "—";
     // Same precision policy as the current market bubble, with grouping for large prices.
@@ -43,28 +50,37 @@ export function advertisingPercentage(value: number | undefined) {
 }
 export function advertisingMessage(input: FuturebolAdvertisingInput, teams: FuturebolTeamVisualConfigurationMap,
     rotation: number): FuturebolAdvertisingMessage {
-    // Every other slot is market; staggered boards keep both assets visible regularly.
-    const slot = ((rotation % 4) + 4) % 4;
-    if (slot === 0 || slot === 2) {
-        const team = slot === 0 ? "home" : "away";
+    const slot = ((rotation % 8) + 8) % 8;
+    const cycle = Math.floor(rotation / 8);
+    const localized = phrases[(input.locale ?? "en").split("-")[0]] ?? phrases.en;
+    if (slot === 0 || slot === 4) {
+        const team = "home" as const;
         const asset = input[team];
         const percentage = advertisingPercentage(asset?.changePercent);
         return { type: "market", team, text: `${teams[team].symbol}  ${advertisingPrice(asset?.price)}`,
             percentage: percentage.text, percentageColor: percentage.color };
     }
-    const cycle = Math.floor(rotation / 4);
+    if (slot === 2 || slot === 6) {
+        const team = "away" as const;
+        const asset = input[team];
+        const percentage = advertisingPercentage(asset?.changePercent);
+        return { type: "market", team, text: `${teams[team].symbol}  ${advertisingPrice(asset?.price)}`,
+            percentage: percentage.text, percentageColor: percentage.color };
+    }
     if (slot === 1) {
-        if (cycle % 3 === 1 && input.matchMessage) return { type: "match", text: input.matchMessage };
-        if (cycle % 3 === 2 && input.headlines?.length)
-            return { type: "news", text: input.headlines[cycle % input.headlines.length] };
-        if (cycle % 3 === 2) return { type: "team", text: `${teams.home.symbol}  ×  ${teams.away.symbol}` };
+        if (input.headlines?.length) return { type: "news", text: input.headlines[cycle % input.headlines.length] };
         return { type: "system", text: "CRIPTO VERSUS" };
     }
-    const localized = phrases[(input.locale ?? "en").split("-")[0]] ?? phrases.en;
-    const extras = (input.extraMarkets ?? []).filter(asset =>
+    if (slot === 5) {
+        if (input.matchMessage) return { type: "match", text: input.matchMessage };
+        return { type: "system", text: localized[cycle % localized.length] };
+    }
+    const extraOffset = slot === 3 ? 0 : 1;
+    const pool = input.extraMarkets?.length ? input.extraMarkets : FALLBACK_EXTRAS;
+    const extras = pool.filter(asset =>
         asset.symbol !== teams.home.symbol && asset.symbol !== teams.away.symbol && Number.isFinite(asset.price) && asset.price >= 0);
-    if (cycle % 2 === 0 && extras.length) {
-        const asset = extras[Math.floor(cycle / 2) % extras.length];
+    if (extras.length) {
+        const asset = extras[(cycle + extraOffset) % extras.length];
         const percentage = advertisingPercentage(asset.changePercent);
         return { type: "market", text: `${asset.symbol}  ${advertisingPrice(asset.price)}`,
             percentage: percentage.text, percentageColor: percentage.color };
@@ -150,18 +166,18 @@ export class FuturebolLedAdvertising {
     private createBoards(): void {
         const B = this.B;
         const tier = advertisingQuality(this.quality);
-        const span = FUTUREBOL_FIELD.halfLength * 0.72;
-        const width = span / tier.count - 0.28;
+        const span = FUTUREBOL_FIELD.halfLength * 0.80;
+        const width = span / tier.count - 0.55;
         for (let index = 0; index < tier.count; index++) {
             const name = `futurebol-led-${index}`;
-            const mesh = B.MeshBuilder.CreateBox(name, { width, height: 1.02, depth: 0.16 }, this.scene);
+            const mesh = B.MeshBuilder.CreateBox(name, { width, height: 1.18, depth: 0.16 }, this.scene);
             // The foreground void is the near canopy, which occludes ground-level boards.
             // Mount on its top (arena canopy y=9.45, z=-21.7), below its pitch-facing edge in projection.
-            mesh.position.set(-span / 2 + (index + 0.5) * span / tier.count, 10.05, -FUTUREBOL_FIELD.halfWidth - 5.8);
+            mesh.position.set(-span / 2 + (index + 0.5) * span / tier.count, 10.08, -FUTUREBOL_FIELD.halfWidth - 5.8);
             mesh.rotation.x = 0.55;
             mesh.material = this.backing;
             mesh.isPickable = false;
-            const face = B.MeshBuilder.CreatePlane(`${name}-face`, { width: width - 0.1, height: 0.92 }, this.scene);
+            const face = B.MeshBuilder.CreatePlane(`${name}-face`, { width: width - 0.1, height: 1.08 }, this.scene);
             face.parent = mesh;
             face.position.z = -0.086;
             face.isPickable = false;

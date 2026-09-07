@@ -36,7 +36,7 @@ for(const quality of ['Low','Medium','High']) {
  const baseline=scene.meshes.length;
  const led=new FuturebolLedAdvertising(api,scene,teams,quality);
  assert.equal(led.diagnostics().boards,advertisingQuality(quality).count);
- assert.ok(scene.meshes.filter(m=>m.name.startsWith('futurebol-led-')&&!m.parent).every(m=>m.position.z < -15 && m.position.y === 10.05 && m.rotation.x>0));
+ assert.ok(scene.meshes.filter(m=>m.name.startsWith('futurebol-led-')&&!m.parent).every(m=>m.position.z < -15 && m.position.y === 10.08 && m.rotation.x>0));
  const saved=JSON.stringify(input);led.update(.4,input);assert.equal(JSON.stringify(input),saved);
  const extra={symbol:'SOL',price:145.2,changePercent:4.88,momentum:50,volumeStrength:50};
  led.observeMarket({home:extra,away:{...extra,symbol:'DOGE'}},1000);
