@@ -60,6 +60,7 @@ export class FuturebolRenderer {
     private assetLoadTimeMs = 0;
     private visualWarning: string | null = null;
     private simulateAssetFailure = false;
+    private bubbleWarningLogged = false;
     private progressCallback: (stage: FuturebolAssetProgress) => void = () => undefined;
 
     public constructor(
@@ -530,48 +531,67 @@ export class FuturebolRenderer {
     ): void {
         if (!this.marketBubble) return;
 
-        const renderW = this.engine.getRenderWidth();
-        const renderH = this.engine.getRenderHeight();
-        const canvas = this.engine.getRenderingCanvas();
-        const cssW = canvas ? canvas.clientWidth : renderW;
-        const cssH = canvas ? canvas.clientHeight : renderH;
+        try {
+            const renderW = this.engine.getRenderWidth();
+            const renderH = this.engine.getRenderHeight();
+            const canvas = this.engine.getRenderingCanvas();
+            const cssW = canvas ? canvas.clientWidth : renderW;
+            const cssH = canvas ? canvas.clientHeight : renderH;
 
-        const owner = ballOwnerId
-            ? players.find(p => p.id === ballOwnerId) ?? null
-            : null;
+            const owner = ballOwnerId
+                ? players.find(p => p.id === ballOwnerId) ?? null
+                : null;
 
-        if (!owner) {
+            if (!owner) {
+                this.marketBubble.update(
+                    { ownerPlayerId: null, ownerTeam: null, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
+                    renderW, renderH, deltaSeconds, cssW, cssH
+                );
+                return;
+            }
+
+            const coinMesh = this.findCoinHeadMesh(owner.id);
+            if (!coinMesh) {
+                this.marketBubble.update(
+                    { ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
+                    renderW, renderH, deltaSeconds, cssW, cssH
+                );
+                return;
+            }
+
+            const worldPos = coinMesh.getAbsolutePosition();
+            if (!worldPos) {
+                this.marketBubble.update(
+                    { ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
+                    renderW, renderH, deltaSeconds, cssW, cssH
+                );
+                return;
+            }
+
+            const screenPos = this.projectWorldToScreen(worldPos);
+            const asset = owner.team === "home" ? homeAsset : awayAsset;
+
+            this.marketBubble.update(
+                {
+                    ownerPlayerId: owner.id,
+                    ownerTeam: owner.team,
+                    asset: asset ?? null,
+                    headScreenX: screenPos.x,
+                    headScreenY: screenPos.y,
+                    visible: screenPos.z >= 0 && screenPos.z <= 1
+                },
+                renderW, renderH, deltaSeconds, cssW, cssH
+            );
+        } catch (error) {
+            if (!this.bubbleWarningLogged) {
+                this.bubbleWarningLogged = true;
+                console.warn("[FUTUREBOL][MarketBubble][WARN]", error);
+            }
             this.marketBubble.update(
                 { ownerPlayerId: null, ownerTeam: null, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
-                renderW, renderH, deltaSeconds, cssW, cssH
+                0, 0, deltaSeconds, 0, 0
             );
-            return;
         }
-
-        const coinMesh = this.findCoinHeadMesh(owner.id);
-        if (!coinMesh) {
-            this.marketBubble.update(
-                { ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
-                renderW, renderH, deltaSeconds, cssW, cssH
-            );
-            return;
-        }
-
-        const worldPos = coinMesh.getAbsolutePosition();
-        const screenPos = this.projectWorldToScreen(worldPos);
-        const asset = owner.team === "home" ? homeAsset : awayAsset;
-
-        this.marketBubble.update(
-            {
-                ownerPlayerId: owner.id,
-                ownerTeam: owner.team,
-                asset: asset ?? null,
-                headScreenX: screenPos.x,
-                headScreenY: screenPos.y,
-                visible: screenPos.z >= 0 && screenPos.z <= 1
-            },
-            renderW, renderH, deltaSeconds, cssW, cssH
-        );
     }
 
     private findCoinHeadMesh(playerId: string): AbstractMesh | null {
@@ -589,19 +609,21 @@ export class FuturebolRenderer {
         const B = this.B;
         const scene = this.scene;
         const engine = this.engine;
+        const camera = scene.activeCamera;
 
-        const viewMatrix = scene.getViewMatrix();
-        const projMatrix = scene.getProjectionMatrix();
-        const transform = viewMatrix.multiply(projMatrix);
-        const viewport = scene.activeCamera?.viewport;
-
-        if (!viewport)
+        if (!camera)
             return { x: 0, y: 0, z: -1 };
 
-        const viewPort = viewport.toGlobal(
-            engine.getRenderWidth(),
-            engine.getRenderHeight()
-        );
+        const renderW = engine.getRenderWidth();
+        const renderH = engine.getRenderHeight();
+        if (renderW <= 0 || renderH <= 0)
+            return { x: 0, y: 0, z: -1 };
+
+        const transform = scene.getTransformMatrix();
+        if (!transform)
+            return { x: 0, y: 0, z: -1 };
+
+        const viewPort = camera.viewport.toGlobal(renderW, renderH);
 
         const projected = B.Vector3.Project(
             worldPos,
@@ -609,6 +631,9 @@ export class FuturebolRenderer {
             transform,
             viewPort
         );
+
+        if (!Number.isFinite(projected.x) || !Number.isFinite(projected.y) || !Number.isFinite(projected.z))
+            return { x: 0, y: 0, z: -1 };
 
         return { x: projected.x, y: projected.y, z: projected.z };
     }
