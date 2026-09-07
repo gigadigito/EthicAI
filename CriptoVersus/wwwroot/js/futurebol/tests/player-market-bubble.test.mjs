@@ -6,20 +6,22 @@ class MockElement {
         this.className = "";
         this.textContent = "";
         this.id = "";
-        this.style = {
-            cssText: "",
-            setProperty: () => {},
-            opacity: "",
-            left: "",
-            top: "",
-            transform: "",
-            position: "",
-        };
         this.childNodes = [];
         this._parent = null;
         this._removed = false;
         this.clientWidth = 800;
         this.clientHeight = 600;
+        const store = {};
+        this.style = new Proxy({}, {
+            set: (_t, prop, val) => { store[prop] = String(val); return true; },
+            get: (_t, prop) => {
+                if (prop === "cssText") return "";
+                if (prop === "setProperty") return (_k, _v) => {};
+                if (typeof prop === "symbol") return undefined;
+                return store[prop] !== undefined ? store[prop] : "";
+            },
+            has: () => true
+        });
     }
     appendChild(child) {
         this.childNodes.push(child);
@@ -422,9 +424,15 @@ async function runTests() {
         bubble.dispose();
     }]);
 
-    tests.push(["31. global style injected", async () => {
-        const { bubble } = await setup();
-        assert.ok(headEl.childNodes.length > 0, "style should be injected into head");
+    tests.push(["31. inline styles applied", async () => {
+        const { bubble, canvas } = await setup();
+        const el = canvas.parentElement.childNodes.find(c => c.tagName === "DIV");
+        assert.ok(el, "bubble div should exist");
+        assert.equal(el.style.position, "absolute");
+        assert.equal(el.style.display, "flex");
+        assert.equal(el.style.background.indexOf("rgba(3,22,27") >= 0, true, "should have dark gradient background");
+        assert.ok(el.style.borderWidth !== "", "should have border width");
+        assert.ok(el.style.boxShadow !== "", "should have box shadow");
         bubble.dispose();
     }]);
 

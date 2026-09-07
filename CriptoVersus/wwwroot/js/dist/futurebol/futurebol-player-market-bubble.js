@@ -5,97 +5,12 @@ const FADE_IN_DURATION = 0.15;
 const FADE_OUT_DURATION = 0.2;
 const MINIMUM_VISIBLE_SECONDS = 1.4;
 const NULL_OWNER_GRACE_SECONDS = 0.6;
-const HEAD_OFFSET_CSS_PX = 28;
-const GLOBAL_STYLE_ID = "futurebol-market-bubble-global";
-const GLOBAL_CSS = `
-.futurebol-player-market-bubble {
-    --bubble-accent: #ff8c14;
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 120px;
-    padding: 9px 15px 10px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(3, 22, 27, 0.97), rgba(2, 10, 16, 0.97));
-    border: 2px solid var(--bubble-accent);
-    box-shadow:
-        0 0 8px var(--bubble-accent),
-        0 0 18px color-mix(in srgb, var(--bubble-accent) 40%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
-    line-height: 1.2;
-    white-space: nowrap;
-    user-select: none;
-    pointer-events: none;
-    z-index: 20;
-    transform: translate(-50%, -100%);
-    will-change: transform, opacity;
-    transition: opacity 150ms ease;
-}
-.futurebol-player-market-bubble__percent {
-    font-size: clamp(18px, 1.3vw, 26px);
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: 0.02em;
-}
-.futurebol-player-market-bubble__percent--positive {
-    color: #3fffb0;
-    text-shadow: 0 0 8px rgba(63, 255, 176, 0.35);
-}
-.futurebol-player-market-bubble__percent--negative {
-    color: #ff6673;
-    text-shadow: 0 0 8px rgba(255, 102, 115, 0.35);
-}
-.futurebol-player-market-bubble__price {
-    font-size: clamp(12px, 0.85vw, 16px);
-    font-weight: 650;
-    color: rgba(238, 246, 255, 0.85);
-    margin-top: 2px;
-}
-.futurebol-player-market-bubble__arrow {
-    position: absolute;
-    left: 50%;
-    bottom: -10px;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-top: 10px solid var(--bubble-accent);
-    filter: drop-shadow(0 0 5px var(--bubble-accent));
-}
-@media (max-width: 720px) {
-    .futurebol-player-market-bubble {
-        min-width: 90px;
-        padding: 7px 11px 8px;
-        border-radius: 11px;
-        border-width: 1.5px;
-    }
-    .futurebol-player-market-bubble__percent {
-        font-size: clamp(16px, 4vw, 19px);
-    }
-    .futurebol-player-market-bubble__price {
-        font-size: clamp(11px, 3vw, 13px);
-    }
-    .futurebol-player-market-bubble__arrow {
-        border-left-width: 7px;
-        border-right-width: 7px;
-        border-top-width: 8px;
-        bottom: -8px;
-    }
-}
-`;
-function ensureGlobalStyle() {
-    if (typeof document === "undefined")
-        return;
-    if (document.getElementById(GLOBAL_STYLE_ID))
-        return;
-    const style = document.createElement("style");
-    style.id = GLOBAL_STYLE_ID;
-    style.textContent = GLOBAL_CSS;
-    document.head.appendChild(style);
-}
+const HEAD_OFFSET_CSS_PX = 24;
+const HOME_ACCENT = "#ff8c14";
+const AWAY_ACCENT = "#14b8e0";
+const POSITIVE_COLOR = "#3fffb0";
+const NEGATIVE_COLOR = "#ff6673";
+const PRICE_COLOR = "#eafcff";
 export class FuturebolPlayerMarketBubble {
     constructor(canvas) {
         this.smoothedX = 0;
@@ -103,7 +18,7 @@ export class FuturebolPlayerMarketBubble {
         this.renderedOpacity = 0;
         this.lifecycle = { state: "hidden" };
         this.disposed = false;
-        ensureGlobalStyle();
+        this.currentAccent = HOME_ACCENT;
         const parent = canvas.parentElement;
         if (!parent)
             throw new Error("Market bubble requires canvas.parentElement");
@@ -111,18 +26,79 @@ export class FuturebolPlayerMarketBubble {
             parent.style.position = "relative";
         this.host = parent;
         this.el = document.createElement("div");
-        this.el.className = "futurebol-player-market-bubble";
-        this.el.style.opacity = "0";
-        this.percentEl = document.createElement("span");
-        this.percentEl.className = "futurebol-player-market-bubble__percent";
-        this.el.appendChild(this.percentEl);
+        this.percentEl = document.createElement("strong");
         this.priceEl = document.createElement("span");
-        this.priceEl.className = "futurebol-player-market-bubble__price";
-        this.el.appendChild(this.priceEl);
         this.arrowEl = document.createElement("span");
-        this.arrowEl.className = "futurebol-player-market-bubble__arrow";
+        this.applyBaseStyles();
+        this.applyPercentStyles(POSITIVE_COLOR);
+        this.applyPriceStyles();
+        this.applyArrowStyles(HOME_ACCENT);
+        this.el.appendChild(this.percentEl);
+        this.el.appendChild(this.priceEl);
         this.el.appendChild(this.arrowEl);
         this.host.appendChild(this.el);
+    }
+    applyBaseStyles() {
+        const s = this.el.style;
+        s.position = "absolute";
+        s.display = "flex";
+        s.flexDirection = "column";
+        s.alignItems = "center";
+        s.justifyContent = "center";
+        s.minWidth = "120px";
+        s.padding = "9px 15px 10px";
+        s.borderRadius = "14px";
+        s.background = "linear-gradient(180deg, rgba(3,22,27,.97), rgba(2,10,16,.97))";
+        s.borderStyle = "solid";
+        s.borderWidth = "2px";
+        s.borderColor = HOME_ACCENT;
+        s.boxShadow = `0 0 8px ${HOME_ACCENT}, 0 0 18px ${HOME_ACCENT}88, inset 0 1px 0 rgba(255,255,255,.07)`;
+        s.fontFamily = "'SF Mono','Cascadia Code','Fira Code',monospace";
+        s.lineHeight = "1.2";
+        s.whiteSpace = "nowrap";
+        s.userSelect = "none";
+        s.pointerEvents = "none";
+        s.overflow = "visible";
+        s.zIndex = "25";
+        s.transform = "translate(-50%,-100%)";
+        s.willChange = "transform,opacity";
+        s.opacity = "0";
+        s.boxSizing = "border-box";
+        this.applyArrowStyles(HOME_ACCENT);
+    }
+    applyArrowStyles(accent) {
+        const s = this.arrowEl.style;
+        s.position = "absolute";
+        s.left = "50%";
+        s.bottom = "-11px";
+        s.transform = "translateX(-50%)";
+        s.width = "0";
+        s.height = "0";
+        s.borderLeft = "9px solid transparent";
+        s.borderRight = "9px solid transparent";
+        s.borderTop = `11px solid ${accent}`;
+        s.filter = `drop-shadow(0 0 5px ${accent})`;
+    }
+    applyPercentStyles(color) {
+        const s = this.percentEl.style;
+        s.display = "block";
+        s.fontSize = "22px";
+        s.fontWeight = "800";
+        s.lineHeight = "1";
+        s.textAlign = "center";
+        s.letterSpacing = "0.2px";
+        s.color = color;
+        s.textShadow = `0 0 8px ${color}`;
+    }
+    applyPriceStyles() {
+        const s = this.priceEl.style;
+        s.display = "block";
+        s.marginTop = "5px";
+        s.fontSize = "14px";
+        s.fontWeight = "650";
+        s.lineHeight = "1";
+        s.textAlign = "center";
+        s.color = PRICE_COLOR;
     }
     update(input, renderW, renderH, deltaSeconds, cssContainerW, cssContainerH) {
         if (this.disposed)
@@ -170,9 +146,13 @@ export class FuturebolPlayerMarketBubble {
         let cssY = this.smoothedY * scaleY - HEAD_OFFSET_CSS_PX;
         cssX = clamp(cssX, SCREEN_CLAMP_MARGIN, contW - SCREEN_CLAMP_MARGIN);
         cssY = clamp(cssY, SCREEN_CLAMP_MARGIN, contH - SCREEN_CLAMP_MARGIN);
-        const activeTeam = this.getActiveTeam();
-        const accentColor = activeTeam === "home" ? "#ff8c14" : "#14b8e0";
-        this.el.style.setProperty("--bubble-accent", accentColor);
+        const accent = this.getActiveTeam() === "home" ? HOME_ACCENT : AWAY_ACCENT;
+        if (accent !== this.currentAccent) {
+            this.currentAccent = accent;
+            this.el.style.borderColor = accent;
+            this.el.style.boxShadow = `0 0 8px ${accent}, 0 0 18px ${accent}88, inset 0 1px 0 rgba(255,255,255,.07)`;
+            this.applyArrowStyles(accent);
+        }
         this.updateContent(asset);
         this.el.style.left = `${cssX}px`;
         this.el.style.top = `${cssY}px`;
@@ -252,10 +232,8 @@ export class FuturebolPlayerMarketBubble {
         if (hasPercent) {
             const sign = asset.changePercent >= 0 ? "+" : "";
             this.percentEl.textContent = `${sign}${formatPercent(asset.changePercent)}`;
-            this.percentEl.className = "futurebol-player-market-bubble__percent" +
-                (asset.changePercent >= 0
-                    ? " futurebol-player-market-bubble__percent--positive"
-                    : " futurebol-player-market-bubble__percent--negative");
+            const color = asset.changePercent >= 0 ? POSITIVE_COLOR : NEGATIVE_COLOR;
+            this.applyPercentStyles(color);
         }
         else {
             this.percentEl.textContent = "";
