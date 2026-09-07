@@ -3,7 +3,8 @@ import { FuturebolCameraDirector } from "./futurebol-camera-director.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260907-camera-market-bubble-v1";
 import { FuturebolPlayerMarketBubble } from "./futurebol-player-market-bubble.js";
-import { FuturebolLedAdvertising } from "./futurebol-led-advertising.js";
+// @ts-ignore Browser module query: this is the cache boundary for LED advertising.
+import { FuturebolLedAdvertising } from "./futurebol-led-advertising.js?v=20260907-led-v2";
 import { resolvePlayerVisualKind } from "./player/futurebol-animation-map.js";
 import { FuturebolPlayerVisualFactory } from "./player/futurebol-player-visual-factory.js";
 export class FuturebolRenderer {

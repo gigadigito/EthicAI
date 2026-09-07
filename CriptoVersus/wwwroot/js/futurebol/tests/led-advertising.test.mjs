@@ -14,7 +14,7 @@ assert.equal(advertisingPercentage(NaN).text,'—');
 assert.notEqual(advertisingPercentage(1).color,advertisingPercentage(-1).color);
 assert.equal(fitAdvertisingText('Short',10,s=>s.length),'Short');
 assert.equal(fitAdvertisingText('A very long message',8,s=>s.length),'A very …');
-assert.notEqual(advertisingMessage(input,teams,3).text,advertisingMessage(input,teams,7).text);
+ assert.notEqual(advertisingMessage({...input,extraMarkets:[{symbol:'SOL',price:145.2,changePercent:4.88,momentum:50,volumeStrength:50},{symbol:'DOGE',price:0.124,changePercent:6.42,momentum:50,volumeStrength:50}]},teams,3).text,advertisingMessage({...input,extraMarkets:[{symbol:'SOL',price:145.2,changePercent:4.88,momentum:50,volumeStrength:50},{symbol:'DOGE',price:0.124,changePercent:6.42,momentum:50,volumeStrength:50}]},teams,7).text);
 assert.deepEqual(advertisingMessage(input,teams,7),advertisingMessage(input,teams,7));
 assert.equal(advertisingMessage({...input,headlines:['Confirmed headline']},teams,9).type,'news');
 assert.equal(advertisingMessage({...input,matchMessage:'Finished'},teams,5).type,'match');
@@ -36,7 +36,7 @@ for(const quality of ['Low','Medium','High']) {
  const baseline=scene.meshes.length;
  const led=new FuturebolLedAdvertising(api,scene,teams,quality);
  assert.equal(led.diagnostics().boards,advertisingQuality(quality).count);
- assert.ok(scene.meshes.filter(m=>m.name.startsWith('futurebol-led-')&&!m.parent).every(m=>m.position.z < -15 && m.position.y === 10.08 && m.rotation.x>0));
+ assert.ok(scene.meshes.filter(m=>m.name.startsWith('futurebol-led-')&&!m.parent).every(m=>m.position.z < -15 && m.position.y === 10.15 && m.rotation.x>0));
  const saved=JSON.stringify(input);led.update(.4,input);assert.equal(JSON.stringify(input),saved);
  const extra={symbol:'SOL',price:145.2,changePercent:4.88,momentum:50,volumeStrength:50};
  led.observeMarket({home:extra,away:{...extra,symbol:'DOGE'}},1000);

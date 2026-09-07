@@ -6,7 +6,8 @@ import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260907-camera-market-bubble-v1";
 import { FuturebolPlayerMarketBubble } from "./futurebol-player-market-bubble.js";
-import { FuturebolLedAdvertising } from "./futurebol-led-advertising.js";
+// @ts-ignore Browser module query: this is the cache boundary for LED advertising.
+import { FuturebolLedAdvertising } from "./futurebol-led-advertising.js?v=20260907-led-v2";
 import type {
     FuturebolAssetState,
     FuturebolLogoTextureDiagnosticMap,

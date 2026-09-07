@@ -5,17 +5,10 @@ const phrases = {
     zh: ["加密市场永不眠", "市场就是比赛", "价格驱动比赛"]
 };
 export function advertisingQuality(quality) {
-    return quality === "High" ? { count: 5, width: 1024, height: 224 }
-        : quality === "Medium" ? { count: 3, width: 768, height: 112 }
-            : { count: 3, width: 512, height: 76 };
+    return quality === "High" ? { count: 5, width: 1024, height: 256 }
+        : quality === "Medium" ? { count: 3, width: 768, height: 128 }
+            : { count: 3, width: 512, height: 84 };
 }
-const FALLBACK_EXTRAS = [
-    { symbol: "BTC", price: 56234.20, changePercent: 2.31, momentum: 50, volumeStrength: 50 },
-    { symbol: "ETH", price: 3125.40, changePercent: -1.12, momentum: 50, volumeStrength: 50 },
-    { symbol: "SOL", price: 145.20, changePercent: 4.88, momentum: 50, volumeStrength: 50 },
-    { symbol: "DOGE", price: 0.124, changePercent: 6.42, momentum: 50, volumeStrength: 50 },
-    { symbol: "XRP", price: 0.61, changePercent: -0.94, momentum: 50, volumeStrength: 50 },
-];
 export function advertisingPrice(price) {
     if (price === undefined || !Number.isFinite(price) || price < 0)
         return "—";
@@ -59,7 +52,7 @@ export function advertisingMessage(input, teams, rotation) {
         return { type: "system", text: localized[cycle % localized.length] };
     }
     const extraOffset = slot === 3 ? 0 : 1;
-    const pool = input.extraMarkets?.length ? input.extraMarkets : FALLBACK_EXTRAS;
+    const pool = input.extraMarkets ?? [];
     const extras = pool.filter(asset => asset.symbol !== teams.home.symbol && asset.symbol !== teams.away.symbol && Number.isFinite(asset.price) && asset.price >= 0);
     if (extras.length) {
         const asset = extras[(cycle + extraOffset) % extras.length];
@@ -89,6 +82,7 @@ export class FuturebolLedAdvertising {
         this.elapsed = 0;
         this.textureUpdates = 0;
         this.disposed = false;
+        this.extraLogElapsed = 0;
         this.recentMarkets = new Map();
         this.backing = new B.StandardMaterial("futurebol-led-backing", scene);
         this.backing.diffuseColor = B.Color3.FromHexString("#030b14");
@@ -129,6 +123,13 @@ export class FuturebolLedAdvertising {
         if (this.disposed)
             return;
         this.elapsed += Number.isFinite(deltaSeconds) ? Math.max(0, deltaSeconds) : 0;
+        this.extraLogElapsed += Number.isFinite(deltaSeconds) ? Math.max(0, deltaSeconds) : 0;
+        if (this.extraLogElapsed >= 10) {
+            this.extraLogElapsed = 0;
+            const extraSyms = (input.extraMarkets ?? []).filter(a => a.symbol !== this.teams.home.symbol && a.symbol !== this.teams.away.symbol &&
+                Number.isFinite(a.price) && a.price >= 0).map(a => a.symbol);
+            console.log(`[Futurebol][LED] extraMarketSource=${extraSyms.length ? "live" : "none"} extraSymbols=[${extraSyms.join(",")}]`);
+        }
         this.boards.forEach((board, index) => {
             const time = this.elapsed + index * 5.7;
             const slot = Math.floor(time / 5);
@@ -157,18 +158,23 @@ export class FuturebolLedAdvertising {
     createBoards() {
         const B = this.B;
         const tier = advertisingQuality(this.quality);
-        const span = FUTUREBOL_FIELD.halfLength * 0.80;
-        const width = span / tier.count - 0.55;
+        const span = FUTUREBOL_FIELD.halfLength * 0.84;
+        const gap = 0.85;
+        const width = span / tier.count - gap;
+        const boxHeight = 1.33;
+        const faceHeight = 1.20;
+        const posY = 10.15;
+        console.log(`[Futurebol][LED] version=LED_ADVERTISING_V2 boards=${tier.count} span=${span.toFixed(1)} gap=${gap} boxHeight=${boxHeight} faceHeight=${faceHeight}`);
         for (let index = 0; index < tier.count; index++) {
             const name = `futurebol-led-${index}`;
-            const mesh = B.MeshBuilder.CreateBox(name, { width, height: 1.18, depth: 0.16 }, this.scene);
+            const mesh = B.MeshBuilder.CreateBox(name, { width, height: boxHeight, depth: 0.16 }, this.scene);
             // The foreground void is the near canopy, which occludes ground-level boards.
             // Mount on its top (arena canopy y=9.45, z=-21.7), below its pitch-facing edge in projection.
-            mesh.position.set(-span / 2 + (index + 0.5) * span / tier.count, 10.08, -FUTUREBOL_FIELD.halfWidth - 5.8);
+            mesh.position.set(-span / 2 + (index + 0.5) * span / tier.count, posY, -FUTUREBOL_FIELD.halfWidth - 5.8);
             mesh.rotation.x = 0.55;
             mesh.material = this.backing;
             mesh.isPickable = false;
-            const face = B.MeshBuilder.CreatePlane(`${name}-face`, { width: width - 0.1, height: 1.08 }, this.scene);
+            const face = B.MeshBuilder.CreatePlane(`${name}-face`, { width: width - 0.1, height: faceHeight }, this.scene);
             face.parent = mesh;
             face.position.z = -0.086;
             face.isPickable = false;

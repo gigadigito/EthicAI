@@ -1,7 +1,7 @@
 // @ts-ignore Browser module queries are intentional: replay state must not come from a stale module.
 import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260907-camera-market-bubble-v1";
 // @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
-import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260907-led-v1";
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260907-led-v2";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import { ApiMarketSource } from './market/api-market-source.js';
 import { createFuturebolMarketSource } from './market/futurebol-market-source-factory.js';
