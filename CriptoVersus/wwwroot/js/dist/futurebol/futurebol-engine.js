@@ -290,7 +290,8 @@ export class FuturebolEngine {
                 replayAwayScore !== this.state.displayAwayScore) {
                 this.updateReplayHud();
             }
-            this.renderer.update(this.state.players, this.state.ballPosition, this.state.ballVelocity, this.state.pressure, this.state.currentPlayPhase, this.state.activeTeam, this.state.currentBallOwnerId, this.state.lastPlayOutcome, this.paused ? 0 : deltaSeconds, this.buildCameraDirectorInput());
+            const snapshot = this.state.latestSnapshot;
+            this.renderer.update(this.state.players, this.state.ballPosition, this.state.ballVelocity, this.state.pressure, this.state.currentPlayPhase, this.state.activeTeam, this.state.currentBallOwnerId, this.state.lastPlayOutcome, this.paused ? 0 : deltaSeconds, this.buildCameraDirectorInput(), snapshot?.home ?? null, snapshot?.away ?? null);
             this.renderer.scene.render();
             if (this.firstFrameResolve) {
                 const resolve = this.firstFrameResolve;

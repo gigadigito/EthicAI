@@ -389,6 +389,7 @@ export class FuturebolEngine {
                 this.updateReplayHud();
             }
 
+            const snapshot = this.state.latestSnapshot;
             this.renderer.update(
                 this.state.players,
                 this.state.ballPosition,
@@ -399,7 +400,9 @@ export class FuturebolEngine {
                 this.state.currentBallOwnerId,
                 this.state.lastPlayOutcome,
                 this.paused ? 0 : deltaSeconds,
-                this.buildCameraDirectorInput()
+                this.buildCameraDirectorInput(),
+                snapshot?.home ?? null,
+                snapshot?.away ?? null
             );
             this.renderer.scene.render();
             if (this.firstFrameResolve) {

@@ -1,11 +1,13 @@
-import type { AbstractMesh, DirectionalLight, Engine, Mesh, Scene, ShadowGenerator, StandardMaterial } from "babylonjs";
+import type { AbstractMesh, DirectionalLight, Engine, Mesh, Scene, ShadowGenerator, StandardMaterial, Vector3 } from "babylonjs";
 import { FuturebolCamera } from "./futurebol-camera.js";
 import { FuturebolCameraDirector } from "./futurebol-camera-director.js";
 import type { CameraDirectorInput, CameraModeOutput } from "./futurebol-camera-director.js";
 import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260822-official-goal-field-1";
+import { FuturebolPlayerMarketBubble } from "./futurebol-player-market-bubble.js";
 import type {
+    FuturebolAssetState,
     FuturebolLogoTextureDiagnosticMap,
     FuturebolPlayerState,
     FuturebolPlayerVisualDiagnostics,
@@ -41,6 +43,7 @@ export class FuturebolRenderer {
     private readonly goalFlashMaterial: StandardMaterial;
     private readonly ballTrail: Mesh[] = [];
     private readonly ballTrailHistory: FuturebolVector3State[] = [];
+    private readonly marketBubble: FuturebolPlayerMarketBubble;
     private trailSampleElapsed = 0;
     private goalFlashElapsed = 0;
     private readonly directionalLight: DirectionalLight;
@@ -100,6 +103,12 @@ export class FuturebolRenderer {
         this.goalFlash = goalFlash.mesh;
         this.goalFlashMaterial = goalFlash.material;
 
+        const renderCanvas = this.engine.getRenderingCanvas();
+        if (renderCanvas)
+            this.marketBubble = new FuturebolPlayerMarketBubble(renderCanvas);
+        else
+            this.marketBubble = null as unknown as FuturebolPlayerMarketBubble;
+
         this.applyQuality(quality);
     }
 
@@ -139,7 +148,9 @@ export class FuturebolRenderer {
         ballOwnerId: string | null,
         outcome: FuturebolPlayOutcome | null,
         deltaSeconds: number,
-        directorInput: CameraDirectorInput | null = null
+        directorInput: CameraDirectorInput | null = null,
+        homeAsset: FuturebolAssetState | null = null,
+        awayAsset: FuturebolAssetState | null = null
     ): void {
         for (const player of players) {
             const visual = this.playerVisuals.get(player.id);
@@ -154,6 +165,7 @@ export class FuturebolRenderer {
         this.ball.rotation.z += deltaSeconds * 3.7;
 
         this.updatePossessionIndicator(players, ballOwnerId, deltaSeconds);
+        this.updateMarketBubble(players, ballOwnerId, homeAsset, awayAsset, deltaSeconds);
         this.updateBallEffects(ballPosition, phase, deltaSeconds);
         this.updateGoalFlash(phase, activeTeam, outcome, deltaSeconds);
 
@@ -256,6 +268,7 @@ export class FuturebolRenderer {
         this.visualFactory = null;
         this.netMeshes.length = 0;
         this.shadowGenerator?.dispose();
+        this.marketBubble?.dispose();
         this.scene.dispose();
         this.engine.dispose();
     }
@@ -506,6 +519,98 @@ export class FuturebolRenderer {
             this.possessionRingMaterial.emissiveColor =
                 new this.B.Color3(0.02, 0.48, 0.78);
         }
+    }
+
+    private updateMarketBubble(
+        players: FuturebolPlayerState[],
+        ballOwnerId: string | null,
+        homeAsset: FuturebolAssetState | null,
+        awayAsset: FuturebolAssetState | null,
+        deltaSeconds: number
+    ): void {
+        if (!this.marketBubble) return;
+
+        const owner = ballOwnerId
+            ? players.find(p => p.id === ballOwnerId) ?? null
+            : null;
+
+        if (!owner) {
+            this.marketBubble.update(
+                { ownerPlayerId: null, ownerTeam: null, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
+                this.engine.getRenderWidth(),
+                this.engine.getRenderHeight(),
+                deltaSeconds
+            );
+            return;
+        }
+
+        const coinMesh = this.findCoinHeadMesh(owner.id);
+        if (!coinMesh) {
+            this.marketBubble.update(
+                { ownerPlayerId: owner.id, ownerTeam: owner.team, asset: null, headScreenX: 0, headScreenY: 0, visible: false },
+                this.engine.getRenderWidth(),
+                this.engine.getRenderHeight(),
+                deltaSeconds
+            );
+            return;
+        }
+
+        const worldPos = coinMesh.getAbsolutePosition();
+        const screenPos = this.projectWorldToScreen(worldPos);
+        const asset = owner.team === "home" ? homeAsset : awayAsset;
+
+        this.marketBubble.update(
+            {
+                ownerPlayerId: owner.id,
+                ownerTeam: owner.team,
+                asset: asset ?? null,
+                headScreenX: screenPos.x,
+                headScreenY: screenPos.y,
+                visible: screenPos.z >= 0 && screenPos.z <= 1
+            },
+            this.engine.getRenderWidth(),
+            this.engine.getRenderHeight(),
+            deltaSeconds
+        );
+    }
+
+    private findCoinHeadMesh(playerId: string): AbstractMesh | null {
+        const visual = this.playerVisuals.get(playerId);
+        if (!visual) return null;
+
+        for (const mesh of visual.meshes) {
+            if (mesh.name.endsWith("-coin-head"))
+                return mesh;
+        }
+        return null;
+    }
+
+    private projectWorldToScreen(worldPos: Vector3): { x: number; y: number; z: number } {
+        const B = this.B;
+        const scene = this.scene;
+        const engine = this.engine;
+
+        const viewMatrix = scene.getViewMatrix();
+        const projMatrix = scene.getProjectionMatrix();
+        const transform = viewMatrix.multiply(projMatrix);
+        const viewport = scene.activeCamera?.viewport;
+
+        if (!viewport)
+            return { x: 0, y: 0, z: -1 };
+
+        const viewPort = viewport.toGlobal(
+            engine.getRenderWidth(),
+            engine.getRenderHeight()
+        );
+
+        const projected = B.Vector3.Project(
+            worldPos,
+            B.Matrix.Identity(),
+            transform,
+            viewPort
+        );
+
+        return { x: projected.x, y: projected.y, z: projected.z };
     }
 
     private updateBallEffects(
