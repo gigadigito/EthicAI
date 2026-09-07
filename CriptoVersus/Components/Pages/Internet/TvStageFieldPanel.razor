@@ -231,7 +231,7 @@
     }
 
     .tv-stage-field-panel .tv-football-field-viewport {
-        min-height: clamp(260px, 34vw, 480px);
+        min-height: clamp(200px, min(40vw, 42dvh), 520px);
     }
 
     .tv-stage-field-panel .tv-ai-commentary {
@@ -282,11 +282,11 @@
             width: 100% !important;
             max-width: none !important;
             height: 100% !important;
-            min-height: 0 !important;
+            min-height: clamp(500px, calc(100svh - 258px), 760px) !important;
             max-height: none !important;
             align-self: stretch !important;
             justify-self: stretch !important;
-            overflow: hidden !important;
+            overflow: visible !important;
         }
 
         .tv-stage.tv-stage--broadcast .tv-stage-desktop .tv-stage-field-panel .tv-football-field-viewport .tv-field,
