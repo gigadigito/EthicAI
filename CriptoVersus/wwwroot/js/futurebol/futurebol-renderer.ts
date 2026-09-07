@@ -6,6 +6,7 @@ import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260907-camera-market-bubble-v1";
 import { FuturebolPlayerMarketBubble } from "./futurebol-player-market-bubble.js";
+import { FuturebolLedAdvertising } from "./futurebol-led-advertising.js";
 import type {
     FuturebolAssetState,
     FuturebolLogoTextureDiagnosticMap,
@@ -48,6 +49,8 @@ export class FuturebolRenderer {
     private goalFlashElapsed = 0;
     private readonly directionalLight: DirectionalLight;
     private readonly arena: FuturebolArenaContract;
+    private readonly advertising: FuturebolLedAdvertising;
+    private advertisingMatchMessage: string | undefined;
     private shadowGenerator: ShadowGenerator | null = null;
     private visualFactory: FuturebolPlayerVisualFactory | null = null;
     private visualGeneration = 0;
@@ -87,6 +90,7 @@ export class FuturebolRenderer {
         this.field = this.createField();
         this.directionalLight = this.createLights();
         this.arena = new FuturebolArenaRuntime(B, this.scene, quality) as FuturebolArenaContract;
+        this.advertising = new FuturebolLedAdvertising(B, this.scene, teams, quality, reducedMotion);
         this.createGoals();
         this.createMarkings();
 
@@ -168,6 +172,8 @@ export class FuturebolRenderer {
         this.updatePossessionIndicator(players, ballOwnerId, deltaSeconds);
         this.updateMarketBubble(players, ballOwnerId, homeAsset, awayAsset, deltaSeconds);
         this.updateBallEffects(ballPosition, phase, deltaSeconds);
+        this.advertising.update(deltaSeconds, { home: homeAsset, away: awayAsset,
+            locale: document.documentElement.lang, matchMessage: this.advertisingMatchMessage });
         this.updateGoalFlash(phase, activeTeam, outcome, deltaSeconds);
 
         // Compute camera director output
@@ -185,6 +191,7 @@ export class FuturebolRenderer {
     }
 
     public resetPlayers(): void {
+        this.advertising.reset();
         for (const visual of this.playerVisuals.values())
             visual.reset();
 
@@ -216,6 +223,7 @@ export class FuturebolRenderer {
     public applyQuality(quality: FuturebolQuality): void {
         this.quality = quality;
         this.arena?.setQuality(quality);
+        this.advertising?.setQuality(quality);
         for (const visual of this.playerVisuals.values()) visual.setQuality(quality);
         const scaling = quality === "Low" ? 1.5 : quality === "High" ? 0.82 : 1;
         this.engine.setHardwareScalingLevel(scaling);
@@ -270,9 +278,13 @@ export class FuturebolRenderer {
         this.netMeshes.length = 0;
         this.shadowGenerator?.dispose();
         this.marketBubble?.dispose();
+        this.advertising.dispose();
         this.scene.dispose();
         this.engine.dispose();
     }
+
+    public advertisingDiagnostics() { return this.advertising.diagnostics(); }
+    public setAdvertisingMatchMessage(message: string): void { this.advertisingMatchMessage = message; }
 
     public diagnostics(playerId: string | null): FuturebolPlayerVisualDiagnostics & {
         assetLoaded: boolean;

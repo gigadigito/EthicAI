@@ -3,6 +3,7 @@ import { FuturebolCameraDirector } from "./futurebol-camera-director.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260907-camera-market-bubble-v1";
 import { FuturebolPlayerMarketBubble } from "./futurebol-player-market-bubble.js";
+import { FuturebolLedAdvertising } from "./futurebol-led-advertising.js";
 import { resolvePlayerVisualKind } from "./player/futurebol-animation-map.js";
 import { FuturebolPlayerVisualFactory } from "./player/futurebol-player-visual-factory.js";
 export class FuturebolRenderer {
@@ -44,6 +45,7 @@ export class FuturebolRenderer {
         this.field = this.createField();
         this.directionalLight = this.createLights();
         this.arena = new FuturebolArenaRuntime(B, this.scene, quality);
+        this.advertising = new FuturebolLedAdvertising(B, this.scene, teams, quality, reducedMotion);
         this.createGoals();
         this.createMarkings();
         this.ball = this.createBall();
@@ -91,6 +93,8 @@ export class FuturebolRenderer {
         this.updatePossessionIndicator(players, ballOwnerId, deltaSeconds);
         this.updateMarketBubble(players, ballOwnerId, homeAsset, awayAsset, deltaSeconds);
         this.updateBallEffects(ballPosition, phase, deltaSeconds);
+        this.advertising.update(deltaSeconds, { home: homeAsset, away: awayAsset,
+            locale: document.documentElement.lang, matchMessage: this.advertisingMatchMessage });
         this.updateGoalFlash(phase, activeTeam, outcome, deltaSeconds);
         // Compute camera director output
         let directorOutput = null;
@@ -104,6 +108,7 @@ export class FuturebolRenderer {
         this.camera.setFixed(value);
     }
     resetPlayers() {
+        this.advertising.reset();
         for (const visual of this.playerVisuals.values())
             visual.reset();
         this.possessionRing.setEnabled(false);
@@ -129,6 +134,7 @@ export class FuturebolRenderer {
     applyQuality(quality) {
         this.quality = quality;
         this.arena?.setQuality(quality);
+        this.advertising?.setQuality(quality);
         for (const visual of this.playerVisuals.values())
             visual.setQuality(quality);
         const scaling = quality === "Low" ? 1.5 : quality === "High" ? 0.82 : 1;
@@ -179,9 +185,12 @@ export class FuturebolRenderer {
         this.netMeshes.length = 0;
         this.shadowGenerator?.dispose();
         this.marketBubble?.dispose();
+        this.advertising.dispose();
         this.scene.dispose();
         this.engine.dispose();
     }
+    advertisingDiagnostics() { return this.advertising.diagnostics(); }
+    setAdvertisingMatchMessage(message) { this.advertisingMatchMessage = message; }
     diagnostics(playerId) {
         const visual = (playerId ? this.playerVisuals.get(playerId) : null) ?? this.playerVisuals.values().next().value;
         const details = visual?.diagnostics() ?? { kind: this.activeVisualKind, skeletonCount: 0, currentAnimation: null, requestedAnimation: null };

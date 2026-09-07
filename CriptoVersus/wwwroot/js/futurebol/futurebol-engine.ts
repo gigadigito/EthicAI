@@ -3,7 +3,7 @@ import type { FuturebolMatchState as FuturebolMatchStateContract } from "./futur
 import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260907-camera-market-bubble-v1";
 import type { FuturebolRenderer as FuturebolRendererContract } from "./futurebol-renderer.js";
 // @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
-import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260907-camera-market-bubble-v1";
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260907-led-v1";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import type {
     FuturebolDotNetReference,
@@ -92,6 +92,7 @@ export class FuturebolEngine {
             this.reducedMotion
         );
         this.marketSource = createFuturebolMarketSource(options);
+        if (initialOfficialState) this.renderer.setAdvertisingMatchMessage(initialOfficialState.status);
         this.renderFrame = () => this.render();
         this.resizeHandler = () => this.renderer.resize();
     }
@@ -252,6 +253,7 @@ export class FuturebolEngine {
     }
 
     public pushOfficialMatchState(state: FuturebolOfficialMatchState): void {
+        this.renderer.setAdvertisingMatchMessage(state.status);
         const events = state.scoreEvents?.length ?? 0;
         console.info("[Futurebol][Bootstrap][Update]", {
             historyReady: state.initialHistoryReady ?? false,
@@ -284,6 +286,7 @@ export class FuturebolEngine {
     private changeMatch(presentation: FuturebolMatchPresentationState): void {
         const previousMatchId = this.options.matchId;
         this.presentationState = presentation;
+        this.renderer.setAdvertisingMatchMessage(presentation.official.status);
         this.options.matchId = presentation.matchId;
         this.options.homeSymbol = presentation.homeTeam.symbol;
         this.options.awaySymbol = presentation.awayTeam.symbol;
@@ -486,6 +489,7 @@ export class FuturebolEngine {
     }
 
     private updateMatchHud(): void {
+        this.setText("futurebol-debug-led", JSON.stringify(this.renderer.advertisingDiagnostics()));
         this.updateReplayHud();
         this.setText("futurebol-debug-phase", this.state.currentPlayPhase);
         this.setText("futurebol-debug-owner", displayPlayer(this.state.currentBallOwnerId, this.teams.home.symbol, this.teams.away.symbol));

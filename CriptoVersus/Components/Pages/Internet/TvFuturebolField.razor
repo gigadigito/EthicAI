@@ -137,7 +137,7 @@
                 var importTimer = Stopwatch.StartNew();
                 _module = await JS.InvokeAsync<IJSObjectReference>(
                     "import",
-                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260907-camera-market-bubble-v1");
+                    "/js/dist/futurebol/futurebol-bootstrap.js?v=20260907-led-v1");
                 await _module.InvokeVoidAsync("reportBootstrapImport", importTimer.Elapsed.TotalMilliseconds);
             }
             _dotNetReference ??= DotNetObjectReference.Create(this);

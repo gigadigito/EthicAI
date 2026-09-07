@@ -10,8 +10,14 @@ class TestEngine extends B.NullEngine {
     }
 }
 
+// NullEngine has no browser Canvas2D; this test covers player quality, not LED rasterization.
+class TestDynamicTexture {
+    dispose() {}
+}
+
 const testBabylon = new Proxy(B, {
     get(target, property) {
+        if (property === "DynamicTexture") return TestDynamicTexture;
         return property === "Engine" ? TestEngine : target[property];
     }
 });

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const futurebolRoot = fileURLToPath(new URL("..", import.meta.url));
 const projectRoot = fileURLToPath(new URL("../../../../", import.meta.url));
-const stage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStage.razor`, "utf8");
+const stage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvStage.razor`, "utf8").replace(/\r\n/g, "\n");
 const host = readFileSync(`${projectRoot}/Components/Pages/Internet/TvFuturebolField.razor`, "utf8");
 const hostCss = readFileSync(`${projectRoot}/Components/Pages/Internet/TvFuturebolField.razor.css`, "utf8");
 const matchPage = readFileSync(`${projectRoot}/Components/Pages/Internet/TvMatchPage.razor`, "utf8");
@@ -113,10 +113,10 @@ assert.ok(logoUrlResolver.includes('ProxyRoutePrefix = "/futurebol/team-logo/"')
 assert.ok(webProgram.includes('app.MapGet("/futurebol/team-logo/{symbol}"'), "the Web host must expose the same-origin logo proxy");
 
 assert.ok(bootstrap.includes("const instances = new Map<string, FuturebolEngineContract>()"));
-assert.ok(bootstrap.includes('futurebol-engine.js?v=20260822-official-goal-field-1'), "the cache-busted entry must also version its engine dependency");
-assert.ok(engine.includes('futurebol-match-state.js?v=20260822-official-goal-field-1'), "the replay state machine must cross the same cache boundary as the engine");
-assert.ok(engine.includes('futurebol-renderer.js?v=20260822-official-goal-field-1'), "the engine must force the current renderer through stale module caches");
-assert.ok(renderer.includes('futurebol-arena.js?v=20260822-official-goal-field-1'), "the renderer must force the real arena builder through stale module caches");
+assert.ok(bootstrap.includes('futurebol-engine.js?v=20260907-led-v1'), "the cache-busted entry must also version its engine dependency");
+assert.ok(engine.includes('futurebol-match-state.js?v=20260907-camera-market-bubble-v1'), "the unchanged replay state machine must retain its current cache boundary");
+assert.ok(engine.includes('futurebol-renderer.js?v=20260907-led-v1'), "the engine must force the current renderer through stale module caches");
+assert.ok(renderer.includes('futurebol-arena.js?v=20260907-camera-market-bubble-v1'), "the unchanged arena builder must retain its current cache boundary");
 assert.ok(bootstrap.includes("[FUTUREBOL-TV] canvas found"));
 assert.ok(bootstrap.includes("[FUTUREBOL-TV][READY] initialize success"));
 assert.ok(bootstrap.includes("let preloadPromise: Promise<void> | null = null"), "page preload must be idempotent");

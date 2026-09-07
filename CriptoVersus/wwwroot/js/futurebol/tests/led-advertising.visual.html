@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt"><meta charset="utf-8"><title>Futurebol LED — visual regression</title>
+<style>body{margin:0;background:#030b14;color:#fff;font:14px Arial}header{padding:8px;display:flex;gap:12px}button,select{padding:5px}#stage{position:relative;width:100vw;height:82vh}canvas{width:100%;height:100%;display:block}pre{white-space:pre-wrap}</style>
+<header>Futurebol LED / local mock
+<select id="quality"><option>High</option><option selected>Medium</option><option>Low</option></select>
+<select id="camera"><option>Auto</option><option>Broadcast</option><option>Attack</option><option>ShotTracking</option><option>GoalCelebration</option></select>
+<button id="shot">Chute HOME</button><button id="goal">Gol HOME</button><button id="mobile">Mobile</button>
+<button id="dispose">Dispose</button></header>
+<div id="stage"><canvas id="field"></canvas></div><pre id="status">Carregando…</pre>
+<script type="module">
+import { acquireBabylon } from '/js/dist/futurebol/futurebol-babylon-loader.js';
+import { FuturebolEngine } from '/js/dist/futurebol/futurebol-engine.js?v=20260907-led-v1';
+const B = await acquireBabylon();
+const options = {dataMode:'mock',homeSymbol:'BTC',awaySymbol:'ETH',homeLogoUrl:'/favicon-32x32.png',awayLogoUrl:null,
+ matchId:null,initialMarketSnapshot:null,initialOfficialState:null,initialPresentationState:null,dataError:null,
+ seed:'led-visual-v1',quality:'Medium',development:false,simulateWebGlFailure:false,simulatePlayerAssetFailure:false,
+ playerVisual:'Auto',presentationMode:'lab',hudRootId:null};
+const engine = new FuturebolEngine(B, document.querySelector('canvas'), options, {invokeMethodAsync:async()=>{}});
+await engine.initialize();
+const cameraInput = engine.buildCameraDirectorInput.bind(engine);
+engine.buildCameraDirectorInput = () => {
+ const input = cameraInput();
+ const mode = document.querySelector('#camera').value;
+ if (mode === 'Auto') return input;
+ return {...input,phase:{Broadcast:'Neutral',Attack:'Attacking',ShotTracking:'Shooting',GoalCelebration:'Outcome'}[mode],
+  activeTeam:'home',phaseElapsed:0,outcome:mode==='GoalCelebration'?'Goal':null,lastShooterId:'home-attacker',
+  ballPosition:{x:mode==='Broadcast'?0:16,y:.55,z:0},ballVelocity:{x:0,y:0,z:0}};
+};
+document.querySelector('#quality').onchange = event => engine.setQuality(event.target.value);
+document.querySelector('#shot').onclick = () => engine.forceShot('home');
+document.querySelector('#goal').onclick = () => engine.forceOutcome('Goal');
+document.querySelector('#mobile').onclick = () => {const stage = document.querySelector('#stage');stage.style.width = stage.style.width ? '' : '390px';};
+document.querySelector('#dispose').onclick = () => {engine.dispose();document.querySelector('#status').textContent='Disposed';};
+// Test fixture diagnostics only; no production DOM or gameplay hooks are added.
+const status = document.querySelector('#status');
+const observer = engine.renderer.scene.onAfterRenderObservable.add(() => {
+ status.textContent = JSON.stringify({phase:engine.state.currentPlayPhase,camera:engine.renderer.cameraDirector.currentMode, led:engine.renderer.advertisingDiagnostics(),fps:Math.round(engine.renderer.engine.getFps())});
+});
+window.addEventListener('pagehide',()=>engine.dispose(),{once:true});
+</script></html>

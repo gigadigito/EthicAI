@@ -1,6 +1,6 @@
 import { acquireBabylon, preloadBabylonRuntime, releaseBabylon } from "./futurebol-babylon-loader.js";
 // @ts-ignore Browser module queries are intentional: the Web host does not fingerprint nested ESM imports.
-import { FuturebolEngine as FuturebolEngineRuntime } from "./futurebol-engine.js?v=20260907-camera-market-bubble-v1";
+import { FuturebolEngine as FuturebolEngineRuntime } from "./futurebol-engine.js?v=20260907-led-v1";
 import { FUTUREBOL_PLAYER_ASSET } from "./player/futurebol-animation-map.js";
 const instances = new Map();
 const playerAssetUrl = `${FUTUREBOL_PLAYER_ASSET.rootUrl}${FUTUREBOL_PLAYER_ASSET.fileName}`;
