@@ -146,6 +146,9 @@ export class FuturebolMatchState {
             ? this.currentOutcome
             : null;
     }
+    getPhaseElapsed() {
+        return this.phaseElapsed;
+    }
     constructor(seed = "futurebol-demo-001", officialMode = false) {
         this.officialMode = officialMode;
         this.ballPosition = point(0, BALL_GROUND_Y, 0);

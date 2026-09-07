@@ -290,7 +290,7 @@ export class FuturebolEngine {
                 replayAwayScore !== this.state.displayAwayScore) {
                 this.updateReplayHud();
             }
-            this.renderer.update(this.state.players, this.state.ballPosition, this.state.pressure, this.state.currentPlayPhase, this.state.activeTeam, this.state.currentBallOwnerId, this.state.lastPlayOutcome, this.paused ? 0 : deltaSeconds);
+            this.renderer.update(this.state.players, this.state.ballPosition, this.state.ballVelocity, this.state.pressure, this.state.currentPlayPhase, this.state.activeTeam, this.state.currentBallOwnerId, this.state.lastPlayOutcome, this.paused ? 0 : deltaSeconds, this.buildCameraDirectorInput());
             this.renderer.scene.render();
             if (this.firstFrameResolve) {
                 const resolve = this.firstFrameResolve;
@@ -442,6 +442,33 @@ export class FuturebolEngine {
     }
     updatePauseStatus(paused) {
         this.setText("futurebol-a11y-status", paused ? "Simulação pausada." : "Simulação retomada.");
+    }
+    /**
+     * Build camera director input from current match state.
+     */
+    buildCameraDirectorInput() {
+        const diagnostics = this.state.diagnostics();
+        const gkDiagnostics = diagnostics.goalkeeperAI;
+        return {
+            phase: this.state.currentPlayPhase,
+            outcome: this.state.lastPlayOutcome,
+            activeTeam: this.state.activeTeam,
+            ballPosition: this.state.ballPosition,
+            ballVelocity: this.state.ballVelocity,
+            ballOwnerId: this.state.currentBallOwnerId,
+            lastShooterId: this.state.lastBallOwnerId,
+            players: this.state.players,
+            pressure: this.state.pressure,
+            quality: this.options.quality,
+            reducedMotion: this.reducedMotion,
+            phaseElapsed: this.state.getPhaseElapsed(),
+            goalHoldDuration: 1.65,
+            saveHoldDuration: 1.15,
+            goalkeeperIntent: gkDiagnostics?.intent ?? null,
+            goalkeeperDiveDirection: gkDiagnostics ? gkDiagnostics.expectedDive : null,
+            shotPower: diagnostics.shotProfile?.power ?? null,
+            shotOrdinal: diagnostics.shotOrdinal
+        };
     }
     reportFatal(error) {
         if (this.fatalReported)

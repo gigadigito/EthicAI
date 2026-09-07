@@ -1,5 +1,7 @@
 import type { AbstractMesh, DirectionalLight, Engine, Mesh, Scene, ShadowGenerator, StandardMaterial } from "babylonjs";
 import { FuturebolCamera } from "./futurebol-camera.js";
+import { FuturebolCameraDirector } from "./futurebol-camera-director.js";
+import type { CameraDirectorInput, CameraModeOutput } from "./futurebol-camera-director.js";
 import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260822-official-goal-field-1";
@@ -27,6 +29,7 @@ export class FuturebolRenderer {
     public readonly engine: Engine;
     public readonly scene: Scene;
     private readonly camera: FuturebolCamera;
+    private readonly cameraDirector: FuturebolCameraDirector;
     private playerVisuals = new Map<string, FuturebolPlayerVisual>();
     private readonly netMeshes: AbstractMesh[] = [];
     private readonly field: Mesh;
@@ -76,6 +79,7 @@ export class FuturebolRenderer {
         this.scene.ambientColor = new B.Color3(0.18, 0.22, 0.3);
 
         this.camera = new FuturebolCamera(B, this.scene, reducedMotion);
+        this.cameraDirector = new FuturebolCameraDirector();
         this.field = this.createField();
         this.directionalLight = this.createLights();
         this.arena = new FuturebolArenaRuntime(B, this.scene, quality) as FuturebolArenaContract;
@@ -128,12 +132,14 @@ export class FuturebolRenderer {
     public update(
         players: FuturebolPlayerState[],
         ballPosition: FuturebolVector3State,
+        ballVelocity: FuturebolVector3State,
         pressure: number,
         phase: FuturebolPlayPhase,
         activeTeam: FuturebolTeam | null,
         ballOwnerId: string | null,
         outcome: FuturebolPlayOutcome | null,
-        deltaSeconds: number
+        deltaSeconds: number,
+        directorInput: CameraDirectorInput | null = null
     ): void {
         for (const player of players) {
             const visual = this.playerVisuals.get(player.id);
@@ -150,7 +156,15 @@ export class FuturebolRenderer {
         this.updatePossessionIndicator(players, ballOwnerId, deltaSeconds);
         this.updateBallEffects(ballPosition, phase, deltaSeconds);
         this.updateGoalFlash(phase, activeTeam, outcome, deltaSeconds);
-        this.camera.update(ballPosition, pressure, phase, activeTeam, deltaSeconds);
+
+        // Compute camera director output
+        let directorOutput: CameraModeOutput | null = null;
+        if (directorInput) {
+            this.cameraDirector.updateDelta(deltaSeconds);
+            directorOutput = this.cameraDirector.compute(directorInput);
+        }
+
+        this.camera.update(ballPosition, pressure, phase, activeTeam, deltaSeconds, directorOutput);
     }
 
     public setFixedCamera(value: boolean): void {
@@ -169,6 +183,15 @@ export class FuturebolRenderer {
 
         for (const trail of this.ballTrail)
             trail.setEnabled(false);
+
+        this.cameraDirector.reset();
+    }
+
+    /**
+     * Returns camera director diagnostics for the lab HUD.
+     */
+    public cameraDirectorDiagnostics(): CameraModeOutput["diagnostics"] | null {
+        return null; // Diagnostics are computed each frame and returned in update
     }
 
     public reconfigureTeams(teams: FuturebolTeamVisualConfigurationMap): void {

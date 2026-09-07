@@ -15,6 +15,7 @@ export class FuturebolCamera {
         this.initialized = false;
         this.smoothedBallVelocityX = 0;
         this.smoothedBallVelocityZ = 0;
+        this.shakeTime = 0;
         this.camera = new B.FreeCamera("futurebol-broadcast-camera", new B.Vector3(0, 20.8, -31.5), scene);
         this.camera.fov = 0.75;
         this.camera.minZ = 0.2;
@@ -30,12 +31,21 @@ export class FuturebolCamera {
             ? this.B.Camera.FOVMODE_HORIZONTAL_FIXED
             : this.B.Camera.FOVMODE_VERTICAL_FIXED;
     }
-    update(ball, pressure, phase, activeTeam, deltaSeconds) {
+    /**
+     * Update camera using the director's output for cinematic positioning.
+     *
+     * When a directorOutput is provided, the camera uses the director's
+     * targets instead of the simple phase-based mapping. The blending
+     * and dead zone logic remain the same for smooth transitions.
+     */
+    update(ball, pressure, phase, activeTeam, deltaSeconds, directorOutput = null) {
         const safeDelta = clamp(deltaSeconds, 0, 0.1);
         this.updateBallVelocity(ball, safeDelta);
         const shot = this.fixed
             ? this.fixedBroadcastShot()
-            : this.resolveBroadcastShot(ball, pressure, phase, activeTeam);
+            : directorOutput
+                ? this.directorToBroadcastShot(directorOutput)
+                : this.resolveBroadcastShot(ball, pressure, phase, activeTeam);
         const response = this.reducedMotion
             ? Math.min(shot.responsiveness, 0.62)
             : shot.responsiveness;
@@ -49,6 +59,18 @@ export class FuturebolCamera {
         this.target.x = dampWithDeadZone(this.target.x, shot.targetX, blend, 0.025);
         this.target.y = lerp(this.target.y, shot.targetY, blend);
         this.target.z = dampWithDeadZone(this.target.z, shot.targetZ, blend, 0.025);
+        // Apply camera shake if present
+        if (directorOutput?.shake && !this.reducedMotion) {
+            const shake = directorOutput.shake;
+            const shakeX = Math.sin(this.shakeTime * shake.frequency) * shake.intensity;
+            const shakeY = Math.cos(this.shakeTime * shake.frequency * 1.3) * shake.intensity * 0.5;
+            this.camera.position.x += shakeX;
+            this.camera.position.y += shakeY;
+            this.shakeTime += safeDelta;
+        }
+        else {
+            this.shakeTime = 0;
+        }
         this.camera.setTarget(this.target);
         copyPoint(this.previousBall, ball);
         this.initialized = true;
@@ -156,6 +178,53 @@ export class FuturebolCamera {
             fov: 0.78,
             responsiveness: 1.05
         };
+    }
+    /**
+     * Convert director output to a BroadcastShot for the existing blending system.
+     *
+     * The director provides absolute targets. We map them to the existing
+     * BroadcastShot format with appropriate responsiveness based on mode.
+     */
+    directorToBroadcastShot(director) {
+        const responsiveness = this.getResponsivenessForMode(director.mode);
+        return {
+            positionX: director.positionX,
+            positionY: director.positionY,
+            positionZ: director.positionZ,
+            targetX: director.targetX,
+            targetY: director.targetY,
+            targetZ: director.targetZ,
+            fov: director.fov,
+            responsiveness
+        };
+    }
+    /**
+     * Map camera modes to blending responsiveness.
+     *
+     * Faster modes (GoalCelebration, ShotTracking) blend quicker.
+     * Slower modes (Broadcast, Recovery) blend slower.
+     */
+    getResponsivenessForMode(mode) {
+        switch (mode) {
+            case "GoalCelebration":
+                return 2.2;
+            case "GoalkeeperSave":
+            case "Parry":
+                return 1.9;
+            case "ShotTracking":
+                return 2.0;
+            case "ShotPreparation":
+                return 1.8;
+            case "Attack":
+                return 1.45;
+            case "BuildUp":
+                return 1.15;
+            case "Recovery":
+                return 0.95;
+            case "Broadcast":
+            default:
+                return 0.9;
+        }
     }
     updateBallVelocity(ball, deltaSeconds) {
         if (!this.initialized || deltaSeconds <= 0) {

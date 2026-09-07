@@ -4,6 +4,7 @@ import type {
     FuturebolTeam,
     FuturebolVector3State
 } from "./futurebol-types.js";
+import type { CameraModeOutput } from "./futurebol-camera-director.js";
 
 type BabylonApi = typeof import("babylonjs");
 
@@ -35,6 +36,7 @@ export class FuturebolCamera {
     private initialized = false;
     private smoothedBallVelocityX = 0;
     private smoothedBallVelocityZ = 0;
+    private shakeTime = 0;
 
     public constructor(
         private readonly B: BabylonApi,
@@ -64,19 +66,29 @@ export class FuturebolCamera {
             : this.B.Camera.FOVMODE_VERTICAL_FIXED;
     }
 
+    /**
+     * Update camera using the director's output for cinematic positioning.
+     *
+     * When a directorOutput is provided, the camera uses the director's
+     * targets instead of the simple phase-based mapping. The blending
+     * and dead zone logic remain the same for smooth transitions.
+     */
     public update(
         ball: FuturebolVector3State,
         pressure: number,
         phase: FuturebolPlayPhase,
         activeTeam: FuturebolTeam | null,
-        deltaSeconds: number
+        deltaSeconds: number,
+        directorOutput: CameraModeOutput | null = null
     ): void {
         const safeDelta = clamp(deltaSeconds, 0, 0.1);
         this.updateBallVelocity(ball, safeDelta);
 
         const shot = this.fixed
             ? this.fixedBroadcastShot()
-            : this.resolveBroadcastShot(ball, pressure, phase, activeTeam);
+            : directorOutput
+                ? this.directorToBroadcastShot(directorOutput)
+                : this.resolveBroadcastShot(ball, pressure, phase, activeTeam);
 
         const response = this.reducedMotion
             ? Math.min(shot.responsiveness, 0.62)
@@ -120,6 +132,18 @@ export class FuturebolCamera {
             blend,
             0.025
         );
+
+        // Apply camera shake if present
+        if (directorOutput?.shake && !this.reducedMotion) {
+            const shake = directorOutput.shake;
+            const shakeX = Math.sin(this.shakeTime * shake.frequency) * shake.intensity;
+            const shakeY = Math.cos(this.shakeTime * shake.frequency * 1.3) * shake.intensity * 0.5;
+            this.camera.position.x += shakeX;
+            this.camera.position.y += shakeY;
+            this.shakeTime += safeDelta;
+        } else {
+            this.shakeTime = 0;
+        }
 
         this.camera.setTarget(this.target);
         copyPoint(this.previousBall, ball);
@@ -243,6 +267,63 @@ export class FuturebolCamera {
             fov: 0.78,
             responsiveness: 1.05
         };
+    }
+
+    /**
+     * Convert director output to a BroadcastShot for the existing blending system.
+     *
+     * The director provides absolute targets. We map them to the existing
+     * BroadcastShot format with appropriate responsiveness based on mode.
+     */
+    private directorToBroadcastShot(director: CameraModeOutput): BroadcastShot {
+        const responsiveness = this.getResponsivenessForMode(director.mode);
+
+        return {
+            positionX: director.positionX,
+            positionY: director.positionY,
+            positionZ: director.positionZ,
+            targetX: director.targetX,
+            targetY: director.targetY,
+            targetZ: director.targetZ,
+            fov: director.fov,
+            responsiveness
+        };
+    }
+
+    /**
+     * Map camera modes to blending responsiveness.
+     *
+     * Faster modes (GoalCelebration, ShotTracking) blend quicker.
+     * Slower modes (Broadcast, Recovery) blend slower.
+     */
+    private getResponsivenessForMode(mode: string): number {
+        switch (mode) {
+            case "GoalCelebration":
+                return 2.2;
+
+            case "GoalkeeperSave":
+            case "Parry":
+                return 1.9;
+
+            case "ShotTracking":
+                return 2.0;
+
+            case "ShotPreparation":
+                return 1.8;
+
+            case "Attack":
+                return 1.45;
+
+            case "BuildUp":
+                return 1.15;
+
+            case "Recovery":
+                return 0.95;
+
+            case "Broadcast":
+            default:
+                return 0.9;
+        }
     }
 
     private updateBallVelocity(

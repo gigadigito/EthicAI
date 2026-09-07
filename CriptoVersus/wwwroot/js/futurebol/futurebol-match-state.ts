@@ -330,6 +330,10 @@ export class FuturebolMatchState {
             : null;
     }
 
+    public getPhaseElapsed(): number {
+        return this.phaseElapsed;
+    }
+
     private readonly seedHash: number;
     private localHomeScore = 0;
     private localAwayScore = 0;

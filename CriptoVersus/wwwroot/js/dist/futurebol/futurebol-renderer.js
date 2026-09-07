@@ -1,4 +1,5 @@
 import { FuturebolCamera } from "./futurebol-camera.js";
+import { FuturebolCameraDirector } from "./futurebol-camera-director.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
 import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260822-official-goal-field-1";
 import { resolvePlayerVisualKind } from "./player/futurebol-animation-map.js";
@@ -37,6 +38,7 @@ export class FuturebolRenderer {
         this.scene.clearColor = new B.Color4(0.024, 0.041, 0.082, 1);
         this.scene.ambientColor = new B.Color3(0.18, 0.22, 0.3);
         this.camera = new FuturebolCamera(B, this.scene, reducedMotion);
+        this.cameraDirector = new FuturebolCameraDirector();
         this.field = this.createField();
         this.directionalLight = this.createLights();
         this.arena = new FuturebolArenaRuntime(B, this.scene, quality);
@@ -69,7 +71,7 @@ export class FuturebolRenderer {
         if (expectedKind !== this.activeVisualKind || this.fallbackActive)
             await this.switchPlayerVisuals(players, false);
     }
-    update(players, ballPosition, pressure, phase, activeTeam, ballOwnerId, outcome, deltaSeconds) {
+    update(players, ballPosition, ballVelocity, pressure, phase, activeTeam, ballOwnerId, outcome, deltaSeconds, directorInput = null) {
         for (const player of players) {
             const visual = this.playerVisuals.get(player.id);
             if (!visual)
@@ -82,7 +84,13 @@ export class FuturebolRenderer {
         this.updatePossessionIndicator(players, ballOwnerId, deltaSeconds);
         this.updateBallEffects(ballPosition, phase, deltaSeconds);
         this.updateGoalFlash(phase, activeTeam, outcome, deltaSeconds);
-        this.camera.update(ballPosition, pressure, phase, activeTeam, deltaSeconds);
+        // Compute camera director output
+        let directorOutput = null;
+        if (directorInput) {
+            this.cameraDirector.updateDelta(deltaSeconds);
+            directorOutput = this.cameraDirector.compute(directorInput);
+        }
+        this.camera.update(ballPosition, pressure, phase, activeTeam, deltaSeconds, directorOutput);
     }
     setFixedCamera(value) {
         this.camera.setFixed(value);
@@ -97,6 +105,13 @@ export class FuturebolRenderer {
         this.trailSampleElapsed = 0;
         for (const trail of this.ballTrail)
             trail.setEnabled(false);
+        this.cameraDirector.reset();
+    }
+    /**
+     * Returns camera director diagnostics for the lab HUD.
+     */
+    cameraDirectorDiagnostics() {
+        return null; // Diagnostics are computed each frame and returned in update
     }
     reconfigureTeams(teams) {
         Object.assign(this.teams.home, teams.home);
