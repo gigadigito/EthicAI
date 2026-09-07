@@ -3,8 +3,10 @@ import type {
     FuturebolAction,
     FuturebolActionCompletionContext
 } from "./futurebol-action-types.js";
+import type { FuturebolTeam } from "./futurebol-types.js";
 import type { FuturebolActionResult } from "./futurebol-possession-types.js";
 import { MAX_SCENARIO_BRANCHES } from "./futurebol-possession-types.js";
+import { isPlayerAction, isBallAction, isTeamAction } from "./futurebol-action-types.js";
 
 const ACTION_TIMEOUT_SECONDS = 6;
 
@@ -53,6 +55,38 @@ export class ActionController {
 
     public get currentBranchCount(): number {
         return this.branchCount;
+    }
+
+    public isPlayerControlled(playerId: string): boolean {
+        if (!this.scenario) return false;
+        if (this.actionIndex < this.scenario.actions.length) {
+            if (this.isActionControllingPlayer(this.scenario.actions[this.actionIndex], playerId))
+                return true;
+        }
+        if (this.isImminentNextAction()) {
+            const next = this.scenario.actions[this.actionIndex + 1];
+            if (this.isActionControllingPlayer(next, playerId))
+                return true;
+        }
+        return false;
+    }
+
+    public getControlledPlayerIds(): Set<string> {
+        const controlled = new Set<string>();
+        if (!this.scenario) return controlled;
+        if (this.actionIndex < this.scenario.actions.length) {
+            this.collectControlledIds(this.scenario.actions[this.actionIndex], controlled);
+        }
+        if (this.isImminentNextAction()) {
+            this.collectControlledIds(this.scenario.actions[this.actionIndex + 1], controlled);
+        }
+        return controlled;
+    }
+
+    private isImminentNextAction(): boolean {
+        if (!this.scenario) return false;
+        if (this.actionIndex + 1 >= this.scenario.actions.length) return false;
+        return this.actionProgress >= 0.7;
     }
 
     public startScenario(scenario: FootballScenario): void {
@@ -184,6 +218,24 @@ export class ActionController {
 
             default:
                 return "Pending";
+        }
+    }
+
+    private isActionControllingPlayer(action: FuturebolAction, playerId: string): boolean {
+        if (isPlayerAction(action)) {
+            return action.playerId === playerId;
+        }
+        if (isBallAction(action)) {
+            return action.targetPlayerId === playerId;
+        }
+        return false;
+    }
+
+    private collectControlledIds(action: FuturebolAction, controlled: Set<string>): void {
+        if (isPlayerAction(action) && action.playerId) {
+            controlled.add(action.playerId);
+        } else if (isBallAction(action) && action.targetPlayerId) {
+            controlled.add(action.targetPlayerId);
         }
     }
 }

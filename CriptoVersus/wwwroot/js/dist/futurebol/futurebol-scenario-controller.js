@@ -102,7 +102,8 @@ function createDirectAttack(attackingTeam, outcome, seed, playIndex) {
         type: "DirectAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "AttackBox", defender: "Support" }
     };
 }
 function createGiveAndGo(attackingTeam, outcome, seed, playIndex) {
@@ -154,7 +155,8 @@ function createGiveAndGo(attackingTeam, outcome, seed, playIndex) {
         type: "GiveAndGo",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "RunInBehind", defender: "Support" }
     };
 }
 function createCounterAttack(attackingTeam, outcome, seed, playIndex) {
@@ -197,7 +199,8 @@ function createCounterAttack(attackingTeam, outcome, seed, playIndex) {
         type: "CounterAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "RunInBehind", defender: "PushForward" }
     };
 }
 function createThroughBall(attackingTeam, outcome, seed, playIndex) {
@@ -242,7 +245,8 @@ function createThroughBall(attackingTeam, outcome, seed, playIndex) {
         type: "ThroughBall",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "RunInBehind", defender: "Support" }
     };
 }
 function createWingAttack(attackingTeam, outcome, seed, playIndex) {
@@ -289,7 +293,8 @@ function createWingAttack(attackingTeam, outcome, seed, playIndex) {
         type: "WingAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "DriftWide", defender: "DriftWide" }
     };
 }
 function createLongShot(attackingTeam, outcome, seed, playIndex) {
@@ -333,7 +338,8 @@ function createLongShot(attackingTeam, outcome, seed, playIndex) {
         type: "LongShot",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "HoldPosition", defender: "Support" }
     };
 }
 function createPressureAttack(attackingTeam, outcome, seed, playIndex) {
@@ -372,7 +378,8 @@ function createPressureAttack(attackingTeam, outcome, seed, playIndex) {
         type: "PressureAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "AttackBox", defender: "PushForward" }
     };
 }
 export class FuturebolScenarioController {

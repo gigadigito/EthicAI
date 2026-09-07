@@ -31,6 +31,7 @@ import type {
 } from "./futurebol-action-types.js";
 import type { ActionControllerDiagnostics } from "./futurebol-action-controller.js";
 import { isPlayerAction, isBallAction, isTeamAction } from "./futurebol-action-types.js";
+import type { FuturebolAttackingStyle, FuturebolScenarioType } from "./futurebol-action-types.js";
 import type {
     FuturebolActionResult,
     FuturebolInterceptionPlan,
@@ -38,6 +39,10 @@ import type {
     FuturebolPendingBranch,
     FuturebolRequiredOutcome
 } from "./futurebol-possession-types.js";
+import { FuturebolTeamBehavior } from "./futurebol-team-behavior.js";
+import type { TeamBehaviorContext } from "./futurebol-team-behavior.js";
+import { GoalkeeperAI } from "./futurebol-goalkeeper-ai.js";
+import type { GoalkeeperContext, GoalkeeperIntentOutput } from "./futurebol-goalkeeper-ai.js";
 import { buildInterceptionPlan } from "./futurebol-interception.js";
 import { evaluateParry } from "./futurebol-interception.js";
 import { selectShotProfile, computeShotTarget, computeGoalkeeperDiveTarget } from "./futurebol-shot-variation.js";
@@ -113,6 +118,16 @@ export interface MatchStateDiagnostics {
     readonly shotOrdinal: number;
     readonly branchCount: number;
     readonly looseBallElapsed: number;
+    readonly goalkeeperAI: {
+        readonly intent: string;
+        readonly owner: string;
+        readonly ballAngle: number;
+        readonly targetOffset: number;
+        readonly reactionDelay: number;
+        readonly shotSide: string;
+        readonly expectedDive: string;
+        readonly depthRatio: number;
+    } | null;
 }
 
 const FIELD_HALF_LENGTH = 23;
@@ -341,7 +356,11 @@ export class FuturebolMatchState {
     private readonly ballController = new FuturebolBallController(this.ballPosition);
     public readonly actionController = new ActionController();
     public readonly scenarioController = new FuturebolScenarioController();
+    private readonly teamBehavior = new FuturebolTeamBehavior();
+    private readonly goalkeeperAI = new GoalkeeperAI();
+    private lastGoalkeeperDiagnostics: GoalkeeperIntentOutput | null = null;
     private activeScenario: FootballScenario | null = null;
+    private directorStyle: FuturebolAttackingStyle = "Balanced";
     private readonly passStart = point(0, BALL_GROUND_Y, 0);
     private readonly passEnd = point(0, BALL_GROUND_Y, 0);
     private readonly shotStart = point(0, BALL_GROUND_Y, 0);
@@ -653,6 +672,10 @@ export class FuturebolMatchState {
         this.actionController.cancel();
         this.scenarioController.reset();
         this.activeScenario = null;
+        this.directorStyle = "Balanced";
+        this.teamBehavior.reset();
+        this.goalkeeperAI.reset();
+        this.lastGoalkeeperDiagnostics = null;
         this.lastBallAction = null;
         this.lastRestartType = null;
         this.pendingOutcome = null;
@@ -1186,109 +1209,64 @@ export class FuturebolMatchState {
     private applyCollectiveBehavior(): void {
         if (!this.activeTeam || !this.activeScenario) return;
 
-        const attackingTeam = this.activeTeam;
-        const defendingTeam = attackingTeam === "home" ? "away" : "home";
-        const dir = attackDirection(attackingTeam);
-        const ballX = this.ballPosition.x;
-        const ballZ = this.ballPosition.z;
-        const ballOwner = this.currentBallOwnerId
-            ? this.getPlayer(this.currentBallOwnerId)
-            : null;
+        const controlledIds = this.actionController.getControlledPlayerIds();
+
+        const scenario = this.activeScenario.type as import("./futurebol-action-types.js").FuturebolScenarioType;
+        const behaviorCtx: TeamBehaviorContext = {
+            attackingTeam: this.activeTeam,
+            style: this.directorStyle,
+            scenario,
+            phase: this.currentPlayPhase,
+            ballPosition: this.ballPosition,
+            ballOwnerId: this.currentBallOwnerId,
+            phaseElapsed: this.phaseElapsed,
+            seed: this.seedHash,
+            playIndex: this.playIndex,
+            behaviorHints: this.activeScenario.behaviorHints
+        };
 
         for (const player of this.players) {
-            if (player.role === "goalkeeper") {
-                this.applyGoalkeeperTracking(player, ballZ, ballX);
-                continue;
-            }
+            if (controlledIds.has(player.id)) continue;
+            if (player.role === "goalkeeper") continue;
 
-            const isAttacking = player.team === attackingTeam;
-            const isOwner = player.id === this.currentBallOwnerId;
+            const output = this.teamBehavior.computePlayerBehavior(player, behaviorCtx);
 
-            if (isAttacking && !isOwner) {
-                this.applyAttackingOffBall(player, dir, ballX, ballZ, ballOwner);
-            } else if (!isAttacking) {
-                this.applyDefensiveReaction(player, dir, ballX, ballZ, ballOwner);
-            }
+            player.targetPosition.x = output.targetX;
+            player.targetPosition.z = output.targetZ;
+            player.currentSpeed = player.movementSpeed * output.speedFactor;
         }
+
+        this.applyGoalkeeperBehavior(behaviorCtx);
     }
 
-    private applyGoalkeeperTracking(
-        player: FuturebolPlayerState,
-        ballZ: number,
-        ballX: number
-    ): void {
-        const baseX = player.basePosition.x;
-        const lateralTrack = clamp(ballZ * 0.85, -2.8, 2.8);
-        const dirToBall = ballX > baseX ? 1 : -1;
-        const distToBall = Math.abs(ballX - baseX);
-        const depthAdjust = clamp(distToBall * 0.04, 0, 1.5);
-        player.targetPosition.x = baseX + dirToBall * depthAdjust;
-        player.targetPosition.z = lateralTrack;
-        player.currentSpeed = player.movementSpeed * 0.6;
-    }
+    private applyGoalkeeperBehavior(ctx: TeamBehaviorContext): void {
+        for (const player of this.players) {
+            if (player.role !== "goalkeeper") continue;
 
-    private applyAttackingOffBall(
-        player: FuturebolPlayerState,
-        dir: number,
-        ballX: number,
-        ballZ: number,
-        ballOwner: FuturebolPlayerState | null
-    ): void {
-        const distToBall = Math.hypot(ballX - player.position.x, ballZ - player.position.z);
-        const distToGoal = Math.abs(dir * 25 - player.position.x);
+            const controlledIds = this.actionController.getControlledPlayerIds();
+            if (controlledIds.has(player.id)) continue;
 
-        if (player.role === "attacker") {
-            if (distToGoal < 12) {
-                player.targetPosition.x = player.position.x + dir * 0.3;
-                player.targetPosition.z = clamp(
-                    ballZ * 0.5 + (player.position.z - ballZ) * 0.7,
-                    -5, 5
-                );
-            } else {
-                player.targetPosition.x = player.position.x + dir * 1.2;
-                player.targetPosition.z = clamp(
-                    ballZ * 0.4 + player.basePosition.z * 0.6,
-                    -5, 5
-                );
-            }
-            player.currentSpeed = player.movementSpeed * 0.7;
-        } else if (player.role === "defender") {
-            const supportX = ballX - dir * 5;
-            const supportZ = clamp(
-                ballZ * 0.3 + player.basePosition.z * 0.7,
-                -5, 5
-            );
-            player.targetPosition.x = clamp(supportX, -17, 17);
-            player.targetPosition.z = supportZ;
-            player.currentSpeed = player.movementSpeed * 0.5;
-        }
-    }
+            const gkCtx: GoalkeeperContext = {
+                team: player.team,
+                goalkeeper: player,
+                ballPosition: this.ballPosition,
+                ballVelocity: this.ballVelocity,
+                attackingTeam: ctx.attackingTeam,
+                ballOwnerId: this.currentBallOwnerId,
+                phase: this.currentPlayPhase,
+                phaseElapsed: this.phaseElapsed,
+                shotProfile: this.activeShotProfile,
+                shotEndZ: this.shotEnd.z,
+                seed: this.seedHash,
+                playIndex: this.playIndex
+            };
 
-    private applyDefensiveReaction(
-        player: FuturebolPlayerState,
-        dir: number,
-        ballX: number,
-        ballZ: number,
-        ballOwner: FuturebolPlayerState | null
-    ): void {
-        if (player.role === "attacker") {
-            const pressX = ballX + dir * 2.5;
-            const pressZ = clamp(
-                ballZ * 0.6 + player.basePosition.z * 0.4,
-                -5, 5
-            );
-            player.targetPosition.x = clamp(pressX, -19, 19);
-            player.targetPosition.z = pressZ;
-            player.currentSpeed = player.movementSpeed * 0.65;
-        } else if (player.role === "defender") {
-            const blockX = ballX + dir * 4;
-            const blockZ = clamp(
-                ballZ * 0.4 + player.basePosition.z * 0.6,
-                -5, 5
-            );
-            player.targetPosition.x = clamp(blockX, -17, 17);
-            player.targetPosition.z = blockZ;
-            player.currentSpeed = player.movementSpeed * 0.55;
+            const output = this.goalkeeperAI.computeIntent(gkCtx);
+            this.lastGoalkeeperDiagnostics = output;
+
+            player.targetPosition.x = output.targetX;
+            player.targetPosition.z = output.targetZ;
+            player.currentSpeed = player.movementSpeed * output.speedFactor;
         }
     }
 
@@ -1317,6 +1295,8 @@ export class FuturebolMatchState {
         this.pendingBranch = null;
         this.looseBallElapsed = 0;
         this.lastActionResult = null;
+        this.goalkeeperAI.reset();
+        this.lastGoalkeeperDiagnostics = null;
 
         if (this.currentOutcome === "Goal") {
             this.requiredOutcome = {
@@ -1348,6 +1328,11 @@ export class FuturebolMatchState {
             );
             this.activeScenario = scenario;
             this.actionController.startScenario(scenario);
+
+            const dirDiag = this.scenarioController.directorDiagnostics();
+            if (dirDiag.lastDecision) {
+                this.directorStyle = dirDiag.lastDecision.style;
+            }
         }
         this.homeOffensiveSeconds = 0;
         this.awayOffensiveSeconds = 0;
@@ -1993,21 +1978,35 @@ export class FuturebolMatchState {
             this.shotEnd.z
         );
 
-        const diveTarget = computeGoalkeeperDiveTarget(
-            this.shotEnd.z,
-            goalkeeper.position.z,
-            attackDirection(team)
-        );
-        goalkeeper.targetPosition.z = clamp(
-            diveTarget.targetZ,
-            -3.1,
-            3.1
-        );
+        const gkCtx: GoalkeeperContext = {
+            team: opponent(team),
+            goalkeeper,
+            ballPosition: this.ballPosition,
+            ballVelocity: this.ballVelocity,
+            attackingTeam: team,
+            ballOwnerId: null,
+            phase: "Shooting",
+            phaseElapsed: this.phaseElapsed,
+            shotProfile: this.activeShotProfile,
+            shotEndZ: this.shotEnd.z,
+            seed: this.seedHash,
+            playIndex: this.playIndex
+        };
 
-        if (progress >= 0.08) {
+        const gkOutput = this.goalkeeperAI.computeIntent(gkCtx);
+        this.lastGoalkeeperDiagnostics = gkOutput;
+
+        goalkeeper.targetPosition.x = gkOutput.targetX;
+        goalkeeper.targetPosition.z = gkOutput.targetZ;
+        goalkeeper.currentSpeed = goalkeeper.movementSpeed * gkOutput.speedFactor;
+
+        const diveProgress = this.phaseElapsed - gkOutput.reactionDelay;
+        const diveStarted = diveProgress > 0;
+
+        if (diveStarted) {
             goalkeeper.animation = "goalkeeper-dive";
             goalkeeper.actionProgress = smoothStep(
-                clamp((progress - 0.08) / 0.92, 0, 1)
+                clamp(diveProgress / 0.72, 0, 1)
             );
         }
 
@@ -3078,7 +3077,17 @@ export class FuturebolMatchState {
             } : null,
             shotOrdinal: this.shotOrdinal,
             branchCount: this.actionController.currentBranchCount,
-            looseBallElapsed: Math.round(this.looseBallElapsed * 100) / 100
+            looseBallElapsed: Math.round(this.looseBallElapsed * 100) / 100,
+            goalkeeperAI: this.lastGoalkeeperDiagnostics ? {
+                intent: this.lastGoalkeeperDiagnostics.intent,
+                owner: this.lastGoalkeeperDiagnostics.diagnostics.owner,
+                ballAngle: this.lastGoalkeeperDiagnostics.diagnostics.ballAngle,
+                targetOffset: this.lastGoalkeeperDiagnostics.diagnostics.targetOffset,
+                reactionDelay: this.lastGoalkeeperDiagnostics.diagnostics.reactionDelay,
+                shotSide: this.lastGoalkeeperDiagnostics.diagnostics.shotSide,
+                expectedDive: this.lastGoalkeeperDiagnostics.diagnostics.expectedDive,
+                depthRatio: this.lastGoalkeeperDiagnostics.diagnostics.depthRatio
+            } : null
         };
     }
 }

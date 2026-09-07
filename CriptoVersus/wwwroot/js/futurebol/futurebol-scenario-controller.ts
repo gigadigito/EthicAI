@@ -1,5 +1,6 @@
 import type {
     FootballScenario,
+    FootballBehaviorHints,
     FuturebolAction,
     FuturebolScenarioType,
     FuturebolBallAction,
@@ -163,7 +164,8 @@ function createDirectAttack(
         type: "DirectAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "AttackBox", defender: "Support" }
     };
 }
 
@@ -224,7 +226,8 @@ function createGiveAndGo(
         type: "GiveAndGo",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "RunInBehind", defender: "Support" }
     };
 }
 
@@ -276,7 +279,8 @@ function createCounterAttack(
         type: "CounterAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "RunInBehind", defender: "PushForward" }
     };
 }
 
@@ -331,7 +335,8 @@ function createThroughBall(
         type: "ThroughBall",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "RunInBehind", defender: "Support" }
     };
 }
 
@@ -387,7 +392,8 @@ function createWingAttack(
         type: "WingAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "DriftWide", defender: "DriftWide" }
     };
 }
 
@@ -440,7 +446,8 @@ function createLongShot(
         type: "LongShot",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "HoldPosition", defender: "Support" }
     };
 }
 
@@ -488,7 +495,8 @@ function createPressureAttack(
         type: "PressureAttack",
         attackingTeam,
         expectedOutcome: outcome,
-        actions
+        actions,
+        behaviorHints: { attacker: "AttackBox", defender: "PushForward" }
     };
 }
 

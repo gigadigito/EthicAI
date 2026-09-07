@@ -63,12 +63,29 @@ export type FuturebolScenarioType =
 
 export type FuturebolAttackingStyle = "Controlled" | "Balanced" | "Aggressive" | "Counter";
 
+export interface FootballBehaviorHints {
+    readonly attacker?: FuturebolOffBallIntent;
+    readonly defender?: FuturebolOffBallIntent;
+}
+
+export type FuturebolOffBallIntent =
+    | "Support"
+    | "RunInBehind"
+    | "DriftWide"
+    | "AttackBox"
+    | "HoldPosition"
+    | "ClosePassingLane"
+    | "Recover"
+    | "TrackBall"
+    | "PushForward";
+
 export interface FootballScenario {
     readonly id: string;
     readonly type: FuturebolScenarioType;
     readonly attackingTeam: FuturebolTeam;
     readonly expectedOutcome: FuturebolPlayOutcome;
     readonly actions: readonly FuturebolAction[];
+    readonly behaviorHints?: FootballBehaviorHints;
 }
 
 export interface FuturebolActionCompletionContext {
