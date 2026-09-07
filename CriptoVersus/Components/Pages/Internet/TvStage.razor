@@ -13570,44 +13570,13 @@ private sealed record TvArenaCommentaryEntry(
         .tv-stage.tv-stage--broadcast .tv-stage-desktop,
         .tv-stage.tv-stage--broadcast .tv-stage-desktop__grid,
         .tv-stage.tv-stage--broadcast .tv-stage-desktop__telemetry,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card--football,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-layout,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
+        .tv-stage.tv-stage--broadcast .tv-stage-field-panel {
             height: 100% !important;
             min-height: 0 !important;
             max-height: none !important;
             overflow: hidden !important;
         }
 
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-match-card--football {
-            display: grid !important;
-            grid-template-rows: auto minmax(0, 1fr) auto !important;
-        }
-
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-layout {
-            display: grid !important;
-            grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) minmax(170px, 220px) !important;
-            grid-template-rows: minmax(0, 1fr) !important;
-            align-items: stretch !important;
-        }
-
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
-            display: grid !important;
-            grid-template-rows: auto minmax(0, 1fr) !important;
-            align-items: stretch !important;
-        }
-
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-field__broadcast-shell,
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-camera-viewport {
-            height: 100% !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            overflow: hidden !important;
-        }
     }
 
     @@media (max-width: 720px) {
@@ -13623,22 +13592,6 @@ private sealed record TvArenaCommentaryEntry(
     @@media (max-width: 932px) and (orientation: landscape) {
         .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport {
             min-height: clamp(200px, min(40vw, 42dvh), 400px) !important;
-        }
-    }
-
-    /* Runtime v22: final desktop override for vertical field fill. Keep this after v19 rules. */
-    @@media (min-width: 1181px) {
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-center {
-            display: grid !important;
-            grid-template-rows: auto minmax(0, 1fr) !important;
-        }
-
-        .tv-stage.tv-stage--broadcast .tv-stage-field-panel .tv-football-field-viewport {
-            height: 100% !important;
-            min-height: clamp(520px, calc(100svh - 215px), 760px) !important;
-            max-height: none !important;
-            display: grid !important;
-            align-items: stretch !important;
         }
     }
 
