@@ -4,7 +4,7 @@ import { FuturebolCameraDirector } from "./futurebol-camera-director.js";
 import type { CameraDirectorInput, CameraModeOutput } from "./futurebol-camera-director.js";
 import type { FuturebolArena as FuturebolArenaContract } from "./futurebol-arena.js";
 // @ts-ignore Browser module queries are intentional: this is the cache boundary for the visual arena builder.
-import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260822-official-goal-field-1";
+import { FuturebolArena as FuturebolArenaRuntime } from "./futurebol-arena.js?v=20260907-camera-market-bubble-v1";
 import { FuturebolPlayerMarketBubble } from "./futurebol-player-market-bubble.js";
 import type {
     FuturebolAssetState,

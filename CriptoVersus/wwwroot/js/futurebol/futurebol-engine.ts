@@ -1,9 +1,9 @@
 import type { FuturebolMatchState as FuturebolMatchStateContract } from "./futurebol-match-state.js";
 // @ts-ignore Browser module queries are intentional: replay state must not come from a stale module.
-import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260822-official-goal-field-1";
+import { FuturebolMatchState as FuturebolMatchStateRuntime } from "./futurebol-match-state.js?v=20260907-camera-market-bubble-v1";
 import type { FuturebolRenderer as FuturebolRendererContract } from "./futurebol-renderer.js";
 // @ts-ignore Browser module queries are intentional: force the real stadium renderer through stale caches.
-import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260822-official-goal-field-1";
+import { FuturebolRenderer as FuturebolRendererRuntime } from "./futurebol-renderer.js?v=20260907-camera-market-bubble-v1";
 import { createFuturebolTeamVisualConfiguration } from './futurebol-team-configuration.js';
 import type {
     FuturebolDotNetReference,
