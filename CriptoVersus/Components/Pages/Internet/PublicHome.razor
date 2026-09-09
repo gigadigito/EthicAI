@@ -19,6 +19,7 @@
 @inject RouteLocalizationService RouteLocalization
 @inject MatchSlugHelper MatchSlugHelper
 @inject ILogger<PublicHome> Logger
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 
@@ -63,6 +64,29 @@
 
             <CommunityMatchCreationCard />
         </aside>
+    }
+    @if (_followedMatchCard is not null)
+    {
+        <div class="followed-match-banner" role="complementary" aria-label="@T("followedMatch")">
+            <div class="followed-match-banner__content">
+                <span class="followed-match-banner__label">@T("followedMatch")</span>
+                <span class="followed-match-banner__teams">@_followedMatchCard.TeamsLabel</span>
+                @if (_followedMatchCard.IsLive)
+                {
+                    <span class="followed-match-banner__status followed-match-banner__status--live">@T("live")</span>
+                }
+                else if (_followedMatchCard.IsFinished)
+                {
+                    <span class="followed-match-banner__status">@_followedMatchCard.ResultLabel</span>
+                }
+            </div>
+            <a class="followed-match-banner__cta"
+               href="@_followedMatchCard.MatchUrl"
+               @onclick="TrackFollowedMatchReturn"
+               @onclick:preventDefault="false">
+                @(_followedMatchCard.IsLive ? T("continue") : T("seeResult"))
+            </a>
+        </div>
     }
     <header class="home-hero">
         <div class="home-hero__copy">
@@ -217,8 +241,6 @@
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           target="_blank"
-                           rel="noopener noreferrer"
                            aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openMatch")
                         </a>
@@ -311,8 +333,6 @@
                         </a>
                         <a class="arena-cta-link home-hot-hero__cta-link"
                            href="@GetPublicMatchUrl(hero.MatchId, hero.TeamA, hero.TeamB)"
-                           target="_blank"
-                           rel="noopener noreferrer"
                            aria-label="@ArenaText("openMatchAria", GetBaseSymbol(hero.TeamA), GetBaseSymbol(hero.TeamB), hero.MatchId)">
                             @ArenaText("openMatch")
                         </a>
@@ -458,8 +478,6 @@
                                 </a>
                                 <a class="arena-cta-link"
                                    href="@GetPublicMatchUrl(featured)"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
                                    aria-label="@ArenaText("openMatchAria", GetBaseSymbol(featured.TeamA), GetBaseSymbol(featured.TeamB), featured.MatchId)">
                                     @ArenaText("openMatch")
                                 </a>
@@ -552,8 +570,6 @@
                                 </a>
                                 <a class="arena-cta-link"
                                    href="@GetPublicMatchUrl(match)"
-                                   target="_blank"
-                                   rel="noopener noreferrer"
                                    aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
                                     @ArenaText("openMatch")
                                 </a>
@@ -639,8 +655,6 @@
                             </a>
                             <a class="arena-cta-link"
                                href="@GetPublicMatchUrl(match)"
-                               target="_blank"
-                               rel="noopener noreferrer"
                                aria-label="@ArenaText("openMatchAria", GetBaseSymbol(match.TeamA), GetBaseSymbol(match.TeamB), match.MatchId)">
                                 @ArenaText("openMatch")
                             </a>
@@ -751,7 +765,8 @@
     private string _lastRefreshSignature = string.Empty;
     private bool _interactiveFeaturesStarted;
     private bool _hubSubscribed;
-    private bool _showCommunityMatchFloatingCard = true;
+    private bool _showCommunityMatchFloatingCard;
+    private FollowedMatchCardModel? _followedMatchCard;
 
     private string CommunityMatchCloseLabel => CurrentCulture switch
     {
@@ -761,7 +776,14 @@
     };
 
     private void CloseCommunityMatchFloatingCard()
-        => _showCommunityMatchFloatingCard = false;
+    {
+        _showCommunityMatchFloatingCard = false;
+        try
+        {
+            _ = JS.InvokeVoidAsync("localStorage.setItem", "cv_community_card_closed", DateTime.UtcNow.ToString("o"));
+        }
+        catch { }
+    }
 
     private string CurrentCulture => AppCulture.GetCurrentRouteCulture(Nav);
     private string SeoTitle => T("criptoversusLiveCryptoMatchArena");
@@ -1777,6 +1799,36 @@
 
             try
             {
+                await JS.InvokeVoidAsync("CvAnalytics.trackHomeView");
+            }
+            catch { }
+
+            try
+            {
+                var closedAt = await JS.InvokeAsync<string?>("localStorage.getItem", "cv_community_card_closed");
+                if (!string.IsNullOrWhiteSpace(closedAt) && DateTime.TryParse(closedAt, out var closedUtc))
+                {
+                    if ((DateTime.UtcNow - closedUtc).TotalHours < 24)
+                        _showCommunityMatchFloatingCard = false;
+                    else
+                        _showCommunityMatchFloatingCard = true;
+                }
+                else
+                {
+                    _showCommunityMatchFloatingCard = true;
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+            catch { }
+
+            try
+            {
+                await LoadFollowedMatchCardAsync();
+            }
+            catch { }
+
+            try
+            {
                 if (await ReloadHomeDataAsync(
                     CancellationToken.None,
                     "after-first-render",
@@ -1871,6 +1923,94 @@
         return changed;
     }
 
+    private async Task LoadFollowedMatchCardAsync()
+    {
+        try
+        {
+            var followedJson = await JS.InvokeAsync<string?>("CvFollowedMatches.getFollowed");
+            if (string.IsNullOrWhiteSpace(followedJson))
+                return;
+
+            var followed = System.Text.Json.JsonSerializer.Deserialize<List<FollowedMatchEntry>>(followedJson);
+            if (followed is null || followed.Count == 0)
+                return;
+
+            var mostRecent = followed
+                .OrderByDescending(x => x.followedAt)
+                .FirstOrDefault();
+
+            if (mostRecent is null)
+                return;
+
+            _followedMatchCard = new FollowedMatchCardModel
+            {
+                MatchId = mostRecent.matchId,
+                TeamsLabel = $"{mostRecent.leftAsset} × {mostRecent.rightAsset}",
+                MatchUrl = RouteLocalization.BuildHomePath(CurrentCulture),
+                IsLive = false,
+                IsFinished = false,
+                ResultLabel = ""
+            };
+
+            try
+            {
+                var match = await Api.GetMatchByIdAsync(mostRecent.matchId);
+                if (match is null)
+                {
+                    _followedMatchCard = null;
+                    return;
+                }
+
+                var matchUrl = GetPublicMatchUrl(match);
+                _followedMatchCard.TeamsLabel = $"{match.TeamA} × {match.TeamB}";
+                _followedMatchCard.MatchUrl = matchUrl;
+                var isFinished = string.Equals(match.Status, "Finished", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(match.Status, "Completed", StringComparison.OrdinalIgnoreCase);
+                var isOngoing = string.Equals(match.Status, "Ongoing", StringComparison.OrdinalIgnoreCase);
+
+                _followedMatchCard.IsLive = isOngoing && !isFinished;
+                _followedMatchCard.IsFinished = isFinished;
+
+                if (isFinished)
+                {
+                    var winner = match.ScoreA > match.ScoreB ? match.TeamA
+                        : match.ScoreB > match.ScoreA ? match.TeamB
+                        : null;
+                    _followedMatchCard.ResultLabel = winner is not null
+                        ? $"{match.TeamA} {match.ScoreA} × {match.ScoreB} {match.TeamB} — {winner} {T("wins")}"
+                        : $"{match.TeamA} {match.ScoreA} × {match.ScoreB} {match.TeamB} — {T("draw")}";
+                }
+                else if (isOngoing)
+                {
+                    _followedMatchCard.ResultLabel = $"{match.TeamA} {match.ScoreA} × {match.ScoreB} {match.TeamB}";
+                }
+                else
+                {
+                    _followedMatchCard = null;
+                }
+            }
+            catch
+            {
+                _followedMatchCard = null;
+            }
+        }
+        catch
+        {
+            _followedMatchCard = null;
+        }
+    }
+
+    private async Task TrackFollowedMatchReturn()
+    {
+        if (_followedMatchCard is null) return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("CvAnalytics.trackReturnToFollowedMatch", _followedMatchCard.MatchId);
+        }
+        catch { }
+    }
+
     public ValueTask DisposeAsync()
     {
         _disposed = true;
@@ -1898,6 +2038,24 @@
         _reloadLock.Dispose();
 
         return ValueTask.CompletedTask;
+    }
+
+    private sealed class FollowedMatchEntry
+    {
+        public int matchId { get; set; }
+        public string leftAsset { get; set; } = "";
+        public string rightAsset { get; set; } = "";
+        public long followedAt { get; set; }
+    }
+
+    private sealed class FollowedMatchCardModel
+    {
+        public int MatchId { get; set; }
+        public string TeamsLabel { get; set; } = "";
+        public string MatchUrl { get; set; } = "";
+        public bool IsLive { get; set; }
+        public bool IsFinished { get; set; }
+        public string ResultLabel { get; set; } = "";
     }
 }
 

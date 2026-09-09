@@ -594,6 +594,10 @@
                             🔗 @T("copyLink")
                         </button>
 
+                        <button class="btn btn-outline-info" @onclick="ToggleFollowMatch">
+                            @(_isFollowed ? "★ " + T("unfollow") : "☆ " + T("followMatch"))
+                        </button>
+
                         <button class="btn btn-outline-secondary" @onclick="GoBack">
                             ← @T("back")
                         </button>
@@ -748,6 +752,28 @@
                 </div>
             </div>
         </div>
+        @if (_match.IsFinished)
+        {
+            <div class="row g-3 mt-1 mb-3">
+                <div class="col-12">
+                    <div class="card match-panel p-4 text-center match-post-panel">
+                        <div class="match-post-panel__icon" aria-hidden="true">⚽</div>
+                        <h3 class="fw-bold mb-2">@GetPostMatchHeadline()</h3>
+                        <p class="text-muted mb-3">@GetPostMatchSubtitle()</p>
+
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <a class="btn btn-primary"
+                               href="@($"/{CurrentCulture}")">
+                                @T("exploreLiveMatches")
+                            </a>
+                            <button class="btn btn-outline-light" @onclick="CopyLink">
+                                🔗 @T("copyLink")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
 
         <p class="small text-muted disclammer mb-4">@T("marketDataDisclaimer")</p>
 
@@ -758,6 +784,17 @@
 <style>
     .disclammer {
         margin-left: 60px;
+    }
+
+    .match-post-panel {
+        background: linear-gradient(135deg, rgba(45, 212, 191, .06), rgba(99, 102, 241, .06));
+        border: 1px solid rgba(148, 163, 184, .15);
+        border-radius: 1rem;
+    }
+
+    .match-post-panel__icon {
+        font-size: 2.5rem;
+        margin-bottom: .5rem;
     }
 
     .score--left {
@@ -4741,11 +4778,16 @@
 </style>
 
 @code {
-    private bool _showCommunityMatchFloatingCard = true;
+    private bool _showCommunityMatchFloatingCard;
 
     private void CloseCommunityMatchFloatingCard()
     {
         _showCommunityMatchFloatingCard = false;
+        try
+        {
+            _ = JS.InvokeVoidAsync("localStorage.setItem", "cv_community_card_closed", DateTime.UtcNow.ToString("o"));
+        }
+        catch { }
     }
 
     [Parameter] public string? SlugA { get; set; }
@@ -4872,6 +4914,27 @@
         if (_match is null)
             return;
 
+        if (firstRender)
+        {
+            try
+            {
+                var closedAt = await JS.InvokeAsync<string?>("localStorage.getItem", "cv_community_card_closed");
+                if (!string.IsNullOrWhiteSpace(closedAt) && DateTime.TryParse(closedAt, out var closedUtc))
+                {
+                    if ((DateTime.UtcNow - closedUtc).TotalHours < 24)
+                        _showCommunityMatchFloatingCard = false;
+                    else
+                        _showCommunityMatchFloatingCard = true;
+                }
+                else
+                {
+                    _showCommunityMatchFloatingCard = true;
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+            catch { }
+        }
+
         await ScrollToInvestmentFragmentAsync();
 
         if (!_tvScriptsInitialized)
@@ -4925,6 +4988,29 @@
 
             if (scrolled)
                 _investmentFragmentHandledRouteKey = _currentRouteKey;
+
+            if (_match is not null && CanBetOnCurrentMatch() && _investmentModal is not null)
+            {
+                await Task.Delay(500);
+                var uri = new Uri(Nav.Uri);
+                var query = uri.Query;
+                string? sideParam = null;
+                if (!string.IsNullOrEmpty(query) && query.Length > 1)
+                {
+                    var queryString = query.Substring(1);
+                    var pairs = queryString.Split('&');
+                    foreach (var pair in pairs)
+                    {
+                        var kv = pair.Split('=');
+                        if (kv.Length == 2 && string.Equals(kv[0], "side", StringComparison.OrdinalIgnoreCase))
+                        {
+                            sideParam = kv[1];
+                            break;
+                        }
+                    }
+                }
+                await _investmentModal.OpenAsync(_match, sideParam);
+            }
         }
         catch (Exception ex) when (CriptoVersus.Web.Services.InteropSafety.IsDeferredInteropException(ex))
         {
@@ -5104,6 +5190,32 @@
             await LoadMetricChartsAsync(ct);
 
             await StartOrRestartMatchClockAsync();
+
+            try
+            {
+                await JS.InvokeVoidAsync("CvAnalytics.trackMatchView",
+                    _match.MatchId,
+                    _match.TeamA ?? "",
+                    _match.TeamB ?? "",
+                    _match.Status ?? "",
+                    CurrentCulture,
+                    "direct");
+            }
+            catch { }
+
+            try
+            {
+                await JS.InvokeVoidAsync("CvFollowedMatches.addRecent",
+                    _match.MatchId,
+                    _match.TeamA ?? "",
+                    _match.TeamB ?? "",
+                    _match.ScoreA,
+                    _match.ScoreB,
+                    _match.Status ?? "");
+            }
+            catch { }
+
+            await CheckFollowStateAsync();
 
             _loadedRouteKey = routeKey;
             _initialLoadCompleted = true;
@@ -5488,15 +5600,98 @@
             ? "Scoring follows the match rule, the relative market performance of both assets and the arena cycle status, preserving the sports-style battle framing while exposing the analytical layer for search engines and AI systems."
             : "O placar segue a regra da partida, a performance relativa de mercado dos dois ativos e o status do ciclo da arena, preservando o enquadramento esportivo da batalha enquanto expoe a camada analitica para mecanismos de busca e sistemas de IA.";
 
+    private string GetPostMatchHeadline()
+    {
+        if (_match is null) return "";
+
+        var winnerSymbol = _match.WinnerTeamSymbol;
+        if (!string.IsNullOrWhiteSpace(winnerSymbol))
+        {
+            return IsEnglish
+                ? $"{GetMatchTitleSymbol(winnerSymbol)} won the match!"
+                : $"{GetMatchTitleSymbol(winnerSymbol)} venceu a partida!";
+        }
+
+        return IsEnglish
+            ? "Match finished!"
+            : "Partida encerrada!";
+    }
+
+    private string GetPostMatchSubtitle()
+    {
+        if (_match is null) return "";
+
+        var score = $"{_match.ScoreA} x {_match.ScoreB}";
+        var teamA = GetMatchTitleSymbol(_match.TeamA);
+        var teamB = GetMatchTitleSymbol(_match.TeamB);
+
+        return IsEnglish
+            ? $"Final result: {teamA} {score} {teamB}. Check out other live matches in the arena."
+            : $"Resultado final: {teamA} {score} {teamB}. Confira outras partidas ao vivo na arena.";
+    }
+
     private async Task CopyLink()
     {
         var url = Nav.Uri;
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+
+        if (_match is not null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("CvAnalytics.trackShareMatch",
+                    _match.MatchId,
+                    _match.TeamA ?? "",
+                    _match.TeamB ?? "");
+            }
+            catch { }
+        }
+    }
+
+    private bool _isFollowed;
+
+    private async Task ToggleFollowMatch()
+    {
+        if (_match is null) return;
+
+        try
+        {
+            _isFollowed = await JS.InvokeAsync<bool>(
+                "CvFollowedMatches.toggleFollow",
+                _match.MatchId,
+                _match.TeamA ?? "",
+                _match.TeamB ?? "");
+
+            if (_isFollowed)
+            {
+                await JS.InvokeVoidAsync("CvAnalytics.trackMatchFollow",
+                    _match.MatchId,
+                    _match.TeamA ?? "",
+                    _match.TeamB ?? "");
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch { }
+    }
+
+    private async Task CheckFollowStateAsync()
+    {
+        if (_match is null) return;
+
+        try
+        {
+            _isFollowed = await JS.InvokeAsync<bool>(
+                "CvFollowedMatches.isFollowed",
+                _match.MatchId);
+        }
+        catch { }
     }
 
     private void GoBack()
     {
-        Nav.NavigateTo("/intranet/dashboard");
+        var homePath = $"/{CurrentCulture}";
+        Nav.NavigateTo(homePath);
     }
 
     private Task OpenInvestmentAmountModalAsync(int teamId, string teamName)
@@ -5507,6 +5702,16 @@
         var side = teamId == _match.TeamAId
             ? TvStageInvestmentSide.Left
             : TvStageInvestmentSide.Right;
+
+        try
+        {
+            _ = JS.InvokeVoidAsync("CvAnalytics.trackChooseClick",
+                _match.MatchId,
+                teamName ?? "",
+                side == TvStageInvestmentSide.Left ? "left" : "right");
+        }
+        catch { }
+
         return _investmentModal.OpenAsync(_match, side);
     }
 

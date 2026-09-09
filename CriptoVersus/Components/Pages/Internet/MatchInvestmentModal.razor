@@ -47,10 +47,30 @@
                     <button type="button" class="btn-close btn-close-white" aria-label="@T("close")" @onclick="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="amount-modal-team">
-                        <span>@T("investmentIn")</span>
-                        <strong><MarketPairText Symbol="@_pendingBetTeamName" /></strong>
-                    </div>
+                    @if (_teamSelectionRequired && _match is not null)
+                    {
+                        <div class="team-selection-step">
+                            <div class="amount-modal-team">
+                                <span>@T("chooseTheTeamToInvest")</span>
+                            </div>
+                            <div class="team-selection-buttons">
+                                <button type="button" class="team-selection-btn team-selection-btn--left"
+                                        @onclick="() => SelectTeam(_match.TeamAId, _match.TeamA)">
+                                    <span class="team-selection-btn__name">@_match.TeamA</span>
+                                </button>
+                                <button type="button" class="team-selection-btn team-selection-btn--right"
+                                        @onclick="() => SelectTeam(_match.TeamBId, _match.TeamB)">
+                                    <span class="team-selection-btn__name">@_match.TeamB</span>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="amount-modal-team">
+                            <span>@T("investmentIn")</span>
+                            <strong><MarketPairText Symbol="@_pendingBetTeamName" /></strong>
+                        </div>
 
                     <div class="wallet-guard-summary">
                         <div>
@@ -110,12 +130,19 @@
                     {
                         <div class="text-danger small mt-2">@CurrentInvestmentAmountError</div>
                     }
+                    }
                 </div>
                 <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-outline-light" @onclick="Close">@T("cancel")</button>
-                    <button type="button" class="btn btn-primary" disabled="@(_isSendingBet || _walletBalanceLoading || !IsInvestmentAmountValid)" @onclick="ConfirmAsync">
-                        @InvestmentPrimaryButtonText
-                    </button>
+                    @if (_teamSelectionRequired)
+                    {
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary" disabled="@(_isSendingBet || _walletBalanceLoading || !IsInvestmentAmountValid)" @onclick="ConfirmAsync">
+                            @InvestmentPrimaryButtonText
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -141,6 +168,53 @@
         color: #9ca3af;
         font-size: .9rem;
         font-weight: 800;
+    }
+
+    .team-selection-step {
+        margin-bottom: 0;
+    }
+
+    .team-selection-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .team-selection-btn {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        color: #e5e7eb;
+        font-weight: 800;
+        font-size: 1rem;
+        min-height: 3.5rem;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .team-selection-btn:hover {
+        background: rgba(45, 212, 191, 0.14);
+        border-color: #2dd4bf;
+        color: #5eead4;
+        transform: translateY(-1px);
+    }
+
+    .team-selection-btn--left:hover {
+        border-color: rgba(239, 68, 68, 0.6);
+        background: rgba(239, 68, 68, 0.1);
+        color: #fca5a5;
+    }
+
+    .team-selection-btn--right:hover {
+        border-color: rgba(59, 130, 246, 0.6);
+        background: rgba(59, 130, 246, 0.1);
+        color: #93c5fd;
+    }
+
+    .team-selection-btn__name {
+        display: block;
+        text-align: center;
     }
 
     .wallet-guard-summary {
@@ -210,6 +284,7 @@
 
     private MatchDto? _match;
     private bool _isOpen;
+    private bool _teamSelectionRequired;
     private bool _isSendingBet;
     private string _betResponseBody = "";
     private bool _isInvestmentReturnOpen;
@@ -279,12 +354,54 @@
         _match = match;
         _pendingBetTeamId = side == TvStageInvestmentSide.Left ? match.TeamAId : match.TeamBId;
         _pendingBetTeamName = side == TvStageInvestmentSide.Left ? match.TeamA : match.TeamB;
+        _teamSelectionRequired = false;
         _investmentAmount = 0.1m;
         _investmentAmountError = "";
         _isOpen = true;
         await InvokeAsync(StateHasChanged);
         await RefreshAuthenticatedUserAsync();
         await LoadWalletGuardSnapshotAsync();
+    }
+
+    public async Task OpenAsync(MatchDto match, string? sideParam = null)
+    {
+        _match = match;
+        _teamSelectionRequired = true;
+        _pendingBetTeamId = 0;
+        _pendingBetTeamName = "";
+
+        if (string.Equals(sideParam, "A", StringComparison.OrdinalIgnoreCase))
+        {
+            _pendingBetTeamId = match.TeamAId;
+            _pendingBetTeamName = match.TeamA;
+            _teamSelectionRequired = false;
+        }
+        else if (string.Equals(sideParam, "B", StringComparison.OrdinalIgnoreCase))
+        {
+            _pendingBetTeamId = match.TeamBId;
+            _pendingBetTeamName = match.TeamB;
+            _teamSelectionRequired = false;
+        }
+
+        _investmentAmount = 0.1m;
+        _investmentAmountError = "";
+        _isOpen = true;
+        await InvokeAsync(StateHasChanged);
+        await RefreshAuthenticatedUserAsync();
+        if (!_teamSelectionRequired)
+            await LoadWalletGuardSnapshotAsync();
+    }
+
+    private void SelectTeam(int teamId, string teamName)
+    {
+        _pendingBetTeamId = teamId;
+        _pendingBetTeamName = teamName;
+        _teamSelectionRequired = false;
+        _ = InvokeAsync(async () =>
+        {
+            await LoadWalletGuardSnapshotAsync();
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private void Close()

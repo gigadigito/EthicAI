@@ -565,3 +565,234 @@ a:hover,
         width: clamp(58px, 15vw, 86px);
         height: clamp(58px, 15vw, 86px);
     }
+
+/* Public page reconnect - small indicator instead of full overlay */
+.cv-public-page #components-reconnect-modal {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    left: auto;
+    top: auto;
+    width: auto;
+    height: auto;
+    max-width: 280px;
+    z-index: 3000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .28s ease, visibility .28s ease;
+}
+
+.cv-public-page #components-reconnect-modal.components-reconnect-show,
+.cv-public-page #components-reconnect-modal.components-reconnect-failed,
+.cv-public-page #components-reconnect-modal.components-reconnect-rejected,
+.cv-public-page #components-reconnect-modal.components-reconnect-retrying,
+.cv-public-page #components-reconnect-modal.components-reconnect-paused {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: none;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-overlay {
+    position: relative;
+    width: 100%;
+    height: auto;
+    display: block;
+    padding: 0;
+    overflow: visible;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-backdrop {
+    display: none;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card {
+    position: relative;
+    width: 100%;
+    padding: .6rem .85rem .55rem;
+    border-radius: 12px;
+    border: 1px solid rgba(76, 243, 141, .25);
+    background: rgba(9, 14, 24, .92);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .3);
+    color: #f4fbff;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__glow {
+    display: none;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__eyebrow {
+    color: #7ff6df;
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    margin-bottom: .25rem;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__spinner {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: .4rem;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__spinner span {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #7ff6df;
+    animation: cv-reconnect-spin .8s linear infinite;
+}
+
+@keyframes cv-reconnect-spin {
+    to { transform: rotate(360deg); }
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__title {
+    font-size: .85rem;
+    font-weight: 700;
+    margin-bottom: .15rem;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__subtitle {
+    font-size: .75rem;
+    color: #9ca3af;
+    margin-bottom: 0;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__reload {
+    display: none;
+}
+
+.cv-public-page #components-reconnect-modal.components-reconnect-failed .cv-reconnect-card__reload,
+.cv-public-page #components-reconnect-modal.components-reconnect-rejected .cv-reconnect-card__reload {
+    display: inline-block;
+    margin-top: .4rem;
+    padding: .25rem .6rem;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #f4fbff;
+    background: rgba(239, 68, 68, .2);
+    border: 1px solid rgba(239, 68, 68, .4);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__body,
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__attempts,
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__status,
+.cv-public-page #components-reconnect-modal .cv-reconnect-card__button {
+    display: none;
+}
+
+.cv-public-page #components-reconnect-modal.components-reconnect-failed .cv-reconnect-card__button,
+.cv-public-page #components-reconnect-modal.components-reconnect-rejected .cv-reconnect-card__button {
+    display: inline-block;
+    margin-top: .35rem;
+    padding: .2rem .5rem;
+    font-size: .7rem;
+    font-weight: 700;
+    color: #f4fbff;
+    background: rgba(239, 68, 68, .15);
+    border: 1px solid rgba(239, 68, 68, .35);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Followed match banner on Home */
+.followed-match-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .65rem 1rem;
+    margin: 0 1rem 1rem;
+    background: rgba(9, 14, 24, .85);
+    border: 1px solid rgba(76, 243, 141, .2);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+}
+
+.followed-match-banner__content {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.followed-match-banner__label {
+    font-size: .7rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #7ff6df;
+}
+
+.followed-match-banner__teams {
+    font-size: .85rem;
+    font-weight: 700;
+    color: #f4fbff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.followed-match-banner__status {
+    font-size: .7rem;
+    font-weight: 700;
+    color: #9ca3af;
+}
+
+.followed-match-banner__status--live {
+    color: #ef4444;
+    animation: followed-live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes followed-live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .6; }
+}
+
+.followed-match-banner__cta {
+    flex-shrink: 0;
+    padding: .35rem .75rem;
+    font-size: .75rem;
+    font-weight: 800;
+    color: #020812;
+    background: linear-gradient(135deg, #4cf38d, #2dd4bf);
+    border-radius: 8px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.followed-match-banner__cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 243, 141, .25);
+}
+
+@media (max-width: 480px) {
+    .followed-match-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: .5rem;
+        padding: .6rem .8rem;
+        margin: 0 .5rem .75rem;
+    }
+
+    .followed-match-banner__cta {
+        width: 100%;
+        text-align: center;
+    }
+}
