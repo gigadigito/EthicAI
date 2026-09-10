@@ -184,10 +184,13 @@ namespace CriptoVersus.API.Controllers
                   AND nr_last_price IS NOT NULL
                   AND nr_last_price > 0;";
 
+            var conn = (NpgsqlConnection)db.Database.GetDbConnection();
+            var openedHere = conn.State != ConnectionState.Open;
+
             try
             {
-                await using var conn = new NpgsqlConnection(db.Database.GetDbConnection().ConnectionString);
-                await conn.OpenAsync(ct);
+                if (openedHere)
+                    await conn.OpenAsync(ct);
 
                 await using var cmd = new NpgsqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("symbols", symbols);
@@ -210,6 +213,11 @@ namespace CriptoVersus.API.Controllers
             catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.UndefinedTable)
             {
                 // coin_price_current not yet created; prices remain null
+            }
+            finally
+            {
+                if (openedHere)
+                    await conn.CloseAsync();
             }
         }
 
