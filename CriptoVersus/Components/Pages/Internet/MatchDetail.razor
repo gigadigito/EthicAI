@@ -152,6 +152,13 @@
                             @(ShouldShowLiveBadge(_match) ? T("live") : GetPresentationStatusText(_match).ToUpperInvariant())
                         </span>
                         <span class="social-share-card__match-id">Match #@_match.MatchId</span>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-warning match-alert-top-btn"
+                                title="@T("matchAlerts")"
+                                aria-label="@T("matchAlerts")"
+                                @onclick="OpenAlertModal">
+                            <i class="bi bi-bell"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -792,6 +799,18 @@
 <style>
     .disclammer {
         margin-left: 60px;
+    }
+
+    .match-alert-top-btn {
+        padding: .25rem .5rem;
+        font-size: .85rem;
+        border-radius: .5rem;
+        line-height: 1;
+        vertical-align: middle;
+    }
+
+    .match-alert-top-btn i {
+        font-size: 1rem;
     }
 
     .match-post-panel {

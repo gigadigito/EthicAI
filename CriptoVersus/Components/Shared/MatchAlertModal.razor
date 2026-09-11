@@ -122,7 +122,7 @@
     private bool _notifyComeback = true;
     private bool _notifyFinished = true;
 
-    private string T(string key) => L.T(key, Culture ?? "en");
+    private string T(string key) => L.T($"matchDetail.{key}", Culture ?? "en");
 
     public async Task OpenAsync()
     {
